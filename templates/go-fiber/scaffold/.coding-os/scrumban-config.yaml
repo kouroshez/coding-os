@@ -1,0 +1,38 @@
+# Phase L — Scrumban for go-fiber stack.
+
+swimlanes:
+  - id: handlers
+    label: "Fiber Handlers"
+    color: "#00ADD8"
+    description: "Fiber HTTP handlers, route groups"
+  - id: middleware
+    label: "Middleware / Auth"
+    color: "#ea580c"
+    description: "Middleware, auth, validation"
+  - id: services
+    label: "Domain Services"
+    color: "#3b82f6"
+    description: "Business logic, services, selectors"
+  - id: db
+    label: "Database / Repos"
+    color: "#0c7a4e"
+    description: "Repositories, queries, migrations"
+  - id: shared
+    label: "Shared / Pkg"
+    color: "#0891b2"
+    description: "Internal packages, shared types, DTOs"
+  - id: docs
+    label: "Documentation"
+    color: "#a855f7"
+    description: "Docs, ADRs, READMEs"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "Docker, CI/CD, deploy"
+
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+label_families: []

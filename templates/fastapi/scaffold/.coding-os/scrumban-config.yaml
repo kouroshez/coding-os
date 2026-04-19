@@ -1,0 +1,34 @@
+# Phase L — Scrumban for fastapi stack.
+
+swimlanes:
+  - id: api
+    label: "FastAPI Routes"
+    color: "#009688"     # FastAPI teal
+    description: "Routers, endpoints, request/response models"
+  - id: services
+    label: "Domain Services"
+    color: "#3b82f6"
+    description: "Business logic, services, selectors"
+  - id: ml
+    label: "ML / Inference"
+    color: "#9333ea"
+    description: "Model loading, inference, embeddings"
+  - id: shared
+    label: "Shared / Schemas"
+    color: "#0891b2"
+    description: "Pydantic models, contracts, shared utils"
+  - id: docs
+    label: "Documentation"
+    color: "#a855f7"
+    description: "Docs, OpenAPI tweaks, READMEs"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "Docker, CI/CD, deploy, observability"
+
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+label_families: []

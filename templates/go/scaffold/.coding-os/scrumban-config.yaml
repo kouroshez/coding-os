@@ -1,0 +1,34 @@
+# Phase L — Scrumban for go stack.
+
+swimlanes:
+  - id: handlers
+    label: "HTTP Handlers"
+    color: "#00ADD8"     # Go cyan
+    description: "Request handlers, routing"
+  - id: services
+    label: "Domain Services"
+    color: "#3b82f6"
+    description: "Business logic, services"
+  - id: db
+    label: "Database / Repos"
+    color: "#0c7a4e"
+    description: "Repositories, queries, migrations"
+  - id: shared
+    label: "Shared / Pkg"
+    color: "#0891b2"
+    description: "Internal packages, shared types"
+  - id: docs
+    label: "Documentation"
+    color: "#a855f7"
+    description: "Docs, ADRs, READMEs"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "Docker, CI/CD, deploy"
+
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+label_families: []

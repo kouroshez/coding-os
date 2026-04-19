@@ -1,0 +1,34 @@
+# Phase L — Scrumban for nextjs stack.
+
+swimlanes:
+  - id: frontend
+    label: "Next.js / React"
+    color: "#000000"     # Next black
+    description: "Pages, components, layouts, hooks"
+  - id: api
+    label: "API Routes / Server"
+    color: "#3b82f6"
+    description: "app/api routes, Server Components, Server Actions"
+  - id: e2e
+    label: "E2E / QA"
+    color: "#f59e0b"
+    description: "Playwright, Cypress, integration"
+  - id: design
+    label: "Design / UX"
+    color: "#ec4899"
+    description: "Component design, a11y, theming"
+  - id: docs
+    label: "Documentation"
+    color: "#a855f7"
+    description: "Docs, ADRs, READMEs"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "Vercel/Docker, CI/CD, deploy"
+
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+label_families: []

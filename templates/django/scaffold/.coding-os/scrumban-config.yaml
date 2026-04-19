@@ -1,0 +1,35 @@
+# Phase L — Scrumban for django stack.
+# Overrides templates/_base/scaffold/.coding-os/scrumban-config.yaml.
+
+swimlanes:
+  - id: backend
+    label: "Django / DRF"
+    color: "#0c7a4e"     # Django green
+    description: "Models, views, serializers, services, selectors"
+  - id: frontend
+    label: "Frontend"
+    color: "#22c55e"
+    description: "UI integration with Django backend"
+  - id: ai-service
+    label: "AI / LLM Service"
+    color: "#9333ea"
+    description: "FastAPI ML microservice or Celery AI tasks"
+  - id: shared
+    label: "Shared / Cross-cutting"
+    color: "#0891b2"
+    description: "Schemas, contracts, shared utilities"
+  - id: docs
+    label: "Documentation"
+    color: "#a855f7"
+    description: "Docs, ADRs, READMEs"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "Docker, CI/CD, migrations, deploy"
+
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+label_families: []
