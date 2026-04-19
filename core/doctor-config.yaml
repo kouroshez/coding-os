@@ -1,0 +1,52 @@
+version: 1
+placeholder_scan:
+  extensions:
+  - .md
+  - .json
+  - .yaml
+  - .yml
+  - .sh
+  - .py
+  - .toml
+  - .txt
+  file_names:
+  - Makefile
+  max_bytes: 262144
+  root_paths:
+  - AGENTS.md
+  - Makefile
+  - docs
+  - .coding-os.yaml
+schema:
+  expected_version: 12
+  expected_tables:
+  - agent_metrics
+  - concept_graph
+  - document_chunks
+  - document_chunks_fts
+  - document_chunks_fts_config
+  - document_chunks_fts_data
+  - document_chunks_fts_docsize
+  - document_chunks_fts_idx
+  - embeddings
+  - experiment_log
+  - graph_edges_v12
+  - graph_evidence_v12
+  - graph_nodes
+  - graph_nodes_fts
+  - graph_nodes_fts_config
+  - graph_nodes_fts_data
+  - graph_nodes_fts_docsize
+  - graph_nodes_fts_idx
+  - learned_patterns
+  - memory_audit
+  - observations
+  - outcome_history
+  - pattern_validations
+  - retrieval_quality
+  - retrievals
+  - routing_weights
+  - schema_version
+  - session_summaries
+  - task_outcomes
+  - tasks

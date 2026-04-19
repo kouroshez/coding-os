@@ -1,0 +1,358 @@
+# Hook Registry — SSOT for hook registration metadata.
+#
+# Each hook is declared ONCE here. cli/hook_renderer.py reads this file
+# and produces adapter-specific settings files:
+#   adapters/claude/settings.template.json  (rendered)
+#   adapters/codex/hooks.template.json      (rendered)
+#
+# Adding a hook:
+#   1. Drop the script in core/hooks/<name>.sh
+#   2. Append an entry here (fields below)
+#   3. Run: make regen-adapter-templates
+#   4. Run: make dogfood-full  (re-install adapters in this repo)
+#
+# Hook fields:
+#   id            — logical name (= script basename without .sh)
+#   script        — filename in core/hooks/
+#   description   — one-line purpose (shown in `cos hooks-list`)
+#   category      — safety | enforcement | observability | reminder | meta
+#   phase         — development phase when added (0 | E | F | G | ...)
+#   timeout       — ms; omit if none
+#   events        — list of {event, matcher, status_message}
+#
+# Event/matcher pairs are filtered against each adapter's declared
+# capabilities in adapters/<agent>/adapter.yaml::capabilities. A pair
+# the adapter cannot fire is skipped in that adapter's output.
+
+version: 1
+
+hooks:
+  # ── safety ─────────────────────────────────────────────────────────
+  - id: block-secrets
+    script: block-secrets.sh
+    description: Scans command and file content for credentials (AWS keys, tokens, .env leaks).
+    category: safety
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🔒 Scanning command for credentials..."
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔒 Scanning file content for credentials..."
+
+  - id: block-dangerous-commands
+    script: block-dangerous-commands.sh
+    description: Blocks destructive commands (rm -rf, force-push, reset --hard) without confirmation.
+    category: safety
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🛡️ Checking command safety (rm, force-push, reset)..."
+
+  - id: block-uv-heredoc
+    script: block-uv-heredoc.sh
+    description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).
+    category: safety
+    phase: E
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "⚠️ Inspecting uv-run heredoc pattern (rule #9)..."
+
+  - id: block-bad-patterns
+    script: block-bad-patterns.sh
+    description: "Rejects bare `except: pass`, mock-where-real-needed, and other anti-patterns."
+    category: safety
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚫 Checking for anti-patterns (bare except: pass, …)..."
+
+  - id: block-protected-files
+    script: block-protected-files.sh
+    description: Blocks edits to governance-protected files unless the active task is a governance task.
+    category: safety
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔐 Checking protected governance files..."
+
+  - id: block-migration-conflict
+    script: block-migration-conflict.sh
+    description: Detects duplicate migration version numbers in db.py (Rule #10 — append-only migrations).
+    category: safety
+    phase: E
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🗃️ Checking migration version conflicts (rule #10)..."
+
+  - id: block-hardcoded-literals
+    script: block-hardcoded-literals.sh
+    description: Rejects hardcoded stack/adapter name literals in cli/*.py (Rule #12 — data-driven CLI).
+    category: safety
+    phase: E
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🎯 Scanning cli/*.py for hardcoded literals (rule #12)..."
+
+  # ── enforcement ────────────────────────────────────────────────────
+  - id: enforce-verify
+    script: enforce-verify.sh
+    description: Blocks `task-done` commands unless the required verification suite has recorded a recent pass.
+    category: enforcement
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "✅ Verifying suites before task-done..."
+
+  - id: enforce-template
+    script: enforce-template.sh
+    description: Requires structured task / ADR / PRD / breakthrough documents to follow the template.
+    category: enforcement
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "📋 Checking doc templates (task / ADR / PRD / breakthrough)..."
+
+  - id: thinking-os-gate
+    script: thinking-os-gate.sh
+    description: Requires a recorded Complexity Gate classification before code writes.
+    category: enforcement
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🧠 Verifying Complexity Gate recorded..."
+
+  - id: enforce-task-start
+    script: enforce-task-start.sh
+    description: Requires an active task marker so every edit is traceable.
+    category: enforcement
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "📌 Verifying active task..."
+
+  - id: enforce-doc-anchor
+    script: enforce-doc-anchor.sh
+    description: Blocks code writes without a recorded doc anchor (Rule #0 — docs-first principle).
+    category: enforcement
+    phase: E
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "📎 Verifying doc anchor (docs-first principle)..."
+
+  - id: enforce-memory-check
+    script: enforce-memory-check.sh
+    description: Requires a cos_search memory check before code writes on COMPLICATED/COMPLEX tasks.
+    category: enforcement
+    phase: F
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔎 Verifying Memory Check (cos_search) recorded..."
+
+  - id: enforce-skill
+    script: enforce-skill.sh
+    description: Requires a domain skill to be invoked before editing stack-scoped code files.
+    category: enforcement
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🛠️ Verifying domain skill invoked..."
+
+  - id: enforce-zoom
+    script: enforce-zoom.sh
+    description: Requires a Plan checkpoint for COMPLICATED/COMPLEX tasks before code writes.
+    category: enforcement
+    phase: "0"
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔍 Verifying Plan checkpoint for COMPLICATED+..."
+
+  # ── observability ──────────────────────────────────────────────────
+  - id: capture-observation
+    script: capture-observation.sh
+    description: Fire-and-forget observation recording to thinking-os memory (PostToolUse Write|Edit).
+    category: observability
+    phase: "0"
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🧠 Recording observation + embedding to memory..."
+
+  - id: auto-reindex-docs
+    script: auto-reindex-docs.sh
+    description: Phase H freshness — incremental re-index of RAG-scoped docs on Write/Edit (fire-and-forget).
+    category: retrieval
+    phase: H
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "♻️ Auto re-indexing doc for cos_doc_search freshness..."
+
+  - id: verify-changed-file
+    script: verify-changed-file.sh
+    description: Analyzes changed file + cross-module impact after each write.
+    category: observability
+    phase: "0"
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📊 Analyzing changed file + cross-module impact..."
+
+  - id: track-skill
+    script: track-skill.sh
+    description: Tracks which skills have been invoked this session.
+    category: observability
+    phase: "0"
+    events:
+      - event: PostToolUse
+        matcher: Skill
+        status_message: "🛠️ Tracking skill invocation..."
+
+  - id: session-context
+    script: session-context.sh
+    description: Loads session context + memory digest on session start / compact / resume.
+    category: observability
+    phase: "0"
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🚀 Loading session context + memory digest..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🔄 Recovering workflow context + memory digest..."
+      - event: UserPromptSubmit
+        matcher: ""
+        status_message: "🔄 Checking workflow state..."
+
+  - id: session-end
+    script: session-end.sh
+    description: Writes session summary + memory enrichment on Stop.
+    category: observability
+    phase: "0"
+    timeout: 5000
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "📝 Writing session summary + enrichment to memory..."
+
+  - id: warn-mcp-down
+    script: warn-mcp-down.sh
+    description: Probes thinking-os MCP liveness at session start; loud banner if unreachable.
+    category: observability
+    phase: F
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🩺 Probing MCP coding-os liveness..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🩺 Probing MCP coding-os liveness..."
+
+  - id: check-capture-worked
+    script: check-capture-worked.sh
+    description: Session-end recap — warns if zero observations captured despite code edits.
+    category: observability
+    phase: F
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "📊 Session recap: verifying observations captured..."
+
+  # ── reminder ───────────────────────────────────────────────────────
+  - id: regen-reminder
+    script: regen-reminder.sh
+    description: Reminds to regenerate derived artifacts when their sources change.
+    category: reminder
+    phase: E
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🔄 Checking if derived artifacts need regeneration..."
+
+  - id: test-first-reminder
+    script: test-first-reminder.sh
+    description: Points at the companion test file after a code edit (or suggests one if absent).
+    category: reminder
+    phase: E
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🧪 Checking for companion test file..."
+
+  - id: doc-sync-reminder
+    script: doc-sync-reminder.sh
+    description: Lists companion docs to keep in sync when code changes.
+    category: reminder
+    phase: "0"
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📘 Listing companion docs to keep in sync..."
+
+  - id: remind-learn-validate
+    script: remind-learn-validate.sh
+    description: Surfaces cos_learn_validate reminder after task-done so the agent feeds back.
+    category: reminder
+    phase: F
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "💡 Checking if learn-validate reminder is due..."
+
+  # ── meta (coding-os meta-project specific, Phase G) ────────────────
+  - id: check-agents-md-size
+    script: check-agents-md-size.sh
+    description: Warns when AGENTS.md approaches Codex's 32 KiB read cap.
+    category: meta
+    phase: G
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📏 Checking AGENTS.md size (Codex 32 KiB cap)..."
+
+  - id: check-agents-md-refs
+    script: check-agents-md-refs.sh
+    description: Flags AGENTS.md references to core/rules or core/skills that no longer exist.
+    category: meta
+    phase: G
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🔗 Checking AGENTS.md path references are alive..."
+
+  - id: remind-dogfood
+    script: remind-dogfood.sh
+    description: Reminds to run `make dogfood-full` after edits to core/ or adapters/.
+    category: meta
+    phase: G
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🧬 Checking if meta-project dogfood refresh is needed..."
+
+  - id: warn-template-drift
+    script: warn-template-drift.sh
+    description: Transitional — warns if adapter template JSON is edited directly instead of registry.yaml. Delete when registry.yaml is the only write path.
+    category: meta
+    phase: G
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "⚠️ Adapter template edits — use registry.yaml..."

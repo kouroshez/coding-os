@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# PreToolUse hook: BLOCK Write/Edit on code files unless a matching domain skill has been invoked.
+# Session-scoped: only accepts skills invoked in the CURRENT session.
+set -euo pipefail
+
+INPUT=$(cat)
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+
+if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
+  exit 0
+fi
+
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+# Only enforce for code files
+if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
+  exit 0
+fi
+
+# Skip test files, migrations, generated files, config files, hook scripts
+if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PATH" == *migrations* ]] || [[ "$FILE_PATH" == *node_modules* ]] || [[ "$FILE_PATH" == *__pycache__* ]] || [[ "$FILE_PATH" == *.claude/* ]] || [[ "$FILE_PATH" == *.coding-os/* ]]; then
+  exit 0
+fi
+
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+SKILL_FILE="${COS_AGENT_DIR}/.active-skill"
+
+# Allow CLEAR 1 ad-hoc fixes without a skill (same fast-path as enforce-task-start.sh)
+source "$(dirname "$0")/check-state.sh"
+check_state "${COS_AGENT_DIR}/.thinking-os-gate" 7200
+if [[ "$STATE_VALID" == "true" ]]; then
+  CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
+  DIMS=$(echo "$STATE_VALUE" | awk '{print $2}')
+  if [[ "$CLASSIFICATION" == "CLEAR" ]] && [[ "$DIMS" == "1" ]]; then
+    exit 0
+  fi
+fi
+
+# Check existence and session scope
+check_state "$SKILL_FILE" 7200  # 120 min
+
+if [[ "$STATE_VALID" != "true" ]]; then
+  echo "BLOCKED: No domain skill invoked for this session. Reason: $STATE_REASON" >&2
+  echo '  Backend .py  → Skill skill: "python-django"' >&2
+  echo '  Frontend .tsx → Skill skill: "nextjs-react"' >&2
+  echo '  Any code     → Skill skill: "clean-code"' >&2
+  exit 2
+fi
+
+# Check skill matches file type (STATE_VALUE has all invoked skills)
+ALL_SKILLS="$STATE_VALUE"
+
+if [[ "$FILE_PATH" == *.py ]]; then
+  if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code"; then
+    echo "BLOCKED: Writing .py file but no matching skill invoked. Invoke python-django or clean-code first." >&2
+    exit 2
+  fi
+fi
+
+if [[ "$FILE_PATH" == *.ts ]] || [[ "$FILE_PATH" == *.tsx ]]; then
+  if ! echo "$ALL_SKILLS" | grep -qiE "nextjs|react|clean-code|frontend|tailwind"; then
+    echo "BLOCKED: Writing .ts/.tsx file but no matching skill invoked. Invoke nextjs-react or clean-code first." >&2
+    exit 2
+  fi
+fi
+
+exit 0

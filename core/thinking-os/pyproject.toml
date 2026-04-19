@@ -1,0 +1,19 @@
+[project]
+name = "thinking-os"
+version = "0.1.0"
+description = "Thinking OS — MCP server for self-learning agent memory (TASK-141)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+    "pydantic>=2.12.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

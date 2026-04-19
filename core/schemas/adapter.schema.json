@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coding-os.dev/schemas/adapter.schema.json",
+  "title": "Coding-OS Adapter Manifest",
+  "description": "Schema for adapters/<id>/adapter.yaml. Defines an agent adapter — its settings file, hooks directory, path-scoped rules support, and optional default settings deep-merged with aggregated hooks.",
+  "type": "object",
+  "required": ["version", "id", "label", "install_script"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "enum": [1]
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Must match the directory name under adapters/."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "settings_file": {
+      "type": ["string", "null"],
+      "description": "Relative path inside the project where settings.json (or hooks.json) is written."
+    },
+    "hooks_dir": {
+      "type": ["string", "null"],
+      "description": "Relative path inside the project for hook scripts. Null if the adapter has no hooks dir."
+    },
+    "rules_dir": {
+      "type": ["string", "null"],
+      "description": "Relative path for path-scoped rule files. Null if the adapter doesn't support rules."
+    },
+    "skills_dir": {
+      "type": ["string", "null"],
+      "description": "Relative path for skill files. Null if the adapter has no skill system."
+    },
+    "commands_dir": {
+      "type": ["string", "null"],
+      "description": "Relative path for slash-command files (e.g. Claude's .claude/commands). Null for adapters that merge commands into a single instructions file."
+    },
+    "sourced_hooks": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Hook filenames that are sourced (not executed) — doctor skips their exec-bit check."
+    },
+    "supports_rules": {
+      "type": "boolean",
+      "description": "Whether the adapter honours path-scoped rules (YAML frontmatter globs)."
+    },
+    "supports_settings_json": {
+      "type": "boolean",
+      "description": "Whether the adapter consumes a JSON settings file."
+    },
+    "install_script": {
+      "type": "string",
+      "description": "Relative filename of the adapter install script (usually install.sh)."
+    },
+    "default_settings": {
+      "type": "object",
+      "description": "Adapter-owned defaults deep-merged with aggregated world.hooks by render_settings_json()."
+    },
+    "hook_registry_output": {
+      "type": ["string", "null"],
+      "description": "Relative filename within adapters/<id>/ where cli/hook_renderer.py writes the rendered template (e.g. settings.template.json for claude, hooks.template.json for codex). Null if this adapter does not consume the hook registry."
+    },
+    "hook_capabilities": {
+      "type": "object",
+      "description": "Which {event, matcher} pairs this adapter can actually trigger. Drives cli/hook_renderer.py when rendering adapter-specific settings from core/hooks/registry.yaml. Key = event name (PreToolUse, PostToolUse, Stop, SessionStart, UserPromptSubmit).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["matchers"],
+        "additionalProperties": false,
+        "properties": {
+          "matchers": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Matcher strings this adapter can dispatch for the event. Empty-string matcher ('') means the event fires without a matcher (e.g. Stop)."
+          }
+        }
+      }
+    },
+    "hook_dispatchers": {
+      "type": "array",
+      "description": "Optional adapter-specific coalescing rules that replace multiple registry-derived hooks for one {event, matcher} pair with a single dispatcher script.",
+      "items": {
+        "type": "object",
+        "required": ["event", "matcher", "script", "delegates"],
+        "additionalProperties": false,
+        "properties": {
+          "event": {"type": "string"},
+          "matcher": {"type": "string"},
+          "script": {"type": "string"},
+          "status_message": {"type": "string"},
+          "timeout": {"type": ["integer", "null"]},
+          "delegates": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

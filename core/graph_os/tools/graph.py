@@ -1,0 +1,906 @@
+"""graph-os — the 11 cos_graph_* MCP tools (I.8).
+
+PURPOSE:  Expose graph-os to agents through the MCP server. Every tool
+          honours the Rule 14 envelope contract (ok / fail, @safe_tool)
+          and sets `data.meta.layer="graph"` so agents can see which
+          retrieval layer answered them.
+INPUT:    arguments per-tool (see docstrings).
+OUTPUT:   envelope dicts produced by `core.thinking-os.tools._shared`.
+DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
+NOTES:    The tool layer is backend-agnostic — it calls GraphBackend
+          and lets the factory pick Kuzu vs SQLite. Fail-loud on
+          backend errors per plan §12.5.
+"""
+
+from __future__ import annotations
+
+import difflib
+import logging
+import re
+import sys
+from collections import deque
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Iterable, Sequence
+
+from ..backend import BackendUnavailable, GraphBackend, get_backend
+from ..types import GraphEdge, GraphNode
+
+logger = logging.getLogger("graph_os.tools.graph")
+
+
+# ---------------------------------------------------------------------------
+# Envelope helpers — shared with thinking-os via sys.path.
+# ---------------------------------------------------------------------------
+
+
+def _envelope_module():
+    try:
+        from tools import _shared  # type: ignore
+        return _shared
+    except ImportError:
+        here = Path(__file__).resolve()
+        candidate = here.parent.parent.parent / "thinking-os"
+        if candidate.exists() and str(candidate) not in sys.path:
+            sys.path.insert(0, str(candidate))
+        from tools import _shared  # type: ignore
+        return _shared
+
+
+def _ok(data: dict[str, Any], meta: dict[str, Any] | None = None) -> dict[str, Any]:
+    shared = _envelope_module()
+    merged = {"layer": "graph", **(meta or {})}
+    return shared.ok(data, meta=merged)
+
+
+def _fail(
+    category: str,
+    message: str,
+    *,
+    retryable: bool | None = None,
+) -> dict[str, Any]:
+    shared = _envelope_module()
+    return shared.fail(category, message, retryable=retryable)
+
+
+# ---------------------------------------------------------------------------
+# Backend handle — lazy, shared, re-openable.
+# ---------------------------------------------------------------------------
+
+
+_BACKEND_SINGLETON: GraphBackend | None = None
+
+
+def _backend(*, backend: str | None = None) -> GraphBackend:
+    """Return the shared GraphBackend instance."""
+    global _BACKEND_SINGLETON
+    if _BACKEND_SINGLETON is None or backend is not None:
+        _BACKEND_SINGLETON = get_backend(backend=backend)
+    return _BACKEND_SINGLETON
+
+
+def reset_backend() -> None:
+    """Test-only: drop the cached backend so tests get a fresh one."""
+    global _BACKEND_SINGLETON
+    if _BACKEND_SINGLETON is not None:
+        _BACKEND_SINGLETON.close()
+    _BACKEND_SINGLETON = None
+
+
+# ---------------------------------------------------------------------------
+# Shared retrieval helpers
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class NodeSummary:
+    uid: str
+    kind: str
+    label: str
+    file_path: str | None
+    start_line: int | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "uid": self.uid,
+            "kind": self.kind,
+            "label": self.label,
+            "file_path": self.file_path,
+            "start_line": self.start_line,
+        }
+
+    @classmethod
+    def from_node(cls, node: GraphNode) -> "NodeSummary":
+        return cls(
+            uid=node.uid,
+            kind=node.kind,
+            label=node.label,
+            file_path=node.file_path,
+            start_line=node.start_line,
+        )
+
+
+def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "source_uid": edge.source_uid,
+        "target_uid": edge.target_uid,
+        "edge_type": edge.edge_type,
+        "confidence": edge.confidence,
+        "extractor": edge.extractor,
+        "source_span": edge.source_span,
+    }
+    if include_evidence:
+        out["evidence"] = [
+            {"signal_name": s.signal_name, "weight": s.weight, "note": s.note}
+            for s in edge.evidence
+        ]
+    return out
+
+
+def _walk_bfs(
+    backend: GraphBackend,
+    *,
+    root_uid: str,
+    direction: str,
+    max_hops: int,
+    confidence_min: float,
+    edge_types: Sequence[str] | None,
+    visit_limit: int = 500,
+) -> tuple[list[GraphNode], list[GraphEdge]]:
+    """BFS traversal — shared by context / impact / trace.
+
+    direction: "out" (source→target), "in" (target→source), or "both".
+    """
+    seen_nodes: dict[str, GraphNode] = {}
+    visited_uids: set[str] = set()
+    edges_out: list[GraphEdge] = []
+    queue: deque[tuple[str, int]] = deque([(root_uid, 0)])
+    visited_uids.add(root_uid)
+    root_node = backend.get_node(root_uid)
+    if root_node is None:
+        return [], []
+    seen_nodes[root_uid] = root_node
+
+    while queue and len(seen_nodes) < visit_limit:
+        uid, depth = queue.popleft()
+        if depth >= max_hops:
+            continue
+        neighbours: list[GraphEdge] = []
+        if direction in ("out", "both"):
+            neighbours.extend(
+                backend.list_edges(
+                    source_uid=uid,
+                    edge_types=edge_types,
+                    confidence_min=confidence_min,
+                    limit=visit_limit,
+                )
+            )
+        if direction in ("in", "both"):
+            neighbours.extend(
+                backend.list_edges(
+                    target_uid=uid,
+                    edge_types=edge_types,
+                    confidence_min=confidence_min,
+                    limit=visit_limit,
+                )
+            )
+        for edge in neighbours:
+            edges_out.append(edge)
+            next_uid = (
+                edge.target_uid if edge.source_uid == uid else edge.source_uid
+            )
+            if next_uid in visited_uids:
+                continue
+            visited_uids.add(next_uid)
+            node = backend.get_node(next_uid)
+            if node is not None:
+                seen_nodes[next_uid] = node
+                queue.append((next_uid, depth + 1))
+    return list(seen_nodes.values()), edges_out
+
+
+# ---------------------------------------------------------------------------
+# The 11 tools
+# ---------------------------------------------------------------------------
+
+
+def cos_graph_query(
+    q: str,
+    *,
+    kinds: Sequence[str] | None = None,
+    limit: int = 10,
+    max_hops: int = 2,
+    confidence_min: float = 0.3,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Hybrid search over node labels + docstrings.
+
+    PURPOSE:      "find me nodes that look like X" — lexical today
+                  (SQLite LIKE / FTS5 on the dogfood backend), hybrid
+                  embedding + FTS once Phase I.1's BGE-M3 is ready.
+    INPUT:        q (non-empty), optional kind filter, limit, depth +
+                  confidence floor for the graph-walk expansion.
+    OUTPUT:       ok({results: [NodeSummary + confidence + path]}).
+    DEPENDS:      GraphBackend.
+    """
+    if not q or not q.strip():
+        return _fail("validation", "query must be a non-empty string")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    kinds_filter = tuple(kinds) if kinds else None
+    nodes = _lexical_search(
+        be, q=q, kinds=kinds_filter, limit=limit, max_hops=max_hops
+    )
+    results = [
+        {
+            **NodeSummary.from_node(n).to_dict(),
+            "confidence": 1.0,
+        }
+        for n in nodes
+    ]
+    return _ok(
+        {"results": results[:limit]},
+        meta={"query": q, "backend": be.backend_id},
+    )
+
+
+def cos_graph_context(
+    uid_or_name: str,
+    *,
+    direction: str = "both",
+    depth: int = 1,
+    include_content: bool = False,
+    include_evidence: bool = False,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Neighbourhood around a node.
+
+    PURPOSE:      "what does this symbol depend on / who depends on it?"
+                  The primary F5 Pre-Implementation tool (plan §14).
+    INPUT:        uid or fuzzy label, direction, depth, optional
+                  inclusion flags.
+    OUTPUT:       ok({node, edges, neighbours, grouped_by_type}).
+    """
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    root = be.get_node(uid_or_name) or _fuzzy_resolve(be, uid_or_name)
+    if root is None:
+        return _fail("not_found", f"no node matching {uid_or_name!r}")
+
+    nodes, edges = _walk_bfs(
+        be,
+        root_uid=root.uid,
+        direction=direction,
+        max_hops=max(1, int(depth)),
+        confidence_min=0.0,
+        edge_types=None,
+    )
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for e in edges:
+        grouped.setdefault(e.edge_type, []).append(
+            _edge_to_dict(e, include_evidence=include_evidence)
+        )
+    return _ok(
+        {
+            "node": NodeSummary.from_node(root).to_dict(),
+            "neighbours": [NodeSummary.from_node(n).to_dict() for n in nodes if n.uid != root.uid],
+            "edges_by_type": grouped,
+            "edge_count": len(edges),
+        },
+        meta={"backend": be.backend_id, "depth": depth, "direction": direction},
+    )
+
+
+def cos_graph_impact(
+    uid: str,
+    *,
+    direction: str = "downstream",
+    depth: int = 3,
+    confidence_min: float = 0.5,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Blast-radius: which nodes depend on (or are depended on by) `uid`.
+
+    PURPOSE:      F2 Step 10 Dependency Map. Groups the neighbourhood
+                  into risk tiers so F11 refactors can sequence work.
+    OUTPUT:       ok({nodes_by_tier, edges}).
+    """
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    root = be.get_node(uid)
+    if root is None:
+        return _fail("not_found", f"no node with uid {uid!r}")
+
+    walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(
+        direction, "in"
+    )
+    nodes, edges = _walk_bfs(
+        be,
+        root_uid=root.uid,
+        direction=walk_direction,
+        max_hops=max(1, int(depth)),
+        confidence_min=confidence_min,
+        edge_types=None,
+    )
+    tiers: dict[str, list[dict[str, Any]]] = {
+        "will_break": [],
+        "should_review": [],
+        "context": [],
+    }
+    for edge in edges:
+        bucket = (
+            "will_break"
+            if edge.confidence >= 0.9
+            else ("should_review" if edge.confidence >= 0.5 else "context")
+        )
+        tiers[bucket].append(_edge_to_dict(edge))
+
+    return _ok(
+        {
+            "root": NodeSummary.from_node(root).to_dict(),
+            "direction": direction,
+            "tiers": tiers,
+            "impacted_count": max(0, len(nodes) - 1),
+        },
+        meta={"backend": be.backend_id, "depth": depth, "confidence_min": confidence_min},
+    )
+
+
+def cos_graph_detect_changes(
+    *,
+    scope: str = "working",
+    files: Sequence[str] | None = None,
+    analyze_downstream: bool = True,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Pre-commit self-review: map changed files to affected graph nodes.
+
+    PURPOSE:      F6 Layer 2 + F9 pre-release diff. In I.8 the file set
+                  is passed in (`files=[...]`) since the git wiring
+                  lives in the CLI / hook layer. `scope` is forwarded
+                  as metadata for the caller's bookkeeping.
+    OUTPUT:       ok({files, symbols, downstream_tasks, risk_level}).
+    """
+    if not files:
+        return _ok(
+            {
+                "scope": scope,
+                "files": [],
+                "symbols": [],
+                "downstream_tasks": [],
+                "risk_level": "none",
+            },
+            meta={"reason": "no files provided"},
+        )
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    affected_symbols: list[dict[str, Any]] = []
+    downstream_tasks: set[str] = set()
+    risk = "low"
+
+    for file_path in files:
+        file_uid = f"code:file:{file_path}"
+        node = be.get_node(file_uid)
+        if node is None:
+            continue
+        _, edges = _walk_bfs(
+            be,
+            root_uid=file_uid,
+            direction="both",
+            max_hops=1,
+            confidence_min=0.0,
+            edge_types=None,
+        )
+        for edge in edges:
+            affected_symbols.append(
+                {
+                    "file": file_path,
+                    "source": edge.source_uid,
+                    "target": edge.target_uid,
+                    "edge_type": edge.edge_type,
+                }
+            )
+            if edge.source_uid.startswith("task:file:"):
+                downstream_tasks.add(edge.source_uid)
+        if analyze_downstream:
+            _, deep = _walk_bfs(
+                be,
+                root_uid=file_uid,
+                direction="in",
+                max_hops=3,
+                confidence_min=0.6,
+                edge_types=None,
+            )
+            if len(deep) > 20:
+                risk = "high"
+            elif len(deep) > 5 and risk != "high":
+                risk = "medium"
+
+    return _ok(
+        {
+            "scope": scope,
+            "files": list(files),
+            "symbols": affected_symbols,
+            "downstream_tasks": sorted(downstream_tasks),
+            "risk_level": risk,
+        },
+        meta={"backend": be.backend_id, "analyze_downstream": analyze_downstream},
+    )
+
+
+def cos_graph_trace(
+    entry_uid: str,
+    *,
+    terminals: Sequence[str] = ("return", "exception"),
+    max_steps: int = 50,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Forward execution walk from an entry point.
+
+    PURPOSE:      F7 Step 2 fault isolation / distributed tracing
+                  scaffolding.
+    OUTPUT:       ok({steps: [NodeSummary], branches}).
+    """
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    root = be.get_node(entry_uid)
+    if root is None:
+        return _fail("not_found", f"no node with uid {entry_uid!r}")
+
+    steps: list[dict[str, Any]] = []
+    branches: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    stack: list[str] = [root.uid]
+    while stack and len(steps) < max_steps:
+        uid = stack.pop()
+        if uid in seen:
+            continue
+        seen.add(uid)
+        node = be.get_node(uid)
+        if node is None:
+            continue
+        steps.append(NodeSummary.from_node(node).to_dict())
+        edges = be.list_edges(source_uid=uid, edge_types=("calls", "constructs"), limit=20)
+        if len(edges) > 1:
+            branches.append(
+                {
+                    "from": uid,
+                    "fan_out": [e.target_uid for e in edges],
+                }
+            )
+        for edge in edges:
+            if edge.target_uid not in seen:
+                stack.append(edge.target_uid)
+    return _ok(
+        {
+            "entry": NodeSummary.from_node(root).to_dict(),
+            "steps": steps,
+            "branches": branches,
+            "terminals": list(terminals),
+        },
+        meta={"backend": be.backend_id, "step_count": len(steps)},
+    )
+
+
+def cos_graph_similar(
+    uid: str,
+    *,
+    top_k: int = 5,
+    confidence_min: float = 0.5,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Semantic similarity — I.8 baseline uses string similarity between
+    labels + docstrings; I.1 BGE-M3 embeddings lift the signal later."""
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    root = be.get_node(uid)
+    if root is None:
+        return _fail("not_found", f"no node with uid {uid!r}")
+
+    # Gather candidate pool — same kind if known.
+    candidates: list[GraphNode] = []
+    seen_uids: set[str] = {uid}
+    sample_size = 200  # bounded to keep latency predictable
+    # Pull a sample via list_edges on arbitrary edges; backends implement
+    # their own sampling semantics.
+    for edge in be.list_edges(limit=sample_size):
+        for side in (edge.source_uid, edge.target_uid):
+            if side in seen_uids:
+                continue
+            seen_uids.add(side)
+            n = be.get_node(side)
+            if n is None:
+                continue
+            if root.kind and n.kind != root.kind:
+                continue
+            candidates.append(n)
+
+    scored = []
+    reference = f"{root.label or ''} {root.signature or ''} {root.doc_blob or ''}"
+    for node in candidates:
+        other = f"{node.label or ''} {node.signature or ''} {node.doc_blob or ''}"
+        ratio = difflib.SequenceMatcher(None, reference, other).ratio()
+        if ratio >= confidence_min:
+            scored.append((ratio, node))
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    results = [
+        {**NodeSummary.from_node(n).to_dict(), "similarity": round(r, 4)}
+        for r, n in scored[: max(1, top_k)]
+    ]
+    return _ok(
+        {"root": NodeSummary.from_node(root).to_dict(), "results": results},
+        meta={"backend": be.backend_id, "scorer": "difflib-baseline"},
+    )
+
+
+def cos_graph_references(
+    uid: str,
+    *,
+    kinds: Sequence[str] = ("calls", "accesses_field", "imports", "references_doc"),
+    limit: int = 100,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Inbound edges to `uid` — "who references this?"."""
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    node = be.get_node(uid)
+    if node is None:
+        return _fail("not_found", f"no node with uid {uid!r}")
+
+    edges = be.list_edges(target_uid=uid, edge_types=tuple(kinds), limit=limit)
+    return _ok(
+        {
+            "node": NodeSummary.from_node(node).to_dict(),
+            "references": [_edge_to_dict(e) for e in edges],
+            "count": len(edges),
+        },
+        meta={"backend": be.backend_id, "kinds": list(kinds)},
+    )
+
+
+def cos_graph_path(
+    source_uid: str,
+    target_uid: str,
+    *,
+    max_hops: int = 5,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Shortest path between two nodes (any direction)."""
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    if be.get_node(source_uid) is None:
+        return _fail("not_found", f"source uid {source_uid!r}")
+    if be.get_node(target_uid) is None:
+        return _fail("not_found", f"target uid {target_uid!r}")
+    parents: dict[str, tuple[str, GraphEdge] | None] = {source_uid: None}
+    queue: deque[tuple[str, int]] = deque([(source_uid, 0)])
+    while queue:
+        uid, depth = queue.popleft()
+        if uid == target_uid:
+            break
+        if depth >= max_hops:
+            continue
+        for edge in be.list_edges(source_uid=uid, limit=200):
+            nxt = edge.target_uid
+            if nxt not in parents:
+                parents[nxt] = (uid, edge)
+                queue.append((nxt, depth + 1))
+        for edge in be.list_edges(target_uid=uid, limit=200):
+            nxt = edge.source_uid
+            if nxt not in parents:
+                parents[nxt] = (uid, edge)
+                queue.append((nxt, depth + 1))
+    if target_uid not in parents:
+        return _ok(
+            {"path": None, "edges": []},
+            meta={"backend": be.backend_id, "reason": "unreachable"},
+        )
+    chain: list[GraphEdge] = []
+    cur = target_uid
+    while parents.get(cur) is not None:
+        prev, edge = parents[cur]  # type: ignore[misc]
+        chain.append(edge)
+        cur = prev
+    chain.reverse()
+    return _ok(
+        {
+            "path": [source_uid] + [e.target_uid if e.source_uid == source_uid else e.source_uid for e in chain],
+            "edges": [_edge_to_dict(e) for e in chain],
+            "hops": len(chain),
+        },
+        meta={"backend": be.backend_id},
+    )
+
+
+def cos_graph_export(
+    *,
+    format: str = "json",
+    root_uid: str | None = None,
+    edge_types: Sequence[str] | None = None,
+    max_nodes: int = 500,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Export a subgraph in `json | mermaid | dot`."""
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    if format not in {"json", "mermaid", "dot"}:
+        return _fail("validation", f"unknown format {format!r}")
+
+    if root_uid is not None:
+        nodes, edges = _walk_bfs(
+            be,
+            root_uid=root_uid,
+            direction="both",
+            max_hops=3,
+            confidence_min=0.0,
+            edge_types=edge_types,
+            visit_limit=max_nodes,
+        )
+    else:
+        edges = be.list_edges(edge_types=edge_types, limit=max_nodes)
+        node_uids: set[str] = set()
+        for e in edges:
+            node_uids.add(e.source_uid)
+            node_uids.add(e.target_uid)
+        nodes = [n for n in (be.get_node(u) for u in node_uids) if n is not None]
+
+    if format == "json":
+        payload: dict[str, Any] = {
+            "format": "json",
+            "nodes": [NodeSummary.from_node(n).to_dict() for n in nodes],
+            "edges": [_edge_to_dict(e) for e in edges],
+        }
+    elif format == "mermaid":
+        payload = {"format": "mermaid", "diagram": _to_mermaid(nodes, edges)}
+    else:  # dot
+        payload = {"format": "dot", "diagram": _to_dot(nodes, edges)}
+    return _ok(
+        payload,
+        meta={
+            "backend": be.backend_id,
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+        },
+    )
+
+
+def cos_graph_rename_plan(
+    uid: str,
+    new_name: str,
+    *,
+    check_strings: bool = True,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Produce a rename plan — call-sites, docs, tests, strings."""
+    if not new_name or not new_name.strip():
+        return _fail("validation", "new_name must be non-empty")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    root = be.get_node(uid)
+    if root is None:
+        return _fail("not_found", f"no node with uid {uid!r}")
+
+    call_sites = [
+        _edge_to_dict(e)
+        for e in be.list_edges(target_uid=uid, edge_types=("calls", "accesses_field", "imports"), limit=500)
+    ]
+    doc_refs = [
+        _edge_to_dict(e)
+        for e in be.list_edges(target_uid=uid, edge_types=("links_to", "cites_heading", "references_doc"), limit=500)
+    ]
+    test_refs = [
+        _edge_to_dict(e)
+        for e in be.list_edges(target_uid=uid, edge_types=("tested_by",), limit=500)
+    ]
+    risk = "high" if len(call_sites) > 20 else "medium" if call_sites else "low"
+
+    return _ok(
+        {
+            "old_name": root.label,
+            "new_name": new_name,
+            "uid": root.uid,
+            "call_sites": call_sites,
+            "doc_references": doc_refs,
+            "test_references": test_refs,
+            "string_literals": [] if not check_strings else _grep_string_literals(root.label or ""),
+            "risk": risk,
+            "suggested_order": [
+                "tests first",
+                "implementation",
+                "docs",
+                "string literals last",
+            ],
+            "confidence": 0.9 if call_sites else 0.6,
+        },
+        meta={"backend": be.backend_id},
+    )
+
+
+def cos_graph_contracts(
+    *,
+    scope: str = "all",
+    kinds: Sequence[str] = ("http", "mcp", "grpc", "event", "websocket"),
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """API surface — enumerate every route / tool / event handler."""
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    buckets: dict[str, list[dict[str, Any]]] = {
+        "http_routes": [],
+        "mcp_tools": [],
+        "grpc_endpoints": [],
+        "event_handlers": [],
+        "websocket": [],
+    }
+    for edge_type in ("handles_route", "handles_tool", "handles_event"):
+        for edge in be.list_edges(edge_types=(edge_type,), limit=2000):
+            node = be.get_node(edge.target_uid)
+            if node is None:
+                continue
+            kind = (node.metadata or {}).get("kind", "http")
+            if kind not in kinds:
+                continue
+            bucket_key = {
+                "http": "http_routes",
+                "mcp": "mcp_tools",
+                "grpc": "grpc_endpoints",
+                "event": "event_handlers",
+                "websocket": "websocket",
+            }.get(kind, "http_routes")
+            buckets[bucket_key].append(
+                {
+                    **NodeSummary.from_node(node).to_dict(),
+                    "method": (node.metadata or {}).get("method"),
+                    "path": (node.metadata or {}).get("path"),
+                    "framework": (node.metadata or {}).get("framework"),
+                    "handler": (node.metadata or {}).get("handler"),
+                    "source": edge.source_uid,
+                    "confidence": edge.confidence,
+                }
+            )
+    return _ok(
+        {"scope": scope, **buckets, "count": sum(len(v) for v in buckets.values())},
+        meta={"backend": be.backend_id, "kinds": list(kinds)},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _fuzzy_resolve(backend: GraphBackend, needle: str) -> GraphNode | None:
+    """Fallback for `cos_graph_context("UserService")` — try a label match.
+
+    Scans edges to collect nodes, then difflib-scores by label. Bounded
+    to 200 candidates so latency is predictable.
+    """
+    lower = needle.lower()
+    seen: dict[str, GraphNode] = {}
+    for edge in backend.list_edges(limit=500):
+        for side in (edge.source_uid, edge.target_uid):
+            if side in seen:
+                continue
+            node = backend.get_node(side)
+            if node is None:
+                continue
+            if needle in (node.uid or "") or lower in (node.label or "").lower():
+                return node
+            seen[side] = node
+    return None
+
+
+def _lexical_search(
+    backend: GraphBackend,
+    *,
+    q: str,
+    kinds: Sequence[str] | None,
+    limit: int,
+    max_hops: int,
+) -> list[GraphNode]:
+    lower = q.lower()
+    seen: dict[str, GraphNode] = {}
+    for edge in backend.list_edges(limit=1000):
+        for side in (edge.source_uid, edge.target_uid):
+            if side in seen:
+                continue
+            node = backend.get_node(side)
+            if node is None:
+                continue
+            if kinds and node.kind not in kinds:
+                continue
+            haystack = " ".join(
+                filter(
+                    None,
+                    [node.uid, node.label, node.signature, node.doc_blob],
+                )
+            ).lower()
+            if lower in haystack:
+                seen[side] = node
+            if len(seen) >= limit * 3:
+                break
+    scored = sorted(
+        seen.values(),
+        key=lambda n: difflib.SequenceMatcher(None, lower, (n.label or "").lower()).ratio(),
+        reverse=True,
+    )
+    return scored[:limit]
+
+
+def _grep_string_literals(name: str) -> list[dict[str, Any]]:
+    """Stub for the string-scan path. Real implementation lives in CLI layer."""
+    return []
+
+
+def _to_mermaid(nodes: Iterable[GraphNode], edges: Iterable[GraphEdge]) -> str:
+    lines = ["graph LR"]
+    for n in nodes:
+        lines.append(f'  {_safe_id(n.uid)}["{_escape(n.label or n.uid)}"]')
+    for e in edges:
+        lines.append(
+            f"  {_safe_id(e.source_uid)} -->|{e.edge_type}| {_safe_id(e.target_uid)}"
+        )
+    return "\n".join(lines)
+
+
+def _to_dot(nodes: Iterable[GraphNode], edges: Iterable[GraphEdge]) -> str:
+    lines = ["digraph G {"]
+    for n in nodes:
+        lines.append(f'  "{_safe_id(n.uid)}" [label="{_escape(n.label or n.uid)}"]')
+    for e in edges:
+        lines.append(
+            f'  "{_safe_id(e.source_uid)}" -> "{_safe_id(e.target_uid)}" '
+            f'[label="{e.edge_type}"]'
+        )
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _safe_id(uid: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_]", "_", uid)[:60]
+
+
+def _escape(text: str) -> str:
+    return text.replace("\"", "'")
+
+
+__all__ = [
+    "cos_graph_query",
+    "cos_graph_context",
+    "cos_graph_impact",
+    "cos_graph_detect_changes",
+    "cos_graph_trace",
+    "cos_graph_similar",
+    "cos_graph_references",
+    "cos_graph_path",
+    "cos_graph_export",
+    "cos_graph_rename_plan",
+    "cos_graph_contracts",
+    "reset_backend",
+]

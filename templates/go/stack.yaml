@@ -1,0 +1,41 @@
+version: 1
+id: go
+label: "Go (stdlib + chi)"
+category: backend
+primary_skill: go-patterns
+skills: [go-patterns]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/go-service.md`"
+  SKILL_ROUTES: "Backend→`go-patterns`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/go-rules.md`"
+  TOOL_ROUTING_IMPL: "`lint-go`, `test-go`"
+  VERIFY_BACKEND_GLOB: "`backend/`"
+  VERIFY_BACKEND_SUITES: "lint-go + test-go"
+  VERIFY_BACKEND: "`cd backend && go vet ./... && go test ./...`"
+  QUICK_ROUTING: |-
+    - Backend / API task → [Go Service Playbook](./playbooks/go-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-GO` → `./playbooks/go-service.md`
+    - `REF:GO-RULES` → `./engineering/go-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-GO", path: "./playbooks/go-service.md", desc: "Go service playbook"}
+  - {code: "REF:GO-RULES",    path: "./engineering/go-rules.md",  desc: "Go engineering rules"}
+
+routing_entries:
+  - "Backend / API task → [Go Service Playbook](./docs/playbooks/go-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["backend/**/*.go"]}
+
+makefile_targets:
+  - {name: lint-go, cmd: "cd backend && go vet ./..."}
+  - {name: test-go, cmd: "cd backend && go test ./..."}
+
+dimensions:
+  - {name: "HTTP handler", read_files: ["docs/playbooks/go-service.md"]}
+  - {name: "Concurrency", read_files: ["docs/engineering/go-rules.md"]}
+
+skill_enforcement:
+  - {globs: ["backend/**/*.go"], primary: go-patterns, secondary: [clean-code]}

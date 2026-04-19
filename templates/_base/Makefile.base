@@ -1,0 +1,178 @@
+# coding-os — Universal Make Targets
+# Include this in your project Makefile: include .coding-os/Makefile.base
+# Or copy to your project root.
+
+.DEFAULT_GOAL := help
+
+# ── Coding OS paths ─────────────────────────────────────────────────
+# Override these if your coding-os is in a non-standard location.
+# Portable resolution order:
+#   1. Installed `cos` binary on PATH (preferred)
+#   2. Adapter hook symlink back to the coding-os install
+# This keeps consumer projects runnable outside the coding-os repo itself.
+COS_HOOKS ?= $(shell if command -v cos >/dev/null 2>&1; then cos hooks-dir; elif [ -e .codex/hooks/cos-env.sh ]; then dirname "$$(realpath .codex/hooks/cos-env.sh)"; elif [ -e .claude/hooks/cos-env.sh ]; then dirname "$$(realpath .claude/hooks/cos-env.sh)"; fi)
+COS_ROOT ?= $(shell dirname "$$(dirname "$(COS_HOOKS)")")
+COS_SCRIPTS := $(COS_ROOT)/core/scripts
+
+export COS_STATE_DIR ?= .coding-os
+export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking-os.db
+export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking-os
+
+# ── Session & Status ────────────────────────────────────────────────
+
+.PHONY: session-init
+session-init: ## Run ONCE per session: phase + recent changes + task summary
+	@echo "=== Project Status ==="
+	@echo ""
+	@echo "=== Recent Changes (last 3) ==="
+	@bash $(COS_SCRIPTS)/log-latest.sh --compact 3
+	@echo ""
+	@echo "=== Task Summary ==="
+	@OPEN=$$(grep -c '\- \[ \]' docs/tasks.md 2>/dev/null; true); \
+	WIP=$$(grep -c '\- \[/\]' docs/tasks.md 2>/dev/null; true); \
+	DONE=$$(grep -c '\- \[x\]' docs/tasks.md 2>/dev/null; true); \
+	BLOCKED=$$(grep -c '^- (BLOCKED:' docs/tasks.md 2>/dev/null; true); \
+	echo "Open: $${OPEN:-0} | In-progress: $${WIP:-0} | Done: $${DONE:-0} | Blocked: $${BLOCKED:-0}"; \
+	echo ""; \
+	echo "Next 5 open:"; \
+	grep '\- \[ \]' docs/tasks.md 2>/dev/null | head -5 | sed 's/^- \[ \] /  TODO: /' || echo "  (none)"
+	@echo ""
+	@echo "Next: make task-next"
+
+# ── Task Management ─────────────────────────────────────────────────
+
+.PHONY: task-next
+task-next: ## Show next recommended task
+	@bash $(COS_SCRIPTS)/task-next.sh
+
+.PHONY: task-start
+task-start: ## Start a task (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-start TASK=<number>"; exit 1; fi
+	@bash $(COS_SCRIPTS)/task-start.sh "$(TASK)"
+
+.PHONY: task-done
+task-done: ## Mark task done (TASK+TYPE+MSG+WHAT+FILES+OUTCOME)
+	@if [ -z "$(TASK)" ] || [ -z "$(TYPE)" ] || [ -z "$(MSG)" ]; then echo "Usage: make task-done TASK=### TYPE=<feat|fix|refactor|docs|test|infra> MSG=\"title\" [WHAT=\"impact\"] [FILES=\"a.sh\"] [OUTCOME=success]"; exit 1; fi
+	@bash $(COS_SCRIPTS)/task-done.sh "$(TASK)" "$(TYPE)" "$(MSG)" "$(WHAT)" "$(FILES)" "$(OUTCOME)"
+
+.PHONY: task-block
+task-block: ## Block a task (TASK=024 REASON="why")
+	@if [ -z "$(TASK)" ] || [ -z "$(REASON)" ]; then echo "Usage: make task-block TASK=<number> REASON=\"why it is blocked\""; exit 1; fi
+	@bash $(COS_SCRIPTS)/task-block.sh "$(TASK)" "$(REASON)"
+
+.PHONY: task-create
+task-create: ## Create new task (NUM=098 TITLE="description")
+	@if [ -z "$(NUM)" ] || [ -z "$(TITLE)" ]; then echo "Usage: make task-create NUM=<number> TITLE=\"[DOMAIN] description\""; exit 1; fi
+	@bash $(COS_SCRIPTS)/task-create.sh $(NUM) "$(TITLE)"
+
+.PHONY: task-context
+task-context: ## Show compact task context (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-context TASK=<number>"; exit 1; fi
+	@bash $(COS_SCRIPTS)/task-context.sh "$(TASK)"
+
+.PHONY: task-list
+task-list: ## Show tasks (STATUS=open|wip|blocked|done|all)
+	@bash $(COS_SCRIPTS)/task-list.sh $(STATUS)
+
+# ── Logging ─────────────────────────────────────────────────────────
+
+.PHONY: log-latest
+log-latest: ## Show last N log entries (N=5)
+	@bash $(COS_SCRIPTS)/log-latest.sh "$(or $(N),1)"
+
+.PHONY: log-write
+log-write: ## Write structured log entry (TYPE+MSG+WHAT+FILES)
+	@if [ -z "$(TYPE)" ] || [ -z "$(MSG)" ]; then echo "Usage: make log-write [TASK=###] TYPE=<type> MSG=\"title\" [WHAT=\"impact\"] [FILES=\"files\"]"; exit 1; fi
+	@bash $(COS_SCRIPTS)/log-write.sh "$(TASK)" "$(TYPE)" "$(MSG)" "$(WHAT)" "$(FILES)"
+
+.PHONY: log-search
+log-search: ## Search changes.log (QUERY="stripe")
+	@if [ -z "$(QUERY)" ]; then echo "Usage: make log-search QUERY=\"search term\" [N=10]"; exit 1; fi
+	@bash $(COS_SCRIPTS)/log-search.sh "$(QUERY)" "$(or $(N),10)"
+
+# ── Docs ────────────────────────────────────────────────────────────
+
+.PHONY: docs-index
+docs-index: ## Index docs/ for RAG retrieval (incremental, mtime-aware)
+	@cos docs-index --project-dir $(CURDIR)
+
+.PHONY: docs-reindex
+docs-reindex: ## Force full re-index of docs/ (after model upgrade)
+	@cos docs-index --project-dir $(CURDIR) --force
+
+.PHONY: task-sync
+task-sync: ## Sync docs/tasks/*.md → thinking-os.db (Phase C incremental)
+	@cos task-sync --project-dir $(CURDIR)
+
+.PHONY: task-resync
+task-resync: ## Force full re-sync of every task file (after schema or parser change)
+	@cos task-sync --project-dir $(CURDIR) --force
+
+.PHONY: docs-lint
+docs-lint: ## Lint markdown files in docs/ for SSOT contract compliance
+	@bash $(COS_SCRIPTS)/docs-lint.sh
+
+.PHONY: docs-nav-fix
+docs-nav-fix: ## Auto-add missing > Nav: breadcrumbs in docs/
+	@bash $(COS_SCRIPTS)/docs-nav-fix.sh
+
+.PHONY: docs-nav-check
+docs-nav-check: ## Report missing Nav breadcrumbs without modifying files
+	@bash $(COS_SCRIPTS)/docs-nav-fix.sh --check
+
+.PHONY: ref
+ref: ## Resolve REF code to file path (REF=PLAYBOOK-BACKEND [READ=1])
+	@if [ -n "$(READ)" ]; then \
+	  bash $(COS_SCRIPTS)/ref-resolve.sh "$(REF)" --read; \
+	else \
+	  bash $(COS_SCRIPTS)/ref-resolve.sh "$(REF)"; \
+	fi
+
+# ── Hooks & Health ──────────────────────────────────────────────────
+
+.PHONY: verify-hooks
+verify-hooks: ## Syntax-check all hook scripts
+	@FAIL=0; for f in $(COS_HOOKS)/*.sh; do bash -n "$$f" 2>&1 || FAIL=1; done; \
+	if [ $$FAIL -eq 1 ]; then echo "ERROR: Hook syntax errors found" >&2; exit 1; \
+	else echo "OK: All hooks pass syntax check"; fi
+
+.PHONY: cos-reindex
+cos-reindex: ## Re-embed all observations/patterns/outcomes (Phase B RAG)
+	@cos reindex --project-dir $(CURDIR) 2>&1 | tail -20
+
+.PHONY: cos-download-model
+cos-download-model: ## Pre-download the embedding model so first run is fast
+	@uv run --extra rag --directory $(COS_ROOT) python -c "import sys; sys.path.insert(0, '$(COS_ROOT)/core/thinking-os'); from embeddings import _get_model; m = _get_model(); print('OK: embedding model loaded' if m else 'WARN: model unavailable')"
+
+.PHONY: cos-health
+cos-health: ## Run coding-os health check
+	@echo "=== Coding OS Health ===" && \
+	echo "State dir: $(COS_STATE_DIR)" && \
+	echo "DB path:   $(COS_DB_PATH)" && \
+	if [ -f "$(COS_DB_PATH)" ]; then \
+	  echo "DB size:   $$(du -h "$(COS_DB_PATH)" | cut -f1)"; \
+	else echo "DB:        not initialized"; fi && \
+	echo "Hooks:     $$(ls $(COS_HOOKS)/*.sh 2>/dev/null | wc -l | tr -d ' ') scripts"
+
+# ── Verification (override in project Makefile) ─────────────────────
+
+.PHONY: verify
+verify: ## Run verification for a domain (DOMAIN=backend|frontend|docs|full)
+	@echo "No verification targets defined. Add your own in the project Makefile."
+	@echo "Example:"
+	@echo "  verify:"
+	@echo "    make lint && make test"
+
+# ── Help ────────────────────────────────────────────────────────────
+
+.PHONY: help
+help: ## Show all commands
+	@echo "=== coding-os Commands ==="
+	@echo ""
+	@echo "Session:   make session-init"
+	@echo "Tasks:     make task-start TASK=### | task-done ... | task-block ... | task-create ..."
+	@echo "Logging:   make log-latest [N=5] | log-write TYPE=... MSG=... | log-search QUERY=..."
+	@echo "Health:    make cos-health | verify-hooks"
+	@echo ""
+	@echo "All targets:"
+	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  %-22s %s\n", $$1, $$2}'

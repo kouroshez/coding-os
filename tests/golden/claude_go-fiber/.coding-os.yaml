@@ -1,0 +1,16 @@
+version: '1.0'
+agents:
+- claude
+templates:
+- go-fiber
+state_dir: .coding-os
+code_extensions:
+- py
+- ts
+- tsx
+- js
+- jsx
+verify:
+  backend: cd backend && go vet ./... && go test ./...
+  docs: make docs-lint
+protected_files: []

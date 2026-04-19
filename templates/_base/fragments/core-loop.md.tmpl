@@ -1,0 +1,51 @@
+## Request Routing
+
+**Gate 1 — Complexity Gate** (`$COS_STATE_DIR/rules/thinking-os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
+
+**Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `make task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
+
+## Core Loop
+
+Five phases: **Initialize → Classify → Orient → Plan → Execute → Verify & Close**. Think before reading, read before coding.
+
+### Initialize
+
+1. `make session-init` (ONCE per session). 2. `make task-start TASK=<num>`.
+
+### Classify (dry — zero file reads)
+
+Use Dimension Type Registry (`$COS_STATE_DIR/rules/dimension-registry.md`, auto-loaded) to build Read List:
+
+1. **Complexity Gate** — record: `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.thinking-os-gate "COMPLICATED 3"`
+2. **Domain Route** — {{ substitutions.DOMAIN_ROUTES }}
+3. **Dimension Map** — per dimension: name, domain, depth (D/M/L), phase.
+4. **Read List** — from registry, each file with REASON. Do NOT read entire pack.
+
+For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
+
+### Orient (targeted reads + memory)
+
+1. **Targeted Read** — ONLY files from Read List. Note findings in task Notes. [P3]
+2. **Memory Check** (500tok max): `thinking_os_search` → `cos_learn_suggest` → `thinking_os_details` if conf>0.7.
+3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
+4. **Model Update** — new dimensions? Reframe trigger → back to Classify.
+
+### Plan (deep analysis — no new reads)
+
+1. **Invoke domain skill**: {{ substitutions.SKILL_ROUTES }}
+2. **Per dimension**: current state → target → gap → risk.
+3. **Action Plan** — ordered steps. For COMPLICATED+: write Problem Framing to Notes, record `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.zoom-checkpoint "PROBLEM_FRAMED"`.
+
+For **CLEAR**: skip Plan.
+
+### Execute (implement only)
+
+1. Implement smallest correct change. [P1, P4]
+2. On-demand read ONLY if new question arises.
+3. Continuous monitoring — reframe trigger → back to Classify.
+
+### Verify & Close
+
+1. Run domain verification commands (see Verification Matrix below). Fail 2x → `make task-block`. [P6]
+2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
+3. `cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). Every 10 tasks: `cos_learn_extract`.

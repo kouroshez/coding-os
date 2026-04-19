@@ -1,0 +1,62 @@
+[project]
+name = "coding-os"
+version = "0.2.0"
+description = "Agent-agnostic cognitive operating system for AI coding agents"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+    "pydantic>=2.12.5",
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+    "jinja2>=3.1.0",
+    "jsonschema>=4.17.0",
+]
+
+[project.optional-dependencies]
+# RAG (Retrieval-Augmented Generation) — semantic search via local embeddings.
+# Install with: uv sync --extra rag
+rag = [
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
+]
+
+# graph-os — Phase I knowledge graph subsystem.
+# Pinned deliberately (plan P-I-11): grammar / Kùzu upgrades change AST
+# shape and invalidate the graph, so upgrades are their own slice.
+# Install with: uv sync --extra graph-os
+graph-os = [
+    "sentence-transformers>=2.7.0",
+    "numpy>=1.24.0,<3.0.0",
+    "tree-sitter>=0.22.0,<0.25.0",
+    "tree-sitter-python>=0.21.0,<0.24.0",
+    "tree-sitter-typescript>=0.21.0,<0.24.0",
+    "tree-sitter-bash>=0.21.0,<0.24.0",
+    "tree-sitter-yaml>=0.6.1,<0.8.0",
+    "kuzu>=0.7.1,<0.11.0",
+]
+
+[project.scripts]
+cos = "cli.main:cli"
+coding-os = "cli.main:cli"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# v0.2: `uv tool install --editable .` is the blessed distribution path
+# (core/, adapters/, templates/ are read in place). Full wheel packaging
+# with bundled data files is planned for v0.3.
+packages = ["cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["core/thinking-os/tests", "core/graph_os/tests", "tests"]
+markers = [
+    "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
+]

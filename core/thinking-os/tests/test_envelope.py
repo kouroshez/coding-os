@@ -1,0 +1,216 @@
+"""
+Tests for tools/_shared.py — envelope uniformity, meta merging, token budget.
+
+Phase G.3 / G.5 contract — every success response carries a `data.meta` block
+with at minimum `layer`, `tokens_estimated`, `truncated`. Oversized payloads
+are trimmed from `data.results` tail with truncation meta recorded.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from tools._shared import (  # noqa: E402
+    TOKEN_BUDGET_CHARS,
+    VALID_LAYERS,
+    fail,
+    ok,
+    safe_tool,
+)
+
+
+# ---------------------------------------------------------------------------
+# ok() — shape and meta merging
+# ---------------------------------------------------------------------------
+
+class TestOkEnvelope:
+    def test_scalar_data_passes_through(self) -> None:
+        """Non-dict payloads preserved for back-compat (no meta applied)."""
+        envelope = json.loads(ok("hello"))
+        assert envelope == {"ok": True, "data": "hello"}
+
+    def test_list_data_passes_through(self) -> None:
+        envelope = json.loads(ok([1, 2, 3]))
+        assert envelope == {"ok": True, "data": [1, 2, 3]}
+
+    def test_dict_gets_meta_block(self) -> None:
+        envelope = json.loads(ok({"results": [1, 2, 3], "count": 3}))
+        assert envelope["ok"] is True
+        assert "meta" in envelope["data"]
+        assert envelope["data"]["results"] == [1, 2, 3]
+        assert envelope["data"]["count"] == 3
+
+    def test_meta_contains_tokens_estimated(self) -> None:
+        envelope = json.loads(ok({"results": []}))
+        assert "tokens_estimated" in envelope["data"]["meta"]
+        assert isinstance(envelope["data"]["meta"]["tokens_estimated"], int)
+        assert envelope["data"]["meta"]["tokens_estimated"] >= 1
+
+    def test_meta_truncated_false_by_default(self) -> None:
+        envelope = json.loads(ok({"results": []}))
+        assert envelope["data"]["meta"]["truncated"] is False
+
+    def test_caller_meta_merged(self) -> None:
+        envelope = json.loads(
+            ok({"results": [1]}, meta={"layer": "memory", "query": "foo"})
+        )
+        meta = envelope["data"]["meta"]
+        assert meta["layer"] == "memory"
+        assert meta["query"] == "foo"
+        assert "tokens_estimated" in meta
+
+    def test_caller_meta_does_not_override_diagnostics(self) -> None:
+        """Callers cannot spoof tokens_estimated or truncated — they're computed."""
+        envelope = json.loads(
+            ok({"results": [1]}, meta={"tokens_estimated": 1, "truncated": True})
+        )
+        meta = envelope["data"]["meta"]
+        # tokens_estimated is recomputed — will not equal the fake 1
+        assert meta["tokens_estimated"] != 1
+        # truncated: if caller says True but no actual truncation happened,
+        # the final value reflects reality (False). If over-budget, True.
+        # Here the payload is tiny, so truncated is False regardless.
+        assert meta["truncated"] is False
+
+    def test_preexisting_meta_in_data_merged(self) -> None:
+        """If caller puts meta inside data directly, it's preserved."""
+        envelope = json.loads(
+            ok({"results": [], "meta": {"existing": "value"}}, meta={"layer": "tasks"})
+        )
+        meta = envelope["data"]["meta"]
+        assert meta["existing"] == "value"
+        assert meta["layer"] == "tasks"
+
+
+# ---------------------------------------------------------------------------
+# Token budget — trimming
+# ---------------------------------------------------------------------------
+
+class TestTokenBudget:
+    def test_under_budget_not_truncated(self) -> None:
+        envelope = json.loads(ok({"results": [{"x": i} for i in range(10)]}))
+        assert envelope["data"]["meta"]["truncated"] is False
+
+    def test_over_budget_results_trimmed(self) -> None:
+        """Build a payload that exceeds TOKEN_BUDGET_CHARS via many large rows."""
+        big_row = {"content": "x" * 2000}  # ~2 KB per row
+        results = [big_row] * 100  # ~200 KB total — well over budget
+        envelope = json.loads(ok({"results": results, "count": 100}))
+        meta = envelope["data"]["meta"]
+        assert meta["truncated"] is True
+        assert meta["truncated_results_from"] == 100
+        assert meta["truncated_results_to"] < 100
+        assert len(envelope["data"]["results"]) < 100
+
+    def test_over_budget_preserves_envelope_shape(self) -> None:
+        """Truncation must never break the JSON envelope contract."""
+        big = [{"content": "y" * 2000}] * 100
+        serialized = ok({"results": big})
+        envelope = json.loads(serialized)
+        assert envelope["ok"] is True
+        assert "data" in envelope
+        assert "results" in envelope["data"]
+        assert "meta" in envelope["data"]
+
+    def test_single_huge_row_not_trimmed(self) -> None:
+        """Single-row shape (no `results` list) is left alone — caller's limit."""
+        envelope = json.loads(ok({"record": {"big": "z" * 100_000}}))
+        # Not truncated because body doesn't have `results`; tokens_estimated
+        # reports the large size so caller knows.
+        assert envelope["data"]["meta"]["tokens_estimated"] > 20_000
+
+    def test_truncation_updates_tokens_estimated(self) -> None:
+        """tokens_estimated should reflect the trimmed payload, not the original."""
+        big = [{"content": "w" * 2000}] * 200
+        envelope = json.loads(ok({"results": big}))
+        # After truncation, serialized length fits TOKEN_BUDGET_CHARS
+        # ⇒ tokens_estimated ≤ TOKEN_BUDGET_CHARS / 4
+        assert envelope["data"]["meta"]["tokens_estimated"] <= TOKEN_BUDGET_CHARS // 4 + 100
+
+
+# ---------------------------------------------------------------------------
+# Layer contract — VALID_LAYERS
+# ---------------------------------------------------------------------------
+
+class TestLayerContract:
+    def test_valid_layers_complete(self) -> None:
+        """Every layer used by a cos_* tool must be declared."""
+        required = {"memory", "docs", "tasks", "metrics",
+                    "routing", "graph", "health", "learning"}
+        assert required <= VALID_LAYERS
+
+    def test_layer_meta_roundtrips(self) -> None:
+        for layer in VALID_LAYERS:
+            envelope = json.loads(ok({"results": []}, meta={"layer": layer}))
+            assert envelope["data"]["meta"]["layer"] == layer
+
+
+# ---------------------------------------------------------------------------
+# fail() — unchanged
+# ---------------------------------------------------------------------------
+
+class TestFail:
+    def test_validation_not_retryable(self) -> None:
+        envelope = json.loads(fail("validation", "bad input"))
+        assert envelope["ok"] is False
+        assert envelope["error"]["category"] == "validation"
+        assert envelope["error"]["retryable"] is False
+
+    def test_transient_retryable(self) -> None:
+        envelope = json.loads(fail("transient", "timeout"))
+        assert envelope["error"]["retryable"] is True
+
+    def test_unavailable_retryable(self) -> None:
+        envelope = json.loads(fail("unavailable", "module missing"))
+        assert envelope["error"]["retryable"] is True
+
+    def test_retryable_override(self) -> None:
+        envelope = json.loads(fail("internal", "x", retryable=True))
+        assert envelope["error"]["retryable"] is True
+
+    def test_fail_has_no_data_key(self) -> None:
+        envelope = json.loads(fail("not_found", "x"))
+        assert "data" not in envelope
+
+
+# ---------------------------------------------------------------------------
+# safe_tool decorator
+# ---------------------------------------------------------------------------
+
+class TestSafeTool:
+    def test_passes_through_success(self) -> None:
+        @safe_tool
+        def good() -> str:
+            return ok({"results": [1]})
+        envelope = json.loads(good())
+        assert envelope["ok"] is True
+
+    def test_value_error_maps_to_validation(self) -> None:
+        @safe_tool
+        def bad() -> str:
+            raise ValueError("nope")
+        envelope = json.loads(bad())
+        assert envelope["ok"] is False
+        assert envelope["error"]["category"] == "validation"
+
+    def test_unknown_exception_maps_to_internal(self) -> None:
+        @safe_tool
+        def boom() -> str:
+            raise RuntimeError("kaboom")
+        envelope = json.loads(boom())
+        assert envelope["error"]["category"] == "internal"
+        assert envelope["error"]["retryable"] is False
+
+    def test_import_error_maps_to_unavailable(self) -> None:
+        @safe_tool
+        def needs_dep() -> str:
+            raise ImportError("no module")
+        envelope = json.loads(needs_dep())
+        assert envelope["error"]["category"] == "unavailable"
+        assert envelope["error"]["retryable"] is True

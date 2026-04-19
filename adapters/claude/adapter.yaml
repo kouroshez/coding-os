@@ -1,0 +1,35 @@
+version: 1
+id: claude
+label: "Anthropic Claude Code"
+settings_file: ".claude/settings.json"
+hooks_dir: ".claude/hooks"
+rules_dir: ".claude/rules"
+skills_dir: ".claude/skills"
+commands_dir: ".claude/commands"
+sourced_hooks: [cos-env.sh]
+supports_rules: true
+supports_settings_json: true
+install_script: install.sh
+
+# Deep-merged with aggregated hooks by render_settings_json().
+# Phase 1: empty — adapter's existing install.sh already writes settings.json.
+default_settings: {}
+
+# Output file the renderer writes to (relative to adapters/claude/).
+hook_registry_output: settings.template.json
+
+# Hook capabilities — which {event, matcher} pairs this agent can trigger.
+# Used by cli/hook_renderer.py to filter core/hooks/registry.yaml entries
+# when rendering settings.template.json. A hook whose event/matcher is
+# not in this list is skipped for this adapter.
+#
+# Source: per-event matchers observed in the live Claude Code hook spec.
+hook_capabilities:
+  PreToolUse:
+    matchers: [Bash, "Write|Edit", Skill]
+  PostToolUse:
+    matchers: [Bash, "Write|Edit", Skill]
+  Stop:
+    matchers: [""]
+  SessionStart:
+    matchers: [startup, "compact|resume"]

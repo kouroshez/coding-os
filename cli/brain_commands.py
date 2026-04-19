@@ -1,0 +1,141 @@
+"""CLI subcommands that invoke thinking-os brain modules.
+
+These exist so project Makefiles can call `cos docs-index` / `cos task-sync`
+/ `cos reindex` without hardcoding the coding-os install path. The `cos`
+binary itself knows where its own source lives
+(`Path(__file__).resolve().parent.parent`), so no burn-in is required.
+
+Each subcommand is a thin wrapper over a `_main()` function in a brain
+module. We call it via subprocess so the brain's sys.path manipulation
+and optional `rag` extras load correctly.
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import click
+
+CODING_OS_ROOT = Path(__file__).resolve().parent.parent
+BRAIN_DIR = CODING_OS_ROOT / "core" / "thinking-os"
+
+DOC_INDEXER = BRAIN_DIR / "doc_indexer.py"
+TASK_SYNC = BRAIN_DIR / "task_sync.py"
+EMBEDDINGS = BRAIN_DIR / "embeddings.py"
+
+
+def _resolve_project_dir(raw: str) -> Path:
+    """Resolve a project directory path, honouring --directory / $PWD."""
+    if raw != ".":
+        return Path(raw).resolve()
+    shell_pwd = os.environ.get("PWD")
+    if shell_pwd and Path(shell_pwd).is_dir():
+        return Path(shell_pwd).resolve()
+    return Path.cwd().resolve()
+
+
+def _run_brain_module(
+    script: Path,
+    args: list[str],
+    *,
+    project: Path,
+) -> int:
+    """Invoke a brain script directly — robust to `core-` package naming.
+
+    We pass --project-root and --db explicitly so the brain module doesn't
+    rely on cwd-relative defaults.
+    """
+    if not script.exists():
+        click.echo(f"ERROR: brain module not found: {script}", err=True)
+        return 2
+    env = os.environ.copy()
+    # Ensure the brain's own dir is on sys.path so sibling modules import.
+    env["PYTHONPATH"] = str(BRAIN_DIR) + os.pathsep + env.get("PYTHONPATH", "")
+    proc = subprocess.run(
+        [sys.executable, str(script), *args],
+        env=env,
+        cwd=str(project),
+    )
+    return proc.returncode
+
+
+@click.command("docs-index")
+@click.option(
+    "--project-dir", "-d", default=".",
+    help="Project directory (default: current)",
+)
+@click.option(
+    "--config", default=None,
+    help="Path to rag-config.yaml (default: <project>/.coding-os/rag-config.yaml)",
+)
+@click.option(
+    "--force", is_flag=True, default=False,
+    help="Re-index every file regardless of mtime",
+)
+def docs_index(project_dir: str, config: str | None, force: bool) -> None:
+    """Index project docs/ into thinking-os for RAG retrieval.
+
+    This is the stable entry point that project Makefiles should call —
+    it owns path discovery so no absolute paths need to be burned into
+    per-project files.
+    """
+    project = _resolve_project_dir(project_dir)
+    cfg_path = Path(config).resolve() if config else project / ".coding-os" / "rag-config.yaml"
+    db_path = project / ".coding-os" / "thinking-os.db"
+
+    args = [
+        "--config", str(cfg_path),
+        "--project-root", str(project),
+        "--db", str(db_path),
+    ]
+    if force:
+        args.append("--force")
+
+    rc = _run_brain_module(DOC_INDEXER, args, project=project)
+    sys.exit(rc)
+
+
+@click.command("task-sync")
+@click.option(
+    "--project-dir", "-d", default=".",
+    help="Project directory (default: current)",
+)
+@click.option(
+    "--force", is_flag=True, default=False,
+    help="Re-sync every task file regardless of mtime",
+)
+def task_sync(project_dir: str, force: bool) -> None:
+    """Sync docs/tasks/*.md into the thinking-os tasks table."""
+    project = _resolve_project_dir(project_dir)
+    db_path = project / ".coding-os" / "thinking-os.db"
+
+    args = [
+        "--project-root", str(project),
+        "--db", str(db_path),
+    ]
+    if force:
+        args.append("--force")
+
+    rc = _run_brain_module(TASK_SYNC, args, project=project)
+    sys.exit(rc)
+
+
+@click.command("reindex")
+@click.option(
+    "--project-dir", "-d", default=".",
+    help="Project directory (default: current)",
+)
+def reindex(project_dir: str) -> None:
+    """Re-embed all observations/patterns/outcomes after an embedding model change."""
+    project = _resolve_project_dir(project_dir)
+    db_path = project / ".coding-os" / "thinking-os.db"
+
+    rc = _run_brain_module(
+        EMBEDDINGS,
+        ["--reindex", "--db", str(db_path)],
+        project=project,
+    )
+    sys.exit(rc)

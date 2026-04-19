@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# Claude adapter installer for coding-os
+# Usage: bash adapters/claude/install.sh [--hooks-dir PATH]
+set -euo pipefail
+
+CODING_OS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT_ROOT="${PWD}"
+HOOKS_DIR="${1:-.coding-os/hooks}"
+
+echo "Installing coding-os Claude adapter..."
+echo "  Project: $PROJECT_ROOT"
+echo "  coding-os: $CODING_OS_ROOT"
+
+# 1. Create .claude directory structure
+mkdir -p "${PROJECT_ROOT}/.claude/rules"
+mkdir -p "${PROJECT_ROOT}/.claude/skills"
+mkdir -p "${PROJECT_ROOT}/.claude/hooks"
+mkdir -p "${PROJECT_ROOT}/.coding-os"
+
+# Persist agent identity so cos-env.sh can attribute hook log lines correctly
+# even when the runtime does not expose a well-known env marker. Read-only
+# fallback: explicit > env heuristics > this file.
+echo "claude" > "${PROJECT_ROOT}/.coding-os/.agent" 2>/dev/null || true
+
+# 2. Symlink hooks
+for hook in "${CODING_OS_ROOT}/core/hooks/"*.sh; do
+  name=$(basename "$hook")
+  ln -sf "$hook" "${PROJECT_ROOT}/.claude/hooks/${name}"
+done
+
+# 3. Symlink core rules
+for rule in "${CODING_OS_ROOT}/core/rules/"*.md; do
+  name=$(basename "$rule")
+  ln -sf "$rule" "${PROJECT_ROOT}/.claude/rules/${name}"
+done
+
+# 4. Symlink core skills
+for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
+  name=$(basename "$skill_dir")
+  mkdir -p "${PROJECT_ROOT}/.claude/skills/${name}"
+  ln -sf "${skill_dir}SKILL.md" "${PROJECT_ROOT}/.claude/skills/${name}/SKILL.md"
+done
+
+# 4b. Link stack-specific skills if installed-manifest declares templates.
+# Idempotent: link-stack-skills.sh uses `ln -sf` and skips missing dirs.
+# Defensive: only run when manifest + linker both exist (fresh installs
+# that run install.sh before `cos init` has written a manifest skip cleanly).
+MANIFEST="${PROJECT_ROOT}/.coding-os/installed-manifest.json"
+LINKER="${CODING_OS_ROOT}/core/scripts/link-stack-skills.sh"
+if [ -f "$MANIFEST" ] && [ -x "$LINKER" ]; then
+  STACKS=$(python3 -c "import json,sys; m=json.load(open('$MANIFEST')); print(' '.join(m.get('templates',[])))" 2>/dev/null || true)
+  if [ -n "$STACKS" ]; then
+    bash "$LINKER" "${PROJECT_ROOT}/.claude/skills" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
+    echo "  Re-linked stack skills: $STACKS"
+  fi
+fi
+
+# 5. Generate settings.json from template
+TEMPLATE="${CODING_OS_ROOT}/adapters/claude/settings.template.json"
+HOOKS_REL=".claude/hooks"
+sed "s|{{HOOKS_DIR}}|${HOOKS_REL}|g" "$TEMPLATE" > "${PROJECT_ROOT}/.claude/settings.json"
+
+# 6. Add MCP server to .mcp.json
+MCP_FILE="${PROJECT_ROOT}/.mcp.json"
+if [ ! -f "$MCP_FILE" ]; then
+  cat > "$MCP_FILE" << 'MCPEOF'
+{
+  "mcpServers": {}
+}
+MCPEOF
+fi
+
+# Add thinking-os MCP server entry using Python (safe JSON manipulation).
+# Portable entry: `cos server-start` resolves the coding-os location at
+# runtime via whichever `cos` binary is on PATH. If `cos` is not on PATH
+# yet, fall back to the absolute `uv run` form so the project still works
+# before the user installs the CLI.
+python3 -c "
+import json, shutil
+mcp_path = '${MCP_FILE}'
+cos_root = '${CODING_OS_ROOT}'
+has_cos = shutil.which('cos') is not None
+with open(mcp_path) as f:
+    data = json.load(f)
+data.setdefault('mcpServers', {})
+if has_cos:
+    data['mcpServers']['coding-os'] = {
+        'command': 'cos',
+        'args': ['server-start'],
+    }
+else:
+    data['mcpServers']['coding-os'] = {
+        'command': 'uv',
+        'args': ['run', '--directory', f'{cos_root}/core/thinking-os', 'python', 'server.py'],
+        'cwd': '\${workspaceFolder}'
+    }
+with open(mcp_path, 'w') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || echo "  WARN: Could not update .mcp.json automatically"
+
+# 7. Symlink commands
+COMMANDS_DIR="${CODING_OS_ROOT}/core/commands"
+if [ -d "$COMMANDS_DIR" ]; then
+  mkdir -p "${PROJECT_ROOT}/.claude/commands"
+  for cmd in "${COMMANDS_DIR}/"*.md; do
+    name=$(basename "$cmd")
+    ln -sf "$cmd" "${PROJECT_ROOT}/.claude/commands/${name}"
+  done
+fi
+
+# 8. Copy settings.local.json if not exists
+LOCAL_TEMPLATE="${CODING_OS_ROOT}/adapters/claude/settings.local.template.json"
+LOCAL_TARGET="${PROJECT_ROOT}/.claude/settings.local.json"
+if [ ! -f "$LOCAL_TARGET" ] && [ -f "$LOCAL_TEMPLATE" ]; then
+  cp "$LOCAL_TEMPLATE" "$LOCAL_TARGET"
+fi
+
+echo ""
+echo "Claude adapter installed successfully!"
+echo "  Hooks:    .claude/hooks/ (symlinked)"
+echo "  Rules:    .claude/rules/ (symlinked)"
+echo "  Skills:   .claude/skills/ (symlinked)"
+echo "  Commands: .claude/commands/ (symlinked)"
+echo "  Settings: .claude/settings.json (generated)"
+echo "  Perms:    .claude/settings.local.json (copied)"
+echo "  MCP:      .mcp.json (updated)"

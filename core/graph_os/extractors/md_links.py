@@ -1,0 +1,529 @@
+"""graph-os — markdown link + heading + frontmatter extractor (I.2).
+
+PURPOSE:  Parse a Markdown file into GraphNodes (doc:file, doc:heading,
+          doc:frontmatter_key) and GraphEdges (contains, links_to,
+          cites_heading, ssot_of, read_next, read_before) so that
+          cos_graph_context on a doc answers "what does this doc point
+          to and which other docs claim to own this topic".
+INPUT:    file path + raw text (extractor is pure — no filesystem I/O
+          beyond what the caller hands in).
+OUTPUT:   ExtractionResult dataclass with nodes + edges + parse_errors.
+DEPENDS:  stdlib regex; frontmatter is parsed from the HTML comment or
+          YAML-fence convention used across coding-os docs.
+NOTES:    Shipped in I.2 (see phase-i-knowledge-graph-plan.md Section 19).
+          Heading slugs use the same convention as `doc_indexer.py` so
+          cross-references resolve. Fenced code blocks are stripped
+          before link extraction — code inside them is not a doc link.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import logging
+import re
+from dataclasses import dataclass, field
+from pathlib import PurePosixPath
+
+from ..types import GraphEdge, GraphNode
+
+logger = logging.getLogger("graph_os.extractors.md_links")
+
+EXTRACTOR_ID = "md_links@v1"
+
+# Match `[text](target)` — target may contain nested parens via the
+# balanced pattern below. Stops at unescaped `)`.
+_INLINE_LINK_RE = re.compile(
+    r"\[(?P<text>[^\]]*)\]\((?P<target>[^)\s]+(?:\s+\"[^\"]*\")?)\)"
+)
+# `[[wikilink]]` or `[[wikilink|alias]]`.
+_WIKI_LINK_RE = re.compile(r"\[\[(?P<target>[^\]|]+)(?:\|[^\]]+)?\]\]")
+# ATX-style heading: `##  Title`. Setext headings are rare in this repo so
+# we skip them for simplicity.
+_HEADING_RE = re.compile(r"^(?P<level>#{1,6})\s+(?P<title>.+?)\s*#*\s*$")
+# Frontmatter HTML comment used across coding-os docs:
+# `<!-- domain:backend | layer:engineering | ssot:true | updated:... -->`
+_HTML_FRONTMATTER_RE = re.compile(r"<!--\s*(?P<body>[^-]+(?:-(?!->)[^-]*)*)\s*-->")
+# YAML fence: lines between `---` at file start.
+_YAML_FENCE_RE = re.compile(r"^---\s*\n(?P<body>.*?)\n---\s*", re.DOTALL)
+# Fenced code blocks: ```...``` — stripped before link extraction.
+_FENCED_CODE_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
+
+
+@dataclass(frozen=True)
+class ParseError:
+    """Non-fatal extractor warning (e.g. malformed frontmatter)."""
+
+    kind: str
+    detail: str
+    line: int | None = None
+
+
+@dataclass
+class ExtractionResult:
+    """Nodes, edges, parse_errors returned from extract()."""
+
+    nodes: list[GraphNode] = field(default_factory=list)
+    edges: list[GraphEdge] = field(default_factory=list)
+    parse_errors: list[ParseError] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Slug / uid helpers
+# ---------------------------------------------------------------------------
+
+
+def slugify(heading: str) -> str:
+    """Compute a stable URL-anchor slug from a heading title.
+
+    Rules match GitHub-flavored Markdown: lowercase, strip non-alnum,
+    collapse dashes. Deterministic — same input → same slug across
+    platforms and runs (required by the P-I-11 determinism principle).
+    """
+    lowered = heading.lower()
+    cleaned = re.sub(r"[^\w\s-]", "", lowered)
+    return re.sub(r"[\s_]+", "-", cleaned).strip("-")
+
+
+def file_uid(path: str) -> str:
+    return f"doc:file:{_normalize_path(path)}"
+
+
+def heading_uid(path: str, slug: str, level: int, occurrence: int) -> str:
+    # occurrence disambiguates repeated headings under different parents.
+    suffix = f":{occurrence}" if occurrence > 0 else ""
+    return f"doc:heading:{_normalize_path(path)}#{slug}:{level}{suffix}"
+
+
+def frontmatter_key_uid(path: str, key: str) -> str:
+    return f"doc:frontmatter:{_normalize_path(path)}::{key}"
+
+
+def _normalize_path(path: str) -> str:
+    """Forward-slash, no trailing slash — stable across platforms."""
+    return str(PurePosixPath(path.replace("\\", "/")))
+
+
+def _resolve_link(origin_path: str, target: str) -> str:
+    """Resolve a link (possibly relative) to an absolute repo-rooted path.
+
+    Returns the target as a doc:file uid when it points to a filesystem
+    path, or a canonical external URL for http(s) links.
+    """
+    target = target.strip()
+    if target.startswith(("http://", "https://", "mailto:")):
+        return f"doc:external:{target}"
+    # Discard `"title"` suffix after a space.
+    target = target.split(" ")[0]
+    # Split off `#anchor`.
+    path_part, _, anchor = target.partition("#")
+    # If the link is to the same file's anchor only, resolve to self.
+    if path_part == "":
+        return f"doc:file:{_normalize_path(origin_path)}#{anchor}" if anchor else ""
+    origin_dir = PurePosixPath(_normalize_path(origin_path)).parent
+    resolved = (origin_dir / path_part).as_posix()
+    # Collapse `./` and `../` — PurePosixPath already handles this in
+    # most cases; normalise for Windows-style edge cases.
+    parts: list[str] = []
+    for part in resolved.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(part)
+    normalised = "/".join(parts)
+    base = f"doc:file:{normalised}"
+    return f"{base}#{anchor}" if anchor else base
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
+
+def extract(
+    path: str,
+    content: str,
+) -> ExtractionResult:
+    """Parse a Markdown document → nodes + edges.
+
+    PURPOSE:      Single pure-function entry point consumed by
+                  `auto-reindex-docs.sh` and the orchestrator. Never
+                  touches the DB.
+    INPUT:        file path (doc-rooted or absolute — stored
+                  normalised) + raw content.
+    OUTPUT:       ExtractionResult with file + heading + frontmatter
+                  nodes and links_to / cites_heading / contains /
+                  ssot_of / read_next / read_before edges.
+    DEPENDENCIES: none beyond stdlib.
+    NOTES:        Returns an empty result with a single ParseError
+                  entry for catastrophic failures — the caller logs
+                  to `.coding-os/.graph-parse-errors.log` and
+                  continues the pipeline (invariant from Section 6).
+    """
+    result = ExtractionResult()
+    try:
+        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+
+        file_node = GraphNode(
+            uid=file_uid(path),
+            kind="doc:file",
+            label=PurePosixPath(_normalize_path(path)).name,
+            file_path=_normalize_path(path),
+            lang="md",
+            doc_blob=_extract_doc_blob(content),
+            content_hash=content_hash,
+            metadata={"extractor": EXTRACTOR_ID},
+        )
+        result.nodes.append(file_node)
+
+        # Frontmatter FIRST so linked docs get ssot/read_next edges even
+        # when headings / body parsing fails later.
+        _extract_frontmatter(path, content, result)
+
+        # Heading scan builds the containment tree AND a slug→uid map
+        # for subsequent in-page fragment resolution.
+        headings = _extract_headings(path, content, result)
+
+        # Strip fenced code before link scan so ``[x](y)`` inside a code
+        # block does not produce a false edge.
+        cleaned = _FENCED_CODE_RE.sub("", content)
+        _extract_links(path, cleaned, headings, result)
+
+        # Promote any edge-only uid (link target the extractor does not
+        # own the source for) into a stub node so the backend's edge
+        # write does not raise ValueError for unknown uids. Upserting
+        # the extracted nodes in another pass will replace the stub
+        # with the real row — uid is the join key.
+        _promote_stubs(result)
+
+        return result
+    except Exception as exc:  # noqa: BLE001 — extractor must never crash pipeline
+        logger.debug("md_links.extract(%s) fatal error: %s", path, exc)
+        result.parse_errors.append(
+            ParseError(kind="fatal", detail=str(exc))
+        )
+        return result
+
+
+# ---------------------------------------------------------------------------
+# Internals
+# ---------------------------------------------------------------------------
+
+
+def _promote_stubs(result: ExtractionResult) -> None:
+    """Emit a minimal stub node for every edge target we do not own.
+
+    PURPOSE:      Extractors only see one source file; their edges often
+                  point at other files / external URLs / not-yet-
+                  indexed headings. The SqliteBackend refuses to insert
+                  an edge with an unknown target uid. We close the gap
+                  by synthesising a placeholder node per unseen uid.
+                  When the orchestrator later reaches the real file,
+                  upsert_node replaces the stub in place (uid is the
+                  join key).
+    INPUT:        ExtractionResult with edges already populated.
+    OUTPUT:       result mutated in place — new nodes appended only
+                  for unknown uids (both source and target sides).
+    NOTES:        The stub's `kind` is inferred from the uid prefix.
+                  Unknown prefixes fall through to `doc:external`.
+    """
+    known = {n.uid for n in result.nodes}
+    seen_extra: set[str] = set()
+    for edge in result.edges:
+        for uid in (edge.source_uid, edge.target_uid):
+            if uid in known or uid in seen_extra:
+                continue
+            seen_extra.add(uid)
+            result.nodes.append(_stub_for_uid(uid))
+
+
+def _stub_for_uid(uid: str) -> GraphNode:
+    if uid.startswith("doc:file:"):
+        rest = uid[len("doc:file:"):]
+        path, _, anchor = rest.partition("#")
+        label = PurePosixPath(path).name if path else anchor
+        return GraphNode(
+            uid=uid,
+            kind="doc:file",
+            label=label or uid,
+            file_path=path or None,
+            lang="md",
+            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+        )
+    if uid.startswith("doc:heading:"):
+        return GraphNode(
+            uid=uid,
+            kind="doc:heading",
+            label=uid.split("#", 1)[-1] or uid,
+            lang="md",
+            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+        )
+    if uid.startswith("doc:external:"):
+        return GraphNode(
+            uid=uid,
+            kind="doc:external",
+            label=uid[len("doc:external:"):],
+            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+        )
+    return GraphNode(
+        uid=uid,
+        kind="doc:external",
+        label=uid,
+        metadata={"stub": True, "extractor": EXTRACTOR_ID},
+    )
+
+
+def _extract_doc_blob(content: str, *, cap: int = 4000) -> str:
+    """Flat preview of the doc's body, trimmed to keep nodes lean."""
+    stripped = _FENCED_CODE_RE.sub("", content)
+    stripped = re.sub(r"<!--.*?-->", "", stripped, flags=re.DOTALL)
+    compact = re.sub(r"\s+", " ", stripped).strip()
+    return compact[:cap]
+
+
+def _extract_frontmatter(path: str, content: str, result: ExtractionResult) -> None:
+    """Pull out HTML-comment and/or YAML-fence frontmatter keys."""
+    candidates: list[str] = []
+
+    yaml_match = _YAML_FENCE_RE.match(content)
+    if yaml_match:
+        candidates.append(yaml_match.group("body"))
+
+    html_match = _HTML_FRONTMATTER_RE.search(content[:4000])  # cap scan range
+    if html_match:
+        body = html_match.group("body")
+        # The coding-os convention is pipe-separated key:value pairs; accept
+        # both the multi-key style ("domain:x | layer:y") and a single-key
+        # HTML comment ("<!-- ssot_of:path -->") so ssot/read_next edges
+        # survive even in minimal frontmatter.
+        candidates.append(body)
+
+    for body in candidates:
+        for raw in body.splitlines() if "\n" in body else body.split("|"):
+            if ":" not in raw:
+                continue
+            key, _, value = raw.strip().partition(":")
+            key = key.strip().lower()
+            value = value.strip().strip('"').strip("'")
+            if not key or not value:
+                continue
+            node = GraphNode(
+                uid=frontmatter_key_uid(path, key),
+                kind="doc:frontmatter_key",
+                label=f"{key}={value}",
+                file_path=_normalize_path(path),
+                lang="md",
+                metadata={"key": key, "value": value, "extractor": EXTRACTOR_ID},
+            )
+            result.nodes.append(node)
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid(path),
+                    target_uid=node.uid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
+            )
+            # Special-case: ssot_of, read_next, read_before are cross-
+            # file relations declared via frontmatter — emit the
+            # directed edge in addition to the containment one.
+            # Frontmatter values use REPO-ROOTED paths (e.g.
+            # `docs/core/rules.md`), not relative — this matches how
+            # every doc in this repo currently authors them.
+            if key in {"ssot_of", "read_next", "read_before"}:
+                target_path = value.split()[0]
+                if target_path.startswith(("http://", "https://")):
+                    target_uid = f"doc:external:{target_path}"
+                else:
+                    target_uid = f"doc:file:{_normalize_path(target_path)}"
+                result.edges.append(
+                    GraphEdge(
+                        source_uid=file_uid(path),
+                        target_uid=target_uid,
+                        edge_type=key,
+                        extractor=EXTRACTOR_ID,
+                        confidence=0.9,
+                        source_span=f"{_normalize_path(path)}:frontmatter",
+                    )
+                )
+
+
+def _extract_headings(
+    path: str, content: str, result: ExtractionResult
+) -> list[tuple[str, int, str]]:
+    """Produce heading nodes + contains edges + a list of (uid, level, slug).
+
+    Returns a list in document order so link resolution can point to the
+    nearest preceding heading when the link has an anchor.
+    """
+    headings: list[tuple[str, int, str]] = []
+    stack: list[tuple[int, str]] = [(0, file_uid(path))]
+    slug_counts: dict[str, int] = {}
+
+    for lineno, line in enumerate(content.splitlines(), start=1):
+        # Skip ATX headings inside fenced code — approximate by checking
+        # balanced backticks up to this line.
+        m = _HEADING_RE.match(line)
+        if not m:
+            continue
+        level = len(m.group("level"))
+        title = m.group("title").strip()
+        if not title:
+            continue
+        slug = slugify(title)
+        if not slug:
+            slug = hashlib.sha1(title.encode("utf-8")).hexdigest()[:8]
+        occurrence = slug_counts.get(slug, 0)
+        slug_counts[slug] = occurrence + 1
+        uid = heading_uid(path, slug, level, occurrence)
+
+        node = GraphNode(
+            uid=uid,
+            kind="doc:heading",
+            label=title,
+            file_path=_normalize_path(path),
+            start_line=lineno,
+            lang="md",
+            metadata={
+                "level": level,
+                "slug": slug,
+                "occurrence": occurrence,
+                "extractor": EXTRACTOR_ID,
+            },
+        )
+        result.nodes.append(node)
+
+        # Walk up the stack until we find a parent whose level is lower.
+        while stack[-1][0] >= level:
+            stack.pop()
+        parent_uid = stack[-1][1]
+        result.edges.append(
+            GraphEdge(
+                source_uid=parent_uid,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+                source_span=f"{_normalize_path(path)}:{lineno}",
+            )
+        )
+        stack.append((level, uid))
+        headings.append((uid, level, slug))
+    return headings
+
+
+def _extract_links(
+    path: str,
+    cleaned_content: str,
+    headings: list[tuple[str, int, str]],
+    result: ExtractionResult,
+) -> None:
+    """Emit links_to + cites_heading edges.
+
+    Headings list is consumed for in-page anchor → heading-node
+    resolution (so `[text](#slug)` lands on the heading, not the file).
+    """
+    slug_to_uid: dict[str, str] = {}
+    for uid, _level, slug in headings:
+        # First occurrence wins for in-page links — same convention as
+        # GitHub anchors.
+        slug_to_uid.setdefault(slug, uid)
+
+    # Inline links.
+    for match in _INLINE_LINK_RE.finditer(cleaned_content):
+        target = match.group("target").strip()
+        if not target:
+            continue
+        resolved = _resolve_link(path, target)
+        if not resolved:
+            continue
+        # Heading anchor inside THIS file — emit cites_heading.
+        if resolved.startswith(f"doc:file:{_normalize_path(path)}#"):
+            anchor = resolved.rsplit("#", 1)[1]
+            heading_uid_resolved = slug_to_uid.get(anchor)
+            if heading_uid_resolved:
+                result.edges.append(
+                    GraphEdge(
+                        source_uid=file_uid(path),
+                        target_uid=heading_uid_resolved,
+                        edge_type="cites_heading",
+                        extractor=EXTRACTOR_ID,
+                        confidence=0.95,
+                    )
+                )
+                continue
+        # Cross-file heading anchor — cites_heading to the target file's
+        # heading node (target_uid assumes the other file will have the
+        # heading indexed in the same run; if not, the edge dangles
+        # until the cross-file reindex catches up).
+        if "#" in resolved and resolved.startswith("doc:file:"):
+            base_path, anchor = resolved.split("#", 1)
+            target_file = base_path  # keep doc:file prefix
+            target_heading = f"doc:heading:{base_path[len('doc:file:'):]}#{anchor}"
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid(path),
+                    target_uid=target_heading,
+                    edge_type="cites_heading",
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.7,  # lower — target heading may not exist
+                    source_span=f"{_normalize_path(path)}",
+                )
+            )
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid(path),
+                    target_uid=target_file,
+                    edge_type="links_to",
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.9,
+                )
+            )
+            continue
+        # Plain link — file-level references_to.
+        result.edges.append(
+            GraphEdge(
+                source_uid=file_uid(path),
+                target_uid=resolved,
+                edge_type="links_to",
+                extractor=EXTRACTOR_ID,
+                confidence=0.9 if resolved.startswith("doc:file:") else 0.6,
+            )
+        )
+
+    # Wiki links.
+    for match in _WIKI_LINK_RE.finditer(cleaned_content):
+        target = match.group("target").strip()
+        if not target:
+            continue
+        if target.endswith(".md"):
+            resolved = _resolve_link(path, target)
+        else:
+            resolved = _resolve_link(path, target + ".md")
+        if not resolved:
+            continue
+        result.edges.append(
+            GraphEdge(
+                source_uid=file_uid(path),
+                target_uid=resolved,
+                edge_type="links_to",
+                extractor=EXTRACTOR_ID,
+                confidence=0.8,
+                source_span=f"{_normalize_path(path)}:wikilink",
+            )
+        )
+
+
+__all__ = [
+    "EXTRACTOR_ID",
+    "ExtractionResult",
+    "ParseError",
+    "extract",
+    "file_uid",
+    "heading_uid",
+    "frontmatter_key_uid",
+    "slugify",
+]

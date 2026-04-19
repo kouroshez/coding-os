@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coding-os.dev/schemas/stack.schema.json",
+  "title": "Coding-OS Stack Manifest",
+  "description": "Schema for templates/<id>/stack.yaml. Defines a stack module — metadata, contributed substitutions, ref codes, routing, rules, dimensions, skill enforcement, Makefile targets, and Jinja fragments.",
+  "type": "object",
+  "required": ["version", "id", "label", "category"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema version. Currently fixed at 1."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Lowercase identifier. Must match the directory name under templates/."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable stack name (e.g. 'Django + DRF + PostgreSQL')."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["backend", "frontend", "library", "devops", "data", "mobile"],
+      "description": "Stack category. Doctor C12 warns when two stacks share a category."
+    },
+    "primary_skill": {
+      "type": ["string", "null"],
+      "description": "Primary skill name invoked when editing files matching this stack."
+    },
+    "skills": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "All skills this stack contributes (including primary)."
+    },
+    "substitutions": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Template substitution keys merged into the aggregated world. Stack values override base defaults."
+    },
+    "verify": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["glob", "suites", "cmd"],
+        "additionalProperties": false,
+        "properties": {
+          "glob": {"type": "string"},
+          "suites": {"type": "string"},
+          "cmd": {"type": "string"}
+        }
+      }
+    },
+    "routing_entries": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "ref_codes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "path", "desc"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {"type": "string", "pattern": "^REF:[A-Z0-9_-]+$"},
+          "path": {"type": "string"},
+          "desc": {"type": "string"}
+        }
+      }
+    },
+    "makefile_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "cmd"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+          "cmd": {"type": "string"},
+          "help": {"type": "string"}
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {"type": "string"},
+          "globs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "always_load": {"type": "boolean"},
+          "priority": {"type": "integer"}
+        }
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string"},
+          "read_files": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "depth": {"type": "string", "enum": ["L", "M", "D"]}
+        }
+      }
+    },
+    "skill_enforcement": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["primary"],
+        "additionalProperties": false,
+        "properties": {
+          "globs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "primary": {"type": "string"},
+          "secondary": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "agents_md_sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "order", "template"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string"},
+          "order": {"type": "integer"},
+          "template": {"type": "string"}
+        }
+      }
+    },
+    "hooks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["event", "command"],
+        "additionalProperties": false,
+        "properties": {
+          "event": {"type": "string"},
+          "matcher": {"type": "string"},
+          "command": {"type": "string"}
+        }
+      }
+    }
+  }
+}

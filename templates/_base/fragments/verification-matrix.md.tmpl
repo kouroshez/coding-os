@@ -1,0 +1,12 @@
+## Verification Matrix
+
+Domain-aware enforcement via `enforce-verify.sh` — detects changed files and requires matching suites:
+
+| Changed files | Required suites | Make commands |
+|---|---|---|
+| {{ substitutions.VERIFY_BACKEND_GLOB }} | {{ substitutions.VERIFY_BACKEND_SUITES }} | {{ substitutions.VERIFY_BACKEND }} |
+| {{ substitutions.VERIFY_FRONTEND_GLOB }} | {{ substitutions.VERIFY_FRONTEND_SUITES }} | {{ substitutions.VERIFY_FRONTEND }} |
+| {{ substitutions.VERIFY_DOCS_GLOB }} | {{ substitutions.VERIFY_DOCS_SUITES }} | {{ substitutions.VERIFY_DOCS }} |
+| {{ substitutions.VERIFY_HOOKS_GLOB }} | verify-hooks | `make verify-hooks` |
+
+Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `make task-done` is **BLOCKED** if any required suite is missing or stale.

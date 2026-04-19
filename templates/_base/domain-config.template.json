@@ -1,0 +1,46 @@
+{
+  "refs_by_tag": {
+    "DOCS": ["REF:PLAYBOOK-DOCS", "REF:DOCS-SYSTEM", "REF:TASK-LIFECYCLE", "REF:TASKS", "REF:CHANGES"],
+    "BACKEND": ["REF:PLAYBOOK-BACKEND", "REF:TASKS", "REF:CHANGES"],
+    "FRONTEND": ["REF:PLAYBOOK-FRONTEND", "REF:TASKS", "REF:CHANGES"],
+    "UI": ["REF:PLAYBOOK-FRONTEND", "REF:TASKS", "REF:CHANGES"],
+    "CONTENT": ["REF:PLAYBOOK-CONTENT", "REF:TASKS", "REF:CHANGES"],
+    "SEO": ["REF:PLAYBOOK-CONTENT", "REF:TASKS", "REF:CHANGES"],
+    "FULL-STACK": ["REF:PLAYBOOK-BACKEND", "REF:PLAYBOOK-FRONTEND", "REF:TASKS", "REF:CHANGES"],
+    "ALL": ["REF:PLAYBOOK-BACKEND", "REF:PLAYBOOK-FRONTEND", "REF:TASKS", "REF:CHANGES"],
+    "INFRA": ["REF:TASKS", "REF:CHANGES"],
+    "LAUNCH": ["REF:PLAYBOOK-FRONTEND", "REF:PLAYBOOK-BACKEND", "REF:TASKS", "REF:CHANGES"],
+    "SECURITY": ["REF:PLAYBOOK-BACKEND", "REF:TASKS", "REF:CHANGES"]
+  },
+  "default_refs": ["REF:PLAYBOOK-RESEARCH", "REF:TASKS", "REF:CHANGES"],
+  "domain_map": {
+    "DOCS": "DOCS",
+    "BACKEND": "BACKEND",
+    "FRONTEND": "FRONTEND",
+    "UI": "FRONTEND",
+    "AUTH": "AUTH",
+    "PAYMENTS": "PAYMENTS",
+    "INFRA": "INFRA",
+    "CONTENT": "CONTENT",
+    "SEO": "CONTENT",
+    "FULL-STACK": "FULL-STACK",
+    "ALL": "ALL",
+    "LAUNCH": "LAUNCH",
+    "SECURITY": "SECURITY"
+  },
+  "default_domain": "ALL",
+  "playbook_map": {
+    "DOCS": "docs/playbooks/docs-governance.md",
+    "FRONTEND": "docs/playbooks/frontend-ui.md",
+    "UI": "docs/playbooks/frontend-ui.md",
+    "BACKEND": "docs/playbooks/backend-api.md",
+    "CONTENT": "docs/playbooks/content-seo.md",
+    "SEO": "docs/playbooks/content-seo.md",
+    "FULL-STACK": "docs/playbooks/backend-api.md",
+    "ALL": "docs/playbooks/backend-api.md",
+    "INFRA": "docs/playbooks/backend-api.md",
+    "LAUNCH": "docs/playbooks/frontend-ui.md",
+    "SECURITY": "docs/playbooks/backend-api.md"
+  },
+  "default_playbook": "docs/playbooks/research-validation.md"
+}

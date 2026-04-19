@@ -1,0 +1,17 @@
+## Retrieval Routing (pick before you retrieve)
+
+The MCP layer answers different questions at three layers. Classify the query *before* calling any tool:
+
+| Query shape | Tool | Why |
+|---|---|---|
+| Exact identifier (function, file, `TASK-NNN`, snake_case, CamelCase, backticked code) | **Grep / Glob** | Lexical match wins on token cost and recall when the token is present. |
+| Conceptual / synonym-heavy ("auth flow", "money handling", "payment split") | `cos_doc_search` | Embedding index finds chunks where the spec uses a synonym of the agent's query. |
+| "Have I seen this before?" / past pattern / prior solution | `cos_search` + `cos_learn_suggest` | Memory has 5-signal ranking + spaced repetition. |
+| Task graph / dependency / status | `cos_task_*` | Structured tasks table, dependency JSON walks. |
+| Behavioral rule / protocol (how to classify, how to verify) | **full-read `core/rules/*.md`** | Rule is already in context — never retrieve it. |
+
+Every `cos_*` response carries `data.meta.layer` (`memory|docs|tasks|metrics|routing|graph|health|learning`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
+
+Order of preference when two layers look equally plausible: **Memory → Docs → Tasks.** Memory already ranks by past outcome success; docs and tasks are static index lookups.
+
+**Freshness contract (Phase H).** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `make docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `make docs-index` until Codex exposes those matchers.

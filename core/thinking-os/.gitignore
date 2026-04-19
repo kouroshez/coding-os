@@ -1,0 +1,15 @@
+# Database files (created at runtime)
+thinking-os.db
+thinking-os.db-wal
+thinking-os.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# uv lock is tracked for reproducibility
+# uv.lock
+
+# pytest
+.pytest_cache/

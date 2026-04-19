@@ -1,0 +1,75 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-pretool-dispatch.sh",
+            "statusMessage": "🛡️ Running Codex Bash policy checks..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-sessionstart-dispatch.sh",
+            "statusMessage": "🚀 Loading session context + MCP health..."
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-sessionstart-dispatch.sh",
+            "statusMessage": "🔄 Recovering workflow context + MCP health..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/session-context.sh",
+            "statusMessage": "🔄 Checking workflow state..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-stop-dispatch.sh",
+            "statusMessage": "📝 Finalizing session recap + memory enrichment...",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
+            "statusMessage": "💡 Checking if learn-validate reminder is due..."
+          }
+        ]
+      }
+    ]
+  }
+}

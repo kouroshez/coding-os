@@ -1,0 +1,16 @@
+version: '1.0'
+agents:
+- codex
+templates:
+- django
+state_dir: .coding-os
+code_extensions:
+- py
+- ts
+- tsx
+- js
+- jsx
+verify:
+  backend: make lint-backend && make test-backend
+  docs: make docs-lint
+protected_files: []

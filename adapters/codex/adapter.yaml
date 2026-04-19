@@ -1,0 +1,71 @@
+version: 1
+id: codex
+label: "OpenAI Codex CLI"
+settings_file: ".codex/hooks.json"
+hooks_dir: ".codex/hooks"
+rules_dir: ".codex/rules"
+skills_dir: ".codex/skills"
+commands_dir: ".codex/commands"
+sourced_hooks: [cos-env.sh]
+supports_rules: true
+supports_settings_json: true
+install_script: install.sh
+default_settings: {}
+
+hook_registry_output: hooks.template.json
+
+# Hook capabilities — see adapters/claude/adapter.yaml for shape docs.
+# Codex CLI exposes fewer PreToolUse matchers than Claude (Bash only,
+# per developers.openai.com/codex/hooks — Write/Edit trigger is Claude-
+# specific). As of 2026-04-18, Codex SessionStart supports `startup`
+# and `resume` sources, but not Claude's `compact`.
+# When Codex expands its hook surface, update this list and `cos
+# hooks-list --agent codex` will reflect the new coverage with no other
+# code changes needed.
+hook_capabilities:
+  PreToolUse:
+    matchers: [Bash]
+  PostToolUse:
+    matchers: [Bash]
+  Stop:
+    matchers: [""]
+  SessionStart:
+    matchers: [startup, resume]
+  UserPromptSubmit:
+    matchers: [""]
+
+# Codex launches multiple matching command hooks concurrently for the same
+# event. Coalesce selected groups into one dispatcher so sequencing and UI
+# visibility stay deterministic.
+hook_dispatchers:
+  - event: PreToolUse
+    matcher: Bash
+    script: codex-pretool-dispatch.sh
+    status_message: "🛡️ Running Codex Bash policy checks..."
+    delegates:
+      - block-secrets.sh
+      - block-dangerous-commands.sh
+      - block-uv-heredoc.sh
+      - enforce-verify.sh
+  - event: SessionStart
+    matcher: startup
+    script: codex-sessionstart-dispatch.sh
+    status_message: "🚀 Loading session context + MCP health..."
+    delegates:
+      - session-context.sh
+      - warn-mcp-down.sh
+  - event: SessionStart
+    matcher: resume
+    script: codex-sessionstart-dispatch.sh
+    status_message: "🔄 Recovering workflow context + MCP health..."
+    delegates:
+      - session-context.sh
+      - warn-mcp-down.sh
+  - event: Stop
+    matcher: ""
+    script: codex-stop-dispatch.sh
+    status_message: "📝 Finalizing session recap + memory enrichment..."
+    timeout: 5000
+    delegates:
+      - session-end.sh
+      - check-capture-worked.sh

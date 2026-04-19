@@ -1,0 +1,17 @@
+version: '1.0'
+agents:
+- claude
+templates:
+- nextjs
+state_dir: .coding-os
+code_extensions:
+- py
+- ts
+- tsx
+- js
+- jsx
+verify:
+  backend: make verify
+  frontend: cd frontend && npm run lint
+  docs: make docs-lint
+protected_files: []
