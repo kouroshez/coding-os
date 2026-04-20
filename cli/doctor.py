@@ -647,11 +647,22 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     if config is None:
         return report
     state = _check_state_dir(project, config, report)
+    graph_conn = None
     if state.is_dir():
         conn = _check_database(state, report)
         if conn is not None:
             with contextlib.closing(conn):
                 pass
+        # Open a second short-lived connection for Phase I graph checks so
+        # the first handle's contextlib.closing is not disturbed.
+        try:
+            import sqlite3 as _sqlite3
+            db_file = state / "thinking-os.db"
+            if db_file.exists():
+                graph_conn = _sqlite3.connect(str(db_file))
+        except Exception as exc:  # noqa: BLE001 — doctor must not crash
+            logger = logging.getLogger("coding_os.doctor")
+            logger.debug("graph doctor connection failed: %s", exc)
     _check_scaffold_roots(project, report)
     _check_adapter(project, report.agent, report)
     _check_manifest(project, report, manifest_path or MANIFEST_PATH_DEFAULT)
@@ -663,6 +674,27 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     _check_mcp_portable(project, report)
     _check_mcp_actually_launches(project, report)
     _check_agents_md_present(project, report)
+    # Phase I.14 — graph-os health (C16-C22).
+    try:
+        from cli.doctor_graph import run_graph_checks  # noqa: WPS433
+        run_graph_checks(report, state, graph_conn)
+    except ImportError as exc:
+        logger = logging.getLogger("coding_os.doctor")
+        logger.debug("graph doctor unavailable: %s", exc)
+    finally:
+        if graph_conn is not None:
+            try:
+                graph_conn.close()
+            except Exception as exc:  # noqa: BLE001
+                logger = logging.getLogger("coding_os.doctor")
+                logger.debug("graph_conn close suppressed: %s", exc)
+    # Phase L.9 — board-os health (C20-C23).
+    try:
+        from cli.doctor_board import run_board_checks  # noqa: WPS433
+        run_board_checks(report, project, state)
+    except ImportError as exc:
+        logger = logging.getLogger("coding_os.doctor")
+        logger.debug("board doctor unavailable: %s", exc)
     return report
 
 
@@ -907,55 +939,119 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
         )
 
 
+def _load_coding_os_mcp_launch(
+    project: Path,
+    agent: str | None,
+) -> tuple[str | None, list[str], dict[str, str], str | None, str | None]:
+    """Return the coding-os MCP launch config from Claude or Codex sources."""
+
+    def _load_claude_json(path: Path) -> tuple[str | None, list[str], dict[str, str], str | None, str | None] | None:
+        if not path.exists():
+            return None
+        try:
+            import json as _json
+            data = _json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            return None, [], {}, str(path), f"invalid JSON: {exc}"
+        entry = (data.get("mcpServers") or {}).get("coding-os")
+        if entry is None:
+            return None, [], {}, str(path), None
+        env = {str(k): str(v) for k, v in (entry.get("env") or {}).items()}
+        return entry.get("command"), list(entry.get("args") or []), env, str(path), None
+
+    def _load_codex_toml(path: Path) -> tuple[str | None, list[str], dict[str, str]] | None:
+        if not path.exists():
+            return None
+        text = path.read_text(encoding="utf-8")
+        match = re.search(r"(?ms)^\[mcp_servers\.coding-os\]\s*\n(?P<body>.*?)(?=^\[|\Z)", text)
+        if not match:
+            return None
+        body = match.group("body")
+        cmd_match = re.search(r'(?m)^[ \t]*command[ \t]*=[ \t]*"([^"]+)"[ \t]*$', body)
+        if not cmd_match:
+            return "", [], {}
+        args_match = re.search(r"(?ms)^[ \t]*args[ \t]*=[ \t]*\[(.*?)\][ \t]*$", body)
+        args = []
+        if args_match:
+            args = re.findall(r'"((?:[^"\\]|\\.)*)"', args_match.group(1))
+            args = [bytes(item, "utf-8").decode("unicode_escape") for item in args]
+        env: dict[str, str] = {}
+        env_match = re.search(r"(?ms)^[ \t]*env[ \t]*=[ \t]*\{(.*?)\}[ \t]*$", body)
+        if env_match:
+            for key, value in re.findall(r'"((?:[^"\\]|\\.)*)"[ \t]*=[ \t]*"((?:[^"\\]|\\.)*)"', env_match.group(1)):
+                env[bytes(key, "utf-8").decode("unicode_escape")] = bytes(value, "utf-8").decode("unicode_escape")
+        return cmd_match.group(1), args, env
+
+    def _load_codex(path: Path) -> tuple[str | None, list[str], dict[str, str], str | None, str | None] | None:
+        loaded = _load_codex_toml(path)
+        if loaded is None:
+            return None
+        command, args, env = loaded
+        return command, args, env, str(path), None
+
+    loaders: list[tuple[str, Path]] = []
+    if agent == "claude":
+        loaders = [("claude", project / ".mcp.json")]
+    elif agent == "codex":
+        loaders = [
+            ("codex", project / ".codex" / "config.toml"),
+            ("codex", Path.home() / ".codex" / "config.toml"),
+        ]
+    else:
+        loaders = [
+            ("claude", project / ".mcp.json"),
+            ("codex", project / ".codex" / "config.toml"),
+            ("codex", Path.home() / ".codex" / "config.toml"),
+        ]
+
+    for kind, path in loaders:
+        loaded = _load_claude_json(path) if kind == "claude" else _load_codex(path)
+        if loaded is not None:
+            return loaded
+
+    return None, [], {}, None, None
+
+
 def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
-    """C15 — simulate the exact launch path Claude Code uses for .mcp.json.
+    """C15 — simulate the exact MCP launch path the active agent config uses.
 
     C10 runs `server.py --test` with an explicit COS_DB_PATH env — that
-    verifies the server code works but bypasses the .mcp.json launch
-    config entirely. C15 closes that gap: it reads .mcp.json, runs the
-    declared command with the project root as cwd, feeds a real
-    `initialize` handshake, and expects a valid JSON-RPC response.
-
-    A `.mcp.json` that hardcodes `uv run --directory .../thinking-os`
-    silently fails because `--directory` chdirs into the server tree and
-    the project's `.coding-os/thinking-os.db` stops resolving. This
-    check is the only thing that catches that without a live agent
-    session.
+    verifies the server code works but bypasses the agent launch config
+    entirely. C15 closes that gap: it reads coding-os MCP launch config
+    from Claude or Codex, runs the declared command with the project
+    root as cwd, feeds a real `initialize` handshake, and expects a
+    valid JSON-RPC response.
     """
-    mcp_path = project / ".mcp.json"
-    if not mcp_path.exists():
+    command, args, entry_env, source_path, load_error = _load_coding_os_mcp_launch(
+        project, report.agent
+    )
+    if load_error:
+        report.checks.append(
+            CheckResult("C15", "mcp_actually_launches", SEV_FAIL, load_error)
+        )
+        return
+    if source_path is None:
         report.checks.append(
             CheckResult(
                 "C15", "mcp_actually_launches", SEV_FAIL,
-                ".mcp.json missing — MCP server will not be registered "
-                "with any agent. Run `bash <coding-os>/adapters/claude/"
-                "install.sh` from the project root.",
+                "coding-os MCP config missing — neither .mcp.json nor "
+                ".codex/config.toml defines coding-os. Run "
+                "`bash <coding-os>/adapters/claude/install.sh` or "
+                "`bash <coding-os>/adapters/codex/install.sh` from the project root.",
             )
         )
         return
-    try:
-        import json as _json
-        data = _json.loads(mcp_path.read_text(encoding="utf-8"))
-    except Exception as exc:  # noqa: BLE001
-        report.checks.append(
-            CheckResult("C15", "mcp_actually_launches", SEV_FAIL, f"invalid JSON: {exc}")
-        )
-        return
-    entry = (data.get("mcpServers") or {}).get("coding-os")
-    if entry is None:
+    if command is None:
         report.checks.append(
             CheckResult(
                 "C15", "mcp_actually_launches", SEV_PASS,
-                "no coding-os MCP entry (skip)",
+                f"no coding-os MCP entry in {source_path} (skip)",
             )
         )
         return
 
-    command = entry.get("command")
-    args = list(entry.get("args") or [])
     env = os.environ.copy()
-    for k, v in (entry.get("env") or {}).items():
-        env[str(k)] = str(v)
+    env.update(entry_env)
 
     handshake = (
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":'
@@ -967,7 +1063,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
         report.checks.append(
             CheckResult(
                 "C15", "mcp_actually_launches", SEV_FAIL,
-                "no command specified in .mcp.json",
+                f"no command specified in {source_path}",
             )
         )
         return
@@ -1022,10 +1118,10 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if "unable to open database file" in combined or "OperationalError" in combined:
         msg = (
             "server crashed: cannot open DB. This usually means the "
-            ".mcp.json uses `uv run --directory ...` which chdir's into "
-            "the server tree, so `.coding-os/thinking-os.db` stops "
-            "resolving. Switch to the wrapper form: "
-            '{"command": "cos", "args": ["server-start"]}.'
+            "MCP launch config uses `uv run --directory ...` which "
+            "chdir's into the server tree, so `.coding-os/thinking-os.db` "
+            "stops resolving. Switch to the wrapper form: "
+            '`command = "cos"` and `args = ["server-start"]`.'
         )
     elif "No module named" in combined or "ModuleNotFoundError" in combined:
         msg = "server crashed: missing Python dependency — rerun `uv sync`."
