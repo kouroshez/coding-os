@@ -383,7 +383,56 @@ Before reaching for any tool, classify the query shape:
 
 If two layers look equally plausible, prefer Memory→Docs→Tasks order — memory returns have 5-signal ranking and are tailored to past outcomes, docs and tasks are static index lookups. Each `cos_*` response carries `data.meta.layer` so you can confirm which layer answered you.
 
-**Freshness contract (Phase H).** Every Write/Edit on a file matched by `.coding-os/rag-config.yaml` fires an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook ([core/hooks/auto-reindex-docs.sh](core/hooks/auto-reindex-docs.sh)). `cos_doc_search` therefore reflects the latest `mtime` without manual `make docs-index`. Confirm with `cos hooks-log | grep auto-reindex-docs`. Codex adapter lacks Write/Edit PostToolUse matchers as of 2026-04-18, so Codex sessions rely on the opt-in background indexer (`COS_BACKGROUND_INDEX=1`) or a manual `make docs-index`.
+**Freshness contract (Phase H + I).** Every Write/Edit on a file matched by `.coding-os/rag-config.yaml` OR carrying a code/config suffix fires an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook ([core/hooks/auto-reindex-docs.sh](core/hooks/auto-reindex-docs.sh)). Phase I extends the hook to dispatch per-suffix to the matching graph-os extractor (`.py`/`.ts`/`.tsx`/`.sh`/`.yaml`/`.yml`/`.go`/`.md`) — so both `cos_doc_search` AND `cos_graph_*` reflect the latest state without a manual `make docs-index` / `cos graph-reindex`. Confirm with `cos hooks-log | grep auto-reindex-docs`. Codex adapter lacks Write/Edit PostToolUse matchers as of 2026-04-18, so Codex sessions rely on the opt-in background indexer (`COS_BACKGROUND_INDEX=1`) or a manual re-run.
+
+## Graph Queries (Phase I)
+
+The fourth retrieval layer answers "what is connected to what?" — use it whenever a change touches load-bearing code and you need the dependency picture before editing.
+
+| Question | Tool | When |
+|---|---|---|
+| "What calls this function?" | `cos_graph_references(uid)` | Before renaming / removing |
+| "What's around this symbol?" | `cos_graph_context(uid_or_name, depth=1)` | F5 Step 1 Pre-Implementation |
+| "What breaks if I change this?" | `cos_graph_impact(uid, depth=3)` | F2 Dependency Map, F11 refactor sequencing |
+| "Where is a symbol defined?" | `cos_graph_query(q)` | Lexical + graph-walk search |
+| "Walk an execution path" | `cos_graph_trace(entry_uid)` | F7 Fault isolation |
+| "Similar nodes?" | `cos_graph_similar(uid)` | Duplicate detection, refactor planning |
+| "Shortest dependency path" | `cos_graph_path(src, dst)` | Dependency archaeology |
+| "Visualise the graph" | `cos_graph_export(format='mermaid'|'json'|'dot')` or `cos graph-viz` | Diagrams in responses |
+| "Diff-to-risk map" | `cos_graph_detect_changes(files=[...])` | Pre-commit self-review |
+
+Every response carries `data.meta.layer="graph"` and `data.meta.backend` so you can confirm Kùzu vs SQLite answered. `meta.backend_fallback=true` on a response means the Kùzu path degraded to SQLite — deep walks are slower but still correct.
+
+Full guide: [docs/engineering/graph-os-queries.md](docs/engineering/graph-os-queries.md). Skill: `graph-explorer` (auto-triggers on graph questions). Fresh re-index: `cos graph-reindex` or let the hook handle it.
+
+## Rename Workflow (Phase I)
+
+Never rename via grep + replace on a load-bearing function. The sequence:
+
+1. **Call `cos_graph_rename_plan(uid, new_name)`** — returns call-sites, doc references, test references, string literals (via `check_strings=True`), comment mentions, risk tier, and a suggested order of operations.
+2. **Record the marker** so the `enforce-rename-plan.sh` hook permits the subsequent Edits:
+   ```bash
+   bash core/hooks/write-state.sh .coding-os/claude/.rename-plan-<old_name> "reviewed"
+   ```
+3. **Edit in the plan's `suggested_order`:** tests first → implementation → docs → string literals last. Each Edit auto-reindexes (Phase H+I hook) so the graph reflects the rename after every step.
+4. **Re-run `cos_graph_references(<new_name>)`** to confirm zero stragglers.
+
+Hook behaviour: `enforce-rename-plan.sh` fires on `Edit` with identifier-shaped `old_string`/`new_string` pairs (both match `^[A-Za-z_][A-Za-z0-9_.]*$`, length ≤ 80). Opt into strict mode with `COS_ENFORCE_RENAME_PLAN=strict` to promote warn → block.
+
+## Contracts Audit (Phase I — F4 + F9)
+
+For any Formula-4 (docs) or Formula-9 (release) pass, the graph is the API surface truth:
+
+```
+cos_graph_contracts(scope="all", kinds=["http","mcp","grpc","event","websocket"])
+```
+
+Returns every detected route / tool / handler grouped by kind, with source file, line, framework, and handler uid. Use it for:
+- **F4 Step 3 auto-docs:** every HTTP route + MCP tool + gRPC endpoint in one envelope → feed your doc generator.
+- **F8 Layer 1 auth sweep:** cross-reference with `cos_graph_references("verify_auth")` — any route that isn't in the intersection is unauthenticated.
+- **F9 release gate:** run `cos_graph_contracts` on `HEAD` and `HEAD~1`; any diff (added / removed endpoint) must be in the release notes.
+
+Dynamic routes (template literals, reflection-based dispatch) appear with `meta.opaque_route=true` so the agent knows the surface is incomplete — not a silent gap.
 
 ## Development Status
 
