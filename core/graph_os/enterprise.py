@@ -1,0 +1,285 @@
+"""graph-os enterprise hardening layer (Phase I.14 hardening).
+
+Collects the production-grade knobs that MCP tool handlers need:
+
+    - RateLimiter         — per-tool token bucket, bounded concurrency
+    - BackendProbe        — on-boot writes `.coding-os/.graph-backend.json`
+                            (feeds doctor check C19 — "backend reachable")
+    - PrometheusSnapshot  — accumulate counters + timings; render as a
+                            Prometheus exposition-format string on demand
+                            without adding a network dep
+    - structured_logger   — JSON / key=value logger factory; falls back
+                            to stdlib `logging` when structlog is absent
+
+Everything here is stdlib-only by default. If `structlog` / `prometheus
+_client` are installed they're used transparently.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import threading
+import time
+from collections import deque
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Callable
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter — token bucket per tool name.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _Bucket:
+    capacity: int
+    refill_rate: float  # tokens per second
+    tokens: float
+    last_refill: float
+
+
+class RateLimiter:
+    """Bounded-burst token bucket, thread-safe.
+
+    PURPOSE:      Prevent an agent runaway from hammering MCP tools —
+                  e.g. looping cos_graph_query without backoff. Works
+                  per (tool_name, session_id) key.
+    INPUT:        capacity (max burst) + rate (tokens / second).
+    OUTPUT:       `acquire(key)` returns True (allowed) or False
+                  (throttled); callers translate to
+                  `fail("transient", retryable=True)` at the envelope
+                  layer.
+    NOTES:        Single-process; use a shared Redis-backed version
+                  when the MCP server fans out to multiple workers.
+    """
+
+    def __init__(
+        self,
+        *,
+        capacity: int = 60,
+        rate_per_second: float = 30.0,
+    ) -> None:
+        self._capacity = capacity
+        self._rate = rate_per_second
+        self._buckets: dict[str, _Bucket] = {}
+        self._lock = threading.Lock()
+
+    def acquire(self, key: str, *, cost: float = 1.0) -> bool:
+        now = time.monotonic()
+        with self._lock:
+            bucket = self._buckets.get(key)
+            if bucket is None:
+                bucket = _Bucket(
+                    capacity=self._capacity,
+                    refill_rate=self._rate,
+                    tokens=float(self._capacity),
+                    last_refill=now,
+                )
+                self._buckets[key] = bucket
+            elapsed = now - bucket.last_refill
+            if elapsed > 0:
+                bucket.tokens = min(
+                    float(bucket.capacity),
+                    bucket.tokens + elapsed * bucket.refill_rate,
+                )
+                bucket.last_refill = now
+            if bucket.tokens >= cost:
+                bucket.tokens -= cost
+                return True
+            return False
+
+    def snapshot(self) -> dict[str, dict[str, float]]:
+        with self._lock:
+            return {
+                key: {
+                    "capacity": float(b.capacity),
+                    "rate": b.refill_rate,
+                    "tokens": b.tokens,
+                }
+                for key, b in self._buckets.items()
+            }
+
+
+# ---------------------------------------------------------------------------
+# Prometheus exposition (no network dep).
+# ---------------------------------------------------------------------------
+
+
+class PrometheusSnapshot:
+    """In-process metric collector that renders Prometheus text format.
+
+    PURPOSE:      Enterprise observability without pulling in the
+                  `prometheus_client` package. Call `inc_counter` from
+                  hot paths; scrape via `render()` from a health
+                  endpoint or a CLI command.
+    INPUT:        counter / gauge / histogram-lite updates.
+    OUTPUT:       Prometheus exposition format string.
+    NOTES:        Histogram is a running mean + percentile-free
+                  summary to keep the implementation tiny. Full
+                  HDR-histogram support can arrive with prometheus
+                  _client when network-exposed scraping lands.
+    """
+
+    def __init__(self) -> None:
+        self._counters: dict[str, float] = {}
+        self._gauges: dict[str, float] = {}
+        self._timings: dict[str, list[float]] = {}
+        self._lock = threading.Lock()
+        # Cap each timing series so memory never unbounded.
+        self._timing_cap = 1_000
+
+    def inc_counter(self, name: str, value: float = 1.0) -> None:
+        with self._lock:
+            self._counters[name] = self._counters.get(name, 0.0) + value
+
+    def set_gauge(self, name: str, value: float) -> None:
+        with self._lock:
+            self._gauges[name] = value
+
+    def record_timing(self, name: str, duration_seconds: float) -> None:
+        with self._lock:
+            series = self._timings.setdefault(name, [])
+            series.append(duration_seconds)
+            if len(series) > self._timing_cap:
+                del series[: len(series) - self._timing_cap]
+
+    def render(self) -> str:
+        lines: list[str] = []
+        with self._lock:
+            for name, value in sorted(self._counters.items()):
+                lines.append(f"# TYPE {name} counter")
+                lines.append(f"{name} {value}")
+            for name, value in sorted(self._gauges.items()):
+                lines.append(f"# TYPE {name} gauge")
+                lines.append(f"{name} {value}")
+            for name, series in sorted(self._timings.items()):
+                if not series:
+                    continue
+                count = len(series)
+                total = sum(series)
+                avg = total / count if count else 0.0
+                p50 = _percentile(series, 0.5)
+                p95 = _percentile(series, 0.95)
+                p99 = _percentile(series, 0.99)
+                lines.append(f"# TYPE {name} summary")
+                lines.append(f"{name}_count {count}")
+                lines.append(f"{name}_sum {total:.6f}")
+                lines.append(f"{name}_avg {avg:.6f}")
+                lines.append(f'{name}{{quantile="0.5"}} {p50:.6f}')
+                lines.append(f'{name}{{quantile="0.95"}} {p95:.6f}')
+                lines.append(f'{name}{{quantile="0.99"}} {p99:.6f}')
+        return "\n".join(lines) + "\n"
+
+
+def _percentile(series: list[float], fraction: float) -> float:
+    if not series:
+        return 0.0
+    sorted_series = sorted(series)
+    idx = int(round((len(sorted_series) - 1) * fraction))
+    return sorted_series[idx]
+
+
+# ---------------------------------------------------------------------------
+# Backend probe writer (doctor C19).
+# ---------------------------------------------------------------------------
+
+
+def write_backend_probe(
+    state_dir: str | Path,
+    *,
+    backend: str,
+    kuzu_version: str | None = None,
+    sqlite_schema_version: int | None = None,
+) -> Path:
+    """Record the last-known-good backend state for doctor C19."""
+    target_dir = Path(state_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    path = target_dir / ".graph-backend.json"
+    payload = {
+        "backend": backend,
+        "kuzu_version": kuzu_version,
+        "sqlite_schema_version": sqlite_schema_version,
+        "last_ok_at": int(time.time()),
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Structured logger factory — structlog optional.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _KVLogger:
+    """Stdlib fallback — emits key=value lines for greppability."""
+
+    logger: logging.Logger
+
+    def info(self, event: str, **fields: Any) -> None:
+        self.logger.info(_fmt(event, fields))
+
+    def warning(self, event: str, **fields: Any) -> None:
+        self.logger.warning(_fmt(event, fields))
+
+    def error(self, event: str, **fields: Any) -> None:
+        self.logger.error(_fmt(event, fields))
+
+    def debug(self, event: str, **fields: Any) -> None:
+        self.logger.debug(_fmt(event, fields))
+
+
+def _fmt(event: str, fields: dict[str, Any]) -> str:
+    if not fields:
+        return event
+    return " ".join(
+        [event] + [f"{k}={_quote(v)}" for k, v in sorted(fields.items())]
+    )
+
+
+def _quote(value: Any) -> str:
+    text = str(value)
+    if any(ch in text for ch in " \t\n\"="):
+        return json.dumps(text)
+    return text
+
+
+def get_logger(name: str = "graph_os") -> Any:
+    """Return a structured logger — structlog if installed, stdlib otherwise."""
+    try:
+        import structlog  # type: ignore
+        return structlog.get_logger(name)
+    except ImportError:
+        return _KVLogger(logging.getLogger(name))
+
+
+# ---------------------------------------------------------------------------
+# Global singletons (opt-in; imported on demand).
+# ---------------------------------------------------------------------------
+
+_GLOBAL_RATE = RateLimiter(
+    capacity=int(os.environ.get("COS_GRAPH_RATE_CAPACITY", "60")),
+    rate_per_second=float(os.environ.get("COS_GRAPH_RATE_REFILL", "30")),
+)
+_GLOBAL_METRICS = PrometheusSnapshot()
+
+
+def rate_limiter() -> RateLimiter:
+    return _GLOBAL_RATE
+
+
+def metrics() -> PrometheusSnapshot:
+    return _GLOBAL_METRICS
+
+
+__all__ = [
+    "RateLimiter",
+    "PrometheusSnapshot",
+    "write_backend_probe",
+    "get_logger",
+    "rate_limiter",
+    "metrics",
+]

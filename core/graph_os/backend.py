@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import Any, Iterable, Protocol, Sequence, runtime_checkable
 
 from .types import EvidenceSignal, GraphEdge, GraphNode
@@ -169,7 +170,9 @@ def get_backend(
             from .backends.kuzu_backend import KuzuBackend  # noqa: PLC0415
 
             try:
-                return KuzuBackend(path=kuzu_path, **extra)
+                backend = KuzuBackend(path=kuzu_path, **extra)
+                _record_backend_probe(backend)
+                return backend
             except BackendUnavailable as exc:
                 if choice == "kuzu":
                     raise
@@ -187,7 +190,26 @@ def get_backend(
 
     from .backends.sqlite_backend import SqliteBackend  # noqa: PLC0415
 
-    return SqliteBackend(conn=sqlite_conn, **extra)
+    backend = SqliteBackend(conn=sqlite_conn, **extra)
+    _record_backend_probe(backend)
+    return backend
+
+
+def _record_backend_probe(backend: "GraphBackend") -> None:
+    """Write `.coding-os/.graph-backend.json` so doctor C19 can audit health.
+
+    Fire-and-forget: any failure is swallowed (path missing, permission
+    denied, etc.) — the probe is an observability aid, not load-bearing.
+    """
+    try:
+        from .enterprise import write_backend_probe  # noqa: WPS433
+
+        state_dir = os.environ.get("COS_STATE_DIR") or str(
+            Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())) / ".coding-os"
+        )
+        write_backend_probe(state_dir, backend=backend.backend_id)
+    except Exception as exc:  # noqa: BLE001 — probe must not break backend boot
+        logger.debug("backend probe write skipped: %s", exc)
 
 
 __all__ = ["GraphBackend", "BackendUnavailable", "get_backend"]

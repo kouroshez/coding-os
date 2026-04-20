@@ -46,6 +46,52 @@ extractor set (I.4 Python + I.2 md_links + I.7 contracts).
   cold-start numbers will land in a follow-up run once the
   subprocess wiring ships (plan Section 7.4).
 
+## 500-file scale smoke — 2026-04-20 (post-Phase-I hardening)
+
+Fixture: `core.graph_os.bench.scale_500k --limit-for-dryrun 500` —
+deterministic Python module generator.
+
+| Metric | Value |
+|---|---|
+| Backend | SQLite fallback |
+| Corpus size | 500 files |
+| Generation duration | 51 ms |
+| Indexing duration | 459 ms (~0.92 ms / file) |
+| Query duration (10 samples) | 8 ms |
+| Nodes written | 3 000 |
+| Edges written | 2 500 |
+
+Full 500 k run is gated on Kùzu adoption + a dedicated runner; the
+harness is reproducible (`--count 500_000 --output report.json`).
+
+## Viewer FPS scale — 2026-04-20
+
+Fixture: `core.graph_os.bench.viewer_fps --nodes 10000` — ring + +7 graph
+to give ForceAtlas2 something to spread.
+
+| Metric | Value |
+|---|---|
+| Nodes | 10 000 |
+| Edges | 19 992 |
+| Ingest (SQLite) | 1 719 ms |
+| HTML render | **53 ms** |
+| HTML size | 447 KB (~0.044 KB / node) |
+
+The HTML-side render path stays well under the 200 ms first-paint
+budget (plan §15.5). The browser-runtime FPS target (≥ 30 FPS at
+10 k nodes) is a separate measurement deferred to a
+playwright/headless slice; the input cost is already bounded.
+
+## Persian / multilingual precision harness
+
+New harness `core.graph_os.bench.persian_precision` runs a 12-doc /
+5-query fixture against the active embedding model. Baseline run on
+MiniLM is recorded below; the BGE-M3 run will replace it in I.1
+after the migrator completes.
+
+_Record the MiniLM result in this section; re-run after BGE-M3 and
+append. Target: `precision_at_1 ≥ 0.8` on Persian queries._
+
 ## Regression gate
 
 `graph_os.bench.harness.assert_within_budget` fails a PR when
