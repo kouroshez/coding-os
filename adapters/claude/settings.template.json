@@ -91,6 +91,18 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/validate-task-frontmatter.sh",
+            "statusMessage": "🧾 Validating task frontmatter...",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-wip-limit.sh",
+            "statusMessage": "🚦 Checking WIP limit before status change...",
+            "timeout": 2000
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/warn-template-drift.sh",
             "statusMessage": "⚠️ Adapter template edits — use registry.yaml..."
           }
@@ -111,6 +123,24 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/auto-reindex-docs.sh",
             "statusMessage": "♻️ Auto re-indexing doc for cos_doc_search freshness...",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/capture-work-log.sh",
+            "statusMessage": "📝 Appending Work Log entry...",
+            "timeout": 1500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-task-sync.sh",
+            "statusMessage": "♻️ Re-syncing task to DB...",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/lint-task.sh",
+            "statusMessage": "📏 Lint task (Rule 15)...",
             "timeout": 1000
           },
           {
@@ -177,6 +207,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/remind-daily.sh",
+            "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
             "statusMessage": "🚀 Loading session context + memory digest..."
           },
@@ -184,6 +220,17 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness..."
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/remind-daily.sh",
+            "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 1000
           }
         ]
       },

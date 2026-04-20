@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
@@ -923,6 +924,212 @@ def cos_task_by_filter(
         meta={"layer": "tasks",
               "filters_applied": {"status": status or None, "domain": domain or None}},
     )
+
+
+# ---------------------------------------------------------------------------
+# Board-OS MCP tools (Phase L.3) — Scrumban task board
+# ---------------------------------------------------------------------------
+# Imported from core/board_os/mcp_tools.py. Each tool here is a thin
+# @mcp.tool-decorated wrapper that injects the server's shared _db_conn.
+
+try:
+    _BOARD_OS_DIR = Path(__file__).resolve().parents[1] / "board_os"
+    if str(_BOARD_OS_DIR.parent) not in sys.path:
+        sys.path.insert(0, str(_BOARD_OS_DIR.parent))
+    from core.board_os import mcp_tools as _board_mcp  # type: ignore
+    _BOARD_OS_AVAILABLE = True
+except ImportError as _exc:
+    logger.warning("board_os MCP tools unavailable: %s", _exc)
+    _BOARD_OS_AVAILABLE = False
+
+
+if _BOARD_OS_AVAILABLE:
+
+    @mcp.tool(
+        name="cos_task_create",
+        annotations={
+            "title": "Create New Scrumban Task",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_create(
+        title: str,
+        swimlane: str,
+        kind: str,
+        priority: str = "P2",
+        appetite: str = "1d",
+        epic: str = "",
+        labels: list[str] | None = None,
+        outcome: str = "",
+        read_first: list[str] | None = None,
+        depends_on: list[str] | None = None,
+        status: str = "icebox",
+    ) -> str:
+        """Create a new Scrumban task file + sync to DB.
+
+        Prefer this over hand-writing YAML. Validates swimlane against
+        scrumban-config.yaml and kind against the 8-value enum.
+        """
+        return _board_mcp.cos_task_create(
+            _db_conn,
+            title=title, swimlane=swimlane, kind=kind,
+            priority=priority, appetite=appetite,
+            epic=epic or None,
+            labels=labels or [],
+            outcome=outcome or None,
+            read_first=read_first or [],
+            depends_on=depends_on or [],
+            status=status,
+        )
+
+    @mcp.tool(
+        name="cos_task_board",
+        annotations={
+            "title": "Scrumban Board State",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_board(
+        swimlane: str = "",
+        kind: str = "",
+        epic: str = "",
+        status_filter: list[str] | None = None,
+        include_archive: bool = False,
+        limit: int = 50,
+    ) -> str:
+        """Return the board state grouped by (swimlane, status) with WIP info."""
+        return _board_mcp.cos_task_board(
+            _db_conn,
+            swimlane=swimlane or None,
+            kind=kind or None,
+            epic=epic or None,
+            status_filter=status_filter,
+            include_archive=include_archive,
+            limit=limit,
+        )
+
+    @mcp.tool(
+        name="cos_task_move",
+        annotations={
+            "title": "Move Task to New Status",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_move(
+        task_id: str,
+        to: str,
+        reason: str = "",
+        bypass_wip: bool = False,
+        agent_session: str = "",
+    ) -> str:
+        """Transition a task through the Scrumban state machine."""
+        return _board_mcp.cos_task_move(
+            _db_conn,
+            task_id=task_id, to=to,
+            reason=reason or None,
+            bypass_wip=bypass_wip,
+            agent_session=agent_session or None,
+        )
+
+    @mcp.tool(
+        name="cos_task_pick",
+        annotations={
+            "title": "Pick Next Task to Work On",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_pick(
+        swimlane: str = "",
+        priority_min: str = "P2",
+        max_candidates: int = 5,
+    ) -> str:
+        """Return top candidate tasks to start next, ranked by priority."""
+        return _board_mcp.cos_task_pick(
+            _db_conn,
+            swimlane=swimlane or None,
+            priority_min=priority_min,
+            max_candidates=max_candidates,
+        )
+
+    @mcp.tool(
+        name="cos_task_daily",
+        annotations={
+            "title": "Daily Standup Summary",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_daily(since: str = "24h", agent_session: str = "") -> str:
+        """Produce the daily standup summary."""
+        return _board_mcp.cos_task_daily(
+            _db_conn, since=since, agent_session=agent_session or None,
+        )
+
+    @mcp.tool(
+        name="cos_task_retro",
+        annotations={
+            "title": "Weekly Retrospective",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_retro(since: str = "7d") -> str:
+        """Weekly retro metrics (cycle time, throughput, emergency count)."""
+        return _board_mcp.cos_task_retro(_db_conn, since=since)
+
+    @mcp.tool(
+        name="cos_task_wip_check",
+        annotations={
+            "title": "WIP Cap Health Check",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_wip_check() -> str:
+        """Lightweight check of current WIP counts vs. configured caps."""
+        return _board_mcp.cos_task_wip_check(_db_conn)
+
+    @mcp.tool(
+        name="cos_work_log_append",
+        annotations={
+            "title": "Append Line to Task Work Log",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
+    )
+    def cos_work_log_append(
+        task_id: str,
+        summary: str,
+        agent_session: str = "",
+        source: str = "manual",
+    ) -> str:
+        """Append one Work Log line to a task. Critical for Codex sessions."""
+        return _board_mcp.cos_work_log_append(
+            _db_conn,
+            task_id=task_id, summary=summary,
+            agent_session=agent_session or None,
+            source=source,
+        )
 
 
 # ---------------------------------------------------------------------------

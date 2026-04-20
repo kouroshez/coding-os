@@ -41,7 +41,6 @@ hook_dispatchers:
   - event: PreToolUse
     matcher: Bash
     script: codex-pretool-dispatch.sh
-    status_message: "🛡️ Running Codex Bash policy checks..."
     delegates:
       - block-secrets.sh
       - block-dangerous-commands.sh
@@ -54,6 +53,7 @@ hook_dispatchers:
     delegates:
       - session-context.sh
       - warn-mcp-down.sh
+      - remind-daily.sh
   - event: SessionStart
     matcher: resume
     script: codex-sessionstart-dispatch.sh
@@ -61,6 +61,7 @@ hook_dispatchers:
     delegates:
       - session-context.sh
       - warn-mcp-down.sh
+      - remind-daily.sh
   - event: Stop
     matcher: ""
     script: codex-stop-dispatch.sh
@@ -69,3 +70,8 @@ hook_dispatchers:
     delegates:
       - session-end.sh
       - check-capture-worked.sh
+  - event: PostToolUse
+    matcher: Bash
+    script: remind-learn-validate.sh
+    delegates:
+      - remind-learn-validate.sh

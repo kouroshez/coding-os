@@ -1,0 +1,68 @@
+## Task Authoring (Phase L Scrumban)
+
+Tasks live at `docs/tasks/TASK-NNN-slug.md`. They are written in lean
+Phase L format: YAML frontmatter + Outcome + Read First (links only) +
+Acceptance (G/W/T) + Work Log.
+
+### The four categorization axes
+
+| Axis | Field | Rule |
+|---|---|---|
+| Domain | `swimlane` | From `.coding-os/scrumban-config.yaml` — pick ONE |
+| Type | `kind` | Closed enum: feature\|bug\|chore\|spike\|docs\|refactor\|test\|security |
+| Initiative | `epic` | Optional free string (e.g. `phase-l`, `mvp`, `oncall-q2`) |
+| Tags | `labels` | Free list; MUST NOT contain `kind` values |
+
+### Preferred path — use MCP tools, not hand-written YAML
+
+When creating a task:
+```
+cos_task_create(title, swimlane, kind, priority='P2', appetite='1d', epic=?, labels=?, outcome=?, read_first=[...])
+```
+
+When transitioning status:
+```
+cos_task_move(task_id, to='in_progress', reason=?)
+```
+
+When logging work (Codex MUST call this — no PostToolUse hook):
+```
+cos_work_log_append(task_id, summary, agent_session=?)
+```
+
+When picking next: `cos_task_pick()`. When starting session: `cos_task_daily()`.
+
+### Rule 15 — Tasks are pointers, not specs
+
+Task body MUST NOT inline content from `docs/**`, `core/rules/**`,
+`CLAUDE.md`, or `AGENTS.md`. `Read First` lists *paths*; the body
+describes *delta* (outcome + acceptance + work log). Duplicated
+content is a bug — fix by linking, or by creating a real doc first.
+
+### WIP limit — solo-dev defense
+
+Default: **1 task in_progress**. If you need to start another, either:
+- complete one first, or
+- transition the current to `blocked` / `ready`, or
+- set `COS_WIP_OVERRIDE=1` (rare — leaves a metric).
+
+### MCP outage — retry policy
+
+`cos_task_move` / `cos_work_log_append` return `fail("transient", retryable=True)` on transient errors.
+Retry ONCE after 2 seconds. On second failure, fall back to direct MD
+edit via the `Edit` tool — the `validate-task-frontmatter.sh` hook still
+enforces safety at the file-system layer.
+
+### Multi-session handoff
+
+Every session appends ONE line to the active task's Work Log via
+`capture-work-log.sh` (Claude, automatic) or `cos_work_log_append`
+(Codex, explicit). Next session reads the last 5 lines from the MCP
+response to know "where I was". Work Log is append-only — never rewrite.
+
+### Daily ritual (observability, never shame)
+
+`cos daily` prints yesterday's progress + today's pick candidates +
+blockers + WIP state. If no check-in in 24h, `remind-daily.sh` prints
+a banner. Streak data is purely observability — NEVER use it to
+pressure the human (ADHD-friendly default).

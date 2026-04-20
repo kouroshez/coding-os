@@ -6,8 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/codex-pretool-dispatch.sh",
-            "statusMessage": "🛡️ Running Codex Bash policy checks..."
+            "command": "{{HOOKS_DIR}}/codex-pretool-dispatch.sh"
           }
         ]
       }
@@ -65,8 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
-            "statusMessage": "💡 Checking if learn-validate reminder is due..."
+            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh"
           }
         ]
       }

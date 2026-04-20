@@ -54,4 +54,5 @@ agents_md_sections:
   - {id: session-handoff,      order: 110, template: "fragments/session-handoff.md.tmpl"}
   - {id: ssot-map,             order: 120, template: "fragments/ssot-map.md.tmpl"}
   - {id: task-logging,         order: 130, template: "fragments/task-logging.md.tmpl"}
+  - {id: task-authoring,       order: 135, template: "fragments/task-authoring.md.tmpl"}
   - {id: subagent-dispatch,    order: 140, template: "fragments/subagent-dispatch.md.tmpl"}

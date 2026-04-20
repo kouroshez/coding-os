@@ -567,6 +567,14 @@ cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(eject_file_cmd)
 
+# Phase L.6 — board-os CLI surface (16 commands).
+try:
+    from cli.board_commands import BOARD_COMMANDS
+    for _bc in BOARD_COMMANDS:
+        cli.add_command(_bc)
+except ImportError:
+    pass  # board_os optional — don't break `cos` if deps missing.
+
 
 def _resolve_project_dir(raw: str) -> Path:
     """Resolve the `--project-dir` value to an absolute path.
@@ -952,21 +960,37 @@ def add_adapter(agent: str, project_dir: str) -> None:
     "--config",
     "config_path",
     default=None,
-    help="Codex config file (default: ~/.codex/config.toml)",
+    help="Codex config file (default: ./.codex/config.toml)",
+)
+@click.option(
+    "--global",
+    "global_scope",
+    is_flag=True,
+    default=False,
+    help="Write to ~/.codex/config.toml instead of the project-local .codex/config.toml",
 )
 @click.option("--dry-run", is_flag=True, default=False, help="Print the snippet without writing")
-def codex_mcp_install(config_path: str | None, dry_run: bool) -> None:
-    """Register the coding-os MCP server in Codex's global config.
+def codex_mcp_install(config_path: str | None, global_scope: bool, dry_run: bool) -> None:
+    """Register the coding-os MCP server in Codex config.
 
-    Codex CLI reads MCP servers from ~/.codex/config.toml (global, per-user),
-    not from .mcp.json (which is Claude's convention). This command appends
-    the `[mcp_servers.coding-os]` section idempotently. Safe to re-run — it
-    detects an existing entry and refuses to duplicate.
+    Codex CLI supports both user-level ~/.codex/config.toml and trusted
+    project overrides in .codex/config.toml. This command defaults to the
+    project-local config so coding-os MCP stays scoped to the current repo;
+    pass `--global` only when you explicitly want the server available
+    everywhere. Safe to re-run — it repairs or replaces the
+    `[mcp_servers.coding-os]` section idempotently.
 
     Uses append-based text edits (no TOML parser required) so it works on
     Python 3.10 and preserves any hand-authored comments in config.toml.
     """
-    default_path = Path.home() / ".codex" / "config.toml"
+    if config_path and global_scope:
+        raise click.ClickException("use either --config or --global, not both")
+
+    default_path = (
+        Path.home() / ".codex" / "config.toml"
+        if global_scope
+        else Path.cwd() / ".codex" / "config.toml"
+    )
     target = Path(config_path).expanduser().resolve() if config_path else default_path
 
     has_cos = shutil.which("cos") is not None

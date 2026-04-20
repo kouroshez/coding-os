@@ -205,6 +205,76 @@ hooks:
         matcher: Write|Edit
         status_message: "♻️ Auto re-indexing doc for cos_doc_search freshness..."
 
+  # ── board-os Scrumban (Phase L.4) ──────────────────────────────────
+  - id: validate-task-frontmatter
+    script: validate-task-frontmatter.sh
+    description: Phase L — validates lean frontmatter (swimlane/kind/epic/labels/status/priority/appetite) on task MD writes. Blocks malformed YAML or enum violations.
+    category: safety
+    phase: L
+    timeout: 3000
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🧾 Validating task frontmatter..."
+
+  - id: enforce-wip-limit
+    script: enforce-wip-limit.sh
+    description: Phase L — enforces WIP caps from scrumban-config.yaml when a task transitions to in_progress/emergency. Bypass via COS_WIP_OVERRIDE=1.
+    category: safety
+    phase: L
+    timeout: 2000
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚦 Checking WIP limit before status change..."
+
+  - id: capture-work-log
+    script: capture-work-log.sh
+    description: Phase L — appends one-line Work Log entry to the active task on code Write/Edit. Fire-and-forget; flock-serialized for multi-agent safety.
+    category: observability
+    phase: L
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit|MultiEdit
+        status_message: "📝 Appending Work Log entry..."
+
+  - id: auto-task-sync
+    script: auto-task-sync.sh
+    description: Phase L — re-syncs single task file into DB cache on Write/Edit. Fire-and-forget; keeps the board fresh within one hook latency.
+    category: retrieval
+    phase: L
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "♻️ Re-syncing task to DB..."
+
+  - id: remind-daily
+    script: remind-daily.sh
+    description: Phase L — on SessionStart, nags if `cos daily` hasn't run in >24h. Non-blocking banner; ADHD-friendly (no shame).
+    category: observability
+    phase: L
+    timeout: 1000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🗓️  Checking daily check-in recency..."
+      - event: SessionStart
+        matcher: resume
+        status_message: "🗓️  Checking daily check-in recency..."
+
+  - id: lint-task
+    script: lint-task.sh
+    description: Phase L.9 — Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.
+    category: safety
+    phase: L
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📏 Lint task (Rule 15)..."
+
   - id: verify-changed-file
     script: verify-changed-file.sh
     description: Analyzes changed file + cross-module impact after each write.
