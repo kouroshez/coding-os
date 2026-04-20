@@ -8,14 +8,14 @@
 # is not part of any Codex loading convention).
 #
 # Codex hooks are behind the `codex_hooks = true` feature flag in
-# ~/.codex/config.toml (per developers.openai.com/codex/hooks). The
-# installer enables that flag idempotently so repo-local .codex/hooks.json
-# is actually delivered by the runtime.
+# config.toml (per developers.openai.com/codex/hooks). Codex supports
+# project-scoped `.codex/config.toml` overrides, so this adapter enables
+# the flag in the project-local config instead of mutating the user's
+# global ~/.codex/config.toml.
 #
-# MCP servers for Codex are configured GLOBALLY in ~/.codex/config.toml,
-# not per-project — so we do NOT touch .mcp.json here (that is Claude's
-# convention). Instead we print the snippet at the end and provide
-# `cos codex-mcp-install` for assisted setup.
+# MCP servers for Codex also support project-scoped `.codex/config.toml`,
+# so this adapter keeps the coding-os MCP entry local to the installed
+# project. We do NOT touch .mcp.json here (that is Claude's convention).
 #
 # What this adapter actually installs:
 #   .codex/hooks/         — symlinks to core/hooks/*.sh
@@ -132,14 +132,13 @@ if [ -f "${PROJECT_ROOT}/.codex/instructions.md" ]; then
   rm -f "${PROJECT_ROOT}/.codex/instructions.md"
 fi
 
-# 8. Register coding-os MCP server in ~/.codex/config.toml.
-# Equivalent to Claude adapter's .mcp.json step — same intent, different
-# file because Codex stores MCP servers in the user's global config,
-# not per-project. Idempotent: appends only if the entry is missing.
-CODEX_CONFIG="${HOME}/.codex/config.toml"
-mkdir -p "${HOME}/.codex"
+# 8. Register coding-os MCP server in project-local .codex/config.toml.
+# Codex loads trusted project overrides from `.codex/config.toml`, so the
+# adapter keeps both the hook feature flag and MCP server local to this repo.
+CODEX_CONFIG="${PROJECT_ROOT}/.codex/config.toml"
+mkdir -p "${PROJECT_ROOT}/.codex"
 
-# Enable the `codex_hooks` feature flag in ~/.codex/config.toml.
+# Enable the `codex_hooks` feature flag in project-local .codex/config.toml.
 # We ship the Python logic as a standalone script so install.sh never
 # relies on command-substitution-of-a-heredoc ($(python3 - <<'PY' …)),
 # which has been observed to hang deterministically when any sandbox in

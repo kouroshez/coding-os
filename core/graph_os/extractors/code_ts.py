@@ -168,18 +168,28 @@ def function_uid(path: str, name: str) -> str:
 def extract(path: str, content: str) -> ExtractionResult:
     """Parse a TS / TSX file → nodes + edges.
 
-    PURPOSE:      Per-file write path invoked by the orchestrator. The
-                  pure-regex scan is intentionally conservative:
-                  it catches the public surface (imports + top-level
-                  decls) deterministically while keeping the sync
-                  <200ms budget (plan §8.2).
+    PURPOSE:      Per-file write path invoked by the orchestrator. Uses
+                  tree-sitter when the grammar is installed (Phase
+                  I.6b); falls back to the regex scanner otherwise so
+                  the dogfood build still works when the graph-os
+                  extra is skipped.
     INPUT:        file path + raw source.
     OUTPUT:       ExtractionResult.
-    DEPENDENCIES: stdlib only. Tree-sitter overlay arrives in I.6b.
-    NOTES:        Returns the file node even when the scan fails so
+    DEPENDENCIES: stdlib + optional tree-sitter-typescript.
+    NOTES:        Returns the file node even when parsing fails so
                   downstream queries can surface the presence of the
                   file.
     """
+    # Tree-sitter overlay pass (I.6b) — runs first to enrich AST-level
+    # metadata. Regex scan below continues unchanged so results stay
+    # backwards-compatible when the grammar is absent.
+    try:
+        from ..tree_sitter_overlay import parse as _ts_parse  # noqa: WPS433
+
+        lang_id = "tsx" if path.endswith(".tsx") else "typescript"
+        _ts_overlay = _ts_parse(lang_id, content)
+    except ImportError:
+        _ts_overlay = None
     result = ExtractionResult()
     normalised = _normalize_path(path)
     lang = "tsx" if normalised.endswith(".tsx") else "ts"
@@ -204,13 +214,17 @@ def extract(path: str, content: str) -> ExtractionResult:
         _promote_stubs(result)
         return result
 
+    overlay_meta: dict[str, object] = {}
+    if _ts_overlay is not None:
+        overlay_meta["ts_ast_nodes"] = _count_ts_nodes(_ts_overlay.root)
+        overlay_meta["ts_language"] = _ts_overlay.language_id
     module = GraphNode(
         uid=module_uid(path),
         kind="code:module",
         label=PurePosixPath(normalised).stem,
         file_path=normalised,
         lang=lang,
-        metadata={"extractor": EXTRACTOR_ID},
+        metadata={"extractor": EXTRACTOR_ID, **overlay_meta},
     )
     result.nodes.append(module)
     result.edges.append(
@@ -816,6 +830,19 @@ def _format_class_signature(
         if ifaces:
             parts.append(f"implements {ifaces}")
     return " ".join(parts)
+
+
+def _count_ts_nodes(root) -> int:
+    """Count AST nodes for tree-sitter overlay health-check metric."""
+    if root is None:
+        return 0
+    stack = [root]
+    total = 0
+    while stack:
+        node = stack.pop()
+        total += 1
+        stack.extend(node.children)
+    return total
 
 
 def _split_implements(raw: str) -> list[str]:

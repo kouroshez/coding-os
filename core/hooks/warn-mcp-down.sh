@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# SessionStart hook: probe the coding-os MCP server via .mcp.json, warn if down.
+# SessionStart hook: probe the coding-os MCP server, warn if down.
 #
 # Rationale: without a live MCP, the entire thinking-os layer is dead —
 # memory search, task-sync, learning, breakthrough capture, doc-search
 # all silently fail. The agent and the human have no visible signal
 # unless they happen to call an MCP tool and see the error.
 #
-# This hook runs once per session, reads .mcp.json, attempts the exact
-# launch command with an initialize handshake (5s timeout), and on
-# failure prints a loud banner so both sides know memory is unavailable.
+# This hook runs once per session, reads the launch command from the
+# active agent config (.mcp.json for Claude, .codex/config.toml for
+# Codex, then user-level Codex config as a fallback), attempts an
+# initialize handshake (5s timeout), and on failure prints a loud
+# banner so both sides know memory is unavailable.
 #
 # Fast-path: if .mcp.json has no coding-os entry, the session simply
 # doesn't use MCP — silent exit.
@@ -26,6 +28,7 @@ PROJECT_ROOT="$(cd "$HOOK_DIR/../.." && pwd)"
 cos_log_hook warn-mcp-down fire
 
 MCP_FILE="$PROJECT_ROOT/.mcp.json"
+CODEX_PROJECT_CONFIG="$PROJECT_ROOT/.codex/config.toml"
 resolve_launch_from_mcp_json() {
   local mcp_file="${1:-}"
   [[ -f "$mcp_file" ]] || return 0
@@ -73,6 +76,9 @@ print(" ".join(shlex.quote(p) for p in parts))
 }
 
 LAUNCH="$(resolve_launch_from_mcp_json "$MCP_FILE")"
+if [[ -z "$LAUNCH" ]]; then
+  LAUNCH="$(resolve_launch_from_codex_config "$CODEX_PROJECT_CONFIG")"
+fi
 if [[ -z "$LAUNCH" ]]; then
   LAUNCH="$(resolve_launch_from_codex_config "${HOME}/.codex/config.toml")"
 fi

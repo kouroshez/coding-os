@@ -41,7 +41,7 @@ Auto-loaded at session start or when entering a directory:
 
 Auto-loaded at session start:
 - `AGENTS.md` at project root.
-- `~/.codex/config.toml` (for MCP servers and settings).
+- Codex config layers: project `.codex/config.toml` overrides, then `~/.codex/config.toml` user defaults.
 
 **Not auto-loaded:** `.codex/rules/*.md`. The `adapters/codex/install.sh` itself notes (lines 55–58):
 

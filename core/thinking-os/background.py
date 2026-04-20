@@ -125,6 +125,7 @@ class BackgroundIndexer:
         interval_seconds: int = DEFAULT_INTERVAL_SECONDS,
         run_docs_index: Optional[Callable[[], dict]] = None,
         run_task_sync: Optional[Callable[[], dict]] = None,
+        run_graph_index: Optional[Callable[[], dict]] = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.interval_seconds = max(
@@ -133,6 +134,7 @@ class BackgroundIndexer:
         )
         self._run_docs_index = run_docs_index or _default_docs_index_runner
         self._run_task_sync = run_task_sync or _default_task_sync_runner
+        self._run_graph_index = run_graph_index or _default_graph_index_runner
         self._clock = clock
 
         self._thread: Optional[threading.Thread] = None
@@ -222,6 +224,16 @@ class BackgroundIndexer:
             logger.warning("background task_sync failed: %s", exc)
             err = f"{err + '; ' if err else ''}task_sync: {type(exc).__name__}: {exc}"
 
+        # Phase I.10: graph-os keeps pace with code/doc edits in sessions
+        # that don't get PostToolUse (Codex). Runner is content-hash aware
+        # so the 99% no-op case is cheap.
+        try:
+            graph_stats = self._run_graph_index()
+            iter_stats["graph"] = graph_stats
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("background graph_index failed: %s", exc)
+            err = f"{err + '; ' if err else ''}graph_index: {type(exc).__name__}: {exc}"
+
         duration_ms = int((self._clock() - start) * 1000)
         from datetime import datetime, timezone
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -305,6 +317,52 @@ def _default_task_sync_runner() -> dict:
         return {"status": "ok", "stats": stats}
     finally:
         conn.close()
+
+
+def _default_graph_index_runner() -> dict:
+    """Run graph_indexer.index_project against the configured project root.
+
+    PURPOSE:      Phase I.10 — gives Codex (no PostToolUse on Write/Edit)
+                  a freshness path. Content-hash skipping keeps the 99%
+                  no-op case cheap (~100ms on a 1k-file repo per tick).
+    INPUT:        none — reads COS_PROJECT_ROOT + COS_DB_PATH + a
+                  COS_BACKGROUND_GRAPH_MAX_FILES safety cap.
+    OUTPUT:       {status, stats} per iteration.
+    NOTES:        Never raises; failures roll into BackgroundIndexer's
+                  error counter via the surrounding try/except.
+    """
+    try:
+        import graph_indexer
+    except ImportError as exc:
+        return {"status": "skipped", "reason": f"import: {exc}"}
+
+    project_root = _project_root()
+    if not project_root.exists():
+        return {"status": "skipped", "reason": f"no project_root at {project_root}"}
+
+    db_path = os.environ.get(
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
+    )
+    max_files_raw = os.environ.get("COS_BACKGROUND_GRAPH_MAX_FILES", "")
+    try:
+        max_files = int(max_files_raw) if max_files_raw.strip() else 20_000
+    except ValueError:
+        max_files = 20_000
+
+    backend = graph_indexer.open_backend(db_path)
+    try:
+        report = graph_indexer.index_project(
+            backend=backend,
+            project_root=project_root,
+            force=False,
+            max_files=max_files,
+        )
+        return {"status": "ok", "stats": report.to_dict()}
+    finally:
+        try:
+            backend.close()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("graph backend close suppressed: %s", exc)
 
 
 # ---------------------------------------------------------------------------

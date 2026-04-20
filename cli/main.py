@@ -36,6 +36,7 @@ from cli.add_stack import add_stack as add_stack_cmd
 from cli.aggregator import aggregate, today_iso
 from cli.brain_commands import (
     docs_index as docs_index_cmd,
+    graph_reindex as graph_reindex_cmd,
     reindex as reindex_cmd,
     task_sync as task_sync_cmd,
 )
@@ -563,6 +564,7 @@ cli.add_command(add_stack_cmd)
 cli.add_command(docs_index_cmd)
 cli.add_command(task_sync_cmd)
 cli.add_command(reindex_cmd)
+cli.add_command(graph_reindex_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(eject_file_cmd)
@@ -1284,6 +1286,22 @@ def server_start() -> None:
             str(server_py),
         ],
         env,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase I — graph-os subcommand family (`cos graph-*`).
+# Registration lives in cli/graph_commands.py so the main file stays lean.
+# ---------------------------------------------------------------------------
+try:
+    from cli import graph_commands as _graph_commands  # noqa: WPS433
+
+    _graph_commands.register(cli)
+except ImportError as _graph_cli_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug(
+        "graph-os CLI unavailable: %s", _graph_cli_exc
     )
 
 

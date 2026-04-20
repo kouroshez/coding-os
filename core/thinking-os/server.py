@@ -17,6 +17,14 @@ import logging
 import sys
 from pathlib import Path
 
+# Expose `core/` on sys.path so `import graph_os` resolves (Phase I).
+# The MCP server runs from `core/thinking-os/`; adding its parent makes
+# sibling packages like `graph_os` importable without install-time
+# packaging gymnastics.
+_CORE_DIR = Path(__file__).resolve().parent.parent
+if str(_CORE_DIR) not in sys.path:
+    sys.path.insert(0, str(_CORE_DIR))
+
 from mcp.server.fastmcp import FastMCP
 
 from db import get_db_stats, init_db
@@ -601,7 +609,7 @@ def cos_learn_narrative(
 @mcp.tool(
     name="cos_graph",
     annotations={
-        "title": "Query Concept/File Graph",
+        "title": "[DEPRECATED] Query Concept/File Graph",
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
@@ -615,23 +623,55 @@ def thinking_os_graph(
     limit: int = 10,
     edge_types: str = "",
 ) -> str:
-    """Query the concept/file relationship graph via BFS traversal.
+    """[DEPRECATED — use cos_graph_context] Query the concept/file graph.
 
-    Finds related files and concepts within max_hops of a starting node.
-    Edge types: co_edit (files modified together), concept_link (co-occurring concepts).
+    Scheduled removal: one release cycle after Phase J ships (≥180 days
+    post Phase I). Callers SHOULD migrate to `cos_graph_context` /
+    `cos_graph_impact` / `cos_graph_references` for richer,
+    backend-agnostic results. This shim still works: it queries the v4
+    `concept_graph` table AND emits a DeprecationWarning so call sites
+    are auditable.
+
+    Edge types supported (legacy): co_edit (files modified together),
+    concept_link (co-occurring concepts).
 
     Args:
-        node: Starting node — file path or concept (e.g. "backend/apps/products/models.py" or "django").
+        node: Starting node — file path or concept.
         max_hops: Traversal depth (1-3, default 2).
         limit: Max results (1-50, default 10).
-        edge_types: Comma-separated filter (e.g. "co_edit,concept_link"). Empty = all.
-
-    Returns:
-        str: JSON with root, nodes, edges, count.
+        edge_types: Comma-separated filter. Empty = all.
     """
+    import warnings
+
+    warnings.warn(
+        "cos_graph is deprecated; use cos_graph_context / cos_graph_impact "
+        "/ cos_graph_references instead. Sunset ≥ 180 days post-Phase I.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     types = [t.strip() for t in edge_types.split(",") if t.strip()] or None
     result = query_related(_db_conn, node=node, max_hops=max_hops, limit=limit, edge_types=types)
-    return ok(result, meta={"layer": "graph", "query": node})
+    try:
+        metric_record(
+            _db_conn,
+            agent_type="system",
+            outcome="deprecated_call",
+            task_id="cos_graph.shim",
+            domain="graph-os",
+            complexity="legacy",
+        )
+    except Exception as exc:  # noqa: BLE001 — shim never raises
+        logger.debug("cos_graph deprecation metric emit failed: %s", exc)
+    return ok(
+        result,
+        meta={
+            "layer": "graph",
+            "query": node,
+            "deprecated": True,
+            "replacement": "cos_graph_context",
+            "sunset": "Phase J (≥ 180 days)",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1314,6 +1354,359 @@ def cos_retrieval_enrichment_check(lookback_days: int = 14) -> str:
     backfill_quality_from_outcomes(_db_conn, lookback_days=int(lookback_days))
     result = should_enable_enrichment(_db_conn, lookback_days=int(lookback_days))
     return ok(result, meta={"layer": "metrics"})
+
+
+# ---------------------------------------------------------------------------
+# Phase I — 11 cos_graph_* MCP tools (knowledge-graph layer).
+#
+# The implementations live in `core/graph_os/tools/graph.py`; the wrappers
+# here expose them via FastMCP with MCP-friendly parameter types (comma-
+# separated strings instead of Sequence[str], etc.). Every wrapper stays
+# envelope-compliant because the underlying functions already route
+# through ok()/fail().
+# ---------------------------------------------------------------------------
+try:
+    from graph_os.tools import graph as _graph_tools  # noqa: WPS433 — lazy import is the pattern here
+    _GRAPH_TOOLS_AVAILABLE = True
+except ImportError as _graph_import_exc:  # pragma: no cover — defensive
+    logger.warning("graph_os tools unavailable: %s", _graph_import_exc)
+    _graph_tools = None  # type: ignore[assignment]
+    _GRAPH_TOOLS_AVAILABLE = False
+
+
+def _csv(value: str) -> list[str] | None:
+    """Parse a comma-separated CLI-style string into a clean list or None."""
+    if not value:
+        return None
+    parts = [p.strip() for p in value.split(",") if p.strip()]
+    return parts or None
+
+
+def _graph_unavailable() -> str:
+    """Envelope the agent sees when graph_os tools can't be imported."""
+    from tools._shared import fail  # noqa: WPS433 — local to keep boot lean
+    return fail(
+        "unavailable",
+        "graph_os package not importable; install graph-os extra",
+        retryable=False,
+    )
+
+
+if _GRAPH_TOOLS_AVAILABLE:
+    @mcp.tool(
+        name="cos_graph_query",
+        annotations={
+            "title": "Graph Hybrid Search",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_query_tool(
+        q: str,
+        kinds: str = "",
+        limit: int = 10,
+        max_hops: int = 2,
+        confidence_min: float = 0.3,
+    ) -> str:
+        """Hybrid search over node labels + docstrings (lexical + graph expansion).
+
+        Args:
+            q: Natural-language query (non-empty).
+            kinds: Comma-separated filter of node kinds (e.g. "code:function,code:class"). Empty = all.
+            limit: Max results (default 10).
+            max_hops: Walk expansion depth (default 2).
+            confidence_min: Edge confidence floor (default 0.3).
+
+        Returns:
+            JSON envelope with `results` array. See docs/engineering/graph-os-queries.md.
+        """
+        return _graph_tools.cos_graph_query(
+            q,
+            kinds=_csv(kinds),
+            limit=int(limit),
+            max_hops=int(max_hops),
+            confidence_min=float(confidence_min),
+        )
+
+    @mcp.tool(
+        name="cos_graph_context",
+        annotations={
+            "title": "Graph Neighbourhood",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_context_tool(
+        uid_or_name: str,
+        direction: str = "both",
+        depth: int = 1,
+        include_content: bool = False,
+        include_evidence: bool = False,
+    ) -> str:
+        """Return callers + callees + siblings + referenced docs around a symbol.
+
+        Args:
+            uid_or_name: Node uid or fuzzy label.
+            direction: "in" | "out" | "both".
+            depth: BFS depth (default 1).
+            include_content: Inline source snippets.
+            include_evidence: JOIN evidence rows (costs ~2× tokens).
+        """
+        return _graph_tools.cos_graph_context(
+            uid_or_name,
+            direction=str(direction),
+            depth=int(depth),
+            include_content=bool(include_content),
+            include_evidence=bool(include_evidence),
+        )
+
+    @mcp.tool(
+        name="cos_graph_impact",
+        annotations={
+            "title": "Graph Blast-Radius",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_impact_tool(
+        uid: str,
+        direction: str = "downstream",
+        depth: int = 3,
+        confidence_min: float = 0.5,
+    ) -> str:
+        """Group affected nodes by risk tier (will_break / should_review / context)."""
+        return _graph_tools.cos_graph_impact(
+            uid,
+            direction=str(direction),
+            depth=int(depth),
+            confidence_min=float(confidence_min),
+        )
+
+    @mcp.tool(
+        name="cos_graph_detect_changes",
+        annotations={
+            "title": "Graph Pre-Commit Self-Review",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_detect_changes_tool(
+        files: str = "",
+        scope: str = "working",
+        analyze_downstream: bool = True,
+    ) -> str:
+        """Map changed files to affected symbols + downstream tasks + risk level.
+
+        Args:
+            files: Comma-separated file paths (empty → echo empty envelope).
+            scope: Label only; "working" | "staged" | "HEAD~1..HEAD".
+            analyze_downstream: Walk transitive blast radius.
+        """
+        return _graph_tools.cos_graph_detect_changes(
+            scope=str(scope),
+            files=_csv(files),
+            analyze_downstream=bool(analyze_downstream),
+        )
+
+    @mcp.tool(
+        name="cos_graph_trace",
+        annotations={
+            "title": "Graph Execution Trace",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_trace_tool(
+        entry_uid: str,
+        terminals: str = "return,exception",
+        max_steps: int = 50,
+    ) -> str:
+        """Forward execution walk from `entry_uid` until terminals."""
+        return _graph_tools.cos_graph_trace(
+            entry_uid,
+            terminals=tuple(_csv(terminals) or ("return", "exception")),
+            max_steps=int(max_steps),
+        )
+
+    @mcp.tool(
+        name="cos_graph_similar",
+        annotations={
+            "title": "Graph Semantic Similarity",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_similar_tool(
+        uid: str,
+        top_k: int = 5,
+        confidence_min: float = 0.5,
+    ) -> str:
+        """Return the top-K nodes most similar to `uid` (difflib baseline)."""
+        return _graph_tools.cos_graph_similar(
+            uid,
+            top_k=int(top_k),
+            confidence_min=float(confidence_min),
+        )
+
+    @mcp.tool(
+        name="cos_graph_references",
+        annotations={
+            "title": "Graph Inbound References",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_references_tool(
+        uid: str,
+        kinds: str = "calls,accesses_field,imports,references_doc",
+        limit: int = 100,
+    ) -> str:
+        """List inbound edges — "who references this?"."""
+        return _graph_tools.cos_graph_references(
+            uid,
+            kinds=tuple(_csv(kinds) or ("calls", "accesses_field", "imports", "references_doc")),
+            limit=int(limit),
+        )
+
+    @mcp.tool(
+        name="cos_graph_path",
+        annotations={
+            "title": "Graph Shortest Path",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_path_tool(
+        source_uid: str,
+        target_uid: str,
+        max_hops: int = 5,
+    ) -> str:
+        """Shortest path between two nodes (either direction)."""
+        return _graph_tools.cos_graph_path(
+            source_uid,
+            target_uid,
+            max_hops=int(max_hops),
+        )
+
+    @mcp.tool(
+        name="cos_graph_export",
+        annotations={
+            "title": "Graph Subgraph Export",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_export_tool(
+        format: str = "json",
+        root_uid: str = "",
+        edge_types: str = "",
+        max_nodes: int = 500,
+    ) -> str:
+        """Export a subgraph as json | mermaid | dot."""
+        return _graph_tools.cos_graph_export(
+            format=str(format),
+            root_uid=root_uid or None,
+            edge_types=_csv(edge_types),
+            max_nodes=int(max_nodes),
+        )
+
+    @mcp.tool(
+        name="cos_graph_rename_plan",
+        annotations={
+            "title": "Graph Rename Plan",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_rename_plan_tool(
+        uid: str,
+        new_name: str,
+        check_strings: bool = True,
+    ) -> str:
+        """Plan a rename — call-sites, docs, tests, strings, risk."""
+        return _graph_tools.cos_graph_rename_plan(
+            uid,
+            new_name,
+            check_strings=bool(check_strings),
+        )
+
+    @mcp.tool(
+        name="cos_graph_contracts",
+        annotations={
+            "title": "Graph API Contracts",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_contracts_tool(
+        scope: str = "all",
+        kinds: str = "http,mcp,grpc,event,websocket",
+    ) -> str:
+        """Enumerate every handler declared in the graph (HTTP / MCP / gRPC / events / WS)."""
+        return _graph_tools.cos_graph_contracts(
+            scope=str(scope),
+            kinds=tuple(_csv(kinds) or ("http", "mcp", "grpc", "event", "websocket")),
+        )
+
+else:
+    # Deterministic unavailable responses so agents still see a valid envelope.
+    for _name in (
+        "cos_graph_query",
+        "cos_graph_context",
+        "cos_graph_impact",
+        "cos_graph_detect_changes",
+        "cos_graph_trace",
+        "cos_graph_similar",
+        "cos_graph_references",
+        "cos_graph_path",
+        "cos_graph_export",
+        "cos_graph_rename_plan",
+        "cos_graph_contracts",
+    ):
+        def _make_stub(tool_name: str):
+            @mcp.tool(
+                name=tool_name,
+                annotations={"title": f"{tool_name} (unavailable)", "readOnlyHint": True},
+            )
+            @safe_tool
+            def _stub(*_args: object, **_kwargs: object) -> str:
+                return _graph_unavailable()
+            return _stub
+
+        _make_stub(_name)
 
 
 # ---------------------------------------------------------------------------

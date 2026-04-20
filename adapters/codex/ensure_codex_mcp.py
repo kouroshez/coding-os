@@ -5,8 +5,8 @@ Usage:
     python3 ensure_codex_mcp.py <config.toml> <command> [args...]
 
 Emits one stdout line describing what happened and exits 0:
-    "already configured in ~/.codex/config.toml"
-    "configured in ~/.codex/config.toml"
+    "already configured in <path>"
+    "configured in <path>"
 """
 
 from __future__ import annotations
@@ -35,7 +35,12 @@ def _render_section(command: str, args: list[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _update(text: str, section: str) -> tuple[str, str]:
+def _status(path: Path, configured: bool) -> str:
+    verb = "configured" if configured else "already configured"
+    return f"{verb} in {path}"
+
+
+def _update(path: Path, text: str, section: str) -> tuple[str, str]:
     matches = list(SECTION_RE.finditer(text))
     if matches:
         first = matches[0]
@@ -48,18 +53,14 @@ def _update(text: str, section: str) -> tuple[str, str]:
         if after:
             pieces.append(after.rstrip("\n"))
         new_text = "\n\n".join(pieces) + "\n"
-        status = (
-            "already configured in ~/.codex/config.toml"
-            if new_text == text
-            else "configured in ~/.codex/config.toml"
-        )
+        status = _status(path, configured=new_text != text)
         return new_text, status
 
     if text and not text.endswith("\n"):
         text += "\n"
     if text:
         text += "\n"
-    return text + section, "configured in ~/.codex/config.toml"
+    return text + section, _status(path, configured=True)
 
 
 def main(argv: list[str]) -> int:
@@ -75,7 +76,7 @@ def main(argv: list[str]) -> int:
     args = argv[3:]
 
     text = path.read_text(encoding="utf-8") if path.exists() else ""
-    new_text, status = _update(text, _render_section(command, args))
+    new_text, status = _update(path, text, _render_section(command, args))
     if new_text != text:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(new_text, encoding="utf-8")

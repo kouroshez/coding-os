@@ -21,10 +21,11 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # noqa: F401 — kept for FakeLspDriver signature parity
 import threading
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Protocol
 
 logger = logging.getLogger("graph_os.lsp_overlay")
@@ -109,12 +110,21 @@ class LspDriver(Protocol):
 
 
 class _PyrightLspDriver:
-    """Real pyright driver.
+    """Real pyright driver — wires `pyright-langserver` over LSP stdio.
 
-    Not exercised in unit tests — the overlay is tested through
-    FakeLspDriver. Production wiring happens inside the orchestrator's
-    `lsp:warm-start` role, which constructs this class once and hands
-    it to `LspOverlay.attach`.
+    PURPOSE:      Turn pyright into a shared long-lived resolver so
+                  call-site precision on Python code climbs from the
+                  tree-sitter/ast baseline (~85%) to the enterprise
+                  target (≥95%). Uses the LspClient shipped alongside.
+    INPUT:        project_root (must be a real directory so pyright
+                  can build its workspace), binary override, log path.
+    OUTPUT:       LspOverlayResult per resolve call.
+    DEPENDS:      pyright + pyright-langserver on PATH; lsp_client.py.
+    NOTES:        The overlay calls `resolve(file_path=..., symbol=...)`
+                  but pyright speaks positions. We map the `symbol`
+                  to the first line that mentions it inside `file_path`
+                  — cheap heuristic; tree-sitter already narrowed the
+                  candidate so the mapping is usually unique.
     """
 
     language = "python"
@@ -122,33 +132,42 @@ class _PyrightLspDriver:
     def __init__(
         self,
         *,
+        project_root: str | Path | None = None,
         binary: str | None = None,
         log_path: str | None = None,
     ) -> None:
-        self.binary = binary or shutil.which("pyright") or "pyright"
+        self.binary = binary or shutil.which("pyright-langserver") or "pyright-langserver"
         self.log_path = log_path or ".coding-os/.graph-lsp.log"
-        self._process: subprocess.Popen[bytes] | None = None
-        self._started = False
+        self.project_root = Path(project_root or os.getcwd()).resolve()
+        self._client: Any = None
+        self._opened_files: set[str] = set()
 
     def warm_start(self, *, timeout: float = DEFAULT_WARM_START_TIMEOUT_SECONDS) -> bool:
-        if self._started:
+        if self._client is not None:
             return True
         if not shutil.which(self.binary):
+            logger.debug("pyright-langserver not on PATH; LSP overlay stays disabled")
             return False
         try:
-            self._process = subprocess.Popen(  # noqa: S603
-                [self.binary, "--outputjson"],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-        except (OSError, subprocess.SubprocessError) as exc:
-            logger.debug("pyright failed to spawn: %s", exc)
+            from .lsp_client import LspClient, LspClientError  # noqa: WPS433 — local to avoid cold-import on disabled path
+        except ImportError as exc:
+            logger.debug("lsp_client import failed: %s", exc)
             return False
-        # Real warm-up would exchange `initialize` / `initialized` LSP
-        # messages here. Kept as a stub because pyright is lazy-loaded
-        # by individual resolves in this baseline.
-        self._started = True
+        try:
+            client = LspClient(
+                command=[self.binary, "--stdio"],
+                project_root=self.project_root,
+                startup_timeout=timeout,
+                request_timeout=5.0,
+            )
+            client.start()
+            if not client.initialize():
+                client.shutdown()
+                return False
+        except LspClientError as exc:
+            logger.debug("pyright warm-start failed: %s", exc)
+            return False
+        self._client = client
         return True
 
     def resolve(
@@ -158,25 +177,75 @@ class _PyrightLspDriver:
         symbol: str,
         timeout: float,
     ) -> LspOverlayResult:
-        if not self._started:
+        # The overlay's LspOverlay wraps per-call timeouts; the driver
+        # passes the timeout down to goto_definition via the client
+        # request_timeout set at warm-start time.
+        _ = timeout
+        from .lsp_client import LspClientError  # noqa: WPS433
+
+        if self._client is None:
             return LspOverlayResult(status="unavailable", note="warm_start not called")
-        # A full LSP client is out of scope for I.5; the overlay is wired
-        # to accept the result shape, but the subprocess-level protocol
-        # is deferred to I.5b (adapter hardening pass).
+        abs_path = Path(file_path)
+        if not abs_path.is_absolute():
+            abs_path = (self.project_root / file_path).resolve()
+        if not abs_path.exists():
+            return LspOverlayResult(status="unavailable", note="file missing")
+        if str(abs_path) not in self._opened_files:
+            self._client.did_open(abs_path, language_id="python")
+            self._opened_files.add(str(abs_path))
+        line_idx, char_idx = _locate_symbol(abs_path, symbol)
+        if line_idx < 0:
+            return LspOverlayResult(status="unavailable", note="symbol not found")
+        try:
+            locations = self._client.goto_definition(abs_path, line_idx, char_idx)
+        except LspClientError as exc:
+            raise RuntimeError(str(exc)) from exc
+        if not locations:
+            return LspOverlayResult(status="ok", note="no definition")
+        first = locations[0]
+        target = first.get("targetUri") or first.get("uri") or ""
+        range_info = first.get("targetRange") or first.get("range") or {}
+        start = range_info.get("start", {})
+        uid = (
+            f"code:lsp:{target}:{start.get('line', 0)}:{start.get('character', 0)}"
+            if target
+            else None
+        )
         return LspOverlayResult(
-            status="unavailable", note="pyright-subprocess-not-implemented"
+            status="ok",
+            uid=uid,
+            kind="code:definition",
+            confidence=0.95,
+            note=target or None,
         )
 
     def shutdown(self) -> None:
-        if self._process is not None:
+        if self._client is not None:
             try:
-                self._process.terminate()
-                self._process.wait(timeout=5)
-            except (OSError, subprocess.SubprocessError) as exc:
-                logger.debug("pyright shutdown: %s", exc)
+                self._client.shutdown()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("pyright shutdown suppressed: %s", exc)
             finally:
-                self._process = None
-                self._started = False
+                self._client = None
+                self._opened_files.clear()
+
+
+def _locate_symbol(path: "Path", symbol: str) -> tuple[int, int]:
+    """Return (line, character) of the first `symbol` occurrence in `path`.
+
+    A deliberately dumb scan: LSP hover/definition demands a position,
+    and the overlay caller (extractor) already has a nearby candidate
+    in mind. `-1, -1` on miss so the caller knows to skip.
+    """
+    try:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            for lineno, line in enumerate(fh):
+                idx = line.find(symbol)
+                if idx >= 0:
+                    return (lineno, idx)
+    except OSError:
+        return (-1, -1)
+    return (-1, -1)
 
 
 # ---------------------------------------------------------------------------

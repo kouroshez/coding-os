@@ -5,9 +5,8 @@ Usage:
     python3 enable_codex_hooks.py <path-to-config.toml>
 
 Emits one stdout line describing what happened and exits 0:
-    "already enabled in ~/.codex/config.toml"
-    "enabled in ~/.codex/config.toml"
-    "config path missing — nothing to do"
+    "already enabled in <path>"
+    "enabled in <path>"
 
 Why this lives in a standalone file instead of a `$(python3 - <<'PY' …)`
 heredoc inside adapters/codex/install.sh: the heredoc form has been
@@ -28,13 +27,18 @@ TRUE_RE = re.compile(r"(?m)^[ \t]*codex_hooks[ \t]*=[ \t]*true[ \t]*$")
 FALSE_RE = re.compile(r"(?m)^[ \t]*codex_hooks[ \t]*=[ \t]*false[ \t]*$")
 
 
-def _update(text: str) -> tuple[str, str]:
+def _status(path: Path, enabled: bool) -> str:
+    verb = "enabled" if enabled else "already enabled"
+    return f"{verb} in {path}"
+
+
+def _update(path: Path, text: str) -> tuple[str, str]:
     """Return (new_text, status_message). Pure — no IO."""
     match = SECTION_RE.search(text)
     if match:
         body = match.group("body")
         if TRUE_RE.search(body):
-            return text, "already enabled in ~/.codex/config.toml"
+            return text, _status(path, enabled=False)
         if FALSE_RE.search(body):
             body = FALSE_RE.sub("codex_hooks = true", body, count=1)
         else:
@@ -42,14 +46,14 @@ def _update(text: str) -> tuple[str, str]:
                 body += "\n"
             body += "codex_hooks = true\n"
         new_text = text[: match.start("body")] + body + text[match.end("body") :]
-        return new_text, "enabled in ~/.codex/config.toml"
+        return new_text, _status(path, enabled=True)
 
     if text and not text.endswith("\n"):
         text += "\n"
     if text:
         text += "\n"
     text += "[features]\ncodex_hooks = true\n"
-    return text, "enabled in ~/.codex/config.toml"
+    return text, _status(path, enabled=True)
 
 
 def main(argv: list[str]) -> int:
@@ -59,7 +63,7 @@ def main(argv: list[str]) -> int:
 
     path = Path(argv[1])
     text = path.read_text(encoding="utf-8") if path.exists() else ""
-    new_text, status = _update(text)
+    new_text, status = _update(path, text)
     if new_text != text:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(new_text, encoding="utf-8")

@@ -205,6 +205,14 @@ class KuzuBackend:
             "evidence_json": evidence_payload,
             "now": now,
         }
+        # Kuzu 0.7+ rejects unused parameters. Split the param dicts so
+        # each query gets only what its Cypher body references.
+        delete_params = {
+            "src": params["src"],
+            "dst": params["dst"],
+            "edge_type": params["edge_type"],
+            "extractor": params["extractor"],
+        }
         with self._write_lock:
             self._conn.execute(
                 """
@@ -213,7 +221,7 @@ class KuzuBackend:
                   WHERE r.edge_type = $edge_type AND r.extractor = $extractor
                 DELETE r
                 """,
-                parameters=params,
+                parameters=delete_params,
             )
             self._conn.execute(
                 """
@@ -410,9 +418,21 @@ class KuzuBackend:
 
     @staticmethod
     def _rows(result: Any) -> list[list[Any]]:
+        # Kuzu >= 0.7 dropped bare iteration on QueryResult. Prefer the
+        # stable has_next / get_next cursor API; fall back to get_all()
+        # for older versions; last-resort try iteration.
+        if hasattr(result, "has_next") and hasattr(result, "get_next"):
+            out: list[list[Any]] = []
+            while result.has_next():
+                row = result.get_next()
+                out.append(list(row) if not isinstance(row, list) else row)
+            return out
         if hasattr(result, "get_all"):
             return list(result.get_all())
-        return [list(row) for row in result]
+        try:
+            return [list(row) for row in result]
+        except TypeError:
+            return []
 
     @staticmethod
     def _stable_hash_id(material: str) -> int:

@@ -27,9 +27,9 @@ LINK_STACK_SKILLS = CODING_OS_ROOT / "core" / "scripts" / "link-stack-skills.sh"
 def run_adapter_install(adapter: str, project_dir: Path) -> subprocess.CompletedProcess:
     """Run an adapter install script in a project directory.
 
-    Overrides HOME to project_dir so the codex adapter's write to
-    ~/.codex/config.toml lands inside the test fixture instead of
-    polluting the real user home.
+    HOME is still redirected into the fixture so any fallback reads of
+    ~/.codex/config.toml stay hermetic, but the Codex adapter itself now
+    writes project-scoped config at .codex/config.toml.
     """
     install_script = ADAPTERS_DIR / adapter / "install.sh"
     env = os.environ.copy()
@@ -191,6 +191,17 @@ class TestCodexAdapter:
         assert len(stop) == 1
         assert "codex-stop-dispatch.sh" in stop[0]["command"]
 
+    def test_codex_bash_hooks_are_quiet_by_default(self, project: Path) -> None:
+        run_adapter_install("codex", project)
+        hooks_json = project / ".codex" / "hooks.json"
+        data = json.loads(hooks_json.read_text())
+
+        pretool = data["hooks"]["PreToolUse"][0]["hooks"][0]
+        posttool = data["hooks"]["PostToolUse"][0]["hooks"][0]
+
+        assert "statusMessage" not in pretool
+        assert "statusMessage" not in posttool
+
     def test_installed_hook_commands_work_from_nested_cwd(self, project: Path) -> None:
         run_adapter_install("codex", project)
         hooks_json = project / ".codex" / "hooks.json"
@@ -241,20 +252,19 @@ class TestCodexAdapter:
         assert not legacy.exists()
 
     def test_does_not_write_mcp_json(self, project: Path) -> None:
-        # Codex reads MCP servers from ~/.codex/config.toml, not .mcp.json.
+        # Codex reads MCP servers from config.toml, not .mcp.json.
         # The adapter must NOT create or touch .mcp.json — Claude's convention.
         run_adapter_install("codex", project)
         assert not (project / ".mcp.json").exists()
 
     def test_registers_mcp_in_codex_config(self, project: Path) -> None:
         # Symmetry with Claude's .mcp.json step: the Codex adapter must
-        # register the coding-os MCP server in ~/.codex/config.toml so
-        # thinking-os cognition tools are available to Codex without
-        # requiring a separate manual step. Test uses HOME=project so the
-        # write lands in the fixture, not the user's real home.
+        # register the coding-os MCP server in project-local
+        # .codex/config.toml so thinking-os cognition tools are available
+        # to Codex without requiring a separate manual step.
         run_adapter_install("codex", project)
         codex_cfg = project / ".codex" / "config.toml"
-        assert codex_cfg.exists(), "adapter must create ~/.codex/config.toml"
+        assert codex_cfg.exists(), "adapter must create project-local .codex/config.toml"
         content = codex_cfg.read_text()
         assert "[mcp_servers.coding-os]" in content
         assert "[features]" in content

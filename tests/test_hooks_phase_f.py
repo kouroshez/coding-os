@@ -199,16 +199,42 @@ class TestWarnMcpDown:
         assert "DOWN" in r.stderr
         assert "MCP server is unreachable" in r.stdout
 
-    def test_reads_codex_global_config_when_mcp_json_absent(self, tmp_path: Path) -> None:
+    def test_reads_codex_project_config_when_mcp_json_absent(self, tmp_path: Path) -> None:
         hook_dir = tmp_path / ".codex" / "hooks"
         hook_dir.mkdir(parents=True)
         (hook_dir / "warn-mcp-down.sh").symlink_to(WARN_MCP_DOWN)
+        (tmp_path / ".codex" / "config.toml").write_text(
+            '[mcp_servers.coding-os]\n'
+            'command = "this-cmd-does-not-exist-xyz"\n'
+            'args = ["server-start"]\n',
+            encoding="utf-8",
+        )
+        r = subprocess.run(
+            ["bash", str(hook_dir / "warn-mcp-down.sh")],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            cwd=str(tmp_path),
+        )
+        assert r.returncode == 0
+        assert "DOWN" in r.stderr
+        assert "MCP server is unreachable" in r.stdout
+
+    def test_prefers_codex_project_config_over_global(self, tmp_path: Path) -> None:
+        hook_dir = tmp_path / ".codex" / "hooks"
+        hook_dir.mkdir(parents=True)
+        (hook_dir / "warn-mcp-down.sh").symlink_to(WARN_MCP_DOWN)
+        (tmp_path / ".codex" / "config.toml").write_text(
+            '[mcp_servers.coding-os]\n'
+            'command = "project-cmd-does-not-exist-xyz"\n',
+            encoding="utf-8",
+        )
         home = tmp_path / "home"
         (home / ".codex").mkdir(parents=True)
         (home / ".codex" / "config.toml").write_text(
             '[mcp_servers.coding-os]\n'
-            'command = "this-cmd-does-not-exist-xyz"\n'
-            'args = ["server-start"]\n',
+            'command = "python3"\n'
+            'args = ["-c", "import sys; sys.stdout.write(\'{\\\\\\"jsonrpc\\\\\\":\\\\\\"2.0\\\\\\",\\\\\\"result\\\\\\":{}}\')"]\n',
             encoding="utf-8",
         )
         r = subprocess.run(
@@ -221,7 +247,6 @@ class TestWarnMcpDown:
         )
         assert r.returncode == 0
         assert "DOWN" in r.stderr
-        assert "MCP server is unreachable" in r.stdout
 
 
 # ============================================================
@@ -531,7 +556,7 @@ class TestDoctorC15Regression:
         check = self._run_check(project)
         assert check is not None
         assert check.severity == "FAIL"
-        assert ".mcp.json missing" in check.message
+        assert "MCP config missing" in check.message
 
     def test_hardcoded_uv_run_directory_is_fail(self, tmp_path: Path) -> None:
         """The historical break: uv run --directory chdirs, DB path lost."""
@@ -574,3 +599,20 @@ class TestDoctorC15Regression:
         check = self._run_check(project)
         assert check is not None
         assert check.severity == "PASS", f"C15 didn't pass on wrapper: {check.message}"
+
+    def test_codex_project_config_missing_command_is_fail(self, tmp_path: Path) -> None:
+        project = self._make_project(tmp_path, None)
+        (project / ".codex").mkdir(parents=True, exist_ok=True)
+        (project / ".codex" / "config.toml").write_text(
+            "[mcp_servers.coding-os]\n"
+            'args = ["server-start"]\n',
+            encoding="utf-8",
+        )
+        from cli.doctor import _check_mcp_actually_launches, DoctorReport
+
+        report = DoctorReport(project_dir=str(project), agent="codex", templates=[])
+        _check_mcp_actually_launches(project, report)
+        check = next((c for c in report.checks if c.id == "C15"), None)
+        assert check is not None
+        assert check.severity == "FAIL"
+        assert "no command specified" in check.message

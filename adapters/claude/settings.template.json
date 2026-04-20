@@ -91,6 +91,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-graph-context.sh",
+            "statusMessage": "🧭 Verifying graph-context marker for load-bearing file...",
+            "timeout": 1500
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/validate-task-frontmatter.sh",
             "statusMessage": "🧾 Validating task frontmatter...",
             "timeout": 3000
@@ -105,6 +111,17 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-template-drift.sh",
             "statusMessage": "⚠️ Adapter template edits — use registry.yaml..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-rename-plan.sh",
+            "statusMessage": "✏️  Verifying rename-plan marker...",
+            "timeout": 1500
           }
         ]
       }
@@ -122,8 +139,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/auto-reindex-docs.sh",
-            "statusMessage": "♻️ Auto re-indexing doc for cos_doc_search freshness...",
-            "timeout": 1000
+            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph-os freshness...",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -220,6 +237,11 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
+            "statusMessage": "🕸️  Checking graph-os index state..."
           }
         ]
       },
@@ -246,6 +268,11 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
+            "statusMessage": "🕸️  Checking graph-os index state..."
           }
         ]
       }

@@ -196,14 +196,37 @@ hooks:
 
   - id: auto-reindex-docs
     script: auto-reindex-docs.sh
-    description: Phase H freshness — incremental re-index of RAG-scoped docs on Write/Edit (fire-and-forget).
+    description: Phase H + Phase I freshness — incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph-os extractor; fire-and-forget.
     category: retrieval
     phase: H
-    timeout: 1000
+    timeout: 2000
     events:
       - event: PostToolUse
         matcher: Write|Edit
-        status_message: "♻️ Auto re-indexing doc for cos_doc_search freshness..."
+        status_message: "♻️ Re-indexing doc/code for cos_doc_search + graph-os freshness..."
+
+  # ── graph-os enforcement (Phase I.14) ──────────────────────────────
+  - id: enforce-graph-context
+    script: enforce-graph-context.sh
+    description: Phase I — warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
+    category: enforcement
+    phase: I
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🧭 Verifying graph-context marker for load-bearing file..."
+
+  - id: enforce-rename-plan
+    script: enforce-rename-plan.sh
+    description: Phase I — warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
+    category: enforcement
+    phase: I
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Edit
+        status_message: "✏️  Verifying rename-plan marker..."
 
   # ── board-os Scrumban (Phase L.4) ──────────────────────────────────
   - id: validate-task-frontmatter
@@ -334,6 +357,19 @@ hooks:
       - event: SessionStart
         matcher: compact|resume
         status_message: "🩺 Probing MCP coding-os liveness..."
+
+  - id: warn-graph-empty
+    script: warn-graph-empty.sh
+    description: Phase I.10 — SessionStart one-shot nudge when graph-os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
+    category: observability
+    phase: I
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🕸️  Checking graph-os index state..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🕸️  Checking graph-os index state..."
 
   - id: check-capture-worked
     script: check-capture-worked.sh

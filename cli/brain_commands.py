@@ -25,6 +25,7 @@ BRAIN_DIR = CODING_OS_ROOT / "core" / "thinking-os"
 DOC_INDEXER = BRAIN_DIR / "doc_indexer.py"
 TASK_SYNC = BRAIN_DIR / "task_sync.py"
 EMBEDDINGS = BRAIN_DIR / "embeddings.py"
+GRAPH_INDEXER = BRAIN_DIR / "graph_indexer.py"
 
 
 def _resolve_project_dir(raw: str) -> Path:
@@ -138,4 +139,61 @@ def reindex(project_dir: str) -> None:
         ["--reindex", "--db", str(db_path)],
         project=project,
     )
+    sys.exit(rc)
+
+
+@click.command("graph-reindex")
+@click.option(
+    "--project-dir", "-d", default=".",
+    help="Project directory (default: current).",
+)
+@click.option(
+    "--force", is_flag=True, default=False,
+    help="Re-extract every file regardless of content hash.",
+)
+@click.option(
+    "--file", "single_file", default=None,
+    help="Reindex a single file (incremental; used by auto-reindex-graph.sh).",
+)
+@click.option(
+    "--max-files", type=int, default=50_000,
+    help="Safety cap on files walked.",
+)
+@click.option(
+    "--quiet", is_flag=True, default=False,
+    help="Suppress progress lines.",
+)
+def graph_reindex(
+    project_dir: str,
+    force: bool,
+    single_file: str | None,
+    max_files: int,
+    quiet: bool,
+) -> None:
+    """Index the project into the graph-os knowledge graph.
+
+    Bulk walk by default: walks the project, extracts Python / TS /
+    markdown / YAML / shell / Go, and upserts nodes + edges into the
+    shared SQLite DB.  Incremental via content-hash skipping, so re-runs
+    are cheap.
+
+    Use `--file <path>` for single-file incremental (the PostToolUse
+    hook `auto-reindex-graph.sh` calls this path).
+    """
+    project = _resolve_project_dir(project_dir)
+    db_path = project / ".coding-os" / "thinking-os.db"
+
+    args = [
+        "--project-root", str(project),
+        "--db", str(db_path),
+        "--max-files", str(max_files),
+    ]
+    if force:
+        args.append("--force")
+    if single_file:
+        args.extend(["--file", single_file])
+    if quiet:
+        args.append("--quiet")
+
+    rc = _run_brain_module(GRAPH_INDEXER, args, project=project)
     sys.exit(rc)

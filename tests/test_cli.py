@@ -259,6 +259,16 @@ class TestAddAdapter:
 
 
 class TestCodexMcpInstall:
+    def test_default_writes_project_local_config(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(cli, ["codex-mcp-install"])
+        assert result.exit_code == 0
+        target = tmp_path / ".codex" / "config.toml"
+        assert target.exists()
+        assert "[mcp_servers.coding-os]" in target.read_text(encoding="utf-8")
+
     def test_dry_run_prints_snippet(self, runner: CliRunner, tmp_path: Path) -> None:
         target = tmp_path / "fake-codex-config.toml"
         result = runner.invoke(
@@ -332,6 +342,16 @@ class TestCodexMcpInstall:
         content = target.read_text(encoding="utf-8")
         assert 'command = "uv"' not in content
         assert sys.executable in content
+
+    def test_rejects_config_and_global_together(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        target = tmp_path / "config.toml"
+        result = runner.invoke(
+            cli, ["codex-mcp-install", "--config", str(target), "--global"]
+        )
+        assert result.exit_code != 0
+        assert "either --config or --global" in result.output
 
 
 class TestServerStart:
