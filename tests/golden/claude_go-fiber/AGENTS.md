@@ -84,7 +84,10 @@ Backend→`docs/engineering/fiber-rules.md`, Error format→`docs/api-contracts/
 
 ## Tool Routing
 
-Task: `make session-init`, `task-next`, `task-start TASK=N`, `task-done TASK=N TYPE=t MSG="m" WHAT="w" FILES="f"`, `task-block TASK=N REASON="r"`, `task-create NUM=N TITLE="t"`, `task-context TASK=N`, `task-list STATUS=open`.
+**Legacy task flow (backward-compat):** `make session-init`, `task-next`, `task-start TASK=N`, `task-done TASK=N TYPE=t MSG="m" WHAT="w" FILES="f"`, `task-block TASK=N REASON="r"`, `task-create NUM=N TITLE="t"`, `task-context TASK=N`, `task-list STATUS=open`.
+
+**Scrumban board (Phase L — preferred):** `cos board [--web]`, `cos task-create --title ... --swimlane ... --kind ...`, `cos task-start TASK-NNN`, `cos task-move TASK-NNN --to testing`, `cos task-done TASK-NNN`, `cos task-pick`, `cos daily`, `cos retro`, `cos wip`. MCP: `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex: must call explicitly).
+
 Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
 Health: `cos-health`, `verify-hooks`.
 Impl: `lint-backend`, `test-backend`
@@ -129,7 +132,11 @@ See `docs/foundation-map.md` for all REF shortcodes and SSOT locations.
 
 ## Task Logging
 
-Files: `docs/tasks/TASK-###-slug.md`. Status: `[ ]` open, `[/]` wip, `[x]` done, `(BLOCKED: reason)`. Use Given/When/Then criteria.
+Files: `docs/tasks/TASK-NNN-slug.md`. **Phase L lean format** — frontmatter
+with `status` (enum: `icebox | ready | emergency | in_progress | testing |
+complete | blocked | archive`), `swimlane`, `kind`, `priority`, `appetite` +
+Acceptance (Given/When/Then). See `task-authoring` section below for the
+four-axis taxonomy. Legacy `[ ] [/] [x]` markers still parse via fallback.
 
 ## Task Authoring (Phase L Scrumban)
 

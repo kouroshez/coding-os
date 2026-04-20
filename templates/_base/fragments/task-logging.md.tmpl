@@ -1,3 +1,7 @@
 ## Task Logging
 
-Files: `docs/tasks/TASK-###-slug.md`. Status: `[ ]` open, `[/]` wip, `[x]` done, `(BLOCKED: reason)`. Use Given/When/Then criteria.
+Files: `docs/tasks/TASK-NNN-slug.md`. **Phase L lean format** — frontmatter
+with `status` (enum: `icebox | ready | emergency | in_progress | testing |
+complete | blocked | archive`), `swimlane`, `kind`, `priority`, `appetite` +
+Acceptance (Given/When/Then). See `task-authoring` section below for the
+four-axis taxonomy. Legacy `[ ] [/] [x]` markers still parse via fallback.
