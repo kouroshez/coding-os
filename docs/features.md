@@ -39,7 +39,7 @@ Read next: [getting-started.md](./getting-started.md) for install steps, [develo
 
 ---
 
-## 2. Command Catalog (16 commands)
+## 2. Command Catalog (32+ commands)
 
 Think of these as three clusters:
 
@@ -70,6 +70,26 @@ Think of these as three clusters:
 | `cos task-sync` | Sync `docs/tasks/*.md` → `tasks` table (Phase C) |
 | `cos reindex` | Re-embed all observations/patterns/outcomes |
 | `cos server-start` | Start the thinking-os MCP server (wrapper used by `.mcp.json`) | **D.1** |
+
+### 📋 Scrumban Board (Phase L — board-os)
+| Command | Purpose |
+|---|---|
+| `cos board [--web] [--swimlane X] [--kind Y] [--epic Z]` | ASCII or browser Scrumban board |
+| `cos task-create --title ... --swimlane ... --kind ...` | Create new lean task file |
+| `cos task-start TASK-NNN` | icebox/ready → in_progress (WIP enforced) |
+| `cos task-move TASK-NNN --to <status>` | Explicit state transition |
+| `cos task-done TASK-NNN` | → complete |
+| `cos task-block TASK-NNN --reason ...` | → blocked |
+| `cos task-cancel TASK-NNN` | → icebox + `cancelled` label |
+| `cos task-pick` | Top N candidates by priority + emergency |
+| `cos daily [--since 24h]` | Morning standup |
+| `cos retro [--since 7d]` | Weekly retro — throughput + cycle time |
+| `cos wip` | Current WIP counts vs caps |
+| `cos task-show TASK-NNN` | Full task content + status |
+| `cos task-log TASK-NNN [--full]` | Work Log (last 5 or full) |
+| `cos task-history TASK-NNN` | Status transition log |
+| `cos task-validate` | Lint every `docs/tasks/*.md` against the lean schema |
+| `cos board-config --init [--stack <stack>]` | Scaffold `.coding-os/scrumban-config.yaml` |
 
 ---
 
@@ -195,7 +215,7 @@ RAG source types (`docs/breakthroughs/` is new from session D work):
 
 ---
 
-## 5. MCP Tools (22 tools, `cos_*` prefix)
+## 5. MCP Tools (29 tools, `cos_*` prefix)
 
 | Category | Count | Tools |
 |---|---|---|
@@ -206,12 +226,14 @@ RAG source types (`docs/breakthroughs/` is new from session D work):
 | Routing | 2 | `cos_route_model` · `cos_route_skill` |
 | Graph | 1 | `cos_graph` |
 | Docs RAG | 1 | `cos_doc_search` |
-| Task Store | 4 | `cos_task_search` · `cos_task_dependencies` · `cos_task_dependents` · `cos_task_by_filter` |
+| Task Store (Phase C) | 4 | `cos_task_search` · `cos_task_dependencies` · `cos_task_dependents` · `cos_task_by_filter` |
+| **Board (Phase L)** | 8 | `cos_task_create` · `cos_task_board` · `cos_task_move` · `cos_task_pick` · `cos_task_daily` · `cos_task_retro` · `cos_task_wip_check` · `cos_work_log_append` |
+| Retrieval feedback | 1 | `cos_retrieval_cite` |
 | **Wrapper** | 1 | `cos server-start` (CLI command, not MCP tool — starts the server) |
 
 ---
 
-## 6. Hook System (32 shell scripts)
+## 6. Hook System (45 shell scripts)
 
 Hooks live in `core/hooks/` — symlinked into every project.
 
@@ -253,7 +275,7 @@ Hooks live in `core/hooks/` — symlinked into every project.
 | `track-skill.sh` | Skill | Log skill invocation |
 | `check-capture-worked.sh` ✱ | Stop | End-of-session recap — prints observations count + capture errors; "zero observations after edits" warning surfaces silent MCP/DB failures |
 | `session-end.sh` | Stop | Session summary + enrichment |
-| `warn-mcp-down.sh` ✱ | SessionStart | Probes `.mcp.json` or Codex's `~/.codex/config.toml` MCP entry with a real initialize handshake. Banners loudly if MCP is unreachable so memory/learning being disabled is visible from turn one. |
+| `warn-mcp-down.sh` ✱ | SessionStart | Probes `.mcp.json` or Codex's `.codex/config.toml` MCP entry with a real initialize handshake (falling back to `~/.codex/config.toml` only if the project has no local Codex config). Banners loudly if MCP is unreachable so memory/learning being disabled is visible from turn one. |
 | `session-context.sh` | SessionStart + UserPromptSubmit | Workflow + memory digest; Codex `UserPromptSubmit` path refreshes context without rotating session-id |
 
 ★ = added in Phase D/E. ✱ = added in Phase F (MCP visibility + workflow integrity). All are SSOT (live in `core/hooks/`) so every project — Claude or Codex — gets them on `cos init` / `cos update`.
@@ -262,7 +284,7 @@ Hooks live in `core/hooks/` — symlinked into every project.
 
 The session that shipped Phase D/E ran for hours with MCP silently dead — the capture hook kept writing to a broken DB path, zero observations were persisted, and no human/agent surface signalled it. Phase F closes that blind spot:
 
-- **`warn-mcp-down.sh`** — runs at every session start, launches the real MCP command from `.mcp.json` or Codex's `~/.codex/config.toml`, and banner-prints a loud warning if the initialize handshake fails. Human and agent both know within the first second that memory is offline.
+- **`warn-mcp-down.sh`** — runs at every session start, launches the real MCP command from `.mcp.json` or Codex's `.codex/config.toml` (falling back to `~/.codex/config.toml` only when no project-local Codex config exists), and banner-prints a loud warning if the initialize handshake fails. Human and agent both know within the first second that memory is offline.
 - **`check-capture-worked.sh`** — at session end, counts observations written in this session_id. Zero-with-edits → warn. Reads `$COS_STATE_DIR/.capture-errors.log` (populated by the hardened capture-observation hook) and surfaces the actual traceback.
 - **`enforce-memory-check.sh`** — the thinking-os skill mandates a Memory Check in Orient. This hook blocks code writes until the agent records `$COS_STATE_DIR/.memory-check` (via `cos_search` + a state-file marker), exempt for CLEAR 1 / exploratory / spike / tests / docs.
 - **`remind-learn-validate.sh`** — closes the learning loop. `cos_learn_suggest` output lives in `$COS_STATE_DIR/.learn-suggestions`; after `make task-done`, the hook prints a reminder to call `cos_learn_validate` for each pattern so confidence formulas (LTP / LTD) actually update.

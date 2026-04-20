@@ -7,8 +7,8 @@ Read when: Codex behavior differs from Claude · evaluating whether a new hook w
 
 ## TL;DR
 
-- **All 36 core hook scripts are symlinked into BOTH** `.claude/hooks/` AND `.codex/hooks/`. No file is missing.
-- **Only Claude wires 33 of them as events**. Codex wires 11. The remaining gap is architectural — Codex's runtime supports fewer event/matcher combinations than Claude's.
+- **All 45 core hook scripts are symlinked into BOTH** `.claude/hooks/` AND `.codex/hooks/`. No file is missing. (36 pre-Phase-L hooks + 6 Phase L hooks + 3 dispatcher scripts.)
+- **Only Claude wires most of them as events** (≈39). Codex wires ≈12. The remaining gap is architectural — Codex's runtime supports fewer event/matcher combinations than Claude's.
 - **Installed Codex hook commands are absolute paths.** Relative `.codex/hooks/...` commands break when Codex starts in a nested cwd instead of the project root.
 - **One command to sync:** `make sync`. Runs `regen-adapter-templates` + `dogfood-full` — re-links core, stack, rule, command, skill trees for both adapters and regenerates settings files.
 
@@ -91,7 +91,7 @@ As of **April 18, 2026**, the Codex docs also require the feature flag below for
 codex_hooks = true
 ```
 
-`adapters/codex/install.sh` now enables that flag idempotently in `~/.codex/config.toml`.
+`adapters/codex/install.sh` now enables that flag idempotently in the project's `.codex/config.toml` so Codex hooks and MCP stay repo-scoped by default.
 
 Claude's runtime additionally emits:
 

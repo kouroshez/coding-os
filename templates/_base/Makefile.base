@@ -74,6 +74,39 @@ task-context: ## Show compact task context (TASK=043)
 task-list: ## Show tasks (STATUS=open|wip|blocked|done|all)
 	@bash $(COS_SCRIPTS)/task-list.sh $(STATUS)
 
+# ── Scrumban board (Phase L) ──────────────────────────────────────
+# These thin wrappers delegate to the `cos` CLI (cli/board_commands.py).
+# They exist for muscle-memory parity with the legacy `make task-*`
+# commands above — agents and humans can keep using either.
+
+.PHONY: board
+board: ## Show the Scrumban board (ASCII). Use `cos board --web` for browser.
+	@cos board
+
+.PHONY: board-web
+board-web: ## Open the web Scrumban board at http://127.0.0.1:9000
+	@cos board --web
+
+.PHONY: daily
+daily: ## Daily standup summary (yesterday + today candidates + blockers)
+	@cos daily
+
+.PHONY: retro
+retro: ## Weekly retro — throughput + cycle time + emergency count
+	@cos retro
+
+.PHONY: wip
+wip: ## Current WIP counts vs caps from scrumban-config.yaml
+	@cos wip
+
+.PHONY: task-pick
+task-pick: ## Print top candidate tasks to work on next
+	@cos task-pick
+
+.PHONY: task-validate
+task-validate: ## Lint all docs/tasks/*.md against the lean frontmatter schema
+	@cos task-validate
+
 # ── Logging ─────────────────────────────────────────────────────────
 
 .PHONY: log-latest

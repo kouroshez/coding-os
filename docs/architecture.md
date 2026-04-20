@@ -43,10 +43,12 @@ Everything in `core/` works identically regardless of which AI agent uses it.
 
 | Component | Purpose | Key Files |
 |-----------|---------|-----------|
-| `thinking-os/` | MCP server — self-learning brain | `server.py`, `db.py`, `tools/` |
-| `hooks/` | Shell scripts for enforcement | `thinking-os-gate.sh`, `enforce-*.sh` |
+| `thinking-os/` | MCP server — self-learning brain (memory, learning, routing, metrics) | `server.py`, `db.py`, `tools/` |
+| `graph-os/` | Phase I knowledge graph (Kùzu + SQLite backends) | `backend.py`, `backends/`, `extractors/` |
+| `board-os/` | Phase L Scrumban task system — the planner | `config.py`, `parser.py`, `workflow.py`, `mcp_tools.py`, `viewer/` |
+| `hooks/` | Shell scripts for enforcement (45 scripts across Phases 0-L) | `thinking-os-gate.sh`, `enforce-*.sh`, `validate-task-frontmatter.sh` |
 | `rules/` | Always-active workflow rules | `thinking-os.md`, `memory.md` |
-| `skills/` | Deep methodology guides | `thinking-os/`, `clean-code/` |
+| `skills/` | Deep methodology guides | `thinking-os/`, `clean-code/`, `task-driver/` |
 
 ### Adapters (per-agent)
 
@@ -99,7 +101,7 @@ The thinking-os DB tracks everything and learns from past sessions.
 | `COS_DB_PATH` | `.coding-os/thinking-os.db` | SQLite database path |
 | `COS_SESSION_FILE` | `.coding-os/session-id` | Session ID file |
 
-## MCP Tools (21 tools, `cos_*` prefix)
+## MCP Tools (29 tools, `cos_*` prefix)
 
 ### Response Contract (applies to ALL tools below)
 
@@ -241,8 +243,9 @@ Agent starts session
 
 Session starts
   → SessionStart hooks (never block):
-    1. warn-mcp-down.sh        — probe .mcp.json with initialize handshake,
-                                 banner loudly if MCP coding-os is unreachable
+    1. warn-mcp-down.sh        — probe .mcp.json or .codex/config.toml with
+                                 initialize handshake, banner loudly if MCP
+                                 coding-os is unreachable
                                  (prevents the silent-death failure mode
                                  where memory/learning is off all session
                                  but the agent and human don't notice).

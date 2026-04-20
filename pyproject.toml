@@ -36,6 +36,13 @@ graph-os = [
     "kuzu>=0.7.1,<0.11.0",
 ]
 
+# board-os — Phase L Scrumban web viewer (cos board --web).
+# Install with: uv sync --extra board-os
+board-os = [
+    "aiohttp>=3.9.0",
+    "watchdog>=4.0.0",
+]
+
 [project.scripts]
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"

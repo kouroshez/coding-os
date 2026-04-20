@@ -44,8 +44,10 @@ Every hook sources `core/hooks/cos-env.sh` and calls `cos_log_hook <name> <actio
 ```
                  ┌───────────────────────────────────────┐
                  │  core/   (DNA — agent+stack agnostic) │
-                 │  ├── hooks/         (31 .sh scripts)  │
-                 │  ├── thinking-os/   (MCP, 21 tools)   │
+                 │  ├── hooks/         (45 .sh scripts)  │
+                 │  ├── thinking-os/   (MCP, 29 tools)   │
+                 │  ├── graph-os/      (Phase I v12 KG)  │
+                 │  ├── board-os/      (Phase L Scrumban)│
                  │  ├── rules/  skills/  scripts/        │
                  │  └── commands/  docs/                 │
                  └───────────────┬───────────────────────┘
@@ -99,14 +101,20 @@ Every hook sources `core/hooks/cos-env.sh` and calls `cos_log_hook <name> <actio
 
 The `regen-reminder.sh` and `warn-template-drift.sh` hooks warn on hand-edits to any of these.
 
-## Explicit Core — MCP + thinking-os
+## Explicit Core — MCP + thinking-os + graph-os + board-os
 
-The **heart** of coding-os is not the hooks and not the templates — it is the thinking-os MCP server at `core/thinking-os/`. Hooks enforce rules; templates standardize layout; **thinking-os is where cognition and memory live.**
+The **cognitive layers** of coding-os are three peer subsystems under `core/`, all registered on the same MCP server at `core/thinking-os/server.py`:
 
-- **Server entry**: [core/thinking-os/server.py](core/thinking-os/server.py) — FastMCP, registers 21 `cos_*` tools across 7 categories (Health · Memory · Metrics · Learning · Routing · Graph · Docs RAG · Tasks).
-- **DB**: SQLite with WAL + FTS5 + sentence-transformer embeddings. Schema v1–v6 (append-only migrations). Path: `$COS_DB_PATH` (default `.coding-os/thinking-os.db`).
+- **thinking-os** (memory + learning + metrics) — the hippocampus. "Have I seen this before?"
+- **graph-os** (Phase I) — the corpus callosum. "What is connected to what?"
+- **board-os** (Phase L) — the prefrontal cortex / planner. "What am I going to do next?"
+
+Hooks enforce rules; templates standardize layout; **the three OS subsystems are where cognition, structure, and planning live.**
+
+- **Server entry**: [core/thinking-os/server.py](core/thinking-os/server.py) — FastMCP, registers **29** `cos_*` tools across 8 categories (Health · Memory · Metrics · Learning · Routing · Graph · Docs RAG · Tasks + Board).
+- **DB**: SQLite with WAL + FTS5 + sentence-transformer embeddings. Schema v1–v13 (append-only migrations, Rule 10). Path: `$COS_DB_PATH` (default `.coding-os/thinking-os.db`). **Kùzu** (`.coding-os/graph-os.kuzu`) for Phase I graph-native workloads when `graph.backend: kuzu`.
 - **Client wiring**: `.mcp.json` at the project root. Adapter install scripts populate this file automatically.
-- **Three-layer retrieval** (see "Three-Layer Retrieval" below): Agent Memory · Doc Knowledge Base · Task Registry.
+- **Four-layer retrieval** (see "Four-Layer Retrieval" below): Agent Memory · Doc Knowledge Base · Task Registry · Knowledge Graph.
 - **Liveness matters**: if MCP is down, the session is cognitively blind — hooks fire but nothing remembers. `warn-mcp-down.sh` (SessionStart) and `cos doctor` check C15 exist specifically to surface this.
 
 ## Navigation Cheatsheet — "I want to X, go to Y"
@@ -114,7 +122,10 @@ The **heart** of coding-os is not the hooks and not the templates — it is the 
 | I want to... | Go to |
 |---|---|
 | Add a new hook | `core/hooks/<new>.sh` + add entry to `core/hooks/registry.yaml` + `make regen-adapter-templates` + `make dogfood-full` |
-| Add a new MCP tool | `core/thinking-os/tools/<category>.py` + register in `core/thinking-os/server.py` |
+| Add a new MCP tool | `core/thinking-os/tools/<category>.py` (or `core/graph_os/tools/` / `core/board_os/mcp_tools.py`) + register in `core/thinking-os/server.py` |
+| Create a task | `cos_task_create(title, swimlane, kind, priority)` MCP or `cos task-create --swimlane X --kind Y --title Z` CLI |
+| Move a task across the board | `cos_task_move(task_id, to='in_progress')` or `cos task-start TASK-NNN`, `cos task-done TASK-NNN` |
+| View the board | `cos board` (ASCII) · `cos board --web` (http://127.0.0.1:9000) · `cos daily` · `cos retro` |
 | Add a new agent (e.g. cursor) | `adapters/<id>/{adapter.yaml, install.sh, *.template.*}` + tests in `tests/test_adapters.py` |
 | Add a new stack (e.g. rails) | `templates/<id>/{stack.yaml, scaffold/, skills/}` + golden in `tests/golden/` |
 | Add a new rule | `core/rules/<name>.md` — auto-symlinked into both `.claude/rules/` and `.codex/rules/` by the install scripts |
@@ -143,29 +154,44 @@ P7. No-guessing — log unknowns to docs/questions.md.
 ```
 coding-os/
 ├── core/                 # Agent-agnostic (THE PORT)
-│   ├── thinking-os/      # MCP server: 21 cos_* tools, SQLite DB v6, self-learning
+│   ├── thinking-os/      # MCP server: 29 cos_* tools, SQLite DB v13, self-learning
 │   │   ├── server.py     # FastMCP entry, registers all cos_* tools
-│   │   ├── db.py         # Schema v1-v6 migrations, WAL mode, FTS5
+│   │   ├── db.py         # Schema v1-v13 migrations, WAL mode, FTS5
 │   │   ├── embeddings.py # Phase B: sentence-transformers + numpy cosine (`rag` extra)
 │   │   ├── doc_indexer.py# Phase B: heading-aware markdown chunker → document_chunks
-│   │   ├── task_parser.py# Phase C: pure parser for docs/tasks/*.md
+│   │   ├── task_parser.py# Phase C: legacy 12-section parser (kept as fallback)
 │   │   ├── task_sync.py  # Phase C: mtime-incremental sync → tasks table
 │   │   └── tools/        # memory, metrics, learning, routing, docs, tasks
-│   ├── hooks/            # 31 shell scripts, parameterized via cos-env.sh
+│   ├── graph_os/         # Phase I: knowledge graph (Kùzu + SQLite backends)
+│   │   ├── backend.py    # Protocol for kuzu vs sqlite graph backends
+│   │   ├── extractors/   # (Phase I.2+) md_links, code_python, code_ts, contracts
+│   │   └── backends/     # kuzu_backend.py + sqlite_backend.py
+│   ├── board_os/         # Phase L: Scrumban task system (cos-board)
+│   │   ├── config.py     # ScrumbanConfig + 8-value kind/status enums
+│   │   ├── parser.py     # Lean frontmatter parser + legacy fallback
+│   │   ├── sync.py       # mtime-incremental task→DB sync, status-history
+│   │   ├── workflow.py   # 8-state machine + WIP + cycle detection (R-L-29)
+│   │   ├── mcp_tools.py  # 8 cos_task_* tools + cos_work_log_append
+│   │   ├── migration.py  # Two-phase atomic legacy→lean migration (L.7)
+│   │   └── viewer/       # aiohttp + Sortable.js web board
+│   ├── hooks/            # 45 shell scripts, parameterized via cos-env.sh
 │   ├── scripts/          # task/log/ref/docs management scripts
 │   ├── rules/            # thinking-os.md (Complexity Gate), memory.md
-│   ├── skills/           # thinking-os, clean-code, codebase-explorer, worktree
+│   ├── skills/           # thinking-os, clean-code, codebase-explorer, worktree, task-driver
 │   ├── commands/         # task.md, review.md, diagnose.md
 │   └── docs/             # thinking-os-final-edition (1439L), agent-workflow, task-lifecycle
 ├── adapters/             # Per-agent translation (THE ADAPTERS)
 │   ├── claude/           # settings.template.json, install.sh
 │   └── codex/            # hooks.template.json, install.sh
 ├── templates/            # Per-stack content (THE TEMPLATES)
-│   ├── _base/            # AGENTS.template.md, Makefile.base, scaffold/, rag-config.yaml
+│   ├── _base/            # AGENTS.template.md, Makefile.base, scaffold/, rag-config.yaml, scrumban-config.yaml
 │   ├── django/           # python-django skill + scaffold/docs overlay
-│   └── nextjs/           # nextjs-react + frontend-design + scaffold/docs overlay
+│   ├── nextjs/           # nextjs-react + frontend-design + scaffold/docs overlay
+│   ├── fastapi/ go/ go-fiber/  # per-stack scrumban-config.yaml swimlanes
+│   └── _base/fragments/  # AGENTS.md composable sections (incl. task-authoring L.9)
 ├── cli/main.py           # Python+click: init, add-adapter, health, eject
-├── scripts/              # verify_phase_c_e2e.py (Python with per-step timeouts)
+├── cli/board_commands.py # Phase L.6: 16 board-os CLI commands
+├── scripts/              # verify_phase_c_e2e.py, populate_board_from_phases.py, ...
 └── docs/                 # architecture, getting-started, roadmap, phase-*-plan
 ```
 
@@ -211,25 +237,36 @@ bash core/hooks/write-state.sh .coding-os/.thinking-os-gate "COMPLICATED 3"
 | `core/thinking-os/*.py` | Pytest + MCP self-test | `uv run --extra rag pytest core/thinking-os/tests/ -q` and `python core/thinking-os/server.py --test` |
 | `core/thinking-os/db.py` | Migration tests | `uv run --extra rag pytest core/thinking-os/tests/test_db.py -q` |
 | `core/thinking-os/doc_indexer.py` or `task_sync.py` | E2E verification | `python scripts/verify_phase_c_e2e.py` |
+| `core/graph_os/**` | graph-os parity + extractor tests | `uv run --extra graph-os pytest core/graph_os/tests/ -q` |
+| `core/board_os/**` | board-os tests (parser, sync, workflow, MCP, viewer) | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q` |
 | `core/hooks/*.sh` | Shell syntax check | `make verify-hooks` |
 | `core/scripts/*.sh` | Shell syntax check | `make verify-hooks` |
 | `adapters/**` | Adapter install test | `uv run pytest tests/test_adapters.py -q` |
 | `cli/*.py` | CLI integration tests | `uv run pytest tests/test_cli.py -q` |
 | `templates/_base/scaffold/**` | Template scaffold tests | `uv run pytest tests/test_template_scaffold.py -q` |
+| `templates/_base/task-detail.template.md` | Lean template parity | `uv run pytest core/board_os/tests/test_template_parity.py -q` |
+| `.coding-os/scrumban-config.yaml` | Config schema + per-stack defaults | `uv run pytest core/board_os/tests/test_config.py core/board_os/tests/test_per_stack_configs.py -q` |
 | `docs/**/*.md` | Docs lint + staleness check | `make docs-lint` (includes docs-staleness-check.sh) |
 
 ## Tool Routing
 
-Task: `make session-init`, `task-next`, `task-start TASK=N`, `task-done TASK=N TYPE=t MSG="m" WHAT="w" FILES="f"`, `task-block TASK=N REASON="r"`, `task-create NUM=N TITLE="t"`.
-Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
-Verify: `verify`, `verify-hooks`, `test-mcp`, `test-install`, `cos-health`.
+**Legacy task flow (still supported for backward-compat; prefer Scrumban below):**
+- `make session-init`, `task-next`, `task-start TASK=N`, `task-done TASK=N TYPE=t MSG="m" WHAT="w" FILES="f"`, `task-block TASK=N REASON="r"`, `task-create NUM=N TITLE="t"`.
+
+**Phase L Scrumban flow (board-os — preferred):**
+- **CLI:** `cos board` (ASCII) / `cos board --web` (http://127.0.0.1:9000) · `cos task-create --title ... --swimlane ... --kind ...` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to testing` · `cos task-done TASK-NNN` · `cos task-block TASK-NNN --reason ...` · `cos task-cancel TASK-NNN` · `cos task-pick` · `cos daily` · `cos retro` · `cos wip` · `cos task-show TASK-NNN` · `cos task-log TASK-NNN [--full]` · `cos task-history TASK-NNN` · `cos task-validate` · `cos board-config --init --stack <stack>`.
+- **MCP:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one explicitly — no PostToolUse hook).
+
+**Log**: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
+
+**Verify**: `verify`, `verify-hooks`, `test-mcp`, `test-install`, `cos-health`.
 
 ## Critical Rules
 
 0. **Docs-first principle (highest priority)** — Docs are the single source of truth. Every code Write/Edit must trace to a doc path recorded in `$COS_AGENT_DIR/.doc-anchor` (populated by `task-start.sh` from the task file's "Source of Truth" / "Read First" sections). `enforce-doc-anchor.sh` BLOCKS code writes without an anchor. If the task has no doc to cite, either (a) mark CLEAR 1 gate for trivial fixes, (b) use an `exploratory-*` task name for spikes, or (c) stop and ask the user what doc should exist first — never invent implementation from scratch.
 
 1. **Never hardcode `.claude/`** in `core/` — use `$COS_STATE_DIR` (shared root: DB, log, `.agent` marker), `$COS_AGENT_DIR` (agent-private: session-id + all session-scoped markers — `.coding-os/<agent>/`), or `$COS_DB_PATH` env vars. Full design: [docs/engineering/state-files.md](docs/engineering/state-files.md).
-2. **MCP tool names use `cos_*` prefix** — 21 tools total across 7 categories:
+2. **MCP tool names use `cos_*` prefix** — **29** tools total across 8 categories:
    - Health (1): `cos_health`
    - Memory (4): `cos_search`, `cos_timeline`, `cos_details`, `cos_promote`
    - Metrics (3): `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
@@ -238,6 +275,8 @@ Verify: `verify`, `verify-hooks`, `test-mcp`, `test-install`, `cos-health`.
    - Graph (1): `cos_graph`
    - Docs RAG (1): `cos_doc_search` — Phase B
    - Tasks (4): `cos_task_search`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_by_filter` — Phase C
+   - Board (8): `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` — Phase L
+   - Retrieval feedback (1): `cos_retrieval_cite` — Phase G.8
 3. **Hooks source `cos-env.sh`** — `source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true`
 4. **Scripts search config chain** — `$COS_STATE_DIR/domain-config.json` → `infrastructure/scripts/domain-config.json`
 5. **State lives in `$COS_AGENT_DIR`, NOT `.claude/`** — per-session markers (`session-id`, `.task-current`, `.thinking-os-gate`, `.zoom-checkpoint`, `.doc-anchor`, `.memory-check`, `.active-skill`) live in `.coding-os/<agent>/` so two agents on the same repo never share ephemeral state. Shared artifacts (DB, `.hooks.log`, `.agent` marker, `installed-manifest.json`) stay at `.coding-os/`. Session-id is agent-prefixed: `ses-claude-YYYYMMDD-...` / `ses-codex-YYYYMMDD-...`. The pre-2026-04 `.claude/.session-id` fallback was removed as dead code.
@@ -268,17 +307,32 @@ Verify: `verify`, `verify-hooks`, `test-mcp`, `test-install`, `cos-health`.
 
 14. **MCP tool response envelope** — every `cos_*` tool in [core/thinking-os/server.py](core/thinking-os/server.py) MUST return via `ok(data)` or `fail(category, message)` from [core/thinking-os/tools/_shared.py](core/thinking-os/tools/_shared.py). The envelope is `{ok: true, data: T}` on success or `{ok: false, error: {category, retryable, message}}` on failure. Categories: `transient | validation | permission | not_found | unavailable | internal`. Every tool must also be wrapped in `@safe_tool` (inside `@mcp.tool(...)`) so unhandled exceptions become `fail("internal", ...)` instead of raw tracebacks. Consumers (agents, tests) drill through `envelope["data"]` rather than the top level. Full contract: [docs/engineering/mcp-error-envelope.md](docs/engineering/mcp-error-envelope.md). Rationale: TS 2.2 of Claude Certified Architect Foundations — agents need `retryable` to recover instead of looping uselessly.
 
+15. **Tasks are pointers, not specs (Phase L, board-os)** — A task file under `docs/tasks/TASK-NNN-slug.md` MUST NOT inline content already present in `docs/**`, `core/rules/**`, `AGENTS.md`, or `CLAUDE.md`. The `Read First` section lists *paths*; the body describes *delta* only (Outcome + Acceptance G/W/T + Work Log). Duplicated content is a bug — fix by linking, or by writing the referenced doc first (Formula 4) then linking. **Enforced by `lint-task.sh` PostToolUse hook** (warns >1.5k tokens, blocks >3k). The four categorization axes are orthogonal: `swimlane` (domain, config-enum), `kind` (type, 8-value closed enum drives card colour), `epic` (initiative, optional free string), `labels` (free tags; MUST NOT contain kind values). Full rationale: [docs/phase-l-scrumban-task-system-plan.md §15](docs/phase-l-scrumban-task-system-plan.md).
+
 ## Key Files
 
 | What | Where |
 |------|-------|
 | MCP server entry | `core/thinking-os/server.py` |
-| DB module + migrations v1-v6 | `core/thinking-os/db.py` |
+| DB module + migrations v1-v13 | `core/thinking-os/db.py` |
 | Phase B embeddings engine | `core/thinking-os/embeddings.py` |
 | Phase B doc indexer | `core/thinking-os/doc_indexer.py` |
-| Phase C task parser (pure) | `core/thinking-os/task_parser.py` |
-| Phase C task sync | `core/thinking-os/task_sync.py` |
+| Phase C task parser (legacy) | `core/thinking-os/task_parser.py` |
+| Phase C task sync (legacy) | `core/thinking-os/task_sync.py` |
 | MCP tools (7 modules) | `core/thinking-os/tools/{memory,metrics,learning,routing,docs,tasks}.py` |
+| Phase I graph-os protocol + backends | `core/graph_os/backend.py`, `core/graph_os/backends/{kuzu,sqlite}_backend.py` |
+| **Phase L board-os — module root** | `core/board_os/` |
+| Phase L scrumban config model | `core/board_os/config.py` (KIND_ENUM, STATUS_ENUM, PRIORITY_ENUM) |
+| Phase L lean task parser | `core/board_os/parser.py` (frontmatter + legacy fallback) |
+| Phase L workflow engine | `core/board_os/workflow.py` (state machine + WIP + cycle detect) |
+| Phase L MCP surface | `core/board_os/mcp_tools.py` (8 `cos_task_*` tools) |
+| Phase L web viewer | `core/board_os/viewer/server.py` (aiohttp + Sortable.js) |
+| Phase L CLI surface | `cli/board_commands.py` (16 commands) |
+| Phase L task template (lean) | `templates/_base/task-detail.template.md` |
+| Phase L scrumban config (meta) | `.coding-os/scrumban-config.yaml` |
+| Phase L scrumban config (per-stack) | `templates/<stack>/scaffold/.coding-os/scrumban-config.yaml` |
+| Phase L AGENTS.md fragment | `templates/_base/fragments/task-authoring.md.tmpl` (order 135) |
+| Phase L task-driver skill | `core/skills/task-driver/SKILL.md` |
 | Hook config loader | `core/hooks/cos-env.sh` |
 | Protected files hook (with task-name escape hatch) | `core/hooks/block-protected-files.sh` |
 | CLI entry | `cli/main.py` |
@@ -291,6 +345,10 @@ Verify: `verify`, `verify-hooks`, `test-mcp`, `test-install`, `cos-health`.
 | Docs staleness check | `core/scripts/docs-staleness-check.sh` |
 | Phase B plan (reference) | `docs/phase-b-rag-plan.md` |
 | Phase C plan (reference) | `docs/phase-c-task-store-plan.md` |
+| Phase I plan (graph-os) | `docs/phase-i-knowledge-graph-plan.md` |
+| Phase J plan (meta-router) | `docs/phase-j-meta-router-plan.md` |
+| Phase K plan (DB abstraction) | `docs/phase-k-db-abstraction-plan.md` |
+| Phase L plan (board-os / Scrumban) | `docs/phase-l-scrumban-task-system-plan.md` |
 
 ## Context Discipline
 
@@ -300,15 +358,16 @@ Read `docs/architecture.md` and `docs/getting-started.md` for full understanding
 
 Stop when: core/ changes break backward compatibility, adapter changes affect other adapters, MCP tool signature changes without migration plan.
 
-## Three-Layer Retrieval (Phase A + B + C)
+## Four-Layer Retrieval (Phase A + B + C + I + L)
 
-The system answers different questions at three layers. Pick the right tool:
+The system answers different questions at four layers. Pick the right tool:
 
 | Layer | Question | Tools | Data |
 | --- | --- | --- | --- |
 | **1. Agent Memory** | "Have I solved this before?" | `cos_search`, `cos_timeline`, `cos_details`, `cos_learn_suggest` | observations, learned_patterns, outcome_history |
 | **2. Document Knowledge Base** (Phase B) | "What does the spec/rule/architecture say?" | `cos_doc_search` (filter by prd/architecture/adr/api_contract/page_spec/engineering/ops/design) | document_chunks populated by `make docs-index` |
-| **3. Task Registry** (Phase C) | "Which tasks are related? What depends on what?" | `cos_task_search`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_by_filter` | tasks table populated by `make task-sync` |
+| **3. Task Registry + Scrumban** (Phase C + L) | "Which tasks are related? What depends on what? What's in progress? What's next?" | Read-only: `cos_task_search`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_by_filter`, `cos_task_board`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`. Write: `cos_task_create`, `cos_task_move`, `cos_work_log_append` | tasks table + task_status_history + MD frontmatter SSOT |
+| **4. Knowledge Graph** (Phase I, partial) | "What is connected to what? What breaks if I change X?" | `cos_graph` (more `cos_graph_*` tools in I.2+) | `graph_nodes` + `graph_edges_v12` (SQLite fallback) or `.coding-os/graph-os.kuzu` |
 
 Always-active (no retrieval, full-read): `AGENTS.md`, `CLAUDE.md`, playbooks, `core/rules/`, current task detail.
 
@@ -333,12 +392,16 @@ If two layers look equally plausible, prefer Memory→Docs→Tasks order — mem
 - **Phase 2** — CLI/hook/adapter integration tests (72 tests) ✅
 - **Phase A** — Template completion: 38 scaffold files + 38 tests ✅
 - **Phase B** — RAG integration: embeddings, doc_indexer, cos_doc_search, semantic memory search (109 tests) ✅
-- **Phase C** — Hybrid task store: migration v6, task_parser, task_sync, 4 cos_task_* tools (111 tests) ✅
+- **Phase C** — Hybrid task store: migration v6, task_parser, task_sync, 4 `cos_task_*` tools (111 tests) ✅
 - **Phase D (v0.2.0)** — CLI distribution: `cos update`, `cos setup`, `cos eject-file`, `cos server-start`, `uv tool install --editable`, 16 CLI commands ✅
 - **Phase E (v0.2.1)** — Enterprise hook regime + docs-first principle: Rule 0 (doc-anchor), 6 new hooks (enforce-doc-anchor, block-migration-conflict, block-uv-heredoc, regen-reminder, block-hardcoded-literals, test-first-reminder) ✅
 - **Phase F (v0.2.2)** — MCP visibility + workflow integrity: 4 new hooks (warn-mcp-down, check-capture-worked, enforce-memory-check, remind-learn-validate), doctor check C15, `make dogfood` ✅
-- **Current: 1083 tests passing, 0 failing.**
+- **Phase G** — Brain hardening: trust_tier, provenance, memory_audit, validation throttle, docs FTS, retrievals audit/feedback, retrieval quality tracker (migrations v7–v11) ✅
+- **Phase H** — Auto-sync freshness: `auto-reindex-docs.sh` PostToolUse hook; `cos_doc_search` always current ✅
+- **Phase I (partial)** — graph-os knowledge graph: migration v12, `core/graph_os/`, Protocol + sqlite + kuzu backends, `cos_graph` tool ✅ (I.0 shipped; I.1–I.14 on the board)
+- **Phase L** — **board-os Scrumban (full)**: migration v13, `core/board_os/`, lean task template, 8 `cos_task_*` MCP tools, 6 new hooks, 16 CLI commands, web viewer at `cos board --web`, task-driver skill, AGENTS.md fragment ✅
+- **Current: ~1,180 tests passing** (928 thinking-os + 146 board_os + 71 adapter + 35 literals + template scaffold + ...).
 
 ## Development Roadmap
 
-See `docs/development-roadmap.md` for Phase C+ plans and v0.3.0.
+See `docs/development-roadmap.md` for the v0.3.0 plan. Phase I.1–I.14, Phase J, and Phase K are live on the Scrumban board as icebox tasks (see `cos board` for up-to-date status).
