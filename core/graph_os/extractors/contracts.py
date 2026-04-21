@@ -31,6 +31,7 @@ from .md_links import (
     ParseError,
     _normalize_path,
     _promote_stubs,
+    emit_contains_spine,
 )
 
 logger = logging.getLogger("graph_os.extractors.contracts")
@@ -218,6 +219,29 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     for hit in matches:
         _emit(file_node.uid, hit, normalised=normalised, result=result)
+
+    # S3: Folder→...→File spine + File→Route/Tool/Event direct
+    # ``contains`` edges for the tree-view. The ``handles_route`` /
+    # ``handles_tool`` / ``handles_event`` edges already emitted by
+    # ``_emit`` are semantic (which file owns which surface); the
+    # ``contains`` edges added below are structural (tree placement).
+    emit_contains_spine(
+        file_path=path,
+        file_uid_=file_node.uid,
+        result=result,
+        extractor_id=EXTRACTOR_ID,
+    )
+    for hit in matches:
+        contract_uid = _contract_uid(hit)
+        result.edges.append(
+            GraphEdge(
+                source_uid=file_node.uid,
+                target_uid=contract_uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
+        )
 
     _promote_stubs(result)
     return result

@@ -33,6 +33,7 @@ from .md_links import (
     ParseError,
     _normalize_path,
     _promote_stubs,
+    emit_contains_spine,
 )
 
 logger = logging.getLogger("graph_os.extractors.code_python")
@@ -155,10 +156,22 @@ def extract(path: str, content: str) -> ExtractionResult:
                 line=exc.lineno,
             )
         )
+        emit_contains_spine(
+            file_path=path,
+            file_uid_=file_node.uid,
+            result=result,
+            extractor_id=EXTRACTOR_ID,
+        )
         _promote_stubs(result)
         return result
     except Exception as exc:  # noqa: BLE001
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
+        emit_contains_spine(
+            file_path=path,
+            file_uid_=file_node.uid,
+            result=result,
+            extractor_id=EXTRACTOR_ID,
+        )
         _promote_stubs(result)
         return result
 
@@ -311,6 +324,43 @@ def extract(path: str, content: str) -> ExtractionResult:
                 evidence=evidence,
             )
         )
+
+    # S3: Folder→...→File CONTAINS spine (idempotent via uid).
+    emit_contains_spine(
+        file_path=path,
+        file_uid_=file_node.uid,
+        result=result,
+        extractor_id=EXTRACTOR_ID,
+    )
+
+    # S3: File→Class / File→Function / Class→Method ``contains`` edges.
+    # The AST visitor already wires Module→decl and Class→Method; we
+    # add File→Class, File→Function, and File→Method(top-level) so the
+    # tree-view has a direct spine that bypasses the module node. These
+    # are idempotent thanks to the backend's (source,target,edge_type,
+    # extractor) uniqueness constraint.
+    file_uid_str = file_node.uid
+    for decl in visitor.decls:
+        if decl.kind == "code:class" and decl.parent_uid is None:
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid_str,
+                    target_uid=decl.uid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
+            )
+        elif decl.kind == "code:function" and decl.parent_uid is None:
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid_str,
+                    target_uid=decl.uid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
+            )
 
     _promote_stubs(result)
     return result

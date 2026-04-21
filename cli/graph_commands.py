@@ -287,9 +287,57 @@ def register(cli: click.Group) -> None:
     @click.option("--path", default=None, help="Directory to reindex (default: repo root).")
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
     @click.option("--max-files", default=5000, type=int)
-    def graph_reindex(path, no_docs, max_files):
+    @click.option(
+        "--rebuild-kinds",
+        is_flag=True,
+        help="S3: re-run the v16 kind-normalization data migration "
+        "without a full reindex. Useful after the NodeKind enum "
+        "ships to canonicalise legacy colon-prefixed kinds in place.",
+    )
+    def graph_reindex(path, no_docs, max_files, rebuild_kinds):
         """Walk a directory and rebuild the graph via the dispatcher."""
         _bootstrap_paths()
+        if rebuild_kinds:
+            # S3 data migration — idempotent; can be invoked standalone.
+            try:
+                import db  # type: ignore
+                from graph_os.types import normalize_kind  # type: ignore
+            except ImportError as exc:
+                click.echo(f"[graph-reindex] rebuild-kinds import failed: {exc}", err=True)
+                return
+            conn = db.get_connection()
+            try:
+                rows = conn.execute(
+                    "SELECT DISTINCT kind FROM graph_nodes"
+                ).fetchall()
+                renames: dict[str, str] = {}
+                for r in rows:
+                    legacy = r[0]
+                    if legacy is None:
+                        continue
+                    try:
+                        canonical = normalize_kind(legacy).value
+                    except ValueError:
+                        continue
+                    if canonical != legacy:
+                        renames[legacy] = canonical
+                total = 0
+                for legacy, canonical in renames.items():
+                    cur = conn.execute(
+                        "UPDATE graph_nodes SET kind = ? WHERE kind = ?",
+                        (canonical, legacy),
+                    )
+                    total += cur.rowcount or 0
+                conn.commit()
+                click.echo(
+                    f"[graph-reindex] rebuild-kinds: "
+                    f"{len(renames)} distinct kind(s) rewritten, "
+                    f"{total} row(s) updated"
+                )
+                return
+            finally:
+                conn.close()
+
         from graph_os.ingest import walk_local  # type: ignore
         from graph_os.tools.reindex_dispatch import dispatch  # type: ignore
 

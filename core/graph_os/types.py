@@ -17,8 +17,142 @@ NOTES:    Frozen dataclasses so nodes/edges can be used as dict keys
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from types import MappingProxyType
 from typing import Any, Mapping
+
+
+class NodeKind(str, Enum):
+    """Canonical node kinds for the graph-os tree / spine (S3).
+
+    PURPOSE:  Enumerate every canonical node kind so extractors, tools,
+              and the SPA agree on the vocabulary. Values are the short
+              forms emitted by post-S3 extractors (e.g. ``"file"``,
+              ``"method"``); legacy colon-prefixed strings
+              (``"code:file"``, ``"doc:heading"``, …) are accepted via
+              :func:`normalize_kind` and :meth:`NodeKind.from_any` and
+              mapped back to these canonical values.
+    INPUT:    n/a.
+    OUTPUT:   n/a (enum members).
+    DEPENDS:  stdlib Enum.
+    NOTES:    Inherits ``str`` so members compare equal to their string
+              values (matches existing ``GraphNode.kind: str`` usage).
+              ``import_`` has a trailing underscore because ``import`` is
+              a Python keyword. The DB + dataclass fields keep
+              ``kind: str`` to avoid a breaking change; normalization
+              runs at the extractor / migration boundary.
+    """
+
+    FOLDER = "folder"
+    FILE = "file"
+    MODULE = "module"
+    CLASS = "class"
+    METHOD = "method"
+    FUNCTION = "function"
+    VARIABLE = "variable"
+    INTERFACE = "interface"
+    IMPORT_ = "import_"
+    ROUTE = "route"
+    TOOL = "tool"
+    MCP_TOOL = "mcp_tool"
+    EVENT = "event"
+    TASK = "task"
+    DOC_FILE = "doc_file"
+    DOC_HEADING = "doc_heading"
+    DOC_FRONTMATTER = "doc_frontmatter"
+    DOC_EXTERNAL = "doc_external"
+    RULE = "rule"
+    SKILL = "skill"
+    CONTRACT = "contract"
+    COMMUNITY = "community"
+    HOOK = "hook"
+    IDENTIFIER = "identifier"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def from_any(cls, value: object) -> "NodeKind":
+        """Coerce a legacy / new string to a canonical ``NodeKind``.
+
+        Raises ``ValueError`` for empty / unrecognised inputs. Accepts
+        both legacy colon-prefixed strings (``"code:function"``,
+        ``"doc:heading"``, ``"task:file"``, ``"cos:mcp_tool"``, …) and
+        post-S3 short forms (``"function"``, ``"doc_heading"``).
+        """
+        return normalize_kind(value)
+
+
+# Legacy colon-prefixed strings → canonical short form. Every value in
+# the RHS is a valid NodeKind member. Extractors produce legacy forms
+# today; migration v16 rewrites stored rows; ``normalize_kind`` bridges
+# the read path.
+_LEGACY_KIND_MAP: dict[str, str] = {
+    # code:*
+    "code:file": "file",
+    "code:module": "module",
+    "code:class": "class",
+    "code:method": "method",
+    "code:function": "function",
+    "code:variable": "variable",
+    "code:interface": "interface",
+    "code:import": "import_",
+    "code:external": "unknown",
+    # doc:*
+    "doc:file": "doc_file",
+    "doc:heading": "doc_heading",
+    "doc:frontmatter_key": "doc_frontmatter",
+    "doc:external": "doc_external",
+    # task:*
+    "task:file": "task",
+    # cos:*
+    "cos:route": "route",
+    "cos:mcp_tool": "mcp_tool",
+    "cos:tool": "tool",
+    "cos:event": "event",
+    "cos:hook": "hook",
+    "cos:skill": "skill",
+    "cos:rule": "rule",
+    "cos:contract": "contract",
+    "cos:identifier": "identifier",
+    "cos:community": "community",
+}
+
+
+def normalize_kind(value: object) -> NodeKind:
+    """Map a stored/extracted kind string to a canonical ``NodeKind``.
+
+    PURPOSE:      Single normalizer so the tool layer, migration v16,
+                  and the SPA all agree on kinds regardless of whether
+                  the producer emits legacy colon-prefixed strings
+                  (pre-S3) or new short forms (post-S3).
+    INPUT:        any object (commonly a string) — the raw ``kind``.
+    OUTPUT:       a ``NodeKind`` enum member.
+    DEPENDENCIES: ``_LEGACY_KIND_MAP``.
+    NOTES:        Raises ``ValueError`` when the value is empty or does
+                  not match a known legacy/canonical kind. Callers that
+                  want a permissive read path should catch and fall back
+                  to ``NodeKind.UNKNOWN`` themselves.
+    """
+    if value is None:
+        raise ValueError("kind cannot be None")
+    raw = str(value).strip()
+    if not raw:
+        raise ValueError("kind cannot be empty")
+    lowered = raw.lower()
+    # Direct enum value match (post-S3 emission).
+    try:
+        return NodeKind(lowered)
+    except ValueError:
+        pass
+    # Legacy colon-prefixed forms.
+    if lowered in _LEGACY_KIND_MAP:
+        return NodeKind(_LEGACY_KIND_MAP[lowered])
+    # Common legacy sub-prefix fallbacks — any ``code:foo``/``doc:foo``/
+    # ``cos:foo`` string we don't explicitly map surfaces as UNKNOWN
+    # rather than raising, so a single stray kind doesn't poison a bulk
+    # reindex. Strict callers can still catch and inspect.
+    if ":" in lowered:
+        raise ValueError(f"unknown kind: {raw!r}")
+    raise ValueError(f"unknown kind: {raw!r}")
 
 
 @dataclass(frozen=True)
@@ -117,4 +251,10 @@ class GraphEdge:
             )
 
 
-__all__ = ["GraphNode", "GraphEdge", "EvidenceSignal"]
+__all__ = [
+    "GraphNode",
+    "GraphEdge",
+    "EvidenceSignal",
+    "NodeKind",
+    "normalize_kind",
+]

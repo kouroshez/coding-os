@@ -30,6 +30,7 @@ from .md_links import (
     ParseError,
     _normalize_path,
     _promote_stubs,
+    emit_contains_spine,
 )
 
 logger = logging.getLogger("graph_os.extractors.code_ts")
@@ -211,6 +212,12 @@ def extract(path: str, content: str) -> ExtractionResult:
         decl_scan = _strip_comments_and_strings(content)
     except Exception as exc:  # noqa: BLE001
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
+        emit_contains_spine(
+            file_path=path,
+            file_uid_=file_node.uid,
+            result=result,
+            extractor_id=EXTRACTOR_ID,
+        )
         _promote_stubs(result)
         return result
 
@@ -288,6 +295,31 @@ def extract(path: str, content: str) -> ExtractionResult:
             local_names=local_names,
             result=result,
         )
+
+    # S3: Folder→...→File spine.
+    emit_contains_spine(
+        file_path=path,
+        file_uid_=file_node.uid,
+        result=result,
+        extractor_id=EXTRACTOR_ID,
+    )
+
+    # S3: File→Class / File→Function / File→Interface direct ``contains``
+    # edges (ts extractor already wires Module→decl; add File→decl for
+    # the SPA tree-view spine). Uniqueness is enforced by the backend.
+    for name, decl_uid in local_names.items():
+        if decl_uid.startswith("code:class:") \
+                or decl_uid.startswith("code:function:") \
+                or decl_uid.startswith("code:interface:"):
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_node.uid,
+                    target_uid=decl_uid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
+            )
 
     _promote_stubs(result)
     return result

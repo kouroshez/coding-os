@@ -191,6 +191,16 @@ def extract(
         cleaned = _FENCED_CODE_RE.sub("", content)
         _extract_links(path, cleaned, headings, result)
 
+        # S3: attach Folder→...→File spine so the SPA tree-view always
+        # has a connected root. Idempotent on uid — parallel extractors
+        # emit identical folder uids and bulk_upsert de-dupes.
+        emit_contains_spine(
+            file_path=path,
+            file_uid_=file_node.uid,
+            result=result,
+            extractor_id=EXTRACTOR_ID,
+        )
+
         # Promote any edge-only uid (link target the extractor does not
         # own the source for) into a stub node so the backend's edge
         # write does not raise ValueError for unknown uids. Upserting
@@ -210,6 +220,108 @@ def extract(
 # ---------------------------------------------------------------------------
 # Internals
 # ---------------------------------------------------------------------------
+
+
+def folder_uid(path: str) -> str:
+    """Stable uid for a repo-rooted folder.
+
+    Empty / ``.`` / ``/`` path collapse to the synthetic repo root uid.
+    Matches the convention used by the backend's bulk_upsert — so
+    parallel extractors emit the SAME uid for the same folder and the
+    upsert de-duplicates.
+    """
+    normalised = _normalize_path(path)
+    if normalised in ("", ".", "/"):
+        return "folder:."
+    return f"folder:{normalised}"
+
+
+def emit_contains_spine(
+    *,
+    file_path: str,
+    file_uid_: str,
+    result: ExtractionResult,
+    extractor_id: str,
+) -> None:
+    """Append folder nodes + Folder→Folder → Folder→File ``contains`` edges.
+
+    PURPOSE:      Build the CONTAINS spine (S3). Every extractor invokes
+                  this after emitting the file's own node so the graph
+                  always has a connected Folder→File chain up to the
+                  repo root.
+    INPUT:        repo-relative file path + the file's uid +
+                  ExtractionResult to mutate + extractor id for
+                  evidence/attribution.
+    OUTPUT:       mutates ``result`` — appends folder nodes and contains
+                  edges. Idempotent: re-calling with the same path just
+                  re-appends (bulk_upsert de-dupes on uid, and the
+                  backend enforces edge uniqueness per
+                  (source,target,edge_type,extractor)).
+    DEPENDENCIES: ``_normalize_path`` + ``folder_uid``.
+    NOTES:        Capped at the repo root (``folder:.``). Folder labels
+                  use the path segment; top-level folders (``core``,
+                  ``docs``, …) list the synthetic repo root as parent.
+    """
+    normalised = _normalize_path(file_path)
+    if not normalised or normalised in (".", "/"):
+        return
+
+    # Walk up the directory chain → list of (uid, label, parent_uid).
+    parts = [p for p in normalised.split("/") if p]
+    if not parts:
+        return
+    # Drop the filename — we only want directory segments.
+    directory_parts = parts[:-1]
+
+    # Always emit the repo root folder (parent of every top-level dir).
+    root_uid = folder_uid(".")
+    root_node = GraphNode(
+        uid=root_uid,
+        kind="folder",
+        label=".",
+        file_path=None,
+        metadata={"extractor": extractor_id, "repo_root": True},
+    )
+    result.nodes.append(root_node)
+
+    # Emit one folder node per directory segment, and a contains edge
+    # from its parent. Parent of first segment is the repo root.
+    previous_uid = root_uid
+    accumulated: list[str] = []
+    for segment in directory_parts:
+        accumulated.append(segment)
+        this_path = "/".join(accumulated)
+        this_uid = folder_uid(this_path)
+        result.nodes.append(
+            GraphNode(
+                uid=this_uid,
+                kind="folder",
+                label=segment,
+                file_path=this_path,
+                metadata={"extractor": extractor_id},
+            )
+        )
+        result.edges.append(
+            GraphEdge(
+                source_uid=previous_uid,
+                target_uid=this_uid,
+                edge_type="contains",
+                extractor=extractor_id,
+                confidence=1.0,
+            )
+        )
+        previous_uid = this_uid
+
+    # Finally the deepest folder → file edge.
+    result.edges.append(
+        GraphEdge(
+            source_uid=previous_uid,
+            target_uid=file_uid_,
+            edge_type="contains",
+            extractor=extractor_id,
+            confidence=1.0,
+        )
+    )
 
 
 def _promote_stubs(result: ExtractionResult) -> None:
@@ -240,6 +352,16 @@ def _promote_stubs(result: ExtractionResult) -> None:
 
 
 def _stub_for_uid(uid: str) -> GraphNode:
+    if uid.startswith("folder:"):
+        path = uid[len("folder:"):]
+        label = PurePosixPath(path).name if path not in ("", ".") else "."
+        return GraphNode(
+            uid=uid,
+            kind="folder",
+            label=label or path or ".",
+            file_path=path if path not in ("", ".") else None,
+            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+        )
     if uid.startswith("doc:file:"):
         rest = uid[len("doc:file:"):]
         path, _, anchor = rest.partition("#")
@@ -523,6 +645,8 @@ __all__ = [
     "ParseError",
     "extract",
     "file_uid",
+    "folder_uid",
+    "emit_contains_spine",
     "heading_uid",
     "frontmatter_key_uid",
     "slugify",

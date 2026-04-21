@@ -962,6 +962,87 @@ END;
     )
 
 
+def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
+    """Migration v16 (graph-os S3): normalize graph_nodes.kind values.
+
+    PURPOSE:      S3 introduces a ``NodeKind`` enum + ``normalize_kind``
+                  helper in ``core/graph_os/types.py``. Legacy rows use
+                  colon-prefixed strings like ``code:function`` or
+                  ``doc:heading``; this migration rewrites them to the
+                  canonical short form (``function`` / ``doc_heading``)
+                  so the upcoming SPA tree-view can key on a single
+                  vocabulary.
+    INPUT:        sqlite3.Connection at schema v15.
+    OUTPUT:       Row counts are surfaced via logger.info; the caller
+                  observes them through ``run_migrations`` logs.
+    DEPENDENCIES: graph_nodes (migration v12). No-op when the table
+                  doesn't exist or is empty.
+    NOTES:        Append-only per Rule 9 — this is a **data migration**,
+                  not a schema change. Wrapped in a transaction (via
+                  SQLite's implicit transaction around UPDATE). Idempo-
+                  tent: re-running normalizes already-normalized kinds
+                  to themselves.
+    """
+    row = conn.execute(
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name='graph_nodes'"
+    ).fetchone()
+    if row is None:
+        logger.debug("Migration v16: graph_nodes table not present — skip")
+        return
+
+    # Resolve ``normalize_kind`` via a sys.path-side-door so this
+    # migration works both under the MCP server (which already has
+    # ``core/`` on sys.path) and under test fixtures that only
+    # pre-register ``core/thinking_os``.
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        core_dir = _Path(__file__).resolve().parent.parent
+        core_str = str(core_dir)
+        if core_str not in _sys.path:
+            _sys.path.insert(0, core_str)
+        from graph_os.types import normalize_kind as _normalize  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Migration v16 could not import normalize_kind (%s) — "
+            "skipping normalization; rows remain in legacy form",
+            exc,
+        )
+        return
+
+    rows = conn.execute(
+        "SELECT DISTINCT kind FROM graph_nodes"
+    ).fetchall()
+    rename_map: dict[str, str] = {}
+    for r in rows:
+        legacy = r[0]
+        if legacy is None:
+            continue
+        try:
+            canonical = _normalize(legacy).value
+        except ValueError:
+            # Unknown kind — leave as-is so we don't silently drop data.
+            continue
+        if canonical != legacy:
+            rename_map[legacy] = canonical
+
+    total_updated = 0
+    for legacy, canonical in rename_map.items():
+        cur = conn.execute(
+            "UPDATE graph_nodes SET kind = ? WHERE kind = ?",
+            (canonical, legacy),
+        )
+        total_updated += cur.rowcount or 0
+    conn.commit()
+    logger.info(
+        "Migration v16 applied: graph_nodes.kind normalized "
+        "(%d kind(s) rewritten, %d row(s) updated)",
+        len(rename_map),
+        total_updated,
+    )
+
+
 def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
     """Check whether formula_dispatches exists (migration v14)."""
     row = conn.execute(
@@ -1192,6 +1273,9 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # graph-os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
     (15, "graph-os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
      _migrate_v15_graph_edges_confidence_check),
+    # graph-os S3: data migration — normalize graph_nodes.kind legacy values
+    (16, "graph-os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
+     _migrate_v16_normalize_graph_node_kinds),
 ]
 
 

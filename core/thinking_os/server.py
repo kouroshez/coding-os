@@ -1436,6 +1436,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         limit: int = 10,
         max_hops: int = 2,
         confidence_min: float = 0.3,
+        include_spine: bool = False,
     ) -> str:
         """Hybrid search over node labels + docstrings (lexical + graph expansion).
 
@@ -1445,6 +1446,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             limit: Max results (default 10).
             max_hops: Walk expansion depth (default 2).
             confidence_min: Edge confidence floor (default 0.3).
+            include_spine: S3 — attach the CONTAINS-ancestor chain to each result for breadcrumbs.
 
         Returns:
             JSON envelope with `results` array. See docs/engineering/graph-os-queries.md.
@@ -1455,6 +1457,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             limit=int(limit),
             max_hops=int(max_hops),
             confidence_min=float(confidence_min),
+            include_spine=bool(include_spine),
         )
 
     @mcp.tool(
@@ -1474,6 +1477,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         depth: int = 1,
         include_content: bool = False,
         include_evidence: bool = False,
+        include_spine: bool = False,
     ) -> str:
         """Return callers + callees + siblings + referenced docs around a symbol.
 
@@ -1486,6 +1490,8 @@ if _GRAPH_TOOLS_AVAILABLE:
                 (capped at 2000 chars, with ``truncated: bool``). Silently skipped
                 when the file is missing or the node has no file_path. (B21)
             include_evidence: JOIN evidence rows (costs ~2× tokens).
+            include_spine: S3 — pulls the CONTAINS-ancestor chain (file → folder → …)
+                so the UI can render breadcrumbs.
         """
         return _graph_tools.cos_graph_context(
             uid_or_name,
@@ -1493,6 +1499,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             depth=int(depth),
             include_content=bool(include_content),
             include_evidence=bool(include_evidence),
+            include_spine=bool(include_spine),
         )
 
     @mcp.tool(
@@ -1657,13 +1664,25 @@ if _GRAPH_TOOLS_AVAILABLE:
         root_uid: str = "",
         edge_types: str = "",
         max_nodes: int = 500,
+        include_spine: bool = False,
     ) -> str:
-        """Export a subgraph as json | mermaid | dot."""
+        """Export a subgraph as json | mermaid | dot.
+
+        Args:
+            format: Output format (``json`` / ``mermaid`` / ``dot``).
+            root_uid: Optional seed; empty walks the edge table.
+            edge_types: Comma-separated edge filter (empty = all).
+            max_nodes: Hard cap on node count.
+            include_spine: S3 — also include the CONTAINS ancestor chain
+                so the exported subgraph has a connected Folder→File→…
+                backbone for the SPA tree-view.
+        """
         return _graph_tools.cos_graph_export(
             format=str(format),
             root_uid=root_uid or None,
             edge_types=_csv(edge_types),
             max_nodes=int(max_nodes),
+            include_spine=bool(include_spine),
         )
 
     @mcp.tool(

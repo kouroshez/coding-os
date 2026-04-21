@@ -29,6 +29,7 @@ from .md_links import (
     ParseError,
     _normalize_path,
     _promote_stubs,
+    emit_contains_spine,
 )
 
 logger = logging.getLogger("graph_os.extractors.code_shell")
@@ -215,6 +216,16 @@ def extract(path: str, content: str) -> ExtractionResult:
                 confidence=1.0,
             )
         )
+        # S3: File→Function direct edge for the tree-view spine.
+        result.edges.append(
+            GraphEdge(
+                source_uid=file_uid(path),
+                target_uid=fn_uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
+        )
 
     for match in _COS_LOG_HOOK_RE.finditer(stripped):
         hook_name = match.group("name")
@@ -239,6 +250,14 @@ def extract(path: str, content: str) -> ExtractionResult:
                 "edges may be incomplete",
             )
         )
+
+    # S3: Folder→...→File spine.
+    emit_contains_spine(
+        file_path=path,
+        file_uid_=file_uid(path),
+        result=result,
+        extractor_id=EXTRACTOR_ID,
+    )
 
     _promote_stubs(result)
     return result

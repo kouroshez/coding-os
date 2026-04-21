@@ -28,6 +28,7 @@ from .md_links import (
     ParseError,
     _normalize_path,
     _promote_stubs,
+    emit_contains_spine,
     file_uid as doc_file_uid,
 )
 
@@ -101,9 +102,10 @@ def extract(path: str, content: str) -> ExtractionResult:
         if parsed is None:
             # Not a task file — emit a minimal node so cross-references
             # still resolve.
+            unknown_uid = f"task:file:unknown:{normalised_path}"
             result.nodes.append(
                 GraphNode(
-                    uid=f"task:file:unknown:{normalised_path}",
+                    uid=unknown_uid,
                     kind="task:file",
                     label=PurePosixPath(normalised_path).name,
                     file_path=normalised_path,
@@ -113,6 +115,14 @@ def extract(path: str, content: str) -> ExtractionResult:
             )
             result.parse_errors.append(
                 ParseError(kind="not_a_task", detail=normalised_path)
+            )
+            # S3: spine still attaches so unknown task files show up
+            # under their folder in the tree-view.
+            emit_contains_spine(
+                file_path=path,
+                file_uid_=unknown_uid,
+                result=result,
+                extractor_id=EXTRACTOR_ID,
             )
             return result
 
@@ -189,6 +199,15 @@ def extract(path: str, content: str) -> ExtractionResult:
                     source_span=f"{normalised_path}:read_first",
                 )
             )
+
+        # S3: Folder→...→File spine anchored at the task uid so tree-
+        # view can render tasks under their folder parent.
+        emit_contains_spine(
+            file_path=path,
+            file_uid_=task_node.uid,
+            result=result,
+            extractor_id=EXTRACTOR_ID,
+        )
 
         _promote_stubs(result)
         return result

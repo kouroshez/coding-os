@@ -242,7 +242,12 @@ class TestPipelineInvariants:
     def test_extractor_is_pure(self, tmp_path):
         """No filesystem side-effects — extract() takes content, returns data."""
         r = _extract("# a")
-        assert all(n.file_path == "docs/demo.md" for n in r.nodes)
+        # Post-S3 the extractor also emits Folder→File spine nodes whose
+        # file_path points at the parent directory (``docs`` etc.) or
+        # None for the synthetic repo root — check only doc/code-owned
+        # nodes reference the source file.
+        doc_nodes = [n for n in r.nodes if n.kind != "folder"]
+        assert all(n.file_path == "docs/demo.md" for n in doc_nodes)
         # tmp_path must remain empty — we never wrote to disk.
         assert list(tmp_path.iterdir()) == []
 
@@ -295,5 +300,10 @@ class TestPipelineInvariants:
 
     def test_empty_document(self):
         r = _extract("")
-        assert len(r.nodes) == 1  # the file node itself
+        # Post-S3: extract() also emits folder nodes along the repo-
+        # root → deepest-dir chain. The file node itself is still
+        # present, and no parse errors should surface.
+        assert any(n.kind == "doc:file" for n in r.nodes)
+        non_folder = [n for n in r.nodes if n.kind != "folder"]
+        assert len(non_folder) == 1
         assert r.parse_errors == []

@@ -242,6 +242,64 @@ def _walk_bfs(
     return list(seen_nodes.values()), edges_out
 
 
+def _contains_ancestors(
+    backend: GraphBackend,
+    *,
+    leaf_uid: str,
+    max_hops: int = 16,
+) -> tuple[list[GraphNode], list[GraphEdge]]:
+    """Walk the CONTAINS spine from ``leaf_uid`` up to the repo root.
+
+    PURPOSE:      S3 — when ``include_spine=True`` on context/query/export
+                  we surface the File→Folder→…→RepoRoot chain so the SPA
+                  can render breadcrumbs and the tree-view anchor.
+    INPUT:        backend + leaf uid + safety cap.
+    OUTPUT:       (ancestor nodes in root→leaf order, edges along the
+                  chain in child→parent direction).
+    NOTES:        Follows inbound ``contains`` edges one step at a time
+                  until no more parent is found or ``max_hops``
+                  exhausts. ``folder:`` uids terminate the walk at the
+                  repo-root sentinel ``folder:.``.
+    """
+    nodes: list[GraphNode] = []
+    edges: list[GraphEdge] = []
+    seen: set[str] = {leaf_uid}
+    current = leaf_uid
+    for _ in range(max_hops):
+        inbound = backend.list_edges(
+            target_uid=current,
+            edge_types=("contains",),
+            limit=50,
+        )
+        if not inbound:
+            break
+        # Pick the first stable parent — spine edges are 1:N on outbound
+        # but 1:1 on inbound once de-duplicated; iterate until we find
+        # one we haven't visited.
+        parent_edge = None
+        for edge in inbound:
+            if edge.source_uid not in seen:
+                parent_edge = edge
+                break
+        if parent_edge is None:
+            break
+        parent_uid = parent_edge.source_uid
+        seen.add(parent_uid)
+        parent_node = backend.get_node(parent_uid)
+        if parent_node is None:
+            break
+        nodes.append(parent_node)
+        edges.append(parent_edge)
+        current = parent_uid
+        if parent_uid == "folder:.":
+            break
+    # Return root → leaf order so the caller can render breadcrumbs
+    # left-to-right.
+    nodes.reverse()
+    edges.reverse()
+    return nodes, edges
+
+
 def _bulk_nodes(
     backend: GraphBackend, uids: Sequence[str]
 ) -> dict[str, GraphNode]:
@@ -269,6 +327,7 @@ def cos_graph_query(
     limit: int = 10,
     max_hops: int = 2,
     confidence_min: float = 0.3,
+    include_spine: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Hybrid search over node labels + docstrings.
@@ -299,13 +358,25 @@ def cos_graph_query(
         }
         for n in nodes
     ]
+    # S3: when include_spine is set, attach a ``spine`` list per result
+    # — the CONTAINS-ancestor chain from repo-root down to the result.
+    if include_spine:
+        for result_dict, node in zip(results, nodes):
+            ancestors, _ = _contains_ancestors(be, leaf_uid=node.uid)
+            result_dict["spine"] = [
+                NodeSummary.from_node(a).to_dict() for a in ancestors
+            ]
     # B22: cap meta.query to 500 chars with ellipsis suffix so the
     # envelope stays bounded regardless of how long the query string is.
     _MAX_QUERY_META = 500
     query_meta = q if len(q) <= _MAX_QUERY_META else q[:_MAX_QUERY_META] + "..."
     return _ok(
         {"results": results[:limit]},
-        meta={"query": query_meta, "backend": be.backend_id},
+        meta={
+            "query": query_meta,
+            "backend": be.backend_id,
+            "include_spine": include_spine,
+        },
     )
 
 
@@ -316,6 +387,7 @@ def cos_graph_context(
     depth: int = 1,
     include_content: bool = False,
     include_evidence: bool = False,
+    include_spine: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Neighbourhood around a node.
@@ -359,14 +431,26 @@ def cos_graph_context(
                 d["truncated"] = snippet["truncated"]
         return d
 
+    payload: dict[str, Any] = {
+        "node": _node_dict(root),
+        "neighbours": [_node_dict(n) for n in nodes if n.uid != root.uid],
+        "edges_by_type": grouped,
+        "edge_count": len(edges),
+    }
+    if include_spine:
+        # S3: surface the CONTAINS-ancestor chain (repo-root → … → leaf)
+        # so the SPA can render breadcrumbs alongside the context view.
+        ancestors, spine_edges = _contains_ancestors(be, leaf_uid=root.uid)
+        payload["spine"] = [NodeSummary.from_node(a).to_dict() for a in ancestors]
+        payload["spine_edges"] = [_edge_to_dict(e) for e in spine_edges]
     return _ok(
-        {
-            "node": _node_dict(root),
-            "neighbours": [_node_dict(n) for n in nodes if n.uid != root.uid],
-            "edges_by_type": grouped,
-            "edge_count": len(edges),
+        payload,
+        meta={
+            "backend": be.backend_id,
+            "depth": depth,
+            "direction": direction,
+            "include_spine": include_spine,
         },
-        meta={"backend": be.backend_id, "depth": depth, "direction": direction},
     )
 
 
@@ -786,6 +870,7 @@ def cos_graph_export(
     root_uid: str | None = None,
     edge_types: Sequence[str] | None = None,
     max_nodes: int = 500,
+    include_spine: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Export a subgraph in `json | mermaid | dot`."""
@@ -814,6 +899,26 @@ def cos_graph_export(
             node_uids.add(e.target_uid)
         nodes = [n for n in (be.get_node(u) for u in node_uids) if n is not None]
 
+    # S3: when include_spine is set, extend the subgraph with the
+    # CONTAINS-ancestor chain of the root (or the deepest file node
+    # present when no root is specified) so the tree-view has a
+    # connected Folder→...→leaf backbone.
+    if include_spine:
+        seed_uid = root_uid
+        if seed_uid is None:
+            for n in nodes:
+                if (n.kind or "").startswith(("file", "code:file", "doc:file")):
+                    seed_uid = n.uid
+                    break
+        if seed_uid:
+            ancestors, spine_edges = _contains_ancestors(be, leaf_uid=seed_uid)
+            existing_uids = {n.uid for n in nodes}
+            for a in ancestors:
+                if a.uid not in existing_uids:
+                    nodes.append(a)
+                    existing_uids.add(a.uid)
+            edges = list(edges) + list(spine_edges)
+
     if format == "json":
         payload: dict[str, Any] = {
             "format": "json",
@@ -830,6 +935,7 @@ def cos_graph_export(
             "backend": be.backend_id,
             "node_count": len(nodes),
             "edge_count": len(edges),
+            "include_spine": include_spine,
         },
     )
 
