@@ -43,6 +43,14 @@ board-os = [
     "watchdog>=4.0.0",
 ]
 
+# web — S4 unified HTTP backbone (FastAPI + uvicorn + SSE).
+# Install with: uv sync --extra web
+web = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "sse-starlette>=2.1.0",
+]
+
 # claude-sdk — Claude-adapter-only: real sub-agent dispatch via claude-agent-sdk.
 # Scope: adapters/claude/sdk_dispatcher.py. core/ stays agent-agnostic.
 # Other adapters (codex, cursor, ...) fall back to the default DB-only dispatcher.
@@ -59,6 +67,8 @@ coding-os = "cli.main:cli"
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "httpx>=0.27.0",
+    "pytest-asyncio>=0.23.0",
 ]
 
 [build-system]

@@ -1324,5 +1324,20 @@ except ImportError as _graph_cli_exc:  # pragma: no cover — defensive
     )
 
 
+# ---------------------------------------------------------------------------
+# S4 — unified web server CLI (`cos web`).
+# ---------------------------------------------------------------------------
+try:
+    from cli.web_commands import web_cmd as _web_cmd  # noqa: WPS433
+
+    cli.add_command(_web_cmd)
+except ImportError as _web_cli_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug(
+        "web CLI unavailable: %s", _web_cli_exc
+    )
+
+
 if __name__ == "__main__":
     cli()
