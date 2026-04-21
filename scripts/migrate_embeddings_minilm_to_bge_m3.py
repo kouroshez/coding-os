@@ -7,7 +7,7 @@ PURPOSE:  Operator entry point for the Phase I embedding upgrade. Runs
 INPUT:    optional `--db` path (defaults to COS_DB_PATH /
           `.coding-os/thinking-os.db`), `--target-model`, `--batch-size`.
 OUTPUT:   JSON status dict to stdout.
-DEPENDS:  core/thinking-os/migrator_embeddings.py.
+DEPENDS:  core/thinking_os/migrator_embeddings.py.
 NOTES:    Never blocks the MCP server — this is out-of-band. Safe to
           Ctrl-C; next run resumes from the checkpoint.
 """
@@ -56,7 +56,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    thinking_os = Path(__file__).resolve().parent.parent / "core" / "thinking-os"
+    thinking_os = Path(__file__).resolve().parent.parent / "core" / "thinking_os"
     sys.path.insert(0, str(thinking_os))
     from db import init_db  # type: ignore
     import migrator_embeddings  # type: ignore

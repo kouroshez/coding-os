@@ -40,14 +40,14 @@ import click
 
 
 # ---------------------------------------------------------------------------
-# Lazy bootstrap — push core/ + core/thinking-os onto sys.path.
+# Lazy bootstrap — push core/ + core/thinking_os onto sys.path.
 # ---------------------------------------------------------------------------
 
 
 def _bootstrap_paths() -> None:
     here = Path(__file__).resolve()
     core_dir = here.parent.parent / "core"
-    tos_dir = core_dir / "thinking-os"
+    tos_dir = core_dir / "thinking_os"
     for candidate in (core_dir, tos_dir):
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))

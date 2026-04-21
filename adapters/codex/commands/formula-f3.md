@@ -1,0 +1,1 @@
+../../../core/thinking_os/agents/F3_architect.md

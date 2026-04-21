@@ -22,7 +22,7 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve()
 _CORE_DIR = _HERE.parent.parent.parent
-_TOS_DIR = _CORE_DIR / "thinking-os"
+_TOS_DIR = _CORE_DIR / "thinking_os"
 for _p in (_CORE_DIR, _TOS_DIR):
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))

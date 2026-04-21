@@ -1,0 +1,120 @@
+# Phase N — Formula-Chain Presets (curated)
+# Spec: docs/phase-n-role-based-routing-plan.md §2.4
+# Selection: match_preset() returns the preset with highest `score` among
+# those whose `match` block is fully satisfied by TaskSignals. The
+# effective preset_min_score is read from .coding-os/config.yaml
+# (cognition.preset_min_score, default 8, range 0-15 per §7-locked decision 2).
+#
+# NOTE: this file is hashed (sha256) on load and the hash is stamped into
+# every session's ComposedChain.preset_version (N.5-C preset versioning)
+# so mid-session edits don't change an in-flight chain.
+
+presets:
+  - id: greenfield-backend-api
+    rationale: "Standard bootstrap for a new backend service — research, analyze, architect, document, implement, verify."
+    match:
+      action: create
+      domain_any: [backend, api]
+      novelty_gte: 0.4
+      scope_size_in: [medium, large]
+    chain: [F1, F2, F3, F4, F5, F6]
+    score: 10
+
+  - id: greenfield-frontend-feature
+    rationale: "New frontend feature with clear scope — analyze + implement + review. No architecture phase for small features."
+    match:
+      action: create
+      domain_any: [frontend]
+      scope_size_in: [small, medium]
+    chain: [F2, F5, F6]
+    score: 8
+
+  - id: schema-migration
+    rationale: "Breaking schema change — must go through analysis + architecture + security (data protection) before implementing."
+    match:
+      action: modify
+      breaking_change: true
+      domain_any: [db, backend]
+    chain: [F2, F3, F8, F5, F6]
+    score: 10
+
+  - id: production-bug-mitigate
+    rationale: "Incident response — restore service first, root-cause after. Follows formulas-en.md §Incident Response."
+    match:
+      urgency: incident
+    chain_before: ["mitigate", "communicate"]
+    chain: [F7, F6]
+    chain_after: ["post_mortem", "update_F10"]
+    score: 12
+
+  - id: security-audit-full
+    rationale: "Full 5-layer security audit, layers dispatched in parallel."
+    match:
+      action: audit
+      domain_any: [security, auth]
+    chain: [F8]
+    parallel: true
+    parallel_layers: [L1, L2, L3, L4, L5]
+    score: 10
+
+  - id: legacy-takeover
+    rationale: "Existing project takeover — reverse-engineer, stabilize with characterization tests, then evolve."
+    match:
+      is_takeover: true
+    chain: [F2, F6, F4, F5, F6, F11, F3]
+    chain_notes:
+      F2: "reverse mode — derive problem definition from existing code"
+      F6: "characterization tests before changing anything"
+    score: 11
+
+  - id: external-integration
+    rationale: "Adding a third-party service (Stripe, Twilio, OAuth, etc.) — mini research, integration scenarios, contract design, implement, test, security review."
+    match:
+      action: create
+      external_dependency: true
+    chain: [F1, F2, F3, F5, F6, F8]
+    score: 9
+
+  - id: refactor-sprint
+    rationale: "Planned refactoring cycle — identify debt, re-evaluate architecture, execute, verify."
+    match:
+      action: refactor
+    chain: [F11, F3, F5, F6]
+    score: 9
+
+  - id: docs-only-update
+    rationale: "Pure documentation task — F4 only."
+    match:
+      action: document
+      domain_any: [docs]
+    chain: [F4]
+    score: 9
+
+  - id: debug-standard
+    rationale: "Non-incident bug — reproduce, isolate, fix, regression-test, update docs."
+    match:
+      action: debug
+      urgency_in: [normal, elevated]
+    chain: [F7, F6, F4]
+    score: 8
+
+  - id: deploy-release
+    rationale: "Planned release — security gate, deployment, monitoring update."
+    match:
+      action: deploy
+    chain: [F8, F9, F10]
+    score: 9
+
+  - id: research-spike
+    rationale: "Pure research task — F1 only, no implementation."
+    match:
+      action: research
+    chain: [F1]
+    score: 8
+
+# Config reference — effective threshold is read from .coding-os/config.yaml
+# at router load time. Each ComposedChain records the threshold used so
+# observability can tune per-team.
+defaults:
+  preset_min_score: 8
+  min_score_range: [0, 15]

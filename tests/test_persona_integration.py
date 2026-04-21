@@ -281,3 +281,96 @@ class TestPersonaTemplateBlock:
 # Personas G / H (enforce-skill / thinking-os-gate without project context)
 # are covered by the per-hook unit tests in test_hooks.py. The integration
 # tests above focus on project-level flows that unit tests can't express.
+
+
+# ============================================================
+# Phase M — Formula-agent dispatch scenarios (cognition module)
+# ============================================================
+
+import sys as _sys
+_THINKING_OS = Path(__file__).resolve().parent.parent / "core" / "thinking_os"
+if str(_THINKING_OS) not in _sys.path:
+    _sys.path.insert(0, str(_THINKING_OS))
+
+
+class TestPhaseM_RoleChainDispatch:
+    """Scenario (a): role-chain dispatch on a COMPLICATED schema migration (Phase N).
+    Replaces the deprecated tech-lead persona path — supervisor now consumes a
+    composer-derived chain via persona_id='chain:F2,F3'."""
+
+    def test_supervisor_dispatches_for_role_chain(self) -> None:
+        from cognition import advance
+        from cognition_schemas import SupervisorState, EvidenceBundle
+        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:F2,F3",
+                                intensity="standard")
+        state = SupervisorState(session_id="ses-test-01", task_marker="schema-migration",
+                                phase="ROUTING", persona_id="chain:F2,F3",
+                                intensity="standard", dispatched=[], pending=[])
+        action = advance(state, bundle)
+        assert action.action in ("dispatch", "classify"), f"Unexpected action: {action}"
+
+    def test_evidence_bundle_accumulates_across_dispatches(self) -> None:
+        from cognition_schemas import EvidenceBundle, F2Output
+        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:F2,F3",
+                                intensity="standard")
+        f2_out = F2Output(problem_statement="Schema migration for commission model",
+                          scope_in=["commission_rate column"], scope_out=["reporting"],
+                          success_metrics=[], actors=[], goal_tree=None, scenarios=[],
+                          decision_table=None, data_model=None, state_machines=[],
+                          events=[], permissions=None, dependencies=None, unknowns=[])
+        bundle2 = bundle.model_copy(update={"F2_decompose": f2_out})
+        assert bundle2.F2_decompose is not None
+        assert bundle2.F2_decompose.problem_statement == "Schema migration for commission model"
+        assert bundle.F2_decompose is None  # original is immutable
+
+
+class TestPhaseM_SituationOverride:
+    """Scenario (b): incident-response situation overrides persona's default formula chain."""
+
+    def test_incident_response_situation_exists(self) -> None:
+        from cognition import load_situation_registry
+        situations = load_situation_registry()  # dict keyed by situation id
+        assert "incident-response" in situations, (
+            f"incident-response not in registry: {list(situations.keys())}"
+        )
+
+    def test_situation_dispatch_chain_has_f7_and_f10(self) -> None:
+        from cognition import load_situation_registry
+        situations = load_situation_registry()
+        chain = situations["incident-response"].get("dispatch_chain", [])
+        formula_ids = {step["dispatch"] for step in chain if "dispatch" in step}
+        assert "F7" in formula_ids, "incident-response chain missing F7 (Debug)"
+        assert "F10" in formula_ids, "incident-response chain missing F10 (Monitor)"
+
+    def test_supervisor_uses_situation_chain_when_set(self) -> None:
+        from cognition import advance
+        from cognition_schemas import SupervisorState, EvidenceBundle
+        bundle = EvidenceBundle(task_marker="prod-down", persona_id="chain:F7,F10",
+                                intensity="standard")
+        state = SupervisorState(session_id="ses-test-02", task_marker="prod-down",
+                                phase="ROUTING", persona_id="chain:F7,F10",
+                                intensity="standard", dispatched=[], pending=[],
+                                situation_id="incident-response")
+        action = advance(state, bundle)
+        assert action.action in ("dispatch", "classify")
+
+
+class TestPhaseM_TakeoverFlow:
+    """Scenario (c): Takeover situation produces reverse-F2 + F6-characterization dispatch."""
+
+    def test_takeover_situation_in_registry(self) -> None:
+        from cognition import load_situation_registry
+        situations = load_situation_registry()
+        assert "existing-project-takeover" in situations, (
+            f"takeover not in registry: {list(situations.keys())}"
+        )
+
+    def test_takeover_chain_starts_with_f2(self) -> None:
+        from cognition import load_situation_registry
+        situations = load_situation_registry()
+        chain = situations["existing-project-takeover"].get("dispatch_chain", [])
+        first_dispatch = next((step for step in chain if "dispatch" in step), None)
+        assert first_dispatch is not None, "takeover chain has no dispatch steps"
+        assert first_dispatch["dispatch"] == "F2", (
+            f"takeover should start with F2 (reverse decompose), got {first_dispatch}"
+        )

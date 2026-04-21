@@ -26,6 +26,7 @@
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
+        ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-doc-anchor.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-memory-check.sh",
@@ -47,10 +48,13 @@
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-hooks.sh",
         ".claude/hooks/thinking-os-gate.sh",
+        ".claude/hooks/track-backtrack.sh",
+        ".claude/hooks/track-discovery.sh",
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
         ".claude/hooks/verify-changed-file.sh",
+        ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
         ".claude/hooks/write-state.sh",
@@ -104,7 +108,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 97
+      "count": 101
     },
     "claude_django": {
       "agent": "claude",
@@ -132,6 +136,7 @@
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
+        ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-doc-anchor.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-memory-check.sh",
@@ -153,10 +158,13 @@
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-hooks.sh",
         ".claude/hooks/thinking-os-gate.sh",
+        ".claude/hooks/track-backtrack.sh",
+        ".claude/hooks/track-discovery.sh",
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
         ".claude/hooks/verify-changed-file.sh",
+        ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
         ".claude/hooks/write-state.sh",
@@ -223,7 +231,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 110
+      "count": 114
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -251,6 +259,7 @@
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
+        ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-doc-anchor.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-memory-check.sh",
@@ -272,10 +281,13 @@
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-hooks.sh",
         ".claude/hooks/thinking-os-gate.sh",
+        ".claude/hooks/track-backtrack.sh",
+        ".claude/hooks/track-discovery.sh",
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
         ".claude/hooks/verify-changed-file.sh",
+        ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
         ".claude/hooks/write-state.sh",
@@ -335,7 +347,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 103
+      "count": 107
     },
     "claude_go": {
       "agent": "claude",
@@ -363,6 +375,7 @@
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
+        ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-doc-anchor.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-memory-check.sh",
@@ -384,10 +397,13 @@
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-hooks.sh",
         ".claude/hooks/thinking-os-gate.sh",
+        ".claude/hooks/track-backtrack.sh",
+        ".claude/hooks/track-discovery.sh",
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
         ".claude/hooks/verify-changed-file.sh",
+        ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
         ".claude/hooks/write-state.sh",
@@ -447,7 +463,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 103
+      "count": 107
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -475,6 +491,7 @@
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
+        ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-doc-anchor.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-memory-check.sh",
@@ -496,10 +513,13 @@
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-hooks.sh",
         ".claude/hooks/thinking-os-gate.sh",
+        ".claude/hooks/track-backtrack.sh",
+        ".claude/hooks/track-discovery.sh",
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
         ".claude/hooks/verify-changed-file.sh",
+        ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
         ".claude/hooks/write-state.sh",
@@ -559,7 +579,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 103
+      "count": 107
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -587,6 +607,7 @@
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
+        ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-doc-anchor.sh",
         ".claude/hooks/enforce-graph-context.sh",
         ".claude/hooks/enforce-memory-check.sh",
@@ -608,10 +629,13 @@
         ".claude/hooks/test-first-reminder.sh",
         ".claude/hooks/test-hooks.sh",
         ".claude/hooks/thinking-os-gate.sh",
+        ".claude/hooks/track-backtrack.sh",
+        ".claude/hooks/track-discovery.sh",
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
         ".claude/hooks/verify-changed-file.sh",
+        ".claude/hooks/warn-graph-empty.sh",
         ".claude/hooks/warn-mcp-down.sh",
         ".claude/hooks/warn-template-drift.sh",
         ".claude/hooks/write-state.sh",
@@ -686,13 +710,24 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 118
+      "count": 122
     },
     "codex_base": {
       "agent": "codex",
       "templates": [],
       "paths": [
         ".codex/commands/diagnose.md",
+        ".codex/commands/formula-f1.md",
+        ".codex/commands/formula-f10.md",
+        ".codex/commands/formula-f11.md",
+        ".codex/commands/formula-f2.md",
+        ".codex/commands/formula-f3.md",
+        ".codex/commands/formula-f4.md",
+        ".codex/commands/formula-f5.md",
+        ".codex/commands/formula-f6.md",
+        ".codex/commands/formula-f7.md",
+        ".codex/commands/formula-f8.md",
+        ".codex/commands/formula-f9.md",
         ".codex/commands/review.md",
         ".codex/commands/task.md",
         ".codex/config.toml",
@@ -717,6 +752,7 @@
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/doc-sync-reminder.sh",
+        ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-doc-anchor.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-memory-check.sh",
@@ -738,10 +774,13 @@
         ".codex/hooks/test-first-reminder.sh",
         ".codex/hooks/test-hooks.sh",
         ".codex/hooks/thinking-os-gate.sh",
+        ".codex/hooks/track-backtrack.sh",
+        ".codex/hooks/track-discovery.sh",
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
         ".codex/hooks/verify-changed-file.sh",
+        ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
         ".codex/hooks/write-state.sh",
@@ -792,7 +831,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 99
+      "count": 114
     },
     "codex_django": {
       "agent": "codex",
@@ -801,6 +840,17 @@
       ],
       "paths": [
         ".codex/commands/diagnose.md",
+        ".codex/commands/formula-f1.md",
+        ".codex/commands/formula-f10.md",
+        ".codex/commands/formula-f11.md",
+        ".codex/commands/formula-f2.md",
+        ".codex/commands/formula-f3.md",
+        ".codex/commands/formula-f4.md",
+        ".codex/commands/formula-f5.md",
+        ".codex/commands/formula-f6.md",
+        ".codex/commands/formula-f7.md",
+        ".codex/commands/formula-f8.md",
+        ".codex/commands/formula-f9.md",
         ".codex/commands/review.md",
         ".codex/commands/task.md",
         ".codex/config.toml",
@@ -825,6 +875,7 @@
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/doc-sync-reminder.sh",
+        ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-doc-anchor.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-memory-check.sh",
@@ -846,10 +897,13 @@
         ".codex/hooks/test-first-reminder.sh",
         ".codex/hooks/test-hooks.sh",
         ".codex/hooks/thinking-os-gate.sh",
+        ".codex/hooks/track-backtrack.sh",
+        ".codex/hooks/track-discovery.sh",
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
         ".codex/hooks/verify-changed-file.sh",
+        ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
         ".codex/hooks/write-state.sh",
@@ -913,7 +967,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 112
+      "count": 127
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -922,6 +976,17 @@
       ],
       "paths": [
         ".codex/commands/diagnose.md",
+        ".codex/commands/formula-f1.md",
+        ".codex/commands/formula-f10.md",
+        ".codex/commands/formula-f11.md",
+        ".codex/commands/formula-f2.md",
+        ".codex/commands/formula-f3.md",
+        ".codex/commands/formula-f4.md",
+        ".codex/commands/formula-f5.md",
+        ".codex/commands/formula-f6.md",
+        ".codex/commands/formula-f7.md",
+        ".codex/commands/formula-f8.md",
+        ".codex/commands/formula-f9.md",
         ".codex/commands/review.md",
         ".codex/commands/task.md",
         ".codex/config.toml",
@@ -946,6 +1011,7 @@
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/doc-sync-reminder.sh",
+        ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-doc-anchor.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-memory-check.sh",
@@ -967,10 +1033,13 @@
         ".codex/hooks/test-first-reminder.sh",
         ".codex/hooks/test-hooks.sh",
         ".codex/hooks/thinking-os-gate.sh",
+        ".codex/hooks/track-backtrack.sh",
+        ".codex/hooks/track-discovery.sh",
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
         ".codex/hooks/verify-changed-file.sh",
+        ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
         ".codex/hooks/write-state.sh",
@@ -1027,7 +1096,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 105
+      "count": 120
     },
     "codex_go": {
       "agent": "codex",
@@ -1036,6 +1105,17 @@
       ],
       "paths": [
         ".codex/commands/diagnose.md",
+        ".codex/commands/formula-f1.md",
+        ".codex/commands/formula-f10.md",
+        ".codex/commands/formula-f11.md",
+        ".codex/commands/formula-f2.md",
+        ".codex/commands/formula-f3.md",
+        ".codex/commands/formula-f4.md",
+        ".codex/commands/formula-f5.md",
+        ".codex/commands/formula-f6.md",
+        ".codex/commands/formula-f7.md",
+        ".codex/commands/formula-f8.md",
+        ".codex/commands/formula-f9.md",
         ".codex/commands/review.md",
         ".codex/commands/task.md",
         ".codex/config.toml",
@@ -1060,6 +1140,7 @@
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/doc-sync-reminder.sh",
+        ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-doc-anchor.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-memory-check.sh",
@@ -1081,10 +1162,13 @@
         ".codex/hooks/test-first-reminder.sh",
         ".codex/hooks/test-hooks.sh",
         ".codex/hooks/thinking-os-gate.sh",
+        ".codex/hooks/track-backtrack.sh",
+        ".codex/hooks/track-discovery.sh",
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
         ".codex/hooks/verify-changed-file.sh",
+        ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
         ".codex/hooks/write-state.sh",
@@ -1141,7 +1225,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 105
+      "count": 120
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -1150,6 +1234,17 @@
       ],
       "paths": [
         ".codex/commands/diagnose.md",
+        ".codex/commands/formula-f1.md",
+        ".codex/commands/formula-f10.md",
+        ".codex/commands/formula-f11.md",
+        ".codex/commands/formula-f2.md",
+        ".codex/commands/formula-f3.md",
+        ".codex/commands/formula-f4.md",
+        ".codex/commands/formula-f5.md",
+        ".codex/commands/formula-f6.md",
+        ".codex/commands/formula-f7.md",
+        ".codex/commands/formula-f8.md",
+        ".codex/commands/formula-f9.md",
         ".codex/commands/review.md",
         ".codex/commands/task.md",
         ".codex/config.toml",
@@ -1174,6 +1269,7 @@
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/doc-sync-reminder.sh",
+        ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-doc-anchor.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-memory-check.sh",
@@ -1195,10 +1291,13 @@
         ".codex/hooks/test-first-reminder.sh",
         ".codex/hooks/test-hooks.sh",
         ".codex/hooks/thinking-os-gate.sh",
+        ".codex/hooks/track-backtrack.sh",
+        ".codex/hooks/track-discovery.sh",
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
         ".codex/hooks/verify-changed-file.sh",
+        ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
         ".codex/hooks/write-state.sh",
@@ -1255,7 +1354,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 105
+      "count": 120
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -1264,6 +1363,17 @@
       ],
       "paths": [
         ".codex/commands/diagnose.md",
+        ".codex/commands/formula-f1.md",
+        ".codex/commands/formula-f10.md",
+        ".codex/commands/formula-f11.md",
+        ".codex/commands/formula-f2.md",
+        ".codex/commands/formula-f3.md",
+        ".codex/commands/formula-f4.md",
+        ".codex/commands/formula-f5.md",
+        ".codex/commands/formula-f6.md",
+        ".codex/commands/formula-f7.md",
+        ".codex/commands/formula-f8.md",
+        ".codex/commands/formula-f9.md",
         ".codex/commands/review.md",
         ".codex/commands/task.md",
         ".codex/config.toml",
@@ -1288,6 +1398,7 @@
         ".codex/hooks/codex-stop-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/doc-sync-reminder.sh",
+        ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-doc-anchor.sh",
         ".codex/hooks/enforce-graph-context.sh",
         ".codex/hooks/enforce-memory-check.sh",
@@ -1309,10 +1420,13 @@
         ".codex/hooks/test-first-reminder.sh",
         ".codex/hooks/test-hooks.sh",
         ".codex/hooks/thinking-os-gate.sh",
+        ".codex/hooks/track-backtrack.sh",
+        ".codex/hooks/track-discovery.sh",
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
         ".codex/hooks/verify-changed-file.sh",
+        ".codex/hooks/warn-graph-empty.sh",
         ".codex/hooks/warn-mcp-down.sh",
         ".codex/hooks/warn-template-drift.sh",
         ".codex/hooks/write-state.sh",
@@ -1384,7 +1498,7 @@
         "docs/workflow-docs/thinking-os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 120
+      "count": 135
     }
   }
 }

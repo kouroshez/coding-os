@@ -7,7 +7,7 @@ PURPOSE:  Turn a `docs/tasks/TASK-NNN-slug.md` file into GraphNodes +
           can batch-compute them outside the per-file write path.
 INPUT:    task file path + raw content (pure extractor).
 OUTPUT:   ExtractionResult (reuses md_links' shape for uniformity).
-DEPENDS:  core/thinking-os/task_parser.py (existing Phase C parser).
+DEPENDS:  core/thinking_os/task_parser.py (existing Phase C parser).
 NOTES:    Falls back gracefully when parse_task_file returns None
           (file is not a recognisable task) — emits just the task:file
           node with a parse_error entry. Dependency references survive
@@ -66,7 +66,7 @@ def _import_task_parser():
         return task_parser
     except ImportError:
         here = Path(__file__).resolve()
-        thinking_os = here.parent.parent.parent / "thinking-os"
+        thinking_os = here.parent.parent.parent / "thinking_os"
         if thinking_os.exists() and str(thinking_os) not in sys.path:
             sys.path.insert(0, str(thinking_os))
         import task_parser  # type: ignore

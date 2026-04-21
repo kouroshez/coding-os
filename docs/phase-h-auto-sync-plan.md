@@ -3,7 +3,7 @@
 
 Purpose: Close the single most dangerous operational gap left after Phase G — stale retrieval data when a doc is edited without a manual `make docs-index`.
 Read when: Starting any H.* sub-task, wiring a new write-path into the index pipeline, or investigating "cos_doc_search returns old content".
-Read next: [core/thinking-os/doc_indexer.py](../core/thinking-os/doc_indexer.py), [core/hooks/registry.yaml](../core/hooks/registry.yaml), [docs/phase-g-brain-hardening-plan.md](./phase-g-brain-hardening-plan.md).
+Read next: [core/thinking_os/doc_indexer.py](../core/thinking_os/doc_indexer.py), [core/hooks/registry.yaml](../core/hooks/registry.yaml), [docs/phase-g-brain-hardening-plan.md](./phase-g-brain-hardening-plan.md).
 
 ## Why (audit finding)
 
@@ -135,7 +135,7 @@ Mirror the same paragraph into `CLAUDE.md § Three-Layer Retrieval`.
 
 ## H.5 — Tests
 
-`core/thinking-os/tests/test_auto_reindex.py`:
+`core/thinking_os/tests/test_auto_reindex.py`:
 
 1. `test_index_single_file_new_file` — file not in DB → inserts chunks + embeddings
 2. `test_index_single_file_edit_updates_content` — edit → old chunks removed, new chunks inserted, content reflects edit

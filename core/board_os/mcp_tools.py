@@ -7,7 +7,7 @@ Implements 8 new MCP tools on top of the Phase C 4-tool surface:
 
 All tools use the shared ok()/fail()/@safe_tool envelope (Rule 14).
 They are registered into the MCP server in
-`core/thinking-os/server.py` via the `register_board_tools(mcp, conn)`
+`core/thinking_os/server.py` via the `register_board_tools(mcp, conn)`
 helper at the bottom of this module.
 
 Stateless from the caller's perspective:
@@ -39,7 +39,7 @@ from core.board_os.workflow import (
 )
 
 # Import ok/fail/safe_tool from the thinking-os tools shared module.
-_THINKING_OS_TOOLS = Path(__file__).resolve().parents[1] / "thinking-os" / "tools"
+_THINKING_OS_TOOLS = Path(__file__).resolve().parents[1] / "thinking_os" / "tools"
 if str(_THINKING_OS_TOOLS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS_TOOLS))
 from _shared import fail, ok, safe_tool  # type: ignore
@@ -69,16 +69,25 @@ def _slugify(title: str, *, max_len: int = 60) -> str:
     return slug[:max_len] or "untitled"
 
 
-def _next_task_id(project_root: Path) -> str:
+def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
+    # DB is authoritative for synced tasks; filesystem catches unsynced files.
+    # Taking max of both eliminates the window where two agents both read the
+    # same filesystem max before either writes, each computing the same ID.
+    row = conn.execute(
+        "SELECT MAX(CAST(SUBSTR(task_id, 6) AS INTEGER)) FROM tasks "
+        "WHERE task_id LIKE 'TASK-%' AND SUBSTR(task_id, 6) GLOB '[0-9]*'"
+    ).fetchone()
+    db_max = int(row[0]) if row and row[0] is not None else 0
+
     tasks_dir = project_root / "docs" / "tasks"
-    if not tasks_dir.exists():
-        return "TASK-001"
-    existing = []
-    for p in tasks_dir.glob("TASK-*.md"):
-        m = re.match(r"TASK-(\d+)", p.name)
-        if m:
-            existing.append(int(m.group(1)))
-    next_num = (max(existing) if existing else 0) + 1
+    fs_max = 0
+    if tasks_dir.exists():
+        for p in tasks_dir.glob("TASK-*.md"):
+            m = re.match(r"TASK-(\d+)", p.name)
+            if m:
+                fs_max = max(fs_max, int(m.group(1)))
+
+    next_num = max(db_max, fs_max) + 1
     return f"TASK-{next_num:03d}"
 
 
@@ -194,7 +203,7 @@ def cos_task_create(
     tasks_dir = project_root / "docs" / "tasks"
     tasks_dir.mkdir(parents=True, exist_ok=True)
 
-    task_id = _next_task_id(project_root)
+    task_id = _next_task_id(conn, project_root)
     slug = _slugify(title)
     file_path = tasks_dir / f"{task_id}-{slug}.md"
     if file_path.exists():

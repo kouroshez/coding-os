@@ -310,7 +310,7 @@ if db_path.exists():
             # Skip session ID prefix (first field) if present
             _complexity = _parts[1] if len(_parts) >= 2 else _parts[0]
 
-        sys.path.insert(0, os.environ.get("COS_BRAIN_DIR", str(Path(__file__).resolve().parent.parent / "thinking-os")))
+        sys.path.insert(0, os.environ.get("COS_BRAIN_DIR", str(Path(__file__).resolve().parent.parent / "thinking_os")))
         from tools.learning import learn_suggest
         _result = learn_suggest(_conn, domain=_domain, complexity=_complexity, limit=3)
         _suggestions = _result.get("suggestions", [])
@@ -322,6 +322,62 @@ if db_path.exists():
         _conn.close()
     except Exception:
         pass  # fire-and-forget: never block task-start
+
+# --- Phase M: Persona + Situation markers ---
+# Populate .persona, .situation, .formulas in $COS_AGENT_DIR so the
+# supervisor (cos_supervise) and hook (enforce-anti-ambiguity.sh) know
+# which cognitive routing was chosen for this task.
+try:
+    _cos_agent_dir = Path(os.environ.get("COS_AGENT_DIR", ".coding-os/claude"))
+    _cos_agent_dir.mkdir(parents=True, exist_ok=True)
+
+    # Read Phase M override fields from task YAML frontmatter
+    _intensity_val = None
+    _persona_override = None
+    _situation_override = None
+    if detail_file and detail_file.exists():
+        import re as _fm_re
+        _task_text = detail_file.read_text(encoding="utf-8")
+        _fm = _fm_re.match(r"^---\s*\n(.*?)\n---\s*\n", _task_text, _fm_re.DOTALL)
+        if _fm:
+            try:
+                import yaml as _yaml
+                _fm_data = _yaml.safe_load(_fm.group(1)) or {}
+                _intensity_val = _fm_data.get("intensity")
+                _persona_override = _fm_data.get("persona")
+                _situation_override = _fm_data.get("situation")
+            except Exception:
+                pass
+
+    # Write situation marker
+    if _situation_override:
+        (_cos_agent_dir / ".situation").write_text(str(_situation_override), encoding="utf-8")
+
+    # Phase N: compose role chain from task signals (replaces deprecated persona auto-route).
+    # Frontmatter override (chain or single role) wins; otherwise use a default
+    # F2,F3,F5,F6 chain — agents call cos_compose_chain for refinement.
+    _brain_dir = os.environ.get("COS_BRAIN_DIR", str(Path.cwd() / "core/thinking_os"))
+    if _brain_dir not in sys.path:
+        sys.path.insert(0, _brain_dir)
+    if _persona_override:
+        _chain = str(_persona_override)
+        if not _chain.startswith("chain:") and "," in _chain:
+            _chain = "chain:" + _chain
+    else:
+        _chain = "chain:F2,F3,F5,F6"
+
+    (_cos_agent_dir / ".persona").write_text(_chain, encoding="utf-8")
+    if _chain.startswith("chain:"):
+        _formulas = _chain[len("chain:"):]
+        (_cos_agent_dir / ".formulas").write_text(_formulas, encoding="utf-8")
+
+    if _intensity_val:
+        (_cos_agent_dir / ".intensity").write_text(str(_intensity_val), encoding="utf-8")
+
+    _intensity_label = f" (intensity: {_intensity_val})" if _intensity_val else ""
+    print(f"🧠 Role chain: {_chain}{_intensity_label}")
+except Exception:
+    pass  # fire-and-forget: never block task-start
 
 print()
 PY

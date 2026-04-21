@@ -363,6 +363,9 @@ class TestCodexAdapter:
 
     def test_symlinks_commands_mirrors_claude(self, project: Path) -> None:
         # Every core/commands/*.md must appear as .codex/commands/<name>.md.
+        # Phase M adds extra formula-f{1..11}.md symlinks (slash commands) —
+        # these are codex-specific and should NOT be in core/commands/, so
+        # we only assert core commands are a subset of what codex exposes.
         run_adapter_install("codex", project)
         codex_cmds = project / ".codex" / "commands"
         assert codex_cmds.is_dir()
@@ -371,7 +374,11 @@ class TestCodexAdapter:
             return  # core has no commands — nothing to mirror
         source_cmds = {p.name for p in commands_source.glob("*.md")}
         linked = {p.name for p in codex_cmds.glob("*.md")}
-        assert source_cmds == linked, f"missing command symlinks: {source_cmds - linked}"
+        missing = source_cmds - linked
+        assert not missing, f"missing command symlinks: {missing}"
+        # Phase M formula commands are codex-only extras — verify they're present
+        for n in range(1, 12):
+            assert f"formula-f{n}.md" in linked, f"formula-f{n}.md missing from codex commands"
 
     def test_idempotent_install(self, project: Path) -> None:
         run_adapter_install("codex", project)

@@ -91,7 +91,7 @@ if has_cos:
 else:
     data['mcpServers']['coding-os'] = {
         'command': 'uv',
-        'args': ['run', '--directory', f'{cos_root}/core/thinking-os', 'python', 'server.py'],
+        'args': ['run', '--directory', f'{cos_root}/core/thinking_os', 'python', 'server.py'],
         'cwd': '\${workspaceFolder}'
     }
 with open(mcp_path, 'w') as f:
@@ -124,3 +124,8 @@ echo "  Commands: .claude/commands/ (symlinked)"
 echo "  Settings: .claude/settings.json (generated)"
 echo "  Perms:    .claude/settings.local.json (copied)"
 echo "  MCP:      .mcp.json (updated)"
+echo ""
+echo "Optional: real formula-agent dispatch via claude-agent-sdk"
+echo "  uv sync --extra claude-sdk"
+echo "  # → cos_dispatch_formula_run spawns real Claude Code sub-sessions"
+echo "  # → see docs/adapters/claude-sdk.md"

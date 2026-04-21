@@ -2,7 +2,7 @@
 # MCP Error Envelope — `cos_*` Tool Response Contract
 
 Purpose: Canonical response shape for every `cos_*` MCP tool exposed by
-[core/thinking-os/server.py](../../core/thinking-os/server.py). The envelope
+[core/thinking_os/server.py](../../core/thinking_os/server.py). The envelope
 gives consuming agents enough structure to decide whether to retry, escalate,
 or surface an error to the user — without parsing prose.
 
@@ -69,7 +69,7 @@ If the default is wrong for a specific call, pass `retryable=` explicitly to
 ### Helpers
 
 ```python
-# core/thinking-os/tools/_shared.py
+# core/thinking_os/tools/_shared.py
 from tools._shared import ok, fail, safe_tool
 ```
 
@@ -118,8 +118,8 @@ assert payload["error"]["retryable"] is False
 ## Migration status
 
 The envelope is the contract for **all** `cos_*` tools registered in
-[core/thinking-os/server.py](../../core/thinking-os/server.py). Internal helper
-functions under `core/thinking-os/tools/*.py` still return plain Python values
+[core/thinking_os/server.py](../../core/thinking_os/server.py). Internal helper
+functions under `core/thinking_os/tools/*.py` still return plain Python values
 (dicts/lists) — the envelope is applied only at the MCP boundary so unit tests
 for helpers stay simple.
 

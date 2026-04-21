@@ -25,6 +25,17 @@ fi
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 SKILL_FILE="${COS_AGENT_DIR}/.active-skill"
 
+# Phase M: skip skill gate during formula dispatches other than F5/F6.
+# The supervisor writes .active-formula before each dispatch; F5 (Implement)
+# and F6 (Test/Review) are the only formulas that actually write domain code.
+ACTIVE_FORMULA_FILE="${COS_AGENT_DIR}/.active-formula"
+if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
+  ACTIVE_FORMULA=$(cat "$ACTIVE_FORMULA_FILE" 2>/dev/null || echo "")
+  if [[ "$ACTIVE_FORMULA" != "F5" && "$ACTIVE_FORMULA" != "F6" && -n "$ACTIVE_FORMULA" ]]; then
+    exit 0
+  fi
+fi
+
 # Allow CLEAR 1 ad-hoc fixes without a skill (same fast-path as enforce-task-start.sh)
 source "$(dirname "$0")/check-state.sh"
 check_state "${COS_AGENT_DIR}/.thinking-os-gate" 7200

@@ -566,7 +566,7 @@ class TestDoctorC15Regression:
                     "command": "uv",
                     "args": [
                         "run", "--directory",
-                        "/does/not/exist/core/thinking-os",
+                        "/does/not/exist/core/thinking_os",
                         "python", "server.py",
                     ],
                 }

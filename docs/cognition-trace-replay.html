@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coding-OS — Cognition Trace Replay</title>
+<!--
+  ════════════════════════════════════════════════════════════════════════════
+  COGNITION TRACE REPLAY VIEWER
+  ════════════════════════════════════════════════════════════════════════════
+  Feeds a JSONL trace from `.coding-os/<agent>/traces/<session_id>.jsonl`
+  (produced by `core/thinking_os/tracing.py`) through the same flowchart nodes
+  used in `agent-workflow-flowchart-V1.html`. Each event highlights its node;
+  a timeline scrubber lets you seek; speed controls replay at 0.25x..8x.
+
+  How to load a trace:
+    1. Run a session → `cos cognition trace <sid> --raw > /tmp/my.jsonl`
+    2. Open this file in browser, click "Load Trace" → pick file
+    3. Or paste JSONL directly into the textarea
+
+  Built-in sample trace demonstrates the pipeline without any external setup.
+  Style matches flowchart V1 verbatim (same CSS tokens, fonts, themes).
+  ════════════════════════════════════════════════════════════════════════════
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  :root {
+    --bg: #09090b; --surface: #18181b; --surface-hover: #27272a;
+    --border: #27272a; --border-strong: #3f3f46;
+    --text-1: #ffffff; --text-2: #a1a1aa; --text-3: #71717a;
+    --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.15); --blue-glow: rgba(59,130,246,0.3);
+    --green: #10b981; --green-dim: rgba(16,185,129,0.15); --green-glow: rgba(16,185,129,0.3);
+    --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.15); --amber-glow: rgba(245,158,11,0.3);
+    --red: #ef4444; --red-dim: rgba(239,68,68,0.15); --red-glow: rgba(239,68,68,0.3);
+    --purple: #8b5cf6; --purple-dim: rgba(139,92,246,0.15); --purple-glow: rgba(139,92,246,0.3);
+    --orange: #f97316; --orange-dim: rgba(249,115,22,0.15); --orange-glow: rgba(249,115,22,0.3);
+    --cyan: #06b6d4; --cyan-dim: rgba(6,182,212,0.15); --cyan-glow: rgba(6,182,212,0.3);
+    --pink: #ec4899; --pink-dim: rgba(236,72,153,0.15); --pink-glow: rgba(236,72,153,0.3);
+    --teal: #14b8a6; --teal-dim: rgba(20,184,166,0.15); --teal-glow: rgba(20,184,166,0.3);
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(circle at 50% -20%, rgba(6,182,212,0.10), transparent 60%);
+    color: var(--text-2);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 40px 24px 60px;
+    min-height: 100vh;
+  }
+  .page { max-width: 1800px; margin: 0 auto; }
+  header { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--cyan); background: var(--cyan-dim); padding: 5px 10px; border-radius: 999px;
+    margin-bottom: 12px; border: 1px solid rgba(6,182,212,0.2);
+  }
+  h1 { font-size: clamp(24px, 3vw, 36px); color: var(--text-1); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 8px; }
+  p.subtitle { font-size: 14px; color: var(--text-2); font-family: var(--font-mono); max-width: 1000px; }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 320px 1fr 360px; gap: 20px; }
+  @media (max-width: 1400px) { .layout { grid-template-columns: 280px 1fr; } .right-rail { grid-column: 1 / -1; } }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 {
+    font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-1); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .card h2 span.dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan-glow);
+  }
+
+  /* Controls */
+  .btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-1);
+    font-family: var(--font-mono); font-size: 11px; padding: 8px 12px; border-radius: 6px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;
+    margin: 4px 2px;
+  }
+  .btn:hover { background: var(--surface-hover); border-color: var(--cyan); color: var(--cyan); }
+  .btn.active { color: var(--cyan); border-color: var(--cyan); background: var(--cyan-dim); }
+  .btn.primary { color: var(--green); border-color: var(--green); }
+  .btn.primary:hover { background: var(--green-dim); box-shadow: 0 0 12px var(--green-glow); }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+  textarea.trace-input {
+    width: 100%; min-height: 120px; font-family: var(--font-mono); font-size: 10px;
+    background: #0a0a0a; color: var(--text-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px; resize: vertical;
+  }
+  input[type="file"] { color: var(--text-2); font-family: var(--font-mono); font-size: 11px; margin-bottom: 8px; }
+  input[type="range"] { width: 100%; accent-color: var(--cyan); }
+
+  /* Timeline scrubber */
+  .scrubber-wrap {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 8px;
+  }
+  .scrubber-info {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+  }
+  .scrubber-info strong { color: var(--text-1); }
+
+  /* Flowchart */
+  .flow-canvas {
+    position: relative; background: rgba(24,24,27,0.5); border: 1px solid var(--border);
+    border-radius: 12px; padding: 30px; min-height: 700px;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .flow {
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+  }
+  .fnode {
+    background: var(--surface); border: 2px solid var(--border); padding: 12px 18px;
+    border-radius: 10px; min-width: 200px; text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  .fnode .label {
+    font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-3);
+  }
+  .fnode .name {
+    font-size: 14px; font-weight: 700; color: var(--text-1); margin-top: 2px;
+  }
+  .fnode .desc { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+  /* Active / visited states (animated during replay) */
+  .fnode.visited {
+    border-color: var(--text-3); opacity: 0.6;
+  }
+  .fnode.active {
+    border-color: var(--cyan); background: linear-gradient(180deg, var(--surface), rgba(6,182,212,0.1));
+    box-shadow: 0 0 0 4px rgba(6,182,212,0.15), 0 0 30px rgba(6,182,212,0.35);
+    transform: translateY(-2px) scale(1.03);
+    opacity: 1;
+  }
+  .fnode.just-hit { animation: pulse-hit 700ms ease-out; }
+  @keyframes pulse-hit {
+    0% { box-shadow: 0 0 0 0 rgba(6,182,212,0.6), 0 0 40px rgba(6,182,212,0.5); }
+    100% { box-shadow: 0 0 0 4px rgba(6,182,212,0.15), 0 0 30px rgba(6,182,212,0.35); }
+  }
+
+  .fnode .hit-count {
+    position: absolute; top: -8px; right: -8px;
+    background: var(--cyan); color: var(--bg); font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 6px;
+    display: none;
+  }
+  .fnode.visited .hit-count, .fnode.active .hit-count { display: inline-block; }
+
+  /* Per-node theme accents */
+  .fnode.theme-blue.active, .fnode.theme-blue.just-hit {
+    border-color: var(--blue); box-shadow: 0 0 0 4px rgba(59,130,246,0.15), 0 0 30px rgba(59,130,246,0.35);
+  }
+  .fnode.theme-amber.active, .fnode.theme-amber.just-hit {
+    border-color: var(--amber); box-shadow: 0 0 0 4px rgba(245,158,11,0.15), 0 0 30px rgba(245,158,11,0.35);
+  }
+  .fnode.theme-pink.active, .fnode.theme-pink.just-hit {
+    border-color: var(--pink); box-shadow: 0 0 0 4px rgba(236,72,153,0.15), 0 0 30px rgba(236,72,153,0.35);
+  }
+  .fnode.theme-teal.active, .fnode.theme-teal.just-hit {
+    border-color: var(--teal); box-shadow: 0 0 0 4px rgba(20,184,166,0.15), 0 0 30px rgba(20,184,166,0.35);
+  }
+  .fnode.theme-red.active, .fnode.theme-red.just-hit {
+    border-color: var(--red); box-shadow: 0 0 0 4px rgba(239,68,68,0.15), 0 0 30px rgba(239,68,68,0.35);
+  }
+  .fnode.theme-green.active, .fnode.theme-green.just-hit {
+    border-color: var(--green); box-shadow: 0 0 0 4px rgba(16,185,129,0.15), 0 0 30px rgba(16,185,129,0.35);
+  }
+  .fnode.theme-purple.active, .fnode.theme-purple.just-hit {
+    border-color: var(--purple); box-shadow: 0 0 0 4px rgba(139,92,246,0.15), 0 0 30px rgba(139,92,246,0.35);
+  }
+  .fnode.theme-orange.active, .fnode.theme-orange.just-hit {
+    border-color: var(--orange); box-shadow: 0 0 0 4px rgba(249,115,22,0.15), 0 0 30px rgba(249,115,22,0.35);
+  }
+  .fnode.theme-cyan.active, .fnode.theme-cyan.just-hit {
+    border-color: var(--cyan);
+  }
+
+  /* Arrows between nodes */
+  .arrow {
+    width: 0; height: 28px; border-left: 2px dashed var(--border-strong);
+    position: relative;
+  }
+  .arrow.traversed { border-left-color: var(--cyan); }
+  .arrow::after {
+    content: '▼'; position: absolute; bottom: -4px; left: -6px;
+    color: var(--border-strong); font-size: 11px;
+  }
+  .arrow.traversed::after { color: var(--cyan); }
+
+  /* Event list */
+  .events { max-height: 600px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; }
+  .evt {
+    padding: 6px 8px; border-left: 2px solid var(--border); margin-bottom: 2px;
+    cursor: pointer; transition: background 0.1s;
+    display: grid; grid-template-columns: 52px 1fr; gap: 8px;
+  }
+  .evt:hover { background: rgba(6,182,212,0.05); }
+  .evt.active { border-left-color: var(--cyan); background: rgba(6,182,212,0.1); }
+  .evt .time { color: var(--text-3); font-size: 10px; }
+  .evt .kind { color: var(--text-1); font-weight: 600; }
+  .evt .payload { color: var(--text-3); font-size: 10px; margin-top: 2px; }
+  .evt.past { opacity: 0.55; }
+
+  /* Summary strip */
+  .summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-top: 10px;
+  }
+  .summary .stat {
+    background: rgba(0,0,0,0.25); border: 1px solid var(--border); padding: 10px 12px;
+    border-radius: 8px;
+  }
+  .summary .stat .lbl {
+    font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-3);
+  }
+  .summary .stat .val {
+    font-size: 16px; font-weight: 700; color: var(--text-1); margin-top: 3px;
+    font-family: var(--font-mono);
+  }
+  .summary .stat .val.small { font-size: 12px; }
+
+  /* Chip row for chain preview */
+  .chain-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chain-chip {
+    font-family: var(--font-mono); font-size: 10px; padding: 3px 7px; border-radius: 4px;
+    font-weight: 700; background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3);
+  }
+
+  .footer-note {
+    margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-3); text-align: center;
+  }
+  .footer-note a { color: var(--cyan); text-decoration: none; }
+  .footer-note a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">📡 COGNITION TRACE REPLAY · V1</div>
+    <h1>Cognition Trace Replay</h1>
+    <p class="subtitle">
+      Animates an agent's path through the Phase M + N flowchart, event-by-event.
+      Every <code>tracing.emit()</code> call writes one JSONL line; this viewer
+      maps each event's <code>kind</code> to a flowchart node and highlights it
+      in chronological order. Use it to verify real agent behavior, debug
+      production sessions, or build regression tests.
+    </p>
+  </header>
+
+  <div class="layout">
+
+    <!-- ══════════════ Left rail: controls + input ══════════════ -->
+    <div class="left-rail">
+      <div class="card">
+        <h2><span class="dot"></span> Load Trace</h2>
+        <input type="file" id="file-input" accept=".jsonl,.json,.txt">
+        <div class="btn-row">
+          <button class="btn primary" id="btn-sample">Load Sample</button>
+          <button class="btn" id="btn-paste-toggle">Paste JSONL</button>
+        </div>
+        <textarea class="trace-input" id="trace-text" placeholder="Paste JSONL lines here, then press Load Pasted" style="display:none;margin-top:8px;"></textarea>
+        <button class="btn" id="btn-paste-load" style="display:none;margin-top:6px;">Load Pasted</button>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span> Playback</h2>
+        <div class="btn-row">
+          <button class="btn primary" id="btn-play">▶ Play</button>
+          <button class="btn" id="btn-pause">❚❚ Pause</button>
+          <button class="btn" id="btn-restart">⟲ Restart</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn" data-speed="0.25">0.25x</button>
+          <button class="btn" data-speed="0.5">0.5x</button>
+          <button class="btn active" data-speed="1">1x</button>
+          <button class="btn" data-speed="2">2x</button>
+          <button class="btn" data-speed="4">4x</button>
+          <button class="btn" data-speed="8">8x</button>
+        </div>
+        <div class="scrubber-wrap">
+          <input type="range" id="scrubber" min="0" max="0" step="1" value="0">
+          <div class="scrubber-info">
+            <span>Event <strong id="cur-event">0</strong> / <strong id="total-events">0</strong></span>
+            <span>t = <strong id="cur-time">0</strong>ms</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span> Summary</h2>
+        <div class="summary" id="summary"></div>
+        <div class="chain-chips" id="chain-chips"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ Center: flowchart ══════════════ -->
+    <div class="center">
+      <div class="flow-canvas">
+        <div class="flow" id="flow">
+          <!-- nodes rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ Right rail: event list ══════════════ -->
+    <div class="right-rail">
+      <div class="card">
+        <h2><span class="dot"></span> Events</h2>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">
+    trace format: <code>.coding-os/&lt;agent&gt;/traces/&lt;session_id&gt;.jsonl</code> ·
+    emitter: <code>core/thinking_os/tracing.py</code> ·
+    flowchart source: <a href="agent-workflow-flowchart-V1.html">agent-workflow-flowchart-V1.html</a> ·
+    CLI: <code>cos cognition trace &lt;session_id&gt;</code>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// Flowchart node definitions — must match core/thinking_os/tracing.py FLOWCHART_NODES
+// Each entry: {id, label, theme}
+// Layout order = vertical flow order in the replay canvas.
+// ════════════════════════════════════════════════════════════════════════════
+const NODES = [
+  { id: 'n-user',      label: 'Entry',        name: 'User Input',           desc: 'Prompt received',                  theme: 'cyan'   },
+  { id: 'n-sinit',     label: '0',            name: 'Session Init',         desc: 'session_startup.py',               theme: 'blue'   },
+  { id: 'n-gate',      label: 'G1',           name: 'Complexity Gate',      desc: 'Cynefin + dimensions',             theme: 'pink'   },
+  { id: 'n-analyzer',  label: 'A',            name: 'Task Analyzer',        desc: 'signal extraction (<500ms)',       theme: 'amber'  },
+  { id: 'n-router',    label: 'R',            name: 'Role Router',          desc: 'preset | composer | situation',    theme: 'teal'   },
+  { id: 'n-supervisor',label: 'S',            name: 'Supervisor Loop',      desc: 'dispatches F1..F11 roles',         theme: 'pink'   },
+  { id: 'n-ambi',      label: 'AA',           name: 'Anti-Ambiguity Gate',  desc: '7 criteria per step',              theme: 'red'    },
+  { id: 'n-trace',     label: 'T',            name: 'Traceability Check',   desc: 'top↔bottom audit',                 theme: 'purple' },
+  { id: 'n-impl',      label: '5',            name: 'Implement (F5)',       desc: 'smallest correct change',          theme: 'cyan'   },
+  { id: 'n-verify',    label: '6',            name: 'Verify (F6)',          desc: 'unit/integ/e2e/llm layers',        theme: 'green'  },
+  { id: 'n-done',      label: '✓',            name: 'Task Done',            desc: 'make task-done',                   theme: 'green'  },
+  { id: 'n-end',       label: 'E',            name: 'Session End',          desc: 'summary + TTL cleanup',            theme: 'purple' },
+];
+
+// kind → node id mapping (matches tracing.py FLOWCHART_NODES)
+const KIND_TO_NODE = {
+  session_init: 'n-sinit',
+  gate_recorded: 'n-gate',
+  analyze_start: 'n-analyzer',
+  analyze_done: 'n-analyzer',
+  compose_done: 'n-router',
+  situation_override: 'n-router',
+  preset_matched: 'n-router',
+  composer_fallback: 'n-router',
+  hard_fallback: 'n-router',
+  supervise_action: 'n-supervisor',
+  role_dispatch: 'n-supervisor',
+  role_output_recorded: 'n-supervisor',
+  parallel_dispatch: 'n-supervisor',
+  ambiguity_check: 'n-ambi',
+  ambiguity_violation: 'n-ambi',
+  traceability_check: 'n-trace',
+  backtrack: 'n-supervisor',
+  discovery: 'n-supervisor',
+  anti_paralysis_warn: 'n-supervisor',
+  implementation: 'n-impl',
+  verification: 'n-verify',
+  task_done: 'n-done',
+  session_end: 'n-end',
+  error: 'n-supervisor',
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// Built-in sample trace — demonstrates a full Stripe-integration session
+// with one mid-flight backtrack. No external dependencies.
+// ════════════════════════════════════════════════════════════════════════════
+const SAMPLE_TRACE = [
+  { ts: 1000.000, session_id: 'ses-demo-001', kind: 'session_init', data: {agent: 'claude'} },
+  { ts: 1000.050, session_id: 'ses-demo-001', kind: 'gate_recorded', data: {classification: 'COMPLICATED', dimensions: 3} },
+  { ts: 1000.200, session_id: 'ses-demo-001', kind: 'analyze_start', data: {prompt_len: 58} },
+  { ts: 1000.450, session_id: 'ses-demo-001', kind: 'analyze_done', data: {action: 'create', domain: ['backend'], external_dependency: true, scope_size: 'medium'} },
+  { ts: 1000.480, session_id: 'ses-demo-001', kind: 'preset_matched', data: {preset_id: 'external-integration', chain: ['F1','F2','F3','F5','F6','F8'], preset_version: '1a771e780f24e504'} },
+  { ts: 1000.490, session_id: 'ses-demo-001', kind: 'compose_done', data: {chain: ['F1','F2','F3','F5','F6','F8'], source: 'preset', preset_id: 'external-integration'} },
+  { ts: 1000.600, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F1', data: {formula: 'F1'} },
+  { ts: 1002.100, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F1', data: {formula_id: 'F1', status: 'ok', latency_ms: 1500} },
+  { ts: 1002.200, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F2', data: {formula: 'F2'} },
+  { ts: 1004.800, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F2', data: {formula_id: 'F2', status: 'ok', latency_ms: 2600} },
+  { ts: 1004.900, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F3', data: {formula: 'F3'} },
+  { ts: 1007.300, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F3', data: {formula_id: 'F3', status: 'ok', latency_ms: 2400} },
+  { ts: 1007.400, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F5', data: {formula: 'F5'} },
+  { ts: 1009.200, session_id: 'ses-demo-001', kind: 'backtrack',           role: 'F5', data: {from: 'F5', to: 'F2', reason: 'F5 encountered missing actor: webhook_validator', count: 1} },
+  { ts: 1009.250, session_id: 'ses-demo-001', kind: 'discovery', data: {kind: 'actor', summary: 'webhook_validator not in F2 actor map', decision: 'backtrack_now'} },
+  { ts: 1009.400, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F2', data: {formula: 'F2', note: 'backtrack re-dispatch'} },
+  { ts: 1010.800, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F2', data: {formula_id: 'F2', status: 'ok', latency_ms: 1400} },
+  { ts: 1010.900, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F5', data: {formula: 'F5', note: 'retry'} },
+  { ts: 1013.500, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F5', data: {formula_id: 'F5', status: 'ok', latency_ms: 2600} },
+  { ts: 1013.600, session_id: 'ses-demo-001', kind: 'ambiguity_check', data: {violations: 0} },
+  { ts: 1013.700, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F6', data: {formula: 'F6'} },
+  { ts: 1016.100, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F6', data: {formula_id: 'F6', status: 'ok', latency_ms: 2400} },
+  { ts: 1016.200, session_id: 'ses-demo-001', kind: 'role_dispatch',       role: 'F8', data: {formula: 'F8'} },
+  { ts: 1018.300, session_id: 'ses-demo-001', kind: 'role_output_recorded',role: 'F8', data: {formula_id: 'F8', status: 'ok', latency_ms: 2100} },
+  { ts: 1018.400, session_id: 'ses-demo-001', kind: 'traceability_check', data: {gaps: 0} },
+  { ts: 1018.500, session_id: 'ses-demo-001', kind: 'task_done', data: {chain_length: 6, backtracks: 1} },
+  { ts: 1018.550, session_id: 'ses-demo-001', kind: 'session_end', data: {} },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════════════════════════
+let trace = [];             // array of events
+let cursor = 0;             // current event index (0 = nothing played yet)
+let playing = false;
+let playTimer = null;
+let speed = 1;
+let nodeHits = {};          // node_id → count
+
+// ════════════════════════════════════════════════════════════════════════════
+// Flowchart render
+// ════════════════════════════════════════════════════════════════════════════
+function renderFlow() {
+  const flow = document.getElementById('flow');
+  flow.innerHTML = '';
+  NODES.forEach((n, i) => {
+    const el = document.createElement('div');
+    el.className = `fnode theme-${n.theme}`;
+    el.id = `node-${n.id}`;
+    el.innerHTML = `
+      <div class="label">${n.label}</div>
+      <div class="name">${n.name}</div>
+      <div class="desc">${n.desc}</div>
+      <span class="hit-count" id="hit-${n.id}">0</span>
+    `;
+    flow.appendChild(el);
+    if (i < NODES.length - 1) {
+      const arr = document.createElement('div');
+      arr.className = 'arrow';
+      arr.id = `arrow-${n.id}`;
+      flow.appendChild(arr);
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Render the event list
+// ════════════════════════════════════════════════════════════════════════════
+function renderEvents() {
+  const wrap = document.getElementById('events');
+  wrap.innerHTML = '';
+  if (!trace.length) {
+    wrap.innerHTML = '<div style="padding:10px;color:var(--text-3);">No trace loaded. Click "Load Sample" to try it.</div>';
+    return;
+  }
+  const t0 = trace[0].ts;
+  trace.forEach((e, i) => {
+    const dt = Math.round((e.ts - t0) * 1000);
+    const dataKeys = Object.keys(e.data || {}).slice(0, 2);
+    const preview = dataKeys.map(k => `${k}=${JSON.stringify(e.data[k])}`).join(' ');
+    const el = document.createElement('div');
+    el.className = 'evt';
+    el.id = `evt-${i}`;
+    el.innerHTML = `
+      <div class="time">+${dt}ms</div>
+      <div>
+        <div class="kind">${e.kind}${e.role ? ` <span style="color:var(--cyan)">[${e.role}]</span>` : ''}</div>
+        ${preview ? `<div class="payload">${preview}</div>` : ''}
+      </div>
+    `;
+    el.onclick = () => seek(i + 1);
+    wrap.appendChild(el);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Re-render node states based on current cursor (events 0..cursor-1 played)
+// ════════════════════════════════════════════════════════════════════════════
+function updateView(justHit = null) {
+  nodeHits = {};
+  const played = trace.slice(0, cursor);
+  played.forEach(e => {
+    const n = KIND_TO_NODE[e.kind];
+    if (n) nodeHits[n] = (nodeHits[n] || 0) + 1;
+  });
+
+  NODES.forEach(n => {
+    const el = document.getElementById(`node-${n.id}`);
+    const hitEl = document.getElementById(`hit-${n.id}`);
+    if (!el) return;
+    el.classList.remove('active', 'visited', 'just-hit');
+    if (nodeHits[n.id]) {
+      el.classList.add('visited');
+      hitEl.textContent = nodeHits[n.id];
+    }
+  });
+  // Active node = last played event's node
+  if (played.length > 0) {
+    const lastKind = played[played.length - 1].kind;
+    const activeNode = KIND_TO_NODE[lastKind];
+    if (activeNode) {
+      const el = document.getElementById(`node-${activeNode}`);
+      if (el) {
+        el.classList.add('active');
+        if (justHit) el.classList.add('just-hit');
+      }
+    }
+  }
+
+  // Traversed arrows — walk the played events in order, when we see a transition
+  // between adjacent NODES in the layout, color the arrow.
+  NODES.forEach(n => {
+    const arrEl = document.getElementById(`arrow-${n.id}`);
+    if (arrEl) arrEl.classList.remove('traversed');
+  });
+  let prevNode = null;
+  played.forEach(e => {
+    const n = KIND_TO_NODE[e.kind];
+    if (!n) return;
+    if (prevNode && prevNode !== n) {
+      // Mark all arrows from prevNode to n as traversed (forward direction)
+      const startIdx = NODES.findIndex(x => x.id === prevNode);
+      const endIdx = NODES.findIndex(x => x.id === n);
+      if (startIdx >= 0 && endIdx > startIdx) {
+        for (let j = startIdx; j < endIdx; j++) {
+          const arr = document.getElementById(`arrow-${NODES[j].id}`);
+          if (arr) arr.classList.add('traversed');
+        }
+      }
+    }
+    prevNode = n;
+  });
+
+  // Event list highlight
+  document.querySelectorAll('.evt').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i < cursor - 1) el.classList.add('past');
+    else if (i === cursor - 1) el.classList.add('active');
+  });
+  const active = document.getElementById(`evt-${cursor - 1}`);
+  if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  // Scrubber + counters
+  document.getElementById('cur-event').textContent = cursor;
+  document.getElementById('total-events').textContent = trace.length;
+  document.getElementById('scrubber').max = trace.length;
+  document.getElementById('scrubber').value = cursor;
+  if (trace.length && cursor > 0) {
+    const dt = Math.round((trace[cursor - 1].ts - trace[0].ts) * 1000);
+    document.getElementById('cur-time').textContent = dt;
+  } else {
+    document.getElementById('cur-time').textContent = '0';
+  }
+
+  renderSummary();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Summary render (left rail)
+// ════════════════════════════════════════════════════════════════════════════
+function renderSummary() {
+  const wrap = document.getElementById('summary');
+  const chips = document.getElementById('chain-chips');
+  if (!trace.length) {
+    wrap.innerHTML = '<div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;">Load a trace to see summary</div>';
+    chips.innerHTML = '';
+    return;
+  }
+  const played = trace.slice(0, cursor);
+  const stats = computeStats(played);
+  wrap.innerHTML = `
+    <div class="stat"><div class="lbl">Events</div><div class="val">${stats.events}</div></div>
+    <div class="stat"><div class="lbl">Nodes hit</div><div class="val">${stats.nodesHit}</div></div>
+    <div class="stat"><div class="lbl">Roles</div><div class="val">${stats.roleCount}</div></div>
+    <div class="stat"><div class="lbl">Backtracks</div><div class="val">${stats.backtracks}</div></div>
+    <div class="stat"><div class="lbl">Discoveries</div><div class="val">${stats.discoveries}</div></div>
+    <div class="stat"><div class="lbl">Source</div><div class="val small">${stats.source || '-'}</div></div>
+    <div class="stat"><div class="lbl">Preset</div><div class="val small">${stats.preset || '-'}</div></div>
+    <div class="stat"><div class="lbl">Situation</div><div class="val small">${stats.situation || '-'}</div></div>
+  `;
+  chips.innerHTML = (stats.chain || []).map(r => `<span class="chain-chip">${r}</span>`).join('');
+}
+
+function computeStats(played) {
+  const stats = { events: played.length, nodesHit: 0, roleCount: 0, backtracks: 0, discoveries: 0, preset: null, situation: null, source: null, chain: [] };
+  const hitNodes = new Set();
+  const roles = new Set();
+  played.forEach(e => {
+    const n = KIND_TO_NODE[e.kind];
+    if (n) hitNodes.add(n);
+    if (e.role) roles.add(e.role);
+    if (e.kind === 'backtrack') stats.backtracks++;
+    if (e.kind === 'discovery') stats.discoveries++;
+    if (e.kind === 'preset_matched') { stats.preset = e.data.preset_id; stats.chain = e.data.chain || []; stats.source = 'preset'; }
+    if (e.kind === 'situation_override') { stats.situation = e.data.situation_id; stats.chain = e.data.chain || []; stats.source = 'situation'; }
+    if (e.kind === 'composer_fallback') { stats.chain = e.data.chain || []; stats.source = 'composer'; }
+    if (e.kind === 'hard_fallback') { stats.chain = e.data.chain || []; stats.source = 'fallback'; }
+  });
+  stats.nodesHit = hitNodes.size;
+  stats.roleCount = roles.size;
+  return stats;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Playback engine
+// ════════════════════════════════════════════════════════════════════════════
+function step() {
+  if (cursor >= trace.length) { pause(); return; }
+  cursor++;
+  updateView(true);
+  if (cursor >= trace.length) { pause(); return; }
+  // Delay until next event, scaled by speed
+  const dtMs = (trace[cursor].ts - trace[cursor - 1].ts) * 1000;
+  const scaled = Math.max(80, Math.min(dtMs / speed, 1500));   // clamp 80ms..1.5s
+  playTimer = setTimeout(step, scaled);
+}
+function play() {
+  if (!trace.length) return;
+  if (cursor >= trace.length) cursor = 0;
+  playing = true;
+  document.getElementById('btn-play').classList.add('active');
+  document.getElementById('btn-pause').classList.remove('active');
+  step();
+}
+function pause() {
+  playing = false;
+  clearTimeout(playTimer); playTimer = null;
+  document.getElementById('btn-play').classList.remove('active');
+}
+function restart() {
+  pause(); cursor = 0; updateView();
+}
+function seek(idx) {
+  pause(); cursor = Math.max(0, Math.min(idx, trace.length)); updateView();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Load handlers
+// ════════════════════════════════════════════════════════════════════════════
+function loadTrace(lines) {
+  const parsed = [];
+  lines.forEach(l => {
+    l = l.trim(); if (!l) return;
+    try { parsed.push(JSON.parse(l)); } catch (_) {}
+  });
+  if (!parsed.length) { alert('No valid JSON events parsed'); return; }
+  trace = parsed.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  cursor = 0;
+  renderEvents();
+  updateView();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Wire up events
+// ════════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-sample').onclick = () => {
+  trace = SAMPLE_TRACE.slice().sort((a, b) => a.ts - b.ts);
+  cursor = 0; renderEvents(); updateView();
+};
+document.getElementById('btn-play').onclick = play;
+document.getElementById('btn-pause').onclick = pause;
+document.getElementById('btn-restart').onclick = restart;
+document.getElementById('scrubber').oninput = e => seek(parseInt(e.target.value, 10));
+document.querySelectorAll('.btn[data-speed]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.btn[data-speed]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    speed = parseFloat(b.dataset.speed);
+  };
+});
+document.getElementById('file-input').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => loadTrace(ev.target.result.split('\n'));
+  r.readAsText(f);
+};
+document.getElementById('btn-paste-toggle').onclick = () => {
+  const t = document.getElementById('trace-text');
+  const b = document.getElementById('btn-paste-load');
+  const show = t.style.display === 'none';
+  t.style.display = show ? 'block' : 'none';
+  b.style.display = show ? 'inline-flex' : 'none';
+};
+document.getElementById('btn-paste-load').onclick = () => {
+  const txt = document.getElementById('trace-text').value;
+  loadTrace(txt.split('\n'));
+};
+
+// URL param support: ?trace=/path/to/trace.jsonl
+const urlTrace = new URLSearchParams(window.location.search).get('trace');
+if (urlTrace) {
+  fetch(urlTrace).then(r => r.text()).then(t => loadTrace(t.split('\n'))).catch(() => {});
+}
+
+// Initial render
+renderFlow();
+renderEvents();
+updateView();
+</script>
+
+</body></html>

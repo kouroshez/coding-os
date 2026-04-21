@@ -1,0 +1,71 @@
+# F11 Role — Refactoring & Technical Debt Management
+# Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 11
+id: F11
+role_name: "Refactorer"
+formula_ref: F11
+agent_file: agents/F11_refactor.md
+
+activation:
+  primary_triggers:
+    - signal: action
+      equals: refactor
+      weight: 5
+    - signal: is_takeover
+      equals: true
+      weight: 3
+  secondary_triggers:
+    - signal: action
+      equals: debug
+      weight: 1    # F7 may route to F11 for architectural debt
+  deactivators:
+    - signal: action
+      in: [research, document]
+      weight: 3
+    - signal: urgency
+      equals: incident
+      weight: 3
+    - signal: scope_size
+      equals: trivial
+      weight: 2
+  min_score: 4
+
+intensity_steps:
+  light:    [1, 2]
+  standard: [1, 2, 3, 4]
+  full:     [1, 2, 3, 4]
+
+tools_budget:
+  - Read
+  - Grep
+  - Glob
+  - cos_graph_similar
+  - cos_graph_impact
+  - cos_graph_context
+  - cos_search
+max_tokens_in: 8000
+max_tokens_out: 4000
+timeout_s: 120
+
+model_pref:
+  complicated: sonnet
+  complex: opus
+
+output_schema: cognition_schemas.F11Output
+
+backtrack_triggers:
+  - signal_phrase_regex: "(breaking|contract) change"
+    target: F3
+    reason_template: "F11 requires F3 architectural review for breaking change"
+
+criteria_required:
+  step_1: [observable, measurable]
+  step_2: [measurable, scoped, owned]
+  step_3: [scoped, reversible_or_justified, testable]
+  step_4: [testable, observable, owned]
+
+prompt_prefix: |
+  You are in the F11 Refactorer role. Your job is technical debt
+  identification, prioritization (ROI, risk, scope), refactoring
+  strategy (incremental vs big-bang), and new-debt prevention.
+  You are NOT implementing end-user features — that is F5 with a
+  feature task. Output strict F11Output JSON.

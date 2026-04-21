@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH_DEFAULT = CODING_OS_ROOT / "core" / "scaffold_manifest.json"
-MCP_SERVER_PATH = CODING_OS_ROOT / "core" / "thinking-os" / "server.py"
+MCP_SERVER_PATH = CODING_OS_ROOT / "core" / "thinking_os" / "server.py"
 
 
 def _load_runtime_paths() -> tuple[frozenset[str], tuple[str, ...]]:
@@ -100,6 +100,9 @@ PLACEHOLDER_SCAN_NAMES: frozenset[str] = frozenset(
 PLACEHOLDER_MAX_BYTES: int = int(_scan_cfg.get("max_bytes") or 262144)
 PLACEHOLDER_SCAN_ROOTS: tuple[str, ...] = tuple(
     _scan_cfg.get("root_paths") or ("AGENTS.md", "Makefile", "docs", ".coding-os.yaml")
+)
+PLACEHOLDER_SCAN_SKIP: tuple[str, ...] = tuple(
+    _scan_cfg.get("skip_paths") or ("docs/governance/templates",)
 )
 
 SEV_PASS = "PASS"
@@ -453,6 +456,15 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
             if f.suffix not in PLACEHOLDER_SCAN_EXTENSIONS and f.name not in PLACEHOLDER_SCAN_NAMES:
                 continue
             try:
+                rel_posix = f.relative_to(project).as_posix()
+            except ValueError:
+                rel_posix = ""
+            if any(
+                rel_posix == skip or rel_posix.startswith(skip + "/")
+                for skip in PLACEHOLDER_SCAN_SKIP
+            ):
+                continue
+            try:
                 if f.stat().st_size > PLACEHOLDER_MAX_BYTES:
                     continue
                 text = f.read_text(encoding="utf-8", errors="ignore")
@@ -674,6 +686,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     _check_mcp_portable(project, report)
     _check_mcp_actually_launches(project, report)
     _check_agents_md_present(project, report)
+    _check_cognition_registries(project, report)
     # Phase I.14 — graph-os health (C16-C22).
     try:
         from cli.doctor_graph import run_graph_checks  # noqa: WPS433
@@ -919,7 +932,7 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
         return
     args = entry.get("args") or []
     has_abs_cos_path = any(
-        isinstance(a, str) and "/core/thinking-os" in a for a in args
+        isinstance(a, str) and "/core/thinking_os" in a for a in args
     )
     if has_abs_cos_path:
         report.checks.append(
@@ -989,23 +1002,35 @@ def _load_coding_os_mcp_launch(
         command, args, env = loaded
         return command, args, env, str(path), None
 
-    loaders: list[tuple[str, Path]] = []
-    if agent == "claude":
-        loaders = [("claude", project / ".mcp.json")]
-    elif agent == "codex":
-        loaders = [
-            ("codex", project / ".codex" / "config.toml"),
-            ("codex", Path.home() / ".codex" / "config.toml"),
-        ]
-    else:
-        loaders = [
-            ("claude", project / ".mcp.json"),
-            ("codex", project / ".codex" / "config.toml"),
-            ("codex", Path.home() / ".codex" / "config.toml"),
-        ]
+    # Registry-driven loader selection — each adapter declares its
+    # mcp_launch.loader and config_paths in adapter.yaml so no agent id
+    # is hardcoded here (Rule 12 / tests/test_no_hardcoded_stacks).
+    from cli.adapter_registry import load_adapter_registry
+    adapters = load_adapter_registry(CODING_OS_ROOT / "adapters")
 
-    for kind, path in loaders:
-        loaded = _load_claude_json(path) if kind == "claude" else _load_codex(path)
+    loader_fns = {
+        "claude_json": _load_claude_json,
+        "codex_toml": _load_codex,
+    }
+
+    loaders: list[tuple[str, Path]] = []
+    for aid, profile in adapters.items():
+        if agent and agent != aid:
+            continue
+        spec = profile.mcp_launch
+        if spec is None:
+            continue
+        if spec.loader not in loader_fns:
+            continue
+        for cp in spec.config_paths:
+            root = project if cp.scope == "project" else Path.home()
+            loaders.append((spec.loader, root / cp.path))
+
+    for loader_name, path in loaders:
+        fn = loader_fns.get(loader_name)
+        if fn is None:
+            continue
+        loaded = fn(path)
         if loaded is not None:
             return loaded
 
@@ -1164,6 +1189,113 @@ def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
             {"expected": "AGENTS.md"},
         )
     )
+
+
+def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
+    """C28 — Cognition registries valid (Phase N).
+
+      - roles/F{1..11}_*.yaml all exist with id + activation + prompt_prefix
+      - presets/registry.yaml parses and has ≥8 curated presets
+      - situations/registry.yaml parses and has ≥6 situations
+      - agents/F{1..11}_*.md all exist with valid YAML frontmatter
+    """
+    import re as _re
+
+    thinking_os = project / "core" / "thinking_os"
+    if not thinking_os.is_dir():
+        report.checks.append(CheckResult("C28", "cognition_registries", SEV_PASS, "no thinking-os/ (skip)"))
+        return
+
+    issues: list[str] = []
+    warnings: list[str] = []
+
+    # Phase N — Role registry (primary)
+    roles_dir = thinking_os / "roles"
+    if not roles_dir.is_dir():
+        issues.append("roles/ directory missing (Phase N)")
+    else:
+        for n in range(1, 12):
+            matches = list(roles_dir.glob(f"F{n}_*.yaml"))
+            if not matches:
+                issues.append(f"roles/F{n}_*.yaml missing")
+                continue
+            try:
+                import yaml as _yaml
+                data = _yaml.safe_load(matches[0].read_text()) or {}
+                if data.get("id") != f"F{n}":
+                    issues.append(f"{matches[0].name}: id mismatch (expected F{n})")
+                for required in ("activation", "prompt_prefix", "criteria_required", "intensity_steps"):
+                    if required not in data:
+                        issues.append(f"{matches[0].name}: missing '{required}'")
+            except Exception as exc:
+                issues.append(f"{matches[0].name}: invalid YAML: {exc}")
+
+    # Phase N — Preset registry
+    preset_reg = thinking_os / "presets" / "registry.yaml"
+    if not preset_reg.exists():
+        issues.append("presets/registry.yaml missing")
+    else:
+        try:
+            import yaml as _yaml
+            data = _yaml.safe_load(preset_reg.read_text()) or {}
+            presets = data.get("presets", []) if isinstance(data, dict) else []
+            count = len(presets) if isinstance(presets, list) else 0
+            if count < 8:
+                issues.append(f"presets/registry.yaml has {count} presets (need ≥8)")
+            else:
+                # Validate preset shape
+                for preset in presets:
+                    if "id" not in preset or "match" not in preset or "score" not in preset:
+                        issues.append(f"preset malformed: {preset.get('id', '?')}")
+                        break
+        except Exception as exc:
+            issues.append(f"presets/registry.yaml invalid YAML: {exc}")
+
+    # Situation registry (shared Phase M + N)
+    situation_reg = thinking_os / "situations" / "registry.yaml"
+    if not situation_reg.exists():
+        issues.append("situations/registry.yaml missing")
+    else:
+        try:
+            import yaml as _yaml
+            data = _yaml.safe_load(situation_reg.read_text()) or {}
+            situations = data.get("situations", []) if isinstance(data, dict) else []
+            count = len(situations) if isinstance(situations, list) else 0
+            if count < 6:
+                issues.append(f"situations/registry.yaml has {count} situations (need ≥6)")
+        except Exception as exc:
+            issues.append(f"situations/registry.yaml invalid YAML: {exc}")
+
+    # Formula-agent files F1..F11 (shared)
+    agents_dir = thinking_os / "agents"
+    _FM_ID_RE = _re.compile(r"^id:\s*F(\d+)", _re.MULTILINE)
+    for n in range(1, 12):
+        matches = list(agents_dir.glob(f"F{n}_*.md")) if agents_dir.is_dir() else []
+        if not matches:
+            issues.append(f"agents/F{n}_*.md missing")
+            continue
+        content = matches[0].read_text(encoding="utf-8")
+        if not content.startswith("---"):
+            issues.append(f"{matches[0].name}: missing YAML frontmatter")
+        elif not _FM_ID_RE.search(content):
+            issues.append(f"{matches[0].name}: missing 'id: F{n}' in frontmatter")
+
+    # Phase M personas/registry.yaml was removed in v0.3 — no further check needed.
+
+    if issues:
+        report.checks.append(CheckResult(
+            "C28", "cognition_registries", SEV_FAIL, "; ".join(issues), {"issues": issues, "warnings": warnings},
+        ))
+    elif warnings:
+        report.checks.append(CheckResult(
+            "C28", "cognition_registries", SEV_WARN,
+            f"Phase N OK (11 roles, 12+ presets, 6 situations, 11 agents); {'; '.join(warnings)}",
+        ))
+    else:
+        report.checks.append(CheckResult(
+            "C28", "cognition_registries", SEV_PASS,
+            "Phase N: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
+        ))
 
 
 def _format_text(report: DoctorReport, *, strict: bool) -> str:

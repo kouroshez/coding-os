@@ -16,7 +16,7 @@ COS_SCRIPTS := $(COS_ROOT)/core/scripts
 
 export COS_STATE_DIR ?= .coding-os
 export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking-os.db
-export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking-os
+export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking_os
 
 # ── Session & Status ────────────────────────────────────────────────
 
@@ -175,7 +175,7 @@ cos-reindex: ## Re-embed all observations/patterns/outcomes (Phase B RAG)
 
 .PHONY: cos-download-model
 cos-download-model: ## Pre-download the embedding model so first run is fast
-	@uv run --extra rag --directory $(COS_ROOT) python -c "import sys; sys.path.insert(0, '$(COS_ROOT)/core/thinking-os'); from embeddings import _get_model; m = _get_model(); print('OK: embedding model loaded' if m else 'WARN: model unavailable')"
+	@uv run --extra rag --directory $(COS_ROOT) python -c "import sys; sys.path.insert(0, '$(COS_ROOT)/core/thinking_os'); from embeddings import _get_model; m = _get_model(); print('OK: embedding model loaded' if m else 'WARN: model unavailable')"
 
 .PHONY: cos-health
 cos-health: ## Run coding-os health check
@@ -195,6 +195,21 @@ verify: ## Run verification for a domain (DOMAIN=backend|frontend|docs|full)
 	@echo "Example:"
 	@echo "  verify:"
 	@echo "    make lint && make test"
+
+# ── Phase M fast smoke (safe-test) ─────────────────────────────────
+
+.PHONY: safe-test
+safe-test: ## Fast smoke for thinking-os + graph-os + Phase M (≤30s, no network)
+	uv run --extra rag pytest -q \
+	  core/thinking_os/tests/test_db.py \
+	  core/thinking_os/tests/test_cognition_schemas.py \
+	  core/thinking_os/tests/test_cognition_supervisor.py \
+	  core/thinking_os/tests/test_cognition_tools.py \
+	  core/graph_os/tests/test_backend_factory.py \
+	  core/graph_os/tests/test_determinism.py \
+	  core/graph_os/tests/test_backend_parity.py \
+	  tests/test_hooks_phase_m.py \
+	  tests/test_codex_formula_commands.py
 
 # ── Help ────────────────────────────────────────────────────────────
 

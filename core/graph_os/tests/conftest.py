@@ -1,6 +1,6 @@
 """graph-os test fixtures.
 
-Puts core/thinking-os on sys.path so tests can import the db module
+Puts core/thinking_os on sys.path so tests can import the db module
 directly (the MCP server does the same thing at runtime). Keeps tests
 hermetic — every test gets a fresh SQLite file under a temp dir.
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 _GRAPH_OS_DIR = Path(__file__).resolve().parent.parent
-_THINKING_OS_DIR = _GRAPH_OS_DIR.parent / "thinking-os"
+_THINKING_OS_DIR = _GRAPH_OS_DIR.parent / "thinking_os"
 
 if str(_THINKING_OS_DIR) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS_DIR))

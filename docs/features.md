@@ -215,7 +215,7 @@ RAG source types (`docs/breakthroughs/` is new from session D work):
 
 ---
 
-## 5. MCP Tools (29 tools, `cos_*` prefix)
+## 5. MCP Tools (42 tools, `cos_*` prefix)
 
 | Category | Count | Tools |
 |---|---|---|
@@ -229,11 +229,12 @@ RAG source types (`docs/breakthroughs/` is new from session D work):
 | Task Store (Phase C) | 4 | `cos_task_search` · `cos_task_dependencies` · `cos_task_dependents` · `cos_task_by_filter` |
 | **Board (Phase L)** | 8 | `cos_task_create` · `cos_task_board` · `cos_task_move` · `cos_task_pick` · `cos_task_daily` · `cos_task_retro` · `cos_task_wip_check` · `cos_work_log_append` |
 | Retrieval feedback | 1 | `cos_retrieval_cite` |
+| **Cognition (Phase M+N)** | 13 | `cos_route_persona` (deprecated, v0.4 removes) · `cos_supervise` · `cos_supervise_record_output` · `cos_dispatch_formula` · `cos_ambiguity_check` · `cos_traceability` · `cos_backtrack_log` · `cos_discovery` · `cos_situation_detect` · `cos_takeover` · `cos_analyze_task` · `cos_compose_chain` · `cos_role_info` |
 | **Wrapper** | 1 | `cos server-start` (CLI command, not MCP tool — starts the server) |
 
 ---
 
-## 6. Hook System (45 shell scripts)
+## 6. Hook System (46 shell scripts)
 
 Hooks live in `core/hooks/` — symlinked into every project.
 

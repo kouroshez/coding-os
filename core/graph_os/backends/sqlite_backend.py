@@ -8,7 +8,7 @@ PURPOSE:  Implement the GraphBackend Protocol against the shared
 INPUT:    an opened sqlite3.Connection (ideally via init_db so the
           v12 migration has already applied) OR a db_path string.
 OUTPUT:   a GraphBackend-compatible object.
-DEPENDS:  sqlite3 stdlib; core/thinking-os/db.py for init_db when
+DEPENDS:  sqlite3 stdlib; core/thinking_os/db.py for init_db when
           path-based; core/graph-os/types.py for the value types.
 NOTES:    Uses its own tiny DB connection pool when path-based so
           MCP-side callers that do not share a connection still see
@@ -36,7 +36,7 @@ def _import_db_module() -> Any:
     """Locate the thinking-os db module without hardcoding a sys.path tweak.
 
     Consumers may call get_backend() from several entry points (MCP
-    server, CLI, tests) — the server already puts core/thinking-os on
+    server, CLI, tests) — the server already puts core/thinking_os on
     sys.path, but tests and CLI paths may not. This helper finds the
     right directory relative to graph-os and imports on demand.
     """
@@ -45,7 +45,7 @@ def _import_db_module() -> Any:
         return db
     except ImportError:
         graph_os_dir = Path(__file__).resolve().parent.parent
-        thinking_os_dir = graph_os_dir.parent / "thinking-os"
+        thinking_os_dir = graph_os_dir.parent / "thinking_os"
         if thinking_os_dir.exists() and str(thinking_os_dir) not in sys.path:
             sys.path.insert(0, str(thinking_os_dir))
         import db  # type: ignore  # noqa: PLC0415

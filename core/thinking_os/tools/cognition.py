@@ -1,0 +1,1178 @@
+"""
+Coding OS — Formula-agent supervisor MCP tools (Phase M).
+
+PURPOSE:      10 cos_* tools exposing the formula-agent dispatch loop to
+              the main agent: persona routing, supervisor state machine,
+              evidence bundle management, ambiguity gate, traceability,
+              backtrack logging, discovery capture, situation detection,
+              and legacy takeover bootstrap.
+INPUT:        Called by the main agent (Claude/Codex) during task execution.
+OUTPUT:       ok()/fail() envelopes per Rule 14.
+DEPENDENCIES: cognition.py, cognition_schemas.py, db.py, tools/_shared.py.
+NOTES:        All tools are wrapped in @safe_tool. Supervisor never spawns
+              agents — it only returns NextAction for the main agent to act on.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from tools._shared import fail, ok, safe_tool
+
+logger = logging.getLogger("coding_os.tools.cognition")
+
+# Lazy import of cognition — avoids circular at module load time
+def _cog():
+    import cognition as _mod
+    return _mod
+
+def _schemas():
+    import cognition_schemas as _mod
+    return _mod
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _bundle_path(session_id: str) -> Path:
+    agent_dir = Path(".coding-os") / "claude"
+    agent_dir.mkdir(parents=True, exist_ok=True)
+    return agent_dir / f"evidence_bundle_{session_id}.json"
+
+
+def _load_bundle(session_id: str, task_marker: str, persona_id: str) -> Any:
+    schemas = _schemas()
+    path = _bundle_path(session_id)
+    if path.exists():
+        try:
+            data = json.loads(path.read_text())
+            return schemas.EvidenceBundle.model_validate(data)
+        except Exception as exc:
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+            corrupt = path.with_suffix(f".corrupt-{ts}.json")
+            path.rename(corrupt)
+            logger.warning("Corrupted bundle quarantined to %s: %s", corrupt, exc)
+    return schemas.EvidenceBundle(task_marker=task_marker, persona_id=persona_id)
+
+
+def _save_bundle(session_id: str, bundle: Any) -> None:
+    path = _bundle_path(session_id)
+    path.write_text(bundle.model_dump_json(indent=2))
+
+
+# ---------------------------------------------------------------------------
+# cos_supervise
+# ---------------------------------------------------------------------------
+
+def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-history ranking
+    @mcp.tool(
+        name="cos_supervise",
+        description=(
+            "Return the next action the main agent should take: dispatch a "
+            "formula-agent, backtrack, or signal done. Call repeatedly after "
+            "recording each formula output via cos_supervise_record_output. "
+            "Never spawns agents itself — only tells the main agent what to dispatch."
+        ),
+    )
+    @safe_tool
+    def cos_supervise(
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        intensity: str = "standard",
+        situation_id: str = "",
+        phase: str = "ROUTING",
+        dispatched: str = "[]",
+        pending: str = "[]",
+        backtrack_count: int = 0,
+    ) -> str:
+        """
+        PURPOSE:      Deterministic supervisor state machine — returns NextAction.
+        INPUT:        Current state serialised as flat args (avoids nested JSON).
+        OUTPUT:       NextAction envelope.
+        DEPENDENCIES: cognition.advance, EvidenceBundle from disk.
+        """
+        cog = _cog()
+        schemas = _schemas()
+
+        state = schemas.SupervisorState(
+            session_id=session_id,
+            task_marker=task_marker,
+            persona_id=persona_id,
+            intensity=intensity,
+            situation_id=situation_id or None,
+            phase=phase,
+            dispatched=json.loads(dispatched),
+            pending=json.loads(pending),
+            backtrack_count=backtrack_count,
+        )
+        bundle = _load_bundle(session_id, task_marker, persona_id)
+        action = cog.advance(state, bundle)
+
+        # Phase N — emit trace event for every supervisor transition
+        try:
+            import tracing
+            event_kind = "supervise_action"
+            if action.action == "dispatch":
+                event_kind = "role_dispatch"
+            elif action.action == "dispatch_parallel":
+                event_kind = "parallel_dispatch"
+            elif action.action == "backtrack":
+                event_kind = "backtrack"
+            elif action.action == "done":
+                event_kind = "task_done"
+            tracing.emit(session_id, event_kind, {
+                "action": action.action,
+                "formula": action.formula,
+                "formulas": action.formulas,
+                "reason": action.reason,
+                "phase": state.phase,
+                "dispatched_count": len(state.dispatched),
+                "backtrack_count": state.backtrack_count,
+            }, role=action.formula, phase=state.phase)
+        except Exception:
+            pass
+
+        return ok(
+            {
+                "action": action.action,
+                "formula": action.formula,
+                "formulas": action.formulas,
+                "agent_file": action.agent_file,
+                "reason": action.reason,
+                "advisory": action.advisory,
+                "state": {
+                    "phase": state.phase,
+                    "dispatched": state.dispatched,
+                    "pending": state.pending,
+                    "backtrack_count": state.backtrack_count,
+                },
+            },
+            meta={"layer": "routing", "source": "supervisor"},
+        )
+
+    return cos_supervise
+
+
+# ---------------------------------------------------------------------------
+# cos_supervise_record_output
+# ---------------------------------------------------------------------------
+
+def register_cos_supervise_record_output(mcp, db_path):
+    @mcp.tool(
+        name="cos_supervise_record_output",
+        description=(
+            "Append a formula-agent's output to the session EvidenceBundle "
+            "and record the dispatch in formula_dispatches. Call after each "
+            "formula-agent returns. status: ok|fail|timeout."
+        ),
+    )
+    @safe_tool
+    def cos_supervise_record_output(
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        formula_id: str,
+        output_json: str,
+        status: str = "ok",
+        latency_ms: int = 0,
+    ) -> str:
+        """
+        PURPOSE:      Append formula output to EvidenceBundle; write dispatch row.
+        INPUT:        session_id, formula_id, output_json (serialised F<N>Output), status.
+        OUTPUT:       ok with bundle field count.
+        DEPENDENCIES: EvidenceBundle on disk, formula_dispatches table.
+        """
+        schemas = _schemas()
+        bundle = _load_bundle(session_id, task_marker, persona_id)
+
+        field_map = {
+            "F1": "F1_research", "F2": "F2_decompose", "F3": "F3_architect",
+            "F4": "F4_document", "F5": "F5_implement", "F6": "F6_test_review",
+            "F7": "F7_debug", "F8": "F8_security", "F9": "F9_deploy",
+            "F10": "F10_monitor", "F11": "F11_refactor",
+        }
+        output_cls_map = {
+            "F1": schemas.F1Output, "F2": schemas.F2Output, "F3": schemas.F3Output,
+            "F4": schemas.F4Output, "F5": schemas.F5Output, "F6": schemas.F6Output,
+            "F7": schemas.F7Output, "F8": schemas.F8Output, "F9": schemas.F9Output,
+            "F10": schemas.F10Output, "F11": schemas.F11Output,
+        }
+
+        field = field_map.get(formula_id)
+        cls = output_cls_map.get(formula_id)
+        if field and cls and status == "ok":
+            try:
+                parsed = cls.model_validate_json(output_json)
+                setattr(bundle, field, parsed)
+            except Exception as exc:
+                logger.warning("Failed to parse %s output: %s", formula_id, exc)
+                bundle.degraded_formulas.append(formula_id)
+                status = "fail"
+        elif status == "timeout":
+            bundle.degraded_formulas.append(formula_id)
+
+        _save_bundle(session_id, bundle)
+
+        output_hash = hashlib.sha256(output_json.encode()).hexdigest()[:16]
+        input_hash = hashlib.sha256(f"{session_id}:{formula_id}".encode()).hexdigest()[:16]
+
+        try:
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "INSERT INTO formula_dispatches "
+                    "(session_id, task_marker, persona_id, formula_id, input_hash, "
+                    "output_hash, latency_ms, status, ts) VALUES (?,?,?,?,?,?,?,?,?)",
+                    (session_id, task_marker, persona_id, formula_id, input_hash,
+                     output_hash, latency_ms, status, _now_iso()),
+                )
+        except Exception as exc:
+            logger.debug("formula_dispatches insert failed: %s", exc)
+
+        filled = sum(
+            1 for f in field_map if getattr(bundle, field_map[f], None) is not None
+        )
+        # Phase N — emit trace event so the flowchart replay knows a role completed
+        try:
+            import tracing
+            tracing.emit(session_id, "role_output_recorded", {
+                "formula_id": formula_id,
+                "status": status,
+                "latency_ms": latency_ms,
+                "output_hash": output_hash,
+                "bundle_fields_filled": filled,
+            }, role=formula_id)
+        except Exception:
+            pass   # tracing must never break caller
+        return ok(
+            {"formula_id": formula_id, "status": status, "bundle_fields_filled": filled},
+            meta={"layer": "routing"},
+        )
+
+    return cos_supervise_record_output
+
+
+# ---------------------------------------------------------------------------
+# cos_dispatch_formula
+# ---------------------------------------------------------------------------
+
+def register_cos_dispatch_formula(mcp, db_path):  # noqa: ARG001 — reserved for future dispatch logging
+    @mcp.tool(
+        name="cos_dispatch_formula",
+        description=(
+            "Return the rendered agent prompt and input slice for a formula-agent. "
+            "The main agent uses this to construct the subagent dispatch. "
+            "Does NOT spawn the subagent — returns prompt text only."
+        ),
+    )
+    @safe_tool
+    def cos_dispatch_formula(
+        formula_id: str,
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        intensity: str = "standard",
+    ) -> str:
+        """
+        PURPOSE:      Build the dispatch prompt for formula_id from the agent file.
+        INPUT:        formula_id (F1..F11), current session state.
+        OUTPUT:       {agent_file, prompt_text, input_slice}.
+        DEPENDENCIES: load_agent_registry, EvidenceBundle on disk.
+        """
+        cog = _cog()
+        agents = cog.load_agent_registry()
+        meta = agents.get(formula_id)
+        if not meta:
+            return fail("not_found", f"No agent file for formula {formula_id}")
+
+        agent_file = f"core/thinking_os/agents/{meta['_file']}"
+        agent_path = Path(__file__).resolve().parent.parent / "agents" / meta["_file"]
+        prompt_text = agent_path.read_text() if agent_path.exists() else ""
+
+        bundle = _load_bundle(session_id, task_marker, persona_id)
+        input_slice = cog.build_input_slice(formula_id, bundle)
+        input_slice["intensity_steps"] = cog._intensity_steps(formula_id, intensity)
+
+        return ok(
+            {
+                "formula_id": formula_id,
+                "agent_file": agent_file,
+                "prompt_text": prompt_text,
+                "input_slice": input_slice,
+                "timeout_s": meta.get("timeout_s", 90),
+                "model_pref": meta.get("model_pref", {}),
+            },
+            meta={"layer": "routing"},
+        )
+
+    return cos_dispatch_formula
+
+
+# ---------------------------------------------------------------------------
+# cos_ambiguity_check
+# ---------------------------------------------------------------------------
+
+def register_cos_ambiguity_check(mcp, db_path):
+    @mcp.tool(
+        name="cos_ambiguity_check",
+        description=(
+            "Run the 7-criteria Anti-Ambiguity gate over the session EvidenceBundle. "
+            "Returns violations (formula, criterion, detail). Empty list = gate passes. "
+            "Fires once at PLAN→EXECUTE; CLEAR 1 tasks skip this check."
+        ),
+    )
+    @safe_tool
+    def cos_ambiguity_check(
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+    ) -> str:
+        """
+        PURPOSE:      Verify bundle satisfies 7-criteria gate; record violations.
+        INPUT:        session_id identifies the bundle on disk.
+        OUTPUT:       {violations: [...], passed: bool}.
+        DEPENDENCIES: cognition.ambiguity_check, ambiguity_violations table.
+        """
+        cog = _cog()
+        bundle = _load_bundle(session_id, task_marker, persona_id)
+        violations = cog.ambiguity_check(bundle)
+
+        if violations:
+            try:
+                with sqlite3.connect(db_path) as conn:
+                    for v in violations:
+                        conn.execute(
+                            "INSERT INTO ambiguity_violations "
+                            "(session_id, formula_id, criterion, detail, ts) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            (session_id, v["formula"], v["criterion"],
+                             v.get("detail", ""), _now_iso()),
+                        )
+            except Exception as exc:
+                logger.debug("ambiguity_violations insert failed: %s", exc)
+
+        return ok(
+            {"violations": violations, "passed": len(violations) == 0},
+            meta={"layer": "routing"},
+        )
+
+    return cos_ambiguity_check
+
+
+# ---------------------------------------------------------------------------
+# cos_traceability
+# ---------------------------------------------------------------------------
+
+def register_cos_traceability(mcp, db_path):
+    @mcp.tool(
+        name="cos_traceability",
+        description=(
+            "Read-only audit: verify that tasks have doc anchors and that "
+            "recent formula dispatches have matching evidence in the bundle. "
+            "Idempotent and non-blocking. scope: task|project."
+        ),
+    )
+    @safe_tool
+    def cos_traceability(
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        scope: str = "task",
+    ) -> str:
+        """
+        PURPOSE:      Top-to-bottom traceability audit (read-only).
+        INPUT:        session_id, scope (task|project).
+        OUTPUT:       {gaps: [...], redundancies: [...], score: float}.
+        DEPENDENCIES: formula_dispatches table, EvidenceBundle.
+        """
+        gaps = []
+        bundle = _load_bundle(session_id, task_marker, persona_id)
+        field_map = {
+            "F1": "F1_research", "F2": "F2_decompose", "F3": "F3_architect",
+            "F4": "F4_document", "F5": "F5_implement", "F6": "F6_test_review",
+        }
+
+        try:
+            with sqlite3.connect(db_path) as conn:
+                rows = conn.execute(
+                    "SELECT formula_id, status FROM formula_dispatches "
+                    "WHERE session_id=? ORDER BY ts",
+                    (session_id,),
+                ).fetchall()
+        except Exception:
+            rows = []
+
+        dispatched_ids = {r[0] for r in rows if r[1] == "ok"}
+        for fid, field in field_map.items():
+            if fid in dispatched_ids and getattr(bundle, field, None) is None:
+                gaps.append({"formula": fid, "detail": "dispatched but no output in bundle"})
+
+        total = len(dispatched_ids)
+        score = 1.0 if total == 0 else (total - len(gaps)) / total
+
+        return ok(
+            {"gaps": gaps, "redundancies": [], "score": round(score, 2), "scope": scope},
+            meta={"layer": "routing"},
+        )
+
+    return cos_traceability
+
+
+# ---------------------------------------------------------------------------
+# cos_backtrack_log
+# ---------------------------------------------------------------------------
+
+def register_cos_backtrack_log(mcp, db_path):
+    @mcp.tool(
+        name="cos_backtrack_log",
+        description=(
+            "Record a backtrack event and return the Anti-Paralysis advisory "
+            "if the session count threshold is reached (≥3 = warning, ≥5 = strong)."
+        ),
+    )
+    @safe_tool
+    def cos_backtrack_log(
+        session_id: str,
+        from_formula: str,
+        to_formula: str,
+        reason: str,
+        task_marker: str = "",   # reserved for future per-task backtrack analytics
+        persona_id: str = "",    # reserved for future per-persona backtrack analytics
+    ) -> str:
+        """
+        PURPOSE:      Persist backtrack event; compute Anti-Paralysis advisory.
+        INPUT:        session_id, from/to formula ids, reason.
+        OUTPUT:       {count, advisory}.
+        DEPENDENCIES: backtrack_events table.
+        """
+        try:
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "INSERT INTO backtrack_events "
+                    "(session_id, from_formula, to_formula, reason, ts) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (session_id, from_formula, to_formula, reason, _now_iso()),
+                )
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM backtrack_events WHERE session_id=?",
+                    (session_id,),
+                ).fetchone()[0]
+        except Exception as exc:
+            return fail("internal", f"backtrack_log failed: {exc}")
+
+        advisory = ""
+        if count >= 5:
+            advisory = (
+                f"Anti-Paralysis: {count} backtracks this session. "
+                "Consider narrowing task scope or raising intensity level."
+            )
+        elif count >= 3:
+            advisory = (
+                f"Anti-Paralysis: {count} backtracks. Review scope if pattern continues."
+            )
+
+        # Phase N — emit trace event for replay
+        try:
+            import tracing
+            tracing.emit(session_id, "backtrack", {
+                "from": from_formula, "to": to_formula,
+                "reason": reason, "count": count,
+            }, role=from_formula)
+            if advisory:
+                tracing.emit(session_id, "anti_paralysis_warn", {
+                    "count": count, "advisory": advisory,
+                })
+        except Exception:
+            pass
+
+        return ok({"count": count, "advisory": advisory}, meta={"layer": "routing"})
+
+    return cos_backtrack_log
+
+
+# ---------------------------------------------------------------------------
+# cos_discovery
+# ---------------------------------------------------------------------------
+
+def register_cos_discovery(mcp, db_path):
+    @mcp.tool(
+        name="cos_discovery",
+        description=(
+            "Capture a mid-work discovery. decision=backtrack_now triggers an "
+            "immediate backtrack recommendation. decision=record_for_later stores "
+            "the discovery for session summary review."
+        ),
+    )
+    @safe_tool
+    def cos_discovery(
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        kind: str,
+        summary: str,
+        impact_assessment: str,
+        decision: str,
+    ) -> str:
+        """
+        PURPOSE:      Capture new facts discovered mid-work.
+        INPUT:        kind, summary, impact_assessment, decision (backtrack_now|record_for_later).
+        OUTPUT:       {stored, action_required}.
+        DEPENDENCIES: observations table (via db insert), EvidenceBundle.
+        """
+        if decision not in ("backtrack_now", "record_for_later"):
+            return fail("validation", "decision must be backtrack_now or record_for_later")
+
+        bundle = _load_bundle(session_id, task_marker, persona_id)
+        schemas = _schemas()
+        disc = schemas.Discovery(
+            kind=kind,
+            summary=summary,
+            impact_assessment=impact_assessment,
+            decision=decision,
+            ts=_now_iso(),
+        )
+        bundle.discoveries.append(disc)
+        _save_bundle(session_id, bundle)
+
+        # Also store as observation for session_summary to surface
+        try:
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "INSERT INTO observations (session_id, kind, content, ts) "
+                    "VALUES (?, ?, ?, ?)",
+                    (session_id, f"discovery:{kind}",
+                     json.dumps({"summary": summary, "impact": impact_assessment,
+                                  "decision": decision}),
+                     _now_iso()),
+                )
+        except Exception as exc:
+            logger.debug("observation insert failed: %s", exc)
+
+        return ok(
+            {"stored": True, "action_required": decision == "backtrack_now"},
+            meta={"layer": "routing"},
+        )
+
+    return cos_discovery
+
+
+# ---------------------------------------------------------------------------
+# cos_situation_detect
+# ---------------------------------------------------------------------------
+
+def register_cos_situation_detect(mcp, db_path):  # noqa: ARG001 — reserved for learned situation overrides
+    @mcp.tool(
+        name="cos_situation_detect",
+        description=(
+            "Classify a set of signals into a situational dispatch chain id "
+            "(incident-response, onboarding, scope-change, external-integration, "
+            "design-review, existing-project-takeover) or null if none match. "
+            "The matched situation overrides persona primary_formulas."
+        ),
+    )
+    @safe_tool
+    def cos_situation_detect(signals: str = "[]") -> str:
+        """
+        PURPOSE:      Match signal set to situation registry.
+        INPUT:        signals — JSON array of string signal names.
+        OUTPUT:       {situation_id, matched_signals} or {situation_id: null}.
+        DEPENDENCIES: cognition.load_situation_registry.
+        """
+        cog = _cog()
+        signal_set = set(json.loads(signals))
+        situations = cog.load_situation_registry()
+
+        for sit_id, sit in situations.items():
+            triggers = set(sit.get("trigger_signals", []))
+            matched = signal_set & triggers
+            if matched:
+                return ok(
+                    {"situation_id": sit_id, "matched_signals": list(matched)},
+                    meta={"layer": "routing"},
+                )
+
+        return ok({"situation_id": None, "matched_signals": []}, meta={"layer": "routing"})
+
+    return cos_situation_detect
+
+
+# ---------------------------------------------------------------------------
+# cos_takeover
+# ---------------------------------------------------------------------------
+
+def register_cos_takeover(mcp, db_path):  # noqa: ARG001 — reserved for takeover session persistence
+    @mcp.tool(
+        name="cos_takeover",
+        description=(
+            "Bootstrap an existing-project-takeover session: sets the situation "
+            "to existing-project-takeover, picks legacy-maintainer persona, "
+            "and returns the first dispatch action (F2 in reverse mode). "
+            "Use when inheriting a legacy repo with no docs."
+        ),
+    )
+    @safe_tool
+    def cos_takeover(
+        session_id: str,
+        task_marker: str,
+        repo_description: str = "",  # reserved for F1 pre-seeding in future slice
+    ) -> str:
+        """
+        PURPOSE:      Bootstrap takeover flow for legacy/inherited repos.
+        INPUT:        session_id, task_marker, optional repo_description.
+        OUTPUT:       {persona_id, situation_id, first_action}.
+        DEPENDENCIES: cos_situation_detect logic + situations/registry.yaml.
+        """
+        cog = _cog()
+        schemas = _schemas()
+
+        persona_id = "legacy-maintainer"
+        situation_id = "existing-project-takeover"
+
+        bundle = schemas.EvidenceBundle(
+            task_marker=task_marker,
+            persona_id=persona_id,
+            situation_id=situation_id,
+            intensity="full",
+        )
+        _save_bundle(session_id, bundle)
+
+        state = schemas.SupervisorState(
+            session_id=session_id,
+            task_marker=task_marker,
+            persona_id=persona_id,
+            intensity="full",
+            situation_id=situation_id,
+            phase="ROUTING",
+        )
+        first_action = cog.advance(state, bundle)
+
+        return ok(
+            {
+                "persona_id": persona_id,
+                "situation_id": situation_id,
+                "first_action": {
+                    "action": first_action.action,
+                    "formula": first_action.formula,
+                    "agent_file": first_action.agent_file,
+                    "reason": first_action.reason,
+                },
+            },
+            meta={"layer": "routing"},
+        )
+
+    return cos_takeover
+
+
+# ---------------------------------------------------------------------------
+# Registration entry point
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Phase N — Role-based cognitive routing
+# Spec: docs/phase-n-role-based-routing-plan.md §2.6
+# ---------------------------------------------------------------------------
+
+def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for metric persistence
+    @mcp.tool(
+        name="cos_analyze_task",
+        description=(
+            "Extract TaskSignals (domain, action, novelty, urgency, scope, "
+            "external_dependency, is_takeover, breaking_change, ...) from a "
+            "prompt + optional memory/graph context. Replaces Phase M persona "
+            "keyword matching. Under 500ms; cached per task_marker."
+        ),
+    )
+    @safe_tool
+    def cos_analyze_task(
+        prompt: str,
+        task_marker: str = "",
+        complexity: str = "COMPLICATED",
+        dimensions: int = 1,
+        project_dir: str = "",
+        session_id: str = "",
+    ) -> str:
+        """
+        PURPOSE:      Task analyzer MCP wrapper — returns TaskSignals.
+        INPUT:        prompt, optional task_marker, complexity, dimensions,
+                      project_dir, session_id (for trace correlation).
+        OUTPUT:       {signals: TaskSignals dict, extraction_ms, source_errors}.
+        DEPENDENCIES: task_analyzer.analyze_task (<500ms budget), tracing.emit.
+        NOTES:        Emits analyze_start + analyze_done events on the session's
+                      trace stream so the flowchart node n-analyzer shows as
+                      visited in replay.
+        """
+        import task_analyzer  # lazy
+        import tracing
+        agent_dir = Path(".coding-os") / "claude"
+        pd = Path(project_dir) if project_dir else Path.cwd()
+        sid = session_id or "anon"
+        tracing.emit(sid, "analyze_start", {
+            "prompt_len": len(prompt),
+            "task_marker": task_marker,
+            "complexity": complexity,
+            "dimensions": dimensions,
+        })
+        signals = task_analyzer.analyze_task(
+            prompt=prompt,
+            task_marker=task_marker or None,
+            complexity=complexity,
+            dimensions=dimensions,
+            agent_dir=agent_dir,
+            project_dir=pd,
+        )
+        tracing.emit(sid, "analyze_done", {
+            "action": signals.action,
+            "domain": signals.domain,
+            "urgency": signals.urgency,
+            "scope_size": signals.scope_size,
+            "external_dependency": signals.external_dependency,
+            "is_takeover": signals.is_takeover,
+            "breaking_change": signals.breaking_change,
+            "extraction_ms": signals.extraction_ms,
+            "source_errors": signals.source_errors,
+        })
+        return ok(
+            signals.model_dump(),
+            meta={"layer": "routing", "source": "task_analyzer"},
+        )
+
+    return cos_analyze_task
+
+
+def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for preset-version audit log
+    @mcp.tool(
+        name="cos_compose_chain",
+        description=(
+            "Compose an ordered formula-role chain (F1..F11) from TaskSignals. "
+            "Strategy: situation override > preset match > per-role scoring "
+            "composer > hard fallback. Returns ComposedChain with provenance "
+            "(preset_id, preset_version, effective_threshold, activations)."
+        ),
+    )
+    @safe_tool
+    def cos_compose_chain(
+        signals_json: str,
+        situation_id: str = "",
+        preset_min_score: int = -1,
+        session_id: str = "",
+    ) -> str:
+        """
+        PURPOSE:      Composer MCP wrapper — returns ComposedChain.
+        INPUT:        signals_json (TaskSignals serialised), situation_id,
+                      preset_min_score (-1 = config default), session_id
+                      (trace correlation).
+        OUTPUT:       ComposedChain dict with full provenance.
+        DEPENDENCIES: formula_composer.compose_chain, tracing.emit.
+        NOTES:        Emits one of preset_matched / situation_override /
+                      composer_fallback / hard_fallback plus compose_done so
+                      replay knows exactly which branch fired.
+        """
+        import formula_composer  # lazy
+        import tracing
+        schemas = _schemas()
+        signals = schemas.TaskSignals.model_validate_json(signals_json)
+        chain = formula_composer.compose_chain(
+            signals=signals,
+            situation_id=situation_id or None,
+            preset_min_score=None if preset_min_score < 0 else preset_min_score,
+        )
+        sid = session_id or "anon"
+        # Branch-specific event so replay knows which path fired
+        if chain.source == "preset":
+            tracing.emit(sid, "preset_matched", {
+                "preset_id": chain.preset_id,
+                "preset_version": chain.preset_version,
+                "chain": chain.chain,
+                "effective_threshold": chain.effective_threshold,
+            })
+        elif chain.source == "situation":
+            tracing.emit(sid, "situation_override", {
+                "situation_id": chain.situation_id,
+                "chain": chain.chain,
+            })
+        elif chain.source == "composer":
+            tracing.emit(sid, "composer_fallback", {
+                "chain": chain.chain,
+                "activations": [a.model_dump() for a in chain.activations],
+            })
+        else:
+            tracing.emit(sid, "hard_fallback", {
+                "chain": chain.chain,
+                "reason": chain.reason,
+            })
+        tracing.emit(sid, "compose_done", {
+            "chain": chain.chain,
+            "source": chain.source,
+            "preset_id": chain.preset_id,
+        })
+        return ok(
+            chain.model_dump(),
+            meta={"layer": "routing", "source": "formula_composer"},
+        )
+
+    return cos_compose_chain
+
+
+def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-health readout
+    @mcp.tool(
+        name="cos_role_info",
+        description=(
+            "Return metadata for a formula-role (F1..F11): prompt_prefix, "
+            "tools_budget, intensity_steps, backtrack_triggers, "
+            "criteria_required. Useful for the main agent before dispatch."
+        ),
+    )
+    @safe_tool
+    def cos_role_info(role_id: str) -> str:
+        """
+        PURPOSE:      Expose role YAML metadata over MCP.
+        INPUT:        role_id (F1..F11).
+        OUTPUT:       Role metadata dict minus raw yaml noise.
+        DEPENDENCIES: formula_composer.load_roles.
+        """
+        import formula_composer  # lazy
+        roles = formula_composer.load_roles()
+        role = roles.get(role_id)
+        if role is None:
+            return fail("not_found", f"unknown role_id: {role_id}")
+        keep = {
+            k: role.get(k) for k in (
+                "id", "role_name", "formula_ref", "agent_file",
+                "intensity_steps", "tools_budget", "max_tokens_in",
+                "max_tokens_out", "timeout_s", "model_pref",
+                "backtrack_triggers", "criteria_required",
+                "prompt_prefix", "parallel_dispatch",
+            ) if k in role
+        }
+        return ok(keep, meta={"layer": "routing", "source": "role_registry"})
+
+    return cos_role_info
+
+
+# ---------------------------------------------------------------------------
+# cos_dispatch_formula_run — Phase N.SDK real-dispatch tool
+# ---------------------------------------------------------------------------
+
+def _persist_dispatch_output(
+    *, session_id: str, task_marker: str, persona_id: str,
+    formula_id: str, output_json: dict, status: str, latency_ms: int,
+    db_path: str,
+) -> int:
+    """
+    PURPOSE:      Merge dispatcher output into the EvidenceBundle and log
+                  the dispatch row, mirroring cos_supervise_record_output.
+    OUTPUT:       Number of bundle fields now populated.
+    NOTES:        Shared between run-single and run-parallel tools so the
+                  record-output contract stays identical.
+    """
+    schemas = _schemas()
+    bundle = _load_bundle(session_id, task_marker, persona_id)
+    field_map = {
+        "F1": "F1_research", "F2": "F2_decompose", "F3": "F3_architect",
+        "F4": "F4_document", "F5": "F5_implement", "F6": "F6_test_review",
+        "F7": "F7_debug", "F8": "F8_security", "F9": "F9_deploy",
+        "F10": "F10_monitor", "F11": "F11_refactor",
+    }
+    output_cls_map = {
+        "F1": schemas.F1Output, "F2": schemas.F2Output, "F3": schemas.F3Output,
+        "F4": schemas.F4Output, "F5": schemas.F5Output, "F6": schemas.F6Output,
+        "F7": schemas.F7Output, "F8": schemas.F8Output, "F9": schemas.F9Output,
+        "F10": schemas.F10Output, "F11": schemas.F11Output,
+    }
+    field = field_map.get(formula_id)
+    cls = output_cls_map.get(formula_id)
+    if field and cls and status == "ok":
+        try:
+            parsed = cls.model_validate(output_json)
+            setattr(bundle, field, parsed)
+        except Exception as exc:
+            logger.warning(
+                "Failed to validate %s output against schema: %s", formula_id, exc,
+            )
+            bundle.degraded_formulas.append(formula_id)
+            status = "fail"
+    elif status == "timeout":
+        bundle.degraded_formulas.append(formula_id)
+
+    _save_bundle(session_id, bundle)
+
+    raw = json.dumps(output_json, sort_keys=True, default=str).encode()
+    output_hash = hashlib.sha256(raw).hexdigest()[:16]
+    input_hash = hashlib.sha256(f"{session_id}:{formula_id}".encode()).hexdigest()[:16]
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "INSERT INTO formula_dispatches "
+                "(session_id, task_marker, persona_id, formula_id, input_hash, "
+                "output_hash, latency_ms, status, ts) VALUES (?,?,?,?,?,?,?,?,?)",
+                (session_id, task_marker, persona_id, formula_id, input_hash,
+                 output_hash, latency_ms, status, _now_iso()),
+            )
+    except Exception as exc:
+        logger.debug("formula_dispatches insert failed: %s", exc)
+
+    return sum(
+        1 for f in field_map if getattr(bundle, field_map[f], None) is not None
+    )
+
+
+def _build_dispatch_request(
+    formula_id: str, session_id: str, task_marker: str,
+    persona_id: str, intensity: str, timeout_s: float | None,
+):
+    """Build a DispatchRequest from session state (shared by run-one and run-parallel)."""
+    import dispatcher as _disp  # lazy: dispatcher module lives alongside server
+    cog = _cog()
+    agents = cog.load_agent_registry()
+    meta = agents.get(formula_id) or {}
+    agent_file_rel = f"core/thinking_os/agents/{meta.get('_file', f'{formula_id}.md')}"
+    agent_path = Path(__file__).resolve().parent.parent / "agents" / meta.get("_file", "")
+    prompt_text = agent_path.read_text() if agent_path.exists() else ""
+
+    bundle = _load_bundle(session_id, task_marker, persona_id)
+    input_slice = cog.build_input_slice(formula_id, bundle)
+    input_slice["intensity_steps"] = cog._intensity_steps(formula_id, intensity)
+
+    return _disp.DispatchRequest(
+        formula_id=formula_id,
+        agent_file=str(agent_path if agent_path.exists() else agent_file_rel),
+        prompt=prompt_text,
+        input_slice=input_slice,
+        persona_id=persona_id,
+        intensity=intensity if intensity in ("light", "standard", "full") else "standard",
+        timeout_s=float(timeout_s) if timeout_s else float(meta.get("timeout_s", 300)),
+        session_id=session_id,
+    )
+
+
+def register_cos_dispatch_formula_run(mcp, db_path):
+    @mcp.tool(
+        name="cos_dispatch_formula_run",
+        description=(
+            "Actually spawn a formula-agent and persist its output. Uses the "
+            "agent-specific dispatcher (Claude→claude-agent-sdk, others→default). "
+            "Returns DispatchResult. If no SDK is available, returns status='skipped' "
+            "and the main agent must execute the formula inline (Phase M fallback)."
+        ),
+    )
+    @safe_tool
+    def cos_dispatch_formula_run(
+        formula_id: str,
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        intensity: str = "standard",
+        timeout_s: float | None = None,
+    ) -> str:
+        """
+        PURPOSE:      Sync wrapper that runs dispatcher.dispatch() in its own
+                      event loop and persists the EvidenceBundle slice on ok.
+        INPUT:        formula_id, session state, optional timeout override.
+        OUTPUT:       {status, formula_id, output_json, latency_ms, error,
+                      dispatcher_name, bundle_fields_filled}.
+        DEPENDENCIES: dispatcher.get_dispatcher() (picks SDK vs default at runtime).
+        NOTES:        MCP tools are sync; we use asyncio.run in a helper thread
+                      to avoid nested-loop issues when the server itself is async.
+        """
+        import asyncio as _asyncio
+        import dispatcher as _disp
+
+        try:
+            req = _build_dispatch_request(
+                formula_id, session_id, task_marker,
+                persona_id, intensity, timeout_s,
+            )
+        except Exception as exc:
+            return fail("validation", f"failed to build request: {exc}")
+
+        d = _disp.get_dispatcher()
+
+        try:
+            result = _asyncio.run(d.dispatch(req))
+        except RuntimeError as exc:
+            # Nested loop — fall back to a fresh thread-owned loop
+            if "already running" in str(exc):
+                import threading
+                box: dict = {}
+                def _runner():
+                    loop = _asyncio.new_event_loop()
+                    try:
+                        box["result"] = loop.run_until_complete(d.dispatch(req))
+                    finally:
+                        loop.close()
+                t = threading.Thread(target=_runner, daemon=True)
+                t.start()
+                t.join(timeout=req.timeout_s + 10)
+                if "result" not in box:
+                    return fail("transient", "dispatcher thread did not return")
+                result = box["result"]
+            else:
+                return fail("internal", f"asyncio.run failed: {exc}")
+
+        filled = 0
+        if result.status in ("ok", "timeout") and result.output_json:
+            filled = _persist_dispatch_output(
+                session_id=session_id, task_marker=task_marker,
+                persona_id=persona_id, formula_id=formula_id,
+                output_json=result.output_json, status=result.status,
+                latency_ms=result.latency_ms, db_path=db_path,
+            )
+
+        return ok(
+            {
+                "status": result.status,
+                "formula_id": result.formula_id,
+                "dispatcher_name": result.dispatcher_name,
+                "latency_ms": result.latency_ms,
+                "output_json": result.output_json,
+                "error": result.error,
+                "bundle_fields_filled": filled,
+            },
+            meta={"layer": "dispatch"},
+        )
+
+    return cos_dispatch_formula_run
+
+
+def register_cos_dispatch_parallel_run(mcp, db_path):
+    @mcp.tool(
+        name="cos_dispatch_parallel_run",
+        description=(
+            "Spawn multiple formula-agents concurrently via asyncio.gather. "
+            "Use when the supervisor returns action='dispatch_parallel' "
+            "(e.g. F8 security layers). Each output is persisted to the bundle. "
+            "Returns list of DispatchResults in input order."
+        ),
+    )
+    @safe_tool
+    def cos_dispatch_parallel_run(
+        formula_ids: list[str],
+        session_id: str,
+        task_marker: str,
+        persona_id: str,
+        intensity: str = "standard",
+        timeout_s: float | None = None,
+    ) -> str:
+        """
+        PURPOSE:      Parallel-dispatch N formulas and persist each output.
+        OUTPUT:       {results: [...], parallel_wall_ms, ok_count, total}.
+        """
+        import asyncio as _asyncio
+        import dispatcher as _disp
+
+        if not formula_ids:
+            return fail("validation", "formula_ids must be non-empty")
+
+        try:
+            requests = [
+                _build_dispatch_request(
+                    fid, session_id, task_marker, persona_id, intensity, timeout_s,
+                )
+                for fid in formula_ids
+            ]
+        except Exception as exc:
+            return fail("validation", f"failed to build requests: {exc}")
+
+        d = _disp.get_dispatcher()
+
+        async def _gather_all():
+            return await _asyncio.gather(
+                *(d.dispatch(req) for req in requests),
+                return_exceptions=True,
+            )
+
+        import time as _time
+        t0 = _time.monotonic()
+        try:
+            gathered = _asyncio.run(_gather_all())
+        except RuntimeError:
+            # Nested-loop fallback: run in a dedicated thread with fresh loop
+            import threading
+            box: dict = {}
+            def _runner():
+                loop = _asyncio.new_event_loop()
+                try:
+                    box["result"] = loop.run_until_complete(_gather_all())
+                finally:
+                    loop.close()
+            t = threading.Thread(target=_runner, daemon=True)
+            t.start()
+            deadline = max(req.timeout_s for req in requests) + 10
+            t.join(timeout=deadline)
+            gathered = box.get("result", [])
+        wall_ms = int((_time.monotonic() - t0) * 1000)
+
+        results = []
+        ok_count = 0
+        for req, outcome in zip(requests, gathered):
+            if isinstance(outcome, Exception):
+                results.append({
+                    "status": "error", "formula_id": req.formula_id,
+                    "error": f"{type(outcome).__name__}: {outcome}",
+                    "dispatcher_name": d.name, "latency_ms": 0,
+                    "output_json": {}, "bundle_fields_filled": 0,
+                })
+                continue
+            filled = 0
+            if outcome.status == "ok" and outcome.output_json:
+                filled = _persist_dispatch_output(
+                    session_id=session_id, task_marker=task_marker,
+                    persona_id=persona_id, formula_id=outcome.formula_id,
+                    output_json=outcome.output_json, status=outcome.status,
+                    latency_ms=outcome.latency_ms, db_path=db_path,
+                )
+                ok_count += 1
+            results.append({
+                "status": outcome.status,
+                "formula_id": outcome.formula_id,
+                "dispatcher_name": outcome.dispatcher_name,
+                "latency_ms": outcome.latency_ms,
+                "output_json": outcome.output_json,
+                "error": outcome.error,
+                "bundle_fields_filled": filled,
+            })
+
+        return ok(
+            {
+                "results": results,
+                "parallel_wall_ms": wall_ms,
+                "ok_count": ok_count,
+                "total": len(results),
+            },
+            meta={"layer": "dispatch"},
+        )
+
+    return cos_dispatch_parallel_run
+
+
+def register_all(mcp, db_path: str) -> None:
+    """Register all 14 cognition tools with the MCP server (9 Phase M + 3 Phase N + 2 Phase N.SDK).
+    cos_route_persona was removed in v0.3 — use cos_compose_chain instead."""
+    # Phase M
+    register_cos_supervise(mcp, db_path)
+    register_cos_supervise_record_output(mcp, db_path)
+    register_cos_dispatch_formula(mcp, db_path)
+    register_cos_ambiguity_check(mcp, db_path)
+    register_cos_traceability(mcp, db_path)
+    register_cos_backtrack_log(mcp, db_path)
+    register_cos_discovery(mcp, db_path)
+    register_cos_situation_detect(mcp, db_path)
+    register_cos_takeover(mcp, db_path)
+    # Phase N additions
+    register_cos_analyze_task(mcp, db_path)
+    register_cos_compose_chain(mcp, db_path)
+    register_cos_role_info(mcp, db_path)
+    # Phase N.SDK — real dispatch
+    register_cos_dispatch_formula_run(mcp, db_path)
+    register_cos_dispatch_parallel_run(mcp, db_path)

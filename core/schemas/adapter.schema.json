@@ -100,6 +100,35 @@
           }
         }
       }
+    },
+    "mcp_helper": {
+      "type": ["string", "null"],
+      "description": "Optional helper script (relative to adapters/<id>/) used by cli/main.py when wiring the MCP launch config for this agent. Absent means no helper is needed."
+    },
+    "mcp_launch": {
+      "type": "object",
+      "description": "Data-driven metadata for cli/doctor.py::_load_coding_os_mcp_launch. Lets the C15 check locate and parse the per-agent MCP config without hardcoded adapter-name literals.",
+      "required": ["loader", "config_paths"],
+      "additionalProperties": false,
+      "properties": {
+        "loader": {
+          "type": "string",
+          "enum": ["claude_json", "codex_toml"],
+          "description": "Which parser in cli/doctor.py handles this adapter's MCP config format."
+        },
+        "config_paths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["scope", "path"],
+            "additionalProperties": false,
+            "properties": {
+              "scope": {"type": "string", "enum": ["project", "home"]},
+              "path": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
     }
   }
 }

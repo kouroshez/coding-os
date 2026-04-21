@@ -21,7 +21,7 @@ from core.board_os.config import (
     APPETITE_RE, KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM,
 )
 
-_THINKING_OS_DIR = Path(__file__).resolve().parents[1] / "thinking-os"
+_THINKING_OS_DIR = Path(__file__).resolve().parents[1] / "thinking_os"
 if str(_THINKING_OS_DIR) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS_DIR))
 

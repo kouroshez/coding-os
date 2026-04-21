@@ -8,7 +8,7 @@ COS_HOOKS := $(COS_ROOT)/core/hooks
 
 export COS_STATE_DIR ?= .coding-os
 export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking-os.db
-export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking-os
+export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking_os
 
 # ── Include base targets ────────────────────────────────────────────
 include templates/_base/Makefile.base
@@ -19,7 +19,7 @@ include templates/_base/Makefile.base
 .PHONY: test-mcp
 test-mcp: ## Run MCP server self-test
 	@mkdir -p /tmp/cos-test
-	@cd core/thinking-os && COS_DB_PATH=/tmp/cos-test/test.db uv run python server.py --test 2>&1 | grep -E "PASS|FAIL"
+	@cd core/thinking_os && COS_DB_PATH=/tmp/cos-test/test.db uv run python server.py --test 2>&1 | grep -E "PASS|FAIL"
 	@rm -f /tmp/cos-test/test.db /tmp/cos-test/test.db-shm /tmp/cos-test/test.db-wal
 	@rmdir /tmp/cos-test 2>/dev/null || true
 
@@ -135,19 +135,19 @@ audit: ## Run stale reference audit
 
 .PHONY: cos-decay
 cos-decay: ## Run confidence decay on learned patterns
-	@cd core/thinking-os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py
+	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py
 
 .PHONY: cos-decay-dry
 cos-decay-dry: ## Preview confidence decay (no changes)
-	@cd core/thinking-os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py --dry-run
+	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py --dry-run
 
 .PHONY: cos-stats
 cos-stats: ## Show thinking-os DB statistics
-	@cd core/thinking-os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from db import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
+	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from db import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
 
 .PHONY: cos-compress
 cos-compress: ## Compress old observations in DB
-	@cd core/thinking-os && COS_DB_PATH=$(COS_DB_PATH) uv run python compress.py
+	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python compress.py
 
 .PHONY: stats
 stats: ## Show project statistics

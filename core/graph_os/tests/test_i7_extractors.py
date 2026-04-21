@@ -283,7 +283,7 @@ class TestContractsMCP:
                 pass
             """
         )
-        r = contracts.extract("core/thinking-os/tools/graph.py", src)
+        r = contracts.extract("core/thinking_os/tools/graph.py", src)
         tools = [n for n in r.nodes if n.kind == "cos:mcp_tool"]
         assert tools
         assert tools[0].label == "mcp:cos_graph_query"
@@ -350,6 +350,6 @@ class TestContractsGeneric:
                 return {}
             """
         )
-        r = contracts.extract("core/thinking-os/server.py", src)
+        r = contracts.extract("core/thinking_os/server.py", src)
         tools = [n for n in r.nodes if n.kind == "cos:mcp_tool"]
         assert len(tools) == 2

@@ -3,7 +3,7 @@
 
 Purpose: Close the memory-poisoning and envelope-drift gaps found in the v0.2.2 audit; make coding-os safe for 24/7 autonomous learning.
 Read when: Starting any G.* sub-task, reviewing learning-loop safety, or wiring a new MCP tool.
-Read next: [core/thinking-os/db.py](../core/thinking-os/db.py) for migration v7 reference; [core/thinking-os/tools/_shared.py](../core/thinking-os/tools/_shared.py) for envelope.
+Read next: [core/thinking_os/db.py](../core/thinking_os/db.py) for migration v7 reference; [core/thinking_os/tools/_shared.py](../core/thinking_os/tools/_shared.py) for envelope.
 
 ## Why (audit findings)
 
@@ -112,7 +112,7 @@ Legacy fields in `data` are preserved for backward compat (no rename), only `met
 | **G.10** ✅ | `digest.py` + `cos_digest_regenerate` MCP tool + `session-context.sh` wiring + `task-done.sh` refresh | ~250 | 11 digest tests green |
 | **G.11** ✅ (scaffolding) | Migration v11 (`retrieval_quality`, `document_chunks.contextual_prefix/context_model`) + `retrieval_quality.py` + `cos_retrieval_quality` + `cos_retrieval_enrichment_check` | ~180 | 20 quality tests green — LLM enrichment deliberately stubbed |
 
-**Ship gate for full Phase G:** `881 passed` in `core/thinking-os/tests/` + MCP self-test green at schema v11.
+**Ship gate for full Phase G:** `881 passed` in `core/thinking_os/tests/` + MCP self-test green at schema v11.
 Pre-existing hook-test failures in `tests/test_hooks_phase_e.py` / `phase_f.py` (5+10) reflect a prior `COS_STATE_DIR` → `COS_AGENT_DIR` refactor and are **not caused by Phase G** — tracked separately.
 
 **Order of execution (actual):** G.0 → G.1 → G.2 → G.3 → G.4 → G.6 → G.7.1 → G.7.3 → G.8 → G.9 → G.10 → G.11. Hardening slices (G.1–G.6) shipped before any extension path touched the retrieval / learning loop, per the original guarantee.
@@ -178,13 +178,13 @@ Guards in G.2 call these sets before write.
 
 ## G.11 — Precision tracker status (delivered as scaffolding)
 
-- [core/thinking-os/precision.py](../core/thinking-os/precision.py) ships three public symbols:
+- [core/thinking_os/precision.py](../core/thinking_os/precision.py) ships three public symbols:
   - `precision_snapshot(conn, *, lookback_days=30) -> PrecisionSnapshot`
   - `should_enable_contextual_enrichment(conn) -> (bool, reason, dict)`
   - `contextual_enrichment_stub(heading_path, content, doc_title="")` — **pure no-op** placeholder.
 - Trigger rule: recommendation flips to `True` only when `precision < 0.70` **and** resolved-sample ≥ 30. Pre-v10 DBs return `(False, "pre_v10_no_signal", …)`.
 - No LLM dependency introduced. Future activation (Phase G.12) swaps the stub body for an Anthropic Haiku call keyed by chunk mtime.
-- Tests: [core/thinking-os/tests/test_precision.py](../core/thinking-os/tests/test_precision.py) — 16 cases covering empty DB, lookback window, threshold, pre-v10 tolerance, stub purity.
+- Tests: [core/thinking_os/tests/test_precision.py](../core/thinking_os/tests/test_precision.py) — 16 cases covering empty DB, lookback window, threshold, pre-v10 tolerance, stub purity.
 
 ## G.2 — Sanitizer (next slice)
 
@@ -230,5 +230,5 @@ r"(?i)\boverride\s+(the\s+)?(default|system|safety)"
 - [ ] All existing tests still pass
 - [ ] New tests added and green
 - [ ] `cos_health` returns expected schema_version
-- [ ] Self-test (`python core/thinking-os/server.py --test`) passes
+- [ ] Self-test (`python core/thinking_os/server.py --test`) passes
 - [ ] Doc updated (this file)

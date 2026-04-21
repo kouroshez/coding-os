@@ -232,7 +232,7 @@ if db_path.exists():
         _conn.row_factory = sqlite3.Row
         _count = _conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if _count > 0 and _count % 10 == 0:
-            sys.path.insert(0, os.environ.get("COS_BRAIN_DIR", str(Path(__file__).resolve().parent.parent / "thinking-os")))
+            sys.path.insert(0, os.environ.get("COS_BRAIN_DIR", str(Path(__file__).resolve().parent.parent / "thinking_os")))
             from tools.learning import learn_extract
             result = learn_extract(_conn)
             extracted = result.get("extracted", [])

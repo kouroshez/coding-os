@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from cli._data_types import AdapterProfile
+from cli._data_types import AdapterProfile, McpLaunchConfigPath, McpLaunchSpec
 
 try:
     from jsonschema import Draft202012Validator
@@ -122,6 +122,48 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
             f"{manifest_path}: 'default_settings' must be a mapping"
         )
 
+    mcp_helper = data.get("mcp_helper")
+    if mcp_helper is not None and not isinstance(mcp_helper, str):
+        raise AdapterManifestError(
+            f"{manifest_path}: 'mcp_helper' must be a string"
+        )
+
+    mcp_launch_raw = data.get("mcp_launch")
+    mcp_launch: McpLaunchSpec | None = None
+    if mcp_launch_raw is not None:
+        if not isinstance(mcp_launch_raw, dict):
+            raise AdapterManifestError(
+                f"{manifest_path}: 'mcp_launch' must be a mapping"
+            )
+        loader = mcp_launch_raw.get("loader")
+        if not isinstance(loader, str) or not loader:
+            raise AdapterManifestError(
+                f"{manifest_path}: 'mcp_launch.loader' must be a non-empty string"
+            )
+        paths_raw = mcp_launch_raw.get("config_paths") or []
+        if not isinstance(paths_raw, list):
+            raise AdapterManifestError(
+                f"{manifest_path}: 'mcp_launch.config_paths' must be a list"
+            )
+        paths: list[McpLaunchConfigPath] = []
+        for p in paths_raw:
+            if not isinstance(p, dict):
+                raise AdapterManifestError(
+                    f"{manifest_path}: each 'mcp_launch.config_paths' entry must be a mapping"
+                )
+            scope = p.get("scope")
+            path_val = p.get("path")
+            if scope not in ("project", "home"):
+                raise AdapterManifestError(
+                    f"{manifest_path}: 'mcp_launch.config_paths[].scope' must be 'project' or 'home'"
+                )
+            if not isinstance(path_val, str) or not path_val:
+                raise AdapterManifestError(
+                    f"{manifest_path}: 'mcp_launch.config_paths[].path' must be a non-empty string"
+                )
+            paths.append(McpLaunchConfigPath(scope=scope, path=path_val))
+        mcp_launch = McpLaunchSpec(loader=loader, config_paths=tuple(paths))
+
     return AdapterProfile(
         id=adapter_id,
         label=str(_require(data, "label", manifest_path)),
@@ -138,6 +180,8 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
         install_script=install_script,
         default_settings=dict(default_settings),
         source_dir=source_dir,
+        mcp_helper=mcp_helper,
+        mcp_launch=mcp_launch,
     )
 
 

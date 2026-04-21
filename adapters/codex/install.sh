@@ -110,6 +110,20 @@ if [ -d "${CODING_OS_ROOT}/core/commands" ]; then
   done
 fi
 
+# 5b. Symlink Phase M formula-agent slash commands (F1..F11).
+# Each formula-f<N>.md file resolves to the agent prompt in
+# core/thinking_os/agents/ — Codex invokes them as /formula-f<N>.
+AGENTS_DIR="${CODING_OS_ROOT}/core/thinking_os/agents"
+if [ -d "$AGENTS_DIR" ]; then
+  for agent in "$AGENTS_DIR"/F*.md; do
+    [ -e "$agent" ] || continue
+    fname=$(basename "$agent")
+    # Convert F1_research.md → formula-f1.md
+    num=$(echo "$fname" | sed 's/F\([0-9]*\)_.*/\1/')
+    ln -sf "$agent" "${PROJECT_ROOT}/.codex/commands/formula-f${num}.md"
+  done
+fi
+
 # 6. Generate hooks.json from template.
 # Use absolute hook paths anchored to the installed project root. Relative
 # `.codex/hooks/<hook>.sh` only works when Codex is launched from the repo
@@ -163,7 +177,7 @@ else
   # depend on uv cache access inside Codex's sandbox.
   PYTHON_BIN="$(python3 -c 'import sys; print(sys.executable)')"
   MCP_CMD="$PYTHON_BIN"
-  MCP_ARGS=("${CODING_OS_ROOT}/core/thinking-os/server.py")
+  MCP_ARGS=("${CODING_OS_ROOT}/core/thinking_os/server.py")
 fi
 
 if [ -x "$MCP_HELPER" ] || [ -f "$MCP_HELPER" ]; then

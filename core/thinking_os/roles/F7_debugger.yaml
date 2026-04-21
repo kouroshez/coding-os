@@ -1,0 +1,71 @@
+# F7 Role — Debugging
+# Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 7
+id: F7
+role_name: "Debugger"
+formula_ref: F7
+agent_file: agents/F7_debug.md
+
+activation:
+  primary_triggers:
+    - signal: action
+      equals: debug
+      weight: 5
+    - signal: urgency
+      equals: incident
+      weight: 4
+    - signal: urgency
+      equals: elevated
+      weight: 2
+  secondary_triggers: []
+  deactivators:
+    - signal: action
+      in: [create, document, research]
+      weight: 3
+  min_score: 3
+
+intensity_steps:
+  light:    [1, 2, 5]
+  standard: [1, 2, 3, 4, 5]
+  full:     [1, 2, 3, 4, 5]
+
+tools_budget:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - cos_search
+  - cos_graph_trace
+  - cos_graph_references
+  - cos_graph_impact
+  - cos_doc_search
+max_tokens_in: 10000
+max_tokens_out: 5000
+timeout_s: 180
+
+model_pref:
+  clear: sonnet
+  complicated: sonnet
+  complex: opus
+
+output_schema: cognition_schemas.F7Output
+
+backtrack_triggers:
+  - signal_phrase_regex: "(root cause|fault) is architectural"
+    target: F3
+    reason_template: "F7 root cause is architectural — backtrack to F3"
+  - signal_phrase_regex: "(technical debt|legacy) root cause"
+    target: F11
+    reason_template: "F7 root cause is tech debt — route to F11"
+
+criteria_required:
+  step_1: [observable, testable, measurable]
+  step_2: [scoped, observable]
+  step_3: [observable, measurable]
+  step_4: [testable, observable, scoped]
+  step_5: [testable, observable, measurable]
+
+prompt_prefix: |
+  You are in the F7 Debugger role. Your job is to reproduce the problem,
+  isolate the fault location, collect evidence via tooling, form and
+  test hypotheses, then fix & verify. You are NOT refactoring beyond
+  the minimum fix — that is F11. Output strict F7Output JSON.

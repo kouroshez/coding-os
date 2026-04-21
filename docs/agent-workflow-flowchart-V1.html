@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coding-OS — Full Cognitive Workflow V1</title>
+<!--
+  ════════════════════════════════════════════════════════════════════════════
+  CODING-OS WORKFLOW V1 — machine-readable metadata for AI agents
+  ════════════════════════════════════════════════════════════════════════════
+  This flowchart documents the ENTIRE coding-os cognitive system:
+    • Session lifecycle (init → complexity gate → task analysis → dispatch → verify → handoff)
+    • 11 Formula-Roles (F1..F11) = dispatchable cognitive agents
+    • 4-layer retrieval (Memory · Docs · Tasks · Graph)
+    • 39 MCP tools across 10 categories
+    • 45 hooks (PreToolUse / PostToolUse / SessionStart / SessionEnd)
+    • DB schema v1..v14 (append-only migrations)
+    • Continuous feedback loops (Discovery · Backtrack · Anti-Paralysis · Recursion · Traceability)
+    • Situational path overrides (6 scenarios)
+
+  Semantic anchors: every <div class="node"> carries data-role, data-phase, data-category
+  for AI parsing. JSON dump at bottom (<script type="application/json" id="workflow-json">)
+  contains the full structured form.
+  ════════════════════════════════════════════════════════════════════════════
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #09090b;
+    --surface: #18181b;
+    --surface-hover: #27272a;
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --text-1: #ffffff;
+    --text-2: #a1a1aa;
+    --text-3: #71717a;
+    --blue: #3b82f6;      --blue-dim: rgba(59,130,246,0.15);    --blue-glow: rgba(59,130,246,0.3);
+    --green: #10b981;      --green-dim: rgba(16,185,129,0.15);   --green-glow: rgba(16,185,129,0.3);
+    --amber: #f59e0b;      --amber-dim: rgba(245,158,11,0.15);   --amber-glow: rgba(245,158,11,0.3);
+    --red: #ef4444;        --red-dim: rgba(239,68,68,0.15);      --red-glow: rgba(239,68,68,0.3);
+    --purple: #8b5cf6;     --purple-dim: rgba(139,92,246,0.15);  --purple-glow: rgba(139,92,246,0.3);
+    --orange: #f97316;     --orange-dim: rgba(249,115,22,0.15);  --orange-glow: rgba(249,115,22,0.3);
+    --cyan: #06b6d4;       --cyan-dim: rgba(6,182,212,0.15);     --cyan-glow: rgba(6,182,212,0.3);
+    --pink: #ec4899;       --pink-dim: rgba(236,72,153,0.15);    --pink-glow: rgba(236,72,153,0.3);
+    --teal: #14b8a6;       --teal-dim: rgba(20,184,166,0.15);    --teal-glow: rgba(20,184,166,0.3);
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg);
+    background-image: radial-gradient(circle at 50% -20%, rgba(6,182,212,0.10), transparent 60%);
+    color: var(--text-2);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 60px 40px 100px;
+    min-height: 100vh;
+  }
+
+  .page { max-width: 1600px; margin: 0 auto; }
+  header { margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid var(--border); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--cyan); background: var(--cyan-dim); padding: 6px 12px; border-radius: 999px;
+    margin-bottom: 20px; border: 1px solid rgba(6,182,212,0.2);
+  }
+  .eyebrow-dot {
+    width: 6px; height: 6px; background: var(--cyan); border-radius: 50%;
+    box-shadow: 0 0 10px var(--cyan); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  h1 { font-size: clamp(32px, 4vw, 48px); color: var(--text-1); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; }
+  p.subtitle { font-size: 15px; color: var(--text-2); max-width: 1000px; font-family: var(--font-mono); line-height: 1.7; }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .toolbar-left, .toolbar-right { display: flex; gap: 12px; align-items: center; }
+  .btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-1);
+    font-family: var(--font-mono); font-size: 12px; padding: 10px 18px; border-radius: 8px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;
+  }
+  .btn:hover { background: var(--surface-hover); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 15px var(--cyan-glow); }
+  .btn.active { color: var(--cyan); border-color: var(--cyan); }
+  .badge { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); letter-spacing: 0.05em; }
+
+  .canvas {
+    position: relative;
+    background: rgba(24,24,27,0.5); border: 1px solid var(--border); border-radius: 16px;
+    padding: 60px; overflow: auto; min-height: 900px;
+    transform: translateZ(0); will-change: transform;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .canvas.fullscreen {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw; height: 100vh; z-index: 9999;
+    border-radius: 0; border: none; background-color: var(--bg);
+  }
+  .btn-exit-fs {
+    position: fixed; top: 20px; right: 20px; z-index: 10000;
+    display: none; padding: 12px; border-radius: 50%; width: 48px; height: 48px;
+    justify-content: center; align-items: center; font-size: 20px;
+    background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-1); cursor: pointer;
+  }
+  .canvas.fullscreen + .btn-exit-fs { display: flex; }
+  .btn-exit-fs:hover { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+
+  .flow-wrapper {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 60px;
+    width: max-content; margin: 0 auto; padding: 20px;
+    transform-origin: 0 0;
+  }
+  .flow-wrapper.horizontal { flex-direction: row; gap: 80px; align-items: center; }
+
+  .branch-cross { display: flex; flex-direction: row; align-items: flex-start; justify-content: center; gap: 50px; }
+  .flow-wrapper.horizontal .branch-cross { flex-direction: column; align-items: center; }
+  .side { display: flex; flex-direction: column; gap: 30px; }
+  .flow-wrapper.horizontal .side { flex-direction: row; }
+  .center-path { display: flex; flex-direction: column; gap: 60px; align-items: center; }
+  .flow-wrapper.horizontal .center-path { flex-direction: row; gap: 80px; }
+  .playbooks.side { gap: 14px; }
+
+  .lines-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; overflow: visible;
+  }
+  .line-label {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    paint-order: stroke; stroke: var(--bg); stroke-width: 6px; stroke-linejoin: round;
+  }
+
+  .node-wrapper { display: flex; justify-content: center; align-items: center; z-index: 10; }
+  .node {
+    background: var(--surface); border: 1px solid var(--border); padding: 20px 24px;
+    border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    display: flex; flex-direction: column; gap: 8px;
+    width: max-content; min-width: 260px; max-width: 380px;
+    position: relative; z-index: 10;
+    transition: box-shadow 0.2s ease;
+    will-change: transform;
+    --tx: 0px; --ty: 0px;
+    transform: translate3d(var(--tx), var(--ty), 0);
+  }
+  .node:hover { transform: translate3d(var(--tx), calc(var(--ty) - 2px), 0); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+  .node.dragging { z-index: 100 !important; cursor: grabbing !important; }
+
+  .n-head { font-size: 16px; font-weight: 700; color: var(--text-1); }
+  .n-desc { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+  .n-cmd {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-1);
+    background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;
+    display: inline-block; width: max-content; max-width: 100%; border: 1px solid var(--border);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .n-badge {
+    font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 3px 8px; border-radius: 4px; display: inline-block; width: max-content;
+  }
+  .node.action { flex-direction: row; align-items: flex-start; gap: 16px; }
+  .node.action .n-content { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .n-num {
+    width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    font-family: var(--font-mono);
+  }
+
+  .theme-blue { border-color: var(--blue); background: linear-gradient(180deg, var(--surface) 0%, rgba(59,130,246,0.03) 100%); }
+  .theme-blue .n-num, .theme-blue .n-head { color: var(--blue); }
+  .theme-blue .n-num { background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.3); }
+
+  .theme-cyan { border-color: var(--cyan); background: linear-gradient(180deg, var(--surface) 0%, rgba(6,182,212,0.03) 100%); }
+  .theme-cyan .n-num, .theme-cyan .n-head { color: var(--cyan); }
+  .theme-cyan .n-num { background: var(--cyan-dim); border: 1px solid rgba(6,182,212,0.3); }
+
+  .theme-green { border-color: var(--green); background: linear-gradient(180deg, var(--surface) 0%, rgba(16,185,129,0.03) 100%); }
+  .theme-green .n-head { color: var(--green); }
+  .theme-green .n-num { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+
+  .theme-amber { border-color: var(--amber); background: linear-gradient(180deg, var(--surface) 0%, rgba(245,158,11,0.03) 100%); }
+  .theme-amber .n-head { color: var(--amber); }
+  .theme-amber .n-num { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+
+  .theme-orange { border-color: var(--orange); background: linear-gradient(180deg, var(--surface) 0%, rgba(249,115,22,0.03) 100%); }
+  .theme-orange .n-head { color: var(--orange); }
+  .theme-orange .n-num { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(249,115,22,0.3); }
+
+  .theme-purple { border-color: var(--purple); background: linear-gradient(180deg, var(--surface) 0%, rgba(139,92,246,0.03) 100%); }
+  .theme-purple .n-head { color: var(--purple); }
+  .theme-purple .n-num { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+
+  .theme-red { border-color: var(--red); background: linear-gradient(180deg, var(--surface) 0%, rgba(239,68,68,0.03) 100%); }
+  .theme-red .n-head, .theme-red .n-cmd { color: var(--red); }
+  .theme-red .n-num { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  .theme-pink { border-color: var(--pink); background: linear-gradient(180deg, var(--surface) 0%, rgba(236,72,153,0.03) 100%); }
+  .theme-pink .n-num, .theme-pink .n-head { color: var(--pink); }
+  .theme-pink .n-num { background: var(--pink-dim); border: 1px solid rgba(236,72,153,0.3); }
+
+  .theme-teal { border-color: var(--teal); background: linear-gradient(180deg, var(--surface) 0%, rgba(20,184,166,0.03) 100%); }
+  .theme-teal .n-head { color: var(--teal); }
+  .theme-teal .n-num { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(20,184,166,0.3); }
+
+  .node.decision { border-color: var(--amber); align-items: center; text-align: center; border-radius: 999px; padding: 16px 32px; min-width: 200px; }
+  .node.decision .n-head { color: var(--amber); text-transform: uppercase; letter-spacing: 0.1em; font-size: 14px; }
+  .node.decision .n-desc { font-family: var(--font-mono); font-size: 11px; }
+
+  .node.tag { min-width: auto; padding: 12px 20px; border-radius: 8px; flex-direction: row; align-items: center; justify-content: space-between; gap: 20px; }
+  .node.tag .n-head { font-size: 14px; }
+  .node.tag .n-desc { font-family: var(--font-mono); font-size: 11px; opacity: 0.7; }
+
+  .node.rules { border-style: dashed; background: transparent; min-width: 280px; max-width: 360px; }
+  .node.rules .n-head { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .node.rules ul { padding-left: 18px; font-size: 12px; color: var(--text-2); display: flex; flex-direction: column; gap: 5px; }
+  .node.rules code { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; }
+
+  /* Formula role chip row */
+  .role-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .role-chip {
+    font-family: var(--font-mono); font-size: 10px; padding: 3px 7px; border-radius: 4px;
+    font-weight: 700; border: 1px solid var(--border);
+  }
+  .role-F1 { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,0.3); }
+  .role-F2 { background: var(--blue-dim); color: var(--blue); border-color: rgba(59,130,246,0.3); }
+  .role-F3 { background: var(--purple-dim); color: var(--purple); border-color: rgba(139,92,246,0.3); }
+  .role-F4 { background: var(--teal-dim); color: var(--teal); border-color: rgba(20,184,166,0.3); }
+  .role-F5 { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(6,182,212,0.3); }
+  .role-F6 { background: var(--green-dim); color: var(--green); border-color: rgba(16,185,129,0.3); }
+  .role-F7 { background: var(--orange-dim); color: var(--orange); border-color: rgba(249,115,22,0.3); }
+  .role-F8 { background: var(--red-dim); color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .role-F9 { background: var(--pink-dim); color: var(--pink); border-color: rgba(236,72,153,0.3); }
+  .role-F10 { background: rgba(156,163,175,0.15); color: #9ca3af; border-color: rgba(156,163,175,0.3); }
+  .role-F11 { background: rgba(217,70,239,0.15); color: #d946ef; border-color: rgba(217,70,239,0.3); }
+
+  /* Cynefin pill */
+  .cynefin-row { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .cy-tag {
+    font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; border-radius: 4px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+
+  /* Tool chips */
+  .tool-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .tchip {
+    font-family: var(--font-mono); font-size: 9px; padding: 2px 6px; border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  /* Bottom Grid */
+  .bottom-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-top: 40px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .card h3 {
+    font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-1); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .card h3 i { display: inline-block; width: 18px; height: 18px; border-radius: 4px; text-align: center; font-style: normal; font-size: 10px; line-height: 18px; font-weight: 700; }
+  .card p, .card li { font-size: 13px; color: var(--text-2); }
+  .card ul { padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+  .card code { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; }
+  .card.wide { grid-column: span 2; }
+  .card.full { grid-column: 1 / -1; }
+  .principles ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; list-style: none; padding: 0; }
+  .principles li {
+    background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 14px;
+    border-radius: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--text-2); display: flex; gap: 12px;
+  }
+  .principles li span { color: var(--green); font-weight: 700; min-width: 28px; }
+
+  /* Role matrix table */
+  .role-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .role-table th, .role-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  .role-table th { background: rgba(0,0,0,0.3); font-family: var(--font-mono); color: var(--text-1); font-size: 11px; }
+  .role-table td code { font-family: var(--font-mono); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <div class="eyebrow"><div class="eyebrow-dot"></div> CODING-OS v0.3 · PHASE M + PHASE N SHIPPED · 42 MCP TOOLS</div>
+    <h1>Coding-OS — Full Cognitive Workflow V1</h1>
+    <p class="subtitle">
+      Complete cognitive system: Session init &rarr; Complexity Gate &rarr; Task Analyzer &rarr; Role Router &rarr;
+      Supervisor dispatch of 11 formula-roles (F1..F11) &rarr; Anti-Ambiguity gate &rarr; Implementation &rarr;
+      Verification &rarr; Session handoff. Includes 4-layer retrieval, 39 MCP tools, 45 hooks, DB v14,
+      and continuous feedback loops (Discovery · Backtrack · Anti-Paralysis · Recursion · Traceability).
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="badge" id="lbl-mode">// layout: vertical &middot; drag nodes &middot; Cmd+scroll to zoom</span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn" id="btn-reset">Reset View</button>
+      <button class="btn" id="btn-fs">Fullscreen</button>
+      <button class="btn" id="btn-orient">Toggle Orientation</button>
+    </div>
+  </div>
+
+  <div class="canvas" id="canvas">
+    <div class="flow-wrapper vertical" id="flow-wrapper">
+      <svg class="lines-overlay" id="lines-overlay"></svg>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           ENTRY — user input & session bootstrap
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node theme-cyan" id="n-user" data-role="entry" data-phase="0" style="border-radius:999px;text-align:center;padding:16px 36px;">
+        <div class="n-head">User Input / Prompt</div>
+        <div class="n-desc">AGENTS.md + CLAUDE.md + core/rules/*.md auto-loaded (~2k tokens)</div>
+      </div></div>
+
+      <div class="node-wrapper"><div class="node action theme-blue" id="n-sinit" data-role="session" data-phase="init">
+        <div class="n-num">0</div>
+        <div class="n-content">
+          <div class="n-head">Session Init</div>
+          <div class="n-cmd">session_startup.py</div>
+          <div class="n-desc">MCP liveness check (warn-mcp-down), agent-id detect ($COS_AGENT_DIR), session-id write, EvidenceBundle 24h TTL cleanup, recent-changes summary.</div>
+          <div class="n-badge" style="background:var(--blue-dim);color:var(--blue);">hook: SessionStart</div>
+        </div>
+      </div></div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           GATE 1 — Complexity Gate (Cynefin + Dimensions)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-pink" id="n-gate" data-role="gate" data-phase="classify" style="max-width:460px;">
+        <div class="n-num">G1</div>
+        <div class="n-content">
+          <div class="n-head">Gate 1: Complexity Gate</div>
+          <div class="n-desc"><strong>Applies to ALL requests</strong> — questions, tasks, audits, ad-hoc.</div>
+          <div class="n-desc"><strong>Q1 Cynefin:</strong></div>
+          <div class="cynefin-row">
+            <span class="cy-tag" style="color:var(--green);border-color:rgba(16,185,129,0.3);">CLEAR</span>
+            <span class="cy-tag" style="color:var(--blue);border-color:rgba(59,130,246,0.3);">COMPLICATED</span>
+            <span class="cy-tag" style="color:var(--orange);border-color:rgba(249,115,22,0.3);">COMPLEX</span>
+            <span class="cy-tag" style="color:var(--red);border-color:rgba(239,68,68,0.3);">CHAOTIC</span>
+            <span class="cy-tag" style="color:var(--purple);border-color:rgba(139,92,246,0.3);">CONFUSION</span>
+          </div>
+          <div class="n-desc" style="margin-top:6px;"><strong>Q2 Dimensions:</strong> 1 → single pass · 2-4 → Zoom · 5+ → full Zoom · 8+ → decompose</div>
+          <div class="n-cmd">write-state.sh .thinking-os-gate "COMPLICATED 3"</div>
+          <div class="n-badge" style="background:var(--pink-dim);color:var(--pink);margin-top:4px;">enforce-gate.sh BLOCKS Write/Edit until recorded</div>
+        </div>
+      </div></div>
+
+      <div class="node-wrapper"><div class="node decision" id="n-cynefin" data-role="decision" style="border-color:var(--pink);">
+        <div class="n-head" style="color:var(--pink);">Cynefin?</div>
+        <div class="n-desc">Route by complexity</div>
+      </div></div>
+
+      <div class="branch-cross">
+        <div class="side left">
+          <div class="node theme-green" id="n-clear" data-role="branch">
+            <div class="n-head">CLEAR</div>
+            <div class="n-desc">Known solution.<br>Skip Task Analyzer · inline fix or trivial task.</div>
+          </div>
+        </div>
+        <div class="center-path">
+          <div class="node theme-red" id="n-chaotic" data-role="branch">
+            <div class="n-head">CHAOTIC (incident)</div>
+            <div class="n-desc">Production fire.<br>situation=incident-response auto-set.<br>Mitigate FIRST, then F7 → F6 → F10.</div>
+          </div>
+        </div>
+        <div class="side right">
+          <div class="node theme-purple" id="n-complex" data-role="branch">
+            <div class="n-head">COMPLICATED / COMPLEX</div>
+            <div class="n-desc">Enter Task Analyzer → Role Router → Supervisor dispatch loop.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           TASK ANALYZER — signal extraction (Phase N, TARGET)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-amber" id="n-analyzer" data-role="analyzer" data-phase="analyze" style="max-width:460px;">
+        <div class="n-num">A</div>
+        <div class="n-content">
+          <div class="n-head">Task Analyzer <span class="n-badge" style="background:var(--green-dim);color:var(--green);">Phase N shipped</span></div>
+          <div class="n-cmd">task_analyzer.py → TaskSignals</div>
+          <div class="n-desc">Extract signals from <strong>prompt + memory + graph + docs</strong>:</div>
+          <div class="role-row">
+            <span class="role-chip" style="background:var(--blue-dim);color:var(--blue);">domain</span>
+            <span class="role-chip" style="background:var(--green-dim);color:var(--green);">action</span>
+            <span class="role-chip" style="background:var(--purple-dim);color:var(--purple);">novelty</span>
+            <span class="role-chip" style="background:var(--red-dim);color:var(--red);">breaking_change</span>
+            <span class="role-chip" style="background:var(--orange-dim);color:var(--orange);">urgency</span>
+            <span class="role-chip" style="background:var(--cyan-dim);color:var(--cyan);">scope_size</span>
+            <span class="role-chip" style="background:var(--teal-dim);color:var(--teal);">is_takeover</span>
+            <span class="role-chip" style="background:var(--pink-dim);color:var(--pink);">external_dep</span>
+          </div>
+          <div class="n-desc" style="margin-top:6px;font-size:11px;color:var(--text-3);">
+            Inputs: user prompt · cos_search (patterns) · cos_graph_impact (blast radius) · cos_doc_search (existing specs) · Complexity Gate result
+          </div>
+        </div>
+      </div></div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           ROLE ROUTER — Preset lookup → Composer fallback
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-teal" id="n-router" data-role="router" data-phase="route" style="max-width:460px;">
+        <div class="n-num">R</div>
+        <div class="n-content">
+          <div class="n-head">Role Router</div>
+          <div class="n-cmd">cos_route_roles(signals, complexity)</div>
+          <div class="n-desc"><strong>11 Roles = 11 Formulas.</strong> One file per F1..F11 under <code>core/thinking_os/roles/</code>.</div>
+          <div class="role-row">
+            <span class="role-chip role-F1">F1 Research</span>
+            <span class="role-chip role-F2">F2 Analyst</span>
+            <span class="role-chip role-F3">F3 Architect</span>
+            <span class="role-chip role-F4">F4 Documenter</span>
+            <span class="role-chip role-F5">F5 Implementer</span>
+            <span class="role-chip role-F6">F6 Reviewer</span>
+            <span class="role-chip role-F7">F7 Debugger</span>
+            <span class="role-chip role-F8">F8 SecAudit</span>
+            <span class="role-chip role-F9">F9 Deployer</span>
+            <span class="role-chip role-F10">F10 Observer</span>
+            <span class="role-chip role-F11">F11 Refactorer</span>
+          </div>
+          <div class="n-desc" style="margin-top:6px;">
+            <strong>Step 1 — Preset lookup</strong> (presets/registry.yaml): if signals match a curated preset → use its chain.<br>
+            <strong>Step 2 — Composer fallback</strong>: build chain dynamically from role triggers.<br>
+            <strong>Step 3 — Situational override</strong>: if <code>.situation</code> marker set → use situation dispatch_chain instead.
+          </div>
+        </div>
+      </div></div>
+
+      <!-- Situational override branch -->
+      <div class="branch-cross">
+        <div class="side left">
+          <div class="node rules" id="n-presets" style="border-color:var(--teal);">
+            <div class="n-head" style="color:var(--teal);">Curated Presets</div>
+            <ul>
+              <li><strong>greenfield-backend-api</strong> → F1, F2, F3, F4, F5, F6</li>
+              <li><strong>schema-migration</strong> → F2, F3, F8, F5, F6</li>
+              <li><strong>production-bug-mitigate</strong> → mitigate, F7, F6, F10</li>
+              <li><strong>security-audit-full</strong> → F8 (parallel L1..L5)</li>
+              <li><strong>legacy-takeover</strong> → F2-reverse, F6-char, F4, F5, F11, F3</li>
+            </ul>
+          </div>
+        </div>
+        <div class="center-path">
+          <div class="node decision" id="n-route-dec" data-role="decision">
+            <div class="n-head">Path?</div>
+            <div class="n-desc">preset · composer · situation</div>
+          </div>
+        </div>
+        <div class="side right">
+          <div class="node rules" id="n-situations" style="border-color:var(--orange);">
+            <div class="n-head" style="color:var(--orange);">6 Situational Paths</div>
+            <ul>
+              <li><strong>incident-response</strong> → mitigate + F7 + F6 + F10</li>
+              <li><strong>onboarding</strong> → read F4, F3 → F5 leaf → F6</li>
+              <li><strong>scope-change</strong> → F2.1 + Traceability + F2 + F3 + F4</li>
+              <li><strong>external-integration</strong> → F1 + F2 + F3 + F5 + F6 + F8</li>
+              <li><strong>design-review</strong> → verify F2/F3/F4 + approval gate</li>
+              <li><strong>existing-project-takeover</strong> → F2-rev + F6-char + F4...</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           SUPERVISOR DISPATCH LOOP
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-pink" id="n-supervisor" data-role="supervisor" data-phase="dispatch" style="max-width:500px;">
+        <div class="n-num">S</div>
+        <div class="n-content">
+          <div class="n-head">Supervisor State Machine</div>
+          <div class="n-cmd">cos_supervise(session_state) → NextAction</div>
+          <div class="n-desc">
+            States: <code>IDLE → CLASSIFYING → ROUTING → DISPATCHING → AWAITING_AGENT → INTEGRATING → DONE</code>.
+            BACKTRACKING is a transition (not a state).
+          </div>
+          <div class="n-desc" style="margin-top:4px;"><strong>Loop per role:</strong></div>
+          <ol style="padding-left:18px;font-size:12px;color:var(--text-2);display:flex;flex-direction:column;gap:3px;">
+            <li>Load <code>agents/F&lt;N&gt;_name.md</code> + prompt_prefix</li>
+            <li>Apply intensity filter (<code>intensity_steps[current]</code>)</li>
+            <li>Build input slice from EvidenceBundle (only prior formulas)</li>
+            <li>Dispatch: Claude=<code>Task(general-purpose)</code> · Codex=<code>/formula-f&lt;N&gt;</code></li>
+            <li>Receive output → validate against <code>F&lt;N&gt;Output</code> schema</li>
+            <li>Anti-Ambiguity per-step check (7 criteria)</li>
+            <li>Detect backtrack_triggers → if signal → return backtrack</li>
+            <li>Append to EvidenceBundle (<code>.coding-os/&lt;agent&gt;/evidence_bundle_&lt;session&gt;.json</code>)</li>
+            <li>Record in <code>formula_dispatches</code> (v14 table)</li>
+          </ol>
+          <div class="n-badge" style="background:var(--pink-dim);color:var(--pink);margin-top:4px;">recursion-free: agents cannot spawn other agents</div>
+        </div>
+      </div></div>
+
+      <!-- 11 role chips -->
+      <div class="node-wrapper"><div class="node theme-teal" id="n-roles-grid" data-role="roles-grid" style="max-width:1000px;min-width:720px;">
+        <div class="n-head" style="color:var(--teal);">The 11 Formula-Roles — dispatchable cognitive agents</div>
+        <table class="role-table">
+          <thead><tr><th>ID</th><th>Role</th><th>Trigger</th><th>Output schema</th><th>Backtracks to</th></tr></thead>
+          <tbody>
+            <tr><td><span class="role-chip role-F1">F1</span></td><td><strong>Research &amp; Discovery</strong></td><td>novelty≥0.5, unknown landscape</td><td>F1Output (options, tradeoffs, unknowns)</td><td>—</td></tr>
+            <tr><td><span class="role-chip role-F2">F2</span></td><td><strong>Problem Decomposition</strong></td><td>COMPLICATED+, scope unclear</td><td>F2Output (actors, goal-tree, scenarios, data-model, state-machines, deps, unknowns)</td><td>F1</td></tr>
+            <tr><td><span class="role-chip role-F3">F3</span></td><td><strong>Architecture &amp; Design</strong></td><td>breaking_change, new capability</td><td>F3Output (NFRs, pattern, DB schema, API, ADRs)</td><td>F2</td></tr>
+            <tr><td><span class="role-chip role-F4">F4</span></td><td><strong>Technical Documentation</strong></td><td>new endpoint/module, post-F3</td><td>F4Output (audience map, doc set)</td><td>F2, F3</td></tr>
+            <tr><td><span class="role-chip role-F5">F5</span></td><td><strong>Implementation</strong></td><td>action=create/modify</td><td>F5Output (files changed, tests added)</td><td>F2, F3</td></tr>
+            <tr><td><span class="role-chip role-F6">F6</span></td><td><strong>Testing · Review · Perf</strong></td><td>post-F5, pre-merge</td><td>F6Output (test layers, review checklist, perf metrics)</td><td>F2, F5</td></tr>
+            <tr><td><span class="role-chip role-F7">F7</span></td><td><strong>Debugging</strong></td><td>action=debug, bug signal</td><td>F7Output (reproduce, isolate, hypothesis, fix)</td><td>F3, F11</td></tr>
+            <tr><td><span class="role-chip role-F8">F8</span></td><td><strong>Security Audit</strong></td><td>pre-release, auth/payment touched</td><td>F8Output (L1..L5 layers, parallelizable)</td><td>F3</td></tr>
+            <tr><td><span class="role-chip role-F9">F9</span></td><td><strong>Deployment &amp; DevOps</strong></td><td>release ready</td><td>F9Output (CI/CD, containers, strategy)</td><td>F3, F8</td></tr>
+            <tr><td><span class="role-chip role-F10">F10</span></td><td><strong>Monitoring &amp; Observability</strong></td><td>post-release</td><td>F10Output (golden signals, logs, alerts)</td><td>F3</td></tr>
+            <tr><td><span class="role-chip role-F11">F11</span></td><td><strong>Refactoring &amp; Tech-Debt</strong></td><td>periodic, post-F7</td><td>F11Output (debt inventory, priority, strategy)</td><td>F3, F10</td></tr>
+          </tbody>
+        </table>
+      </div></div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           ANTI-AMBIGUITY GATE (PLAN→EXECUTE boundary)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-red" id="n-ambi" data-role="gate" data-phase="anti-ambiguity" style="max-width:460px;">
+        <div class="n-num">AA</div>
+        <div class="n-content">
+          <div class="n-head">Anti-Ambiguity Gate</div>
+          <div class="n-cmd">cos_ambiguity_check(bundle) — fires at PLAN→EXECUTE</div>
+          <div class="n-desc">7 criteria per step — if any missing → BLOCK:</div>
+          <div class="role-row">
+            <span class="role-chip" style="background:var(--blue-dim);color:var(--blue);">observable</span>
+            <span class="role-chip" style="background:var(--green-dim);color:var(--green);">measurable</span>
+            <span class="role-chip" style="background:var(--purple-dim);color:var(--purple);">testable</span>
+            <span class="role-chip" style="background:var(--cyan-dim);color:var(--cyan);">scoped</span>
+            <span class="role-chip" style="background:var(--amber-dim);color:var(--amber);">owned</span>
+            <span class="role-chip" style="background:var(--orange-dim);color:var(--orange);">reversible</span>
+            <span class="role-chip" style="background:var(--pink-dim);color:var(--pink);">user-value</span>
+          </div>
+          <div class="n-desc" style="margin-top:6px;">Violations logged to <code>ambiguity_violations</code> (v14).<br>CLEAR 1 bypasses · intensity=full allows zero skips.</div>
+          <div class="n-badge" style="background:var(--red-dim);color:var(--red);margin-top:4px;">enforce-anti-ambiguity.sh — PreToolUse Write/Edit</div>
+        </div>
+      </div></div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           TRACEABILITY CHECK (auto at phase boundary)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-purple" id="n-trace" data-role="gate" data-phase="traceability" style="max-width:420px;">
+        <div class="n-num">T</div>
+        <div class="n-content">
+          <div class="n-head">Traceability Check</div>
+          <div class="n-cmd">cos_traceability(scope='task') — auto-called at PLAN→EXECUTE and SessionEnd</div>
+          <div class="n-desc">Top↔bottom audit: feature↔pain · endpoint↔use-case · event↔action · test↔rule · metric↔objective. Reports gaps and orphans.</div>
+        </div>
+      </div></div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           IMPLEMENT (F5 role active)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="branch-cross">
+        <div class="side left">
+          <div class="node rules" id="n-precheck" style="border-color:var(--teal);">
+            <div class="n-head" style="color:var(--teal);">Pre-Write Hooks</div>
+            <ul>
+              <li><code>enforce-doc-anchor</code> — requires .doc-anchor</li>
+              <li><code>enforce-skill</code> — F5/F6 only: domain skill loaded</li>
+              <li><code>enforce-task-start</code> — advisory if no .persona (COMPLICATED+)</li>
+              <li><code>enforce-template</code> — bypassed during F3/F4 dispatch</li>
+              <li><code>enforce-rename-plan</code> — graph-backed rename gate</li>
+              <li><code>block-bad-patterns</code> · <code>block-hardcoded-literals</code></li>
+              <li><code>block-protected-files</code> · <code>block-uv-heredoc</code></li>
+            </ul>
+          </div>
+        </div>
+        <div class="center-path">
+          <div class="node action theme-cyan" id="n-impl" data-role="implement" data-phase="execute" style="max-width:400px;">
+            <div class="n-num">5</div>
+            <div class="n-content">
+              <div class="n-head">Implement (F5 active)</div>
+              <div class="n-desc">Smallest correct change aligned with SSOT [P4]. Domain skills invoked via <code>Skill</code> tool. <code>.active-formula=F5</code> marker set.</div>
+              <div class="role-row">
+                <span class="role-chip role-F5">F5 role active</span>
+                <span class="n-badge" style="background:var(--teal-dim);color:var(--teal);">domain skill</span>
+                <span class="n-badge" style="background:var(--pink-dim);color:var(--pink);">clean-code</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="side right">
+          <div class="node rules" id="n-postwrite" style="border-color:var(--blue);">
+            <div class="n-head" style="color:var(--blue);">Post-Write Hooks</div>
+            <ul>
+              <li><code>auto-reindex-docs</code> — re-embed on Write/Edit</li>
+              <li><code>auto-reindex-graph</code> — graph extractor dispatch</li>
+              <li><code>track-backtrack</code> — counter +1, ≥3 warn</li>
+              <li><code>track-discovery</code> — auto-trigger on signal phrases</li>
+              <li><code>check-capture-worked</code> — observation created?</li>
+              <li><code>lint-task</code> — task-file size &amp; hygiene</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           VERIFY (F6 role active)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-green" id="n-verify" data-role="verify" data-phase="execute" style="max-width:460px;">
+        <div class="n-num">6</div>
+        <div class="n-content">
+          <div class="n-head">Verify (F6 active — parallel layers)</div>
+          <div class="n-cmd">make verify · make safe-test · uv run pytest</div>
+          <div class="n-desc"><strong>Verification matrix</strong> by changed files (from AGENTS.md):</div>
+          <ul style="padding-left:18px;font-size:12px;color:var(--text-2);">
+            <li><code>core/thinking_os/*</code> → pytest + MCP self-test</li>
+            <li><code>core/graph_os/*</code> → parity + extractor tests</li>
+            <li><code>core/board_os/*</code> → parser + sync + viewer tests</li>
+            <li><code>core/hooks/*.sh</code> → <code>make verify-hooks</code></li>
+            <li><code>docs/**</code> → <code>make docs-lint</code> + staleness</li>
+          </ul>
+          <div class="n-badge" style="background:var(--green-dim);color:var(--green);">F8 + F6 parallel dispatch supported</div>
+        </div>
+      </div></div>
+
+      <div class="node-wrapper"><div class="node decision" id="n-pass" data-role="decision">
+        <div class="n-head">Pass?</div>
+        <div class="n-desc">Verification result</div>
+      </div></div>
+
+      <div class="branch-cross">
+        <div class="side left">
+          <div class="node theme-red" id="n-fail2" data-role="branch">
+            <div class="n-head">Fail 2x → STOP</div>
+            <div class="n-cmd">make task-block</div>
+            <div class="n-desc">RETRY_LIMIT hit. Mark BLOCKED, log unknowns to questions.md.</div>
+          </div>
+        </div>
+        <div class="center-path">
+          <div class="node action theme-green" id="n-done" data-role="done" data-phase="close">
+            <div class="n-num">&#10003;</div>
+            <div class="n-content">
+              <div class="n-head">Task Complete</div>
+              <div class="n-cmd">make task-done TASK=NNN TYPE=feat MSG="..." WHAT="..." FILES="..."</div>
+              <div class="n-desc">Mark <code>[x]</code>, write structured log. WHAT + FILES mandatory [P6].</div>
+            </div>
+          </div>
+        </div>
+        <div class="side right">
+          <div class="node theme-orange" id="n-fail1" data-role="branch">
+            <div class="n-head">Fail (1st)</div>
+            <div class="n-desc">Fix root cause (F7 if bug), retry from F5.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           SESSION END — handoff, discoveries, bundle cleanup
+           ══════════════════════════════════════════════════════════════════ -->
+      <div class="node-wrapper"><div class="node action theme-purple" id="n-end" data-role="session" data-phase="end" style="max-width:460px;">
+        <div class="n-num">E</div>
+        <div class="n-content">
+          <div class="n-head">Session End</div>
+          <div class="n-cmd">session_summary.py (SessionEnd hook)</div>
+          <div class="n-desc">
+            Summary · list unaddressed <code>record_for_later</code> discoveries · promote to tasks via <code>cos_task_create</code>.
+            EvidenceBundle persists 24h then auto-cleaned by <code>session_startup.py</code> on next session.
+          </div>
+        </div>
+      </div></div>
+
+      <div class="node-wrapper"><div class="node theme-cyan" id="n-await" data-role="loop" style="border-radius:999px;text-align:center;">
+        <div class="n-head">Await next user input &#8635;</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <button class="btn-exit-fs" id="btn-exit-fs" title="Exit Fullscreen">&times;</button>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       BOTTOM GRID — system reference cards
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="bottom-grid">
+
+    <div class="card wide" data-section="loops">
+      <h3><i style="background:var(--orange-dim);border:1px solid var(--orange);color:var(--orange);">&#8634;</i> Continuous Feedback Loops</h3>
+      <ul>
+        <li><strong>Discovery Protocol</strong> — on new actor/state/dep/constraint: record → impact → <code>backtrack_now | record_for_later</code>. Auto-trigger hook: <code>track-discovery.sh</code>.</li>
+        <li><strong>Backtrack</strong> — formula outputs signal missing prereq (e.g., F5 sees unknown actor → <code>backtrack → F2</code>). Logged in <code>backtrack_events</code> (v14).</li>
+        <li><strong>Anti-Paralysis Guard</strong> — counter ≥3 backtracks AND no forward progress (no new EvidenceBundle append since last backtrack) → BLOCKING advisory.</li>
+        <li><strong>Recursion</strong> — if F2 Step 12 detects sub-component too large → supervisor spawns sub-session (new task_marker) starting from F1 on that component.</li>
+        <li><strong>Traceability</strong> — auto at PLAN→EXECUTE boundary AND SessionEnd. Reports gaps (top w/o bottom) and orphans (bottom w/o top).</li>
+        <li><strong>Intensity</strong> — light (F2.1-5 only, skip F8/F10/F11) · standard (all 11) · full (+ threat model, DR drills, zero ambiguity skips).</li>
+      </ul>
+    </div>
+
+    <div class="card" data-section="gates">
+      <h3><i style="background:var(--pink-dim);border:1px solid var(--pink);color:var(--pink);">G</i> Gates (blocking)</h3>
+      <ul>
+        <li><strong>G1 Complexity</strong> — <code>.thinking-os-gate</code> required before code writes</li>
+        <li><strong>G2 Doc-Anchor</strong> — <code>.doc-anchor</code> required (docs-first)</li>
+        <li><strong>G3 Anti-Ambiguity</strong> — 7 criteria per F_N step at PLAN→EXECUTE</li>
+        <li><strong>G4 Skill</strong> — domain skill loaded during F5/F6</li>
+        <li><strong>G5 Rename-Plan</strong> — graph-backed rename requires plan marker</li>
+        <li><strong>G6 Migration-Conflict</strong> — duplicate v_N migration blocked</li>
+      </ul>
+    </div>
+
+    <div class="card" data-section="memory">
+      <h3><i style="background:var(--teal-dim);border:1px solid var(--teal);color:var(--teal);">M</i> 4-Layer Retrieval</h3>
+      <ul>
+        <li><strong>L1 Agent Memory</strong> — <code>cos_search</code>, <code>cos_timeline</code>, <code>cos_learn_suggest</code>. FTS5 + embeddings over observations/patterns/outcomes.</li>
+        <li><strong>L2 Document KB</strong> — <code>cos_doc_search</code> over <code>document_chunks</code>. Heading-aware MD chunker, auto-reindex on Write.</li>
+        <li><strong>L3 Task Registry</strong> — <code>cos_task_*</code> (8 tools) + Scrumban board. <code>tasks</code> + <code>task_status_history</code>.</li>
+        <li><strong>L4 Knowledge Graph</strong> — <code>cos_graph_*</code> (11 tools). Kùzu or SQLite backend. Nodes + edges v12. Auto-reindex per extractor.</li>
+      </ul>
+    </div>
+
+    <div class="card" data-section="mcp">
+      <h3><i style="background:var(--blue-dim);border:1px solid var(--blue);color:var(--blue);">T</i> 39 MCP Tools · 10 Categories</h3>
+      <ul>
+        <li><strong>Health (1):</strong> cos_health</li>
+        <li><strong>Memory (4):</strong> cos_search, cos_timeline, cos_details, cos_promote</li>
+        <li><strong>Metrics (3):</strong> cos_metric_record/query/trend</li>
+        <li><strong>Learning (5):</strong> cos_learn_extract/suggest/validate/feedback/narrative</li>
+        <li><strong>Routing (2):</strong> cos_route_model, cos_route_skill</li>
+        <li><strong>Graph (11):</strong> cos_graph, cos_graph_query/context/impact/references/trace/similar/path/contracts/export/rename_plan/detect_changes</li>
+        <li><strong>Docs RAG (1):</strong> cos_doc_search</li>
+        <li><strong>Tasks (4):</strong> cos_task_search/dependencies/dependents/by_filter</li>
+        <li><strong>Board (8):</strong> cos_task_create/board/move/pick/daily/retro/wip_check/work_log_append</li>
+        <li><strong>Cognition (10):</strong> cos_route_persona (→roles in Phase N) · cos_supervise · cos_supervise_record_output · cos_dispatch_formula · cos_ambiguity_check · cos_traceability · cos_backtrack_log · cos_discovery · cos_situation_detect · cos_takeover</li>
+      </ul>
+    </div>
+
+    <div class="card" data-section="hooks">
+      <h3><i style="background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);">H</i> 45 Hooks · by category</h3>
+      <ul>
+        <li><strong>PreToolUse (blocking gates):</strong> enforce-gate, enforce-doc-anchor, enforce-skill, enforce-task-start, enforce-template, enforce-anti-ambiguity, enforce-rename-plan, block-bad-patterns, block-hardcoded-literals, block-migration-conflict, block-protected-files, block-uv-heredoc, block-edit-dist-files</li>
+        <li><strong>PostToolUse:</strong> auto-reindex-docs, auto-reindex-graph, track-backtrack, track-discovery, check-capture-worked, lint-task, regen-reminder, warn-template-drift, test-first-reminder, remind-learn-validate</li>
+        <li><strong>SessionStart:</strong> warn-mcp-down, session-context-recovery, auto-archive</li>
+        <li><strong>SessionEnd:</strong> session-summary, traceability-sweep (TARGET), discovery-promote</li>
+      </ul>
+    </div>
+
+    <div class="card" data-section="db">
+      <h3><i style="background:var(--purple-dim);border:1px solid var(--purple);color:var(--purple);">D</i> DB Schema · v1..v14 (append-only)</h3>
+      <ul>
+        <li><strong>v1-v5:</strong> observations, learned_patterns, outcome_history, metrics, learning</li>
+        <li><strong>v6:</strong> tasks (Phase C)</li>
+        <li><strong>v7-v8:</strong> trust_tier, provenance, retrievals audit</li>
+        <li><strong>v9-v11:</strong> document_chunks FTS, retrieval_quality, validation throttle</li>
+        <li><strong>v12:</strong> graph_nodes, graph_edges_v12 (Phase I)</li>
+        <li><strong>v13:</strong> task_status_history (Phase L)</li>
+        <li><strong>v14:</strong> <code>backtrack_events</code>, <code>persona_selections</code>, <code>ambiguity_violations</code>, <code>formula_dispatches</code> (Phase M)</li>
+      </ul>
+    </div>
+
+    <div class="card" data-section="failures">
+      <h3><i style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);">&#9888;</i> 10 Failure Modes</h3>
+      <ol style="padding-left:20px;display:flex;flex-direction:column;gap:4px;">
+        <li>Skipped F1 → F3 picks wrong stack → rework at F5</li>
+        <li>F2.11 (Unknowns) not audited → F5 finds missing actor</li>
+        <li>F2.7 state machine vague → F6 can't test → prod bug</li>
+        <li>F3 ADRs missing → F11 reverses a forgotten decision</li>
+        <li>F4 not updated during F5 → doc drift → onboarding broken</li>
+        <li>F6 Layer 4 (LLM) skipped → AI feature regresses silently</li>
+        <li>F8 Layer 1 auth missed on one route → audit invalid</li>
+        <li>F10 Golden Signals absent → F7 has no evidence trail</li>
+        <li>Anti-Paralysis violation → backtrack loop → no progress</li>
+        <li>Traceability gap → orphan code (waste) or missing feature (gap)</li>
+      </ol>
+    </div>
+
+    <div class="card" data-section="phase-n-status">
+      <h3><i style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);">&#10004;</i> Phase N — Shipped</h3>
+      <ul>
+        <li>✅ <strong>Cognitive roles</strong> replace job-title personas — 11 YAML files under <code>core/thinking_os/roles/F{1..11}_*.yaml</code></li>
+        <li>✅ <strong>Task Analyzer</strong> — <code>core/thinking_os/task_analyzer.py</code>, &lt;500ms budget, flock'd cache</li>
+        <li>✅ <strong>Formula Composer</strong> — <code>core/thinking_os/formula_composer.py</code>, strategy: situation &gt; preset &gt; composer &gt; fallback</li>
+        <li>✅ <strong>Presets registry</strong> — 12 curated chains with SHA256 versioning (N.5-C)</li>
+        <li>✅ <strong>3 new MCP tools</strong>: <code>cos_analyze_task</code>, <code>cos_compose_chain</code>, <code>cos_role_info</code></li>
+        <li>✅ <strong>Discovery auto-trigger hook</strong>: <code>track-discovery.sh</code> (PostToolUse, 5-min cooldown)</li>
+        <li>✅ <strong>Connection pool</strong> for multi-agent load (N.5-A): <code>get_pooled_conn()</code>, <code>threading.local</code>, <code>busy_timeout=5000</code></li>
+        <li>✅ <strong>Multi-tenant override</strong> (N.5-E): <code>.coding-os/roles.override/</code>, <code>.coding-os/presets.override/</code></li>
+        <li>✅ <strong>Preset version stamping</strong> (N.5-C): mid-session drift protection via sha256 hash</li>
+        <li>✅ Rule 16 rewritten in AGENTS.md — "Role chain" replaces "Persona" requirement</li>
+        <li>✅ Doctor C28 updated: primary = roles/, legacy personas/ warn-only (1-release deprecation)</li>
+        <li>✅ <code>cos_route_persona</code> retained as shim until v0.4</li>
+      </ul>
+      <p style="margin-top:12px;font-size:12px;color:var(--text-3);font-family:var(--font-mono);">
+        Next hardening (N.5 incremental): metrics observability (B), circuit breaker per role (D),
+        rate-limit semaphore on <code>cos_graph_impact</code> (F). Added incrementally post-ship.
+      </p>
+    </div>
+
+    <div class="card" data-section="rules">
+      <h3><i style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);">R</i> 18 Critical Rules</h3>
+      <ul style="font-size:12px;">
+        <li><strong>R0</strong> Docs-first — every code write needs <code>.doc-anchor</code></li>
+        <li><strong>R1-2</strong> Never hardcode <code>.claude/</code> — use <code>$COS_AGENT_DIR</code></li>
+        <li><strong>R3-7</strong> Hooks source cos-env.sh · state in agent-dir · path .resolve() first · fire-and-forget with try/except</li>
+        <li><strong>R8-10</strong> Governance edits require task-name · Python for verification scripts · migrations append-only</li>
+        <li><strong>R11-13</strong> Regen derived artifacts · no hardcoded literals in CLI · function-header convention</li>
+        <li><strong>R14</strong> MCP envelope — <code>ok()/fail()</code>, <code>@safe_tool</code></li>
+        <li><strong>R15</strong> Tasks are pointers, not specs (Phase L)</li>
+        <li><strong>R16</strong> <s>Persona</s> <strong>Role</strong> must be set for COMPLICATED+ (Phase N rewrite)</li>
+        <li><strong>R17</strong> Formula dispatch must produce typed EvidenceBundle</li>
+        <li><strong>R18</strong> Situational Paths override role chain when <code>.situation</code> set</li>
+      </ul>
+    </div>
+
+    <div class="card principles full" data-section="principles">
+      <h3><i style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);">P</i> 7 Principles</h3>
+      <ul>
+        <li><span>P1</span> SSOT-first — no parallel truths</li>
+        <li><span>P2</span> Agent-agnostic — no hardcoded <code>.claude/</code> in core</li>
+        <li><span>P3</span> Minimal-context — 3-10 files max per task</li>
+        <li><span>P4</span> Diff-first — preserve unrelated content</li>
+        <li><span>P5</span> Dogfood — coding-os uses itself</li>
+        <li><span>P6</span> Log-everything via make commands</li>
+        <li><span>P7</span> No-guessing — log unknowns to <code>docs/questions.md</code></li>
+      </ul>
+    </div>
+
+    <div class="card full" data-section="trace-replay">
+      <h3><i style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);">▶</i> Behavioral Trace Replay (Phase N.6)</h3>
+      <p>Every cognition event writes a line to <code>.coding-os/&lt;agent&gt;/traces/&lt;session_id&gt;.jsonl</code>. The companion viewer animates an agent's actual path through this flowchart — every node highlights in the order the agent hit it, with event-list sidebar, speed control, and timeline scrubber.</p>
+      <p style="margin-top:8px;"><strong style="color:var(--cyan);">→ <a href="cognition-trace-replay.html" style="color:var(--cyan);text-decoration:none;border-bottom:1px dashed var(--cyan);">Open trace replay viewer</a></strong> &middot; CLI: <code>cos cognition trace &lt;session_id&gt;</code></p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MACHINE-READABLE WORKFLOW — AI agents parse this block directly
+     ══════════════════════════════════════════════════════════════════ -->
+<script type="application/json" id="workflow-json">
+{
+  "name": "coding-os-workflow-v1",
+  "version": "V1",
+  "phases": [
+    {"id": "entry", "node": "n-user", "next": "n-sinit"},
+    {"id": "session-init", "node": "n-sinit", "hooks": ["warn-mcp-down", "session-context-recovery"], "next": "n-gate"},
+    {"id": "complexity-gate", "node": "n-gate", "artifact": ".thinking-os-gate", "next": "n-cynefin"},
+    {"id": "cynefin-branch", "node": "n-cynefin", "branches": {"CLEAR": "n-clear", "COMPLICATED|COMPLEX": "n-complex", "CHAOTIC": "n-chaotic"}},
+    {"id": "task-analyzer", "node": "n-analyzer", "status": "SHIPPED-PHASE-N", "inputs": ["prompt", "cos_search", "cos_graph_impact", "cos_doc_search"], "outputs": ["TaskSignals"]},
+    {"id": "role-router", "node": "n-router", "steps": ["preset-lookup", "composer-fallback", "situational-override"], "next": "n-supervisor"},
+    {"id": "supervisor-loop", "node": "n-supervisor", "states": ["IDLE", "CLASSIFYING", "ROUTING", "DISPATCHING", "AWAITING_AGENT", "INTEGRATING", "DONE"], "backtrack": "transition-not-state"},
+    {"id": "anti-ambiguity", "node": "n-ambi", "criteria": ["observable", "measurable", "testable", "scoped", "owned", "reversible", "user-value"], "blocking": true},
+    {"id": "traceability", "node": "n-trace", "triggers": ["phase-boundary", "session-end"]},
+    {"id": "implement", "node": "n-impl", "role": "F5", "hooks_pre": ["enforce-doc-anchor", "enforce-skill", "enforce-task-start", "enforce-template", "enforce-rename-plan", "block-*"]},
+    {"id": "verify", "node": "n-verify", "role": "F6", "parallelizable": true},
+    {"id": "pass-decision", "node": "n-pass", "branches": {"PASS": "n-done", "FAIL_1": "n-fail1", "FAIL_2X": "n-fail2"}},
+    {"id": "done", "node": "n-done", "command": "make task-done"},
+    {"id": "session-end", "node": "n-end", "actions": ["summary", "discovery-promote", "bundle-ttl-cleanup"]},
+    {"id": "await", "node": "n-await", "loops_to": "n-gate"}
+  ],
+  "roles": [
+    {"id": "F1", "name": "Research & Discovery", "triggers": ["novelty>=0.5"], "output": "F1Output"},
+    {"id": "F2", "name": "Problem Decomposition", "triggers": ["COMPLICATED+"], "output": "F2Output", "backtracks_to": ["F1"]},
+    {"id": "F3", "name": "Architecture & Design", "triggers": ["breaking_change"], "output": "F3Output", "backtracks_to": ["F2"]},
+    {"id": "F4", "name": "Technical Documentation", "triggers": ["post-F3"], "output": "F4Output", "backtracks_to": ["F2","F3"]},
+    {"id": "F5", "name": "Implementation", "triggers": ["action=create|modify"], "output": "F5Output", "backtracks_to": ["F2","F3"]},
+    {"id": "F6", "name": "Testing · Review · Perf", "triggers": ["post-F5"], "output": "F6Output", "backtracks_to": ["F2","F5"], "parallel_layers": ["unit","integration","e2e","llm"]},
+    {"id": "F7", "name": "Debugging", "triggers": ["action=debug"], "output": "F7Output", "backtracks_to": ["F3","F11"]},
+    {"id": "F8", "name": "Security Audit", "triggers": ["pre-release","auth-touched"], "output": "F8Output", "backtracks_to": ["F3"], "parallel_layers": ["L1","L2","L3","L4","L5"]},
+    {"id": "F9", "name": "Deployment & DevOps", "triggers": ["release-ready"], "output": "F9Output", "backtracks_to": ["F3","F8"]},
+    {"id": "F10", "name": "Monitoring & Observability", "triggers": ["post-release"], "output": "F10Output", "backtracks_to": ["F3"]},
+    {"id": "F11", "name": "Refactoring & Tech-Debt", "triggers": ["periodic","post-F7"], "output": "F11Output", "backtracks_to": ["F3","F10"]}
+  ],
+  "situational_paths": {
+    "incident-response": ["mitigate", "communicate", "F7", "F6", "post_mortem", "F10"],
+    "onboarding": ["read-F4", "read-F3-ADRs", "F5-leaf", "F6-reviewer"],
+    "scope-change": ["F2.1", "Traceability", "F2", "F3", "F4"],
+    "external-integration": ["F1", "F2", "F3", "F5", "F6", "F8"],
+    "design-review": ["verify-F2", "verify-F3-ADRs", "approval-gate"],
+    "existing-project-takeover": ["F2-reverse", "F6-characterization", "F4", "F5", "F6", "F11", "F3"]
+  },
+  "mcp_tools_count": 39,
+  "mcp_tool_categories": ["health", "memory", "metrics", "learning", "routing", "graph", "docs-rag", "tasks", "board", "cognition"],
+  "mcp_tools_count": 42,
+  "hook_count": 45,
+  "db_version": "v14",
+  "retrieval_layers": ["agent-memory", "doc-kb", "task-registry", "knowledge-graph"],
+  "evidence_bundle_path": ".coding-os/<agent>/evidence_bundle_<session_id>.json",
+  "phase_status": {
+    "M": "shipped-persona-deprecated",
+    "N": "shipped-role-based-routing"
+  },
+  "routing_primitives": {
+    "analyzer": "core/thinking_os/task_analyzer.py",
+    "composer": "core/thinking_os/formula_composer.py",
+    "roles_dir": "core/thinking_os/roles/",
+    "presets_file": "core/thinking_os/presets/registry.yaml",
+    "situations_file": "core/thinking_os/situations/registry.yaml",
+    "strategy_priority": ["situation_override", "preset_match", "composer_fallback", "hard_fallback"]
+  }
+}
+</script>
+
+<button class="btn-exit-fs" id="btn-exit-fs2" title="Exit Fullscreen" style="display:none;">&times;</button>
+
+<script>
+  const colors = {
+    blue: '#60a5fa', green: '#34d399', purple: '#a78bfa',
+    orange: '#fb923c', red: '#f87171', cyan: '#22d3ee',
+    amber: '#fbbf24', pink: '#f472b6', teal: '#2dd4bf', textMuted: '#71717a'
+  };
+
+  const connections = [
+    // Entry
+    { from: 'n-user',     to: 'n-sinit',     c: colors.cyan },
+    { from: 'n-sinit',    to: 'n-gate',      c: colors.blue },
+    { from: 'n-gate',     to: 'n-cynefin',   c: colors.pink },
+
+    // Cynefin branches
+    { from: 'n-cynefin',  to: 'n-clear',     lbl: 'CLEAR',        c: colors.green },
+    { from: 'n-cynefin',  to: 'n-chaotic',   lbl: 'CHAOTIC',      c: colors.red },
+    { from: 'n-cynefin',  to: 'n-complex',   lbl: 'COMPLICATED+', c: colors.purple },
+
+    // Converge to Analyzer
+    { from: 'n-complex',  to: 'n-analyzer',  c: colors.amber },
+    { from: 'n-clear',    to: 'n-analyzer',  dash: true, c: colors.green },
+    { from: 'n-chaotic',  to: 'n-analyzer',  dash: true, lbl: 'incident', c: colors.red },
+
+    // Analyzer → Router
+    { from: 'n-analyzer', to: 'n-router',    c: colors.teal },
+
+    // Router sub-branches
+    { from: 'n-router',   to: 'n-route-dec', c: colors.teal },
+    { from: 'n-route-dec', to: 'n-presets',  lbl: 'preset',    c: colors.teal },
+    { from: 'n-route-dec', to: 'n-situations', lbl: 'situation', c: colors.orange },
+
+    // Router → Supervisor
+    { from: 'n-router',    to: 'n-supervisor', c: colors.pink },
+    { from: 'n-presets',   to: 'n-supervisor', dash: true, c: colors.teal },
+    { from: 'n-situations', to: 'n-supervisor', dash: true, c: colors.orange },
+
+    // Supervisor → Roles grid → Anti-Ambiguity
+    { from: 'n-supervisor', to: 'n-roles-grid', c: colors.pink },
+    { from: 'n-roles-grid', to: 'n-ambi',      c: colors.red },
+    { from: 'n-ambi',       to: 'n-trace',     c: colors.purple },
+
+    // Implement
+    { from: 'n-trace',    to: 'n-impl',      c: colors.cyan },
+    { from: 'n-precheck', to: 'n-impl',      dash: true, c: colors.teal },
+    { from: 'n-postwrite', to: 'n-impl',     dash: true, c: colors.blue },
+
+    // Verify
+    { from: 'n-impl',    to: 'n-verify',    c: colors.green },
+    { from: 'n-verify',  to: 'n-pass',      c: colors.amber },
+
+    // Pass/Fail
+    { from: 'n-pass',    to: 'n-fail2',     lbl: 'FAIL 2x', c: colors.red },
+    { from: 'n-pass',    to: 'n-done',      lbl: 'PASS',    c: colors.green },
+    { from: 'n-pass',    to: 'n-fail1',     lbl: 'FAIL 1st', c: colors.orange },
+    { from: 'n-fail1',   to: 'n-impl',      dash: true, c: colors.orange },
+
+    // Done → End → Await → Loop
+    { from: 'n-done',    to: 'n-end',       c: colors.purple },
+    { from: 'n-end',     to: 'n-await',     c: colors.cyan },
+    { from: 'n-await',   to: 'n-gate',      dash: true, lbl: 'NEW INPUT', c: colors.textMuted }
+  ];
+
+  let scale = 1, panX = 0, panY = 0;
+  let drawTimeout;
+
+  function triggerDraw(immediate = false) {
+    if (immediate) return performDraw();
+    clearTimeout(drawTimeout);
+    drawTimeout = setTimeout(performDraw, 150);
+  }
+
+  function performDraw() {
+    const svg = document.getElementById('lines-overlay');
+    if (!svg) return;
+
+    let html = '';
+    const container = document.getElementById('flow-wrapper');
+    const bounds = container.getBoundingClientRect();
+    const isH = container.classList.contains('horizontal');
+
+    function getCenter(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return {
+        x: Math.round((r.left - bounds.left) / scale + (r.width / scale) / 2),
+        y: Math.round((r.top - bounds.top) / scale + (r.height / scale) / 2),
+        w: Math.round(r.width / scale),
+        h: Math.round(r.height / scale),
+        r, el
+      };
+    }
+
+    connections.forEach(conn => {
+      const from = getCenter(conn.from);
+      const to = getCenter(conn.to);
+      if (!from || !to) return;
+
+      let startX = from.x, startY = from.y;
+      let endX = to.x, endY = to.y;
+      let cp1X, cp1Y, cp2X, cp2Y;
+
+      const dx = endX - startX;
+      const dy = endY - startY;
+
+      if (isH) {
+        startX += from.w / 2;
+        let isSideLeft = to.el.closest('.side.left') !== null;
+        let isSideRight = to.el.closest('.side.right') !== null;
+
+        if (isSideLeft) {
+          endY += to.h / 2;
+          cp1X = startX + 60; cp1Y = startY;
+          cp2X = endX; cp2Y = endY + 60;
+        } else if (isSideRight) {
+          endY -= to.h / 2;
+          cp1X = startX + 60; cp1Y = startY;
+          cp2X = endX; cp2Y = endY - 60;
+        } else {
+          endX -= to.w / 2;
+          if (dx < 0) {
+            startX = from.x - from.w / 2;
+            endX = to.x + to.w / 2;
+            cp1X = startX - 80; cp1Y = startY + 140 * Math.sign(dy || 1);
+            cp2X = endX + 80; cp2Y = endY + 140 * Math.sign(dy || 1);
+          } else if (Math.abs(dy) > Math.abs(dx) * 1.5) {
+            startX = from.x; startY += from.h / 2 * Math.sign(dy);
+            endX = to.x; endY -= to.h / 2 * Math.sign(dy);
+            cp1X = startX; cp1Y = startY + dy / 2;
+            cp2X = endX; cp2Y = endY - dy / 2;
+          } else {
+            cp1X = startX + Math.abs(dx) / 2; cp1Y = startY;
+            cp2X = endX - Math.abs(dx) / 2; cp2Y = endY;
+          }
+        }
+      } else {
+        startY += from.h / 2;
+        let isSideLeft = to.el.closest('.side.left') !== null;
+        let isSideRight = to.el.closest('.side.right') !== null;
+
+        if (isSideLeft) {
+          endX += to.w / 2;
+          cp1X = startX; cp1Y = startY + 60;
+          cp2X = endX + 60; cp2Y = endY;
+        } else if (isSideRight) {
+          endX -= to.w / 2;
+          cp1X = startX; cp1Y = startY + 60;
+          cp2X = endX - 60; cp2Y = endY;
+        } else {
+          endY -= to.h / 2;
+          if (dy < 0 && Math.abs(dx) > from.w) {
+            startY = from.y - from.h / 2;
+            endY = to.y + to.h / 2;
+            cp1X = startX + 160 * Math.sign(dx || 1); cp1Y = startY - 80;
+            cp2X = endX + 160 * Math.sign(dx || 1); cp2Y = endY + 80;
+          } else if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+            startX = from.x + from.w / 2 * Math.sign(dx); startY = from.y;
+            endX = to.x - to.w / 2 * Math.sign(dx); endY = to.y;
+            cp1X = startX + dx / 2; cp1Y = startY;
+            cp2X = endX - dx / 2; cp2Y = endY;
+          } else {
+            cp1X = startX; cp1Y = startY + Math.abs(dy) / 2;
+            cp2X = endX; cp2Y = endY - Math.abs(dy) / 2;
+          }
+        }
+      }
+
+      const dashStr = conn.dash ? 'stroke-dasharray="8,6"' : '';
+      const markerId = `m-${conn.c.replace('#', '')}`;
+
+      html += `<path d="M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}" fill="none" stroke="${conn.c}" stroke-width="2" ${dashStr} marker-end="url(#${markerId})" />`;
+
+      if (conn.lbl) {
+        let mx = 0.125 * startX + 0.375 * cp1X + 0.375 * cp2X + 0.125 * endX;
+        let my = 0.125 * startY + 0.375 * cp1Y + 0.375 * cp2Y + 0.125 * endY;
+        html += `<text x="${Math.round(mx)}" y="${Math.round(my - 8)}" class="line-label" fill="${conn.c}" text-anchor="middle">${conn.lbl}</text>`;
+      }
+    });
+
+    const uniqueColors = [...new Set(connections.map(c => c.c))];
+    const defs = `<defs>${uniqueColors.map(c => `
+      <marker id="m-${c.replace('#', '')}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="${c}" />
+      </marker>
+    `).join('')}</defs>`;
+
+    const newDOM = defs + html;
+    if (svg.innerHTML !== newDOM) {
+      svg.innerHTML = newDOM;
+    }
+  }
+
+  // Drag
+  let draggedNode = null, dragOffsetX = 0, dragOffsetY = 0;
+  document.querySelectorAll('.node').forEach(node => {
+    node.style.cursor = 'grab';
+    node.addEventListener('mousedown', (e) => {
+      if (e.target.closest('a, button, code, table')) return;
+      draggedNode = node;
+      node.classList.add('dragging');
+      let tx = parseFloat(node.style.getPropertyValue('--tx')) || 0;
+      let ty = parseFloat(node.style.getPropertyValue('--ty')) || 0;
+      dragOffsetX = e.clientX - tx;
+      dragOffsetY = e.clientY - ty;
+      e.preventDefault();
+    });
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!draggedNode) return;
+    draggedNode.style.setProperty('--tx', `${e.clientX - dragOffsetX}px`);
+    draggedNode.style.setProperty('--ty', `${e.clientY - dragOffsetY}px`);
+    triggerDraw(true);
+  });
+  document.addEventListener('mouseup', () => {
+    if (draggedNode) { draggedNode.classList.remove('dragging'); draggedNode = null; }
+  });
+
+  // Zoom & Pan
+  const canvas = document.querySelector('.canvas');
+  const flowWrapper = document.getElementById('flow-wrapper');
+  let isPanning = false, startPanX = 0, startPanY = 0;
+  function updateTransform() {
+    flowWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    triggerDraw(true);
+  }
+  canvas.addEventListener('wheel', (e) => {
+    if (!e.metaKey && !e.ctrlKey) return;
+    e.preventDefault();
+    const delta = e.deltaY * -0.001;
+    let newScale = Math.max(0.15, Math.min(scale * Math.exp(delta), 3));
+    const rect = flowWrapper.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    panX -= mouseX * (newScale / scale - 1);
+    panY -= mouseY * (newScale / scale - 1);
+    scale = newScale;
+    updateTransform();
+  }, { passive: false });
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.node') || e.target.closest('button') || e.target.closest('a')) return;
+    isPanning = true;
+    startPanX = e.clientX - panX;
+    startPanY = e.clientY - panY;
+    canvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    panX = e.clientX - startPanX;
+    panY = e.clientY - startPanY;
+    updateTransform();
+  });
+  document.addEventListener('mouseup', () => {
+    if (isPanning) { isPanning = false; canvas.style.cursor = ''; }
+  });
+
+  const ro = new ResizeObserver(() => triggerDraw());
+  ro.observe(document.getElementById('flow-wrapper'));
+  window.addEventListener('load', () => triggerDraw(true));
+
+  // Toggle Orientation
+  document.getElementById('btn-orient').addEventListener('click', () => {
+    const container = document.getElementById('flow-wrapper');
+    const lbl = document.getElementById('lbl-mode');
+    const btn = document.getElementById('btn-orient');
+    const isH = container.classList.toggle('horizontal');
+    btn.classList.toggle('active');
+    lbl.textContent = isH ? '// layout: horizontal · responsive grid' : '// layout: vertical · drag nodes · Cmd+scroll to zoom';
+    scale = 1; panX = 0; panY = 0; updateTransform();
+    triggerDraw();
+    setTimeout(triggerDraw, 500);
+  });
+
+  // Reset
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    scale = 1; panX = 0; panY = 0; updateTransform();
+    document.querySelectorAll('.node').forEach(n => {
+      n.style.setProperty('--tx', '0px');
+      n.style.setProperty('--ty', '0px');
+    });
+    triggerDraw(true);
+  });
+
+  // Fullscreen
+  const btnFs = document.getElementById('btn-fs');
+  const btnExitFs = document.getElementById('btn-exit-fs');
+  function toggleFullscreen() {
+    canvas.classList.toggle('fullscreen');
+    setTimeout(triggerDraw, 50);
+  }
+  btnFs.addEventListener('click', toggleFullscreen);
+  btnExitFs.addEventListener('click', toggleFullscreen);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && canvas.classList.contains('fullscreen')) toggleFullscreen();
+  });
+</script>
+
+</body></html>

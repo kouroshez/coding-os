@@ -3,7 +3,7 @@
 
 Purpose: Give agents a single entry point for "I want to know X" and let the runtime pick the correct retrieval layer (memory / docs / tasks / code-grep) instead of the agent choosing every time.
 Read when: Starting any J.* sub-task, adjusting the query classifier, or wiring a new retrieval layer into the dispatch table.
-Read next: [core/thinking-os/tools/memory.py](../core/thinking-os/tools/memory.py), [tools/docs.py](../core/thinking-os/tools/docs.py), [tools/tasks.py](../core/thinking-os/tools/tasks.py), [docs/phase-g-brain-hardening-plan.md](./phase-g-brain-hardening-plan.md) §G.7.1 (routing paragraph).
+Read next: [core/thinking_os/tools/memory.py](../core/thinking_os/tools/memory.py), [tools/docs.py](../core/thinking_os/tools/docs.py), [tools/tasks.py](../core/thinking_os/tools/tasks.py), [docs/phase-g-brain-hardening-plan.md](./phase-g-brain-hardening-plan.md) §G.7.1 (routing paragraph).
 
 ## Why
 

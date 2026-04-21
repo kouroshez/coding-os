@@ -19,7 +19,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 [[ -z "$FILE_PATH" ]] && exit 0
 
 case "$FILE_PATH" in
-  */core/hooks/*|*/core/rules/*|*/core/skills/*|*/core/thinking-os/*|*/adapters/*)
+  */core/hooks/*|*/core/rules/*|*/core/skills/*|*/core/thinking_os/*|*/adapters/*)
     ;;
   *)
     exit 0

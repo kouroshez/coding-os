@@ -58,8 +58,8 @@ note_warning() {
 
 # ── Compute expected values from the codebase ───────────────────────────────
 
-SERVER_PY="$COS_ROOT/core/thinking-os/server.py"
-DB_PY="$COS_ROOT/core/thinking-os/db.py"
+SERVER_PY="$COS_ROOT/core/thinking_os/server.py"
+DB_PY="$COS_ROOT/core/thinking_os/db.py"
 CLAUDE_MD="$COS_ROOT/CLAUDE.md"
 ARCH_MD="$COS_ROOT/docs/architecture.md"
 

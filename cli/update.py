@@ -319,7 +319,7 @@ def _run_db_migrations(project: Path) -> None:
         return
     import subprocess
     import sys
-    brain = CORE_DIR / "thinking-os"
+    brain = CORE_DIR / "thinking_os"
     subprocess.run(
         [
             sys.executable, "-c",

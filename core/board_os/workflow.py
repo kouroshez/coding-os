@@ -343,13 +343,31 @@ def transition(
 # ---------- Helpers ----------
 
 
+def _patch_fm_field(fm_text: str, key: str, value: str) -> str:
+    """Replace a scalar field in raw YAML text without touching comments or key order.
+
+    If the key already exists, its value is updated in-place.
+    If it is absent, the key is appended on a new line (handles tasks
+    created before a field was added to the template).
+    """
+    import re as _re
+    pattern = _re.compile(rf"^({_re.escape(key)}:)[ \t]*.*$", _re.MULTILINE)
+    if pattern.search(fm_text):
+        return pattern.sub(rf"\1 {value}", fm_text, count=1)
+    return fm_text + f"\n{key}: {value}"
+
+
 def _write_status_to_frontmatter(
     path: Path,
     new_status: str,
     *,
     agent_session: str | None,
 ) -> None:
-    """Atomically update status (+ started/completed timestamps) in frontmatter."""
+    """Atomically update status (+ started/completed timestamps) in frontmatter.
+
+    Uses targeted regex field-patching instead of YAML round-trip so that
+    inline comments (e.g. ``# always start here``) are preserved verbatim.
+    """
     if not path.exists():
         raise FileNotFoundError(str(path))
 
@@ -360,24 +378,26 @@ def _write_status_to_frontmatter(
     if not m:
         raise ValueError(f"{path}: no frontmatter to update")
 
+    fm_raw = m.group(1)
+
+    # Validate YAML is parseable before touching anything.
     try:
-        fm = yaml.safe_load(m.group(1)) or {}
+        fm_parsed = yaml.safe_load(fm_raw) or {}
     except yaml.YAMLError as exc:
         raise ValueError(f"{path}: frontmatter YAML broken: {exc}") from exc
-    if not isinstance(fm, dict):
+    if not isinstance(fm_parsed, dict):
         raise ValueError(f"{path}: frontmatter is not a mapping")
 
     today = time.strftime("%Y-%m-%d")
-    fm["status"] = new_status
+    fm_raw = _patch_fm_field(fm_raw, "status", new_status)
     if agent_session is not None:
-        fm["agent_session"] = agent_session
-    if new_status == "in_progress" and not fm.get("started"):
-        fm["started"] = today
-    if new_status == "complete" and not fm.get("completed"):
-        fm["completed"] = today
+        fm_raw = _patch_fm_field(fm_raw, "agent_session", agent_session)
+    if new_status == "in_progress" and not fm_parsed.get("started"):
+        fm_raw = _patch_fm_field(fm_raw, "started", today)
+    if new_status == "complete" and not fm_parsed.get("completed"):
+        fm_raw = _patch_fm_field(fm_raw, "completed", today)
 
-    new_fm = yaml.safe_dump(fm, sort_keys=False, allow_unicode=True).rstrip("\n")
-    new_content = f"---\n{new_fm}\n---\n" + content[m.end():]
+    new_content = f"---\n{fm_raw}\n---\n" + content[m.end():]
 
     tmp_fd, tmp_path = tempfile.mkstemp(
         dir=str(path.parent), prefix=".task-", suffix=".tmp",

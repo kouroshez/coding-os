@@ -202,7 +202,7 @@ class TestDocSyncReminder:
         assert "features.md" in result.stdout
 
     def test_server_py_prints_mcp_docs(self, tmp_path: Path) -> None:
-        target = tmp_path / "core" / "thinking-os" / "server.py"
+        target = tmp_path / "core" / "thinking_os" / "server.py"
         result = _invoke(DOC_SYNC_REMINDER, {
             "tool_name": "Edit",
             "tool_input": {"file_path": str(target)},

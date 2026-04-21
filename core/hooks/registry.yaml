@@ -462,3 +462,41 @@ hooks:
       - event: PreToolUse
         matcher: Write|Edit
         status_message: "⚠️ Adapter template edits — use registry.yaml..."
+
+
+  # ── cognition (Phase M — formula-agent supervisor) ───────────────────
+  - id: enforce-anti-ambiguity
+    script: enforce-anti-ambiguity.sh
+    description: Blocks code writes at EXECUTE phase when Anti-Ambiguity gate has failures. Bypassed for CLEAR 1.
+    category: cognition
+    phase: M
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔍 Anti-Ambiguity gate check..."
+
+  - id: track-backtrack
+    script: track-backtrack.sh
+    description: Non-blocking advisor that fires when cos_backtrack_log records ≥3 backtracks per session.
+    category: cognition
+    phase: M
+    events:
+      - event: PostToolUse
+        matcher: mcp__coding-os__cos_backtrack_log
+        status_message: "↩️ Backtrack counter updated..."
+
+  - id: track-discovery
+    script: track-discovery.sh
+    description: |
+      Phase N — Discovery Protocol auto-trigger. Scans Write/Edit/TodoWrite
+      output for discovery signal phrases (new actor, missing dependency,
+      undocumented behavior, etc.). On ≥2 matches, emits a non-blocking
+      reminder to call cos_discovery with impact assessment + decision.
+      Reminder cooldown: 5 minutes per session to avoid spam.
+      Spec: formulas-en.md §Navigation Protocol §4 (Discovery Protocol).
+    category: cognition
+    phase: N
+    events:
+      - event: PostToolUse
+        matcher: "Write|Edit|TodoWrite"
+        status_message: "🔍 Scanning for discoveries..."

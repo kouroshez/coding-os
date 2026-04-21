@@ -10,6 +10,20 @@ sourced_hooks: [cos-env.sh]
 supports_rules: true
 supports_settings_json: true
 install_script: install.sh
+
+# Helper script invoked by `cos setup-mcp` / `cli/main.py` to write Codex
+# MCP config safely (TOML-aware).
+mcp_helper: ensure_codex_mcp.py
+
+# MCP launch metadata consumed by cli/doctor.py::_load_coding_os_mcp_launch
+# (C15 check). Data-driven so tests/test_no_hardcoded_stacks.py stays green.
+mcp_launch:
+  loader: codex_toml       # maps to cli.doctor._load_codex
+  config_paths:
+    - scope: project
+      path: .codex/config.toml
+    - scope: home
+      path: .codex/config.toml
 default_settings: {}
 
 hook_registry_output: hooks.template.json

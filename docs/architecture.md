@@ -101,7 +101,7 @@ The thinking-os DB tracks everything and learns from past sessions.
 | `COS_DB_PATH` | `.coding-os/thinking-os.db` | SQLite database path |
 | `COS_SESSION_FILE` | `.coding-os/session-id` | Session ID file |
 
-## MCP Tools (29 tools, `cos_*` prefix)
+## MCP Tools (42 tools, `cos_*` prefix)
 
 ### Response Contract (applies to ALL tools below)
 
@@ -112,7 +112,7 @@ Every tool returns a JSON envelope — full spec in [engineering/mcp-error-envel
 { "ok": false, "error": { "category": "transient|validation|permission|not_found|unavailable|internal", "retryable": bool, "message": "..." } }
 ```
 
-Helpers: `ok(data)` / `fail(category, message)` / `@safe_tool` decorator in [core/thinking-os/tools/_shared.py](../core/thinking-os/tools/_shared.py). `@safe_tool` converts unhandled exceptions into `fail("internal", ...)` so tracebacks never leak to the agent.
+Helpers: `ok(data)` / `fail(category, message)` / `@safe_tool` decorator in [core/thinking_os/tools/_shared.py](../core/thinking_os/tools/_shared.py). `@safe_tool` converts unhandled exceptions into `fail("internal", ...)` so tracebacks never leak to the agent.
 
 ### Health (1)
 

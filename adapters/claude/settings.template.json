@@ -111,6 +111,11 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-template-drift.sh",
             "statusMessage": "⚠️ Adapter template edits — use registry.yaml..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-anti-ambiguity.sh",
+            "statusMessage": "🔍 Anti-Ambiguity gate check..."
           }
         ]
       },
@@ -194,6 +199,11 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-dogfood.sh",
             "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/track-discovery.sh",
+            "statusMessage": "🔍 Scanning for discoveries..."
           }
         ]
       },

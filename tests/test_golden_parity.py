@@ -14,8 +14,8 @@ Runtime files (SQLite DBs, session markers) are excluded on both sides.
 
 from __future__ import annotations
 
-import filecmp
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -116,10 +116,20 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
         f"`uv run python scripts/capture_golden.py --section {section_id}`"
     )
 
-    # Byte-identical check for every shared file.
+    # Byte-identical check for every shared file. Some adapters (codex)
+    # bake absolute install paths into generated configs; normalise any
+    # absolute path ending in /cos-golden-fixture/... to a sandbox-root
+    # placeholder so capture-time vs test-time tmp dirs match.
+    anchor_re = re.compile(
+        rb"/[^\s\"'`]*?/" + re.escape(FIXTURE_NAME.encode()) + rb"/"
+    )
+
+    def _normalise(path: Path) -> bytes:
+        return anchor_re.sub(b"__SANDBOX__/", path.read_bytes())
+
     mismatches: list[str] = []
     for rel in sorted(expected):
-        if not filecmp.cmp(expected[rel], actual[rel], shallow=False):
+        if _normalise(expected[rel]) != _normalise(actual[rel]):
             mismatches.append(rel)
     assert not mismatches, (
         f"[{section_id}] {len(mismatches)} file(s) drifted:\n  " +

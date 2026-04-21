@@ -41,6 +41,18 @@ esac
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
+# Phase M: formula-agents that write docs (F3/F4) produce structured output by
+# design — skip template gate when a persona's formula dispatch is active.
+ACTIVE_FORMULA_FILE="${COS_AGENT_DIR}/.active-formula"
+if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
+  ACTIVE_FORMULA=$(cat "$ACTIVE_FORMULA_FILE" 2>/dev/null || echo "")
+  # F3 (Architect) creates ADRs; F4 (Document) creates task/PRD/breakthrough docs.
+  # Both operate within structured output contracts — no template re-enforcement needed.
+  if [[ -n "$ACTIVE_FORMULA" ]]; then
+    exit 0
+  fi
+fi
+
 # One-shot escape hatch for tooling (scaffold writers, migration scripts).
 if [[ -f "$COS_AGENT_DIR/.template-override" ]]; then
   rm -f "$COS_AGENT_DIR/.template-override"

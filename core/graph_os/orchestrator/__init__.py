@@ -6,7 +6,7 @@ encoded as a `Role`; the dispatcher owns execution; the worker pool
 keeps a bounded fleet of subprocess-free workers (Python threads in
 I.9; the real thinking-os agent-run model lands in I.9b).
 
-The plan (§13) names this module `core/thinking-os/orchestrator/`. We
+The plan (§13) names this module `core/thinking_os/orchestrator/`. We
 co-locate it inside graph_os because Phase I ships the infrastructure
 there first; when thinking-os needs orchestrator roles of its own,
 it can import from `graph_os.orchestrator`.

@@ -6,7 +6,7 @@
 Purpose: Detailed, implementation-ready execution plan for Phase C (hybrid task storage — files as SSOT, SQLite as structured + semantic index).
 Read when: Starting any Phase C sub-task.
 Skip when: Working on unrelated maintenance or Phase A/B follow-ups.
-Read next: [core/thinking-os/db.py](../core/thinking-os/db.py) (migration append pattern), [core/thinking-os/doc_indexer.py](../core/thinking-os/doc_indexer.py) (mtime sync pattern to mirror).
+Read next: [core/thinking_os/db.py](../core/thinking_os/db.py) (migration append pattern), [core/thinking_os/doc_indexer.py](../core/thinking_os/doc_indexer.py) (mtime sync pattern to mirror).
 
 ## Status
 
@@ -57,7 +57,7 @@ Currently the agent has no structured access. Every "which tasks depend on TASK-
 
 **Goal:** add the structured task index table alongside Phase B's `document_chunks` and `embeddings`.
 
-**Modified:** [core/thinking-os/db.py](../core/thinking-os/db.py)
+**Modified:** [core/thinking_os/db.py](../core/thinking_os/db.py)
 
 Append migration v6 after v5:
 
@@ -93,7 +93,7 @@ Also append `"tasks"` to `_TABLES` list in `get_db_stats()` so health check repo
 
 Add helper `has_tasks_table(conn)` following the `has_fts5_table` / `has_embeddings_table` pattern.
 
-### C.2 — Parser module: `core/thinking-os/task_parser.py`
+### C.2 — Parser module: `core/thinking_os/task_parser.py`
 
 **New file.** Pure, stateless parser — no DB dependency, fully unit-testable.
 
@@ -143,7 +143,7 @@ Parser strategy (matches the NakoDigital format documented in `task-lifecycle.md
 
 All sections are optional. Missing sections yield empty lists / "None." strings.
 
-### C.3 — Sync module: `core/thinking-os/task_sync.py`
+### C.3 — Sync module: `core/thinking_os/task_sync.py`
 
 **New file.** Walks `docs/tasks/*.md`, parses each file, reads status from `docs/tasks.md`, upserts into the DB, and embeds the result.
 
@@ -204,7 +204,7 @@ Sync algorithm:
 7. `conn.commit()` at end.
 8. Return stats.
 
-### C.4 — MCP tools: `core/thinking-os/tools/tasks.py`
+### C.4 — MCP tools: `core/thinking_os/tools/tasks.py`
 
 **New file.** Implements the four query functions. Pure functions over the `tasks` table.
 
@@ -263,7 +263,7 @@ Each function returns a list of dicts with consistent shape:
 }
 ```
 
-### C.5 — MCP server registration: `core/thinking-os/server.py`
+### C.5 — MCP server registration: `core/thinking_os/server.py`
 
 Register four new `@mcp.tool` decorators after `cos_doc_search`:
 
@@ -304,7 +304,7 @@ Each script currently runs fire-and-forget Python blocks for thinking-os side ef
 (
   python3 -c "
 import sys, os
-sys.path.insert(0, '${COS_ROOT}/core/thinking-os')
+sys.path.insert(0, '${COS_ROOT}/core/thinking_os')
 try:
     from db import init_db
     from task_sync import sync_tasks
@@ -372,7 +372,7 @@ Add a CLI entry point `_main()` to `task_sync.py` with `argparse` (mirroring `do
 
 Target: **~22 tests, all pass without `rag` extras** (parser is pure).
 
-### C.T2 — `core/thinking-os/tests/test_db.py` additions
+### C.T2 — `core/thinking_os/tests/test_db.py` additions
 
 | Test (class `TestMigrationV6Tasks`) | What |
 |---|---|
@@ -386,7 +386,7 @@ Target: **~22 tests, all pass without `rag` extras** (parser is pure).
 
 Target: **7 tests, all pass without `rag` extras.**
 
-### C.T3 — `core/thinking-os/tests/test_task_sync.py` (NEW)
+### C.T3 — `core/thinking_os/tests/test_task_sync.py` (NEW)
 
 | Test class | Test |
 |---|---|
@@ -410,7 +410,7 @@ Target: **7 tests, all pass without `rag` extras.**
 
 Target: **~16 tests, ~13 run without rag extras + 3 marked.**
 
-### C.T4 — `core/thinking-os/tests/test_task_tools.py` (NEW)
+### C.T4 — `core/thinking_os/tests/test_task_tools.py` (NEW)
 
 | Test class | Test |
 |---|---|
@@ -458,9 +458,9 @@ This script is **not** part of the pytest suite (it needs NakoDigital as an exte
 | Test file | New tests |
 |---|---|
 | `tests/test_task_parser.py` | ~22 |
-| `core/thinking-os/tests/test_db.py` (additions) | 7 |
-| `core/thinking-os/tests/test_task_sync.py` | ~16 |
-| `core/thinking-os/tests/test_task_tools.py` | ~19 |
+| `core/thinking_os/tests/test_db.py` (additions) | 7 |
+| `core/thinking_os/tests/test_task_sync.py` | ~16 |
+| `core/thinking_os/tests/test_task_tools.py` | ~19 |
 | **Total** | **~64 new tests** |
 
 All non-rag tests (≥52 of the ~64) must pass without `rag` extras installed — this enforces graceful degradation for the whole task store pipeline.
@@ -469,19 +469,19 @@ All non-rag tests (≥52 of the ~64) must pass without `rag` extras installed �
 
 | Type | Path |
 |---|---|
-| New module | [core/thinking-os/task_parser.py](../core/thinking-os/task_parser.py) |
-| New module | [core/thinking-os/task_sync.py](../core/thinking-os/task_sync.py) |
-| New module | [core/thinking-os/tools/tasks.py](../core/thinking-os/tools/tasks.py) |
-| Modified | [core/thinking-os/db.py](../core/thinking-os/db.py) — migration v6 + `_TABLES` + `has_tasks_table` |
-| Modified | [core/thinking-os/server.py](../core/thinking-os/server.py) — 4 new MCP tools + `cos_health` tasks count |
+| New module | [core/thinking_os/task_parser.py](../core/thinking_os/task_parser.py) |
+| New module | [core/thinking_os/task_sync.py](../core/thinking_os/task_sync.py) |
+| New module | [core/thinking_os/tools/tasks.py](../core/thinking_os/tools/tasks.py) |
+| Modified | [core/thinking_os/db.py](../core/thinking_os/db.py) — migration v6 + `_TABLES` + `has_tasks_table` |
+| Modified | [core/thinking_os/server.py](../core/thinking_os/server.py) — 4 new MCP tools + `cos_health` tasks count |
 | Modified | [core/scripts/task-start.sh](../core/scripts/task-start.sh) — auto-sync hook |
 | Modified | [core/scripts/task-done.sh](../core/scripts/task-done.sh) — auto-sync hook |
 | Modified | [core/scripts/task-create.sh](../core/scripts/task-create.sh) — auto-sync hook |
 | Modified | [templates/_base/Makefile.base](../templates/_base/Makefile.base) — `task-sync` + `task-resync` targets |
-| New tests | `core/thinking-os/tests/test_task_parser.py` |
-| New tests | `core/thinking-os/tests/test_task_sync.py` |
-| New tests | `core/thinking-os/tests/test_task_tools.py` |
-| Modified tests | `core/thinking-os/tests/test_db.py` (add `TestMigrationV6Tasks`) |
+| New tests | `core/thinking_os/tests/test_task_parser.py` |
+| New tests | `core/thinking_os/tests/test_task_sync.py` |
+| New tests | `core/thinking_os/tests/test_task_tools.py` |
+| Modified tests | `core/thinking_os/tests/test_db.py` (add `TestMigrationV6Tasks`) |
 | New script (manual E2E) | `scripts/verify-phase-c-e2e.sh` |
 
 ## Existing Code to Reuse
@@ -511,17 +511,17 @@ print('OK')
 "
 
 # 2. Parser unit tests (pure, no rag required)
-uv run pytest core/thinking-os/tests/test_task_parser.py -v
+uv run pytest core/thinking_os/tests/test_task_parser.py -v
 
 # 3. Sync tests (mostly pure)
-uv run pytest core/thinking-os/tests/test_task_sync.py -v
+uv run pytest core/thinking_os/tests/test_task_sync.py -v
 
 # 4. Task tools tests
-uv run pytest core/thinking-os/tests/test_task_tools.py -v
+uv run pytest core/thinking_os/tests/test_task_tools.py -v
 
 # 5. Full suite green with and without rag extras
-uv run --extra rag pytest core/thinking-os/tests/ tests/ -q
-uv run pytest core/thinking-os/tests/ tests/ -q  # must still pass (just skip rag-marked)
+uv run --extra rag pytest core/thinking_os/tests/ tests/ -q
+uv run pytest core/thinking_os/tests/ tests/ -q  # must still pass (just skip rag-marked)
 
 # 6. MCP protocol exposes new tools
 # (same stdio JSON-RPC harness used for Phase B)

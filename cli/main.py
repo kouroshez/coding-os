@@ -577,6 +577,14 @@ try:
 except ImportError:
     pass  # board_os optional — don't break `cos` if deps missing.
 
+# Phase M — cognition CLI (formula dispatches, persona selections, backtracks).
+try:
+    from cli.cognition import COGNITION_COMMANDS
+    for _cc in COGNITION_COMMANDS:
+        cli.add_command(_cc)
+except ImportError:
+    pass  # cognition optional — don't break `cos` if click missing.
+
 
 def _resolve_project_dir(raw: str) -> Path:
     """Resolve the `--project-dir` value to an absolute path.
@@ -611,15 +619,15 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     The coding-os source tree already contains `AGENTS.md`, `Makefile`,
     `docs/`, `core/` etc — running `init` against it scatters scaffold
     files across the repo and can overwrite real development docs.
-    Detect this by checking for the telltale `core/thinking-os/server.py`
+    Detect this by checking for the telltale `core/thinking_os/server.py`
     file and refuse.
     """
-    marker = project / "core" / "thinking-os" / "server.py"
+    marker = project / "core" / "thinking_os" / "server.py"
     cli_main = project / "cli" / "main.py"
     if marker.exists() and cli_main.exists():
         click.echo(
             f"\nERROR: Refusing to init inside the coding-os repo itself ({project}).\n"
-            f"  This path contains core/thinking-os/server.py — it is the source tree.\n"
+            f"  This path contains core/thinking_os/server.py — it is the source tree.\n"
             f"  Initializing here would scatter scaffold files into the repo.\n\n"
             f"  Fix:\n"
             f"    cd /path/to/your/actual-project\n"
@@ -818,7 +826,7 @@ def _run_scaffold_phase(
     db_path = state / "thinking-os.db"
     if not db_path.exists():
         # Initialize the database
-        brain_dir = str(CORE_DIR / "thinking-os")
+        brain_dir = str(CORE_DIR / "thinking_os")
         init_code = (
             "import sys; "
             f"sys.path.insert(0, {brain_dir!r}); "
@@ -1005,7 +1013,7 @@ def codex_mcp_install(config_path: str | None, global_scope: bool, dry_run: bool
         command = "cos"
         args = ["server-start"]
     else:
-        server_py = (CODING_OS_ROOT / "core" / "thinking-os" / "server.py").as_posix()
+        server_py = (CODING_OS_ROOT / "core" / "thinking_os" / "server.py").as_posix()
         python = sys.executable
         snippet = (
             "\n[mcp_servers.coding-os]\n"
@@ -1020,7 +1028,18 @@ def codex_mcp_install(config_path: str | None, global_scope: bool, dry_run: bool
         click.echo(snippet.rstrip())
         return
 
-    helper = ADAPTERS_DIR / "codex" / "ensure_codex_mcp.py"
+    # Locate the adapter that ships an MCP-helper script. This is the
+    # codex adapter by design — discovered via registry metadata so the
+    # adapter id is not hardcoded in Python code (tests/test_no_hardcoded_stacks).
+    _helper_profile = next(
+        (p for p in load_adapter_registry(ADAPTERS_DIR).values() if p.mcp_helper),
+        None,
+    )
+    if _helper_profile is None:
+        raise click.ClickException(
+            "no adapter declares mcp_helper in adapter.yaml; cannot install MCP"
+        )
+    helper = _helper_profile.source_dir / _helper_profile.mcp_helper
     proc = subprocess.run(
         [sys.executable, str(helper), str(target), command, *args],
         capture_output=True,
@@ -1082,7 +1101,7 @@ def health(project_dir: str) -> None:
     click.echo(f"  Core hooks: {hook_count} scripts")
 
     # MCP server
-    server_py = CORE_DIR / "thinking-os" / "server.py"
+    server_py = CORE_DIR / "thinking_os" / "server.py"
     if server_py.exists():
         click.echo("  MCP server: OK")
     else:
@@ -1259,7 +1278,7 @@ def server_start() -> None:
     launched us from) and export it as COS_DB_PATH / COS_STATE_DIR so the
     server reads the right DB regardless of its own source location.
     """
-    server_py = CORE_DIR / "thinking-os" / "server.py"
+    server_py = CORE_DIR / "thinking_os" / "server.py"
     if not server_py.exists():
         click.echo(f"ERROR: MCP server not found at {server_py}", err=True)
         sys.exit(1)

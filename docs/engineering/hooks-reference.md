@@ -45,7 +45,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `block-uv-heredoc` | Bash | `uv run ... <<EOF` pattern (Rule 9 — silently hangs) |
 | `block-bad-patterns` | Write/Edit | bare `except: pass`, mock-where-real-needed, known anti-patterns |
 | `block-protected-files` | Write/Edit | edits to `CLAUDE.md`, `AGENTS.md`, `.coding-os/`, `core/rules/`, `core/hooks/` unless active task name contains `governance` / `docs-update` (Rule 8) |
-| `block-migration-conflict` | Write/Edit | duplicate migration version numbers in `core/thinking-os/db.py` (Rule 10 — append-only) |
+| `block-migration-conflict` | Write/Edit | duplicate migration version numbers in `core/thinking_os/db.py` (Rule 10 — append-only) |
 | `block-hardcoded-literals` | Write/Edit | `"django"` / `"claude"` / `"python-django"` as quoted literals in `cli/*.py` (Rule 12 — data-driven only) |
 
 ### Enforcement (8 hooks) — PreToolUse BLOCK
@@ -78,7 +78,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 |---|---|---|
 | `regen-reminder` | Edit on `templates/*/stack.yaml`, `adapters/*/adapter.yaml`, `core/hooks/registry.yaml`, or any `scaffold/**` | run `make regen-rules` / `make manifest-regen` / `make regen-adapter-templates` |
 | `test-first-reminder` | Write/Edit on code without paired test | suggest writing test alongside code |
-| `doc-sync-reminder` | Edit on `core/hooks/*.sh` or `core/thinking-os/tools/*.py` | docs in `docs/engineering/` / `core/docs/` may need sync |
+| `doc-sync-reminder` | Edit on `core/hooks/*.sh` or `core/thinking_os/tools/*.py` | docs in `docs/engineering/` / `core/docs/` may need sync |
 | `remind-learn-validate` | PostToolUse at end-of-session | call `cos_learn_validate` on suggested patterns that were used |
 | `remind-dogfood` | Edit on `core/**` | remember this repo dogfoods itself; run `make dogfood` after core edits |
 
@@ -98,7 +98,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 3. `make regen-adapter-templates` — regenerates both adapter JSON files.
 4. `make dogfood` — re-installs adapters in this repo (symlinks are already live, but settings JSON needs refresh).
 5. `make verify-hooks` — syntax-check all hooks.
-6. Write a test for expected BLOCK/WARN/SILENT behavior in `core/thinking-os/tests/` or `tests/`.
+6. Write a test for expected BLOCK/WARN/SILENT behavior in `core/thinking_os/tests/` or `tests/`.
 
 ## Debugging — "why didn't my hook fire?"
 

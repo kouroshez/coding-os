@@ -15,7 +15,7 @@ ROLE_NAME = "migrator:embeddings"
 
 def _ensure_thinking_os_on_path() -> None:
     here = Path(__file__).resolve()
-    target = here.parent.parent.parent.parent / "thinking-os"
+    target = here.parent.parent.parent.parent / "thinking_os"
     if target.exists() and str(target) not in sys.path:
         sys.path.insert(0, str(target))
 

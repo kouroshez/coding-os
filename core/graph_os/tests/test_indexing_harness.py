@@ -27,13 +27,13 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-THINKING_OS = REPO_ROOT / "core" / "thinking-os"
+THINKING_OS = REPO_ROOT / "core" / "thinking_os"
 HOOKS = REPO_ROOT / "core" / "hooks"
 
 
 @pytest.fixture()
 def thinking_os_on_path():
-    """Put core/ + core/thinking-os on sys.path for this test only."""
+    """Put core/ + core/thinking_os on sys.path for this test only."""
     added: list[str] = []
     for p in (str(THINKING_OS.parent), str(THINKING_OS)):
         if p not in sys.path:

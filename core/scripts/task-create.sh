@@ -184,18 +184,14 @@ PY
 
 # Phase C: fire-and-forget full sync — indexes the new task file into
 # the tasks table (with embedding if rag extras are available).
-(
-  python3 -c "
-import os, sys
-from pathlib import Path
-try:
-    sys.path.insert(0, os.environ.get('COS_BRAIN_DIR', str(Path(__file__).resolve().parent.parent / 'thinking-os')))
-    from db import init_db
-    from task_sync import sync_tasks
-    conn = init_db(os.environ.get('COS_DB_PATH'))
-    sync_tasks(conn, project_root=Path.cwd())
-    conn.close()
-except Exception:
-    pass  # Phase C sync is enrichment only — never blocks task-create
-" > /dev/null 2>&1 &
-)
+#
+# TASK-030 root cause: when the caller is `subprocess.Popen(..., capture_output=True)`
+# (as pytest does via `make task-create`), a naïve `python3 ... &` inherits
+# the captured stdout/stderr pipes on fds 1/2 — and `communicate()` blocks
+# until every writer on those pipes exits. Fire-and-forget becomes blocking.
+# Fix: spawn the sync through a daemonised Python helper that double-forks
+# itself, so the grandchild has no inherited fds and the parent shell can
+# return immediately. `COS_DISABLE_TASK_SYNC=1` opts out entirely.
+if [ "${COS_DISABLE_TASK_SYNC:-0}" != "1" ]; then
+  python3 "$(dirname "$0")/_daemon_task_sync.py" >/dev/null 2>&1 </dev/null || true
+fi

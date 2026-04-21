@@ -7,7 +7,7 @@ Purpose: Build a production-grade, multi-language, multi-repo code & documentati
 
 Read when: Starting any `I.*` slice, auditing the extraction pipeline, adding a new language, wiring a new MCP tool, or changing the symbol-resolution semantics.
 
-Read next: [core/thinking-os/graph.py](../core/thinking-os/graph.py), `concept_graph` schema in [core/thinking-os/db.py](../core/thinking-os/db.py) migration v4, [docs/phase-h-auto-sync-plan.md](./phase-h-auto-sync-plan.md), [docs/code-os-core-docs/thinkingos-formulas/formulas-en.md](./code-os-core-docs/thinkingos-formulas/formulas-en.md) (roles).
+Read next: [core/thinking_os/graph.py](../core/thinking_os/graph.py), `concept_graph` schema in [core/thinking_os/db.py](../core/thinking_os/db.py) migration v4, [docs/phase-h-auto-sync-plan.md](./phase-h-auto-sync-plan.md), [docs/code-os-core-docs/thinkingos-formulas/formulas-en.md](./code-os-core-docs/thinkingos-formulas/formulas-en.md) (roles).
 
 ---
 
@@ -43,7 +43,7 @@ core/
 
 - A parallel subsystem to `thinking-os`, with its own code tree, its own tests, its own MCP tools, its own schema migration, its own viewer.
 - A tenant of the **same** SQLite file (append-only migrations, Rule 10). Uses the existing FTS5 + embedding infrastructure.
-- Wired into the **same** MCP server (`core/thinking-os/server.py`). Tools follow the `cos_graph_*` prefix so they show up alongside the other 21 tools.
+- Wired into the **same** MCP server (`core/thinking_os/server.py`). Tools follow the `cos_graph_*` prefix so they show up alongside the other 21 tools.
 - Wired into the **same** auto-reindex hook (`auto-reindex-docs.sh`, Phase H) so every Write/Edit triggers incremental graph updates.
 
 **What graph-os is NOT:**
@@ -317,7 +317,7 @@ Output: `calls`, `accesses_field`, `constructs`, `overrides`, `inherits_from` ed
   - Persian docs (like `formulas-v2.md`) index correctly — MiniLM treats them as low-signal noise.
   - BGE-M3 does hybrid retrieval: dense + sparse + multi-vector from one pass. Three retrieval signals, one model.
   - Handles both natural-language docs AND code symbols well (ranked top-5 on both MTEB and CoIR benchmarks).
-  - Backward-compat: existing embeddings re-computed in the background (non-blocking — see §6 Stage 6 "Background migration contract"); stored in v12 `graph_node_embeddings` (1024-dim BLOB, Kùzu-native vector column) + doc_chunks re-embedded to match. During the re-embed window, both dim=384 and dim=1024 vectors coexist; queries route by `embedding_dim` column on the `embeddings` table (v12 adds this column to avoid the [embeddings.py:46](../core/thinking-os/embeddings.py#L46) `cosine_similarity` silent-empty bug when dims mismatch).
+  - Backward-compat: existing embeddings re-computed in the background (non-blocking — see §6 Stage 6 "Background migration contract"); stored in v12 `graph_node_embeddings` (1024-dim BLOB, Kùzu-native vector column) + doc_chunks re-embedded to match. During the re-embed window, both dim=384 and dim=1024 vectors coexist; queries route by `embedding_dim` column on the `embeddings` table (v12 adds this column to avoid the [embeddings.py:46](../core/thinking_os/embeddings.py#L46) `cosine_similarity` silent-empty bug when dims mismatch).
 - For each public code symbol (function, class, route, tool): embed `signature + docstring + enclosing_class_name`.
 - Persist to `graph_node_embeddings` stored in Kùzu alongside nodes (Kùzu supports vector properties natively via HNSW).
 - Reuse cache: if `ast_hash` unchanged → skip embedding.
@@ -329,7 +329,7 @@ Output: `calls`, `accesses_field`, `constructs`, `overrides`, `inherits_from` ed
 - Migration v12b adds `embedding_dim INTEGER DEFAULT 384` to the existing `embeddings` table, then schedules the migrator role via the orchestrator (§13).
 - The migrator role (`migrator:embeddings`) chews through rows in batches of 256, each batch in its own transaction (crash/SIGTERM loses ≤256 rows of work).
 - Progress checkpoint persists to `.coding-os/.embedding-migration.json` (`{total, done, eta_seconds, last_source_table}`) for <1s resume.
-- While migration is in progress, [core/thinking-os/embeddings.py](../core/thinking-os/embeddings.py) `cosine_similarity()` **must route by `embedding_dim`** — it MUST NOT silently return `[]` on dim mismatch (the current [embeddings.py:46](../core/thinking-os/embeddings.py#L46) pitfall):
+- While migration is in progress, [core/thinking_os/embeddings.py](../core/thinking_os/embeddings.py) `cosine_similarity()` **must route by `embedding_dim`** — it MUST NOT silently return `[]` on dim mismatch (the current [embeddings.py:46](../core/thinking_os/embeddings.py#L46) pitfall):
   - Row dim == query dim → cosine as today.
   - Row dim != query dim → row skipped for *this query only*; counted in `meta.dim_mismatch_skipped` on the MCP envelope.
   - Zero candidates at query dim → `fail("transient", "embedding migration N% done; retry in 5m", retryable=true)`.
@@ -659,10 +659,10 @@ All tools wrapped in `@safe_tool` + `ok(data)` / `fail(category, msg)` envelope 
 
 ### 10.2 Registered via the same MCP server
 
-- `core/thinking-os/server.py` imports `tools/graph.py` alongside existing 7 modules.
+- `core/thinking_os/server.py` imports `tools/graph.py` alongside existing 7 modules.
 - `cos_health` reports graph statistics: node count, edge count, last re-index time, parse error rate.
 
-### 10.3 Does NOT live under `core/thinking-os/`
+### 10.3 Does NOT live under `core/thinking_os/`
 
 New directory `core/graph-os/` — parallel peer, not a subdirectory. Importable as `graph_os.*` from Python.
 
@@ -683,9 +683,9 @@ New directory `core/graph-os/` — parallel peer, not a subdirectory. Importable
   ```yaml
   graph:
     enforce_context_on:
-      - "core/thinking-os/server.py"
-      - "core/thinking-os/db.py"
-      - "core/thinking-os/tools/*.py"
+      - "core/thinking_os/server.py"
+      - "core/thinking_os/db.py"
+      - "core/thinking_os/tools/*.py"
       - "cli/main.py"
       - "templates/_base/AGENTS.template.md"
   ```
@@ -829,10 +829,10 @@ A subset (25 scenarios) uses `cos_graph_trace` which exercises Cypher-style recu
 
 ### 13.1 Architecture
 
-The orchestrator is a first-class subsystem under `core/thinking-os/orchestrator/`, shipped in Phase I (not deferred to Phase J).
+The orchestrator is a first-class subsystem under `core/thinking_os/orchestrator/`, shipped in Phase I (not deferred to Phase J).
 
 ```
-core/thinking-os/orchestrator/
+core/thinking_os/orchestrator/
 ├── registry.py          # role catalog — which roles exist, what each does
 ├── dispatcher.py        # routes a task to the right role, with priority/retry
 ├── worker_pool.py       # manages subprocess workers (not multiprocessing.Pool — real agent processes)
@@ -1145,7 +1145,7 @@ Each slice's ship gate now carries an explicit **minimum test count** and refere
 | **I.6** | `graph_os/extractors/code_ts.py` + `code_tsx.py` — tree-sitter TS/TSX + tsconfig path-alias resolver + shared tsserver LSP overlay | ~900 | ≥ 40 | TS/TSX fixture suite + ≥ 85% tree-sitter-only + ≥ 95% with tsserver + path-alias resolution test | I.4, I.5 |
 | **I.7** | `graph_os/extractors/code_shell.py` + `code_yaml.py` + `graph_os/extractors/contracts.py` — shell `source` chain + YAML cross-refs + contract detector incl. DRF `router.register`, Next.js dynamic segments, FastAPI `include_router`, gRPC `.proto`, Celery / RQ / Channels handlers (§9.11) | ~700 | ≥ 35 | full coding-os hook graph visible + `cos-env.sh` inbound edges ≥ 30 + all 21 MCP tools detected + **external fixture suite** (django-rest + fastapi + nextjs app, each with ≥ 5 dynamic routes, detection rate ≥ 80%) | I.4 |
 | **I.8** | All **11** `cos_graph_*` MCP tools in `graph_os/tools/graph.py` — `_query`, `_context`, `_impact`, `_detect_changes`, `_trace`, `_similar`, `_references`, `_path`, `_export`, **`_rename_plan`**, **`_contracts`**. Retire legacy `cos_graph` as shim. **Storage audit:** DB ≤ 200MB on 10k-file dogfood. | ~1100 | ≥ 44 (≥ 4 per tool × 11) | per-tool tests (happy path + envelope + token budget + 1 edge case each, Rule 14) + dogfood in AGENTS.md | I.2, I.3, I.4, I.6, I.7 |
-| **I.9** | `core/thinking-os/orchestrator/` — full implementation (registry, dispatcher, worker_pool, progress, roles/indexer_graph_os.py, roles/lsp_warm_start.py, roles/migrator_embeddings.py) | ~850 | ≥ 20 | parallel indexing 10k files < 60s + cancellation + crash-restart + role-isolation (one crashing role does not block others) | I.4 |
+| **I.9** | `core/thinking_os/orchestrator/` — full implementation (registry, dispatcher, worker_pool, progress, roles/indexer_graph_os.py, roles/lsp_warm_start.py, roles/migrator_embeddings.py) | ~850 | ≥ 20 | parallel indexing 10k files < 60s + cancellation + crash-restart + role-isolation (one crashing role does not block others) | I.4 |
 | **I.10** | `graph_os/viewer/` — **Sigma.js + Graphology + ForceAtlas2** WebGL viewer + `cos graph-viz` CLI + Windows fallback + Windows CI matrix + `--bundled` offline mode + **CSP nonce** (§15.1.1) | ~700 | ≥ 15 | 10k-node sample FPS ≥ 30 + a11y fallback list-view + export JSON round-trip + CI green mac/linux/windows + **CSP auditor** + **XSS fuzz** + **nonce uniqueness** | I.8 |
 | **I.11** | **Ingestion flexibility:** `graph_os/ingest/local.py`, `ingest/github.py`, `ingest/zip.py` + `cos graph-index-github`, `cos graph-index-zip` CLI + **size / file / timeout guards** (`--max-size`, `--max-files`, `--timeout`, `--shallow`) | ~400 | ≥ 15 | e2e clone + index + **refuse clone > `--max-size`** + **refuse ZIP bomb** + cached clones under `~/.coding-os/remote-repos/` | I.8 |
 | **I.12** | **Repo groups:** `graph_os/groups/` module + group-level Kùzu DB at `~/.coding-os/groups/<name>/` + cross-repo edge detection (HTTP contract, MCP, gRPC, config) + **`group-membership.yaml` ownership declaration** (§17.3) + `cos graph-group` subcommands + `group` param across all MCP tools | ~750 | ≥ 18 | 3-repo fixture: inferred confidence 0.6; ownership-declared 0.95 + conflicting-ownership test (sync fails cleanly) + `cos_graph_contracts(group=…)` returns union + doctor C19 green | I.8, I.11 |
@@ -1198,7 +1198,7 @@ Each slice's DoD:
 - [ ] Envelope compliance (Rule 14): every tool returns `ok(data)` or `fail(...)` via `@safe_tool`
 - [ ] `make verify` green
 - [ ] `uv run pytest core/graph-os/tests/ -q` green
-- [ ] MCP self-test: `python core/thinking-os/server.py --test` lists the new tool(s)
+- [ ] MCP self-test: `python core/thinking_os/server.py --test` lists the new tool(s)
 - [ ] Docs-lint: AGENTS.md / CLAUDE.md updated if the slice is user-facing
 - [ ] Hook regression: `cos hooks-log` shows expected entries after a dogfood Write/Edit
 - [ ] No hardcoded stack/adapter literals (Rule 12)
@@ -1286,7 +1286,7 @@ Two releases (≥ 180 days) of warning before removal. `cos doctor` check C23 su
 
 ### 23.2 `concept_graph` table
 
-Retains its v4 shape. The legacy writer ([core/thinking-os/graph.py](../core/thinking-os/graph.py)) keeps writing `co_edit` edges there for backward compatibility with pre-I.8 consumers. The I.8 shim reads from `concept_graph` AND `graph_edges_v12` and unions the result — no data migration required. A one-shot backfill (`cos graph-backfill-concept-graph`) is provided for operators who want a single source of truth but it is **not run automatically**.
+Retains its v4 shape. The legacy writer ([core/thinking_os/graph.py](../core/thinking_os/graph.py)) keeps writing `co_edit` edges there for backward compatibility with pre-I.8 consumers. The I.8 shim reads from `concept_graph` AND `graph_edges_v12` and unions the result — no data migration required. A one-shot backfill (`cos graph-backfill-concept-graph`) is provided for operators who want a single source of truth but it is **not run automatically**.
 
 ### 23.3 Hook contract (`auto-reindex-docs.sh`)
 

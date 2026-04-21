@@ -43,6 +43,15 @@ board-os = [
     "watchdog>=4.0.0",
 ]
 
+# claude-sdk — Claude-adapter-only: real sub-agent dispatch via claude-agent-sdk.
+# Scope: adapters/claude/sdk_dispatcher.py. core/ stays agent-agnostic.
+# Other adapters (codex, cursor, ...) fall back to the default DB-only dispatcher.
+# Install with: uv sync --extra claude-sdk
+claude-sdk = [
+    "claude-agent-sdk>=0.1.0",
+    "anyio>=4.0.0",
+]
+
 [project.scripts]
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"
@@ -63,7 +72,7 @@ build-backend = "setuptools.build_meta"
 packages = ["cli"]
 
 [tool.pytest.ini_options]
-testpaths = ["core/thinking-os/tests", "core/graph_os/tests", "tests"]
+testpaths = ["core/thinking_os/tests", "core/graph_os/tests", "tests"]
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
 ]

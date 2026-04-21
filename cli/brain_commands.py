@@ -20,7 +20,7 @@ from pathlib import Path
 import click
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent
-BRAIN_DIR = CODING_OS_ROOT / "core" / "thinking-os"
+BRAIN_DIR = CODING_OS_ROOT / "core" / "thinking_os"
 
 DOC_INDEXER = BRAIN_DIR / "doc_indexer.py"
 TASK_SYNC = BRAIN_DIR / "task_sync.py"

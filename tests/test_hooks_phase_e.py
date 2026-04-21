@@ -232,7 +232,7 @@ class TestBlockHardcodedLiterals:
         r = _invoke(BLOCK_HARDCODED_LITERALS, {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "core/thinking-os/foo.py",
+                "file_path": "core/thinking_os/foo.py",
                 "old_string": "x",
                 "new_string": 'x = "django"',
             },

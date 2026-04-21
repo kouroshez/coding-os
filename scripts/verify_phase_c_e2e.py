@@ -202,7 +202,7 @@ def python_queries(project: Path) -> None:
     query_script = project / "_e2e_query.py"
     query_script.write_text(
         'import os, sys\n'
-        'sys.path.insert(0, os.environ["COS_ROOT"] + "/core/thinking-os")\n'
+        'sys.path.insert(0, os.environ["COS_ROOT"] + "/core/thinking_os")\n'
         'from db import init_db\n'
         'from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search\n'
         '\n'
@@ -292,7 +292,7 @@ def mcp_introspect() -> None:
     # them) by computing the missing-string outside the f-string.
     introspect_script.write_text(
         'import asyncio, os, sys\n'
-        'sys.path.insert(0, os.environ["COS_ROOT"] + "/core/thinking-os")\n'
+        'sys.path.insert(0, os.environ["COS_ROOT"] + "/core/thinking_os")\n'
         'import server\n'
         'tools = asyncio.run(server.mcp.list_tools())\n'
         'names = [t.name for t in tools]\n'

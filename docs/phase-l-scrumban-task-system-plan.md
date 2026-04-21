@@ -5,7 +5,7 @@ Purpose: Replace the current 12-section spec-style task files with an **agent-fi
 
 Read when: Starting any `L.*` slice, designing a task template, adding a new board column or swimlane, wiring a workflow hook.
 
-Read next: [core/thinking-os/task_parser.py](../core/thinking-os/task_parser.py), [core/thinking-os/task_sync.py](../core/thinking-os/task_sync.py), [templates/_base/task-detail.template.md](../templates/_base/task-detail.template.md), [docs/code-os-core-docs/scrumban/agile-scrum-guide.md](./code-os-core-docs/scrumban/agile-scrum-guide.md), [docs/phase-i-knowledge-graph-plan.md](./phase-i-knowledge-graph-plan.md) (graph edges produced_by_task / references_doc).
+Read next: [core/thinking_os/task_parser.py](../core/thinking_os/task_parser.py), [core/thinking_os/task_sync.py](../core/thinking_os/task_sync.py), [templates/_base/task-detail.template.md](../templates/_base/task-detail.template.md), [docs/code-os-core-docs/scrumban/agile-scrum-guide.md](./code-os-core-docs/scrumban/agile-scrum-guide.md), [docs/phase-i-knowledge-graph-plan.md](./phase-i-knowledge-graph-plan.md) (graph edges produced_by_task / references_doc).
 
 ---
 
@@ -760,7 +760,7 @@ After **L.3 + L.4 + L.6**: a solo dev has a working Scrumban loop via CLI + MCP,
 | **R-L-7: Work Log bloat → token pollution** | Task file > 10k tokens over months | MCP `_board` returns only last 5 log lines; `cos task-archive` moves >30d-complete tasks to archive; `lint-task.sh` blocks > 3k tokens |
 | **R-L-8: Perfectionism loophole (icebox grows unbounded)** | User creates 500 icebox items, ignores them | `cos retro` flags icebox > 50; `cos board` header shows icebox count red if > 100 |
 | **R-L-9: Solo-dev adherence drift** | Tool exists, user stops using it | `remind-daily.sh` fires on SessionStart after 24h idle; `cos daily` shows streak; NOT gamification — transparent observability |
-| **R-L-10: Migration version conflicts** | Audited 2026-04-19: db.py is at v12 (Phase I.0 shipped). Phase L uses **v13**. NOT v8 — that's already `_migrate_v8_validation_throttle`. | First action of L.0 is `grep _migrate_v core/thinking-os/db.py` to confirm next free version; append-only (Rule 10); `block-migration-conflict.sh` hook catches duplicates |
+| **R-L-10: Migration version conflicts** | Audited 2026-04-19: db.py is at v12 (Phase I.0 shipped). Phase L uses **v13**. NOT v8 — that's already `_migrate_v8_validation_throttle`. | First action of L.0 is `grep _migrate_v core/thinking_os/db.py` to confirm next free version; append-only (Rule 10); `block-migration-conflict.sh` hook catches duplicates |
 | **R-L-11: Auto-commit breaks user's git hooks** | Commit stuck; confusing UX | No auto-commit by default; drag-drop leaves changes uncommitted; user commits explicitly |
 | **R-L-12: Swimlane mismatch between repos** | Task created in wrong swimlane | `validate-task-frontmatter.sh` checks config; clear error listing valid swimlanes |
 | **R-L-13: Agent confusion on multi-session handoff** | Repeats prior work or misses state | Work Log last-5 shown via MCP; `cos_task_daily` summary on session start; `task-current` marker |
@@ -875,7 +875,7 @@ The previous version of this plan was ambiguous about where the new lean templat
 |---|---|---|
 | Lean task template body | ❌ No | Outcome / Acceptance / Read First / Work Log are universal — same for django, nextjs, go-fiber. Stack-specific verification commands belong in `core/rules/` already. |
 | Frontmatter schema (kind/priority/appetite enums) | ❌ No | Same closed enums everywhere — guarantees colour stability across all repos (a red card is always a bug). |
-| `scrumban-config.yaml::swimlanes` | ✅ **Yes** | django=backend/frontend/ai-service; nextjs=frontend/api/e2e; go-fiber=handlers/middleware/db; coding-os=core/thinking-os/graph-os/... |
+| `scrumban-config.yaml::swimlanes` | ✅ **Yes** | django=backend/frontend/ai-service; nextjs=frontend/api/e2e; go-fiber=handlers/middleware/db; coding-os=core/thinking_os/graph-os/... |
 | `scrumban-config.yaml::wip_limits` | ⚠️ Override-able | Default 1/3/2 (in_progress/testing/emergency); team can raise testing cap for parallel review. |
 | `scrumban-config.yaml::label_families` | ⚠️ Override-able | Default 8-colour palette; team can add custom families with custom colours (still stable per-project). |
 | Skill `task-driver` | ❌ No | Same skill, same philosophy — universal. |

@@ -17,10 +17,14 @@ placeholder_scan:
   - Makefile
   - docs
   - .coding-os.yaml
+  skip_paths:
+  - docs/governance/templates
 schema:
-  expected_version: 12
+  expected_version: 14
   expected_tables:
   - agent_metrics
+  - ambiguity_violations
+  - backtrack_events
   - concept_graph
   - document_chunks
   - document_chunks_fts
@@ -30,6 +34,7 @@ schema:
   - document_chunks_fts_idx
   - embeddings
   - experiment_log
+  - formula_dispatches
   - graph_edges_v12
   - graph_evidence_v12
   - graph_nodes
@@ -43,10 +48,12 @@ schema:
   - observations
   - outcome_history
   - pattern_validations
+  - persona_selections
   - retrieval_quality
   - retrievals
   - routing_weights
   - schema_version
   - session_summaries
   - task_outcomes
+  - task_status_history
   - tasks

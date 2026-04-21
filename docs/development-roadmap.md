@@ -1,12 +1,19 @@
-<!-- domain:ALL | layer:reference | ssot:true | updated:2026-04-17 -->
+<!-- domain:ALL | layer:reference | ssot:true | updated:2026-04-20 -->
 # Coding OS Development Roadmap
 
-Purpose: Phase-by-phase status of coding-os development, from v0.1.0 through the current v0.2.0.
+Purpose: Phase-by-phase status of coding-os development, from v0.1.0 through the current v0.3.0.
 Read when: Checking what's done, what's planned, or picking up the next piece of work.
-Skip when: You need implementation details — go to the corresponding phase plan (`phase-b-rag-plan.md`, `phase-c-task-store-plan.md`).
-Read next: The current phase's plan for open work items; [features.md](./features.md) for a cross-cutting system map.
+Skip when: You need implementation details — go to the corresponding phase plan (`phase-b-rag-plan.md`, `phase-c-task-store-plan.md`, `phase-m-thinking-os-new-formula.md`, `phase-n-role-based-routing-plan.md`).
+Read next: The current phase's plan for open work items; [features.md](./features.md) for a cross-cutting system map. Authoritative live status: [../AGENTS.md §Development Status](../AGENTS.md).
 
-## Current State (v0.2.0 — Phase A + B + C + D complete)
+## Current State (v0.3.0 — Phases A → N complete)
+
+- **Phase M** — Formula-agents + supervisor + DB v14 + 10 MCP cognition tools + 2 hooks ✅
+- **Phase N** — Role-based routing (11 roles = 11 formulas) + TaskSignals + Formula Composer + 12 Presets + 3 MCP tools + connection pool (N.5-A) + preset versioning (N.5-C) + multi-tenant override (N.5-E) ✅
+- **Phase N.6** — Behavioral tracing: `core/thinking_os/tracing.py` + 5 instrumented MCP tools + `cos cognition trace` CLI + [HTML replay viewer](cognition-trace-replay.html) + 10 behavioral tests ✅
+- **Deferred (post-usage-data)**: N.5-B metrics observability · N.5-D circuit breaker · N.5-F rate-limit semaphore on `cos_graph_impact`.
+
+## Historical (v0.1 → v0.2 sections below preserved verbatim)
 
 ### Done — v0.1.0 (initial release)
 
@@ -47,18 +54,18 @@ Read next: The current phase's plan for open work items; [features.md](./feature
 
 ### Done — Phase B (RAG integration)
 
-- [x] **B.1** — `core/thinking-os/embeddings.py` foundation: lazy model loading, cosine similarity, upsert/search/reindex with graceful degradation when `sentence-transformers` is unavailable
+- [x] **B.1** — `core/thinking_os/embeddings.py` foundation: lazy model loading, cosine similarity, upsert/search/reindex with graceful degradation when `sentence-transformers` is unavailable
 - [x] **B.1** — Migration v5: `embeddings` + `document_chunks` tables with indexes and unique constraints
 - [x] **B.1** — `[rag]` optional dependency group in `pyproject.toml` (sentence-transformers + numpy)
 - [x] **B.1** — 47 unit tests in `test_embeddings.py` + 11 migration tests in `test_db.py`
 - [x] **B.2** — Inline embedding in `capture.py` and `tools/learning.py` (observations, learned_patterns, outcome_history) with fire-and-forget pattern
 - [x] **B.2** — `make cos-reindex` Make target for bootstrap/model upgrade
 - [x] **B.2** — 7 integration tests verifying embedding side effects
-- [x] **B.3** — `core/thinking-os/doc_indexer.py`: heading-aware markdown chunker (H2/H3 + paragraph windowing fallback), mtime-based incremental indexing, orphan cleanup
+- [x] **B.3** — `core/thinking_os/doc_indexer.py`: heading-aware markdown chunker (H2/H3 + paragraph windowing fallback), mtime-based incremental indexing, orphan cleanup
 - [x] **B.3** — `templates/_base/scaffold/.coding-os/rag-config.yaml` with 8 source types and project-level excludes
 - [x] **B.3** — `make docs-index`/`docs-reindex` Make targets
 - [x] **B.3** — 32 tests in `test_doc_indexer.py`
-- [x] **B.4** — `core/thinking-os/tools/docs.py::doc_search` with priority boost and per-source dedupe
+- [x] **B.4** — `core/thinking_os/tools/docs.py::doc_search` with priority boost and per-source dedupe
 - [x] **B.4** — New MCP tool `cos_doc_search` registered in `server.py` (now 19 cos_* tools)
 - [x] **B.4** — `cos_health` extended to report RAG status (embeddings_available, model name, counts)
 - [x] **B.4** — 14 tests in `test_doc_search.py`
@@ -77,11 +84,11 @@ Read next: The current phase's plan for open work items; [features.md](./feature
 
 - [x] **C.1** — Migration v6: `tasks` table with 17 columns (task_id PK, title, domain, status, file_path, content_hash, mtime, goal_text, scope_in/out, requirements, dependencies, source_of_truth, read_first, open_questions, rabbit_holes, verification), 3 indexes on status/domain/file_path, `has_tasks_table(conn)` helper
 - [x] **C.1** — 8 migration tests in `test_db.py` (all pass)
-- [x] **C.2** — `core/thinking-os/task_parser.py` (~380 LOC): pure stateless parser, immutable `ParsedTask` dataclass, handles all 9 section types, tolerates missing sections, front-matter stripping, H1 task_id extraction, dependency refs with word-boundary matching
+- [x] **C.2** — `core/thinking_os/task_parser.py` (~380 LOC): pure stateless parser, immutable `ParsedTask` dataclass, handles all 9 section types, tolerates missing sections, front-matter stripping, H1 task_id extraction, dependency refs with word-boundary matching
 - [x] **C.2** — 43 pure unit tests in `test_task_parser.py` including end-to-end fixture from real NakoDigital TASK-199 (all pass without rag extras)
-- [x] **C.3** — `core/thinking-os/task_sync.py`: mtime-incremental sync, status-only fast path (`sync_status_only`), orphan cleanup for deleted files, embedding integration via Phase B pipeline, archive/ subdirectory skip, graceful degradation
+- [x] **C.3** — `core/thinking_os/task_sync.py`: mtime-incremental sync, status-only fast path (`sync_status_only`), orphan cleanup for deleted files, embedding integration via Phase B pipeline, archive/ subdirectory skip, graceful degradation
 - [x] **C.3** — 28 tests in `test_task_sync.py` (all pass)
-- [x] **C.4** — `core/thinking-os/tools/tasks.py`: 4 query functions (task_by_filter, task_dependencies, task_dependents, task_search), semantic search with LIKE fallback, quoted-JSON dependency matching to prevent TASK-19 vs TASK-195 false positives
+- [x] **C.4** — `core/thinking_os/tools/tasks.py`: 4 query functions (task_by_filter, task_dependencies, task_dependents, task_search), semantic search with LIKE fallback, quoted-JSON dependency matching to prevent TASK-19 vs TASK-195 false positives
 - [x] **C.4** — 32 tests in `test_task_tools.py` (all pass)
 - [x] **C.5** — 4 new MCP tools registered in `server.py`: `cos_task_search`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_by_filter`. Tool count now **21**
 - [x] **C.5** — `cos_health` extended with `task_store.tasks_count`

@@ -78,7 +78,7 @@ case "$FILE_PATH" in
       "docs/engineering/skill-architecture.md (fundamentals + specialization)"
     )
     ;;
-  *core/thinking-os/server.py|*core/thinking-os/tools/*.py)
+  *core/thinking_os/server.py|*core/thinking_os/tools/*.py)
     RELATED+=(
       "docs/architecture.md (§ MCP Tools)"
       "docs/engineering/mcp-error-envelope.md (ok/fail envelope contract)"
@@ -91,13 +91,13 @@ case "$FILE_PATH" in
       "docs/engineering/skill-architecture.md (base + specialization layering)"
     )
     ;;
-  *core/thinking-os/db.py)
+  *core/thinking_os/db.py)
     RELATED+=(
       "docs/architecture.md (§ Database Schema)"
       "docs/features.md (§ Database Schema)"
     )
     ;;
-  *core/thinking-os/*.py)
+  *core/thinking_os/*.py)
     RELATED+=(
       "docs/architecture.md (§ Three-Layer Retrieval)"
       "docs/features.md (§ Self-Learning Pipeline)"

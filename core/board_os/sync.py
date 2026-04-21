@@ -4,7 +4,7 @@ Walks `docs/tasks/*.md`, parses each via `parser.parse_task`, and upserts
 into the `tasks` table (migration v13 columns) plus appends to
 `task_status_history` on status changes.
 
-Parallel to `core/thinking-os/task_sync.py` (Phase C) but writes the
+Parallel to `core/thinking_os/task_sync.py` (Phase C) but writes the
 extended v13 schema.  The Phase C sync is NOT removed — this module
 can coexist because both write to the same `tasks` table using
 idempotent INSERT OR REPLACE semantics on task_id.

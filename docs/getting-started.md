@@ -81,7 +81,7 @@ From D.2 onward, `cos init` is idempotent. If the current dir already has a `.co
 
 #### Safety net
 
-The CLI refuses to initialize inside the coding-os repo itself (detected by the presence of `core/thinking-os/server.py` + `cli/main.py`). No accidental self-scatter.
+The CLI refuses to initialize inside the coding-os repo itself (detected by the presence of `core/thinking_os/server.py` + `cli/main.py`). No accidental self-scatter.
 
 The `--template` flag overlays stack-specific `docs/` content on top of the generic `_base/` scaffold. Each template ships real production-grade playbooks, engineering rules, and design-system docs (ported from the NakoDigital reference project). Multi-template installs merge cleanly — AGENTS.md placeholder substitution handles both stacks in one file.
 

@@ -149,6 +149,20 @@ class BaseProfile:
 
 
 @dataclass(frozen=True)
+class McpLaunchConfigPath:
+    """One location the doctor should probe for a coding-os MCP launch config."""
+    scope: str          # "project" | "home"
+    path: str           # relative to scope
+
+
+@dataclass(frozen=True)
+class McpLaunchSpec:
+    """Data-driven C15 (MCP launch) metadata from adapter.yaml::mcp_launch."""
+    loader: str                                         # "claude_json" | "codex_toml"
+    config_paths: tuple[McpLaunchConfigPath, ...]
+
+
+@dataclass(frozen=True)
 class AdapterProfile:
     """Everything an agent adapter declares. Loaded from adapters/<id>/adapter.yaml."""
     id: str
@@ -164,6 +178,8 @@ class AdapterProfile:
     install_script: Path
     default_settings: dict  # raw dict, deep-merged by renderer
     source_dir: Path
+    mcp_helper: str | None = None         # relative path (from adapters/<id>/) to MCP install helper, if any
+    mcp_launch: McpLaunchSpec | None = None
 
 
 @dataclass(frozen=True)

@@ -23,7 +23,7 @@ references: []
 
 ## Read First
 - docs/phase-i-knowledge-graph-plan.md#I.1
-- core/thinking-os/embeddings.py
+- core/thinking_os/embeddings.py
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** ...

@@ -28,5 +28,5 @@ The live template shipped to new projects lives at `templates/_base/scaffold/doc
 Any changes to the section contract must be made in both:
 
 - `templates/_base/scaffold/docs/governance/templates/task-detail.md` (the shipping scaffold)
-- `core/thinking-os/task_parser.py` (the Phase C parser that reads the sections back)
-- `core/thinking-os/tests/test_task_parser.py` (the regression tests)
+- `core/thinking_os/task_parser.py` (the Phase C parser that reads the sections back)
+- `core/thinking_os/tests/test_task_parser.py` (the regression tests)

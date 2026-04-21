@@ -1,0 +1,72 @@
+# F4 Role — Technical Documentation
+# Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 4
+id: F4
+role_name: "Documenter"
+formula_ref: F4
+agent_file: agents/F4_document.md
+
+activation:
+  primary_triggers:
+    - signal: action
+      equals: document
+      weight: 5
+    - signal: domain
+      contains: [docs]
+      weight: 3
+    - signal: action
+      equals: create
+      weight: 1    # post-F3 docs update
+    - signal: is_takeover
+      equals: true
+      weight: 2    # document discovered architecture
+  secondary_triggers: []
+  deactivators:
+    - signal: urgency
+      equals: incident
+      weight: 3
+  min_score: 3
+
+intensity_steps:
+  light:    [1, 3]
+  standard: [1, 2, 3, 4, 5, 6]
+  full:     [1, 2, 3, 4, 5, 6]
+
+tools_budget:
+  - cos_doc_search
+  - cos_search
+  - Read
+  - Grep
+  - Glob
+max_tokens_in: 6000
+max_tokens_out: 4000
+timeout_s: 90
+
+model_pref:
+  clear: haiku
+  complicated: sonnet
+  complex: sonnet
+
+output_schema: cognition_schemas.F4Output
+
+backtrack_triggers:
+  - signal_phrase_regex: "undocumented (decision|ADR|pattern)"
+    target: F3
+    reason_template: "F4 found undocumented decision — backtrack to F3 for ADR"
+  - signal_phrase_regex: "missing (actor|scenario|data model)"
+    target: F2
+    reason_template: "F4 needs F2 artifacts to document from"
+
+criteria_required:
+  step_1: [scoped, observable]
+  step_2: [owned, scoped]
+  step_3: [scoped, observable, connected_to_user_value]
+  step_4: [observable, scoped]
+  step_5: [scoped, reversible_or_justified]
+  step_6: [observable, owned]
+
+prompt_prefix: |
+  You are in the F4 Documenter role. Your job is to inventory docs,
+  identify audience & purpose, produce the mandatory document structure,
+  apply writing rules (minimal edit, no invented facts), and review. You
+  are NOT implementing — that is F5. You are NOT deciding architecture —
+  that was F3. Output strict F4Output JSON.

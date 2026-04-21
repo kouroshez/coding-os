@@ -15,7 +15,7 @@ import yaml
 def _load_db_module():
     spec = importlib.util.spec_from_file_location(
         "_db_under_test",
-        Path(__file__).resolve().parents[2] / "thinking-os" / "db.py",
+        Path(__file__).resolve().parents[2] / "thinking_os" / "db.py",
     )
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None

@@ -5,7 +5,7 @@ PURPOSE:  Expose graph-os to agents through the MCP server. Every tool
           and sets `data.meta.layer="graph"` so agents can see which
           retrieval layer answered them.
 INPUT:    arguments per-tool (see docstrings).
-OUTPUT:   envelope dicts produced by `core.thinking-os.tools._shared`.
+OUTPUT:   envelope dicts produced by `core/thinking_os/tools/_shared.py`.
 DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
 NOTES:    The tool layer is backend-agnostic — it calls GraphBackend
           and lets the factory pick Kuzu vs SQLite. Fail-loud on
@@ -30,7 +30,7 @@ logger = logging.getLogger("graph_os.tools.graph")
 
 
 # ---------------------------------------------------------------------------
-# Envelope helpers — shared with thinking-os via sys.path.
+# Envelope helpers — shared with thinking_os via sys.path.
 # ---------------------------------------------------------------------------
 
 
@@ -40,7 +40,7 @@ def _envelope_module():
         return _shared
     except ImportError:
         here = Path(__file__).resolve()
-        candidate = here.parent.parent.parent / "thinking-os"
+        candidate = here.parent.parent.parent / "thinking_os"
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))
         from tools import _shared  # type: ignore

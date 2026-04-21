@@ -6,7 +6,7 @@
 Purpose: Detailed, implementation-ready plan for Phase B (RAG / Document Knowledge Base).
 Read when: Starting any Phase B sub-task or when the high-level plan in `~/.claude/plans/parsed-gathering-sun.md` needs project-internal context.
 Skip when: Working on Phase A or Phase C tasks.
-Read next: `core/thinking-os/db.py` (migration registration), `core/thinking-os/tools/memory.py` (search integration), `core/thinking-os/capture.py` (inline embedding hook).
+Read next: `core/thinking_os/db.py` (migration registration), `core/thinking_os/tools/memory.py` (search integration), `core/thinking_os/capture.py` (inline embedding hook).
 
 ## Status
 
@@ -87,7 +87,7 @@ ALWAYS-ACTIVE (no RAG, full-read):
 
 **Goal:** infrastructure ready, migration applied, basic tests pass.
 
-**New file:** `core/thinking-os/embeddings.py`
+**New file:** `core/thinking_os/embeddings.py`
 
 ```python
 # Public API surface
@@ -113,7 +113,7 @@ Design notes:
 - `embed_text` catches `ImportError` and returns `None`. All callers must handle `None`.
 - `cosine_similarity` reads BLOBs once, computes via `numpy.dot(matrix, query_vec) / (norms * query_norm)` for vectorized speed.
 
-**Modified:** `core/thinking-os/db.py`
+**Modified:** `core/thinking_os/db.py`
 
 Append migration v5 to the existing `MIGRATIONS` list (line 164 in db.py). Following the v2/v4 pattern:
 
@@ -162,7 +162,7 @@ Add `"embeddings"`, `"document_chunks"` to `_TABLES` list in `get_db_stats()`.
 rag = ["sentence-transformers>=2.2.0", "numpy>=1.24.0"]
 ```
 
-**New tests:** `core/thinking-os/tests/test_embeddings.py`
+**New tests:** `core/thinking_os/tests/test_embeddings.py`
 
 | Test | What it verifies |
 |---|---|
@@ -180,7 +180,7 @@ rag = ["sentence-transformers>=2.2.0", "numpy>=1.24.0"]
 | `test_search_similar_filters_by_source_table` | Only requested tables returned |
 | `test_reindex_all_populates_existing_records` | Bootstrap path |
 
-**New tests:** `core/thinking-os/tests/test_db.py` additions
+**New tests:** `core/thinking_os/tests/test_db.py` additions
 - `test_migration_v5_creates_embeddings_table`
 - `test_migration_v5_creates_document_chunks_table`
 - `test_migration_v5_idempotent`
@@ -188,8 +188,8 @@ rag = ["sentence-transformers>=2.2.0", "numpy>=1.24.0"]
 **Verification (B.1):**
 ```bash
 uv sync --extra rag
-uv run --extra rag pytest core/thinking-os/tests/test_embeddings.py -v
-uv run pytest core/thinking-os/tests/test_db.py -v   # without rag extras
+uv run --extra rag pytest core/thinking_os/tests/test_embeddings.py -v
+uv run pytest core/thinking_os/tests/test_db.py -v   # without rag extras
 ```
 
 ### B.2 — Capture integration: inline embedding on write
@@ -198,7 +198,7 @@ uv run pytest core/thinking-os/tests/test_db.py -v   # without rag extras
 
 **Modified files:**
 
-1. `core/thinking-os/capture.py` — after `INSERT INTO observations` (around line 220), add:
+1. `core/thinking_os/capture.py` — after `INSERT INTO observations` (around line 220), add:
    ```python
    try:
        from embeddings import upsert_embedding
@@ -208,11 +208,11 @@ uv run pytest core/thinking-os/tests/test_db.py -v   # without rag extras
        pass  # fire-and-forget — never break capture
    ```
 
-2. `core/thinking-os/tools/learning.py`
+2. `core/thinking_os/tools/learning.py`
    - In `_upsert_pattern()` (after row insert): embed `pattern + concepts`
    - In `learn_narrative()` (after `outcome_history` insert): embed `key_insight + what_failed + what_worked`
 
-3. `core/thinking-os/session_enrich.py` — embed any new outcome_history entries created during enrichment.
+3. `core/thinking_os/session_enrich.py` — embed any new outcome_history entries created during enrichment.
 
 **New Makefile target:**
 ```makefile
@@ -234,7 +234,7 @@ Add `__main__` block to `embeddings.py` to support CLI invocation.
 
 **Verification (B.2):**
 ```bash
-uv run --extra rag pytest core/thinking-os/tests/test_capture.py core/thinking-os/tests/test_learning.py -v
+uv run --extra rag pytest core/thinking_os/tests/test_capture.py core/thinking_os/tests/test_learning.py -v
 # Smoke test: simulate observation insert, verify embedding row created
 uv run --extra rag python -c "
 from core.thinking_os.capture import capture_observation
@@ -251,7 +251,7 @@ print(conn.execute('SELECT COUNT(*) FROM embeddings').fetchone())
 
 **Goal:** `make docs-index` walks `docs/`, chunks markdown by heading, embeds each chunk, stores in `document_chunks` + `embeddings`.
 
-**New module:** `core/thinking-os/doc_indexer.py`
+**New module:** `core/thinking_os/doc_indexer.py`
 
 ```python
 # Public API
@@ -349,7 +349,7 @@ docs-reindex: ## Force full reindex (after model upgrade)
 	@uv run --extra rag python -m core.thinking-os.doc_indexer --config .coding-os/rag-config.yaml --force
 ```
 
-**New tests:** `core/thinking-os/tests/test_doc_indexer.py`
+**New tests:** `core/thinking_os/tests/test_doc_indexer.py`
 
 | Test | What it verifies |
 |---|---|
@@ -381,7 +381,7 @@ sqlite3 .coding-os/thinking-os.db "SELECT source_type, COUNT(*) FROM document_ch
 
 **Goal:** agent can query the document knowledge base directly.
 
-**New module:** `core/thinking-os/tools/docs.py`
+**New module:** `core/thinking_os/tools/docs.py`
 
 ```python
 def doc_search(
@@ -406,7 +406,7 @@ def doc_search(
     """
 ```
 
-**Modified:** `core/thinking-os/server.py`
+**Modified:** `core/thinking_os/server.py`
 
 Add new MCP tool:
 ```python
@@ -446,7 +446,7 @@ def cos_doc_search(
 
 Update `cos_health` to include `embeddings_count`, `document_chunks_count`, `embedding_model_available`.
 
-**New tests:** `core/thinking-os/tests/test_doc_search.py`
+**New tests:** `core/thinking_os/tests/test_doc_search.py`
 
 | Test | What it verifies |
 |---|---|
@@ -468,14 +468,14 @@ import json
 print(json.dumps(doc_search(c, 'commission rate', source_types=['prd', 'architecture'], limit=3), indent=2))
 "
 # Run via MCP self-test
-uv run --extra rag python core/thinking-os/server.py --test
+uv run --extra rag python core/thinking_os/server.py --test
 ```
 
 ### B.5 — Existing tools: semantic augmentation
 
 **Goal:** `cos_search`, `cos_learn_suggest`, `cos_route_skill` benefit from embeddings without breaking existing API.
 
-**Modified:** `core/thinking-os/tools/memory.py`
+**Modified:** `core/thinking_os/tools/memory.py`
 
 In `memory_search()` (line 100), add a semantic branch alongside the existing FTS5/LIKE branches:
 
@@ -525,23 +525,23 @@ def _compute_blended_score(c):
     return base
 ```
 
-**Modified:** `core/thinking-os/tools/learning.py`
+**Modified:** `core/thinking_os/tools/learning.py`
 
 Add `task_description: str = ""` parameter to `learn_suggest()`. When provided + embeddings available:
 - Embed task_description
 - Search outcome_history embeddings for top-3 semantically similar breakthroughs
 - Merge with existing domain/complexity-filtered results (semantic results get a `reason: "semantic_breakthrough_match"` tag)
 
-**Modified:** `core/thinking-os/tools/routing.py`
+**Modified:** `core/thinking_os/tools/routing.py`
 
 In `route_skill()`: when embeddings available + warm DB, also query for skills used in past tasks with semantically similar descriptions to the current one.
 
-**Modified:** `core/thinking-os/server.py`
+**Modified:** `core/thinking_os/server.py`
 - `cos_search` — no signature change (memory_search handles it internally)
 - `cos_learn_suggest` — add `task_description` arg, pass through
 - `cos_health` — already updated in B.4
 
-**New/modified tests:** `core/thinking-os/tests/test_memory.py`
+**New/modified tests:** `core/thinking_os/tests/test_memory.py`
 
 Add `TestSemanticSearch` class:
 
@@ -555,9 +555,9 @@ Add `TestSemanticSearch` class:
 
 **Verification (B.5):**
 ```bash
-uv run --extra rag pytest core/thinking-os/tests/test_memory.py -v
+uv run --extra rag pytest core/thinking_os/tests/test_memory.py -v
 # Without RAG extras — confirm fallback
-uv run pytest core/thinking-os/tests/test_memory.py -v
+uv run pytest core/thinking_os/tests/test_memory.py -v
 ```
 
 ### B.6 — Polish & Documentation
@@ -572,23 +572,23 @@ uv run pytest core/thinking-os/tests/test_memory.py -v
 
 | Type | Path |
 |---|---|
-| New module | `core/thinking-os/embeddings.py` |
-| New module | `core/thinking-os/doc_indexer.py` |
-| New module | `core/thinking-os/tools/docs.py` |
+| New module | `core/thinking_os/embeddings.py` |
+| New module | `core/thinking_os/doc_indexer.py` |
+| New module | `core/thinking_os/tools/docs.py` |
 | New scaffold | `templates/_base/scaffold/.coding-os/rag-config.yaml` |
-| Modified | `core/thinking-os/db.py` (migration v5, `_TABLES`, `has_embeddings_table`) |
-| Modified | `core/thinking-os/capture.py` (inline embedding) |
-| Modified | `core/thinking-os/tools/learning.py` (`_upsert_pattern`, `learn_narrative`, `learn_suggest`) |
-| Modified | `core/thinking-os/tools/memory.py` (`memory_search` blended scoring) |
-| Modified | `core/thinking-os/tools/routing.py` (`route_skill` semantic augment) |
-| Modified | `core/thinking-os/session_enrich.py` (embedding for new outcome_history) |
-| Modified | `core/thinking-os/server.py` (new `cos_doc_search`, updated `cos_health`, `cos_learn_suggest` signature) |
+| Modified | `core/thinking_os/db.py` (migration v5, `_TABLES`, `has_embeddings_table`) |
+| Modified | `core/thinking_os/capture.py` (inline embedding) |
+| Modified | `core/thinking_os/tools/learning.py` (`_upsert_pattern`, `learn_narrative`, `learn_suggest`) |
+| Modified | `core/thinking_os/tools/memory.py` (`memory_search` blended scoring) |
+| Modified | `core/thinking_os/tools/routing.py` (`route_skill` semantic augment) |
+| Modified | `core/thinking_os/session_enrich.py` (embedding for new outcome_history) |
+| Modified | `core/thinking_os/server.py` (new `cos_doc_search`, updated `cos_health`, `cos_learn_suggest` signature) |
 | Modified | `pyproject.toml` (rag optional dep group) |
 | Modified | `templates/_base/Makefile.base` (`docs-index`, `docs-reindex`, `cos-reindex`) |
 | Modified | `cli/main.py` (rag-config.yaml in scaffold overlay) |
-| New tests | `core/thinking-os/tests/test_embeddings.py` |
-| New tests | `core/thinking-os/tests/test_doc_indexer.py` |
-| New tests | `core/thinking-os/tests/test_doc_search.py` |
+| New tests | `core/thinking_os/tests/test_embeddings.py` |
+| New tests | `core/thinking_os/tests/test_doc_indexer.py` |
+| New tests | `core/thinking_os/tests/test_doc_search.py` |
 | Modified tests | `test_capture.py`, `test_learning.py`, `test_memory.py`, `test_db.py` |
 
 **Total: 3 new modules, 1 new scaffold file, 11 modifications, 3 new test files, 4 test additions.**
@@ -621,13 +621,13 @@ uv run pytest core/thinking-os/tests/test_memory.py -v
 uv run python -c "from core.thinking_os.db import init_db; c=init_db(); tables = {r[0] for r in c.execute('SELECT name FROM sqlite_master').fetchall()}; assert 'embeddings' in tables and 'document_chunks' in tables; print('OK')"
 
 # 2. All embedding tests pass (with RAG extras)
-uv run --extra rag pytest core/thinking-os/tests/test_embeddings.py core/thinking-os/tests/test_doc_indexer.py core/thinking-os/tests/test_doc_search.py -v
+uv run --extra rag pytest core/thinking_os/tests/test_embeddings.py core/thinking_os/tests/test_doc_indexer.py core/thinking_os/tests/test_doc_search.py -v
 
 # 3. Existing tests still pass with RAG enabled
-uv run --extra rag pytest core/thinking-os/tests/ tests/ -v
+uv run --extra rag pytest core/thinking_os/tests/ tests/ -v
 
 # 4. Existing tests still pass WITHOUT RAG extras (graceful degradation)
-uv run pytest core/thinking-os/tests/ tests/ -v
+uv run pytest core/thinking_os/tests/ tests/ -v
 
 # 5. End-to-end smoke test on NakoDigital subset
 TMPDIR=$(mktemp -d /tmp/cos-rag-test-XXXXXX)
@@ -642,7 +642,7 @@ sqlite3 .coding-os/thinking-os.db "SELECT source_type, COUNT(*) FROM document_ch
 # 6. cos_doc_search returns results
 uv run --extra rag python -c "
 import json, sys
-sys.path.insert(0, '/Users/ciro/Files/Project/coding-os/core/thinking-os')
+sys.path.insert(0, '/Users/ciro/Files/Project/coding-os/core/thinking_os')
 from db import init_db
 from tools.docs import doc_search
 c = init_db('.coding-os/thinking-os.db')
@@ -650,7 +650,7 @@ print(json.dumps(doc_search(c, 'commission', limit=3), indent=2))
 "
 
 # 7. MCP server self-test
-uv run --extra rag python /Users/ciro/Files/Project/coding-os/core/thinking-os/server.py --test
+uv run --extra rag python /Users/ciro/Files/Project/coding-os/core/thinking_os/server.py --test
 ```
 
 ## Risk & Mitigation

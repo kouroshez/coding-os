@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: bugs-2026-q2
 labels: []
-status: emergency
+status: complete
 priority: P2
 appetite: 1h
 created: 2026-04-20
-started: null
-completed: null
+started: 2026-04-20
+completed: 2026-04-20
 agent_session: null
 depends_on: []
 blocked_by: []

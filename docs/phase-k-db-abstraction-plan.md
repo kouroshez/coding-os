@@ -3,7 +3,7 @@
 
 Purpose: Define the trigger conditions and migration path for moving from SQLite to Postgres/pgvector — and explicitly NOT invoke that path until measured metrics demand it.
 Read when: Considering adding a concurrent-writer scenario, scaling past ~30 000 chunks, or investigating retrieval latency above 150 ms.
-Read next: [docs/phase-g-brain-hardening-plan.md](./phase-g-brain-hardening-plan.md) §G.11 (precision tracker which also feeds scale metrics), [core/thinking-os/db.py](../core/thinking-os/db.py).
+Read next: [docs/phase-g-brain-hardening-plan.md](./phase-g-brain-hardening-plan.md) §G.11 (precision tracker which also feeds scale metrics), [core/thinking_os/db.py](../core/thinking_os/db.py).
 
 ## Why (honest framing)
 

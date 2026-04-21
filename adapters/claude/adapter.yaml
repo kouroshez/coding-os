@@ -11,6 +11,14 @@ supports_rules: true
 supports_settings_json: true
 install_script: install.sh
 
+# MCP launch metadata consumed by cli/doctor.py::_load_coding_os_mcp_launch
+# (C15 check). Data-driven so tests/test_no_hardcoded_stacks.py stays green.
+mcp_launch:
+  loader: claude_json      # maps to cli.doctor._load_claude_json
+  config_paths:
+    - scope: project
+      path: .mcp.json
+
 # Deep-merged with aggregated hooks by render_settings_json().
 # Phase 1: empty — adapter's existing install.sh already writes settings.json.
 default_settings: {}
