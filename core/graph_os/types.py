@@ -17,7 +17,8 @@ NOTES:    Frozen dataclasses so nodes/edges can be used as dict keys
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
@@ -49,7 +50,18 @@ class GraphNode:
     doc_blob: str | None = None
     ast_hash: str | None = None
     content_hash: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # B11: wrap metadata in a read-only view so ``frozen=True`` isn't
+        # silently undermined by callers mutating the backing dict. The
+        # mapping view is read-only; equality/containment still work
+        # exactly like a dict. Accept pre-wrapped values idempotently.
+        md = self.metadata
+        if isinstance(md, MappingProxyType):
+            return
+        backing: dict[str, Any] = dict(md) if md else {}
+        object.__setattr__(self, "metadata", MappingProxyType(backing))
 
 
 @dataclass(frozen=True)

@@ -90,6 +90,14 @@ class GraphBackend(Protocol):
     def get_node(self, uid: str) -> GraphNode | None:
         """Fetch a node by uid, or None if unknown."""
 
+    def get_nodes_bulk(self, uids: Sequence[str]) -> dict[str, GraphNode]:
+        """B6: batch variant — single query, returns ``{uid: GraphNode}``.
+
+        Missing uids simply do not appear in the mapping. Implementations
+        MUST return a fresh dict each call so callers can mutate safely.
+        This is the N+1 fix for ``_walk_bfs`` frontier expansion.
+        """
+
     def count_nodes(self, kind: str | None = None) -> int:
         """Total node count, optionally filtered by kind."""
 

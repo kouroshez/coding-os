@@ -72,9 +72,19 @@ _BACKEND_SINGLETON: GraphBackend | None = None
 
 
 def _backend(*, backend: str | None = None) -> GraphBackend:
-    """Return the shared GraphBackend instance."""
+    """Return the shared GraphBackend instance.
+
+    B7: close the previous backend before replacing the singleton when the
+    caller asks for a different backend, so file handles / DB connections
+    don't leak across the swap.
+    """
     global _BACKEND_SINGLETON
     if _BACKEND_SINGLETON is None or backend is not None:
+        if _BACKEND_SINGLETON is not None:
+            try:
+                _BACKEND_SINGLETON.close()
+            except Exception as exc:  # noqa: BLE001 — swap must not raise
+                logger.debug("previous backend close suppressed: %s", exc)
         _BACKEND_SINGLETON = get_backend(backend=backend)
     return _BACKEND_SINGLETON
 
@@ -150,16 +160,25 @@ def _walk_bfs(
     """BFS traversal — shared by context / impact / trace.
 
     direction: "out" (source→target), "in" (target→source), or "both".
+
+    B2: edges are only recorded the first time they lead to an unseen
+    neighbour — this stops duplicate edges piling up when a neighbour is
+    reached through multiple predecessors. Edges already traversed from
+    either direction via the (source, target, edge_type, extractor)
+    identity are suppressed.
+    B6: uses ``get_nodes_bulk`` on the frontier instead of one get_node
+    per neighbour, collapsing the N+1 pattern.
     """
-    seen_nodes: dict[str, GraphNode] = {}
-    visited_uids: set[str] = set()
     edges_out: list[GraphEdge] = []
-    queue: deque[tuple[str, int]] = deque([(root_uid, 0)])
-    visited_uids.add(root_uid)
-    root_node = backend.get_node(root_uid)
+    seen_edge_ids: set[tuple[str, str, str, str]] = set()
+    root_nodes = _bulk_nodes(backend, [root_uid])
+    root_node = root_nodes.get(root_uid)
     if root_node is None:
         return [], []
-    seen_nodes[root_uid] = root_node
+
+    seen_nodes: dict[str, GraphNode] = {root_uid: root_node}
+    visited_uids: set[str] = {root_uid}
+    queue: deque[tuple[str, int]] = deque([(root_uid, 0)])
 
     while queue and len(seen_nodes) < visit_limit:
         uid, depth = queue.popleft()
@@ -184,19 +203,58 @@ def _walk_bfs(
                     limit=visit_limit,
                 )
             )
+
+        frontier_uids: list[str] = []
+        frontier_edges: list[GraphEdge] = []
         for edge in neighbours:
-            edges_out.append(edge)
+            identity = (
+                edge.source_uid,
+                edge.target_uid,
+                edge.edge_type,
+                edge.extractor,
+            )
+            if identity in seen_edge_ids:
+                continue
+            seen_edge_ids.add(identity)
             next_uid = (
                 edge.target_uid if edge.source_uid == uid else edge.source_uid
             )
+            # B2: only append when the neighbour is new — stops the edge
+            # duplication that happened when the same node was reached
+            # via multiple edges from different frontiers.
             if next_uid in visited_uids:
                 continue
-            visited_uids.add(next_uid)
-            node = backend.get_node(next_uid)
-            if node is not None:
+            frontier_edges.append(edge)
+            frontier_uids.append(next_uid)
+
+        if frontier_uids:
+            fetched = _bulk_nodes(backend, frontier_uids)
+            for edge, next_uid in zip(frontier_edges, frontier_uids):
+                node = fetched.get(next_uid)
+                if node is None:
+                    continue
+                edges_out.append(edge)
+                if next_uid in visited_uids:
+                    continue
+                visited_uids.add(next_uid)
                 seen_nodes[next_uid] = node
                 queue.append((next_uid, depth + 1))
     return list(seen_nodes.values()), edges_out
+
+
+def _bulk_nodes(
+    backend: GraphBackend, uids: Sequence[str]
+) -> dict[str, GraphNode]:
+    """B6: prefer backend.get_nodes_bulk; fall back to per-uid for legacy."""
+    bulk = getattr(backend, "get_nodes_bulk", None)
+    if callable(bulk):
+        return bulk(list(uids))
+    out: dict[str, GraphNode] = {}
+    for uid in uids:
+        node = backend.get_node(uid)
+        if node is not None:
+            out[uid] = node
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -473,7 +531,22 @@ def cos_graph_trace(
         if node is None:
             continue
         steps.append(NodeSummary.from_node(node).to_dict())
-        edges = be.list_edges(source_uid=uid, edge_types=("calls", "constructs"), limit=20)
+        # B3: follow a wider set of outgoing control-flow edges so traces
+        # cover API routes, MCP tool dispatch, event handlers, and async
+        # awaits — not just direct calls/constructs.
+        edges = be.list_edges(
+            source_uid=uid,
+            edge_types=(
+                "calls",
+                "constructs",
+                "handles_route",
+                "handles_tool",
+                "handles_event",
+                "dispatches",
+                "awaits",
+            ),
+            limit=20,
+        )
         if len(edges) > 1:
             branches.append(
                 {
@@ -582,7 +655,13 @@ def cos_graph_path(
     max_hops: int = 5,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Shortest path between two nodes (any direction)."""
+    """Shortest path between two nodes (any direction).
+
+    B4: each hop pulls up to 1000 edges from the backend (up from 200).
+    When either side's edge list hits that cap the result is flagged
+    ``meta.truncated=True`` so callers know the search may have missed a
+    shorter path that lives beyond the first 1000 neighbours.
+    """
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -591,6 +670,8 @@ def cos_graph_path(
         return _fail("not_found", f"source uid {source_uid!r}")
     if be.get_node(target_uid) is None:
         return _fail("not_found", f"target uid {target_uid!r}")
+    _PATH_HOP_LIMIT = 1000
+    truncated = False
     parents: dict[str, tuple[str, GraphEdge] | None] = {source_uid: None}
     queue: deque[tuple[str, int]] = deque([(source_uid, 0)])
     while queue:
@@ -599,20 +680,31 @@ def cos_graph_path(
             break
         if depth >= max_hops:
             continue
-        for edge in be.list_edges(source_uid=uid, limit=200):
+        out_edges = be.list_edges(source_uid=uid, limit=_PATH_HOP_LIMIT)
+        if len(out_edges) >= _PATH_HOP_LIMIT:
+            truncated = True
+        for edge in out_edges:
             nxt = edge.target_uid
             if nxt not in parents:
                 parents[nxt] = (uid, edge)
                 queue.append((nxt, depth + 1))
-        for edge in be.list_edges(target_uid=uid, limit=200):
+        in_edges = be.list_edges(target_uid=uid, limit=_PATH_HOP_LIMIT)
+        if len(in_edges) >= _PATH_HOP_LIMIT:
+            truncated = True
+        for edge in in_edges:
             nxt = edge.source_uid
             if nxt not in parents:
                 parents[nxt] = (uid, edge)
                 queue.append((nxt, depth + 1))
     if target_uid not in parents:
         return _ok(
-            {"path": None, "edges": []},
-            meta={"backend": be.backend_id, "reason": "unreachable"},
+            {"path": None, "edges": [], "truncated": truncated},
+            meta={
+                "backend": be.backend_id,
+                "reason": "unreachable",
+                "truncated": truncated,
+                "hop_limit": _PATH_HOP_LIMIT,
+            },
         )
     chain: list[GraphEdge] = []
     cur = target_uid
@@ -626,8 +718,13 @@ def cos_graph_path(
             "path": [source_uid] + [e.target_uid if e.source_uid == source_uid else e.source_uid for e in chain],
             "edges": [_edge_to_dict(e) for e in chain],
             "hops": len(chain),
+            "truncated": truncated,
         },
-        meta={"backend": be.backend_id},
+        meta={
+            "backend": be.backend_id,
+            "truncated": truncated,
+            "hop_limit": _PATH_HOP_LIMIT,
+        },
     )
 
 

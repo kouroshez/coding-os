@@ -108,7 +108,9 @@ class KuzuBackend:
             raise BackendUnavailable(
                 f"Kuzu failed to open database at {resolved}: {exc}"
             ) from exc
-        self._write_lock = threading.Lock()
+        # RLock: reads share this lock (B1) and writers may call internal
+        # helpers that do their own reads (e.g. upsert_edge -> _get_node_props).
+        self._write_lock = threading.RLock()
         self._bootstrap_schema()
 
     def _bootstrap_schema(self) -> None:
@@ -119,10 +121,11 @@ class KuzuBackend:
                 logger.debug("kuzu schema stmt tolerated: %s", exc)
 
     def close(self) -> None:
-        try:
-            self._conn.close()
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("kuzu conn close suppressed: %s", exc)
+        with self._write_lock:
+            try:
+                self._conn.close()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("kuzu conn close suppressed: %s", exc)
 
     # -- Write path --------------------------------------------------------
 
@@ -130,7 +133,9 @@ class KuzuBackend:
         import json  # noqa: PLC0415
 
         now = int(time.time())
-        metadata_json = json.dumps(node.metadata, sort_keys=True)
+        # B11: ``node.metadata`` is a MappingProxyType — unwrap to dict for
+        # json.dumps which does not handle mappingproxy directly.
+        metadata_json = json.dumps(dict(node.metadata), sort_keys=True)
         params = {
             "uid": node.uid,
             "kind": node.kind,
@@ -175,14 +180,15 @@ class KuzuBackend:
     def upsert_edge(self, edge: GraphEdge) -> int:
         import json  # noqa: PLC0415
 
-        if self._get_node_props(edge.source_uid) is None:
-            raise ValueError(
-                f"unknown uid {edge.source_uid!r}: upsert the node first"
-            )
-        if self._get_node_props(edge.target_uid) is None:
-            raise ValueError(
-                f"unknown uid {edge.target_uid!r}: upsert the node first"
-            )
+        with self._write_lock:
+            if self._get_node_props(edge.source_uid) is None:
+                raise ValueError(
+                    f"unknown uid {edge.source_uid!r}: upsert the node first"
+                )
+            if self._get_node_props(edge.target_uid) is None:
+                raise ValueError(
+                    f"unknown uid {edge.target_uid!r}: upsert the node first"
+                )
 
         now = int(time.time())
         evidence_payload = json.dumps(
@@ -256,46 +262,106 @@ class KuzuBackend:
         return node_count, edge_count
 
     def delete_node(self, uid: str) -> bool:
+        """B5: MATCH count first, then DETACH DELETE in a second step.
+
+        The original combined statement was ambiguous under Kuzu's RETURN
+        semantics after a DETACH DELETE, so we split it into an explicit
+        count query followed by an unconditional delete. Both run inside
+        the write lock so concurrent writers can't race the existence
+        check against the delete.
+        """
         with self._write_lock:
-            result = self._conn.execute(
-                "MATCH (n:GraphNodeV12 {uid: $uid}) DETACH DELETE n RETURN count(n)",
+            count_result = self._conn.execute(
+                "MATCH (n:GraphNodeV12 {uid: $uid}) RETURN count(n)",
                 parameters={"uid": uid},
             )
-        rows = result.get_all() if hasattr(result, "get_all") else list(result)
-        return bool(rows and rows[0][0] > 0)
+            count_rows = self._rows(count_result)
+            existed = bool(count_rows and int(count_rows[0][0]) > 0)
+            if existed:
+                self._conn.execute(
+                    "MATCH (n:GraphNodeV12 {uid: $uid}) DETACH DELETE n",
+                    parameters={"uid": uid},
+                )
+        return existed
 
     # -- Read path ---------------------------------------------------------
+    # B1: reads share ``_write_lock`` because Kuzu's Python binding does
+    # not serialise queries across threads — concurrent execute() calls
+    # on the same connection crash the native layer. The lock forces a
+    # single in-flight query at a time, which is the correctness-first
+    # choice for a fallback path; HNSW-aware parallelism lands later.
 
     def get_node(self, uid: str) -> GraphNode | None:
-        props = self._get_node_props(uid)
+        with self._write_lock:
+            props = self._get_node_props(uid)
         if props is None:
             return None
         return self._props_to_node(props)
 
+    def get_nodes_bulk(self, uids: Sequence[str]) -> dict[str, GraphNode]:
+        """B6: batch variant — UNWIND-based lookup instead of N queries."""
+        if not uids:
+            return {}
+        uniq = list(dict.fromkeys(uids))
+        with self._write_lock:
+            result = self._conn.execute(
+                """
+                UNWIND $uids AS wanted
+                MATCH (n:GraphNodeV12 {uid: wanted})
+                RETURN n.kind, n.label, n.uid, n.file_path, n.start_line,
+                       n.end_line, n.signature, n.lang, n.doc_blob,
+                       n.ast_hash, n.content_hash, n.metadata_json
+                """,
+                parameters={"uids": list(uniq)},
+            )
+            rows = self._rows(result)
+        out: dict[str, GraphNode] = {}
+        keys = (
+            "kind",
+            "label",
+            "uid",
+            "file_path",
+            "start_line",
+            "end_line",
+            "signature",
+            "lang",
+            "doc_blob",
+            "ast_hash",
+            "content_hash",
+            "metadata_json",
+        )
+        for row in rows:
+            props = dict(zip(keys, row))
+            node = self._props_to_node(props)
+            out[node.uid] = node
+        return out
+
     def count_nodes(self, kind: str | None = None) -> int:
-        if kind is None:
-            result = self._conn.execute(
-                "MATCH (n:GraphNodeV12) RETURN count(n)"
-            )
-        else:
-            result = self._conn.execute(
-                "MATCH (n:GraphNodeV12) WHERE n.kind = $kind RETURN count(n)",
-                parameters={"kind": kind},
-            )
-        rows = self._rows(result)
+        with self._write_lock:
+            if kind is None:
+                result = self._conn.execute(
+                    "MATCH (n:GraphNodeV12) RETURN count(n)"
+                )
+            else:
+                result = self._conn.execute(
+                    "MATCH (n:GraphNodeV12) WHERE n.kind = $kind RETURN count(n)",
+                    parameters={"kind": kind},
+                )
+            rows = self._rows(result)
         return int(rows[0][0]) if rows else 0
 
     def count_edges(self, edge_type: str | None = None) -> int:
-        if edge_type is None:
-            result = self._conn.execute(
-                "MATCH ()-[r:GraphEdgeV12]->() RETURN count(r)"
-            )
-        else:
-            result = self._conn.execute(
-                "MATCH ()-[r:GraphEdgeV12]->() WHERE r.edge_type = $et RETURN count(r)",
-                parameters={"et": edge_type},
-            )
-        rows = self._rows(result)
+        with self._write_lock:
+            if edge_type is None:
+                result = self._conn.execute(
+                    "MATCH ()-[r:GraphEdgeV12]->() RETURN count(r)"
+                )
+            else:
+                result = self._conn.execute(
+                    "MATCH ()-[r:GraphEdgeV12]->() WHERE r.edge_type = $et RETURN count(r)",
+                    parameters={"et": edge_type},
+                )
+            rows = self._rows(result)
         return int(rows[0][0]) if rows else 0
 
     def list_edges(
@@ -329,9 +395,11 @@ class KuzuBackend:
             ORDER BY r.confidence DESC, a.uid ASC, b.uid ASC, r.edge_type ASC
             LIMIT $lim
         """
-        result = self._conn.execute(query, parameters=params)
+        with self._write_lock:
+            result = self._conn.execute(query, parameters=params)
+            raw_rows = self._rows(result)
         edges: list[GraphEdge] = []
-        for row in self._rows(result):
+        for row in raw_rows:
             evidence_tuple: tuple[EvidenceSignal, ...] = ()
             if include_evidence and row[6]:
                 try:
