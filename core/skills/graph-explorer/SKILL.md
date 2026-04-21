@@ -57,6 +57,25 @@ to promote to block.
   `_impact` clusters these under the `context` tier so agents can
   ignore noise.
 
+## Web UI
+
+For visual exploration, the unified React SPA exposes the graph at
+[http://127.0.0.1:4748/graph](http://127.0.0.1:4748/graph). Start it
+with `cos web` (FastAPI + uvicorn on port 4748). The page picks a
+root node, runs depth-bounded BFS, and renders with Sigma.js +
+Graphology — useful when:
+
+- An impact/rename plan returns >10 affected files and the agent (or
+  user) wants to see clusters before approving.
+- Walking a CONTAINS spine (Folder→File→Class→Method) is easier than
+  re-issuing tool calls.
+- Sharing a snapshot with a human collaborator who needs to *see* the
+  blast radius rather than read JSON envelopes.
+
+For one-off static export (no live server, embeddable HTML), the
+legacy `cos graph-viz` command still works — kept intentionally for
+sharing/embedding.
+
 ## Link-backs
 
 - Phase I plan: [docs/phase-i-knowledge-graph-plan.md](../../../docs/phase-i-knowledge-graph-plan.md)

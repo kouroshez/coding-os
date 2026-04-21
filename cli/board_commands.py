@@ -69,9 +69,63 @@ def _print_envelope(envelope: str, *, format: str = "text") -> int:
 # ---------------------------------------------------------------------------
 
 
+def _launch_board_in_spa(*, host: str, port: int) -> None:
+    """Open the unified SPA Board page; auto-start `cos web` if needed.
+
+    PURPOSE: Replacement path for the legacy `cos board --web` viewer
+             (core/board_os/viewer/, removed in S6).  Redirects to the
+             React SPA at /board served by core.web.server on port 4748.
+    INPUT:   host, port — overrideable web server bind.
+    OUTPUT:  none.  Opens browser; blocks if it had to spawn the server.
+    DEPENDENCIES: urllib (stdlib), webbrowser (stdlib), subprocess (stdlib),
+                  core.web.server.run_server (lazy).
+    NOTES:   One-line deprecation notice every invocation (consumers may
+             script around it).  If the server is already running on the
+             port, just open the browser; otherwise spawn it in-process.
+    """
+    import urllib.error
+    import urllib.request
+    import webbrowser
+
+    click.echo(
+        "DEPRECATED: `cos board --web` now opens the unified SPA "
+        "(core/board_os/viewer/ removed in S6).",
+        err=True,
+    )
+
+    url = f"http://{host}:{port}/board"
+    health_url = f"http://{host}:{port}/health"
+
+    def _server_up() -> bool:
+        try:
+            with urllib.request.urlopen(health_url, timeout=0.5) as resp:
+                return resp.status == 200
+        except (urllib.error.URLError, OSError):
+            return False
+
+    if _server_up():
+        click.echo(f"Opening {url} (web server already running).")
+        webbrowser.open(url)
+        return
+
+    click.echo(f"Starting Coding OS web server on {host}:{port} ... (Ctrl-C to stop)")
+    click.echo(f"Once it is up, open {url} in your browser.")
+    try:
+        from core.web.server import run_server
+    except ImportError as exc:
+        click.echo(
+            f"ERROR: could not import core.web.server: {exc}\n"
+            "Install web extras: uv sync",
+            err=True,
+        )
+        sys.exit(1)
+    run_server(host=host, port=port)
+
+
 @click.command("board", help="Show Scrumban board (ASCII or --web)")
-@click.option("--web", is_flag=True, default=False, help="Open board in browser")
-@click.option("--port", type=int, default=9000)
+@click.option("--web", is_flag=True, default=False, help="Open board in browser (redirects to unified SPA at /board)")
+@click.option("--port", type=int, default=4748,
+              help="Port for the unified web server when --web is used.")
 @click.option("--host", default="127.0.0.1")
 @click.option("--bind", default=None, help="Bind address (overrides --host)")
 @click.option("--swimlane", default=None)
@@ -82,10 +136,7 @@ def _print_envelope(envelope: str, *, format: str = "text") -> int:
 def board_cmd(web, port, host, bind, swimlane, kind, epic, priority, format):
     from core.board_os import mcp_tools
     if web:
-        from core.board_os.viewer.server import serve_board
-        serve_board(
-            host=(bind or host), port=port, project_root=_project_root(),
-        )
+        _launch_board_in_spa(host=(bind or host), port=port)
         return
     conn = _db_conn()
     try:

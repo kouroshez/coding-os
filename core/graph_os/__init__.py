@@ -14,8 +14,8 @@ Public surface (I.0):
   get_backend    — factory that reads rag-config.yaml or env (backend.py)
 
 I.0 scope is storage + protocol + parity tests. Extractors (code,
-docs, tasks, contracts), MCP tools, orchestrator, and the viewer ship
-in later slices (see docs/phase-i-knowledge-graph-plan.md Section 19).
+docs, tasks, contracts), MCP tools, and the viewer ship in later
+slices (see docs/phase-i-knowledge-graph-plan.md Section 19).
 """
 
 from __future__ import annotations
