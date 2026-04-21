@@ -123,6 +123,22 @@ class GraphBackend(Protocol):
         keeps responses lean (Section 5.3 of the plan).
         """
 
+    def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
+        """B13: return up to `limit` nodes, optionally filtered by kind.
+
+        PURPOSE:  Provide an unbiased node sample for ``cos_graph_similar``
+                  so the candidate pool is drawn from all nodes of the
+                  given kind, not just edge endpoints (which skews toward
+                  high-degree nodes).
+        INPUT:    kind — filter by node kind string, or None for all kinds.
+                  limit — maximum number of nodes to return.
+        OUTPUT:   list of GraphNode (may be shorter than limit if the
+                  graph has fewer matching nodes).
+        NOTES:    Ordering is implementation-defined; SQLite returns by
+                  rowid (insertion order), Kuzu by internal id. The
+                  contract only guarantees ``len(result) <= limit``.
+        """
+
 
 # -------------------------------------------------------------------------
 # Factory

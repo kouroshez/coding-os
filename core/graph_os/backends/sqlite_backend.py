@@ -479,6 +479,42 @@ class SqliteBackend:
             )
         return edges
 
+    def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
+        """B13: return up to `limit` nodes, optionally filtered by kind.
+
+        PURPOSE:  Provide an unbiased node sample for ``cos_graph_similar``.
+        INPUT:    kind — filter by node kind, or None for all.
+                  limit — max nodes to return.
+        OUTPUT:   list of GraphNode ordered by rowid ASC.
+        """
+        with self._write_lock:
+            if kind is None:
+                rows = self._conn.execute(
+                    """
+                    SELECT kind, label, uid, file_path, start_line, end_line,
+                           signature, lang, doc_blob, ast_hash, content_hash,
+                           metadata_json
+                    FROM graph_nodes
+                    ORDER BY id ASC
+                    LIMIT ?
+                    """,
+                    (int(limit),),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    """
+                    SELECT kind, label, uid, file_path, start_line, end_line,
+                           signature, lang, doc_blob, ast_hash, content_hash,
+                           metadata_json
+                    FROM graph_nodes
+                    WHERE kind = ?
+                    ORDER BY id ASC
+                    LIMIT ?
+                    """,
+                    (kind, int(limit)),
+                ).fetchall()
+        return [self._row_to_node(row) for row in rows]
+
     # -- Internal helpers --------------------------------------------------
 
     def _node_id_for_uid(self, uid: str) -> int:

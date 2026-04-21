@@ -299,9 +299,13 @@ def cos_graph_query(
         }
         for n in nodes
     ]
+    # B22: cap meta.query to 500 chars with ellipsis suffix so the
+    # envelope stays bounded regardless of how long the query string is.
+    _MAX_QUERY_META = 500
+    query_meta = q if len(q) <= _MAX_QUERY_META else q[:_MAX_QUERY_META] + "..."
     return _ok(
         {"results": results[:limit]},
-        meta={"query": q, "backend": be.backend_id},
+        meta={"query": query_meta, "backend": be.backend_id},
     )
 
 
@@ -344,10 +348,21 @@ def cos_graph_context(
         grouped.setdefault(e.edge_type, []).append(
             _edge_to_dict(e, include_evidence=include_evidence)
         )
+
+    # B21: include source content for each node when requested.
+    def _node_dict(node: GraphNode) -> dict[str, Any]:
+        d = NodeSummary.from_node(node).to_dict()
+        if include_content:
+            snippet = _read_node_content(node)
+            if snippet is not None:
+                d["content"] = snippet["content"]
+                d["truncated"] = snippet["truncated"]
+        return d
+
     return _ok(
         {
-            "node": NodeSummary.from_node(root).to_dict(),
-            "neighbours": [NodeSummary.from_node(n).to_dict() for n in nodes if n.uid != root.uid],
+            "node": _node_dict(root),
+            "neighbours": [_node_dict(n) for n in nodes if n.uid != root.uid],
             "edges_by_type": grouped,
             "edge_count": len(edges),
         },
@@ -368,6 +383,26 @@ def cos_graph_impact(
     PURPOSE:      F2 Step 10 Dependency Map. Groups the neighbourhood
                   into risk tiers so F11 refactors can sequence work.
     OUTPUT:       ok({nodes_by_tier, edges}).
+
+    Direction semantics (B12):
+      "downstream" — nodes that DEPEND ON `uid` (inbound edges from
+                     their perspective, i.e. direction="in" in BFS).
+                     These are the nodes that WILL BREAK if `uid`
+                     changes. Example: callers of a function.
+
+      "upstream"   — nodes that `uid` DEPENDS ON (outbound edges from
+                     `uid`'s perspective, i.e. direction="out" in BFS).
+                     These are the nodes `uid` CALLS / IMPORTS. Changes
+                     to upstream nodes may require `uid` to adapt.
+                     Example: libraries or helpers that `uid` imports.
+
+      "both"       — walks in both directions simultaneously.
+
+    DEPRECATION NOTE: the string "downstream" / "upstream" naming
+      matches the semantic intent (downstream = consumers, upstream =
+      dependencies). The legacy mapping to BFS direction is preserved
+      exactly. Do NOT pass raw BFS direction strings ("in"/"out") to
+      this parameter — they are unsupported and will default to "in".
     """
     try:
         be = _backend(backend=backend)
@@ -469,10 +504,13 @@ def cos_graph_detect_changes(
                     "edge_type": edge.edge_type,
                 }
             )
-            if edge.source_uid.startswith("task:file:"):
-                downstream_tasks.add(edge.source_uid)
+            # B15: collect task uids from both the 1-hop walk and, below,
+            # the deep walk (depth 3, confidence >= 0.6).
+            for uid_candidate in (edge.source_uid, edge.target_uid):
+                if uid_candidate.startswith("task:file:"):
+                    downstream_tasks.add(uid_candidate)
         if analyze_downstream:
-            _, deep = _walk_bfs(
+            _, deep_edges = _walk_bfs(
                 be,
                 root_uid=file_uid,
                 direction="in",
@@ -480,9 +518,14 @@ def cos_graph_detect_changes(
                 confidence_min=0.6,
                 edge_types=None,
             )
-            if len(deep) > 20:
+            # B15: also collect task uids from the deep (depth-3) walk.
+            for deep_edge in deep_edges:
+                for uid_candidate in (deep_edge.source_uid, deep_edge.target_uid):
+                    if uid_candidate.startswith("task:file:"):
+                        downstream_tasks.add(uid_candidate)
+            if len(deep_edges) > 20:
                 risk = "high"
-            elif len(deep) > 5 and risk != "high":
+            elif len(deep_edges) > 5 and risk != "high":
                 risk = "medium"
 
     return _ok(
@@ -576,7 +619,13 @@ def cos_graph_similar(
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Semantic similarity — I.8 baseline uses string similarity between
-    labels + docstrings; I.1 BGE-M3 embeddings lift the signal later."""
+    labels + docstrings; I.1 BGE-M3 embeddings lift the signal later.
+
+    B13: uses ``sample_nodes(kind, limit)`` to build a candidate pool
+    from actual graph nodes of the same kind, rather than edge-endpoint
+    sampling. Edge-endpoint sampling biases toward high-degree nodes;
+    ``sample_nodes`` gives an unbiased draw over the node table.
+    """
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -585,23 +634,26 @@ def cos_graph_similar(
     if root is None:
         return _fail("not_found", f"no node with uid {uid!r}")
 
-    # Gather candidate pool — same kind if known.
-    candidates: list[GraphNode] = []
-    seen_uids: set[str] = {uid}
+    # B13: use sample_nodes for an unbiased candidate pool.
     sample_size = 200  # bounded to keep latency predictable
-    # Pull a sample via list_edges on arbitrary edges; backends implement
-    # their own sampling semantics.
-    for edge in be.list_edges(limit=sample_size):
-        for side in (edge.source_uid, edge.target_uid):
-            if side in seen_uids:
-                continue
-            seen_uids.add(side)
-            n = be.get_node(side)
-            if n is None:
-                continue
-            if root.kind and n.kind != root.kind:
-                continue
-            candidates.append(n)
+    sampler = getattr(be, "sample_nodes", None)
+    if callable(sampler):
+        raw_candidates = sampler(root.kind or None, sample_size)
+    else:
+        # Graceful degradation for backends that have not yet implemented
+        # sample_nodes (should not happen post-S2, but kept for safety).
+        raw_candidates = []
+        seen_fallback: set[str] = set()
+        for edge in be.list_edges(limit=sample_size):
+            for side in (edge.source_uid, edge.target_uid):
+                if side in seen_fallback:
+                    continue
+                seen_fallback.add(side)
+                n = be.get_node(side)
+                if n is not None:
+                    raw_candidates.append(n)
+
+    candidates = [n for n in raw_candidates if n.uid != uid]
 
     scored = []
     reference = f"{root.label or ''} {root.signature or ''} {root.doc_blob or ''}"
@@ -890,6 +942,34 @@ def cos_graph_contracts(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _read_node_content(node: GraphNode, *, cap: int = 2000) -> dict[str, Any] | None:
+    """B21: read source snippet for a node from its file_path + line range.
+
+    PURPOSE:  Inline source text so ``cos_graph_context(include_content=True)``
+              returns a ``content`` field per node without extra round-trips.
+    INPUT:    node with file_path, start_line, end_line set.
+              cap — max chars to include (default 2000).
+    OUTPUT:   dict with ``content`` (str) and ``truncated`` (bool), or None
+              when the file is missing or the node has no file_path.
+    NOTES:    Silently returns None on any IO error — callers must handle None.
+    """
+    if not node.file_path:
+        return None
+    try:
+        src = Path(node.file_path)
+        if not src.is_file():
+            return None
+        lines = src.read_text(encoding="utf-8", errors="replace").splitlines()
+        start = max(0, (node.start_line or 1) - 1)  # 1-indexed → 0-indexed
+        end = (node.end_line or node.start_line or len(lines))
+        snippet = "\n".join(lines[start:end])
+        truncated = len(snippet) > cap
+        return {"content": snippet[:cap], "truncated": truncated}
+    except Exception as exc:  # noqa: BLE001 — skip safely on any IO error
+        logger.debug("_read_node_content skipped for %s: %s", node.uid, exc)
+        return None
 
 
 def _fuzzy_resolve(backend: GraphBackend, needle: str) -> GraphNode | None:

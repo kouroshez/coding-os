@@ -427,6 +427,46 @@ class KuzuBackend:
             )
         return edges
 
+    def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
+        """B13: return up to `limit` nodes, optionally filtered by kind.
+
+        PURPOSE:  Provide an unbiased node sample for ``cos_graph_similar``.
+        INPUT:    kind — filter by node kind, or None for all.
+                  limit — max nodes to return.
+        OUTPUT:   list of GraphNode.
+        """
+        with self._write_lock:
+            if kind is None:
+                result = self._conn.execute(
+                    """
+                    MATCH (n:GraphNodeV12)
+                    RETURN n.kind, n.label, n.uid, n.file_path, n.start_line,
+                           n.end_line, n.signature, n.lang, n.doc_blob,
+                           n.ast_hash, n.content_hash, n.metadata_json
+                    LIMIT $lim
+                    """,
+                    parameters={"lim": int(limit)},
+                )
+            else:
+                result = self._conn.execute(
+                    """
+                    MATCH (n:GraphNodeV12)
+                    WHERE n.kind = $kind
+                    RETURN n.kind, n.label, n.uid, n.file_path, n.start_line,
+                           n.end_line, n.signature, n.lang, n.doc_blob,
+                           n.ast_hash, n.content_hash, n.metadata_json
+                    LIMIT $lim
+                    """,
+                    parameters={"kind": kind, "lim": int(limit)},
+                )
+            rows = self._rows(result)
+        keys = (
+            "kind", "label", "uid", "file_path", "start_line",
+            "end_line", "signature", "lang", "doc_blob",
+            "ast_hash", "content_hash", "metadata_json",
+        )
+        return [self._props_to_node(dict(zip(keys, row))) for row in rows]
+
     # -- Internal helpers --------------------------------------------------
 
     def _get_node_props(self, uid: str) -> dict[str, Any] | None:

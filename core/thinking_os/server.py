@@ -1398,12 +1398,23 @@ def _csv(value: str) -> list[str] | None:
 
 
 def _graph_unavailable() -> str:
-    """Envelope the agent sees when graph_os tools can't be imported."""
-    from tools._shared import fail  # noqa: WPS433 — local to keep boot lean
-    return fail(
-        "unavailable",
-        "graph_os package not importable; install graph-os extra",
-        retryable=False,
+    """Envelope the agent sees when graph_os tools can't be imported.
+
+    B20: MCP tool returns must be JSON-encoded strings. ``fail()`` from
+    ``tools._shared`` already returns ``json.dumps(...)`` so this
+    function always returns a ``str``. The explicit ``json.dumps`` wrapper
+    below makes the contract unambiguous should the import path change.
+    """
+    import json as _json  # noqa: PLC0415 — keep boot lean
+    return _json.dumps(
+        {
+            "ok": False,
+            "error": {
+                "category": "unavailable",
+                "retryable": False,
+                "message": "graph_os package not importable; install graph-os extra",
+            },
+        }
     )
 
 
@@ -1470,7 +1481,10 @@ if _GRAPH_TOOLS_AVAILABLE:
             uid_or_name: Node uid or fuzzy label.
             direction: "in" | "out" | "both".
             depth: BFS depth (default 1).
-            include_content: Inline source snippets.
+            include_content: When True, each returned node gains a ``content``
+                field with source text read from ``file_path:start_line..end_line``
+                (capped at 2000 chars, with ``truncated: bool``). Silently skipped
+                when the file is missing or the node has no file_path. (B21)
             include_evidence: JOIN evidence rows (costs ~2× tokens).
         """
         return _graph_tools.cos_graph_context(

@@ -390,6 +390,85 @@ def register(cli: click.Group) -> None:
                 indexed += 1
         click.echo(f"[zip] indexed {indexed}/{len(plan.files)}")
 
+    @cli.command(name="graph-detect-changes")
+    @click.option(
+        "--staged",
+        "mode",
+        flag_value="staged",
+        help="Diff staged changes (git diff --cached --name-only).",
+    )
+    @click.option(
+        "--working",
+        "mode",
+        flag_value="working",
+        default=True,
+        help="Diff working-tree changes (git diff --name-only). [default]",
+    )
+    @click.option(
+        "--range",
+        "git_range",
+        default=None,
+        metavar="RANGE",
+        help="Diff a commit range, e.g. HEAD~1..HEAD (git diff --name-only RANGE).",
+    )
+    @click.option("--pretty", is_flag=True)
+    def graph_detect_changes(mode, git_range, pretty):
+        """Map changed files to affected graph symbols + downstream tasks.
+
+        PURPOSE:  B24 CLI wrapper for cos_graph_detect_changes. Runs the
+                  appropriate git diff --name-only command and forwards the
+                  resulting file list to the MCP tool, which walks the graph
+                  to surface affected symbols, downstream tasks, and risk level.
+        INPUT:    --staged | --working (default) | --range RANGE
+        OUTPUT:   JSON envelope matching cos_graph_detect_changes.
+        DEPENDENCIES:  git on PATH; graph-os SQLite backend.
+        NOTES:    When no changed files are found the tool returns an empty
+                  envelope (risk_level=none) rather than an error.
+        """
+        import subprocess  # noqa: PLC0415
+
+        # Build the git command based on selected mode.
+        if git_range:
+            scope = git_range
+            git_cmd = ["git", "diff", "--name-only", git_range]
+        elif mode == "staged":
+            scope = "staged"
+            git_cmd = ["git", "diff", "--cached", "--name-only"]
+        else:
+            scope = "working"
+            git_cmd = ["git", "diff", "--name-only"]
+
+        try:
+            result = subprocess.run(
+                git_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                raise click.ClickException(
+                    f"git exited {result.returncode}: {result.stderr.strip()}"
+                )
+            files = [
+                line.strip()
+                for line in result.stdout.splitlines()
+                if line.strip()
+            ]
+        except FileNotFoundError:
+            raise click.ClickException("git not found on PATH")
+        except subprocess.TimeoutExpired:
+            raise click.ClickException("git diff timed out after 30 s")
+
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_detect_changes(
+                scope=scope,
+                files=files or None,
+                analyze_downstream=True,
+            ),
+            pretty=pretty,
+        )
+
     @cli.command(name="graph-viz")
     @click.option("--path", default=None)
     @click.option("--out", default=None, help="Output HTML path.")
