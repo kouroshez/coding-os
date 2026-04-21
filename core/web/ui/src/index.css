@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Dark-theme-first palette pulled from core/graph_os/viewer/template.py. */
+:root {
+  --cos-bg: #0e1116;
+  --cos-panel: #151a22;
+  --cos-border: #2a2f39;
+  --cos-text: #e6e7eb;
+  --cos-muted: #9ea4ae;
+  --cos-accent: #7fd4a0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--cos-bg);
+  color: var(--cos-text);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--cos-accent);
+  outline-offset: 2px;
+}
+
+/* Thin scrollbars in panels */
+.cos-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.cos-scroll::-webkit-scrollbar-thumb {
+  background: #2a2f39;
+  border-radius: 4px;
+}
+.cos-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

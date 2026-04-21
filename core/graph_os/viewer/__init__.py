@@ -1,3 +1,4 @@
+# DEPRECATED for human use (S5, 2026-04-21): superseded by core/web/ui/ React SPA. Kept for `cos graph-viz` CLI compat through S6.
 """graph-os HTML viewer (I.10).
 
 Builds a self-contained HTML page backed by Sigma.js + Graphology for

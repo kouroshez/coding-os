@@ -47,3 +47,7 @@ uv.lock
 
 # Test scaffold for development
 test-codeos/
+
+# S5 web SPA build artifacts (sources live in core/web/ui/src/).
+core/web/ui/node_modules/
+core/web/ui/dist/
