@@ -919,6 +919,49 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_session
     )
 
 
+def _migrate_v15_graph_edges_confidence_check(conn: sqlite3.Connection) -> None:
+    """Migration v15 (graph-os S1 / B17): CHECK (confidence BETWEEN 0 AND 1).
+
+    PURPOSE:      Enforce the [0,1] confidence range at the DB layer, not
+                  just in the Python dataclass. Defends against direct
+                  SQL writers (tests, migrations, manual scripts) leaving
+                  invalid rows behind.
+    INPUT:        sqlite3.Connection at schema v14.
+    OUTPUT:       Two triggers on graph_edges_v12 (INSERT + UPDATE) that
+                  raise ABORT when confidence is outside [0,1] OR NULL.
+    DEPENDENCIES: graph_edges_v12 (v12).
+    NOTES:        SQLite cannot ``ALTER TABLE ADD CONSTRAINT``, so the
+                  CHECK is implemented as a BEFORE INSERT / BEFORE UPDATE
+                  trigger pair. Idempotent via IF NOT EXISTS. Rule 9:
+                  append-only — this is a new migration number, never an
+                  edit to past migrations.
+    """
+    conn.executescript("""\
+CREATE TRIGGER IF NOT EXISTS graph_edges_v12_confidence_ins
+BEFORE INSERT ON graph_edges_v12
+FOR EACH ROW
+WHEN NEW.confidence IS NULL
+  OR NEW.confidence < 0.0
+  OR NEW.confidence > 1.0
+BEGIN
+    SELECT RAISE(ABORT, 'graph_edges_v12.confidence must lie in [0,1]');
+END;
+
+CREATE TRIGGER IF NOT EXISTS graph_edges_v12_confidence_upd
+BEFORE UPDATE OF confidence ON graph_edges_v12
+FOR EACH ROW
+WHEN NEW.confidence IS NULL
+  OR NEW.confidence < 0.0
+  OR NEW.confidence > 1.0
+BEGIN
+    SELECT RAISE(ABORT, 'graph_edges_v12.confidence must lie in [0,1]');
+END;
+""")
+    logger.info(
+        "Migration v15 applied: graph_edges_v12 confidence CHECK triggers"
+    )
+
+
 def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
     """Check whether formula_dispatches exists (migration v14)."""
     row = conn.execute(
@@ -1146,6 +1189,9 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # Phase M: formula-agent supervisor — 4 cognition tables
     (14, "Phase M formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
      _migrate_v14_cognition),
+    # graph-os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
+    (15, "graph-os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
+     _migrate_v15_graph_edges_confidence_check),
 ]
 
 
