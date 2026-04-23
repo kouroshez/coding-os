@@ -99,23 +99,24 @@ dogfood: ## Re-render this repo's .claude/ + .mcp.json by running the Claude ada
 	@echo "  Reload Claude Code to pick up the new config."
 
 .PHONY: dogfood-full
-dogfood-full: ## Re-render BOTH claude and codex adapters (meta-project owes both dogfoods) — re-links core + stack skills
+dogfood-full: ## Re-render claude + codex + cursor adapters — re-links core + stack skills
 	@bash adapters/claude/install.sh
 	@bash adapters/codex/install.sh
-	@echo "  Reload your agent (Claude Code or Codex CLI) to pick up the new config."
+	@bash adapters/cursor/install.sh
+	@echo "  Reload your agent (Claude Code, Codex CLI, or Cursor) to pick up the new config."
 
 .PHONY: sync
-sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into both adapters (run after adding any core/ or templates/ asset)
+sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into claude, codex, and cursor (run after adding any core/ or templates/ asset)
 	@echo ""
 	@echo "  ✅ Adapter sync complete."
 	@echo ""
 	@echo "  What just happened:"
 	@echo "    1. core/hooks/registry.yaml     → adapters/*/[settings|hooks].template.json"
-	@echo "    2. core/hooks/*.sh              → .claude/hooks/ + .codex/hooks/  (symlinks)"
-	@echo "    3. core/rules/*.md              → .claude/rules/  + .codex/rules/ (symlinks)"
-	@echo "    4. core/skills/*/               → .claude/skills/ + .codex/skills/ (symlinks)"
-	@echo "    5. templates/<stack>/skills/*/  → .claude/skills/ + .codex/skills/ (stack overlay, per installed-manifest.json)"
-	@echo "    6. core/commands/*.md           → .claude/commands/ + .codex/commands/ (symlinks)"
+	@echo "    2. core/hooks/*.sh              → .claude/ + .codex/ + .cursor/hooks/  (symlinks)"
+	@echo "    3. core/rules/*.md              → .claude/ + .codex/ + .cursor/rules/ (symlinks)"
+	@echo "    4. core/skills/*/               → .claude/ + .codex/ + .cursor/skills/ (symlinks)"
+	@echo "    5. templates/<stack>/skills/*/  → .claude/ + .codex/ + .cursor/skills/ (stack overlay, per installed-manifest.json)"
+	@echo "    6. core/commands/*.md           → .claude/ + .codex/ + .cursor/commands/ (symlinks)"
 	@echo ""
 	@echo "  Reload your agent runtime to read the refreshed configs."
 

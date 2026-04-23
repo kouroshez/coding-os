@@ -13,7 +13,10 @@ import pytest
 from core.board_os.config import ScrumbanConfig, Swimlane, WipLimits
 from core.board_os.sync import sync_all
 from core.board_os.workflow import (
-    check_wip, transition, validate_dependencies_no_cycle,
+    check_wip,
+    patch_task_frontmatter_scalars,
+    transition,
+    validate_dependencies_no_cycle,
 )
 
 
@@ -286,3 +289,17 @@ def test_transition_complete_sets_completed_at(
         "SELECT completed_at FROM tasks WHERE task_id = 'TASK-100'"
     ).fetchone()
     assert row[0] is not None
+
+
+def test_patch_task_frontmatter_scalars_swimlane(tmp_path: Path):
+    (tmp_path / "docs" / "tasks").mkdir(parents=True)
+    md = tmp_path / "docs" / "tasks" / "TASK-101-swim.md"
+    md.write_text(
+        "---\nid: TASK-101\ntitle: \"s\"\nswimlane: core\nkind: chore\n"
+        "status: icebox\npriority: P2\nappetite: \"1d\"\n---\n\n# TASK-101: s\n",
+        encoding="utf-8",
+    )
+    patch_task_frontmatter_scalars(md, {"swimlane": "docs"})
+    text = md.read_text(encoding="utf-8")
+    assert "swimlane: docs" in text
+    assert "status: icebox" in text

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, Query
+from fastapi.responses import JSONResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
@@ -74,6 +75,125 @@ def _unavailable():
             "message": "board_os package not importable",
         },
     })
+
+
+@router.get("/task/{task_id}")
+async def board_task_detail(
+    task_id: str,
+    _rl=Depends(make_rate_limit_dep("board.task.detail")),
+    _m=Depends(make_metrics_dep("board.task.detail")),
+):
+    """Return the full markdown content + resolved metadata for one task.
+
+    PURPOSE: Back the SPA task-detail drawer with the on-disk SSoT
+             (docs/tasks/TASK-*.md).  Keeps rendering logic in the
+             browser while leaving file IO on the server where path
+             sandboxing lives.
+    INPUT:   task_id — TASK-NNN identifier (path param).
+    OUTPUT:  {data: {task_id, file_path, exists, content, size, mtime,
+             row: {title, status, swimlane, kind, priority, appetite,
+             epic, labels}}, meta} on 200;
+             404 when task_id not in DB; 410 when row present but file
+             missing on disk.
+    DEPENDENCIES: sqlite3 (tasks row lookup), pathlib (file read).
+    NOTES:   Content is returned as-is (no markdown → HTML conversion);
+             the client renders it. Size capped at 256 KB; larger files
+             are truncated with a marker so the drawer stays snappy.
+    """
+    if not task_id or not task_id.startswith("TASK-"):
+        return JSONResponse(
+            status_code=400,
+            content={"error": {"category": "validation", "message": "invalid task_id"}},
+        )
+    conn = _db_conn()
+    try:
+        row = conn.execute(
+            "SELECT task_id, title, status, swimlane, kind, priority, "
+            "appetite, epic, labels_json, file_path FROM tasks "
+            "WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"category": "not_found",
+                               "message": f"{task_id} not found"}},
+        )
+
+    import json as _json
+    try:
+        labels = _json.loads(row[8] or "[]")
+    except (TypeError, ValueError):
+        labels = []
+
+    file_rel = row[9] or ""
+    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    file_abs = (project_root / file_rel).resolve() if file_rel else None
+
+    # Sandbox: the path must live under <project_root>/docs/tasks/.
+    # Block traversal and arbitrary reads.
+    tasks_dir = (project_root / "docs" / "tasks").resolve()
+    exists = False
+    content = ""
+    size = 0
+    mtime = 0
+    truncated = False
+    if file_abs is not None:
+        try:
+            file_abs.relative_to(tasks_dir)
+        except ValueError:
+            return JSONResponse(
+                status_code=410,
+                content={"error": {
+                    "category": "validation",
+                    "message": f"task file outside docs/tasks/: {file_rel}",
+                }},
+            )
+        if file_abs.exists() and file_abs.is_file():
+            exists = True
+            stat = file_abs.stat()
+            size = int(stat.st_size)
+            mtime = int(stat.st_mtime)
+            # 256 KB cap — task files rarely exceed 20 KB in practice.
+            MAX_BYTES = 256 * 1024
+            raw = file_abs.read_bytes()
+            if len(raw) > MAX_BYTES:
+                content = raw[:MAX_BYTES].decode("utf-8", errors="replace")
+                content += (
+                    "\n\n<!-- truncated: file is "
+                    f"{len(raw):,} bytes, showing first {MAX_BYTES:,} -->\n"
+                )
+                truncated = True
+            else:
+                content = raw.decode("utf-8", errors="replace")
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "data": {
+                "task_id": row[0],
+                "file_path": file_rel,
+                "exists": exists,
+                "content": content,
+                "size": size,
+                "mtime": mtime,
+                "truncated": truncated,
+                "row": {
+                    "title": row[1],
+                    "status": row[2],
+                    "swimlane": row[3],
+                    "kind": row[4],
+                    "priority": row[5],
+                    "appetite": row[6],
+                    "epic": row[7],
+                    "labels": labels,
+                },
+            },
+            "meta": {"layer": "tasks", "source": "web.board_task_detail"},
+        },
+    )
 
 
 @router.get("/list")
@@ -187,6 +307,91 @@ async def board_move(
         result = bt.cos_task_move(
             conn,
             task_id=task_id,
+            to=to,
+            reason=reason,
+            bypass_wip=bypass_wip,
+            agent_session=agent_session,
+        )
+    finally:
+        conn.close()
+    return unwrap(result)
+
+
+@router.get("/config")
+async def board_config(
+    _rl=Depends(make_rate_limit_dep("board.config")),
+    _m=Depends(make_metrics_dep("board.config")),
+):
+    """Return scrumban-config swimlanes + WIP caps + status column ids for the SPA."""
+    try:
+        from core.board_os.config import STATUS_ENUM, load_config
+    except ImportError:
+        return JSONResponse(
+            status_code=503,
+            content={"error": {"category": "unavailable", "message": "board_os not importable"}},
+        )
+    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    try:
+        cfg = load_config(project_root)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": {
+                    "category": "unavailable",
+                    "message": "scrumban-config.yaml not found — run `cos board-config --init`",
+                },
+            },
+        )
+    swimlanes = [
+        {
+            "id": sl.id,
+            "label": sl.label,
+            "color": sl.color,
+            "accent": sl.effective_accent(),
+            "description": sl.description,
+        }
+        for sl in cfg.swimlanes
+    ]
+    columns = [{"id": sid, "label": sid.replace("_", " ").upper()} for sid in STATUS_ENUM]
+    return JSONResponse(
+        status_code=200,
+        content={
+            "data": {
+                "swimlanes": swimlanes,
+                "columns": columns,
+                "wip_limits": {
+                    "in_progress": cfg.wip_limits.in_progress,
+                    "testing": cfg.wip_limits.testing,
+                    "emergency": cfg.wip_limits.emergency,
+                },
+            },
+            "meta": {"layer": "tasks", "source": "web.board_config"},
+        },
+    )
+
+
+@router.post("/reposition")
+async def board_reposition(
+    task_id: str = Body(...),
+    swimlane: Optional[str] = Body(None),
+    to: Optional[str] = Body(None),
+    reason: Optional[str] = Body(None),
+    bypass_wip: bool = Body(False),
+    agent_session: Optional[str] = Body(None),
+    _rl=Depends(make_rate_limit_dep("board.reposition")),
+    _m=Depends(make_metrics_dep("board.reposition")),
+):
+    """HTTP wrapper for cos_task_reposition (status and/or swimlane)."""
+    bt = _board_tools()
+    if bt is None:
+        return unwrap(_unavailable())
+    conn = _db_conn()
+    try:
+        result = bt.cos_task_reposition(
+            conn,
+            task_id=task_id,
+            swimlane=swimlane,
             to=to,
             reason=reason,
             bypass_wip=bypass_wip,

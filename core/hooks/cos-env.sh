@@ -7,7 +7,7 @@
 #                      Holds agent-agnostic artifacts: thinking-os.db, .hooks.log,
 #                      .agent marker, .capture-errors.log, .dogfood-reminded,
 #                      installed-manifest.json, domain-config.json.
-#   COS_AGENT        — which agent runtime invoked this hook (claude|codex|unknown)
+#   COS_AGENT        — which agent runtime invoked this hook (claude|codex|cursor|unknown)
 #   COS_AGENT_DIR    — agent-private state directory = $COS_STATE_DIR/$COS_AGENT
 #                      Holds per-agent state: session-id, .task-current,
 #                      .thinking-os-gate, .zoom-checkpoint, .doc-anchor,
@@ -28,6 +28,18 @@
 
 # Resolve from env, .coding-os.yaml, or defaults
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
+# Cursor / Claude often run hook subprocesses with cwd != repo root. Default
+# relative ".coding-os" would then create the wrong tree (and an empty log at
+# the real project). Anchor to workspace when the IDE exports it.
+case "${COS_STATE_DIR}" in
+  .coding-os | ./.coding-os)
+    if [[ -n "${CURSOR_PROJECT_DIR:-}" ]]; then
+      COS_STATE_DIR="${CURSOR_PROJECT_DIR}/.coding-os"
+    elif [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+      COS_STATE_DIR="${CLAUDE_PROJECT_DIR}/.coding-os"
+    fi
+    ;;
+esac
 COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/thinking-os.db}"
 COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
 
@@ -39,24 +51,36 @@ COS_HOOK_LOG_MAX_LINES="${COS_HOOK_LOG_MAX_LINES:-500}"
 
 # ---------------------------------------------------------------------------
 # Agent runtime detection — which runtime invoked this hook?
-# Priority: explicit COS_AGENT env > runtime heuristics > .agent marker > unknown.
-# Must run BEFORE COS_AGENT_DIR / COS_SESSION_FILE are computed because those
-# paths are agent-scoped.
+# Priority: explicit COS_AGENT env > .coding-os/.agent (install marker) >
+# Cursor (CURSOR_*) > Claude Code > Codex > unknown.
+#
+# Cursor sets CLAUDE_PROJECT_DIR as a workspace alias, so we MUST NOT treat
+# CLAUDE_PROJECT_DIR alone as "Claude Code" — that mis-tags Cursor hooks.
+# Must run BEFORE COS_AGENT_DIR / COS_SESSION_FILE are computed.
 # ---------------------------------------------------------------------------
 if [[ -z "${COS_AGENT:-}" ]]; then
-  if [[ -n "${CLAUDECODE:-}" ]] || [[ -n "${CLAUDE_CODE_SSE_PORT:-}" ]] || [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
-    COS_AGENT="claude"
+  COS_AGENT=""
+  # Prefer runtime-specific env markers over persisted .agent.
+  # .agent is a fallback when the host runtime doesn't expose identity.
+  if [[ -n "${CURSOR_PROJECT_DIR:-}" ]] || [[ -n "${CURSOR_VERSION:-}" ]]; then
+    COS_AGENT="cursor"
   elif [[ -n "${CODEX_SESSION_ID:-}" ]] || [[ -n "${CODEX_AGENT_DIR:-}" ]] || [[ -n "${CODEX_HOME:-}" ]]; then
     COS_AGENT="codex"
-  elif [[ -f "${COS_STATE_DIR}/.agent" ]]; then
-    # Adapter install.sh writes this file as the authoritative marker when
-    # env heuristics aren't reliable (some runtimes don't expose their
-    # identity via env vars in hook subprocesses).
-    COS_AGENT="$(head -c 32 "${COS_STATE_DIR}/.agent" 2>/dev/null | tr -d '[:space:]' || true)"
-    COS_AGENT="${COS_AGENT:-unknown}"
-  else
-    COS_AGENT="unknown"
+  elif [[ -n "${CLAUDECODE:-}" ]] || [[ -n "${CLAUDE_CODE_SSE_PORT:-}" ]]; then
+    COS_AGENT="claude"
   fi
+
+  if [[ -z "${COS_AGENT:-}" ]] && [[ -f "${COS_STATE_DIR}/.agent" ]]; then
+    COS_AGENT="$(head -c 32 "${COS_STATE_DIR}/.agent" 2>/dev/null | tr -d '[:space:]' || true)"
+  fi
+
+  # Last-resort Claude compatibility marker; Cursor also sets CLAUDE_PROJECT_DIR,
+  # so only use this when no stronger signal existed.
+  if [[ -z "${COS_AGENT:-}" ]] && [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+    COS_AGENT="claude"
+  fi
+
+  COS_AGENT="${COS_AGENT:-unknown}"
 fi
 
 # Agent-private state dir. Every per-session state file lives here so two
@@ -135,19 +159,23 @@ cos_log_hook() {
   shift 2 2>/dev/null || true
   local detail="$*"
 
-  local ts agent session task
+  local ts agent session task model_bit
   ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   agent="${COS_AGENT:-unknown}"
   session="$(cos_current_session)"
   task="$(cos_current_task)"
+  model_bit=""
+  if [[ -n "${COS_HOOK_RUNTIME_MODEL:-}" ]]; then
+    model_bit=" model=${COS_HOOK_RUNTIME_MODEL}"
+  fi
 
   # Fail-open: never let a logging error abort the hook.
   {
     mkdir -p "$(dirname "$COS_HOOK_LOG")" 2>/dev/null
     if [[ -n "$detail" ]]; then
-      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task} ${detail}" >> "$COS_HOOK_LOG"
+      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit} ${detail}" >> "$COS_HOOK_LOG"
     else
-      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}" >> "$COS_HOOK_LOG"
+      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}" >> "$COS_HOOK_LOG"
     fi
 
     # Opportunistic truncation — keep only last N lines when file grows past 2x cap.

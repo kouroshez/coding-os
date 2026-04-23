@@ -1,6 +1,6 @@
 """cli.web_commands — `cos web` command for launching the unified web server.
 
-PURPOSE: CLI entry-point that starts the FastAPI/uvicorn server on port 4748
+PURPOSE: CLI entry-point that starts the FastAPI/uvicorn server on port 8081
          (default) with optional --reload for development and --host override.
 INPUT:   CLI flags: --port INT, --host STR, --reload (flag), --log-level STR.
 OUTPUT:  none (starts uvicorn, blocks until killed).
@@ -23,8 +23,9 @@ if str(_REPO_ROOT) not in sys.path:
 
 
 @click.command(name="web")
-@click.option("--port", default=4748, show_default=True, type=int,
-              help="TCP port to listen on.")
+@click.option("--port", default=8081, show_default=True, type=int,
+              help="TCP port to listen on. Default is 8081 "
+                   "(stable, user-facing URL).")
 @click.option("--host", default="127.0.0.1", show_default=True,
               help="Host/interface to bind.")
 @click.option("--reload", is_flag=True, default=False,
@@ -41,8 +42,8 @@ def web_cmd(port: int, host: str, reload: bool, log_level: str) -> None:
     INPUT:   --port, --host, --reload, --log-level CLI flags.
     OUTPUT:  Running HTTP server (blocks until SIGTERM/SIGINT).
     DEPENDENCIES: core.web.server.run_server, uvicorn.
-    NOTES:  The default port 4748 is reserved for coding-os; port 4747 is
-            reserved by graph-tool convention.
+    NOTES:  The default port 8081 is the stable public URL for the
+            coding-os web SPA (bookmarkable across sessions).
     """
     try:
         from core.web.server import run_server  # type: ignore

@@ -3,7 +3,7 @@
 PURPOSE: Create and configure the unified web server that exposes graph-os,
          board-os, cognition, and search as /api/* REST routes.  Also mounts
          the SPA static files when core/web/ui/dist/ exists.
-INPUT:   Environment variables: COS_WEB_PORT (default 4748),
+INPUT:   Environment variables: COS_WEB_PORT (default 8081),
          COS_WEB_HOST (default 127.0.0.1), COS_WEB_CORS_ALLOW_ALL.
 OUTPUT:  FastAPI application instance (create_app()) or starts uvicorn
          (run_server()).
@@ -19,9 +19,9 @@ import os
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 _CORE_DIR = Path(__file__).resolve().parent.parent
@@ -29,7 +29,7 @@ if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
 # Defaults
-DEFAULT_PORT = int(os.environ.get("COS_WEB_PORT", "4748"))
+DEFAULT_PORT = int(os.environ.get("COS_WEB_PORT", "8081"))
 DEFAULT_HOST = os.environ.get("COS_WEB_HOST", "127.0.0.1")
 
 _SPA_DIST = Path(__file__).resolve().parent / "ui" / "dist"
@@ -96,9 +96,41 @@ def create_app() -> FastAPI:
     # ------------------------------------------------------------------
     # Static SPA / fallback
     # ------------------------------------------------------------------
+    # NOTES ON ROUTING
+    # All /api/* routes are registered above. Anything else is either
+    # a built SPA asset (dist/assets/**, dist/index.html, root-level
+    # files like dist/cos-board-tokens.css) or a SPA client-side route
+    # (/board, /graph, /cognition, /search, ...).  StaticFiles with
+    # html=True only handles the top-level index; deep links like
+    # /board produce 404s.  To support SPA deep links we mount /assets
+    # separately and add a catch-all that returns index.html for any
+    # unmatched path (while letting unknown /api/* paths 404 cleanly).
     if _SPA_DIST.exists() and _SPA_DIST.is_dir():
-        # Mount the built SPA; index.html catches unmatched paths.
-        app.mount("/", StaticFiles(directory=str(_SPA_DIST), html=True), name="spa")
+        assets_dir = _SPA_DIST / "assets"
+        if assets_dir.exists():
+            app.mount(
+                "/assets",
+                StaticFiles(directory=str(assets_dir)),
+                name="spa-assets",
+            )
+
+        @app.get("/{spa_path:path}", include_in_schema=False)
+        async def spa_fallback(spa_path: str):
+            """Serve root-level static files if present; otherwise return
+            the SPA index.html so React Router can take over."""
+            if spa_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="Not Found")
+            # Root-level files (favicon, cos-board-tokens.css, ...).
+            if spa_path:
+                candidate = (_SPA_DIST / spa_path).resolve()
+                try:
+                    candidate.relative_to(_SPA_DIST.resolve())
+                except ValueError:
+                    raise HTTPException(status_code=404, detail="Not Found")
+                if candidate.is_file():
+                    return FileResponse(candidate)
+            # Default — hand control to the React SPA.
+            return FileResponse(_SPA_DIST / "index.html")
     else:
         @app.get("/", response_class=HTMLResponse, include_in_schema=False)
         async def spa_not_built():

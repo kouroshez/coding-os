@@ -8,6 +8,8 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 INPUT=$(cat)
+COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
+export COS_HOOK_RUNTIME_MODEL
 # SessionStart payloads carry `.source`; UserPromptSubmit carries `.prompt`.
 # Treat prompt submits as their own source so Codex doesn't rotate session-id
 # or clear volatile state on every prompt.

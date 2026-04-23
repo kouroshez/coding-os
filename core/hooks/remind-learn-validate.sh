@@ -18,6 +18,8 @@
 set -euo pipefail
 
 INPUT=$(cat)
+COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
+export COS_HOOK_RUNTIME_MODEL
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0

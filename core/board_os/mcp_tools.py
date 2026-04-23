@@ -1,8 +1,8 @@
 """board-os MCP tools — Phase L.3 surface (`cos_task_*`).
 
-Implements 8 new MCP tools on top of the Phase C 4-tool surface:
-    cos_task_create, cos_task_board, cos_task_move, cos_task_pick,
-    cos_task_daily, cos_task_retro, cos_task_wip_check,
+Implements board MCP tools (Phase L), including:
+    cos_task_create, cos_task_board, cos_task_move, cos_task_reposition,
+    cos_task_pick, cos_task_daily, cos_task_retro, cos_task_wip_check,
     cos_work_log_append
 
 All tools use the shared ok()/fail()/@safe_tool envelope (Rule 14).
@@ -35,7 +35,10 @@ from core.board_os.config import (
 from core.board_os.parser import parse_task
 from core.board_os.sync import sync_one
 from core.board_os.workflow import (
-    check_wip, transition, validate_dependencies_no_cycle,
+    check_wip,
+    patch_task_frontmatter_scalars,
+    transition,
+    validate_dependencies_no_cycle,
 )
 
 # Import ok/fail/safe_tool from the thinking-os tools shared module.
@@ -366,6 +369,137 @@ def cos_task_move(
             "wip": result.wip_state,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_move"},
+    )
+
+
+# ---------- cos_task_reposition ----------
+
+
+@safe_tool
+def cos_task_reposition(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    swimlane: str | None = None,
+    to: str | None = None,
+    reason: str | None = None,
+    bypass_wip: bool = False,
+    agent_session: str | None = None,
+) -> str:
+    """Change task status and/or swimlane (YAML frontmatter + sync).
+
+    Status changes use the same state machine + WIP rules as ``cos_task_move``.
+    Swimlane-only changes patch the task MD file then ``sync_one``.
+    When both are supplied, status transition runs first, then swimlane patch.
+    """
+    to_eff = (to or "").strip() or None
+    swim_eff = (swimlane or "").strip() or None
+    if not to_eff and not swim_eff:
+        return fail(
+            "validation",
+            "at least one of `to` (status) or `swimlane` must be provided",
+        )
+
+    row = conn.execute(
+        "SELECT status, swimlane, file_path FROM tasks WHERE task_id = ?",
+        (task_id,),
+    ).fetchone()
+    if row is None:
+        return fail("not_found", f"task {task_id} not found")
+
+    current_status = str(row[0])
+    cur_sl_raw = row[1]
+    cur_sl = (str(cur_sl_raw).strip() if cur_sl_raw else "") or ""
+    rel_path = row[2]
+    project_root = _project_root()
+    file_path: Path | None = None
+    if rel_path:
+        candidate = project_root / rel_path
+        if candidate.exists():
+            file_path = candidate
+
+    config = _current_config()
+    if swim_eff is not None:
+        if config is None:
+            return fail(
+                "unavailable",
+                "scrumban-config.yaml not found — run `cos board-config --init`",
+            )
+        if swim_eff not in config.swimlane_ids:
+            return fail(
+                "validation",
+                f"swimlane {swim_eff!r} not in config; valid: "
+                f"{sorted(config.swimlane_ids)}",
+            )
+
+    wants_status = to_eff is not None and to_eff != current_status
+    wants_swim = swim_eff is not None and swim_eff != cur_sl
+
+    if not wants_status and not wants_swim:
+        return ok(
+            {
+                "task_id": task_id,
+                "previous_status": current_status,
+                "new_status": current_status,
+                "previous_swimlane": cur_sl or None,
+                "new_swimlane": cur_sl or None,
+                "warnings": ["no-op (already at requested status and swimlane)"],
+            },
+            meta={"layer": "tasks", "source": "board_os.cos_task_reposition"},
+        )
+
+    prev_status = current_status
+    new_status = current_status
+    warnings: list[str] = []
+
+    if wants_status:
+        result = transition(
+            conn,
+            task_id,
+            to_eff,  # type: ignore[arg-type]
+            reason=reason,
+            agent_session=agent_session,
+            bypass_wip=bypass_wip,
+            config=config,
+            file_path=file_path,
+        )
+        if not result.ok:
+            return fail(
+                result.error_category or "internal",
+                result.error or "transition failed",
+            )
+        new_status = result.new_status
+        warnings.extend(list(result.warnings))
+        row2 = conn.execute(
+            "SELECT swimlane FROM tasks WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        cur_sl = (str(row2[0]).strip() if row2 and row2[0] else "") or ""
+
+    new_sl = cur_sl
+    if wants_swim:
+        if file_path is None:
+            return fail(
+                "unavailable",
+                f"task {task_id} has no on-disk file — cannot change swimlane",
+            )
+        try:
+            patch_task_frontmatter_scalars(file_path, {"swimlane": swim_eff})
+        except (OSError, ValueError) as exc:
+            return fail("validation", f"swimlane patch failed: {exc}")
+        sync_one(conn, file_path, project_root=project_root)
+        new_sl = swim_eff
+
+    return ok(
+        {
+            "task_id": task_id,
+            "previous_status": prev_status,
+            "new_status": new_status,
+            "previous_swimlane": cur_sl if wants_swim else None,
+            "new_swimlane": new_sl if wants_swim else None,
+            "warnings": warnings,
+        },
+        meta={"layer": "tasks", "source": "board_os.cos_task_reposition"},
     )
 
 

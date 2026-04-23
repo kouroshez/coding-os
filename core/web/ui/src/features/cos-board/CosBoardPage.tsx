@@ -1,0 +1,2844 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type DragEvent,
+  type ReactNode,
+} from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useApiGet } from '@/lib/hooks';
+import { apiPost } from '@/lib/api-client';
+import { useBoardTheme } from './BoardThemeProvider';
+import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
+import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
+import { KIND_COLORS, kindStyle } from './kindColors';
+import type {
+  BoardConfigPayload,
+  BoardListCard,
+  BoardListPayload,
+  BoardTweaks,
+  ColumnDTO,
+  SwimlaneDTO,
+} from './types';
+
+// ---------- types ----------
+type HighlightKind = 'kind' | 'swim' | 'priority';
+interface Highlight {
+  type: HighlightKind;
+  value: string;
+}
+
+interface BoardStats {
+  throughput: number;
+  throughputLast7: number;
+  leadTime: number;
+  leadTimeP90: number;
+  cycleTime: number;
+  wipTotal: number;
+  wipCap: number;
+  wipOver: number;
+  blocked: number;
+  stale: number;
+  p0: number;
+  emergency: number;
+}
+
+interface TaskCounts {
+  kind: Record<string, number>;
+  swim: Record<string, number>;
+  priority: Record<string, number>;
+}
+
+interface CreateTaskForm {
+  title: string;
+  swimlane: string;
+  kind: string;
+  priority: string;
+  appetite: string;
+  epic?: string | null;
+  labels?: string[];
+  outcome?: string | null;
+}
+
+interface CreateTaskResponse {
+  task_id?: string;
+  data?: { task_id?: string };
+}
+
+// ---------- static data (prototype parity) ----------
+const COLUMN_META: Record<string, { label: string; sub: string; wip: number | null }> = {
+  icebox: { label: 'ICE BOX', sub: 'backlog', wip: null },
+  ready: { label: 'READY', sub: 'up next', wip: null },
+  emergency: { label: 'EMERGENCY', sub: 'fire — skip queue', wip: 2 },
+  in_progress: { label: 'IN PROGRESS', sub: 'active work', wip: 1 },
+  testing: { label: 'TESTING', sub: 'verifying G/W/T', wip: 3 },
+  blocked: { label: 'BLOCKED', sub: 'external dep', wip: null },
+  complete: { label: 'COMPLETE', sub: 'acceptance met', wip: null },
+  archive: { label: 'ARCHIVE', sub: 'frozen', wip: null },
+};
+
+const AGENTS = [
+  { id: 'claude', color: '#d97706', glyph: 'C', session: 'ses-claude' },
+  { id: 'codex', color: '#0891b2', glyph: 'X', session: 'ses-codex' },
+  { id: 'cursor', color: '#6366f1', glyph: 'U', session: 'ses-cursor' },
+  { id: 'human', color: '#16a34a', glyph: 'H', session: 'local-mac' },
+] as const;
+
+const EVENT_COLOR: Record<string, string> = {
+  'task-updated': '#7c3aed',
+  'human-move': '#d97706',
+  'human-create': '#16a34a',
+  connected: '#0891b2',
+  agent: '#0891b2',
+};
+
+const EVENT_LABEL: Record<string, string> = {
+  'task-updated': 'update',
+  'human-move': 'drag',
+  'human-create': 'create',
+  connected: 'sse',
+  agent: 'agent',
+};
+
+// ---------- helpers ----------
+function stableRotation(id: string): number {
+  let s = 0;
+  for (let i = 0; i < id.length; i += 1) s += id.charCodeAt(i);
+  return (((s * 13) % 31) / 10) - 1.5;
+}
+
+/** Parse #rgb or #rrggbb into [r, g, b] 0..255, or null. */
+function parseHex(hex: string): [number, number, number] | null {
+  const s = hex.replace('#', '').trim();
+  if (s.length === 3) {
+    const r = parseInt(s[0] + s[0], 16);
+    const g = parseInt(s[1] + s[1], 16);
+    const b = parseInt(s[2] + s[2], 16);
+    return Number.isFinite(r + g + b) ? [r, g, b] : null;
+  }
+  if (s.length === 6) {
+    const r = parseInt(s.slice(0, 2), 16);
+    const g = parseInt(s.slice(2, 4), 16);
+    const b = parseInt(s.slice(4, 6), 16);
+    return Number.isFinite(r + g + b) ? [r, g, b] : null;
+  }
+  return null;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const to = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+/** Darken a hex colour by `pct` (0..1). Used when config.accent === config.color. */
+function darken(hex: string, pct: number): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  const [r, g, b] = rgb;
+  const f = 1 - pct;
+  return rgbToHex(r * f, g * f, b * f);
+}
+
+/** rgba(r,g,b,a) string for a hex colour; a in 0..1. */
+function alpha(hex: string, a: number): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  const [r, g, b] = rgb;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/**
+ * Given the SwimlaneDTO from the backend, return the palette pair we
+ * actually render: `color` (row tint / band fill) and `accent` (text /
+ * border). If config didn't supply a distinct accent we darken the
+ * primary colour by ~30% so every lane keeps crisp contrast.
+ */
+function lanePalette(lane: SwimlaneDTO): { color: string; accent: string } {
+  const color = lane.color || '#6b7280';
+  const accent = lane.accent && lane.accent !== lane.color ? lane.accent : darken(color, 0.3);
+  return { color, accent };
+}
+
+
+function columnWipCap(colId: string, wip: BoardConfigPayload['wip_limits'] | undefined): number | null {
+  if (wip) {
+    if (colId === 'in_progress') return wip.in_progress;
+    if (colId === 'testing') return wip.testing;
+    if (colId === 'emergency') return wip.emergency;
+  }
+  return COLUMN_META[colId]?.wip ?? null;
+}
+
+function priorityStyle(priority: string): CSSProperties {
+  switch (priority) {
+    case 'P0':
+      return { outline: '2.5px double #c0392b', outlineOffset: 1 };
+    case 'P1':
+      return { outline: '1.5px solid #ea580c' };
+    case 'P2':
+      return { outline: '1px dashed #8a8378' };
+    case 'P3':
+      return { outline: '1px dotted #b8b0a3' };
+    default:
+      return {};
+  }
+}
+
+function AgentPip({ agentId, title }: { agentId?: string | null; title?: string }) {
+  if (!agentId) return null;
+  const a = AGENTS.find((x) => x.id === agentId);
+  if (!a) return null;
+  return (
+    <span
+      title={title || a.session}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        background: a.color,
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace",
+        boxShadow: '0 1px 2px rgba(0,0,0,.25)',
+        border: '1.5px solid rgba(255,255,255,.8)',
+      }}
+    >
+      {a.glyph}
+    </span>
+  );
+}
+
+// ============================================================
+// Main page
+// ============================================================
+export default function CosBoardPage() {
+  const qc = useQueryClient();
+  const { tweaks, setTweaks } = useBoardTheme();
+  const { bump, connected, events: streamEvents, pushHumanEvent } = useBoardStream();
+
+  const { data: list, isLoading, error } = useApiGet<BoardListPayload>(
+    ['board-list'],
+    '/api/board/list',
+    { limit: 400, include_archive: true },
+  );
+  const { data: cfg } = useApiGet<BoardConfigPayload>(['board-config'], '/api/board/config');
+
+  useEffect(() => {
+    if (bump > 0) void qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+  }, [bump, qc]);
+
+  const [zoom, setZoom] = useState<number>(() => {
+    const v = parseFloat(localStorage.getItem('cos-zoom') || '1');
+    return Number.isFinite(v) && v >= 0.5 && v <= 1.5 ? v : 1;
+  });
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('cos-collapsed-lanes') || '[]') as string[]);
+    } catch {
+      return new Set();
+    }
+  });
+  const [streamOpen, setStreamOpen] = useState<boolean>(true);
+  const [legendOpen, setLegendOpen] = useState<boolean>(false);
+  const [tweaksOpen, setTweaksOpen] = useState<boolean>(false);
+  const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const [detailTask, setDetailTask] = useState<BoardListCard | null>(null);
+
+  const [dragging, setDragging] = useState<BoardListCard | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
+  const [flashWip, setFlashWip] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [justCreated, setJustCreated] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<Highlight | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('cos-zoom', String(zoom));
+  }, [zoom]);
+  useEffect(() => {
+    localStorage.setItem('cos-collapsed-lanes', JSON.stringify([...collapsed]));
+  }, [collapsed]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (e.key === 'n' && !e.metaKey && !e.ctrlKey && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault();
+        setCreateOpen(true);
+      }
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        setZoom((z) => Math.min(1.5, Math.max(0.5, Math.round((z + 0.1) * 100) / 100)));
+      } else if (e.key === '-') {
+        e.preventDefault();
+        setZoom((z) => Math.min(1.5, Math.max(0.5, Math.round((z - 0.1) * 100) / 100)));
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setZoom(1);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const cards: BoardListCard[] = list?.cards ?? [];
+  const swimlanes: SwimlaneDTO[] = cfg?.swimlanes ?? [];
+  const columns: ColumnDTO[] = cfg?.columns ?? [];
+
+  const filtered = useMemo<BoardListCard[]>(
+    () =>
+      cards.filter((t) => {
+        if (tweaks.filterKind !== 'all' && t.kind !== tweaks.filterKind) return false;
+        if (tweaks.filterEpic !== 'all' && (t.epic || '') !== tweaks.filterEpic) return false;
+        if (tweaks.filterSwim !== 'all' && t.swimlane !== tweaks.filterSwim) return false;
+        return true;
+      }),
+    [cards, tweaks.filterKind, tweaks.filterEpic, tweaks.filterSwim],
+  );
+
+  const cellMap = useMemo<Record<string, Record<string, BoardListCard[]>>>(() => {
+    const m: Record<string, Record<string, BoardListCard[]>> = {};
+    for (const sl of swimlanes) {
+      m[sl.id] = {};
+      for (const c of columns) m[sl.id][c.id] = [];
+    }
+    for (const t of filtered) {
+      if (m[t.swimlane]?.[t.status]) m[t.swimlane][t.status].push(t);
+    }
+    return m;
+  }, [filtered, swimlanes, columns]);
+
+  const taskCounts = useMemo<TaskCounts>(() => {
+    const c: TaskCounts = { kind: {}, swim: {}, priority: {} };
+    for (const t of cards) {
+      c.kind[t.kind] = (c.kind[t.kind] || 0) + 1;
+      c.swim[t.swimlane] = (c.swim[t.swimlane] || 0) + 1;
+      c.priority[t.priority] = (c.priority[t.priority] || 0) + 1;
+    }
+    return c;
+  }, [cards]);
+
+  const stats = useMemo<BoardStats>(() => {
+    const wipCols = columns.filter((c) => columnWipCap(c.id, cfg?.wip_limits) != null);
+    const wipTotal = cards.filter((t) => ['in_progress', 'testing', 'emergency'].includes(t.status)).length;
+    const wipCap = wipCols.reduce((a, c) => a + (columnWipCap(c.id, cfg?.wip_limits) || 0), 0);
+    const wipOver = wipCols.filter((c) => {
+      const cap = columnWipCap(c.id, cfg?.wip_limits);
+      return cap != null && cards.filter((t) => t.status === c.id).length > cap;
+    }).length;
+    return {
+      throughput: 14,
+      throughputLast7: 11,
+      leadTime: 4.2,
+      leadTimeP90: 9.1,
+      cycleTime: 2.1,
+      wipTotal,
+      wipCap: wipCap || 6,
+      wipOver,
+      blocked: cards.filter((t) => t.status === 'blocked').length,
+      stale: 0,
+      p0: cards.filter((t) => t.priority === 'P0' && !['complete', 'archive'].includes(t.status)).length,
+      emergency: cards.filter((t) => t.status === 'emergency').length,
+    };
+  }, [cards, columns, cfg?.wip_limits]);
+
+  const kindOptions = useMemo<{ value: string; label: string }[]>(
+    () => [{ value: 'all', label: 'all' }, ...Object.keys(KIND_COLORS).map((k) => ({ value: k, label: kindStyle(k).label }))],
+    [],
+  );
+  const epicOptions = useMemo<{ value: string; label: string }[]>(
+    () => [
+      { value: 'all', label: 'all' },
+      ...Array.from(new Set(cards.map((t) => t.epic).filter((e): e is string => !!e))).map((e) => ({
+        value: e,
+        label: e,
+      })),
+    ],
+    [cards],
+  );
+
+  // ---------- DnD ----------
+  const onDragStart = (e: DragEvent, task: BoardListCard) => {
+    setDragging(task);
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', task.id);
+    } catch {
+      /* ignore */
+    }
+  };
+  const onDragEnd = () => {
+    setDragging(null);
+    setDragTarget(null);
+  };
+  const onDragOver = (e: DragEvent, laneId: string, colId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragTarget(`${laneId}:${colId}`);
+  };
+  const onDrop = async (e: DragEvent, laneId: string, colId: string) => {
+    e.preventDefault();
+    if (!dragging) return;
+    if (dragging.status === colId && dragging.swimlane === laneId) return onDragEnd();
+
+    const cap = columnWipCap(colId, cfg?.wip_limits);
+    const inCol = filtered.filter((t) => t.status === colId && t.id !== dragging.id).length;
+    if (cap != null && inCol >= cap && tweaks.showWipViolation) {
+      setFlashWip(colId);
+      setTimeout(() => setFlashWip(null), 1200);
+    }
+    setActionError(null);
+    const parts: string[] = [];
+    if (dragging.status !== colId) parts.push(`${dragging.status} → ${colId}`);
+    if (dragging.swimlane !== laneId) parts.push(`lane ${dragging.swimlane} → ${laneId}`);
+    pushHumanEvent('human-move', {
+      taskId: dragging.id,
+      message: parts.join(' · ') || 'no-op',
+    });
+    try {
+      await apiPost('/api/board/reposition', {
+        task_id: dragging.id,
+        to: dragging.status === colId ? undefined : colId,
+        swimlane: dragging.swimlane === laneId ? undefined : laneId,
+      });
+      await qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'move failed';
+      setActionError(msg);
+      pushHumanEvent('human-move', { taskId: dragging.id, message: `FAILED — ${msg}` });
+    }
+    onDragEnd();
+  };
+
+  const clampZoom = (v: number) => Math.min(1.5, Math.max(0.5, Math.round(v * 100) / 100));
+
+  // ---------- render ----------
+  if (isLoading) {
+    return (
+      <div style={{ padding: 24, fontFamily: "'JetBrains Mono', monospace", color: 'var(--ink-soft)' }}>
+        loading board…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div style={{ padding: 24, fontFamily: "'JetBrains Mono', monospace", color: '#dc2626' }}>
+        {error.message}
+      </div>
+    );
+  }
+
+  const totalWidth = Math.max(400, columns.length * 200 + 130);
+
+  return (
+    <div style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <TopBar
+        stats={stats}
+        taskCount={list?.count ?? 0}
+        connected={connected}
+        legendOpen={legendOpen}
+        streamOpen={streamOpen}
+        onToggleLegend={() => setLegendOpen((v) => !v)}
+        onToggleStream={() => setStreamOpen((v) => !v)}
+        onToggleTweaks={() => setTweaksOpen((v) => !v)}
+        onCreate={() => setCreateOpen(true)}
+      />
+
+      {actionError && (
+        <div
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(220,38,38,.12)',
+            borderBottom: '1px solid rgba(220,38,38,.35)',
+            color: '#dc2626',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+          }}
+        >
+          {actionError}
+        </div>
+      )}
+
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }}>
+        <div
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left',
+            width: `${100 / zoom}%`,
+            minWidth: totalWidth,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              position: 'sticky',
+              top: 0,
+              zIndex: 5,
+              background: 'var(--board)',
+              borderBottom: '2px solid var(--line)',
+            }}
+          >
+            <div
+              style={{
+                width: 130,
+                minWidth: 130,
+                flexShrink: 0,
+                borderRight: '2px solid var(--line)',
+                position: 'sticky',
+                left: 0,
+                zIndex: 2,
+                background: 'var(--board)',
+              }}
+            />
+            {columns.map((col) => {
+              const count = filtered.filter((t) => t.status === col.id).length;
+              const meta = COLUMN_META[col.id] ?? { label: col.label, sub: '', wip: null };
+              const cap = columnWipCap(col.id, cfg?.wip_limits);
+              const violated = tweaks.showWipViolation && cap != null && count > cap;
+              return (
+                <div
+                  key={col.id}
+                  style={{ flex: '1 1 0', minWidth: 190, borderRight: '1px dashed var(--col-border)' }}
+                >
+                  <div
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      padding: '10px 12px 8px',
+                      background: violated ? 'rgba(192,57,43,.12)' : 'transparent',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "'Permanent Marker', cursive",
+                        fontSize: 17,
+                        letterSpacing: '.08em',
+                        color: violated ? 'var(--red-ink)' : 'var(--line)',
+                        textTransform: 'uppercase',
+                        animation: violated ? 'shake 0.6s infinite' : 'none',
+                      }}
+                    >
+                      {meta.label}
+                    </div>
+                    <div style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: 'var(--ink-soft)', marginTop: -2 }}>
+                      {meta.sub}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 10,
+                        color: violated ? 'var(--red-ink)' : 'var(--ink-faint)',
+                        marginTop: 2,
+                        fontWeight: violated ? 700 : 500,
+                      }}
+                    >
+                      {count}
+                      {cap != null ? ` / ${cap} wip` : ''}
+                      {violated && ' ⚠'}
+                      {flashWip === col.id && <span style={{ marginLeft: 6 }}>WIP</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {swimlanes.map((lane, laneIdx) => {
+            const laneCount = filtered.filter((t) => t.swimlane === lane.id).length;
+            const isCollapsed = collapsed.has(lane.id);
+            const palette = lanePalette(lane);
+            if (isCollapsed) {
+              return (
+                <div
+                  key={lane.id}
+                  onClick={() =>
+                    setCollapsed((prev) => {
+                      const n = new Set(prev);
+                      n.delete(lane.id);
+                      return n;
+                    })
+                  }
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '7px 14px 7px 20px',
+                    borderBottom: '1px solid var(--col-border)',
+                    borderLeft: `6px solid ${palette.accent}`,
+                    background: alpha(palette.color, 0.06),
+                    cursor: 'pointer',
+                    fontFamily: "'Permanent Marker', cursive",
+                    fontSize: 14,
+                    color: palette.accent,
+                    position: 'sticky',
+                    left: 0,
+                  }}
+                >
+                  <span style={{ color: 'var(--ink-faint)', fontSize: 12 }}>▸</span>
+                  <span>{lane.label}</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--ink-faint)', fontWeight: 500 }}>
+                    · {laneCount} task{laneCount !== 1 ? 's' : ''}
+                  </span>
+                  <span style={{ flex: 1 }} />
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--ink-faint)' }}>
+                    click to expand
+                  </span>
+                </div>
+              );
+            }
+            const rowTint = alpha(palette.color, laneIdx % 2 ? 0.05 : 0.035);
+            return (
+              <div
+                key={lane.id}
+                style={{
+                  display: 'flex',
+                  borderBottom: '1px solid var(--col-border)',
+                  background: rowTint,
+                  minHeight: 140,
+                }}
+              >
+                <SwimlaneLabel
+                  lane={lane}
+                  palette={palette}
+                  taskCount={laneCount}
+                  onCollapse={() =>
+                    setCollapsed((prev) => {
+                      const n = new Set(prev);
+                      n.add(lane.id);
+                      return n;
+                    })
+                  }
+                />
+                {columns.map((col) => {
+                  const cell = cellMap[lane.id]?.[col.id] ?? [];
+                  const isTarget = dragTarget === `${lane.id}:${col.id}`;
+                  const cap = columnWipCap(col.id, cfg?.wip_limits);
+                  const violated = cap != null && cell.length > cap;
+                  return (
+                    <div
+                      key={col.id}
+                      onDragOver={(e) => onDragOver(e, lane.id, col.id)}
+                      onDrop={(e) => void onDrop(e, lane.id, col.id)}
+                      style={{
+                        flex: '1 1 0',
+                        minWidth: 190,
+                        padding: tweaks.density === 'cozy' ? '10px 10px 8px' : '6px 7px 5px',
+                        borderRight: '1px dashed var(--col-border)',
+                        background: isTarget
+                          ? 'rgba(217, 108, 44, .08)'
+                          : violated
+                            ? 'rgba(192,57,43,.04)'
+                            : 'transparent',
+                        minHeight: 120,
+                        transition: 'background .1s ease',
+                      }}
+                    >
+                      {cell.map((task) => (
+                        <TaskStickyCard
+                          key={task.id}
+                          task={task}
+                          laneColor={palette.color}
+                          laneAccent={palette.accent}
+                          density={tweaks.density}
+                          quietMode={tweaks.quietMode}
+                          agentSurface={tweaks.agentSurface}
+                          highlight={highlight}
+                          draggingId={dragging?.id || ''}
+                          onDragStart={onDragStart}
+                          onDragEnd={onDragEnd}
+                          onOpen={setDetailTask}
+                        />
+                      ))}
+                      {cell.length === 0 && (
+                        <div
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            fontSize: 14,
+                            color: 'var(--ink-faint)',
+                            textAlign: 'center',
+                            padding: '20px 4px',
+                            opacity: 0.5,
+                          }}
+                        >
+                          — empty —
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          <div
+            style={{
+              padding: '14px 18px 28px',
+              fontFamily: "'Caveat', cursive",
+              fontSize: 14,
+              color: 'var(--ink-faint)',
+              textAlign: 'center',
+            }}
+          >
+            drag cards between columns · WIP caps enforced by workflow.transition() · SSoT is the Markdown frontmatter
+          </div>
+        </div>
+
+        <ZoomControls
+          zoom={zoom}
+          setZoom={(v) => setZoom(clampZoom(v))}
+          collapsedCount={collapsed.size}
+          onExpandAll={() => setCollapsed(new Set())}
+          onCollapseEmpty={() => {
+            const empty = new Set<string>();
+            for (const l of swimlanes) {
+              if (!cards.some((t) => t.swimlane === l.id)) empty.add(l.id);
+            }
+            setCollapsed(empty);
+          }}
+        />
+      </div>
+
+      <LiveStreamPanel
+        open={streamOpen && tweaks.agentSurface}
+        onClose={() => setStreamOpen(false)}
+        events={streamEvents}
+        connected={connected}
+      />
+      <LegendPanel
+        open={legendOpen}
+        onClose={() => setLegendOpen(false)}
+        swimlanes={swimlanes}
+        filterKind={tweaks.filterKind}
+        setFilterKind={(v) => setTweaks((t) => ({ ...t, filterKind: v }))}
+        filterSwim={tweaks.filterSwim}
+        setFilterSwim={(v) => setTweaks((t) => ({ ...t, filterSwim: v }))}
+        highlight={highlight}
+        setHighlight={setHighlight}
+        taskCounts={taskCounts}
+      />
+      <TweaksPanel
+        open={tweaksOpen}
+        onClose={() => setTweaksOpen(false)}
+        tweaks={tweaks}
+        setTweaks={setTweaks}
+        kindOptions={kindOptions}
+        epicOptions={epicOptions}
+      />
+
+      <CreateTaskModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        swimlanes={swimlanes}
+        nextId={
+          (cards.reduce((m, t) => Math.max(m, parseInt(String(t.id).replace('TASK-', ''), 10) || 0), 0) || 200) + 1
+        }
+        onCreate={async (form) => {
+          setActionError(null);
+          try {
+            const [payload] = await apiPost<CreateTaskResponse>('/api/board/create', form);
+            const id = payload?.data?.task_id ?? payload?.task_id ?? form.title;
+            setCreateOpen(false);
+            setJustCreated(id);
+            pushHumanEvent('human-create', {
+              taskId: typeof id === 'string' ? id : null,
+              message: `${form.kind} · lane ${form.swimlane} · ${form.priority} · "${form.title}"`,
+            });
+            setTimeout(() => setJustCreated(null), 2800);
+            await qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'create failed';
+            setActionError(msg);
+            pushHumanEvent('human-create', { taskId: null, message: `FAILED — ${msg}` });
+          }
+        }}
+      />
+
+      <TaskDetailDrawer
+        task={detailTask}
+        swimlanes={swimlanes}
+        onClose={() => setDetailTask(null)}
+      />
+
+      {justCreated && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 22,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '10px 18px',
+            background: '#16a34a',
+            color: 'white',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 12,
+            fontWeight: 600,
+            borderRadius: 4,
+            zIndex: 150,
+            boxShadow: '0 10px 25px rgba(0,0,0,.25)',
+            animation: 'fadeIn .2s ease',
+          }}
+        >
+          ✓ created {justCreated} · validate-task-frontmatter.sh → ok · sync v13 → ok
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// TopBar
+// ============================================================
+function TopBar({
+  stats,
+  taskCount,
+  connected,
+  legendOpen,
+  streamOpen,
+  onToggleLegend,
+  onToggleStream,
+  onToggleTweaks,
+  onCreate,
+}: {
+  stats: BoardStats;
+  taskCount: number;
+  connected: boolean;
+  legendOpen: boolean;
+  streamOpen: boolean;
+  onToggleLegend: () => void;
+  onToggleStream: () => void;
+  onToggleTweaks: () => void;
+  onCreate: () => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '8px 18px',
+        borderBottom: '1px solid var(--col-border)',
+        background:
+          'linear-gradient(180deg, var(--board) 0%, color-mix(in srgb, var(--board) 92%, var(--board-grain)) 100%)',
+        position: 'relative',
+        zIndex: 10,
+        flexWrap: 'wrap',
+        minHeight: 48,
+      }}
+    >
+      {/* STATS BAR — primary telemetry, reads left to right */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'stretch',
+          gap: 0,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10.5,
+          border: '1px solid var(--col-border)',
+          borderRadius: 6,
+          background: 'var(--col-bg)',
+          overflow: 'hidden',
+          boxShadow: '0 1px 2px rgba(0,0,0,.05)',
+        }}
+      >
+        <StatCell label="THROUGHPUT" value={stats.throughput} unit="/wk" hint={`last 7d: ${stats.throughputLast7}`} />
+        <StatCell label="LEAD TIME" value={stats.leadTime} unit="d p50" hint={`p90 ${stats.leadTimeP90}d`} />
+        <StatCell label="CYCLE" value={stats.cycleTime} unit="d p50" />
+        <StatCell
+          label="WIP"
+          value={stats.wipTotal}
+          unit={`/${stats.wipCap}`}
+          tone={stats.wipOver ? 'red' : null}
+          hint={stats.wipOver ? `${stats.wipOver} col over cap` : 'within caps'}
+        />
+        <StatCell label="BLOCKED" value={stats.blocked} unit="" tone={stats.blocked > 0 ? 'amber' : null} />
+        <StatCell label="STALE" value={stats.stale} unit="" hint=">3d idle" />
+        <StatCell label="P0" value={stats.p0} unit="open" tone={stats.p0 > 0 ? 'red' : null} />
+        <StatCell label="EMERG" value={stats.emergency} unit="" tone={stats.emergency > 0 ? 'red' : null} last />
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      {/* LIVE STATUS + ACTIONS */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+        <div
+          title={`${taskCount} tasks · sse ${connected ? 'online' : 'offline'}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '4px 10px',
+            borderRadius: 999,
+            border: '1px solid var(--col-border)',
+            background: 'var(--col-bg)',
+          }}
+        >
+          <span style={{ color: 'var(--ink-faint)', fontSize: 10 }}>live</span>
+          {AGENTS.map((a) => (
+            <AgentPip key={a.id} agentId={a.id} />
+          ))}
+          <span
+            aria-label={connected ? 'SSE online' : 'SSE offline'}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: connected ? '#16a34a' : '#c0392b',
+              boxShadow: connected ? '0 0 0 2px rgba(22,163,74,.15)' : '0 0 0 2px rgba(192,57,43,.15)',
+              animation: connected ? 'pulse 1.8s ease-in-out infinite' : 'none',
+            }}
+          />
+          <span style={{ color: 'var(--ink-faint)', fontSize: 10 }}>· {taskCount}</span>
+        </div>
+
+        <div style={{ width: 1, height: 22, background: 'var(--col-border)', margin: '0 2px' }} />
+
+        <button
+          type="button"
+          onClick={onCreate}
+          title="New task (n)"
+          style={{
+            padding: '6px 14px',
+            fontSize: 11,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+            background: 'var(--accent)',
+            color: 'white',
+            border: '1px solid var(--accent)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            letterSpacing: '.04em',
+            boxShadow: '0 1px 2px rgba(217,108,44,.3)',
+          }}
+        >
+          ＋ new
+        </button>
+
+        <TopBtn onClick={onToggleLegend} active={legendOpen}>⁂ legend</TopBtn>
+        <TopBtn onClick={onToggleStream} active={streamOpen}>⎌ stream</TopBtn>
+        <TopBtn onClick={onToggleTweaks}>⚙ tweaks</TopBtn>
+      </div>
+    </div>
+  );
+}
+
+function TopBtn({
+  children,
+  onClick,
+  active,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '6px 10px',
+        fontSize: 11,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600,
+        background: active ? 'var(--accent)' : 'transparent',
+        color: active ? 'white' : 'var(--ink)',
+        border: `1.5px solid ${active ? 'var(--accent)' : 'var(--line-soft)'}`,
+        borderRadius: 4,
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatCell({
+  label,
+  value,
+  unit,
+  hint,
+  tone,
+  last,
+}: {
+  label: string;
+  value: number | string;
+  unit?: string;
+  hint?: string;
+  tone?: 'red' | 'amber' | null;
+  last?: boolean;
+}) {
+  const color = tone === 'red' ? '#dc2626' : tone === 'amber' ? '#ea580c' : 'var(--ink)';
+  return (
+    <div
+      title={hint || ''}
+      style={{
+        padding: '4px 12px',
+        borderRight: last ? 'none' : '1px solid var(--col-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 1,
+        minWidth: 58,
+        background:
+          tone === 'red' ? 'rgba(220,38,38,.06)' : tone === 'amber' ? 'rgba(234,88,12,.06)' : 'transparent',
+      }}
+    >
+      <div style={{ fontSize: 8, letterSpacing: '.1em', fontWeight: 700, color: tone ? color : 'var(--ink-faint)' }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
+        {unit && <span style={{ fontSize: 9, color: 'var(--ink-faint)' }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Swimlane label
+// ============================================================
+function SwimlaneLabel({
+  lane,
+  palette,
+  taskCount,
+  onCollapse,
+}: {
+  lane: SwimlaneDTO;
+  palette: { color: string; accent: string };
+  taskCount: number;
+  onCollapse: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: 'sticky',
+        left: 0,
+        zIndex: 4,
+        width: 130,
+        minWidth: 130,
+        flexShrink: 0,
+        padding: '12px 10px',
+        background: `linear-gradient(90deg, ${alpha(palette.color, 0.14)} 0%, var(--board) 100%)`,
+        borderRight: `3px solid ${palette.accent}`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      }}
+    >
+      <button
+        type="button"
+        onClick={onCollapse}
+        title="Collapse lane"
+        style={{
+          position: 'absolute',
+          top: 6,
+          right: 6,
+          width: 18,
+          height: 18,
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--ink-faint)',
+          cursor: 'pointer',
+          fontSize: 12,
+          lineHeight: 1,
+          padding: 0,
+          fontFamily: "'JetBrains Mono', monospace",
+        }}
+      >
+        ▾
+      </button>
+      <div
+        style={{
+          fontFamily: "'Permanent Marker', cursive",
+          fontSize: 15,
+          color: palette.accent,
+          letterSpacing: '.02em',
+        }}
+      >
+        {lane.label}
+      </div>
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--ink-faint)', marginTop: 2 }}>
+        {taskCount} tasks
+      </div>
+      <div style={{ width: 40, height: 3, marginTop: 6, background: palette.accent, borderRadius: 2, opacity: 0.9 }} />
+    </div>
+  );
+}
+
+// ============================================================
+// Task sticky card
+// ============================================================
+function TaskStickyCard({
+  task,
+  laneColor,
+  laneAccent,
+  density,
+  quietMode,
+  agentSurface,
+  highlight,
+  draggingId,
+  onDragStart,
+  onDragEnd,
+  onOpen,
+}: {
+  task: BoardListCard;
+  laneColor: string;
+  laneAccent: string;
+  density: 'cozy' | 'compact';
+  quietMode: boolean;
+  agentSurface: boolean;
+  highlight: Highlight | null;
+  draggingId: string;
+  onDragStart: (e: DragEvent, t: BoardListCard) => void;
+  onDragEnd: () => void;
+  onOpen: (t: BoardListCard) => void;
+}) {
+  const kind = kindStyle(task.kind);
+  const cozy = density === 'cozy';
+
+  let isHighlighted = !highlight;
+  if (highlight) {
+    if (highlight.type === 'kind') isHighlighted = task.kind === highlight.value;
+    else if (highlight.type === 'swim') isHighlighted = task.swimlane === highlight.value;
+    else if (highlight.type === 'priority') isHighlighted = task.priority === highlight.value;
+  }
+  const dimmed = highlight != null && !isHighlighted;
+  const isDragging = draggingId === task.id;
+
+  // Card body colour = swimlane (domain). Kind is conveyed by the chip
+  // next to TASK-ID, not the body — so "all Graph OS cards look green, all
+  // Core cards look gray, regardless of whether they're bugs or features."
+  const bg = quietMode
+    ? 'linear-gradient(155deg, var(--board) 0%, var(--col-bg) 100%)'
+    : `linear-gradient(155deg, ${alpha(laneColor, 0.55)} 0%, ${alpha(laneColor, 0.32)} 100%)`;
+
+  const agentId = task.agent_session ? agentForSession(task.agent_session) : null;
+
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, task)}
+      onDragEnd={onDragEnd}
+      onClick={() => onOpen(task)}
+      className="sticky-card"
+      style={{
+        position: 'relative',
+        padding: cozy ? '10px 11px 9px' : '7px 9px 6px',
+        margin: cozy ? '0 0 10px' : '0 0 6px',
+        fontFamily: "'Kalam', 'Caveat', cursive",
+        fontSize: cozy ? 14 : 12.5,
+        lineHeight: 1.25,
+        color: '#1a1814',
+        background: bg,
+        borderRadius: '2px 3px 2px 3px',
+        transform: `rotate(${stableRotation(task.id)}deg)`,
+        boxShadow: isDragging
+          ? '0 18px 26px rgba(0,0,0,.25), 0 3px 6px rgba(0,0,0,.18)'
+          : dimmed
+            ? '0 1px 2px rgba(0,0,0,.08)'
+            : '0 2px 4px rgba(0,0,0,.12), 0 6px 10px -6px rgba(0,0,0,.18)',
+        cursor: 'grab',
+        transition: 'transform .15s ease, box-shadow .15s ease, opacity .15s ease, filter .15s ease',
+        opacity: isDragging ? 0.4 : dimmed ? 0.22 : 1,
+        filter: dimmed ? 'grayscale(0.7)' : 'none',
+        borderLeft: `5px solid ${laneAccent || '#888'}`,
+        ...priorityStyle(task.priority),
+      }}
+    >
+      {quietMode && (
+        <span
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            background: kind.chip,
+            boxShadow: '0 1px 2px rgba(0,0,0,.2)',
+          }}
+          title={kind.label}
+        />
+      )}
+      {task.status === 'emergency' && (
+        <div
+          style={{
+            position: 'absolute',
+            width: 44,
+            height: 18,
+            top: -9,
+            left: '50%',
+            marginLeft: -22,
+            background: 'linear-gradient(180deg, #ff6b6bdd 0%, #ff6b6baa 50%, #ff6b6bdd 100%)',
+            transform: 'rotate(-6deg)',
+            boxShadow: '0 1px 2px rgba(0,0,0,.15)',
+            borderLeft: '1px dashed rgba(0,0,0,.08)',
+            borderRight: '1px dashed rgba(0,0,0,.08)',
+          }}
+        />
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: cozy ? 4 : 2 }}>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: cozy ? 10 : 9,
+            fontWeight: 700,
+            color: '#3a3530',
+            letterSpacing: '.02em',
+          }}
+        >
+          {task.id}
+        </span>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 9,
+            fontWeight: 700,
+            color: '#fff',
+            background: kind.chip,
+            padding: '1px 5px',
+            borderRadius: 2,
+            letterSpacing: '.04em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {kind.label}
+        </span>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 9,
+            fontWeight: 700,
+            color:
+              task.priority === 'P0'
+                ? '#b91c1c'
+                : task.priority === 'P1'
+                  ? '#c2410c'
+                  : '#6b665e',
+          }}
+        >
+          {task.priority}
+        </span>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 3, alignItems: 'center' }}>
+          {agentId && agentSurface && <AgentPip agentId={agentId} />}
+        </span>
+      </div>
+
+      <div
+        style={{
+          fontWeight: 700,
+          fontSize: cozy ? 15 : 13.5,
+          color: '#141210',
+          textWrap: 'pretty',
+          marginBottom: cozy ? 6 : 3,
+          fontFamily: "'Kalam', cursive",
+        }}
+      >
+        {task.title}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 4,
+          alignItems: 'center',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          color: '#4a4540',
+          marginBottom: cozy && task.last_log_line ? 5 : 0,
+        }}
+      >
+        <span style={{ background: 'rgba(0,0,0,.06)', padding: '1px 5px', borderRadius: 2 }}>
+          ◷ {task.appetite || '1d'}
+        </span>
+        {task.epic && (
+          <span style={{ background: 'rgba(0,0,0,.08)', padding: '1px 5px', borderRadius: 2, fontWeight: 600 }}>
+            #{task.epic}
+          </span>
+        )}
+        {(task.labels || []).slice(0, cozy ? 3 : 2).map((l) => (
+          <span key={l} style={{ color: '#6b665e' }}>
+            ·{l}
+          </span>
+        ))}
+      </div>
+
+      {agentSurface && cozy && task.last_log_line && (
+        <div
+          style={{
+            marginTop: 6,
+            paddingTop: 5,
+            borderTop: '1px dashed rgba(0,0,0,.2)',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 9.5,
+            color: '#3a3530',
+            lineHeight: 1.35,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          ↳ {task.last_log_line.replace(/^\d{4}-\d{2}-\d{2} \[[^\]]+\]:\s*/, '')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Live stream panel
+// ============================================================
+function LiveStreamPanel({
+  open,
+  onClose,
+  events,
+  connected,
+}: {
+  open: boolean;
+  onClose: () => void;
+  events: BoardEvent[];
+  connected: boolean;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 110,
+        right: 14,
+        bottom: 14,
+        width: 380,
+        zIndex: 50,
+        background: 'var(--col-bg)',
+        border: '1px solid var(--col-border)',
+        borderRadius: 6,
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,.3)',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: "'JetBrains Mono', monospace",
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 12px',
+          borderBottom: '1px solid var(--col-border)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Permanent Marker', cursive",
+            fontSize: 14,
+            letterSpacing: '.04em',
+            color: 'var(--accent)',
+          }}
+        >
+          AGENT STREAM
+        </div>
+        <span style={{ fontSize: 10, color: 'var(--ink-faint)' }}>
+          <span
+            style={{
+              display: 'inline-block',
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: connected ? '#16a34a' : '#c0392b',
+              marginRight: 4,
+              animation: connected ? 'pulse 1.5s infinite' : 'none',
+            }}
+          />
+          {connected ? 'sse online' : 'sse offline'}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--ink-faint)',
+            cursor: 'pointer',
+            fontSize: 16,
+            lineHeight: 1,
+            padding: 0,
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 4px' }}>
+        {events.length === 0 && (
+          <div
+            style={{
+              padding: '24px 14px',
+              fontSize: 11,
+              color: 'var(--ink-faint)',
+              textAlign: 'center',
+              lineHeight: 1.5,
+            }}
+          >
+            waiting for events…
+            <br />
+            (drag a card or let agents touch docs/tasks/*.md)
+          </div>
+        )}
+        {events.map((ev) => {
+          const color = EVENT_COLOR[ev.kind] || 'var(--ink-soft)';
+          const label = EVENT_LABEL[ev.kind] || ev.kind;
+          return (
+            <div
+              key={ev.id}
+              style={{
+                padding: '6px 10px',
+                borderBottom: '1px dotted var(--col-border)',
+                fontSize: 10.5,
+                lineHeight: 1.4,
+                display: 'flex',
+                gap: 6,
+                alignItems: 'flex-start',
+              }}
+            >
+              <span style={{ color: 'var(--ink-faint)', flexShrink: 0 }}>{ev.t}</span>
+              <AgentPip agentId={ev.agent} />
+              <span
+                style={{
+                  color,
+                  fontWeight: 700,
+                  fontSize: 9,
+                  flexShrink: 0,
+                  padding: '1px 4px',
+                  background: `${color}18`,
+                  borderRadius: 2,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.04em',
+                }}
+              >
+                {label}
+              </span>
+              <div style={{ flex: 1, minWidth: 0, color: 'var(--ink)' }}>
+                {ev.taskId && (
+                  <span style={{ color: 'var(--accent)', fontWeight: 600, marginRight: 4 }}>
+                    {ev.taskId}
+                  </span>
+                )}
+                <span style={{ color: 'var(--ink-soft)' }}>{ev.message}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          padding: '8px 12px',
+          borderTop: '1px solid var(--col-border)',
+          fontSize: 10,
+          color: 'var(--ink-faint)',
+          display: 'flex',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>agent file-watch · human drag/create</span>
+        <span>{events.length} events</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Tweaks panel
+// ============================================================
+function TweaksPanel({
+  open,
+  onClose,
+  tweaks,
+  setTweaks,
+  kindOptions,
+  epicOptions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  tweaks: BoardTweaks;
+  setTweaks: (updater: (prev: BoardTweaks) => BoardTweaks) => void;
+  kindOptions: { value: string; label: string }[];
+  epicOptions: { value: string; label: string }[];
+}) {
+  if (!open) return null;
+  const set = <K extends keyof BoardTweaks>(k: K, v: BoardTweaks[K]) => setTweaks((t) => ({ ...t, [k]: v }));
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 16,
+        right: 16,
+        zIndex: 100,
+        width: 280,
+        maxHeight: 'calc(100vh - 40px)',
+        overflowY: 'auto',
+        background: 'var(--col-bg)',
+        border: '1px solid var(--col-border)',
+        borderRadius: 6,
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,.3), 0 6px 12px rgba(0,0,0,.15)',
+        fontFamily: "'Inter', sans-serif",
+        color: 'var(--ink)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 12px 8px',
+          borderBottom: '1px solid var(--col-border)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Permanent Marker', cursive",
+            fontSize: 15,
+            letterSpacing: '.04em',
+            color: 'var(--accent)',
+          }}
+        >
+          TWEAKS
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--ink-faint)',
+            cursor: 'pointer',
+            fontSize: 16,
+            padding: 0,
+            lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ padding: '6px 10px 12px' }}>
+        <Seg
+          label="Theme"
+          value={tweaks.theme}
+          options={[
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+          onChange={(v) => set('theme', v as BoardTweaks['theme'])}
+        />
+        <Seg
+          label="Aesthetic"
+          value={tweaks.aesthetic}
+          options={[
+            { value: 'whiteboard', label: 'Whiteboard' },
+            { value: 'graph', label: 'Graph paper' },
+            { value: 'terminal', label: 'Terminal' },
+          ]}
+          onChange={(v) => set('aesthetic', v as BoardTweaks['aesthetic'])}
+        />
+        <Seg
+          label="Density"
+          value={tweaks.density}
+          options={[
+            { value: 'cozy', label: 'Cozy' },
+            { value: 'compact', label: 'Compact' },
+          ]}
+          onChange={(v) => set('density', v as BoardTweaks['density'])}
+        />
+        <div style={{ height: 1, background: 'var(--col-border)', margin: '6px 4px' }} />
+        <Toggle on={tweaks.quietMode} onChange={(v) => set('quietMode', v)} label="Quiet mode" sub="subdued cards + kind as corner dot" />
+        <Toggle on={tweaks.agentSurface} onChange={(v) => set('agentSurface', v)} label="Agent surface" sub="pips, work log stream, hook events" />
+        <Toggle on={tweaks.showWipViolation} onChange={(v) => set('showWipViolation', v)} label="WIP violation state" sub="column flashes red when over cap" />
+        <div style={{ height: 1, background: 'var(--col-border)', margin: '6px 4px' }} />
+        <Seg label="Filter — kind" value={tweaks.filterKind} options={kindOptions} onChange={(v) => set('filterKind', v)} />
+        <Seg label="Filter — epic" value={tweaks.filterEpic} options={epicOptions} onChange={(v) => set('filterEpic', v)} />
+      </div>
+    </div>
+  );
+}
+
+function Seg({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+  label: string;
+}) {
+  return (
+    <div style={{ padding: '7px 4px' }}>
+      <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginBottom: 5, fontWeight: 500 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,.08)', padding: 2, borderRadius: 5, flexWrap: 'wrap' }}>
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            style={{
+              flex: '1 0 auto',
+              padding: '5px 8px',
+              fontSize: 11,
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 500,
+              background: value === o.value ? 'var(--board)' : 'transparent',
+              color: value === o.value ? 'var(--ink)' : 'var(--ink-soft)',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              boxShadow: value === o.value ? '0 1px 2px rgba(0,0,0,.1)' : 'none',
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Toggle({
+  on,
+  onChange,
+  label,
+  sub,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  sub?: string;
+}) {
+  return (
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '7px 4px',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
+    >
+      <div
+        onClick={() => onChange(!on)}
+        style={{
+          width: 32,
+          height: 18,
+          borderRadius: 10,
+          background: on ? 'var(--accent)' : 'rgba(0,0,0,.18)',
+          position: 'relative',
+          transition: 'background .15s ease',
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: on ? 16 : 2,
+            width: 14,
+            height: 14,
+            borderRadius: '50%',
+            background: 'white',
+            transition: 'left .15s ease',
+            boxShadow: '0 1px 2px rgba(0,0,0,.2)',
+          }}
+        />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)' }}>{label}</div>
+        {sub && <div style={{ fontSize: 10, color: 'var(--ink-faint)', marginTop: 1 }}>{sub}</div>}
+      </div>
+    </label>
+  );
+}
+
+// ============================================================
+// Legend panel
+// ============================================================
+function LegendPanel({
+  open,
+  onClose,
+  swimlanes,
+  filterKind,
+  setFilterKind,
+  filterSwim,
+  setFilterSwim,
+  highlight,
+  setHighlight,
+  taskCounts,
+}: {
+  open: boolean;
+  onClose: () => void;
+  swimlanes: SwimlaneDTO[];
+  filterKind: string;
+  setFilterKind: (v: string) => void;
+  filterSwim: string;
+  setFilterSwim: (v: string) => void;
+  highlight: Highlight | null;
+  setHighlight: (h: Highlight | null) => void;
+  taskCounts: TaskCounts;
+}) {
+  if (!open) return null;
+  const kinds = Object.entries(KIND_COLORS);
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 110,
+        right: 14,
+        bottom: 14,
+        zIndex: 50,
+        width: 280,
+        background: 'var(--col-bg)',
+        border: '1px solid var(--col-border)',
+        borderRadius: 6,
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,.3)',
+        fontFamily: "'Inter', sans-serif",
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--col-border)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Permanent Marker', cursive",
+            fontSize: 13,
+            letterSpacing: '.04em',
+            color: 'var(--accent)',
+          }}
+        >
+          LEGEND
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--ink-faint)',
+            cursor: 'pointer',
+            fontSize: 14,
+            lineHeight: 1,
+            padding: 0,
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      <div style={{ padding: 10 }}>
+        <LegendSection title="Kind — card body">
+          {kinds.map(([k, v]) => {
+            const active = filterKind === k || (highlight?.type === 'kind' && highlight?.value === k);
+            const dim =
+              (filterKind !== 'all' && filterKind !== k) ||
+              (highlight?.type === 'kind' && highlight?.value !== k);
+            return (
+              <LegendRow
+                key={k}
+                swatch={
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 14,
+                      height: 14,
+                      background: `linear-gradient(155deg, ${v.bg} 0%, ${v.bg2} 100%)`,
+                      border: `1px solid ${v.chip}`,
+                      borderRadius: 2,
+                    }}
+                  />
+                }
+                label={v.label}
+                sub={String(taskCounts.kind[k] || 0)}
+                active={!!active}
+                dim={!!dim}
+                onEnter={() => setHighlight({ type: 'kind', value: k })}
+                onLeave={() => setHighlight(null)}
+                onClick={() => setFilterKind(filterKind === k ? 'all' : k)}
+              />
+            );
+          })}
+        </LegendSection>
+
+        <LegendSection title="Swimlane — left band">
+          {swimlanes.map((lane) => {
+            const p = lanePalette(lane);
+            const active = filterSwim === lane.id || (highlight?.type === 'swim' && highlight?.value === lane.id);
+            const dim =
+              (filterSwim !== 'all' && filterSwim !== lane.id) ||
+              (highlight?.type === 'swim' && highlight?.value !== lane.id);
+            return (
+              <LegendRow
+                key={lane.id}
+                swatch={
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      background: alpha(p.color, 0.3),
+                      borderLeft: `4px solid ${p.accent}`,
+                      border: '1px solid rgba(0,0,0,.15)',
+                      display: 'inline-block',
+                    }}
+                  />
+                }
+                label={lane.label}
+                sub={String(taskCounts.swim[lane.id] || 0)}
+                active={!!active}
+                dim={!!dim}
+                onEnter={() => setHighlight({ type: 'swim', value: lane.id })}
+                onLeave={() => setHighlight(null)}
+                onClick={() => setFilterSwim(filterSwim === lane.id ? 'all' : lane.id)}
+              />
+            );
+          })}
+        </LegendSection>
+
+        <LegendSection title="Priority — outline">
+          {[
+            { id: 'P0', label: 'P0 · critical', style: { outline: '2.5px double #c0392b', outlineOffset: 1 } as CSSProperties },
+            { id: 'P1', label: 'P1 · high', style: { outline: '1.5px solid #ea580c' } as CSSProperties },
+            { id: 'P2', label: 'P2 · normal', style: { outline: '1px dashed #8a8378' } as CSSProperties },
+            { id: 'P3', label: 'P3 · low', style: { outline: '1px dotted #b8b0a3' } as CSSProperties },
+          ].map((p) => {
+            const active = highlight?.type === 'priority' && highlight?.value === p.id;
+            const dim = highlight?.type === 'priority' && highlight?.value !== p.id;
+            return (
+              <LegendRow
+                key={p.id}
+                swatch={
+                  <span
+                    style={{
+                      width: 16,
+                      height: 12,
+                      background: 'rgba(0,0,0,.04)',
+                      ...p.style,
+                      display: 'inline-block',
+                    }}
+                  />
+                }
+                label={p.label}
+                sub={String(taskCounts.priority[p.id] || 0)}
+                active={!!active}
+                dim={!!dim}
+                onEnter={() => setHighlight({ type: 'priority', value: p.id })}
+                onLeave={() => setHighlight(null)}
+                onClick={() => {}}
+              />
+            );
+          })}
+        </LegendSection>
+
+        <LegendSection title="Agent — corner pip">
+          <div style={{ display: 'flex', gap: 8, padding: '3px 5px' }}>
+            {AGENTS.map((a) => (
+              <div
+                key={a.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink)' }}
+              >
+                <AgentPip agentId={a.id} />
+                <span>{a.id}</span>
+              </div>
+            ))}
+          </div>
+        </LegendSection>
+      </div>
+    </div>
+  );
+}
+
+function LegendSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          fontWeight: 700,
+          color: 'var(--ink-faint)',
+          letterSpacing: '.08em',
+          textTransform: 'uppercase',
+          marginBottom: 5,
+        }}
+      >
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function LegendRow({
+  swatch,
+  label,
+  sub,
+  active,
+  dim,
+  onEnter,
+  onLeave,
+  onClick,
+}: {
+  swatch: ReactNode;
+  label: string;
+  sub?: string;
+  active: boolean;
+  dim: boolean;
+  onEnter: () => void;
+  onLeave: () => void;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 7,
+        padding: '3px 5px',
+        fontFamily: "'Inter', sans-serif",
+        fontSize: 11,
+        color: dim ? 'var(--ink-faint)' : 'var(--ink)',
+        cursor: 'pointer',
+        borderRadius: 3,
+        background: active ? 'rgba(217, 108, 44, .15)' : 'transparent',
+        opacity: dim ? 0.4 : 1,
+        transition: 'opacity .1s ease, background .1s ease',
+        userSelect: 'none',
+      }}
+    >
+      {swatch}
+      <span style={{ fontWeight: active ? 700 : 500 }}>{label}</span>
+      {sub && <span style={{ color: 'var(--ink-faint)', fontSize: 10, marginLeft: 'auto' }}>{sub}</span>}
+    </div>
+  );
+}
+
+// ============================================================
+// Zoom controls
+// ============================================================
+function ZoomControls({
+  zoom,
+  setZoom,
+  collapsedCount,
+  onExpandAll,
+  onCollapseEmpty,
+}: {
+  zoom: number;
+  setZoom: (v: number) => void;
+  collapsedCount: number;
+  onExpandAll: () => void;
+  onCollapseEmpty: () => void;
+}) {
+  const pct = Math.round(zoom * 100);
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        right: 20,
+        bottom: 20,
+        zIndex: 45,
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: 6,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: 'var(--col-bg)',
+          border: '1px solid var(--col-border)',
+          borderRadius: 4,
+          boxShadow: '0 4px 14px rgba(0,0,0,.12)',
+          overflow: 'hidden',
+        }}
+      >
+        <ZoomBtn onClick={onCollapseEmpty} title="Collapse empty lanes">
+          ⊟ empty
+        </ZoomBtn>
+        <ZoomDiv />
+        <ZoomBtn onClick={onExpandAll} disabled={collapsedCount === 0} title="Expand all">
+          ⊞ expand
+        </ZoomBtn>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: 'var(--col-bg)',
+          border: '1px solid var(--col-border)',
+          borderRadius: 4,
+          boxShadow: '0 4px 14px rgba(0,0,0,.12)',
+          overflow: 'hidden',
+        }}
+      >
+        <ZoomBtn onClick={() => setZoom(zoom - 0.1)} disabled={zoom <= 0.5} title="Zoom out (⌘-)">
+          −
+        </ZoomBtn>
+        <ZoomDiv />
+        <button
+          type="button"
+          onClick={() => setZoom(1)}
+          title="Reset (⌘0)"
+          style={{
+            padding: '0 10px',
+            minWidth: 54,
+            height: 30,
+            background: 'transparent',
+            border: 'none',
+            color: pct === 100 ? 'var(--ink-faint)' : 'var(--accent)',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          {pct}%
+        </button>
+        <ZoomDiv />
+        <ZoomBtn onClick={() => setZoom(zoom + 0.1)} disabled={zoom >= 1.5} title="Zoom in (⌘+)">
+          +
+        </ZoomBtn>
+        <ZoomDiv />
+        <input
+          type="range"
+          min={0.5}
+          max={1.5}
+          step={0.05}
+          value={zoom}
+          onChange={(e) => setZoom(parseFloat(e.target.value))}
+          style={{ width: 90, margin: '0 10px', accentColor: 'var(--accent)' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ZoomBtn({
+  children,
+  onClick,
+  disabled,
+  title,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        height: 30,
+        minWidth: 30,
+        padding: '0 9px',
+        background: 'transparent',
+        border: 'none',
+        color: disabled ? 'var(--ink-faint)' : 'var(--ink)',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.35 : 1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ZoomDiv() {
+  return <div style={{ width: 1, background: 'var(--col-border)', alignSelf: 'stretch' }} />;
+}
+
+// ============================================================
+// Create task modal
+// ============================================================
+function CreateTaskModal({
+  open,
+  onClose,
+  nextId,
+  swimlanes,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  nextId: number;
+  swimlanes: SwimlaneDTO[];
+  onCreate: (form: CreateTaskForm) => Promise<void>;
+}) {
+  const [form, setForm] = useState<{
+    title: string;
+    swimlane: string;
+    kind: string;
+    priority: string;
+    appetite: string;
+    epic: string;
+    labels: string;
+    outcome: string;
+  }>({
+    title: '',
+    swimlane: '',
+    kind: 'feature',
+    priority: 'P2',
+    appetite: '1d',
+    epic: '',
+    labels: '',
+    outcome: '',
+  });
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        title: '',
+        swimlane: swimlanes[0]?.id || '',
+        kind: 'feature',
+        priority: 'P2',
+        appetite: '1d',
+        epic: '',
+        labels: '',
+        outcome: '',
+      });
+    }
+  }, [open, swimlanes]);
+
+  if (!open) return null;
+
+  const kindOpts = Object.entries(KIND_COLORS).map(([k, v]) => ({
+    value: k,
+    label: v.label,
+    color: v.chip,
+  }));
+  const priorityOpts = [
+    { value: 'P0', label: 'P0', color: '#c0392b' },
+    { value: 'P1', label: 'P1', color: '#ea580c' },
+    { value: 'P2', label: 'P2', color: '#6b665e' },
+    { value: 'P3', label: 'P3', color: '#b8b0a3' },
+  ];
+  const previewKind = kindStyle(form.kind);
+  const previewLane = swimlanes.find((l) => l.id === form.swimlane);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: 'rgba(0,0,0,.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        animation: 'fadeIn .15s ease',
+      }}
+      onClick={onClose}
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!form.title.trim() || !form.swimlane) return;
+          await onCreate({
+            title: form.title.trim(),
+            swimlane: form.swimlane,
+            kind: form.kind,
+            priority: form.priority,
+            appetite: form.appetite,
+            epic: form.epic || null,
+            labels: form.labels.split(',').map((s) => s.trim()).filter(Boolean),
+            outcome: form.outcome || null,
+          });
+        }}
+        style={{
+          width: 720,
+          maxWidth: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          background: 'var(--col-bg)',
+          border: '1px solid var(--col-border)',
+          borderRadius: 6,
+          boxShadow: '0 30px 60px rgba(0,0,0,.4)',
+          display: 'grid',
+          gridTemplateColumns: '1fr 240px',
+        }}
+      >
+        <div style={{ padding: '20px 22px', borderRight: '1px solid var(--col-border)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 10,
+              marginBottom: 18,
+              paddingBottom: 10,
+              borderBottom: '2px dashed var(--col-border)',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Permanent Marker', cursive",
+                fontSize: 22,
+                letterSpacing: '.02em',
+                color: 'var(--accent)',
+              }}
+            >
+              new task
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--ink-faint)' }}>
+              cos_task_create → TASK-{String(nextId).padStart(3, '0')}
+            </div>
+          </div>
+
+          <FormField label="Title" required>
+            <input
+              autoFocus
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="Implement Kuzu backend"
+              maxLength={80}
+              style={formInput}
+            />
+          </FormField>
+
+          <FormField label="Swimlane" required>
+            <ChipRow
+              options={swimlanes.map((s) => ({ value: s.id, label: s.label, color: s.accent }))}
+              value={form.swimlane}
+              onChange={(v) => setForm((f) => ({ ...f, swimlane: v }))}
+            />
+          </FormField>
+
+          <FormField label="Kind" required>
+            <ChipRow options={kindOpts} value={form.kind} onChange={(v) => setForm((f) => ({ ...f, kind: v }))} />
+          </FormField>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <FormField label="Priority" required>
+              <ChipRow options={priorityOpts} value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))} />
+            </FormField>
+            <FormField label="Appetite" required hint="30m 2h 1d 3d 1w">
+              <input
+                value={form.appetite}
+                onChange={(e) => setForm((f) => ({ ...f, appetite: e.target.value }))}
+                style={monoFormInput}
+              />
+            </FormField>
+          </div>
+
+          <FormField label="Labels" hint="comma-separated">
+            <input
+              value={form.labels}
+              onChange={(e) => setForm((f) => ({ ...f, labels: e.target.value }))}
+              placeholder="indexing, perf"
+              style={monoFormInput}
+            />
+          </FormField>
+
+          <FormField label="Outcome / first work-log line" hint="optional">
+            <textarea
+              value={form.outcome}
+              onChange={(e) => setForm((f) => ({ ...f, outcome: e.target.value }))}
+              rows={2}
+              style={{ ...formInput, resize: 'vertical' }}
+            />
+          </FormField>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              justifyContent: 'flex-end',
+              marginTop: 14,
+              paddingTop: 14,
+              borderTop: '1px dashed var(--col-border)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '8px 14px',
+                fontSize: 12,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 600,
+                background: 'transparent',
+                color: 'var(--ink-soft)',
+                border: '1.5px solid var(--col-border)',
+                borderRadius: 3,
+                cursor: 'pointer',
+              }}
+            >
+              cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 18px',
+                fontSize: 12,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 700,
+                background: 'var(--accent)',
+                color: 'white',
+                border: '1.5px solid var(--accent)',
+                borderRadius: 3,
+                cursor: 'pointer',
+                letterSpacing: '.02em',
+              }}
+            >
+              create ▸
+            </button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '20px 18px',
+            background: 'var(--board)',
+            borderRadius: '0 6px 6px 0',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              fontWeight: 600,
+              color: 'var(--ink-soft)',
+              letterSpacing: '.04em',
+              textTransform: 'uppercase',
+              marginBottom: 10,
+            }}
+          >
+            preview
+          </div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div
+              style={{
+                width: 200,
+                padding: '10px 11px 9px',
+                fontFamily: "'Kalam', cursive",
+                fontSize: 14,
+                lineHeight: 1.25,
+                color: '#1a1814',
+                background: previewLane
+                  ? `linear-gradient(155deg, ${alpha(previewLane.color, 0.55)} 0%, ${alpha(previewLane.color, 0.32)} 100%)`
+                  : 'linear-gradient(155deg, #f0f0ea 0%, #e4e4db 100%)',
+                borderRadius: '2px 3px 2px 3px',
+                transform: 'rotate(-1.2deg)',
+                boxShadow: '0 4px 8px rgba(0,0,0,.15), 0 10px 20px -6px rgba(0,0,0,.2)',
+                borderLeft: `5px solid ${previewLane ? lanePalette(previewLane).accent : '#888'}`,
+                ...priorityStyle(form.priority),
+              }}
+            >
+              <div style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700 }}>
+                  TASK-{String(nextId).padStart(3, '0')}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: previewKind.chip,
+                    padding: '1px 5px',
+                    borderRadius: 2,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {previewKind.label}
+                </span>
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>
+                {form.title || <span style={{ color: '#9a948a', fontStyle: 'italic' }}>(title…)</span>}
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              color: 'var(--ink-faint)',
+              marginTop: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            → docs/tasks/TASK-{String(nextId).padStart(3, '0')}-
+            {(form.title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}.md
+            <br />→ lane <b style={{ color: previewLane?.accent }}>{form.swimlane || '…'}</b>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+const formInput: CSSProperties = {
+  width: '100%',
+  padding: '8px 10px',
+  fontFamily: "'Kalam', cursive",
+  fontSize: 15,
+  background: 'var(--board)',
+  color: 'var(--ink)',
+  border: '1.5px solid var(--col-border)',
+  borderRadius: 3,
+  outline: 'none',
+};
+const monoFormInput: CSSProperties = {
+  ...formInput,
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 12,
+};
+
+function FormField({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <label style={{ display: 'block', marginBottom: 12 }}>
+      <div
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10,
+          fontWeight: 600,
+          color: 'var(--ink-soft)',
+          letterSpacing: '.04em',
+          textTransform: 'uppercase',
+          marginBottom: 4,
+        }}
+      >
+        {label}
+        {required && <span style={{ color: '#c0392b' }}> *</span>}
+        {hint && (
+          <span style={{ color: 'var(--ink-faint)', fontWeight: 400, textTransform: 'none', marginLeft: 6 }}>
+            — {hint}
+          </span>
+        )}
+      </div>
+      {children}
+    </label>
+  );
+}
+
+function ChipRow({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: string; label: string; color?: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          style={{
+            padding: '5px 9px',
+            fontSize: 11,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 600,
+            background: value === o.value ? o.color || 'var(--accent)' : 'transparent',
+            color: value === o.value ? 'white' : 'var(--ink-soft)',
+            border: `1.5px solid ${value === o.value ? o.color || 'var(--accent)' : 'var(--col-border)'}`,
+            borderRadius: 3,
+            cursor: 'pointer',
+            transition: 'all .12s ease',
+          }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// Task detail drawer — fetches docs/tasks/TASK-NNN-*.md from the
+// backend and renders it with the md-body typography defined in
+// cos-board-tokens.css (matches the Claude Design prototype).
+// ============================================================
+
+interface TaskDetailPayload {
+  task_id: string;
+  file_path: string;
+  exists: boolean;
+  content: string;
+  size: number;
+  mtime: number;
+  truncated: boolean;
+  row: {
+    title: string;
+    status: string;
+    swimlane: string;
+    kind: string;
+    priority: string;
+    appetite: string;
+    epic: string | null;
+    labels: string[];
+  };
+}
+
+function TaskDetailDrawer({
+  task,
+  swimlanes,
+  onClose,
+}: {
+  task: BoardListCard | null;
+  swimlanes: SwimlaneDTO[];
+  onClose: () => void;
+}) {
+  const laneColorFor = (swimId: string): string | undefined =>
+    swimlanes.find((s) => s.id === swimId)?.color;
+  const queryKey = useMemo(() => ['board-task', task?.id ?? ''], [task?.id]);
+  const { data, isLoading, error } = useApiGet<TaskDetailPayload>(
+    queryKey,
+    task ? `/api/board/task/${task.id}` : '/api/board/task/__noop__',
+    undefined,
+    { enabled: !!task },
+  );
+
+  useEffect(() => {
+    if (!task) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [task, onClose]);
+
+  if (!task) return null;
+
+  const meta = data?.row;
+  const kindRaw = meta?.kind ?? task.kind;
+  const kind = kindStyle(kindRaw);
+  const status = (meta?.status ?? task.status).toUpperCase();
+  const swimlane = meta?.swimlane ?? task.swimlane;
+  const priority = meta?.priority ?? task.priority;
+  const appetite = meta?.appetite ?? task.appetite ?? '1d';
+  const epic = meta?.epic ?? task.epic ?? null;
+  const labels = meta?.labels ?? task.labels ?? [];
+  const title = meta?.title ?? task.title;
+  const filePath = data?.file_path || `docs/tasks/${task.id}-...md`;
+
+  // Priority colour — mirrors task_detail.jsx prototype palette.
+  const priorityColor: Record<string, string> = {
+    P0: '#dc2626',
+    P1: '#ea580c',
+    P2: '#ca8a04',
+    P3: '#64748b',
+  };
+  const priColor = priorityColor[priority] ?? 'var(--ink)';
+
+  // Strip YAML frontmatter + leading H1 (drawer header already shows title).
+  let body = '';
+  if (data?.content) {
+    const split = splitFrontmatter(data.content);
+    body = split.body.replace(/^\s*#\s+.+\n+/, '');
+  }
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(10,12,16,.55)',
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+          zIndex: 80,
+          animation: 'td-fade-in 180ms ease',
+        }}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 'min(960px, 94vw)',
+          background: 'var(--col-bg)',
+          borderLeft: '1px solid var(--col-border)',
+          boxShadow: '-30px 0 60px rgba(0,0,0,.3)',
+          zIndex: 81,
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'td-slide-in 220ms cubic-bezier(.22,.61,.36,1)',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '14px 22px 14px',
+            borderBottom: '1px solid var(--col-border)',
+            background: 'linear-gradient(180deg, var(--col-bg) 0, var(--board-grain) 100%)',
+            flex: '0 0 auto',
+          }}
+        >
+          {/* file path + actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: 'var(--ink-faint)',
+                letterSpacing: '.04em',
+                flex: 1,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              title={filePath}
+            >
+              <span style={{ color: 'var(--ink-soft)' }}>📄</span>
+              {filePath}
+              {data?.truncated && (
+                <span
+                  style={{
+                    padding: '1px 5px',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    background: '#ea580c',
+                    color: 'white',
+                    borderRadius: 2,
+                    letterSpacing: '.04em',
+                  }}
+                >
+                  TRUNC
+                </span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              title="Close (esc)"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--col-border)',
+                color: 'var(--ink-soft)',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                padding: '3px 10px',
+                borderRadius: 3,
+                cursor: 'pointer',
+                letterSpacing: '.02em',
+              }}
+            >
+              esc
+            </button>
+          </div>
+
+          {/* title row: TASK-ID + kind chip + title */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'var(--accent)',
+                padding: '2px 7px',
+                background: 'var(--board-grain)',
+                border: '1px solid var(--col-border)',
+                borderRadius: 3,
+              }}
+            >
+              {task.id}
+            </span>
+            <h1
+              style={{
+                margin: 0,
+                flex: 1,
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 22,
+                fontWeight: 600,
+                lineHeight: 1.25,
+                color: 'var(--ink)',
+                letterSpacing: '-.01em',
+              }}
+            >
+              {title}
+            </h1>
+          </div>
+
+          {/* metadata pills */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 6,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 11,
+            }}
+          >
+            <Pill label="status" value={status} />
+            <Pill label="swimlane" value={swimlane} dot={laneColorFor(swimlane)} />
+            <Pill label="kind" value={kindRaw} dot={kind.chip} />
+            <Pill label="priority" value={priority} valueColor={priColor} strong />
+            <Pill label="appetite" value={appetite} />
+            {epic && <Pill label="epic" value={`#${epic}`} />}
+            {labels.map((l) => (
+              <span
+                key={l}
+                style={{
+                  fontSize: 10,
+                  padding: '2px 7px',
+                  background: 'transparent',
+                  color: 'var(--ink-soft)',
+                  border: '1px dashed var(--col-border)',
+                  borderRadius: 10,
+                }}
+              >
+                #{l}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '18px 28px 40px', background: 'var(--col-bg)' }}>
+          {isLoading && (
+            <div style={{ color: 'var(--ink-faint)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
+              loading {task.id}.md…
+            </div>
+          )}
+          {error && !isLoading && (
+            <div
+              style={{
+                padding: 12,
+                border: '1px dashed rgba(220,38,38,.4)',
+                background: 'rgba(220,38,38,.06)',
+                color: '#dc2626',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 12,
+                borderRadius: 4,
+              }}
+            >
+              could not load task file — {error.message}
+            </div>
+          )}
+          {data && !data.exists && !isLoading && !error && (
+            <div
+              style={{
+                padding: 12,
+                border: '1px dashed var(--col-border)',
+                background: 'var(--board-grain)',
+                color: 'var(--ink-faint)',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 12,
+                borderRadius: 4,
+              }}
+            >
+              no file on disk for this task — DB row only.
+            </div>
+          )}
+          {data && data.exists && (
+            <div className="md-body">{renderTaskMarkdown(body)}</div>
+          )}
+        </div>
+
+        {/* Footer — command hints from the prototype */}
+        <div
+          style={{
+            flex: '0 0 auto',
+            padding: '8px 16px',
+            borderTop: '1px solid var(--col-border)',
+            background: 'var(--board-grain)',
+            display: 'flex',
+            gap: 6,
+            alignItems: 'center',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10.5,
+            color: 'var(--ink-faint)',
+          }}
+        >
+          <span style={{ color: 'var(--ink-soft)' }}>$</span>
+          <span>cos edit {task.id}</span>
+          <span style={{ opacity: 0.4, marginLeft: 8 }}>·</span>
+          <span>cos log {task.id} "msg"</span>
+          <span style={{ opacity: 0.4, marginLeft: 8 }}>·</span>
+          <span>cos move {task.id} complete</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ opacity: 0.7 }}>esc close</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Pill({
+  label,
+  value,
+  strong,
+  dot,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  dot?: string;
+  valueColor?: string;
+}) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 7px 2px 5px',
+        background: 'var(--board-grain)',
+        border: '1px solid var(--col-border)',
+        borderRadius: 3,
+      }}
+    >
+      {dot && <span style={{ width: 7, height: 7, borderRadius: 2, background: dot }} />}
+      <span style={{ color: 'var(--ink-faint)' }}>{label}</span>
+      <span style={{ color: valueColor ?? 'var(--ink)', fontWeight: strong ? 700 : 500 }}>{value}</span>
+    </span>
+  );
+}

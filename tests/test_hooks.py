@@ -72,15 +72,101 @@ class TestCosEnv:
     def test_default_state_dir(self, tmp_path: Path) -> None:
         """Without COS_STATE_DIR, defaults to .coding-os."""
         script = 'source "{}"; echo "$COS_STATE_DIR"'.format(HOOKS_DIR / "cos-env.sh")
+        base_env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("CURSOR_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
+        }
         result = subprocess.run(
             ["bash", "-c", script],
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "HOME": str(tmp_path)},
+            env={**base_env, "HOME": str(tmp_path)},
             timeout=10,
         )
         assert result.stdout.strip() == ".coding-os"
+
+    def test_cursor_project_dir_anchors_default_state_dir(self, tmp_path: Path) -> None:
+        """Cursor runs hooks with cwd != repo root; COS_STATE_DIR must still resolve."""
+        fake_root = tmp_path / "repo"
+        fake_root.mkdir()
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        script = 'source "{}"; echo "$COS_STATE_DIR"'.format(HOOKS_DIR / "cos-env.sh")
+        result = subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            cwd=str(elsewhere),
+            env={
+                **{
+                    k: v
+                    for k, v in os.environ.items()
+                    if k not in ("CURSOR_PROJECT_DIR", "CLAUDE_PROJECT_DIR", "COS_STATE_DIR")
+                },
+                "HOME": str(tmp_path),
+                "CURSOR_PROJECT_DIR": str(fake_root),
+            },
+            timeout=10,
+        )
+        assert result.stdout.strip() == str(fake_root / ".coding-os")
+
+    def test_cursor_beats_claude_project_dir_alias(self, tmp_path: Path) -> None:
+        """Cursor sets CLAUDE_PROJECT_DIR as a workspace alias — must not become agent=claude."""
+        fake_root = tmp_path / "repo"
+        fake_root.mkdir()
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        script_ag = 'source "{}"; echo "$COS_AGENT"'.format(HOOKS_DIR / "cos-env.sh")
+        result = subprocess.run(
+            ["bash", "-c", script_ag],
+            capture_output=True,
+            text=True,
+            cwd=str(elsewhere),
+            env={
+                **{
+                    k: v
+                    for k, v in os.environ.items()
+                    if k
+                    not in (
+                        "CURSOR_PROJECT_DIR",
+                        "CLAUDE_PROJECT_DIR",
+                        "COS_STATE_DIR",
+                        "COS_AGENT",
+                    )
+                },
+                "HOME": str(tmp_path),
+                "CURSOR_PROJECT_DIR": str(fake_root),
+                "CLAUDE_PROJECT_DIR": str(fake_root),
+            },
+            timeout=10,
+        )
+        assert result.stdout.strip() == "cursor"
+
+    def test_agent_marker_file_fallback_without_runtime_env(self, tmp_path: Path) -> None:
+        """.coding-os/.agent is fallback when no runtime-specific env exists."""
+        st = tmp_path / "state"
+        st.mkdir()
+        (st / ".agent").write_text("cursor\n", encoding="utf-8")
+        script_ag = 'source "{}"; echo "$COS_AGENT"'.format(HOOKS_DIR / "cos-env.sh")
+        result = subprocess.run(
+            ["bash", "-c", script_ag],
+            capture_output=True,
+            text=True,
+            cwd=str(tmp_path),
+            env={
+                **{
+                    k: v
+                    for k, v in os.environ.items()
+                    if k not in ("COS_STATE_DIR", "COS_AGENT", "CURSOR_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
+                },
+                "HOME": str(tmp_path),
+                "COS_STATE_DIR": str(st),
+            },
+            timeout=10,
+        )
+        assert result.stdout.strip() == "cursor"
 
     def test_custom_state_dir(self, tmp_path: Path) -> None:
         """COS_STATE_DIR env var is respected."""

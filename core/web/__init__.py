@@ -7,7 +7,7 @@ INPUT:   none (import-time side-effect-free; call create_app() to get the app).
 OUTPUT:  FastAPI application instance via create_app().
 DEPENDENCIES: fastapi, uvicorn[standard], sse-starlette, core.graph_os,
               core.board_os, core.thinking_os.
-NOTES:  Port defaults to 4748 (env COS_WEB_PORT). CORS is locked to
+NOTES:  Port defaults to 8081 (env COS_WEB_PORT). CORS is locked to
         http://localhost:5173 (Vite dev) + same-origin unless
         COS_WEB_CORS_ALLOW_ALL=1.
 """

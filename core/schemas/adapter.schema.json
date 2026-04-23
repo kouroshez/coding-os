@@ -81,6 +81,25 @@
         }
       }
     },
+    "cursor_native_hooks": {
+      "type": "object",
+      "description": "Cursor-only native hook keys (camelCase, e.g. preCompact) merged into hooks.cursor.template.json after registry render.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["script"],
+          "additionalProperties": false,
+          "properties": {
+            "script": {
+              "type": "string",
+              "description": "Hook script basename under the adapter hooks dir (same as hook_dispatchers.script)."
+            },
+            "timeout": {"type": ["integer", "null"]}
+          }
+        }
+      }
+    },
     "hook_dispatchers": {
       "type": "array",
       "description": "Optional adapter-specific coalescing rules that replace multiple registry-derived hooks for one {event, matcher} pair with a single dispatcher script.",
@@ -113,7 +132,7 @@
       "properties": {
         "loader": {
           "type": "string",
-          "enum": ["claude_json", "codex_toml"],
+          "enum": ["claude_json", "codex_toml", "cursor_mcp_json"],
           "description": "Which parser in cli/doctor.py handles this adapter's MCP config format."
         },
         "config_paths": {

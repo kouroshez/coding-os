@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-012: I.11 Ingestion flexibility (local/github/zip + guards)
 
 **Outcome (one sentence):** Phase I slice I.11 shipped per plan.

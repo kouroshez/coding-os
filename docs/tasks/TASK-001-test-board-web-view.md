@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-001: Test board web view
 
 **Outcome (one sentence):** (fill in: one-sentence measurable outcome)

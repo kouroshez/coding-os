@@ -12,6 +12,7 @@ Public API:
                expected_from=None, bypass_wip=False) -> TransitionResult
     check_wip(conn, config) -> WipState
     validate_dependencies_no_cycle(conn, task_id, new_deps) -> list[str]
+    patch_task_frontmatter_scalars(path, updates) -> None
 """
 
 from __future__ import annotations
@@ -396,6 +397,64 @@ def _write_status_to_frontmatter(
         fm_raw = _patch_fm_field(fm_raw, "started", today)
     if new_status == "complete" and not fm_parsed.get("completed"):
         fm_raw = _patch_fm_field(fm_raw, "completed", today)
+
+    new_content = f"---\n{fm_raw}\n---\n" + content[m.end():]
+
+    tmp_fd, tmp_path = tempfile.mkstemp(
+        dir=str(path.parent), prefix=".task-", suffix=".tmp",
+    )
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
+            fh.write(new_content)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
+def _format_yaml_scalar_token(value: str) -> str:
+    """Format a scalar for YAML frontmatter (unquoted id vs JSON-quoted string)."""
+    import re as _re
+    if _re.match(r"^[a-z0-9][a-z0-9-]*$", value, _re.I):
+        return value
+    return json.dumps(value)
+
+
+def patch_task_frontmatter_scalars(path: Path, updates: dict[str, str]) -> None:
+    """
+    PURPOSE:      Atomically patch one or more scalar keys in task frontmatter.
+    INPUT:        path to TASK-*.md; updates maps YAML key -> string value.
+    OUTPUT:       none; raises on missing file / broken YAML.
+    DEPENDENCIES: same regex/YAML rules as _write_status_to_frontmatter.
+    NOTES:        Used for swimlane edits without a status transition; preserves
+                  comments and key order via _patch_fm_field.
+    """
+    if not updates:
+        return
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+
+    content = path.read_text(encoding="utf-8")
+    import re as _re
+    fm_re = _re.compile(r"^---\s*\n(.*?)\n---\s*\n", _re.DOTALL)
+    m = fm_re.match(content)
+    if not m:
+        raise ValueError(f"{path}: no frontmatter to update")
+
+    fm_raw = m.group(1)
+    try:
+        fm_parsed = yaml.safe_load(fm_raw) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{path}: frontmatter YAML broken: {exc}") from exc
+    if not isinstance(fm_parsed, dict):
+        raise ValueError(f"{path}: frontmatter is not a mapping")
+
+    for key, raw_val in updates.items():
+        token = _format_yaml_scalar_token(raw_val)
+        fm_raw = _patch_fm_field(fm_raw, key, token)
 
     new_content = f"---\n{fm_raw}\n---\n" + content[m.end():]
 

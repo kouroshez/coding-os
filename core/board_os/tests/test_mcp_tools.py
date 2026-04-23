@@ -177,6 +177,44 @@ def test_move_happy_path(project: Path, conn: sqlite3.Connection):
     assert env["data"]["new_status"] == "ready"
 
 
+def test_reposition_swimlane_only(project: Path, conn: sqlite3.Connection):
+    _parse(mcp_tools.cos_task_create(
+        conn, title="lane test", swimlane="core", kind="feature",
+    ))
+    env = _parse(
+        mcp_tools.cos_task_reposition(
+            conn, task_id="TASK-001", swimlane="docs",
+        )
+    )
+    assert env["ok"] is True
+    assert env["data"]["new_swimlane"] == "docs"
+    row = conn.execute(
+        "SELECT swimlane FROM tasks WHERE task_id = ?",
+        ("TASK-001",),
+    ).fetchone()
+    assert row[0] == "docs"
+
+
+def test_reposition_status_and_swimlane(project: Path, conn: sqlite3.Connection):
+    _parse(mcp_tools.cos_task_create(
+        conn, title="both", swimlane="core", kind="chore",
+    ))
+    env = _parse(
+        mcp_tools.cos_task_reposition(
+            conn, task_id="TASK-001", to="ready", swimlane="docs",
+        )
+    )
+    assert env["ok"] is True
+    assert env["data"]["new_status"] == "ready"
+    assert env["data"]["new_swimlane"] == "docs"
+    row = conn.execute(
+        "SELECT status, swimlane FROM tasks WHERE task_id = ?",
+        ("TASK-001",),
+    ).fetchone()
+    assert row[0] == "ready"
+    assert row[1] == "docs"
+
+
 def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
     # cap=2 per fixture; make 2 in_progress then try 3rd.
     for i in range(3):

@@ -5,18 +5,17 @@ swimlane: thinking-os
 kind: feature
 epic: phase-i
 labels: []
-status: icebox
+status: archive
 priority: P1
 appetite: "3d"
 created: 2026-04-20
-started: null
-completed: null
+started: 2026-04-22
+completed: 2026-04-22
 agent_session: null
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-010: I.9  Orchestrator — registry/dispatcher/worker_pool/roles
 
 **Outcome (one sentence):** Phase I slice I.9 shipped per plan.

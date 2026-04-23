@@ -1081,6 +1081,35 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_reposition",
+        annotations={
+            "title": "Reposition Task (status and/or swimlane)",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_reposition(
+        task_id: str,
+        swimlane: str = "",
+        to: str = "",
+        reason: str = "",
+        bypass_wip: bool = False,
+        agent_session: str = "",
+    ) -> str:
+        """Update Scrumban status and/or swimlane (MD frontmatter + sync)."""
+        return _board_mcp.cos_task_reposition(
+            _db_conn,
+            task_id=task_id,
+            swimlane=swimlane or None,
+            to=to or None,
+            reason=reason or None,
+            bypass_wip=bypass_wip,
+            agent_session=agent_session or None,
+        )
+
+    @mcp.tool(
         name="cos_task_pick",
         annotations={
             "title": "Pick Next Task to Work On",

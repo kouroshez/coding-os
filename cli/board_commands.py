@@ -74,7 +74,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
 
     PURPOSE: Replacement path for the legacy `cos board --web` viewer
              (core/board_os/viewer/, removed in S6).  Redirects to the
-             React SPA at /board served by core.web.server on port 4748.
+             React SPA at /board served by core.web.server on port 8081.
     INPUT:   host, port — overrideable web server bind.
     OUTPUT:  none.  Opens browser; blocks if it had to spawn the server.
     DEPENDENCIES: urllib (stdlib), webbrowser (stdlib), subprocess (stdlib),
@@ -124,7 +124,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
 
 @click.command("board", help="Show Scrumban board (ASCII or --web)")
 @click.option("--web", is_flag=True, default=False, help="Open board in browser (redirects to unified SPA at /board)")
-@click.option("--port", type=int, default=4748,
+@click.option("--port", type=int, default=8081,
               help="Port for the unified web server when --web is used.")
 @click.option("--host", default="127.0.0.1")
 @click.option("--bind", default=None, help="Bind address (overrides --host)")

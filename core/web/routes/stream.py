@@ -64,21 +64,25 @@ def _poll_interval_secs() -> float:
     return max(0.5, min(30.0, ms / 1000.0))
 
 
-def _read_task_status(path: Path) -> str | None:
-    """Read the status field from a TASK-*.md frontmatter.
+def _read_task_meta(path: Path) -> dict[str, str | None]:
+    """Read the status and agent_session fields from a TASK-*.md frontmatter.
 
-    PURPOSE: Extract current status without parsing full YAML.
+    PURPOSE: Extract metadata without parsing full YAML.
     INPUT:   path — the TASK-*.md file.
-    OUTPUT:  status string or None.
+    OUTPUT:  dict with status and agent_session.
     DEPENDENCIES: pathlib.
-    NOTES:   Uses a simple regex to avoid yaml dep in the hot path.
+    NOTES:   Uses simple regex to avoid yaml dep in the hot path.
     """
     try:
         content = path.read_text(encoding="utf-8", errors="replace")
-        m = re.search(r"^status:\s*(\S+)", content, re.MULTILINE)
-        return m.group(1).strip('"\'') if m else None
+        m_status = re.search(r"^status:\s*(\S+)", content, re.MULTILINE)
+        m_agent = re.search(r"^agent_session:\s*(\S+)", content, re.MULTILINE)
+        return {
+            "status": m_status.group(1).strip('"\'') if m_status else None,
+            "agent_session": m_agent.group(1).strip('"\'') if m_agent else None,
+        }
     except Exception:  # noqa: BLE001 — always return something
-        return None
+        return {"status": None, "agent_session": None}
 
 
 async def _sse_event(event_type: str, data: dict) -> str:
@@ -141,10 +145,15 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                 last_mtimes[fname] = mtime
                 m = _TASK_RE.match(fname)
                 task_id = f"TASK-{m.group(1)}" if m else fname.replace(".md", "")
-                status = _read_task_status(md_file)
+                meta = _read_task_meta(md_file)
                 yield await _sse_event(
                     "task-updated",
-                    {"task_id": task_id, "status": status, "ts": int(time.time())},
+                    {
+                        "task_id": task_id,
+                        "status": meta["status"],
+                        "agent_session": meta["agent_session"],
+                        "ts": int(time.time()),
+                    },
                 )
 
 

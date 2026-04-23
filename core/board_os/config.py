@@ -92,12 +92,24 @@ class ConfigValidationError(ValueError):
 
 @dataclass(frozen=True)
 class Swimlane:
-    """One row on the Scrumban board — a domain / subsystem / team."""
+    """One row on the Scrumban board — a domain / subsystem / team.
+
+    color  — primary band colour (lighter, used for row tint + left strip).
+    accent — darker shade for text + 3-4 px border; defaults to color if
+             not set, but picking a deliberate darker tone gives the board
+             the distinct per-lane identity the prototype was built around
+             (see docs/phase-l-scrumban-task-system-plan.md §12 and the
+             design bundle in core/web/ui/coding-os-scrumban/).
+    """
 
     id: str
     label: str
     color: str
     description: str = ""
+    accent: str = ""
+
+    def effective_accent(self) -> str:
+        return self.accent or self.color
 
 
 @dataclass(frozen=True)
@@ -208,13 +220,26 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
             label = ""
         color = sl.get("color", "#6b7280")
         _validate_color(color, f"swimlanes[{i}].color", errors)
+        accent = sl.get("accent", color)
+        _validate_color(accent, f"swimlanes[{i}].accent", errors)
         description = sl.get("description", "")
         if not isinstance(description, str):
             errors.append(f"swimlanes[{i}].description must be a string")
             description = ""
-        if isinstance(sid, str) and isinstance(label, str) and isinstance(color, str):
+        if (
+            isinstance(sid, str)
+            and isinstance(label, str)
+            and isinstance(color, str)
+            and isinstance(accent, str)
+        ):
             swimlanes.append(
-                Swimlane(id=sid, label=label, color=color, description=description)
+                Swimlane(
+                    id=sid,
+                    label=label,
+                    color=color,
+                    accent=accent,
+                    description=description,
+                )
             )
 
     # wip_limits (optional)
