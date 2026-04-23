@@ -299,6 +299,20 @@ def test_work_log_truncates_long_summary(
     assert len(summary_part) <= 120
 
 
+def test_work_log_uses_readable_agent_label_from_session(
+    project: Path, conn: sqlite3.Connection,
+):
+    _parse(mcp_tools.cos_task_create(
+        conn, title="label", swimlane="core", kind="feature",
+    ))
+    env = _parse(mcp_tools.cos_work_log_append(
+        conn, task_id="TASK-001", summary="done",
+        agent_session="ses-cursor-20260423-abc",
+    ))
+    assert env["ok"] is True
+    assert "[cursor]" in env["data"]["line_appended"]
+
+
 # ---------- cos_task_daily ----------
 
 

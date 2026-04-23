@@ -48,6 +48,21 @@ def _db_conn() -> sqlite3.Connection:
     return sqlite3.connect(db_path)
 
 
+def _agent_session_id() -> str | None:
+    """Best-effort agent session resolver for CLI-originated task transitions."""
+    sid = os.environ.get("COS_AGENT_SESSION_ID")
+    if sid:
+        return sid.strip() or None
+
+    root = _project_root()
+    if os.environ.get("CURSOR_AGENT"):
+        p = root / ".coding-os" / "cursor" / "session-id"
+        if p.exists():
+            v = p.read_text(encoding="utf-8", errors="ignore").strip()
+            return v or None
+    return None
+
+
 def _parse_envelope(envelope: str) -> dict:
     return json.loads(envelope)
 
@@ -249,7 +264,12 @@ def task_move_cmd(task_id, to, reason, force):
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
-            conn, task_id=task_id, to=to, reason=reason, bypass_wip=force,
+            conn,
+            task_id=task_id,
+            to=to,
+            reason=reason,
+            bypass_wip=force,
+            agent_session=_agent_session_id(),
         )
     finally:
         conn.close()
@@ -262,7 +282,12 @@ def _simple_move(task_id: str, to: str, *, reason: str | None = None,
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
-            conn, task_id=task_id, to=to, reason=reason, bypass_wip=force,
+            conn,
+            task_id=task_id,
+            to=to,
+            reason=reason,
+            bypass_wip=force,
+            agent_session=_agent_session_id(),
         )
     finally:
         conn.close()
@@ -279,7 +304,29 @@ def task_start_cmd(task_id, force):
 @click.command("task-done")
 @click.argument("task_id")
 def task_done_cmd(task_id):
-    _simple_move(task_id, "complete")
+    from core.board_os import mcp_tools
+    conn = _db_conn()
+    try:
+        envelope = mcp_tools.cos_task_move(
+            conn,
+            task_id=task_id,
+            to="complete",
+            agent_session=_agent_session_id(),
+        )
+        parsed = _parse_envelope(envelope)
+        if parsed.get("ok"):
+            # Codex/Cursor sessions can bypass Claude's post-write Work Log hook.
+            # Record one deterministic completion line in the task markdown.
+            mcp_tools.cos_work_log_append(
+                conn,
+                task_id=task_id,
+                summary="Status transitioned to complete via cos task-done.",
+                agent_session=_agent_session_id(),
+                source="task-done",
+            )
+    finally:
+        conn.close()
+    sys.exit(_print_envelope(envelope))
 
 
 @click.command("task-block")

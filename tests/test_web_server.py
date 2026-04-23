@@ -268,6 +268,13 @@ class TestSSEStream:
         finally:
             _stream_mod._event_generator = orig_gen
 
+    def test_stream_history_returns_envelope(self, client):
+        """GET /api/stream/history returns data or unavailable error envelope."""
+        resp = client.get("/api/stream/history", params={"limit": 5})
+        assert resp.status_code in (200, 503)
+        body = resp.json()
+        assert "data" in body or "error" in body
+
 
 # ---------------------------------------------------------------------------
 # Rate limit behavior

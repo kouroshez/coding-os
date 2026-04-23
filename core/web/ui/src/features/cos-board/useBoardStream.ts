@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiGet } from '@/lib/api-client';
 
 /**
  * Live board activity stream.
@@ -46,8 +47,23 @@ export interface UseBoardStreamReturn {
 
 interface TaskUpdatedPayload {
   task_id?: string;
+  old_status?: string | null;
+  new_status?: string | null;
   status?: string;
   agent_session?: string | null;
+}
+
+interface StreamHistoryEvent {
+  task_id?: string;
+  old_status?: string | null;
+  new_status?: string | null;
+  agent_session?: string | null;
+  reason?: string | null;
+  transitioned_at?: number;
+}
+
+interface StreamHistoryPayload {
+  events?: StreamHistoryEvent[];
 }
 
 const MAX_EVENTS = 120;
@@ -83,6 +99,39 @@ export function useBoardStream(): UseBoardStreamReturn {
       if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
       return next;
     });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHistory = async () => {
+      try {
+        const [payload] = await apiGet<StreamHistoryPayload>('/api/stream/history', { limit: 20 });
+        if (cancelled) return;
+        const seed = (payload?.events || [])
+          .filter((e) => !!e.task_id)
+          .map((e) => ({
+            id: `hist-${e.task_id}-${e.transitioned_at ?? 0}-${e.new_status ?? 'unknown'}`,
+            t: nowHMS(),
+            kind: 'task-updated' as const,
+            taskId: e.task_id || null,
+            agent: agentForSession(e.agent_session),
+            message: `history ${e.old_status ?? '?'} -> ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`,
+          }));
+        if (seed.length === 0) return;
+        setEvents((prev) => {
+          const existing = new Set(prev.map((x) => x.id));
+          const merged = [...seed.filter((x) => !existing.has(x.id)), ...prev];
+          if (merged.length > MAX_EVENTS) merged.length = MAX_EVENTS;
+          return merged;
+        });
+      } catch {
+        // best-effort bootstrap; live SSE still works.
+      }
+    };
+    void loadHistory();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -127,7 +176,10 @@ export function useBoardStream(): UseBoardStreamReturn {
           kind: 'task-updated',
           taskId: data.task_id || null,
           agent: agentForSession(data.agent_session),
-          message: `file changed → status=${data.status ?? '?'}`,
+          message:
+            data.old_status || data.new_status
+              ? `status ${data.old_status ?? '?'} -> ${data.new_status ?? data.status ?? '?'}`
+              : `file changed -> status=${data.status ?? '?'}`,
         });
       } catch {
         /* ignore malformed payload */

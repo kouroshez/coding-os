@@ -77,6 +77,35 @@ def _unavailable():
     })
 
 
+def _agent_active_from_db(conn: sqlite3.Connection, agent: str) -> bool:
+    """True when agent has recent transition or active in-progress task ownership."""
+    session_like = f"%{agent}%"
+    recent_transition = conn.execute(
+        """
+        SELECT 1
+        FROM task_status_history
+        WHERE agent_session LIKE ?
+          AND transitioned_at >= CAST(strftime('%s','now') AS INTEGER) - 300
+        LIMIT 1
+        """,
+        (session_like,),
+    ).fetchone()
+    if recent_transition:
+        return True
+
+    active_owned_task = conn.execute(
+        """
+        SELECT 1
+        FROM tasks
+        WHERE status IN ('in_progress', 'testing', 'emergency')
+          AND agent_session LIKE ?
+        LIMIT 1
+        """,
+        (session_like,),
+    ).fetchone()
+    return bool(active_owned_task)
+
+
 @router.get("/task/{task_id}")
 async def board_task_detail(
     task_id: str,
@@ -236,18 +265,12 @@ async def board_list(
     env = json.loads(result)
     if env.get("ok"):
         active_agents = ["human"]
-        project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
-        state_dir = project_root / ".coding-os"
-        now = time.time()
+        conn = _db_conn()
         for agent in ["claude", "codex", "cursor"]:
-            active = False
-            for marker in [".thinking-os-gate", ".task-current", "session-id"]:
-                marker_file = state_dir / agent / marker
-                if marker_file.exists() and (now - marker_file.stat().st_mtime) < 900:
-                    active = True
-                    break
+            active = _agent_active_from_db(conn, agent)
             if active:
                 active_agents.append(agent)
+        conn.close()
         env["data"]["active_agents"] = active_agents
 
     return JSONResponse(status_code=200 if env.get("ok") else 400, content=env)

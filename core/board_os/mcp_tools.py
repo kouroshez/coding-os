@@ -150,6 +150,31 @@ def _last_log_line(work_log_json: str | None) -> str | None:
     return lines[-1] if lines else None
 
 
+def _agent_label(agent_session: str | None) -> str:
+    """Normalize work-log actor label to a readable agent name."""
+    if agent_session:
+        s = agent_session.strip().lower()
+        if "cursor" in s:
+            return "cursor"
+        if "codex" in s:
+            return "codex"
+        if "claude" in s:
+            return "claude"
+        return agent_session.strip()[:24]
+
+    # Fallbacks when session is not provided by caller.
+    env_agent = (os.environ.get("COS_AGENT") or "").strip().lower()
+    if env_agent in {"cursor", "codex", "claude", "human"}:
+        return env_agent
+    if os.environ.get("CURSOR_AGENT"):
+        return "cursor"
+    if os.environ.get("CODEX_SESSION_ID") or os.environ.get("CODEX_AGENT_DIR"):
+        return "codex"
+    if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_SSE_PORT"):
+        return "claude"
+    return "agent"
+
+
 _BOARD_SELECT = (
     "SELECT task_id, title, swimlane, kind, epic, labels_json, "
     "       status, priority, appetite, agent_session, work_log_last_5, "
@@ -687,7 +712,7 @@ def cos_work_log_append(
         return fail("not_found", f"file missing: {file_path}")
 
     date = datetime.utcnow().strftime("%Y-%m-%d")
-    agent_label = (agent_session or "agent")[:12]
+    agent_label = _agent_label(agent_session)
     summary_trunc = summary.strip().replace("\n", " ")[:120]
     line = f"- {date} [{agent_label}]: {summary_trunc}"
 

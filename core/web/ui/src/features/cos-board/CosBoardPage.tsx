@@ -517,14 +517,23 @@ export default function CosBoardPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          position: 'relative',
+          paddingRight: streamOpen ? 396 : 0,
+          boxSizing: 'border-box',
+        }}
+      >
         <div
           style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top left',
-            width: `${100 / zoom}%`,
+            zoom,
+            width: '100%',
             minWidth: totalWidth,
-          }}
+            minHeight: '100%',
+          } as CSSProperties}
         >
           <div
             style={{
@@ -740,6 +749,16 @@ export default function CosBoardPage() {
           >
             drag cards between columns · WIP caps enforced by workflow.transition() · SSoT is the Markdown frontmatter
           </div>
+          <div
+            aria-hidden
+            style={{
+              minHeight: '40vh',
+              borderTop: '1px dashed var(--col-border)',
+              background:
+                'repeating-linear-gradient(0deg, transparent 0 39px, rgba(0,0,0,.04) 39px 40px)',
+              opacity: 0.6,
+            }}
+          />
         </div>
 
         <ZoomControls
@@ -1088,12 +1107,14 @@ function SwimlaneLabel({
         width: 130,
         minWidth: 130,
         flexShrink: 0,
+        alignSelf: 'stretch',
         padding: '12px 10px',
         background: `linear-gradient(90deg, ${alpha(palette.color, 0.14)} 0%, var(--board) 100%)`,
         borderRight: `3px solid ${palette.accent}`,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
+        boxSizing: 'border-box',
       }}
     >
       <button
@@ -1124,6 +1145,11 @@ function SwimlaneLabel({
           fontSize: 15,
           color: palette.accent,
           letterSpacing: '.02em',
+          whiteSpace: 'normal',
+          overflowWrap: 'anywhere',
+          wordBreak: 'break-word',
+          lineHeight: 1.2,
+          maxWidth: '100%',
         }}
       >
         {lane.label}
@@ -1213,6 +1239,7 @@ function TaskStickyCard({
         opacity: isDragging ? 0.4 : dimmed ? 0.22 : 1,
         filter: dimmed ? 'grayscale(0.7)' : 'none',
         borderLeft: `5px solid ${laneAccent || '#888'}`,
+        overflow: 'hidden',
         ...priorityStyle(task.priority),
       }}
     >
@@ -1301,7 +1328,11 @@ function TaskStickyCard({
           fontWeight: 700,
           fontSize: cozy ? 15 : 13.5,
           color: '#141210',
-          textWrap: 'pretty',
+          whiteSpace: 'normal',
+          overflowWrap: 'anywhere',
+          wordBreak: 'break-word',
+          hyphens: 'auto',
+          maxWidth: '100%',
           marginBottom: cozy ? 6 : 3,
           fontFamily: "'Kalam', cursive",
         }}
@@ -1330,7 +1361,7 @@ function TaskStickyCard({
           </span>
         )}
         {(task.labels || []).slice(0, cozy ? 3 : 2).map((l) => (
-          <span key={l} style={{ color: '#6b665e' }}>
+          <span key={l} style={{ color: '#6b665e', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             ·{l}
           </span>
         ))}
