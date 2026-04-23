@@ -1,4 +1,4 @@
-"""graph-os + docs unified auto-reindex dispatcher (Phase I.14).
+"""graph-os + docs unified auto-reindex dispatcher (Phase I.14, V1 cache).
 
 PURPOSE:  Called from `auto-reindex-docs.sh` PostToolUse hook. Routes
           a single file path to the correct extractor(s) based on
@@ -10,11 +10,14 @@ DEPENDS:  thinking-os/doc_indexer (for md), graph_os.extractors.*,
           graph_os.backends.sqlite_backend.
 NOTES:    Single entry point so both Claude PostToolUse (shell hook)
           and Codex opt-in background indexer can route through the
-          same code path — zero drift between adapters.
+          same code path — zero drift between adapters. V1 adds a
+          per-file content-hash cache (file_index_state, migration
+          v17) so unchanged files short-circuit the extractor pipeline.
 """
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import sys
@@ -34,6 +37,12 @@ _EXT_MAP = {
     ".go":  ("go",      ["contracts"]),
 }
 
+# Sentinel chain key stored on file_index_state for docs-only rows
+# (markdown files that pass through the RAG indexer). Keeping it
+# namespaced (``docs:md``) avoids collisions with any real extractor
+# chain name.
+_DOCS_CHAIN_KEY = "docs:md"
+
 
 def dispatch(
     file_path: str | Path,
@@ -41,14 +50,19 @@ def dispatch(
     project_root: str | Path,
     db_path: str | None = None,
     include_docs: bool = True,
+    force: bool = False,
 ) -> dict[str, Any]:
     """Re-index `file_path` in both the docs layer and the graph layer.
 
     PURPOSE:      One call, one DB, both layers updated.
-    INPUT:        absolute or repo-relative file path + project_root.
-    OUTPUT:       {status, path, layers: {docs, graph}, duration_ms}.
+    INPUT:        absolute or repo-relative file path + project_root;
+                  ``force=True`` bypasses the file_index_state cache.
+    OUTPUT:       {status, path, layers: {docs, graph}, duration_ms,
+                   cache: "hit"|"miss"|"partial"|"bypass"}.
     NOTES:        Catches every exception so the shell hook's fire-
-                  and-forget contract holds.
+                  and-forget contract holds. When every requested
+                  layer resolves via the cache, returns early without
+                  opening the backend connection.
     """
     started = time.monotonic()
     file_path = Path(file_path).resolve()
@@ -66,42 +80,325 @@ def dispatch(
         "duration_ms": 0,
     }
 
-    if include_docs and suffix == ".md":
-        try:
-            result["layers"]["docs"] = _reindex_docs(
-                file_path, project_root=project_root, db_path=db_path
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("docs reindex failed for %s: %s", rel, exc)
-            result["layers"]["docs"] = {"status": "error", "reason": str(exc)}
-
-    chain: tuple[str, list[str]] | None = None
+    # Determine which chains are in play BEFORE touching the backend —
+    # the cache lookup uses these as its composite key.
+    graph_chain: tuple[str, list[str]] | None = None
     if suffix in _EXT_MAP:
-        chain = _EXT_MAP[suffix]
+        graph_chain = _EXT_MAP[suffix]
     elif suffix == ".md":
-        chain = ("markdown", ["md_links"])
+        graph_chain = ("markdown", ["md_links"])
         if "/tasks/" in rel.replace("\\", "/"):
-            chain = ("markdown-task", ["task_deps", "md_links"])
-    if chain is not None:
-        try:
-            graph_result = _reindex_graph(
-                rel,
-                file_path,
-                chain=chain[1],
-                db_path=db_path,
-            )
-            graph_result["chain"] = chain[0]
-            result["layers"]["graph"] = graph_result
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("graph reindex failed for %s: %s", rel, exc)
-            result["layers"]["graph"] = {"status": "error", "reason": str(exc)}
+            graph_chain = ("markdown-task", ["task_deps", "md_links"])
+
+    docs_in_scope = include_docs and suffix == ".md"
+
+    # Read file content once so we can hash it + hand it to extractors.
+    file_content: str | None = None
+    read_error: str | None = None
+    try:
+        file_content = file_path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError) as exc:
+        read_error = str(exc)
+
+    content_hash: str | None = None
+    if file_content is not None:
+        content_hash = hashlib.sha256(
+            file_content.encode("utf-8", errors="replace")
+        ).hexdigest()
+
+    cache_hits: dict[str, dict[str, Any]] = {}
+    if content_hash is not None and not force:
+        cache_hits = _lookup_cache(
+            rel,
+            content_hash=content_hash,
+            graph_chain_key=graph_chain[0] if graph_chain else None,
+            graph_chain_list=graph_chain[1] if graph_chain else None,
+            docs_in_scope=docs_in_scope,
+            project_root=project_root,
+            db_path=db_path,
+        )
+
+    # ── docs layer ───────────────────────────────────────────────────
+    if docs_in_scope:
+        if "docs" in cache_hits:
+            result["layers"]["docs"] = cache_hits["docs"]
+        else:
+            try:
+                docs_layer = _reindex_docs(
+                    file_path, project_root=project_root, db_path=db_path
+                )
+                result["layers"]["docs"] = docs_layer
+                if content_hash is not None:
+                    _record_state_safe(
+                        rel,
+                        content_hash=content_hash,
+                        chain_key=_DOCS_CHAIN_KEY,
+                        nodes_written=0,
+                        edges_written=0,
+                        parse_errors_count=0,
+                        last_error=None
+                        if docs_layer.get("status") in {"ok", "unscoped"}
+                        else str(docs_layer.get("reason") or docs_layer.get("status")),
+                        project_root=project_root,
+                        db_path=db_path,
+                        advance_hash=docs_layer.get("status") in {"ok", "unscoped"},
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("docs reindex failed for %s: %s", rel, exc)
+                result["layers"]["docs"] = {"status": "error", "reason": str(exc)}
+                if content_hash is not None:
+                    _record_state_safe(
+                        rel,
+                        content_hash=content_hash,
+                        chain_key=_DOCS_CHAIN_KEY,
+                        nodes_written=0,
+                        edges_written=0,
+                        parse_errors_count=0,
+                        last_error=str(exc),
+                        project_root=project_root,
+                        db_path=db_path,
+                        advance_hash=False,
+                    )
+
+    # ── graph layer ──────────────────────────────────────────────────
+    if graph_chain is not None:
+        if "graph" in cache_hits:
+            result["layers"]["graph"] = cache_hits["graph"]
+        elif read_error is not None:
+            result["layers"]["graph"] = {
+                "status": "error",
+                "reason": f"read_failed: {read_error}",
+            }
+        else:
+            try:
+                graph_result = _reindex_graph(
+                    rel,
+                    file_content=file_content or "",
+                    chain=graph_chain[1],
+                    db_path=db_path,
+                    project_root=project_root,
+                )
+                graph_result["chain"] = graph_chain[0]
+                result["layers"]["graph"] = graph_result
+                if content_hash is not None:
+                    _record_state_safe(
+                        rel,
+                        content_hash=content_hash,
+                        chain_key=",".join(graph_chain[1]),
+                        nodes_written=int(graph_result.get("nodes_written") or 0),
+                        edges_written=int(graph_result.get("edges_written") or 0),
+                        parse_errors_count=len(
+                            graph_result.get("parse_errors") or []
+                        ),
+                        last_error=None,
+                        project_root=project_root,
+                        db_path=db_path,
+                        advance_hash=graph_result.get("status") == "ok",
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("graph reindex failed for %s: %s", rel, exc)
+                result["layers"]["graph"] = {"status": "error", "reason": str(exc)}
+                if content_hash is not None:
+                    _record_state_safe(
+                        rel,
+                        content_hash=content_hash,
+                        chain_key=",".join(graph_chain[1]),
+                        nodes_written=0,
+                        edges_written=0,
+                        parse_errors_count=0,
+                        last_error=str(exc),
+                        project_root=project_root,
+                        db_path=db_path,
+                        advance_hash=False,
+                    )
 
     if not result["layers"]:
         result["status"] = "skipped"
         result["reason"] = "no layer matched"
 
+    # Cache marker: "hit" only when *every* layer we executed came from
+    # cache. "bypass" when force=True. "miss" otherwise.
+    if force:
+        result["cache"] = "bypass"
+    elif result["layers"] and all(
+        isinstance(layer, dict) and layer.get("cache") == "hit"
+        for layer in result["layers"].values()
+    ):
+        result["cache"] = "hit"
+    elif any(
+        isinstance(layer, dict) and layer.get("cache") == "hit"
+        for layer in result["layers"].values()
+    ):
+        result["cache"] = "partial"
+    else:
+        result["cache"] = "miss"
+
     result["duration_ms"] = int((time.monotonic() - started) * 1000)
     return result
+
+
+# ---------------------------------------------------------------------------
+# file_index_state helpers
+# ---------------------------------------------------------------------------
+
+
+def _lookup_cache(
+    rel_path: str,
+    *,
+    content_hash: str,
+    graph_chain_key: str | None,
+    graph_chain_list: list[str] | None,
+    docs_in_scope: bool,
+    project_root: Path,
+    db_path: str | None,
+) -> dict[str, dict[str, Any]]:
+    """Probe ``file_index_state`` for layers whose hash+chain still match.
+
+    Returns a dict keyed by layer name (``docs`` / ``graph``) carrying a
+    pre-shaped skip envelope so the caller can slot it straight into the
+    result.  Never raises — a missing DB / table just yields no hits.
+    """
+    hits: dict[str, dict[str, Any]] = {}
+    try:
+        conn = _open_conn(project_root=project_root, db_path=db_path)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("cache lookup: conn open failed: %s", exc)
+        return hits
+    try:
+        if not _has_state_table(conn):
+            return hits
+        # Graph chain lookup — chain join must match exactly.
+        if graph_chain_list:
+            chain_key = ",".join(graph_chain_list)
+            row = conn.execute(
+                "SELECT content_hash, nodes_written, edges_written, "
+                "parse_errors_count, last_indexed_at, last_error "
+                "FROM file_index_state "
+                "WHERE file_path = ? AND extractor_chain = ?",
+                (rel_path, chain_key),
+            ).fetchone()
+            if row and row[0] == content_hash and row[5] is None:
+                hits["graph"] = {
+                    "status": "skipped",
+                    "reason": "unchanged",
+                    "cache": "hit",
+                    "chain": graph_chain_key or "",
+                    "nodes_written": int(row[1]),
+                    "edges_written": int(row[2]),
+                    "parse_errors_count": int(row[3]),
+                    "last_indexed_at": int(row[4]),
+                }
+        # Docs layer lookup.
+        if docs_in_scope:
+            row = conn.execute(
+                "SELECT content_hash, last_indexed_at, last_error "
+                "FROM file_index_state "
+                "WHERE file_path = ? AND extractor_chain = ?",
+                (rel_path, _DOCS_CHAIN_KEY),
+            ).fetchone()
+            if row and row[0] == content_hash and row[2] is None:
+                hits["docs"] = {
+                    "status": "skipped",
+                    "reason": "unchanged",
+                    "cache": "hit",
+                    "last_indexed_at": int(row[1]),
+                }
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("cache lookup failed: %s", exc)
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return hits
+
+
+def _record_state_safe(
+    rel_path: str,
+    *,
+    content_hash: str,
+    chain_key: str,
+    nodes_written: int,
+    edges_written: int,
+    parse_errors_count: int,
+    last_error: str | None,
+    project_root: Path,
+    db_path: str | None,
+    advance_hash: bool,
+) -> None:
+    """Upsert file_index_state; on failure keep previous hash (retry on next call).
+
+    ``advance_hash=False`` preserves the prior content_hash (when a row
+    exists) so a failing extractor doesn't claim the file is cached —
+    the next dispatch will retry until it succeeds.
+    """
+    try:
+        conn = _open_conn(project_root=project_root, db_path=db_path)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("state record: conn open failed: %s", exc)
+        return
+    try:
+        if not _has_state_table(conn):
+            return
+        effective_hash = content_hash
+        if not advance_hash:
+            prev = conn.execute(
+                "SELECT content_hash FROM file_index_state "
+                "WHERE file_path = ? AND extractor_chain = ?",
+                (rel_path, chain_key),
+            ).fetchone()
+            if prev is not None:
+                effective_hash = prev[0]
+        conn.execute(
+            "INSERT OR REPLACE INTO file_index_state "
+            "(file_path, content_hash, extractor_chain, nodes_written, "
+            " edges_written, parse_errors_count, last_indexed_at, last_error) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                rel_path,
+                effective_hash,
+                chain_key,
+                int(nodes_written),
+                int(edges_written),
+                int(parse_errors_count),
+                int(time.time()),
+                last_error,
+            ),
+        )
+        conn.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("state record failed for %s: %s", rel_path, exc)
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _open_conn(*, project_root: Path, db_path: str | None):
+    _ensure_thinking_os_on_path()
+    from db import init_db  # type: ignore
+
+    effective_db = db_path or os.environ.get(
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
+    )
+    return init_db(effective_db)
+
+
+def _has_state_table(conn) -> bool:
+    try:
+        row = conn.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name='file_index_state'"
+        ).fetchone()
+    except Exception:  # noqa: BLE001
+        return False
+    return row is not None
+
+
+# ---------------------------------------------------------------------------
+# Layer implementations
+# ---------------------------------------------------------------------------
 
 
 def _reindex_docs(
@@ -132,10 +429,11 @@ def _reindex_docs(
 
 def _reindex_graph(
     rel_path: str,
-    file_path: Path,
     *,
+    file_content: str,
     chain: list[str],
     db_path: str | None,
+    project_root: Path,
 ) -> dict[str, Any]:
     _ensure_core_on_path()
     _ensure_thinking_os_on_path()
@@ -161,13 +459,8 @@ def _reindex_graph(
         "task_deps": task_deps.extract,
     }
 
-    try:
-        content = file_path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError) as exc:
-        return {"status": "error", "reason": f"read_failed: {exc}"}
-
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(file_path.parents[0] / ".coding-os" / "thinking-os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
     )
     conn = init_db(effective_db)
     nodes_written = edges_written = 0
@@ -178,7 +471,7 @@ def _reindex_graph(
             extractor = extractor_map.get(extractor_name)
             if extractor is None:
                 continue
-            result = extractor(rel_path, content)
+            result = extractor(rel_path, file_content)
             parse_errors.extend(
                 {"kind": p.kind, "detail": p.detail, "line": p.line}
                 for p in result.parse_errors
@@ -219,6 +512,7 @@ def _main() -> int:
     parser.add_argument("--project-root", default=str(Path.cwd()))
     parser.add_argument("--db", default=None)
     parser.add_argument("--skip-docs", action="store_true")
+    parser.add_argument("--force", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -227,6 +521,7 @@ def _main() -> int:
         project_root=args.project_root,
         db_path=args.db,
         include_docs=not args.skip_docs,
+        force=args.force,
     )
     if args.json:
         print(json.dumps(report, indent=2, default=str))
@@ -238,7 +533,8 @@ def _main() -> int:
         ) or "no-op"
         print(
             f"[reindex] {report.get('status', 'ok')}: {report['path']} "
-            f"({layer_summary}) in {report['duration_ms']}ms"
+            f"({layer_summary}) cache={report.get('cache')} "
+            f"in {report['duration_ms']}ms"
         )
     return 0 if report.get("status") != "error" else 1
 

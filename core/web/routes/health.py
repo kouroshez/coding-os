@@ -57,4 +57,29 @@ async def health():
         result["backend_id"] = "unavailable"
         result["reason"] = str(exc)
 
+    # V1: surface file_index_state row count + last-indexed timestamp
+    # so agents (and humans on /api/health) can tell whether incremental
+    # indexing has warm data. Never fails the health check — a missing
+    # table / DB just omits the two fields' values below.
+    result["file_index_state_rows"] = None
+    result["file_index_state_last_indexed_at"] = None
+    try:
+        import db  # type: ignore
+        conn = db.init_db()
+        try:
+            if db.has_file_index_state_table(conn):
+                row = conn.execute(
+                    "SELECT COUNT(*), MAX(last_indexed_at) "
+                    "FROM file_index_state"
+                ).fetchone()
+                if row is not None:
+                    result["file_index_state_rows"] = int(row[0] or 0)
+                    result["file_index_state_last_indexed_at"] = (
+                        int(row[1]) if row[1] is not None else None
+                    )
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001 — never fail /health
+        result["file_index_state_error"] = str(exc)
+
     return result

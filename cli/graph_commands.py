@@ -288,15 +288,30 @@ def register(cli: click.Group) -> None:
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
     @click.option("--max-files", default=5000, type=int)
     @click.option(
+        "--force", "-f",
+        is_flag=True,
+        help="V1: bypass the file_index_state cache; reindex even "
+        "files whose content_hash matches the last successful run.",
+    )
+    @click.option(
+        "--status",
+        is_flag=True,
+        help="V1: print the top 50 most-recently-indexed files from "
+        "file_index_state and exit (debugging aid).",
+    )
+    @click.option(
         "--rebuild-kinds",
         is_flag=True,
         help="S3: re-run the v16 kind-normalization data migration "
         "without a full reindex. Useful after the NodeKind enum "
         "ships to canonicalise legacy colon-prefixed kinds in place.",
     )
-    def graph_reindex(path, no_docs, max_files, rebuild_kinds):
+    def graph_reindex(path, no_docs, max_files, force, status, rebuild_kinds):
         """Walk a directory and rebuild the graph via the dispatcher."""
         _bootstrap_paths()
+        if status:
+            _graph_reindex_print_status()
+            return
         if rebuild_kinds:
             # S3 data migration — idempotent; can be invoked standalone.
             try:
@@ -338,22 +353,44 @@ def register(cli: click.Group) -> None:
             finally:
                 conn.close()
 
+        import time as _time
+
         from graph_os.ingest import walk_local  # type: ignore
         from graph_os.tools.reindex_dispatch import dispatch  # type: ignore
 
         target = Path(path or Path.cwd()).resolve()
         plan = walk_local(target, max_files=max_files)
-        click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files")
-        indexed = errors = 0
+        click.echo(
+            f"[graph-reindex] walking {target}; {len(plan.files)} files "
+            f"(force={force})"
+        )
+        processed = skipped = errors = 0
+        started = _time.monotonic()
         for file_path in plan.files:
             try:
-                report = dispatch(file_path, project_root=target, include_docs=not no_docs)
-                if report.get("status") == "ok":
-                    indexed += 1
+                report = dispatch(
+                    file_path,
+                    project_root=target,
+                    include_docs=not no_docs,
+                    force=force,
+                )
+                cache = report.get("cache")
+                if cache == "hit":
+                    skipped += 1
+                    click.echo(f"[graph-reindex]   · cache-hit {report['path']}")
+                elif report.get("status") == "ok":
+                    processed += 1
+                else:
+                    # skipped-no-layer etc. still counts as non-error
+                    processed += 1
             except Exception as exc:  # noqa: BLE001
                 errors += 1
                 click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
-        click.echo(f"[graph-reindex] indexed {indexed} files; errors={errors}")
+        duration = _time.monotonic() - started
+        click.echo(
+            f"[graph-reindex] processed={processed} skipped={skipped} "
+            f"errors={errors} duration={duration:.2f}s"
+        )
 
     @cli.command(name="graph-index-local")
     @click.argument("path")
@@ -671,6 +708,59 @@ def _group_manifest_path(name: str, manifest_dir: str | None) -> Path:
     folder = root / name
     folder.mkdir(exist_ok=True)
     return folder / "group.json"
+
+
+def _graph_reindex_print_status() -> None:
+    """V1 ``--status``: print top 50 most-recently-indexed file_index_state rows.
+
+    PURPOSE:      Debugging aid — surface the per-file cache state so a
+                  human can spot stale hashes, stuck errors, or files
+                  that never re-indexed after a change.
+    INPUT:        none (uses the default thinking-os.db lookup path).
+    OUTPUT:       stdout table (file, hash[:12], indexed_at, status).
+    DEPENDENCIES: core/thinking_os/db.py (init_db),
+                  file_index_state table (migration v17).
+    NOTES:        Degrades gracefully when the table or DB is missing.
+    """
+    from datetime import datetime
+
+    _bootstrap_paths()
+    try:
+        import db  # type: ignore
+    except ImportError as exc:
+        raise click.ClickException(f"thinking-os db import failed: {exc}") from exc
+    conn = db.init_db()
+    try:
+        if not db.has_file_index_state_table(conn):
+            click.echo(
+                "[graph-reindex] file_index_state table missing "
+                "(migration v17 not applied)."
+            )
+            return
+        rows = conn.execute(
+            "SELECT file_path, content_hash, extractor_chain, "
+            "last_indexed_at, last_error FROM file_index_state "
+            "ORDER BY last_indexed_at DESC LIMIT 50"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    if not rows:
+        click.echo("[graph-reindex] file_index_state is empty.")
+        return
+
+    click.echo(
+        f"{'file_path':<60}  {'hash':<12}  {'indexed_at':<20}  status"
+    )
+    click.echo("-" * 110)
+    for file_path, chash, chain, ts, err in rows:
+        when = datetime.fromtimestamp(int(ts)).isoformat(timespec="seconds")
+        status = "error" if err else "ok"
+        chain_hint = chain[:20] + ("…" if len(chain) > 20 else "")
+        display = f"{file_path} [{chain_hint}]"
+        if len(display) > 60:
+            display = display[:57] + "..."
+        click.echo(f"{display:<60}  {chash[:12]:<12}  {when:<20}  {status}")
 
 
 def _serve_static(path: Path, *, port: int, open_browser: bool) -> None:

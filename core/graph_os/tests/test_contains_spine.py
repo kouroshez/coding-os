@@ -322,9 +322,11 @@ class TestMigrationV16:
         )
         conn.commit()
 
-        # Force re-run of v16: remove its row from schema_version so
-        # run_migrations picks it up again.
-        conn.execute("DELETE FROM schema_version WHERE version = 16")
+        # Force re-run of v16: remove v16+ rows from schema_version so
+        # run_migrations picks v16 (and any later idempotent migrations)
+        # up again. Later migrations (v17 file_index_state) must be
+        # idempotent under re-run.
+        conn.execute("DELETE FROM schema_version WHERE version >= 16")
         conn.commit()
         db.run_migrations(conn)
 

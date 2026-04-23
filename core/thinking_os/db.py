@@ -1043,6 +1043,57 @@ def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v17_file_index_state(conn: sqlite3.Connection) -> None:
+    """Migration v17 (graph-os V1): per-file content-hash cache.
+
+    PURPOSE:      V1 introduces file-level incremental indexing. The
+                  reindex_dispatch entry looks up the prior content
+                  hash + extractor chain for a file; on a match it
+                  skips the extractor pipeline entirely. This migration
+                  creates the ``file_index_state`` table that backs
+                  that cache.
+    INPUT:        sqlite3.Connection at schema v16.
+    OUTPUT:       ``file_index_state`` table + hash index created.
+    DEPENDENCIES: none (self-contained).
+    NOTES:        Append-only per Rule 9. Primary key is ``file_path``
+                  so callers get one row per file, keyed by repo-relative
+                  path. ``extractor_chain`` stores the comma-joined
+                  chain (e.g. ``code_python,contracts``) so that a
+                  different chain for the same file correctly forces a
+                  reindex rather than a false cache hit.
+    """
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS file_index_state (
+    file_path           TEXT NOT NULL,
+    content_hash        TEXT NOT NULL,
+    extractor_chain     TEXT NOT NULL,
+    nodes_written       INTEGER NOT NULL,
+    edges_written       INTEGER NOT NULL,
+    parse_errors_count  INTEGER NOT NULL DEFAULT 0,
+    last_indexed_at     INTEGER NOT NULL,
+    last_error          TEXT,
+    PRIMARY KEY (file_path, extractor_chain)
+);
+CREATE INDEX IF NOT EXISTS idx_file_index_state_hash
+    ON file_index_state(content_hash);
+"""
+    )
+    conn.commit()
+    logger.info(
+        "Migration v17 applied: file_index_state table + hash index"
+    )
+
+
+def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the file_index_state table exists (migration v17)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name='file_index_state'"
+    ).fetchone()
+    return row is not None
+
+
 def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
     """Check whether formula_dispatches exists (migration v14)."""
     row = conn.execute(
@@ -1276,6 +1327,9 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # graph-os S3: data migration — normalize graph_nodes.kind legacy values
     (16, "graph-os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
      _migrate_v16_normalize_graph_node_kinds),
+    # graph-os V1: file-level incremental indexing — file_index_state cache
+    (17, "graph-os V1: file_index_state cache table for incremental reindex",
+     _migrate_v17_file_index_state),
 ]
 
 
@@ -1465,6 +1519,7 @@ _TABLES = [
     "graph_nodes",
     "graph_edges_v12",
     "graph_evidence_v12",
+    "file_index_state",
 ]
 
 
