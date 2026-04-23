@@ -5,18 +5,17 @@ swimlane: thinking-os
 kind: feature
 epic: phase-j
 labels: []
-status: icebox
+status: archive
 priority: P2
 appetite: "2h"
 created: 2026-04-20
-started: null
-completed: null
+started: 2026-04-22
+completed: 2026-04-22
 agent_session: null
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-019: J.4  cos_retrieve MCP tool — register + envelope
 
 **Outcome (one sentence):** Phase J slice J.4 shipped per plan.

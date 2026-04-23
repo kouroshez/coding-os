@@ -22,6 +22,7 @@ export interface BoardListPayload {
     caps: Record<string, number>;
     violations: string[];
   } | null;
+  active_agents?: string[];
 }
 
 export interface SwimlaneDTO {

@@ -79,10 +79,10 @@ const COLUMN_META: Record<string, { label: string; sub: string; wip: number | nu
 };
 
 const AGENTS = [
-  { id: 'claude', color: '#d97706', glyph: 'C', session: 'ses-claude' },
-  { id: 'codex', color: '#0891b2', glyph: 'X', session: 'ses-codex' },
-  { id: 'cursor', color: '#6366f1', glyph: 'U', session: 'ses-cursor' },
-  { id: 'human', color: '#16a34a', glyph: 'H', session: 'local-mac' },
+  { id: 'claude', color: '#d97706', label: 'claude', glyph: 'C', session: 'ses-claude' },
+  { id: 'codex', color: '#0891b2', label: 'codex', glyph: 'X', session: 'ses-codex' },
+  { id: 'cursor', color: '#6366f1', label: 'cursor', glyph: 'U', session: 'ses-cursor' },
+  { id: 'human', color: '#16a34a', label: 'human', glyph: 'H', session: 'local-mac' },
 ] as const;
 
 const EVENT_COLOR: Record<string, string> = {
@@ -185,7 +185,42 @@ function priorityStyle(priority: string): CSSProperties {
   }
 }
 
-function AgentPip({ agentId, title }: { agentId?: string | null; title?: string }) {
+function AgentBadge({ agentId, active }: { agentId: string; active: boolean }) {
+  const a = AGENTS.find((x) => x.id === agentId);
+  if (!a) return null;
+  return (
+    <div
+      title={`${a.label} ${active ? '(active)' : '(offline)'}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '3px 8px 3px 6px',
+        borderRadius: 999,
+        background: active ? `${a.color}15` : 'var(--board-grain)',
+        border: `1px solid ${active ? a.color : 'var(--col-border)'}`,
+        color: active ? a.color : 'var(--ink-faint)',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 10,
+        fontWeight: 600,
+        transition: 'all 0.2s',
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          background: active ? '#16a34a' : '#dc2626',
+          boxShadow: active ? '0 0 0 2px rgba(22,163,74,.2)' : '0 0 0 2px rgba(220,38,38,.2)',
+        }}
+      />
+      {a.label}
+    </div>
+  );
+}
+
+function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; title?: string; size?: number }) {
   if (!agentId) return null;
   const a = AGENTS.find((x) => x.id === agentId);
   if (!a) return null;
@@ -196,16 +231,16 @@ function AgentPip({ agentId, title }: { agentId?: string | null; title?: string 
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 18,
-        height: 18,
+        width: size,
+        height: size,
         borderRadius: '50%',
         background: a.color,
         color: 'white',
-        fontSize: 10,
+        fontSize: Math.round(size * 0.55),
         fontWeight: 700,
         fontFamily: "'JetBrains Mono', monospace",
-        boxShadow: '0 1px 2px rgba(0,0,0,.25)',
-        border: '1.5px solid rgba(255,255,255,.8)',
+        boxShadow: '0 2px 4px rgba(0,0,0,.15)',
+        border: '2px solid rgba(255,255,255,0.85)',
       }}
     >
       {a.glyph}
@@ -442,6 +477,7 @@ export default function CosBoardPage() {
         stats={stats}
         taskCount={list?.count ?? 0}
         connected={connected}
+        activeAgents={list?.active_agents ?? ['human']}
         legendOpen={legendOpen}
         streamOpen={streamOpen}
         onToggleLegend={() => setLegendOpen((v) => !v)}
@@ -799,6 +835,7 @@ function TopBar({
   stats,
   taskCount,
   connected,
+  activeAgents,
   legendOpen,
   streamOpen,
   onToggleLegend,
@@ -809,6 +846,7 @@ function TopBar({
   stats: BoardStats;
   taskCount: number;
   connected: boolean;
+  activeAgents: string[];
   legendOpen: boolean;
   streamOpen: boolean;
   onToggleLegend: () => void;
@@ -866,35 +904,32 @@ function TopBar({
       <div style={{ flex: 1 }} />
 
       {/* LIVE STATUS + ACTIONS */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
         <div
           title={`${taskCount} tasks · sse ${connected ? 'online' : 'offline'}`}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '4px 10px',
-            borderRadius: 999,
-            border: '1px solid var(--col-border)',
-            background: 'var(--col-bg)',
           }}
         >
-          <span style={{ color: 'var(--ink-faint)', fontSize: 10 }}>live</span>
-          {AGENTS.map((a) => (
-            <AgentPip key={a.id} agentId={a.id} />
-          ))}
+          <span style={{ color: 'var(--ink-faint)', fontSize: 13 }}>live:</span>
+          <div style={{ display: 'flex', gap: 5 }}>
+            {AGENTS.map((a) => (
+              <AgentBadge key={a.id} agentId={a.id} active={activeAgents.includes(a.id)} />
+            ))}
+          </div>
           <span
-            aria-label={connected ? 'SSE online' : 'SSE offline'}
             style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: connected ? '#16a34a' : '#c0392b',
-              boxShadow: connected ? '0 0 0 2px rgba(22,163,74,.15)' : '0 0 0 2px rgba(192,57,43,.15)',
-              animation: connected ? 'pulse 1.8s ease-in-out infinite' : 'none',
+              color: connected ? '#16a34a' : 'var(--ink-faint)',
+              fontSize: 13,
+              fontWeight: 600,
+              marginLeft: 4,
             }}
-          />
-          <span style={{ color: 'var(--ink-faint)', fontSize: 10 }}>· {taskCount}</span>
+          >
+            {connected ? 'sse' : 'off'}
+          </span>
+          <span style={{ color: 'var(--ink-faint)', fontSize: 13 }}>· {taskCount}</span>
         </div>
 
         <div style={{ width: 1, height: 22, background: 'var(--col-border)', margin: '0 2px' }} />
@@ -1853,14 +1888,13 @@ function LegendPanel({
         </LegendSection>
 
         <LegendSection title="Agent — corner pip">
-          <div style={{ display: 'flex', gap: 8, padding: '3px 5px' }}>
+          <div style={{ display: 'flex', gap: 8, padding: '3px 5px', flexWrap: 'wrap' }}>
             {AGENTS.map((a) => (
               <div
                 key={a.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink)' }}
               >
-                <AgentPip agentId={a.id} />
-                <span>{a.id}</span>
+                <AgentBadge agentId={a.id} active={true} />
               </div>
             ))}
           </div>

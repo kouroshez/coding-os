@@ -230,7 +230,27 @@ async def board_list(
         )
     finally:
         conn.close()
-    return unwrap(result)
+
+    import json
+    import time
+    env = json.loads(result)
+    if env.get("ok"):
+        active_agents = ["human"]
+        project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+        state_dir = project_root / ".coding-os"
+        now = time.time()
+        for agent in ["claude", "codex", "cursor"]:
+            active = False
+            for marker in [".thinking-os-gate", ".task-current", "session-id"]:
+                marker_file = state_dir / agent / marker
+                if marker_file.exists() and (now - marker_file.stat().st_mtime) < 900:
+                    active = True
+                    break
+            if active:
+                active_agents.append(agent)
+        env["data"]["active_agents"] = active_agents
+
+    return JSONResponse(status_code=200 if env.get("ok") else 400, content=env)
 
 
 @router.post("/create")
