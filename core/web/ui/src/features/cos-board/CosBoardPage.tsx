@@ -30,16 +30,16 @@ interface Highlight {
 }
 
 interface BoardStats {
-  throughput: number;
-  throughputLast7: number;
-  leadTime: number;
-  leadTimeP90: number;
-  cycleTime: number;
+  throughput: number | null;
+  throughputLast7: number | null;
+  leadTime: number | null;
+  leadTimeP90: number | null;
+  cycleTime: number | null;
   wipTotal: number;
   wipCap: number;
   wipOver: number;
-  blocked: number;
-  stale: number;
+  blocked: number | null;
+  stale: number | null;
   p0: number;
   emergency: number;
 }
@@ -64,6 +64,11 @@ interface CreateTaskForm {
 interface CreateTaskResponse {
   task_id?: string;
   data?: { task_id?: string };
+}
+
+interface RetroMetricsPayload {
+  completed_count?: number;
+  cycle_time_avg_minutes?: number | null;
 }
 
 // ---------- static data (prototype parity) ----------
@@ -262,9 +267,13 @@ export default function CosBoardPage() {
     { limit: 400, include_archive: true },
   );
   const { data: cfg } = useApiGet<BoardConfigPayload>(['board-config'], '/api/board/config');
+  const { data: retro } = useApiGet<RetroMetricsPayload>(['board-retro-7d'], '/api/board/retro', { since: '7d' });
 
   useEffect(() => {
-    if (bump > 0) void qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+    if (bump > 0) {
+      void qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+      void qc.invalidateQueries({ queryKey: ['board-retro-7d'] });
+    }
   }, [bump, qc]);
 
   const [zoom, setZoom] = useState<number>(() => {
@@ -360,6 +369,12 @@ export default function CosBoardPage() {
   }, [cards]);
 
   const stats = useMemo<BoardStats>(() => {
+    const retroThroughput = typeof retro?.completed_count === 'number' ? retro.completed_count : null;
+    const cycleAvgMinutes = retro?.cycle_time_avg_minutes;
+    const retroCycleDays =
+      typeof cycleAvgMinutes === 'number' && Number.isFinite(cycleAvgMinutes)
+        ? Number((cycleAvgMinutes / (60 * 24)).toFixed(1))
+        : null;
     const wipCols = columns.filter((c) => columnWipCap(c.id, cfg?.wip_limits) != null);
     const wipTotal = cards.filter((t) => ['in_progress', 'testing', 'emergency'].includes(t.status)).length;
     const wipCap = wipCols.reduce((a, c) => a + (columnWipCap(c.id, cfg?.wip_limits) || 0), 0);
@@ -368,20 +383,20 @@ export default function CosBoardPage() {
       return cap != null && cards.filter((t) => t.status === c.id).length > cap;
     }).length;
     return {
-      throughput: 14,
-      throughputLast7: 11,
-      leadTime: 4.2,
-      leadTimeP90: 9.1,
-      cycleTime: 2.1,
+      throughput: retroThroughput,
+      throughputLast7: retroThroughput,
+      leadTime: null,
+      leadTimeP90: null,
+      cycleTime: retroCycleDays,
       wipTotal,
       wipCap: wipCap || 6,
       wipOver,
       blocked: cards.filter((t) => t.status === 'blocked').length,
-      stale: 0,
+      stale: null,
       p0: cards.filter((t) => t.priority === 'P0' && !['complete', 'archive'].includes(t.status)).length,
       emergency: cards.filter((t) => t.status === 'emergency').length,
     };
-  }, [cards, columns, cfg?.wip_limits]);
+  }, [cards, columns, cfg?.wip_limits, retro?.completed_count, retro?.cycle_time_avg_minutes]);
 
   const kindOptions = useMemo<{ value: string; label: string }[]>(
     () => [{ value: 'all', label: 'all' }, ...Object.keys(KIND_COLORS).map((k) => ({ value: k, label: kindStyle(k).label }))],
@@ -443,6 +458,7 @@ export default function CosBoardPage() {
         swimlane: dragging.swimlane === laneId ? undefined : laneId,
       });
       await qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+      await qc.invalidateQueries({ queryKey: ['board-retro-7d'] });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'move failed';
       setActionError(msg);
@@ -788,6 +804,7 @@ export default function CosBoardPage() {
             });
             setTimeout(() => setJustCreated(null), 2800);
             await qc.invalidateQueries({ queryKey: ['/api/board/list'] });
+            await qc.invalidateQueries({ queryKey: ['board-retro-7d'] });
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'create failed';
             setActionError(msg);
@@ -885,9 +902,19 @@ function TopBar({
           boxShadow: '0 1px 2px rgba(0,0,0,.05)',
         }}
       >
-        <StatCell label="THROUGHPUT" value={stats.throughput} unit="/wk" hint={`last 7d: ${stats.throughputLast7}`} />
-        <StatCell label="LEAD TIME" value={stats.leadTime} unit="d p50" hint={`p90 ${stats.leadTimeP90}d`} />
-        <StatCell label="CYCLE" value={stats.cycleTime} unit="d p50" />
+        <StatCell
+          label="THROUGHPUT"
+          value={stats.throughput}
+          unit="/wk"
+          hint={stats.throughputLast7 != null ? `last 7d: ${stats.throughputLast7}` : 'retro metrics unavailable'}
+        />
+        <StatCell
+          label="LEAD TIME"
+          value={stats.leadTime}
+          unit="d p50"
+          hint={stats.leadTimeP90 != null ? `p90 ${stats.leadTimeP90}d` : 'not tracked yet'}
+        />
+        <StatCell label="CYCLE" value={stats.cycleTime} unit="d p50" hint={stats.cycleTime != null ? '' : 'from retro'} />
         <StatCell
           label="WIP"
           value={stats.wipTotal}
@@ -895,7 +922,7 @@ function TopBar({
           tone={stats.wipOver ? 'red' : null}
           hint={stats.wipOver ? `${stats.wipOver} col over cap` : 'within caps'}
         />
-        <StatCell label="BLOCKED" value={stats.blocked} unit="" tone={stats.blocked > 0 ? 'amber' : null} />
+        <StatCell label="BLOCKED" value={stats.blocked} unit="" tone={(stats.blocked ?? 0) > 0 ? 'amber' : null} />
         <StatCell label="STALE" value={stats.stale} unit="" hint=">3d idle" />
         <StatCell label="P0" value={stats.p0} unit="open" tone={stats.p0 > 0 ? 'red' : null} />
         <StatCell label="EMERG" value={stats.emergency} unit="" tone={stats.emergency > 0 ? 'red' : null} last />
@@ -1002,13 +1029,16 @@ function StatCell({
   last,
 }: {
   label: string;
-  value: number | string;
+  value: number | string | null;
   unit?: string;
   hint?: string;
   tone?: 'red' | 'amber' | null;
   last?: boolean;
 }) {
   const color = tone === 'red' ? '#dc2626' : tone === 'amber' ? '#ea580c' : 'var(--ink)';
+  const isMissing = value == null;
+  const displayValue = isMissing ? '—' : value;
+  const displayUnit = isMissing ? undefined : unit;
   return (
     <div
       title={hint || ''}
@@ -1028,8 +1058,8 @@ function StatCell({
         {label}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
-        {unit && <span style={{ fontSize: 9, color: 'var(--ink-faint)' }}>{unit}</span>}
+        <span style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1 }}>{displayValue}</span>
+        {displayUnit && <span style={{ fontSize: 9, color: 'var(--ink-faint)' }}>{displayUnit}</span>}
       </div>
     </div>
   );
