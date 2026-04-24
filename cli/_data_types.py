@@ -180,6 +180,10 @@ class AdapterProfile:
     source_dir: Path
     mcp_helper: str | None = None         # relative path (from adapters/<id>/) to MCP install helper, if any
     mcp_launch: McpLaunchSpec | None = None
+    # Env vars whose presence identifies this agent's runtime.  Read by
+    # cli/board_commands.py::_detect_agent_runtime so the CLI can attribute
+    # task transitions without hardcoded adapter-name literals (rule #11).
+    runtime_env_markers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

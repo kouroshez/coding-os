@@ -164,6 +164,14 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
             paths.append(McpLaunchConfigPath(scope=scope, path=path_val))
         mcp_launch = McpLaunchSpec(loader=loader, config_paths=tuple(paths))
 
+    runtime_env_markers_raw = data.get("runtime_env_markers") or []
+    if not isinstance(runtime_env_markers_raw, list) or not all(
+        isinstance(v, str) and v for v in runtime_env_markers_raw
+    ):
+        raise AdapterManifestError(
+            f"{manifest_path}: 'runtime_env_markers' must be a list of non-empty strings"
+        )
+
     return AdapterProfile(
         id=adapter_id,
         label=str(_require(data, "label", manifest_path)),
@@ -182,6 +190,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
         source_dir=source_dir,
         mcp_helper=mcp_helper,
         mcp_launch=mcp_launch,
+        runtime_env_markers=tuple(runtime_env_markers_raw),
     )
 
 

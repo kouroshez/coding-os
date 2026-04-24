@@ -48,19 +48,120 @@ def _db_conn() -> sqlite3.Connection:
     return sqlite3.connect(db_path)
 
 
+def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
+    """Load adapter ids + their runtime env markers from adapter registry.
+
+    PURPOSE: Keep _detect_agent_runtime data-driven — the function does
+             not hardcode agent-name string literals; it iterates over
+             whatever adapters declare their markers in adapter.yaml.
+    OUTPUT:  (set_of_ids, {id: tuple_of_env_var_names}).  When the
+             adapters dir isn't reachable (e.g. a consumer install with
+             no adapters/ tree), returns empty structures; callers fall
+             back to the .coding-os/.agent marker.
+    """
+    adapters_dir = Path(__file__).resolve().parent.parent / "adapters"
+    try:
+        from cli.adapter_registry import load_adapter_registry
+        reg = load_adapter_registry(adapters_dir)
+    except Exception as exc:  # noqa: BLE001 — detection never fatal
+        import logging as _logging
+        _logging.getLogger("cli.board_commands").debug(
+            "adapter registry unreachable, agent detection degrades to marker-only: %s",
+            exc,
+        )
+        return frozenset(), {}
+    ids = frozenset(reg.keys())
+    markers = {aid: tuple(p.runtime_env_markers) for aid, p in reg.items()}
+    return ids, markers
+
+
+def _detect_agent_runtime() -> str | None:
+    """Detect which agent runtime is invoking this CLI process.
+
+    PURPOSE: Mirror core/hooks/cos-env.sh priority so agent_session
+             attribution in the DB matches what the hook layer records.
+    INPUT:   COS_AGENT override, runtime env vars declared in each
+             adapter.yaml::runtime_env_markers, .coding-os/.agent marker,
+             CLAUDE_PROJECT_DIR legacy fallback.
+    OUTPUT:  One of the registered adapter ids (discovered at load time
+             from adapters/<id>/adapter.yaml), or None.
+    NOTES:   Vendor env vars (CURSOR_*, CLAUDE_*, CODEX_*) are declared
+             in adapter.yaml — NOT hardcoded here — so adding a new agent
+             is data-only (rule #11 compliance).
+    DRIFT WARNING: The same priority table is maintained in shell form
+             at core/hooks/cos-env.sh.  Update both sides when changing
+             priorities.  Only the adapter-id names are data-driven; the
+             overall ordering (explicit override → vendor markers →
+             marker file → legacy Claude alias) lives in both files.
+    """
+    known_ids, markers_by_id = _known_agent_ids()
+
+    explicit = (os.environ.get("COS_AGENT") or "").strip().lower()
+    if explicit and explicit in known_ids:
+        return explicit
+
+    # Priority is explicit and shared with hook-layer expectations:
+    # claude -> codex -> cursor. Any other adapters are appended in
+    # stable order so detection remains deterministic.
+    ordered_ids = [
+        aid for aid in ("claude", "codex", "cursor") if aid in known_ids
+    ] + sorted(aid for aid in known_ids if aid not in {"claude", "codex", "cursor"})
+    for agent_id in ordered_ids:
+        for env_key in markers_by_id.get(agent_id, ()):
+            if os.environ.get(env_key):
+                return agent_id
+
+    marker = _project_root() / ".coding-os" / ".agent"
+    if marker.is_file():
+        try:
+            raw = marker.read_text(encoding="utf-8", errors="ignore").strip().lower()
+        except OSError:  # noqa: BLE001 — fallback to env-only detection
+            raw = ""
+        if raw and raw in known_ids:
+            return raw
+
+    # Legacy compatibility marker: Cursor also sets CLAUDE_PROJECT_DIR, so
+    # only trust it when no stronger signal fired.  The target adapter id
+    # is looked up rather than hardcoded so the Claude rename never
+    # strands this path.
+    if os.environ.get("CLAUDE_PROJECT_DIR"):
+        for aid in known_ids:
+            if any(
+                env_key.startswith("CLAUDE")
+                for env_key in markers_by_id.get(aid, ())
+            ):
+                return aid
+    return None
+
+
 def _agent_session_id() -> str | None:
-    """Best-effort agent session resolver for CLI-originated task transitions."""
+    """Best-effort agent session resolver for CLI-originated task transitions.
+
+    PURPOSE: Supply a stable agent-prefixed session id (ses-<agent>-...)
+             so `task_status_history.agent_session` captures who moved
+             each task. The stream / retro / active-agents surfaces all
+             read from this column.
+    INPUT:   COS_AGENT_SESSION_ID (explicit override); runtime env
+             markers; per-agent session-id files under
+             $COS_STATE_DIR/<agent>/session-id.
+    OUTPUT:  The session id string or None (treated as "human action").
+    DEPENDENCIES: _detect_agent_runtime, _project_root.
+    """
     sid = os.environ.get("COS_AGENT_SESSION_ID")
     if sid:
         return sid.strip() or None
 
-    root = _project_root()
-    if os.environ.get("CURSOR_AGENT"):
-        p = root / ".coding-os" / "cursor" / "session-id"
-        if p.exists():
-            v = p.read_text(encoding="utf-8", errors="ignore").strip()
-            return v or None
-    return None
+    runtime = _detect_agent_runtime()
+    if runtime is None:
+        return None
+    p = _project_root() / ".coding-os" / runtime / "session-id"
+    if not p.exists():
+        return None
+    try:
+        raw = p.read_text(encoding="utf-8", errors="ignore").strip()
+    except OSError:
+        return None
+    return raw or None
 
 
 def _parse_envelope(envelope: str) -> dict:
@@ -240,6 +341,7 @@ def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels,
             labels=[l.strip() for l in labels.split(",") if l.strip()],
             outcome=outcome,
             depends_on=[d.strip() for d in depends_on.split(",") if d.strip()],
+            agent_session=_agent_session_id(),
         )
     finally:
         conn.close()
@@ -250,7 +352,13 @@ def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels,
 @click.argument("task_id")
 @click.option("--to", required=True)
 @click.option("--reason", default=None)
-@click.option("--force", is_flag=True, default=False, help="Bypass WIP cap")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Override WIP caps AND state-machine validation "
+         "(e.g. archive → in_progress after an accidental archive).",
+)
 def task_move_cmd(task_id, to, reason, force):
     from core.board_os import mcp_tools
     conn = _db_conn()
@@ -261,6 +369,7 @@ def task_move_cmd(task_id, to, reason, force):
             to=to,
             reason=reason,
             bypass_wip=force,
+            force=force,
             agent_session=_agent_session_id(),
         )
     finally:

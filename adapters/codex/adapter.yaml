@@ -11,6 +11,13 @@ supports_rules: true
 supports_settings_json: true
 install_script: install.sh
 
+# Env vars the Codex CLI runtime exports.  Same purpose as the field on
+# the Claude adapter — keeps agent detection data-driven (rule #11).
+runtime_env_markers:
+  - CODEX_SESSION_ID
+  - CODEX_AGENT_DIR
+  - CODEX_HOME
+
 # Helper script invoked by `cos setup-mcp` / `cli/main.py` to write Codex
 # MCP config safely (TOML-aware).
 mcp_helper: ensure_codex_mcp.py
@@ -60,6 +67,7 @@ hook_dispatchers:
       - block-dangerous-commands.sh
       - block-uv-heredoc.sh
       - enforce-verify.sh
+      - agent-presence.sh
   - event: SessionStart
     matcher: startup
     script: codex-sessionstart-dispatch.sh
@@ -68,6 +76,7 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - remind-daily.sh
+      - agent-presence.sh
   - event: SessionStart
     matcher: resume
     script: codex-sessionstart-dispatch.sh
@@ -76,6 +85,7 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - remind-daily.sh
+      - agent-presence.sh
   - event: Stop
     matcher: ""
     script: codex-stop-dispatch.sh
@@ -84,8 +94,16 @@ hook_dispatchers:
     delegates:
       - session-end.sh
       - check-capture-worked.sh
+      - agent-presence.sh
   - event: PostToolUse
     matcher: Bash
     script: remind-learn-validate.sh
     delegates:
       - remind-learn-validate.sh
+      - agent-presence.sh
+  - event: UserPromptSubmit
+    matcher: ""
+    script: codex-userpromptsubmit-dispatch.sh
+    delegates:
+      - session-context.sh
+      - agent-presence.sh

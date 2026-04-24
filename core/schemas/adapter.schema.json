@@ -65,6 +65,11 @@
       "type": ["string", "null"],
       "description": "Relative filename within adapters/<id>/ where cli/hook_renderer.py writes the rendered template (e.g. settings.template.json for claude, hooks.template.json for codex). Null if this adapter does not consume the hook registry."
     },
+    "runtime_env_markers": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Environment variables whose presence identifies this adapter's runtime. Consumed by cli/board_commands.py::_detect_agent_runtime to attribute task_status_history.agent_session — avoids hardcoded adapter-name literals in CLI code (rule #11)."
+    },
     "hook_capabilities": {
       "type": "object",
       "description": "Which {event, matcher} pairs this adapter can actually trigger. Drives cli/hook_renderer.py when rendering adapter-specific settings from core/hooks/registry.yaml. Key = event name (PreToolUse, PostToolUse, Stop, SessionStart, UserPromptSubmit).",
