@@ -1085,6 +1085,32 @@ CREATE INDEX IF NOT EXISTS idx_file_index_state_hash
     )
 
 
+def _migrate_v18_retrieval_router_log(conn: sqlite3.Connection) -> None:
+    """Migration v18 (Phase J.3): retrieval_router_log append-only table."""
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS retrieval_router_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    query_hash      TEXT NOT NULL,
+    query_shape     TEXT NOT NULL,
+    confidence      REAL NOT NULL,
+    chosen_layer    TEXT,
+    fanout_layers   TEXT,
+    bytes_returned  INTEGER,
+    truncated       INTEGER DEFAULT 0,
+    agent_override  TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_router_log_created
+    ON retrieval_router_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_router_log_shape
+    ON retrieval_router_log(query_shape);
+"""
+    )
+    conn.commit()
+    logger.info("Migration v18 applied: retrieval_router_log table + indexes")
+
+
 def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
     """Check whether the file_index_state table exists (migration v17)."""
     row = conn.execute(
@@ -1330,6 +1356,9 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # graph-os V1: file-level incremental indexing — file_index_state cache
     (17, "graph-os V1: file_index_state cache table for incremental reindex",
      _migrate_v17_file_index_state),
+    # Phase J.3: retrieval router telemetry table
+    (18, "Phase J.3 retrieval router telemetry: retrieval_router_log table",
+     _migrate_v18_retrieval_router_log),
 ]
 
 
@@ -1357,7 +1386,11 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
         A configured sqlite3.Connection.
     """
     path = str(db_path or DEFAULT_DB_PATH)
-    conn = sqlite3.connect(path, timeout=10)
+    # check_same_thread=False: single-writer model enforced by SqliteBackend's
+    # RLock + WAL. Without this, any consumer that shares the connection
+    # across threads (e.g. MCP server, web routes, test harness) hits
+    # sqlite3.ProgrammingError. Matches get_pooled_conn above.
+    conn = sqlite3.connect(path, timeout=10, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     _apply_pragmas(conn)
     return conn
@@ -1520,6 +1553,7 @@ _TABLES = [
     "graph_edges_v12",
     "graph_evidence_v12",
     "file_index_state",
+    "retrieval_router_log",
 ]
 
 
