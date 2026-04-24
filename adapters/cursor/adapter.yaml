@@ -11,6 +11,14 @@ supports_rules: true
 supports_settings_json: true
 install_script: install.sh
 
+# Env vars the Cursor IDE runtime exports.  Keeps agent detection in
+# cli/board_commands.py data-driven (rule #11) and matches the priority
+# in core/hooks/cos-env.sh.
+runtime_env_markers:
+  - CURSOR_AGENT
+  - CURSOR_PROJECT_DIR
+  - CURSOR_VERSION
+
 # MCP — project `.cursor/mcp.json`.
 mcp_launch:
   loader: cursor_mcp_json
@@ -30,9 +38,9 @@ hook_registry_output: hooks.cursor.template.json
 #   Skill -> Task
 hook_capabilities:
   PreToolUse:
-    matchers: [Bash, "Write|Edit", Skill]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
   PostToolUse:
-    matchers: [Bash, "Write|Edit", Skill]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
   Stop:
     matchers: [""]
   SessionStart:

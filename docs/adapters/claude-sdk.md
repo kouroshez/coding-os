@@ -1,4 +1,9 @@
+<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-04-24 -->
 # Claude-SDK Dispatcher — `adapters/claude/sdk_dispatcher.py`
+
+Purpose: Explain how the Claude adapter spawns formula-agent sub-sessions via `claude-agent-sdk`.
+Read when: touching `adapters/claude/sdk_dispatcher.py`, debugging formula dispatch, enabling the claude-sdk extra.
+Skip when: other adapters, retrieval, board-os.
 
 > Nav: [AGENTS.md](../../AGENTS.md) › [adapters](../adapters/) › **claude-sdk**
 > Introduced: 2026-04-20 (Phase N.SDK slice)

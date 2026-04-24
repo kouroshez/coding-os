@@ -28,7 +28,7 @@ if str(_CORE_DIR) not in sys.path:
 from mcp.server.fastmcp import FastMCP
 
 from db import get_db_stats, init_db
-from tools._shared import ok, safe_tool
+from tools._shared import fail, ok, safe_tool
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -276,6 +276,54 @@ def cos_metric_trend(
 # Memory tools (TASK-142)
 # ---------------------------------------------------------------------------
 @mcp.tool(
+    name="cos_observation_record",
+    annotations={
+        "title": "Record Observation (manual capture)",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_observation_record(
+    file_path: str,
+    tool_name: str = "Edit",
+) -> str:
+    """Record an observation explicitly.
+
+    PURPOSE:      Adapter-parity escape hatch. Claude and Cursor auto-capture
+                  every Write/Edit/MultiEdit through the PostToolUse hook;
+                  Codex's hook capability is Bash-only so its edits never
+                  reach the memory layer. Codex agents call this tool after
+                  every code-edit turn to keep the observation / concept-graph
+                  / embedding pipeline populated on parity with the other
+                  adapters.
+    INPUT:        file_path — repo-relative or absolute path of the edited
+                               file.
+                  tool_name — one of Write / Edit / MultiEdit (default Edit).
+    OUTPUT:       envelope {status, id?} where status ∈ {captured, deduped,
+                  filtered, skipped, rejected}.
+    DEPENDENCIES: capture.capture_observation (fire-and-forget internally);
+                  observations + observations_fts + embeddings tables (v5+).
+    NOTES:        Idempotent within the 30 s dedup window. Safe to call
+                  repeatedly — duplicates collapse on content_hash. Callers
+                  must have a valid session via $COS_AGENT_DIR/session-id
+                  or the row is tagged ses-anonymous-<pid>.
+    """
+    from capture import capture_observation
+    tool_name = (tool_name or "Edit").strip()
+    if tool_name not in {"Write", "Edit", "MultiEdit"}:
+        return fail("validation",
+                    f"tool_name must be Write|Edit|MultiEdit, got {tool_name!r}")
+    if not file_path:
+        return fail("validation", "file_path is required")
+    payload = {"tool_name": tool_name, "tool_input": {"file_path": file_path}}
+    result = capture_observation(payload)
+    return ok(result, meta={"layer": "memory", "source": "cos_observation_record"})
+
+
+@mcp.tool(
     name="cos_search",
     annotations={
         "title": "Search Thinking OS Memory",
@@ -430,6 +478,54 @@ def thinking_os_promote_tool(
 # ---------------------------------------------------------------------------
 # Learning tools (TASK-144)
 # ---------------------------------------------------------------------------
+def _persist_learn_suggestions_safe(result: dict) -> None:
+    """Append surfaced pattern ids to $COS_AGENT_DIR/.learn-suggestions.
+
+    PURPOSE:      Feed the remind-learn-validate.sh Stop-hook with the
+                  patterns this task saw, so the agent gets a concrete
+                  reminder to call cos_learn_validate after task-done.
+                  Without the file, the learning loop one-way drifts.
+    INPUT:        result dict returned from learn_suggest (expected key
+                  'suggestions' → list of {id, pattern}).
+    OUTPUT:       none; writes to file fire-and-forget.
+    NOTES:        Never raises. Truncation is the hook's job, not ours.
+    """
+    try:
+        import os as _os
+        from pathlib import Path as _P
+        agent_dir = _os.environ.get("COS_AGENT_DIR")
+        if not agent_dir:
+            state_dir = _P(_os.environ.get("COS_STATE_DIR", ".coding-os"))
+            agent = _os.environ.get("COS_AGENT", "")
+            if not agent:
+                marker = state_dir / ".agent"
+                if marker.exists():
+                    agent = marker.read_text(encoding="utf-8").strip()
+            if agent:
+                agent_dir = str(state_dir / agent)
+        if not agent_dir:
+            return
+        suggestions = (result or {}).get("suggestions") or []
+        if not suggestions:
+            return
+        target = _P(agent_dir) / ".learn-suggestions"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        lines: list[str] = []
+        for s in suggestions:
+            if not isinstance(s, dict):
+                continue
+            pid = s.get("id")
+            txt = (s.get("pattern") or "").replace("\t", " ").replace("\n", " ")
+            if pid is None:
+                continue
+            lines.append(f"{pid}\t{txt}")
+        if lines:
+            with target.open("a", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+    except Exception as exc:  # noqa: BLE001 — never fail learn_suggest
+        logger.debug("_persist_learn_suggestions_safe swallowed: %s", exc)
+
+
 @mcp.tool(
     name="cos_learn_extract",
     annotations={
@@ -495,6 +591,10 @@ def cos_learn_suggest(
         task_type=task_type or None,
         limit=limit,
     )
+    # Phase G.4 — persist the suggestion set so remind-learn-validate.sh
+    # can prompt the agent to close the loop after task-done. One line
+    # per pattern, format "id<TAB>text" — the hook prints a slice.
+    _persist_learn_suggestions_safe(result)
     return ok(result, meta={"layer": "learning",
                             "filters_applied": {"domain": domain or None,
                                                 "complexity": complexity or None,

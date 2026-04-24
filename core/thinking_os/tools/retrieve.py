@@ -92,9 +92,41 @@ def _read_session_id() -> str:
     return "ses-unknown"
 
 
+_TASK_ID_PATTERN = __import__("re").compile(r"\bTASK-\d+\b")
+
+
+def _normalize_task_id(raw: str) -> str:
+    """Extract a canonical task identifier from a `.task-current` payload.
+
+    PURPOSE:      write-state.sh prepends a session id to every state file so
+                  stale markers can be detected across sessions. When the
+                  payload includes a TASK-NNN token anywhere, that is the
+                  identifier the board cares about; otherwise return the
+                  slug portion so downstream consumers keep a stable key.
+    INPUT:        raw value read from `.task-current` (may be empty).
+    OUTPUT:       canonical task id — `TASK-NNN` when present, else the
+                  slug minus the leading `ses-…` session token.
+    NOTES:        Never returns an empty string — falls back to the raw
+                  trimmed text so callers keep at least SOME correlation
+                  key for retrieval feedback.
+    """
+    if not raw:
+        return raw
+    s = raw.strip()
+    m = _TASK_ID_PATTERN.search(s)
+    if m:
+        return m.group(0)
+    parts = s.split(maxsplit=1)
+    if parts and parts[0].startswith("ses-") and len(parts) > 1:
+        return parts[1].strip()
+    return s
+
+
 def _read_current_task() -> Optional[str]:
     """Return the active task id/slug from agent-private state, or None.
-    Same resolution order as _read_session_id."""
+    Same resolution order as _read_session_id.  Always canonicalizes
+    through _normalize_task_id so `retrievals.task_id` stays consistent
+    across writers (plain TASK-NNN when the marker carries one)."""
     import os
     from pathlib import Path
     state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
@@ -114,7 +146,7 @@ def _read_current_task() -> Optional[str]:
         if f.exists():
             v = f.read_text().strip()
             if v:
-                return v
+                return _normalize_task_id(v)
     return None
 
 

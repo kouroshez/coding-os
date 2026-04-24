@@ -39,8 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/session-context.sh",
-            "statusMessage": "🔄 Checking workflow state..."
+            "command": "{{HOOKS_DIR}}/codex-userpromptsubmit-dispatch.sh"
           }
         ]
       }

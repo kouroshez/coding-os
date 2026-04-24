@@ -1,3 +1,4 @@
+<!-- domain:THINKING_OS | layer:plan | ssot:true | updated:2026-04-24 -->
 # Phase N — Role-Based Cognitive Routing
 
 > Nav: [AGENTS.md](../AGENTS.md) › [roadmap](development-roadmap.md) › **Phase N**

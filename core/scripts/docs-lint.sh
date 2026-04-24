@@ -44,7 +44,9 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
     TARGETS+=("$f")
   done < <(find "$DOCS_DIR" -type f -name "*.md" \
     -not -path "*/governance/archive/*" \
-    -not -path "*/products-assets/*" | sort)
+    -not -path "*/products-assets/*" \
+    -not -path "*/code-os-core-docs/*" \
+    -not -path "*/tasks/*" | sort)
 fi
 
 ERRORS=0

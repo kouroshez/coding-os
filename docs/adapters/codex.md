@@ -1,4 +1,9 @@
+<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-04-24 -->
 # Codex Adapter
+
+Purpose: Reference for the Codex (OpenAI) adapter — hook capabilities, dispatcher, MCP behaviour.
+Read when: editing `adapters/codex/`, debugging a Codex session, adding a new hook that needs Codex parity.
+Skip when: Claude/Cursor-specific issues.
 
 > Nav: [AGENTS.md](../../AGENTS.md) › [adapters](.) › **codex**
 > Status: live · formula dispatch uses default (inline) path

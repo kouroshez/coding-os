@@ -5,7 +5,7 @@ swimlane: thinking-os
 kind: feature
 epic: phase-j
 labels: []
-status: archive
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-04-20

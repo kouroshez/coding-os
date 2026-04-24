@@ -1,3 +1,4 @@
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-04-24 -->
 # thinking-os Formula-Agents (Phase M + N)
 
 Source of truth: [docs/code-os-core-docs/thinkingos-formulas/formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md)

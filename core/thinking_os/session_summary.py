@@ -20,6 +20,61 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from db import DEFAULT_DB_PATH, get_connection
 
+
+_SESSION_ID_TIMESTAMP_RE = __import__("re").compile(
+    r"ses-[A-Za-z0-9_-]+?-(?P<date>\d{8})-(?P<time>\d{6})(?:-[A-Za-z0-9]+)?$"
+)
+
+
+def _compute_session_duration(conn, session_id: str) -> int | None:
+    """Return whole minutes elapsed from session start → now, or None.
+
+    PURPOSE:      Fill session_summaries.duration_minutes so retro / daily
+                  surfaces can show time-in-session without relying on an
+                  always-on presence tracker.
+    INPUT:        conn - live sqlite connection.
+                  session_id - canonical ses-<agent>-YYYYMMDD-HHMMSS-xxxx.
+    OUTPUT:       int minutes (floored), or None when no reliable start
+                  timestamp can be derived (e.g. legacy session id).
+    NOTES:        Prefers the parseable suffix of session_id; falls back
+                  to the earliest observation in the session. Clamps to
+                  zero — returning a negative minute count would confuse
+                  downstream dashboards.
+    """
+    from datetime import datetime, timezone
+    import sqlite3 as _sq
+
+    m = _SESSION_ID_TIMESTAMP_RE.search(session_id or "")
+    start_dt: datetime | None = None
+    if m:
+        try:
+            start_dt = datetime.strptime(
+                f"{m['date']}{m['time']}", "%Y%m%d%H%M%S",
+            ).replace(tzinfo=timezone.utc)
+        except ValueError:
+            start_dt = None
+
+    if start_dt is None:
+        try:
+            row = conn.execute(
+                "SELECT MIN(created_at) FROM observations WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+        except _sq.OperationalError:
+            return None
+        raw = row[0] if row else None
+        if not raw:
+            return None
+        try:
+            start_dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+
+    delta = datetime.now(timezone.utc) - start_dt
+    return max(0, int(delta.total_seconds() // 60))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -54,6 +109,12 @@ def build_session_summary(
 
     conn = get_connection(path)
     try:
+        # 0. Derive duration_minutes. Session id carries the start time in
+        #    its canonical format (ses-<agent>-YYYYMMDD-HHMMSS-xxxx).  Fall
+        #    back to the earliest observation timestamp if the id is from a
+        #    pre-canonical era.
+        duration_minutes = _compute_session_duration(conn, session_id)
+
         # 1. Count observations for this session
         obs_count = conn.execute(
             "SELECT COUNT(*) FROM observations WHERE session_id = ?",
@@ -106,19 +167,20 @@ def build_session_summary(
                 "previous_session_id = ?, "
                 "files_touched = ?, "
                 "observations_count = ?, "
-                "breakthrough_ids = ? "
+                "breakthrough_ids = ?, "
+                "duration_minutes = COALESCE(?, duration_minutes) "
                 "WHERE id = ?",
                 (task_id, previous_session_id, files_touched,
-                 obs_count, breakthrough_ids, existing[0]),
+                 obs_count, breakthrough_ids, duration_minutes, existing[0]),
             )
         else:
             conn.execute(
                 "INSERT INTO session_summaries "
                 "(session_id, task_id, previous_session_id, files_touched, "
-                "observations_count, breakthrough_ids) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "observations_count, breakthrough_ids, duration_minutes) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (session_id, task_id, previous_session_id, files_touched,
-                 obs_count, breakthrough_ids),
+                 obs_count, breakthrough_ids, duration_minutes),
             )
 
         conn.commit()

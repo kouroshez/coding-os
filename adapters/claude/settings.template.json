@@ -23,6 +23,10 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-verify.sh",
             "statusMessage": "✅ Verifying suites before task-done..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
           }
         ]
       },
@@ -109,6 +113,10 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/warn-template-drift.sh",
             "statusMessage": "⚠️ Adapter template edits — use registry.yaml..."
           },
@@ -133,7 +141,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -143,15 +151,20 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/auto-reindex-docs.sh",
-            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph-os freshness...",
-            "timeout": 2000
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 1500
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-reindex-docs.sh",
+            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph-os freshness...",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -169,6 +182,10 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/verify-changed-file.sh",
             "statusMessage": "📊 Analyzing changed file + cross-module impact..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
           },
           {
             "type": "command",
@@ -222,6 +239,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
             "statusMessage": "💡 Checking if learn-validate reminder is due..."
           }
@@ -251,8 +272,18 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-brain-decay.sh",
+            "statusMessage": "📉 Debounced pattern-decay sweep...",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -282,13 +313,39 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness..."
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-brain-decay.sh",
+            "statusMessage": "📉 Debounced pattern-decay sweep...",
+            "timeout": 2000
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph-os index state..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/session-context.sh",
+            "statusMessage": "🔄 Checking workflow state..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
           }
         ]
       }
@@ -302,6 +359,10 @@
             "command": "{{HOOKS_DIR}}/session-end.sh",
             "statusMessage": "📝 Writing session summary + enrichment to memory...",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
           },
           {
             "type": "command",

@@ -57,16 +57,29 @@ COS_HOOK_LOG_MAX_LINES="${COS_HOOK_LOG_MAX_LINES:-500}"
 # Cursor sets CLAUDE_PROJECT_DIR as a workspace alias, so we MUST NOT treat
 # CLAUDE_PROJECT_DIR alone as "Claude Code" — that mis-tags Cursor hooks.
 # Must run BEFORE COS_AGENT_DIR / COS_SESSION_FILE are computed.
+#
+# DRIFT WARNING: cli/board_commands.py::_detect_agent_runtime mirrors this
+# same priority in Python for CLI-originated task transitions.  If you add
+# a new marker here, add it there (and the matching test in
+# tests/test_board_commands_agent_detect.py).
 # ---------------------------------------------------------------------------
 if [[ -z "${COS_AGENT:-}" ]]; then
   COS_AGENT=""
   # Prefer runtime-specific env markers over persisted .agent.
   # .agent is a fallback when the host runtime doesn't expose identity.
-  if [[ -n "${CURSOR_PROJECT_DIR:-}" ]] || [[ -n "${CURSOR_VERSION:-}" ]]; then
+  #
+  # Claude Code (VSCode/Antigravity variants) does NOT export CLAUDECODE=1
+  # to hook processes — only CLAUDE_CODE_ENTRYPOINT and CLAUDE_AGENT_SDK_VERSION
+  # make it through.  Treat those as authoritative claude signals, otherwise
+  # hooks fired by Claude Code mis-tag themselves via the .agent fallback.
+  if [[ -n "${CURSOR_PROJECT_DIR:-}" ]] || [[ -n "${CURSOR_VERSION:-}" ]] \
+       || [[ -n "${CURSOR_AGENT:-}" ]]; then
     COS_AGENT="cursor"
   elif [[ -n "${CODEX_SESSION_ID:-}" ]] || [[ -n "${CODEX_AGENT_DIR:-}" ]] || [[ -n "${CODEX_HOME:-}" ]]; then
     COS_AGENT="codex"
-  elif [[ -n "${CLAUDECODE:-}" ]] || [[ -n "${CLAUDE_CODE_SSE_PORT:-}" ]]; then
+  elif [[ -n "${CLAUDECODE:-}" ]] || [[ -n "${CLAUDE_CODE_SSE_PORT:-}" ]] \
+       || [[ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]] \
+       || [[ -n "${CLAUDE_AGENT_SDK_VERSION:-}" ]]; then
     COS_AGENT="claude"
   fi
 
@@ -88,7 +101,35 @@ fi
 COS_AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR}/${COS_AGENT}}"
 COS_SESSION_FILE="${COS_AGENT_DIR}/session-id"
 
-export COS_STATE_DIR COS_AGENT_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT
+# Model signal for the routing / learning pipeline. Priority:
+#   1. Caller already exported COS_AGENT_MODEL (test harness / explicit).
+#   2. Agent runtime env — adapters expose their preferred model env so
+#      consumer projects with different adapters share one resolver.
+#   3. $COS_AGENT_DIR/.model — latest hook-stdin model snapshot (written
+#      by session-context.sh when the agent sends `model` in the hook
+#      payload).  This is the dynamic source of truth — Claude Code
+#      rotates models mid-session and the hook payload carries the
+#      current choice.
+#   Everything falls back to empty (NULL) — routing_weights tolerates it.
+if [[ -z "${COS_AGENT_MODEL:-}" ]]; then
+  # printenv keeps this portable across bash / zsh (zsh lacks ${!var}).
+  for _cand in CLAUDE_CODE_MODEL CURSOR_MODEL CODEX_MODEL ANTHROPIC_MODEL \
+               OPENAI_MODEL; do
+    _val="$(printenv "$_cand" 2>/dev/null || true)"
+    if [[ -n "$_val" ]]; then
+      COS_AGENT_MODEL="$_val"
+      break
+    fi
+  done
+  unset _cand _val
+fi
+if [[ -z "${COS_AGENT_MODEL:-}" ]] && [[ -f "${COS_AGENT_DIR}/.model" ]]; then
+  COS_AGENT_MODEL="$(head -c 64 "${COS_AGENT_DIR}/.model" 2>/dev/null \
+                     | tr -d '[:space:]' || true)"
+fi
+COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
+
+export COS_STATE_DIR COS_AGENT_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL
 
 # ---------------------------------------------------------------------------
 # Identity helpers — pure reads, cheap enough to call per hook invocation.

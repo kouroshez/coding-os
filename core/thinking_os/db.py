@@ -1111,6 +1111,60 @@ CREATE INDEX IF NOT EXISTS idx_router_log_shape
     logger.info("Migration v18 applied: retrieval_router_log table + indexes")
 
 
+def _migrate_v19_drop_ready_status(conn: sqlite3.Connection) -> None:
+    """Migration v19: fold 'ready' status into icebox + 'ready' label.
+
+    PURPOSE: Board-os dropped the dedicated 'ready' column (see
+             core/board_os/config.py::STATUS_ENUM).  Any existing row
+             with status='ready' must move to 'icebox' AND gain a
+             'ready' label so the signal "this task is ready to pick up"
+             survives the column collapse.
+    NOTES:   Idempotent — re-running on a migrated DB finds no rows to
+             rewrite and is a no-op.  Writes to task_status_history so
+             the stream attribution shows WHY the task moved (reason =
+             'migrated from ready column').
+    """
+    rows = conn.execute(
+        "SELECT task_id, labels_json FROM tasks WHERE status = 'ready'",
+    ).fetchall()
+
+    if not rows:
+        logger.info("Migration v19 applied: no 'ready' rows to migrate (clean DB)")
+        return
+
+    import json as _json
+    import time as _time
+    now_epoch = int(_time.time())
+
+    for task_id, labels_json in rows:
+        try:
+            labels = _json.loads(labels_json) if labels_json else []
+            if not isinstance(labels, list):
+                labels = []
+        except (TypeError, ValueError):
+            labels = []
+        if "ready" not in labels:
+            labels.append("ready")
+        conn.execute(
+            "UPDATE tasks SET status = 'icebox', labels_json = ? WHERE task_id = ?",
+            (_json.dumps(labels, ensure_ascii=False), task_id),
+        )
+        conn.execute(
+            """
+            INSERT INTO task_status_history
+                (task_id, old_status, new_status, agent_session,
+                 reason, transitioned_at)
+            VALUES (?, 'ready', 'icebox', NULL, ?, ?)
+            """,
+            (task_id, "migrated from ready column (v19)", now_epoch),
+        )
+    conn.commit()
+    logger.info(
+        "Migration v19 applied: folded %d 'ready' task(s) into icebox + label",
+        len(rows),
+    )
+
+
 def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
     """Check whether the file_index_state table exists (migration v17)."""
     row = conn.execute(
@@ -1283,7 +1337,18 @@ CREATE TABLE IF NOT EXISTS observations (
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- session_summaries: end-of-session digests
+-- session_summaries: end-of-session digests.
+--
+-- Writer matrix (2026-04):
+--   session_id, task_id, previous_session_id, files_touched,
+--   observations_count, breakthrough_ids, duration_minutes
+--       → filled by session_summary.build_session_summary on Stop hook.
+--   request, learned
+--       → filled by session_enrich.py from tool/outcome signal.
+--   investigated, completed, next_steps
+--       → RESERVED for narrative fields the agent populates via
+--         cos_learn_narrative on breakthrough + a future explicit
+--         retro tool. Nullable by design; NULL is not a bug.
 CREATE TABLE IF NOT EXISTS session_summaries (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id  TEXT,
@@ -1359,6 +1424,9 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # Phase J.3: retrieval router telemetry table
     (18, "Phase J.3 retrieval router telemetry: retrieval_router_log table",
      _migrate_v18_retrieval_router_log),
+    # Phase ?.board: drop 'ready' column — fold into icebox + 'ready' label
+    (19, "board-os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
+     _migrate_v19_drop_ready_status),
 ]
 
 

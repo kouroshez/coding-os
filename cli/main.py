@@ -35,6 +35,8 @@ from cli.adapter_registry import load_adapter_registry
 from cli.add_stack import add_stack as add_stack_cmd
 from cli.aggregator import aggregate, today_iso
 from cli.brain_commands import (
+    brain_decay as brain_decay_cmd,
+    brain_gc as brain_gc_cmd,
     docs_index as docs_index_cmd,
     graph_reindex as graph_reindex_cmd,
     reindex as reindex_cmd,
@@ -565,6 +567,8 @@ cli.add_command(docs_index_cmd)
 cli.add_command(task_sync_cmd)
 cli.add_command(reindex_cmd)
 cli.add_command(graph_reindex_cmd)
+cli.add_command(brain_decay_cmd)
+cli.add_command(brain_gc_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(eject_file_cmd)

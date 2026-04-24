@@ -389,6 +389,33 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     except Exception as exc:
         _brain_logger.debug("recalculate_weights failed: %s", exc)
 
+    # Shift document_chunks.priority based on (retrieval, outcome) pairs
+    # every 10 outcomes so docs that supported successful work get gently
+    # boosted and failed ones decay.  Bounded by _DELTA_* constants inside
+    # learn_from_retrievals; never cliff-jumps a single chunk.
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+        if count > 0 and count % 10 == 0:
+            from core.thinking_os.tools.retrieve import learn_from_retrievals
+            learn_from_retrievals(conn, lookback_days=14)
+    except Exception as exc:
+        _brain_logger.debug("learn_from_retrievals failed: %s", exc)
+
+    # Sweep dangling embeddings + concept-graph edges + trash observations
+    # every 10 outcomes. Cheap because NOT EXISTS / LIKE globs are indexed
+    # and the row counts are small in practice.
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+        if count > 0 and count % 10 == 0:
+            from core.thinking_os.memory_gc import gc_memory
+            _db_path = os.environ.get(
+                "COS_DB_PATH",
+                str(_project_root() / ".coding-os" / "thinking-os.db"),
+            )
+            gc_memory(db_path=_db_path)
+    except Exception as exc:
+        _brain_logger.debug("gc_memory failed: %s", exc)
+
 
 @click.command("task-done")
 @click.argument("task_id")

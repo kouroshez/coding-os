@@ -185,13 +185,13 @@ hooks:
   # ── observability ──────────────────────────────────────────────────
   - id: capture-observation
     script: capture-observation.sh
-    description: Fire-and-forget observation recording to thinking-os memory (PostToolUse Write|Edit).
+    description: Fire-and-forget observation recording to thinking-os memory (PostToolUse Write|Edit|MultiEdit).
     category: observability
     phase: "0"
     timeout: 1000
     events:
       - event: PostToolUse
-        matcher: Write|Edit
+        matcher: Write|Edit|MultiEdit
         status_message: "🧠 Recording observation + embedding to memory..."
 
   - id: auto-reindex-docs
@@ -356,6 +356,29 @@ hooks:
         matcher: ""
         status_message: "📝 Writing session summary + enrichment to memory..."
 
+  - id: agent-presence
+    script: agent-presence.sh
+    description: Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don't appear offline between tool calls.
+    category: observability
+    phase: "0"
+    events:
+      - event: SessionStart
+        matcher: startup
+      - event: SessionStart
+        matcher: compact|resume
+      - event: UserPromptSubmit
+        matcher: ""
+      - event: PreToolUse
+        matcher: Bash
+      - event: PreToolUse
+        matcher: Write|Edit
+      - event: PostToolUse
+        matcher: Bash
+      - event: PostToolUse
+        matcher: Write|Edit
+      - event: Stop
+        matcher: ""
+
   - id: warn-mcp-down
     script: warn-mcp-down.sh
     description: Probes thinking-os MCP liveness at session start; loud banner if unreachable.
@@ -368,6 +391,20 @@ hooks:
       - event: SessionStart
         matcher: compact|resume
         status_message: "🩺 Probing MCP coding-os liveness..."
+
+  - id: auto-brain-decay
+    script: auto-brain-decay.sh
+    description: Phase G.G1 — SessionStart runs Ebbinghaus confidence decay on learned_patterns once per 24 h. Fire-and-forget, bounded at 10s; debounces via $COS_STATE_DIR/.last-decay.
+    category: observability
+    phase: G
+    timeout: 2000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "📉 Debounced pattern-decay sweep..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "📉 Debounced pattern-decay sweep..."
 
   - id: warn-graph-empty
     script: warn-graph-empty.sh

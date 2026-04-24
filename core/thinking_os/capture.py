@@ -22,8 +22,13 @@ from concepts import extract_concepts
 from db import DEFAULT_DB_PATH, get_connection
 from impact import calculate_impact
 
-# Tools worth capturing (all others are filtered out)
-CAPTURE_TOOLS = {"Write", "Edit"}
+# Tools worth capturing (all others are filtered out).  MultiEdit is the
+# batched variant emitted by Claude Code / Cursor when an agent edits
+# multiple hunks in one turn — filtering it out meant most real agent
+# edits produced zero observations.  We treat MultiEdit semantically as
+# an Edit (single file_path per invocation; the multi-hunk payload lives
+# in tool_input.edits[]).
+CAPTURE_TOOLS = {"Write", "Edit", "MultiEdit"}
 
 # Static memory-type rules. Per-agent prefixes (.claude/, .codex/, ...) are
 # resolved dynamically from adapter manifests so core/ stays agent-agnostic.
@@ -76,7 +81,7 @@ def _build_narrative(tool_name: str, file_path: str) -> str:
         backend/apps/commerce/models/order.py → "Modified commerce order model"
         frontend/src/app/products/page.tsx   → "Created products page component"
     """
-    action = "Modified" if tool_name == "Edit" else "Created"
+    action = "Modified" if tool_name in ("Edit", "MultiEdit") else "Created"
     parts = Path(file_path).parts
     path_lower = file_path.lower()
 
@@ -228,8 +233,14 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
     if not file_path:
         return {"status": "skipped", "reason": "no file_path in tool_input"}
 
-    # Generate structured fields
-    title = f"Modified {file_path}" if tool_name == "Edit" else f"Created {file_path}"
+    # Generate structured fields. MultiEdit always targets an existing
+    # file (single file_path with multiple hunks) so we treat it as an
+    # Edit for narrative purposes — the hunk count lives in edits[].
+    title = (
+        f"Modified {file_path}"
+        if tool_name in ("Edit", "MultiEdit")
+        else f"Created {file_path}"
+    )
     narrative = _build_narrative(tool_name, file_path)
     memory_type = _detect_memory_type(file_path)
     impact_score = calculate_impact(file_path=file_path, tool_name=tool_name)

@@ -393,16 +393,24 @@ bash "$(dirname "$0")/task-context.sh" "$RAW_TASK"
 # Missing rag extras, missing v6 schema, or missing tasks/ dir → silent no-op.
 (
   python3 -c "
-import os, sys
+import os, sys, logging
 from pathlib import Path
+logger = logging.getLogger('cos.task_start.sync')
 try:
-    sys.path.insert(0, os.environ.get('COS_BRAIN_DIR', str(Path(__file__).resolve().parent.parent / 'thinking-os')))
+    _brain = os.environ.get('COS_BRAIN_DIR')
+    if not _brain:
+        for _c in ('core/thinking_os', '.coding-os/thinking_os', '.coding-os/thinking-os'):
+            if (Path(_c) / 'db.py').exists():
+                _brain = _c
+                break
+    if _brain:
+        sys.path.insert(0, _brain)
     from db import init_db
     from task_sync import sync_tasks
     conn = init_db(os.environ.get('COS_DB_PATH'))
     sync_tasks(conn, project_root=Path.cwd())
     conn.close()
 except Exception as exc:
-    pass  # Phase C sync is enrichment only — never blocks task-start
+    logger.debug('task-start sync_safe failed: %s', exc)
 " > /dev/null 2>&1 &
 )

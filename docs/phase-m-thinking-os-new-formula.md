@@ -1,4 +1,9 @@
+<!-- domain:THINKING_OS | layer:plan | ssot:true | updated:2026-04-24 -->
 # Hybrid `thinking-os` v0.3 — Formula Orchestration + Persona Routing
+
+Purpose: Phase M plan — formula (F1..F11) orchestration + persona routing for the thinking-os supervisor.
+Read when: touching `core/thinking_os/{cognition,formula_composer,dispatcher}.py`, Phase M role files, or agent dispatch.
+Skip when: unrelated to role/persona/formula routing.
 
 ## Context
 

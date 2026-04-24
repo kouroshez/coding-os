@@ -26,6 +26,8 @@ DOC_INDEXER = BRAIN_DIR / "doc_indexer.py"
 TASK_SYNC = BRAIN_DIR / "task_sync.py"
 EMBEDDINGS = BRAIN_DIR / "embeddings.py"
 GRAPH_INDEXER = BRAIN_DIR / "graph_indexer.py"
+DECAY_SCRIPT = BRAIN_DIR / "decay.py"
+GC_SCRIPT = BRAIN_DIR / "memory_gc.py"
 
 
 def _resolve_project_dir(raw: str) -> Path:
@@ -196,4 +198,69 @@ def graph_reindex(
         args.append("--quiet")
 
     rc = _run_brain_module(GRAPH_INDEXER, args, project=project)
+    sys.exit(rc)
+
+
+@click.command("brain-decay")
+@click.option(
+    "--project-dir", "-d", default=".",
+    help="Project directory (default: current)",
+)
+@click.option(
+    "--dry-run", is_flag=True, default=False,
+    help="Compute decay stats without writing.",
+)
+def brain_decay(project_dir: str, dry_run: bool) -> None:
+    """Apply Ebbinghaus confidence decay to learned_patterns.
+
+    PURPOSE:     Keep the memory bank honest. Patterns that stop being
+                 validated fade toward the 0.1 floor; patterns the agent
+                 touched in the last 7 days skip decay entirely. Archives
+                 floored patterns so `cos_learn_suggest` stops surfacing
+                 them without deleting the history.
+    INPUT:       --project-dir to resolve the DB, --dry-run for preview.
+    OUTPUT:      stats line with {total_patterns, decayed, archived,
+                 unchanged, working_memory_cleaned}.
+    DEPENDENCIES: core/thinking_os/decay.py (run_decay).
+    NOTES:       Safe to call frequently — the effective rate is zero for
+                 patterns accessed within the last week, so day-scale
+                 scheduling over-reacts to noise. SessionStart uses a
+                 24 h debounce via `.last-decay`.
+    """
+    project = _resolve_project_dir(project_dir)
+    args = ["--project-root", str(project)]
+    if dry_run:
+        args.append("--dry-run")
+    rc = _run_brain_module(DECAY_SCRIPT, args, project=project)
+    sys.exit(rc)
+
+
+@click.command("brain-gc")
+@click.option(
+    "--project-dir", "-d", default=".",
+    help="Project directory (default: current)",
+)
+@click.option(
+    "--dry-run", is_flag=True, default=False,
+    help="Report orphans without deleting.",
+)
+def brain_gc(project_dir: str, dry_run: bool) -> None:
+    """Garbage-collect dangling memory rows.
+
+    PURPOSE:     Remove embeddings whose source row was deleted, concept
+                 graph edges that reference trash paths (`/tmp`, macOS
+                 `/private/tmp`, scratch temp dirs), and observations
+                 captured from the same trash paths. Keeps the memory
+                 layer honest after bulk-prune operations or after the
+                 agent experiments against /tmp files.
+    INPUT:       --project-dir to resolve the DB, --dry-run for preview.
+    OUTPUT:      JSON stats (orphan_embeddings_*, orphan_concept_graph_edges,
+                 trash_observations).
+    DEPENDENCIES: core/thinking_os/gc.py.
+    """
+    project = _resolve_project_dir(project_dir)
+    args = ["--project-root", str(project)]
+    if dry_run:
+        args.append("--dry-run")
+    rc = _run_brain_module(GC_SCRIPT, args, project=project)
     sys.exit(rc)

@@ -11,6 +11,17 @@ supports_rules: true
 supports_settings_json: true
 install_script: install.sh
 
+# Env vars the Claude Code runtime exports to hook subprocesses / the CLI
+# shell.  Consumed by cli/board_commands.py::_detect_agent_runtime so the
+# CLI can attribute agent_session correctly without hardcoded literals
+# (see rule #11). CLAUDE_PROJECT_DIR is intentionally omitted — Cursor
+# also sets it as a workspace alias, so it's not a reliable Claude signal.
+runtime_env_markers:
+  - CLAUDECODE
+  - CLAUDE_CODE_SSE_PORT
+  - CLAUDE_CODE_ENTRYPOINT
+  - CLAUDE_AGENT_SDK_VERSION
+
 # MCP launch metadata consumed by cli/doctor.py::_load_coding_os_mcp_launch
 # (C15 check). Data-driven so tests/test_no_hardcoded_stacks.py stays green.
 mcp_launch:
@@ -34,10 +45,15 @@ hook_registry_output: settings.template.json
 # Source: per-event matchers observed in the live Claude Code hook spec.
 hook_capabilities:
   PreToolUse:
-    matchers: [Bash, "Write|Edit", Skill]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
   PostToolUse:
-    matchers: [Bash, "Write|Edit", Skill]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
   Stop:
     matchers: [""]
   SessionStart:
     matchers: [startup, "compact|resume"]
+  # UserPromptSubmit powers the agent-presence hook's "user turn in
+  # flight" signal so the live-agents panel knows the session is
+  # actively working even between tool calls.
+  UserPromptSubmit:
+    matchers: [""]

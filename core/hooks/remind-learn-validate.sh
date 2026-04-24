@@ -28,8 +28,11 @@ fi
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 [[ -z "$CMD" ]] && exit 0
 
-# Only fire on make task-done / cos task-done invocations.
-if ! echo "$CMD" | grep -qE '(make|cos)\s+task-done'; then
+# Fire on every completion pathway: `make task-done`, `cos task-done`,
+# or `cos task-move ... --to complete` (the modern CLI route that
+# bypassed the old Make target). All three eventually land in
+# board_os.cos_task_move with to='complete'.
+if ! echo "$CMD" | grep -qE '(make|cos)[[:space:]]+task-done|cos[[:space:]]+task-move[^|;]*(--to[=[:space:]]+complete)'; then
   exit 0
 fi
 

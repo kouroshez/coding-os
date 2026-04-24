@@ -929,30 +929,30 @@ Concrete: Formula 5 Step 1 requires the agent to "reference scenarios from the P
 <!-- Self-contained: pinned versions + SRI hashes, no npm build -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'nonce-{{NONCE}}' https://cdn.jsdelivr.net;
-  style-src 'nonce-{{NONCE}}';
+  script-src 'nonce-__NONCE__' https://cdn.jsdelivr.net;
+  style-src 'nonce-__NONCE__';
   img-src 'self' data:;
   connect-src 'self';
   font-src 'self';
   base-uri 'none';
   frame-ancestors 'none';
 ">
-<script nonce="{{NONCE}}"
+<script nonce="__NONCE__"
         src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"
         integrity="sha384-..."></script>
-<script nonce="{{NONCE}}"
+<script nonce="__NONCE__"
         src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/worker.umd.min.js"
         integrity="sha384-..."></script>
-<script nonce="{{NONCE}}"
+<script nonce="__NONCE__"
         src="https://cdn.jsdelivr.net/npm/sigma@3.0.0/dist/sigma.min.js"
         integrity="sha384-..."></script>
 
 <!-- Graph data lives in JSON block, NEVER inlined into a <script> -->
-<script type="application/json" id="graph-data">{{GRAPH_JSON}}</script>
+<script type="application/json" id="graph-data">__GRAPH_JSON__</script>
 ```
 
 **Security contract:**
-- Every page load generates a fresh `{{NONCE}}` (128-bit URL-safe) via `secrets.token_urlsafe(16)` in the exporter. Nonce is shared between `<meta>` CSP and every legitimate `<script nonce=...>` / `<style nonce=...>`.
+- Every page load generates a fresh `__NONCE__` (128-bit URL-safe) via `secrets.token_urlsafe(16)` in the exporter. Nonce is shared between `<meta>` CSP and every legitimate `<script nonce=...>` / `<style nonce=...>`.
 - Graph payload is **always** served through a `<script type="application/json">` block and parsed via `JSON.parse(document.getElementById('graph-data').textContent)` in the viewer's bootstrap script. Never via template interpolation into executable JS.
 - All label / signature / docstring strings are written through `el.textContent = …` — never `innerHTML`. An I.10 unit test asserts zero `.innerHTML` assignments in `viewer/bootstrap.js`.
 - `--bundled` offline mode replaces `https://cdn.jsdelivr.net` in the CSP with `'self'` and inlines the scripts; the nonce requirement is preserved so even air-gapped bundles reject foreign script injection.

@@ -101,7 +101,7 @@ The thinking-os DB tracks everything and learns from past sessions.
 | `COS_DB_PATH` | `.coding-os/thinking-os.db` | SQLite database path |
 | `COS_SESSION_FILE` | `.coding-os/session-id` | Session ID file |
 
-## MCP Tools (42 tools, `cos_*` prefix)
+## MCP Tools (27 tools, `cos_*` prefix)
 
 ### Response Contract (applies to ALL tools below)
 
@@ -159,9 +159,9 @@ Helpers: `ok(data)` / `fail(category, message)` / `@safe_tool` decorator in [cor
 - `cos_task_dependents` — Downstream tasks that depend on this one (quoted-JSON matcher prevents TASK-19 vs TASK-195 false positives)
 - `cos_task_by_filter` — Structured filter by status and/or domain
 
-## Database Schema (v6)
+## Database Schema (v19)
 
-11 tables in SQLite with WAL mode + FTS5 (graceful degradation if FTS5 unavailable):
+20 core tables in SQLite with WAL mode + FTS5 (graceful degradation if FTS5 unavailable):
 
 | Table | Migration | Purpose |
 | --- | --- | --- |

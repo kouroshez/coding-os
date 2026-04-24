@@ -11,17 +11,35 @@ Used by: capture.py, record_outcome.py, decay.py, memory.py search
 from __future__ import annotations
 
 
-# File path patterns that increase impact
+# File path patterns that increase impact.
+# Covers Python/Django (models, views, urls, serializers, migrations),
+# Node/Next.js (route, middleware, server actions), Go (main, handler),
+# infra (Dockerfile, Makefile, terraform, CI config), core/ kernel files
+# the meta-project itself dog-foods, and every variant of the secret-
+# bearing `.env`.  Any additional token earns +0.15 up to the 1.0 cap.
 HIGH_IMPACT_PATTERNS = [
+    # Python / Django / DRF
     "models.py", "schema", "migration", "settings", "auth",
     "payment", "security", "permission", "middleware", ".env",
-    "views.py", "urls.py", "serializers.py",
+    "views.py", "urls.py", "serializers.py", "tasks.py", "celery",
+    # Frontend / Next.js / React
+    "route.ts", "route.tsx", "layout.tsx", "middleware.ts",
+    "server-actions", "api/", "_app.", "_document.",
+    # Go / Fiber
+    "main.go", "handler.go", "middleware.go",
+    # Infra / CI / IaC
+    "Dockerfile", "docker-compose", "Makefile", "terraform", ".github/workflows",
+    "pyproject.toml", "package.json",
+    # Coding-OS kernel — meta-project treats these as load-bearing
+    "core/thinking_os/", "core/hooks/", "core/rules/", "core/skills/",
+    "adapters/", "cli/",
 ]
 
 # File path patterns that decrease impact
 LOW_IMPACT_PATTERNS = [
     "test_", "tests/", "README", "__pycache__", ".pyc",
-    "fixtures/", "mock", "conftest",
+    "fixtures/", "mock", "conftest", ".snap", ".svg",
+    "/.venv/", "/node_modules/", "CHANGELOG", ".log",
 ]
 
 # Domain boosts

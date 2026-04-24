@@ -10,6 +10,15 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 INPUT=$(cat)
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
 export COS_HOOK_RUNTIME_MODEL
+
+# Persist the model so hooks that don't receive it in stdin (PostToolUse
+# that dispatches an async worker, CLI-originated task-done, etc.) can
+# stamp task_outcomes.model and feed routing_weights.  File is truncated
+# each write — only the latest signal matters.
+if [[ -n "$COS_HOOK_RUNTIME_MODEL" ]] && [[ -n "${COS_AGENT_DIR:-}" ]]; then
+  mkdir -p "$COS_AGENT_DIR" 2>/dev/null || true
+  printf '%s' "$COS_HOOK_RUNTIME_MODEL" > "$COS_AGENT_DIR/.model" 2>/dev/null || true
+fi
 # SessionStart payloads carry `.source`; UserPromptSubmit carries `.prompt`.
 # Treat prompt submits as their own source so Codex doesn't rotate session-id
 # or clear volatile state on every prompt.
@@ -23,6 +32,19 @@ cos_log_hook session-context fire "source=${SOURCE}"
 
 # Ensure BOTH dirs exist — COS_STATE_DIR for shared, COS_AGENT_DIR for per-agent.
 mkdir -p "$COS_STATE_DIR" "$COS_AGENT_DIR"
+
+# Refresh the .agent marker whenever cos-env.sh detected the runtime.
+# Stale markers (e.g. `cursor` left over after switching to Claude) mis-route
+# fallback paths in cos_retrieve / capture.py — rewrite on every session
+# boundary so the *last* adapter to start is authoritative.
+if [[ -n "${COS_AGENT:-}" ]] && [[ "$COS_AGENT" != "unknown" ]]; then
+  _AGENT_MARKER="$COS_STATE_DIR/.agent"
+  if [[ ! -f "$_AGENT_MARKER" ]] || [[ "$(cat "$_AGENT_MARKER" 2>/dev/null)" != "$COS_AGENT" ]]; then
+    printf '%s' "$COS_AGENT" > "$_AGENT_MARKER" 2>/dev/null || true
+    cos_log_hook session-context agent-refresh "agent=${COS_AGENT}"
+  fi
+  unset _AGENT_MARKER
+fi
 
 # Generate session ID ONLY on fresh startup — NOT on compact or resume.
 if [[ "$SOURCE" == "startup" ]]; then

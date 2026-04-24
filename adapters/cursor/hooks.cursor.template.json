@@ -34,6 +34,23 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/capture-observation.sh",
+            "statusMessage": "🧠 Recording observation + embedding to memory...",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/capture-work-log.sh",
+            "statusMessage": "📝 Appending Work Log entry...",
+            "timeout": 1500
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -104,6 +121,10 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
             "statusMessage": "🔄 Checking workflow state..."
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh"
           }
         ]
       }

@@ -1,3 +1,4 @@
+<!-- domain:ROADMAP | layer:plan | ssot:true | updated:2026-04-24 -->
 <!-- domain:graph-os | layer:roadmap | ssot:true | updated:2026-04-21 -->
 # graph-os Redesign — MVP → v1 → v2 Checklist
 

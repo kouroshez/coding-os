@@ -39,9 +39,34 @@ if [[ "$FILE_PATH" == *"/scaffold/"* ]]; then
   exit 0
 fi
 
-if [[ "$FILE_PATH" == *".claude/rules/"* ]] || \
-   [[ "$FILE_PATH" == *".claude/hooks/"* ]] || \
-   [[ "$FILE_PATH" == *".codex/hooks/"* ]] || \
+# Data-driven adapter state protection: every adapter declares a state
+# dir (e.g. `.claude/`, `.codex/`, `.cursor/`) — we block edits under any
+# of them.  Discovery order:
+#   1. adapters/<id>/adapter.yaml (source of truth in the meta-repo)
+#   2. legacy hardcoded safety-net for meta-project setups that pre-date
+#      the registry (cannot regress; this list is additive).
+ADAPTER_ROOT="$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)/adapters"
+ADAPTER_STATE_GLOB=""
+if [ -d "$ADAPTER_ROOT" ]; then
+  for adir in "$ADAPTER_ROOT"/*/; do
+    [ -d "$adir" ] || continue
+    aid=$(basename "$adir")
+    ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.${aid}/rules/|.${aid}/hooks/|.${aid}/skills/"
+  done
+fi
+ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.claude/rules/|.claude/hooks/|.codex/hooks/|.cursor/hooks/"
+
+matched_adapter_path=0
+IFS='|' read -r -a _glob_parts <<< "$ADAPTER_STATE_GLOB"
+for _g in "${_glob_parts[@]}"; do
+  [ -z "$_g" ] && continue
+  if [[ "$FILE_PATH" == *"$_g"* ]]; then
+    matched_adapter_path=1
+    break
+  fi
+done
+
+if [[ "$matched_adapter_path" -eq 1 ]] || \
    [[ "$FILE_PATH" == *".coding-os/"* ]] || \
    [[ "$FILE_PATH" == *"/CLAUDE.md" ]] || \
    [[ "$FILE_PATH" == *"/AGENTS.md" ]] || \
