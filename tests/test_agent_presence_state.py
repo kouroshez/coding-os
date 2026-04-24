@@ -74,15 +74,35 @@ def test_old_tool_but_alive_returns_present(fake_project):
 
 
 def test_user_turn_in_flight_is_active(fake_project):
-    """A prompt newer than the last stop means the agent is still responding."""
+    """A prompt newer than the last stop means the agent is still responding.
+
+    TASK-088 tightened the "turn in flight → ACTIVE" branch to the
+    ACTIVE window (30 s) — outside that, the session downgrades to
+    PRESENT as long as the PID is alive.  We assert both shapes here.
+    """
     now = int(time.time())
     _write_presence(
         fake_project, "claude", "ses-claude-3",
-        last_prompt_at=now - 40,      # new prompt arrived
+        last_prompt_at=now - 10,      # fresh prompt within ACTIVE window
         last_stop_at=now - 100,       # last stop was before that
-        last_tool_at=now - 90,        # outside active window
+        last_tool_at=now - 90,
     )
     assert board_routes._presence_state("claude") == "active"
+
+
+def test_old_prompt_with_alive_pid_is_present(fake_project):
+    """Prompt older than ACTIVE window but PID alive → PRESENT, not
+    ACTIVE.  Preserves the 'agent is here, thinking' signal without
+    keeping the pulsing-green ACTIVE treatment reserved for the last
+    30 s of activity."""
+    now = int(time.time())
+    _write_presence(
+        fake_project, "claude", "ses-claude-present-old-prompt",
+        last_prompt_at=now - 300,     # 5 min ago, past ACTIVE
+        last_stop_at=None,
+        last_tool_at=now - 320,
+    )
+    assert board_routes._presence_state("claude") == "present"
 
 
 def test_ended_session_is_offline(fake_project):
@@ -126,9 +146,49 @@ def test_dead_pid_with_recent_heartbeat_is_active(fake_project):
     _write_presence(
         fake_project, "cursor", "ses-cursor-subproc-rotated",
         pid=dead_pid,
-        last_tool_at=now - 5,  # fresh heartbeat
+        last_tool_at=now - 5,  # fresh heartbeat within ACTIVE window
     )
     assert board_routes._presence_state("cursor") == "active"
+
+
+def test_dead_pid_with_heartbeat_past_active_is_offline(fake_project):
+    """TASK-088 regression gate — the case that motivated the hardening.
+
+    Scenario: Claude was rate-limited 45 min ago, killed before it could
+    emit SessionEnd, so ``ended_at=None`` and ``last_tool_at`` is 45 min
+    ago.  The old logic accepted any heartbeat within PRESENT_WINDOW
+    (1 h) as "recent", leaving the pill pulsing green for an hour.  The
+    new rule is: once past the ACTIVE window (30 s), PID liveness is
+    mandatory — so this MUST flip to OFFLINE immediately."""
+    now = int(time.time())
+    dead_pid = 2**31 - 1
+    _write_presence(
+        fake_project, "claude", "ses-claude-rate-limited",
+        pid=dead_pid,
+        last_tool_at=now - 2700,   # 45 min ago, past ACTIVE but inside PRESENT
+        last_prompt_at=now - 2800,
+        last_stop_at=None,         # killed before stop
+    )
+    assert board_routes._presence_state("claude") == "offline"
+
+
+def test_dead_pid_killed_mid_turn_is_offline(fake_project):
+    """TASK-088 — a session killed mid-turn (prompt newer than stop,
+    inside PRESENT window, PID dead) used to short-circuit to ACTIVE via
+    the 'user turn in flight' branch without ever consulting PID.  The
+    hardened ladder now requires the PROMPT to be within the ACTIVE
+    window too; a 10-minute-old prompt + dead PID is OFFLINE, not the
+    pulsing green we used to show for up to an hour."""
+    now = int(time.time())
+    dead_pid = 2**31 - 1
+    _write_presence(
+        fake_project, "claude", "ses-claude-killed-mid-turn",
+        pid=dead_pid,
+        last_prompt_at=now - 600,  # 10 min ago, past ACTIVE
+        last_stop_at=None,         # mid-turn
+        last_tool_at=now - 620,
+    )
+    assert board_routes._presence_state("claude") == "offline"
 
 
 def test_multiple_sessions_pick_best(fake_project):

@@ -124,8 +124,22 @@ def _presence_state(agent: str) -> str:
     OUTPUT:  one of "active" / "present" / "offline".
     NOTES:   Presence files are written atomically by
              core/hooks/agent-presence.sh on SessionStart / UserPromptSubmit /
-             PreToolUse / PostToolUse / Stop / SessionEnd.  PID liveness
-             handles crashed agents that never got to emit SessionEnd.
+             PreToolUse / PostToolUse / Stop / SessionEnd.
+
+             Decision ladder (TASK-088 hardening):
+
+               1. Heartbeat within ACTIVE window (30 s) wins unconditionally
+                  — tolerates runtimes that rotate subprocesses between
+                  hook fires (Cursor, Claude Code VSCode).
+               2. Past the ACTIVE window → PID liveness is mandatory.  A
+                  dead PID + stale heartbeat means the session was killed
+                  (rate-limit / SIGKILL) before emitting SessionEnd; we
+                  MUST flip to OFFLINE, not linger as PRESENT for up to
+                  the PRESENT window (which used to keep Claude's pill
+                  green for an hour after a rate-limit kill).
+               3. PID alive + any signal within PRESENT window (1 h) →
+                  PRESENT — the "user hasn't typed in a while but the
+                  runtime is still here" case.
     """
     import time as _time
     now = int(_time.time())
@@ -146,45 +160,42 @@ def _presence_state(agent: str) -> str:
         last_prompt = data.get("last_prompt_at")
         last_stop = data.get("last_stop_at")
 
-        # Heartbeat-first liveness: the hook writes last_tool_at / last_prompt_at
-        # on EVERY PreToolUse / UserPromptSubmit fire.  A recent heartbeat
-        # proves the runtime is alive regardless of which subprocess pid the
-        # file currently carries — PPID changes between hook invocations on
-        # some runtimes (Cursor, Claude Code VSCode) so pid-alive checks
-        # false-negative while the agent is clearly doing work.
+        # (1) ACTIVE: heartbeat within 30 s is enough — a fire this recent
+        # proves the runtime is alive even when the stored PID points at
+        # a rotated subprocess that has already exited.
         if isinstance(last_tool, int) and now - last_tool <= _ACTIVE_WINDOW_SECS:
             return "active"
-        # "User turn in flight" = last_prompt is newer than last_stop.
-        # Clamped to PRESENT window so an abandoned session (prompt with
-        # no matching stop, 2h old) doesn't stay green forever.  Real
-        # turns routinely take minutes; a 30s active-window would be
-        # too tight here.
+        # "User turn in flight" is ACTIVE only when it's genuinely in
+        # flight: prompt within the ACTIVE window, no matching stop yet.
+        # Using _ACTIVE_WINDOW_SECS (not _PRESENT_WINDOW_SECS) is the key
+        # TASK-088 fix — a session killed mid-turn by rate-limit used to
+        # stay "active" here for up to 1 h.
         if isinstance(last_prompt, int) \
-                and now - last_prompt <= _PRESENT_WINDOW_SECS \
+                and now - last_prompt <= _ACTIVE_WINDOW_SECS \
                 and (not isinstance(last_stop, int) or last_stop < last_prompt):
             return "active"
 
-        # No recent heartbeat — fall back to pid liveness for genuinely idle
-        # sessions (long-running agent with no tool calls).  If pid is dead
-        # AND no heartbeat within window, the session is effectively offline.
+        # (2) Past the ACTIVE window → PID liveness is mandatory for any
+        # "here" verdict.  No hook has fired in the last 30 s, so we can
+        # no longer trust the file alone to prove the process is alive.
         pid = int(data.get("pid") or 0)
         if not _pid_alive(pid):
-            # BUT if any heartbeat landed within the PRESENT window we still
-            # trust it — the runtime rotated subprocesses but the session is
-            # active.  Only offline when every signal is old.
-            recent_heartbeat = (
-                (isinstance(last_tool, int) and now - last_tool <= _PRESENT_WINDOW_SECS)
-                or (isinstance(last_prompt, int) and now - last_prompt <= _PRESENT_WINDOW_SECS)
-            )
-            if not recent_heartbeat:
-                continue
-            best = "present" if best != "active" else best
             continue
 
-        # PRESENT: session alive + pid alive, but idle.  Cap at upper bound
-        # to avoid treating truly abandoned sessions as alive indefinitely.
+        # (3) PID alive + heartbeat stale → PRESENT within the upper
+        # bound so truly abandoned sessions eventually flip to offline.
+        # Prefer last_prompt (strongest "turn in flight but thinking"
+        # signal) > last_tool > started_at.
+        if isinstance(last_prompt, int) \
+                and now - last_prompt <= _PRESENT_WINDOW_SECS \
+                and (not isinstance(last_stop, int) or last_stop < last_prompt):
+            best = "present" if best != "active" else best
+            continue
+        if isinstance(last_tool, int) and now - last_tool <= _PRESENT_WINDOW_SECS:
+            best = "present" if best != "active" else best
+            continue
         started = data.get("started_at") or 0
-        if now - int(started) <= _PRESENT_WINDOW_SECS:
+        if isinstance(started, int) and now - int(started) <= _PRESENT_WINDOW_SECS:
             best = "present" if best != "active" else best
     return best
 
