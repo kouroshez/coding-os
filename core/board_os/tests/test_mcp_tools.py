@@ -170,11 +170,11 @@ def test_move_happy_path(project: Path, conn: sqlite3.Connection):
     _parse(mcp_tools.cos_task_create(
         conn, title="move me", swimlane="core", kind="feature",
     ))
-    # icebox → ready
-    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="ready"))
+    # icebox → in_progress (no dedicated "ready" column any more)
+    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="in_progress"))
     assert env["ok"] is True
     assert env["data"]["previous_status"] == "icebox"
-    assert env["data"]["new_status"] == "ready"
+    assert env["data"]["new_status"] == "in_progress"
 
 
 def test_reposition_swimlane_only(project: Path, conn: sqlite3.Connection):
@@ -201,17 +201,17 @@ def test_reposition_status_and_swimlane(project: Path, conn: sqlite3.Connection)
     ))
     env = _parse(
         mcp_tools.cos_task_reposition(
-            conn, task_id="TASK-001", to="ready", swimlane="docs",
+            conn, task_id="TASK-001", to="in_progress", swimlane="docs",
         )
     )
     assert env["ok"] is True
-    assert env["data"]["new_status"] == "ready"
+    assert env["data"]["new_status"] == "in_progress"
     assert env["data"]["new_swimlane"] == "docs"
     row = conn.execute(
         "SELECT status, swimlane FROM tasks WHERE task_id = ?",
         ("TASK-001",),
     ).fetchone()
-    assert row[0] == "ready"
+    assert row[0] == "in_progress"
     assert row[1] == "docs"
 
 
@@ -222,9 +222,7 @@ def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
             conn, title=f"t{i}", swimlane="core", kind="chore",
         )
     for tid in ("TASK-001", "TASK-002"):
-        mcp_tools.cos_task_move(conn, task_id=tid, to="ready")
         mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress")
-    mcp_tools.cos_task_move(conn, task_id="TASK-003", to="ready")
     env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-003", to="in_progress"))
     assert env["ok"] is False
     assert "WIP cap" in env["error"]["message"]
@@ -234,14 +232,15 @@ def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
 
 
 def test_pick_returns_ready_tasks(project: Path, conn: sqlite3.Connection):
+    """Candidates are icebox tasks carrying the 'ready' label (plus emergency)."""
     mcp_tools.cos_task_create(
         conn, title="low", swimlane="core", kind="chore", priority="P3",
+        labels=["ready"],
     )
     mcp_tools.cos_task_create(
         conn, title="high", swimlane="core", kind="feature", priority="P0",
+        labels=["ready"],
     )
-    mcp_tools.cos_task_move(conn, task_id="TASK-001", to="ready")
-    mcp_tools.cos_task_move(conn, task_id="TASK-002", to="ready")
 
     env = _parse(mcp_tools.cos_task_pick(conn))
     assert env["ok"] is True

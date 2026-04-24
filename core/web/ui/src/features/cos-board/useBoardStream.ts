@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { apiGet, resolveApiUrl } from '@/lib/api-client';
 
 /**
@@ -21,6 +22,7 @@ import { apiGet, resolveApiUrl } from '@/lib/api-client';
 
 export type BoardEventKind =
   | 'task-updated'
+  | 'task-created'
   | 'human-move'
   | 'human-create'
   | 'connected'
@@ -33,6 +35,15 @@ export interface BoardEvent {
   taskId: string | null;
   agent: 'claude' | 'codex' | 'cursor' | 'human';
   message: string;
+  /** Status the task holds in the DB AT THIS MOMENT — useful so the UI
+   *  can surface "→ now: complete" when the transition is historical
+   *  and the board column no longer contains it. */
+  currentStatus?: string | null;
+  /** Unix-seconds timestamp of the underlying DB row, when available.
+   *  Stream-live events leave this undefined and rely on `t` for
+   *  wall-clock display; history rows use it to render the actual
+   *  transition time (not the page-load time). */
+  transitionedAt?: number;
 }
 
 export interface UseBoardStreamReturn {
@@ -51,6 +62,10 @@ interface TaskUpdatedPayload {
   new_status?: string | null;
   status?: string;
   agent_session?: string | null;
+  reason?: string | null;
+  source?: 'db' | 'file' | null;
+  current_status?: string | null;
+  ts?: number;
 }
 
 interface StreamHistoryEvent {
@@ -60,6 +75,7 @@ interface StreamHistoryEvent {
   agent_session?: string | null;
   reason?: string | null;
   transitioned_at?: number;
+  current_status?: string | null;
 }
 
 interface StreamHistoryPayload {
@@ -69,9 +85,22 @@ interface StreamHistoryPayload {
 const MAX_EVENTS = 120;
 
 function nowHMS(): string {
-  const d = new Date();
+  return formatHMS(new Date());
+}
+
+function formatHMS(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/** Render a Unix-seconds timestamp as HH:MM:SS; fall back to nowHMS
+ *  when the value is missing/invalid so the panel never shows a
+ *  NaN:NaN:NaN row. */
+function hmsFromEpoch(epoch: number | null | undefined): string {
+  if (typeof epoch !== 'number' || !Number.isFinite(epoch) || epoch <= 0) {
+    return nowHMS();
+  }
+  return formatHMS(new Date(epoch * 1000));
 }
 
 function newId(): string {
@@ -92,6 +121,11 @@ export function useBoardStream(): UseBoardStreamReturn {
   const [connected, setConnected] = useState<boolean>(false);
   const [events, setEvents] = useState<BoardEvent[]>([]);
   const sourceRef = useRef<EventSource | null>(null);
+  // React Router doesn't unmount CosBoardPage when switching between
+  // /p/A/board and /p/B/board (same route pattern). We key both effects
+  // below on pathname so the SSE + history bootstrap rewire to the new
+  // project's scope instead of sticking to the first one opened.
+  const { pathname } = useLocation();
 
   const push = useCallback((ev: BoardEvent) => {
     setEvents((prev) => {
@@ -103,20 +137,34 @@ export function useBoardStream(): UseBoardStreamReturn {
 
   useEffect(() => {
     let cancelled = false;
+    // Wipe any events seeded by the previous project so we don't mix
+    // two different histories in the same panel.
+    setEvents([]);
     const loadHistory = async () => {
       try {
         const [payload] = await apiGet<StreamHistoryPayload>('/api/stream/history', { limit: 20 });
         if (cancelled) return;
         const seed = (payload?.events || [])
           .filter((e) => !!e.task_id)
-          .map((e) => ({
-            id: `hist-${e.task_id}-${e.transitioned_at ?? 0}-${e.new_status ?? 'unknown'}`,
-            t: nowHMS(),
-            kind: 'task-updated' as const,
-            taskId: e.task_id || null,
-            agent: agentForSession(e.agent_session),
-            message: `history ${e.old_status ?? '?'} -> ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`,
-          }));
+          .map((e) => {
+            const isCreate = e.old_status == null;
+            return {
+              id: `hist-${e.task_id}-${e.transitioned_at ?? 0}-${e.new_status ?? 'unknown'}`,
+              // Real transition time, not the moment the panel loaded.
+              // A packed 21-row bootstrap used to display the same HH:MM:SS
+              // for every entry; now each row reflects when the move
+              // actually happened.
+              t: hmsFromEpoch(e.transitioned_at),
+              kind: (isCreate ? 'task-created' : 'task-updated') as BoardEventKind,
+              taskId: e.task_id || null,
+              agent: agentForSession(e.agent_session),
+              message: isCreate
+                ? `created in ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`
+                : `${e.old_status ?? '?'} -> ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`,
+              currentStatus: e.current_status ?? null,
+              transitionedAt: e.transitioned_at,
+            };
+          });
         if (seed.length === 0) return;
         setEvents((prev) => {
           const existing = new Set(prev.map((x) => x.id));
@@ -132,7 +180,7 @@ export function useBoardStream(): UseBoardStreamReturn {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,16 +218,27 @@ export function useBoardStream(): UseBoardStreamReturn {
       setBump((b) => b + 1);
       try {
         const data = JSON.parse((evt as MessageEvent).data) as TaskUpdatedPayload;
+        const isCreate = data.old_status == null
+          && data.new_status != null
+          && data.source === 'db';
+        const hasTransition = data.old_status || data.new_status;
+        const core = isCreate
+          ? `created in ${data.new_status ?? '?'}`
+          : hasTransition
+            ? `${data.old_status ?? '?'} -> ${data.new_status ?? data.status ?? '?'}`
+            : `file changed -> status=${data.status ?? '?'}`;
+        const suffix = data.reason && data.reason !== 'file edit' ? ` (${data.reason})` : '';
         push({
           id: newId(),
-          t: nowHMS(),
-          kind: 'task-updated',
+          // Prefer the backend ts so the clock matches the actual
+          // transition, not the frame the browser happened to process it in.
+          t: hmsFromEpoch(data.ts),
+          kind: isCreate ? 'task-created' : 'task-updated',
           taskId: data.task_id || null,
           agent: agentForSession(data.agent_session),
-          message:
-            data.old_status || data.new_status
-              ? `status ${data.old_status ?? '?'} -> ${data.new_status ?? data.status ?? '?'}`
-              : `file changed -> status=${data.status ?? '?'}`,
+          message: `${core}${suffix}`,
+          currentStatus: data.current_status ?? data.status ?? null,
+          transitionedAt: data.ts,
         });
       } catch {
         /* ignore malformed payload */
@@ -202,7 +261,11 @@ export function useBoardStream(): UseBoardStreamReturn {
       source?.close();
       sourceRef.current = null;
     };
-  }, [push]);
+    // pathname change must tear down the old connection — EventSource
+    // clings to its original URL (/api/p/<old-slug>/stream/events), so
+    // switching projects without this dep would leak cross-project
+    // events into the new panel.
+  }, [push, pathname]);
 
   const pushHumanEvent = useCallback<UseBoardStreamReturn['pushHumanEvent']>(
     (kind, opts) => {

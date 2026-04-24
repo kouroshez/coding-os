@@ -13,6 +13,8 @@ export interface BoardListCard {
   last_log_line?: string | null;
 }
 
+export type AgentPresence = 'active' | 'present' | 'offline';
+
 export interface BoardListPayload {
   grouped: Record<string, Record<string, BoardListCard[]>>;
   cards: BoardListCard[];
@@ -22,7 +24,10 @@ export interface BoardListPayload {
     caps: Record<string, number>;
     violations: string[];
   } | null;
+  /** Back-compat list of "not offline" agents (pre-0.5 consumers). */
   active_agents?: string[];
+  /** Preferred signal: per-agent presence state. */
+  agent_states?: Record<string, AgentPresence>;
 }
 
 export interface SwimlaneDTO {
@@ -58,6 +63,10 @@ export interface BoardTweaks {
   filterSwim: string;
   aesthetic: 'whiteboard' | 'graph' | 'terminal';
   quietMode: boolean;
+  /** Archive is a "soft-terminal" cold store; hidden by default so the
+   *  main board stays focused on active work.  Flip from the header
+   *  toggle to surface it. */
+  showArchive: boolean;
 }
 
 export const DEFAULT_TWEAKS: BoardTweaks = {
@@ -74,4 +83,5 @@ export const DEFAULT_TWEAKS: BoardTweaks = {
   // via the Tweaks panel.
   aesthetic: 'whiteboard',
   quietMode: false,
+  showArchive: false,
 };

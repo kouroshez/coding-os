@@ -44,7 +44,6 @@ KIND_ENUM: tuple[str, ...] = (
 
 STATUS_ENUM: tuple[str, ...] = (
     "icebox",
-    "ready",
     "emergency",
     "in_progress",
     "testing",
@@ -52,6 +51,12 @@ STATUS_ENUM: tuple[str, ...] = (
     "blocked",
     "archive",
 )
+
+# "ready" is no longer a status column — it collapses into a label on
+# tasks that still live in icebox.  Declared here so the label chip
+# renders with a distinct colour in the UI and so lint passes keep it
+# out of the KIND_ENUM (KIND == "ready" would shadow the label).
+READY_LABEL: str = "ready"
 
 PRIORITY_ENUM: tuple[str, ...] = ("P0", "P1", "P2", "P3")
 

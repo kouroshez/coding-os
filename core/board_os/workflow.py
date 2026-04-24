@@ -33,15 +33,23 @@ logger = logging.getLogger("coding_os.board_os.workflow")
 
 
 # Valid transition edges: {from_status: {to_statuses}}
+# "ready" was a dedicated column in earlier versions — it has been folded
+# into an `icebox + "ready" label` combination so the board has one less
+# queue and "ready" becomes something the agent tags rather than a
+# destination to drag tasks into.  Any legacy task still carrying
+# status='ready' is migrated to 'icebox' via _migrate_v19_drop_ready_status.
+# archive is *soft-terminal*: the only way out is back to icebox or complete,
+# which is how a user recovers from an accidental archive.  Any other target
+# requires an explicit --force flag (workflow.transition(..., force=True)) so
+# mis-clicks still surface an error, but a human can always self-correct.
 _VALID_TRANSITIONS: dict[str, set[str]] = {
-    "icebox": {"ready", "emergency", "archive"},
-    "ready": {"in_progress", "icebox", "emergency"},
+    "icebox": {"in_progress", "emergency", "archive"},
     "emergency": {"in_progress", "icebox"},
-    "in_progress": {"testing", "blocked", "ready", "emergency", "complete"},
+    "in_progress": {"testing", "blocked", "icebox", "emergency", "complete"},
     "testing": {"complete", "in_progress", "blocked"},
     "complete": {"archive"},
-    "blocked": {"in_progress", "emergency", "icebox", "ready"},
-    "archive": set(),  # terminal
+    "blocked": {"in_progress", "emergency", "icebox"},
+    "archive": {"icebox", "complete"},  # un-archive paths (see note above)
 }
 
 # Statuses that count toward the WIP cap for a given column.
@@ -174,6 +182,7 @@ def transition(
     agent_session: str | None = None,
     expected_from: str | None = None,
     bypass_wip: bool = False,
+    force: bool = False,
     config: ScrumbanConfig | None = None,
     file_path: Path | None = None,
 ) -> TransitionResult:
@@ -181,16 +190,24 @@ def transition(
     PURPOSE:      Central state machine for every Scrumban transition.
     INPUT:        open DB conn; task_id; target status; optional reason,
                   agent_session, expected_from (optimistic concurrency),
-                  bypass_wip flag, ScrumbanConfig, and explicit file_path.
+                  bypass_wip flag, force (skip state-machine validation for
+                  human self-correction), ScrumbanConfig, and explicit
+                  file_path.
     OUTPUT:       TransitionResult with ok + previous_status + new_status.
                   On validation/WIP/cycle errors → ok=False with
                   error_category ∈ {validation, transient, unavailable}.
+                  `warnings` includes a `forced-transition` line whenever
+                  force=True skipped a rule so the audit trail is explicit.
     DEPENDENCIES: tasks table (v6 + v13 cols), task_status_history table,
                   core.board_os.config.ScrumbanConfig.
     NOTES:        Writes MD frontmatter via atomic rename (temp + rename).
                   If file_path is None, the DB-level status is updated
                   but no MD write happens — used by tests + migrations.
+                  force also implies bypass_wip so a single flag covers
+                  "just let me drag this where I want".
     """
+    if force:
+        bypass_wip = True
     if to_status not in STATUS_ENUM:
         return TransitionResult(
             ok=False,
@@ -242,17 +259,24 @@ def transition(
         )
 
     valid_next = _VALID_TRANSITIONS.get(current_status, set())
+    forced_warning: str | None = None
     if to_status not in valid_next:
-        return TransitionResult(
-            ok=False,
-            task_id=task_id,
-            previous_status=current_status,
-            new_status=to_status,
-            error=(
-                f"invalid transition {current_status!r} → {to_status!r}; "
-                f"valid: {sorted(valid_next) or ['(terminal)']}"
-            ),
-            error_category="validation",
+        if not force:
+            return TransitionResult(
+                ok=False,
+                task_id=task_id,
+                previous_status=current_status,
+                new_status=to_status,
+                error=(
+                    f"invalid transition {current_status!r} → {to_status!r}; "
+                    f"valid: {sorted(valid_next) or ['(terminal)']}. "
+                    "Pass force=True (or `cos task-move --force`) to override."
+                ),
+                error_category="validation",
+            )
+        forced_warning = (
+            f"forced-transition {current_status!r} → {to_status!r} "
+            f"(state machine disallows this; recorded in history)"
         )
 
     # WIP enforcement
@@ -284,6 +308,8 @@ def transition(
     # MD file write (atomic).
     target_file = file_path or (Path(current_file_path) if current_file_path else None)
     warnings: list[str] = []
+    if forced_warning is not None:
+        warnings.append(forced_warning)
     if target_file is not None:
         try:
             _write_status_to_frontmatter(

@@ -7,13 +7,14 @@ import {
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useApiGet } from '@/lib/hooks';
+import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPost } from '@/lib/api-client';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
 import { KIND_COLORS, kindStyle } from './kindColors';
 import type {
+  AgentPresence,
   BoardConfigPayload,
   BoardListCard,
   BoardListPayload,
@@ -21,6 +22,7 @@ import type {
   ColumnDTO,
   SwimlaneDTO,
 } from './types';
+import { visualFor } from './agentPresenceVisuals';
 
 // ---------- types ----------
 type HighlightKind = 'kind' | 'swim' | 'priority';
@@ -72,9 +74,13 @@ interface RetroMetricsPayload {
 }
 
 // ---------- static data (prototype parity) ----------
+// Column ordering matches the Scrumban state machine in
+// core/board_os/workflow.py::_VALID_TRANSITIONS. "ready" is no longer a
+// column — it lives as an optional label on icebox tasks (see
+// READY_LABEL in core/board_os/config.py).  Archive is hidden by
+// default and opts in via BoardTweaks.showArchive.
 const COLUMN_META: Record<string, { label: string; sub: string; wip: number | null }> = {
-  icebox: { label: 'ICE BOX', sub: 'backlog', wip: null },
-  ready: { label: 'READY', sub: 'up next', wip: null },
+  icebox: { label: 'ICE BOX', sub: 'backlog · tag “ready”', wip: null },
   emergency: { label: 'EMERGENCY', sub: 'fire — skip queue', wip: 2 },
   in_progress: { label: 'IN PROGRESS', sub: 'active work', wip: 1 },
   testing: { label: 'TESTING', sub: 'verifying G/W/T', wip: 3 },
@@ -83,15 +89,19 @@ const COLUMN_META: Record<string, { label: string; sub: string; wip: number | nu
   archive: { label: 'ARCHIVE', sub: 'frozen', wip: null },
 };
 
+// Glyphs follow the session prefix (ses-<agent>-...) so every two-letter
+// pip is unambiguous: Claude and Cursor both start with "C" on their own,
+// which made the single-letter badges look identical at stream-panel size.
 const AGENTS = [
-  { id: 'claude', color: '#d97706', label: 'claude', glyph: 'C', session: 'ses-claude' },
-  { id: 'codex', color: '#0891b2', label: 'codex', glyph: 'X', session: 'ses-codex' },
-  { id: 'cursor', color: '#6366f1', label: 'cursor', glyph: 'U', session: 'ses-cursor' },
+  { id: 'claude', color: '#d97706', label: 'claude', glyph: 'Cl', session: 'ses-claude' },
+  { id: 'codex', color: '#0891b2', label: 'codex', glyph: 'Cx', session: 'ses-codex' },
+  { id: 'cursor', color: '#6366f1', label: 'cursor', glyph: 'Cr', session: 'ses-cursor' },
   { id: 'human', color: '#16a34a', label: 'human', glyph: 'H', session: 'local-mac' },
 ] as const;
 
 const EVENT_COLOR: Record<string, string> = {
   'task-updated': '#7c3aed',
+  'task-created': '#16a34a',
   'human-move': '#d97706',
   'human-create': '#16a34a',
   connected: '#0891b2',
@@ -100,6 +110,7 @@ const EVENT_COLOR: Record<string, string> = {
 
 const EVENT_LABEL: Record<string, string> = {
   'task-updated': 'update',
+  'task-created': 'create',
   'human-move': 'drag',
   'human-create': 'create',
   connected: 'sse',
@@ -190,21 +201,30 @@ function priorityStyle(priority: string): CSSProperties {
   }
 }
 
-function AgentBadge({ agentId, active }: { agentId: string; active: boolean }) {
+// AgentState reuses the AgentPresence alias from types so backend and
+// frontend agree on spelling.  Visual mapping lives in
+// agentPresenceVisuals.ts — its exhaustive Record<AgentPresence, …>
+// forces a TS build error the moment a new backend variant is added
+// without a matching visual, so we can't silently under-paint a state.
+export type AgentState = AgentPresence;
+
+function AgentBadge({ agentId, state }: { agentId: string; state: AgentState }) {
   const a = AGENTS.find((x) => x.id === agentId);
   if (!a) return null;
+  const dot = visualFor(state);
+  const live = state !== 'offline';
   return (
     <div
-      title={`${a.label} ${active ? '(active)' : '(offline)'}`}
+      title={`${a.label} — ${dot.label}`}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 5,
         padding: '3px 8px 3px 6px',
         borderRadius: 999,
-        background: active ? `${a.color}15` : 'var(--board-grain)',
-        border: `1px solid ${active ? a.color : 'var(--col-border)'}`,
-        color: active ? a.color : 'var(--ink-faint)',
+        background: live ? `${a.color}15` : 'var(--board-grain)',
+        border: `1px solid ${live ? a.color : 'var(--col-border)'}`,
+        color: live ? a.color : 'var(--ink-faint)',
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 10,
         fontWeight: 600,
@@ -216,8 +236,9 @@ function AgentBadge({ agentId, active }: { agentId: string; active: boolean }) {
           width: 6,
           height: 6,
           borderRadius: '50%',
-          background: active ? '#16a34a' : '#dc2626',
-          boxShadow: active ? '0 0 0 2px rgba(22,163,74,.2)' : '0 0 0 2px rgba(220,38,38,.2)',
+          background: dot.color,
+          boxShadow: `0 0 0 2px ${dot.ring}`,
+          animation: dot.pulse ? 'cos-agent-pulse 1.4s ease-in-out infinite' : undefined,
         }}
       />
       {a.label}
@@ -229,9 +250,11 @@ function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; titl
   if (!agentId) return null;
   const a = AGENTS.find((x) => x.id === agentId);
   if (!a) return null;
+  // Two-letter glyphs need a tighter font to fit inside the pip cleanly.
+  const glyphRatio = a.glyph.length > 1 ? 0.44 : 0.58;
   return (
     <span
-      title={title || a.session}
+      title={title || `${a.label} (${a.session})`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -241,9 +264,10 @@ function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; titl
         borderRadius: '50%',
         background: a.color,
         color: 'white',
-        fontSize: Math.round(size * 0.55),
+        fontSize: Math.round(size * glyphRatio),
         fontWeight: 700,
         fontFamily: "'JetBrains Mono', monospace",
+        letterSpacing: a.glyph.length > 1 ? '-0.5px' : undefined,
         boxShadow: '0 2px 4px rgba(0,0,0,.15)',
         border: '2px solid rgba(255,255,255,0.85)',
       }}
@@ -271,8 +295,12 @@ export default function CosBoardPage() {
 
   useEffect(() => {
     if (bump > 0) {
-      void qc.invalidateQueries({ queryKey: ['/api/board/list'] });
-      void qc.invalidateQueries({ queryKey: ['board-retro-7d'] });
+      // queryKey prefix is ['cos-scope', slug, path, ...] — a plain-path
+      // queryKey no longer matches.  `invalidateApiQueries` uses a
+      // predicate so both scoped and unscoped entries with the given
+      // path get invalidated.
+      void invalidateApiQueries(qc, '/api/board/list');
+      void invalidateApiQueries(qc, '/api/board/retro');
     }
   }, [bump, qc]);
 
@@ -333,7 +361,17 @@ export default function CosBoardPage() {
 
   const cards: BoardListCard[] = list?.cards ?? [];
   const swimlanes: SwimlaneDTO[] = cfg?.swimlanes ?? [];
-  const columns: ColumnDTO[] = cfg?.columns ?? [];
+  // Filter archive out of the visible column list unless the user opts
+  // in via the header toggle — archive is a soft-terminal cold store and
+  // most sessions don't need to see it.  Backend still returns archive
+  // cards in `cards`, so the only concession when hidden is that those
+  // cards can't be reached from the main grid (drawer deep-link still
+  // works for historical references).
+  const allColumns: ColumnDTO[] = cfg?.columns ?? [];
+  const columns: ColumnDTO[] = useMemo(
+    () => allColumns.filter((c) => c.id !== 'archive' || tweaks.showArchive),
+    [allColumns, tweaks.showArchive],
+  );
 
   const filtered = useMemo<BoardListCard[]>(
     () =>
@@ -451,16 +489,50 @@ export default function CosBoardPage() {
       taskId: dragging.id,
       message: parts.join(' · ') || 'no-op',
     });
-    try {
+    const tryMove = async (force: boolean) => {
       await apiPost('/api/board/reposition', {
         task_id: dragging.id,
         to: dragging.status === colId ? undefined : colId,
         swimlane: dragging.swimlane === laneId ? undefined : laneId,
+        force,
+        reason: force ? 'human drag (forced)' : undefined,
       });
-      await qc.invalidateQueries({ queryKey: ['/api/board/list'] });
-      await qc.invalidateQueries({ queryKey: ['board-retro-7d'] });
+      await invalidateApiQueries(qc, '/api/board/list');
+      await invalidateApiQueries(qc, '/api/board/retro');
+    };
+
+    try {
+      await tryMove(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'move failed';
+      // If the state machine rejected this drop, offer the user an
+      // explicit opt-in force retry.  Anything else (network, 5xx,
+      // "task not found") is surfaced as-is.
+      const looksLikeInvalidTransition = /invalid transition/i.test(msg);
+      if (looksLikeInvalidTransition && typeof window !== 'undefined'
+          && window.confirm(
+            `${msg}\n\nDrop it anyway? This will be recorded as a `
+            + 'forced transition in the task history.',
+          )) {
+        try {
+          await tryMove(true);
+          pushHumanEvent('human-move', {
+            taskId: dragging.id,
+            message: `${parts.join(' · ')} (forced)`,
+          });
+          onDragEnd();
+          return;
+        } catch (err2) {
+          const msg2 = err2 instanceof Error ? err2.message : 'force move failed';
+          setActionError(msg2);
+          pushHumanEvent('human-move', {
+            taskId: dragging.id,
+            message: `FAILED (force) — ${msg2}`,
+          });
+          onDragEnd();
+          return;
+        }
+      }
       setActionError(msg);
       pushHumanEvent('human-move', { taskId: dragging.id, message: `FAILED — ${msg}` });
     }
@@ -493,11 +565,21 @@ export default function CosBoardPage() {
         stats={stats}
         taskCount={list?.count ?? 0}
         connected={connected}
-        activeAgents={list?.active_agents ?? ['human']}
+        agentStates={
+          list?.agent_states ?? (
+            // Back-compat: pre-0.5 backends only send active_agents list.
+            (list?.active_agents ?? ['human']).reduce<Record<string, AgentState>>(
+              (acc, id) => ({ ...acc, [id]: 'active' }),
+              {},
+            )
+          )
+        }
         legendOpen={legendOpen}
         streamOpen={streamOpen}
+        showArchive={tweaks.showArchive}
         onToggleLegend={() => setLegendOpen((v) => !v)}
         onToggleStream={() => setStreamOpen((v) => !v)}
+        onToggleArchive={() => setTweaks((t) => ({ ...t, showArchive: !t.showArchive }))}
         onToggleTweaks={() => setTweaksOpen((v) => !v)}
         onCreate={() => setCreateOpen(true)}
       />
@@ -822,8 +904,8 @@ export default function CosBoardPage() {
               message: `${form.kind} · lane ${form.swimlane} · ${form.priority} · "${form.title}"`,
             });
             setTimeout(() => setJustCreated(null), 2800);
-            await qc.invalidateQueries({ queryKey: ['/api/board/list'] });
-            await qc.invalidateQueries({ queryKey: ['board-retro-7d'] });
+            await invalidateApiQueries(qc, '/api/board/list');
+            await invalidateApiQueries(qc, '/api/board/retro');
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'create failed';
             setActionError(msg);
@@ -871,22 +953,26 @@ function TopBar({
   stats,
   taskCount,
   connected,
-  activeAgents,
+  agentStates,
   legendOpen,
   streamOpen,
+  showArchive,
   onToggleLegend,
   onToggleStream,
+  onToggleArchive,
   onToggleTweaks,
   onCreate,
 }: {
   stats: BoardStats;
   taskCount: number;
   connected: boolean;
-  activeAgents: string[];
+  agentStates: Record<string, AgentState>;
   legendOpen: boolean;
   streamOpen: boolean;
+  showArchive: boolean;
   onToggleLegend: () => void;
   onToggleStream: () => void;
+  onToggleArchive: () => void;
   onToggleTweaks: () => void;
   onCreate: () => void;
 }) {
@@ -962,7 +1048,11 @@ function TopBar({
           <span style={{ color: 'var(--ink-faint)', fontSize: 13 }}>live:</span>
           <div style={{ display: 'flex', gap: 5 }}>
             {AGENTS.map((a) => (
-              <AgentBadge key={a.id} agentId={a.id} active={activeAgents.includes(a.id)} />
+              <AgentBadge
+                key={a.id}
+                agentId={a.id}
+                state={agentStates[a.id] ?? 'offline'}
+              />
             ))}
           </div>
           <span
@@ -1003,6 +1093,9 @@ function TopBar({
 
         <TopBtn onClick={onToggleLegend} active={legendOpen}>⁂ legend</TopBtn>
         <TopBtn onClick={onToggleStream} active={streamOpen}>⎌ stream</TopBtn>
+        <TopBtn onClick={onToggleArchive} active={showArchive}>
+          {showArchive ? '▣ archive on' : '▢ archive'}
+        </TopBtn>
         <TopBtn onClick={onToggleTweaks}>⚙ tweaks</TopBtn>
       </div>
     </div>
@@ -1491,6 +1584,11 @@ function LiveStreamPanel({
         {events.map((ev) => {
           const color = EVENT_COLOR[ev.kind] || 'var(--ink-soft)';
           const label = EVENT_LABEL[ev.kind] || ev.kind;
+          // "Where is the task NOW?" chip — shown when the transition
+          // is historical and the board column no longer reflects it.
+          // Suppressed when new_status equals current_status (live row).
+          const current = ev.currentStatus;
+          const showCurrent = Boolean(current);
           return (
             <div
               key={ev.id}
@@ -1504,7 +1602,12 @@ function LiveStreamPanel({
                 alignItems: 'flex-start',
               }}
             >
-              <span style={{ color: 'var(--ink-faint)', flexShrink: 0 }}>{ev.t}</span>
+              <span
+                style={{ color: 'var(--ink-faint)', flexShrink: 0 }}
+                title={ev.transitionedAt ? new Date(ev.transitionedAt * 1000).toLocaleString() : undefined}
+              >
+                {ev.t}
+              </span>
               <AgentPip agentId={ev.agent} />
               <span
                 style={{
@@ -1528,6 +1631,25 @@ function LiveStreamPanel({
                   </span>
                 )}
                 <span style={{ color: 'var(--ink-soft)' }}>{ev.message}</span>
+                {showCurrent && (
+                  <span
+                    title="Current status in DB (the history event may be older than this)"
+                    style={{
+                      marginLeft: 6,
+                      padding: '1px 5px',
+                      borderRadius: 3,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.04em',
+                      color: 'var(--ink-soft)',
+                      background: 'var(--board-grain)',
+                      border: '1px solid var(--col-border)',
+                    }}
+                  >
+                    now: {current}
+                  </span>
+                )}
               </div>
             </div>
           );
@@ -1656,6 +1778,7 @@ function TweaksPanel({
         <Toggle on={tweaks.quietMode} onChange={(v) => set('quietMode', v)} label="Quiet mode" sub="subdued cards + kind as corner dot" />
         <Toggle on={tweaks.agentSurface} onChange={(v) => set('agentSurface', v)} label="Agent surface" sub="pips, work log stream, hook events" />
         <Toggle on={tweaks.showWipViolation} onChange={(v) => set('showWipViolation', v)} label="WIP violation state" sub="column flashes red when over cap" />
+        <Toggle on={tweaks.showArchive} onChange={(v) => set('showArchive', v)} label="Show archive column" sub="soft-terminal cold store — hidden by default" />
         <div style={{ height: 1, background: 'var(--col-border)', margin: '6px 4px' }} />
         <Seg label="Filter — kind" value={tweaks.filterKind} options={kindOptions} onChange={(v) => set('filterKind', v)} />
         <Seg label="Filter — epic" value={tweaks.filterEpic} options={epicOptions} onChange={(v) => set('filterEpic', v)} />
@@ -1955,7 +2078,7 @@ function LegendPanel({
                 key={a.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink)' }}
               >
-                <AgentBadge agentId={a.id} active={true} />
+                <AgentBadge agentId={a.id} state="active" />
               </div>
             ))}
           </div>

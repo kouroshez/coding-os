@@ -33,9 +33,10 @@ def test_kind_enum_is_eight_values_in_fixed_order():
     )
 
 
-def test_status_enum_has_eight_workflow_columns():
+def test_status_enum_has_seven_workflow_columns():
+    """'ready' was folded into a label on icebox rows — seven columns remain."""
     assert set(STATUS_ENUM) == {
-        "icebox", "ready", "emergency", "in_progress",
+        "icebox", "emergency", "in_progress",
         "testing", "complete", "blocked", "archive",
     }
 

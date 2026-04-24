@@ -51,3 +51,19 @@ body,
 .cos-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/*
+ * AgentBadge dot pulse — used when an agent is in the "active" presence
+ * state (tool fire in the last 30s, or user turn currently in flight).
+ * Idle/present agents stay static (solid amber).
+ */
+@keyframes cos-agent-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+    transform: scale(1.15);
+  }
+}

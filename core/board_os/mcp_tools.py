@@ -201,6 +201,7 @@ def cos_task_create(
     read_first: list[str] | None = None,
     depends_on: list[str] | None = None,
     status: str = "icebox",
+    agent_session: str | None = None,
 ) -> str:
     """Create a new task MD file + sync into DB. Returns envelope."""
     config = _current_config()
@@ -271,6 +272,63 @@ def cos_task_create(
     file_path.write_text(frontmatter + body, encoding="utf-8")
 
     sync_one(conn, file_path, project_root=project_root)
+
+    # Emit a canonical creation event into task_status_history so the
+    # live-agents panel and retro queries can attribute WHO created the
+    # task and WHEN.  Shape: old_status=NULL signals "created" to the
+    # stream renderer (see core/web/ui/.../useBoardStream.ts).  Any
+    # sqlite error here must NOT fail the create — the task is already
+    # on disk + synced; history is an audit signal, not a gate.
+    try:
+        import time as _time
+        # old_status uses '' (empty string) as the "nothing to transition
+        # from" sentinel — the task_status_history.old_status column is
+        # NOT NULL (migration v13 schema).  The stream renderer normalises
+        # '' back to null/creation in both history + SSE paths so the UI
+        # distinguishes "create" from "move" without a schema migration.
+        conn.execute(
+            """
+            INSERT INTO task_status_history
+                (task_id, old_status, new_status, agent_session,
+                 reason, transitioned_at)
+            VALUES (?, '', ?, ?, ?, ?)
+            """,
+            (task_id, status, agent_session, "created", int(_time.time())),
+        )
+        conn.commit()
+    except sqlite3.Error as exc:
+        import logging as _logging
+        _logging.getLogger("coding_os.board_os").debug(
+            "create-history insert failed for %s: %s", task_id, exc,
+        )
+        # Also persist the agent session onto the tasks row so the UI
+        # can still attribute this task even without a history row.
+        try:
+            conn.execute(
+                "UPDATE tasks SET agent_session = COALESCE(?, agent_session) "
+                "WHERE task_id = ?",
+                (agent_session, task_id),
+            )
+            conn.commit()
+        except sqlite3.Error as exc2:
+            _logging.getLogger("coding_os.board_os").debug(
+                "create-history agent_session fallback failed: %s", exc2,
+            )
+    else:
+        # History row landed; also stamp the tasks row so board_list can
+        # render the creator badge without re-joining history.
+        try:
+            conn.execute(
+                "UPDATE tasks SET agent_session = COALESCE(?, agent_session) "
+                "WHERE task_id = ?",
+                (agent_session, task_id),
+            )
+            conn.commit()
+        except sqlite3.Error as exc_stamp:  # noqa: BLE001 — history row suffices
+            import logging as _logging
+            _logging.getLogger("coding_os.board_os").debug(
+                "create stamp on tasks.agent_session failed: %s", exc_stamp,
+            )
 
     return ok(
         {
@@ -361,6 +419,7 @@ def cos_task_move(
     to: str,
     reason: str | None = None,
     bypass_wip: bool = False,
+    force: bool = False,
     agent_session: str | None = None,
 ) -> str:
     config = _current_config()
@@ -379,6 +438,7 @@ def cos_task_move(
         reason=reason,
         agent_session=agent_session,
         bypass_wip=bypass_wip,
+        force=force,
         config=config,
         file_path=file_path,
     )
@@ -409,6 +469,7 @@ def cos_task_reposition(
     to: str | None = None,
     reason: str | None = None,
     bypass_wip: bool = False,
+    force: bool = False,
     agent_session: str | None = None,
 ) -> str:
     """Change task status and/or swimlane (YAML frontmatter + sync).
@@ -485,6 +546,7 @@ def cos_task_reposition(
             reason=reason,
             agent_session=agent_session,
             bypass_wip=bypass_wip,
+            force=force,
             config=config,
             file_path=file_path,
         )
@@ -543,7 +605,13 @@ def cos_task_pick(
     max_candidates: int = 5,
 ) -> str:
     pm_weight = _PRIORITY_WEIGHT.get(priority_min, 20)
-    clauses = ["status IN ('ready', 'emergency')"]
+    # "ready" is no longer a column — candidates now live in icebox with
+    # a 'ready' label, plus the emergency column.  LIKE on labels_json
+    # is cheap (<200 chars) and avoids a JSON1 dependency.
+    clauses = [
+        "(status = 'emergency' OR "
+        "(status = 'icebox' AND labels_json LIKE '%\"ready\"%'))"
+    ]
     params: list = []
     if swimlane:
         clauses.append("swimlane = ?")

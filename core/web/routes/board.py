@@ -13,6 +13,8 @@ NOTES:  The board_os functions need a SQLite connection; we open one per
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 import sqlite3
 import sys
@@ -29,6 +31,7 @@ _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
+logger = logging.getLogger("coding_os.web.board")
 router = APIRouter(prefix="/api/board", tags=["board"])
 
 
@@ -75,18 +78,134 @@ def _unavailable():
     })
 
 
+_ACTIVE_WINDOW_SECS = 30      # "tool called within this many seconds" → ACTIVE
+_PRESENT_WINDOW_SECS = 60 * 60  # upper bound for PRESENT (session alive this long with no event → likely zombie)
+_DB_FALLBACK_WINDOW_SECS = 300  # legacy DB-only signal window
+
+
+def _pid_alive(pid: int) -> bool:
+    """True when a PID is still a running process owned by this machine."""
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Process exists but belongs to another user — still alive.
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _presence_files(agent: str) -> list[Path]:
+    """Return the per-session presence JSON files for this agent."""
+    from core.web._project_context import current_project_root
+
+    d = current_project_root() / ".coding-os" / agent / "sessions"
+    if not d.is_dir():
+        return []
+    try:
+        return [p for p in d.iterdir() if p.suffix == ".json" and p.is_file()]
+    except OSError as exc:
+        logger.debug("presence dir read failed for %s: %s", agent, exc)
+        return []
+
+
+def _presence_state(agent: str) -> str:
+    """Compute {"active", "present", "offline"} from lifecycle session files.
+
+    PURPOSE: Answer "is this agent running right now?" with enough
+             resolution to distinguish "generating / tool-using" (ACTIVE)
+             from "session alive, waiting or thinking" (PRESENT) from
+             "not here" (OFFLINE).
+    INPUT:   agent key ("claude" / "codex" / "cursor").
+    OUTPUT:  one of "active" / "present" / "offline".
+    NOTES:   Presence files are written atomically by
+             core/hooks/agent-presence.sh on SessionStart / UserPromptSubmit /
+             PreToolUse / PostToolUse / Stop / SessionEnd.  PID liveness
+             handles crashed agents that never got to emit SessionEnd.
+    """
+    import time as _time
+    now = int(_time.time())
+    best = "offline"
+    for path in _presence_files(agent):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            # Corrupt presence files are rare (atomic tmp+rename), but when
+            # they happen we want a trail — otherwise the panel silently
+            # shows "offline" with no way to diagnose.
+            logger.debug("skipping corrupt presence file %s: %s", path, exc)
+            continue
+        if data.get("ended_at") is not None:
+            continue
+
+        last_tool = data.get("last_tool_at")
+        last_prompt = data.get("last_prompt_at")
+        last_stop = data.get("last_stop_at")
+
+        # Heartbeat-first liveness: the hook writes last_tool_at / last_prompt_at
+        # on EVERY PreToolUse / UserPromptSubmit fire.  A recent heartbeat
+        # proves the runtime is alive regardless of which subprocess pid the
+        # file currently carries — PPID changes between hook invocations on
+        # some runtimes (Cursor, Claude Code VSCode) so pid-alive checks
+        # false-negative while the agent is clearly doing work.
+        if isinstance(last_tool, int) and now - last_tool <= _ACTIVE_WINDOW_SECS:
+            return "active"
+        # "User turn in flight" = last_prompt is newer than last_stop.
+        # Clamped to PRESENT window so an abandoned session (prompt with
+        # no matching stop, 2h old) doesn't stay green forever.  Real
+        # turns routinely take minutes; a 30s active-window would be
+        # too tight here.
+        if isinstance(last_prompt, int) \
+                and now - last_prompt <= _PRESENT_WINDOW_SECS \
+                and (not isinstance(last_stop, int) or last_stop < last_prompt):
+            return "active"
+
+        # No recent heartbeat — fall back to pid liveness for genuinely idle
+        # sessions (long-running agent with no tool calls).  If pid is dead
+        # AND no heartbeat within window, the session is effectively offline.
+        pid = int(data.get("pid") or 0)
+        if not _pid_alive(pid):
+            # BUT if any heartbeat landed within the PRESENT window we still
+            # trust it — the runtime rotated subprocesses but the session is
+            # active.  Only offline when every signal is old.
+            recent_heartbeat = (
+                (isinstance(last_tool, int) and now - last_tool <= _PRESENT_WINDOW_SECS)
+                or (isinstance(last_prompt, int) and now - last_prompt <= _PRESENT_WINDOW_SECS)
+            )
+            if not recent_heartbeat:
+                continue
+            best = "present" if best != "active" else best
+            continue
+
+        # PRESENT: session alive + pid alive, but idle.  Cap at upper bound
+        # to avoid treating truly abandoned sessions as alive indefinitely.
+        started = data.get("started_at") or 0
+        if now - int(started) <= _PRESENT_WINDOW_SECS:
+            best = "present" if best != "active" else best
+    return best
+
+
 def _agent_active_from_db(conn: sqlite3.Connection, agent: str) -> bool:
-    """True when agent has recent transition or active in-progress task ownership."""
+    """Legacy signal: recent task transition or in-progress task ownership.
+
+    Retained as a fallback so projects that pre-date the presence hook
+    (no .coding-os/<agent>/sessions/ directory) still get SOMETHING
+    useful on the board.  New deployments should rely on _presence_state.
+    """
     session_like = f"%{agent}%"
     recent_transition = conn.execute(
         """
         SELECT 1
         FROM task_status_history
         WHERE agent_session LIKE ?
-          AND transitioned_at >= CAST(strftime('%s','now') AS INTEGER) - 300
+          AND transitioned_at >= CAST(strftime('%s','now') AS INTEGER) - ?
         LIMIT 1
         """,
-        (session_like,),
+        (session_like, _DB_FALLBACK_WINDOW_SECS),
     ).fetchone()
     if recent_transition:
         return True
@@ -102,6 +221,26 @@ def _agent_active_from_db(conn: sqlite3.Connection, agent: str) -> bool:
         (session_like,),
     ).fetchone()
     return bool(active_owned_task)
+
+
+def _agent_state(conn: sqlite3.Connection, agent: str) -> str:
+    """Preferred signal: presence files.  Falls back to DB for legacy.
+
+    PURPOSE: Return one of "active" / "present" / "offline" for the
+             live-agents panel.
+    NOTES:   When the presence layer has nothing (older projects that
+             haven't re-installed the hook bundle yet), we consult the
+             DB as a coarser signal.  A DB hit proves "this agent has
+             touched the project recently" but NOT "right now", so we
+             report "present" — reserving "active" for the hook-backed
+             path.  This keeps the pulsing-green visual honest.
+    """
+    state = _presence_state(agent)
+    if state != "offline":
+        return state
+    if _agent_active_from_db(conn, agent):
+        return "present"
+    return "offline"
 
 
 @router.get("/task/{task_id}")
@@ -260,18 +399,20 @@ async def board_list(
     finally:
         conn.close()
 
-    import json
-    import time
     env = json.loads(result)
     if env.get("ok"):
-        active_agents = ["human"]
+        # agent_states is the new, richer shape: {agent: "active"|"present"|"offline"}.
+        # active_agents preserves the v0.5 contract ("list of ids that are not
+        # offline") so older UI builds keep working during the rollout.
+        states: dict[str, str] = {"human": "active"}  # human is always considered present
         conn = _db_conn()
-        for agent in ["claude", "codex", "cursor"]:
-            active = _agent_active_from_db(conn, agent)
-            if active:
-                active_agents.append(agent)
-        conn.close()
-        env["data"]["active_agents"] = active_agents
+        try:
+            for agent in ("claude", "codex", "cursor"):
+                states[agent] = _agent_state(conn, agent)
+        finally:
+            conn.close()
+        env["data"]["agent_states"] = states
+        env["data"]["active_agents"] = [a for a, st in states.items() if st != "offline"]
 
     return JSONResponse(status_code=200 if env.get("ok") else 400, content=env)
 
@@ -289,6 +430,7 @@ async def board_create(
     read_first: Optional[List[str]] = Body(None),
     depends_on: Optional[List[str]] = Body(None),
     status: str = Body("icebox"),
+    agent_session: Optional[str] = Body(None),
     _rl=Depends(make_rate_limit_dep("board.create")),
     _m=Depends(make_metrics_dep("board.create")),
 ):
@@ -318,6 +460,7 @@ async def board_create(
             read_first=read_first or [],
             depends_on=depends_on or [],
             status=status,
+            agent_session=agent_session,
         )
     finally:
         conn.close()
@@ -330,6 +473,7 @@ async def board_move(
     to: str = Body(...),
     reason: Optional[str] = Body(None),
     bypass_wip: bool = Body(False),
+    force: bool = Body(False),
     agent_session: Optional[str] = Body(None),
     _rl=Depends(make_rate_limit_dep("board.move")),
     _m=Depends(make_metrics_dep("board.move")),
@@ -337,10 +481,13 @@ async def board_move(
     """Transition a task through the Scrumban state machine.
 
     PURPOSE: HTTP wrapper for cos_task_move.
-    INPUT:   JSON body with task_id, to, optional reason/bypass_wip.
+    INPUT:   JSON body with task_id, to, optional reason / bypass_wip / force.
     OUTPUT:  {data: {task_id, previous_status, new_status, warnings}, meta} on 200.
     DEPENDENCIES: board_os.mcp_tools.cos_task_move.
-    NOTES:   Enforces WIP caps unless bypass_wip=true.
+    NOTES:   Enforces WIP caps unless bypass_wip=true.  `force=true` ALSO
+             overrides state-machine validation so the UI can let a user
+             undo an accidental drag (with an explicit confirm + the
+             forced-transition warning recorded in history).
     """
     bt = _board_tools()
     if bt is None:
@@ -353,6 +500,7 @@ async def board_move(
             to=to,
             reason=reason,
             bypass_wip=bypass_wip,
+            force=force,
             agent_session=agent_session,
         )
     finally:
@@ -423,6 +571,7 @@ async def board_reposition(
     to: Optional[str] = Body(None),
     reason: Optional[str] = Body(None),
     bypass_wip: bool = Body(False),
+    force: bool = Body(False),
     agent_session: Optional[str] = Body(None),
     _rl=Depends(make_rate_limit_dep("board.reposition")),
     _m=Depends(make_metrics_dep("board.reposition")),
@@ -440,6 +589,7 @@ async def board_reposition(
             to=to,
             reason=reason,
             bypass_wip=bypass_wip,
+            force=force,
             agent_session=agent_session,
         )
     finally:

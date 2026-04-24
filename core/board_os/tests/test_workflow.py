@@ -76,18 +76,24 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 @pytest.mark.parametrize(
     "from_status,to_status",
     [
-        ("icebox", "ready"),
+        # "ready" has been folded into "icebox + label=ready" — the
+        # pre-ready direct paths (icebox→in_progress, blocked→icebox)
+        # are the new canonical flow.
+        ("icebox", "in_progress"),
         ("icebox", "emergency"),
-        ("ready", "in_progress"),
-        ("ready", "emergency"),
         ("emergency", "in_progress"),
         ("in_progress", "testing"),
         ("in_progress", "blocked"),
         ("in_progress", "complete"),
+        ("in_progress", "icebox"),  # pull back to backlog w/out ready queue
         ("testing", "complete"),
         ("testing", "in_progress"),
         ("complete", "archive"),
         ("blocked", "in_progress"),
+        ("blocked", "icebox"),
+        # Un-archive recovery paths (soft-terminal):
+        ("archive", "icebox"),
+        ("archive", "complete"),
     ],
 )
 def test_transition_valid(conn: sqlite3.Connection, from_status, to_status):
@@ -101,17 +107,56 @@ def test_transition_valid(conn: sqlite3.Connection, from_status, to_status):
     assert result.new_status == to_status
 
 
+def test_force_bypasses_invalid_transition(conn: sqlite3.Connection):
+    """archive → testing is NOT in the state machine; force=True must allow it
+    and record a forced-transition warning so the audit trail stays honest."""
+    _insert_task(conn, "TASK-F1", status="archive")
+    normal = transition(conn, "TASK-F1", "testing")
+    assert normal.ok is False
+    assert "invalid transition" in (normal.error or "")
+
+    forced = transition(
+        conn, "TASK-F1", "testing",
+        force=True,
+        config=_make_config(in_progress=10, testing=10, emergency=10),
+    )
+    assert forced.ok, forced.error
+    assert forced.previous_status == "archive"
+    assert forced.new_status == "testing"
+    assert any("forced-transition" in w for w in forced.warnings)
+
+
+def test_force_bypasses_wip_cap(conn: sqlite3.Connection):
+    """force=True is a superset of bypass_wip — a single flag covers both."""
+    _insert_task(conn, "TASK-F2", status="icebox")
+    _insert_task(conn, "TASK-F3", status="in_progress")  # already at cap=1
+    blocked = transition(
+        conn, "TASK-F2", "in_progress", config=_make_config(in_progress=1),
+    )
+    assert blocked.ok is False
+    assert "WIP cap" in (blocked.error or "")
+
+    forced = transition(
+        conn, "TASK-F2", "in_progress",
+        force=True,
+        config=_make_config(in_progress=1),
+    )
+    assert forced.ok, forced.error
+    assert forced.new_status == "in_progress"
+
+
 # ---------- Invalid transitions ----------
 
 
 @pytest.mark.parametrize(
     "from_status,to_status",
     [
-        ("icebox", "in_progress"),
-        ("icebox", "testing"),
-        ("ready", "complete"),
-        ("archive", "ready"),
-        ("complete", "in_progress"),
+        # "ready" column no longer exists; rejections target real invalid
+        # edges under the new state machine.
+        ("icebox", "testing"),           # must pass through in_progress
+        ("icebox", "complete"),          # no skipping the work
+        ("archive", "in_progress"),      # archive → only {icebox, complete}
+        ("complete", "in_progress"),     # complete only exits to archive
     ],
 )
 def test_transition_rejects_invalid(
@@ -125,21 +170,21 @@ def test_transition_rejects_invalid(
 
 
 def test_transition_rejects_unknown_status(conn: sqlite3.Connection):
-    _insert_task(conn, "TASK-003", status="ready")
+    _insert_task(conn, "TASK-003", status="icebox")
     result = transition(conn, "TASK-003", "nonsense")
     assert result.ok is False
     assert result.error_category == "validation"
 
 
 def test_transition_missing_task_returns_not_found(conn: sqlite3.Connection):
-    result = transition(conn, "TASK-MISSING", "ready")
+    result = transition(conn, "TASK-MISSING", "icebox")
     assert result.ok is False
     assert result.error_category == "not_found"
 
 
 def test_transition_no_op_same_status(conn: sqlite3.Connection):
-    _insert_task(conn, "TASK-004", status="ready")
-    result = transition(conn, "TASK-004", "ready")
+    _insert_task(conn, "TASK-004", status="icebox")
+    result = transition(conn, "TASK-004", "icebox")
     assert result.ok is True
     assert "no-op" in result.warnings[0]
 
@@ -148,9 +193,9 @@ def test_transition_no_op_same_status(conn: sqlite3.Connection):
 
 
 def test_transition_optimistic_concurrency_detects_drift(conn: sqlite3.Connection):
-    _insert_task(conn, "TASK-005", status="ready")
+    _insert_task(conn, "TASK-005", status="icebox")
     result = transition(
-        conn, "TASK-005", "in_progress", expected_from="icebox",
+        conn, "TASK-005", "in_progress", expected_from="in_progress",
         config=_make_config(in_progress=10),
     )
     assert result.ok is False
@@ -158,9 +203,9 @@ def test_transition_optimistic_concurrency_detects_drift(conn: sqlite3.Connectio
 
 
 def test_transition_optimistic_concurrency_accepts_match(conn: sqlite3.Connection):
-    _insert_task(conn, "TASK-006", status="ready")
+    _insert_task(conn, "TASK-006", status="icebox")
     result = transition(
-        conn, "TASK-006", "in_progress", expected_from="ready",
+        conn, "TASK-006", "in_progress", expected_from="icebox",
         config=_make_config(in_progress=10),
     )
     assert result.ok is True
@@ -171,7 +216,7 @@ def test_transition_optimistic_concurrency_accepts_match(conn: sqlite3.Connectio
 
 def test_wip_cap_blocks_second_in_progress(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-010", status="in_progress")
-    _insert_task(conn, "TASK-011", status="ready")
+    _insert_task(conn, "TASK-011", status="icebox")
     config = _make_config(in_progress=1)
     result = transition(conn, "TASK-011", "in_progress", config=config)
     assert result.ok is False
@@ -179,7 +224,7 @@ def test_wip_cap_blocks_second_in_progress(conn: sqlite3.Connection):
 
 
 def test_wip_cap_allows_within_limit(conn: sqlite3.Connection):
-    _insert_task(conn, "TASK-012", status="ready")
+    _insert_task(conn, "TASK-012", status="icebox")
     config = _make_config(in_progress=1)
     result = transition(conn, "TASK-012", "in_progress", config=config)
     assert result.ok is True
@@ -187,7 +232,7 @@ def test_wip_cap_allows_within_limit(conn: sqlite3.Connection):
 
 def test_wip_bypass_flag_overrides_cap(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-013", status="in_progress")
-    _insert_task(conn, "TASK-014", status="ready")
+    _insert_task(conn, "TASK-014", status="icebox")
     config = _make_config(in_progress=1)
     result = transition(
         conn, "TASK-014", "in_progress", config=config, bypass_wip=True,
@@ -245,7 +290,7 @@ def test_transition_updates_md_frontmatter(tmp_path: Path, conn: sqlite3.Connect
         "title: \"integration\"\n"
         "swimlane: core\n"
         "kind: chore\n"
-        "status: ready\n"
+        "status: icebox\n"
         "priority: P2\n"
         "appetite: \"30m\"\n"
         "---\n\n"

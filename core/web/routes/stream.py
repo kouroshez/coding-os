@@ -132,6 +132,9 @@ async def _sse_event(event_type: str, data: dict) -> str:
     return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
 
 
+_TRANSITION_ALIGN_SECS = 8  # file mtime within this many seconds of a DB row = same event
+
+
 async def _event_generator() -> AsyncGenerator[str, None]:
     """Poll docs/tasks/ and yield SSE events.
 
@@ -139,8 +142,10 @@ async def _event_generator() -> AsyncGenerator[str, None]:
     INPUT:   none (uses module-level constants).
     OUTPUT:  Async generator of SSE event strings.
     DEPENDENCIES: asyncio, pathlib.
-    NOTES:   Emits heartbeat every 15s to keep the connection alive through
-             load balancers that time out idle connections.
+    NOTES:   Emits canonical DB transitions FIRST each cycle, then
+             promotes raw file edits to human-authored events, suppressing
+             duplicates by aligning mtime with the transition timestamp.
+             Heartbeat every 15s keeps idle connections alive.
     """
     tasks_dir = _tasks_dir()
     poll = _poll_interval_secs()
@@ -148,7 +153,6 @@ async def _event_generator() -> AsyncGenerator[str, None]:
     last_history_id = 0
     last_heartbeat = time.monotonic()
 
-    # Track status transitions from DB so command-driven moves are always visible.
     try:
         conn = _db_conn()
         try:
@@ -159,18 +163,67 @@ async def _event_generator() -> AsyncGenerator[str, None]:
     except sqlite3.Error:
         last_history_id = 0
 
-    # Emit an initial connected event so the client knows the stream is up.
     yield await _sse_event("connected", {"message": "SSE stream connected", "poll_ms": int(poll * 1000)})
 
     while True:
         await asyncio.sleep(poll)
 
         now = time.monotonic()
-        # Heartbeat every 15 seconds.
         if now - last_heartbeat >= _HEARTBEAT_INTERVAL:
             yield await _sse_event("heartbeat", {"ts": int(time.time())})
             last_heartbeat = now
 
+        # ----- Canonical DB transitions (authoritative; emitted first) -----
+        try:
+            conn = _db_conn()
+            try:
+                rows = conn.execute(
+                    """
+                    SELECT h.id, h.task_id, h.old_status, h.new_status,
+                           h.agent_session, h.transitioned_at, h.reason,
+                           t.status
+                    FROM task_status_history h
+                    LEFT JOIN tasks t ON t.task_id = h.task_id
+                    WHERE h.id > ?
+                    ORDER BY h.id ASC
+                    LIMIT 200
+                    """,
+                    (last_history_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            logger.debug("stream history fetch failed: %s", exc)
+            rows = []
+
+        emitted_recent: dict[str, float] = {}  # task_id -> transitioned_at
+        for r in rows:
+            row_id = int(r[0])
+            last_history_id = max(last_history_id, row_id)
+            task_id = r[1]
+            ts = float(r[5]) if r[5] is not None else float(time.time())
+            emitted_recent[task_id] = ts
+            yield await _sse_event(
+                "task-updated",
+                {
+                    "task_id": task_id,
+                    # Normalise '' → null for creation rows (see history
+                    # endpoint for the full rationale).
+                    "old_status": r[2] if r[2] else None,
+                    "new_status": r[3],
+                    "status": r[3],
+                    "agent_session": r[4],
+                    "reason": r[6],
+                    "ts": int(ts),
+                    "source": "db",
+                    # t.status at the moment this event is emitted — helps
+                    # the UI show "→ NOW: complete" when the transition is
+                    # historical and the task has moved on.
+                    "current_status": r[7],
+                },
+            )
+
+        # ----- File-watch promotion (human edits not backed by a DB row) ---
         if not tasks_dir.exists():
             tasks = []
         else:
@@ -186,78 +239,36 @@ async def _event_generator() -> AsyncGenerator[str, None]:
             prev_mtime = last_mtimes.get(fname)
 
             if prev_mtime is None:
-                # First time we see this file — record but don't emit.
                 last_mtimes[fname] = mtime
                 continue
+            if mtime == prev_mtime:
+                continue
 
-            if mtime != prev_mtime:
-                last_mtimes[fname] = mtime
-                m = _TASK_RE.match(fname)
-                task_id = f"TASK-{m.group(1)}" if m else fname.replace(".md", "")
-                meta = _read_task_meta(md_file)
-                # File-watch events can miss actor attribution when frontmatter
-                # `agent_session` is null. Prefer freshest transition metadata
-                # from DB when it aligns with this file mutation.
-                old_status = None
-                new_status = meta["status"]
-                agent_session = meta["agent_session"]
-                try:
-                    conn = _db_conn()
-                    try:
-                        tr = _latest_transition(conn, task_id)
-                    finally:
-                        conn.close()
-                    tr_ts = tr.get("transitioned_at")
-                    if isinstance(tr_ts, int) and abs(mtime - float(tr_ts)) <= 8:
-                        old_status = tr.get("old_status")
-                        new_status = tr.get("new_status") or meta["status"]
-                        agent_session = tr.get("agent_session") or meta["agent_session"]
-                except sqlite3.Error as exc:
-                    logger.debug("stream latest transition lookup failed for %s: %s", task_id, exc)
-                yield await _sse_event(
-                    "task-updated",
-                    {
-                        "task_id": task_id,
-                        "old_status": old_status,
-                        "new_status": new_status,
-                        "status": new_status,
-                        "agent_session": agent_session,
-                        "ts": int(time.time()),
-                    },
-                )
+            last_mtimes[fname] = mtime
+            m = _TASK_RE.match(fname)
+            task_id = f"TASK-{m.group(1)}" if m else fname.replace(".md", "")
 
-        # Also stream canonical transition rows so command-based workflow
-        # (task-move/task-start/task-done) appears immediately without refresh.
-        try:
-            conn = _db_conn()
-            try:
-                rows = conn.execute(
-                    """
-                    SELECT id, task_id, old_status, new_status, agent_session, transitioned_at
-                    FROM task_status_history
-                    WHERE id > ?
-                    ORDER BY id ASC
-                    LIMIT 200
-                    """,
-                    (last_history_id,),
-                ).fetchall()
-            finally:
-                conn.close()
-        except sqlite3.Error:
-            rows = []
+            # If we just emitted a DB event for this task close to the
+            # file mtime, the file change is the same event — skip.
+            recent_ts = emitted_recent.get(task_id)
+            if recent_ts is not None and abs(mtime - recent_ts) <= _TRANSITION_ALIGN_SECS:
+                continue
 
-        for r in rows:
-            row_id = int(r[0])
-            last_history_id = max(last_history_id, row_id)
+            meta = _read_task_meta(md_file)
+            # A file edit without an accompanying DB transition is a raw
+            # human edit — frontmatter agent_session would be the LAST
+            # author (stale), so treat it as human (null).
             yield await _sse_event(
                 "task-updated",
                 {
-                    "task_id": r[1],
-                    "old_status": r[2],
-                    "new_status": r[3],
-                    "status": r[3],
-                    "agent_session": r[4],
-                    "ts": int(r[5]) if r[5] is not None else int(time.time()),
+                    "task_id": task_id,
+                    "old_status": None,
+                    "new_status": meta["status"],
+                    "status": meta["status"],
+                    "agent_session": None,
+                    "reason": "file edit",
+                    "ts": int(time.time()),
+                    "source": "file",
                 },
             )
 
@@ -298,6 +309,10 @@ async def stream_history(
     limit = max(1, min(200, int(limit)))
     conn = _db_conn()
     try:
+        # LEFT JOIN so we can annotate every historical row with the
+        # task's CURRENT status.  Without this the UI shows "ready ->
+        # in_progress" for a task that has since moved on to complete,
+        # and the board column is (correctly) empty — a confusing mismatch.
         rows = conn.execute(
             """
             SELECT
@@ -306,8 +321,10 @@ async def stream_history(
                 h.new_status,
                 h.agent_session,
                 h.reason,
-                h.transitioned_at
+                h.transitioned_at,
+                t.status AS current_status
             FROM task_status_history h
+            LEFT JOIN tasks t ON t.task_id = h.task_id
             ORDER BY h.transitioned_at DESC
             LIMIT ?
             """,
@@ -327,14 +344,19 @@ async def stream_history(
     finally:
         conn.close()
 
+    # cos_task_create writes old_status='' for creation rows because the
+    # task_status_history.old_status column is NOT NULL. Normalise back
+    # to null on the wire so the UI's `isCreate = !old_status` check sees
+    # a canonical sentinel and doesn't need to special-case "".
     events = [
         {
             "task_id": r[0],
-            "old_status": r[1],
+            "old_status": r[1] if r[1] else None,
             "new_status": r[2],
             "agent_session": r[3],
             "reason": r[4],
             "transitioned_at": r[5],
+            "current_status": r[6],
         }
         for r in rows
     ]
