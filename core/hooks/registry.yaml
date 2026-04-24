@@ -287,6 +287,17 @@ hooks:
         matcher: resume
         status_message: "🗓️  Checking daily check-in recency..."
 
+  - id: ensure-hub-up
+    script: ensure-hub-up.sh
+    description: SessionStart — if .coding-os.yaml has hub.enabled (default true), probe http://127.0.0.1:9188 and start `cos hub` in the background when down.
+    category: observability
+    phase: "0"
+    timeout: 2000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🛰️  Ensuring Coding OS Hub is up..."
+
   - id: lint-task
     script: lint-task.sh
     description: Phase L.9 — Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.

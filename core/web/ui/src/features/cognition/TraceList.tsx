@@ -27,18 +27,18 @@ export default function TraceList({
 
   return (
     <section aria-label="Cognition traces" className="flex h-full flex-col">
-      <header className="border-b border-[#2a2f39] px-3 py-2 text-xs">
-        <h2 className="font-semibold uppercase tracking-wide text-[#9ea4ae]">Traces</h2>
+      <header className="border-b border-[var(--cos-border)] px-3 py-2 text-xs">
+        <h2 className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">Traces</h2>
       </header>
       <div className="flex-1 overflow-auto cos-scroll">
-        {isLoading && <p className="p-3 text-xs text-[#9ea4ae]">loading traces…</p>}
+        {isLoading && <p className="p-3 text-xs text-[var(--cos-muted)]">loading traces…</p>}
         {error && (
           <p role="alert" className="p-3 text-xs text-rose-400">
             {error.message}
           </p>
         )}
         {!isLoading && !error && data && data.sessions.length === 0 && (
-          <p className="p-3 text-xs text-[#9ea4ae]">no traces recorded yet.</p>
+          <p className="p-3 text-xs text-[var(--cos-muted)]">no traces recorded yet.</p>
         )}
         <ul>
           {data?.sessions.map((s) => {
@@ -50,12 +50,12 @@ export default function TraceList({
                   onClick={() => onSelect(s.session_id)}
                   aria-pressed={active}
                   className={[
-                    'block w-full border-b border-[#1f242c] px-3 py-2 text-left text-xs',
-                    active ? 'bg-[#1b3528] text-[#7fd4a0]' : 'hover:bg-[#1b1f27]',
+                    'block w-full border-b border-[var(--cos-border)]/60 px-3 py-2 text-left text-xs',
+                    active ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]' : 'hover:bg-[var(--cos-panel)]',
                   ].join(' ')}
                 >
                   <div className="font-mono truncate">{s.session_id}</div>
-                  <div className="text-[10px] text-[#6c7280]">
+                  <div className="text-[10px] text-[var(--cos-muted)]">
                     {s.agent} · {(s.size_bytes / 1024).toFixed(1)}kb
                   </div>
                 </button>

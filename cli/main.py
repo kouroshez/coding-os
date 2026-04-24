@@ -929,6 +929,17 @@ def _run_scaffold_phase(
     if ensure_agents_md(project, world):
         click.echo("  Generated AGENTS.md")
 
+    # 11. Register project in the global ~/.coding-os/registry.json so the
+    # Hub web UI (`cos hub`) can enumerate it and serve its sqlite DB.
+    try:
+        from cli.registry import add_project as _registry_add_project
+
+        entry = _registry_add_project(project)
+        click.echo(f"  Registered in hub registry: {entry.slug}")
+    except Exception as exc:  # noqa: BLE001
+        # Registry is non-fatal — a failed write should not break init.
+        click.echo(f"  WARN: could not register project in hub registry: {exc}", err=True)
+
 
 @cli.command("add-adapter")
 @click.argument("agent", type=click.Choice(VALID_AGENTS))
@@ -1331,6 +1342,15 @@ try:
     from cli.web_commands import web_cmd as _web_cmd  # noqa: WPS433
 
     cli.add_command(_web_cmd)
+
+    from cli.registry import registry_cli as _registry_cli  # noqa: WPS433
+
+    cli.add_command(_registry_cli)
+
+    from cli.hub_commands import hub_cli as _hub_cli, service_cli as _service_cli  # noqa: WPS433
+
+    cli.add_command(_hub_cli)
+    cli.add_command(_service_cli)
 except ImportError as _web_cli_exc:  # pragma: no cover — defensive
     import logging as _logging
 

@@ -87,26 +87,18 @@ def _print_envelope(envelope: str, *, format: str = "text") -> int:
 def _launch_board_in_spa(*, host: str, port: int) -> None:
     """Open the unified SPA Board page; auto-start `cos web` if needed.
 
-    PURPOSE: Replacement path for the legacy `cos board --web` viewer
-             (core/board_os/viewer/, removed in S6).  Redirects to the
-             React SPA at /board served by core.web.server on port 8081.
+    PURPOSE: Opens http://{host}:{port}/board in the default browser.
+             If the unified web server is already running on the given
+             port, just opens the browser; otherwise spawns the server
+             in-process and blocks until it is killed.
     INPUT:   host, port — overrideable web server bind.
     OUTPUT:  none.  Opens browser; blocks if it had to spawn the server.
-    DEPENDENCIES: urllib (stdlib), webbrowser (stdlib), subprocess (stdlib),
+    DEPENDENCIES: urllib (stdlib), webbrowser (stdlib),
                   core.web.server.run_server (lazy).
-    NOTES:   One-line deprecation notice every invocation (consumers may
-             script around it).  If the server is already running on the
-             port, just open the browser; otherwise spawn it in-process.
     """
     import urllib.error
     import urllib.request
     import webbrowser
-
-    click.echo(
-        "DEPRECATED: `cos board --web` now opens the unified SPA "
-        "(core/board_os/viewer/ removed in S6).",
-        err=True,
-    )
 
     url = f"http://{host}:{port}/board"
     health_url = f"http://{host}:{port}/health"
@@ -139,7 +131,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
 
 @click.command("board", help="Show Scrumban board (ASCII or --web)")
 @click.option("--web", is_flag=True, default=False, help="Open board in browser (redirects to unified SPA at /board)")
-@click.option("--port", type=int, default=8081,
+@click.option("--port", type=int, default=9188,
               help="Port for the unified web server when --web is used.")
 @click.option("--host", default="127.0.0.1")
 @click.option("--bind", default=None, help="Bind address (overrides --host)")

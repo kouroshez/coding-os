@@ -60,8 +60,8 @@ to promote to block.
 ## Web UI
 
 For visual exploration, the unified React SPA exposes the graph at
-[http://127.0.0.1:4748/graph](http://127.0.0.1:4748/graph). Start it
-with `cos web` (FastAPI + uvicorn on port 4748). The page picks a
+[http://127.0.0.1:9188/graph](http://127.0.0.1:9188/graph). Start it
+with `cos web` (FastAPI + uvicorn on port 9188). The page picks a
 root node, runs depth-bounded BFS, and renders with Sigma.js +
 Graphology — useful when:
 

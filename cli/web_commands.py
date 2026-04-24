@@ -1,6 +1,6 @@
 """cli.web_commands — `cos web` command for launching the unified web server.
 
-PURPOSE: CLI entry-point that starts the FastAPI/uvicorn server on port 8081
+PURPOSE: CLI entry-point that starts the FastAPI/uvicorn server on port 9188
          (default) with optional --reload for development and --host override.
 INPUT:   CLI flags: --port INT, --host STR, --reload (flag), --log-level STR.
 OUTPUT:  none (starts uvicorn, blocks until killed).
@@ -23,9 +23,9 @@ if str(_REPO_ROOT) not in sys.path:
 
 
 @click.command(name="web")
-@click.option("--port", default=8081, show_default=True, type=int,
-              help="TCP port to listen on. Default is 8081 "
-                   "(stable, user-facing URL).")
+@click.option("--port", default=9188, show_default=True, type=int,
+              help="TCP port to listen on. Default is 9188 "
+                   "(stable, user-facing URL; IANA-unassigned).")
 @click.option("--host", default="127.0.0.1", show_default=True,
               help="Host/interface to bind.")
 @click.option("--reload", is_flag=True, default=False,
@@ -42,7 +42,7 @@ def web_cmd(port: int, host: str, reload: bool, log_level: str) -> None:
     INPUT:   --port, --host, --reload, --log-level CLI flags.
     OUTPUT:  Running HTTP server (blocks until SIGTERM/SIGINT).
     DEPENDENCIES: core.web.server.run_server, uvicorn.
-    NOTES:  The default port 8081 is the stable public URL for the
+    NOTES:  The default port 9188 is the stable public URL for the
             coding-os web SPA (bookmarkable across sessions).
     """
     try:

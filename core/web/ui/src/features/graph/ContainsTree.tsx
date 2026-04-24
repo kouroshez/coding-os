@@ -75,14 +75,14 @@ function TreeRow({
       <div
         className={[
           'flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs',
-          selected ? 'bg-[#1b3528] text-[#7fd4a0]' : 'hover:bg-[#1b1f27]',
+          selected ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]' : 'hover:bg-[var(--cos-panel)]',
         ].join(' ')}
         style={{ paddingLeft: depth * 10 + 2 }}
       >
         <button
           type="button"
           aria-label={open ? 'Collapse' : 'Expand'}
-          className="flex h-4 w-4 items-center justify-center text-[#9ea4ae]"
+          className="flex h-4 w-4 items-center justify-center text-[var(--cos-muted)]"
           onClick={() => setOpen((v) => !v)}
           disabled={!hasChildren}
         >
@@ -150,15 +150,15 @@ export default function ContainsTree() {
 
   return (
     <section aria-label="Contains tree" className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-[#2a2f39] px-2 py-1 text-xs">
-        <span className="font-semibold uppercase tracking-wide text-[#9ea4ae]">
+      <header className="flex items-center justify-between border-b border-[var(--cos-border)] px-2 py-1 text-xs">
+        <span className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
           Contains spine
         </span>
         {selectedRootUid && (
           <button
             type="button"
             onClick={() => setRoot(null)}
-            className="text-[#9ea4ae] hover:text-white"
+            className="text-[var(--cos-muted)] hover:text-white"
             title="Clear root"
           >
             clear
@@ -166,14 +166,14 @@ export default function ContainsTree() {
         )}
       </header>
       <div className="flex-1 overflow-auto p-1 cos-scroll">
-        {isLoading && <p className="p-2 text-xs text-[#9ea4ae]">loading spine…</p>}
+        {isLoading && <p className="p-2 text-xs text-[var(--cos-muted)]">loading spine…</p>}
         {error && (
           <p className="p-2 text-xs text-rose-400" role="alert">
             {error.message}
           </p>
         )}
         {!isLoading && !error && visibleForest.length === 0 && (
-          <p className="p-2 text-xs text-[#9ea4ae]">
+          <p className="p-2 text-xs text-[var(--cos-muted)]">
             no CONTAINS edges in graph yet. Run <code>cos graph-reindex</code>.
           </p>
         )}

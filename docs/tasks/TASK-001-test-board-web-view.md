@@ -5,13 +5,13 @@ swimlane: board-os
 kind: chore
 epic: null
 labels: []
-status: icebox
+status: complete
 priority: P2
 appetite: "30m"
 created: 2026-04-20
-started: null
-completed: null
-agent_session: null
+started: 2026-04-23
+completed: 2026-04-23
+agent_session: ses-cursor-20260423-155740-a0e9
 depends_on: []
 blocked_by: []
 references: []

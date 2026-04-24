@@ -5,18 +5,17 @@ swimlane: thinking-os
 kind: feature
 epic: phase-j
 labels: []
-status: icebox
+status: complete
 priority: P3
 appetite: "2h"
 created: 2026-04-20
-started: null
-completed: null
-agent_session: null
+started: 2026-04-23
+completed: 2026-04-23
+agent_session: ses-cursor-20260423-155740-a0e9
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-018: J.3  retrieval_router_log migration + append-only schema
 
 **Outcome (one sentence):** Phase J slice J.3 shipped per plan.

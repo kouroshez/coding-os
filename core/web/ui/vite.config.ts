@@ -5,12 +5,12 @@ import path from 'node:path';
 
 // Vite config for coding-os SPA.
 // - Dev server: http://127.0.0.1:5173 (strict port).
-// - /api/* proxied to FastAPI backbone on http://127.0.0.1:8081 (stable port).
+// - /api/* proxied to FastAPI backbone on http://127.0.0.1:9188 (stable port).
 // - Build output: dist/ (served by FastAPI StaticFiles in production).
 //
 // Port choice — the backend and SPA share a single, bookmarkable public URL
-// (port 8081) so the board is always reachable at the same place across runs.
-const BACKEND_ORIGIN = 'http://127.0.0.1:8081';
+// (port 9188) so the board is always reachable at the same place across runs.
+const BACKEND_ORIGIN = 'http://127.0.0.1:9188';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

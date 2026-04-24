@@ -55,7 +55,7 @@ export default function GraphCanvas() {
       <div className="flex h-full items-center justify-center text-center">
         <div className="max-w-md px-6">
           <h2 className="mb-2 text-lg font-semibold">Pick a node to explore</h2>
-          <p className="text-sm text-[#9ea4ae]">
+          <p className="text-sm text-[var(--cos-muted)]">
             The canvas stays empty until you pick a root. Use the CONTAINS tree on the
             left to jump to any folder, file, class, or method — depth-bounded BFS
             keeps the view readable.
@@ -71,7 +71,7 @@ export default function GraphCanvas() {
       {isLoading && (
         <div
           role="status"
-          className="absolute left-3 top-3 rounded bg-[#151a22] px-2 py-1 text-xs"
+          className="absolute left-3 top-3 rounded bg-[var(--cos-panel)] px-2 py-1 text-xs"
         >
           loading…
         </div>
@@ -79,7 +79,7 @@ export default function GraphCanvas() {
       {isLayoutRunning && !isLoading && (
         <div
           role="status"
-          className="absolute left-3 top-3 rounded bg-[#151a22] px-2 py-1 text-xs"
+          className="absolute left-3 top-3 rounded bg-[var(--cos-panel)] px-2 py-1 text-xs"
         >
           laying out…
         </div>
@@ -93,7 +93,7 @@ export default function GraphCanvas() {
         </div>
       )}
       {!isLoading && !error && pruned && pruned.nodes?.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-[#9ea4ae]">
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--cos-muted)]">
           no nodes reachable at this depth
         </div>
       )}

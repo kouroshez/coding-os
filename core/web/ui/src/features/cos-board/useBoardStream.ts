@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiGet } from '@/lib/api-client';
+import { apiGet, resolveApiUrl } from '@/lib/api-client';
 
 /**
  * Live board activity stream.
@@ -138,7 +138,7 @@ export function useBoardStream(): UseBoardStreamReturn {
     let cancelled = false;
     let source: EventSource | null = null;
     try {
-      source = new EventSource('/api/stream/events');
+      source = new EventSource(resolveApiUrl('/api/stream/events'));
     } catch {
       return () => undefined;
     }

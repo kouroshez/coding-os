@@ -102,8 +102,9 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 **Scrumban (preferred):** `cos board [--web]` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
 **MCP equivalents:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
+**Meta retrieval (when unsure):** `cos_retrieve(query, hint="auto")` dispatches to memory/docs/tasks or returns a code-grep hint for identifier queries.
 **Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `make cos-health` · `cos doctor` · `make log-{latest,write,search}`.
-**Web UI (visual exploration):** `cos web [--port 4748]` boots the unified FastAPI server + React SPA — graph viz, board, cognition traces, search at `http://127.0.0.1:4748`.
+**Web UI (visual exploration):** `cos web [--port 9188]` boots the unified FastAPI server + React SPA — graph viz, board, cognition traces, search at `http://127.0.0.1:9188`.
 
 ## Four-Layer Retrieval
 
@@ -112,6 +113,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 | Agent Memory | "Have I solved this before?" | `cos_search`, `cos_timeline`, `cos_details`, `cos_learn_suggest` |
 | Doc KB (Phase B) | "What does the spec say?" | `cos_doc_search` |
 | Tasks + Board (C+L) | "What's related / next / blocked?" | `cos_task_*` family |
+| Meta Router (J) | "I am not sure which layer to use" | `cos_retrieve` |
 | Knowledge Graph (I) | "What is connected to what?" | `cos_graph_*` family |
 
 Routing decisions, freshness contract, graph rename workflow, contracts audit: see [docs/engineering/retrieval-routing.md](docs/engineering/retrieval-routing.md), [docs/engineering/graph-os-queries.md](docs/engineering/graph-os-queries.md), and [docs/engineering/rename-workflow.md](docs/engineering/rename-workflow.md).
@@ -125,8 +127,8 @@ Routing decisions, freshness contract, graph rename workflow, contracts audit: s
 | MCP tools | [core/thinking_os/tools/](core/thinking_os/tools/) (memory, metrics, learning, routing, docs, tasks, retrieve, cognition) |
 | Phase I graph-os | [core/graph_os/](core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
 | Phase L board-os | [core/board_os/](core/board_os/) — config, parser, sync, workflow, mcp_tools |
-| Web backbone (S4) | [core/web/](core/web/) — FastAPI on port 4748, `/api/{graph,board,cognition,search}` + `/api/stream/events` SSE |
-| React SPA (S5) | [core/web/ui/](core/web/ui/) — Vite + React 18 + Sigma.js, served at http://127.0.0.1:4748 |
+| Web backbone (S4) | [core/web/](core/web/) — FastAPI on port 9188, `/api/{graph,board,cognition,search}` + `/api/stream/events` SSE |
+| React SPA (S5) | [core/web/ui/](core/web/ui/) — Vite + React 18 + Sigma.js, served at http://127.0.0.1:9188 |
 | Roles (F1–F11) | [core/thinking_os/roles/](core/thinking_os/roles/) — 11 yaml + presets/registry.yaml |
 | Hooks | [core/hooks/](core/hooks/) (49 scripts) + [registry.yaml](core/hooks/registry.yaml) |
 | Skills | [core/skills/](core/skills/) — backend-fundamentals, clean-code, codebase-explorer, frontend-fundamentals, graph-explorer, task-driver, thinking-os, worktree-orchestration |

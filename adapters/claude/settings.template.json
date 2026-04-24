@@ -240,6 +240,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/ensure-hub-up.sh",
+            "statusMessage": "🛰️  Ensuring Coding OS Hub is up...",
+            "timeout": 2000
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
             "statusMessage": "🚀 Loading session context + memory digest..."
           },

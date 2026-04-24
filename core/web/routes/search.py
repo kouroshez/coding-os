@@ -39,15 +39,11 @@ def _db_conn() -> sqlite3.Connection:
     INPUT:   none.
     OUTPUT:  sqlite3.Connection with row_factory=sqlite3.Row set so that
              memory.py's dict(row) calls work correctly.
-    DEPENDENCIES: os.environ COS_DB_PATH, COS_PROJECT_ROOT.
-    NOTES:   row_factory=sqlite3.Row is required by memory_search's dict(row)
-             conversion. Caller is responsible for closing.
+    DEPENDENCIES: core.web._project_context.current_db_path.
     """
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
-    db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db"),
-    )
-    conn = sqlite3.connect(db_path, check_same_thread=False)
+    from core.web._project_context import current_db_path
+
+    conn = sqlite3.connect(str(current_db_path()), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 

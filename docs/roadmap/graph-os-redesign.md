@@ -5,9 +5,9 @@
 
 ## Context (one paragraph)
 
-graph-os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise it to a graph-tool-class system — agent-facing MCP surface stays, human-facing side becomes a unified React SPA on **port 4748** covering graph + scrumban board + cognition traces + future systems. Anti-hairball via depth-bounded BFS + node-type filters + CONTAINS spine (Folder→File→Class→Method). See also: [core/graph_os/](../../core/graph_os/), [core/board_os/](../../core/board_os/).
+graph-os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise it to a graph-tool-class system — agent-facing MCP surface stays, human-facing side becomes a unified React SPA on **port 9188** covering graph + scrumban board + cognition traces + future systems. Anti-hairball via depth-bounded BFS + node-type filters + CONTAINS spine (Folder→File→Class→Method). See also: [core/graph_os/](../../core/graph_os/), [core/board_os/](../../core/board_os/).
 
-**Port:** 4748 (4747 reserved by graph-tool convention).
+**Port:** 9188 (IANA-unassigned; 4747–4748 were reserved by other conventions).
 
 **Stack:** React 18 + Vite + TypeScript + Tailwind v4 + Sigma.js v3 + Graphology + ForceAtlas2 (npm latest as of 2026-04-21).
 
@@ -57,7 +57,7 @@ graph-os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise i
 
 - [ ] New package `core/web/` with `server.py`, `routes/`, `__init__.py`
 - [ ] FastAPI + uvicorn (pinned latest as of 2026-04-21)
-- [ ] Port 4748 (env `COS_WEB_PORT`)
+- [ ] Port 9188 (env `COS_WEB_PORT`)
 - [ ] Routes:
   - `/api/graph/*` — wrap 11 `cos_graph_*` (thin adapter returning envelope JSON)
   - `/api/board/*` — wrap `cos_task_*`
@@ -67,7 +67,7 @@ graph-os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise i
   - `/health` + `/metrics` (Prometheus format via `graph_os.enterprise.metrics()`)
 - [ ] CORS: `http://localhost:5173` (Vite dev) + same-origin in prod
 - [ ] Static serve `core/web/ui/dist/` when built
-- [ ] CLI: `cos web [--port 4748]` launches uvicorn
+- [ ] CLI: `cos web [--port 9188]` launches uvicorn
 - [ ] Test: `test_web_server.py` spin-up + each route returns 200
 - [ ] Kill RateLimiter dead code — wire it here per-route OR delete
 - [ ] Kill backend probe stale-write — health endpoint tests live backend
@@ -92,7 +92,7 @@ graph-os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise i
 - [ ] Search page: unified search over memory + docs + graph
 - [ ] API client: typed `fetch` wrapper with envelope unwrapping
 - [ ] Build: `npm run build` → `dist/` served by FastAPI
-- [ ] Dev: `npm run dev` on 5173, proxies `/api` to 4748
+- [ ] Dev: `npm run dev` on 5173, proxies `/api` to 9188
 - [ ] Deprecate: `core/board_os/viewer/` marked deprecated, redirect to `/board`
 - [ ] Deprecate: `core/graph_os/viewer/` static HTML kept for `cos graph-viz` CLI compat, but SPA is primary
 
@@ -151,7 +151,7 @@ graph-os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise i
 ### V6 — In-browser WASM mode
 - [ ] `transformers.js` for embeddings
 - [ ] WASM SQLite or WASM Kuzu build
-- [ ] Runtime switch: detect `localhost:4748`, fall back to WASM
+- [ ] Runtime switch: detect `localhost:9188`, fall back to WASM
 
 ### V7 — Docker compose
 - [ ] `Dockerfile.server` + `Dockerfile.web`

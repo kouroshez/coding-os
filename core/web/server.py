@@ -3,7 +3,7 @@
 PURPOSE: Create and configure the unified web server that exposes graph-os,
          board-os, cognition, and search as /api/* REST routes.  Also mounts
          the SPA static files when core/web/ui/dist/ exists.
-INPUT:   Environment variables: COS_WEB_PORT (default 8081),
+INPUT:   Environment variables: COS_WEB_PORT (default 9188),
          COS_WEB_HOST (default 127.0.0.1), COS_WEB_CORS_ALLOW_ALL.
 OUTPUT:  FastAPI application instance (create_app()) or starts uvicorn
          (run_server()).
@@ -29,7 +29,7 @@ if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
 # Defaults
-DEFAULT_PORT = int(os.environ.get("COS_WEB_PORT", "8081"))
+DEFAULT_PORT = int(os.environ.get("COS_WEB_PORT", "9188"))
 DEFAULT_HOST = os.environ.get("COS_WEB_HOST", "127.0.0.1")
 
 _SPA_DIST = Path(__file__).resolve().parent / "ui" / "dist"
@@ -74,6 +74,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Per-request project scope — lets a single uvicorn serve every
+    # registered coding-os project under /api/p/<slug>/...  (Hub mode).
+    # Legacy launches without /p/<slug>/ keep using the cwd/env fallback.
+    from core.web._project_context import ProjectScopeMiddleware
+
+    app.add_middleware(ProjectScopeMiddleware)
+
     # ------------------------------------------------------------------
     # Route registration
     # ------------------------------------------------------------------
@@ -81,6 +88,7 @@ def create_app() -> FastAPI:
     from core.web.routes.cognition import router as cognition_router
     from core.web.routes.graph import router as graph_router
     from core.web.routes.health import router as health_router
+    from core.web.routes.hub import router as hub_router
     from core.web.routes.metrics import router as metrics_router
     from core.web.routes.search import router as search_router
     from core.web.routes.stream import router as stream_router
@@ -92,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(cognition_router)
     app.include_router(search_router)
     app.include_router(stream_router)
+    app.include_router(hub_router)
 
     # ------------------------------------------------------------------
     # Static SPA / fallback

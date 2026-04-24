@@ -4,7 +4,7 @@
 Purpose: Canonical lifecycle for creating, executing, and closing tasks in the documentation-driven workflow.
 Read when: Creating a task, updating task status, or aligning task scripts/templates.
 Skip when: The task is already in progress and its lifecycle is clear.
-Read next: `../tasks.md`, `templates/task-detail.md`, and `agent-workflow.md`
+Read next: `../tasks.md` and `agent-workflow.md`; use `cos task-create` (lean L-format) to create task files.
 
 > Nav: [Docs Index](../00-index.md) | [Tasks Index](../tasks.md)
 

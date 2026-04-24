@@ -5,18 +5,17 @@ swimlane: thinking-os
 kind: test
 epic: phase-j
 labels: []
-status: icebox
+status: complete
 priority: P3
 appetite: "1d"
 created: 2026-04-20
-started: null
-completed: null
-agent_session: null
+started: 2026-04-23
+completed: 2026-04-23
+agent_session: ses-cursor-20260423-155740-a0e9
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-020: J.5  evaluate_router.py — precision/recall CSV evaluator
 
 **Outcome (one sentence):** Phase J slice J.5 shipped per plan.

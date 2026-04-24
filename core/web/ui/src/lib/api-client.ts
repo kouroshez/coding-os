@@ -29,9 +29,27 @@ export class ApiError extends Error {
   }
 }
 
+// Hub-aware path rewriter: when the SPA is mounted under /p/<slug>/...
+// (Hub project-scoped routes), every /api/... request gets rewritten to
+// /api/p/<slug>/... so the ProjectScopeMiddleware on the backend picks
+// the right sqlite DB and project root for the request.  Non-/api/
+// paths (e.g. /health) stay global and are never rewritten.
+const PROJECT_SLUG_RE = /^\/p\/([^/]+)(?:\/|$)/;
+
+const rewriteForProjectScope = (path: string): string => {
+  if (!path.startsWith('/api/')) return path;
+  if (path.startsWith('/api/p/')) return path;
+  if (path.startsWith('/api/hub/')) return path;
+  const match = PROJECT_SLUG_RE.exec(window.location.pathname);
+  if (!match) return path;
+  const slug = match[1];
+  return `/api/p/${encodeURIComponent(slug)}/${path.slice('/api/'.length)}`;
+};
+
 const buildUrl = (path: string, params?: Record<string, unknown>): string => {
   const base = DEFAULT_BASE;
-  const url = new URL(base + path, window.location.origin);
+  const scopedPath = rewriteForProjectScope(path);
+  const url = new URL(base + scopedPath, window.location.origin);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue;
@@ -74,6 +92,15 @@ const handle = async <T>(res: Response): Promise<[T, ApiMeta | null]> => {
   }
   return [body as T, null];
 };
+
+/**
+ * Resolve an API path to the final URL that will be hit by `fetch` /
+ * `EventSource` — exposed for callers (SSE, <img>) that don't go
+ * through the fetch wrapper but still need the per-project rewrite.
+ */
+export function resolveApiUrl(path: string, params?: Record<string, unknown>): string {
+  return buildUrl(path, params);
+}
 
 export async function apiGet<T>(
   path: string,

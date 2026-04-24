@@ -5,18 +5,17 @@ swimlane: graph-os
 kind: feature
 epic: phase-i
 labels: []
-status: icebox
+status: complete
 priority: P2
 appetite: "3d"
 created: 2026-04-20
-started: null
-completed: null
-agent_session: null
+started: 2026-04-23
+completed: 2026-04-23
+agent_session: ses-cursor-20260423-155740-a0e9
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-013: I.12 Repo groups + cross-repo edge detection
 
 **Outcome (one sentence):** Phase I slice I.12 shipped per plan.

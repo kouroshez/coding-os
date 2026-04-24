@@ -1,7 +1,21 @@
 @import "tailwindcss";
 
-/* Dark-theme-first palette pulled from core/graph_os/viewer/template.py. */
+/*
+ * Unified semantic tokens — aliases that every feature (board, graph,
+ * search, cognition, hub) reads via `var(--cos-*)`.  Theme-aware: light
+ * variant mirrors the paper aesthetic from cos-board-tokens.css, dark
+ * variant preserves the graph-viewer origin palette.
+ */
 :root {
+  --cos-bg: #f4efe1;
+  --cos-panel: #ffffff;
+  --cos-border: #b8ad9a;
+  --cos-text: #1a1814;
+  --cos-muted: #8a8378;
+  --cos-accent: #d96c2c;
+}
+
+html[data-theme="dark"] {
   --cos-bg: #0e1116;
   --cos-panel: #151a22;
   --cos-border: #2a2f39;
@@ -31,7 +45,7 @@ body,
   height: 8px;
 }
 .cos-scroll::-webkit-scrollbar-thumb {
-  background: #2a2f39;
+  background: var(--cos-border);
   border-radius: 4px;
 }
 .cos-scroll::-webkit-scrollbar-track {

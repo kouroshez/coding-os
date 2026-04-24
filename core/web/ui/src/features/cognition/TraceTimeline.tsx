@@ -31,7 +31,7 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
     `/api/cognition/trace/${encodeURIComponent(sessionId)}`,
   );
 
-  if (isLoading) return <p className="p-4 text-sm text-[#9ea4ae]">loading events…</p>;
+  if (isLoading) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading events…</p>;
   if (error)
     return (
       <p role="alert" className="p-4 text-sm text-rose-400">
@@ -39,15 +39,15 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
       </p>
     );
   if (!data || data.events.length === 0)
-    return <p className="p-4 text-sm text-[#9ea4ae]">no events in this session.</p>;
+    return <p className="p-4 text-sm text-[var(--cos-muted)]">no events in this session.</p>;
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b border-[#2a2f39] px-4 py-2 text-xs">
-        <h2 className="font-semibold uppercase tracking-wide text-[#9ea4ae]">
+      <header className="border-b border-[var(--cos-border)] px-4 py-2 text-xs">
+        <h2 className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
           {data.session_id}
         </h2>
-        <p className="text-[#9ea4ae]">{data.count} events</p>
+        <p className="text-[var(--cos-muted)]">{data.count} events</p>
       </header>
       <ol className="flex-1 overflow-auto p-3 cos-scroll">
         {data.events.map((e, i) => {
@@ -56,7 +56,7 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
           return (
             <li
               key={i}
-              className="relative mb-2 rounded border border-[#2a2f39] bg-[#0e1116] p-2 text-xs"
+              className="relative mb-2 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-xs"
             >
               <div className="mb-1 flex items-center gap-2">
                 <span
@@ -66,19 +66,19 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
                 />
                 <span className="font-semibold">{kind}</span>
                 {e.formula_id && (
-                  <span className="rounded bg-[#2a2f39] px-1 text-[10px] text-[#9ea4ae]">
+                  <span className="rounded bg-[var(--cos-border)] px-1 text-[10px] text-[var(--cos-muted)]">
                     {String(e.formula_id)}
                   </span>
                 )}
                 {e.timestamp && (
-                  <span className="ml-auto text-[10px] text-[#6c7280]">
+                  <span className="ml-auto text-[10px] text-[var(--cos-muted)]">
                     {String(e.timestamp)}
                   </span>
                 )}
               </div>
-              {e.summary && <p className="text-[#c8ccd4]">{String(e.summary)}</p>}
+              {e.summary && <p className="text-[var(--cos-text)]">{String(e.summary)}</p>}
               {!e.summary && e.raw && (
-                <pre className="overflow-auto text-[10px] text-[#6c7280] cos-scroll">
+                <pre className="overflow-auto text-[10px] text-[var(--cos-muted)] cos-scroll">
                   {String(e.raw)}
                 </pre>
               )}

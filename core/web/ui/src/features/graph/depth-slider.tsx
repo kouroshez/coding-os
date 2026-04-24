@@ -11,7 +11,7 @@ export default function DepthSlider() {
   return (
     <fieldset className="flex items-center gap-2 text-xs">
       <legend className="sr-only">BFS depth</legend>
-      <span className="text-[#9ea4ae]">depth</span>
+      <span className="text-[var(--cos-muted)]">depth</span>
       {OPTIONS.map((d) => {
         const active = d === depth;
         return (
@@ -23,8 +23,8 @@ export default function DepthSlider() {
             className={[
               'rounded border px-2 py-0.5',
               active
-                ? 'border-[#7fd4a0] bg-[#1b3528] text-[#7fd4a0]'
-                : 'border-[#2a2f39] text-[#c8ccd4] hover:bg-[#1b1f27]',
+                ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]'
+                : 'border-[var(--cos-border)] text-[var(--cos-text)] hover:bg-[var(--cos-panel)]',
             ].join(' ')}
           >
             {d}

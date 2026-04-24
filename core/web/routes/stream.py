@@ -41,16 +41,16 @@ _HEARTBEAT_INTERVAL = 15.0  # seconds
 
 
 def _tasks_dir() -> Path:
-    """Resolve the docs/tasks directory.
+    """Resolve the docs/tasks directory (project-scoped).
 
     PURPOSE: Find where TASK-*.md files live for polling.
-    INPUT:   COS_PROJECT_ROOT env var, fallback to cwd.
+    INPUT:   none.
     OUTPUT:  Path to docs/tasks/.
-    DEPENDENCIES: os.environ.
-    NOTES:   Returns the path even when it doesn't exist; callers check exists().
+    DEPENDENCIES: core.web._project_context.current_project_root.
     """
-    root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
-    return root / "docs" / "tasks"
+    from core.web._project_context import current_project_root
+
+    return current_project_root() / "docs" / "tasks"
 
 
 def _poll_interval_secs() -> float:
@@ -72,11 +72,9 @@ def _poll_interval_secs() -> float:
 
 def _db_conn() -> sqlite3.Connection:
     """Open project SQLite DB used by board/task routes."""
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
-    db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db"),
-    )
-    return sqlite3.connect(db_path, check_same_thread=False)
+    from core.web._project_context import current_db_path
+
+    return sqlite3.connect(str(current_db_path()), check_same_thread=False)
 
 
 def _latest_transition(conn: sqlite3.Connection, task_id: str) -> dict[str, object | None]:

@@ -24,3 +24,16 @@ verify: {}
 protected_files: []
 #  - "*/migrations/*.py"
 #  - "manage.py"
+
+# Web UI + Hub daemon settings (cos web / cos hub).
+# - web.port        port for the unified API + SPA.
+# - web.autostart   start the per-project server on the next session start.
+# - hub.enabled     register this project in the global hub at ~/.coding-os/.
+# - hub.port        port the global hub listens on (default 9188).
+web:
+  port: 9188
+  autostart: false
+
+hub:
+  enabled: true
+  port: 9188

@@ -62,15 +62,15 @@ fi
 BASENAME=$(basename "$FILE_PATH")
 
 # ── Task detail files ────────────────────────────────────────────────
-# docs/tasks/TASK-###-slug.md  — must go through make task-create so the
-# template (task-detail.md) is applied and tasks.md is registered.
+# docs/tasks/TASK-###-slug.md  — must go through the Scrumban CLI so the
+# lean L-format template is applied and the task is synced to the DB.
 if [[ "$FILE_PATH" == *docs/tasks/TASK-*.md ]]; then
   echo "BLOCKED: do not hand-write task files." >&2
   echo "  File:     $FILE_PATH" >&2
-  echo "  Template: docs/governance/templates/task-detail.md" >&2
-  echo "  Use the make target instead:" >&2
-  echo "    make task-create NUM=<N> TITLE=\"[DOMAIN] short description\"" >&2
-  echo "  This applies the canonical template and registers the task in docs/tasks.md." >&2
+  echo "  Use the Scrumban CLI instead:" >&2
+  echo "    cos task-create --title \"...\" --swimlane <domain> --kind <type>" >&2
+  echo "  This applies the lean L-format template, validates frontmatter," >&2
+  echo "  and syncs the task into the project DB in one call." >&2
   echo "  (Override for one write: touch $COS_AGENT_DIR/.template-override)" >&2
   exit 2
 fi

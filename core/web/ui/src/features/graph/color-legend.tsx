@@ -6,18 +6,18 @@ export default function ColorLegend() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded border border-[#2a2f39] bg-[#151a22]/95 text-xs shadow-lg backdrop-blur">
+    <div className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)]/95 text-xs shadow-lg backdrop-blur">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between px-2 py-1 text-[#9ea4ae] hover:text-white"
+        className="flex w-full items-center justify-between px-2 py-1 text-[var(--cos-muted)] hover:text-white"
       >
         <span>Legend</span>
         <span aria-hidden>{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <ul className="max-h-64 overflow-auto border-t border-[#2a2f39] p-2 cos-scroll">
+        <ul className="max-h-64 overflow-auto border-t border-[var(--cos-border)] p-2 cos-scroll">
           {ALL_KINDS.map((k) => (
             <li key={k} className="flex items-center gap-2 py-0.5">
               <span

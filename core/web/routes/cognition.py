@@ -43,8 +43,9 @@ def _state_dir() -> Path:
     base = os.environ.get("COS_STATE_DIR") or os.environ.get("COS_AGENT_DIR")
     if base:
         return Path(base).resolve()
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
-    return project_root / ".coding-os"
+    from core.web._project_context import current_project_root
+
+    return current_project_root() / ".coding-os"
 
 
 def _cognition_module():

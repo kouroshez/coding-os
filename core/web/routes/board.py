@@ -38,15 +38,13 @@ def _db_conn() -> sqlite3.Connection:
     PURPOSE: Provide a DB connection to board_os tools per-request.
     INPUT:   none.
     OUTPUT:  sqlite3.Connection (check_same_thread=False for async context).
-    DEPENDENCIES: os.environ COS_DB_PATH, COS_PROJECT_ROOT.
-    NOTES:   Caller is responsible for closing; use as a context manager or
-             rely on garbage collection for short-lived request scope.
+    DEPENDENCIES: core.web._project_context.current_db_path — honours the
+                  ContextVar set by ProjectScopeMiddleware when the URL
+                  has an /api/p/<slug>/ prefix; falls back to env vars.
     """
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
-    db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db"),
-    )
-    return sqlite3.connect(db_path, check_same_thread=False)
+    from core.web._project_context import current_db_path
+
+    return sqlite3.connect(str(current_db_path()), check_same_thread=False)
 
 
 def _board_tools():
@@ -158,7 +156,9 @@ async def board_task_detail(
         labels = []
 
     file_rel = row[9] or ""
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    from core.web._project_context import current_project_root
+
+    project_root = current_project_root()
     file_abs = (project_root / file_rel).resolve() if file_rel else None
 
     # Sandbox: the path must live under <project_root>/docs/tasks/.
@@ -373,7 +373,9 @@ async def board_config(
             status_code=503,
             content={"error": {"category": "unavailable", "message": "board_os not importable"}},
         )
-    project_root = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    from core.web._project_context import current_project_root
+
+    project_root = current_project_root()
     try:
         cfg = load_config(project_root)
     except FileNotFoundError:

@@ -15,19 +15,19 @@ export default function FilterBar() {
     <div className="flex flex-col gap-3 text-xs">
       <section aria-label="Node kinds">
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="font-semibold uppercase tracking-wide text-[#9ea4ae]">Kinds</h3>
+          <h3 className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">Kinds</h3>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setAllKinds(true)}
-              className="text-[#7fd4a0] hover:underline"
+              className="text-[var(--cos-accent)] hover:underline"
             >
               all
             </button>
             <button
               type="button"
               onClick={() => setAllKinds(false)}
-              className="text-[#9ea4ae] hover:underline"
+              className="text-[var(--cos-muted)] hover:underline"
             >
               none
             </button>
@@ -59,7 +59,7 @@ export default function FilterBar() {
       </section>
 
       <section aria-label="Edge types">
-        <h3 className="mb-1 font-semibold uppercase tracking-wide text-[#9ea4ae]">Edges</h3>
+        <h3 className="mb-1 font-semibold uppercase tracking-wide text-[var(--cos-muted)]">Edges</h3>
         <ul className="grid grid-cols-2 gap-1">
           {DEFAULT_EDGE_TYPES.map((t) => (
             <li key={t}>

@@ -1,0 +1,309 @@
+"""cli.hub_commands — `cos hub` + `cos service` CLI.
+
+PURPOSE: Manage the global coding-os Hub daemon (uvicorn on 127.0.0.1:9188)
+         that serves every registered project under /api/p/<slug>/.
+         Subcommands:
+           cos hub start|stop|status|logs
+           cos service install|uninstall   (launchd on macOS, systemd user on Linux)
+INPUT:   CLI flags + ~/.coding-os/hub.pid, ~/.coding-os/hub.log.
+OUTPUT:  Background uvicorn process (for start), plist/unit file (for install).
+DEPENDENCIES: click, stdlib (subprocess, signal, os, json, platform),
+              core.web.server (lazy).
+NOTES:   The daemon is user-scope only — never system-wide, no sudo needed.
+         launchd plist goes to ~/Library/LaunchAgents/; systemd unit to
+         ~/.config/systemd/user/.  The service command emits the unit and
+         loads it; removal undoes both.
+"""
+from __future__ import annotations
+
+import json
+import os
+import platform
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import click
+
+DEFAULT_HUB_PORT = 9188
+HUB_HOST = "127.0.0.1"
+
+SERVICE_NAME = "com.coding-os.hub"
+
+
+def _hub_dir() -> Path:
+    d = Path.home() / ".coding-os"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _pid_file() -> Path:
+    return _hub_dir() / "hub.pid"
+
+
+def _log_file() -> Path:
+    return _hub_dir() / "hub.log"
+
+
+def _read_pid() -> int | None:
+    """Read the hub pid file and validate the process is alive."""
+    path = _pid_file()
+    if not path.exists():
+        return None
+    try:
+        pid = int(path.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return None
+    try:
+        os.kill(pid, 0)  # signal 0 = probe only
+    except ProcessLookupError:
+        path.unlink(missing_ok=True)
+        return None
+    except PermissionError:
+        # Process exists but we lack permission — still counts as running.
+        return pid
+    return pid
+
+
+def _write_pid(pid: int) -> None:
+    _pid_file().write_text(f"{pid}\n", encoding="utf-8")
+
+
+def _resolve_cos_bin() -> str:
+    """Locate the `cos` entrypoint for the daemon to invoke.
+
+    PURPOSE: launchd/systemd need an absolute path.  Use the current
+             sys.argv[0] if it points at the installed cos; otherwise
+             fall back to shutil.which.
+    """
+    import shutil
+
+    which = shutil.which("cos")
+    if which:
+        return which
+    return sys.argv[0]
+
+
+@click.group(name="hub", help="Manage the global coding-os Hub daemon.")
+def hub_cli() -> None:
+    """Parent group."""
+
+
+@hub_cli.command("start")
+@click.option("--port", type=int, default=DEFAULT_HUB_PORT, show_default=True)
+@click.option("--foreground", is_flag=True, default=False,
+              help="Block in the current terminal instead of daemonising.")
+def hub_start(port: int, foreground: bool) -> None:
+    """Start the Hub uvicorn process (detached by default)."""
+    existing = _read_pid()
+    if existing is not None:
+        click.echo(f"Hub already running (pid {existing}). Use `cos hub status`.")
+        return
+
+    if foreground:
+        from core.web.server import run_server  # type: ignore
+
+        click.echo(f"Starting Hub on http://{HUB_HOST}:{port} (foreground)")
+        run_server(host=HUB_HOST, port=port)
+        return
+
+    log = _log_file()
+    log.touch(exist_ok=True)
+    cmd = [_resolve_cos_bin(), "hub", "start", "--foreground", "--port", str(port)]
+    # Detach: start_new_session so SIGHUP on terminal close doesn't kill us.
+    with open(log, "ab") as logfh:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=logfh,
+            stderr=logfh,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    _write_pid(proc.pid)
+    click.echo(f"Hub started (pid {proc.pid}) at http://{HUB_HOST}:{port}")
+    click.echo(f"  Logs: {log}")
+
+
+@hub_cli.command("stop")
+def hub_stop() -> None:
+    """Stop the running Hub daemon."""
+    pid = _read_pid()
+    if pid is None:
+        click.echo("Hub is not running.")
+        return
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        _pid_file().unlink(missing_ok=True)
+        click.echo("Hub process already gone; cleared pid file.")
+        return
+    # Wait up to 3s for graceful stop.
+    for _ in range(30):
+        time.sleep(0.1)
+        if _read_pid() is None:
+            break
+    click.echo(f"Hub stopped (pid {pid}).")
+
+
+@hub_cli.command("status")
+def hub_status() -> None:
+    """Report the Hub's PID, port, and basic health."""
+    pid = _read_pid()
+    if pid is None:
+        click.echo("Hub: not running")
+        sys.exit(1)
+    click.echo(f"Hub: running (pid {pid})")
+    click.echo(f"  Logs: {_log_file()}")
+
+
+@hub_cli.command("logs")
+@click.option("-n", "--lines", default=50, show_default=True, type=int)
+def hub_logs(lines: int) -> None:
+    """Tail the hub.log (stdlib, no dependencies)."""
+    log = _log_file()
+    if not log.exists():
+        click.echo("(no hub log yet)")
+        return
+    with open(log, "r", encoding="utf-8", errors="replace") as fh:
+        content = fh.readlines()
+    for line in content[-lines:]:
+        click.echo(line.rstrip())
+
+
+# ---------------------------------------------------------------------------
+# cos service install|uninstall  —  launchd (macOS) / systemd user (Linux)
+# ---------------------------------------------------------------------------
+
+
+@click.group(name="service", help="Install/uninstall the Hub as a user-scope service.")
+def service_cli() -> None:
+    """Parent group."""
+
+
+def _launchd_plist_path() -> Path:
+    return Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_NAME}.plist"
+
+
+def _systemd_unit_path() -> Path:
+    return Path.home() / ".config" / "systemd" / "user" / f"{SERVICE_NAME}.service"
+
+
+def _render_launchd_plist(port: int) -> str:
+    cos_bin = _resolve_cos_bin()
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>{SERVICE_NAME}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{cos_bin}</string>
+        <string>hub</string>
+        <string>start</string>
+        <string>--foreground</string>
+        <string>--port</string>
+        <string>{port}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{_log_file()}</string>
+    <key>StandardErrorPath</key>
+    <string>{_log_file()}</string>
+</dict>
+</plist>
+"""
+
+
+def _render_systemd_unit(port: int) -> str:
+    cos_bin = _resolve_cos_bin()
+    return f"""[Unit]
+Description=Coding OS Hub
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={cos_bin} hub start --foreground --port {port}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+"""
+
+
+@service_cli.command("install")
+@click.option("--port", type=int, default=DEFAULT_HUB_PORT, show_default=True)
+def service_install(port: int) -> None:
+    """Write and load the user-scope service definition for the Hub."""
+    system = platform.system()
+    if system == "Darwin":
+        plist_path = _launchd_plist_path()
+        plist_path.parent.mkdir(parents=True, exist_ok=True)
+        plist_path.write_text(_render_launchd_plist(port), encoding="utf-8")
+        # Bootstrap into the user domain (idempotent: unload first if loaded).
+        uid = os.getuid()
+        subprocess.run(
+            ["launchctl", "bootout", f"gui/{uid}/{SERVICE_NAME}"],
+            check=False, capture_output=True,
+        )
+        result = subprocess.run(
+            ["launchctl", "bootstrap", f"gui/{uid}", str(plist_path)],
+            check=False, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            click.echo(
+                f"WARN: launchctl bootstrap returned {result.returncode}: "
+                f"{result.stderr.strip()}",
+                err=True,
+            )
+        click.echo(f"Installed launchd service: {plist_path}")
+    elif system == "Linux":
+        unit_path = _systemd_unit_path()
+        unit_path.parent.mkdir(parents=True, exist_ok=True)
+        unit_path.write_text(_render_systemd_unit(port), encoding="utf-8")
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+        subprocess.run(
+            ["systemctl", "--user", "enable", "--now", f"{SERVICE_NAME}.service"],
+            check=False,
+        )
+        click.echo(f"Installed systemd user unit: {unit_path}")
+    else:
+        raise click.ClickException(f"Unsupported platform: {system}")
+
+
+@service_cli.command("uninstall")
+def service_uninstall() -> None:
+    """Stop and remove the user-scope service definition."""
+    system = platform.system()
+    if system == "Darwin":
+        uid = os.getuid()
+        subprocess.run(
+            ["launchctl", "bootout", f"gui/{uid}/{SERVICE_NAME}"],
+            check=False, capture_output=True,
+        )
+        plist_path = _launchd_plist_path()
+        if plist_path.exists():
+            plist_path.unlink()
+            click.echo(f"Removed launchd plist: {plist_path}")
+        else:
+            click.echo("(no launchd plist present)")
+    elif system == "Linux":
+        subprocess.run(
+            ["systemctl", "--user", "disable", "--now", f"{SERVICE_NAME}.service"],
+            check=False,
+        )
+        unit_path = _systemd_unit_path()
+        if unit_path.exists():
+            unit_path.unlink()
+            click.echo(f"Removed systemd unit: {unit_path}")
+        else:
+            click.echo("(no systemd unit present)")
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    else:
+        raise click.ClickException(f"Unsupported platform: {system}")

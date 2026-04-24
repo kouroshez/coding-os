@@ -1,6 +1,23 @@
+import type { ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Brain, KanbanSquare, Network, Search } from 'lucide-react';
 import Inspector from '@/layout/Inspector';
+
+/**
+ * Unified application shell.
+ *
+ * PURPOSE: Top-level chrome shared by every feature (board, graph,
+ *          search, cognition, hub).  Renders the primary nav, an
+ *          optional Inspector aside, and an outlet for the current
+ *          route.  Accepts a `brandingSlot` for project switcher / hub
+ *          breadcrumbs so higher layers can plug in without forking.
+ * INPUT:   brandingSlot (optional) — rendered between the wordmark and
+ *          the primary nav; typically the ProjectSwitcher in Hub mode.
+ * OUTPUT:  Single-root layout that fills 100% height.
+ * NOTES:   Uses shared --cos-* tokens for border/muted text so the
+ *          shell responds to theme changes, plus the paper-ink tokens
+ *          (--board, --ink, --accent) that come from the design CSS.
+ */
 
 const NAV = [
   { to: '/board', label: 'Board', Icon: KanbanSquare },
@@ -9,7 +26,11 @@ const NAV = [
   { to: '/cognition', label: 'Cognition', Icon: Brain },
 ] as const;
 
-export default function CosShellLayout() {
+export default function AppShell({
+  brandingSlot,
+}: {
+  brandingSlot?: ReactNode;
+}) {
   const location = useLocation();
   const showInspector =
     location.pathname.startsWith('/graph') ||
@@ -28,6 +49,11 @@ export default function CosShellLayout() {
         >
           Coding OS
         </div>
+        {brandingSlot && (
+          <div className="flex items-center gap-2 text-xs text-[var(--ink-soft)]">
+            {brandingSlot}
+          </div>
+        )}
         <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Primary">
           {NAV.map(({ to, label, Icon }) => (
             <NavLink
