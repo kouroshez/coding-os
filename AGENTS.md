@@ -65,6 +65,7 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 15. **Role chain composed for COMPLICATED+ tasks (Phase N)** — `cos_compose_chain(signals)` written to `.coding-os/<agent>/.roles` + `.role`. Roles ARE the 11 formulas (F1 Researcher … F11 Refactorer) at [core/thinking_os/roles/](core/thinking_os/roles/).
 16. **Formula dispatch produces typed EvidenceBundle (Phase M)** — every formula records via `cos_supervise_record_output(formula_id, output_json)` matching the formula's `output_schema` Pydantic model.
 17. **Situational Paths override role chain when `.situation` set** — six situations: `incident-response`, `onboarding`, `scope-change`, `external-integration`, `design-review`, `existing-project-takeover`.
+18. **Task reconciliation is mandatory before implementation** — for each non-trivial user request, first check existing tasks (`cos_task_board` / `cos task-show`). Reuse when matched; otherwise create one, fill Outcome/Read First/Acceptance, then execute statuses `in_progress` → `testing` → `complete` (or `blocked` with explicit blocker).
 
 ## Cognition & Tracing (Phase N.6)
 
@@ -78,11 +79,11 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 ## Core Loop — Classify · Orient · Plan · Execute · Verify
 
-**Classify (dry, no reads):** Complexity Gate (Q1 Cynefin × Q2 dimensions, record via `bash core/hooks/write-state.sh .coding-os/<agent>/.thinking-os-gate "COMPLICATED 3"`) → domain route → Read List.
+**Classify (dry, no reads):** Complexity Gate (Q1 Cynefin × Q2 dimensions, record via `bash core/hooks/write-state.sh .coding-os/<agent>/.thinking-os-gate "COMPLICATED 3"`) → reconcile task context (existing TASK-IDs / active board items) → domain route → Read List.
 **Orient (targeted reads):** Read List only · `cos_search` for past patterns · grep/glob existing code.
-**Plan:** per dimension → current/target/gap/risk → ordered steps. COMPLICATED+ loads the `thinking-os` skill for Zoom cycles.
+**Plan:** per dimension → current/target/gap/risk → ordered steps. If no matching task exists, create one and fill Outcome/Read First/Acceptance before coding. COMPLICATED+ loads the `thinking-os` skill for Zoom cycles.
 **Execute:** smallest correct change [P1, P4]. After code: run verification.
-**Verify & Close:** `make verify` → `cos task-done TASK-NNN` (Scrumban) or `make task-done` (legacy).
+**Verify & Close:** move task to `testing` → run verification (`make verify` or targeted matrix command) → append concise work-log note → `cos task-done TASK-NNN` (Scrumban) or `make task-done` (legacy).
 
 ## Verification Matrix
 
@@ -100,11 +101,13 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 ## Tool Routing
 
-**Scrumban (preferred):** `cos board [--web]` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
+**Scrumban (preferred):** `cos board [--web]` · `cos task-show TASK-NNN` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to blocked|testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
 **MCP equivalents:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
 **Meta retrieval (when unsure):** `cos_retrieve(query, hint="auto")` dispatches to memory/docs/tasks or returns a code-grep hint for identifier queries.
 **Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `make cos-health` · `cos doctor` · `make log-{latest,write,search}`.
-**Web UI (visual exploration):** `cos web [--port 9188]` boots the unified FastAPI server + React SPA — graph viz, board, cognition traces, search at `http://127.0.0.1:9188`.
+**Web UI (visual exploration):** `cos hub start` boots the singleton FastAPI + React SPA at `http://127.0.0.1:9188`; one hub serves every registered project via `/api/p/<slug>/*`. `cos hub status` reports meta-repo path + symlink health. UI iteration: `make ui-dev` (HMR on :5173) or `make ui-build` (rebuild `dist/`). Full contract + propagation matrix: [docs/engineering/hub-architecture.md](docs/engineering/hub-architecture.md).
+
+**Hub propagation:** `core/{hooks,rules,skills,commands}` reach every consumer project via live symlinks. `adapters/*/*.template.*` regen + consumer re-render via `cos sync-all`. Dangling symlinks (meta repo moved) → `cos sync-doctor --repair`.
 
 ## Four-Layer Retrieval
 

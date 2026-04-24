@@ -158,3 +158,15 @@ stats: ## Show project statistics
 	@echo -n "Core scripts: " && ls core/scripts/*.sh | wc -l | tr -d ' '
 	@echo -n "Core skills: " && ls core/skills/*/SKILL.md | wc -l | tr -d ' '
 	@echo -n "Templates: " && find templates -type f | wc -l | tr -d ' '
+
+.PHONY: ui-dev
+ui-dev: ## Vite dev server with HMR → http://127.0.0.1:5173 (proxies /api to hub on 9188)
+	@echo "Starting Vite dev server — edits hot-reload without rebuild."
+	@echo "  Dev URL:  http://127.0.0.1:5173"
+	@echo "  API:      proxied to http://127.0.0.1:9188 (make sure hub is up: cos hub start)"
+	@cd core/web/ui && npm run dev
+
+.PHONY: ui-build
+ui-build: ## Production rebuild of the SPA — hub at :9188 serves the new bundle
+	@cd core/web/ui && npm run build
+	@echo "  SPA rebuilt → core/web/ui/dist/  (hub picks up automatically; hard-refresh browser)"
