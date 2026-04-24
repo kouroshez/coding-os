@@ -25,7 +25,7 @@ import os
 from pathlib import Path
 from typing import Any, Literal, Protocol, runtime_checkable
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger("coding_os.dispatcher")
 
@@ -40,6 +40,9 @@ class DispatchRequest(BaseModel):
     NOTES:   `input_slice` is the upstream-only bundle view built by
              build_input_slice(); dispatchers forward it as structured
              context rather than re-deriving from the full bundle.
+             `formula_id` is restricted to [A-Za-z0-9_-] so downstream
+             consumers can embed it in filenames/session-ids/paths
+             without worrying about traversal.
     """
     formula_id: str                        # e.g. "F5"
     agent_file: str                        # absolute path to F<N>_name.md
@@ -51,6 +54,17 @@ class DispatchRequest(BaseModel):
     timeout_s: float = 300.0
     session_id: str | None = None
     cwd: str | None = None
+
+    @field_validator("formula_id")
+    @classmethod
+    def _formula_id_is_safe(cls, v: str) -> str:
+        import re as _re
+        if not v or not _re.fullmatch(r"[A-Za-z0-9_-]+", v):
+            raise ValueError(
+                "formula_id must match [A-Za-z0-9_-]+ (got "
+                f"{v!r}); dispatchers embed it in filenames."
+            )
+        return v
 
 
 class DispatchResult(BaseModel):
