@@ -131,3 +131,15 @@ export async function apiPost<T>(
   });
   return handle<T>(res);
 }
+
+export async function apiDelete<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<[T, ApiMeta | null]> {
+  const res = await fetch(buildUrl(path), {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+    ...init,
+  });
+  return handle<T>(res);
+}

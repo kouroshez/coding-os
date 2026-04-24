@@ -96,17 +96,26 @@ def hub_cli() -> None:
 @click.option("--foreground", is_flag=True, default=False,
               help="Block in the current terminal instead of daemonising.")
 def hub_start(port: int, foreground: bool) -> None:
-    """Start the Hub uvicorn process (detached by default)."""
-    existing = _read_pid()
-    if existing is not None:
-        click.echo(f"Hub already running (pid {existing}). Use `cos hub status`.")
-        return
+    """Start the Hub uvicorn process (detached by default).
 
+    NOTES: The pid-file collision check ONLY runs in detached mode.  In
+           foreground mode we always attempt to bind — both because the
+           parent caller has explicitly asked to block here, and because
+           the detached flow re-invokes this command with --foreground
+           after it has already written its own pid to hub.pid (a naive
+           collision check would then see the fresh pid as "already
+           running" and immediately exit).
+    """
     if foreground:
         from core.web.server import run_server  # type: ignore
 
         click.echo(f"Starting Hub on http://{HUB_HOST}:{port} (foreground)")
         run_server(host=HUB_HOST, port=port)
+        return
+
+    existing = _read_pid()
+    if existing is not None:
+        click.echo(f"Hub already running (pid {existing}). Use `cos hub status`.")
         return
 
     log = _log_file()
@@ -121,6 +130,26 @@ def hub_start(port: int, foreground: bool) -> None:
             stdin=subprocess.DEVNULL,
             start_new_session=True,
         )
+
+    # Wait up to ~2s for the child to still be alive before treating the
+    # start as successful.  Without this, a child that dies immediately
+    # (port in use, import error, etc.) leaves a stale pid file and the
+    # caller thinks the hub is up.
+    for _ in range(20):
+        rc = proc.poll()
+        if rc is not None:
+            tail = ""
+            try:
+                tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-5:]
+            except OSError:
+                tail = []
+            raise click.ClickException(
+                f"Hub child exited with rc={rc} before it could bind.\n"
+                f"  Logs: {log}\n  Last lines:\n    "
+                + "\n    ".join(tail) if tail else f"  Logs: {log}"
+            )
+        time.sleep(0.1)
+
     _write_pid(proc.pid)
     click.echo(f"Hub started (pid {proc.pid}) at http://{HUB_HOST}:{port}")
     click.echo(f"  Logs: {log}")
@@ -149,13 +178,55 @@ def hub_stop() -> None:
 
 @hub_cli.command("status")
 def hub_status() -> None:
-    """Report the Hub's PID, port, and basic health."""
+    """Report the Hub's PID, port, meta-repo path, and symlink health.
+
+    Shows the *three* locations a user frequently confuses:
+      - Meta repo  (where core/ + adapters/ + templates/ live)
+      - Hub state  (~/.coding-os/ — registry.json + hub.pid)
+      - Project count + symlink health (broken = meta repo moved)
+    """
     pid = _read_pid()
     if pid is None:
         click.echo("Hub: not running")
+    else:
+        click.echo(f"Hub: running (pid {pid})")
+        click.echo(f"  Logs: {_log_file()}")
+
+    meta_repo = Path(__file__).resolve().parent.parent
+    click.echo(f"  Meta repo: {meta_repo}")
+    click.echo(f"  State dir: {_hub_dir()}")
+
+    try:
+        from cli.registry import load_registry
+        reg = load_registry()
+        alive = sum(
+            1 for p in reg.projects
+            if (Path(p.path) / ".coding-os").is_dir()
+        )
+        stale = len(reg.projects) - alive
+        click.echo(f"  Registered projects: {alive} alive"
+                   + (f" · {stale} stale (run `cos registry gc`)" if stale else ""))
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"  Registry: unavailable ({exc})")
+
+    # Quick symlink-health ping — cheap, doesn't walk every file.
+    try:
+        from cli.sync_all import _each_registered_project, _dangling, _iter_symlinks
+        broken_projects: list[str] = []
+        for entry, path in _each_registered_project():
+            links = _iter_symlinks(path)
+            if any(_dangling(link) for link in links):
+                broken_projects.append(entry.slug)
+        if broken_projects:
+            click.echo(f"  ⚠ Symlink health: broken in {broken_projects!r} — "
+                       f"run `cos sync-doctor --repair`")
+        else:
+            click.echo("  ✓ Symlink health: all project hooks reachable")
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"  Symlink check: skipped ({exc})")
+
+    if pid is None:
         sys.exit(1)
-    click.echo(f"Hub: running (pid {pid})")
-    click.echo(f"  Logs: {_log_file()}")
 
 
 @hub_cli.command("logs")

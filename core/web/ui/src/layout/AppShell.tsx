@@ -1,30 +1,34 @@
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Brain, KanbanSquare, Network, Search } from 'lucide-react';
 import Inspector from '@/layout/Inspector';
+import ProjectSwitcher from '@/layout/ProjectSwitcher';
 
 /**
  * Unified application shell.
  *
  * PURPOSE: Top-level chrome shared by every feature (board, graph,
- *          search, cognition, hub).  Renders the primary nav, an
- *          optional Inspector aside, and an outlet for the current
- *          route.  Accepts a `brandingSlot` for project switcher / hub
- *          breadcrumbs so higher layers can plug in without forking.
- * INPUT:   brandingSlot (optional) — rendered between the wordmark and
- *          the primary nav; typically the ProjectSwitcher in Hub mode.
+ *          search, cognition, hub).  Renders the primary nav, the
+ *          always-visible ProjectSwitcher, an optional Inspector aside,
+ *          and an outlet for the current route.
+ * INPUT:   brandingSlot (optional) — extra chrome after the switcher
+ *          (e.g. a breadcrumb for stacked contexts).  Kept for
+ *          backwards compatibility; most pages pass nothing.
  * OUTPUT:  Single-root layout that fills 100% height.
- * NOTES:   Uses shared --cos-* tokens for border/muted text so the
- *          shell responds to theme changes, plus the paper-ink tokens
- *          (--board, --ink, --accent) that come from the design CSS.
+ * NOTES:   NavLinks are scope-aware: when the URL contains /p/<slug>/,
+ *          every feature link preserves the slug so switching tabs
+ *          doesn't silently drop you back into the unscoped cwd-default.
  */
 
 const NAV = [
-  { to: '/board', label: 'Board', Icon: KanbanSquare },
-  { to: '/graph', label: 'Graph', Icon: Network },
-  { to: '/search', label: 'Search', Icon: Search },
-  { to: '/cognition', label: 'Cognition', Icon: Brain },
+  { feature: 'board', label: 'Board', Icon: KanbanSquare, end: true },
+  { feature: 'graph', label: 'Graph', Icon: Network, end: false },
+  { feature: 'search', label: 'Search', Icon: Search, end: true },
+  { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
 ] as const;
+
+const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(?:\/|$)/;
 
 export default function AppShell({
   brandingSlot,
@@ -32,10 +36,19 @@ export default function AppShell({
   brandingSlot?: ReactNode;
 }) {
   const location = useLocation();
+  const scopeSlug = useMemo(() => {
+    const m = PROJECT_SCOPE_RE.exec(location.pathname);
+    return m ? decodeURIComponent(m[1]) : null;
+  }, [location.pathname]);
+
   const showInspector =
-    location.pathname.startsWith('/graph') ||
-    location.pathname.startsWith('/search') ||
-    location.pathname.startsWith('/cognition');
+    /^\/graph/.test(location.pathname) ||
+    /^\/search/.test(location.pathname) ||
+    /^\/cognition/.test(location.pathname) ||
+    /^\/p\/[^/]+\/(graph|search|cognition)/.test(location.pathname);
+
+  const linkFor = (feature: string): string =>
+    scopeSlug ? `/p/${encodeURIComponent(scopeSlug)}/${feature}` : `/${feature}`;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-[var(--board)] text-[var(--ink)]">
@@ -49,17 +62,18 @@ export default function AppShell({
         >
           Coding OS
         </div>
+        <ProjectSwitcher />
         {brandingSlot && (
           <div className="flex items-center gap-2 text-xs text-[var(--ink-soft)]">
             {brandingSlot}
           </div>
         )}
         <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Primary">
-          {NAV.map(({ to, label, Icon }) => (
+          {NAV.map(({ feature, label, Icon, end }) => (
             <NavLink
-              key={to}
-              to={to}
-              end={to === '/board' || to === '/search'}
+              key={feature}
+              to={linkFor(feature)}
+              end={end}
               className={({ isActive }) =>
                 [
                   'flex items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold',

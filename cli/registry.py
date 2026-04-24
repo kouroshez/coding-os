@@ -240,3 +240,119 @@ def registry_get_path(slug: str) -> None:
             return
     click.echo(f"No project with slug {slug!r}", err=True)
     sys.exit(1)
+
+
+def _looks_like_cos_project(path: Path) -> bool:
+    """Directory exists AND has a .coding-os/ subdirectory."""
+    try:
+        return path.is_dir() and (path / ".coding-os").is_dir()
+    except OSError:
+        return False
+
+
+@registry_cli.command("gc")
+@click.option("--dry-run", is_flag=True, default=False,
+              help="Report what would be removed without mutating the registry.")
+def registry_gc(dry_run: bool) -> None:
+    """Prune registry entries whose directory no longer exists.
+
+    PURPOSE: Test runs, backup restores, and manual rm -rf all leave
+             stale paths in registry.json.  The hub filters them at
+             read-time (panel never shows dead cards) but the file
+             itself grows indefinitely.  This command rewrites it.
+    """
+    registry = load_registry()
+    kept: list[ProjectEntry] = []
+    removed: list[ProjectEntry] = []
+    for entry in registry.projects:
+        if _looks_like_cos_project(Path(entry.path)):
+            kept.append(entry)
+        else:
+            removed.append(entry)
+
+    if not removed:
+        click.echo("registry is clean; nothing to remove.")
+        return
+
+    click.echo(f"{'Would remove' if dry_run else 'Removing'} "
+               f"{len(removed)} stale entr{'y' if len(removed) == 1 else 'ies'}:")
+    for entry in removed:
+        click.echo(f"  - {entry.slug:<24}  {entry.path}")
+
+    if dry_run:
+        click.echo("(dry-run — no changes written)")
+        return
+    registry.projects = kept
+    save_registry(registry)
+    click.echo(f"kept {len(kept)} entr{'y' if len(kept) == 1 else 'ies'}.")
+
+
+@registry_cli.command("scan")
+@click.argument("root", type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@click.option("--max-depth", default=6, show_default=True, type=int)
+@click.option("--limit", default=50, show_default=True, type=int,
+              help="Cap the number of hits returned.")
+@click.option("--register", is_flag=True, default=False,
+              help="Register every hit that isn't already in the registry.")
+def registry_scan(root: str, max_depth: int, limit: int, register: bool) -> None:
+    """Walk ROOT and report every `.coding-os/` project found.
+
+    PURPOSE: CLI parity with /api/hub/registry/scan — lets users
+             discover projects after restoring a backup or migrating
+             machines without hand-importing each one.  Read-only by
+             default; pass --register to add every new hit in one go.
+    """
+    from collections import deque
+
+    root_path = Path(root)
+    max_depth = max(1, min(10, int(max_depth)))
+    limit = max(1, min(500, int(limit)))
+
+    skip = {
+        ".git", ".hg", ".svn", "node_modules", ".venv", "venv",
+        "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
+        ".tox", ".nox", ".coding-os",
+        "dist", "build", ".next", ".turbo", "Library", "Trash", ".Trash",
+    }
+    registered_paths = {
+        str(Path(p.path).resolve()) for p in load_registry().projects
+    }
+
+    hits: list[tuple[Path, bool]] = []
+    queue: deque[tuple[Path, int]] = deque([(root_path, 0)])
+    while queue and len(hits) < limit:
+        current, depth = queue.popleft()
+        if not current.is_dir():
+            continue
+        if _looks_like_cos_project(current):
+            resolved = current.resolve()
+            hits.append((resolved, str(resolved) in registered_paths))
+            continue
+        if depth >= max_depth:
+            continue
+        try:
+            children = list(current.iterdir())
+        except (OSError, PermissionError):
+            continue
+        for child in children:
+            if not child.is_dir() or child.name in skip or child.name.startswith("."):
+                continue
+            queue.append((child, depth + 1))
+
+    if not hits:
+        click.echo(f"(no coding-os projects found under {root_path})")
+        return
+
+    click.echo(f"Found {len(hits)} project{'s' if len(hits) != 1 else ''} under {root_path}:")
+    added = 0
+    for path, already in hits:
+        marker = "[registered]" if already else "[new]       "
+        click.echo(f"  {marker}  {path}")
+        if register and not already:
+            try:
+                add_project(path)
+                added += 1
+            except click.ClickException as exc:
+                click.echo(f"    skip: {exc.message}", err=True)
+    if register:
+        click.echo(f"registered {added} new entr{'y' if added == 1 else 'ies'}.")

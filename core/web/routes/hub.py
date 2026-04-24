@@ -1,39 +1,471 @@
 """core.web.routes.hub — global Hub registry endpoints.
 
-PURPOSE: Expose the ~/.coding-os/registry.json contents so the SPA home
-         page can render a project switcher and deep-link into each
-         project's /p/<slug>/board.
-INPUT:   GET /api/hub/projects.
-OUTPUT:  JSON {projects: [{slug, path, created_at}], count}.
-DEPENDENCIES: cli.registry (read-only here).
-NOTES:   Listed in server.py alongside the other routers.  Stateless.
+PURPOSE: Expose the ~/.coding-os/registry.json contents + mutate it from
+         the panel so the Hub home can list, add, scan, gc, and remove
+         projects without the user dropping to a terminal.
+INPUT:   GET  /api/hub/projects         — list
+         POST /api/hub/registry/add     — register an existing .coding-os/ path
+         POST /api/hub/registry/scan    — scan a filesystem root for cos projects
+         POST /api/hub/registry/gc      — rewrite registry without stale entries
+         DELETE /api/hub/registry/{slug}— unregister by slug
+OUTPUT:  Envelope-style JSON ({data, meta} on success; {error} on failure).
+DEPENDENCIES: cli.registry (single source of truth for the on-disk file).
+NOTES:   Mutation endpoints are localhost-only because the Hub itself
+         binds to 127.0.0.1.  Path inputs are validated (must be a real
+         directory containing .coding-os/, must resolve to an absolute
+         path).  No remote execution — scan only reads directory entries,
+         never spawns subprocesses.
 """
 from __future__ import annotations
 
+import logging
+import os
 import sys
 from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body, Query
+from fastapi.responses import JSONResponse
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+logger = logging.getLogger("coding_os.web.hub")
 router = APIRouter(prefix="/api/hub", tags=["hub"])
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+
+def _looks_like_cos_project(path: Path) -> bool:
+    """Quick heuristic: directory exists and has .coding-os/ inside."""
+    try:
+        return path.is_dir() and (path / ".coding-os").is_dir()
+    except OSError:
+        return False
+
+
+def _resolve_slug_from_registry(cwd: Path) -> str:
+    """Match cli.registry._derive_slug so UI and API agree on spelling."""
+    try:
+        from cli.registry import _derive_slug  # type: ignore
+        return _derive_slug(cwd)
+    except Exception as exc:  # noqa: BLE001 — UX-only; fall through
+        logger.debug("cli.registry._derive_slug unavailable: %s", exc)
+        return cwd.name.lower().strip() or "project"
+
+
+def _derive_runtime_entry() -> dict | None:
+    """Return an in-memory entry for the cwd project when it's a cos repo.
+
+    PURPOSE: Auto-surface the project the Hub is actually serving.
+             Without this, the main meta-project never shows up because
+             `cos init` is not run on it — only on consumer projects.
+    """
+    cwd = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    if not _looks_like_cos_project(cwd):
+        return None
+    return {
+        "slug": _resolve_slug_from_registry(cwd),
+        "path": str(cwd),
+        "created_at": "",
+        "source": "runtime-cwd",
+    }
+
+
+def _err(category: str, message: str, *, status: int = 400) -> JSONResponse:
+    """Shared error-envelope shape matching the rest of /api/*."""
+    return JSONResponse(
+        status_code=status,
+        content={
+            "error": {
+                "category": category,
+                "retryable": False,
+                "message": message,
+            },
+        },
+    )
+
+
+def _validate_project_path(raw: str) -> tuple[Path | None, JSONResponse | None]:
+    """Sanitize an incoming project-path string for registry mutations.
+
+    PURPOSE: Every mutation endpoint takes a user-supplied path.  The
+             Hub binds to 127.0.0.1, so the blast radius is "this user"
+             — but we still reject non-absolute paths, missing dirs,
+             and paths that aren't cos projects so a typo can't write
+             an entry that would later 404 every board render.
+    OUTPUT:  (resolved_path, None) on success; (None, JSONResponse) when
+             the input must be rejected.
+    """
+    if not isinstance(raw, str) or not raw.strip():
+        return None, _err("validation", "path is required and must be a non-empty string")
+    try:
+        path = Path(raw).expanduser().resolve()
+    except (OSError, RuntimeError) as exc:
+        return None, _err("validation", f"invalid path: {exc}")
+    if not path.is_dir():
+        return None, _err("not_found", f"path is not a directory: {path}", status=404)
+    if not _looks_like_cos_project(path):
+        return None, _err(
+            "validation",
+            f"{path} has no .coding-os/ — run `cos init` there first",
+        )
+    return path, None
+
+
+# ---------------------------------------------------------------------------
+# GET /api/hub/projects
+# ---------------------------------------------------------------------------
 
 
 @router.get("/projects")
 def hub_projects() -> dict:
-    """List every registered coding-os project."""
+    """List every registered coding-os project whose directory still exists."""
+    projects: list[dict] = []
+    seen_paths: set[str] = set()
     try:
         from cli.registry import load_registry  # type: ignore
-    except Exception:
-        return {"projects": [], "count": 0}
-    reg = load_registry()
+        reg = load_registry()
+    except Exception as exc:  # noqa: BLE001 — registry optional, fail-open
+        logger.debug("load_registry failed: %s", exc)
+        reg = None
+
+    if reg is not None:
+        for p in reg.projects:
+            path = Path(p.path)
+            if not _looks_like_cos_project(path):
+                continue
+            resolved = str(path.resolve())
+            if resolved in seen_paths:
+                continue
+            seen_paths.add(resolved)
+            projects.append({
+                "slug": p.slug,
+                "path": p.path,
+                "created_at": p.created_at,
+                "source": "registry",
+            })
+
+    runtime = _derive_runtime_entry()
+    if runtime is not None:
+        resolved = str(Path(runtime["path"]).resolve())
+        if resolved not in seen_paths:
+            projects.insert(0, runtime)
+
+    return {"projects": projects, "count": len(projects)}
+
+
+# ---------------------------------------------------------------------------
+# POST /api/hub/registry/add
+# ---------------------------------------------------------------------------
+
+
+@router.post("/registry/add")
+def hub_registry_add(
+    path: str = Body(..., embed=True),
+    slug: Optional[str] = Body(None, embed=True),
+):
+    """Register an existing `.coding-os/` directory with the Hub.
+
+    PURPOSE: Panel-side "Import existing project" flow.  Accepts an
+             already-initialized project (one `cos init` has run on)
+             and appends it to the registry.
+    INPUT:   {path: absolute path, slug?: override for derived slug}.
+    OUTPUT:  {data: {slug, path, created_at}, meta} on success.
+    NOTES:   Idempotent on path — re-registering a known path returns
+             the existing entry without error.  Slug collision (same
+             slug, different path) raises 400.
+    """
+    resolved, err = _validate_project_path(path)
+    if err is not None:
+        return err
+    if slug is not None and not isinstance(slug, str):
+        return _err("validation", "slug must be a string when provided")
+
+    try:
+        from cli.registry import add_project  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        return _err(
+            "unavailable",
+            f"cli.registry unavailable: {exc}",
+            status=503,
+        )
+
+    try:
+        entry = add_project(resolved, slug=(slug or "").strip() or None)
+    except Exception as exc:  # noqa: BLE001 — click.ClickException / ValueError / ...
+        return _err("validation", str(exc))
+
     return {
-        "projects": [
-            {"slug": p.slug, "path": p.path, "created_at": p.created_at}
-            for p in reg.projects
-        ],
-        "count": len(reg.projects),
+        "data": {
+            "slug": entry.slug,
+            "path": entry.path,
+            "created_at": entry.created_at,
+        },
+        "meta": {"layer": "hub", "source": "hub.registry_add"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/hub/registry/{slug}
+# ---------------------------------------------------------------------------
+
+
+@router.delete("/registry/{slug}")
+def hub_registry_remove(slug: str):
+    """Unregister a project by slug.  Does NOT touch the project on disk."""
+    if not slug or not slug.strip():
+        return _err("validation", "slug is required")
+    try:
+        from cli.registry import remove_project  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        return _err("unavailable", f"cli.registry unavailable: {exc}", status=503)
+
+    try:
+        removed = remove_project(slug.strip())
+    except Exception as exc:  # noqa: BLE001
+        return _err("internal", str(exc), status=500)
+
+    if removed is None:
+        return _err("not_found", f"no project with slug {slug!r}", status=404)
+
+    return {
+        "data": {"slug": removed.slug, "path": removed.path},
+        "meta": {"layer": "hub", "source": "hub.registry_remove"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /api/hub/registry/scan
+# ---------------------------------------------------------------------------
+
+# Hard caps so a malicious/misconfigured scan can't lock the process.
+_SCAN_MAX_DEPTH = 6
+_SCAN_MAX_VISITED_DIRS = 5000
+
+
+@router.post("/registry/scan")
+def hub_registry_scan(
+    root: str = Body(..., embed=True),
+    max_depth: int = Body(_SCAN_MAX_DEPTH, embed=True),
+    limit: int = Body(50, embed=True),
+):
+    """Walk a filesystem root and return every `.coding-os/` project found.
+
+    PURPOSE: Panel-side auto-discovery — "I backed up my dev folder,
+             find the coding-os projects for me."  Read-only; never
+             mutates the registry.  The caller decides which hits to
+             import via the /registry/add endpoint.
+    INPUT:   {root: absolute path, max_depth: cap directory recursion,
+              limit: cap number of hits returned}.
+    OUTPUT:  {data: {root, hits: [{path, slug, already_registered}], count,
+              visited_dirs, hit_limit_reached}, meta}.
+    NOTES:   Skips conventional noise dirs (.git, node_modules, .venv,
+             .coding-os itself, Library, Trash).  max_depth and
+             limit are hard-clamped to defensive values.
+    """
+    if not isinstance(root, str) or not root.strip():
+        return _err("validation", "root is required")
+    try:
+        root_path = Path(root).expanduser().resolve()
+    except (OSError, RuntimeError) as exc:
+        return _err("validation", f"invalid root: {exc}")
+    if not root_path.is_dir():
+        return _err("not_found", f"root is not a directory: {root_path}", status=404)
+
+    max_depth = max(1, min(_SCAN_MAX_DEPTH, int(max_depth) if max_depth else _SCAN_MAX_DEPTH))
+    limit = max(1, min(500, int(limit) if limit else 50))
+
+    _SKIP_DIR_NAMES = {
+        ".git", ".hg", ".svn",
+        "node_modules", ".venv", "venv",
+        "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
+        ".tox", ".nox",
+        ".coding-os",  # never recurse INTO a cos state dir
+        "dist", "build", ".next", ".turbo",
+        "Library", "Trash", ".Trash",
+    }
+
+    # Snapshot registered paths for the "already_registered" annotation.
+    registered_paths: set[str] = set()
+    try:
+        from cli.registry import load_registry  # type: ignore
+        for p in load_registry().projects:
+            try:
+                registered_paths.add(str(Path(p.path).resolve()))
+            except (OSError, RuntimeError):
+                continue
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("scan: could not snapshot registry: %s", exc)
+
+    hits: list[dict] = []
+    visited = 0
+    hit_limit_reached = False
+    depth_limit_reached = False
+
+    # BFS so shallow hits surface first (a consumer usually cares about
+    # "~/code/my-app" before "~/code/my-app/backend/vendor/old/...").
+    from collections import deque
+    queue: deque[tuple[Path, int]] = deque([(root_path, 0)])
+    while queue:
+        if len(hits) >= limit:
+            hit_limit_reached = True
+            break
+        if visited >= _SCAN_MAX_VISITED_DIRS:
+            break
+        current, depth = queue.popleft()
+        visited += 1
+        if not current.is_dir():
+            continue
+        if _looks_like_cos_project(current):
+            resolved = str(current.resolve())
+            hits.append({
+                "path": resolved,
+                "slug": _resolve_slug_from_registry(current),
+                "already_registered": resolved in registered_paths,
+            })
+            # Don't recurse into a cos project; nested cos repos are
+            # extremely rare and the skip keeps scans snappy.
+            continue
+        if depth >= max_depth:
+            depth_limit_reached = True
+            continue
+        try:
+            children = list(current.iterdir())
+        except (OSError, PermissionError):
+            continue
+        for child in children:
+            if not child.is_dir():
+                continue
+            if child.name in _SKIP_DIR_NAMES:
+                continue
+            if child.name.startswith("."):
+                # Don't descend into dotfiles directories (browser caches,
+                # editor state); .coding-os is explicitly skipped above.
+                continue
+            queue.append((child, depth + 1))
+
+    return {
+        "data": {
+            "root": str(root_path),
+            "hits": hits,
+            "count": len(hits),
+            "visited_dirs": visited,
+            "hit_limit_reached": hit_limit_reached,
+            "depth_limit_reached": depth_limit_reached,
+        },
+        "meta": {
+            "layer": "hub",
+            "source": "hub.registry_scan",
+            "max_depth": max_depth,
+            "limit": limit,
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /api/hub/registry/gc
+# ---------------------------------------------------------------------------
+
+
+@router.post("/registry/gc")
+def hub_registry_gc(
+    dry_run: bool = Body(False, embed=True),
+):
+    """Remove registry entries whose directory no longer exists.
+
+    PURPOSE: Test suites, `rm -rf` on a project dir, or migrating projects
+             across machines all leave stale entries in the registry JSON.
+             We already filter them at read-time (so the panel never
+             shows dead cards), but the file itself grows indefinitely.
+             This endpoint rewrites it in-place.
+    INPUT:   {dry_run: bool}.  When true, reports what would be removed
+             without writing.
+    OUTPUT:  {data: {kept, removed, dry_run}, meta}.
+    """
+    try:
+        from cli.registry import Registry, load_registry, save_registry  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        return _err("unavailable", f"cli.registry unavailable: {exc}", status=503)
+
+    try:
+        reg = load_registry()
+    except Exception as exc:  # noqa: BLE001
+        return _err("internal", f"load_registry failed: {exc}", status=500)
+
+    kept: list[dict] = []
+    removed: list[dict] = []
+    for entry in reg.projects:
+        path = Path(entry.path)
+        alive = _looks_like_cos_project(path)
+        item = {"slug": entry.slug, "path": entry.path, "created_at": entry.created_at}
+        (kept if alive else removed).append(item)
+
+    if not dry_run and removed:
+        reg.projects = [
+            p for p in reg.projects
+            if _looks_like_cos_project(Path(p.path))
+        ]
+        try:
+            save_registry(reg)
+        except Exception as exc:  # noqa: BLE001
+            return _err("internal", f"save_registry failed: {exc}", status=500)
+
+    return {
+        "data": {
+            "kept": kept,
+            "removed": removed,
+            "dry_run": bool(dry_run),
+            "kept_count": len(kept),
+            "removed_count": len(removed),
+        },
+        "meta": {"layer": "hub", "source": "hub.registry_gc"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/hub/suggest-roots — surface likely scan roots for the UI
+# ---------------------------------------------------------------------------
+
+
+@router.get("/suggest-roots")
+def hub_suggest_roots(depth: int = Query(0)):
+    """Return sensible default scan roots for the UI's import wizard.
+
+    PURPOSE: The UI can't look at the server's filesystem, so we give
+             it a shortlist of likely spots (HOME, HOME/code, HOME/Projects,
+             HOME/Developer) that actually exist and the user's cwd so
+             the "+ Import existing" modal has non-empty defaults.
+    OUTPUT:  {data: {suggestions: [path, ...]}, meta}.
+    NOTES:   Paths that don't exist are filtered out.  Order is stable:
+             cwd → ~/code → ~/Projects → ~/Developer → ~.
+    """
+    _ = depth  # reserved — currently unused; keeps the route parameter list stable
+    candidates: list[Path] = [
+        Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve(),
+        Path.home() / "code",
+        Path.home() / "Projects",
+        Path.home() / "Developer",
+        Path.home(),
+    ]
+    seen: set[str] = set()
+    suggestions: list[str] = []
+    for c in candidates:
+        try:
+            resolved = str(c.resolve())
+        except (OSError, RuntimeError):
+            continue
+        if resolved in seen:
+            continue
+        if not c.is_dir():
+            continue
+        seen.add(resolved)
+        suggestions.append(resolved)
+    return {
+        "data": {"suggestions": suggestions},
+        "meta": {"layer": "hub", "source": "hub.suggest_roots"},
     }

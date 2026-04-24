@@ -100,19 +100,43 @@ class ProjectScopeMiddleware(BaseHTTPMiddleware):
 
 
 def _resolve_slug(slug: str) -> Path | None:
-    """Look up a slug → absolute path via the global registry."""
+    """Look up a slug → absolute path via the global registry.
+
+    PURPOSE: Resolve per-request project scope. Accepts registered slugs
+             first; falls back to the running process cwd when the slug
+             matches its dirname. The cwd fallback mirrors hub.py so the
+             meta-project (coding-os itself) can be reached without a
+             manual `cos registry add`.
+    OUTPUT:  Absolute path that contains .coding-os/, or None.
+    """
     try:
         from cli.registry import load_registry  # type: ignore
-    except Exception:
-        return None
-    try:
         reg = load_registry()
-    except Exception:
+    except Exception:  # noqa: BLE001 — registry optional, fall through to cwd
+        reg = None
+    if reg is not None:
+        for entry in reg.projects:
+            if entry.slug == slug:
+                candidate = Path(entry.path).resolve()
+                if (candidate / ".coding-os").is_dir():
+                    return candidate
+                return None
+
+    cwd = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
+    if not (cwd / ".coding-os").is_dir():
         return None
-    for entry in reg.projects:
-        if entry.slug == slug:
-            candidate = Path(entry.path).resolve()
-            if (candidate / ".coding-os").is_dir():
-                return candidate
-            return None
+    # Match the same slug rule hub.py / registry use, so the auto-listed
+    # cwd entry and the middleware agree on spelling (e.g. "coding os"
+    # becomes "coding-os" in both places — not just one).
+    cwd_slug = cwd.name.lower().strip() or "project"
+    try:
+        from cli.registry import _derive_slug  # type: ignore
+        cwd_slug = _derive_slug(cwd)
+    except Exception as exc:  # noqa: BLE001 — slug is UX; fall through
+        import logging as _logging
+        _logging.getLogger("coding_os.web.context").debug(
+            "cli.registry._derive_slug unavailable: %s", exc,
+        )
+    if cwd_slug == slug.lower().strip():
+        return cwd
     return None

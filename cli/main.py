@@ -552,11 +552,45 @@ def _copy_workflow_docs(project: Path) -> None:
     shutil.copy2(src, dest)
 
 
+def _bootstrap_hub_dir_if_first_run() -> None:
+    """Seed ~/.coding-os/ the very first time the CLI is invoked.
+
+    PURPOSE: Close the install UX gap — after `uv tool install coding-os`
+             the hub dir didn't exist until a user ran a command that
+             happened to touch it.  Creating the directory eagerly (and
+             an empty registry.json) means `cos hub start` and the
+             /api/hub/* endpoints behave deterministically from the
+             first command.
+    NOTES:   Fail-open: any OSError is silently swallowed.  We never
+             raise from the entry point because a home-dir permission
+             quirk shouldn't break every `cos ...` call.
+             Respects COS_REGISTRY_PATH so tests with custom paths are
+             untouched.
+    """
+    import os as _os
+    override = _os.environ.get("COS_REGISTRY_PATH")
+    hub_dir = Path(override).parent if override else Path.home() / ".coding-os"
+    try:
+        if not hub_dir.exists():
+            hub_dir.mkdir(parents=True, exist_ok=True)
+        registry_file = hub_dir / "registry.json"
+        if not registry_file.exists():
+            # Same shape save_registry() writes — keep in sync with
+            # cli.registry.Registry.to_dict().
+            registry_file.write_text(
+                '{\n  "version": 1,\n  "projects": []\n}\n',
+                encoding="utf-8",
+            )
+    except OSError as exc:
+        import logging as _logging
+        _logging.getLogger("cli.main").debug("hub-dir bootstrap skipped: %s", exc)
+
+
 @click.group()
 @click.version_option(version="0.2.0", prog_name="coding-os")
 def cli() -> None:
     """Coding OS — Agent-agnostic cognitive operating system for AI coding agents."""
-    pass
+    _bootstrap_hub_dir_if_first_run()
 
 
 cli.add_command(doctor_cmd)
@@ -572,6 +606,17 @@ cli.add_command(brain_gc_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(eject_file_cmd)
+
+# Phase O.1 — Hub propagation: push meta-repo edits to every registered
+# project via symlink re-link + DB migration.  Lives in cli/sync_all.py
+# so registry.py stays focused on the JSON CRUD.
+try:
+    from cli.sync_all import sync_all_cmd, sync_doctor_cmd
+    cli.add_command(sync_all_cmd)
+    cli.add_command(sync_doctor_cmd)
+except ImportError as _e:  # noqa: BLE001 — optional if cli.main is imported early
+    import logging as _logging
+    _logging.getLogger("cli.main").debug("sync_all unavailable: %s", _e)
 
 # Phase L.6 — board-os CLI surface (16 commands).
 try:
