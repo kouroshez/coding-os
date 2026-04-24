@@ -4,9 +4,12 @@ import { kindColor } from '@/lib/node-colors';
 
 interface MemoryHit {
   id?: string | number;
+  title?: string;
   summary?: string;
   content?: string;
   memory_type?: string;
+  confidence?: number;
+  impact_score?: number;
 }
 
 interface MemoryPayload {
@@ -14,10 +17,20 @@ interface MemoryPayload {
   count?: number;
 }
 
+// Backend shape (see core/web/routes/search.py::/docs): each result row
+// mirrors the doc_chunks table columns, not the ergonomic {title, snippet}
+// that an older iteration of this page assumed. Map the real fields to
+// the display role — heading_path as title, content as snippet,
+// source_path as the nav hint.
 interface DocHit {
+  id?: number;
   title?: string;
+  heading_path?: string;
   path?: string;
+  source_path?: string;
+  source_type?: string;
   snippet?: string;
+  content?: string;
   score?: number;
 }
 
@@ -101,19 +114,33 @@ export default function UnifiedSearch() {
               <p className="text-xs text-[var(--cos-muted)]">no memory matches.</p>
             ) : (
               <ul className="space-y-2">
-                {(memory.data?.results ?? []).map((r, i) => (
-                  <li
-                    key={r.id ?? i}
-                    className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-xs"
-                  >
-                    {r.memory_type && (
-                      <span className="mr-2 rounded bg-[var(--cos-border)] px-1 text-[10px] text-[var(--cos-muted)]">
-                        {r.memory_type}
-                      </span>
-                    )}
-                    {r.summary ?? r.content ?? '(empty)'}
-                  </li>
-                ))}
+                {(memory.data?.results ?? []).map((r, i) => {
+                  // The memory layer joins observations + patterns; each
+                  // row may carry title XOR summary/content depending on
+                  // source_table. Fall through in that order so every row
+                  // renders *something* human-readable.
+                  const body = r.title ?? r.summary ?? r.content ?? '(no body)';
+                  return (
+                    <li
+                      key={r.id ?? i}
+                      className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-2 text-xs text-[var(--cos-text)]"
+                    >
+                      <div className="mb-1 flex items-center gap-2">
+                        {r.memory_type && (
+                          <span className="rounded bg-[var(--cos-border)] px-1 py-0.5 text-[10px] uppercase tracking-wide text-[var(--cos-muted)]">
+                            {r.memory_type}
+                          </span>
+                        )}
+                        {r.confidence != null && (
+                          <span className="ml-auto text-[10px] text-[var(--cos-muted)]">
+                            conf {r.confidence.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="leading-snug">{body}</p>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Section>
@@ -123,25 +150,35 @@ export default function UnifiedSearch() {
               <p className="text-xs text-[var(--cos-muted)]">no doc matches.</p>
             ) : (
               <ul className="space-y-2">
-                {(docs.data?.results ?? []).map((r, i) => (
-                  <li
-                    key={`${r.path ?? i}`}
-                    className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">{r.title ?? r.path}</span>
-                      {r.score != null && (
-                        <span className="text-[10px] text-[var(--cos-muted)]">
-                          {r.score.toFixed(2)}
-                        </span>
+                {(docs.data?.results ?? []).map((r, i) => {
+                  // Backend returns heading_path + source_path + content;
+                  // the old UI assumed title/path/snippet and rendered
+                  // blank rows. Map with fall-through so any shape works.
+                  const title = r.title ?? r.heading_path ?? r.source_path ?? r.path ?? '(untitled)';
+                  const path = r.source_path ?? r.path;
+                  const body = r.snippet ?? r.content;
+                  return (
+                    <li
+                      key={r.id ?? `${path}-${i}`}
+                      className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-2 text-xs text-[var(--cos-text)]"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-semibold">{title}</span>
+                        {r.score != null && (
+                          <span className="shrink-0 text-[10px] text-[var(--cos-muted)]">
+                            {r.score.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      {path && (
+                        <p className="font-mono text-[10px] text-[var(--cos-muted)]">{path}</p>
                       )}
-                    </div>
-                    {r.path && (
-                      <p className="font-mono text-[10px] text-[var(--cos-muted)]">{r.path}</p>
-                    )}
-                    {r.snippet && <p className="mt-1 text-[var(--cos-text)]">{r.snippet}</p>}
-                  </li>
-                ))}
+                      {body && (
+                        <p className="mt-1 line-clamp-3 leading-snug">{body}</p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Section>

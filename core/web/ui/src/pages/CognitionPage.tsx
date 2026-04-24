@@ -17,14 +17,14 @@ export default function CognitionPage() {
 
   return (
     <div className="grid h-full" style={{ gridTemplateColumns: '280px 1fr' }}>
-      <aside className="border-r border-[#2a2f39] bg-[#151a22]">
+      <aside className="border-r border-[var(--cos-border)] bg-[var(--cos-panel)]">
         <TraceList selected={sessionId ?? null} onSelect={setSession} />
       </aside>
       <section className="overflow-hidden">
         {sessionId ? (
           <TraceTimeline sessionId={sessionId} />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-[#9ea4ae]">
+          <div className="flex h-full items-center justify-center text-sm text-[var(--cos-muted)]">
             pick a session to view its timeline
           </div>
         )}

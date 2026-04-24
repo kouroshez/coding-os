@@ -39,6 +39,13 @@ changes.log
 # uv
 uv.lock
 
+# Playwright MCP working directory (session screenshots + page/network dumps)
+.playwright-mcp/
+
+# Ad-hoc hub screenshots captured during hub-ux-hardening sessions —
+# moved to tests/e2e/__screenshots__/ when they need to be kept.
+/hub-*.png
+
 # pytest
 .pytest_cache/
 

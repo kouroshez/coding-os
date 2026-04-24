@@ -1,28 +1,29 @@
 @import "tailwindcss";
 
 /*
- * Unified semantic tokens — aliases that every feature (board, graph,
- * search, cognition, hub) reads via `var(--cos-*)`.  Theme-aware: light
- * variant mirrors the paper aesthetic from cos-board-tokens.css, dark
- * variant preserves the graph-viewer origin palette.
+ * Unified semantic tokens — every feature (board, graph, search,
+ * cognition, hub) reads via `var(--cos-*)`. Pass 1 (TASK-070) aliases
+ * these onto the board-native design tokens from
+ * public/cos-board-tokens.css (loaded via <link> in index.html) so
+ * themes, aesthetics, and dark-mode switches flow from a single source.
+ * The fallback literals inside each var() only fire on first-paint
+ * before the board tokens hydrate (prevents FOUC on slow connections).
  */
 :root {
-  --cos-bg: #f4efe1;
-  --cos-panel: #ffffff;
-  --cos-border: #b8ad9a;
-  --cos-text: #1a1814;
-  --cos-muted: #8a8378;
-  --cos-accent: #d96c2c;
+  --cos-bg: var(--board, #f4efe1);
+  --cos-panel: var(--col-bg, #ffffff);
+  --cos-border: var(--col-border, #b8ad9a);
+  --cos-text: var(--ink, #1a1814);
+  --cos-muted: var(--ink-soft, #6b665e);
+  --cos-accent: var(--accent, #d96c2c);
 }
 
-html[data-theme="dark"] {
-  --cos-bg: #0e1116;
-  --cos-panel: #151a22;
-  --cos-border: #2a2f39;
-  --cos-text: #e6e7eb;
-  --cos-muted: #9ea4ae;
-  --cos-accent: #7fd4a0;
-}
+/*
+ * Dark theme already flips --board/--ink/--col-bg via
+ * cos-board-tokens.css::html[data-theme="dark"]; the var() chain above
+ * inherits those values automatically. We only keep the paper defaults
+ * as literal fallbacks here — no second :root block needed.
+ */
 
 html,
 body,

@@ -1453,11 +1453,35 @@ function TaskStickyCard({
             #{task.epic}
           </span>
         )}
-        {(task.labels || []).slice(0, cozy ? 3 : 2).map((l) => (
-          <span key={l} style={{ color: '#6b665e', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-            ·{l}
+        {task.status === 'icebox' && (task.labels || []).includes('ready') && (
+          <span
+            title="Tagged ready — candidate for pickup"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              background: 'linear-gradient(180deg, #86efac 0%, #4ade80 100%)',
+              color: '#14532d',
+              padding: '1px 6px',
+              borderRadius: 10,
+              fontWeight: 800,
+              letterSpacing: '.04em',
+              textTransform: 'uppercase',
+              border: '1px solid #16a34a',
+              boxShadow: '0 1px 1px rgba(22,163,74,.25)',
+            }}
+          >
+            ● READY
           </span>
-        ))}
+        )}
+        {(task.labels || [])
+          .filter((l) => l !== 'ready')
+          .slice(0, cozy ? 3 : 2)
+          .map((l) => (
+            <span key={l} style={{ color: '#6b665e', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+              ·{l}
+            </span>
+          ))}
       </div>
 
       {agentSurface && cozy && task.last_log_line && (

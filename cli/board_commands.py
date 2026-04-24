@@ -306,8 +306,18 @@ def _render_board_ascii(envelope: str) -> None:
                     "bug": "🔴", "feature": "🟡", "chore": "🟢", "spike": "🔵",
                     "docs": "🟣", "refactor": "🟦", "test": "🟧", "security": "🟠",
                 }.get(card["kind"], "⚪")
+                # READY overlay: icebox cards carrying the "ready" label are
+                # pickup candidates (see board_os.config::READY_LABEL).  We
+                # surface this as a "✓READY" prefix so the CLI matches the
+                # green pill rendered by the web Board.
+                labels = card.get("labels") or []
+                ready_prefix = (
+                    " ✓READY "
+                    if status == "icebox" and "ready" in labels
+                    else ""
+                )
                 click.echo(
-                    f"      {badge} {card['id']} [{card['priority']}] {card['title']}"
+                    f"      {badge}{ready_prefix} {card['id']} [{card['priority']}] {card['title']}"
                 )
         click.echo()
 

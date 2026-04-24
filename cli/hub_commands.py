@@ -121,6 +121,17 @@ def hub_start(port: int, foreground: bool) -> None:
     log = _log_file()
     log.touch(exist_ok=True)
     cmd = [_resolve_cos_bin(), "hub", "start", "--foreground", "--port", str(port)]
+
+    # Graph backend default: SQLite until TASK-073 (in-process reindex)
+    # lands.  Rationale — Kùzu enforces a single-writer lock on its DB
+    # directory: when the hub owns the lock, `cos graph-reindex` running
+    # from a separate terminal falls back to SQLite and populates *that*
+    # store, leaving Kùzu empty.  Forcing SQLite for the hub keeps both
+    # surfaces reading the same data until the reindex endpoint arrives.
+    # Users can override by exporting COS_GRAPH_BACKEND=kuzu explicitly.
+    env = os.environ.copy()
+    env.setdefault("COS_GRAPH_BACKEND", "sqlite")
+
     # Detach: start_new_session so SIGHUP on terminal close doesn't kill us.
     with open(log, "ab") as logfh:
         proc = subprocess.Popen(
@@ -129,6 +140,7 @@ def hub_start(port: int, foreground: bool) -> None:
             stderr=logfh,
             stdin=subprocess.DEVNULL,
             start_new_session=True,
+            env=env,
         )
 
     # Wait up to ~2s for the child to still be alive before treating the

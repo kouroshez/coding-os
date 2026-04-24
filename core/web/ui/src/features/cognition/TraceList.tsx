@@ -50,12 +50,12 @@ export default function TraceList({
                   onClick={() => onSelect(s.session_id)}
                   aria-pressed={active}
                   className={[
-                    'block w-full border-b border-[var(--cos-border)]/60 px-3 py-2 text-left text-xs',
-                    active ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]' : 'hover:bg-[var(--cos-panel)]',
+                    'block w-full border-b border-[var(--cos-border)]/60 px-3 py-2 text-left text-xs text-[var(--cos-text)]',
+                    active ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]' : 'hover:bg-[var(--cos-accent)]/5',
                   ].join(' ')}
                 >
-                  <div className="font-mono truncate">{s.session_id}</div>
-                  <div className="text-[10px] text-[var(--cos-muted)]">
+                  <div className="font-mono truncate font-semibold">{s.session_id}</div>
+                  <div className="text-[10px] text-[var(--cos-muted)] mt-0.5">
                     {s.agent} · {(s.size_bytes / 1024).toFixed(1)}kb
                   </div>
                 </button>
