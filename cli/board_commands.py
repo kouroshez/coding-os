@@ -100,13 +100,14 @@ def _detect_agent_runtime() -> str | None:
     if explicit and explicit in known_ids:
         return explicit
 
-    # Priority is explicit and shared with hook-layer expectations:
-    # claude -> codex -> cursor. Any other adapters are appended in
-    # stable order so detection remains deterministic.
-    ordered_ids = [
-        aid for aid in ("claude", "codex", "cursor") if aid in known_ids
-    ] + sorted(aid for aid in known_ids if aid not in {"claude", "codex", "cursor"})
-    for agent_id in ordered_ids:
+    # Alphabetical sort keeps detection deterministic.  The env-marker
+    # sets declared by each adapter.yaml don't overlap (CURSOR_* vs
+    # CODEX_* vs CLAUDE_*) so order is irrelevant to correctness — and
+    # we never hardcode adapter-name literals here (rule #11).  The
+    # legacy CLAUDE_PROJECT_DIR fallback below is the only place
+    # disambiguation matters, and it gates on "no stronger marker
+    # fired" so a real CURSOR_* match already short-circuited.
+    for agent_id in sorted(known_ids):
         for env_key in markers_by_id.get(agent_id, ()):
             if os.environ.get(env_key):
                 return agent_id
