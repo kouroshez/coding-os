@@ -63,7 +63,7 @@ mkdir -p "$(dirname "$ERR_LOG")"
   "${COS_PYTHON:-python3}" -c "
 import os, sys
 sys.path.insert(0, '${CORE_DIR}')
-sys.path.insert(0, '${CORE_DIR}/thinking-os')
+sys.path.insert(0, '${CORE_DIR}/thinking_os')
 try:
     from graph_os.tools.reindex_dispatch import dispatch
     report = dispatch(

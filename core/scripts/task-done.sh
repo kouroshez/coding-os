@@ -171,8 +171,24 @@ title = title_match.group(1).strip() if title_match else task_id
 print(f"\nDone: {task_id} — {title}")
 
 # --- Record outcome to thinking-os.db + breakthrough detection ---
-record_script = Path(os.environ.get("COS_BRAIN_DIR", ".coding-os/thinking-os") + "/record_outcome.py")
-if record_script.exists():
+# Resolve thinking_os dir in this order: explicit COS_BRAIN_DIR →
+# meta-project layout (core/thinking_os/) → consumer-project installed
+# layout (.coding-os/thinking_os/) → pre-rename legacy layout.
+_brain_candidates = [
+    Path(os.environ["COS_BRAIN_DIR"]) if os.environ.get("COS_BRAIN_DIR") else None,
+    Path("core/thinking_os"),
+    Path(".coding-os/thinking_os"),
+    Path(".coding-os/thinking-os"),
+]
+record_script = None
+for _cand in _brain_candidates:
+    if _cand is None:
+        continue
+    _p = _cand / "record_outcome.py"
+    if _p.exists():
+        record_script = _p
+        break
+if record_script is not None:
     import subprocess
     try:
         subprocess.run(
@@ -232,7 +248,16 @@ if db_path.exists():
         _conn.row_factory = sqlite3.Row
         _count = _conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if _count > 0 and _count % 10 == 0:
-            sys.path.insert(0, os.environ.get("COS_BRAIN_DIR", str(Path(__file__).resolve().parent.parent / "thinking_os")))
+            # __file__ isn't defined for heredoc stdin scripts — resolve from
+            # COS_BRAIN_DIR first, then the known meta/consumer layouts.
+            _learn_brain = os.environ.get("COS_BRAIN_DIR")
+            if not _learn_brain:
+                for _cand in ("core/thinking_os", ".coding-os/thinking_os", ".coding-os/thinking-os"):
+                    if (Path(_cand) / "tools" / "learning.py").exists():
+                        _learn_brain = _cand
+                        break
+            if _learn_brain:
+                sys.path.insert(0, _learn_brain)
             from tools.learning import learn_extract
             result = learn_extract(_conn)
             extracted = result.get("extracted", [])
@@ -252,17 +277,25 @@ PY
 # because task-done only flips a status marker in the index.
 (
   python3 -c "
-import os, sys
+import os, sys, logging
 from pathlib import Path
+logger = logging.getLogger('cos.task_done.status_sync')
 try:
-    sys.path.insert(0, os.environ.get('COS_BRAIN_DIR', str(Path(__file__).resolve().parent.parent / 'thinking-os')))
+    _brain = os.environ.get('COS_BRAIN_DIR')
+    if not _brain:
+        for _c in ('core/thinking_os', '.coding-os/thinking_os', '.coding-os/thinking-os'):
+            if (Path(_c) / 'db.py').exists():
+                _brain = _c
+                break
+    if _brain:
+        sys.path.insert(0, _brain)
     from db import init_db
     from task_sync import sync_status_only
     conn = init_db(os.environ.get('COS_DB_PATH'))
     sync_status_only(conn, project_root=Path.cwd())
     conn.close()
-except Exception:
-    pass  # Phase C status sync is enrichment only — never blocks task-done
+except Exception as exc:
+    logger.debug('status_sync_safe failed: %s', exc)
 " > /dev/null 2>&1 &
 )
 
@@ -272,16 +305,24 @@ except Exception:
 (
   COS_DB_PATH="${COS_DB_PATH:-.coding-os/thinking-os.db}" \
   timeout 2 python3 -c "
-import os, sys
+import os, sys, logging
 from pathlib import Path
+logger = logging.getLogger('cos.task_done.digest')
 try:
-    sys.path.insert(0, os.environ.get('COS_BRAIN_DIR', str(Path(__file__).resolve().parent.parent / 'thinking-os')))
+    _brain = os.environ.get('COS_BRAIN_DIR')
+    if not _brain:
+        for _c in ('core/thinking_os', '.coding-os/thinking_os', '.coding-os/thinking-os'):
+            if (Path(_c) / 'digest.py').exists():
+                _brain = _c
+                break
+    if _brain:
+        sys.path.insert(0, _brain)
     from db import init_db
     from digest import regenerate
     conn = init_db(os.environ.get('COS_DB_PATH'))
     regenerate(conn, project_root=Path.cwd())
     conn.close()
-except Exception:
-    pass  # Digest is enrichment — never blocks task-done
+except Exception as exc:
+    logger.debug('digest_safe failed: %s', exc)
 " > /dev/null 2>&1 &
 )

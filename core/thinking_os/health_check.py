@@ -321,21 +321,27 @@ def check_learning_pipeline() -> dict:
         if not script_path.exists():
             result["issues"].append(f"Missing component: {script} ({description})")
 
-    # Check if task-done calls record_outcome
-    task_done_scripts = list(PROJECT_ROOT.glob("infrastructure/scripts/task-done*"))
-    if task_done_scripts:
-        found_outcome_call = False
-        for script in task_done_scripts:
+    # Check if task-done wiring exists. Modern path: cli/board_commands.py
+    # calls record_outcome via _record_brain_outcome_safe. Legacy path:
+    # core/scripts/task-done.sh or infrastructure/scripts/task-done.sh.
+    task_done_candidates = [
+        PROJECT_ROOT / "cli" / "board_commands.py",
+        *PROJECT_ROOT.glob("core/scripts/task-done*"),
+        *PROJECT_ROOT.glob("infrastructure/scripts/task-done*"),
+    ]
+    found_outcome_call = False
+    for script in task_done_candidates:
+        if script.exists():
             content = script.read_text()
             if "record_outcome" in content:
                 found_outcome_call = True
                 break
-        result["components"]["task_done_wired"] = found_outcome_call
-        if not found_outcome_call:
-            result["issues"].append("task-done script doesn't call record_outcome.py")
-    else:
-        result["components"]["task_done_wired"] = False
-        result["issues"].append("No task-done script found in infrastructure/scripts/")
+    result["components"]["task_done_wired"] = found_outcome_call
+    if not found_outcome_call:
+        result["issues"].append(
+            "task-done wiring missing: neither cli/board_commands.py nor "
+            "core/scripts/task-done.sh calls record_outcome",
+        )
 
     # Check if session-end calls session_summary
     session_end = HOOKS_DIR / "session-end.sh"

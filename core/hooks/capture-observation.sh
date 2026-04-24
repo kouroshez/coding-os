@@ -27,7 +27,7 @@ case "$TOOL_NAME" in
   *) exit 0 ;;
 esac
 
-CAPTURE_PY="$(dirname "$0")/../thinking-os/capture.py"
+CAPTURE_PY="$(dirname "$0")/../thinking_os/capture.py"
 if [ ! -f "$CAPTURE_PY" ]; then
   exit 0
 fi

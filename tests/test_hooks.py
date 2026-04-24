@@ -150,17 +150,25 @@ class TestCosEnv:
         st.mkdir()
         (st / ".agent").write_text("cursor\n", encoding="utf-8")
         script_ag = 'source "{}"; echo "$COS_AGENT"'.format(HOOKS_DIR / "cos-env.sh")
+        # Every env var that cos-env.sh treats as an authoritative runtime
+        # signal must be stripped so we actually exercise the .agent file
+        # fallback path — otherwise the outer pytest process (which has
+        # CLAUDE_CODE_ENTRYPOINT set by the IDE) short-circuits detection.
+        blocked_keys = {
+            "COS_STATE_DIR", "COS_AGENT",
+            "CURSOR_AGENT", "CURSOR_PROJECT_DIR", "CURSOR_VERSION",
+            "CODEX_SESSION_ID", "CODEX_AGENT_DIR", "CODEX_HOME",
+            "CLAUDECODE", "CLAUDE_CODE_SSE_PORT",
+            "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_AGENT_SDK_VERSION",
+            "CLAUDE_PROJECT_DIR",
+        }
         result = subprocess.run(
             ["bash", "-c", script_ag],
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
             env={
-                **{
-                    k: v
-                    for k, v in os.environ.items()
-                    if k not in ("COS_STATE_DIR", "COS_AGENT", "CURSOR_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
-                },
+                **{k: v for k, v in os.environ.items() if k not in blocked_keys},
                 "HOME": str(tmp_path),
                 "COS_STATE_DIR": str(st),
             },
@@ -513,3 +521,62 @@ class TestBlockProtectedFilesGovernanceEscape:
         })
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# Regression: hook scripts must reference the current thinking_os/ module
+# directory, not the pre-rename thinking-os/ path. See bb27aac rename commit.
+# ---------------------------------------------------------------------------
+
+
+class TestHookScriptPaths:
+    REPO_ROOT = Path(__file__).resolve().parent.parent
+    CORE_MODULE = REPO_ROOT / "core" / "thinking_os"
+
+    def _must_exist(self, *candidates: Path) -> Path:
+        for c in candidates:
+            if c.exists():
+                return c
+        raise AssertionError(f"None of the candidate paths exist: {candidates}")
+
+    def test_core_thinking_os_module_present(self) -> None:
+        assert self.CORE_MODULE.is_dir(), (
+            f"Expected {self.CORE_MODULE} — hooks use '../thinking_os/' "
+            "after the bb27aac rename."
+        )
+
+    @pytest.mark.parametrize("hook_name, target", [
+        ("capture-observation.sh", "capture.py"),
+        ("session-end.sh", "session_summary.py"),
+        ("session-end.sh", "session_enrich.py"),
+        ("session-context.sh", "session_summary.py"),
+        ("session-context.sh", "session_startup.py"),
+    ])
+    def test_hook_references_resolve_to_real_module(
+        self, hook_name: str, target: str,
+    ) -> None:
+        """Ensure the target script every hook tries to execute actually
+        resolves under core/thinking_os/. Guards the 2026-04 regression
+        where scripts pointed at the pre-rename `thinking-os/` path."""
+        hook_src = (HOOKS_DIR / hook_name).read_text()
+        assert target in hook_src, f"{hook_name} no longer references {target}"
+        assert (self.CORE_MODULE / target).exists(), (
+            f"core/thinking_os/{target} missing — hook {hook_name} will silently "
+            "no-op"
+        )
+
+    def test_capture_observation_path_resolves(self) -> None:
+        """Direct assertion on the CAPTURE_PY line in capture-observation.sh."""
+        src = (HOOKS_DIR / "capture-observation.sh").read_text()
+        assert "../thinking_os/capture.py" in src, (
+            "capture-observation.sh must reference ../thinking_os/capture.py "
+            "(underscore), not the pre-rename hyphen path."
+        )
+
+    def test_auto_reindex_docs_sys_path(self) -> None:
+        """auto-reindex-docs.sh embeds a sys.path.insert with the brain dir."""
+        src = (HOOKS_DIR / "auto-reindex-docs.sh").read_text()
+        assert "/thinking_os'" in src, (
+            "auto-reindex-docs.sh sys.path.insert must use thinking_os/ "
+            "(underscore)."
+        )

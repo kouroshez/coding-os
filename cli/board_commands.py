@@ -293,6 +293,103 @@ def task_start_cmd(task_id, force):
     _simple_move(task_id, "in_progress", force=force)
 
 
+_KIND_TO_OUTCOME_TYPE = {
+    "bug": "fix",
+    "feature": "feat",
+    "refactor": "refactor",
+    "docs": "docs",
+    "test": "test",
+    "chore": "infra",
+}
+
+_brain_logger = __import__("logging").getLogger("cli.board.brain")
+
+
+def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
+    """Fire-and-forget: mirror task-done into the thinking_os learning loop.
+
+    Writes task_outcomes + outcome_history, back-fills retrievals.outcome for
+    every row that cited this task, and triggers learn_extract each 10th
+    successful outcome. Any failure is logged at DEBUG — task-done must never
+    surface a brain-pipeline failure to the user.
+    """
+    try:
+        from core.thinking_os.record_outcome import record_outcome
+        row = conn.execute(
+            "SELECT kind, title FROM tasks WHERE task_id = ?", (task_id,),
+        ).fetchone()
+        kind = row[0] if row else "feature"
+        msg = row[1] if row else ""
+        task_type = _KIND_TO_OUTCOME_TYPE.get(kind, "feat")
+        db_path = os.environ.get(
+            "COS_DB_PATH", str(_project_root() / ".coding-os" / "thinking-os.db"),
+        )
+        record_outcome(
+            task_id=task_id,
+            task_type=task_type,
+            outcome="success",
+            msg=msg,
+            db_path=db_path,
+        )
+        # Stamp the model onto the fresh row so routing_weights has input.
+        # COS_AGENT_MODEL is set by adapter startup; unknown → leave null.
+        model = os.environ.get("COS_AGENT_MODEL") or os.environ.get("ANTHROPIC_MODEL")
+        if model:
+            try:
+                conn.execute(
+                    "UPDATE task_outcomes SET model = ? WHERE task_id = ? AND model IS NULL",
+                    (model, task_id),
+                )
+                conn.commit()
+            except Exception as exc:
+                _brain_logger.debug("model stamp failed for %s: %s", task_id, exc)
+    except Exception as exc:
+        _brain_logger.debug("record_outcome failed for %s: %s", task_id, exc)
+        return
+
+    # retrievals.task_id is composite ("<session_id> <task_slug>") in some
+    # writers, plain TASK-NNN in others — match both shapes defensively.
+    try:
+        conn.execute(
+            "UPDATE retrievals SET outcome = ?, outcome_at = CURRENT_TIMESTAMP "
+            "WHERE outcome IS NULL AND (task_id = ? OR task_id LIKE ?)",
+            ("success", task_id, f"%{task_id}%"),
+        )
+        conn.commit()
+    except Exception as exc:
+        _brain_logger.debug("retrieval back-fill failed for %s: %s", task_id, exc)
+
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+        if count > 0 and count % 10 == 0:
+            from core.thinking_os.tools.learning import learn_extract
+            result = learn_extract(conn)
+            extracted = result.get("extracted", [])
+            if extracted:
+                click.echo(
+                    f"\n🧠 Learning: {len(extracted)} new pattern(s) from "
+                    f"{count} outcomes:",
+                )
+                for p in extracted:
+                    click.echo(
+                        f"   • {p.get('pattern')} "
+                        f"(confidence: {p.get('confidence', 0):.2f})",
+                    )
+    except Exception as exc:
+        _brain_logger.debug("learn_extract trigger failed: %s", exc)
+
+    # Rebuild routing_weights every 10 outcomes so `cos_route_model` /
+    # `cos_route_skill` have current empirical success rates. No-op until
+    # task_outcomes has rows with non-null `model`.
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+        if count > 0 and count % 10 == 0:
+            from core.thinking_os.tools.routing import recalculate_weights
+            recalculate_weights(conn)
+    except Exception as exc:
+        _brain_logger.debug("recalculate_weights failed: %s", exc)
+
+
 @click.command("task-done")
 @click.argument("task_id")
 def task_done_cmd(task_id):
@@ -316,6 +413,7 @@ def task_done_cmd(task_id):
                 agent_session=_agent_session_id(),
                 source="task-done",
             )
+            _record_brain_outcome_safe(conn, task_id)
     finally:
         conn.close()
     sys.exit(_print_envelope(envelope))

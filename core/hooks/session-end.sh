@@ -45,14 +45,14 @@ except Exception:
 }
 
 # Find scripts in coding-os core or legacy .claude path
-for SCRIPT_DIR in "$(dirname "$0")/../thinking-os" ".claude/thinking-os"; do
+for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking-os" ".claude/thinking-os"; do
   if [ -f "${SCRIPT_DIR}/session_summary.py" ]; then
     run_bounded_python "${SCRIPT_DIR}/session_summary.py" 2
     break
   fi
 done
 
-for SCRIPT_DIR in "$(dirname "$0")/../thinking-os" ".claude/thinking-os"; do
+for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking-os" ".claude/thinking-os"; do
   if [ -f "${SCRIPT_DIR}/session_enrich.py" ]; then
     run_bounded_python "${SCRIPT_DIR}/session_enrich.py" 2
     break
