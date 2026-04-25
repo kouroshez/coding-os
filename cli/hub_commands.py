@@ -71,6 +71,29 @@ def _write_pid(pid: int) -> None:
     _pid_file().write_text(f"{pid}\n", encoding="utf-8")
 
 
+def _hub_health_ok(port: int) -> bool:
+    """Return True if something answers HTTP GET /health on the hub port.
+
+    PURPOSE: Detect stale ``hub.pid`` rows left after SIGTERM races (stop
+             exits before the child dies, start sees the old pid as
+             "already running", then the child exits — leaving no listener
+             on :9188).  A live hub always mounts ``/health``.
+    INPUT:   TCP port (default hub 9188).
+    OUTPUT:  True when HTTP status is 2xx; False on any failure.
+    """
+    import urllib.error
+    import urllib.request
+
+    url = f"http://{HUB_HOST}:{port}/health"
+    try:
+        with urllib.request.urlopen(url, timeout=0.8) as resp:
+            return 200 <= int(resp.status) < 300
+    except urllib.error.HTTPError as exc:
+        return 200 <= exc.code < 300
+    except Exception:
+        return False
+
+
 def _resolve_cos_bin() -> str:
     """Locate the `cos` entrypoint for the daemon to invoke.
 
@@ -115,8 +138,32 @@ def hub_start(port: int, foreground: bool) -> None:
 
     existing = _read_pid()
     if existing is not None:
-        click.echo(f"Hub already running (pid {existing}). Use `cos hub status`.")
-        return
+        if _hub_health_ok(port):
+            click.echo(f"Hub already running (pid {existing}). Use `cos hub status`.")
+            return
+        click.echo(
+            f"Stale hub.pid (pid {existing}) — nothing responds on "
+            f"http://{HUB_HOST}:{port}/health; stopping and starting fresh.",
+            err=True,
+        )
+        try:
+            os.kill(existing, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        for _ in range(30):
+            time.sleep(0.1)
+            if _read_pid() is None:
+                break
+        if _read_pid() is not None:
+            try:
+                os.kill(existing, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            for _ in range(20):
+                time.sleep(0.1)
+                if _read_pid() is None:
+                    break
+        _pid_file().unlink(missing_ok=True)
 
     log = _log_file()
     log.touch(exist_ok=True)
@@ -184,8 +231,27 @@ def hub_stop() -> None:
     for _ in range(30):
         time.sleep(0.1)
         if _read_pid() is None:
-            break
-    click.echo(f"Hub stopped (pid {pid}).")
+            click.echo(f"Hub stopped (pid {pid}).")
+            return
+    click.echo(
+        f"Hub pid {pid} did not exit after SIGTERM; sending SIGKILL.",
+        err=True,
+    )
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    for _ in range(30):
+        time.sleep(0.1)
+        if _read_pid() is None:
+            click.echo(f"Hub stopped (pid {pid}).")
+            return
+    _pid_file().unlink(missing_ok=True)
+    click.echo(
+        f"Hub pid {pid} could not be reaped; cleared {_pid_file()}. "
+        f"If a stray listener remains on port 9188, stop it manually.",
+        err=True,
+    )
 
 
 @hub_cli.command("status")
