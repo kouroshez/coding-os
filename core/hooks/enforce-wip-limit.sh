@@ -68,6 +68,20 @@ new_status = fm.get("status")
 if new_status not in {"in_progress", "emergency"}:
     sys.exit(0)
 
+# Distinguish transition from same-status body edit. If the on-disk
+# task already has the same status we're writing back, this is just
+# a body update (Outcome / Acceptance / Work Log) — not a new WIP slot.
+# Only count cap usage when the status actually changes.
+target_path = Path(tool_input.get("file_path", ""))
+if target_path.exists():
+    try:
+        existing = target_path.read_text(encoding="utf-8")
+        existing_fm = extract_frontmatter(existing)
+        if existing_fm and existing_fm.get("status") == new_status:
+            sys.exit(0)
+    except Exception:
+        pass
+
 if os.environ.get("COS_WIP_OVERRIDE") == "1":
     sys.exit(0)
 

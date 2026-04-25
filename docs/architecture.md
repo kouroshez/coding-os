@@ -159,7 +159,7 @@ Helpers: `ok(data)` / `fail(category, message)` / `@safe_tool` decorator in [cor
 - `cos_task_dependents` — Downstream tasks that depend on this one (quoted-JSON matcher prevents TASK-19 vs TASK-195 false positives)
 - `cos_task_by_filter` — Structured filter by status and/or domain
 
-## Database Schema (v19)
+## Database Schema (v20)
 
 20 core tables in SQLite with WAL mode + FTS5 (graceful degradation if FTS5 unavailable):
 

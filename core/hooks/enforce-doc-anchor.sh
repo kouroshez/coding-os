@@ -28,7 +28,9 @@
 # every keystroke.
 set -euo pipefail
 
-INPUT=$(cat)
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+
+INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
@@ -54,7 +56,6 @@ case "$FILE_PATH" in
   */scaffold/*) exit 0 ;;
 esac
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
 file_age_seconds() {
@@ -113,9 +114,9 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "  1. Populate the task file's \"Source of Truth\" or \"Read First\"" >&2
   echo "     section with real doc paths, then re-run \`make task-start TASK=N\`." >&2
   echo "  2. If this is a trivial fix (typo, docstring), record CLEAR 1:" >&2
-  echo "       bash .claude/hooks/write-state.sh $COS_AGENT_DIR/.thinking-os-gate \"CLEAR 1\"" >&2
+  echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking-os-gate\" \"CLEAR 1\"" >&2
   echo "  3. If genuinely exploratory, set an exploratory task name:" >&2
-  echo "       bash .claude/hooks/write-state.sh $COS_AGENT_DIR/.task-current \"exploratory-<slug>\"" >&2
+  echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
   echo "" >&2
   echo "  For a one-shot bypass (use sparingly):" >&2
   echo "    touch $COS_AGENT_DIR/.doc-anchor-override" >&2

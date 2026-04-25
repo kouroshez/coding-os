@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Claude adapter installer for coding-os
-# Usage: bash adapters/claude/install.sh [--hooks-dir PATH]
+# Usage: bash adapters/claude/install.sh
 set -euo pipefail
+shopt -s nullglob
 
 CODING_OS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_ROOT="${PWD}"
-HOOKS_DIR="${1:-.coding-os/hooks}"
 
 echo "Installing coding-os Claude adapter..."
 echo "  Project: $PROJECT_ROOT"
@@ -48,7 +48,17 @@ done
 MANIFEST="${PROJECT_ROOT}/.coding-os/installed-manifest.json"
 LINKER="${CODING_OS_ROOT}/core/scripts/link-stack-skills.sh"
 if [ -f "$MANIFEST" ] && [ -x "$LINKER" ]; then
-  STACKS=$(python3 -c "import json,sys; m=json.load(open('$MANIFEST')); print(' '.join(m.get('templates',[])))" 2>/dev/null || true)
+  STACKS=$(MANIFEST="$MANIFEST" python3 - <<'PY' 2>/dev/null || true
+import json, os, sys
+try:
+    with open(os.environ["MANIFEST"]) as f:
+        data = json.load(f)
+    print(" ".join(data.get("templates", [])))
+except Exception as exc:
+    sys.stderr.write(f"manifest parse error: {exc}\n")
+    sys.exit(1)
+PY
+)
   if [ -n "$STACKS" ]; then
     bash "$LINKER" "${PROJECT_ROOT}/.claude/skills" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
     echo "  Re-linked stack skills: $STACKS"
@@ -75,28 +85,35 @@ fi
 # runtime via whichever `cos` binary is on PATH. If `cos` is not on PATH
 # yet, fall back to the absolute `uv run` form so the project still works
 # before the user installs the CLI.
-python3 -c "
-import json, shutil
-mcp_path = '${MCP_FILE}'
-cos_root = '${CODING_OS_ROOT}'
-has_cos = shutil.which('cos') is not None
-with open(mcp_path) as f:
-    data = json.load(f)
-data.setdefault('mcpServers', {})
+#
+# Inputs are passed via env vars (not interpolated into the Python literal)
+# so paths containing single quotes do not break parsing or risk injection.
+MCP_FILE="$MCP_FILE" CODING_OS_ROOT="$CODING_OS_ROOT" python3 - <<'PY' || echo "  WARN: Could not update .mcp.json automatically (see error above)"
+import json, os, shutil, sys
+mcp_path = os.environ["MCP_FILE"]
+cos_root = os.environ["CODING_OS_ROOT"]
+has_cos = shutil.which("cos") is not None
+try:
+    with open(mcp_path) as f:
+        data = json.load(f)
+except json.JSONDecodeError as exc:
+    sys.stderr.write(f"  ERROR: {mcp_path} is not valid JSON: {exc}\n")
+    sys.exit(1)
+data.setdefault("mcpServers", {})
 if has_cos:
-    data['mcpServers']['coding-os'] = {
-        'command': 'cos',
-        'args': ['server-start'],
+    data["mcpServers"]["coding-os"] = {
+        "command": "cos",
+        "args": ["server-start"],
     }
 else:
-    data['mcpServers']['coding-os'] = {
-        'command': 'uv',
-        'args': ['run', '--directory', f'{cos_root}/core/thinking_os', 'python', 'server.py'],
-        'cwd': '\${workspaceFolder}'
+    data["mcpServers"]["coding-os"] = {
+        "command": "uv",
+        "args": ["run", "--directory", f"{cos_root}/core/thinking_os", "python", "server.py"],
+        "cwd": "${workspaceFolder}",
     }
-with open(mcp_path, 'w') as f:
+with open(mcp_path, "w") as f:
     json.dump(data, f, indent=2)
-" 2>/dev/null || echo "  WARN: Could not update .mcp.json automatically"
+PY
 
 # 7. Symlink commands
 COMMANDS_DIR="${CODING_OS_ROOT}/core/commands"

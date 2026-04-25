@@ -7,7 +7,7 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
-INPUT=$(cat)
+INPUT="$(cos_read_stdin_bounded 2)"
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
 export COS_HOOK_RUNTIME_MODEL
 
@@ -110,16 +110,43 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     '4. Domain skill — invoke matching skill before writing code'
 fi
 
-# On startup: show active task context + token economics
+# On startup: show active in-progress tasks (Phase L Scrumban) so the agent
+# inherits open work without having to query the board first. Falls back to
+# the legacy single-file `docs/tasks.md` only if the Phase L directory is
+# absent (early-init projects).
 if [[ "$SOURCE" == "startup" ]]; then
-  if [ -f "docs/tasks.md" ]; then
+  WIP_LISTED=0
+  if [ -d "docs/tasks" ] && [ -f "$COS_DB_PATH" ]; then
+    WIP_LINES=$(python3 - "$COS_DB_PATH" <<'PY' 2>/dev/null || true
+import sqlite3, sys
+try:
+    conn = sqlite3.connect(sys.argv[1])
+    rows = conn.execute(
+        "SELECT task_id, title FROM tasks "
+        "WHERE status IN ('in_progress','testing','emergency') "
+        "ORDER BY status DESC, task_id LIMIT 5"
+    ).fetchall()
+    conn.close()
+    for tid, title in rows:
+        print(f"  {tid}: {title}")
+except Exception:
+    sys.exit(1)
+PY
+)
+    if [ -n "$WIP_LINES" ]; then
+      echo "[Session Start] Active tasks (in_progress / testing):"
+      echo "$WIP_LINES"
+      echo "  Resume with: cos task-show TASK-NNN  |  cos board"
+      WIP_LISTED=1
+    fi
+  fi
+  if [ "$WIP_LISTED" = "0" ] && [ -f "docs/tasks.md" ]; then
     WIP=$(grep '^\- \[/\]' docs/tasks.md 2>/dev/null | head -3 || true)
     if [ -n "$WIP" ]; then
-      echo "[Session Start] In-progress tasks found:"
+      echo "[Session Start] In-progress tasks (legacy):"
       echo "$WIP" | while read -r line; do
         echo "  $line"
       done
-      echo "  Resume with: make task-context TASK=<num>"
     fi
   fi
 
@@ -145,3 +172,5 @@ if [[ "$SOURCE" == "startup" ]]; then
     done
   fi
 fi
+
+exit 0

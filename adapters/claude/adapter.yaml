@@ -7,13 +7,14 @@ presence:
   signal: hook_timestamps
   hub_glyph: "Cl"
   hub_color: "#d97706"
+  # Events Claude Code's hook spec actually fires; SessionEnd is not in the
+  # spec — Stop is the canonical session-end signal — so it is omitted.
   presence_events:
     - SessionStart
     - UserPromptSubmit
     - PreToolUse
     - PostToolUse
     - Stop
-    - SessionEnd
 settings_file: ".claude/settings.json"
 hooks_dir: ".claude/hooks"
 rules_dir: ".claude/rules"

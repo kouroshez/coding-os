@@ -4,7 +4,9 @@
 # Allows ad-hoc CLEAR fixes by checking thinking-os-gate classification.
 set -euo pipefail
 
-INPUT=$(cat)
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+
+INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
@@ -23,7 +25,6 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
   exit 0
 fi
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 # Allow CLEAR 1 ad-hoc fixes without a task
 source "$(dirname "$0")/check-state.sh"
@@ -41,8 +42,10 @@ check_state "${COS_AGENT_DIR}/.task-current" 28800
 
 if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: No active task for this session. Reason: $STATE_REASON" >&2
-  echo "  bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.task-current \"<task-name>\"" >&2
-  echo "  For trivial fixes: bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.thinking-os-gate \"CLEAR 1\"" >&2
+  echo "  Preferred:  cos task-create --title \"...\" --swimlane <domain> --kind <type>" >&2
+  echo "              cos task-start TASK-NNN" >&2
+  echo "  Manual:     bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"<task-name>\"" >&2
+  echo "  Trivial:    bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking-os-gate\" \"CLEAR 1\"" >&2
   exit 2
 fi
 

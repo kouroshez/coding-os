@@ -182,6 +182,7 @@ def transition(
     agent_session: str | None = None,
     expected_from: str | None = None,
     bypass_wip: bool = False,
+    bypass_gates: bool = False,
     force: bool = False,
     config: ScrumbanConfig | None = None,
     file_path: Path | None = None,
@@ -208,6 +209,7 @@ def transition(
     """
     if force:
         bypass_wip = True
+        bypass_gates = True
     if to_status not in STATUS_ENUM:
         return TransitionResult(
             ok=False,
@@ -305,11 +307,97 @@ def transition(
                         wip_state=wip_state,
                     )
 
+    # ── Phase L.10 transition gates (DoR / DoD) ────────────────────
+    # Validate the task body against the kind's rules. file_path=None
+    # (DB-only mode used by tests/migrations) skips the body gate.
+    target_file_for_gate = (
+        file_path or (Path(current_file_path) if current_file_path else None)
+    )
+    gate_warnings: list[str] = []
+    gate_override_reason: str | None = None
+    gate_override_actor: str | None = None
+    if (
+        not bypass_gates
+        and target_file_for_gate is not None
+        and to_status in {"in_progress", "complete"}
+    ):
+        try:
+            from core.board_os.transition_gates import (
+                GatesConfigError,
+                load_gates_config,
+            )
+            from core.board_os.transition_gates_validator import (
+                validate_transition as _gate_validate,
+            )
+
+            if target_file_for_gate.exists():
+                body_text = target_file_for_gate.read_text(encoding="utf-8")
+                kind = _extract_kind_from_frontmatter(body_text) or "feature"
+                # DoD inputs: read the .last-verify.json freshness signal
+                # via the same helper the CLI uses (avoids drift).
+                from core.board_os.transition_gates_cli import (
+                    _has_work_log_entries as _wl,
+                    _verify_state as _vs,
+                )
+
+                has_recent, age = _vs()
+                has_work_log = _wl(body_text)
+
+                gates_config = load_gates_config()
+                gate_result = _gate_validate(
+                    task_id=task_id,
+                    kind=kind,
+                    body=body_text,
+                    new_status=to_status,
+                    config=gates_config,
+                    has_recent_verify=has_recent,
+                    verify_age_seconds=age,
+                    has_work_log=has_work_log,
+                    override_reason=os.environ.get("COS_OVERRIDE_REASON"),
+                    override_actor=os.environ.get("COS_AGENT") or agent_session,
+                )
+
+                if gate_result.blocked:
+                    return TransitionResult(
+                        ok=False,
+                        task_id=task_id,
+                        previous_status=current_status,
+                        new_status=to_status,
+                        error=(
+                            "transition gate failed: "
+                            + "; ".join(
+                                f"[{m.code}] {m.message}"
+                                for m in gate_result.messages
+                            )
+                        ),
+                        error_category="validation",
+                        wip_state=wip_state,
+                    )
+
+                # PASS or WARN — collect override metadata for audit.
+                for m in gate_result.messages:
+                    gate_warnings.append(f"[{m.code}] {m.message}")
+                if any("[OVERRIDDEN]" in m.message for m in gate_result.messages):
+                    gate_override_reason = os.environ.get("COS_OVERRIDE_REASON")
+                    gate_override_actor = (
+                        os.environ.get("COS_AGENT") or agent_session
+                    )
+        except GatesConfigError as exc:
+            # Bad config — surface to retro reviewers but don't crash live work.
+            gate_warnings.append(
+                f"transition-gates config error (gate skipped): {exc}"
+            )
+        except Exception as exc:  # noqa: BLE001 — gate failures must not crash workflow
+            gate_warnings.append(f"transition-gates internal error (skipped): {exc}")
+
     # MD file write (atomic).
-    target_file = file_path or (Path(current_file_path) if current_file_path else None)
+    target_file = (
+        file_path or (Path(current_file_path) if current_file_path else None)
+    )
     warnings: list[str] = []
     if forced_warning is not None:
         warnings.append(forced_warning)
+    warnings.extend(gate_warnings)
     if target_file is not None:
         try:
             _write_status_to_frontmatter(
@@ -349,12 +437,34 @@ def transition(
             task_id,
         ),
     )
-    conn.execute(
-        "INSERT INTO task_status_history "
-        "(task_id, old_status, new_status, agent_session, reason, transitioned_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (task_id, current_status, to_status, agent_session, reason, now_epoch),
+    # task_status_history gained override_reason/override_actor in
+    # migration v20 (Phase L.10). Detect column presence so this code
+    # works on a DB before v20 has run yet (test fixtures, fresh init).
+    has_override_cols = bool(
+        conn.execute(
+            "SELECT 1 FROM pragma_table_info('task_status_history') "
+            "WHERE name = 'override_reason' LIMIT 1"
+        ).fetchone()
     )
+    if has_override_cols:
+        conn.execute(
+            "INSERT INTO task_status_history "
+            "(task_id, old_status, new_status, agent_session, reason, "
+            " transitioned_at, override_reason, override_actor) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                task_id, current_status, to_status, agent_session,
+                reason, now_epoch,
+                gate_override_reason, gate_override_actor,
+            ),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO task_status_history "
+            "(task_id, old_status, new_status, agent_session, reason, transitioned_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (task_id, current_status, to_status, agent_session, reason, now_epoch),
+        )
     conn.commit()
 
     return TransitionResult(
@@ -368,6 +478,25 @@ def transition(
 
 
 # ---------- Helpers ----------
+
+
+def _extract_kind_from_frontmatter(content: str) -> str | None:
+    """Pull `kind:` from YAML frontmatter without dragging in PyYAML.
+
+    Frontmatter lives between two `---` lines at file head. Returns the
+    raw value as written; defaults to None when absent or malformed.
+    """
+    if not content.startswith("---"):
+        return None
+    end = content.find("\n---", 3)
+    if end < 0:
+        return None
+    head = content[3:end]
+    for line in head.splitlines():
+        line = line.strip()
+        if line.startswith("kind:"):
+            return line.split(":", 1)[1].strip().strip('"').strip("'") or None
+    return None
 
 
 def _patch_fm_field(fm_text: str, key: str, value: str) -> str:

@@ -3,10 +3,6 @@
     "allow": [
       "WebFetch",
       "WebSearch",
-      "mcp__claude_ai_Context7__resolve-library-id",
-      "mcp__claude_ai_Context7__query-docs",
-      "mcp__claude_ai_ref__ref_search_documentation",
-      "mcp__claude_ai_ref__ref_read_url",
       "Bash(git log:*)",
       "Bash(git ls-files:*)",
       "Bash(git add:*)",
@@ -28,7 +24,6 @@
       "Bash(make verify-hooks:*)",
       "Bash(make verify:*)",
       "Bash(make help:*)",
-      "Bash(bash .claude/hooks/write-state.sh:*)",
       "Bash(bash .coding-os/hooks/write-state.sh:*)"
     ]
   }

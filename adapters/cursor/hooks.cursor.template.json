@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/cursor-pretool-dispatch.sh"
+            "command": "{{HOOKS_DIR}}/cursor-pretool-dispatch.sh",
+            "timeout": 2000
           }
         ]
       },
@@ -16,7 +17,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/cursor-pretool-write-dispatch.sh",
-            "statusMessage": "🧷 Running write/edit enforcement chain..."
+            "statusMessage": "🧷 Running write/edit enforcement chain...",
+            "timeout": 2000
           }
         ]
       },
@@ -56,7 +58,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/cursor-posttool-write-dispatch.sh",
-            "statusMessage": "📎 Post-write observability + reminders..."
+            "statusMessage": "📎 Post-write observability + reminders...",
+            "timeout": 2000
           }
         ]
       },
@@ -66,7 +69,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/track-skill.sh",
-            "statusMessage": "🛠️ Tracking skill invocation..."
+            "statusMessage": "🛠️ Tracking skill invocation...",
+            "timeout": 2000
           }
         ]
       },
@@ -75,7 +79,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh"
+            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
+            "timeout": 2000
           }
         ]
       }
@@ -87,7 +92,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/cursor-sessionstart-dispatch.sh",
-            "statusMessage": "🚀 Loading session context + MCP health..."
+            "statusMessage": "🚀 Loading session context + MCP health...",
+            "timeout": 2000
           }
         ]
       },
@@ -108,7 +114,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/cursor-sessionstart-dispatch.sh",
-            "statusMessage": "🔄 Recovering workflow context + MCP health..."
+            "statusMessage": "🔄 Recovering workflow context + MCP health...",
+            "timeout": 2000
           }
         ]
       }
@@ -120,11 +127,13 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
-            "statusMessage": "🔄 Checking workflow state..."
+            "statusMessage": "🔄 Checking workflow state...",
+            "timeout": 2000
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           }
         ]
       }

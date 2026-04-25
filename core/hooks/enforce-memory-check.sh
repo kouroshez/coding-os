@@ -23,7 +23,9 @@
 #   - $COS_AGENT_DIR/.memory-check-override (one-shot bypass)
 set -euo pipefail
 
-INPUT=$(cat)
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+
+INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
@@ -47,7 +49,6 @@ case "$FILE_PATH" in
   */scaffold/*) exit 0 ;;
 esac
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
 # --- Exemptions via state files -------------------------------------
@@ -101,11 +102,11 @@ echo "  File attempted: $FILE_PATH" >&2
 echo "" >&2
 echo "  Repair (pick one):" >&2
 echo "  1. Call cos_search in this session, then mark:" >&2
-echo "       bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.memory-check \"cos_search:<your-query>\"" >&2
+echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.memory-check\" \"cos_search:<your-query>\"" >&2
 echo "  2. Trivial ad-hoc fix → record CLEAR 1 gate instead:" >&2
-echo "       bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.thinking-os-gate \"CLEAR 1\"" >&2
+echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking-os-gate\" \"CLEAR 1\"" >&2
 echo "  3. Exploratory spike → rename task marker:" >&2
-echo "       bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.task-current \"exploratory-<slug>\"" >&2
+echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
 echo "" >&2
 echo "  One-shot bypass: touch ${COS_AGENT_DIR}/.memory-check-override" >&2
 exit 2

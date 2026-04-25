@@ -658,9 +658,35 @@ def wip_cmd():
 # ---------------------------------------------------------------------------
 
 
-@click.command("task-show", help="Show a task's full content + frontmatter.")
-@click.argument("task_id")
+@click.command(
+    "task-show",
+    help="Show a task's full content + frontmatter. Without TASK_ID, falls back to the current session task.",
+)
+@click.argument("task_id", required=False)
 def task_show_cmd(task_id):
+    if not task_id:
+        agent_dir = os.environ.get("COS_AGENT_DIR")
+        if agent_dir:
+            current_file = Path(agent_dir) / ".task-current"
+            if current_file.exists():
+                # write-state.sh stores "<session-id> <value>" on one line.
+                # Split off the session prefix and pull the first TASK-NNN
+                # token out of the remainder (handles slugged values like
+                # "TASK-096-some-slug").
+                content = current_file.read_text(encoding="utf-8").strip()
+                tokens = content.split()
+                value = " ".join(tokens[1:]) if len(tokens) >= 2 else content
+                import re as _re
+                match = _re.search(r"TASK-\d+", value, _re.IGNORECASE)
+                if match:
+                    task_id = match.group(0).upper()
+        if not task_id:
+            click.echo(
+                "ERROR: no TASK_ID and no active task in $COS_AGENT_DIR/.task-current.\n"
+                "  Hint: cos task-start TASK-NNN  (or pass TASK-NNN explicitly).",
+                err=True,
+            )
+            sys.exit(1)
     conn = _db_conn()
     try:
         row = conn.execute(

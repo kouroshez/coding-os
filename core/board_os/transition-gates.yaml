@@ -1,0 +1,163 @@
+# Transition Gates — Definition of Ready / Definition of Done (Phase L.10)
+#
+# SSOT for what a task must satisfy at each status transition.
+# Loaded by core.board_os.transition_gates.load_gates_config().
+#
+# Spec: docs/phase-l10-plan.md
+# Schema:
+#   definition_of_ready: gates checked when entering `in_progress`
+#   definition_of_done:  gates checked when entering `complete`
+#   wip_limits:          parallel-task caps (replaces scrumban-config.yaml)
+#   size_limits:         token thresholds for lint-task
+#   overrides:           policy for COS_*_OVERRIDE bypasses
+
+version: 1
+
+# ───────────────────────────────────────────────────────────────────
+# Definition of Ready — gate when transitioning into `in_progress`
+# ───────────────────────────────────────────────────────────────────
+definition_of_ready:
+  default:
+    sections:
+      Outcome:
+        required: true
+        min_chars: 20
+        forbid_substrings:
+          - "(fill in"
+          - "TBD"
+          - "..."
+      Acceptance:
+        required: true
+        required_subitems:
+          - "**Given**"
+          - "**When**"
+          - "**Then**"
+        forbid_substrings:
+          - "(fill in"
+      "Read First":
+        required: true
+        min_items: 1
+
+  by_kind:
+    chore:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 15
+          forbid_substrings: ["(fill in"]
+        # Strategic-merge: chores opt out of the default Acceptance and
+        # Read First requirements (one-line tweaks, mechanical updates).
+        Acceptance: null
+        "Read First": null
+    bug:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 20
+          forbid_substrings: ["(fill in"]
+        "Repro Steps":
+          required: true
+          min_chars: 30
+          forbid_substrings: ["(fill in", "TBD"]
+        Acceptance:
+          required: true
+          required_subitems: ["**Given**", "**When**", "**Then**"]
+    spike:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 15
+          forbid_substrings: ["(fill in"]
+        # Discovery work — only Outcome is binding. Spikes capture
+        # questions, not pre-validated G/W/T.
+        Acceptance: null
+        "Read First": null
+    docs:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 15
+          forbid_substrings: ["(fill in"]
+        "Read First":
+          required: true
+          min_items: 1
+        # Docs tasks don't need G/W/T acceptance — the doc itself is the
+        # acceptance artifact.
+        Acceptance: null
+    refactor:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 20
+          forbid_substrings: ["(fill in"]
+        "Read First":
+          required: true
+          min_items: 1
+        Acceptance:
+          required: true
+          required_subitems: ["**Given**", "**When**", "**Then**"]
+    test:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 20
+          forbid_substrings: ["(fill in"]
+        Acceptance:
+          required: true
+          required_subitems: ["**Given**", "**When**", "**Then**"]
+    security:
+      sections:
+        Outcome:
+          required: true
+          min_chars: 20
+          forbid_substrings: ["(fill in"]
+        "Read First":
+          required: true
+          min_items: 1
+        Acceptance:
+          required: true
+          required_subitems: ["**Given**", "**When**", "**Then**"]
+        "Threat Model":
+          required: true
+          min_chars: 30
+          forbid_substrings: ["(fill in", "TBD"]
+    feature: {}  # uses default (full DoR)
+
+# ───────────────────────────────────────────────────────────────────
+# Definition of Done — gate when transitioning into `complete`
+# ───────────────────────────────────────────────────────────────────
+definition_of_done:
+  default:
+    require_verify: true
+    verify_max_age_seconds: 1800
+    require_work_log: true
+  by_kind:
+    docs:
+      require_verify: false
+      require_work_log: true
+    chore:
+      require_verify: true
+      require_work_log: false
+
+# ───────────────────────────────────────────────────────────────────
+# WIP limits — orthogonal to DoR/DoD; flow control only
+# ───────────────────────────────────────────────────────────────────
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+# ───────────────────────────────────────────────────────────────────
+# Task-file size limits — Rule 14 (tasks are pointers, not specs)
+# ───────────────────────────────────────────────────────────────────
+size_limits:
+  warn_tokens: 1500
+  block_tokens: 3000
+
+# ───────────────────────────────────────────────────────────────────
+# Override audit — every COS_*_OVERRIDE=1 must justify itself
+# ───────────────────────────────────────────────────────────────────
+overrides:
+  require_reason: true
+  min_reason_chars: 15
+  audit_to: task_status_history.override_reason

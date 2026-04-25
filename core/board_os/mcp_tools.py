@@ -419,6 +419,7 @@ def cos_task_move(
     to: str,
     reason: str | None = None,
     bypass_wip: bool = False,
+    bypass_gates: bool = False,
     force: bool = False,
     agent_session: str | None = None,
 ) -> str:
@@ -438,6 +439,7 @@ def cos_task_move(
         reason=reason,
         agent_session=agent_session,
         bypass_wip=bypass_wip,
+        bypass_gates=bypass_gates,
         force=force,
         config=config,
         file_path=file_path,

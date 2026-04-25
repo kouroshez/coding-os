@@ -309,6 +309,17 @@ hooks:
         matcher: Write|Edit
         status_message: "📏 Lint task (Rule 15)..."
 
+  - id: enforce-task-body
+    script: enforce-task-body.sh
+    description: Phase L.10 — DoR/DoD validator. Blocks transitions to in_progress/complete when task body fails the kind's rules. SSOT in core/board_os/transition-gates.yaml.
+    category: enforcement
+    phase: L
+    timeout: 4000
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚦 Validating transition gates (DoR/DoD)..."
+
   - id: verify-changed-file
     script: verify-changed-file.sh
     description: Analyzes changed file + cross-module impact after each write.

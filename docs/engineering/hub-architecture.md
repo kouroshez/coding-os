@@ -1,4 +1,8 @@
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-25 -->
 # Hub Architecture
+
+Purpose: Canonical contract for the singleton hub daemon (FastAPI + React SPA on :9188), per-project routing via `/api/p/<slug>/*`, and the propagation matrix for live symlinks (hooks/rules/skills/commands).
+Read when: editing `core/web/`, `cli/hub_*.py`, or any code that registers a project with the hub.
 
 > Nav: [docs/](../) · [engineering/](./)
 

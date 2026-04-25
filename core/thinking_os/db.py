@@ -1165,6 +1165,61 @@ def _migrate_v19_drop_ready_status(conn: sqlite3.Connection) -> None:
     )
 
 
+def _column_exists_table(
+    conn: sqlite3.Connection, table: str, column: str
+) -> bool:
+    """Local helper — pragma table_info reads. Defined inline to keep
+    the migration self-contained (the file already has _column_exists
+    earlier; this is only used by v20)."""
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(r[1] == column for r in rows)
+
+
+def _migrate_v20_override_audit(conn: sqlite3.Connection) -> None:
+    """Migration v20 — override audit columns on task_status_history.
+
+    PURPOSE: Phase L.10 transition gates (see docs/phase-l10-plan.md).
+             Every COS_*_OVERRIDE=1 must carry a reason. The reason and
+             actor land in two new columns so retro/audit queries can
+             enumerate bypassed gates without grepping logs.
+    INPUT:   sqlite connection.
+    OUTPUT:  task_status_history gains override_reason TEXT, override_actor
+             TEXT, both NULL-default. Existing rows backfill to NULL.
+    NOTES:   Idempotent — checks _column_exists_table before adding.
+             ALTER TABLE ADD COLUMN with a NULL default is metadata-only
+             on SQLite, so this is fast even on tables with millions of
+             rows.
+    """
+    if not has_task_status_history_table(conn):
+        # Older DBs that never reached v13 don't have this table; the
+        # v13 migration will create it with the modern shape via
+        # _migrate_v13_board_os, but if a future re-run order is shuffled
+        # we should be defensive.
+        logger.info(
+            "Migration v20 skipped: task_status_history not present yet "
+            "(v13 will create it; v20 re-runs once v13 lands)"
+        )
+        return
+
+    if not _column_exists_table(conn, "task_status_history", "override_reason"):
+        conn.execute(
+            "ALTER TABLE task_status_history ADD COLUMN override_reason TEXT"
+        )
+    if not _column_exists_table(conn, "task_status_history", "override_actor"):
+        conn.execute(
+            "ALTER TABLE task_status_history ADD COLUMN override_actor TEXT"
+        )
+
+    # Index lets retro/audit queries scan only override rows efficiently.
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_tsh_override "
+        "ON task_status_history(override_reason) "
+        "WHERE override_reason IS NOT NULL"
+    )
+    conn.commit()
+    logger.info("Migration v20 applied: override audit columns on task_status_history")
+
+
 def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
     """Check whether the file_index_state table exists (migration v17)."""
     row = conn.execute(
@@ -1427,6 +1482,9 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # Phase ?.board: drop 'ready' column — fold into icebox + 'ready' label
     (19, "board-os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
      _migrate_v19_drop_ready_status),
+    # Phase L.10: override audit — task_status_history.override_reason/actor
+    (20, "Phase L.10: override audit columns on task_status_history",
+     _migrate_v20_override_audit),
 ]
 
 

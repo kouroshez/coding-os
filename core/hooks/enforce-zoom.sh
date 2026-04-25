@@ -4,7 +4,9 @@
 # Session-scoped: only accepts checkpoints from the CURRENT session.
 set -euo pipefail
 
-INPUT=$(cat)
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+
+INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
@@ -23,7 +25,6 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
   exit 0
 fi
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 GATE_FILE="${COS_AGENT_DIR}/.thinking-os-gate"
 ZOOM_FILE="${COS_AGENT_DIR}/.zoom-checkpoint"
 
@@ -47,7 +48,7 @@ check_state "$ZOOM_FILE" 7200
 if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: Task classified as $CLASSIFICATION but no Plan checkpoint for this session." >&2
   echo "Reason: $STATE_REASON" >&2
-  echo "Record checkpoint: bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.zoom-checkpoint \"PROBLEM_FRAMED\"" >&2
+  echo "Record checkpoint: bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.zoom-checkpoint\" \"PROBLEM_FRAMED\"" >&2
   exit 2
 fi
 

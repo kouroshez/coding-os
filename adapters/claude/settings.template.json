@@ -7,26 +7,31 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-secrets.sh",
-            "statusMessage": "🔒 Scanning command for credentials..."
+            "statusMessage": "🔒 Scanning command for credentials...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-dangerous-commands.sh",
-            "statusMessage": "🛡️ Checking command safety (rm, force-push, reset)..."
+            "statusMessage": "🛡️ Checking command safety (rm, force-push, reset)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-uv-heredoc.sh",
-            "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)..."
+            "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-verify.sh",
-            "statusMessage": "✅ Verifying suites before task-done..."
+            "statusMessage": "✅ Verifying suites before task-done...",
+            "timeout": 2000
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           }
         ]
       },
@@ -36,62 +41,74 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-secrets.sh",
-            "statusMessage": "🔒 Scanning file content for credentials..."
+            "statusMessage": "🔒 Scanning file content for credentials...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-bad-patterns.sh",
-            "statusMessage": "🚫 Checking for anti-patterns (bare except: pass, …)..."
+            "statusMessage": "🚫 Checking for anti-patterns (bare except: pass, …)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-protected-files.sh",
-            "statusMessage": "🔐 Checking protected governance files..."
+            "statusMessage": "🔐 Checking protected governance files...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-migration-conflict.sh",
-            "statusMessage": "🗃️ Checking migration version conflicts (rule #10)..."
+            "statusMessage": "🗃️ Checking migration version conflicts (rule #10)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/block-hardcoded-literals.sh",
-            "statusMessage": "🎯 Scanning cli/*.py for hardcoded literals (rule #12)..."
+            "statusMessage": "🎯 Scanning cli/*.py for hardcoded literals (rule #12)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-template.sh",
-            "statusMessage": "📋 Checking doc templates (task / ADR / PRD / breakthrough)..."
+            "statusMessage": "📋 Checking doc templates (task / ADR / PRD / breakthrough)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/thinking-os-gate.sh",
-            "statusMessage": "🧠 Verifying Complexity Gate recorded..."
+            "statusMessage": "🧠 Verifying Complexity Gate recorded...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-task-start.sh",
-            "statusMessage": "📌 Verifying active task..."
+            "statusMessage": "📌 Verifying active task...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-doc-anchor.sh",
-            "statusMessage": "📎 Verifying doc anchor (docs-first principle)..."
+            "statusMessage": "📎 Verifying doc anchor (docs-first principle)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-memory-check.sh",
-            "statusMessage": "🔎 Verifying Memory Check (cos_search) recorded..."
+            "statusMessage": "🔎 Verifying Memory Check (cos_search) recorded...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-skill.sh",
-            "statusMessage": "🛠️ Verifying domain skill invoked..."
+            "statusMessage": "🛠️ Verifying domain skill invoked...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-zoom.sh",
-            "statusMessage": "🔍 Verifying Plan checkpoint for COMPLICATED+..."
+            "statusMessage": "🔍 Verifying Plan checkpoint for COMPLICATED+...",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -113,17 +130,26 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/enforce-task-body.sh",
+            "statusMessage": "🚦 Validating transition gates (DoR/DoD)...",
+            "timeout": 4000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-template-drift.sh",
-            "statusMessage": "⚠️ Adapter template edits — use registry.yaml..."
+            "statusMessage": "⚠️ Adapter template edits — use registry.yaml...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-anti-ambiguity.sh",
-            "statusMessage": "🔍 Anti-Ambiguity gate check..."
+            "statusMessage": "🔍 Anti-Ambiguity gate check...",
+            "timeout": 2000
           }
         ]
       },
@@ -181,46 +207,55 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/verify-changed-file.sh",
-            "statusMessage": "📊 Analyzing changed file + cross-module impact..."
+            "statusMessage": "📊 Analyzing changed file + cross-module impact...",
+            "timeout": 2000
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/regen-reminder.sh",
-            "statusMessage": "🔄 Checking if derived artifacts need regeneration..."
+            "statusMessage": "🔄 Checking if derived artifacts need regeneration...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/test-first-reminder.sh",
-            "statusMessage": "🧪 Checking for companion test file..."
+            "statusMessage": "🧪 Checking for companion test file...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/doc-sync-reminder.sh",
-            "statusMessage": "📘 Listing companion docs to keep in sync..."
+            "statusMessage": "📘 Listing companion docs to keep in sync...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/check-agents-md-size.sh",
-            "statusMessage": "📏 Checking AGENTS.md size (Codex 32 KiB cap)..."
+            "statusMessage": "📏 Checking AGENTS.md size (Codex 32 KiB cap)...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/check-agents-md-refs.sh",
-            "statusMessage": "🔗 Checking AGENTS.md path references are alive..."
+            "statusMessage": "🔗 Checking AGENTS.md path references are alive...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-dogfood.sh",
-            "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed..."
+            "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed...",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/track-discovery.sh",
-            "statusMessage": "🔍 Scanning for discoveries..."
+            "statusMessage": "🔍 Scanning for discoveries...",
+            "timeout": 2000
           }
         ]
       },
@@ -230,7 +265,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/track-skill.sh",
-            "statusMessage": "🛠️ Tracking skill invocation..."
+            "statusMessage": "🛠️ Tracking skill invocation...",
+            "timeout": 2000
           }
         ]
       },
@@ -239,12 +275,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
-            "statusMessage": "💡 Checking if learn-validate reminder is due..."
+            "statusMessage": "💡 Checking if learn-validate reminder is due...",
+            "timeout": 2000
           }
         ]
       }
@@ -268,16 +306,19 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
-            "statusMessage": "🚀 Loading session context + memory digest..."
+            "statusMessage": "🚀 Loading session context + memory digest...",
+            "timeout": 2000
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
-            "statusMessage": "🩺 Probing MCP coding-os liveness..."
+            "statusMessage": "🩺 Probing MCP coding-os liveness...",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -288,7 +329,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
-            "statusMessage": "🕸️  Checking graph-os index state..."
+            "statusMessage": "🕸️  Checking graph-os index state...",
+            "timeout": 2000
           }
         ]
       },
@@ -309,16 +351,19 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
-            "statusMessage": "🔄 Recovering workflow context + memory digest..."
+            "statusMessage": "🔄 Recovering workflow context + memory digest...",
+            "timeout": 2000
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
-            "statusMessage": "🩺 Probing MCP coding-os liveness..."
+            "statusMessage": "🩺 Probing MCP coding-os liveness...",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -329,7 +374,8 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
-            "statusMessage": "🕸️  Checking graph-os index state..."
+            "statusMessage": "🕸️  Checking graph-os index state...",
+            "timeout": 2000
           }
         ]
       }
@@ -341,11 +387,13 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
-            "statusMessage": "🔄 Checking workflow state..."
+            "statusMessage": "🔄 Checking workflow state...",
+            "timeout": 2000
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           }
         ]
       }
@@ -362,12 +410,14 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh"
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 2000
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/check-capture-worked.sh",
-            "statusMessage": "📊 Session recap: verifying observations captured..."
+            "statusMessage": "📊 Session recap: verifying observations captured...",
+            "timeout": 2000
           }
         ]
       }
