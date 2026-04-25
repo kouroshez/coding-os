@@ -764,8 +764,39 @@ def task_history_cmd(task_id):
 # ---------------------------------------------------------------------------
 
 
-@click.command("task-validate", help="Lint all docs/tasks/*.md files.")
-def task_validate_cmd():
+@click.command(
+    "task-validate",
+    help=(
+        "Lint task files, OR pre-flight a transition without applying it.\n\n"
+        "  cos task-validate                       lint all docs/tasks/*.md (default)\n"
+        "  cos task-validate TASK-NN               preview DoR for in_progress on TASK-NN\n"
+        "  cos task-validate TASK-NN --for complete  preview DoD for complete\n"
+        "  cos task-validate TASK-NN --json        machine-readable ValidationResult"
+    ),
+)
+@click.argument("task_id", required=False)
+@click.option(
+    "--for", "for_status",
+    type=click.Choice(["in_progress", "complete"]),
+    default="in_progress",
+    help="Status to validate as the target. Default: in_progress (DoR check).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def task_validate_cmd(task_id, for_status, as_json):
+    """Two modes:
+
+    1. No TASK_ID → lint every TASK-*.md file (legacy behavior).
+    2. TASK_ID given → run the Phase L.10 transition gate for the given
+       target status WITHOUT applying it. Same validator as the live
+       gate, so the verdict matches what `cos task-start` would do.
+    """
+    if not task_id:
+        _task_validate_lint_all()
+        return
+    _task_validate_preflight(task_id, for_status, as_json)
+
+
+def _task_validate_lint_all() -> None:
     from core.board_os.parser import parse_task
     root = _project_root()
     tasks_dir = root / "docs" / "tasks"
@@ -789,6 +820,80 @@ def task_validate_cmd():
             click.echo(f"  ✓ {p.name}")
     click.echo(f"\n  Total: {errors} errors, {warnings} warnings")
     sys.exit(1 if errors > 0 else 0)
+
+
+def _task_validate_preflight(task_id: str, for_status: str, as_json: bool) -> None:
+    """Run the transition gate validator without applying any change."""
+    import json as _json
+    from core.board_os.parser import extract_frontmatter
+    from core.board_os.transition_gates import GatesConfigError, load_gates_config
+    from core.board_os.transition_gates_cli import (
+        _has_work_log_entries, _verify_state,
+    )
+    from core.board_os.transition_gates_validator import (
+        Verdict, validate_transition,
+    )
+
+    conn = _db_conn()
+    try:
+        row = conn.execute(
+            "SELECT file_path, kind FROM tasks WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if not row:
+        click.echo(f"ERROR: {task_id} not found", err=True)
+        sys.exit(1)
+
+    file_path = _project_root() / row[0] if row[0] else None
+    body = ""
+    kind = str(row[1] or "feature")
+    if file_path and file_path.exists():
+        body = file_path.read_text(encoding="utf-8")
+        fm = extract_frontmatter(body) or {}
+        if fm.get("kind"):
+            kind = str(fm["kind"])
+
+    try:
+        config = load_gates_config()
+    except GatesConfigError as exc:
+        click.echo(f"ERROR: gates config: {exc}", err=True)
+        sys.exit(2)
+
+    has_recent, age = _verify_state()
+    has_work_log = _has_work_log_entries(body)
+
+    result = validate_transition(
+        task_id=task_id,
+        kind=kind,
+        body=body,
+        new_status=for_status,
+        config=config,
+        has_recent_verify=has_recent,
+        verify_age_seconds=age,
+        has_work_log=has_work_log,
+        override_reason=os.environ.get("COS_OVERRIDE_REASON"),
+        override_actor=os.environ.get("COS_AGENT"),
+    )
+
+    if as_json:
+        click.echo(result.model_dump_json(indent=2))
+        sys.exit(0 if result.verdict is not Verdict.BLOCK else 2)
+
+    glyph = {
+        Verdict.PASS: "✓ PASS",
+        Verdict.WARN: "⚠ WARN",
+        Verdict.BLOCK: "✗ BLOCK",
+    }[result.verdict]
+    click.echo(f"  {task_id} (kind={kind}, target={for_status}): {glyph}")
+    for msg in result.messages:
+        sev = msg.severity.value.upper()
+        click.echo(f"    [{msg.code}] {sev}: {msg.message}")
+    if result.verdict is Verdict.PASS:
+        click.echo(f"  Run: cos task-start {task_id}" if for_status == "in_progress"
+                   else f"  Run: cos task-done {task_id}")
+    sys.exit(0 if result.verdict is not Verdict.BLOCK else 2)
 
 
 def _discover_stacks() -> list[str]:

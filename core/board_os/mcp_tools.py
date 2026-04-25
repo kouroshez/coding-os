@@ -123,6 +123,137 @@ def _render_lean_frontmatter(fields: dict) -> str:
     return "\n".join(lines)
 
 
+def _render_kind_aware_body(
+    *,
+    task_id: str,
+    title: str,
+    kind: str,
+    outcome: str | None,
+    read_first_block: str,
+) -> str:
+    """Render the task body with placeholders that match the kind's DoR.
+
+    Phase L.10 / TASK-110+111. Sections that the kind explicitly opts
+    out of (e.g. chore drops Acceptance + Read First) are not emitted,
+    so the agent doesn't see prompts for fields that won't be required.
+
+    The DoR rules come from `transition-gates.yaml`; if the config is
+    unavailable (loader fails, edge case in fresh install), we fall back
+    to the historical full template so we never produce an empty body.
+    """
+    sections_to_render: dict[str, str] = {}
+
+    try:
+        # Lazy import — keeps this module loadable in environments where
+        # pydantic/yaml haven't been installed yet (fresh `cos init`).
+        from core.board_os.transition_gates import load_gates_config
+
+        config = load_gates_config()
+        rules = config.definition_of_ready.for_kind(kind)
+        active_sections = set(rules.sections.keys())
+    except Exception:
+        active_sections = {"Outcome", "Read First", "Acceptance"}
+
+    # Outcome is always rendered — it's the one universal anchor.
+    outcome_line = outcome or _kind_outcome_placeholder(kind)
+    sections_to_render["Outcome"] = (
+        f"**Outcome (one sentence):** {outcome_line}"
+    )
+
+    if "Read First" in active_sections:
+        sections_to_render["Read First"] = f"## Read First\n{read_first_block}"
+
+    if "Repro Steps" in active_sections:
+        sections_to_render["Repro Steps"] = (
+            "## Repro Steps\n"
+            "1. (fill in: exact steps to reproduce)\n"
+            "2. ...\n"
+            "Expected: ...\n"
+            "Actual: ..."
+        )
+
+    if "Threat Model" in active_sections:
+        sections_to_render["Threat Model"] = (
+            "## Threat Model\n"
+            "(fill in: attacker, asset, attack vector, mitigation)"
+        )
+
+    if "Acceptance" in active_sections:
+        sections_to_render["Acceptance"] = (
+            "## Acceptance (G/W/T) — *this IS the Definition of Done*\n"
+            "- **Given** ...\n- **When** ...\n- **Then** ..."
+        )
+
+    sections_to_render["Work Log"] = "## Work Log"
+
+    body_parts = [f"\n\n# {task_id}: {title}", ""]
+    # Stable ordering: Outcome → Read First → Repro Steps → Threat Model →
+    # Acceptance → Work Log. Mirrors the natural read order.
+    order = ["Outcome", "Read First", "Repro Steps", "Threat Model",
+             "Acceptance", "Work Log"]
+    for name in order:
+        if name in sections_to_render:
+            body_parts.append(sections_to_render[name])
+            body_parts.append("")
+    return "\n".join(body_parts)
+
+
+def _kind_outcome_placeholder(kind: str) -> str:
+    """Outcome placeholder text tuned to the kind so the agent sees an
+    example shaped like the kind's expected content."""
+    by_kind = {
+        "feature": "(fill in: one-sentence measurable outcome — e.g. 'Add OAuth login that issues 24h JWTs.')",
+        "bug": "(fill in: one-sentence outcome — e.g. 'Stop double-charging users on retry of failed payments.')",
+        "chore": "(fill in: one-sentence outcome — e.g. 'Bump dependency X to v2.3 for security patch.')",
+        "spike": "(fill in: one-sentence question — e.g. 'Investigate whether kuzu can replace sqlite for graph layer.')",
+        "docs": "(fill in: one-sentence outcome — e.g. 'Document the override-audit policy in docs/governance/.')",
+        "refactor": "(fill in: one-sentence outcome — e.g. 'Extract retry logic into a shared decorator with backoff.')",
+        "test": "(fill in: one-sentence outcome — e.g. 'Cover the OAuth refresh-token edge case at integration level.')",
+        "security": "(fill in: one-sentence outcome — e.g. 'Rotate all signing keys and tighten cookie SameSite.')",
+    }
+    return by_kind.get(kind, "(fill in: one-sentence measurable outcome)")
+
+
+def _next_steps_for_kind(kind: str) -> dict:
+    """Return the structured next-steps payload for cos_task_create.
+
+    Phase L.10 / TASK-110. Mirrors the active DoR rules so the agent
+    sees exactly what to fill before `cos task-start TASK-NN`.
+    """
+    try:
+        from core.board_os.transition_gates import load_gates_config
+
+        config = load_gates_config()
+        rules = config.definition_of_ready.for_kind(kind)
+    except Exception:
+        return {
+            "kind": kind,
+            "required_for_in_progress": [],
+            "command_after_fill": None,
+        }
+
+    required: list[dict] = []
+    for name, rule in rules.sections.items():
+        if rule is None:
+            continue
+        spec: dict = {"section": name, "required": rule.required}
+        if rule.min_chars:
+            spec["min_chars"] = rule.min_chars
+        if rule.min_items:
+            spec["min_items"] = rule.min_items
+        if rule.required_subitems:
+            spec["required_subitems"] = list(rule.required_subitems)
+        if rule.forbid_substrings:
+            spec["forbid_substrings"] = list(rule.forbid_substrings)
+        required.append(spec)
+    return {
+        "kind": kind,
+        "required_for_in_progress": required,
+        "command_after_fill": "cos task-start <TASK-ID>",
+        "preview_command": "cos task-validate <TASK-ID>",
+    }
+
+
 def _task_card(row: sqlite3.Row | tuple) -> dict:
     """Shape a DB row into a board card."""
     return {
@@ -260,14 +391,12 @@ def cos_task_create(
     frontmatter = _render_lean_frontmatter(fm)
 
     rf_lines = "\n".join(f"- {p}" for p in (read_first or ["(no doc yet — exploratory)"]))
-    outcome_line = outcome or "(fill in: one-sentence measurable outcome)"
-    body = (
-        f"\n\n# {task_id}: {title}\n\n"
-        f"**Outcome (one sentence):** {outcome_line}\n\n"
-        f"## Read First\n{rf_lines}\n\n"
-        "## Acceptance (G/W/T) — *this IS the Definition of Done*\n"
-        "- **Given** ...\n- **When** ...\n- **Then** ...\n\n"
-        "## Work Log\n"
+    body = _render_kind_aware_body(
+        task_id=task_id,
+        title=title,
+        kind=kind,
+        outcome=outcome,
+        read_first_block=rf_lines,
     )
     file_path.write_text(frontmatter + body, encoding="utf-8")
 
@@ -337,6 +466,7 @@ def cos_task_create(
             "swimlane": swimlane,
             "kind": kind,
             "status": status,
+            "next_steps": _next_steps_for_kind(kind),
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_create"},
     )
