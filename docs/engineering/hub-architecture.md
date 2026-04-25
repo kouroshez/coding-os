@@ -19,6 +19,19 @@ what.
 --editable .` links the `cos` bin to the repo source. Moving or deleting
 the repo breaks the hub; `~/.coding-os/` by itself is useless.
 
+## Scrumban board API — live agents (`/api/board/list`)
+
+Successful board list payloads include:
+
+| Field | Meaning |
+|---|---|
+| `agent_states` | Per adapter id: `active` / `present` / `offline` (from `.coding-os/<agent>/sessions/*.json` written by `agent-presence.sh`, with DB fallback). |
+| `agent_manifest` | Rows built from `adapters/*/adapter.yaml` (id, label, `hub_glyph`, `hub_color`, session prefix) plus a synthetic **`human`** row — no hardcoded adapter tuple in Python or React. |
+| `presence_scope` | Today always `per_project`: presence files are read only under the **currently scoped project root** (the slug passed to `/api/p/<slug>/…` or `COS_PROJECT_ROOT`). |
+| `cursor_model` | Optional display-only string: first line of `.coding-os/cursor/.model` when the file exists. **Not** used for green/red presence (runtime stays `COS_AGENT=cursor`). |
+
+**Not implemented:** aggregating “this adapter is active in *any* registered repo” under `~/.coding-os/`. That would need a separate global store or a registry walk; the field `presence_scope` leaves room to extend the contract later.
+
 ## Ports
 
 | Port | Service | Lifetime |

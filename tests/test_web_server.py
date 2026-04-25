@@ -158,6 +158,15 @@ class TestBoardRoutes:
         assert resp.status_code in (200, 503)
         body = resp.json()
         assert "data" in body or "error" in body
+        if resp.status_code == 200 and isinstance(body.get("data"), dict):
+            data = body["data"]
+            if "agent_states" in data:
+                assert "agent_manifest" in data
+                assert isinstance(data["agent_manifest"], list)
+                assert data.get("presence_scope") == "per_project"
+                ids = {row["id"] for row in data["agent_manifest"]}
+                assert "human" in ids
+                assert "claude" in ids
 
     def test_board_daily_returns_valid_shape(self, client):
         """GET /api/board/daily returns data or error."""

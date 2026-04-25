@@ -1,6 +1,17 @@
 version: 1
 id: cursor
 label: "Cursor IDE (Agent)"
+
+presence:
+  signal: hook_timestamps
+  hub_glyph: "Cr"
+  hub_color: "#6366f1"
+  presence_events:
+    - SessionStart
+    - UserPromptSubmit
+    - PreToolUse
+    - PostToolUse
+    - Stop
 settings_file: ".cursor/hooks.json"
 hooks_dir: ".cursor/hooks"
 rules_dir: ".cursor/rules"

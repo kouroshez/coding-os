@@ -15,6 +15,15 @@ export interface BoardListCard {
 
 export type AgentPresence = 'active' | 'present' | 'offline';
 
+/** One row in the live-agents strip — from GET /api/board/list `agent_manifest`. */
+export interface BoardAgentManifestEntry {
+  id: string;
+  label: string;
+  glyph: string;
+  color: string;
+  session: string;
+}
+
 export interface BoardListPayload {
   grouped: Record<string, Record<string, BoardListCard[]>>;
   cards: BoardListCard[];
@@ -28,6 +37,12 @@ export interface BoardListPayload {
   active_agents?: string[];
   /** Preferred signal: per-agent presence state. */
   agent_states?: Record<string, AgentPresence>;
+  /** Adapter ids + Hub pill metadata (includes trailing `human` row). */
+  agent_manifest?: BoardAgentManifestEntry[];
+  /** Display-only: first line of `.coding-os/cursor/.model` when present. */
+  cursor_model?: string | null;
+  /** Always `per_project` today — global aggregation is documented only. */
+  presence_scope?: string;
 }
 
 export interface SwimlaneDTO {

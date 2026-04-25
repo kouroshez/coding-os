@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Codex PostToolUse (Bash) dispatcher — runs remind-learn-validate then
+# agent-presence so the live panel sees tool completions (not only
+# PreToolUse / prompts).  Mirrors codex-userpromptsubmit-dispatch.sh.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/cos-env.sh" 2>/dev/null || true
+
+INPUT="$(cat 2>/dev/null || true)"
+
+delegate_path() {
+  local name="$1"
+  local path="${SCRIPT_DIR}/${name}"
+  echo "$path"
+}
+
+run_delegate() {
+  local name="$1"
+  local path
+  path="$(delegate_path "$name")"
+  if [[ ! -x "$path" ]]; then
+    return 0
+  fi
+  if ! printf '%s' "$INPUT" | bash "$path" >/dev/null 2>&1; then
+    cos_log_hook codex-posttool-dispatch warn "delegate=${name} failed"
+  fi
+  return 0
+}
+
+for delegate in remind-learn-validate.sh agent-presence.sh; do
+  run_delegate "$delegate"
+done
+
+exit 0

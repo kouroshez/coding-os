@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/remind-learn-validate.sh"
+            "command": "{{HOOKS_DIR}}/codex-posttool-dispatch.sh"
           }
         ]
       }

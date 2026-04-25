@@ -153,6 +153,34 @@
           }
         }
       }
+    },
+    "presence": {
+      "type": "object",
+      "description": "Optional Hub board + presence documentation. core/board_os/hub_adapter_manifest.py reads hub_glyph/hub_color; signal and presence_events are documentation for adapter-parity.",
+      "additionalProperties": false,
+      "properties": {
+        "signal": {
+          "type": "string",
+          "enum": ["hook_timestamps"],
+          "description": "Presence JSON under .coding-os/<adapter>/sessions/ is driven by agent-presence.sh on hook lifecycle events."
+        },
+        "presence_events": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Which events refresh presence for this adapter (documentation only)."
+        },
+        "hub_glyph": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3,
+          "description": "Short badge text in Hub Scrumban live-agents strip."
+        },
+        "hub_color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Badge accent color (hex) for Hub UI."
+        }
+      }
     }
   }
 }

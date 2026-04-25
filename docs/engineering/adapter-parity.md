@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-19 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-24 -->
 # Adapter Parity — Claude vs Codex Coverage
 
 Purpose: Concrete answer to "is Codex in sync with Claude?" — which hooks fire on which runtime, why some don't, and the single command to keep them aligned.
@@ -59,7 +59,7 @@ PY
 | `regen-reminder` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `test-first-reminder` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `remind-dogfood` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
-| `remind-learn-validate` | PostToolUse | Bash | ✓ | ✓ | both |
+| `remind-learn-validate` | PostToolUse | Bash | ✓ | ✓ | both (Codex runs via `codex-posttool-dispatch.sh` so `agent-presence.sh` still fires after Bash tools) |
 | `track-skill` | PostToolUse | Skill | ✓ | — | Codex has no Skill matcher |
 | `session-context` | SessionStart | startup | ✓ | ✓ | both |
 | `session-context` | SessionStart | `compact\|resume` | ✓ | `resume` | renderer narrows to the Codex-supported subset |
@@ -160,6 +160,19 @@ A: `make sync`. One command, both adapters, all assets.
 
 **Q: My Codex hooks work from repo root but fail from a subdirectory.**
 A: That was caused by relative commands in `.codex/hooks.json`. The installer now writes absolute hook paths so nested cwd sessions still find the dispatcher scripts.
+
+## `adapter.yaml::presence` — Hub board contract
+
+Optional block on each adapter manifest (validated by [core/schemas/adapter.schema.json](../../core/schemas/adapter.schema.json)):
+
+- **`signal`:** today only `hook_timestamps` — session JSON is updated by [core/hooks/agent-presence.sh](../../core/hooks/agent-presence.sh) on lifecycle hooks.
+- **`presence_events`:** documentation list of which events refresh presence for this runtime (mirrors `hook_capabilities` + dispatchers; not interpreted by Python logic beyond the Hub manifest reader).
+- **`hub_glyph` / `hub_color`:** pill metadata for `GET /api/board/list` → `agent_manifest` ([core/board_os/hub_adapter_manifest.py](../../core/board_os/hub_adapter_manifest.py)).
+
+## Claude adapter — curriculum alignment + Agent SDK (P8)
+
+- **Anthropic “Certified Architect — Foundations” instructor guide** (internal copy: [instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md](../code-os-core-docs/instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md)) frames Domain 1 orchestration, **Task 1.5** (hooks for deterministic enforcement vs prompt-only), MCP (Domain 2), and session lifecycle (**Task 1.7**). Use it as a **design checklist** when extending `adapters/claude/` hooks or documentation — not as exam content copied into `core/`.
+- **Official Claude Agent SDK:** any programmatic SDK usage stays under `adapters/claude/` (e.g. [sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py)). **Rule P8** in `AGENTS.md` — never import an adapter SDK from `core/**`; the kernel exposes MCP tools (`cos_*`) and hook contracts only.
 
 ## References
 

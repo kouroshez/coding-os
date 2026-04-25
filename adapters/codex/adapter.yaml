@@ -1,6 +1,17 @@
 version: 1
 id: codex
 label: "OpenAI Codex CLI"
+
+presence:
+  signal: hook_timestamps
+  hub_glyph: "Cx"
+  hub_color: "#0891b2"
+  presence_events:
+    - SessionStart
+    - UserPromptSubmit
+    - PreToolUse
+    - PostToolUse
+    - Stop
 settings_file: ".codex/hooks.json"
 hooks_dir: ".codex/hooks"
 rules_dir: ".codex/rules"
@@ -97,7 +108,7 @@ hook_dispatchers:
       - agent-presence.sh
   - event: PostToolUse
     matcher: Bash
-    script: remind-learn-validate.sh
+    script: codex-posttool-dispatch.sh
     delegates:
       - remind-learn-validate.sh
       - agent-presence.sh

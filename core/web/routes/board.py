@@ -120,7 +120,8 @@ def _presence_state(agent: str) -> str:
              resolution to distinguish "generating / tool-using" (ACTIVE)
              from "session alive, waiting or thinking" (PRESENT) from
              "not here" (OFFLINE).
-    INPUT:   agent key ("claude" / "codex" / "cursor").
+    INPUT:   agent key (adapter id from adapters/*/adapter.yaml, e.g.
+             claude / codex / cursor).
     OUTPUT:  one of "active" / "present" / "offline".
     NOTES:   Presence files are written atomically by
              core/hooks/agent-presence.sh on SessionStart / UserPromptSubmit /
@@ -198,6 +199,22 @@ def _presence_state(agent: str) -> str:
         if isinstance(started, int) and now - int(started) <= _PRESENT_WINDOW_SECS:
             best = "present" if best != "active" else best
     return best
+
+
+def _cursor_model_display() -> str | None:
+    """Optional display-only line from .coding-os/cursor/.model (not presence)."""
+    from core.web._project_context import current_project_root
+
+    p = current_project_root() / ".coding-os" / "cursor" / ".model"
+    try:
+        raw = p.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not raw:
+        return None
+    # One-line display; avoid huge env dumps in JSON.
+    line = raw.splitlines()[0].strip()
+    return line[:160] if line else None
 
 
 def _agent_active_from_db(conn: sqlite3.Connection, agent: str) -> bool:
@@ -415,15 +432,31 @@ async def board_list(
         # agent_states is the new, richer shape: {agent: "active"|"present"|"offline"}.
         # active_agents preserves the v0.5 contract ("list of ids that are not
         # offline") so older UI builds keep working during the rollout.
+        from core.board_os.hub_adapter_manifest import list_agent_manifest_rows
+
+        adapter_rows = list_agent_manifest_rows()
+        agent_ids = [str(r["id"]) for r in adapter_rows]
         states: dict[str, str] = {"human": "active"}  # human is always considered present
         conn = _db_conn()
         try:
-            for agent in ("claude", "codex", "cursor"):
+            for agent in agent_ids:
                 states[agent] = _agent_state(conn, agent)
         finally:
             conn.close()
         env["data"]["agent_states"] = states
         env["data"]["active_agents"] = [a for a, st in states.items() if st != "offline"]
+        human_row = {
+            "id": "human",
+            "label": "human",
+            "glyph": "H",
+            "color": "#16a34a",
+            "session": "local-mac",
+        }
+        env["data"]["agent_manifest"] = [*adapter_rows, human_row]
+        env["data"]["presence_scope"] = "per_project"
+        cm = _cursor_model_display()
+        if cm is not None:
+            env["data"]["cursor_model"] = cm
 
     return JSONResponse(status_code=200 if env.get("ok") else 400, content=env)
 

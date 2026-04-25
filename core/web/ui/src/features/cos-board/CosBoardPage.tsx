@@ -1,4 +1,6 @@
 import {
+  createContext,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -15,6 +17,7 @@ import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
 import { KIND_COLORS, kindStyle } from './kindColors';
 import type {
   AgentPresence,
+  BoardAgentManifestEntry,
   BoardConfigPayload,
   BoardListCard,
   BoardListPayload,
@@ -89,15 +92,19 @@ const COLUMN_META: Record<string, { label: string; sub: string; wip: number | nu
   archive: { label: 'ARCHIVE', sub: 'frozen', wip: null },
 };
 
-// Glyphs follow the session prefix (ses-<agent>-...) so every two-letter
-// pip is unambiguous: Claude and Cursor both start with "C" on their own,
-// which made the single-letter badges look identical at stream-panel size.
-const AGENTS = [
+// Fallback when GET /api/board/list has no `agent_manifest` (older Hub).
+const FALLBACK_AGENT_MANIFEST: BoardAgentManifestEntry[] = [
   { id: 'claude', color: '#d97706', label: 'claude', glyph: 'Cl', session: 'ses-claude' },
   { id: 'codex', color: '#0891b2', label: 'codex', glyph: 'Cx', session: 'ses-codex' },
   { id: 'cursor', color: '#6366f1', label: 'cursor', glyph: 'Cr', session: 'ses-cursor' },
   { id: 'human', color: '#16a34a', label: 'human', glyph: 'H', session: 'local-mac' },
-] as const;
+];
+
+const AgentCatalogContext = createContext<BoardAgentManifestEntry[]>(FALLBACK_AGENT_MANIFEST);
+
+function useAgentCatalog(): BoardAgentManifestEntry[] {
+  return useContext(AgentCatalogContext);
+}
 
 const EVENT_COLOR: Record<string, string> = {
   'task-updated': '#7c3aed',
@@ -209,7 +216,8 @@ function priorityStyle(priority: string): CSSProperties {
 export type AgentState = AgentPresence;
 
 function AgentBadge({ agentId, state }: { agentId: string; state: AgentState }) {
-  const a = AGENTS.find((x) => x.id === agentId);
+  const catalog = useAgentCatalog();
+  const a = catalog.find((x) => x.id === agentId);
   if (!a) return null;
   const dot = visualFor(state);
   const live = state !== 'offline';
@@ -248,7 +256,8 @@ function AgentBadge({ agentId, state }: { agentId: string; state: AgentState }) 
 
 function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; title?: string; size?: number }) {
   if (!agentId) return null;
-  const a = AGENTS.find((x) => x.id === agentId);
+  const catalog = useAgentCatalog();
+  const a = catalog.find((x) => x.id === agentId);
   if (!a) return null;
   // Two-letter glyphs need a tighter font to fit inside the pip cleanly.
   const glyphRatio = a.glyph.length > 1 ? 0.44 : 0.58;
@@ -559,12 +568,22 @@ export default function CosBoardPage() {
 
   const totalWidth = Math.max(400, columns.length * 200 + 130);
 
+  const agentCatalog = useMemo(
+    () =>
+      list?.agent_manifest && list.agent_manifest.length > 0
+        ? list.agent_manifest
+        : FALLBACK_AGENT_MANIFEST,
+    [list?.agent_manifest],
+  );
+
   return (
+    <AgentCatalogContext.Provider value={agentCatalog}>
     <div style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <TopBar
         stats={stats}
         taskCount={list?.count ?? 0}
         connected={connected}
+        cursorModel={list?.cursor_model}
         agentStates={
           list?.agent_states ?? (
             // Back-compat: pre-0.5 backends only send active_agents list.
@@ -943,6 +962,7 @@ export default function CosBoardPage() {
         </div>
       )}
     </div>
+    </AgentCatalogContext.Provider>
   );
 }
 
@@ -953,6 +973,7 @@ function TopBar({
   stats,
   taskCount,
   connected,
+  cursorModel,
   agentStates,
   legendOpen,
   streamOpen,
@@ -966,6 +987,7 @@ function TopBar({
   stats: BoardStats;
   taskCount: number;
   connected: boolean;
+  cursorModel?: string | null;
   agentStates: Record<string, AgentState>;
   legendOpen: boolean;
   streamOpen: boolean;
@@ -976,6 +998,7 @@ function TopBar({
   onToggleTweaks: () => void;
   onCreate: () => void;
 }) {
+  const agentRows = useAgentCatalog();
   return (
     <div
       style={{
@@ -1046,8 +1069,8 @@ function TopBar({
           }}
         >
           <span style={{ color: 'var(--ink-faint)', fontSize: 13 }}>live:</span>
-          <div style={{ display: 'flex', gap: 5 }}>
-            {AGENTS.map((a) => (
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+            {agentRows.map((a) => (
               <AgentBadge
                 key={a.id}
                 agentId={a.id}
@@ -1055,6 +1078,14 @@ function TopBar({
               />
             ))}
           </div>
+          {cursorModel ? (
+            <span
+              title="display-only: .coding-os/cursor/.model"
+              style={{ color: 'var(--ink-faint)', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              model: {cursorModel}
+            </span>
+          ) : null}
           <span
             style={{
               color: connected ? '#16a34a' : 'var(--ink-faint)',
@@ -1936,6 +1967,7 @@ function LegendPanel({
   taskCounts: TaskCounts;
 }) {
   if (!open) return null;
+  const legendAgents = useAgentCatalog();
   const kinds = Object.entries(KIND_COLORS);
   return (
     <div
@@ -2097,7 +2129,7 @@ function LegendPanel({
 
         <LegendSection title="Agent — corner pip">
           <div style={{ display: 'flex', gap: 8, padding: '3px 5px', flexWrap: 'wrap' }}>
-            {AGENTS.map((a) => (
+            {legendAgents.map((a) => (
               <div
                 key={a.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink)' }}

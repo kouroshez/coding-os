@@ -1,6 +1,19 @@
 version: 1
 id: claude
 label: "Anthropic Claude Code"
+
+# Hub board pills + presence contract (see docs/engineering/adapter-parity.md).
+presence:
+  signal: hook_timestamps
+  hub_glyph: "Cl"
+  hub_color: "#d97706"
+  presence_events:
+    - SessionStart
+    - UserPromptSubmit
+    - PreToolUse
+    - PostToolUse
+    - Stop
+    - SessionEnd
 settings_file: ".claude/settings.json"
 hooks_dir: ".claude/hooks"
 rules_dir: ".claude/rules"
