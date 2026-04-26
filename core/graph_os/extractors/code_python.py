@@ -231,6 +231,160 @@ def _node_text(node, content_bytes: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
+# TASK-120 — tree-sitter primary path for class heritage + decorators
+# ---------------------------------------------------------------------------
+
+
+def _tree_sitter_heritage_active() -> bool:
+    """True when class heritage and decorator edges should be parsed via
+    tree-sitter.  Same activation rule as `_tree_sitter_imports_active`
+    so a single ``--extractor=tree-sitter`` flag flips both paths in
+    lock-step (TASK-119 + TASK-120)."""
+    return _tree_sitter_imports_active()
+
+
+def _heritage_via_tree_sitter(
+    path: str,
+    content: str,
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]] | None:
+    """Walk the tree-sitter Python AST and return ``(inherits, decorators)``.
+
+    PURPOSE:    Equivalent of `_PythonVisitor.inherits` and
+                `decorators_edges` for the tree-sitter primary path.
+                Returns the same `(uid, dotted_name)` tuple shape so
+                the emission code is unchanged — only the per-edge
+                ``extractor`` tag changes when this path is active.
+    OUTPUT:     ``(inherits, decorators_edges)`` or ``None`` when the
+                grammar can't parse the content.
+
+    Notes:
+      - Qualnames mirror the ast visitor (nested classes nest, nested
+        functions still emit at module level for the ast path → we
+        match that to keep edge counts identical).
+      - Decorators are captured for both functions and classes.
+      - Self / parent decorator chains preserve their dotted form
+        (`a.b.c`) via tree-sitter's `attribute` node textual extent.
+    """
+    try:
+        from ..tree_sitter_overlay import parse
+    except ImportError:
+        return None
+
+    parsed = parse("python", content)
+    if parsed is None:
+        return None
+
+    content_bytes = content.encode("utf-8")
+    inherits: list[tuple[str, str]] = []
+    decorators_edges: list[tuple[str, str]] = []
+
+    def _walk(node, qual_stack: list[str], scope_uid: str | None) -> None:
+        ntype = getattr(node, "type", None)
+        if ntype == "class_definition":
+            name_node = node.child_by_field_name("name")
+            if name_node is None:
+                return
+            class_name = _node_text(name_node, content_bytes)
+            new_qual = qual_stack + [class_name]
+            class_qualname = ".".join(new_qual)
+            class_uid_ = class_uid(path, class_qualname)
+
+            # Bases — `superclasses` field carries an `argument_list`.
+            superclasses = node.child_by_field_name("superclasses")
+            if superclasses is not None:
+                for child in superclasses.children:
+                    if getattr(child, "type", None) in (
+                        "identifier", "attribute",
+                    ):
+                        base_name = _node_text(child, content_bytes)
+                        if base_name:
+                            inherits.append((class_uid_, base_name))
+
+            # Decorators — sibling `decorator` nodes that precede this
+            # class_definition inside a `decorated_definition` parent.
+            for dec_name in _decorator_names(node, content_bytes):
+                decorators_edges.append((class_uid_, dec_name))
+
+            body = node.child_by_field_name("body")
+            if body is not None:
+                for child in body.children:
+                    _walk(child, new_qual, class_uid_)
+            return
+
+        if ntype in ("function_definition", "async_function_definition"):
+            name_node = node.child_by_field_name("name")
+            if name_node is None:
+                return
+            fn_name = _node_text(name_node, content_bytes)
+            new_qual = qual_stack + [fn_name]
+            qualname = ".".join(new_qual)
+            in_class = (
+                scope_uid is not None and scope_uid.startswith("code:class:")
+            )
+            uid = method_uid(path, qualname) if in_class else function_uid(
+                path, qualname,
+            )
+
+            for dec_name in _decorator_names(node, content_bytes):
+                decorators_edges.append((uid, dec_name))
+
+            body = node.child_by_field_name("body")
+            if body is not None:
+                for child in body.children:
+                    _walk(child, new_qual, uid)
+            return
+
+        if ntype == "decorated_definition":
+            # Recurse into the wrapped definition; the `_decorator_names`
+            # helper handles the decorators attached to that definition.
+            for child in node.children:
+                _walk(child, qual_stack, scope_uid)
+            return
+
+        # Plain pass-through for module-level / unrelated nodes.
+        for child in node.children:
+            _walk(child, qual_stack, scope_uid)
+
+    _walk(parsed.root, [], None)
+    return inherits, decorators_edges
+
+
+def _decorator_names(definition_node, content_bytes: bytes) -> list[str]:
+    """Return dotted names for every decorator attached to
+    ``definition_node`` (a class_definition or function_definition).
+
+    The grammar nests the decorator(s) and the definition under a
+    ``decorated_definition`` parent.  We walk parent siblings in
+    document order so chained decorators preserve their original
+    sequence — matching the ast visitor's iteration of
+    ``node.decorator_list``.
+    """
+    parent = getattr(definition_node, "parent", None)
+    if parent is None or getattr(parent, "type", None) != "decorated_definition":
+        return []
+    out: list[str] = []
+    for child in parent.children:
+        if child is definition_node:
+            break
+        if getattr(child, "type", None) == "decorator":
+            # decorator → expression child carrying the dotted name.
+            for inner in child.children:
+                itype = getattr(inner, "type", None)
+                if itype in ("identifier", "attribute", "call"):
+                    text = _node_text(inner, content_bytes).strip()
+                    if not text:
+                        continue
+                    # `@decorator(args)` → strip the `(...)` to keep the
+                    # dotted name only, matching `_dotted_name(ast.Call)`.
+                    if "(" in text:
+                        text = text.split("(", 1)[0].strip()
+                    if text:
+                        out.append(text)
+                    break
+    return out
+
+
+# ---------------------------------------------------------------------------
 # uid helpers
 # ---------------------------------------------------------------------------
 
@@ -404,6 +558,17 @@ def extract(path: str, content: str) -> ExtractionResult:
             }
             import_extractor_id = EXTRACTOR_ID_TS_IMPORTS
 
+    # TASK-120: tree-sitter primary path for class heritage + decorators.
+    # Same activation gate as imports — flips both paths in lock-step.
+    heritage_extractor_id = EXTRACTOR_ID
+    if _tree_sitter_heritage_active():
+        ts_heritage = _heritage_via_tree_sitter(normalised, content)
+        if ts_heritage is not None:
+            ts_inherits, ts_decorators = ts_heritage
+            visitor.inherits = ts_inherits
+            visitor.decorators_edges = ts_decorators
+            heritage_extractor_id = EXTRACTOR_ID_TS_IMPORTS
+
     # Emit decls + containment.
     for decl in visitor.decls:
         result.nodes.append(
@@ -439,6 +604,11 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
 
     # Inheritance.
+    inherit_signal = (
+        "tree_sitter_base_class"
+        if heritage_extractor_id == EXTRACTOR_ID_TS_IMPORTS
+        else "ast_base_class"
+    )
     for subclass_uid, base_name in visitor.inherits:
         result.edges.append(
             GraphEdge(
@@ -447,10 +617,10 @@ def extract(path: str, content: str) -> ExtractionResult:
                     base_name, path=normalised, visitor=visitor
                 ),
                 edge_type="inherits_from",
-                extractor=EXTRACTOR_ID,
+                extractor=heritage_extractor_id,
                 confidence=_inherit_confidence(base_name, visitor),
                 source_span=f"{normalised}",
-                evidence=(EvidenceSignal("ast_base_class", 0.9),),
+                evidence=(EvidenceSignal(inherit_signal, 0.9),),
             )
         )
 
@@ -499,6 +669,11 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
 
     # Decorators — is_decorated_by.
+    decorator_signal = (
+        "tree_sitter_decorator"
+        if heritage_extractor_id == EXTRACTOR_ID_TS_IMPORTS
+        else "ast_decorator"
+    )
     for decorated_uid, dec_name in visitor.decorators_edges:
         result.edges.append(
             GraphEdge(
@@ -507,9 +682,9 @@ def extract(path: str, content: str) -> ExtractionResult:
                     dec_name, path=normalised, visitor=visitor
                 ),
                 edge_type="is_decorated_by",
-                extractor=EXTRACTOR_ID,
+                extractor=heritage_extractor_id,
                 confidence=_decorator_confidence(dec_name, visitor),
-                evidence=(EvidenceSignal("ast_decorator", 0.9),),
+                evidence=(EvidenceSignal(decorator_signal, 0.9),),
             )
         )
 
