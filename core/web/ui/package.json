@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",
+    "@types/dagre": "^0.7.54",
     "clsx": "^2.1.1",
+    "dagre": "^0.8.5",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "graphology-layout-noverlap": "^0.4.2",

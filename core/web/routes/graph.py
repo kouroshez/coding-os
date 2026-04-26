@@ -274,13 +274,17 @@ async def graph_export(
     edge_types: Optional[str] = Query(None),
     max_nodes: int = Query(500),
     include_spine: bool = Query(False),
+    mode: str = Query("auto"),
+    exclude_kinds: Optional[str] = Query(None),
     _rl=Depends(make_rate_limit_dep("graph.export")),
     _m=Depends(make_metrics_dep("graph.export")),
 ):
     """Export a subgraph as json | mermaid | dot.
 
     PURPOSE: HTTP wrapper for cos_graph_export.
-    INPUT:   format, root_uid, edge_types (csv), max_nodes, include_spine.
+    INPUT:   format, root_uid, edge_types (csv), max_nodes, include_spine,
+             mode (auto|containment|dependencies|processes — TASK-141),
+             exclude_kinds (csv; pass empty string to disable noise filter).
     OUTPUT:  {data: {format, nodes|diagram, edges}, meta} on 200.
     DEPENDENCIES: graph_os.tools.graph.cos_graph_export.
     NOTES:   Large exports may be slow; use max_nodes to cap.
@@ -289,12 +293,28 @@ async def graph_export(
     if g is None:
         return unwrap(_unavailable())
     et = [e.strip() for e in edge_types.split(",") if e.strip()] if edge_types else None
+    # TASK-141: treat empty-string root_uid as "no root" (the SPA can
+    # send `root_uid=` when no root is pinned).  Otherwise the BFS
+    # walks from "" → empty result.
+    normalised_root = root_uid.strip() if root_uid else None
+    if not normalised_root:
+        normalised_root = None
+    # exclude_kinds: None → built-in default; empty string → empty list
+    # (caller wants no noise filter); csv → split.
+    if exclude_kinds is None:
+        ek: Optional[list[str]] = None
+    elif exclude_kinds == "":
+        ek = []
+    else:
+        ek = [k.strip() for k in exclude_kinds.split(",") if k.strip()]
     result = g.cos_graph_export(
         format=format,
-        root_uid=root_uid,
+        root_uid=normalised_root,
         edge_types=et,
         max_nodes=max_nodes,
         include_spine=include_spine,
+        mode=mode,
+        exclude_kinds=ek,
     )
     return unwrap(result)
 

@@ -4,14 +4,13 @@ import { useApiGet } from '@/lib/hooks';
 import { useSigma } from './useSigma';
 import { buildGraph, bfsSubgraph, type ApiGraphPayload } from './graph-adapter';
 
-// Sigma host. Three-state UI:
-//  - selectedRootUid === null → CTA placeholder (anti-hairball #1)
-//  - query pending           → loading overlay
-//  - query error             → error banner
-//  - query empty              → empty message
-//  - otherwise                → WebGL canvas via Sigma.js
+// Sigma host. Renders the smart-blend overview by default (TASK-141 P1)
+// or a depth-bounded BFS subgraph when a root is pinned.  Noise nodes
+// (frontmatter / heading-only) are hidden by both server-side noise
+// filter (TASK-141 P1) and the client-side `visibleKinds` toggles.
 export default function GraphCanvas() {
   const selectedRootUid = useGraphStore((s) => s.selectedRootUid);
+  const viewMode = useGraphStore((s) => s.viewMode);
   const depth = useGraphStore((s) => s.depth);
   const visibleKinds = useGraphStore((s) => s.visibleKinds);
   const visibleEdgeTypes = useGraphStore((s) => s.visibleEdgeTypes);
@@ -22,21 +21,28 @@ export default function GraphCanvas() {
     onStageClick: () => setSelectedNode(null),
   });
 
-  const enabled = Boolean(selectedRootUid);
+  // Build params explicitly so we never send `root_uid=""` (empty
+  // string) — the backend would interpret that as "look up empty uid,
+  // find nothing" and return 0 nodes.  Pass the key only when a root
+  // is actually pinned.
+  const exportParams: Record<string, unknown> = {
+    format: 'json',
+    max_nodes: selectedRootUid ? 500 : 400,
+    mode: viewMode,
+  };
+  if (selectedRootUid) {
+    exportParams.root_uid = selectedRootUid;
+    exportParams.include_spine = true;
+  }
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
-    ['graph-export', selectedRootUid ?? ''],
+    ['graph-export', selectedRootUid ?? '__overview__', viewMode],
     '/api/graph/export',
-    {
-      format: 'json',
-      root_uid: selectedRootUid ?? '',
-      max_nodes: 500,
-      include_spine: true,
-    },
-    { enabled },
+    exportParams,
   );
 
   const pruned = useMemo<ApiGraphPayload | null>(() => {
-    if (!data || !selectedRootUid) return null;
+    if (!data) return null;
+    if (!selectedRootUid) return data;
     const maxDepth = depth === 'all' ? null : depth;
     return bfsSubgraph(data, selectedRootUid, maxDepth);
   }, [data, selectedRootUid, depth]);
@@ -47,24 +53,16 @@ export default function GraphCanvas() {
       visibleKinds: new Set(visibleKinds),
       visibleEdgeTypes: new Set(visibleEdgeTypes),
     });
-    setGraph(graph);
-  }, [pruned, visibleKinds, visibleEdgeTypes, setGraph]);
+    // TASK-141 P5: containment view → top-down dagre tree; everything
+    // else stays on ForceAtlas2 with noverlap.
+    const layout = viewMode === 'containment' ? 'dagre' : 'force';
+    setGraph(graph, { layout });
+  }, [pruned, visibleKinds, visibleEdgeTypes, viewMode, setGraph]);
 
-  if (!selectedRootUid) {
-    return (
-      <div className="flex h-full items-center justify-center text-center">
-        <div className="max-w-md px-6">
-          <h2 className="mb-2 text-lg font-semibold">Pick a node to explore</h2>
-          <p className="text-sm text-[var(--cos-muted)]">
-            The canvas stays empty until you pick a root. Use the CONTAINS tree on the
-            left to jump to any folder, file, class, or method — depth-bounded BFS
-            keeps the view readable.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Always mount the container so Sigma can attach on first paint;
+  // overlay the CTA when no root is selected.  Conditionally rendering
+  // the container caused Sigma to miss the host on initial mount and
+  // the canvas to never appear after a click.
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="absolute inset-0" aria-label="graph canvas" />

@@ -4,6 +4,9 @@ import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 import type { SigmaEdgeAttrs, SigmaNodeAttrs } from './graph-adapter';
+import { applyDagreLayout } from './dagre-layout';
+
+export type LayoutMode = 'force' | 'dagre';
 
 // Hook that owns a single Sigma instance bound to a container ref.
 // Usage:
@@ -21,7 +24,10 @@ interface UseSigmaOptions {
 
 interface UseSigmaReturn {
   containerRef: React.RefObject<HTMLDivElement>;
-  setGraph: (graph: Graph<SigmaNodeAttrs, SigmaEdgeAttrs>) => void;
+  setGraph: (
+    graph: Graph<SigmaNodeAttrs, SigmaEdgeAttrs>,
+    options?: { layout?: LayoutMode },
+  ) => void;
   isLayoutRunning: boolean;
 }
 
@@ -85,7 +91,10 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
   }, []);
 
   const setGraph = useCallback(
-    (incoming: Graph<SigmaNodeAttrs, SigmaEdgeAttrs>) => {
+    (
+      incoming: Graph<SigmaNodeAttrs, SigmaEdgeAttrs>,
+      options: { layout?: LayoutMode } = {},
+    ) => {
       const sigma = sigmaRef.current;
       if (!sigma) return;
 
@@ -97,18 +106,26 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       }
 
       setLayoutRunning(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inferred = forceAtlas2.inferSettings(incoming as any);
-      forceAtlas2.assign(
+      const layout: LayoutMode = options.layout ?? 'force';
+      if (layout === 'dagre') {
+        // TASK-141 P5: top-down hierarchical layout for the
+        // Containment view. Skip force-atlas + noverlap so we don't
+        // wrestle the carefully ranked tree back into a hairball.
+        applyDagreLayout(incoming);
+      } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        incoming as any,
-        {
-          iterations: FA2_ITERATIONS,
-          settings: { ...inferred, slowDown: 5, scalingRatio: 15, gravity: 0.4 },
-        },
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      noverlap.assign(incoming as any, NOVERLAP_SETTINGS);
+        const inferred = forceAtlas2.inferSettings(incoming as any);
+        forceAtlas2.assign(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          incoming as any,
+          {
+            iterations: FA2_ITERATIONS,
+            settings: { ...inferred, slowDown: 5, scalingRatio: 15, gravity: 0.4 },
+          },
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        noverlap.assign(incoming as any, NOVERLAP_SETTINGS);
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sigma.setGraph(incoming as any);

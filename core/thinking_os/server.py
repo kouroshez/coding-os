@@ -1796,6 +1796,8 @@ if _GRAPH_TOOLS_AVAILABLE:
         edge_types: str = "",
         max_nodes: int = 500,
         include_spine: bool = False,
+        mode: str = "auto",
+        exclude_kinds: str = "__default__",
     ) -> str:
         """Export a subgraph as json | mermaid | dot.
 
@@ -1804,16 +1806,28 @@ if _GRAPH_TOOLS_AVAILABLE:
             root_uid: Optional seed; empty walks the edge table.
             edge_types: Comma-separated edge filter (empty = all).
             max_nodes: Hard cap on node count.
-            include_spine: S3 — also include the CONTAINS ancestor chain
-                so the exported subgraph has a connected Folder→File→…
-                backbone for the SPA tree-view.
+            include_spine: S3 — also include the CONTAINS ancestor chain.
+            mode: TASK-141 view-mode blend when no root is pinned —
+                ``auto`` (semantic + contains, default), ``containment``,
+                ``dependencies``, or ``processes``.
+            exclude_kinds: Comma-separated noise kinds to drop. Sentinel
+                ``__default__`` (default) applies the built-in noise list;
+                empty string disables filtering.
         """
+        if exclude_kinds == "__default__":
+            ek = None
+        elif exclude_kinds == "":
+            ek = []
+        else:
+            ek = list(_csv(exclude_kinds) or ())
         return _graph_tools.cos_graph_export(
             format=str(format),
             root_uid=root_uid or None,
             edge_types=_csv(edge_types),
             max_nodes=int(max_nodes),
             include_spine=bool(include_spine),
+            mode=str(mode),
+            exclude_kinds=ek,
         )
 
     @mcp.tool(

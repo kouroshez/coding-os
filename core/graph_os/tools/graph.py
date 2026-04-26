@@ -908,6 +908,54 @@ def cos_graph_path(
     )
 
 
+# TASK-141: edge categories that drive the new view modes.
+_SEMANTIC_EDGES: tuple[str, ...] = (
+    "calls",
+    "imports",
+    "inherits_from",
+    "implements",
+    "extends",
+    "dispatches",
+    "handles_route",
+    "handles_tool",
+    "handles_event",
+    "constructs",
+    "awaits",
+    "references",
+    "references_doc",
+    "is_decorated_by",
+)
+
+_CONTAINS_EDGES: tuple[str, ...] = ("contains",)
+
+# Noise nodes that pollute the graph viewer when shown.  They're real
+# graph data (extracted by md_links / frontmatter parsers) but they're
+# not navigation targets — they belong in the docs RAG, not the canvas.
+_DEFAULT_NOISE_KINDS: frozenset[str] = frozenset({
+    # Pure metadata that's already shown in the docs RAG / contains tree —
+    # surfacing it on the graph canvas just creates visual noise.
+    "doc:frontmatter_key",
+    "doc_frontmatter",
+    "doc:heading",
+    "doc_heading",
+})
+
+
+# Diversified blend recipe for the auto mode (TASK-141).  Pulling the
+# first N edges by confidence happens to over-represent whichever edge
+# type the SQL ORDER BY surfaces first (in the live graph: handles_tool
+# at 200+ rows).  Allocating per-bucket quotas guarantees every kind of
+# semantic relationship lands in the result.
+_AUTO_BLEND_BUCKETS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("calls", ("calls", "constructs")),
+    ("imports", ("imports",)),
+    ("inherit", ("inherits_from", "implements", "extends")),
+    ("handle", ("handles_route", "handles_tool", "handles_event", "dispatches")),
+    ("type", ("has_param_type", "returns_type", "field_of_type")),
+    ("contains", ("contains",)),
+)
+
+
 def cos_graph_export(
     *,
     format: str = "json",
@@ -915,15 +963,45 @@ def cos_graph_export(
     edge_types: Sequence[str] | None = None,
     max_nodes: int = 500,
     include_spine: bool = False,
+    mode: str = "auto",
+    exclude_kinds: Sequence[str] | None = None,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Export a subgraph in `json | mermaid | dot`."""
+    """Export a subgraph in `json | mermaid | dot`.
+
+    TASK-141: ``mode`` selects the view-mode blend used when no root is
+    pinned.  Hub Graph tab consumes this directly:
+
+      - ``auto`` (default): blend of semantic (~60%) + contains (~40%).
+        The previous behaviour returned 100% contains because the SQL
+        order-by confidence happens to put `contains` (1.0) first —
+        that's the fix the hub UI hairball needed.
+      - ``containment``: contains-only (folder → file → class → method).
+      - ``dependencies``: semantic-only (calls / imports / handles_* /
+        inherits_from / implements / dispatches / awaits / ...).
+      - ``processes``: returns Louvain community nodes + their members.
+
+    ``exclude_kinds`` filters noise nodes (frontmatter keys, doc
+    headings).  Defaults to a built-in set when None — pass an empty
+    list to disable.
+    """
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
     if format not in {"json", "mermaid", "dot"}:
         return _fail("validation", f"unknown format {format!r}")
+    if mode not in {"auto", "containment", "dependencies", "processes"}:
+        return _fail(
+            "validation",
+            f"mode must be one of auto/containment/dependencies/processes (got {mode!r})",
+        )
+
+    excluded = (
+        _DEFAULT_NOISE_KINDS
+        if exclude_kinds is None
+        else frozenset(exclude_kinds)
+    )
 
     if root_uid is not None:
         nodes, edges = _walk_bfs(
@@ -935,13 +1013,26 @@ def cos_graph_export(
             edge_types=edge_types,
             visit_limit=max_nodes,
         )
+    elif mode == "processes":
+        nodes, edges = _export_processes(be, max_nodes=max_nodes)
     else:
-        edges = be.list_edges(edge_types=edge_types, limit=max_nodes)
-        node_uids: set[str] = set()
-        for e in edges:
-            node_uids.add(e.source_uid)
-            node_uids.add(e.target_uid)
-        nodes = [n for n in (be.get_node(u) for u in node_uids) if n is not None]
+        nodes, edges = _export_blend(
+            be,
+            mode=mode,
+            edge_types=edge_types,
+            max_nodes=max_nodes,
+        )
+
+    # TASK-141: apply noise filter.  Drop nodes whose kind is in
+    # ``excluded`` AND drop any edges that touch them.
+    if excluded:
+        nodes = [n for n in nodes if (n.kind or "") not in excluded]
+        kept_uids = {n.uid for n in nodes}
+        edges = [
+            e
+            for e in edges
+            if e.source_uid in kept_uids and e.target_uid in kept_uids
+        ]
 
     # S3: when include_spine is set, extend the subgraph with the
     # CONTAINS-ancestor chain of the root (or the deepest file node
@@ -982,6 +1073,124 @@ def cos_graph_export(
             "include_spine": include_spine,
         },
     )
+
+
+def _export_blend(
+    be: GraphBackend,
+    *,
+    mode: str,
+    edge_types: Sequence[str] | None,
+    max_nodes: int,
+) -> tuple[list[GraphNode], list[GraphEdge]]:
+    """Compose the node + edge list for ``auto`` / ``containment`` /
+    ``dependencies`` modes (TASK-141).
+
+    The SQL list_edges API orders by ``(confidence DESC, id ASC)`` so
+    a flat call with edge_types=None puts every contains edge
+    (confidence=1.0) ahead of every semantic edge.  This helper
+    explicitly partitions the budget so semantic relationships always
+    land in the result.
+    """
+    if edge_types is not None:
+        edges = list(be.list_edges(edge_types=tuple(edge_types), limit=max_nodes))
+    elif mode == "containment":
+        edges = list(be.list_edges(edge_types=_CONTAINS_EDGES, limit=max_nodes))
+    elif mode == "dependencies":
+        # Diversified pull across all semantic buckets so the result
+        # isn't dominated by a single kind (e.g. handles_tool when MCP
+        # registrations are dense).  Skip the contains bucket here.
+        per_bucket = max(1, max_nodes // (len(_AUTO_BLEND_BUCKETS) - 1))
+        edges = []
+        for _, types in _AUTO_BLEND_BUCKETS:
+            if types == _CONTAINS_EDGES:
+                continue
+            edges.extend(
+                be.list_edges(edge_types=types, limit=per_bucket)
+            )
+        edges = edges[:max_nodes]
+    else:  # mode == "auto"
+        # Equal-share quota across every bucket, then trim to budget.
+        # Guarantees every semantic kind shows up alongside contains.
+        per_bucket = max(1, max_nodes // len(_AUTO_BLEND_BUCKETS))
+        edges = []
+        for _, types in _AUTO_BLEND_BUCKETS:
+            edges.extend(
+                be.list_edges(edge_types=types, limit=per_bucket)
+            )
+        edges = edges[:max_nodes]
+
+    node_uids: set[str] = set()
+    for e in edges:
+        node_uids.add(e.source_uid)
+        node_uids.add(e.target_uid)
+    nodes = [n for n in (be.get_node(u) for u in node_uids) if n is not None]
+    return nodes, edges
+
+
+def _export_processes(
+    be: GraphBackend,
+    *,
+    max_nodes: int,
+) -> tuple[list[GraphNode], list[GraphEdge]]:
+    """Return the community-driven view (TASK-141 + TASK-075).
+
+    Each Community produces:
+      - one synthetic ``cos:community`` node (label = process name)
+      - real member nodes (functions / methods / classes)
+      - synthetic ``member_of_community`` edges from member → community
+
+    The synthetic nodes / edges are never persisted — they live only
+    in the export response so the SPA's `Processes` view has something
+    to render without polluting the SQLite tables.
+    """
+    from .. import communities as comm_mod
+
+    communities, _membership = comm_mod.compute_communities(be, min_size=2)
+    if not communities:
+        return [], []
+
+    community_nodes: list[GraphNode] = []
+    member_nodes_by_uid: dict[str, GraphNode] = {}
+    edges: list[GraphEdge] = []
+    budget = max_nodes
+    for c in communities:
+        if budget <= 0:
+            break
+        community_uid = c.community_id
+        community_nodes.append(
+            GraphNode(
+                uid=community_uid,
+                kind="community",
+                label=c.name,
+                file_path=None,
+                metadata={
+                    "summary": c.summary,
+                    "priority": c.priority,
+                    "member_count": c.member_count,
+                    "synthetic": True,
+                },
+            )
+        )
+        budget -= 1
+        for m in c.members:
+            if budget <= 0:
+                break
+            real = be.get_node(m["uid"])
+            if real is None:
+                continue
+            if real.uid not in member_nodes_by_uid:
+                member_nodes_by_uid[real.uid] = real
+                budget -= 1
+            edges.append(
+                GraphEdge(
+                    source_uid=real.uid,
+                    target_uid=community_uid,
+                    edge_type="member_of_community",
+                    extractor="communities@v1",
+                    confidence=1.0,
+                )
+            )
+    return community_nodes + list(member_nodes_by_uid.values()), edges
 
 
 def cos_graph_rename_plan(

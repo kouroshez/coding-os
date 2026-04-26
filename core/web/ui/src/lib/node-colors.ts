@@ -60,8 +60,47 @@ export const NODE_COLORS: Record<NodeKind, string> = {
 
 export const ALL_KINDS: NodeKind[] = Object.keys(NODE_COLORS) as NodeKind[];
 
+// Map legacy colon-prefixed kinds emitted by the extractors
+// (`code:function`, `doc:heading`) to the canonical short form used
+// by NodeKind / visibleKinds.  Mirrors `_LEGACY_KIND_MAP` in
+// core/graph_os/types.py — the SPA needs the same mapping because
+// many nodes still carry the legacy form.
+const LEGACY_KIND_MAP: Record<string, NodeKind> = {
+  'code:folder': 'folder',
+  'code:file': 'file',
+  'code:module': 'module',
+  'code:class': 'class',
+  'code:method': 'method',
+  'code:function': 'function',
+  'code:variable': 'variable',
+  'code:interface': 'interface',
+  'code:import': 'import_',
+  'doc:file': 'doc_file',
+  'doc:heading': 'doc_heading',
+  'doc:frontmatter_key': 'doc_frontmatter',
+  'doc:external': 'doc_external',
+  'cos:route': 'route',
+  'cos:mcp_tool': 'mcp_tool',
+  'cos:tool': 'tool',
+  'cos:event': 'event',
+  'cos:hook': 'hook',
+  'cos:skill': 'skill',
+  'cos:rule': 'rule',
+  'cos:contract': 'contract',
+  'cos:identifier': 'identifier',
+  'cos:community': 'community',
+  'task:file': 'task',
+  // Already-canonical short forms map to themselves so callers don't
+  // need to know which form a node carries.
+  ...Object.fromEntries(ALL_KINDS.map((k) => [k, k])),
+};
+
+/** Normalise any extractor kind (legacy or canonical) to the short form. */
+export const normalizeKind = (kind: string | null | undefined): NodeKind => {
+  if (!kind) return 'unknown';
+  return LEGACY_KIND_MAP[kind.toLowerCase()] ?? 'unknown';
+};
+
 export const kindColor = (kind: string | null | undefined): string => {
-  if (!kind) return NODE_COLORS.unknown;
-  const key = kind.toLowerCase() as NodeKind;
-  return NODE_COLORS[key] ?? NODE_COLORS.unknown;
+  return NODE_COLORS[normalizeKind(kind)];
 };

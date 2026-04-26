@@ -1,35 +1,28 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useGraphStore } from '@/store/graph-store';
 import ContainsTree from '@/features/graph/ContainsTree';
 import GraphCanvas from '@/features/graph/GraphCanvas';
 import FilterBar from '@/features/graph/filter-bar';
 import DepthSlider from '@/features/graph/depth-slider';
 import ColorLegend from '@/features/graph/color-legend';
+import ViewModeTabs from '@/features/graph/view-mode-tabs';
 
 // Graph page: tree (left, fixed) + canvas (center, flex) + floating
 // widgets (top-right overlay + bottom-right legend). Inspector lives
 // in the app shell and listens to selectedNodeUid via zustand.
 export default function GraphPage() {
   const { rootUid } = useParams<{ rootUid?: string }>();
-  const navigate = useNavigate();
-  const selectedRootUid = useGraphStore((s) => s.selectedRootUid);
   const setRoot = useGraphStore((s) => s.setRoot);
 
-  // URL <-> store sync: /graph/:rootUid? is the canonical pointer.
+  // URL is the single source of truth; mutators (ContainsTree row
+  // click, Clear button, ProjectSwitcher) call useNavigate themselves
+  // so we only sync URL -> store here. The previous bidirectional
+  // pair of effects produced a render loop after the edge-field bug
+  // was fixed (per TASK-117).
   useEffect(() => {
-    if (rootUid && rootUid !== selectedRootUid) setRoot(rootUid);
-    if (!rootUid && selectedRootUid) setRoot(null);
-  }, [rootUid, selectedRootUid, setRoot]);
-
-  useEffect(() => {
-    if (selectedRootUid && selectedRootUid !== rootUid) {
-      navigate(`/graph/${encodeURIComponent(selectedRootUid)}`, { replace: true });
-    }
-    if (!selectedRootUid && rootUid) {
-      navigate('/graph', { replace: true });
-    }
-  }, [selectedRootUid, rootUid, navigate]);
+    setRoot(rootUid ?? null);
+  }, [rootUid, setRoot]);
 
   return (
     <div
@@ -40,6 +33,9 @@ export default function GraphPage() {
         <ContainsTree />
       </aside>
       <section className="relative overflow-hidden">
+        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
+          <ViewModeTabs />
+        </div>
         <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
           <DepthSlider />
         </div>

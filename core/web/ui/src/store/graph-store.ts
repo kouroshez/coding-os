@@ -25,15 +25,21 @@ export const DEFAULT_EDGE_TYPES = [
 
 export type DepthFilter = 1 | 2 | 3 | 'all';
 
+// TASK-141 P2: view-mode tabs that drive the backend `cos_graph_export`
+// blend selection — see `_AUTO_BLEND_BUCKETS` in graph_os/tools/graph.py.
+export type ViewMode = 'auto' | 'containment' | 'dependencies' | 'processes';
+
 interface GraphStoreState {
   selectedRootUid: string | null;
   selectedNodeUid: string | null;
+  viewMode: ViewMode;
   depth: DepthFilter;
   visibleKinds: Set<NodeKind>;
   visibleEdgeTypes: Set<string>;
 
   setRoot: (uid: string | null) => void;
   setSelectedNode: (uid: string | null) => void;
+  setViewMode: (m: ViewMode) => void;
   setDepth: (d: DepthFilter) => void;
   toggleKind: (k: NodeKind) => void;
   setAllKinds: (visible: boolean) => void;
@@ -43,12 +49,19 @@ interface GraphStoreState {
 export const useGraphStore = create<GraphStoreState>((set) => ({
   selectedRootUid: null,
   selectedNodeUid: null,
+  viewMode: 'auto',
   depth: 2,
   visibleKinds: new Set<NodeKind>(ALL_KINDS),
   visibleEdgeTypes: new Set<string>(DEFAULT_EDGE_TYPES),
 
-  setRoot: (uid) => set({ selectedRootUid: uid, selectedNodeUid: null }),
+  // TASK-141 P3: when a root is picked, mirror it into selectedNodeUid
+  // so the right-pane Inspector opens for it.  Previously the inspector
+  // stayed on the placeholder until the user separately clicked a node
+  // on the canvas — confusing UX, especially when picking from the
+  // left tree.
+  setRoot: (uid) => set({ selectedRootUid: uid, selectedNodeUid: uid }),
   setSelectedNode: (uid) => set({ selectedNodeUid: uid }),
+  setViewMode: (viewMode) => set({ viewMode }),
   setDepth: (depth) => set({ depth }),
 
   toggleKind: (k) =>
