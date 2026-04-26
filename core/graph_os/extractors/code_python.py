@@ -39,6 +39,195 @@ from .md_links import (
 logger = logging.getLogger("graph_os.extractors.code_python")
 
 EXTRACTOR_ID = "code_python@v1"
+# TASK-119: separate ID for the tree-sitter-primary import path so
+# provenance_for() can distinguish ast-emitted edges from
+# tree-sitter-emitted ones.
+EXTRACTOR_ID_TS_IMPORTS = "code_python_ts@v1"
+
+
+def _tree_sitter_imports_active() -> bool:
+    """True when imports should be parsed via tree-sitter.
+
+    Activation conditions:
+      - tree-sitter-python grammar is loadable, AND
+      - COS_EXTRACTOR_PREFERENCE is "tree-sitter" (default `auto`
+        keeps the legacy ast path so existing graphs don't double-emit
+        edges with two different extractor tags during rollout).
+    """
+    import os as _os
+
+    pref = (_os.environ.get("COS_EXTRACTOR_PREFERENCE") or "auto").lower()
+    if pref != "tree-sitter":
+        return False
+    try:
+        from ..tree_sitter_overlay import _load_language
+
+        return _load_language("python") is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _imports_via_tree_sitter(content: str) -> list[_ImportDecl] | None:
+    """Parse Python imports via tree-sitter.
+
+    PURPOSE:    Equivalent of ``visit_Import`` / ``visit_ImportFrom`` for
+                the tree-sitter primary path (TASK-119 / TASK-080a).
+                Returns the same `_ImportDecl` shape as the ast visitor
+                so the emission code is unchanged.
+    OUTPUT:     ``list[_ImportDecl]`` ordered by source line, or ``None``
+                when the grammar cannot parse the content.
+
+    Notes:
+      - Aliases are honoured: `from pkg.sub import Foo as F` keeps
+        `imported="Foo"` and `local_name="F"`.
+      - Wildcards (`from pkg import *`) emit a single `_ImportDecl`
+        with `is_wildcard=True`.
+      - Relative imports (`from . import X` / `from ..pkg import Y`)
+        prepend the dot count to source_module to match ast semantics.
+    """
+    try:
+        from ..tree_sitter_overlay import parse, node_text
+    except ImportError:
+        return None
+
+    parsed = parse("python", content)
+    if parsed is None:
+        return None
+
+    out: list[_ImportDecl] = []
+    content_bytes = content.encode("utf-8")
+
+    def _walk(node):
+        # Pre-order walk; we only act on import_statement /
+        # import_from_statement nodes — siblings recurse via children.
+        kind = getattr(node, "type", None)
+        if kind == "import_statement":
+            _emit_import_statement(node, content_bytes, out)
+            return
+        if kind == "import_from_statement":
+            _emit_import_from(node, content_bytes, out)
+            return
+        for child in node.children:
+            _walk(child)
+
+    _walk(parsed.root)
+    out.sort(key=lambda d: d.line)
+    return out
+
+
+def _emit_import_statement(node, content_bytes: bytes, out: list[_ImportDecl]) -> None:
+    """Handle `import X` / `import X as Y` / `import X, Y`."""
+    # The tree-sitter Python grammar exposes each imported alias as a
+    # `dotted_name` (or `aliased_import` when `as` is present) child.
+    line = (node.start_point[0] if hasattr(node, "start_point") else 0) + 1
+    for child in node.children:
+        ctype = getattr(child, "type", None)
+        if ctype == "dotted_name":
+            name = _node_text(child, content_bytes)
+            out.append(
+                _ImportDecl(
+                    source_module=None,
+                    imported=name,
+                    local_name=name.split(".")[0],
+                    line=line,
+                )
+            )
+        elif ctype == "aliased_import":
+            name_node = child.child_by_field_name("name")
+            alias_node = child.child_by_field_name("alias")
+            if name_node is None or alias_node is None:
+                continue
+            name = _node_text(name_node, content_bytes)
+            alias = _node_text(alias_node, content_bytes)
+            out.append(
+                _ImportDecl(
+                    source_module=None,
+                    imported=name,
+                    local_name=alias,
+                    line=line,
+                )
+            )
+
+
+def _emit_import_from(node, content_bytes: bytes, out: list[_ImportDecl]) -> None:
+    """Handle `from X import Y as Z`, `from . import X`, `from X import *`."""
+    line = (node.start_point[0] if hasattr(node, "start_point") else 0) + 1
+    module_node = node.child_by_field_name("module_name")
+    name_nodes = list(node.children_by_field_name("name") or [])
+
+    # Tree-sitter's grammar represents `from . import x` with a
+    # `relative_import` or a series of `import_prefix` children for
+    # the dots; rebuild the leading-dot count from the source text.
+    module_text = ""
+    if module_node is not None:
+        module_text = _node_text(module_node, content_bytes)
+    else:
+        for child in node.children:
+            if getattr(child, "type", None) == "relative_import":
+                module_text = _node_text(child, content_bytes)
+                break
+
+    # Wildcard import: the body is a `*` token, no aliased_import children.
+    is_wildcard = any(
+        getattr(c, "type", None) == "wildcard_import"
+        or (
+            getattr(c, "type", None) == "*"
+            and getattr(c, "is_named", True) is False
+        )
+        for c in node.children
+    )
+    if is_wildcard:
+        out.append(
+            _ImportDecl(
+                source_module=module_text,
+                imported="*",
+                local_name="*",
+                line=line,
+                is_wildcard=True,
+            )
+        )
+        return
+
+    if not name_nodes:
+        # Older grammars expose the imported names as `dotted_name` /
+        # `aliased_import` children of the `import_from_statement`.
+        name_nodes = [
+            c
+            for c in node.children
+            if getattr(c, "type", None) in ("dotted_name", "aliased_import")
+        ]
+
+    for name_node in name_nodes:
+        ntype = getattr(name_node, "type", None)
+        if ntype == "aliased_import":
+            inner_name = name_node.child_by_field_name("name")
+            inner_alias = name_node.child_by_field_name("alias")
+            if inner_name is None or inner_alias is None:
+                continue
+            imported = _node_text(inner_name, content_bytes)
+            local = _node_text(inner_alias, content_bytes)
+        elif ntype == "dotted_name":
+            imported = _node_text(name_node, content_bytes)
+            local = imported
+        else:
+            continue
+        out.append(
+            _ImportDecl(
+                source_module=module_text,
+                imported=imported,
+                local_name=local,
+                line=line,
+            )
+        )
+
+
+def _node_text(node, content_bytes: bytes) -> str:
+    try:
+        return content_bytes[node.start_byte:node.end_byte].decode(
+            "utf-8", errors="replace"
+        )
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +387,23 @@ def extract(path: str, content: str) -> ExtractionResult:
     visitor = _PythonVisitor(path=normalised, module_name=mod_name, content=content)
     visitor.visit(tree)
 
+    # TASK-119: tree-sitter primary path for imports, opt-in via the
+    # `--extractor=tree-sitter` flag (TASK-122).  When active and the
+    # grammar parse succeeds, replace the ast-derived import list with
+    # the tree-sitter one and tag the emitted edges with
+    # `code_python_ts@v1` so `provenance_for(...)` returns
+    # `"tree-sitter"`.  When inactive (default) the legacy ast path
+    # runs unchanged — zero regression risk for existing graphs.
+    import_extractor_id = EXTRACTOR_ID
+    if _tree_sitter_imports_active():
+        ts_imports = _imports_via_tree_sitter(content)
+        if ts_imports is not None:
+            visitor.imports = ts_imports
+            visitor.imported_local_names = {
+                d.local_name: d for d in ts_imports if d.local_name != "*"
+            }
+            import_extractor_id = EXTRACTOR_ID_TS_IMPORTS
+
     # Emit decls + containment.
     for decl in visitor.decls:
         result.nodes.append(
@@ -248,6 +454,50 @@ def extract(path: str, content: str) -> ExtractionResult:
             )
         )
 
+    # TASK-083: type annotations — has_param_type / returns_type / field_of_type.
+    for fn_uid, type_name in visitor.param_types:
+        result.edges.append(
+            GraphEdge(
+                source_uid=fn_uid,
+                target_uid=_resolve_symbol(
+                    type_name, path=normalised, visitor=visitor
+                ),
+                edge_type="has_param_type",
+                extractor=EXTRACTOR_ID,
+                confidence=_annotation_confidence(type_name, visitor),
+                source_span=normalised,
+                evidence=(EvidenceSignal("ast_annotation", 0.9),),
+            )
+        )
+    for fn_uid, type_name in visitor.return_types:
+        result.edges.append(
+            GraphEdge(
+                source_uid=fn_uid,
+                target_uid=_resolve_symbol(
+                    type_name, path=normalised, visitor=visitor
+                ),
+                edge_type="returns_type",
+                extractor=EXTRACTOR_ID,
+                confidence=_annotation_confidence(type_name, visitor),
+                source_span=normalised,
+                evidence=(EvidenceSignal("ast_annotation", 0.9),),
+            )
+        )
+    for field_stub, type_name in visitor.field_types:
+        result.edges.append(
+            GraphEdge(
+                source_uid=field_stub,
+                target_uid=_resolve_symbol(
+                    type_name, path=normalised, visitor=visitor
+                ),
+                edge_type="field_of_type",
+                extractor=EXTRACTOR_ID,
+                confidence=_annotation_confidence(type_name, visitor),
+                source_span=normalised,
+                evidence=(EvidenceSignal("ast_annotation", 0.9),),
+            )
+        )
+
     # Decorators — is_decorated_by.
     for decorated_uid, dec_name in visitor.decorators_edges:
         result.edges.append(
@@ -278,7 +528,7 @@ def extract(path: str, content: str) -> ExtractionResult:
                     "source_module": imp.source_module,
                     "imported": imp.imported,
                     "wildcard": imp.is_wildcard,
-                    "extractor": EXTRACTOR_ID,
+                    "extractor": import_extractor_id,
                 },
             )
         )
@@ -287,20 +537,25 @@ def extract(path: str, content: str) -> ExtractionResult:
                 source_uid=mod_node.uid,
                 target_uid=imp_uid,
                 edge_type="contains",
-                extractor=EXTRACTOR_ID,
+                extractor=import_extractor_id,
                 confidence=1.0,
             )
         )
         target_mod = imp.source_module or imp.imported
+        signal_name = (
+            "tree_sitter_import"
+            if import_extractor_id == EXTRACTOR_ID_TS_IMPORTS
+            else "ast_import"
+        )
         result.edges.append(
             GraphEdge(
                 source_uid=mod_node.uid,
                 target_uid=module_uid(target_mod),
                 edge_type="imports",
-                extractor=EXTRACTOR_ID,
+                extractor=import_extractor_id,
                 confidence=0.9,
                 source_span=f"{normalised}:{imp.line}",
-                evidence=(EvidenceSignal("ast_import", 0.9),),
+                evidence=(EvidenceSignal(signal_name, 0.9),),
             )
         )
 
@@ -389,6 +644,14 @@ class _PythonVisitor(ast.NodeVisitor):
         self.inherits: list[tuple[str, str]] = []
         self.decorators_edges: list[tuple[str, str]] = []
         self.calls: list[_CallSite] = []
+        # TASK-083: type-annotation edges discovered during the AST walk.
+        # `param_types`     : (function_uid, type_name)
+        # `return_types`    : (function_uid, type_name)
+        # `field_types`     : (field_uid,    type_name) — field_uid is
+        #                     the per-class field stub `<class_uid>.<name>`.
+        self.param_types: list[tuple[str, str]] = []
+        self.return_types: list[tuple[str, str]] = []
+        self.field_types: list[tuple[str, str]] = []
         # Scope stack: the uid each new call-site counts as living inside.
         self._scope_uid_stack: list[str] = [module_uid(module_name)]
         # Qualname stack: dotted path for nested classes / functions.
@@ -459,6 +722,14 @@ class _PythonVisitor(ast.NodeVisitor):
         for dec in node.decorator_list:
             self.decorators_edges.append((uid, _dotted_name(dec)))
 
+        # TASK-083: scan class body for `name: T` and `name: T = default`.
+        for stmt in node.body:
+            if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                ann_name = _dotted_name(stmt.annotation)
+                if ann_name:
+                    field_stub = f"{uid}.{stmt.target.id}"
+                    self.field_types.append((field_stub, ann_name))
+
         self._scope_uid_stack.append(uid)
         try:
             self.generic_visit(node)
@@ -501,6 +772,13 @@ class _PythonVisitor(ast.NodeVisitor):
 
         for dec in node.decorator_list:  # type: ignore[attr-defined]
             self.decorators_edges.append((uid, _dotted_name(dec)))
+
+        # TASK-083: collect param + return type annotations.
+        for ann_name in _function_param_annotations(node):
+            self.param_types.append((uid, ann_name))
+        ret_ann = _function_return_annotation(node)
+        if ret_ann:
+            self.return_types.append((uid, ret_ann))
 
         self._scope_uid_stack.append(uid)
         try:
@@ -628,6 +906,35 @@ def _decorator_confidence(name: str, visitor: _PythonVisitor) -> float:
     return 0.6
 
 
+def _annotation_confidence(type_name: str, visitor: _PythonVisitor) -> float:
+    """Confidence for has_param_type / returns_type / field_of_type edges.
+
+    Mirrors `_inherit_confidence` but slightly stricter: same-scope
+    binding wins (0.95 — directly observed declaration), explicit
+    import next (0.85 — origin is known but not the symbol body),
+    builtin / unresolved fall back to 0.3 so consumers know the edge
+    is best-effort.
+    """
+    head = type_name.split(".")[0]
+    if head in visitor.symbols_by_name:
+        return 0.95
+    if head in visitor.imported_local_names:
+        return 0.85
+    if head in _BUILTIN_TYPES:
+        # Edges to bare builtins are still useful (UI heat-maps), but
+        # they should not win against any user-resolved type.
+        return 0.7
+    return 0.3
+
+
+_BUILTIN_TYPES: frozenset[str] = frozenset({
+    "str", "int", "float", "bool", "bytes", "list", "dict", "tuple",
+    "set", "frozenset", "None", "Any", "object", "type", "complex",
+    "range", "memoryview", "bytearray", "Path", "datetime", "date",
+    "time", "timedelta", "Decimal",
+})
+
+
 # ---------------------------------------------------------------------------
 # Misc helpers
 # ---------------------------------------------------------------------------
@@ -636,19 +943,62 @@ def _decorator_confidence(name: str, visitor: _PythonVisitor) -> float:
 def _module_name_for_path(path: str) -> str:
     """Derive a dotted module name from a file path.
 
-    Non-rigorous — drops `src/`, `core/`, and the `.py` suffix. The
-    LSP overlay (I.5) refines this with the project's real Python path
-    resolution (pyproject + site-packages).
+    Resolution order:
+      1. Active ToolchainContext (TASK-082): when pyproject.toml /
+         setup.cfg declare a non-standard package root (e.g.
+         ``[tool.poetry.packages] include="myapp" from="packages"``),
+         honour it so `packages/myapp/auth.py` → `myapp.auth`.
+      2. Hard-coded ``src/`` / ``core/`` strip — keeps coding-os and
+         most src-layout projects working without a config file.
+      3. Fall through: full POSIX path with `.py` and `__init__` removed.
     """
     parts = [p for p in _normalize_path(path).split("/") if p]
     if parts and parts[-1].endswith(".py"):
         parts[-1] = parts[-1][: -len(".py")]
     if parts and parts[-1] == "__init__":
         parts.pop()
-    # Strip common repo-root shims.
+
+    # 1. Toolchain-driven package root.
+    rebased = _toolchain_python_module_parts(parts)
+    if rebased is not None:
+        return ".".join(rebased) or "__root__"
+
+    # 2. Default repo-root shims.
     if parts and parts[0] in {"src", "core"}:
         parts = parts[1:]
     return ".".join(parts) or "__root__"
+
+
+def _toolchain_python_module_parts(parts: list[str]) -> list[str] | None:
+    """Try to rebase a file's path-parts under a known Python package
+    root from the active ToolchainContext.  Returns the rebased parts
+    (e.g. ``["myapp", "auth"]``) or None when no package root matches.
+    """
+    try:
+        from ..toolchain import get_active
+    except ImportError:
+        return None
+    ctx = get_active()
+    if ctx is None:
+        return None
+    if not ctx.python_packages:
+        return None
+    flat = "/".join(parts)
+    # Match longest root first so nested packages win over shallow ones.
+    for pkg_name, pkg_root in sorted(
+        ctx.python_packages.items(), key=lambda kv: -len(kv[1])
+    ):
+        rel_root = pkg_root.strip("/").replace("\\", "/")
+        if not rel_root:
+            continue
+        prefix = f"{rel_root}/"
+        if flat.startswith(prefix):
+            tail = flat[len(prefix):]
+            tail_parts = [p for p in tail.split("/") if p]
+            return [pkg_name, *tail_parts]
+        if flat == rel_root:
+            return [pkg_name]
+    return None
 
 
 def _hash_decl(decl: _SymbolDecl) -> str:
@@ -659,6 +1009,96 @@ def _hash_decl(decl: _SymbolDecl) -> str:
 def _class_signature(node: ast.ClassDef) -> str:
     bases = ", ".join(_dotted_name(b) for b in node.bases)
     return f"class {node.name}({bases})" if bases else f"class {node.name}"
+
+
+def _function_param_annotations(node: ast.AST) -> list[str]:
+    """Return the annotation names for every annotated parameter of
+    ``node`` (a FunctionDef / AsyncFunctionDef).
+
+    Skips `self` and `cls` because their annotation is uninteresting
+    (it would always be the surrounding class), and skips parameters
+    with no annotation.  Union-style annotations expand to one entry
+    per branch so each receiver type emits its own edge.
+    """
+    args = getattr(node, "args", None)
+    if args is None:
+        return []
+    out: list[str] = []
+    pos_args = list(getattr(args, "posonlyargs", []) or []) + list(
+        getattr(args, "args", []) or []
+    )
+    for idx, arg in enumerate(pos_args):
+        if idx == 0 and arg.arg in ("self", "cls"):
+            continue
+        if arg.annotation is None:
+            continue
+        out.extend(_expand_annotation(arg.annotation))
+    for arg in getattr(args, "kwonlyargs", []) or []:
+        if arg.annotation is None:
+            continue
+        out.extend(_expand_annotation(arg.annotation))
+    if getattr(args, "vararg", None) is not None and args.vararg.annotation is not None:
+        out.extend(_expand_annotation(args.vararg.annotation))
+    if getattr(args, "kwarg", None) is not None and args.kwarg.annotation is not None:
+        out.extend(_expand_annotation(args.kwarg.annotation))
+    return out
+
+
+def _function_return_annotation(node: ast.AST) -> str | None:
+    ret = getattr(node, "returns", None)
+    if ret is None:
+        return None
+    flat = _expand_annotation(ret)
+    return flat[0] if flat else None
+
+
+def _expand_annotation(node: ast.AST) -> list[str]:
+    """Return one or more dotted names for an annotation node.
+
+    `Foo`                  → ["Foo"]
+    `pkg.Foo`              → ["pkg.Foo"]
+    `Optional[Foo]`        → ["Foo"]            (None branch dropped)
+    `Union[Foo, Bar]`      → ["Foo", "Bar"]
+    `Foo | Bar`            → ["Foo", "Bar"]
+    `list[Foo]`            → ["Foo"]            (container stripped)
+    `Literal["x"]`         → []                 (value-only types skipped)
+
+    Anything we can't recognise yields an empty list — caller will then
+    skip the edge entirely rather than emit a stub with bad confidence.
+    """
+    if isinstance(node, ast.Name):
+        return [node.id]
+    if isinstance(node, ast.Attribute):
+        dotted = _dotted_name(node)
+        return [dotted] if dotted else []
+    if isinstance(node, ast.Constant):
+        # `None` annotation → drop (often appears via Optional[...]).
+        if node.value is None:
+            return []
+        # Forward reference as string literal: `"Foo"`.
+        if isinstance(node.value, str):
+            return [node.value]
+        return []
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        # PEP 604 unions: `Foo | Bar | None`.
+        return _expand_annotation(node.left) + _expand_annotation(node.right)
+    if isinstance(node, ast.Subscript):
+        # Container subscripts: `list[Foo]`, `Optional[Foo]`, `Union[Foo, Bar]`,
+        # `dict[str, Foo]`.  Walk inside and recurse.
+        value_name = _dotted_name(node.value) if isinstance(node.value, (ast.Name, ast.Attribute)) else ""
+        slice_node = getattr(node, "slice", None)
+        if slice_node is None:
+            return []
+        # Generic strip — unwrap the container, recurse on the slice.
+        if isinstance(slice_node, ast.Tuple):
+            return [t for elt in slice_node.elts for t in _expand_annotation(elt)]
+        # Special case for `Literal[...]` — types-by-value, not by-class.
+        if value_name == "Literal":
+            return []
+        return _expand_annotation(slice_node)
+    if isinstance(node, ast.Tuple):
+        return [t for elt in node.elts for t in _expand_annotation(elt)]
+    return []
 
 
 def _function_signature(node: ast.AST, *, is_async: bool) -> str:
