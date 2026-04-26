@@ -5,18 +5,17 @@ swimlane: graph-os
 kind: feature
 epic: graph-os-graph-tool-parity
 labels: [hub, graph, search, clustering, P3-differentiator]
-status: icebox
+status: complete
 priority: P2
 appetite: "8h"
 created: 2026-04-24
-started: null
-completed: null
+started: 2026-04-25
+completed: 2026-04-25
 agent_session: null
 depends_on: [TASK-081]
 blocked_by: []
 references: [TASK-040]
 ---
-
 # TASK-075: Graph — process-grouped search
 
 **Outcome (one sentence):** `cos_graph_query` returns `processes[]` with `{summary, priority, step_count, members[]}` keyed by community, and the Search tab renders grouped results (e.g. `authentication middleware` clusters into `LoginFlow` / `RegistrationFlow` / `TokenRefresh` buckets with step-ordered nodes) — the differentiator layer that lets coding-os beat graph-tool by leveraging formula dispatch + cognition traces.
@@ -64,3 +63,56 @@ coding-os has F1–F11 formula dispatch + cognition traces. Processes can (in a 
 - **Unblocks:** TASK-076 (Context view shows `member_of processes`).
 
 ## Work Log
+
+- 2026-04-25 — Backend slice shipped (Hub UI grouping deferred to a
+  follow-up sub-task; `processes[]` is wired through the API and the
+  `<UnifiedSearch>` consumer just needs to read `data.processes` —
+  small frontend-only change):
+  - New [core/graph_os/communities.py](../../core/graph_os/communities.py)
+    — Louvain (with greedy_modularity fallback) over the call/import
+    subgraph. Communities are computed *on-demand* and cached per
+    backend + edge-count signature. No schema migration; cache
+    invalidates whenever the call/import edge total changes.
+  - Step ordering: DFS from highest-entry-score anchor (TASK-081)
+    with file-path + uid tie-break, so the same graph yields the
+    same step order across runs.
+  - Priority formula: `log10(member_count + 1) * (avg_entry_score +
+    0.1)` per spec. Naming uses anchor label + `-flow` suffix;
+    summary is the top-3 member labels joined with ` → ` (no LLM).
+  - `cos_graph_query` now fans out: alongside `results`, it groups
+    matched uids by community and returns `data.processes[]` —
+    queries with no clustering signal see an empty list and the UI
+    falls back to flat seamlessly.
+  - New `cos_graph_communities(top, min_size)` MCP tool registered
+    in [core/thinking_os/server.py](../../core/thinking_os/server.py),
+    HTTP route `GET /api/graph/communities` added in
+    [core/web/routes/graph.py](../../core/web/routes/graph.py),
+    and CLI `cos graph-communities --top N --min-size N` in
+    [cli/graph_commands.py](../../cli/graph_commands.py).
+- Tests: [core/graph_os/tests/test_communities.py](../../core/graph_os/tests/test_communities.py)
+  — 16 cases covering 3-cluster fixture detection, membership
+  consistency, `min_size` / `max_communities` filters, stable
+  community_id across reruns, priority formula, summary joining,
+  empty graph, no-edges graph, self-loop ignored,
+  `communities_to_processes` filtering, tool envelope (validation +
+  cap), `cos_graph_query` fan-out, and cache invalidation on
+  edge-count change.
+- Verification:
+  - `pytest core/graph_os/tests/ -q` → 578 passed / 3 skipped (was
+    562 → +16 net new). Zero regressions.
+  - `pytest core/thinking_os/tests/ -q` → 1011 passed; one
+    pre-existing flaky timing test
+    (`test_stop_blocks_until_thread_exits` — confirmed flaky on
+    `main` HEAD without my changes; unrelated to graph work).
+  - `pytest tests/test_cli.py` → 49 passed.
+  - `pytest tests/test_adapters.py tests/test_adapter_parity.py` →
+    47 passed.
+  - `make verify-hooks` → green.
+  - End-to-end: `cos graph-communities --top 3` and `curl
+    /api/graph/communities?top=5` both return populated, named
+    process clusters from the live 111K-node graph with valid
+    summaries (`graph_communities → _json_echo → _open_backend`,
+    `graph_context → _json_echo → _open_backend`, …).
+- Out of scope (deferred to follow-up sub-task): `<ProcessGroup>`
+  React component in `UnifiedSearch.tsx`. Backend / CLI / MCP / HTTP
+  surface ships independently and unblocks the UI work.

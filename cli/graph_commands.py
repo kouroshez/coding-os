@@ -573,6 +573,21 @@ def register(cli: click.Group) -> None:
             pretty=pretty,
         )
 
+    @cli.command(name="graph-communities")
+    @click.option("--top", default=20, show_default=True, type=int)
+    @click.option("--min-size", default=2, show_default=True, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_communities(top, min_size, pretty):
+        """Louvain process clusters (TASK-075).
+
+        Reads the indexed graph; computes Louvain communities over
+        the call/import subgraph.  Use to seed the Search tab grouping
+        or to audit how the graph clusters into named processes.
+        """
+        _, tools = _open_backend()
+        result = tools.cos_graph_communities(top=int(top), min_size=int(min_size))
+        _json_echo(result, pretty=pretty)
+
     @cli.command(name="graph-entrypoints")
     @click.option("--top", default=20, show_default=True, type=int)
     @click.option(

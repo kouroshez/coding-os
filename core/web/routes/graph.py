@@ -343,3 +343,48 @@ async def graph_contracts(
     kinds_tuple = tuple(k.strip() for k in kinds.split(",") if k.strip())
     result = g.cos_graph_contracts(scope=scope, kinds=kinds_tuple)
     return unwrap(result)
+
+
+@router.get("/communities")
+async def graph_communities(
+    top: int = Query(50, ge=1, le=200),
+    min_size: int = Query(2, ge=1, le=100),
+    _rl=Depends(make_rate_limit_dep("graph.communities")),
+    _m=Depends(make_metrics_dep("graph.communities")),
+):
+    """Louvain-detected processes for the Hub Search tab grouping (TASK-075).
+
+    PURPOSE: HTTP wrapper for cos_graph_communities.
+    INPUT:   top (1-200), min_size (1-100).
+    OUTPUT:  {data: {processes: [...]}, meta}.
+    """
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    return unwrap(g.cos_graph_communities(top=int(top), min_size=int(min_size)))
+
+
+@router.get("/entrypoints")
+async def graph_entrypoints(
+    top: int = Query(20, ge=1, le=200),
+    kind: str = Query(""),
+    min_score: float = Query(0.05, ge=0.0, le=1.0),
+    _rl=Depends(make_rate_limit_dep("graph.entrypoints")),
+    _m=Depends(make_metrics_dep("graph.entrypoints")),
+):
+    """Scored entry points for the Hub Graph tab (TASK-081).
+
+    PURPOSE: HTTP wrapper for cos_graph_entrypoints.
+    INPUT:   top (1-200), kind (main|cli|http|cron|test), min_score.
+    OUTPUT:  {data: {entrypoints: [...]}, meta}.
+    DEPENDENCIES: graph_os.tools.graph.cos_graph_entrypoints.
+    """
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    result = g.cos_graph_entrypoints(
+        top=int(top),
+        kind=(kind or None),
+        min_score=float(min_score),
+    )
+    return unwrap(result)

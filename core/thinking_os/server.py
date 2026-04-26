@@ -1073,9 +1073,11 @@ def cos_task_by_filter(
 # @mcp.tool-decorated wrapper that injects the server's shared _db_conn.
 
 try:
-    _BOARD_OS_DIR = Path(__file__).resolve().parents[1] / "board_os"
-    if str(_BOARD_OS_DIR.parent) not in sys.path:
-        sys.path.insert(0, str(_BOARD_OS_DIR.parent))
+    # `from core.board_os...` requires the project root (parent of `core/`)
+    # on sys.path, since `core/` is a namespace package without __init__.py.
+    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    if str(_PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(_PROJECT_ROOT))
     from core.board_os import mcp_tools as _board_mcp  # type: ignore
     _BOARD_OS_AVAILABLE = True
 except ImportError as _exc:
@@ -1858,6 +1860,50 @@ if _GRAPH_TOOLS_AVAILABLE:
             kinds=tuple(_csv(kinds) or ("http", "mcp", "grpc", "event", "websocket")),
         )
 
+    @mcp.tool(
+        name="cos_graph_entrypoints",
+        annotations={
+            "title": "Graph Entry Points (Scored)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_entrypoints_tool(
+        top: int = 20,
+        kind: str = "",
+        min_score: float = 0.05,
+    ) -> str:
+        """Top-N scored entry points (main / cli / http / cron / test) — TASK-081."""
+        return _graph_tools.cos_graph_entrypoints(
+            top=int(top),
+            kind=(kind or None),
+            min_score=float(min_score),
+        )
+
+    @mcp.tool(
+        name="cos_graph_communities",
+        annotations={
+            "title": "Graph Communities / Processes (Louvain)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_communities_tool(
+        top: int = 50,
+        min_size: int = 2,
+    ) -> str:
+        """Louvain-detected processes (LoginFlow / RegistrationFlow / …) — TASK-075."""
+        return _graph_tools.cos_graph_communities(
+            top=int(top),
+            min_size=int(min_size),
+        )
+
 else:
     # Deterministic unavailable responses so agents still see a valid envelope.
     for _name in (
@@ -1872,6 +1918,8 @@ else:
         "cos_graph_export",
         "cos_graph_rename_plan",
         "cos_graph_contracts",
+        "cos_graph_entrypoints",
+        "cos_graph_communities",
     ):
         def _make_stub(tool_name: str):
             @mcp.tool(

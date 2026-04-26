@@ -377,12 +377,32 @@ def cos_graph_query(
     # envelope stays bounded regardless of how long the query string is.
     _MAX_QUERY_META = 500
     query_meta = q if len(q) <= _MAX_QUERY_META else q[:_MAX_QUERY_META] + "..."
+
+    # TASK-075: process grouping.  Group hit uids by Louvain community
+    # so the Search tab can render `LoginFlow` / `RegistrationFlow`
+    # buckets.  Communities are computed lazily per backend with a
+    # cheap edge-count signature; queries with no clustering signal
+    # see an empty `processes` list and the UI falls back to flat.
+    processes: list[dict[str, Any]] = []
+    try:
+        from .. import communities as comm_mod
+
+        all_communities, _membership = comm_mod.compute_communities(be)
+        relevant_uids = {n.uid for n in nodes}
+        processes = comm_mod.communities_to_processes(
+            all_communities, relevant_uids=relevant_uids
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("community grouping suppressed: %s", exc)
+        processes = []
+
     return _ok(
-        {"results": results[:limit]},
+        {"results": results[:limit], "processes": processes},
         meta={
             "query": query_meta,
             "backend": be.backend_id,
             "include_spine": include_spine,
+            "process_count": len(processes),
         },
     )
 
@@ -1243,6 +1263,52 @@ def cos_graph_entrypoints(
     )
 
 
+def cos_graph_communities(
+    *,
+    top: int = 50,
+    min_size: int = 2,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Return Louvain-detected processes / communities (TASK-075).
+
+    PURPOSE:    Surface named clusters (LoginFlow / RegistrationFlow /
+                TokenRefresh-style) for the Hub Search tab grouping
+                and the Inspector "Member of processes" section.
+    INPUT:      ``top`` — max rows returned (1-200).
+                ``min_size`` — drop singleton clusters smaller than
+                                this floor (default 2).
+    OUTPUT:     ok({processes: [{community_id, name, summary,
+                priority, member_count, members: [...]}]}).
+                Sorted by priority desc; empty when the graph has no
+                clustering signal yet (a fresh repo before reindex).
+    """
+    if not isinstance(top, int) or top <= 0:
+        return _fail("validation", "top must be a positive int")
+    if top > 200:
+        top = 200
+    if not isinstance(min_size, int) or min_size < 1:
+        return _fail("validation", "min_size must be >= 1")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    from .. import communities as comm_mod
+
+    all_communities, _membership = comm_mod.compute_communities(
+        be, min_size=int(min_size)
+    )
+    rows = comm_mod.communities_to_processes(all_communities, relevant_uids=None)
+    return _ok(
+        {"processes": rows[:top]},
+        meta={
+            "backend": be.backend_id,
+            "count": len(rows[:top]),
+            "total": len(rows),
+        },
+    )
+
+
 __all__ = [
     "cos_graph_query",
     "cos_graph_context",
@@ -1256,5 +1322,6 @@ __all__ = [
     "cos_graph_rename_plan",
     "cos_graph_contracts",
     "cos_graph_entrypoints",
+    "cos_graph_communities",
     "reset_backend",
 ]
