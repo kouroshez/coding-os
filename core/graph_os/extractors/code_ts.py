@@ -36,6 +36,32 @@ from .md_links import (
 logger = logging.getLogger("graph_os.extractors.code_ts")
 
 EXTRACTOR_ID = "code_ts@v1"
+# TASK-121: tree-sitter primary path for TS/TSX. Activated by
+# COS_EXTRACTOR_PREFERENCE=tree-sitter when the grammar is installed.
+EXTRACTOR_ID_TS = "code_ts_ts@v1"
+
+
+def _tree_sitter_ts_active(lang_id: str) -> bool:
+    """True when imports / heritage should be tagged as tree-sitter.
+
+    Activation conditions:
+      - COS_EXTRACTOR_PREFERENCE == "tree-sitter"
+      - the requested language grammar (typescript / tsx) is loadable
+
+    Default `auto` mode keeps the legacy regex tag so existing graphs
+    don't double-emit during rollout.
+    """
+    import os as _os
+
+    pref = (_os.environ.get("COS_EXTRACTOR_PREFERENCE") or "auto").lower()
+    if pref != "tree-sitter":
+        return False
+    try:
+        from ..tree_sitter_overlay import _load_language
+
+        return _load_language(lang_id) is not None
+    except Exception:  # noqa: BLE001
+        return False
 
 # ---------------------------------------------------------------------------
 # Comment / string stripping — simple but enough for a scanner.
@@ -244,8 +270,21 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
     )
 
+    # TASK-121: tag imports as tree-sitter when the user opted in
+    # AND the overlay parsed successfully (we already have a parsed
+    # AST in `_ts_overlay`). The regex still extracts; the tag swap
+    # signals "this came from grammar-validated TS" so the Hub UI
+    # Inspector and provenance_for() consumers can distinguish.
+    ts_override: str | None = None
+    if _ts_overlay is not None and _tree_sitter_ts_active(lang_id):
+        ts_override = EXTRACTOR_ID_TS
+
     imported_names = _extract_imports(
-        path=normalised, module_uid_=module.uid, content=import_scan, result=result
+        path=normalised,
+        module_uid_=module.uid,
+        content=import_scan,
+        result=result,
+        extractor_override=ts_override,
     )
     local_names: dict[str, str] = {}
     _extract_classes(
@@ -376,8 +415,27 @@ def _extract_imports(
     module_uid_: str,
     content: str,
     result: ExtractionResult,
+    extractor_override: str | None = None,
 ) -> dict[str, str]:
-    """Emit import nodes + edges and return {local_name -> module specifier}."""
+    """Emit import nodes + edges and return {local_name -> module specifier}.
+
+    TASK-121: when ``extractor_override`` is set (the caller has
+    detected a successful tree-sitter parse and the user has opted in
+    via `--extractor=tree-sitter`), every emitted import edge / node
+    carries that ID instead of the legacy ``code_ts@v1``.  The regex
+    keeps doing the extraction — the overlay parse acts as the
+    "is this really TS/TSX?" gate so a successful tag swap means a
+    grammar-validated source.
+    """
+    eid = extractor_override or EXTRACTOR_ID
+    eid_signal_named = (
+        "tree_sitter_import" if extractor_override else "ts_import"
+    )
+    eid_signal_side = (
+        "tree_sitter_import_side_effect"
+        if extractor_override
+        else "ts_import_side_effect"
+    )
     imported_names: dict[str, str] = {}
 
     for match in _IMPORT_RE.finditer(content):
@@ -401,7 +459,7 @@ def _extract_imports(
                     metadata={
                         "source_module": module,
                         "imported": name,
-                        "extractor": EXTRACTOR_ID,
+                        "extractor": eid,
                     },
                 )
             )
@@ -410,7 +468,7 @@ def _extract_imports(
                     source_uid=module_uid_,
                     target_uid=imp_uid,
                     edge_type="contains",
-                    extractor=EXTRACTOR_ID,
+                    extractor=eid,
                     confidence=1.0,
                 )
             )
@@ -421,10 +479,10 @@ def _extract_imports(
                 source_uid=module_uid_,
                 target_uid=target_mod_uid,
                 edge_type="imports",
-                extractor=EXTRACTOR_ID,
+                extractor=eid,
                 confidence=0.9,
                 source_span=f"{path}:{line}",
-                evidence=(EvidenceSignal("ts_import", 0.9),),
+                evidence=(EvidenceSignal(eid_signal_named, 0.9),),
             )
         )
 
@@ -437,10 +495,10 @@ def _extract_imports(
                 source_uid=module_uid_,
                 target_uid=target_mod_uid,
                 edge_type="imports",
-                extractor=EXTRACTOR_ID,
+                extractor=eid,
                 confidence=0.85,
                 source_span=f"{path}:{line}",
-                evidence=(EvidenceSignal("ts_import_side_effect", 0.85),),
+                evidence=(EvidenceSignal(eid_signal_side, 0.85),),
             )
         )
 
@@ -453,7 +511,7 @@ def _extract_imports(
                 source_uid=module_uid_,
                 target_uid=target_mod_uid,
                 edge_type="re_exports",
-                extractor=EXTRACTOR_ID,
+                extractor=eid,
                 confidence=0.9,
                 source_span=f"{path}:{line}",
             )
@@ -484,9 +542,15 @@ def _parse_clause(clause: str) -> list[str]:
 def _resolve_module_uid(origin: str, specifier: str) -> str:
     """Resolve an import specifier to a module uid.
 
-    Relative paths become repo-rooted file uids; bare specifiers are
-    treated as package names (tracked but not filesystem-resolved
-    here — the TS overlay does that in I.6b).
+    Resolution precedence (matches `tsc --traceResolution`):
+      1. Relative paths become repo-rooted file uids.
+      2. tsconfig `compilerOptions.paths` aliases (TASK-082) — when an
+         active ToolchainContext declares e.g. `@shared/*` →
+         `packages/shared/src/*`, expand the wildcard and emit a
+         repo-local module uid.
+      3. tsconfig `compilerOptions.baseUrl` — non-relative specifiers
+         that resolve under baseUrl become repo-local module uids.
+      4. Otherwise treat as bare package name (`code:module:npm:...`).
     """
     if specifier.startswith("."):
         origin_dir = PurePosixPath(origin).parent
@@ -506,7 +570,67 @@ def _resolve_module_uid(origin: str, specifier: str) -> str:
         if "." not in PurePosixPath(resolved).name:
             resolved += ".ts"
         return f"code:module:{resolved}"
+
+    # TASK-082: tsconfig.paths / baseUrl aliasing.
+    aliased = _resolve_ts_alias(specifier)
+    if aliased:
+        return f"code:module:{aliased}"
+
     return f"code:module:npm:{specifier}"
+
+
+def _resolve_ts_alias(specifier: str) -> str | None:
+    """Match `specifier` against the active ToolchainContext's
+    tsconfig.paths + baseUrl.  Returns the rewritten POSIX module path
+    (without `.ts` suffix appended; caller already handles extension)
+    or None when no alias matches.
+    """
+    try:
+        from ..toolchain import get_active
+    except ImportError:
+        return None
+    ctx = get_active()
+    if ctx is None:
+        return None
+
+    # First-fit alias scan.  Anchored prefix: `@shared/*` matches any
+    # specifier starting with `@shared/`.  Exact pattern (no `*`) must
+    # equal the specifier.
+    for pattern, replacements in ctx.ts_paths.items():
+        rewrite = _apply_ts_path(pattern, replacements, specifier)
+        if rewrite is not None:
+            return rewrite
+
+    # baseUrl path: if the specifier maps onto a file under baseUrl,
+    # produce that path.  baseUrl is already repo-relative POSIX.
+    if ctx.ts_base_url:
+        candidate = f"{ctx.ts_base_url.rstrip('/')}/{specifier}"
+        return candidate
+
+    return None
+
+
+def _apply_ts_path(
+    pattern: str,
+    replacements: tuple[str, ...],
+    specifier: str,
+) -> str | None:
+    """Implement `tsc`-style `*` substitution for a single paths entry."""
+    if "*" in pattern:
+        prefix, _, suffix = pattern.partition("*")
+        if not specifier.startswith(prefix) or not specifier.endswith(suffix):
+            return None
+        captured = specifier[len(prefix): len(specifier) - len(suffix) if suffix else None]
+        for repl in replacements:
+            if "*" not in repl:
+                continue
+            return repl.replace("*", captured, 1)
+        # No `*` in replacements — use the first as-is.
+        return replacements[0] if replacements else None
+    if specifier == pattern:
+        for repl in replacements:
+            return repl
+    return None
 
 
 # ---------------------------------------------------------------------------
