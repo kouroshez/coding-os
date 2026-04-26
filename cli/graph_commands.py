@@ -306,9 +306,28 @@ def register(cli: click.Group) -> None:
         "without a full reindex. Useful after the NodeKind enum "
         "ships to canonicalise legacy colon-prefixed kinds in place.",
     )
-    def graph_reindex(path, no_docs, max_files, force, status, rebuild_kinds):
+    @click.option(
+        "--extractor",
+        type=click.Choice(["auto", "legacy", "tree-sitter"], case_sensitive=False),
+        default="auto",
+        show_default=True,
+        help=(
+            "TASK-122 A/B flag: which parser ladder extractors should "
+            "use. 'legacy' forces ast/regex baselines; 'tree-sitter' "
+            "prefers tree-sitter when grammars are installed (lands "
+            "in TASK-119/120/121); 'auto' picks the current default. "
+            "Sets COS_EXTRACTOR_PREFERENCE for downstream extractors."
+        ),
+    )
+    def graph_reindex(path, no_docs, max_files, force, status, rebuild_kinds, extractor):
         """Walk a directory and rebuild the graph via the dispatcher."""
         _bootstrap_paths()
+        # TASK-122: publish the chosen ladder via env so every spawned
+        # subprocess (incremental indexer, doc indexer, etc.) sees it.
+        # Existing call sites that bypass the CLI (e.g. PostToolUse
+        # auto-reindex) keep their default behaviour because the env
+        # var is unset when the CLI flag isn't passed.
+        os.environ["COS_EXTRACTOR_PREFERENCE"] = (extractor or "auto").lower()
         if status:
             _graph_reindex_print_status()
             return
@@ -553,6 +572,30 @@ def register(cli: click.Group) -> None:
             ),
             pretty=pretty,
         )
+
+    @cli.command(name="graph-entrypoints")
+    @click.option("--top", default=20, show_default=True, type=int)
+    @click.option(
+        "--kind",
+        default="",
+        help="Filter on entry_kind: main / cli / http / cron / test.",
+    )
+    @click.option("--min-score", default=0.05, show_default=True, type=float)
+    @click.option("--pretty", is_flag=True)
+    def graph_entrypoints(top, kind, min_score, pretty):
+        """Top-N scored entry points (main / cli / http / cron / test) — TASK-081.
+
+        Reads the indexed graph; no file re-parsing.  Use to seed
+        cos_graph_trace, populate the Hub Graph tab "Start from entry
+        point" panel, or sanity-check after a reindex.
+        """
+        _, tools = _open_backend()
+        result = tools.cos_graph_entrypoints(
+            top=int(top),
+            kind=(kind or None),
+            min_score=float(min_score),
+        )
+        _json_echo(result, pretty=pretty)
 
     @cli.command(name="graph-viz")
     @click.option("--path", default=None)

@@ -131,12 +131,19 @@ class NodeSummary:
 
 
 def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[str, Any]:
+    # TASK-122: surface provenance derived from extractor — additive,
+    # never replaces the existing extractor field.  Hub UI consumers
+    # (ImpactPanel, ContextPanel) can colour or filter by this label
+    # without parsing extractor IDs.
+    from ..types import provenance_for
+
     out: dict[str, Any] = {
         "source_uid": edge.source_uid,
         "target_uid": edge.target_uid,
         "edge_type": edge.edge_type,
         "confidence": edge.confidence,
         "extractor": edge.extractor,
+        "provenance": provenance_for(edge.extractor),
         "source_span": edge.source_span,
     }
     if include_evidence:
@@ -642,6 +649,18 @@ def cos_graph_trace(
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
     root = be.get_node(entry_uid)
+    start_source = "explicit"
+    if root is None:
+        # TASK-081: fall back to the highest-scoring entry point whose
+        # label / file matches the supplied identifier.  Lets agents
+        # call cos_graph_trace("login") without first running a
+        # separate query to resolve the uid.
+        from .. import entry_points as ep_mod
+
+        ep = ep_mod.best_start_for_query(be, entry_uid)
+        if ep is not None:
+            root = be.get_node(ep.uid)
+            start_source = "entry-point-heuristic"
     if root is None:
         return _fail("not_found", f"no node with uid {entry_uid!r}")
 
@@ -690,8 +709,13 @@ def cos_graph_trace(
             "steps": steps,
             "branches": branches,
             "terminals": list(terminals),
+            "start_source": start_source,
         },
-        meta={"backend": be.backend_id, "step_count": len(steps)},
+        meta={
+            "backend": be.backend_id,
+            "step_count": len(steps),
+            "start_source": start_source,
+        },
     )
 
 
@@ -1173,6 +1197,52 @@ def _escape(text: str) -> str:
     return text.replace("\"", "'")
 
 
+def cos_graph_entrypoints(
+    *,
+    top: int = 20,
+    kind: str | None = None,
+    min_score: float = 0.05,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Return scored entry-point candidates (TASK-081).
+
+    PURPOSE:    Surface high-value starting nodes for traces / Hub UI.
+    INPUT:      ``top`` — max rows returned (1-200).
+                ``kind`` — optional filter on entry_kind
+                          (main / cli / http / cron / test).
+                ``min_score`` — drop rows below this score.
+    OUTPUT:     ok({entrypoints: [{uid, kind, score, label, file_path,
+                start_line, components}]}). Empty list when no
+                candidates pass the threshold.
+    """
+    if not isinstance(top, int) or top <= 0:
+        return _fail("validation", "top must be a positive int")
+    if top > 200:
+        top = 200
+    if kind is not None and kind not in ("main", "cli", "http", "cron", "test"):
+        return _fail(
+            "validation",
+            f"kind must be one of main/cli/http/cron/test (got {kind!r})",
+        )
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    from .. import entry_points as ep_mod  # local import: avoids cycle on cold load
+
+    eps = ep_mod.discover(be, min_score=float(min_score), kind_filter=kind)
+    rows = [ep.to_dict() for ep in eps[:top]]
+    return _ok(
+        {"entrypoints": rows},
+        meta={
+            "backend": be.backend_id,
+            "count": len(rows),
+            "scanned_kinds": list(("code:function", "code:method", "function", "method")),
+        },
+    )
+
+
 __all__ = [
     "cos_graph_query",
     "cos_graph_context",
@@ -1185,5 +1255,6 @@ __all__ = [
     "cos_graph_export",
     "cos_graph_rename_plan",
     "cos_graph_contracts",
+    "cos_graph_entrypoints",
     "reset_backend",
 ]

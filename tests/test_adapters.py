@@ -585,7 +585,13 @@ class TestMcpPortable:
     def test_mcp_entry_uses_wrapper_when_cos_available(
         self, tmp_path: Path
     ) -> None:
-        """When `cos` is on PATH, entry should be wrapper form."""
+        """When `cos` is on PATH, entry should be the canonical fast-path
+        entry. Per CLAUDE.md rule 20, ``cos-mcp-start`` is preferred —
+        it skips cli.main's 380 ms subcommand-import tax that breaks
+        the Anthropic VSCode extension's 60s init budget.  Both
+        ``cos-mcp-start`` and the legacy ``cos``/``uv`` shapes are
+        accepted (the renderer falls back when the fast-path binary
+        isn't installed)."""
         import shutil as _shutil
         if _shutil.which("cos") is None:
             pytest.skip("cos not on PATH")
@@ -595,5 +601,4 @@ class TestMcpPortable:
         assert result.returncode == 0
         data = json.loads((project / ".mcp.json").read_text())
         entry = data["mcpServers"]["coding-os"]
-        # Either wrapper form OR absolute fallback (both are accepted by C14 PASS/WARN)
-        assert entry["command"] in ("cos", "uv")
+        assert entry["command"] in ("cos-mcp-start", "cos", "uv")

@@ -251,10 +251,67 @@ class GraphEdge:
             )
 
 
+# ---------------------------------------------------------------------------
+# Provenance (TASK-122)
+# ---------------------------------------------------------------------------
+#
+# `provenance` is a single-string label for "what kind of parser produced
+# this edge".  It's not stored on disk — it's derived from the existing
+# `extractor` field at read time, so the migration is purely additive
+# and existing rows light up with the correct value the moment a caller
+# asks for it.
+
+
+PROVENANCE_VALUES: tuple[str, ...] = (
+    "tree-sitter",
+    "ast",
+    "regex",
+    "lsp",
+    "text-search",
+    "parser",
+    "unknown",
+)
+
+
+_EXTRACTOR_PROVENANCE: dict[str, str] = {
+    "code_python@v1":     "ast",
+    "code_python_ts@v1":  "tree-sitter",
+    "code_ts@v1":         "regex",
+    "code_ts_ts@v1":      "tree-sitter",
+    "code_go@v1":         "regex",
+    "code_go_ts@v1":      "tree-sitter",
+    "code_shell@v1":      "regex",
+    "code_yaml@v1":       "parser",
+    "contracts@v1":       "regex",
+    "md_links@v1":        "parser",
+    "task_deps@v1":       "parser",
+    "lsp_overlay@v1":     "lsp",
+}
+
+
+def provenance_for(extractor: str | None) -> str:
+    """Return the provenance label for an extractor ID.
+
+    PURPOSE:    Single source of truth for "what kind of parser
+                produced this edge". Used by the Hub UI Inspector,
+                cos_graph_query for source filtering, and the A/B
+                rollout switch in `cos graph-reindex`.
+    INPUT:      ``extractor`` — the GraphEdge.extractor string; may be
+                None if a legacy row has no extractor recorded.
+    OUTPUT:     One of PROVENANCE_VALUES. Defaults to "unknown" so a
+                stray new extractor doesn't crash the consumer.
+    """
+    if not extractor:
+        return "unknown"
+    return _EXTRACTOR_PROVENANCE.get(extractor, "unknown")
+
+
 __all__ = [
     "GraphNode",
     "GraphEdge",
     "EvidenceSignal",
     "NodeKind",
     "normalize_kind",
+    "PROVENANCE_VALUES",
+    "provenance_for",
 ]
