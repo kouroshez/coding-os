@@ -54,18 +54,25 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     const graph = new Graph<SigmaNodeAttrs, SigmaEdgeAttrs>({ multi: true });
     graphRef.current = graph;
 
+    // Read brand tokens at mount so labels and edges follow the active
+    // theme. Falls back to safe neutrals if the variables are missing.
+    const cs = getComputedStyle(containerRef.current);
+    const labelHex = cs.getPropertyValue('--cos-text').trim() || '#1a1814';
+    const edgeHex = cs.getPropertyValue('--cos-border').trim() || '#b8ad9a';
+    const fallbackNodeHex = cs.getPropertyValue('--cos-muted').trim() || '#6b665e';
+
     // Cast graph for Sigma's less-permissive generic bounds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sigma = new Sigma(graph as any, containerRef.current, {
       renderLabels: true,
-      labelSize: 11,
-      labelColor: { color: '#e6e7eb' },
-      labelRenderedSizeThreshold: 8,
-      defaultNodeColor: '#6b7280',
-      defaultEdgeColor: '#3b4252',
+      labelSize: 12,
+      labelColor: { color: labelHex },
+      labelRenderedSizeThreshold: 6,
+      defaultNodeColor: fallbackNodeHex,
+      defaultEdgeColor: edgeHex,
       minCameraRatio: 0.05,
       maxCameraRatio: 30,
-      hideEdgesOnMove: true,
+      hideEdgesOnMove: false,
       nodeReducer: (_node: string, data: SigmaNodeAttrs) => {
         if (data.hidden) return { ...data, hidden: true };
         return data;

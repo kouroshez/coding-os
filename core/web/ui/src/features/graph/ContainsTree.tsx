@@ -22,10 +22,10 @@ function buildForest(payload: ApiGraphPayload): TreeNode[] {
   const hasParent = new Set<string>();
   for (const e of payload.edges ?? []) {
     if (e.edge_type !== 'contains') continue;
-    const list = childrenOf.get(e.source) ?? [];
-    list.push(e.target);
-    childrenOf.set(e.source, list);
-    hasParent.add(e.target);
+    const list = childrenOf.get(e.source_uid) ?? [];
+    list.push(e.target_uid);
+    childrenOf.set(e.source_uid, list);
+    hasParent.add(e.target_uid);
   }
 
   const mkNode = (uid: string, seen: Set<string>): TreeNode | null => {

@@ -29,33 +29,43 @@ export type NodeKind =
   | 'identifier'
   | 'unknown';
 
-// Tokens chosen to stay legible on the #11151c canvas background.
+// Tokens chosen to stay legible on the cream paper canvas
+// (--cos-bg ≈ #f4efe1). Brand anchors: Mocha 500 (#FF7A3D, primary
+// orange) for the most-clicked code kinds, Mocha 700 (#C84B16) for
+// emphasis, Ink 600 (#6B504A) for muted tooling. Saturation kept high
+// so 4-6px node dots stay readable, lightness kept ≤ 65% so labels
+// don't blow out.
 export const NODE_COLORS: Record<NodeKind, string> = {
-  folder: '#fbbf24',
-  file: '#60a5fa',
-  module: '#38bdf8',
-  class: '#a78bfa',
-  method: '#c084fc',
-  function: '#7fd4a0',
-  variable: '#f472b6',
-  interface: '#34d399',
-  import_: '#94a3b8',
-  route: '#f97316',
-  tool: '#facc15',
-  mcp_tool: '#eab308',
-  event: '#22d3ee',
-  task: '#ffa64d',
-  doc_file: '#5aa8ff',
-  doc_heading: '#93c5fd',
-  doc_frontmatter: '#60a5fa',
-  doc_external: '#64748b',
-  rule: '#ef4444',
-  skill: '#c68fff',
-  contract: '#14b8a6',
-  community: '#f9a8d4',
-  hook: '#fb923c',
-  identifier: '#cbd5f5',
-  unknown: '#6b7280',
+  // Structure: warm browns from the Ink ramp.
+  folder: '#8B5A2B',
+  file: '#3A2925',
+  module: '#6B504A',
+  // Code kinds anchored on Mocha (orange) family.
+  class: '#FF7A3D',
+  method: '#FFA468',
+  function: '#C84B16',
+  variable: '#B19A93',
+  interface: '#3A7A3A',
+  import_: '#8a8378',
+  // Cross-cutting / framework concepts.
+  route: '#2C5AA0',
+  tool: '#C0392B',
+  mcp_tool: '#8B2318',
+  event: '#0D7377',
+  task: '#3A7A3A',
+  // Docs: muted blues so prose nodes don't compete with code.
+  doc_file: '#2C5AA0',
+  doc_heading: '#5A7CA8',
+  doc_frontmatter: '#8593a8',
+  doc_external: '#6B665E',
+  // Governance: red ramp for rules, plum for skills.
+  rule: '#8B2318',
+  skill: '#7A3A7A',
+  contract: '#3A7A7A',
+  community: '#C0719B',
+  hook: '#D96C2C',
+  identifier: '#6B665E',
+  unknown: '#B19A93',
 };
 
 export const ALL_KINDS: NodeKind[] = Object.keys(NODE_COLORS) as NodeKind[];
