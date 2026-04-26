@@ -1,7 +1,7 @@
 ---
 id: TASK-001
 title: "Test board web view"
-swimlane: board-os
+swimlane: board_os
 kind: chore
 epic: null
 labels: []

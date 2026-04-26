@@ -1,4 +1,4 @@
-"""graph-os CLI subcommands (Phase I.14).
+"""graph_os CLI subcommands (Phase I.14).
 
 Registers the `cos graph-*` family on the root `cli` group:
 
@@ -525,7 +525,7 @@ def register(cli: click.Group) -> None:
                   to surface affected symbols, downstream tasks, and risk level.
         INPUT:    --staged | --working (default) | --range RANGE
         OUTPUT:   JSON envelope matching cos_graph_detect_changes.
-        DEPENDENCIES:  git on PATH; graph-os SQLite backend.
+        DEPENDENCIES:  git on PATH; graph_os SQLite backend.
         NOTES:    When no changed files are found the tool returns an empty
                   envelope (risk_level=none) rather than an error.
         """
@@ -616,7 +616,7 @@ def register(cli: click.Group) -> None:
     @click.option("--path", default=None)
     @click.option("--out", default=None, help="Output HTML path.")
     @click.option("--root-uid", default=None)
-    @click.option("--title", default="graph-os")
+    @click.option("--title", default="graph_os")
     @click.option("--bundled", is_flag=True)
     @click.option("--serve", is_flag=True)
     @click.option("--port", default=0, type=int)
@@ -774,7 +774,7 @@ def _graph_reindex_print_status() -> None:
     PURPOSE:      Debugging aid — surface the per-file cache state so a
                   human can spot stale hashes, stuck errors, or files
                   that never re-indexed after a change.
-    INPUT:        none (uses the default thinking-os.db lookup path).
+    INPUT:        none (uses the default thinking_os.db lookup path).
     OUTPUT:       stdout table (file, hash[:12], indexed_at, status).
     DEPENDENCIES: core/thinking_os/db.py (init_db),
                   file_index_state table (migration v17).
@@ -786,7 +786,7 @@ def _graph_reindex_print_status() -> None:
     try:
         import db  # type: ignore
     except ImportError as exc:
-        raise click.ClickException(f"thinking-os db import failed: {exc}") from exc
+        raise click.ClickException(f"thinking_os db import failed: {exc}") from exc
     conn = db.init_db()
     try:
         if not db.has_file_index_state_table(conn):

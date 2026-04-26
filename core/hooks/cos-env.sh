@@ -4,18 +4,18 @@
 #
 # Provides:
 #   COS_STATE_DIR    — shared state directory root (default: .coding-os)
-#                      Holds agent-agnostic artifacts: thinking-os.db, .hooks.log,
+#                      Holds agent-agnostic artifacts: thinking_os.db, .hooks.log,
 #                      .agent marker, .capture-errors.log, .dogfood-reminded,
 #                      installed-manifest.json, domain-config.json.
 #   COS_AGENT        — which agent runtime invoked this hook (claude|codex|cursor|unknown)
 #   COS_AGENT_DIR    — agent-private state directory = $COS_STATE_DIR/$COS_AGENT
 #                      Holds per-agent state: session-id, .task-current,
-#                      .thinking-os-gate, .zoom-checkpoint, .doc-anchor,
+#                      .thinking_os-gate, .zoom-checkpoint, .doc-anchor,
 #                      .memory-check, .active-skill.
 #                      Two agents running against the same project write to
 #                      different dirs and never collide.
 #   COS_SESSION_FILE — path to session-id file (inside COS_AGENT_DIR)
-#   COS_DB_PATH      — path to thinking-os SQLite DB (shared, in COS_STATE_DIR)
+#   COS_DB_PATH      — path to thinking_os SQLite DB (shared, in COS_STATE_DIR)
 #   COS_HOOK_LOG     — path to the append-only hook activity log (shared,
 #                      every line carries agent=X session=Y task=Z so downstream
 #                      tools can filter by agent without a separate file)
@@ -40,7 +40,7 @@ case "${COS_STATE_DIR}" in
     fi
     ;;
 esac
-COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/thinking-os.db}"
+COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/thinking_os.db}"
 COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
 
 # Cap the log at 500 lines so `cos hooks-log` stays snappy and the file

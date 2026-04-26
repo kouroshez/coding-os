@@ -2,7 +2,7 @@
 Coding OS — SQLite database module with auto-migration.
 
 Provides connection management (WAL mode), schema versioning,
-and migration execution for the thinking-os self-learning system.
+and migration execution for the thinking_os self-learning system.
 
 Agent-agnostic: DB path is configurable via COS_DB_PATH env var.
 """
@@ -19,10 +19,10 @@ from typing import Callable, Generator, Union
 logger = logging.getLogger("coding_os.db")
 
 # Default DB path — configurable via COS_DB_PATH env var
-# Falls back to .coding-os/thinking-os.db in current working directory
+# Falls back to .coding-os/thinking_os.db in current working directory
 DEFAULT_DB_PATH = Path(
     os.environ.get("COS_DB_PATH", "")
-    or str(Path.cwd() / ".coding-os" / "thinking-os.db")
+    or str(Path.cwd() / ".coding-os" / "thinking_os.db")
 )
 
 # ---------------------------------------------------------------------------
@@ -632,10 +632,10 @@ def has_retrieval_quality_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v12_graph_os(conn: sqlite3.Connection) -> None:
-    """Migration v12 (Phase I.0): graph-os knowledge-graph tables.
+    """Migration v12 (Phase I.0): graph_os knowledge-graph tables.
 
-    PURPOSE:      Provision SQLite-backed storage for graph-os (sibling
-                  subsystem to thinking-os). Adds graph_nodes,
+    PURPOSE:      Provision SQLite-backed storage for graph_os (sibling
+                  subsystem to thinking_os). Adds graph_nodes,
                   graph_edges_v12, graph_evidence_v12, graph_nodes_fts
                   plus an embedding_dim column on legacy embeddings to
                   keep cosine_similarity correct during the MiniLM to
@@ -769,7 +769,7 @@ def has_graph_nodes_fts(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v13_board_os(conn: sqlite3.Connection) -> None:
-    """Migration v13 (Phase L.0): board-os Scrumban task workflow extensions.
+    """Migration v13 (Phase L.0): board_os Scrumban task workflow extensions.
 
     PURPOSE:      Extend the existing `tasks` table (v6) with Scrumban
                   workflow state — swimlane, kind, epic, labels_json,
@@ -920,7 +920,7 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_session
 
 
 def _migrate_v15_graph_edges_confidence_check(conn: sqlite3.Connection) -> None:
-    """Migration v15 (graph-os S1 / B17): CHECK (confidence BETWEEN 0 AND 1).
+    """Migration v15 (graph_os S1 / B17): CHECK (confidence BETWEEN 0 AND 1).
 
     PURPOSE:      Enforce the [0,1] confidence range at the DB layer, not
                   just in the Python dataclass. Defends against direct
@@ -963,7 +963,7 @@ END;
 
 
 def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
-    """Migration v16 (graph-os S3): normalize graph_nodes.kind values.
+    """Migration v16 (graph_os S3): normalize graph_nodes.kind values.
 
     PURPOSE:      S3 introduces a ``NodeKind`` enum + ``normalize_kind``
                   helper in ``core/graph_os/types.py``. Legacy rows use
@@ -1044,7 +1044,7 @@ def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v17_file_index_state(conn: sqlite3.Connection) -> None:
-    """Migration v17 (graph-os V1): per-file content-hash cache.
+    """Migration v17 (graph_os V1): per-file content-hash cache.
 
     PURPOSE:      V1 introduces file-level incremental indexing. The
                   reindex_dispatch entry looks up the prior content
@@ -1458,29 +1458,29 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # Phase G.11: retrieval quality tracker + contextual-chunk scaffolding
     (11, "Phase G.11 retrieval quality: retrieval_quality + contextual chunk columns",
      _migrate_v11_retrieval_quality),
-    # Phase I.0: graph-os knowledge-graph tables + embedding_dim column
-    (12, "Phase I.0 graph-os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
+    # Phase I.0: graph_os knowledge-graph tables + embedding_dim column
+    (12, "Phase I.0 graph_os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
      _migrate_v12_graph_os),
-    # Phase L.0: board-os Scrumban — extend tasks + task_status_history
-    (13, "Phase L.0 board-os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
+    # Phase L.0: board_os Scrumban — extend tasks + task_status_history
+    (13, "Phase L.0 board_os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
      _migrate_v13_board_os),
     # Phase M: formula-agent supervisor — 4 cognition tables
     (14, "Phase M formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
      _migrate_v14_cognition),
-    # graph-os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
-    (15, "graph-os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
+    # graph_os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
+    (15, "graph_os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
      _migrate_v15_graph_edges_confidence_check),
-    # graph-os S3: data migration — normalize graph_nodes.kind legacy values
-    (16, "graph-os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
+    # graph_os S3: data migration — normalize graph_nodes.kind legacy values
+    (16, "graph_os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
      _migrate_v16_normalize_graph_node_kinds),
-    # graph-os V1: file-level incremental indexing — file_index_state cache
-    (17, "graph-os V1: file_index_state cache table for incremental reindex",
+    # graph_os V1: file-level incremental indexing — file_index_state cache
+    (17, "graph_os V1: file_index_state cache table for incremental reindex",
      _migrate_v17_file_index_state),
     # Phase J.3: retrieval router telemetry table
     (18, "Phase J.3 retrieval router telemetry: retrieval_router_log table",
      _migrate_v18_retrieval_router_log),
     # Phase ?.board: drop 'ready' column — fold into icebox + 'ready' label
-    (19, "board-os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
+    (19, "board_os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
      _migrate_v19_drop_ready_status),
     # Phase L.10: override audit — task_status_history.override_reason/actor
     (20, "Phase L.10: override audit columns on task_status_history",
@@ -1506,7 +1506,7 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
 
     Args:
         db_path: Path to the SQLite database file.
-                 Defaults to .coding-os/thinking-os.db (via COS_DB_PATH env).
+                 Defaults to .coding-os/thinking_os.db (via COS_DB_PATH env).
 
     Returns:
         A configured sqlite3.Connection.

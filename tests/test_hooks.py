@@ -239,7 +239,7 @@ class TestCosEnv:
             env={**os.environ, "COS_STATE_DIR": ".custom"},
             timeout=10,
         )
-        assert result.stdout.strip() == ".custom/thinking-os.db"
+        assert result.stdout.strip() == ".custom/thinking_os.db"
 
     def test_db_path_override(self, tmp_path: Path) -> None:
         """COS_DB_PATH env var overrides the state-dir-derived default."""
@@ -264,7 +264,7 @@ class TestStateRoundTrip:
     def test_write_and_read_state(self, tmp_path: Path) -> None:
         state_dir = tmp_path / ".coding-os"
         state_dir.mkdir()
-        state_file = state_dir / ".thinking-os-gate"
+        state_file = state_dir / ".thinking_os-gate"
 
         # Write state
         result = subprocess.run(
@@ -295,7 +295,7 @@ class TestStateRoundTrip:
 
 
 # ---------------------------------------------------------------------------
-# Gate hooks — thinking-os-gate.sh parameterization
+# Gate hooks — thinking_os-gate.sh parameterization
 # ---------------------------------------------------------------------------
 
 
@@ -321,7 +321,7 @@ class TestThinkingOsGate:
 
     def _write_gate(self, state_dir: Path, session_id: str, value: str) -> None:
         # Gate lives in agent-private dir per docs/engineering/state-files.md.
-        gate_file = state_dir / "claude" / ".thinking-os-gate"
+        gate_file = state_dir / "claude" / ".thinking_os-gate"
         gate_file.write_text(f"{session_id} {value}")
 
     def test_blocks_py_without_gate(self, gate_env: tuple[Path, dict]) -> None:
@@ -330,7 +330,7 @@ class TestThinkingOsGate:
             "tool_name": "Edit",
             "tool_input": {"file_path": "app/main.py", "old_string": "x", "new_string": "y"},
         })
-        result = run_hook("thinking-os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
         assert result.returncode == 2
 
     def test_allows_py_with_valid_gate(self, gate_env: tuple[Path, dict]) -> None:
@@ -342,7 +342,7 @@ class TestThinkingOsGate:
             "tool_name": "Edit",
             "tool_input": {"file_path": "app/main.py", "old_string": "x", "new_string": "y"},
         })
-        result = run_hook("thinking-os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
         assert result.returncode == 0
 
     def test_allows_md_without_gate(self, gate_env: tuple[Path, dict]) -> None:
@@ -351,7 +351,7 @@ class TestThinkingOsGate:
             "tool_name": "Edit",
             "tool_input": {"file_path": "docs/readme.md", "old_string": "x", "new_string": "y"},
         })
-        result = run_hook("thinking-os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
         assert result.returncode == 0
 
     def test_allows_test_file_without_gate(self, gate_env: tuple[Path, dict]) -> None:
@@ -360,7 +360,7 @@ class TestThinkingOsGate:
             "tool_name": "Edit",
             "tool_input": {"file_path": "tests/test_main.py", "old_string": "x", "new_string": "y"},
         })
-        result = run_hook("thinking-os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
         assert result.returncode == 0
 
 
@@ -525,7 +525,7 @@ class TestBlockProtectedFilesGovernanceEscape:
 
 # ---------------------------------------------------------------------------
 # Regression: hook scripts must reference the current thinking_os/ module
-# directory, not the pre-rename thinking-os/ path. See bb27aac rename commit.
+# directory, not the pre-rename thinking_os/ path. See bb27aac rename commit.
 # ---------------------------------------------------------------------------
 
 
@@ -557,7 +557,7 @@ class TestHookScriptPaths:
     ) -> None:
         """Ensure the target script every hook tries to execute actually
         resolves under core/thinking_os/. Guards the 2026-04 regression
-        where scripts pointed at the pre-rename `thinking-os/` path."""
+        where scripts pointed at the pre-rename `thinking_os/` path."""
         hook_src = (HOOKS_DIR / hook_name).read_text()
         assert target in hook_src, f"{hook_name} no longer references {target}"
         assert (self.CORE_MODULE / target).exists(), (

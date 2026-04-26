@@ -1,7 +1,7 @@
 ---
 id: TASK-018
 title: "J.3  retrieval_router_log migration + append-only schema"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: phase-j
 labels: []

@@ -133,7 +133,7 @@ class TestSkillPresent:
         assert "cos_graph_context" in text
 
     def test_queries_guide(self):
-        path = REPO_ROOT / "docs" / "engineering" / "graph-os-queries.md"
+        path = REPO_ROOT / "docs" / "engineering" / "graph_os-queries.md"
         assert path.exists()
         text = path.read_text(encoding="utf-8")
         assert "cos_graph_impact" in text

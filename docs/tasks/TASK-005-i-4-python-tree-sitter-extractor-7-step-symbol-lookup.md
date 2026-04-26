@@ -1,7 +1,7 @@
 ---
 id: TASK-005
 title: "I.4  Python tree-sitter extractor + 7-step symbol lookup"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

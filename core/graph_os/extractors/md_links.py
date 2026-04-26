@@ -1,4 +1,4 @@
-"""graph-os — markdown link + heading + frontmatter extractor (I.2).
+"""graph_os — markdown link + heading + frontmatter extractor (I.2).
 
 PURPOSE:  Parse a Markdown file into GraphNodes (doc:file, doc:heading,
           doc:frontmatter_key) and GraphEdges (contains, links_to,

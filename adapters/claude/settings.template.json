@@ -76,7 +76,7 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/thinking-os-gate.sh",
+            "command": "{{HOOKS_DIR}}/thinking_os-gate.sh",
             "statusMessage": "🧠 Verifying Complexity Gate recorded...",
             "timeout": 2000
           },
@@ -189,7 +189,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/auto-reindex-docs.sh",
-            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph-os freshness...",
+            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness...",
             "timeout": 2000
           },
           {
@@ -329,7 +329,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
-            "statusMessage": "🕸️  Checking graph-os index state...",
+            "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 2000
           }
         ]
@@ -374,7 +374,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
-            "statusMessage": "🕸️  Checking graph-os index state...",
+            "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 2000
           }
         ]

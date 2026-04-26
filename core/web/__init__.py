@@ -1,4 +1,4 @@
-"""core.web — Unified HTTP backbone for graph-os (S4).
+"""core.web — Unified HTTP backbone for graph_os (S4).
 
 PURPOSE: FastAPI application package exposing graph + board + cognition +
          search as /api/* REST routes, SSE for live updates, and static SPA

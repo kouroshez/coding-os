@@ -1,7 +1,7 @@
 ---
 id: TASK-009
 title: "I.8  11 cos_graph_* MCP tools (query/context/impact/...)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

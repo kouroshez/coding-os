@@ -1,7 +1,7 @@
 ---
 id: TASK-104
 title: "Phase L.10 — transition-gates validator (Pydantic + per-kind rules + ValidationResult)"
-swimlane: board-os
+swimlane: board_os
 kind: feature
 epic: null
 labels: []

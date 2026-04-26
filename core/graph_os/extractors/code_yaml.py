@@ -1,4 +1,4 @@
-"""graph-os — YAML extractor (I.7).
+"""graph_os — YAML extractor (I.7).
 
 PURPOSE:  Map YAML config files (`stack.yaml`, `adapter.yaml`,
           `registry.yaml`, `rag-config.yaml`) into graph nodes so

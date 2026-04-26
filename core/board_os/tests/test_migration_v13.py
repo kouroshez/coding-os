@@ -29,7 +29,7 @@ db = _load_db_module()
 @pytest.fixture
 def fresh_conn(tmp_path: Path) -> sqlite3.Connection:
     """A fully migrated SQLite DB through v13."""
-    return db.init_db(tmp_path / "thinking-os.db")
+    return db.init_db(tmp_path / "thinking_os.db")
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +143,7 @@ def test_v13_does_not_drop_existing_tables(fresh_conn: sqlite3.Connection):
 
 def test_v13_preserves_existing_tasks_rows(tmp_path: Path):
     """Insert a row into tasks at v13, verify legacy + new columns coexist."""
-    conn = db.init_db(tmp_path / "thinking-os.db")
+    conn = db.init_db(tmp_path / "thinking_os.db")
     conn.execute(
         "INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime) "
         "VALUES ('TASK-001', 'Legacy task', 'open', 'docs/tasks/TASK-001.md', 'abc', 0)"

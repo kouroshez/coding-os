@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook: Record enriched session summary to thinking-os.db.
+# Stop hook: Record enriched session summary to thinking_os.db.
 # Agent-agnostic: uses COS_STATE_DIR and COS_DB_PATH.
 # Fire-and-forget — never blocks or errors visibly.
 set -euo pipefail
@@ -45,14 +45,14 @@ except Exception:
 }
 
 # Find scripts in coding-os core or legacy .claude path
-for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking-os" ".claude/thinking-os"; do
+for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
   if [ -f "${SCRIPT_DIR}/session_summary.py" ]; then
     run_bounded_python "${SCRIPT_DIR}/session_summary.py" 2
     break
   fi
 done
 
-for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking-os" ".claude/thinking-os"; do
+for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
   if [ -f "${SCRIPT_DIR}/session_enrich.py" ]; then
     run_bounded_python "${SCRIPT_DIR}/session_enrich.py" 2
     break

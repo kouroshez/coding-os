@@ -1,4 +1,4 @@
-"""graph-os S1 B1 — concurrency smoke test.
+"""graph_os S1 B1 — concurrency smoke test.
 
 PURPOSE:      Exercise mixed read/write load across ≥4 threads against
               both SqliteBackend and KuzuBackend (when installed).
@@ -119,7 +119,7 @@ def _exercise_backend(backend: Any) -> None:
 def test_sqlite_backend_concurrency(tmp_path: Path) -> None:
     from graph_os.backends.sqlite_backend import SqliteBackend
 
-    db_path = tmp_path / "graph-os-concurrency.db"
+    db_path = tmp_path / "graph_os-concurrency.db"
     backend = SqliteBackend(db_path=str(db_path))
     try:
         _exercise_backend(backend)
@@ -136,7 +136,7 @@ def test_kuzu_backend_concurrency(tmp_path: Path) -> None:
     pytest.importorskip("kuzu")
     from graph_os.backends.kuzu_backend import KuzuBackend
 
-    db_path = tmp_path / "graph-os-concurrency.kuzu"
+    db_path = tmp_path / "graph_os-concurrency.kuzu"
     backend = KuzuBackend(path=str(db_path))
     try:
         _exercise_backend(backend)

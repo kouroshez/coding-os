@@ -1,7 +1,7 @@
 ---
 id: TASK-004
 title: "I.3  task_deps extractor (depends_on + references_doc)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

@@ -1,4 +1,4 @@
-"""graph-os doctor checks (Phase I.14).
+"""graph_os doctor checks (Phase I.14).
 
 Implements C16-C22 (plan §18.3 / §19 I.14):
 

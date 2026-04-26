@@ -1,7 +1,7 @@
 """core.web.server — FastAPI app factory + uvicorn launcher.
 
-PURPOSE: Create and configure the unified web server that exposes graph-os,
-         board-os, cognition, and search as /api/* REST routes.  Also mounts
+PURPOSE: Create and configure the unified web server that exposes graph_os,
+         board_os, cognition, and search as /api/* REST routes.  Also mounts
          the SPA static files when core/web/ui/dist/ exists.
 INPUT:   Environment variables: COS_WEB_PORT (default 9188),
          COS_WEB_HOST (default 127.0.0.1), COS_WEB_CORS_ALLOW_ALL.
@@ -53,7 +53,7 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(
         title="Coding OS Web API",
-        description="Unified HTTP backbone for graph-os + board-os + cognition + search.",
+        description="Unified HTTP backbone for graph_os + board_os + cognition + search.",
         version="0.4.0",
     )
 

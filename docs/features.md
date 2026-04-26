@@ -25,7 +25,7 @@ Read next: [getting-started.md](./getting-started.md) for install steps, [develo
                                   │
          ┌────────────────────────▼────────────────────────┐
          │                   CORE                           │
-         │   hooks ─ skills ─ rules ─ commands ─ thinking-os│
+         │   hooks ─ skills ─ rules ─ commands ─ thinking_os│
          └────────────────────────┬────────────────────────┘
                                   │
                     ┌─────────────▼────────────┐
@@ -69,9 +69,9 @@ Think of these as three clusters:
 | `cos docs-index` | Chunk `docs/` → embeddings (Phase B RAG) |
 | `cos task-sync` | Sync `docs/tasks/*.md` → `tasks` table (Phase C) |
 | `cos reindex` | Re-embed all observations/patterns/outcomes |
-| `cos server-start` | Start the thinking-os MCP server (wrapper used by `.mcp.json`) | **D.1** |
+| `cos server-start` | Start the thinking_os MCP server (wrapper used by `.mcp.json`) | **D.1** |
 
-### 📋 Scrumban Board (Phase L — board-os)
+### 📋 Scrumban Board (Phase L — board_os)
 | Command | Purpose |
 |---|---|
 | `cos board [--web] [--swimlane X] [--kind Y] [--epic Z]` | ASCII or browser Scrumban board |
@@ -139,7 +139,7 @@ docs/PRD/… etc                  ← populated
  [Gate 1: Complexity Gate]
    "CLEAR 1"  /  "COMPLICATED 3"  /  "COMPLEX 5"  /  "CHAOTIC"
        │
-       │  write-state.sh .coding-os/.thinking-os-gate
+       │  write-state.sh .coding-os/.thinking_os-gate
        ▼
  [Gate 2: Request Type]  →  Question / Task / Ad-hoc
        │
@@ -149,7 +149,7 @@ docs/PRD/… etc                  ← populated
 
  Before any Write/Edit: 7 PreToolUse hooks fire in order (fail-closed):
    1. block-protected-files        2. block-secrets         3. block-bad-patterns
-   4. thinking-os-gate             5. enforce-task-start   6. enforce-skill
+   4. thinking_os-gate             5. enforce-task-start   6. enforce-skill
    7. enforce-zoom
 
  After Write/Edit: 2 PostToolUse hooks
@@ -257,7 +257,7 @@ Hooks live in `core/hooks/` — symlinked into every project.
 | 4 | `block-hardcoded-literals.sh` ★ | Quoted stack/adapter IDs in `cli/*.py` (SSOT violation) |
 | 5 | `block-secrets.sh` | API keys, credentials in file content |
 | 6 | `block-bad-patterns.sh` | Anti-patterns (bare `except: pass`, etc.) |
-| 7 | `thinking-os-gate.sh` | Code write without recorded Complexity Gate |
+| 7 | `thinking_os-gate.sh` | Code write without recorded Complexity Gate |
 | 8 | `enforce-task-start.sh` | Code write without active task (unless CLEAR 1) |
 | 9 | `enforce-doc-anchor.sh` ★ | **Code write without a doc anchor** — see §6a below |
 | 10 | `enforce-skill.sh` | Code write without domain skill invoked |
@@ -287,7 +287,7 @@ The session that shipped Phase D/E ran for hours with MCP silently dead — the 
 
 - **`warn-mcp-down.sh`** — runs at every session start, launches the real MCP command from `.mcp.json` or Codex's `.codex/config.toml` (falling back to `~/.codex/config.toml` only when no project-local Codex config exists), and banner-prints a loud warning if the initialize handshake fails. Human and agent both know within the first second that memory is offline.
 - **`check-capture-worked.sh`** — at session end, counts observations written in this session_id. Zero-with-edits → warn. Reads `$COS_STATE_DIR/.capture-errors.log` (populated by the hardened capture-observation hook) and surfaces the actual traceback.
-- **`enforce-memory-check.sh`** — the thinking-os skill mandates a Memory Check in Orient. This hook blocks code writes until the agent records `$COS_STATE_DIR/.memory-check` (via `cos_search` + a state-file marker), exempt for CLEAR 1 / exploratory / spike / tests / docs.
+- **`enforce-memory-check.sh`** — the thinking_os skill mandates a Memory Check in Orient. This hook blocks code writes until the agent records `$COS_STATE_DIR/.memory-check` (via `cos_search` + a state-file marker), exempt for CLEAR 1 / exploratory / spike / tests / docs.
 - **`remind-learn-validate.sh`** — closes the learning loop. `cos_learn_suggest` output lives in `$COS_STATE_DIR/.learn-suggestions`; after `make task-done`, the hook prints a reminder to call `cos_learn_validate` for each pattern so confidence formulas (LTP / LTD) actually update.
 
 ### 6a. The docs-first principle (`enforce-doc-anchor.sh`)
@@ -314,7 +314,7 @@ enforce-doc-anchor.sh reads .doc-anchor
   │
   └── Exempt (no anchor required):
       • Files under tests/, docs/, migrations/, scaffold/, .coding-os/
-      • CLEAR 1 ad-hoc fixes (`thinking-os-gate = "CLEAR 1"`)
+      • CLEAR 1 ad-hoc fixes (`thinking_os-gate = "CLEAR 1"`)
       • Exploratory/spike/governance tasks (marker substring match)
       • One-shot override: `touch $COS_STATE_DIR/.doc-anchor-override`
 ```
@@ -344,7 +344,7 @@ enforce-doc-anchor.sh reads .doc-anchor
 
 | Skill | Purpose |
 |---|---|
-| `thinking-os` | Complexity Gate + Cognitive Cycle + 10 Thinking Tools |
+| `thinking_os` | Complexity Gate + Cognitive Cycle + 10 Thinking Tools |
 | `clean-code` | fail-closed error handling, self-documenting code, edge coverage |
 | `codebase-explorer` | mapping unfamiliar code before editing |
 | `worktree-orchestration` | dispatching parallel subagents via git worktrees |
@@ -367,7 +367,7 @@ All skills are symlinked into `.claude/skills/<name>/SKILL.md`. From D.1 onward 
 ```
 my-project/
 ├── .coding-os/                  ← STATE (gitignored), per-project
-│   ├── thinking-os.db           ← SQLite v6 (13+ tables, FTS5, embeddings)
+│   ├── thinking_os.db           ← SQLite v6 (13+ tables, FTS5, embeddings)
 │   ├── rag-config.yaml          ← RAG sources + priorities
 │   ├── domain-config.json       ← task-create REF code map
 │   ├── installed-manifest.json  ← NEW in D.3: snapshot of linked assets
@@ -397,7 +397,7 @@ my-project/
 │   ├── design/                  ← design tokens (frontend stacks)
 │   ├── pages-content-spec/      ← per-page copy specs (nextjs)
 │   ├── breakthroughs/           ← auto-filed narratives (Phase C.5 onward)
-│   └── workflow-docs/           ← thinking-os reference, workflow guide
+│   └── workflow-docs/           ← thinking_os reference, workflow guide
 │
 ├── .mcp.json                    ← `cos server-start` (portable)
 ├── AGENTS.md                    ← routing protocol (generated once)

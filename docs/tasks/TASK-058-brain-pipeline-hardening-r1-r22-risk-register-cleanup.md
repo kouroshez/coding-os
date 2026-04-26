@@ -1,7 +1,7 @@
 ---
 id: TASK-058
 title: "brain pipeline hardening — R1-R22 risk register cleanup"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: refactor
 epic: brain-hardening
 labels: []

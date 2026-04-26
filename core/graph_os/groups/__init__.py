@@ -1,4 +1,4 @@
-"""graph-os repo groups (I.12)."""
+"""graph_os repo groups (I.12)."""
 
 from .manifest import GroupManifest, GroupMember, load_manifest, save_manifest, register_member, ConflictError
 from .cross_repo import infer_cross_repo_edges, CrossRepoReport

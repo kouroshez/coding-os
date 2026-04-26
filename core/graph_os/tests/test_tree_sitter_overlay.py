@@ -16,7 +16,7 @@ def _skip_if_missing(language_id: str) -> None:
 
 class TestAvailability:
     def test_is_available(self):
-        # We installed the graph-os extra — expect True.
+        # We installed the graph_os extra — expect True.
         assert ts.is_available() is True
 
     def test_unknown_language_returns_none(self):

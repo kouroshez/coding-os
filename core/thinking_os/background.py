@@ -224,7 +224,7 @@ class BackgroundIndexer:
             logger.warning("background task_sync failed: %s", exc)
             err = f"{err + '; ' if err else ''}task_sync: {type(exc).__name__}: {exc}"
 
-        # Phase I.10: graph-os keeps pace with code/doc edits in sessions
+        # Phase I.10: graph_os keeps pace with code/doc edits in sessions
         # that don't get PostToolUse (Codex). Runner is content-hash aware
         # so the 99% no-op case is cheap.
         try:
@@ -341,7 +341,7 @@ def _default_graph_index_runner() -> dict:
         return {"status": "skipped", "reason": f"no project_root at {project_root}"}
 
     db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
     )
     max_files_raw = os.environ.get("COS_BACKGROUND_GRAPH_MAX_FILES", "")
     try:

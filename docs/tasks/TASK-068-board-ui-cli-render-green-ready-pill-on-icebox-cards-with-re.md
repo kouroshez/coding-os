@@ -1,7 +1,7 @@
 ---
 id: TASK-068
 title: "Board UI + CLI: render green READY pill on icebox cards with ready label"
-swimlane: board-os
+swimlane: board_os
 kind: feature
 epic: hub-ux-hardening
 labels: [hub, ui, cli, board]

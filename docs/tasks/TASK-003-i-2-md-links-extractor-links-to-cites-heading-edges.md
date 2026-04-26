@@ -1,7 +1,7 @@
 ---
 id: TASK-003
 title: "I.2  md_links extractor (links_to + cites_heading edges)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

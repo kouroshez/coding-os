@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # PreToolUse Write|Edit hook: require a Memory Check before code writes
-# for COMPLICATED/COMPLEX tasks (thinking-os Orient phase).
+# for COMPLICATED/COMPLEX tasks (thinking_os Orient phase).
 #
-# Rationale: the thinking-os skill mandates a ≤500-token memory check
+# Rationale: the thinking_os skill mandates a ≤500-token memory check
 # (`cos_search` / `cos_learn_suggest`) during Orient so the agent
 # benefits from past patterns before implementing. Skipping it reverts
 # every session to zero institutional memory.
@@ -13,7 +13,7 @@
 # enhancement could auto-write this from inside the MCP server when
 # cos_search is called, but the state-marker pattern keeps the hook
 # layer pure shell (no MCP dependency) and matches existing markers
-# like .thinking-os-gate / .zoom-checkpoint.
+# like .thinking_os-gate / .zoom-checkpoint.
 #
 # Exemptions (no memory check required):
 #   - CLEAR 1 classification (trivial ad-hoc fix)
@@ -56,7 +56,7 @@ source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
 
 # CLEAR 1 gate — trivial ad-hoc fixes skip the memory check.
 if type check_state >/dev/null 2>&1; then
-  check_state "${COS_AGENT_DIR}/.thinking-os-gate" 7200
+  check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
   if [[ "${STATE_VALID:-}" == "true" ]]; then
     CLASS=$(echo "${STATE_VALUE:-}" | awk '{print $1}')
     DIMS=$(echo "${STATE_VALUE:-}" | awk '{print $2}')
@@ -104,7 +104,7 @@ echo "  Repair (pick one):" >&2
 echo "  1. Call cos_search in this session, then mark:" >&2
 echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.memory-check\" \"cos_search:<your-query>\"" >&2
 echo "  2. Trivial ad-hoc fix → record CLEAR 1 gate instead:" >&2
-echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking-os-gate\" \"CLEAR 1\"" >&2
+echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking_os-gate\" \"CLEAR 1\"" >&2
 echo "  3. Exploratory spike → rename task marker:" >&2
 echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
 echo "" >&2

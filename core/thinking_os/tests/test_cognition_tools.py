@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-# Ensure thinking-os root is on path (same pattern as other tests in this dir)
+# Ensure thinking_os root is on path (same pattern as other tests in this dir)
 _THINKING_OS = Path(__file__).resolve().parent.parent
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))

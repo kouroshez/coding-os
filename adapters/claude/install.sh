@@ -80,7 +80,7 @@ if [ ! -f "$MCP_FILE" ]; then
 MCPEOF
 fi
 
-# Add thinking-os MCP server entry using Python (safe JSON manipulation).
+# Add thinking_os MCP server entry using Python (safe JSON manipulation).
 # Portable entry: `cos server-start` resolves the coding-os location at
 # runtime via whichever `cos` binary is on PATH. If `cos` is not on PATH
 # yet, fall back to the absolute `uv run` form so the project still works

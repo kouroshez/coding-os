@@ -50,7 +50,7 @@ This project uses **coding-os** — a documentation-driven workflow with SSOT fi
     Record the classification:
 
     ```bash
-    bash .coding-os/hooks/write-state.sh .coding-os/.thinking-os-gate "COMPLICATED 3"
+    bash .coding-os/hooks/write-state.sh .coding-os/.thinking_os-gate "COMPLICATED 3"
     ```
 
 5. **Implement**
@@ -90,10 +90,10 @@ This project uses **coding-os** — a documentation-driven workflow with SSOT fi
 | `make log-latest [N=5]` | Recent change log entries |
 | `make log-search QUERY="auth"` | Search change log |
 | `make verify` | Run domain verification |
-| `make cos-health` | Check thinking-os DB health |
+| `make cos-health` | Check thinking_os DB health |
 
 ## Thinking OS — Memory and Learning
 
-The MCP server (`coding-os` / `thinking-os`) provides 18 tools for memory, learning, metrics, routing, and graph queries. See `../governance/mcp-tool-inventory.md`.
+The MCP server (`coding-os` / `thinking_os`) provides 18 tools for memory, learning, metrics, routing, and graph queries. See `../governance/mcp-tool-inventory.md`.
 
 Key flow: every tool use → captured to DB. Every task done → outcome recorded. Every 10 tasks → patterns extracted. Every session start → relevant past patterns suggested.

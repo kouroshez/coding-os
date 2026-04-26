@@ -176,7 +176,7 @@ def _tree(path: Path, max_depth: int = 3) -> str:
 
 
 def _db_size_kb(sandbox: Path) -> float:
-    db = sandbox / ".coding-os" / "thinking-os.db"
+    db = sandbox / ".coding-os" / "thinking_os.db"
     if not db.exists():
         return 0.0
     return round(db.stat().st_size / 1024, 1)

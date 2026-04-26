@@ -1,4 +1,4 @@
-"""graph-os extractors.
+"""graph_os extractors.
 
 Each module under this package turns a single source type (markdown
 doc, task file, Python module, TS file, shell script, contracts ...)

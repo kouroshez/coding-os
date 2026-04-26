@@ -1,4 +1,4 @@
-"""CLI subcommands that invoke thinking-os brain modules.
+"""CLI subcommands that invoke thinking_os brain modules.
 
 These exist so project Makefiles can call `cos docs-index` / `cos task-sync`
 / `cos reindex` without hardcoding the coding-os install path. The `cos`
@@ -79,7 +79,7 @@ def _run_brain_module(
     help="Re-index every file regardless of mtime",
 )
 def docs_index(project_dir: str, config: str | None, force: bool) -> None:
-    """Index project docs/ into thinking-os for RAG retrieval.
+    """Index project docs/ into thinking_os for RAG retrieval.
 
     This is the stable entry point that project Makefiles should call —
     it owns path discovery so no absolute paths need to be burned into
@@ -87,7 +87,7 @@ def docs_index(project_dir: str, config: str | None, force: bool) -> None:
     """
     project = _resolve_project_dir(project_dir)
     cfg_path = Path(config).resolve() if config else project / ".coding-os" / "rag-config.yaml"
-    db_path = project / ".coding-os" / "thinking-os.db"
+    db_path = project / ".coding-os" / "thinking_os.db"
 
     args = [
         "--config", str(cfg_path),
@@ -111,9 +111,9 @@ def docs_index(project_dir: str, config: str | None, force: bool) -> None:
     help="Re-sync every task file regardless of mtime",
 )
 def task_sync(project_dir: str, force: bool) -> None:
-    """Sync docs/tasks/*.md into the thinking-os tasks table."""
+    """Sync docs/tasks/*.md into the thinking_os tasks table."""
     project = _resolve_project_dir(project_dir)
-    db_path = project / ".coding-os" / "thinking-os.db"
+    db_path = project / ".coding-os" / "thinking_os.db"
 
     args = [
         "--project-root", str(project),
@@ -134,7 +134,7 @@ def task_sync(project_dir: str, force: bool) -> None:
 def reindex(project_dir: str) -> None:
     """Re-embed all observations/patterns/outcomes after an embedding model change."""
     project = _resolve_project_dir(project_dir)
-    db_path = project / ".coding-os" / "thinking-os.db"
+    db_path = project / ".coding-os" / "thinking_os.db"
 
     rc = _run_brain_module(
         EMBEDDINGS,
@@ -172,7 +172,7 @@ def graph_reindex(
     max_files: int,
     quiet: bool,
 ) -> None:
-    """Index the project into the graph-os knowledge graph.
+    """Index the project into the graph_os knowledge graph.
 
     Bulk walk by default: walks the project, extracts Python / TS /
     markdown / YAML / shell / Go, and upserts nodes + edges into the
@@ -183,7 +183,7 @@ def graph_reindex(
     hook `auto-reindex-graph.sh` calls this path).
     """
     project = _resolve_project_dir(project_dir)
-    db_path = project / ".coding-os" / "thinking-os.db"
+    db_path = project / ".coding-os" / "thinking_os.db"
 
     args = [
         "--project-root", str(project),

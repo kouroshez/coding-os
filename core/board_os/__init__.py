@@ -1,6 +1,6 @@
-"""board-os — the Scrumban task subsystem of coding-os.
+"""board_os — the Scrumban task subsystem of coding-os.
 
-Sibling to thinking-os and graph-os. Owns task workflow state
+Sibling to thinking_os and graph_os. Owns task workflow state
 (extended `tasks` columns + `task_status_history`, shared SQLite
 DB, migration v13) plus the per-project `scrumban-config.yaml`
 that defines swimlanes, WIP caps, and label families.
@@ -17,7 +17,7 @@ L.0 scope is schema + config + lean templates + per-stack defaults.
 Workflow engine, MCP tools, hooks, CLI, and migration tooling ship in
 later slices (see docs/phase-l-scrumban-task-system-plan.md Section
 19).  Web UI is owned by core/web/ (React SPA on port 9188); the
-legacy aiohttp viewer was removed in S6 of the graph-os redesign.
+legacy aiohttp viewer was removed in S6 of the graph_os redesign.
 """
 
 from core.board_os.config import (

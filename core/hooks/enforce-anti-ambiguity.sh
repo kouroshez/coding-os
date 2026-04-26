@@ -31,7 +31,7 @@ case "$FILE_PATH" in
   *) exit 0 ;;
 esac
 
-GATE_FILE="$COS_AGENT_DIR/.thinking-os-gate"
+GATE_FILE="$COS_AGENT_DIR/.thinking_os-gate"
 AMBIGUITY_CACHE="$COS_AGENT_DIR/.ambiguity-cache"
 
 # CLEAR 1 → bypass

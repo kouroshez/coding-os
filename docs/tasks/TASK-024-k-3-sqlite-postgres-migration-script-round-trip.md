@@ -1,7 +1,7 @@
 ---
 id: TASK-024
 title: "K.3  sqlite → postgres migration script + round-trip"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: phase-k
 labels: [db-abstraction, migration]
@@ -19,7 +19,7 @@ references: []
 
 # TASK-024: K.3 — sqlite → postgres migration script
 
-**Outcome (one sentence):** `scripts/migrate_sqlite_to_postgres.py --from .coding-os/thinking-os.db --to postgres://… --verify` streams every table + BLOB embedding column into Postgres, rebuilds HNSW + FTS indexes, and round-trip verifies that 100 sampled retrieval queries return the same top-5 IDs (±1) as the source SQLite — ships alongside TASK-023 and is a hard prerequisite for shipping K.2 to any consumer.
+**Outcome (one sentence):** `scripts/migrate_sqlite_to_postgres.py --from .coding-os/thinking_os.db --to postgres://… --verify` streams every table + BLOB embedding column into Postgres, rebuilds HNSW + FTS indexes, and round-trip verifies that 100 sampled retrieval queries return the same top-5 IDs (±1) as the source SQLite — ships alongside TASK-023 and is a hard prerequisite for shipping K.2 to any consumer.
 
 ## Read First
 
@@ -37,7 +37,7 @@ references: []
   **Then** no rows are written; the script prints the plan (tables, row counts, index ops).
 - **Given** the source DB about to be migrated
   **When** the script starts
-  **Then** an automatic backup `.coding-os/thinking-os.db.bak.YYYYMMDD-HHMMSS` is created first — no-op if already exists in the last 10 minutes.
+  **Then** an automatic backup `.coding-os/thinking_os.db.bak.YYYYMMDD-HHMMSS` is created first — no-op if already exists in the last 10 minutes.
 - **Given** a BLOB embedding column
   **When** migrated
   **Then** SQLite bytes → Postgres `bytea` → pgvector cast yields the same float32 vector; verified with a checksum (e.g. first-element float equality on 100 samples).

@@ -62,7 +62,7 @@ matches the quality of the SQLite+numpy path within 5% recall@10.
 ## Source of Truth
 - docs/phase-i-knowledge-graph-plan.md
 - docs/architecture.md::section-12
-- docs/prd/graph-os.md
+- docs/prd/graph_os.md
 
 ## Scope
 ### In
@@ -98,7 +98,7 @@ matches the quality of the SQLite+numpy path within 5% recall@10.
 
 ## Verification
 - make verify
-- uv run --extra graph-os pytest core/graph_os/tests/ -q
+- uv run --extra graph_os pytest core/graph_os/tests/ -q
 - benchmark suite: python scripts/bench_graph_os.py --fixture 500k
 """
     return Measurement(
@@ -114,7 +114,7 @@ def _lean_task_fixture() -> Measurement:
     sample = """---
 id: TASK-199
 title: "Implement Kuzu backend"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: [indexing, perf]
@@ -149,7 +149,7 @@ references: [TASK-045]
 - 2026-04-21 [claude]: HNSW vector index wired; 35/50 green
 
 ## Rollback
-Additive only. `.coding-os/graph-os.kuzu` isolated from SQLite state; revert commit.
+Additive only. `.coding-os/graph_os.kuzu` isolated from SQLite state; revert commit.
 """
     return Measurement(
         label="post-L lean Phase-L task",

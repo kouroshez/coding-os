@@ -78,7 +78,7 @@ def test_scoped_prefix_picks_alpha(hub_app):
     body = resp.json()
     assert body["project_root"] == str(projects["alpha"])
     assert body["db_path"].endswith(
-        f"{projects['alpha'].name}/.coding-os/thinking-os.db"
+        f"{projects['alpha'].name}/.coding-os/thinking_os.db"
     )
 
 

@@ -1,4 +1,4 @@
-"""graph-os — typed records exchanged between extractors and backends.
+"""graph_os — typed records exchanged between extractors and backends.
 
 PURPOSE:  Single source of truth for what a node / edge / evidence
           signal looks like, independent of the storage backend. Every
@@ -23,7 +23,7 @@ from typing import Any, Mapping
 
 
 class NodeKind(str, Enum):
-    """Canonical node kinds for the graph-os tree / spine (S3).
+    """Canonical node kinds for the graph_os tree / spine (S3).
 
     PURPOSE:  Enumerate every canonical node kind so extractors, tools,
               and the SPA agree on the vocabulary. Values are the short

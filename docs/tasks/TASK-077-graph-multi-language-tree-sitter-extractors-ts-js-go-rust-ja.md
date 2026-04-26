@@ -1,9 +1,9 @@
 ---
 id: TASK-077
 title: "Graph: multi-language tree-sitter extractors (TS/JS/Go/Rust/Java parity with graph-tool)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, parsers, P1-parity]
 status: icebox
 priority: P1
@@ -26,7 +26,7 @@ references: []
 - [core/graph_os/tree_sitter_overlay.py](../../core/graph_os/tree_sitter_overlay.py) — the query-bootstrap infra this task extends.
 - [core/graph_os/extractors/code_ts.py](../../core/graph_os/extractors/code_ts.py) — TS pattern to mirror for JS/Go/Rust/Java.
 - [core/graph_os/extractors/code_python.py](../../core/graph_os/extractors/code_python.py) — heritage + constructor inference reference.
-- [docs/engineering/graph-os-queries.md](../../docs/engineering/graph-os-queries.md) — canonical node/edge schema.
+- [docs/engineering/graph_os-queries.md](../../docs/engineering/graph_os-queries.md) — canonical node/edge schema.
 - graph-tool capability matrix (from Phase P1 analysis in session `ad8ed04b`): coding-os currently ≈ 18% of graph-tool coverage — this task closes most of the gap.
 
 ## Priority note

@@ -1,9 +1,9 @@
 ---
 id: TASK-075
 title: "Graph: process-grouped search (authentication middleware → LoginFlow/RegistrationFlow clusters)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, search, clustering, P3-differentiator]
 status: complete
 priority: P2

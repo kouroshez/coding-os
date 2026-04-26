@@ -1,5 +1,5 @@
 """
-Tests for thinking-os dashboard (TASK-149).
+Tests for thinking_os dashboard (TASK-149).
 
 Covers each section, empty DB, absent DB, and data-filled scenarios.
 """
@@ -66,7 +66,7 @@ class TestDashboard:
     def test_absent_db(self, tmp_path: Path) -> None:
         output = generate_dashboard(tmp_path / "nonexistent.db")
         assert "No DB Found" in output
-        assert "No thinking-os.db found" in output
+        assert "No thinking_os.db found" in output
 
     def test_empty_db(self, db_path: Path) -> None:
         output = generate_dashboard(db_path)

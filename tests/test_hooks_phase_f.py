@@ -64,7 +64,7 @@ class TestSessionContext:
 
         # Agent-private volatile markers — should be cleared.
         AGENT_MARKERS = [
-            ".thinking-os-gate",
+            ".thinking_os-gate",
             ".task-current",
             ".zoom-checkpoint",
             ".active-skill",
@@ -281,7 +281,7 @@ class TestCheckCaptureWorked:
 
     def test_silent_when_observations_present(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
-        db = state / "thinking-os.db"
+        db = state / "thinking_os.db"
         self._init_db(db)
         conn = sqlite3.connect(str(db))
         conn.execute(
@@ -298,7 +298,7 @@ class TestCheckCaptureWorked:
 
     def test_warns_when_zero_observations(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
-        db = state / "thinking-os.db"
+        db = state / "thinking_os.db"
         self._init_db(db)
         env = {**self._env_for(state), "COS_DB_PATH": str(db)}
         r = _invoke(CHECK_CAPTURE_WORKED, {}, env=env)
@@ -310,7 +310,7 @@ class TestCheckCaptureWorked:
         (state / ".capture-errors.log").write_text(
             "Traceback line 1\nsqlite3.OperationalError: bad\n"
         )
-        db = state / "thinking-os.db"
+        db = state / "thinking_os.db"
         self._init_db(db)
         env = {**self._env_for(state), "COS_DB_PATH": str(db)}
         r = _invoke(CHECK_CAPTURE_WORKED, {}, env=env)
@@ -321,7 +321,7 @@ class TestCheckCaptureWorked:
         state = self._setup(tmp_path)
         err_log = state / ".capture-errors.log"
         err_log.write_text("some error\n")
-        db = state / "thinking-os.db"
+        db = state / "thinking_os.db"
         self._init_db(db)
         env = {**self._env_for(state), "COS_DB_PATH": str(db)}
         _invoke(CHECK_CAPTURE_WORKED, {}, env=env)
@@ -376,7 +376,7 @@ class TestEnforceMemoryCheck:
 
     def test_exempt_on_clear_1(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
-        (state / "claude" / ".thinking-os-gate").write_text("ses-claude-mc CLEAR 1\n")
+        (state / "claude" / ".thinking_os-gate").write_text("ses-claude-mc CLEAR 1\n")
         env = self._env(state)
         p = {"tool_name": "Write", "tool_input": {
             "file_path": str(tmp_path / "cli" / "main.py"),
@@ -537,7 +537,7 @@ class TestDoctorC15Regression:
         )
         state = project / ".coding-os"
         state.mkdir()
-        sqlite3.connect(str(state / "thinking-os.db")).close()
+        sqlite3.connect(str(state / "thinking_os.db")).close()
         (project / "AGENTS.md").write_text("# x\n")
         (project / "Makefile").write_text("")
         (project / "docs").mkdir()

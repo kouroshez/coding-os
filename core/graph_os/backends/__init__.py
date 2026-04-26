@@ -1,7 +1,7 @@
-"""graph-os storage backends.
+"""graph_os storage backends.
 
 Two implementations ship in I.0:
-  - SqliteBackend — fallback, always available, reuses thinking-os DB.
+  - SqliteBackend — fallback, always available, reuses thinking_os DB.
   - KuzuBackend   — primary, optional extra (pip install kuzu).
 
 Both honour the GraphBackend Protocol (../backend.py) and the Section

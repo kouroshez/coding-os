@@ -67,7 +67,7 @@ def project(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def conn(project: Path) -> sqlite3.Connection:
-    c = init_db(project / ".coding-os" / "thinking-os.db")
+    c = init_db(project / ".coding-os" / "thinking_os.db")
     yield c
     c.close()
 
@@ -293,7 +293,7 @@ class TestAutoReindexHook:
             **os.environ,
             "COS_STATE_DIR": str(project / ".coding-os"),
             "COS_PROJECT_ROOT": str(project),
-            "COS_DB_PATH": str(project / ".coding-os" / "thinking-os.db"),
+            "COS_DB_PATH": str(project / ".coding-os" / "thinking_os.db"),
             "COS_BRAIN_DIR": str(_REPO_ROOT / "core" / "thinking_os"),
             "COS_RAG_CONFIG": str(project / ".coding-os" / "rag-config.yaml"),
             "PATH": os.environ.get("PATH", ""),
@@ -348,7 +348,7 @@ class TestAutoReindexHook:
         assert r.returncode == 0
         # Wait a bit for the background worker to finish
         time.sleep(1.5)
-        conn = sqlite3.connect(str(project / ".coding-os" / "thinking-os.db"))
+        conn = sqlite3.connect(str(project / ".coding-os" / "thinking_os.db"))
         try:
             count = conn.execute(
                 "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?",

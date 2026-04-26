@@ -1,7 +1,7 @@
 ---
 id: TASK-069
 title: "CLI + MCP: cos task-label add/remove to manage ready label on icebox tasks"
-swimlane: board-os
+swimlane: board_os
 kind: feature
 epic: hub-ux-hardening
 labels: [hub, cli, mcp]

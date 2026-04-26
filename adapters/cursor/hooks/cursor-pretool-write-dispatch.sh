@@ -55,7 +55,7 @@ for delegate in \
   block-migration-conflict.sh \
   block-hardcoded-literals.sh \
   enforce-template.sh \
-  thinking-os-gate.sh \
+  thinking_os-gate.sh \
   enforce-task-start.sh \
   enforce-doc-anchor.sh \
   enforce-memory-check.sh \

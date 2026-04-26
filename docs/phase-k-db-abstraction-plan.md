@@ -87,7 +87,7 @@ Writing this only after the gate is true. Planning shape:
 When K.2 ships, K.3 provides:
 
 ```bash
-scripts/migrate_sqlite_to_postgres.py --from .coding-os/thinking-os.db \
+scripts/migrate_sqlite_to_postgres.py --from .coding-os/thinking_os.db \
                                        --to postgres://user@host/coding_os \
                                        --verify
 ```

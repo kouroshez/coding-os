@@ -22,7 +22,7 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/thinking-os.db}"
+COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/thinking_os.db}"
 SESSION_FILE="${COS_SESSION_FILE:-$COS_STATE_DIR/session-id}"
 
 SESSION_ID=""
@@ -82,7 +82,7 @@ if [[ "$ERRORS_FOUND" -gt 0 ]]; then
 fi
 
 if [[ "$OBS_COUNT" == "0" ]]; then
-  echo "⚠️  Zero observations recorded — thinking-os memory did NOT learn" >&2
+  echo "⚠️  Zero observations recorded — thinking_os memory did NOT learn" >&2
   echo "   from this session. Check MCP wiring + DB path before next session." >&2
 fi
 

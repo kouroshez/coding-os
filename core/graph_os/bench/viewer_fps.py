@@ -99,7 +99,7 @@ def main() -> int:
     build_view(
         backend,
         out_path,
-        title=f"graph-os fps bench ({args.nodes} nodes)",
+        title=f"graph_os fps bench ({args.nodes} nodes)",
     )
     render_ms = int((time.monotonic() - render_start) * 1000)
     html_size = out_path.stat().st_size

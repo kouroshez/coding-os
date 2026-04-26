@@ -283,7 +283,7 @@ else:
     print()
 
 # --- Learning suggestions (fire-and-forget) ---
-db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/thinking-os.db"))
+db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/thinking_os.db"))
 if db_path.exists():
     try:
         import sqlite3
@@ -304,7 +304,7 @@ if db_path.exists():
 
         # Read complexity from gate file (session-scoped: "session-id CLASSIFICATION N")
         _complexity = ""
-        _gate = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking-os-gate")
+        _gate = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking_os-gate")
         if _gate.exists():
             _parts = _gate.read_text().strip().split()
             # Skip session ID prefix (first field) if present
@@ -399,7 +399,7 @@ logger = logging.getLogger('cos.task_start.sync')
 try:
     _brain = os.environ.get('COS_BRAIN_DIR')
     if not _brain:
-        for _c in ('core/thinking_os', '.coding-os/thinking_os', '.coding-os/thinking-os'):
+        for _c in ('core/thinking_os', '.coding-os/thinking_os', '.coding-os/thinking_os'):
             if (Path(_c) / 'db.py').exists():
                 _brain = _c
                 break

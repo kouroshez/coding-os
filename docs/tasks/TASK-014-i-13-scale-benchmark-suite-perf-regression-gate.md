@@ -1,7 +1,7 @@
 ---
 id: TASK-014
 title: "I.13 Scale benchmark suite + perf regression gate"
-swimlane: graph-os
+swimlane: graph_os
 kind: test
 epic: phase-i
 labels: []

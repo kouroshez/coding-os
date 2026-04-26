@@ -1,9 +1,9 @@
 ---
 id: TASK-073
 title: "Graph: in-process reindex endpoint + Kùzu single-writer coordination"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, realtime]
 status: complete
 priority: P1

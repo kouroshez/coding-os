@@ -1,7 +1,7 @@
 # Database files (created at runtime)
-thinking-os.db
-thinking-os.db-wal
-thinking-os.db-shm
+thinking_os.db
+thinking_os.db-wal
+thinking_os.db-shm
 
 # Python
 __pycache__/

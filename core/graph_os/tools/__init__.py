@@ -1,4 +1,4 @@
-"""graph-os MCP tool modules.
+"""graph_os MCP tool modules.
 
 Each module registers a `cos_graph_*` tool in the shared MCP server
 (`core/thinking_os/server.py`). Every tool returns through the

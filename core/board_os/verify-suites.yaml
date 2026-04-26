@@ -14,20 +14,20 @@
 version: 1
 
 suites:
-  test-thinking-os:
+  test-thinking_os:
     paths:
       - "core/thinking_os/**/*.py"
     command: "uv run --extra rag pytest core/thinking_os/tests/ -q"
 
-  test-board-os:
+  test-board_os:
     paths:
       - "core/board_os/**/*.py"
     command: "uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q"
 
-  test-graph-os:
+  test-graph_os:
     paths:
       - "core/graph_os/**/*.py"
-    command: "uv run --extra graph-os pytest core/graph_os/tests/ -q"
+    command: "uv run --extra graph_os pytest core/graph_os/tests/ -q"
 
   verify-hooks:
     paths:

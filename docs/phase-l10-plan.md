@@ -15,7 +15,7 @@ Today, every transition gate in coding-os is implemented independently in bash:
 | Active task | `enforce-task-start.sh` | OK |
 | Doc anchor | `enforce-doc-anchor.sh` | OK |
 | Memory check | `enforce-memory-check.sh` | OK |
-| Complexity | `thinking-os-gate.sh` | OK |
+| Complexity | `thinking_os-gate.sh` | OK |
 | Body completeness | **none** | **gap: `(fill in: …)` placeholder accepted into `in_progress`** |
 | WIP cap | `enforce-wip-limit.sh` | OK after TASK-096 fix |
 | Task size | `lint-task.sh` | hard-coded thresholds |

@@ -260,7 +260,7 @@ class TestCodexAdapter:
     def test_registers_mcp_in_codex_config(self, project: Path) -> None:
         # Symmetry with Claude's .mcp.json step: the Codex adapter must
         # register the coding-os MCP server in project-local
-        # .codex/config.toml so thinking-os cognition tools are available
+        # .codex/config.toml so thinking_os cognition tools are available
         # to Codex without requiring a separate manual step.
         run_adapter_install("codex", project)
         codex_cfg = project / ".codex" / "config.toml"
@@ -427,8 +427,8 @@ class TestCrossAdapter:
         run_adapter_install("claude", project)
         run_adapter_install("codex", project)
 
-        claude_gate = (project / ".claude" / "hooks" / "thinking-os-gate.sh").resolve()
-        codex_gate = (project / ".codex" / "hooks" / "thinking-os-gate.sh").resolve()
+        claude_gate = (project / ".claude" / "hooks" / "thinking_os-gate.sh").resolve()
+        codex_gate = (project / ".codex" / "hooks" / "thinking_os-gate.sh").resolve()
         assert claude_gate == codex_gate
 
 

@@ -1,4 +1,4 @@
-"""graph-os — Kuzu primary backend.
+"""graph_os — Kuzu primary backend.
 
 PURPOSE:  Implement GraphBackend on top of Kuzu (embedded columnar
           graph DB, Cypher-capable, Apache 2.0). Primary store for
@@ -7,9 +7,9 @@ PURPOSE:  Implement GraphBackend on top of Kuzu (embedded columnar
           SqliteBackend. Graph-walk primitives (BFS, shortest-path,
           HNSW vector search) land in later slices.
 INPUT:    a path to the .kuzu database file (defaults to
-          .coding-os/graph-os.kuzu).
+          .coding-os/graph_os.kuzu).
 OUTPUT:   a GraphBackend-compatible object.
-DEPENDS:  kuzu>=0.7.x (optional extra 'graph-os' in pyproject.toml).
+DEPENDS:  kuzu>=0.7.x (optional extra 'graph_os' in pyproject.toml).
 NOTES:    Construction raises BackendUnavailable when kuzu is not
           importable OR when the path cannot be created — matches the
           fail-loud contract from Section 12.5. No silent downgrade.
@@ -92,13 +92,13 @@ class KuzuBackend:
             import kuzu  # type: ignore  # noqa: PLC0415
         except ImportError as exc:
             raise BackendUnavailable(
-                "python-kuzu not installed; install the graph-os extra "
-                "(uv sync --extra graph-os) or pass backend='sqlite'."
+                "python-kuzu not installed; install the graph_os extra "
+                "(uv sync --extra graph_os) or pass backend='sqlite'."
             ) from exc
 
         self._kuzu = kuzu
         resolved = path or os.environ.get(
-            "COS_GRAPH_PATH", ".coding-os/graph-os.kuzu"
+            "COS_GRAPH_PATH", ".coding-os/graph_os.kuzu"
         )
         Path(resolved).parent.mkdir(parents=True, exist_ok=True)
         try:

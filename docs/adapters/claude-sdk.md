@@ -3,7 +3,7 @@
 
 Purpose: Explain how the Claude adapter spawns formula-agent sub-sessions via `claude-agent-sdk`.
 Read when: touching `adapters/claude/sdk_dispatcher.py`, debugging formula dispatch, enabling the claude-sdk extra.
-Skip when: other adapters, retrieval, board-os.
+Skip when: other adapters, retrieval, board_os.
 
 > Nav: [AGENTS.md](../../AGENTS.md) › [adapters](../adapters/) › **claude-sdk**
 > Introduced: 2026-04-20 (Phase N.SDK slice)
@@ -241,4 +241,4 @@ branch to the factory. Core never learns your SDK's shape.
 - [adapters/claude/sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py) — Claude-specific
 - [scripts/bench_sdk_dispatcher.py](../../scripts/bench_sdk_dispatcher.py) — real benchmark
 - [docs/phase-n-role-based-routing-plan.md](../phase-n-role-based-routing-plan.md) — routing layer (what formula to pick)
-- [docs/phase-m-thinking-os-new-formula.md](../phase-m-thinking-os-new-formula.md) — formula-agents (what this dispatcher spawns)
+- [docs/phase-m-thinking_os-new-formula.md](../phase-m-thinking_os-new-formula.md) — formula-agents (what this dispatcher spawns)

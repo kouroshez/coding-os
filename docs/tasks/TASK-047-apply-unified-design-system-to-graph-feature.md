@@ -1,7 +1,7 @@
 ---
 id: TASK-047
 title: "Apply unified design system to graph feature"
-swimlane: graph-os
+swimlane: graph_os
 kind: refactor
 epic: design-system-unification
 labels: []

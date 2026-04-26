@@ -1,7 +1,7 @@
-"""graph-os — SQLite fallback backend.
+"""graph_os — SQLite fallback backend.
 
 PURPOSE:  Implement the GraphBackend Protocol against the shared
-          thinking-os SQLite file (migration v12). This is the
+          thinking_os SQLite file (migration v12). This is the
           agnostic fallback that runs everywhere Python runs, and is
           the parity target Kuzu must match (Section 12.6 of the
           plan).
@@ -9,7 +9,7 @@ INPUT:    an opened sqlite3.Connection (ideally via init_db so the
           v12 migration has already applied) OR a db_path string.
 OUTPUT:   a GraphBackend-compatible object.
 DEPENDS:  sqlite3 stdlib; core/thinking_os/db.py for init_db when
-          path-based; core/graph-os/types.py for the value types.
+          path-based; core/graph_os/types.py for the value types.
 NOTES:    Uses its own tiny DB connection pool when path-based so
           MCP-side callers that do not share a connection still see
           WAL-mode isolation. Idempotent upserts implemented via
@@ -34,12 +34,12 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 
 
 def _import_db_module() -> Any:
-    """Locate the thinking-os db module without hardcoding a sys.path tweak.
+    """Locate the thinking_os db module without hardcoding a sys.path tweak.
 
     Consumers may call get_backend() from several entry points (MCP
     server, CLI, tests) — the server already puts core/thinking_os on
     sys.path, but tests and CLI paths may not. This helper finds the
-    right directory relative to graph-os and imports on demand.
+    right directory relative to graph_os and imports on demand.
     """
     try:
         import db  # type: ignore  # noqa: PLC0415
@@ -54,7 +54,7 @@ def _import_db_module() -> Any:
 
 
 class SqliteBackend:
-    """SQLite-backed graph store (thinking-os DB, migration v12).
+    """SQLite-backed graph store (thinking_os DB, migration v12).
 
     PURPOSE:  Satisfy GraphBackend with ON CONFLICT upserts and plain
               SQL reads. Latency is higher than Kuzu for graph walks
@@ -86,7 +86,7 @@ class SqliteBackend:
             self._conn = conn
         else:
             resolved = db_path or os.environ.get(
-                "COS_DB_PATH", ".coding-os/thinking-os.db"
+                "COS_DB_PATH", ".coding-os/thinking_os.db"
             )
             Path(resolved).parent.mkdir(parents=True, exist_ok=True)
             db = _import_db_module()

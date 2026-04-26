@@ -1,7 +1,7 @@
 ---
 id: TASK-022
 title: "K.1  DBAdapter Protocol — abstract similarity_search + fts + audit"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: refactor
 epic: phase-k
 labels: [db-abstraction]

@@ -709,11 +709,11 @@ from tools.learning import (  # noqa: E402
 
 @pytest.fixture
 def project_conn(tmp_path: Path) -> sqlite3.Connection:
-    """DB in <tmp>/.coding-os/thinking-os.db with a sibling docs/ dir."""
+    """DB in <tmp>/.coding-os/thinking_os.db with a sibling docs/ dir."""
     state_dir = tmp_path / ".coding-os"
     state_dir.mkdir()
     (tmp_path / "docs").mkdir()
-    c = init_db(state_dir / "thinking-os.db")
+    c = init_db(state_dir / "thinking_os.db")
     yield c
     c.close()
 
@@ -805,7 +805,7 @@ class TestFileBackNarrative:
         state_dir = tmp_path / ".coding-os"
         state_dir.mkdir()
         # Deliberately NOT creating tmp_path/docs/
-        c = init_db(state_dir / "thinking-os.db")
+        c = init_db(state_dir / "thinking_os.db")
         try:
             result = _file_back_narrative_safe(
                 conn=c,

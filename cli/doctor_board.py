@@ -1,6 +1,6 @@
-"""cos doctor checks for board-os (Phase L.9).
+"""cos doctor checks for board_os (Phase L.9).
 
-Four checks C24–C27 (C20–C23 are owned by graph-os doctor):
+Four checks C24–C27 (C20–C23 are owned by graph_os doctor):
   C24 — WIP state is within cap (or flagged warning if active violation).
   C25 — No stale `in_progress` tasks.
           Stale = (no Work Log append > 3 days) OR (elapsed > 2× appetite).
@@ -40,7 +40,7 @@ def _appetite_hours(appetite: str | None) -> float | None:
 def _open_conn(state_dir: Path) -> sqlite3.Connection | None:
     if state_dir is None:
         return None
-    db_path = Path(state_dir) / "thinking-os.db"
+    db_path = Path(state_dir) / "thinking_os.db"
     if not db_path.exists():
         return None
     try:

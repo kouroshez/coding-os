@@ -1,4 +1,4 @@
-"""graph-os — service contracts extractor (I.7).
+"""graph_os — service contracts extractor (I.7).
 
 PURPOSE:  Detect the first-class service surface declared in a file —
           HTTP routes (Django / DRF / FastAPI / Flask / Next.js),

@@ -4,7 +4,7 @@ These guard against the three-way failure mode we hit in earlier
 sessions:
 
  1. `make docs-index` silently populating 0 chunks
- 2. `python -m core.thinking-os.doc_indexer` (invalid module path)
+ 2. `python -m core.thinking_os.doc_indexer` (invalid module path)
  3. `COS_ROOT` relative-path resolution breaking for `uv tool install` users
 
 If any of them regresses, these tests fail with an actionable message.
@@ -58,7 +58,7 @@ def test_cos_docs_index_populates_chunks(tmp_path: Path) -> None:
     """`cos docs-index` must actually write document_chunks rows.
 
     Historical regression: `make docs-index` used `python -m
-    core.thinking-os.doc_indexer` which fails with ModuleNotFoundError
+    core.thinking_os.doc_indexer` which fails with ModuleNotFoundError
     because `core-` is not a valid Python package name. Fix: the
     `cos docs-index` subcommand invokes doc_indexer.py directly.
     """
@@ -85,8 +85,8 @@ def test_cos_docs_index_populates_chunks(tmp_path: Path) -> None:
         f"cos docs-index failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
     )
 
-    db_path = project / ".coding-os" / "thinking-os.db"
-    assert db_path.exists(), "thinking-os.db not created"
+    db_path = project / ".coding-os" / "thinking_os.db"
+    assert db_path.exists(), "thinking_os.db not created"
 
     conn = sqlite3.connect(str(db_path))
     try:
@@ -131,7 +131,7 @@ def test_cos_docs_index_force_reindexes(tmp_path: Path) -> None:
 @pytest.mark.slow
 def test_makefile_docs_index_target_uses_cos_binary(tmp_path: Path) -> None:
     """The scaffolded Makefile.base must call `cos docs-index`, not
-    `python -m core.thinking-os.*` (the regression we fixed)."""
+    `python -m core.thinking_os.*` (the regression we fixed)."""
     project = tmp_path / "mk-proj"
     _init_project(project)
 
@@ -145,9 +145,9 @@ def test_makefile_docs_index_target_uses_cos_binary(tmp_path: Path) -> None:
     assert "cos reindex" in content
 
     # Negative: broken module invocation must not exist
-    assert "core.thinking-os.doc_indexer" not in content
-    assert "core.thinking-os.task_sync" not in content
-    assert "core.thinking-os.embeddings" not in content
+    assert "core.thinking_os.doc_indexer" not in content
+    assert "core.thinking_os.task_sync" not in content
+    assert "core.thinking_os.embeddings" not in content
 
 
 @pytest.mark.slow

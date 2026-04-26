@@ -49,7 +49,7 @@ PY
 | `enforce-skill` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `enforce-task-start` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `enforce-zoom` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
-| `thinking-os-gate` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
+| `thinking_os-gate` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `warn-template-drift` | PreToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `capture-observation` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |
 | `verify-changed-file` | PostToolUse | `Write\|Edit` | ✓ | — | Codex Write/Edit gap |

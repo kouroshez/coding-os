@@ -53,7 +53,7 @@ def _unavailable():
         "error": {
             "category": "unavailable",
             "retryable": False,
-            "message": "graph_os package not importable; install graph-os extra",
+            "message": "graph_os package not importable; install graph_os extra",
         },
     })
 

@@ -1,4 +1,4 @@
-"""graph-os viewer template (I.10) — Sigma.js + Graphology + CSP nonce.
+"""graph_os viewer template (I.10) — Sigma.js + Graphology + CSP nonce.
 
 PURPOSE:  Produce a self-contained HTML page that renders a graph
           payload via Sigma.js v3 (WebGL) and Graphology. The template

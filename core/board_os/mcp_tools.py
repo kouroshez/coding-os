@@ -1,4 +1,4 @@
-"""board-os MCP tools — Phase L.3 surface (`cos_task_*`).
+"""board_os MCP tools — Phase L.3 surface (`cos_task_*`).
 
 Implements board MCP tools (Phase L), including:
     cos_task_create, cos_task_board, cos_task_move, cos_task_reposition,
@@ -41,7 +41,7 @@ from core.board_os.workflow import (
     validate_dependencies_no_cycle,
 )
 
-# Import ok/fail/safe_tool from the thinking-os tools shared module.
+# Import ok/fail/safe_tool from the thinking_os tools shared module.
 _THINKING_OS_TOOLS = Path(__file__).resolve().parents[1] / "thinking_os" / "tools"
 if str(_THINKING_OS_TOOLS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS_TOOLS))

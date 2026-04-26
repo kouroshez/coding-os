@@ -91,7 +91,7 @@ Scripts that produce multi-section output use `=== script-name ===` as section h
 
 ## Outcome Tracking (Phase 15)
 
-After task completion or blocking, record outcome to `thinking-os.db`:
+After task completion or blocking, record outcome to `thinking_os.db`:
 
 | Field | Values | Source |
 | ----- | ------ | ------ |

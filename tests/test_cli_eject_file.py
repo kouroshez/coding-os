@@ -24,7 +24,7 @@ def _init(tmp_path: Path) -> Path:
 class TestEjectFile:
     def test_ejects_symlink_to_copy(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
-        rel = ".claude/skills/thinking-os/SKILL.md"
+        rel = ".claude/skills/thinking_os/SKILL.md"
         link = project / rel
         assert link.is_symlink()
         original_content = link.read_text()
@@ -40,7 +40,7 @@ class TestEjectFile:
 
     def test_edit_after_eject_does_not_affect_source(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
-        rel = ".claude/skills/thinking-os/SKILL.md"
+        rel = ".claude/skills/thinking_os/SKILL.md"
         link = project / rel
         source_path = link.resolve()
         source_original = source_path.read_text()
@@ -55,7 +55,7 @@ class TestEjectFile:
 
     def test_already_regular_errors_without_force(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
-        rel = ".claude/skills/thinking-os/SKILL.md"
+        rel = ".claude/skills/thinking_os/SKILL.md"
         runner = CliRunner()
         runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
         # Second call on now-regular file
@@ -74,7 +74,7 @@ class TestEjectFile:
 
     def test_force_re_copies_regular_file(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
-        rel = ".claude/skills/thinking-os/SKILL.md"
+        rel = ".claude/skills/thinking_os/SKILL.md"
         runner = CliRunner()
         runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
         link = project / rel

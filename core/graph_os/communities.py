@@ -1,4 +1,4 @@
-"""graph-os — process-grouped search via Louvain communities (TASK-075).
+"""graph_os — process-grouped search via Louvain communities (TASK-075).
 
 PURPOSE:      Detect named "processes" (LoginFlow / RegistrationFlow /
               TokenRefresh-style clusters) by running Louvain community
@@ -12,7 +12,7 @@ INPUT:        A GraphBackend already populated by the extractor pipeline.
 OUTPUT:       list[Community] sorted by (-priority, community_id) so the
               same call returns the same order across runs.
 DEPENDENCIES: networkx + networkx.algorithms.community.louvain_communities
-              (already on PATH via the `graph-os` extra).  Falls back to
+              (already on PATH via the `graph_os` extra).  Falls back to
               greedy_modularity_communities when louvain isn't available.
 NOTES:        Communities are computed *on demand* and cached per backend
               + edge-count signature.  We deliberately do NOT persist

@@ -1,9 +1,9 @@
 ---
 id: TASK-076
 title: "Graph: 360° Context view (incoming/outgoing calls, processes, heritage) per symbol"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, ui, P2-ux-parity]
 status: icebox
 priority: P2

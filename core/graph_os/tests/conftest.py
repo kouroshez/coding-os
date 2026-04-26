@@ -1,4 +1,4 @@
-"""graph-os test fixtures.
+"""graph_os test fixtures.
 
 Puts core/thinking_os on sys.path so tests can import the db module
 directly (the MCP server does the same thing at runtime). Keeps tests
@@ -24,7 +24,7 @@ if str(_GRAPH_OS_DIR.parent) not in sys.path:
 @pytest.fixture()
 def fresh_db_path(tmp_path: Path) -> str:
     """Return a fresh sqlite3 path inside tmp_path (no schema yet)."""
-    return str(tmp_path / "graph-os-test.db")
+    return str(tmp_path / "graph_os-test.db")
 
 
 @pytest.fixture()

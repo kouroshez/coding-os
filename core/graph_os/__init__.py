@@ -1,6 +1,6 @@
-"""graph-os — the knowledge-graph subsystem of coding-os.
+"""graph_os — the knowledge-graph subsystem of coding-os.
 
-Sibling to thinking-os. Owns graph_nodes + graph_edges_v12 +
+Sibling to thinking_os. Owns graph_nodes + graph_edges_v12 +
 graph_evidence_v12 (shared SQLite DB, migration v12) and the optional
 Kuzu store for graph-native workloads.
 

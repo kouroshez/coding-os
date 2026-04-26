@@ -60,7 +60,7 @@ ALWAYS-ACTIVE (no RAG, full-read):
 | `docs/governance/**` | ❌ | Always-active rules |
 | `docs/tasks/**` | ❌ | Phase C handles this with structured `tasks` table |
 | `docs/00-index.md`, `foundation-map.md` | ❌ | Navigation hubs, full-read |
-| `docs/workflow-docs/thinking-os-final-edition.md` | ⚠️ | Optional — large reference, opt-in via rag-config.yaml |
+| `docs/workflow-docs/thinking_os-final-edition.md` | ⚠️ | Optional — large reference, opt-in via rag-config.yaml |
 
 ### What goes into the embeddings table (for memory search)
 
@@ -217,7 +217,7 @@ uv run pytest core/thinking_os/tests/test_db.py -v   # without rag extras
 **New Makefile target:**
 ```makefile
 cos-reindex: ## Rebuild all embeddings (bootstrap or model upgrade)
-	@uv run --extra rag python -m core.thinking-os.embeddings --reindex
+	@uv run --extra rag python -m core.thinking_os.embeddings --reindex
 ```
 
 Add `__main__` block to `embeddings.py` to support CLI invocation.
@@ -343,10 +343,10 @@ Add this file to `_overlay_scaffold()` in `cli/main.py` so it lands in the proje
 
 ```makefile
 docs-index: ## Index docs/ for RAG retrieval (incremental)
-	@uv run --extra rag python -m core.thinking-os.doc_indexer --config .coding-os/rag-config.yaml
+	@uv run --extra rag python -m core.thinking_os.doc_indexer --config .coding-os/rag-config.yaml
 
 docs-reindex: ## Force full reindex (after model upgrade)
-	@uv run --extra rag python -m core.thinking-os.doc_indexer --config .coding-os/rag-config.yaml --force
+	@uv run --extra rag python -m core.thinking_os.doc_indexer --config .coding-os/rag-config.yaml --force
 ```
 
 **New tests:** `core/thinking_os/tests/test_doc_indexer.py`
@@ -373,7 +373,7 @@ uv run --directory ~/Files/Project/coding-os python -m cli.main init --agent cla
 cp /Users/ciro/Files/Project/NakoDigital/docs/PRD/0[1-5]*.md "$TMPDIR/docs/PRD/"
 cd "$TMPDIR"
 make docs-index
-sqlite3 .coding-os/thinking-os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
+sqlite3 .coding-os/thinking_os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
 # Expected: prd | <count>
 ```
 
@@ -463,7 +463,7 @@ Update `cos_health` to include `embeddings_count`, `document_chunks_count`, `emb
 uv run --extra rag python -c "
 from core.thinking_os.tools.docs import doc_search
 from core.thinking_os.db import init_db
-c = init_db('.coding-os/thinking-os.db')
+c = init_db('.coding-os/thinking_os.db')
 import json
 print(json.dumps(doc_search(c, 'commission rate', source_types=['prd', 'architecture'], limit=3), indent=2))
 "
@@ -636,7 +636,7 @@ cp /Users/ciro/Files/Project/NakoDigital/docs/PRD/*.md "$TMPDIR/docs/PRD/" 2>/de
 cp /Users/ciro/Files/Project/NakoDigital/docs/architecture/0[12]*.md "$TMPDIR/docs/architecture/" 2>/dev/null || true
 cd "$TMPDIR"
 make docs-index
-sqlite3 .coding-os/thinking-os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
+sqlite3 .coding-os/thinking_os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
 # Expected: prd | N, architecture | M (where N+M > 0)
 
 # 6. cos_doc_search returns results
@@ -645,7 +645,7 @@ import json, sys
 sys.path.insert(0, '/Users/ciro/Files/Project/coding-os/core/thinking_os')
 from db import init_db
 from tools.docs import doc_search
-c = init_db('.coding-os/thinking-os.db')
+c = init_db('.coding-os/thinking_os.db')
 print(json.dumps(doc_search(c, 'commission', limit=3), indent=2))
 "
 

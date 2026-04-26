@@ -1,4 +1,4 @@
-"""board-os sync — Phase L mtime-incremental task→DB sync (L.1).
+"""board_os sync — Phase L mtime-incremental task→DB sync (L.1).
 
 Walks `docs/tasks/*.md`, parses each via `parser.parse_task`, and upserts
 into the `tasks` table (migration v13 columns) plus appends to

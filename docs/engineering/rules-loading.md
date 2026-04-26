@@ -83,7 +83,7 @@ Three options, each with a trade-off:
 Inside `AGENTS.md` add:
 
 ```
-@core/rules/thinking-os.md
+@core/rules/thinking_os.md
 @core/rules/memory.md
 ```
 
@@ -127,7 +127,7 @@ Diagnostic order:
 
 ## References
 
-- [core/rules/thinking-os.md](../../core/rules/thinking-os.md) — example always-active rule
+- [core/rules/thinking_os.md](../../core/rules/thinking_os.md) — example always-active rule
 - [core/rules/skill-enforcement.md](../../core/rules/skill-enforcement.md) — generated from `templates/*/stack.yaml`
 - [AGENTS.md](../../AGENTS.md) — where rules are referenced
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — `check-agents-md-refs.sh` + `block-protected-files.sh`

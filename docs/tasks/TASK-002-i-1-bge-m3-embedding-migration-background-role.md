@@ -1,7 +1,7 @@
 ---
 id: TASK-002
 title: "I.1  BGE-M3 embedding migration (background role)"
-swimlane: graph-os
+swimlane: graph_os
 kind: refactor
 epic: phase-i
 labels: []

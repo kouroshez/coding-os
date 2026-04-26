@@ -18,7 +18,7 @@ Composition pulls those concerns into one SSOT (`core/skills/backend-fundamental
 ```
 core/skills/                              ← agent-agnostic, stack-agnostic
 ├── clean-code/SKILL.md                   ← fail-closed errors, no PII in logs, typed exceptions
-├── thinking-os/SKILL.md                  ← Complexity Gate, Zoom cycle (always-active via rule)
+├── thinking_os/SKILL.md                  ← Complexity Gate, Zoom cycle (always-active via rule)
 ├── codebase-explorer/SKILL.md            ← trace-flow, dependency-map
 ├── worktree-orchestration/SKILL.md       ← parallel subagent dispatch
 ├── backend-fundamentals/SKILL.md         ← services, idempotency, envelopes, migrations, N+1

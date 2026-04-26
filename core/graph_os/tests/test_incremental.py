@@ -1,4 +1,4 @@
-"""V1 file-level incremental indexing tests (graph-os V1).
+"""V1 file-level incremental indexing tests (graph_os V1).
 
 PURPOSE: Exercise the ``file_index_state`` cache added in migration v17
          and wired into ``reindex_dispatch.dispatch``. These tests

@@ -28,49 +28,49 @@ from core.board_os.workflow import transition
 
 
 # ---------------------------------------------------------------------------
-# Phase I — graph-os (14 remaining slices)
+# Phase I — graph_os (14 remaining slices)
 # ---------------------------------------------------------------------------
 
 PHASE_I_TASKS = [
     ("I.1  BGE-M3 embedding migration (background role)",
-     "graph-os", "refactor", "P2", "2d",
+     "graph_os", "refactor", "P2", "2d",
      ["docs/phase-i-knowledge-graph-plan.md#I.1",
       "core/thinking_os/embeddings.py"]),
     ("I.2  md_links extractor (links_to + cites_heading edges)",
-     "graph-os", "feature", "P1", "1d",
+     "graph_os", "feature", "P1", "1d",
      ["docs/phase-i-knowledge-graph-plan.md#I.2"]),
     ("I.3  task_deps extractor (depends_on + references_doc)",
-     "graph-os", "feature", "P2", "1d",
+     "graph_os", "feature", "P2", "1d",
      ["docs/phase-i-knowledge-graph-plan.md#I.3"]),
     ("I.4  Python tree-sitter extractor + 7-step symbol lookup",
-     "graph-os", "feature", "P1", "3d",
+     "graph_os", "feature", "P1", "3d",
      ["docs/phase-i-knowledge-graph-plan.md#I.4"]),
     ("I.5  pyright LSP overlay + warm-start role",
-     "graph-os", "feature", "P2", "2d",
+     "graph_os", "feature", "P2", "2d",
      ["docs/phase-i-knowledge-graph-plan.md#I.5"]),
     ("I.6  TS/TSX tree-sitter extractor + tsserver overlay",
-     "graph-os", "feature", "P2", "3d",
+     "graph_os", "feature", "P2", "3d",
      ["docs/phase-i-knowledge-graph-plan.md#I.6"]),
     ("I.7  shell + yaml + contracts extractors",
-     "graph-os", "feature", "P2", "2d",
+     "graph_os", "feature", "P2", "2d",
      ["docs/phase-i-knowledge-graph-plan.md#I.7"]),
     ("I.8  11 cos_graph_* MCP tools (query/context/impact/...)",
-     "graph-os", "feature", "P1", "3d",
+     "graph_os", "feature", "P1", "3d",
      ["docs/phase-i-knowledge-graph-plan.md#I.8"]),
     ("I.9  Orchestrator — registry/dispatcher/worker_pool/roles",
      "thinking_os", "feature", "P1", "3d",
      ["docs/phase-i-knowledge-graph-plan.md#I.9"]),
     ("I.10 Sigma.js WebGL viewer + cos graph-viz CLI",
-     "graph-os", "feature", "P2", "3d",
+     "graph_os", "feature", "P2", "3d",
      ["docs/phase-i-knowledge-graph-plan.md#I.10"]),
     ("I.11 Ingestion flexibility (local/github/zip + guards)",
      "cli", "feature", "P3", "2d",
      ["docs/phase-i-knowledge-graph-plan.md#I.11"]),
     ("I.12 Repo groups + cross-repo edge detection",
-     "graph-os", "feature", "P2", "3d",
+     "graph_os", "feature", "P2", "3d",
      ["docs/phase-i-knowledge-graph-plan.md#I.12"]),
     ("I.13 Scale benchmark suite + perf regression gate",
-     "graph-os", "test", "P2", "2d",
+     "graph_os", "test", "P2", "2d",
      ["docs/phase-i-knowledge-graph-plan.md#I.13"]),
     ("I.14 Graph docs + graph-explorer skill + doctor C16-C22",
      "docs", "docs", "P3", "1d",
@@ -149,7 +149,7 @@ EMERGENCY_TASKS = [
 
 def _open_conn() -> sqlite3.Connection:
     db_path = os.environ.get(
-        "COS_DB_PATH", str(_REPO_ROOT / ".coding-os" / "thinking-os.db"),
+        "COS_DB_PATH", str(_REPO_ROOT / ".coding-os" / "thinking_os.db"),
     )
     return sqlite3.connect(db_path)
 

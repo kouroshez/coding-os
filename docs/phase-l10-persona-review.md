@@ -55,7 +55,7 @@ Each persona gives 0–10. The TASK score is the **minimum** (worst-perspective 
 | Persona | Score | Rationale |
 |---|:-:|---|
 | **F1 Researcher** | 10 | Two-tier config (meta defaults + consumer overrides) is the canonical Kubernetes / Helm values-merge pattern. `**/` glob expansion mimics `.gitignore`. |
-| **F2 Designer** | 10 | Customer-leak (`frontend/app/*/checkout/*`) completely eliminated. Coding-os meta-repo correctly resolves: core/hooks/* → verify-hooks, core/board_os/*.py → test-board-os, etc. (verified live). |
+| **F2 Designer** | 10 | Customer-leak (`frontend/app/*/checkout/*`) completely eliminated. Coding-os meta-repo correctly resolves: core/hooks/* → verify-hooks, core/board_os/*.py → test-board_os, etc. (verified live). |
 | **F8 Tester** | 10 | 15 tests: meta load, glob match per swimlane, recursive `**`, consumer override, schema violation, empty input, dedup, command resolution. Live integration test proved override flow. |
 | **F11 Refactorer** | 9 | Bash hook shrank from 165 lines to 60. Python CLI is 130 lines but pure (no globals). Could DRY the override-evaluation block (shared with task-body validator); deferred. |
 | **TASK score** | **9** | Cleanest refactor of the phase. |

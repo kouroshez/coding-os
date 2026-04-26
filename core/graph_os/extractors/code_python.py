@@ -1,4 +1,4 @@
-"""graph-os — Python extractor (I.4).
+"""graph_os — Python extractor (I.4).
 
 PURPOSE:  Turn a single Python module into GraphNodes + GraphEdges —
           imports, classes, methods, calls, decorators — using the

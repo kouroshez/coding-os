@@ -1,4 +1,4 @@
-"""graph-os indexing harness (Phase I.10 — full-hybrid indexing lifecycle).
+"""graph_os indexing harness (Phase I.10 — full-hybrid indexing lifecycle).
 
 PURPOSE:  One module that owns "walk a project, feed the graph". It is the
           single Python entry called by (a) `cos graph-reindex` CLI for

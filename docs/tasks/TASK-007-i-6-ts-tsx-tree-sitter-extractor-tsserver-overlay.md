@@ -1,7 +1,7 @@
 ---
 id: TASK-007
 title: "I.6  TS/TSX tree-sitter extractor + tsserver overlay"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

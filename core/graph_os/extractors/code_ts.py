@@ -1,4 +1,4 @@
-"""graph-os — TypeScript / TSX extractor (I.6).
+"""graph_os — TypeScript / TSX extractor (I.6).
 
 PURPOSE:  Turn a `.ts` / `.tsx` module into GraphNodes + GraphEdges
           (imports, classes, interfaces, functions, methods, exports,
@@ -198,7 +198,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     PURPOSE:      Per-file write path invoked by the orchestrator. Uses
                   tree-sitter when the grammar is installed (Phase
                   I.6b); falls back to the regex scanner otherwise so
-                  the dogfood build still works when the graph-os
+                  the dogfood build still works when the graph_os
                   extra is skipped.
     INPUT:        file path + raw source.
     OUTPUT:       ExtractionResult.

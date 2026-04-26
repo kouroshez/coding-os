@@ -1,9 +1,9 @@
 ---
 id: TASK-120
 title: "TASK-080b: Promote tree-sitter for Python class heritage + decorators"
-swimlane: graph-os
+swimlane: graph_os
 kind: refactor
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: []
 status: complete
 priority: P2

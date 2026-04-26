@@ -1,4 +1,4 @@
-"""graph-os — shell script extractor (I.7).
+"""graph_os — shell script extractor (I.7).
 
 PURPOSE:  Map a `.sh` file to code:file / code:module + `source` /
           `calls` edges. Primary enterprise use-case is the coding-os

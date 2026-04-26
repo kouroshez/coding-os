@@ -79,7 +79,7 @@ except ImportError:
 
 project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
 db_path = os.environ.get(
-    "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db"),
+    "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db"),
 )
 if not Path(db_path).exists():
     import sys; sys.exit(0)

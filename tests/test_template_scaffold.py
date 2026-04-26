@@ -12,7 +12,7 @@ Covers:
   - Multi-template merge (django + nextjs)
   - AGENTS.md placeholder substitution (no `{{...}}` left after init)
   - Stack-specific Makefile targets reachable
-  - Workflow docs copied (thinking-os-final-edition.md from core/docs/)
+  - Workflow docs copied (thinking_os-final-edition.md from core/docs/)
 """
 
 from __future__ import annotations
@@ -146,8 +146,8 @@ class TestBaseScaffold:
     def test_creates_workflow_docs(self, initialized: Path) -> None:
         wf = initialized / "docs" / "workflow-docs"
         assert (wf / "workflow-guide.md").exists()
-        assert (wf / "thinking-os-final-edition.md").exists(), \
-            "thinking-os-final-edition.md should be copied from core/docs/"
+        assert (wf / "thinking_os-final-edition.md").exists(), \
+            "thinking_os-final-edition.md should be copied from core/docs/"
 
     def test_creates_tasks_index(self, initialized: Path) -> None:
         tasks = initialized / "docs" / "tasks.md"

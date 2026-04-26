@@ -1,7 +1,7 @@
 ---
 id: TASK-011
 title: "I.10 Sigma.js WebGL viewer + cos graph-viz CLI"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

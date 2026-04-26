@@ -3,7 +3,7 @@
 
 Purpose: Phase-by-phase status of coding-os development, from v0.1.0 through the current v0.3.0.
 Read when: Checking what's done, what's planned, or picking up the next piece of work.
-Skip when: You need implementation details — go to the corresponding phase plan (`phase-b-rag-plan.md`, `phase-c-task-store-plan.md`, `phase-m-thinking-os-new-formula.md`, `phase-n-role-based-routing-plan.md`).
+Skip when: You need implementation details — go to the corresponding phase plan (`phase-b-rag-plan.md`, `phase-c-task-store-plan.md`, `phase-m-thinking_os-new-formula.md`, `phase-n-role-based-routing-plan.md`).
 Read next: The current phase's plan for open work items; [features.md](./features.md) for a cross-cutting system map. Authoritative live status: [../AGENTS.md §Development Status](../AGENTS.md).
 
 ## Current State (v0.3.0 — Phases A → N complete)
@@ -17,10 +17,10 @@ Read next: The current phase's plan for open work items; [features.md](./feature
 
 ### Done — v0.1.0 (initial release)
 
-- [x] Core thinking-os MCP server (18 tools, cos_* prefix)
+- [x] Core thinking_os MCP server (18 tools, cos_* prefix)
 - [x] Core hooks (20 scripts, parameterized via cos-env.sh)
-- [x] Core rules (thinking-os.md, memory.md)
-- [x] Core skills (thinking-os, clean-code, codebase-explorer, worktree-orchestration)
+- [x] Core rules (thinking_os.md, memory.md)
+- [x] Core skills (thinking_os, clean-code, codebase-explorer, worktree-orchestration)
 - [x] Claude adapter (settings.template.json, install.sh)
 - [x] Codex adapter (hooks.template.json, install.sh)
 - [x] CLI (init, add-adapter, health, eject)
@@ -260,7 +260,7 @@ Phase F addresses the invisible failure modes that bit us during Phase D/E devel
 
 #### F.8 — `cos server-start` portability fix
 
-- [x] `cli/main.py::server_start` now captures the caller's cwd BEFORE `uv run --directory` chdirs into the server tree and injects `COS_DB_PATH` + `COS_STATE_DIR` as env vars — so the server resolves `.coding-os/thinking-os.db` against the actual project root, not against the server source tree. Uses `os.execvpe` to pass env through the exec.
+- [x] `cli/main.py::server_start` now captures the caller's cwd BEFORE `uv run --directory` chdirs into the server tree and injects `COS_DB_PATH` + `COS_STATE_DIR` as env vars — so the server resolves `.coding-os/thinking_os.db` against the actual project root, not against the server source tree. Uses `os.execvpe` to pass env through the exec.
 
 #### Wire-up
 

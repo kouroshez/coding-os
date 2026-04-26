@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook: probe the coding-os MCP server, warn if down.
 #
-# Rationale: without a live MCP, the entire thinking-os layer is dead —
+# Rationale: without a live MCP, the entire thinking_os layer is dead —
 # memory search, task-sync, learning, breakthrough capture, doc-search
 # all silently fail. The agent and the human have no visible signal
 # unless they happen to call an MCP tool and see the error.
@@ -125,7 +125,7 @@ fi
 
 cat <<'STDOUT'
 [coding-os status] MCP server is unreachable this session.
-  The thinking-os layer (memory / learning / task-sync / doc-search) is
+  The thinking_os layer (memory / learning / task-sync / doc-search) is
   disabled. Proceed with caution — patterns won't be retrieved and
   observations won't be recorded. Run `cos doctor` for diagnosis.
 STDOUT

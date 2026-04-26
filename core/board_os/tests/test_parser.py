@@ -10,7 +10,7 @@ from core.board_os.parser import (
 LEAN_FIXTURE = """---
 id: TASK-199
 title: "Implement Kuzu backend"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: [indexing, perf]
@@ -122,7 +122,7 @@ def test_extract_frontmatter_happy_path():
     fm = extract_frontmatter(LEAN_FIXTURE)
     assert fm is not None
     assert fm["id"] == "TASK-199"
-    assert fm["swimlane"] == "graph-os"
+    assert fm["swimlane"] == "graph_os"
     assert fm["kind"] == "feature"
     assert fm["labels"] == ["indexing", "perf"]
 
@@ -144,7 +144,7 @@ def test_parse_task_lean_full():
     assert parsed.is_lean is True
     assert parsed.task_id == "TASK-199"
     assert parsed.title == "Implement Kuzu backend"
-    assert parsed.swimlane == "graph-os"
+    assert parsed.swimlane == "graph_os"
     assert parsed.kind == "feature"
     assert parsed.epic == "phase-i"
     assert parsed.labels == ("indexing", "perf")

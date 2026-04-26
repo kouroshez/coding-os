@@ -25,7 +25,7 @@ Coding OS is a hexagonal (ports & adapters) system that teaches AI coding agents
               +--------------v--------------+
               |          CORE               |
               |  hooks/ rules/ skills/      |
-              |  thinking-os MCP server     |
+              |  thinking_os MCP server     |
               +--------------+--------------+
                              |
               +--------------v--------------+
@@ -43,12 +43,12 @@ Everything in `core/` works identically regardless of which AI agent uses it.
 
 | Component | Purpose | Key Files |
 |-----------|---------|-----------|
-| `thinking-os/` | MCP server — self-learning brain (memory, learning, routing, metrics) | `server.py`, `db.py`, `tools/` |
-| `graph-os/` | Phase I knowledge graph (Kùzu + SQLite backends) | `backend.py`, `backends/`, `extractors/` |
-| `board-os/` | Phase L Scrumban task system — the planner | `config.py`, `parser.py`, `workflow.py`, `mcp_tools.py`, `viewer/` |
-| `hooks/` | Shell scripts for enforcement (45 scripts across Phases 0-L) | `thinking-os-gate.sh`, `enforce-*.sh`, `validate-task-frontmatter.sh` |
-| `rules/` | Always-active workflow rules | `thinking-os.md`, `memory.md` |
-| `skills/` | Deep methodology guides | `thinking-os/`, `clean-code/`, `task-driver/` |
+| `thinking_os/` | MCP server — self-learning brain (memory, learning, routing, metrics) | `server.py`, `db.py`, `tools/` |
+| `graph_os/` | Phase I knowledge graph (Kùzu + SQLite backends) | `backend.py`, `backends/`, `extractors/` |
+| `board_os/` | Phase L Scrumban task system — the planner | `config.py`, `parser.py`, `workflow.py`, `mcp_tools.py`, `viewer/` |
+| `hooks/` | Shell scripts for enforcement (45 scripts across Phases 0-L) | `thinking_os-gate.sh`, `enforce-*.sh`, `validate-task-frontmatter.sh` |
+| `rules/` | Always-active workflow rules | `thinking_os.md`, `memory.md` |
+| `skills/` | Deep methodology guides | `thinking_os/`, `clean-code/`, `task-driver/` |
 
 ### Adapters (per-agent)
 
@@ -77,7 +77,7 @@ Every task is classified before work begins:
 ### Session Scoping
 
 All state files are session-scoped via `COS_STATE_DIR`:
-- `.thinking-os-gate` — current Complexity Gate classification
+- `.thinking_os-gate` — current Complexity Gate classification
 - `.task-current` — active task
 - `.active-skill` — invoked skills
 - `.zoom-checkpoint` — Plan completion marker
@@ -91,14 +91,14 @@ Observations → Patterns → Validated Patterns → Rules
   capture.py   learn_extract  learn_validate    promote
 ```
 
-The thinking-os DB tracks everything and learns from past sessions.
+The thinking_os DB tracks everything and learns from past sessions.
 
 ## Environment Variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `COS_STATE_DIR` | `.coding-os` | State files directory |
-| `COS_DB_PATH` | `.coding-os/thinking-os.db` | SQLite database path |
+| `COS_DB_PATH` | `.coding-os/thinking_os.db` | SQLite database path |
 | `COS_SESSION_FILE` | `.coding-os/session-id` | Session ID file |
 
 ## MCP Tools (27 tools, `cos_*` prefix)
@@ -187,7 +187,7 @@ Migrations are append-only (never edit past migrations). Each new table adds a `
 The system answers different questions at three layers:
 
 ```
-Layer 1: AGENT MEMORY (existing thinking-os core)
+Layer 1: AGENT MEMORY (existing thinking_os core)
    observations, learned_patterns, outcome_history
    Question: "Have I solved this before?"
    Tools: cos_search (with semantic blend), cos_timeline, cos_details,
@@ -274,7 +274,7 @@ Agent tries to write code
                                        test_no_hardcoded_stacks).
      5. block-secrets.sh             — no API keys / credentials in content
      6. block-bad-patterns.sh        — no anti-patterns (bare except: pass, …)
-     7. thinking-os-gate.sh          — BLOCKS unless Complexity Gate recorded
+     7. thinking_os-gate.sh          — BLOCKS unless Complexity Gate recorded
      8. enforce-task-start.sh        — BLOCKS unless task active (or CLEAR 1)
      9. enforce-doc-anchor.sh        — BLOCKS unless $COS_STATE_DIR/.doc-anchor
                                        is populated (docs-first principle —
@@ -282,7 +282,7 @@ Agent tries to write code
                                        file's Source of Truth / Read First).
     10. enforce-memory-check.sh      — BLOCKS unless Memory Check recorded
                                        ($COS_STATE_DIR/.memory-check) —
-                                       enforces the thinking-os Orient step.
+                                       enforces the thinking_os Orient step.
                                        Exempt for CLEAR 1 / exploratory tasks.
     11. enforce-skill.sh             — BLOCKS unless domain skill invoked
     12. enforce-zoom.sh              — BLOCKS COMPLICATED+ without plan checkpoint

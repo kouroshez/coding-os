@@ -216,7 +216,7 @@ def test_agent_state_falls_back_to_db_as_present(fake_project, monkeypatch):
 
     from core.thinking_os.db import init_db
 
-    db_path = fake_project / ".coding-os" / "thinking-os.db"
+    db_path = fake_project / ".coding-os" / "thinking_os.db"
     init_db(db_path).close()
     monkeypatch.setenv("COS_DB_PATH", str(db_path))
 

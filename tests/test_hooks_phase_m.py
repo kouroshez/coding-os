@@ -72,7 +72,7 @@ class TestEnforceAntiAmbiguity:
 
     def test_clear_gate_bypasses_fail_cache(self, tmp_path):
         (tmp_path / ".ambiguity-cache").write_text("FAIL:scoped")
-        (tmp_path / ".thinking-os-gate").write_text("CLEAR 1")
+        (tmp_path / ".thinking_os-gate").write_text("CLEAR 1")
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},

@@ -54,7 +54,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 |---|---|---|
 | `enforce-skill` | Write/Edit on `.py`/`.ts`/`.tsx` | domain skill invoked (`clean-code`, `python-django`, `nextjs-react`, …) |
 | `enforce-zoom` | Write/Edit after Complexity Gate = COMPLICATED/COMPLEX | `.coding-os/.zoom-checkpoint` records `PROBLEM_FRAMED` |
-| `thinking-os-gate` | Write/Edit | `.coding-os/.thinking-os-gate` records `<CYNEFIN> <DIM>` classification |
+| `thinking_os-gate` | Write/Edit | `.coding-os/.thinking_os-gate` records `<CYNEFIN> <DIM>` classification |
 | `enforce-task-start` | Write/Edit | `.coding-os/.task-current` points at an active task (or CLEAR-1 fast-path) |
 | `enforce-doc-anchor` | Write/Edit on code | `.coding-os/.doc-anchor` points at a real doc (Rule 0 — docs-first) |
 | `enforce-memory-check` | Write/Edit | `.coding-os/.memory-check` records a recent `cos_search` for past patterns |
@@ -89,7 +89,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `check-agents-md-size` | PostToolUse after AGENTS.md edit | warn if size > 30 KB (context budget) |
 | `check-agents-md-refs` | PostToolUse after AGENTS.md edit | warn if referenced files/paths are missing |
 | `warn-template-drift` | PreToolUse on generated files | WARN if hand-editing `core/rules/dimension-registry.md`, `core/rules/skill-enforcement.md`, `core/scaffold_manifest.json`, or `tests/golden/**` (generated — regenerate instead) |
-| `warn-mcp-down` | SessionStart | WARN if thinking-os MCP can't be reached (session is cognitively blind) |
+| `warn-mcp-down` | SessionStart | WARN if thinking_os MCP can't be reached (session is cognitively blind) |
 
 ## Adding a new hook
 

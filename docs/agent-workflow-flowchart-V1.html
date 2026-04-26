@@ -345,7 +345,7 @@
             <span class="cy-tag" style="color:var(--purple);border-color:rgba(139,92,246,0.3);">CONFUSION</span>
           </div>
           <div class="n-desc" style="margin-top:6px;"><strong>Q2 Dimensions:</strong> 1 → single pass · 2-4 → Zoom · 5+ → full Zoom · 8+ → decompose</div>
-          <div class="n-cmd">write-state.sh .thinking-os-gate "COMPLICATED 3"</div>
+          <div class="n-cmd">write-state.sh .thinking_os-gate "COMPLICATED 3"</div>
           <div class="n-badge" style="background:var(--pink-dim);color:var(--pink);margin-top:4px;">enforce-gate.sh BLOCKS Write/Edit until recorded</div>
         </div>
       </div></div>
@@ -692,7 +692,7 @@
     <div class="card" data-section="gates">
       <h3><i style="background:var(--pink-dim);border:1px solid var(--pink);color:var(--pink);">G</i> Gates (blocking)</h3>
       <ul>
-        <li><strong>G1 Complexity</strong> — <code>.thinking-os-gate</code> required before code writes</li>
+        <li><strong>G1 Complexity</strong> — <code>.thinking_os-gate</code> required before code writes</li>
         <li><strong>G2 Doc-Anchor</strong> — <code>.doc-anchor</code> required (docs-first)</li>
         <li><strong>G3 Anti-Ambiguity</strong> — 7 criteria per F_N step at PLAN→EXECUTE</li>
         <li><strong>G4 Skill</strong> — domain skill loaded during F5/F6</li>
@@ -836,7 +836,7 @@
   "phases": [
     {"id": "entry", "node": "n-user", "next": "n-sinit"},
     {"id": "session-init", "node": "n-sinit", "hooks": ["warn-mcp-down", "session-context-recovery"], "next": "n-gate"},
-    {"id": "complexity-gate", "node": "n-gate", "artifact": ".thinking-os-gate", "next": "n-cynefin"},
+    {"id": "complexity-gate", "node": "n-gate", "artifact": ".thinking_os-gate", "next": "n-cynefin"},
     {"id": "cynefin-branch", "node": "n-cynefin", "branches": {"CLEAR": "n-clear", "COMPLICATED|COMPLEX": "n-complex", "CHAOTIC": "n-chaotic"}},
     {"id": "task-analyzer", "node": "n-analyzer", "status": "SHIPPED-PHASE-N", "inputs": ["prompt", "cos_search", "cos_graph_impact", "cos_doc_search"], "outputs": ["TaskSignals"]},
     {"id": "role-router", "node": "n-router", "steps": ["preset-lookup", "composer-fallback", "situational-override"], "next": "n-supervisor"},

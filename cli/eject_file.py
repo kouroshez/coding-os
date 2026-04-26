@@ -28,7 +28,7 @@ def eject_file(rel_path: str, project_dir: str, force: bool) -> None:
     REL_PATH is relative to the project root.
 
     Examples:
-      cos eject-file .claude/skills/thinking-os/SKILL.md
+      cos eject-file .claude/skills/thinking_os/SKILL.md
       cos eject-file docs/workflow-docs/workflow-guide.md
     """
     project = Path(project_dir).resolve()

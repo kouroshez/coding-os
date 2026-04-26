@@ -78,7 +78,7 @@ except Exception as exc:  # noqa: BLE001 — never fail MCP boot on indexer glit
 def thinking_os_health() -> str:
     """Return database health stats: row counts per table, schema version, DB size, FTS5 availability, embeddings status.
 
-    Use this tool to verify the thinking-os database is operational and
+    Use this tool to verify the thinking_os database is operational and
     to get a quick summary of stored data volume.
 
     Returns:
@@ -757,7 +757,7 @@ def thinking_os_graph(
             agent_type="system",
             outcome="deprecated_call",
             task_id="cos_graph.shim",
-            domain="graph-os",
+            domain="graph_os",
             complexity="legacy",
         )
     except Exception as exc:  # noqa: BLE001 — shim never raises
@@ -1543,7 +1543,7 @@ def _graph_unavailable() -> str:
             "error": {
                 "category": "unavailable",
                 "retryable": False,
-                "message": "graph_os package not importable; install graph-os extra",
+                "message": "graph_os package not importable; install graph_os extra",
             },
         }
     )
@@ -1580,7 +1580,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             include_spine: S3 — attach the CONTAINS-ancestor chain to each result for breadcrumbs.
 
         Returns:
-            JSON envelope with `results` array. See docs/engineering/graph-os-queries.md.
+            JSON envelope with `results` array. See docs/engineering/graph_os-queries.md.
         """
         return _graph_tools.cos_graph_query(
             q,
@@ -2002,7 +2002,7 @@ def main() -> None:
         success = _run_self_test()
         sys.exit(0 if success else 1)
     else:
-        logger.info("Starting thinking-os MCP server (stdio)...")
+        logger.info("Starting thinking_os MCP server (stdio)...")
         mcp.run(transport="stdio")
 
 

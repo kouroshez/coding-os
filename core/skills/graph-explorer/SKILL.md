@@ -1,11 +1,11 @@
 ---
 name: graph-explorer
-description: Navigate the graph-os knowledge graph before editing load-bearing code. Use when tracing dependencies, planning a rename, auditing API surface, or answering "what breaks if I change this?". Pairs with codebase-explorer — graph-explorer wins for symbol-precise queries, codebase-explorer wins for conceptual code-reading.
+description: Navigate the graph_os knowledge graph before editing load-bearing code. Use when tracing dependencies, planning a rename, auditing API surface, or answering "what breaks if I change this?". Pairs with codebase-explorer — graph-explorer wins for symbol-precise queries, codebase-explorer wins for conceptual code-reading.
 ---
 
 # graph-explorer
 
-Purpose: Load the Phase I graph-os toolset (`cos_graph_*` MCP tools) and
+Purpose: Load the Phase I graph_os toolset (`cos_graph_*` MCP tools) and
 use it deliberately before any non-trivial code edit. The graph is the
 third retrieval layer (CLAUDE.md Three-Layer Retrieval) — use it when
 tree-grep or past-memory searches return noise.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # warn-graph-empty.sh (Phase I.10) — SessionStart.
 #
-# PURPOSE: Surface a one-line warning when graph-os has no data yet so
+# PURPOSE: Surface a one-line warning when graph_os has no data yet so
 #   the agent knows `cos_graph_*` queries will return empty. Never
 #   blocks; never auto-indexes. The user decides when to run
 #   `cos graph-reindex`.
@@ -22,7 +22,7 @@ cos_log_hook warn-graph-empty enter || true
 
 STATE_DIR="${COS_STATE_DIR:-$PWD/.coding-os}"
 AGENT_DIR="${COS_AGENT_DIR:-${STATE_DIR}/claude}"
-DB_PATH="${COS_DB_PATH:-${STATE_DIR}/thinking-os.db}"
+DB_PATH="${COS_DB_PATH:-${STATE_DIR}/thinking_os.db}"
 LOG_FILE="${STATE_DIR}/.warn-graph-empty.log"
 MARKER="${AGENT_DIR}/.graph-empty-warning-shown"
 
@@ -38,7 +38,7 @@ fi
 # Fast bail: no DB file → graph definitely empty, but also nothing to
 # count. Emit the tip anyway.
 if [[ ! -f "$DB_PATH" ]]; then
-  echo "[graph-os] Graph not indexed yet. Run \`cos graph-reindex\` to enable cos_graph_* queries." >&2
+  echo "[graph_os] Graph not indexed yet. Run \`cos graph-reindex\` to enable cos_graph_* queries." >&2
   touch "$MARKER" 2>/dev/null || true
   cos_log_hook warn-graph-empty warn-no-db || true
   exit 0
@@ -60,7 +60,7 @@ if [[ -z "$COUNT" ]]; then
 fi
 
 if (( COUNT == 0 )); then
-  echo "[graph-os] Graph not indexed yet (graph_nodes=0). Run \`cos graph-reindex\` to enable cos_graph_* queries." >&2
+  echo "[graph_os] Graph not indexed yet (graph_nodes=0). Run \`cos graph-reindex\` to enable cos_graph_* queries." >&2
   touch "$MARKER" 2>/dev/null || true
   cos_log_hook warn-graph-empty warn || true
 else

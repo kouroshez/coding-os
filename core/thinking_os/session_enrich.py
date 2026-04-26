@@ -32,7 +32,7 @@ def main() -> None:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
 
-    gate_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking-os-gate")
+    gate_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.thinking_os-gate")
 
     # ── Step 1: Populate semantic fields in session_summaries ──
     try:

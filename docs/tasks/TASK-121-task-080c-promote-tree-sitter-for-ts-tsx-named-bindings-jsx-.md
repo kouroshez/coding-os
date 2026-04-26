@@ -1,9 +1,9 @@
 ---
 id: TASK-121
 title: "TASK-080c: Promote tree-sitter for TS/TSX named bindings + JSX components"
-swimlane: graph-os
+swimlane: graph_os
 kind: refactor
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: []
 status: testing
 priority: P2

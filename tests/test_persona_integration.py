@@ -15,7 +15,7 @@ Personas exercised:
   E) Upgrade user (simulated)         — cos update reports no drift after fresh init
   F) Agent writing a task file        — enforce-template blocks, redirect works
   G) Agent editing code without skill — enforce-skill blocks
-  H) Agent editing code without gate  — thinking-os-gate blocks
+  H) Agent editing code without gate  — thinking_os-gate blocks
 """
 
 from __future__ import annotations
@@ -104,7 +104,7 @@ class TestPersonaFullStack:
         # All stack skills symlinked into .claude/skills/.
         skills_dir = project / ".claude" / "skills"
         expected_skills = {
-            "thinking-os", "clean-code", "codebase-explorer", "worktree-orchestration",
+            "thinking_os", "clean-code", "codebase-explorer", "worktree-orchestration",
             "python-django", "nextjs-react", "frontend-design",
         }
         actual_skills = {p.name for p in skills_dir.iterdir() if p.is_dir()}
@@ -212,8 +212,8 @@ class TestPersonaDualAgent:
         assert (project / ".codex" / "hooks.json").exists()
 
         # Both adapters share the same core hook sources.
-        claude_hook = (project / ".claude/hooks/thinking-os-gate.sh").resolve()
-        codex_hook = (project / ".codex/hooks/thinking-os-gate.sh").resolve()
+        claude_hook = (project / ".claude/hooks/thinking_os-gate.sh").resolve()
+        codex_hook = (project / ".codex/hooks/thinking_os-gate.sh").resolve()
         assert claude_hook == codex_hook
 
 
@@ -278,7 +278,7 @@ class TestPersonaTemplateBlock:
         assert "task-create" in r.stderr
 
 
-# Personas G / H (enforce-skill / thinking-os-gate without project context)
+# Personas G / H (enforce-skill / thinking_os-gate without project context)
 # are covered by the per-hook unit tests in test_hooks.py. The integration
 # tests above focus on project-level flows that unit tests can't express.
 

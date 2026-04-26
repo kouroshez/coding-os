@@ -14,9 +14,9 @@ Before writing or editing code files, invoke the matching domain skill:
 
 During the Core Loop (AGENTS.md), load skills based on Complexity Gate result:
 
-- **CLEAR** → domain skill only (e.g., `python-django`). No `thinking-os`, no `clean-code`.
-- **COMPLICATED** → `thinking-os` + domain skill + `clean-code`
-- **COMPLEX** → `thinking-os` + domain skill + `clean-code` + risk-relevant secondary skills
+- **CLEAR** → domain skill only (e.g., `python-django`). No `thinking_os`, no `clean-code`.
+- **COMPLICATED** → `thinking_os` + domain skill + `clean-code`
+- **COMPLEX** → `thinking_os` + domain skill + `clean-code` + risk-relevant secondary skills
 - **CHAOTIC** → act first to stabilize, then same as COMPLICATED
 
 ## Domain Routing (32 skills)
@@ -62,7 +62,7 @@ Skills are either **project** (custom SKILL.md with NakoDigital SSOT references)
 | EXPLAIN, JSONB, replication, VACUUM | `postgres-pro` | global | COMPLICATED | Performance |
 | New table design, constraints | `postgresql-table-design` | global | COMPLICATED | New schemas |
 | SQL query tuning, EXPLAIN plans, indexing | `sql-optimization` | global | COMPLICATED | Universal SQL perf |
-| SQLite DB, FTS5, migrations, thinking-os.db | `sqlite-database-expert` | global | COMPLICATED | SQLite/embedded DB |
+| SQLite DB, FTS5, migrations, thinking_os.db | `sqlite-database-expert` | global | COMPLICATED | SQLite/embedded DB |
 
 **Payments (Stripe + Payment Core)**
 
@@ -76,7 +76,7 @@ Skills are either **project** (custom SKILL.md with NakoDigital SSOT references)
 
 | Task | Skill | Type | Min Gate | Role |
 | --- | --- | --- | --- | --- |
-| Complexity Gate, Zoom cycle, 10 tools | `thinking-os` | project | COMPLICATED | Classify + Plan |
+| Complexity Gate, Zoom cycle, 10 tools | `thinking_os` | project | COMPLICATED | Classify + Plan |
 | Error handling, edge cases | `clean-code` | project | COMPLICATED | Any code |
 | Explore unfamiliar code | `codebase-explorer` | project | COMPLICATED | Before modifying |
 | Parallel agent dispatch | `worktree-orchestration` | project | COMPLEX | Multi-domain tasks |

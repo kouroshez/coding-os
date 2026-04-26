@@ -1,7 +1,7 @@
 ---
 id: TASK-019
 title: "J.4  cos_retrieve MCP tool — register + envelope"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: phase-j
 labels: []

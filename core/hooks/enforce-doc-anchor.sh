@@ -72,7 +72,7 @@ file_age_seconds() {
 # CLEAR 1 trivial path — ad-hoc fixes don't need a doc anchor.
 source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
 if type check_state >/dev/null 2>&1; then
-  check_state "${COS_AGENT_DIR}/.thinking-os-gate" 7200
+  check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
   if [[ "${STATE_VALID:-}" == "true" ]]; then
     CLASS=$(echo "${STATE_VALUE:-}" | awk '{print $1}')
     DIMS=$(echo "${STATE_VALUE:-}" | awk '{print $2}')
@@ -114,7 +114,7 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "  1. Populate the task file's \"Source of Truth\" or \"Read First\"" >&2
   echo "     section with real doc paths, then re-run \`make task-start TASK=N\`." >&2
   echo "  2. If this is a trivial fix (typo, docstring), record CLEAR 1:" >&2
-  echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking-os-gate\" \"CLEAR 1\"" >&2
+  echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking_os-gate\" \"CLEAR 1\"" >&2
   echo "  3. If genuinely exploratory, set an exploratory task name:" >&2
   echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
   echo "" >&2

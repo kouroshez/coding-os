@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Write a session-scoped state file.
 # Usage: write-state.sh <state-file> <value>
-# Example: write-state.sh .coding-os/.thinking-os-gate "COMPLICATED 4"
+# Example: write-state.sh .coding-os/.thinking_os-gate "COMPLICATED 4"
 #
 # Prepends the current session ID so hooks can verify ownership.
 # Format: "<session-id> <value>"

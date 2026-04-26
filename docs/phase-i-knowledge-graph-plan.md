@@ -1,9 +1,9 @@
 <!-- domain:ALL | layer:reference | ssot:true | updated:2026-04-19 -->
-# Phase I — `graph-os` (Industrial Knowledge Graph Subsystem)
+# Phase I — `graph_os` (Industrial Knowledge Graph Subsystem)
 
-> **Rename note:** The pre-rewrite plan called this phase "knowledge-graph". The subsystem itself is now a first-class module — **`graph-os`** — sibling to `thinking-os`. Same file retained for backward compatibility with old references.
+> **Rename note:** The pre-rewrite plan called this phase "knowledge-graph". The subsystem itself is now a first-class module — **`graph_os`** — sibling to `thinking_os`. Same file retained for backward compatibility with old references.
 
-Purpose: Build a production-grade, multi-language, multi-repo code & documentation knowledge graph that (a) the agent queries before every non-trivial edit to understand blast radius, (b) the human inspects visually via a first-party viewer, and (c) scales to monorepos with 500k+ symbols without degrading agent latency. `graph-os` is the second cognitive pillar of `coding-os`, alongside `thinking-os` (cognition/memory) and the hook regime (enforcement).
+Purpose: Build a production-grade, multi-language, multi-repo code & documentation knowledge graph that (a) the agent queries before every non-trivial edit to understand blast radius, (b) the human inspects visually via a first-party viewer, and (c) scales to monorepos with 500k+ symbols without degrading agent latency. `graph_os` is the second cognitive pillar of `coding-os`, alongside `thinking_os` (cognition/memory) and the hook regime (enforcement).
 
 Read when: Starting any `I.*` slice, auditing the extraction pipeline, adding a new language, wiring a new MCP tool, or changing the symbol-resolution semantics.
 
@@ -11,7 +11,7 @@ Read next: [core/thinking_os/graph.py](../core/thinking_os/graph.py), `concept_g
 
 ---
 
-## 1. Why — The Problem graph-os Solves
+## 1. Why — The Problem graph_os Solves
 
 `coding-os` already answers two of the three "retrieval" questions: *"have I solved this before?"* (memory) and *"what does the spec say?"* (docs RAG). It does **not** answer the third — the one professional engineers ask most often:
 
@@ -19,42 +19,42 @@ Read next: [core/thinking_os/graph.py](../core/thinking_os/graph.py), `concept_g
 
 An agent without this answer is blind. It edits a file, ships, and causes cascading failures because it could not see the web of dependencies around the code. Grep finds the string; it does not know `user.address.getCity()` resolves to `City.getName()` via a type-binding chain across 4 files.
 
-`graph-os` closes this gap. One subsystem, one SQLite table family, one MCP surface, one viewer — the agent and the human share a single graph of *everything that can reference anything else*:
+`graph_os` closes this gap. One subsystem, one SQLite table family, one MCP surface, one viewer — the agent and the human share a single graph of *everything that can reference anything else*:
 
 - **Docs graph** — `[link](./path.md)` + `[[wikilink]]` + frontmatter `ssot_of:` references.
 - **Code graph** — imports, calls, class-inherits, method-overrides, property-accesses, route-handlers, MCP-tool-handlers, decorators.
 - **Task graph** — `tasks.dependencies` (already parsed by Phase C) + task→doc + task→commit edges.
 - **Cross-layer edges** — task→doc→code trails that let an agent answer *"which task produced this function, which doc spec'd it, which commit introduced it, what changed since?"*
 
-This is what Sourcegraph Cody, Continue, Cursor, GitHub Copilot Workspace, and graph-tool all attempt. `graph-os` leapfrogs them by being **native to the agent's cognitive loop** — not a plugin bolted on, but a first-class retrieval layer queried in the same MCP envelope as `cos_search` and `cos_doc_search`.
+This is what Sourcegraph Cody, Continue, Cursor, GitHub Copilot Workspace, and graph-tool all attempt. `graph_os` leapfrogs them by being **native to the agent's cognitive loop** — not a plugin bolted on, but a first-class retrieval layer queried in the same MCP envelope as `cos_search` and `cos_doc_search`.
 
 ---
 
-## 2. Nature — `graph-os` as a Module
+## 2. Nature — `graph_os` as a Module
 
 ```
 core/
-├── thinking-os/     ← cognition + memory   (DB v1-v11)
-├── graph-os/        ← NEW: knowledge graph (DB v12+)
+├── thinking_os/     ← cognition + memory   (DB v1-v11)
+├── graph_os/        ← NEW: knowledge graph (DB v12+)
 └── hooks/           ← enforcement layer
 ```
 
-**What graph-os IS:**
+**What graph_os IS:**
 
-- A parallel subsystem to `thinking-os`, with its own code tree, its own tests, its own MCP tools, its own schema migration, its own viewer.
+- A parallel subsystem to `thinking_os`, with its own code tree, its own tests, its own MCP tools, its own schema migration, its own viewer.
 - A tenant of the **same** SQLite file (append-only migrations, Rule 10). Uses the existing FTS5 + embedding infrastructure.
 - Wired into the **same** MCP server (`core/thinking_os/server.py`). Tools follow the `cos_graph_*` prefix so they show up alongside the other 21 tools.
 - Wired into the **same** auto-reindex hook (`auto-reindex-docs.sh`, Phase H) so every Write/Edit triggers incremental graph updates.
 
-**What graph-os is NOT:**
+**What graph_os is NOT:**
 
 - Not a separate service — no HTTP server, no separate daemon. The viewer is a static HTML file; the graph lives in the same SQLite.
 - Not a replacement for `cos_doc_search` or `cos_search` — it's the **third retrieval layer** (semantic docs → past patterns → structural graph).
-- Not a generic tool like graph-tool. `graph-os` is *custom-shaped for coding-os*: it knows about tasks, docs, skills, hooks, MCP tools. Edges surface those first-class concepts.
+- Not a generic tool like graph-tool. `graph_os` is *custom-shaped for coding-os*: it knows about tasks, docs, skills, hooks, MCP tools. Edges surface those first-class concepts.
 
 **Biological analogy (extending the `core/`-DNA metaphor):**
 
-| `thinking-os` | `graph-os` |
+| `thinking_os` | `graph_os` |
 |---|---|
 | Hippocampus — episodic memory of past observations | Corpus callosum — the wiring between all brain regions |
 | "Have I seen this?" | "What is this connected to?" |
@@ -70,17 +70,17 @@ core/
 - **P-I-5. Incremental by default.** Content-hash per file; AST-hash per symbol. Re-parse only changed files. Cascade invalidation when a file's exports change.
 - **P-I-6. Token-aware tool surface.** Every MCP tool has `limit`, `max_depth`, `max_nodes`, `include_content` defaults tuned to keep responses under 4k tokens. No "dump the whole graph" anti-pattern.
 - **P-I-7. Graph-native storage by default.** Kùzu (embedded columnar graph DB, Cypher-capable, Apache 2.0) is the **primary** backend for graph_nodes + graph_edges + graph_node_embeddings. SQLite stays for memory / docs / tasks (its relational strength). Two specialized stores — each for what it does best. SQLite backend kept as a fallback for constrained environments (no Kùzu binary available).
-- **P-I-8. Multi-agent orchestrator, fully implemented.** Indexing workers are `thinking-os` agent roles coordinated by a real orchestrator — parallel dispatch, progress metrics, cancellation, health reporting. Not a stub, not `multiprocessing`.
+- **P-I-8. Multi-agent orchestrator, fully implemented.** Indexing workers are `thinking_os` agent roles coordinated by a real orchestrator — parallel dispatch, progress metrics, cancellation, health reporting. Not a stub, not `multiprocessing`.
 - **P-I-9. Graph-of-docs + graph-of-code + graph-of-tasks, unified.** One schema, many extractors. The agent asks "what breaks if I change this doc?" the same way it asks about code.
 - **P-I-10. Dogfood at scale.** The `coding-os` repo itself is the first stress test. 31 hooks, 21 MCP tools, 1083 tests (baseline 2026-04-19), 3 templates × 2 adapters = ~1500 edges on day one.
-- **P-I-11. Determinism & pinned parsers.** Indexing must be reproducible — same inputs → byte-identical `uid`s → same edges. Tree-sitter core + per-language grammars + Kùzu + BGE-M3 tokenizer are **pinned** in `pyproject.toml::optional-dependencies.graph-os`. Golden test in I.0 re-indexes a fixture 3× and asserts byte-identical node/edge rows. Grammar upgrades are their own slice (Phase J).
+- **P-I-11. Determinism & pinned parsers.** Indexing must be reproducible — same inputs → byte-identical `uid`s → same edges. Tree-sitter core + per-language grammars + Kùzu + BGE-M3 tokenizer are **pinned** in `pyproject.toml::optional-dependencies.graph_os`. Golden test in I.0 re-indexes a fixture 3× and asserts byte-identical node/edge rows. Grammar upgrades are their own slice (Phase J).
 - **P-I-12. Observability budget — every new tool carries its cost.** Each `cos_graph_*` tool declares, at registration time, (a) default token budget, (b) hard cap, (c) expected P95 latency per backend (Kùzu vs SQLite), (d) storage cost per invocation. `cos_health` surfaces the budget vs actual; `cos doctor` check C18 fails when a tool exceeds its declared latency envelope on three consecutive runs. No silent cost creep.
 
 ---
 
 ## 4. Competitive Landscape — What We Copy, What We Improve
 
-graph-tool study — source: https://github.com/githubnext/graph-tool (Apache 2.0). Copy-reference snippets that `graph-os` adapts (scope-resolution, 7-step registry lookup, evidence composition, call-form classification) live under `docs/references/graph-tool-notes.md` — pinned to a specific commit. Do **not** rely on `/tmp` paths; they are local to the authoring machine and disappear on checkout.
+graph-tool study — source: https://github.com/githubnext/graph-tool (Apache 2.0). Copy-reference snippets that `graph_os` adapts (scope-resolution, 7-step registry lookup, evidence composition, call-form classification) live under `docs/references/graph-tool-notes.md` — pinned to a specific commit. Do **not** rely on `/tmp` paths; they are local to the authoring machine and disappear on checkout.
 
 | System | Parser | Graph store | Scale | Multi-lang | Agent-native | Custom-domain | Killer gap |
 |---|---|---|---|---|---|---|---|
@@ -90,11 +90,11 @@ graph-tool study — source: https://github.com/githubnext/graph-tool (Apache 2.
 | **Continue Dev (graph mode)** | LSP | in-memory | small repos | LSP-dependent | Yes | No | runtime LSP dependency |
 | **GitHub Copilot Workspace** | proprietary | proprietary | large | unknown | closed | No | not inspectable |
 | **Cursor** | proprietary (symbol graph) | proprietary | large | many | closed | No | not inspectable |
-| **graph-os** | tree-sitter + LSP-opt + regex-fallback | SQLite (+ Kùzu adapter) | 500k → 5M | 15+ | Yes (native) | **Yes (tasks/docs/skills/hooks)** | — |
+| **graph_os** | tree-sitter + LSP-opt + regex-fallback | SQLite (+ Kùzu adapter) | 500k → 5M | 15+ | Yes (native) | **Yes (tasks/docs/skills/hooks)** | — |
 
 **Concrete copies from graph-tool:**
 
-1. **Scope extractor** (5-pass tree-sitter AST walker) — reference: `graph-tool-shared/src/scope-resolution/scope-extractor.ts` (graph-tool upstream). Adapted to Python under [core/graph-os/extractors/](../core/graph-os/extractors/) in I.4.
+1. **Scope extractor** (5-pass tree-sitter AST walker) — reference: `graph-tool-shared/src/scope-resolution/scope-extractor.ts` (graph-tool upstream). Adapted to Python under [core/graph_os/extractors/](../core/graph_os/extractors/) in I.4.
 2. **Symbol table + 7-step registry lookup** — reference: `graph-tool/src/core/ingestion/model/symbol-table.ts`. The 7 steps (same-scope → enclosing-scope → explicit-import → wildcard-import → global-name → arity-narrowed → fuzzy) become our resolution DAG.
 3. **Evidence composition** — reference: `graph-tool-shared/src/scope-resolution/registries/evidence.ts`. The `confidence = sum(signal_weights) clamped at 1.0` pattern with per-signal trace — normalized into our `graph_evidence_v12` table (§5.3).
 4. **Call-form classification** — distinguishing `new Foo()` vs `Foo.bar()` vs `bar()` at AST level. Tree-sitter queries per call-form.
@@ -105,14 +105,14 @@ graph-tool study — source: https://github.com/githubnext/graph-tool (Apache 2.
 - **Task edges** (`docs/tasks/TASK-199.md → docs/tasks/TASK-195.md`) — graph-tool is code-only.
 - **Doc edges** (`[link](./other.md)` + frontmatter `ssot_of:` + heading-scoped citations) — graph-tool is code-only.
 - **Cross-layer edges** (task → doc → code → commit) — the one-stop dependency trail.
-- **Agent-role-aware extractors** (see §13) — indexers run as `thinking-os` roles, not detached workers.
+- **Agent-role-aware extractors** (see §13) — indexers run as `thinking_os` roles, not detached workers.
 - **Confidence-aware MCP envelope** (Rule 14, `fail("internal",...)` on extractor panics) — graph-tool tools are less defensive.
 
 **What we explicitly DO NOT copy:**
 
 - LadybugDB / Kùzu as default (SQLite first, adapter later).
 - Web UI / Express server / CLI-as-app shell (we have `cli/main.py` already).
-- Worker pool orchestration (we have `thinking-os` agent roles).
+- Worker pool orchestration (we have `thinking_os` agent roles).
 - Community detection (Leiden clustering) — deferred to Phase J.
 - Process tracing (entry-point → terminal walk) — deferred to Phase J.
 
@@ -324,7 +324,7 @@ Output: `calls`, `accesses_field`, `constructs`, `overrides`, `inherits_from` ed
 
 #### Background migration contract (MUST — non-blocking)
 
-`scripts/migrate_embeddings_minilm_to_bge_m3.py` runs as a dedicated `thinking-os` role **outside** the MCP server's startup path — no blocking boot:
+`scripts/migrate_embeddings_minilm_to_bge_m3.py` runs as a dedicated `thinking_os` role **outside** the MCP server's startup path — no blocking boot:
 
 - Migration v12b adds `embedding_dim INTEGER DEFAULT 384` to the existing `embeddings` table, then schedules the migrator role via the orchestrator (§13).
 - The migrator role (`migrator:embeddings`) chews through rows in batches of 256, each batch in its own transaction (crash/SIGTERM loses ≤256 rows of work).
@@ -374,7 +374,7 @@ Regex finds names. It does not answer *"which definition did this call resolve t
 
 - A single long-lived `pyright --outputjson --watch` subprocess and a single `tsserver` subprocess are owned by the orchestrator (§13), not spawned per indexer worker. All workers communicate with them via a Unix domain socket (`.coding-os/.lsp/<language>.sock`). This matches how production language servers are used (gopls, ruff-server).
   - Rationale: pyright cold-start on a large repo is 30–60s. Per-worker spawn across 8 workers × 50 batches = 20+ minutes of pure LSP startup cost. Shared server = one startup, amortized.
-- **Warm-start role.** On `cos graph-reindex` (and on first server boot in `indexer:graph-os`), a dedicated role `lsp:warm-start` runs **before** indexer workers dispatch and blocks until the LSP process reports `initialized` and indexed `setup.py` / `pyproject.toml` / `tsconfig.json`. Warm-start is its own progress metric (`graph.lsp.warm_start.duration_ms`).
+- **Warm-start role.** On `cos graph-reindex` (and on first server boot in `indexer:graph_os`), a dedicated role `lsp:warm-start` runs **before** indexer workers dispatch and blocks until the LSP process reports `initialized` and indexed `setup.py` / `pyproject.toml` / `tsconfig.json`. Warm-start is its own progress metric (`graph.lsp.warm_start.duration_ms`).
 
 **Latency budgets (measured on 10k-file dogfood, I.5 ship gate).**
 
@@ -452,7 +452,7 @@ When file F changes:
        # Fallback path — do not enqueue thousands of tasks
        log overflow to .coding-os/.graph-cascade-overflow.log
        mark graph as dirty (graph_meta.dirty=true)
-       schedule background full re-resolve via orchestrator role `indexer:graph-os` with role_args={mode:"full-resolve"}
+       schedule background full re-resolve via orchestrator role `indexer:graph_os` with role_args={mode:"full-resolve"}
     else:
        walk dependents BFS-style up to cascade_max_depth hops
        queue reached files for Stage 5 re-resolve
@@ -473,11 +473,11 @@ graph:
 - Metric `graph.cascade.overflow.count` (per day) tagged with the triggering file path.
 - When `graph_meta.dirty=true`, `cos_graph_*` tools return `meta.graph_dirty=true` so agents know results may lag; they do not fail.
 
-### 8.4 Background indexer (thinking-os role)
+### 8.4 Background indexer (thinking_os role)
 
 For Codex sessions (no PostToolUse), or for ad-hoc batch reindexing:
 
-- A `thinking-os` agent role: `indexer:graph-os` (see §13).
+- A `thinking_os` agent role: `indexer:graph_os` (see §13).
 - Triggered by `COS_BACKGROUND_INDEX=1` env or `make graph-reindex`.
 - Lives under the same agent orchestrator that dispatches coding agents — NOT a Python multiprocessing pool.
 
@@ -493,7 +493,7 @@ The table below lists **targets**, not measurements. The only data point actuall
 | 500k files | <90min | <1s | <1s | <1s | 🅔 |
 | >500k files | *Kùzu backend required (§12); SQLite fallback is out-of-SLO* | — | — | — | — |
 
-**I.13 deliverable:** publish `docs/benchmarks/graph-os.md` (append-only) with measured numbers, commit SHA, hardware, and any target revisions. Extrapolated rows become measured rows, or the SLO changes. No "ship-and-pray" on unmeasured scale claims.
+**I.13 deliverable:** publish `docs/benchmarks/graph_os.md` (append-only) with measured numbers, commit SHA, hardware, and any target revisions. Extrapolated rows become measured rows, or the SLO changes. No "ship-and-pray" on unmeasured scale claims.
 
 ---
 
@@ -649,7 +649,7 @@ All tools wrapped in `@safe_tool` + `ok(data)` / `fail(category, msg)` envelope 
 
 ---
 
-## 10. Integration with `thinking-os`
+## 10. Integration with `thinking_os`
 
 ### 10.1 Shared DB, shared embeddings
 
@@ -664,7 +664,7 @@ All tools wrapped in `@safe_tool` + `ok(data)` / `fail(category, msg)` envelope 
 
 ### 10.3 Does NOT live under `core/thinking_os/`
 
-New directory `core/graph-os/` — parallel peer, not a subdirectory. Importable as `graph_os.*` from Python.
+New directory `core/graph_os/` — parallel peer, not a subdirectory. Importable as `graph_os.*` from Python.
 
 ---
 
@@ -673,7 +673,7 @@ New directory `core/graph-os/` — parallel peer, not a subdirectory. Importable
 ### 11.1 Hook: auto-reindex-graph (extends Phase H)
 
 - Lives at `core/hooks/auto-reindex-docs.sh` (rename to `auto-reindex-artifact.sh`, or extend in-place).
-- On Write/Edit of any file: call the appropriate extractor. Docs stay in `doc_indexer`; code goes through the graph-os pipeline.
+- On Write/Edit of any file: call the appropriate extractor. Docs stay in `doc_indexer`; code goes through the graph_os pipeline.
 - **Decision:** extend in-place. New function `reindex_graph_for_file()` in the shared shell script.
 
 ### 11.2 Hook: enforce-graph-context (new, PreToolUse on Edit)
@@ -690,7 +690,7 @@ New directory `core/graph-os/` — parallel peer, not a subdirectory. Importable
       - "templates/_base/AGENTS.template.md"
   ```
 
-  Consumer projects get a sensible default list generated by `cos init`; this list is then maintained by the project as `graph-os` learns the repo's load-bearing files.
+  Consumer projects get a sensible default list generated by `cos init`; this list is then maintained by the project as `graph_os` learns the repo's load-bearing files.
 - Before a matching `Edit`, the hook checks whether `$COS_AGENT_DIR/.graph-context-<uid>` marker exists for the target file. Marker is created by `cos_graph_context` on the file.
 - If the marker is missing, the hook **warns** (does not block) by default. Strict mode (`COS_ENFORCE_GRAPH_CONTEXT=strict`) promotes the warning to a block.
 - Opt-in toggle: `COS_ENFORCE_GRAPH_CONTEXT=1` activates warn mode; unset disables the hook.
@@ -753,8 +753,8 @@ New directory `core/graph-os/` — parallel peer, not a subdirectory. Importable
 
 ```
 .coding-os/
-├── thinking-os.db     ← SQLite: observations, learned_patterns, doc_chunks, tasks, metrics
-└── graph-os.kuzu      ← Kùzu: graph_nodes, graph_edges, graph_node_embeddings, HNSW vector index
+├── thinking_os.db     ← SQLite: observations, learned_patterns, doc_chunks, tasks, metrics
+└── graph_os.kuzu      ← Kùzu: graph_nodes, graph_edges, graph_node_embeddings, HNSW vector index
 ```
 
 **Why two stores, not one:**
@@ -788,7 +788,7 @@ class GraphBackend(Protocol):
 # .coding-os/rag-config.yaml
 graph:
   backend: auto              # "auto" | "kuzu" | "sqlite"
-  kuzu_path: .coding-os/graph-os.kuzu
+  kuzu_path: .coding-os/graph_os.kuzu
   embedding_model: BAAI/bge-m3
   embedding_dim: 1024
   lsp:
@@ -843,10 +843,10 @@ core/thinking_os/orchestrator/
     └── (other roles in Phase J)
 ```
 
-### 13.2 `indexer:graph-os` role — full implementation
+### 13.2 `indexer:graph_os` role — full implementation
 
 - Role definition: input = `FileTask | FileBatchTask`, output = `{nodes_written, edges_written, parse_errors, duration_ms}`.
-- Executable: `python -m graph_os.indexer.run --file <path> --role-id indexer:graph-os`.
+- Executable: `python -m graph_os.indexer.run --file <path> --role-id indexer:graph_os`.
 - Invoked by the dispatcher — never directly by hooks.
 - Fire-and-forget: hooks post a task to the dispatcher; dispatcher queues for the next available indexer worker.
 
@@ -865,9 +865,9 @@ core/thinking_os/orchestrator/
 
 ### 13.5 Formula-role alignment (roles that CONSUME the graph, Phase J)
 
-Phase J will map `thinking-os` agent roles to the personas in `formulas-en.md § Role-Based Entry Points`:
+Phase J will map `thinking_os` agent roles to the personas in `formulas-en.md § Role-Based Entry Points`:
 
-| thinking-os role | Formula persona | Primary graph tools |
+| thinking_os role | Formula persona | Primary graph tools |
 |---|---|---|
 | `agent:backend-dev` | Go/Python Backend | `_context`, `_impact`, `_detect_changes` |
 | `agent:frontend-dev` | React Native / Next.js | `_context`, `_trace` (component tree) |
@@ -875,17 +875,17 @@ Phase J will map `thinking-os` agent roles to the personas in `formulas-en.md §
 | `agent:qa` | QA Engineer | `_detect_changes`, `_trace` |
 | `agent:devops` | DevOps | `_query` (routes, handlers) |
 | `agent:reviewer` | Code Review | `_detect_changes` pre-merge |
-| `indexer:graph-os` | — (infrastructure role) | writes only, no reads |
+| `indexer:graph_os` | — (infrastructure role) | writes only, no reads |
 
-**Phase I ships:** full orchestrator + `indexer:graph-os` role (operational). **Phase J ships:** the six agent-consumer roles above (they read the graph; the graph already exists).
+**Phase I ships:** full orchestrator + `indexer:graph_os` role (operational). **Phase J ships:** the six agent-consumer roles above (they read the graph; the graph already exists).
 
 ---
 
 ## 14. Integration with the 11-Formula Framework
 
-graph-os isn't just infrastructure; it is a **load-bearing input to every one of the 11 formulas**. The Role-Based Entry Points in [`formulas-en.md § Role-Based Entry Points`](./code-os-core-docs/thinkingos-formulas/formulas-en.md#L887) assign ownership of F1–F11 across Architect, Backend, Frontend, QA, DevOps, and Reviewer personas. For each persona, graph-os supplies the deterministic substrate that would otherwise come from grep + guess.
+graph_os isn't just infrastructure; it is a **load-bearing input to every one of the 11 formulas**. The Role-Based Entry Points in [`formulas-en.md § Role-Based Entry Points`](./code-os-core-docs/thinkingos-formulas/formulas-en.md#L887) assign ownership of F1–F11 across Architect, Backend, Frontend, QA, DevOps, and Reviewer personas. For each persona, graph_os supplies the deterministic substrate that would otherwise come from grep + guess.
 
-| Formula | Step | How graph-os contributes |
+| Formula | Step | How graph_os contributes |
 |---|---|---|
 | **F1 — Research & Discovery** | Step 2 (Architectural Exploration) | When docs are thin, `cos_graph_context(entry_point)` reverse-engineers the live architecture: routes → handlers → services → models. Architect persona runs this before proposing refactors. |
 | **F2 — Analysis** | Step 10 (Dependency Map) | `cos_graph_impact` gives the exact dependency DAG, not an imagined one. |
@@ -899,7 +899,7 @@ graph-os isn't just infrastructure; it is a **load-bearing input to every one of
 | **F10 — Monitoring** | Step 2 (Tracing) | `cos_graph_trace` produces synthetic trace diagrams for distributed-trace setup. |
 | **F11 — Refactoring** | Step 1 (Debt Identification) | `cos_graph_similar` + `cos_graph_impact` surface hotspots and coupling. |
 
-**Principle:** every formula that an enterprise engineer reaches for — research, analysis, architecture, docs, implementation, testing, debugging, security, deployment, monitoring, refactoring — has a graph-os retrieval as its factual anchor. Prose reasoning rides on top of graph truth, not vice versa.
+**Principle:** every formula that an enterprise engineer reaches for — research, analysis, architecture, docs, implementation, testing, debugging, security, deployment, monitoring, refactoring — has a graph_os retrieval as its factual anchor. Prose reasoning rides on top of graph truth, not vice versa.
 
 Concrete: Formula 5 Step 1 requires the agent to "reference scenarios from the Problem Decomposition formula" + "explicit inputs, dependencies". The `Pre-Implementation` phase becomes mechanical: the agent invokes `cos_graph_context <file_or_symbol>` and receives — in one MCP call — all callers, docs, specs, test files, and adjacent symbols. The formula is satisfied by the graph, not by prose reasoning.
 
@@ -971,7 +971,7 @@ Concrete: Formula 5 Step 1 requires the agent to "reference scenarios from the P
 │   docs/phase-i-knowledge-graph-plan.md                       │
 │        │ links_to                                            │
 │        ▼                                                     │
-│   core/graph-os/server.py                                    │
+│   core/graph_os/server.py                                    │
 │        │ contains                                            │
 │        ▼                                                     │
 │   cos_graph_impact(uid, direction, depth)  ◄── focus         │
@@ -1018,11 +1018,11 @@ Concrete: Formula 5 Step 1 requires the agent to "reference scenarios from the P
 
 ## 17. Multi-Repo & Repo Groups
 
-Modern products cross repo boundaries: a "platform" is frontend + backend + AI-service + mobile + infra, each a separate repo. graph-os supports this first-class via **repo groups**.
+Modern products cross repo boundaries: a "platform" is frontend + backend + AI-service + mobile + infra, each a separate repo. graph_os supports this first-class via **repo groups**.
 
 ### 17.1 Per-repo isolation (baseline)
 
-- Each repo has its own `.coding-os/graph-os.kuzu`. No shared state by default.
+- Each repo has its own `.coding-os/graph_os.kuzu`. No shared state by default.
 - `cos_graph_*` tools accept optional `repo` param — defaults to current working dir, resolves aliases from `~/.coding-os/registered-repos.json`.
 
 ### 17.2 Groups — cross-repo queries
@@ -1149,8 +1149,8 @@ Each slice's ship gate now carries an explicit **minimum test count** and refere
 | **I.10** | `graph_os/viewer/` — **Sigma.js + Graphology + ForceAtlas2** WebGL viewer + `cos graph-viz` CLI + Windows fallback + Windows CI matrix + `--bundled` offline mode + **CSP nonce** (§15.1.1) | ~700 | ≥ 15 | 10k-node sample FPS ≥ 30 + a11y fallback list-view + export JSON round-trip + CI green mac/linux/windows + **CSP auditor** + **XSS fuzz** + **nonce uniqueness** | I.8 |
 | **I.11** | **Ingestion flexibility:** `graph_os/ingest/local.py`, `ingest/github.py`, `ingest/zip.py` + `cos graph-index-github`, `cos graph-index-zip` CLI + **size / file / timeout guards** (`--max-size`, `--max-files`, `--timeout`, `--shallow`) | ~400 | ≥ 15 | e2e clone + index + **refuse clone > `--max-size`** + **refuse ZIP bomb** + cached clones under `~/.coding-os/remote-repos/` | I.8 |
 | **I.12** | **Repo groups:** `graph_os/groups/` module + group-level Kùzu DB at `~/.coding-os/groups/<name>/` + cross-repo edge detection (HTTP contract, MCP, gRPC, config) + **`group-membership.yaml` ownership declaration** (§17.3) + `cos graph-group` subcommands + `group` param across all MCP tools | ~750 | ≥ 18 | 3-repo fixture: inferred confidence 0.6; ownership-declared 0.95 + conflicting-ownership test (sync fails cleanly) + `cos_graph_contracts(group=…)` returns union + doctor C19 green | I.8, I.11 |
-| **I.13** | Scale benchmark suite (1k / 10k / 100k / 500k / 1M symbol fixtures) + perf regression gate + **publish measured numbers** to `docs/benchmarks/graph-os.md` (commit SHA + hardware) | ~450 | ≥ 10 | Kùzu < 1s P95 at 500k OR §8.5 extrapolations replaced by measured SLO + SQLite fallback < 3s P95 at 100k + regression gate fails PR > 20% worse | I.8, I.9 |
-| **I.14** | `graph-explorer` skill + `codebase-explorer` update + AGENTS.md / CLAUDE.md sections ("Graph Queries", "Rename Workflow", "Contracts Audit") + `cos doctor` C16 / C17 / C18 / C19 / C20 / C21 / C22 + `enforce-graph-context.sh` + `enforce-rename-plan.sh` hooks + `docs/engineering/graph-os-queries.md` + `docs/benchmarks/graph-os.md` finalization | ~150 code + docs | ≥ 8 | docs-lint green + skill-enforcement tests + hooks fire on dogfood edit + dogfood-rename workflow + markdown link check passes | all above |
+| **I.13** | Scale benchmark suite (1k / 10k / 100k / 500k / 1M symbol fixtures) + perf regression gate + **publish measured numbers** to `docs/benchmarks/graph_os.md` (commit SHA + hardware) | ~450 | ≥ 10 | Kùzu < 1s P95 at 500k OR §8.5 extrapolations replaced by measured SLO + SQLite fallback < 3s P95 at 100k + regression gate fails PR > 20% worse | I.8, I.9 |
+| **I.14** | `graph-explorer` skill + `codebase-explorer` update + AGENTS.md / CLAUDE.md sections ("Graph Queries", "Rename Workflow", "Contracts Audit") + `cos doctor` C16 / C17 / C18 / C19 / C20 / C21 / C22 + `enforce-graph-context.sh` + `enforce-rename-plan.sh` hooks + `docs/engineering/graph_os-queries.md` + `docs/benchmarks/graph_os.md` finalization | ~150 code + docs | ≥ 8 | docs-lint green + skill-enforcement tests + hooks fire on dogfood edit + dogfood-rename workflow + markdown link check passes | all above |
 
 **Aggregate test floor:** 40 + 25 + 30 + 20 + 50 + 25 + 40 + 35 + 44 + 20 + 15 + 15 + 18 + 10 + 8 = **≥ 395 new tests** across Phase I. Target total when Phase I ships: 1083 baseline + 395 = **≥ 1478 tests passing** — supersedes the earlier "1200+" hand-wave.
 
@@ -1194,10 +1194,10 @@ Each slice's ship gate now carries an explicit **minimum test count** and refere
 ## 21. Ship Checklist (per slice)
 
 Each slice's DoD:
-- [ ] Code + tests in `core/graph-os/` (follow Rule 13 function-header convention)
+- [ ] Code + tests in `core/graph_os/` (follow Rule 13 function-header convention)
 - [ ] Envelope compliance (Rule 14): every tool returns `ok(data)` or `fail(...)` via `@safe_tool`
 - [ ] `make verify` green
-- [ ] `uv run pytest core/graph-os/tests/ -q` green
+- [ ] `uv run pytest core/graph_os/tests/ -q` green
 - [ ] MCP self-test: `python core/thinking_os/server.py --test` lists the new tool(s)
 - [ ] Docs-lint: AGENTS.md / CLAUDE.md updated if the slice is user-facing
 - [ ] Hook regression: `cos hooks-log` shows expected entries after a dogfood Write/Edit
@@ -1213,7 +1213,7 @@ Phase I done when:
 - [ ] `cos graph-index-github <public_url>` works end-to-end
 - [ ] `cos graph-group sync` produces cross-repo contract edges on the 3-repo fixture
 - [ ] Dogfood: the graph contains every hook, every MCP tool, every skill, every rule, every task, with correct cross-layer edges
-- [ ] 1200+ tests passing (current 1083 + ~120 for graph-os)
+- [ ] 1200+ tests passing (current 1083 + ~120 for graph_os)
 - [ ] `cos doctor` checks C16, C17, C18, C19 all green
 - [ ] AGENTS.md / CLAUDE.md updated with "Graph Queries", "Rename Workflow", "Contracts Audit" sections
 
@@ -1241,7 +1241,7 @@ All twelve open questions are resolved:
 
 6. **Windows** — ✅ Full cross-platform CI matrix (macOS + Linux + Windows). Viewer falls back to printing the file path if `webbrowser.open` returns False.
 
-7. **`cos update` vs user data** — ✅ Clarified. `cos update` only updates framework files (`core/**`, `adapters/**`, `templates/**`). User data (`.coding-os/thinking-os.db`, `.coding-os/graph-os.kuzu`, `.coding-os/<agent>/`) is **never** touched. Schema migrations are append-only (Rule 10) and run on MCP server startup — user's existing data is preserved across all schema upgrades.
+7. **`cos update` vs user data** — ✅ Clarified. `cos update` only updates framework files (`core/**`, `adapters/**`, `templates/**`). User data (`.coding-os/thinking_os.db`, `.coding-os/graph_os.kuzu`, `.coding-os/<agent>/`) is **never** touched. Schema migrations are append-only (Rule 10) and run on MCP server startup — user's existing data is preserved across all schema upgrades.
 
 8. **LSP overlay** — ✅ Default ON (not opt-in). pyright + tsserver as long-lived subprocesses, reused across files. Circuit breaker on crash. Target precision ≥95% with LSP (vs ≥85% tree-sitter-only).
 
@@ -1263,7 +1263,7 @@ All twelve open questions are resolved:
 
 17. **Backend failure policy** — ✅ **Fail loud, not silent.** If Kùzu is configured but offline, tools return `fail("unavailable", …, retryable=true)` rather than silently serving a 10× slower SQLite result.
 
-18. **Determinism & pinning** — ✅ Tree-sitter + grammars + Kùzu + BGE-M3 tokenizer pinned in `pyproject.toml::optional-dependencies.graph-os`; I.0 golden test asserts byte-identical re-indexing.
+18. **Determinism & pinning** — ✅ Tree-sitter + grammars + Kùzu + BGE-M3 tokenizer pinned in `pyproject.toml::optional-dependencies.graph_os`; I.0 golden test asserts byte-identical re-indexing.
 
 19. **Plan review action items** — ✅ Tracked in §25 below, each with owner slice and status.
 
@@ -1290,7 +1290,7 @@ Retains its v4 shape. The legacy writer ([core/thinking_os/graph.py](../core/thi
 
 ### 23.3 Hook contract (`auto-reindex-docs.sh`)
 
-Extended in-place (not renamed) to call both `doc_indexer` and the new graph-os extractors. Behavior under v11 DB (graph-os tables absent) is explicit no-op on the graph path, identical to pre-I.0 behavior — consumers on an older schema see no regression.
+Extended in-place (not renamed) to call both `doc_indexer` and the new graph_os extractors. Behavior under v11 DB (graph_os tables absent) is explicit no-op on the graph path, identical to pre-I.0 behavior — consumers on an older schema see no regression.
 
 ### 23.4 `.coding-os/rag-config.yaml` schema
 
@@ -1302,11 +1302,11 @@ I.0 introduces a top-level `graph:` block. Existing installations without this b
 
 ### 24.1 Pinned dependencies
 
-The `graph-os` extra in `pyproject.toml` must pin:
+The `graph_os` extra in `pyproject.toml` must pin:
 
 ```toml
 [project.optional-dependencies]
-graph-os = [
+graph_os = [
     "sentence-transformers==2.7.0",     # BGE-M3 host
     "numpy>=1.24.0,<3.0.0",
     "tree-sitter==0.22.0",
@@ -1323,7 +1323,7 @@ Version ranges are deliberately tight because grammar upgrades can change AST sh
 ### 24.2 Golden reproducibility
 
 I.0 ships `tests/test_graph_determinism.py`:
-1. Fixture: a 50-file Python project in `tests/golden/graph-os/fixture/`.
+1. Fixture: a 50-file Python project in `tests/golden/graph_os/fixture/`.
 2. Run `graph-reindex` three times with a clean DB each time.
 3. Assert: all `graph_nodes` rows and `graph_edges_v12` rows are byte-identical across runs (stable `uid`, stable `source_span`, stable `confidence`).
 4. Any grammar / Kùzu / BGE-M3 version bump that breaks this test must update the golden set in the same PR.
@@ -1363,7 +1363,7 @@ Living checklist — each item resolves a concrete issue raised during the 2026-
 | 13 | P2 | `cos graph-index-github` size/file/timeout guards; ZIP-bomb refusal | I.11 | ✅ §19 I.11 |
 | 14 | P2 | Cascade limits (`cascade_max_files`, `cascade_max_depth`) + background full-resolve overflow | I.8 | ✅ §8.3 |
 | 15 | P2 | I.13 publishes **measured** benchmarks (not extrapolations) | I.13 | ✅ §8.5 + §19 |
-| 16 | P3 | `docs/engineering/graph-os-queries.md` guide | I.14 | ⏳ ship gate |
+| 16 | P3 | `docs/engineering/graph_os-queries.md` guide | I.14 | ⏳ ship gate |
 | 17 | P3 | Remove `/tmp/graph-tool` local path; cite public source | plan edit | ⏳ §4 edit |
 | 18 | P3 | `enforce-graph-context.sh` reads scope list from `rag-config.yaml` | I.14 | ✅ §11.2 |
 | 19 | P3 | Baseline dated: 1083 tests at `main@2026-04-19` | plan + benchmarks doc | ✅ P-I-10 + §24.4 |
@@ -1376,12 +1376,12 @@ Legend: ✅ = addressed in this plan ∙ ⏳ = deliverable of a named slice ∙ 
 
 ---
 
-## 26. Why `graph-os` is the Right Name
+## 26. Why `graph_os` is the Right Name
 
-- Parallel to `thinking-os`. Two cognitive subsystems. Easy to reason about.
+- Parallel to `thinking_os`. Two cognitive subsystems. Easy to reason about.
 - Short (7 chars) — readable in logs, env vars, CLI output.
 - Not language-specific, not stack-specific — just "operating system for graphs".
-- Reserves a clear namespace: `core/graph-os/`, `graph_os.*` in Python, `cos_graph_*` for MCP tools, `graph:` prefix in node kinds.
+- Reserves a clear namespace: `core/graph_os/`, `graph_os.*` in Python, `cos_graph_*` for MCP tools, `graph:` prefix in node kinds.
 - Matches industry convention (Sourcegraph, Code Search, Code Graph) without being generic.
 
 **Alternatives considered and rejected:**
@@ -1390,4 +1390,4 @@ Legend: ✅ = addressed in this plan ∙ ⏳ = deliverable of a named slice ∙ 
 - `knowledge-os` — too broad; knowledge ≠ graph.
 - `graph-brain` — cute; unprofessional.
 
-Decision: **`graph-os`**.
+Decision: **`graph_os`**.

@@ -618,7 +618,7 @@ def memory_promote(
         content = (
             f"---\n"
             f"name: {slug}\n"
-            f"description: Auto-promoted pattern from thinking-os (confidence: {pattern_data['confidence']:.2f})\n"
+            f"description: Auto-promoted pattern from thinking_os (confidence: {pattern_data['confidence']:.2f})\n"
             f"type: feedback\n"
             f"---\n\n"
             f"{pattern_data['pattern']}\n\n"
@@ -631,7 +631,7 @@ def memory_promote(
         filename = f"learned_{slug}.md"
         content = (
             f"# Learned Rule: {slug}\n\n"
-            f"> Auto-promoted from thinking-os pattern #{pattern_id} "
+            f"> Auto-promoted from thinking_os pattern #{pattern_id} "
             f"(confidence: {pattern_data['confidence']:.2f})\n\n"
             f"{pattern_data['pattern']}\n\n"
             f"Domain: {domain}\n"

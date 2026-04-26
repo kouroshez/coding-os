@@ -1,7 +1,7 @@
 ---
 id: TASK-111
 title: "Phase L.10 — kind-aware placeholder text in newly-created task body"
-swimlane: board-os
+swimlane: board_os
 kind: chore
 epic: null
 labels: []

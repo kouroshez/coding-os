@@ -14,7 +14,7 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 ├── .capture-errors.log                 background capture.py errors
 ├── .dogfood-reminded                   10-min debounce for remind-dogfood
 ├── .last-decay / .last-verify*         singleton timestamps
-├── thinking-os.db + -shm + -wal        SQLite brain (WAL = shared reader; one writer lock)
+├── thinking_os.db + -shm + -wal        SQLite brain (WAL = shared reader; one writer lock)
 ├── domain-config.json                  project config (routing, paths)
 ├── rag-config.yaml                     doc indexer config
 ├── installed-manifest.json             what `cos init` installed
@@ -23,7 +23,7 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 ├── claude/                          ← AGENT-PRIVATE  ($COS_AGENT_DIR for Claude)
 │   ├── session-id                      ses-claude-YYYYMMDD-HHMMSS-xxxx
 │   ├── .task-current                   "<session-id> <task-name>"
-│   ├── .thinking-os-gate               "<session-id> <CYNEFIN> <DIMS>"
+│   ├── .thinking_os-gate               "<session-id> <CYNEFIN> <DIMS>"
 │   ├── .zoom-checkpoint                "<session-id> PROBLEM_FRAMED"
 │   ├── .doc-anchor                     "<session-id> task:<id>\n<doc paths>"
 │   ├── .memory-check                   "<session-id> cos_search:<query>"
@@ -176,14 +176,14 @@ Question: "should `.hooks.log` also be per-agent?"
 
 Answer: **no**. A shared log with `agent=X` tag gives you one chronological stream, filterable in any direction. Per-agent logs would split the timeline and lose the ability to see "Claude edited X, then Codex saw the git status change and reacted" causality.
 
-Similarly `thinking-os.db` is shared because:
+Similarly `thinking_os.db` is shared because:
 - Observations across agents should analyze together ("which agent gets what rework rate?")
 - Learned patterns are universal knowledge
 - DB rows carry `session_id` (which includes agent) — analytics can split if needed
 
 Explicitly shared things:
 - `.hooks.log` — one stream, agent-tagged
-- `thinking-os.db` — one brain, session-tagged
+- `thinking_os.db` — one brain, session-tagged
 - `installed-manifest.json` — one install
 - `.agent` — identity marker (written by install.sh, not mutated per session)
 - `domain-config.json`, `rag-config.yaml` — one project config
@@ -195,7 +195,7 @@ For existing projects:
 1. `make sync` picks up the new code and runs install.sh for each adapter.
 2. On next SessionStart, `session-context.sh` creates `.coding-os/<agent>/` if missing and writes `session-id` there.
 3. Existing `.coding-os/session-id` (flat) is NOT auto-migrated — it's left in place until the user deletes it or `session-context.sh` ignores it (new code reads only `.coding-os/<agent>/session-id`).
-4. The 6 `.claude/.*` fossils can be safely deleted at any time (`rm -f .claude/.{active-skill,doc-anchor,task-current,thinking-os-gate,zoom-checkpoint,memory-check,session-id}`).
+4. The 6 `.claude/.*` fossils can be safely deleted at any time (`rm -f .claude/.{active-skill,doc-anchor,task-current,thinking_os-gate,zoom-checkpoint,memory-check,session-id}`).
 
 No DB migration needed — the session-id format evolution is a string change, not a schema change. Existing rows with the old format (`ses-YYYYMMDD-…`) remain valid; new rows use the new format.
 
@@ -229,7 +229,7 @@ cos hooks-log --agent $COS_AGENT -n 20
 cos hooks-log --agent claude -n 10 && echo '---' && cos hooks-log --agent codex -n 10
 
 # force a fresh session (rare)
-rm -f $COS_AGENT_DIR/session-id $COS_AGENT_DIR/.{task-current,thinking-os-gate,zoom-checkpoint,active-skill,doc-anchor,memory-check}
+rm -f $COS_AGENT_DIR/session-id $COS_AGENT_DIR/.{task-current,thinking_os-gate,zoom-checkpoint,active-skill,doc-anchor,memory-check}
 ```
 
 ## References

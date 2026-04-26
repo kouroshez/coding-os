@@ -1,4 +1,4 @@
-"""graph-os — task dependency extractor (I.3).
+"""graph_os — task dependency extractor (I.3).
 
 PURPOSE:  Turn a `docs/tasks/TASK-NNN-slug.md` file into GraphNodes +
           GraphEdges: `task:file` nodes + `depends_on` / `blocks` /

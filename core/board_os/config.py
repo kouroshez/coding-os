@@ -1,4 +1,4 @@
-"""board-os — Scrumban configuration loader and validator (L.0).
+"""board_os — Scrumban configuration loader and validator (L.0).
 
 Reads `.coding-os/scrumban-config.yaml` from the project root and
 returns a typed, validated `ScrumbanConfig`. The config defines which

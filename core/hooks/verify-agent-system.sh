@@ -3,10 +3,10 @@
 #
 # Checks (in dependency order):
 #   Layer 0: Foundation (config, state dir, hooks)
-#   Layer 1: Gate system (thinking-os-gate, write-state)
+#   Layer 1: Gate system (thinking_os-gate, write-state)
 #   Layer 2: Safety hooks (block-*.sh)
 #   Layer 3: Skills (SKILL.md files)
-#   Layer 4: MCP server (thinking-os DB)
+#   Layer 4: MCP server (thinking_os DB)
 #   Layer 5: Task system (tasks.md, changes.log)
 #
 # Exit: 0 = all pass, 1 = failures found
@@ -88,7 +88,7 @@ echo ""
 # ── Layer 1: Gate System ─────────────────────────────────────────────
 echo "--- Layer 1: Gate System ---"
 
-GATE_HOOKS="thinking-os-gate.sh enforce-task-start.sh enforce-skill.sh enforce-zoom.sh enforce-verify.sh"
+GATE_HOOKS="thinking_os-gate.sh enforce-task-start.sh enforce-skill.sh enforce-zoom.sh enforce-verify.sh"
 for hook in $GATE_HOOKS; do
   if [ -f "$HOOKS_DIR/$hook" ]; then
     if bash -n "$HOOKS_DIR/$hook" 2>/dev/null; then

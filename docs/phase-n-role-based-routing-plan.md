@@ -2,8 +2,8 @@
 # Phase N — Role-Based Cognitive Routing
 
 > Nav: [AGENTS.md](../AGENTS.md) › [roadmap](development-roadmap.md) › **Phase N**
-> Predecessor: [Phase M — Hybrid thinking-os v0.3](phase-m-thinking-os-new-formula.md) (implemented but architecturally incorrect on the routing layer)
-> Reference: [formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md), [thinking-os-formulas.md](thinking-os-formulas.md)
+> Predecessor: [Phase M — Hybrid thinking_os v0.3](phase-m-thinking_os-new-formula.md) (implemented but architecturally incorrect on the routing layer)
+> Reference: [formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md), [thinking_os-formulas.md](thinking_os-formulas.md)
 > Flowchart (target state): [agent-workflow-flowchart-V1.html](agent-workflow-flowchart-V1.html)
 
 ## 1. Context — Why Phase N
@@ -57,8 +57,8 @@ def analyze_task(
     prompt: str,
     task_marker: str | None,
     session_id: str,
-    complexity: str,        # from .thinking-os-gate
-    dimensions: int,        # from .thinking-os-gate
+    complexity: str,        # from .thinking_os-gate
+    dimensions: int,        # from .thinking_os-gate
 ) -> TaskSignals
 ```
 
@@ -375,7 +375,7 @@ All downstream states (`DISPATCHING`, `AWAITING_AGENT`, `INTEGRATING`, backtrack
 - **Delete:** `core/thinking_os/personas/registry.yaml` + all references
 - Edit: `cli/doctor.py` — rename C28 to check `roles/` not `personas/`; add C29 for preset registry + composer reachability
 - Edit: [AGENTS.md](../AGENTS.md) Rule 16 — rewrite "Persona" → "Role" (see §4.5)
-- Edit: [docs/thinking-os-formulas.md](thinking-os-formulas.md) — swap persona section for role section
+- Edit: [docs/thinking_os-formulas.md](thinking_os-formulas.md) — swap persona section for role section
 - New: `docs/phase-n-role-based-routing-plan.md` (this file)
 - Edit: `cli/cognition.py` — add `cos cognition roles` subcommand (list active role chain, signals, preset match)
 - Edit: `tests/test_persona_integration.py` — rename to `tests/test_role_integration.py`, rewrite scenarios
@@ -414,7 +414,7 @@ All downstream states (`DISPATCHING`, `AWAITING_AGENT`, `INTEGRATING`, backtrack
 | Edit | `core/hooks/registry.yaml` | Declare track-discovery |
 | Edit | `core/scripts/task-start.sh` | Write `.role` + `.roles` |
 | Edit | [AGENTS.md](../AGENTS.md) | Rewrite Rule 16, update Phase M → Phase N status |
-| Edit | [docs/thinking-os-formulas.md](thinking-os-formulas.md) | Replace persona section with role section |
+| Edit | [docs/thinking_os-formulas.md](thinking_os-formulas.md) | Replace persona section with role section |
 | Edit | [docs/agent-workflow-flowchart-V1.html](agent-workflow-flowchart-V1.html) | Remove Phase N "target" badges (promote to implemented) |
 | Edit | `cli/doctor.py` | C28 roles, C29 presets/composer |
 | Edit | `cli/cognition.py` | `cos cognition roles` subcommand |
@@ -466,7 +466,7 @@ cos cognition analyze "add Stripe webhook for subscription renewal"
 # expected preset: "external-integration-style" fallback or composer → [F1, F2, F3, F5, F6, F8]
 
 # 9. Situational override still wins
-echo "CHAOTIC 1" > .coding-os/claude/.thinking-os-gate
+echo "CHAOTIC 1" > .coding-os/claude/.thinking_os-gate
 echo "incident-response" > .coding-os/claude/.situation
 cos cognition chain
 # expected: [mitigate, communicate, F7, F6, post_mortem, update_F10]

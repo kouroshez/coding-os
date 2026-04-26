@@ -1,4 +1,4 @@
-"""graph-os enterprise hardening layer (Phase I.14 hardening).
+"""graph_os enterprise hardening layer (Phase I.14 hardening).
 
 Collects the production-grade knobs that MCP tool handlers need:
 

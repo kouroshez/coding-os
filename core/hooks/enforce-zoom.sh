@@ -25,7 +25,7 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
   exit 0
 fi
 
-GATE_FILE="${COS_AGENT_DIR}/.thinking-os-gate"
+GATE_FILE="${COS_AGENT_DIR}/.thinking_os-gate"
 ZOOM_FILE="${COS_AGENT_DIR}/.zoom-checkpoint"
 
 # Only enforce for COMPLICATED and COMPLEX
@@ -33,7 +33,7 @@ source "$(dirname "$0")/check-state.sh"
 check_state "$GATE_FILE" 7200
 
 if [[ "$STATE_VALID" != "true" ]]; then
-  exit 0  # No gate = thinking-os-gate.sh will handle it
+  exit 0  # No gate = thinking_os-gate.sh will handle it
 fi
 
 CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')

@@ -1,12 +1,12 @@
-"""graph-os + docs unified auto-reindex dispatcher (Phase I.14, V1 cache).
+"""graph_os + docs unified auto-reindex dispatcher (Phase I.14, V1 cache).
 
 PURPOSE:  Called from `auto-reindex-docs.sh` PostToolUse hook. Routes
           a single file path to the correct extractor(s) based on
-          extension, updates both the docs RAG index and the graph-os
+          extension, updates both the docs RAG index and the graph_os
           backend in one pass.
 INPUT:    repo-relative file path + project root.
 OUTPUT:   status dict (always returns — never raises).
-DEPENDS:  thinking-os/doc_indexer (for md), graph_os.extractors.*,
+DEPENDS:  thinking_os/doc_indexer (for md), graph_os.extractors.*,
           graph_os.backends.sqlite_backend.
 NOTES:    Single entry point so both Claude PostToolUse (shell hook)
           and Codex opt-in background indexer can route through the
@@ -380,7 +380,7 @@ def _open_conn(*, project_root: Path, db_path: str | None):
     from db import init_db  # type: ignore
 
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
     )
     return init_db(effective_db)
 
@@ -413,7 +413,7 @@ def _reindex_docs(
 
     config_path = project_root / ".coding-os" / "rag-config.yaml"
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
     )
     conn = init_db(effective_db)
     try:
@@ -460,7 +460,7 @@ def _reindex_graph(
     }
 
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking-os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
     )
     conn = init_db(effective_db)
     nodes_written = edges_written = 0

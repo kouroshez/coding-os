@@ -82,7 +82,7 @@ All scripts use consistent output prefixes:
 
 ## Outcome Tracking (Thinking OS)
 
-After task completion or blocking, record outcome to `thinking-os.db`:
+After task completion or blocking, record outcome to `thinking_os.db`:
 
 | Field | Values | Source |
 | ----- | ------ | ------ |

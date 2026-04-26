@@ -1,5 +1,5 @@
 """
-Stress tests for the thinking-os memory system (TASK-141-146).
+Stress tests for the thinking_os memory system (TASK-141-146).
 
 Simulates different states, edge cases, concurrent patterns, and
 multi-persona scenarios to find bugs.

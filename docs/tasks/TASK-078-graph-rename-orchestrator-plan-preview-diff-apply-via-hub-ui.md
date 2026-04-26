@@ -1,9 +1,9 @@
 ---
 id: TASK-078
 title: "Graph: Rename orchestrator (plan → preview diff → apply) via Hub UI"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, rename, P2-ux-parity]
 status: icebox
 priority: P2

@@ -1,4 +1,4 @@
-"""graph-os viewer exporter (I.10).
+"""graph_os viewer exporter (I.10).
 
 PURPOSE:  High-level facade that turns a backend snapshot into an
           HTML file on disk. Owns the CSP nonce generator and the
@@ -26,7 +26,7 @@ from .template import render
 @dataclass
 class ViewerExporter:
     backend: GraphBackend
-    title: str = "graph-os"
+    title: str = "graph_os"
     max_nodes: int = 500
     max_edges: int = 2000
     bundled: bool = False
@@ -87,7 +87,7 @@ def build_view(
     backend: GraphBackend,
     out_path: str | Path,
     *,
-    title: str = "graph-os",
+    title: str = "graph_os",
     root_uid: str | None = None,
     edge_types: Sequence[str] | None = None,
     bundled: bool = False,

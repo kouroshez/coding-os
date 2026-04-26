@@ -1,7 +1,7 @@
 ---
 id: TASK-023
 title: "K.2  Postgres pgvector adapter (gated, HNSW)"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: phase-k
 labels: [db-abstraction, postgres, gated]

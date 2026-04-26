@@ -1,7 +1,7 @@
 ---
 id: TASK-010
 title: "I.9  Orchestrator — registry/dispatcher/worker_pool/roles"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: phase-i
 labels: []

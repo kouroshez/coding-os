@@ -4,7 +4,7 @@ Checks (fail-fast ordering):
 
     C1  .coding-os.yaml exists and parses
     C2  state dir exists
-    C3  thinking-os.db opens
+    C3  thinking_os.db opens
     C4  schema_version == 6
     C5  core tables present
     C6  scaffold roots exist (AGENTS.md, Makefile, docs/)
@@ -198,11 +198,11 @@ def _check_state_dir(project: Path, config: dict[str, Any], report: DoctorReport
 
 def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | None:
     """C3 + C4 + C5 — DB opens, schema version 6, all 11 tables present."""
-    db_path = state / "thinking-os.db"
+    db_path = state / "thinking_os.db"
     if not db_path.exists():
         report.checks.append(
             CheckResult(
-                "C3", "database_open", SEV_FAIL, "thinking-os.db not found",
+                "C3", "database_open", SEV_FAIL, "thinking_os.db not found",
                 {"path": str(db_path)},
             )
         )
@@ -605,7 +605,7 @@ def _check_manifest(
 
 
 def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
-    """C10 — run thinking-os MCP server self-test against the project DB."""
+    """C10 — run thinking_os MCP server self-test against the project DB."""
     if not MCP_SERVER_PATH.exists():
         report.checks.append(
             CheckResult(
@@ -614,7 +614,7 @@ def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
             )
         )
         return
-    db_path = project / ".coding-os" / "thinking-os.db"
+    db_path = project / ".coding-os" / "thinking_os.db"
     env = os.environ.copy()
     env["COS_DB_PATH"] = str(db_path)
     try:
@@ -669,7 +669,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
         # the first handle's contextlib.closing is not disturbed.
         try:
             import sqlite3 as _sqlite3
-            db_file = state / "thinking-os.db"
+            db_file = state / "thinking_os.db"
             if db_file.exists():
                 graph_conn = _sqlite3.connect(str(db_file))
         except Exception as exc:  # noqa: BLE001 — doctor must not crash
@@ -687,7 +687,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     _check_mcp_actually_launches(project, report)
     _check_agents_md_present(project, report)
     _check_cognition_registries(project, report)
-    # Phase I.14 — graph-os health (C16-C22).
+    # Phase I.14 — graph_os health (C16-C22).
     try:
         from cli.doctor_graph import run_graph_checks  # noqa: WPS433
         run_graph_checks(report, state, graph_conn)
@@ -701,7 +701,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
             except Exception as exc:  # noqa: BLE001
                 logger = logging.getLogger("coding_os.doctor")
                 logger.debug("graph_conn close suppressed: %s", exc)
-    # Phase L.9 — board-os health (C20-C23).
+    # Phase L.9 — board_os health (C20-C23).
     try:
         from cli.doctor_board import run_board_checks  # noqa: WPS433
         run_board_checks(report, project, state)
@@ -1144,7 +1144,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
         msg = (
             "server crashed: cannot open DB. This usually means the "
             "MCP launch config uses `uv run --directory ...` which "
-            "chdir's into the server tree, so `.coding-os/thinking-os.db` "
+            "chdir's into the server tree, so `.coding-os/thinking_os.db` "
             "stops resolving. Switch to the wrapper form: "
             '`command = "cos"` and `args = ["server-start"]`.'
         )
@@ -1203,7 +1203,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
 
     thinking_os = project / "core" / "thinking_os"
     if not thinking_os.is_dir():
-        report.checks.append(CheckResult("C28", "cognition_registries", SEV_PASS, "no thinking-os/ (skip)"))
+        report.checks.append(CheckResult("C28", "cognition_registries", SEV_PASS, "no thinking_os/ (skip)"))
         return
 
     issues: list[str] = []

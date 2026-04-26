@@ -2,7 +2,7 @@
 
 PURPOSE:  Generate a large deterministic fixture corpus and drive
           `run_benchmark` against it so §8.5 scale targets get
-          replaced by measured numbers in `docs/benchmarks/graph-os.md`.
+          replaced by measured numbers in `docs/benchmarks/graph_os.md`.
 INPUT:    --count N (default 500_000) and optional --output path.
 OUTPUT:   JSON report file plus stdout summary.
 DEPENDS:  graph_os.bench.fixtures + harness, SqliteBackend (or Kuzu

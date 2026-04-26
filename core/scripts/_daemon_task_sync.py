@@ -3,14 +3,14 @@
 PURPOSE:      Called by task-create.sh after a new task file is written.
               Double-forks so the grandchild has no controlling terminal
               and no inherited fds, then runs `sync_tasks()` against the
-              thinking-os DB. The parent shell returns immediately — even
+              thinking_os DB. The parent shell returns immediately — even
               when invoked under `subprocess.Popen(..., capture_output=True)`
               (as pytest does), which is the bug that caused TASK-030 to
               time out.
 
 INPUT:        env → COS_BRAIN_DIR (optional), COS_DB_PATH (optional)
 OUTPUT:       none — all stdout/stderr redirected to /dev/null post-daemonise
-DEPENDENCIES: thinking-os db.init_db + task_sync.sync_tasks (best-effort;
+DEPENDENCIES: thinking_os db.init_db + task_sync.sync_tasks (best-effort;
               absence is silently tolerated per Phase C "enrichment only")
 NOTES:        Invoked via `python3 core/scripts/_daemon_task_sync.py >/dev/null
               2>&1 </dev/null`. The parent exits ~instantly after the first

@@ -1,7 +1,7 @@
 ---
 id: TASK-107
 title: "Phase L.10 — override audit (schema migration v20, override_reason + override_actor in task_status_history)"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: null
 labels: []

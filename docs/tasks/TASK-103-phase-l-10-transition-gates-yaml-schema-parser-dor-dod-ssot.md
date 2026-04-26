@@ -1,7 +1,7 @@
 ---
 id: TASK-103
 title: "Phase L.10 — transition-gates.yaml schema + parser (DoR/DoD SSOT)"
-swimlane: board-os
+swimlane: board_os
 kind: feature
 epic: null
 labels: []

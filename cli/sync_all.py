@@ -5,7 +5,7 @@ PURPOSE: Close the "I edited core/ or adapters/, how do consumer projects
          live, but three paths need explicit re-runs:
            1. adapters/<agent>/*.template.* → .claude/settings.json (RENDER,
               not symlink) — must be re-rendered per install.sh.
-           2. .coding-os/thinking-os.db pending migrations (e.g. v19 "drop
+           2. .coding-os/thinking_os.db pending migrations (e.g. v19 "drop
               ready status") — applied lazily via init_db.
            3. Broken symlinks if the meta repo itself moved — symlink
               targets become dangling; this surfaces + repairs them.
@@ -87,8 +87,8 @@ def _dangling(link: Path) -> bool:
 
 
 def _apply_migrations(project: Path) -> tuple[bool, str]:
-    """Run init_db on the project's thinking-os.db.  Returns (ok, msg)."""
-    db_path = project / ".coding-os" / "thinking-os.db"
+    """Run init_db on the project's thinking_os.db.  Returns (ok, msg)."""
+    db_path = project / ".coding-os" / "thinking_os.db"
     if not db_path.exists():
         return True, "no DB (pre-Phase-C install)"
     try:
@@ -157,7 +157,7 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
 
     For each registered project:
       1. Re-run declared adapter install.sh scripts (idempotent).
-      2. Trigger init_db on .coding-os/thinking-os.db (applies any
+      2. Trigger init_db on .coding-os/thinking_os.db (applies any
          pending schema migrations such as v19 "drop ready status").
       3. Audit agent-dir symlinks; report dangling ones.
     """

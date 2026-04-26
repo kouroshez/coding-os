@@ -1,7 +1,7 @@
 ---
 id: TASK-013
 title: "I.12 Repo groups + cross-repo edge detection"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

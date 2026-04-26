@@ -44,12 +44,12 @@ def test_shipped_config_parses_cleanly(config_path: Path):
 
 
 def test_meta_repo_has_board_os_swimlane():
-    """coding-os itself must have a board-os lane to track Phase L slices."""
+    """coding-os itself must have a board_os lane to track Phase L slices."""
     data = yaml.safe_load(META.read_text(encoding="utf-8"))
     cfg = parse_config(data)
-    assert "board-os" in cfg.swimlane_ids
-    assert "graph-os" in cfg.swimlane_ids
-    assert "thinking-os" in cfg.swimlane_ids
+    assert "board_os" in cfg.swimlane_ids
+    assert "graph_os" in cfg.swimlane_ids
+    assert "thinking_os" in cfg.swimlane_ids
 
 
 def test_django_has_backend_swimlane():

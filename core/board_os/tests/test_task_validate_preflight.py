@@ -38,7 +38,7 @@ def project(tmp_path: Path, monkeypatch) -> Path:
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
-    return db.init_db(tmp_path / "thinking-os.db")
+    return db.init_db(tmp_path / "thinking_os.db")
 
 
 def _create_task(
@@ -80,7 +80,7 @@ def _preflight(task_id: str, *, for_status: str = "in_progress") -> "ValidationR
     from core.board_os.transition_gates_validator import validate_transition
 
     import sqlite3 as _sql
-    conn = _sql.connect(str(Path.cwd() / "thinking-os.db"))
+    conn = _sql.connect(str(Path.cwd() / "thinking_os.db"))
     row = conn.execute(
         "SELECT file_path, kind FROM tasks WHERE task_id = ?", (task_id,),
     ).fetchone()

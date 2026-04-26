@@ -1,6 +1,6 @@
-"""graph-os — the 11 cos_graph_* MCP tools (I.8).
+"""graph_os — the 11 cos_graph_* MCP tools (I.8).
 
-PURPOSE:  Expose graph-os to agents through the MCP server. Every tool
+PURPOSE:  Expose graph_os to agents through the MCP server. Every tool
           honours the Rule 14 envelope contract (ok / fail, @safe_tool)
           and sets `data.meta.layer="graph"` so agents can see which
           retrieval layer answered them.

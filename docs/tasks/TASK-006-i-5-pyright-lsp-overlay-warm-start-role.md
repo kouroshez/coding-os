@@ -1,7 +1,7 @@
 ---
 id: TASK-006
 title: "I.5  pyright LSP overlay + warm-start role"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

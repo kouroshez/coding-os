@@ -9,7 +9,7 @@ Prints a text-based dashboard showing system health:
   - Observation stats
   - DB size
 
-Run via `make thinking-os-stats`.
+Run via `make thinking_os-stats`.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def generate_dashboard(db_path: str | Path | None = None) -> str:
     """Generate the full dashboard text.
 
     Args:
-        db_path: Path to thinking-os.db. Defaults to DEFAULT_DB_PATH.
+        db_path: Path to thinking_os.db. Defaults to DEFAULT_DB_PATH.
 
     Returns:
         Formatted dashboard string.
@@ -57,7 +57,7 @@ def generate_dashboard(db_path: str | Path | None = None) -> str:
             "║  Thinking OS — No DB Found                      ║\n"
             "╚══════════════════════════════════════════════════╝\n"
             "\n"
-            "No thinking-os.db found.\n"
+            "No thinking_os.db found.\n"
             "Run tasks with outcome tracking to start collecting data."
         )
 

@@ -15,7 +15,7 @@ P1. SSOT-first — no parallel truths. P2. Source-grounded — trace to SSOT. P3
 
 ## Request Routing
 
-**Gate 1 — Complexity Gate** (`$COS_STATE_DIR/rules/thinking-os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
+**Gate 1 — Complexity Gate** (`$COS_STATE_DIR/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
 
 **Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `make task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
 
@@ -31,7 +31,7 @@ Five phases: **Initialize → Classify → Orient → Plan → Execute → Verif
 
 Use Dimension Type Registry (`$COS_STATE_DIR/rules/dimension-registry.md`, auto-loaded) to build Read List:
 
-1. **Complexity Gate** — record: `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.thinking-os-gate "COMPLICATED 3"`
+1. **Complexity Gate** — record: `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.thinking_os-gate "COMPLICATED 3"`
 2. **Domain Route** — Any code change → `docs/governance/agent-workflow.md` § Domain Classification
 3. **Dimension Map** — per dimension: name, domain, depth (D/M/L), phase.
 4. **Read List** — from registry, each file with REASON. Do NOT read entire pack.
@@ -112,7 +112,7 @@ Order of preference when two layers look equally plausible: **Memory → Docs �
 
 ## Skills
 
-`thinking-os`, `clean-code`, `codebase-explorer`, `worktree-orchestration`. Config: `$COS_STATE_DIR/settings.json`.
+`thinking_os`, `clean-code`, `codebase-explorer`, `worktree-orchestration`. Config: `$COS_STATE_DIR/settings.json`.
 
 ## Context Discipline
 

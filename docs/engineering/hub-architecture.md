@@ -16,7 +16,7 @@ what.
 |---|---|---|
 | **Meta repo** `/Users/<you>/.../coding-os/` | `core/` + `adapters/` + `templates/` + `cli/` (source of truth) | humans + agents edit directly |
 | **Hub state** `~/.coding-os/` | `registry.json`, `hub.pid`, `hub.log`, `groups/` | `cos registry`, `cos hub`, `cos graph-groups`, first-run bootstrap |
-| **Project state** `<repo>/.coding-os/` | `thinking-os.db`, `.agent`, `<agent>/session-id`, `<agent>/sessions/*.json`, `.hooks.log`, `installed-manifest.json` | hooks, MCP server, `install.sh`, CLI commands run inside the project |
+| **Project state** `<repo>/.coding-os/` | `thinking_os.db`, `.agent`, `<agent>/session-id`, `<agent>/sessions/*.json`, `.hooks.log`, `installed-manifest.json` | hooks, MCP server, `install.sh`, CLI commands run inside the project |
 
 **`~/.coding-os/` does NOT hold code.** The hub loads every byte of
 `core/` and `adapters/` directly from the meta repo — `uv tool install

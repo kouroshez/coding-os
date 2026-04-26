@@ -4,7 +4,7 @@ Thinking OS — Observation compression via Claude API (TASK-155).
 
 Batch script that processes raw observations (narrative IS NULL)
 and generates AI-structured summaries using Claude Haiku.
-Runs via `make thinking-os-compress`.
+Runs via `make thinking_os-compress`.
 
 Falls back gracefully if:
   - ANTHROPIC_API_KEY not set

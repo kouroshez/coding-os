@@ -940,7 +940,7 @@ def _derive_project_root(conn: sqlite3.Connection) -> Optional[Path]:
     """Project root = parent of the .coding-os/ directory holding the DB.
 
     Returns None for in-memory DBs or DBs outside the expected
-    <root>/.coding-os/thinking-os.db layout.
+    <root>/.coding-os/thinking_os.db layout.
     """
     rows = conn.execute("PRAGMA database_list").fetchall()
     for row in rows:

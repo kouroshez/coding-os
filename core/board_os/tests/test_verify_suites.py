@@ -19,7 +19,7 @@ from core.board_os.verify_suites import (
 def test_default_yaml_loads_cleanly() -> None:
     cfg = load_verify_suites()
     assert "verify-hooks" in cfg.suites
-    assert "test-board-os" in cfg.suites
+    assert "test-board_os" in cfg.suites
     assert "docs-lint" in cfg.suites
 
 
@@ -36,7 +36,7 @@ def test_match_suites_resolves_board_os_changes() -> None:
     suites = match_suites(
         ["core/board_os/transition_gates.py"], cfg,
     )
-    assert "test-board-os" in suites
+    assert "test-board_os" in suites
 
 
 def test_match_suites_resolves_docs_changes() -> None:

@@ -49,7 +49,7 @@ You are in task-management mode. Apply these rules mechanically.
 
 | Axis | Field | Examples |
 |---|---|---|
-| Domain | `swimlane` | `graph-os`, `backend`, `vpn-core` (from scrumban-config) |
+| Domain | `swimlane` | `graph_os`, `backend`, `vpn-core` (from scrumban-config) |
 | Type | `kind` | `feature`, `bug`, `chore`, `spike`, `docs`, `refactor`, `test`, `security` |
 | Initiative | `epic` | `phase-l`, `mvp`, `oncall-q2` |
 | Tags | `labels` | `indexing`, `perf`, `experimental` (must NOT contain kind values) |

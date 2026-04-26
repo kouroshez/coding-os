@@ -22,9 +22,9 @@ core/  ──►  adapters/<agent>/  ──►  templates/<stack>/  ──►  c
 ```
 
 Cognitive layers under `core/` (all on one MCP server, [core/thinking_os/server.py](core/thinking_os/server.py)):
-- **thinking-os** = hippocampus (memory + learning + metrics)
-- **graph-os** = corpus callosum (Phase I — Kùzu + SQLite knowledge graph)
-- **board-os** = prefrontal cortex (Phase L — Scrumban planner)
+- **thinking_os** = hippocampus (memory + learning + metrics)
+- **graph_os** = corpus callosum (Phase I — Kùzu + SQLite knowledge graph)
+- **board_os** = prefrontal cortex (Phase L — Scrumban planner)
 
 ## Modularity Map — Blast Radius
 
@@ -79,9 +79,9 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 ## Core Loop — Classify · Orient · Plan · Execute · Verify
 
-**Classify (dry, no reads):** Complexity Gate (Q1 Cynefin × Q2 dimensions, record via `bash core/hooks/write-state.sh .coding-os/<agent>/.thinking-os-gate "COMPLICATED 3"`) → reconcile task context (existing TASK-IDs / active board items) → domain route → Read List.
+**Classify (dry, no reads):** Complexity Gate (Q1 Cynefin × Q2 dimensions, record via `bash core/hooks/write-state.sh .coding-os/<agent>/.thinking_os-gate "COMPLICATED 3"`) → reconcile task context (existing TASK-IDs / active board items) → domain route → Read List.
 **Orient (targeted reads):** Read List only · `cos_search` for past patterns · grep/glob existing code.
-**Plan:** per dimension → current/target/gap/risk → ordered steps. If no matching task exists, create one and fill Outcome/Read First/Acceptance before coding. COMPLICATED+ loads the `thinking-os` skill for Zoom cycles.
+**Plan:** per dimension → current/target/gap/risk → ordered steps. If no matching task exists, create one and fill Outcome/Read First/Acceptance before coding. COMPLICATED+ loads the `thinking_os` skill for Zoom cycles.
 **Execute:** smallest correct change [P1, P4]. After code: run verification.
 **Verify & Close:** move task to `testing` → run verification (`make verify` or targeted matrix command) → append concise work-log note → `cos task-done TASK-NNN` (Scrumban) or `make task-done` (legacy).
 
@@ -91,8 +91,8 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 |---|---|---|
 | `core/thinking_os/*.py` | pytest + MCP self-test | `uv run --extra rag pytest core/thinking_os/tests/ -q` and `python core/thinking_os/server.py --test` |
 | `core/thinking_os/db.py` | migration tests | `uv run --extra rag pytest core/thinking_os/tests/test_db.py -q` |
-| `core/graph_os/**` | parity + extractor tests | `uv run --extra graph-os pytest core/graph_os/tests/ -q` |
-| `core/board_os/**` | board-os tests | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q` |
+| `core/graph_os/**` | parity + extractor tests | `uv run --extra graph_os pytest core/graph_os/tests/ -q` |
+| `core/board_os/**` | board_os tests | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q` |
 | `core/hooks/*.sh` or `core/scripts/*.sh` | shell syntax | `make verify-hooks` |
 | `adapters/**` | install test | `uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q` |
 | `cli/*.py` | CLI integration | `uv run pytest tests/test_cli.py -q` |
@@ -119,7 +119,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 | Meta Router (J) | "I am not sure which layer to use" | `cos_retrieve` |
 | Knowledge Graph (I) | "What is connected to what?" | `cos_graph_*` family |
 
-Routing decisions, freshness contract, graph rename workflow, contracts audit: see [docs/engineering/retrieval-routing.md](docs/engineering/retrieval-routing.md), [docs/engineering/graph-os-queries.md](docs/engineering/graph-os-queries.md), and [docs/engineering/rename-workflow.md](docs/engineering/rename-workflow.md).
+Routing decisions, freshness contract, graph rename workflow, contracts audit: see [docs/engineering/retrieval-routing.md](docs/engineering/retrieval-routing.md), [docs/engineering/graph_os-queries.md](docs/engineering/graph_os-queries.md), and [docs/engineering/rename-workflow.md](docs/engineering/rename-workflow.md).
 
 ## Key Files
 
@@ -128,20 +128,20 @@ Routing decisions, freshness contract, graph rename workflow, contracts audit: s
 | MCP server entry | [core/thinking_os/server.py](core/thinking_os/server.py) |
 | DB + migrations | [core/thinking_os/db.py](core/thinking_os/db.py) |
 | MCP tools | [core/thinking_os/tools/](core/thinking_os/tools/) (memory, metrics, learning, routing, docs, tasks, retrieve, cognition) |
-| Phase I graph-os | [core/graph_os/](core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
-| Phase L board-os | [core/board_os/](core/board_os/) — config, parser, sync, workflow, mcp_tools |
+| Phase I graph_os | [core/graph_os/](core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
+| Phase L board_os | [core/board_os/](core/board_os/) — config, parser, sync, workflow, mcp_tools |
 | Web backbone (S4) | [core/web/](core/web/) — FastAPI on port 9188, `/api/{graph,board,cognition,search}` + `/api/stream/events` SSE |
 | React SPA (S5) | [core/web/ui/](core/web/ui/) — Vite + React 18 + Sigma.js, served at http://127.0.0.1:9188 |
 | Roles (F1–F11) | [core/thinking_os/roles/](core/thinking_os/roles/) — 11 yaml + presets/registry.yaml |
 | Hooks | [core/hooks/](core/hooks/) (49 scripts) + [registry.yaml](core/hooks/registry.yaml) |
-| Skills | [core/skills/](core/skills/) — backend-fundamentals, clean-code, codebase-explorer, frontend-fundamentals, graph-explorer, task-driver, thinking-os, worktree-orchestration |
+| Skills | [core/skills/](core/skills/) — backend-fundamentals, clean-code, codebase-explorer, frontend-fundamentals, graph-explorer, task-driver, thinking_os, worktree-orchestration |
 | CLI | [cli/](cli/) — main.py + 21 sibling modules (board, brain, graph, doctor, …) |
 | Adapters | [adapters/claude/](adapters/claude/), [adapters/codex/](adapters/codex/) + [adapters/claude/sdk_dispatcher.py](adapters/claude/sdk_dispatcher.py) |
 | Templates | [templates/_base/](templates/_base/) + django/nextjs/fastapi/go/go-fiber |
 
 ## Phase Status
 
-v0.2.x current. Phases A–N.6 shipped (core, RAG, task store, distribution, hook regime, graph-os, board-os, cognition supervisor, role-based routing, behavioral tracing). Test suite collects ~2,031 tests. Roadmap & open icebox: `cos board` and [docs/development-roadmap.md](docs/development-roadmap.md). Per-phase plans live as `docs/phase-*-plan.md`.
+v0.2.x current. Phases A–N.6 shipped (core, RAG, task store, distribution, hook regime, graph_os, board_os, cognition supervisor, role-based routing, behavioral tracing). Test suite collects ~2,031 tests. Roadmap & open icebox: `cos board` and [docs/development-roadmap.md](docs/development-roadmap.md). Per-phase plans live as `docs/phase-*-plan.md`.
 
 ## Stop Conditions
 

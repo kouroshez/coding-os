@@ -1,4 +1,4 @@
-"""graph-os — backend Protocol + factory.
+"""graph_os — backend Protocol + factory.
 
 PURPOSE:  Define the contract every storage backend (SQLite fallback,
           Kuzu primary) honours so that extractors and MCP tools
@@ -176,7 +176,7 @@ def get_backend(
               downgrade.
     INPUT:    backend: None|"auto"|"kuzu"|"sqlite" (explicit > env).
               sqlite_conn: pre-opened sqlite3.Connection reused from
-              thinking-os (recommended) — if None, backend picks
+              thinking_os (recommended) — if None, backend picks
               COS_DB_PATH via init_db.
               kuzu_path: override for the .kuzu file path.
               extra: forwarded to the backend constructor.
@@ -208,7 +208,7 @@ def get_backend(
             if choice == "kuzu":
                 raise BackendUnavailable(
                     "kuzu backend requested but python-kuzu is not installed; "
-                    "install the graph-os extra or use backend='sqlite'."
+                    "install the graph_os extra or use backend='sqlite'."
                 ) from exc
             logger.info("kuzu python package not installed; using SQLite.")
 

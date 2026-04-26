@@ -1,6 +1,6 @@
-"""graph-os — LSP overlay (I.5).
+"""graph_os — LSP overlay (I.5).
 
-PURPOSE:  Share one long-lived pyright / tsserver per graph-os process
+PURPOSE:  Share one long-lived pyright / tsserver per graph_os process
           across every indexer worker and overlay its higher-precision
           symbol resolutions onto tree-sitter / AST edges. Includes a
           circuit breaker so a misbehaving LSP does not take down the
@@ -76,7 +76,7 @@ class _BreakerState:
 
 
 class LspDriver(Protocol):
-    """Minimum surface graph-os needs from any language-server client.
+    """Minimum surface graph_os needs from any language-server client.
 
     PURPOSE:  Hide pyright / tsserver behind a testable boundary.
     INPUT:    see per-method signatures.

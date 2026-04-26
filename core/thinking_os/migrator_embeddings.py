@@ -1,4 +1,4 @@
-"""thinking-os — background embedding migrator (Phase I.1).
+"""thinking_os — background embedding migrator (Phase I.1).
 
 PURPOSE:  Re-embed every row in the legacy `embeddings` table with the
           target model (default BGE-M3), writing `embedding`, `model_name`,

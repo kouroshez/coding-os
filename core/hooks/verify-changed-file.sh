@@ -116,7 +116,7 @@ fi
 # many changed files, warn that the classification may be too low.
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-GATE_FILE="$PROJECT_ROOT/${COS_AGENT_DIR}/.thinking-os-gate"
+GATE_FILE="$PROJECT_ROOT/${COS_AGENT_DIR}/.thinking_os-gate"
 if [[ -f "$GATE_FILE" ]]; then
   GATE_CONTENT=$(head -1 "$GATE_FILE")
   GATE_CLASS=$(echo "$GATE_CONTENT" | awk '{print $2}')

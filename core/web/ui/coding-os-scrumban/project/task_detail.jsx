@@ -252,9 +252,9 @@ function taskGwt(t) {
 
 function taskNotes(t) {
   const notes = {
-    'graph-os': 'Touches `graph-os/indexer/` — remember to bump the schema version if node shape changes. Benchmarks live in `bench/graph/`.',
-    'board-os': 'This lives in the control plane. Migrations go in `board-os/migrations/` and must be idempotent. WIP cap changes need a scrumban-config bump.',
-    'thinking-os': 'Any change to the reasoning contract needs a matching entry in `docs/contracts/thinking.md` and a shadow run against last week\'s traces.',
+    'graph_os': 'Touches `graph_os/indexer/` — remember to bump the schema version if node shape changes. Benchmarks live in `bench/graph/`.',
+    'board_os': 'This lives in the control plane. Migrations go in `board_os/migrations/` and must be idempotent. WIP cap changes need a scrumban-config bump.',
+    'thinking_os': 'Any change to the reasoning contract needs a matching entry in `docs/contracts/thinking.md` and a shadow run against last week\'s traces.',
     'adapters': 'Keep adapter contracts thin. If you\'re adding a method, ask whether it belongs in core first.',
     'templates': 'Template changes trigger drift detection (R-L-24) — heads up in #templates before merging.',
     'cli': 'CLI changes need a man-page update and a fresh `cos --help` snapshot in `docs/cli/`.',

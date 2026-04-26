@@ -1,9 +1,9 @@
 ---
 id: TASK-079
 title: "Graph: Wiki generation (LLM-powered per-module docs from indexed graph)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, wiki, llm, P3-differentiator]
 status: icebox
 priority: P3

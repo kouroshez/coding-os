@@ -21,15 +21,15 @@ Read next: [core/thinking_os/task_parser.py](../core/thinking_os/task_parser.py)
 
 ### 1.2 Why the four existing systems don't replace tasks
 
-A common and valid question: given `thinking-os` (memory), `cos_doc_search` (specs), `graph-os` (structure), do we still need tasks?
+A common and valid question: given `thinking_os` (memory), `cos_doc_search` (specs), `graph_os` (structure), do we still need tasks?
 
 **Yes — they occupy a different axis of time and cognition:**
 
 | System | Question answered | Time axis | Mutability |
 |---|---|---|---|
 | `docs/**` | What *should* the system be? | Timeless (spec) | Deliberate revisions |
-| `graph-os` | What *is* connected to what right now? | Present | Continuously re-indexed |
-| `thinking-os` memory | What *have* I tried before? | Past | Append-only observations |
+| `graph_os` | What *is* connected to what right now? | Present | Continuously re-indexed |
+| `thinking_os` memory | What *have* I tried before? | Past | Append-only observations |
 | **tasks (Phase L)** | What *am I going to do next*? | **Future / work-in-flight** | **Active mutation per session** |
 
 Without a task registry, the multi-session, multi-project, multi-agent handoff collapses. The task file is the **baton** between sessions. A solo developer with six parallel projects *cannot* operate without an externalized plan — that's literally what the `agile-scrum-guide.md` identifies as the solo-dev failure mode.
@@ -44,9 +44,9 @@ No existing product — Linear, Jira, GitHub Projects, Shape Up tools, Notion, T
 
 ```
 core/
-├── thinking-os/          ← cognition (unchanged)
-├── graph-os/             ← structural graph (Phase I)
-└── board-os/             ← NEW: Scrumban task system
+├── thinking_os/          ← cognition (unchanged)
+├── graph_os/             ← structural graph (Phase I)
+└── board_os/             ← NEW: Scrumban task system
     ├── parser.py         ← upgraded task_parser + frontmatter
     ├── sync.py           ← upgraded task_sync + DB v13
     ├── workflow.py       ← state machine + WIP enforcement
@@ -59,7 +59,7 @@ core/
 - **SSOT = Markdown** at `docs/tasks/TASK-NNN-slug.md`. Git-versioned. Human-readable. Agent-editable.
 - **Cache = SQLite** `tasks` table (extended via migration v13). MCP tools query the cache.
 - **Viewer = HTML + WebSocket** at `cos board --web`. Real-time via file-watcher. Drag-drop writes back to MD frontmatter.
-- **Workflow rules** live in `core/board-os/workflow.py` — the ONE place that knows valid state transitions + WIP caps. Hooks + CLI + MCP tools + web viewer all route through it.
+- **Workflow rules** live in `core/board_os/workflow.py` — the ONE place that knows valid state transitions + WIP caps. Hooks + CLI + MCP tools + web viewer all route through it.
 
 Not a separate service; not a separate database; not a parallel SSOT. One store, three surfaces, one workflow engine.
 
@@ -92,7 +92,7 @@ Not a separate service; not a separate database; not a parallel SSOT. One store,
 | **Shape Up (Basecamp)** | No | Cloud | Yes | Implicit | **Appetite** | No | No |
 | **Anthropic `TodoWrite`** | **Yes** | Session-scoped | No | No | No | N/A | No |
 | **Miro / FigJam** | No | Cloud canvas | **Whiteboard** | Manual | No | No | No |
-| **cos-board (Phase L)** | **Primary** | **Git MD** | **Physical-board feel** | **Enforced via hook** | **Appetite** | **100% local** | **Yes (graph-os)** |
+| **cos-board (Phase L)** | **Primary** | **Git MD** | **Physical-board feel** | **Enforced via hook** | **Appetite** | **100% local** | **Yes (graph_os)** |
 
 **Concrete copies / inspirations:**
 
@@ -147,7 +147,7 @@ Not a separate service; not a separate database; not a parallel SSOT. One store,
 ```
 
 **Two surfaces NEVER conflict:**
-- Any surface (agent, CLI, web) that changes state calls `core/board-os/workflow.py::transition()`.
+- Any surface (agent, CLI, web) that changes state calls `core/board_os/workflow.py::transition()`.
 - `transition()` writes **only** to the MD frontmatter. Everything else re-syncs via the file-watcher → `task_sync.py`.
 - Result: SSOT mutation is single-path. No race between DB and MD.
 
@@ -164,7 +164,7 @@ id: TASK-199                       # stable, zero-padded
 title: "Implement Kuzu backend"    # ≤ 80 chars
 
 # Four categorization axes (all independent)
-swimlane: graph-os                 # DOMAIN — which subsystem/team; enum from scrumban-config.yaml
+swimlane: graph_os                 # DOMAIN — which subsystem/team; enum from scrumban-config.yaml
 kind: feature                      # TYPE — what kind of work; enum: feature | bug | chore | spike | docs | refactor | test | security
 epic: phase-l-scrumban             # INITIATIVE — optional; groups tasks across swimlanes (e.g. a phase, a release, a theme)
 labels: [indexing, perf]           # FREE TAGS — arbitrary cross-cutting, no enum, no rendering impact
@@ -195,7 +195,7 @@ Mixing "domain", "type", and "tags" into one field (the old `labels[0]=color` tr
 
 | Axis | Field | Constraint | Drives rendering? | Example |
 |---|---|---|---|---|
-| **Domain** (where/who) | `swimlane` | enum from config | Row placement + left-edge colour | `graph-os`, `backend`, `vpn-core` |
+| **Domain** (where/who) | `swimlane` | enum from config | Row placement + left-edge colour | `graph_os`, `backend`, `vpn-core` |
 | **Type** (what kind) | `kind` | closed enum (8 values) | Card body colour | `feature`, `bug`, `chore`, `spike`, `docs`, `refactor`, `test`, `security` |
 | **Initiative** (which theme) | `epic` | optional free string | Filter only (`cos board --epic X`) | `phase-l-scrumban`, `zibaal-mvp`, `oncall-q2` |
 | **Tags** (free) | `labels` | free-form list | None | `indexing`, `perf`, `experimental` |
@@ -229,7 +229,7 @@ Mixing "domain", "type", and "tags" into one field (the old `labels[0]=color` tr
 
 ## Read First
 - [docs/phase-i-knowledge-graph-plan.md#12](../phase-i-knowledge-graph-plan.md#12-storage-architecture) — backend architecture
-- [core/graph-os/backend.py](../../core/graph-os/backend.py) — Protocol
+- [core/graph_os/backend.py](../../core/graph_os/backend.py) — Protocol
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** `graph.backend: kuzu` in rag-config.yaml
@@ -242,7 +242,7 @@ Mixing "domain", "type", and "tags" into one field (the old `labels[0]=color` tr
 - 2026-04-21 [claude]: HNSW vector index wired; 35/50 green
 
 ## Rollback
-Additive only. `.coding-os/graph-os.kuzu` isolated from SQLite state; revert commit.
+Additive only. `.coding-os/graph_os.kuzu` isolated from SQLite state; revert commit.
 ```
 
 **Required sections:** Outcome, Acceptance. Everything else optional.
@@ -315,7 +315,7 @@ A common confusion worth pre-empting:
 
 ---
 
-## 7. Workflow Engine — `core/board-os/workflow.py`
+## 7. Workflow Engine — `core/board_os/workflow.py`
 
 One module, one SSOT for transition rules + WIP caps + validation.
 
@@ -333,7 +333,7 @@ def transition(
     INPUT:        task_id, target status, optional reason + session.
     OUTPUT:       TransitionResult{ok, previous_status, new_status, warnings, wip_state}
                   or error envelope {category: validation|permission|unavailable, ...}
-    DEPENDENCIES: board-os/parser, board-os/sync, task_status_history table.
+    DEPENDENCIES: board_os/parser, board_os/sync, task_status_history table.
     NOTES:
       - Rejects invalid transitions (raises TransitionError with suggested paths).
       - Checks WIP cap BEFORE mutation; bypass_wip=True requires --force on CLI.
@@ -427,7 +427,7 @@ All follow Rule 14 envelope. Existing four (`cos_task_search`, `_dependencies`, 
   "cycle_time_avg_hours": 9.3,
   "emergency_count": 2,                       // "fire frequency"
   "blocked_time_avg_hours": 4.1,              // how long tasks sat blocked
-  "swimlane_throughput": {"graph-os": 4, "thinking-os": 2, ...},
+  "swimlane_throughput": {"graph_os": 4, "thinking_os": 2, ...},
   "impediment_themes": [...],                 // from blocked reasons (NLP-lite)
   "one_improvement": "..."                    // agent suggests one focus for next week
 }
@@ -473,14 +473,14 @@ All follow Rule 14 envelope. Existing four (`cos_task_search`, `_dependencies`, 
 # Board views
 cos board                           # ASCII Scrumban in terminal
 cos board --web [--port 9000] [--autocommit]  # start WebSocket server + open browser
-cos board --swimlane graph-os       # filter by domain (single lane)
+cos board --swimlane graph_os       # filter by domain (single lane)
 cos board --kind bug                # filter by type ("show only bugs")
 cos board --epic phase-l            # filter by initiative
 cos board --priority P0,P1          # filter by priority
 cos board --group my-platform       # cross-repo group board (uses graph-group from Phase I)
 
 # Workflow
-cos task-create SWIMLANE=graph-os KIND=feature TITLE="..." APPETITE=1d PRIORITY=P1 [EPIC=phase-l] [LABELS=indexing,perf]
+cos task-create SWIMLANE=graph_os KIND=feature TITLE="..." APPETITE=1d PRIORITY=P1 [EPIC=phase-l] [LABELS=indexing,perf]
 cos task-move TASK=199 TO=testing [REASON="..."] [--force]
 cos task-start TASK=199             # shortcut for TO=in_progress + WIP check
 cos task-done TASK=199              # shortcut for TO=complete
@@ -529,7 +529,7 @@ All registered in `core/hooks/registry.yaml`; generated adapter templates follow
 
 ## 11. Web Scrumban Viewer
 
-> **Distinction from Phase I viewer:** The graph-os viewer (Sigma.js + WebGL force-directed) and the board-os viewer (Sortable.js + Kanban layout) are **two separate HTML files** with two separate CLIs: `cos graph-viz` vs `cos board --web`. They share no code and no port. A future slice (Phase M?) may unify them behind one `cos viz` hub, but for Phase L they stay independent — different mental models, different dependencies, different WebSocket servers.
+> **Distinction from Phase I viewer:** The graph_os viewer (Sigma.js + WebGL force-directed) and the board_os viewer (Sortable.js + Kanban layout) are **two separate HTML files** with two separate CLIs: `cos graph-viz` vs `cos board --web`. They share no code and no port. A future slice (Phase M?) may unify them behind one `cos viz` hub, but for Phase L they stay independent — different mental models, different dependencies, different WebSocket servers.
 
 ### 11.1 Stack
 
@@ -578,7 +578,7 @@ All registered in `core/hooks/registry.yaml`; generated adapter templates follow
 
 ---
 
-## 12. Integration with `thinking-os`
+## 12. Integration with `thinking_os`
 
 - `cos_search` boosts observations linked to the currently active `task-current`.
 - `cos_learn_suggest` called at `task-start` — returns past patterns relevant to the task's Read First docs.
@@ -587,9 +587,9 @@ All registered in `core/hooks/registry.yaml`; generated adapter templates follow
 
 ---
 
-## 13. Integration with `graph-os` (Phase I)
+## 13. Integration with `graph_os` (Phase I)
 
-- `task:file` nodes from graph-os §5.1 gain richer metadata: status + swimlane + priority from DB cache.
+- `task:file` nodes from graph_os §5.1 gain richer metadata: status + swimlane + priority from DB cache.
 - New edge types on task nodes: `produced_by_task` (code → task), `references_doc` (task → doc), `depends_on` (task → task).
 - `cos_graph_impact(uid=<doc>)` includes "tasks currently referencing this doc" — agent sees which tasks' Read First will break if the doc is restructured.
 - Web viewer can optionally show a sidecar panel: "this card's graph context" (calls, refs) via `cos_graph_context(<task_uid>)`.
@@ -719,14 +719,14 @@ Target: ship usable board after L.3 (CLI + MCP), web viewer after L.5, full poli
 | Slice | Scope | LOC | Ship gate | Dependencies |
 |---|---|---|---|---|
 | **L.0** | Migration v13 + `scrumban-config.yaml` schema + validator + docs for config + **lean task template files** (`templates/_base/task-detail.template.md` + `templates/_base/scaffold/docs/governance/templates/task-detail.md` rewritten with frontmatter + Outcome + Read First + Acceptance + Work Log + Rollback) + **default `scrumban-config.yaml` per stack** in `templates/_base/scaffold/.coding-os/` (per-stack overrides in `templates/<stack>/scaffold/.coding-os/scrumban-config.yaml`: django=backend/frontend/ai-service; nextjs=frontend/api/e2e; coding-os=8-lane set) + manifest-regen for both new files | ~500 | migration round-trip + 30 config fixtures + `cos init` produces correct per-stack config + lean template renders in golden test + `make manifest-regen` clean | — |
-| **L.1** | `core/board-os/parser.py` upgrade — frontmatter parsing, schema validation, legacy fallback. `sync.py` upgrade — new columns, status-history writes | ~550 | 40 unit tests; legacy + new templates both parse; zero-file repo still syncs | L.0 |
-| **L.2** | `core/board-os/workflow.py` — state machine + WIP engine + transition hook registry | ~500 | 60 transition tests covering all enum×enum × WIP states; property-based test on transition idempotence | L.1 |
+| **L.1** | `core/board_os/parser.py` upgrade — frontmatter parsing, schema validation, legacy fallback. `sync.py` upgrade — new columns, status-history writes | ~550 | 40 unit tests; legacy + new templates both parse; zero-file repo still syncs | L.0 |
+| **L.2** | `core/board_os/workflow.py` — state machine + WIP engine + transition hook registry | ~500 | 60 transition tests covering all enum×enum × WIP states; property-based test on transition idempotence | L.1 |
 | **L.3** | 6 MCP tools (`_board`, `_move`, `_pick`, `_daily`, `_retro`, `_wip_check`) | ~700 | envelope compliance (Rule 14); token-budget tests; dogfood: agent can run full day with no CLI | L.2 |
 | **L.4** | Hooks: `validate-task-frontmatter`, `enforce-wip-limit`, `capture-work-log`, `remind-daily`, `auto-task-sync`. `registry.yaml` entries + generated adapter templates | ~400 | hook unit tests + integration test (file-locking under simulated contention) | L.2 |
 | **L.5** | Web viewer: aiohttp server + Sortable.js HTML + WebSocket + file-watcher (`watchdog`). `--bundled` offline mode. Auth token path | ~900 | renders 200-task fixture at 60 FPS drag; WebSocket survives 1000 rapid moves; security: CSP, SRI, 127.0.0.1 default | L.3 |
 | **L.6** | CLI commands (`board`, `task-move`, `task-start`, `task-done`, `task-block`, `task-pick`, `daily`, `retro`, `task-archive`, `task-log`, `task-show`, `task-history`, `wip`, `task-validate`, `board-config`, `task-migrate`) via Click | ~600 | 30 CLI integration tests; Windows CI + POSIX CI both green | L.3 |
 | **L.7** | Migration tooling: `cos task-migrate --dry-run/--apply/--resume` (two-phase atomic per §16.2) + archive/pre-l/ + rollback test on 50-task fixture + intentionally-broken-file fixture (Phase-1 abort test) + dependency cycle detection in validator | ~550 | round-trip test: 50 legacy tasks migrated → valid frontmatter → agent can query via `cos_task_board`; abort test: 1 broken file aborts whole migration cleanly; cycle test: A→B→A rejected with clear path | L.1, L.6 |
-| **L.8** | Integration: `graph-os` task-node enrichment (produced_by_task, references_doc edges); `thinking-os` `cos_learn_suggest` on task-start; formula-mapping docs | ~300 + docs | 3 cross-subsystem tests (agent starts task → learn_suggest called → graph edges written) | L.2, Phase I |
+| **L.8** | Integration: `graph_os` task-node enrichment (produced_by_task, references_doc edges); `thinking_os` `cos_learn_suggest` on task-start; formula-mapping docs | ~300 + docs | 3 cross-subsystem tests (agent starts task → learn_suggest called → graph edges written) | L.2, Phase I |
 | **L.9** | Rule 15 + `lint-task.sh` hook + **AGENTS.md fragment `templates/_base/fragments/task-authoring.md.tmpl`** (composed into both AGENTS.md and CLAUDE.md via `base.yaml::agents_md_sections`) + skill `core/skills/task-driver/SKILL.md` + `cos doctor` C20–C23 | ~200 code + docs | docs lint + lint-task fires on dogfood edits + agent successfully runs complete task lifecycle per fragment guidance + skill auto-invokes when agent edits `docs/tasks/*.md` | L.3, L.5, L.6 |
 
 **Total:** ~4,850 LOC + ~120 new tests (target ~1,320 tests passing post-Phase L; currently 1,083).
@@ -738,7 +738,7 @@ Target: ship usable board after L.3 (CLI + MCP), web viewer after L.5, full poli
 - L.3 + L.4 parallel after L.2.
 - L.5 parallel with L.6 after L.3.
 - L.7 waits on L.6.
-- L.8 requires Phase I shipped (graph-os).
+- L.8 requires Phase I shipped (graph_os).
 - L.9 finalizes.
 
 ### Minimum viable ship point
@@ -787,10 +787,10 @@ After **L.3 + L.4 + L.6**: a solo dev has a working Scrumban loop via CLI + MCP,
 ## 21. Ship Checklist (per slice + phase)
 
 Each slice:
-- [ ] Code + tests in `core/board-os/` (Rule 13 function-header convention)
+- [ ] Code + tests in `core/board_os/` (Rule 13 function-header convention)
 - [ ] Envelope compliance (Rule 14) on MCP tools
 - [ ] `make verify` green
-- [ ] `uv run pytest core/board-os/tests/ -q` green
+- [ ] `uv run pytest core/board_os/tests/ -q` green
 - [ ] Hook registration in `registry.yaml`; `make regen-adapter-templates` clean
 - [ ] Docs-lint green
 - [ ] Scale check on `coding-os` repo itself
@@ -816,7 +816,7 @@ Phase L done when:
 2. **Cache location** — ✅ SQLite, extending the existing `tasks` table via migration v13.
 3. **Status enum** — ✅ 8 values (icebox, ready, emergency, in_progress, testing, complete, blocked, archive); legacy 4 statuses aliased on read.
 4. **WIP cap defaults** — ✅ in_progress=1, testing=3, emergency=2. Configurable per-project.
-5. **Swimlane config** — ✅ Per-project `.coding-os/scrumban-config.yaml`. coding-os itself: core / thinking-os / graph-os / adapters / templates / cli / docs / infra.
+5. **Swimlane config** — ✅ Per-project `.coding-os/scrumban-config.yaml`. coding-os itself: core / thinking_os / graph_os / adapters / templates / cli / docs / infra.
 6. **Appetite (not hours)** — ✅ Shape Up-style; regex `\d+[mhdwcy]|\d+cy`.
 7. **Work Log ownership** — ✅ Agent appends via `capture-work-log.sh` (automatic); human edits via Edit tool (validated).
 8. **Frontmatter vs body** — ✅ Frontmatter = machine state (status, swimlane, priority, ...); body = human-first content (outcome, Read First, acceptance, work log).
@@ -848,10 +848,10 @@ Phase L done when:
 ## 23. Why Phase L, Not Embedded in Phase I
 
 - **Scope distinctness.** Phase I builds the structural graph engine. Phase L builds the temporal task engine. Shared SQLite file, entirely different cognitive axis.
-- **Dependency order.** Phase L's `task:file` node enrichment (§13) depends on graph-os taxonomy from I.0–I.3. Ship I first, K extends.
+- **Dependency order.** Phase L's `task:file` node enrichment (§13) depends on graph_os taxonomy from I.0–I.3. Ship I first, K extends.
 - **Testability.** Each phase ~1000+ tests. Combining them would create a 200-test PR that nobody can review.
-- **Risk isolation.** A rollback of Phase L does not touch graph-os; a rollback of Phase I does not touch the task board.
-- **Dogfood order.** Once graph-os is live, Phase L uses it to track its own slices (meta-dogfood) — `docs/tasks/TASK-L-0-migration-v13.md` becomes the first consumer.
+- **Risk isolation.** A rollback of Phase L does not touch graph_os; a rollback of Phase I does not touch the task board.
+- **Dogfood order.** Once graph_os is live, Phase L uses it to track its own slices (meta-dogfood) — `docs/tasks/TASK-L-0-migration-v13.md` becomes the first consumer.
 
 ---
 
@@ -875,7 +875,7 @@ The previous version of this plan was ambiguous about where the new lean templat
 |---|---|---|
 | Lean task template body | ❌ No | Outcome / Acceptance / Read First / Work Log are universal — same for django, nextjs, go-fiber. Stack-specific verification commands belong in `core/rules/` already. |
 | Frontmatter schema (kind/priority/appetite enums) | ❌ No | Same closed enums everywhere — guarantees colour stability across all repos (a red card is always a bug). |
-| `scrumban-config.yaml::swimlanes` | ✅ **Yes** | django=backend/frontend/ai-service; nextjs=frontend/api/e2e; go-fiber=handlers/middleware/db; coding-os=core/thinking_os/graph-os/... |
+| `scrumban-config.yaml::swimlanes` | ✅ **Yes** | django=backend/frontend/ai-service; nextjs=frontend/api/e2e; go-fiber=handlers/middleware/db; coding-os=core/thinking_os/graph_os/... |
 | `scrumban-config.yaml::wip_limits` | ⚠️ Override-able | Default 1/3/2 (in_progress/testing/emergency); team can raise testing cap for parallel review. |
 | `scrumban-config.yaml::label_families` | ⚠️ Override-able | Default 8-colour palette; team can add custom families with custom colours (still stable per-project). |
 | Skill `task-driver` | ❌ No | Same skill, same philosophy — universal. |
@@ -946,7 +946,7 @@ The `regen-reminder.sh` hook (Phase E) will already nag if you forget. Tested in
 
 ## 25. Why `cos-board` (Module Naming)
 
-- Parallel to `graph-os`, `thinking-os`. Three cognitive subsystems.
+- Parallel to `graph_os`, `thinking_os`. Three cognitive subsystems.
 - "Board" is the visible metaphor (Silicon Valley whiteboard) — every user touches the board, not the `task_sync` or `workflow` internals.
 - Short; matches CLI first command: `cos board`.
 - Python package: `board_os.*`.
@@ -957,4 +957,4 @@ The `regen-reminder.sh` hook (Phase E) will already nag if you forget. Tested in
 - `scrumban-os` — hyper-specific to methodology; if we later support Shape Up or Basecamp cycles, the name ages badly.
 - `kanban` — missing the "scrum" half (cycles, planning, retro).
 
-Decision: **`board-os`** (module), **`cos board`** (CLI), **Scrumban** (methodology in docs).
+Decision: **`board_os`** (module), **`cos board`** (CLI), **Scrumban** (methodology in docs).

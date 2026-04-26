@@ -297,7 +297,7 @@ After C.5, MCP tool count goes from **17 → 21**.
 
 **Modified:** [core/scripts/task-start.sh](../core/scripts/task-start.sh), [core/scripts/task-done.sh](../core/scripts/task-done.sh), [core/scripts/task-create.sh](../core/scripts/task-create.sh)
 
-Each script currently runs fire-and-forget Python blocks for thinking-os side effects. Add a similar fire-and-forget block at the end of each:
+Each script currently runs fire-and-forget Python blocks for thinking_os side effects. Add a similar fire-and-forget block at the end of each:
 
 ```bash
 # Auto-sync tasks table (Phase C) — fire-and-forget, never blocks the user
@@ -330,12 +330,12 @@ Why fire-and-forget? Because:
 
 ```makefile
 .PHONY: task-sync
-task-sync: ## Sync docs/tasks/*.md → thinking-os.db (Phase C)
-	@uv run --extra rag --directory $(COS_ROOT) python -m core.thinking-os.task_sync --project-root . --db $(COS_DB_PATH)
+task-sync: ## Sync docs/tasks/*.md → thinking_os.db (Phase C)
+	@uv run --extra rag --directory $(COS_ROOT) python -m core.thinking_os.task_sync --project-root . --db $(COS_DB_PATH)
 
 .PHONY: task-resync
 task-resync: ## Force full re-sync of all task files
-	@uv run --extra rag --directory $(COS_ROOT) python -m core.thinking-os.task_sync --project-root . --db $(COS_DB_PATH) --force
+	@uv run --extra rag --directory $(COS_ROOT) python -m core.thinking_os.task_sync --project-root . --db $(COS_DB_PATH) --force
 ```
 
 Add a CLI entry point `_main()` to `task_sync.py` with `argparse` (mirroring `doc_indexer.py`'s `_main`).

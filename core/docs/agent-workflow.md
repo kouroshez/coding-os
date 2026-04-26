@@ -55,7 +55,7 @@ Every incoming request passes through two gates (see AGENTS.md § Request Routin
 Action by complexity:
 
 - **CLEAR** → Answer directly. Read relevant files as needed. No Core Loop.
-- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking-os"`, run Zoom cycle (map dimensions, identify risks/actors/rules), then provide structured answer informed by Zoom output. No Core Loop needed, but the answer benefits from systematic analysis.
+- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking_os"`, run Zoom cycle (map dimensions, identify risks/actors/rules), then provide structured answer informed by Zoom output. No Core Loop needed, but the answer benefits from systematic analysis.
 
 ### Category B: Task Execution
 
@@ -84,7 +84,7 @@ Action by complexity:
 Action by complexity:
 
 - **CLEAR** → Run relevant `make` command. Report results. Fixes follow Category C rules.
-- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking-os"`, Zoom cycle first (map: which systems? what risks? what scope? what dimensions?), then systematic review. Report findings with structured analysis. Fixes follow Category C rules.
+- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking_os"`, Zoom cycle first (map: which systems? what risks? what scope? what dimensions?), then systematic review. Report findings with structured analysis. Fixes follow Category C rules.
 
 ## Decision Priority
 
@@ -136,7 +136,7 @@ Three session events drive the cognitive layer. Understanding them is essential 
 
 ### On every Write / Edit — `capture-observation` (PostToolUse)
 
-- Fires in <1 ms, spawns [capture.py](../thinking-os/capture.py) in a background process.
+- Fires in <1 ms, spawns [capture.py](../thinking_os/capture.py) in a background process.
 - Records an `observations` row per edit (session_id, tool, file_path, content excerpt).
 - Errors from the background process land in `.coding-os/.capture-errors.log`; the Stop hook surfaces them at session end so silent capture failures can't swallow an entire session invisibly.
 
@@ -147,13 +147,13 @@ Behavior depends on `source`:
 - **`startup`** — fresh session. In order:
   1. **Orphan recovery** — reads the previous session_id from `.coding-os/session-id` and calls `session_summary.py` for it. This is idempotent (UPSERT) so clean-Stop sessions are unaffected; abandoned sessions finally get their summary row. Logged as `[session-context] [recovered] prev_session=...`.
   2. Generates a new `session_id` (format `ses-YYYYMMDD-HHMMSS-xxxx`) and writes it to `.coding-os/session-id`.
-  3. **Clears stale state files** from the previous session: `.thinking-os-gate`, `.task-current`, `.zoom-checkpoint`, `.active-skill`. This is why gate/task markers from yesterday's chat don't leak into today's.
+  3. **Clears stale state files** from the previous session: `.thinking_os-gate`, `.task-current`, `.zoom-checkpoint`, `.active-skill`. This is why gate/task markers from yesterday's chat don't leak into today's.
 - **`compact`** / **`resume`** — existing session continues. Re-injects the critical workflow rules (task management, Verification Matrix, Complexity Gate, Domain skill) so the post-compaction agent doesn't forget them. Session ID is preserved.
 
 ### On session end — `session-end` (Stop)
 
-- Runs [session_summary.py](../thinking-os/session_summary.py) — aggregates the session's observations, files touched, and breakthroughs into one `session_summaries` row.
-- Runs [session_enrich.py](../thinking-os/session_enrich.py) — links this session to the previous one for episode chaining (outcome_history narrative).
+- Runs [session_summary.py](../thinking_os/session_summary.py) — aggregates the session's observations, files touched, and breakthroughs into one `session_summaries` row.
+- Runs [session_enrich.py](../thinking_os/session_enrich.py) — links this session to the previous one for episode chaining (outcome_history narrative).
 - Fire-and-forget: never blocks, never errors visibly.
 
 ### What if the user abandons a chat mid-task?
@@ -165,7 +165,7 @@ Scenario: user opens tab A, does 10 edits, closes the tab without a clean Stop, 
 | **Observations** (per-edit rows in `observations`) | ✅ YES | captured on PostToolUse, already in DB before the tab closed |
 | **Task state** (`.task-current`, gate, checkpoint) | ✅ Cleared cleanly | tab B's `session-context` on `startup` rm's them before work begins |
 | **Session summary** (`session_summaries` row) | ✅ Auto-recovered on next startup | `session-context` on `startup` calls `session_summary.py` for the previous session_id before overwriting it — idempotent UPSERT builds the row from observations if Stop never fired |
-| **Episode chain** (previous-session pointer) | ⚠️ Partial | basic previous-session pointer is set by the recovered summary, but `session_enrich` semantic fields (domain counts derived from `.thinking-os-gate`) may be empty if the gate file was already cleared |
+| **Episode chain** (previous-session pointer) | ⚠️ Partial | basic previous-session pointer is set by the recovered summary, but `session_enrich` semantic fields (domain counts derived from `.thinking_os-gate`) may be empty if the gate file was already cleared |
 
 **Concrete recovery for a "reclaimed" task:** tab B's agent can still resurrect everything by:
 
@@ -181,7 +181,7 @@ No hook writes to the learning layer on every user prompt — that would produce
 
 - **Observations** accumulate silently on every Write/Edit (the raw signal).
 - **Learned patterns** are extracted on demand via `cos_learn_extract` (scans `task_outcomes` for recurring rework/skill/complexity patterns with ≥3 occurrences).
-- **Pattern confidence** updates only via `cos_learn_validate` — the agent must tell thinking-os whether a suggested pattern actually helped. Without this feedback loop the ranking never improves.
+- **Pattern confidence** updates only via `cos_learn_validate` — the agent must tell thinking_os whether a suggested pattern actually helped. Without this feedback loop the ranking never improves.
 - **Breakthroughs** are recorded via `cos_learn_narrative` after a rework→success cycle. This is the single highest-value thing an agent can do at the end of a hard task.
 
 If you close a chat mid-task **before calling `cos_learn_validate` / `cos_learn_narrative`**, the one-off learning signal for that task is lost — but the raw observations aren't, so a future session can still mine them.

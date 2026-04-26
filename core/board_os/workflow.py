@@ -1,4 +1,4 @@
-"""board-os workflow engine — Phase L.2 state machine + WIP enforcement.
+"""board_os workflow engine — Phase L.2 state machine + WIP enforcement.
 
 One module, one SSOT for:
 - Valid status transitions (8-state machine, plan §6.4)

@@ -537,15 +537,15 @@ def _overlay_scaffold(
 
 
 def _copy_workflow_docs(project: Path) -> None:
-    """Copy thinking-os-final-edition.md from core/docs/ into project workflow-docs/.
+    """Copy thinking_os-final-edition.md from core/docs/ into project workflow-docs/.
 
-    The full thinking-os reference is too large (57KB, 1439 lines) to duplicate
+    The full thinking_os reference is too large (57KB, 1439 lines) to duplicate
     in the scaffold dir. Instead, we copy it from core/docs/ at init time.
     """
-    src = CORE_DIR / "docs" / "thinking-os-final-edition.md"
+    src = CORE_DIR / "docs" / "thinking_os-final-edition.md"
     if not src.exists():
         return
-    dest = project / "docs" / "workflow-docs" / "thinking-os-final-edition.md"
+    dest = project / "docs" / "workflow-docs" / "thinking_os-final-edition.md"
     if dest.exists():
         return
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -618,7 +618,7 @@ except ImportError as _e:  # noqa: BLE001 — optional if cli.main is imported e
     import logging as _logging
     _logging.getLogger("cli.main").debug("sync_all unavailable: %s", _e)
 
-# Phase L.6 — board-os CLI surface (16 commands).
+# Phase L.6 — board_os CLI surface (16 commands).
 try:
     from cli.board_commands import BOARD_COMMANDS
     for _bc in BOARD_COMMANDS:
@@ -825,7 +825,7 @@ def init(
             "error": git_result.error,
         },
         "files_created": files_created,
-        "db_path": str(project / STATE_DIR / "thinking-os.db"),
+        "db_path": str(project / STATE_DIR / "thinking_os.db"),
         "config_file": str(project / CONFIG_FILE),
     }
 
@@ -872,7 +872,7 @@ def _run_scaffold_phase(
     click.echo(f"  Created {STATE_DIR}/")
 
     # 2. Initialize DB directory
-    db_path = state / "thinking-os.db"
+    db_path = state / "thinking_os.db"
     if not db_path.exists():
         # Initialize the database
         brain_dir = str(CORE_DIR / "thinking_os")
@@ -889,7 +889,7 @@ def _run_scaffold_phase(
             env=env,
             capture_output=True,
         )
-        click.echo("  Initialized thinking-os database")
+        click.echo("  Initialized thinking_os database")
 
     # 3. Generate config
     config = {
@@ -948,7 +948,7 @@ def _run_scaffold_phase(
     if copied:
         click.echo(f"  Copied {copied} scaffold file(s) (docs/, governance/, playbooks/, ...)")
 
-    # 8. Copy thinking-os reference doc from core/docs/
+    # 8. Copy thinking_os reference doc from core/docs/
     _copy_workflow_docs(project)
 
     # 9. Copy Makefile.base verbatim. The `cos` CLI binary (installed
@@ -1148,7 +1148,7 @@ def health(project_dir: str) -> None:
         click.echo(f"  State dir:  MISSING")
 
     # Database
-    db_path = state / "thinking-os.db"
+    db_path = state / "thinking_os.db"
     if db_path.exists():
         size_kb = db_path.stat().st_size / 1024
         click.echo(f"  Database:   OK ({size_kb:.0f} KB)")
@@ -1321,7 +1321,7 @@ def hooks_list(agent: str | None, category: str | None, phase: str | None) -> No
 
 @cli.command("server-start")
 def server_start() -> None:
-    """Start the thinking-os MCP server (wrapper used by .mcp.json).
+    """Start the thinking_os MCP server (wrapper used by .mcp.json).
 
     Projects register `cos server-start` in their .mcp.json so the MCP
     entry stays portable — coding-os location is resolved at call time by
@@ -1349,7 +1349,7 @@ def server_start() -> None:
     # explicit overrides for tests / multi-project setups.
     env.setdefault(
         "COS_DB_PATH",
-        str(caller_cwd / STATE_DIR / "thinking-os.db"),
+        str(caller_cwd / STATE_DIR / "thinking_os.db"),
     )
     env.setdefault(
         "COS_STATE_DIR",
@@ -1369,7 +1369,7 @@ def server_start() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase I — graph-os subcommand family (`cos graph-*`).
+# Phase I — graph_os subcommand family (`cos graph-*`).
 # Registration lives in cli/graph_commands.py so the main file stays lean.
 # ---------------------------------------------------------------------------
 try:
@@ -1380,7 +1380,7 @@ except ImportError as _graph_cli_exc:  # pragma: no cover — defensive
     import logging as _logging
 
     _logging.getLogger("coding_os.cli").debug(
-        "graph-os CLI unavailable: %s", _graph_cli_exc
+        "graph_os CLI unavailable: %s", _graph_cli_exc
     )
 
 

@@ -4,7 +4,7 @@
 
 Agent-agnostic cognitive operating system for AI coding agents.
 
-Teaches AI agents **how to think** (thinking-os) and **how to code** (workflow, hooks, skills, rules).
+Teaches AI agents **how to think** (thinking_os) and **how to code** (workflow, hooks, skills, rules).
 
 → For a one-page system map read **[docs/features.md](./docs/features.md)**.
 
@@ -13,7 +13,7 @@ Teaches AI agents **how to think** (thinking-os) and **how to code** (workflow, 
 ```
 coding-os/
 ├── core/           # Agent-agnostic brain
-│   ├── thinking-os/  # MCP server (self-learning, memory, metrics)
+│   ├── thinking_os/  # MCP server (self-learning, memory, metrics)
 │   ├── hooks/        # Universal hook scripts
 │   ├── rules/        # Universal rules (dimension-registry + skill-enforcement generated)
 │   └── skills/       # Universal skills

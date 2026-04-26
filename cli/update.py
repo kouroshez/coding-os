@@ -314,7 +314,7 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
 
 
 def _run_db_migrations(project: Path) -> None:
-    db = project / STATE_DIR / "thinking-os.db"
+    db = project / STATE_DIR / "thinking_os.db"
     if not db.exists():
         return
     import subprocess

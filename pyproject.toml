@@ -21,11 +21,11 @@ rag = [
     "numpy>=1.24.0",
 ]
 
-# graph-os — Phase I knowledge graph subsystem.
+# graph_os — Phase I knowledge graph subsystem.
 # Pinned deliberately (plan P-I-11): grammar / Kùzu upgrades change AST
 # shape and invalidate the graph, so upgrades are their own slice.
-# Install with: uv sync --extra graph-os
-graph-os = [
+# Install with: uv sync --extra graph_os
+graph_os = [
     "sentence-transformers>=2.7.0",
     "numpy>=1.24.0,<3.0.0",
     "tree-sitter>=0.22.0,<0.25.0",
@@ -36,9 +36,9 @@ graph-os = [
     "kuzu>=0.7.1,<0.11.0",
 ]
 
-# board-os — Phase L Scrumban web viewer (cos board --web).
-# Install with: uv sync --extra board-os
-board-os = [
+# board_os — Phase L Scrumban web viewer (cos board --web).
+# Install with: uv sync --extra board_os
+board_os = [
     "aiohttp>=3.9.0",
     "watchdog>=4.0.0",
 ]

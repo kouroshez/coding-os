@@ -53,7 +53,7 @@ function ChipRow({ options, value, onChange, renderChip }) {
 
 function CreateTaskModal({ open, onClose, onCreate, nextId }) {
   const [form, setForm] = useStateC({
-    title: '', swimlane: 'board-os', kind: 'feature',
+    title: '', swimlane: 'board_os', kind: 'feature',
     priority: 'P2', appetite: '1d', epic: '',
     labels: '', status: 'icebox',
     outcome: '',
@@ -64,7 +64,7 @@ function CreateTaskModal({ open, onClose, onCreate, nextId }) {
   useEffectC(() => {
     if (open) {
       setForm({
-        title: '', swimlane: 'board-os', kind: 'feature',
+        title: '', swimlane: 'board_os', kind: 'feature',
         priority: 'P2', appetite: '1d', epic: '',
         labels: '', status: 'icebox', outcome: '',
       });

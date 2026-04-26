@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse hook: flag dead references in AGENTS.md to core/rules or core/skills.
 #
-# AGENTS.md references paths like `core/rules/thinking-os.md` and
+# AGENTS.md references paths like `core/rules/thinking_os.md` and
 # `core/skills/clean-code/SKILL.md` so Codex (and any agent without a
 # skill-system) can on-demand read the full content. If a file is
 # renamed or deleted, the reference becomes dangling — the agent hits

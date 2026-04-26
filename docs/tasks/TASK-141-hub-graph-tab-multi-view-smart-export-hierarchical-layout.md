@@ -1,7 +1,7 @@
 ---
 id: TASK-141
 title: "Hub Graph tab — multi-view + smart export + hierarchical layout"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: null
 labels: []
@@ -45,7 +45,7 @@ references: []
 - **Then** the right Inspector opens for that uid.
 - **Given** existing tests
 - **When** the new code lands
-- **Then** every existing graph-os / cli / adapter / hook test still passes.
+- **Then** every existing graph_os / cli / adapter / hook test still passes.
 
 ## Work Log
 

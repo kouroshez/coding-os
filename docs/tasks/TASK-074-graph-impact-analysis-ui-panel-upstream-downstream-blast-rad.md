@@ -1,9 +1,9 @@
 ---
 id: TASK-074
 title: "Graph: impact analysis UI panel (upstream/downstream blast-radius with confidence ranking)"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
-epic: graph-os-graph-tool-parity
+epic: graph_os-graph-tool-parity
 labels: [hub, graph, ui, P2-ux-parity]
 status: icebox
 priority: P2

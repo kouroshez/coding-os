@@ -1,4 +1,4 @@
-"""board-os parser — Phase L lean task file parser (L.1).
+"""board_os parser — Phase L lean task file parser (L.1).
 
 Parses `docs/tasks/TASK-NNN-slug.md` in Phase L lean format
 (YAML frontmatter + Outcome + Read First + Acceptance + Work Log).

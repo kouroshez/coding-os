@@ -5,7 +5,7 @@
 # append-only. New tables → migration vN+1, never edit past migrations."
 #
 # Scope: runs only on files named `db.py` (migration registries in
-# thinking-os) and on files under `*/migrations/` for frameworks that
+# thinking_os) and on files under `*/migrations/` for frameworks that
 # use numbered migration files (Django, Alembic).
 #
 # For db.py-style files: detects `MIGRATIONS.append((N, ...))` in the

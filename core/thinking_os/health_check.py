@@ -56,7 +56,7 @@ def _resolve_agent_dir() -> Path | None:
 
 
 REQUIRED_HOOKS = [
-    "thinking-os-gate.sh",
+    "thinking_os-gate.sh",
     "enforce-task-start.sh",
     "enforce-skill.sh",
     "enforce-zoom.sh",
@@ -258,7 +258,7 @@ def check_gates() -> dict:
 
     # Gate files — all agent-scoped per Rule 5
     gate_files = {
-        "thinking-os-gate": ".thinking-os-gate",
+        "thinking_os-gate": ".thinking_os-gate",
         "task-current": ".task-current",
         "active-skill": ".active-skill",
         "zoom-checkpoint": ".zoom-checkpoint",
@@ -354,7 +354,7 @@ def check_learning_pipeline() -> dict:
         result["components"]["session_end_wired"] = False
 
     # Check if cos_learn_extract has any trigger
-    # (This is called by MCP, so we check if thinking-os MCP server is configured)
+    # (This is called by MCP, so we check if thinking_os MCP server is configured)
     mcp_config = PROJECT_ROOT / ".mcp.json"
     if mcp_config.exists():
         try:

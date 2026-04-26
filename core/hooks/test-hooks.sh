@@ -251,7 +251,7 @@ fi
 echo "$GATE_TEST_SESSION" > "${COS_SESSION_FILE}"
 
 # Backup existing state files
-for f in "${COS_AGENT_DIR}/.thinking-os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint"; do
+for f in "${COS_AGENT_DIR}/.thinking_os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint"; do
   [[ -f "$f" ]] && cp "$f" "${f}.bak" 2>/dev/null || true
 done
 
@@ -265,22 +265,22 @@ clear_test_state() {
   rm -f "$1"
 }
 
-# ---- thinking-os-gate.sh ----
-echo "--- thinking-os-gate.sh ---"
-H="${HOOKS_DIR}/thinking-os-gate.sh"
+# ---- thinking_os-gate.sh ----
+echo "--- thinking_os-gate.sh ---"
+H="${HOOKS_DIR}/thinking_os-gate.sh"
 
 # No gate file → should block .py file
-clear_test_state "${COS_AGENT_DIR}/.thinking-os-gate"
+clear_test_state "${COS_AGENT_DIR}/.thinking_os-gate"
 run_test "Block .py without gate" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
 # Valid gate → should allow
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "CLEAR 1"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "CLEAR 1"
 run_test "Allow .py with CLEAR gate" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
 
 # Non-code file → should always allow (no gate needed)
-clear_test_state "${COS_AGENT_DIR}/.thinking-os-gate"
+clear_test_state "${COS_AGENT_DIR}/.thinking_os-gate"
 run_test "Allow .md without gate" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"docs/roadmap.md","old_string":"x","new_string":"y"}}' 0
 
@@ -289,12 +289,12 @@ run_test "Allow test file without gate" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/tests/test_services.py","old_string":"x","new_string":"y"}}' 0
 
 # Invalid classification → should block
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "INVALID 1"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "INVALID 1"
 run_test "Block invalid classification" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
 # Wrong session → should block
-echo "ses-wrong-session CLEAR 1" > "${COS_AGENT_DIR}/.thinking-os-gate"
+echo "ses-wrong-session CLEAR 1" > "${COS_AGENT_DIR}/.thinking_os-gate"
 run_test "Block wrong session gate" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
@@ -305,19 +305,19 @@ echo "--- enforce-task-start.sh ---"
 H="${HOOKS_DIR}/enforce-task-start.sh"
 
 # CLEAR 1 → should allow without task
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "CLEAR 1"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "CLEAR 1"
 clear_test_state "${COS_AGENT_DIR}/.task-current"
 run_test "Allow CLEAR 1 without task" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
 
 # COMPLICATED without task → should block
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "COMPLICATED 3"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "COMPLICATED 3"
 clear_test_state "${COS_AGENT_DIR}/.task-current"
 run_test "Block COMPLICATED without task" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
 # COMPLICATED with task → should allow
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "COMPLICATED 3"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "COMPLICATED 3"
 write_test_state "${COS_AGENT_DIR}/.task-current" "TASK-999"
 run_test "Allow COMPLICATED with task" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
@@ -334,25 +334,25 @@ echo "--- enforce-skill.sh ---"
 H="${HOOKS_DIR}/enforce-skill.sh"
 
 # CLEAR 1 → should allow without skill (new fast-path)
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "CLEAR 1"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "CLEAR 1"
 clear_test_state "${COS_AGENT_DIR}/.active-skill"
 run_test "Allow CLEAR 1 without skill (fast-path)" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
 
 # No gate, no skill → should block
-clear_test_state "${COS_AGENT_DIR}/.thinking-os-gate"
+clear_test_state "${COS_AGENT_DIR}/.thinking_os-gate"
 clear_test_state "${COS_AGENT_DIR}/.active-skill"
 run_test "Block .py without skill or gate" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
 # COMPLICATED without skill → should block
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "COMPLICATED 3"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "COMPLICATED 3"
 clear_test_state "${COS_AGENT_DIR}/.active-skill"
 run_test "Block COMPLICATED .py without skill" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
 # COMPLICATED with matching skill → should allow
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "COMPLICATED 3"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "COMPLICATED 3"
 write_test_state "${COS_AGENT_DIR}/.active-skill" "python-django"
 run_test "Allow .py with python-django skill" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
@@ -374,25 +374,25 @@ echo "--- enforce-zoom.sh ---"
 H="${HOOKS_DIR}/enforce-zoom.sh"
 
 # CLEAR → should skip zoom check entirely
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "CLEAR 1"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "CLEAR 1"
 clear_test_state "${COS_AGENT_DIR}/.zoom-checkpoint"
 run_test "Allow CLEAR without zoom" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
 
 # COMPLICATED without zoom → should block
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "COMPLICATED 3"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "COMPLICATED 3"
 clear_test_state "${COS_AGENT_DIR}/.zoom-checkpoint"
 run_test "Block COMPLICATED without zoom" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 2
 
 # COMPLICATED with zoom → should allow
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "COMPLICATED 3"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "COMPLICATED 3"
 write_test_state "${COS_AGENT_DIR}/.zoom-checkpoint" "PROBLEM_FRAMED"
 run_test "Allow COMPLICATED with zoom" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
 
 # CHAOTIC → should skip zoom check
-write_test_state "${COS_AGENT_DIR}/.thinking-os-gate" "CHAOTIC 2"
+write_test_state "${COS_AGENT_DIR}/.thinking_os-gate" "CHAOTIC 2"
 clear_test_state "${COS_AGENT_DIR}/.zoom-checkpoint"
 run_test "Allow CHAOTIC without zoom" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
@@ -401,7 +401,7 @@ echo ""
 
 # ── Cleanup gate test state ─────────────────────────────────────
 # Restore original state files
-for f in "${COS_AGENT_DIR}/.thinking-os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint"; do
+for f in "${COS_AGENT_DIR}/.thinking_os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint"; do
   rm -f "$f"
   [[ -f "${f}.bak" ]] && mv "${f}.bak" "$f" || true
 done

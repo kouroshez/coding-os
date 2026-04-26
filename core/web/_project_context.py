@@ -52,11 +52,11 @@ def current_db_path() -> Path:
     """Return the active sqlite DB path (project-scoped or env fallback)."""
     bound = _current_project.get()
     if bound is not None:
-        return bound / ".coding-os" / "thinking-os.db"
+        return bound / ".coding-os" / "thinking_os.db"
     env = os.environ.get("COS_DB_PATH")
     if env:
         return Path(env)
-    return current_project_root() / ".coding-os" / "thinking-os.db"
+    return current_project_root() / ".coding-os" / "thinking_os.db"
 
 
 class ProjectScopeMiddleware(BaseHTTPMiddleware):

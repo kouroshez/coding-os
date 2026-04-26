@@ -7,7 +7,7 @@ COS_SCRIPTS := $(COS_ROOT)/core/scripts
 COS_HOOKS := $(COS_ROOT)/core/hooks
 
 export COS_STATE_DIR ?= .coding-os
-export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking-os.db
+export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking_os.db
 export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking_os
 
 # ── Include base targets ────────────────────────────────────────────
@@ -29,8 +29,8 @@ test-install: ## Test Claude adapter install on temp dir
 	@cd /tmp/cos-install-test && bash $(COS_ROOT)/adapters/claude/install.sh 2>&1
 	@echo "Checking generated files..."
 	@ls /tmp/cos-install-test/.claude/settings.json > /dev/null && echo "  OK: settings.json"
-	@ls /tmp/cos-install-test/.claude/hooks/thinking-os-gate.sh > /dev/null && echo "  OK: hooks symlinked"
-	@ls /tmp/cos-install-test/.claude/rules/thinking-os.md > /dev/null && echo "  OK: rules symlinked"
+	@ls /tmp/cos-install-test/.claude/hooks/thinking_os-gate.sh > /dev/null && echo "  OK: hooks symlinked"
+	@ls /tmp/cos-install-test/.claude/rules/thinking_os.md > /dev/null && echo "  OK: rules symlinked"
 	@rm -r /tmp/cos-install-test
 	@echo "Install test PASSED"
 
@@ -143,7 +143,7 @@ cos-decay-dry: ## Preview confidence decay (no changes)
 	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py --dry-run
 
 .PHONY: cos-stats
-cos-stats: ## Show thinking-os DB statistics
+cos-stats: ## Show thinking_os DB statistics
 	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from db import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
 
 .PHONY: cos-compress

@@ -1,7 +1,7 @@
 ---
 id: TASK-046
 title: "Extract design tokens from cos-board into shared design module"
-swimlane: board-os
+swimlane: board_os
 kind: refactor
 epic: design-system-unification
 labels: []

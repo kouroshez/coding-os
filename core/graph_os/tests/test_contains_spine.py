@@ -1,4 +1,4 @@
-"""graph-os — S3 CONTAINS spine + NodeKind enum regression suite.
+"""graph_os — S3 CONTAINS spine + NodeKind enum regression suite.
 
 PURPOSE:  Lock in the structural tree-spine invariants introduced in
           slice S3 so the SPA tree-view (S5) can render a readable

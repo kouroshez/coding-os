@@ -1,7 +1,7 @@
 ---
 id: TASK-017
 title: "J.2  dispatch — layer selection + score normalization"
-swimlane: thinking-os
+swimlane: thinking_os
 kind: feature
 epic: phase-j
 labels: []

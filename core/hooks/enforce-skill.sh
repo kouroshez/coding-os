@@ -38,7 +38,7 @@ fi
 
 # Allow CLEAR 1 ad-hoc fixes without a skill (same fast-path as enforce-task-start.sh)
 source "$(dirname "$0")/check-state.sh"
-check_state "${COS_AGENT_DIR}/.thinking-os-gate" 7200
+check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
 if [[ "$STATE_VALID" == "true" ]]; then
   CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
   DIMS=$(echo "$STATE_VALUE" | awk '{print $2}')

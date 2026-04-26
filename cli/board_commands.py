@@ -13,7 +13,7 @@
     cos board-config --init
 
 Thin click wrappers over core.board_os.{mcp_tools,workflow,parser,sync}.
-All commands use the project's SQLite DB (.coding-os/thinking-os.db)
+All commands use the project's SQLite DB (.coding-os/thinking_os.db)
 unless COS_DB_PATH overrides.
 """
 
@@ -40,7 +40,7 @@ def _project_root() -> Path:
 def _db_conn() -> sqlite3.Connection:
     root = _project_root()
     db_path = os.environ.get(
-        "COS_DB_PATH", str(root / ".coding-os" / "thinking-os.db"),
+        "COS_DB_PATH", str(root / ".coding-os" / "thinking_os.db"),
     )
     if not Path(db_path).exists():
         click.echo(f"ERROR: DB not found at {db_path}. Run `cos setup` first.", err=True)
@@ -442,7 +442,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         msg = row[1] if row else ""
         task_type = _KIND_TO_OUTCOME_TYPE.get(kind, "feat")
         db_path = os.environ.get(
-            "COS_DB_PATH", str(_project_root() / ".coding-os" / "thinking-os.db"),
+            "COS_DB_PATH", str(_project_root() / ".coding-os" / "thinking_os.db"),
         )
         record_outcome(
             task_id=task_id,
@@ -530,7 +530,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
             from core.thinking_os.memory_gc import gc_memory
             _db_path = os.environ.get(
                 "COS_DB_PATH",
-                str(_project_root() / ".coding-os" / "thinking-os.db"),
+                str(_project_root() / ".coding-os" / "thinking_os.db"),
             )
             gc_memory(db_path=_db_path)
     except Exception as exc:

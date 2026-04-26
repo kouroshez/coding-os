@@ -53,7 +53,7 @@ Every incoming request passes through two gates (see AGENTS.md § Request Routin
 Action by complexity:
 
 - **CLEAR** → Answer directly. Read relevant files as needed. No Core Loop.
-- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking-os"`, run Zoom cycle, then provide structured answer. No Core Loop needed, but the answer benefits from systematic analysis.
+- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking_os"`, run Zoom cycle, then provide structured answer. No Core Loop needed, but the answer benefits from systematic analysis.
 
 ### Category B: Task Execution
 
@@ -82,7 +82,7 @@ Action by complexity:
 Action by complexity:
 
 - **CLEAR** → Run relevant `make` command. Report results. Fixes follow Category C rules.
-- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking-os"`, Zoom cycle first, then systematic review.
+- **COMPLICATED / COMPLEX** → Invoke `Skill skill: "thinking_os"`, Zoom cycle first, then systematic review.
 
 ## Decision Priority
 
@@ -177,7 +177,7 @@ When dispatching write-capable subagents, use `isolation: "worktree"` on the Age
 Hooks in `.claude/settings.json` enforce rules that prompt instructions cannot guarantee:
 
 - **PostToolUse** (Write/Edit): Domain-specific verification reminders
-- **PostToolUse** (Write/Edit): Auto-capture observations to thinking-os.db (fire-and-forget)
+- **PostToolUse** (Write/Edit): Auto-capture observations to thinking_os.db (fire-and-forget)
 - **PreToolUse** (Write/Edit): Complexity Gate blocks code writes until classification recorded
 - **PreToolUse** (Write/Edit): Block protected files (changes.log, tasks.md status)
 - **PreToolUse** (Bash): Blocks `git add .env` to prevent secret commits
@@ -186,7 +186,7 @@ Hooks provide deterministic enforcement. Do not rely on prompt instructions alon
 
 ## Memory & Learning (Thinking OS)
 
-Self-learning layer built on thinking-os MCP server with SQLite backend (`.coding-os/thinking-os.db`).
+Self-learning layer built on thinking_os MCP server with SQLite backend (`.coding-os/thinking_os.db`).
 
 **Data flow:** Auto-Capture (every tool call) → Outcome Record (every task) → Learning Loop (every 10 tasks) → Memory Inject (next session).
 

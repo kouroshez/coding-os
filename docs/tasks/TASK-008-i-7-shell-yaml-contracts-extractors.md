@@ -1,7 +1,7 @@
 ---
 id: TASK-008
 title: "I.7  shell + yaml + contracts extractors"
-swimlane: graph-os
+swimlane: graph_os
 kind: feature
 epic: phase-i
 labels: []

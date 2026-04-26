@@ -1,5 +1,5 @@
 """
-Massive seed data simulation for thinking-os memory system.
+Massive seed data simulation for thinking_os memory system.
 
 Runs the full learning cycle on a SEPARATE test DB (never touches production).
 Simulates 20+ personas across 6 months of project history with:

@@ -1,4 +1,4 @@
-"""Phase I demo — index a folder and open the graph-os viewer in a browser.
+"""Phase I demo — index a folder and open the graph_os viewer in a browser.
 
 Usage:
     uv run --extra rag python scripts/graph_demo.py              # index the repo
@@ -113,7 +113,7 @@ def main() -> int:
 
     out_path = Path(args.out).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    build_view(backend, out_path, title=f"graph-os @ {target.name}")
+    build_view(backend, out_path, title=f"graph_os @ {target.name}")
     print(f"[demo] HTML written -> {out_path}")
 
     if args.serve:

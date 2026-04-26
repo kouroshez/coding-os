@@ -92,14 +92,14 @@ For `--agent claude,codex --template django --template nextjs`:
 ```text
 your-project/
 ├── .coding-os/              # State directory (gitignored)
-│   ├── thinking-os.db       # Self-learning database (schema v6)
+│   ├── thinking_os.db       # Self-learning database (schema v6)
 │   ├── domain-config.json   # Domain → REF code mapping for task-create
 │   ├── Makefile.base        # Universal make targets (copied from template)
 │   └── rag-config.yaml      # RAG indexer configuration (Phase B)
 ├── .coding-os.yaml          # Project configuration
 ├── AGENTS.md                # Agent routing protocol (placeholders resolved)
 ├── Makefile                 # Top-level wrapper that includes .coding-os/Makefile.base
-├── .mcp.json                # MCP server registration (thinking-os)
+├── .mcp.json                # MCP server registration (thinking_os)
 ├── .claude/                 # Claude adapter
 │   ├── settings.json        # Hook wiring (PreToolUse, PostToolUse, Stop, SessionStart)
 │   ├── hooks/               # Symlinks → coding-os/core/hooks/ (20 scripts)
@@ -124,7 +124,7 @@ your-project/
 │   │                        # Next.js: frontend-ui, content-seo, docs-governance
 │   ├── design/              # Next.js: colors-tokens, typography, components, motion-a11y
 │   ├── pages-content-spec/  # Next.js: empty index + per-page content specs
-│   └── workflow-docs/       # thinking-os-final-edition.md, workflow-guide.md
+│   └── workflow-docs/       # thinking_os-final-edition.md, workflow-guide.md
 └── changes.log              # Append-only change history
 ```
 
@@ -234,7 +234,7 @@ Hooks automatically enforce the workflow:
 
 ### Self-Learning
 
-The thinking-os MCP server learns from every session:
+The thinking_os MCP server learns from every session:
 - Records observations for every file change
 - Extracts patterns from task outcomes
 - Suggests relevant patterns for new tasks
@@ -249,7 +249,7 @@ The thinking-os MCP server learns from every session:
 make task-start TASK=043
 
 # 2. Record the Complexity Gate
-bash .claude/hooks/write-state.sh .coding-os/.thinking-os-gate "COMPLICATED 3"
+bash .claude/hooks/write-state.sh .coding-os/.thinking_os-gate "COMPLICATED 3"
 
 # 3. Invoke the domain skill (Claude only)
 #    → Skill skill: "python-django"   (or nextjs-react, clean-code, ...)
@@ -258,7 +258,7 @@ bash .claude/hooks/write-state.sh .coding-os/.thinking-os-gate "COMPLICATED 3"
 bash .claude/hooks/write-state.sh .coding-os/.zoom-checkpoint "PROBLEM_FRAMED"
 
 # 5. Write code — hooks enforce every gate automatically
-#    (block-secrets, block-bad-patterns, thinking-os-gate, enforce-skill, enforce-zoom, ...)
+#    (block-secrets, block-bad-patterns, thinking_os-gate, enforce-skill, enforce-zoom, ...)
 
 # 6. Run verification
 make verify-backend   # or your stack-specific target
@@ -316,7 +316,7 @@ If you have an existing NakoDigital project:
 1. Install coding-os adapter alongside existing `.claude/` setup
 2. The `cos-env.sh` has legacy fallback — reads `.claude/.session-id` if `.coding-os/session-id` doesn't exist
 3. Gradually move state from `.claude/` to `.coding-os/`
-4. Replace `.claude/thinking-os/` MCP server path in `.mcp.json` with coding-os path
+4. Replace `.claude/thinking_os/` MCP server path in `.mcp.json` with coding-os path
 
 ## Eject (Self-Contained)
 

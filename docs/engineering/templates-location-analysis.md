@@ -109,7 +109,7 @@ Under B, hook must call `cos template path adr-template` — adds an extra proce
 
 Templates under `docs/governance/templates/` are indexed by `make docs-index` → `cos_doc_search` can retrieve them semantically. Under B, templates live in the CLI package and are invisible to the RAG layer. A consumer asking `cos_doc_search "how to write an ADR"` gets **nothing**.
 
-This is a concrete loss. Templates are reference material; burying them in the CLI hides them from the very semantic retrieval that coding-os's thinking-os brain relies on.
+This is a concrete loss. Templates are reference material; burying them in the CLI hides them from the very semantic retrieval that coding-os's thinking_os brain relies on.
 
 ## Recommendation
 

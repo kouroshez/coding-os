@@ -1,7 +1,7 @@
 """Benchmark harness (I.13).
 
 PURPOSE:  Measure indexer throughput + read-path latency on fixture
-          corpora. Results feed `docs/benchmarks/graph-os.md` and the
+          corpora. Results feed `docs/benchmarks/graph_os.md` and the
           regression gate.
 INPUT:    backend + fixture paths.
 OUTPUT:   BenchResult (JSON-friendly).

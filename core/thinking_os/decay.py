@@ -3,7 +3,7 @@
 Thinking OS — Confidence decay script (TASK-139).
 
 Monthly batch process that applies Ebbinghaus exponential decay
-to learned_patterns confidence. Run via `make thinking-os-decay`.
+to learned_patterns confidence. Run via `make thinking_os-decay`.
 
 Features:
   - Exponential decay: conf * exp(-effective_rate * months)
