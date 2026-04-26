@@ -3,7 +3,7 @@ id: TASK-120
 title: "TASK-080b: Promote tree-sitter for Python class heritage + decorators"
 swimlane: graph_os
 kind: refactor
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: []
 status: complete
 priority: P2

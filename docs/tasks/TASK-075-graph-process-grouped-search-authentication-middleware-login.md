@@ -3,7 +3,7 @@ id: TASK-075
 title: "Graph: process-grouped search (authentication middleware → LoginFlow/RegistrationFlow clusters)"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, search, clustering, P3-differentiator]
 status: complete
 priority: P2
@@ -18,7 +18,7 @@ references: [TASK-040]
 ---
 # TASK-075: Graph — process-grouped search
 
-**Outcome (one sentence):** `cos_graph_query` returns `processes[]` with `{summary, priority, step_count, members[]}` keyed by community, and the Search tab renders grouped results (e.g. `authentication middleware` clusters into `LoginFlow` / `RegistrationFlow` / `TokenRefresh` buckets with step-ordered nodes) — the differentiator layer that lets coding-os beat graph-tool by leveraging formula dispatch + cognition traces.
+**Outcome (one sentence):** `cos_graph_query` returns `processes[]` with `{summary, priority, step_count, members[]}` keyed by community, and the Search tab renders grouped results (e.g. `authentication middleware` clusters into `LoginFlow` / `RegistrationFlow` / `TokenRefresh` buckets with step-ordered nodes) — the differentiator layer that lets coding-os beat external graph tooling by leveraging formula dispatch + cognition traces.
 
 ## Read First
 
@@ -54,7 +54,7 @@ references: [TASK-040]
 
 ## Differentiator angle
 
-coding-os has F1–F11 formula dispatch + cognition traces. Processes can (in a follow-up task) be annotated with "which formula touches which step", turning the Search tab into an agent-activity map graph-tool cannot produce.
+coding-os has F1–F11 formula dispatch + cognition traces. Processes can (in a follow-up task) be annotated with "which formula touches which step", turning the Search tab into an agent-activity map external graph tooling cannot produce.
 
 ## Dependencies
 

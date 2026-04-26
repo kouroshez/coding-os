@@ -3,7 +3,7 @@ id: TASK-082
 title: "graph_os P1: Language toolchain config parser (tsconfig.json, go.mod, Cargo.toml, pyproject.toml) for import resolution"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, config, imports, P1-parity]
 status: icebox
 priority: P1
@@ -26,7 +26,7 @@ references: []
 - [core/graph_os/extractors/code_ts.py](../../core/graph_os/extractors/code_ts.py) — current TS import resolver: falls through to `unresolved:` when it doesn't know an alias.
 - [core/graph_os/extractors/code_python.py](../../core/graph_os/extractors/code_python.py) — Python counterpart; today it reads nothing from `pyproject.toml`.
 - [core/graph_os/ingest/](../../core/graph_os/ingest/) — file walker; where per-repo toolchain scan should hook.
-- graph-tool capability matrix (Phase P1 analysis): "Language toolchain config parsing — " → this task closes that gap.
+- external graph tooling capability matrix (Phase P1 analysis): "Language toolchain config parsing — " → this task closes that gap.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 

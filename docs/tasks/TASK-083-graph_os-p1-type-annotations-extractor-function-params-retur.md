@@ -3,7 +3,7 @@ id: TASK-083
 title: "graph_os P1: Type annotations extractor (function params, return types, class fields) for receiver resolution"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, types, P1-parity]
 status: icebox
 priority: P1
@@ -19,7 +19,7 @@ references: []
 
 # TASK-083: graph_os P1 — Type annotations extractor
 
-**Outcome (one sentence):** `cos_graph_similar` and call-site resolution pass `self` / `this` through annotated types; `def f(x: Foo) -> Bar` emits `HAS_PARAM_TYPE`, `RETURNS_TYPE`, and field-access edges with confidence ≥ 0.9, closing the "Type Annotations — " gap in the graph-tool parity matrix.
+**Outcome (one sentence):** `cos_graph_similar` and call-site resolution pass `self` / `this` through annotated types; `def f(x: Foo) -> Bar` emits `HAS_PARAM_TYPE`, `RETURNS_TYPE`, and field-access edges with confidence ≥ 0.9, closing the "Type Annotations — " gap in the external graph tooling parity matrix.
 
 ## Read First
 

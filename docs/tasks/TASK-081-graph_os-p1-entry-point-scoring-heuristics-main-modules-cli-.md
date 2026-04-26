@@ -3,7 +3,7 @@ id: TASK-081
 title: "graph_os P1: Entry-point scoring heuristics (main modules, CLI commands, HTTP routes, cron jobs, test fixtures)"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, entry-points, P1-parity]
 status: icebox
 priority: P1

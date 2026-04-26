@@ -26,7 +26,7 @@ An agent without this answer is blind. It edits a file, ships, and causes cascad
 - **Task graph** — `tasks.dependencies` (already parsed by Phase C) + task→doc + task→commit edges.
 - **Cross-layer edges** — task→doc→code trails that let an agent answer *"which task produced this function, which doc spec'd it, which commit introduced it, what changed since?"*
 
-This is what Sourcegraph Cody, Continue, Cursor, GitHub Copilot Workspace, and graph-tool all attempt. `graph_os` leapfrogs them by being **native to the agent's cognitive loop** — not a plugin bolted on, but a first-class retrieval layer queried in the same MCP envelope as `cos_search` and `cos_doc_search`.
+This is what Sourcegraph Cody, Continue, Cursor, GitHub Copilot Workspace, and other external graph tooling all attempt. `graph_os` leapfrogs them by being **native to the agent's cognitive loop** — not a plugin bolted on, but a first-class retrieval layer queried in the same MCP envelope as `cos_search` and `cos_doc_search`.
 
 ---
 
@@ -50,7 +50,7 @@ core/
 
 - Not a separate service — no HTTP server, no separate daemon. The viewer is a static HTML file; the graph lives in the same SQLite.
 - Not a replacement for `cos_doc_search` or `cos_search` — it's the **third retrieval layer** (semantic docs → past patterns → structural graph).
-- Not a generic tool like graph-tool. `graph_os` is *custom-shaped for coding-os*: it knows about tasks, docs, skills, hooks, MCP tools. Edges surface those first-class concepts.
+- Not a generic tool like external graph tooling. `graph_os` is *custom-shaped for coding-os*: it knows about tasks, docs, skills, hooks, MCP tools. Edges surface those first-class concepts.
 
 **Biological analogy (extending the `core/`-DNA metaphor):**
 
@@ -63,9 +63,9 @@ core/
 
 ## 3. Core Principles
 
-- **P-I-1. Native custom fit.** Every node kind, edge kind, and MCP tool is designed for `coding-os`. Generic tools (graph-tool, Obsidian) inform the schema but do not constrain it.
+- **P-I-1. Native custom fit.** Every node kind, edge kind, and MCP tool is designed for `coding-os`. Generic tools (external graph tooling, Obsidian) inform the schema but do not constrain it.
 - **P-I-2. Tree-sitter + LSP always on.** Tree-sitter gives us 15+ languages, zero-config, AST-grade accuracy. For TypeScript generics + Python complex types where AST alone misses ~15% of edges, LSP adapters (pyright, tsserver) run by default — not opt-in — because this is an enterprise product aimed at >95% precision. LSP subprocess managed with 5s timeout + circuit breaker; degrades gracefully if LSP crashes.
-- **P-I-3. Two-pass extraction.** Per-file scope extraction → cross-file symbol resolution. Copied from graph-tool's proven design (`graph-tool-shared/src/scope-resolution/`). Single-pass regex is not negotiable for accuracy.
+- **P-I-3. Two-pass extraction.** Per-file scope extraction → cross-file symbol resolution. Copied from the upstream graph tool’s proven design (`the upstream scope-resolution implementation`). Single-pass regex is not negotiable for accuracy.
 - **P-I-4. Evidence-weighted edges.** Every edge carries `confidence ∈ [0,1]` and `evidence[]` (the signals that composed it). No binary "matched/not-matched". Agents use the confidence to decide whether to trust or verify.
 - **P-I-5. Incremental by default.** Content-hash per file; AST-hash per symbol. Re-parse only changed files. Cascade invalidation when a file's exports change.
 - **P-I-6. Token-aware tool surface.** Every MCP tool has `limit`, `max_depth`, `max_nodes`, `include_content` defaults tuned to keep responses under 4k tokens. No "dump the whole graph" anti-pattern.
@@ -80,33 +80,33 @@ core/
 
 ## 4. Competitive Landscape — What We Copy, What We Improve
 
-graph-tool study — source: https://github.com/githubnext/graph-tool (Apache 2.0). Copy-reference snippets that `graph_os` adapts (scope-resolution, 7-step registry lookup, evidence composition, call-form classification) live under `docs/references/graph-tool-notes.md` — pinned to a specific commit. Do **not** rely on `/tmp` paths; they are local to the authoring machine and disappear on checkout.
+External graph-tooling study (Apache 2.0 reference implementation, pinned commit). Copy-reference snippets that `graph_os` adapts — scope-resolution, 7-step registry lookup, evidence composition, call-form classification — are documented inline below; do not rely on transient `/tmp` paths.
 
 | System | Parser | Graph store | Scale | Multi-lang | Agent-native | Custom-domain | Killer gap |
 |---|---|---|---|---|---|---|---|
 | **Sourcegraph Cody** | tree-sitter + SCIP indexers | custom (Zoekt) | trillion | 40+ | No (API plugin) | No | closed; cannot extend taxonomy |
-| **graph-tool** | tree-sitter + custom scope | Kùzu (in-mem → disk) | 500k symbols | 15+ | Yes (MCP) | No (generic) | no task/doc layer; standalone |
+| **external graph tooling** | tree-sitter + custom scope | Kùzu (in-mem → disk) | 500k symbols | 15+ | Yes (MCP) | No (generic) | no task/doc layer; standalone |
 | **Obsidian + Dataview** | regex | JSON | 50k notes | No (MD only) | No | No | code-blind |
 | **Continue Dev (graph mode)** | LSP | in-memory | small repos | LSP-dependent | Yes | No | runtime LSP dependency |
 | **GitHub Copilot Workspace** | proprietary | proprietary | large | unknown | closed | No | not inspectable |
 | **Cursor** | proprietary (symbol graph) | proprietary | large | many | closed | No | not inspectable |
 | **graph_os** | tree-sitter + LSP-opt + regex-fallback | SQLite (+ Kùzu adapter) | 500k → 5M | 15+ | Yes (native) | **Yes (tasks/docs/skills/hooks)** | — |
 
-**Concrete copies from graph-tool:**
+**Concrete copies from external graph tooling:**
 
-1. **Scope extractor** (5-pass tree-sitter AST walker) — reference: `graph-tool-shared/src/scope-resolution/scope-extractor.ts` (graph-tool upstream). Adapted to Python under [core/graph_os/extractors/](../core/graph_os/extractors/) in I.4.
-2. **Symbol table + 7-step registry lookup** — reference: `graph-tool/src/core/ingestion/model/symbol-table.ts`. The 7 steps (same-scope → enclosing-scope → explicit-import → wildcard-import → global-name → arity-narrowed → fuzzy) become our resolution DAG.
-3. **Evidence composition** — reference: `graph-tool-shared/src/scope-resolution/registries/evidence.ts`. The `confidence = sum(signal_weights) clamped at 1.0` pattern with per-signal trace — normalized into our `graph_evidence_v12` table (§5.3).
+1. **Scope extractor** (5-pass tree-sitter AST walker) — adapted to Python under [core/graph_os/extractors/](../core/graph_os/extractors/) in I.4.
+2. **Symbol table + 7-step registry lookup** — the 7 steps (same-scope → enclosing-scope → explicit-import → wildcard-import → global-name → arity-narrowed → fuzzy) become our resolution DAG.
+3. **Evidence composition** — the `confidence = sum(signal_weights) clamped at 1.0` pattern with per-signal trace — normalized into our `graph_evidence_v12` table (§5.3).
 4. **Call-form classification** — distinguishing `new Foo()` vs `Foo.bar()` vs `bar()` at AST level. Tree-sitter queries per call-form.
 5. **MCP tool signatures** — `query`, `context`, `impact`, `detect_changes` as our `cos_graph_*` surface.
 
-**What we add on top of graph-tool:**
+**What we add on top of external graph tooling:**
 
-- **Task edges** (`docs/tasks/TASK-199.md → docs/tasks/TASK-195.md`) — graph-tool is code-only.
-- **Doc edges** (`[link](./other.md)` + frontmatter `ssot_of:` + heading-scoped citations) — graph-tool is code-only.
+- **Task edges** (`docs/tasks/TASK-199.md → docs/tasks/TASK-195.md`) — external graph tooling is code-only.
+- **Doc edges** (`[link](./other.md)` + frontmatter `ssot_of:` + heading-scoped citations) — external graph tooling is code-only.
 - **Cross-layer edges** (task → doc → code → commit) — the one-stop dependency trail.
 - **Agent-role-aware extractors** (see §13) — indexers run as `thinking_os` roles, not detached workers.
-- **Confidence-aware MCP envelope** (Rule 14, `fail("internal",...)` on extractor panics) — graph-tool tools are less defensive.
+- **Confidence-aware MCP envelope** (Rule 14, `fail("internal",...)` on extractor panics) — external graph tooling tools are less defensive.
 
 **What we explicitly DO NOT copy:**
 
@@ -120,7 +120,7 @@ graph-tool study — source: https://github.com/githubnext/graph-tool (Apache 2.
 
 ## 5. Node & Edge Taxonomy
 
-The taxonomy is a *superset* of graph-tool's (code-focused) plus `coding-os` first-class concepts (task/doc/skill/hook/tool).
+The taxonomy is a *superset* of the upstream graph tool’s (code-focused) plus `coding-os` first-class concepts (task/doc/skill/hook/tool).
 
 ### 5.1 Node kinds (label enum)
 
@@ -273,7 +273,7 @@ Discovery → Parse → Scope Extract → Symbol Table → Resolve → Embed
 - For markdown: use the existing `doc_indexer.py` chunker, extended to also emit links + headings.
 - Output: `ParsedFile { ast, lang, imports_raw, references_raw }`.
 
-### Stage 3 — Scope Extract (per-file, graph-tool-adapted)
+### Stage 3 — Scope Extract (per-file, tree-sitter scope extractor)
 
 Five-pass AST walk to build a `ScopeTree` per file:
 
@@ -297,7 +297,7 @@ Output: `ParsedFile` row persisted to a scratch table, one per source file.
 
 ### Stage 5 — Resolve References
 
-For each `ReferenceSite`, run the **7-step registry lookup** (graph-tool's core insight):
+For each `ReferenceSite`, run the **7-step registry lookup** (the upstream graph tool’s core insight):
 
 1. **Same-scope lookup** — is the name defined in the current scope? (weight 0.5)
 2. **Enclosing-scope walk** — walk `ScopeTree` upward. (weight 0.3 per level up)
@@ -350,7 +350,7 @@ Output: `calls`, `accesses_field`, `constructs`, `overrides`, `inherits_from` ed
 
 ### 7.1 Why this is hard
 
-Regex finds names. It does not answer *"which definition did this call resolve to?"*. graph-tool's answer is the 7-step lookup + evidence scoring. We copy that exactly.
+Regex finds names. It does not answer *"which definition did this call resolve to?"*. the upstream graph tool’s answer is the 7-step lookup + evidence scoring. We copy that exactly.
 
 ### 7.2 Edge cases we handle at ship
 
@@ -512,13 +512,13 @@ All tools wrapped in `@safe_tool` + `ok(data)` / `fail(category, msg)` envelope 
 
 - Given a symbol, return callers + callees + siblings (same class/module) + referenced docs.
 - Grouped by `edge_type`. Optional inline source code.
-- **When to use:** Before editing any non-trivial function. Mirrors graph-tool `context`.
+- **When to use:** Before editing any non-trivial function. Mirrors external graph tooling `context`.
 
 ### 9.3 `cos_graph_impact(uid, direction='downstream', depth=3, confidence_min=0.5)`
 
 - Blast radius: what downstream code breaks if I change this? What upstream tasks/docs need updating?
 - Groups by risk tier: `will_break` (confidence ≥ 0.9), `should_review` (0.5-0.9), `context` (<0.5).
-- **When to use:** Before any governance edit. Mirrors graph-tool `impact`.
+- **When to use:** Before any governance edit. Mirrors external graph tooling `impact`.
 
 ### 9.4 `cos_graph_detect_changes(scope='working', analyze_downstream=True)`
 
@@ -918,7 +918,7 @@ Concrete: Formula 5 Step 1 requires the agent to "reference scenarios from the P
 - **Why not D3:**
   - D3 uses SVG → one DOM element per node. Browser reflow cost is O(n²) past ~1k nodes.
   - For enterprise repos (`cos_graph_impact` on a popular module can return 5k+ related nodes), WebGL is the only path.
-  - Sigma.js + Graphology is also the stack graph-tool uses — proven at industrial scale.
+  - Sigma.js + Graphology is also the stack external graph tooling uses — proven at industrial scale.
 - Controls: search, filter by edge type, hover-for-details, click-to-focus, right-click-to-remove, **zoom-to-fit**, **Leiden community colouring**, **minimap** for large graphs.
 - Colours: `doc`=blue, `code`=green, `task`=orange, `cos:skill/hook/rule/tool`=purple; broken edge=red dashed; community-coloured when `--color-by community`.
 - Accessible: keyboard navigation, ARIA labels, respects `prefers-reduced-motion`, screen-reader-friendly node list as a fallback when WebGL unavailable.
@@ -1140,7 +1140,7 @@ Each slice's ship gate now carries an explicit **minimum test count** and refere
 | **I.1** | Embedding migration as a **background role**: `scripts/migrate_embeddings_minilm_to_bge_m3.py` + new `migrator:embeddings` orchestrator role + `embeddings.py` upgraded to BGE-M3 (1024-dim) with `embedding_dim`-aware `cosine_similarity` + `graph_node_embeddings` in Kùzu + `.coding-os/.embedding-migration.json` checkpoint | ~500 | ≥ 25 | existing 109 RAG tests still pass + Persian query precision measured vs baseline + **dim-mismatch handling test** (no silent `[]` returns) + **resume-after-crash test** | I.0 |
 | **I.2** | `graph_os/extractors/md_links.py` — markdown link + wikilink + frontmatter `ssot_of:` extractor. Heading-scoped (`cites_heading`) AND file-scoped (`links_to`) edges. Wired into `auto-reindex-docs.sh` | ~280 | ≥ 30 | extractor unit tests (fixtures per link style) + hook integration test + both edge types present in dogfood run | I.0 |
 | **I.3** | `graph_os/extractors/task_deps.py` — task-dependency edges + task→doc `references_doc` edges + git-derived `produces_code` edges. Backfill + incremental | ~250 | ≥ 20 | backfill test + incremental test + 50k-task benchmark | I.0, existing Phase C |
-| **I.4** | `graph_os/extractors/code_python.py` — full tree-sitter Python extractor + 5-pass scope extractor + symbol table + 7-step lookup (copied from graph-tool, adapted) | ~1000 | ≥ 50 | resolution precision ≥ 85% on `coding-os` itself (golden test set: 200 calls) + edge cases (circular imports, re-exports, type chains, method override, C3 MRO) + negative tests (syntax errors do not abort pipeline) | I.0 |
+| **I.4** | `graph_os/extractors/code_python.py` — full tree-sitter Python extractor + 5-pass scope extractor + symbol table + 7-step lookup (copied from external graph tooling, adapted) | ~1000 | ≥ 50 | resolution precision ≥ 85% on `coding-os` itself (golden test set: 200 calls) + edge cases (circular imports, re-exports, type chains, method override, C3 MRO) + negative tests (syntax errors do not abort pipeline) | I.0 |
 | **I.5** | `graph_os/lsp_overlay.py` + **shared** pyright subprocess (Unix-domain socket, §7.4) + `lsp:warm-start` orchestrator role + circuit breaker — Python precision boost to ≥95% | ~450 | ≥ 25 | precision ≥ 95% on golden set + graceful-degrade test (SIGKILL pyright mid-index) + warm-start latency (≤ 60s cold / ≤ 5s warm) | I.4 |
 | **I.6** | `graph_os/extractors/code_ts.py` + `code_tsx.py` — tree-sitter TS/TSX + tsconfig path-alias resolver + shared tsserver LSP overlay | ~900 | ≥ 40 | TS/TSX fixture suite + ≥ 85% tree-sitter-only + ≥ 95% with tsserver + path-alias resolution test | I.4, I.5 |
 | **I.7** | `graph_os/extractors/code_shell.py` + `code_yaml.py` + `graph_os/extractors/contracts.py` — shell `source` chain + YAML cross-refs + contract detector incl. DRF `router.register`, Next.js dynamic segments, FastAPI `include_router`, gRPC `.proto`, Celery / RQ / Channels handlers (§9.11) | ~700 | ≥ 35 | full coding-os hook graph visible + `cos-env.sh` inbound edges ≥ 30 + all 21 MCP tools detected + **external fixture suite** (django-rest + fastapi + nextjs app, each with ≥ 5 dynamic routes, detection rate ≥ 80%) | I.4 |
@@ -1219,7 +1219,7 @@ Phase I done when:
 
 ---
 
-## 22. Design Decisions (finalized 2026-04-19, reviewed & expanded post-graph-tool/gitreverse study)
+## 22. Design Decisions (finalized 2026-04-19, reviewed & expanded post-external graph tooling/gitreverse study)
 
 All twelve open questions are resolved:
 
@@ -1245,7 +1245,7 @@ All twelve open questions are resolved:
 
 8. **LSP overlay** — ✅ Default ON (not opt-in). pyright + tsserver as long-lived subprocesses, reused across files. Circuit breaker on crash. Target precision ≥95% with LSP (vs ≥85% tree-sitter-only).
 
-9. **Viewer rendering stack** — ✅ **Sigma.js (WebGL) + Graphology + ForceAtlas2 worker** replaces D3. Same stack as graph-tool — proven at industrial scale. Handles 10k+ nodes smoothly; D3/SVG chokes past 1k. SRI-hashed CDN dependencies + `--bundled` offline mode.
+9. **Viewer rendering stack** — ✅ **Sigma.js (WebGL) + Graphology + ForceAtlas2 worker** replaces D3. Same stack as external graph tooling — proven at industrial scale. Handles 10k+ nodes smoothly; D3/SVG chokes past 1k. SRI-hashed CDN dependencies + `--bundled` offline mode.
 
 10. **Rename workflow** — ✅ New MCP tool `cos_graph_rename_plan(uid, new_name)` ships in I.8. Combines graph walk + string-literal grep + comment scan + config file scan. Enforced by `enforce-rename-plan.sh` PreToolUse hook on multi-file rename operations.
 
@@ -1364,7 +1364,7 @@ Living checklist — each item resolves a concrete issue raised during the 2026-
 | 14 | P2 | Cascade limits (`cascade_max_files`, `cascade_max_depth`) + background full-resolve overflow | I.8 | ✅ §8.3 |
 | 15 | P2 | I.13 publishes **measured** benchmarks (not extrapolations) | I.13 | ✅ §8.5 + §19 |
 | 16 | P3 | `docs/engineering/graph_os-queries.md` guide | I.14 | ⏳ ship gate |
-| 17 | P3 | Remove `/tmp/graph-tool` local path; cite public source | plan edit | ⏳ §4 edit |
+| 17 | P3 | Removed transient `/tmp` local paths; reference implementations now cited inline | plan edit | ✅ §4 |
 | 18 | P3 | `enforce-graph-context.sh` reads scope list from `rag-config.yaml` | I.14 | ✅ §11.2 |
 | 19 | P3 | Baseline dated: 1083 tests at `main@2026-04-19` | plan + benchmarks doc | ✅ P-I-10 + §24.4 |
 | 20 | P3 | TechSpec template will get an "Observability Budget" section post-I.14 | post-I.14 | ⚠ out-of-scope (not blocking) |

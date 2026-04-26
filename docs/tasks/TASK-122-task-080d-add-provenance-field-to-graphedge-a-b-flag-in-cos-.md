@@ -3,7 +3,7 @@ id: TASK-122
 title: "TASK-080d: Add provenance field to GraphEdge + A/B flag in cos graph-reindex"
 swimlane: graph_os
 kind: refactor
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: []
 status: complete
 priority: P3

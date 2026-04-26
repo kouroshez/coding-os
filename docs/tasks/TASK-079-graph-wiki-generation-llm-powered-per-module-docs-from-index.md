@@ -3,7 +3,7 @@ id: TASK-079
 title: "Graph: Wiki generation (LLM-powered per-module docs from indexed graph)"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, wiki, llm, P3-differentiator]
 status: icebox
 priority: P3
@@ -19,7 +19,7 @@ references: []
 
 # TASK-079: Graph — Wiki generation (LLM-powered per-module docs)
 
-**Outcome (one sentence):** `cos graph-wiki` generates per-module markdown with cross-refs driven by the graph (imports, members, processes), the Hub renders it under `/p/<slug>/wiki`, and generation routes through the Claude Agent SDK so outputs are cache-friendly and cheaper than equivalent graph-tool wikis.
+**Outcome (one sentence):** `cos graph-wiki` generates per-module markdown with cross-refs driven by the graph (imports, members, processes), the Hub renders it under `/p/<slug>/wiki`, and generation routes through the Claude Agent SDK so outputs are cache-friendly and cheaper than equivalent external graph tooling wikis.
 
 ## Read First
 
@@ -27,7 +27,7 @@ references: []
 - [core/thinking_os/tools/docs.py](../../core/thinking_os/tools/docs.py) — existing doc-search MCP surface; consume similar structured output conventions.
 - [core/graph_os/tools/](../../core/graph_os/tools/) — graph queries that seed each module's context.
 - [docs/engineering/rules-loading.md](../../docs/engineering/rules-loading.md) — pattern for agent-agnostic routing (no hardcoded `.claude/`).
-- graph-tool wiki generation (Phase P3 analysis): equivalent feature exists but without formula-dispatch integration.
+- external graph tooling wiki generation (Phase P3 analysis): equivalent feature exists but without formula-dispatch integration.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 
@@ -60,7 +60,7 @@ references: []
 
 ## Differentiator angle
 
-graph-tool also ships a wiki, but theirs is stateless per-call. We pipe through the formula dispatch trace, so a wiki page can optionally show "this module was last touched by F9 Implementer in TASK-077" — a feature they cannot replicate without our cognition layer.
+external graph tooling also ships a wiki, but theirs is stateless per-call. We pipe through the formula dispatch trace, so a wiki page can optionally show "this module was last touched by F9 Implementer in TASK-077" — a feature they cannot replicate without our cognition layer.
 
 ## Dependencies
 

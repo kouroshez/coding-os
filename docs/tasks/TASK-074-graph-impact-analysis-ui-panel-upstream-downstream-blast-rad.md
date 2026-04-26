@@ -3,7 +3,7 @@ id: TASK-074
 title: "Graph: impact analysis UI panel (upstream/downstream blast-radius with confidence ranking)"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, ui, P2-ux-parity]
 status: icebox
 priority: P2
@@ -19,7 +19,7 @@ references: []
 
 # TASK-074: Graph — impact analysis UI (upstream/downstream blast-radius)
 
-**Outcome (one sentence):** The Graph tab inspector shows `UPSTREAM` and `DOWNSTREAM` trees with depth-1/2/3 badges, a `CALLS / IMPORTS / EXTENDS / IMPLEMENTS` edge-kind filter, and a confidence percentage per leaf — reaching visual parity with graph-tool's `impact` tool.
+**Outcome (one sentence):** The Graph tab inspector shows `UPSTREAM` and `DOWNSTREAM` trees with depth-1/2/3 badges, a `CALLS / IMPORTS / EXTENDS / IMPLEMENTS` edge-kind filter, and a confidence percentage per leaf — reaching visual parity with the upstream graph tooling's `impact` tool.
 
 ## Read First
 
@@ -27,7 +27,7 @@ references: []
 - [core/web/ui/src/layout/Inspector.tsx](../../core/web/ui/src/layout/Inspector.tsx) — the side panel this task lives in.
 - [core/graph_os/tools/](../../core/graph_os/tools/) — `cos_graph_impact` backend tool (already returns upstream / downstream; UI consumer missing).
 - [core/web/routes/graph.py](../../core/web/routes/graph.py) — HTTP wrapper the UI calls.
-- Reference: graph-tool impact tool output shape (Phase P2 analysis, session `ad8ed04b`).
+- Reference: external graph tooling impact tool output shape (Phase P2 analysis, session `ad8ed04b`).
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 

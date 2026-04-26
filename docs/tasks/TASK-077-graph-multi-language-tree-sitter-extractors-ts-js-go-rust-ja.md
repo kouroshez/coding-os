@@ -1,9 +1,9 @@
 ---
 id: TASK-077
-title: "Graph: multi-language tree-sitter extractors (TS/JS/Go/Rust/Java parity with graph-tool)"
+title: "Graph: multi-language tree-sitter extractors (TS/JS/Go/Rust/Java parity with the upstream graph tooling)"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, parsers, P1-parity]
 status: icebox
 priority: P1
@@ -19,7 +19,7 @@ references: []
 
 # TASK-077: Graph — multi-language tree-sitter extractors (TS / JS / Go / Rust / Java)
 
-**Outcome (one sentence):** Named bindings, heritage, type annotations, and constructor inference extractors for **TypeScript / JavaScript / Go / Rust / Java** land with full golden-test parity against the graph-tool capability matrix.
+**Outcome (one sentence):** Named bindings, heritage, type annotations, and constructor inference extractors for **TypeScript / JavaScript / Go / Rust / Java** land with full golden-test parity against the external graph tooling capability matrix.
 
 ## Read First
 
@@ -27,11 +27,11 @@ references: []
 - [core/graph_os/extractors/code_ts.py](../../core/graph_os/extractors/code_ts.py) — TS pattern to mirror for JS/Go/Rust/Java.
 - [core/graph_os/extractors/code_python.py](../../core/graph_os/extractors/code_python.py) — heritage + constructor inference reference.
 - [docs/engineering/graph_os-queries.md](../../docs/engineering/graph_os-queries.md) — canonical node/edge schema.
-- graph-tool capability matrix (from Phase P1 analysis in session `ad8ed04b`): coding-os currently ≈ 18% of graph-tool coverage — this task closes most of the gap.
+- external graph tooling capability matrix (from Phase P1 analysis in session `ad8ed04b`): coding-os currently ≈ 18% of external graph tooling coverage — this task closes most of the gap.
 
 ## Priority note
 
-Upgraded from P3 → P1 in the Phase P1 roadmap (session `ad8ed04b`). This is the single biggest parity gap with graph-tool, and the prerequisite for TASK-074 (Impact UI) being useful on non-Python repos.
+Upgraded from P3 → P1 in the Phase P1 roadmap (session `ad8ed04b`). This is the single biggest parity gap with external graph tooling, and the prerequisite for TASK-074 (Impact UI) being useful on non-Python repos.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 

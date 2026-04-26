@@ -3,7 +3,7 @@ id: TASK-076
 title: "Graph: 360° Context view (incoming/outgoing calls, processes, heritage) per symbol"
 swimlane: graph_os
 kind: feature
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, ui, P2-ux-parity]
 status: icebox
 priority: P2
@@ -19,14 +19,14 @@ references: []
 
 # TASK-076: Graph — 360° Context view per symbol
 
-**Outcome (one sentence):** The Inspector's "Context" tab shows, for any selected symbol: incoming calls and imports, outgoing calls, heritage chain (extends/implements), and membership in named processes (from TASK-075) — reaching parity with graph-tool's `context` tool in a single screen.
+**Outcome (one sentence):** The Inspector's "Context" tab shows, for any selected symbol: incoming calls and imports, outgoing calls, heritage chain (extends/implements), and membership in named processes (from TASK-075) — reaching parity with the upstream graph tooling's `context` tool in a single screen.
 
 ## Read First
 
 - [core/web/ui/src/layout/Inspector.tsx](../../core/web/ui/src/layout/Inspector.tsx) — host for the new tab.
 - [core/graph_os/tools/](../../core/graph_os/tools/) — `cos_graph_context` backend; aggregates calls/imports/heritage.
 - [core/graph_os/extractors/code_python.py](../../core/graph_os/extractors/code_python.py) — confirms heritage edges exist; TS coverage pending TASK-077.
-- graph-tool `context` tool reference (Phase P2 analysis).
+- external graph tooling `context` tool reference (Phase P2 analysis).
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 

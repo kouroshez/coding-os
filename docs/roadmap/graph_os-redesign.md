@@ -6,7 +6,7 @@
 
 ## Context (one paragraph)
 
-graph_os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise it to a graph-tool-class system — agent-facing MCP surface stays, human-facing side becomes a unified React SPA on **port 9188** covering graph + scrumban board + cognition traces + future systems. Anti-hairball via depth-bounded BFS + node-type filters + CONTAINS spine (Folder→File→Class→Method). See also: [core/graph_os/](../../core/graph_os/), [core/board_os/](../../core/board_os/).
+graph_os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise it to a external graph tooling-class system — agent-facing MCP surface stays, human-facing side becomes a unified React SPA on **port 9188** covering graph + scrumban board + cognition traces + future systems. Anti-hairball via depth-bounded BFS + node-type filters + CONTAINS spine (Folder→File→Class→Method). See also: [core/graph_os/](../../core/graph_os/), [core/board_os/](../../core/board_os/).
 
 **Port:** 9188 (IANA-unassigned; 4747–4748 were reserved by other conventions).
 
@@ -129,7 +129,7 @@ graph_os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise i
 ### V3 — AI chat panel (Opus)
 
 - [ ] Library: `langgraph` + `langchain` (Python side) OR `@langchain/langgraph` (JS)
-- [ ] Decision: server-side chat (keeps keys secret) vs client-side (graph-tool way). Prefer **server-side** — we already run the backend.
+- [ ] Decision: server-side chat (keeps keys secret) vs client-side (external graph tooling way). Prefer **server-side** — we already run the backend.
 - [ ] Multi-provider: Anthropic (default), OpenAI, Gemini, Ollama via env
 - [ ] Tools exposed to ReAct: same 11 `cos_graph_*` + `cos_search` + `cos_doc_search`
 - [ ] UI panel: chat pane, right-side, togglable
@@ -141,7 +141,7 @@ graph_os today ships 11 MCP tools + a one-shot HTML export viewer. Goal: raise i
 
 ### V4 — Multi-repo registry + LRU pool
 - [ ] `~/.coding-os/registry.json`
-- [ ] LRU pool (5 repos, 8 conn/repo, 5min idle) — copy graph-tool `pool-adapter.ts` pattern
+- [ ] LRU pool (5 repos, 8 conn/repo, 5min idle) — copy external graph tooling `pool-adapter.ts` pattern
 - [ ] MCP `list_repos` tool + `repo` param on every graph tool
 
 ### V5 — BGE-M3 embeddings (already Phase I.1 in roadmap)

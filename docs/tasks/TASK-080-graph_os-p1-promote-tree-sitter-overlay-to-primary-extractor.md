@@ -3,7 +3,7 @@ id: TASK-080
 title: "graph_os P1: Promote tree_sitter_overlay to primary extractor (replace AST/regex baselines for Python + TS)"
 swimlane: graph_os
 kind: refactor
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: [hub, graph, parsers, tree-sitter, P1-parity]
 status: complete
 priority: P1
@@ -26,11 +26,11 @@ references: [TASK-005, TASK-007]
 - [core/graph_os/extractors/code_python.py](../../core/graph_os/extractors/code_python.py) — current primary Python path (stdlib `ast`).
 - [core/graph_os/extractors/code_ts.py](../../core/graph_os/extractors/code_ts.py) — current primary TS path (regex scanner).
 - [docs/engineering/graph_os-queries.md](../../docs/engineering/graph_os-queries.md) — stable node/edge schema the new extractors must continue to emit.
-- graph-tool reference: see the `tree_sitter_overlay`-equivalent ingestion ladder in our comparison table (Phase P1 analysis from session `ad8ed04b`).
+- external graph tooling reference: see the `tree_sitter_overlay`-equivalent ingestion ladder in our comparison table (Phase P1 analysis from session `ad8ed04b`).
 
 ## Background / Why
 
-The original 18% capability score vs graph-tool (TASK-077 analysis) is rooted in the fact that coding-os reads Python with stdlib `ast` (which cannot introspect `from x import y as z` naming, nor star-imports) and reads TS/TSX with a regex scanner (which breaks on nested generics, conditional types, JSX, etc.). Tree-sitter already gives us a robust multi-language AST; we need to flip the dominance direction so the precise AST *is* the base truth and hand-written heuristics only post-process it.
+The original 18% capability score vs external graph tooling (TASK-077 analysis) is rooted in the fact that coding-os reads Python with stdlib `ast` (which cannot introspect `from x import y as z` naming, nor star-imports) and reads TS/TSX with a regex scanner (which breaks on nested generics, conditional types, JSX, etc.). Tree-sitter already gives us a robust multi-language AST; we need to flip the dominance direction so the precise AST *is* the base truth and hand-written heuristics only post-process it.
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 

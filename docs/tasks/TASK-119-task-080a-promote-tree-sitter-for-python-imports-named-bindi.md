@@ -3,7 +3,7 @@ id: TASK-119
 title: "TASK-080a: Promote tree-sitter for Python imports (named bindings + aliasing)"
 swimlane: graph_os
 kind: refactor
-epic: graph_os-graph-tool-parity
+epic: graph_os-the upstream scope-resolution implementation
 labels: []
 status: complete
 priority: P2
