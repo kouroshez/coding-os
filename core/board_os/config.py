@@ -74,7 +74,7 @@ _DEFAULT_KIND_COLORS: dict[str, str] = {
 }
 
 # Identifier regex for swimlane ids, label values, epic ids.
-_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 # Hex colour regex (3 or 6 char).
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 # Appetite regex (Shape Up style: 30m, 2h, 1d, 3w, 1cy).
