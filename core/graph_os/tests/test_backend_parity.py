@@ -223,16 +223,24 @@ def test_parity_count_edges(backend_factory, fixture):
 
 
 def test_parity_get_node_round_trip(backend_factory, fixture):
+    from graph_os.types import normalize_kind
+
     name, build = backend_factory
     backend, _ = build(fixture.name)
     try:
         backend.bulk_upsert(list(fixture.nodes), [])
-        # Every uid round-trips identically at the uid / kind / label level.
+        # uid / label round-trip identically; kind is canonicalised to
+        # the S3 short form (NodeKind enum) regardless of whether the
+        # extractor emitted legacy colon-prefixed strings.
         for node in fixture.nodes:
             fetched = backend.get_node(node.uid)
             assert fetched is not None, node.uid
             assert fetched.uid == node.uid
-            assert fetched.kind == node.kind
+            try:
+                expected_kind = normalize_kind(node.kind).value
+            except ValueError:
+                expected_kind = node.kind
+            assert fetched.kind == expected_kind
             assert fetched.label == node.label
     finally:
         backend.close()

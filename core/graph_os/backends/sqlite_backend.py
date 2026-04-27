@@ -28,7 +28,7 @@ import time
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ..types import EvidenceSignal, GraphEdge, GraphNode, normalize_kind
 
 logger = logging.getLogger("graph_os.backends.sqlite")
 
@@ -146,6 +146,13 @@ class SqliteBackend:
         """
         now = int(time.time())
         metadata_json = json.dumps(dict(node.metadata), sort_keys=True)
+        # Canonicalise kind at the storage boundary (S3 NodeKind). Falls
+        # back to the raw string if normalize_kind doesn't recognise the
+        # form so a stray label can't kill an entire reindex run.
+        try:
+            kind_value = normalize_kind(node.kind).value
+        except ValueError:
+            kind_value = node.kind
         with self._write_lock:
             row = self._conn.execute(
                 "SELECT id FROM graph_nodes WHERE uid = ?", (node.uid,)
@@ -160,7 +167,7 @@ class SqliteBackend:
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
-                        node.kind,
+                        kind_value,
                         node.label,
                         node.uid,
                         node.file_path,
@@ -189,7 +196,7 @@ class SqliteBackend:
                 WHERE id=?
                 """,
                 (
-                    node.kind,
+                    kind_value,
                     node.label,
                     node.file_path,
                     node.start_line,
@@ -375,8 +382,13 @@ class SqliteBackend:
                     "SELECT COUNT(*) FROM graph_nodes"
                 ).fetchone()
             else:
+                # Accept legacy or canonical form; storage is canonical.
+                try:
+                    kind_q = normalize_kind(kind).value
+                except ValueError:
+                    kind_q = kind
                 row = self._conn.execute(
-                    "SELECT COUNT(*) FROM graph_nodes WHERE kind=?", (kind,)
+                    "SELECT COUNT(*) FROM graph_nodes WHERE kind=?", (kind_q,)
                 ).fetchone()
         return int(row[0])
 
@@ -427,6 +439,10 @@ class SqliteBackend:
             params.extend(edge_types)
 
         where_sql = " AND ".join(where_parts)
+        # Dedupe across extractors: when multiple extractors emit the
+        # same logical edge (source, target, edge_type), keep the
+        # highest-confidence row (ties broken by lowest id) so the API
+        # surface presents one row per relationship instead of N copies.
         query = f"""
             SELECT e.id, ns.uid, nt.uid, e.edge_type, e.extractor,
                    e.confidence, e.source_span
@@ -434,6 +450,14 @@ class SqliteBackend:
             JOIN graph_nodes ns ON ns.id = e.source_id
             JOIN graph_nodes nt ON nt.id = e.target_id
             WHERE {where_sql}
+              AND e.id = (
+                SELECT id FROM graph_edges_v12 ee
+                WHERE ee.source_id = e.source_id
+                  AND ee.target_id = e.target_id
+                  AND ee.edge_type = e.edge_type
+                ORDER BY ee.confidence DESC, ee.id ASC
+                LIMIT 1
+              )
             ORDER BY e.confidence DESC, e.id ASC
             LIMIT ?
         """
@@ -501,6 +525,10 @@ class SqliteBackend:
                     (int(limit),),
                 ).fetchall()
             else:
+                try:
+                    kind_q = normalize_kind(kind).value
+                except ValueError:
+                    kind_q = kind
                 rows = self._conn.execute(
                     """
                     SELECT kind, label, uid, file_path, start_line, end_line,
@@ -511,7 +539,7 @@ class SqliteBackend:
                     ORDER BY id ASC
                     LIMIT ?
                     """,
-                    (kind, int(limit)),
+                    (kind_q, int(limit)),
                 ).fetchall()
         return [self._row_to_node(row) for row in rows]
 

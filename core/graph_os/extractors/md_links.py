@@ -133,7 +133,17 @@ def _resolve_link(origin_path: str, target: str) -> str:
             continue
         parts.append(part)
     normalised = "/".join(parts)
-    base = f"doc:file:{normalised}"
+    # Markdown links can target any artefact in the repo; route them to
+    # the right uid namespace by extension so a `.md → .py` link does
+    # not create a ghost `doc:file` stub that duplicates the real
+    # `code:file` node the code extractors emit.
+    suffix = PurePosixPath(normalised).suffix.lower()
+    if suffix in {".md", ".mdx", ""}:
+        base = f"doc:file:{normalised}"
+    elif normalised.startswith("docs/tasks/"):
+        base = f"task:file:{normalised}"
+    else:
+        base = f"code:file:{normalised}"
     return f"{base}#{anchor}" if anchor else base
 
 
@@ -389,6 +399,22 @@ def _stub_for_uid(uid: str) -> GraphNode:
             label=uid[len("doc:external:"):],
             metadata={"stub": True, "extractor": EXTRACTOR_ID},
         )
+    # Infer kind from any standard `<kind>:<sub>:...` prefix so cross-
+    # extractor edge targets (code symbols, mcp tools, routes, tasks)
+    # keep the correct kind when synthesised as stubs. Falls through to
+    # doc:external only when the prefix is genuinely unknown.
+    head, sep, rest = uid.partition(":")
+    if sep and head in {"code", "doc", "cos", "task"}:
+        sub, sep2, tail = rest.partition(":")
+        if sep2:
+            kind = f"{head}:{sub}"
+            label = tail.split("::", 1)[-1] or tail or uid
+            return GraphNode(
+                uid=uid,
+                kind=kind,
+                label=label,
+                metadata={"stub": True, "extractor": EXTRACTOR_ID},
+            )
     return GraphNode(
         uid=uid,
         kind="doc:external",

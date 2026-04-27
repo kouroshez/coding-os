@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 from ..backend import BackendUnavailable
-from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ..types import EvidenceSignal, GraphEdge, GraphNode, normalize_kind
 
 logger = logging.getLogger("graph_os.backends.kuzu")
 
@@ -136,9 +136,16 @@ class KuzuBackend:
         # B11: ``node.metadata`` is a MappingProxyType — unwrap to dict for
         # json.dumps which does not handle mappingproxy directly.
         metadata_json = json.dumps(dict(node.metadata), sort_keys=True)
+        # Canonicalise kind at the storage boundary (S3 NodeKind). Same
+        # rule as the SQLite backend so both stores converge on the
+        # short form regardless of legacy / canonical extractor output.
+        try:
+            kind_value = normalize_kind(node.kind).value
+        except ValueError:
+            kind_value = node.kind
         params = {
             "uid": node.uid,
-            "kind": node.kind,
+            "kind": kind_value,
             "label": node.label,
             "file_path": node.file_path or "",
             "start_line": node.start_line or 0,
@@ -343,9 +350,13 @@ class KuzuBackend:
                     "MATCH (n:GraphNodeV12) RETURN count(n)"
                 )
             else:
+                try:
+                    kind_q = normalize_kind(kind).value
+                except ValueError:
+                    kind_q = kind
                 result = self._conn.execute(
                     "MATCH (n:GraphNodeV12) WHERE n.kind = $kind RETURN count(n)",
-                    parameters={"kind": kind},
+                    parameters={"kind": kind_q},
                 )
             rows = self._rows(result)
         return int(rows[0][0]) if rows else 0
@@ -448,6 +459,10 @@ class KuzuBackend:
                     parameters={"lim": int(limit)},
                 )
             else:
+                try:
+                    kind_q = normalize_kind(kind).value
+                except ValueError:
+                    kind_q = kind
                 result = self._conn.execute(
                     """
                     MATCH (n:GraphNodeV12)
@@ -457,7 +472,7 @@ class KuzuBackend:
                            n.ast_hash, n.content_hash, n.metadata_json
                     LIMIT $lim
                     """,
-                    parameters={"kind": kind, "lim": int(limit)},
+                    parameters={"kind": kind_q, "lim": int(limit)},
                 )
             rows = self._rows(result)
         keys = (

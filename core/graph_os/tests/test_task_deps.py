@@ -85,14 +85,25 @@ class TestExtract:
 
     def test_emits_task_file_node(self):
         r = self._extract()
-        tasks = [n for n in r.nodes if n.kind == "task:file"]
-        assert len(tasks) == 1
-        assert tasks[0].uid == "task:file:TASK-042"
-        assert "BACKEND" in (tasks[0].label or "")
+        # task_deps emits the canonical TASK-042 node and md_links'
+        # _promote_stubs synthesises stubs for any other TASK-XXX uids
+        # the file references (e.g., depends_on TASK-007 / TASK-199).
+        # We assert the canonical one is present and a singleton among
+        # non-stub task_file nodes.
+        non_stub = [
+            n for n in r.nodes
+            if n.kind == "task:file" and not n.metadata.get("stub")
+        ]
+        assert len(non_stub) == 1
+        assert non_stub[0].uid == "task:file:TASK-042"
+        assert "BACKEND" in (non_stub[0].label or "")
 
     def test_metadata_includes_domain(self):
         r = self._extract()
-        task = next(n for n in r.nodes if n.kind == "task:file")
+        task = next(
+            n for n in r.nodes
+            if n.kind == "task:file" and not n.metadata.get("stub")
+        )
         assert task.metadata.get("domain") == "BACKEND"
         assert task.metadata.get("task_id") == "TASK-042"
 
