@@ -101,7 +101,10 @@ class SqliteBackend:
             self._conn.execute("PRAGMA journal_mode = WAL")
             self._conn.execute("PRAGMA synchronous = NORMAL")
             self._conn.execute("PRAGMA foreign_keys = ON")
-            self._conn.execute("PRAGMA busy_timeout = 5000")
+            # 30s ceiling tolerates ten concurrent dispatcher workers
+            # reindexing different files at the same time without the
+            # busy_timeout firing.
+            self._conn.execute("PRAGMA busy_timeout = 30000")
             db.run_migrations(self._conn)
             self._owns_conn = True
         self._conn.execute("PRAGMA foreign_keys = ON")

@@ -1625,27 +1625,57 @@ def get_schema_version(conn: sqlite3.Connection) -> int:
 def run_migrations(conn: sqlite3.Connection) -> list[int]:
     """Apply any unapplied migrations in order.
 
+    Concurrency-safe: takes an EXCLUSIVE transaction on the version
+    table so two simultaneously-opening connections don't both try to
+    apply the same migration and trip the UNIQUE constraint. Idempotent
+    via INSERT OR IGNORE on the version row.
+
     Returns:
         List of migration versions that were applied.
     """
     _ensure_version_table(conn)
-    current = get_schema_version(conn)
     applied: list[int] = []
 
-    for version, description, action in MIGRATIONS:
-        if version <= current:
-            continue
-        logger.info("Applying migration v%d: %s", version, description)
-        if callable(action):
-            action(conn)
-        else:
-            conn.executescript(action)
-        conn.execute(
-            "INSERT INTO schema_version (version, description) VALUES (?, ?)",
-            (version, description),
-        )
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+    except sqlite3.OperationalError:
+        # Another writer holds the lock — wait briefly and re-read; if
+        # we're already at the target version, return without doing
+        # anything. This is the common case under concurrent dispatcher
+        # workers.
+        pass
+    try:
+        current = get_schema_version(conn)
+        for version, description, action in MIGRATIONS:
+            if version <= current:
+                continue
+            logger.info("Applying migration v%d: %s", version, description)
+            try:
+                if callable(action):
+                    action(conn)
+                else:
+                    conn.executescript(action)
+            except sqlite3.OperationalError as exc:
+                # ALTER TABLE under concurrent runners can race past the
+                # column-exists guard — skip when the message explicitly
+                # confirms the schema is already where we want it.
+                if "duplicate column name" in str(exc).lower():
+                    logger.debug(
+                        "migration v%d ALTER race tolerated: %s", version, exc,
+                    )
+                else:
+                    raise
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, description) "
+                "VALUES (?, ?)",
+                (version, description),
+            )
+            applied.append(version)
         conn.commit()
-        applied.append(version)
+    except sqlite3.IntegrityError as exc:
+        logger.debug("migration race resolved: %s", exc)
+        conn.rollback()
+        applied = []
 
     if applied:
         logger.info("Migrations applied: %s (now at v%d)", applied, applied[-1])

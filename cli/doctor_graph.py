@@ -359,12 +359,209 @@ def add_check_c22(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
+def add_check_c24_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
+    """Surface the kuzu-backend state so users aren't surprised by the
+    auto-fallback. Three states: missing (kuzu not in use), populated,
+    or empty (auto falls back to SQLite — fine but worth knowing)."""
+    from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
+
+    kuzu_dir = state_dir / "graph_os.kuzu"
+    if not kuzu_dir.exists():
+        report.checks.append(
+            CheckResult(
+                "C24", "graph_kuzu_state", SEV_PASS,
+                "kuzu not in use (sqlite only)",
+                {"present": False},
+            )
+        )
+        return
+    data_file = kuzu_dir / "data.kz"
+    size = data_file.stat().st_size if data_file.exists() else 0
+    if size == 0:
+        report.checks.append(
+            CheckResult(
+                "C24", "graph_kuzu_state", SEV_WARN,
+                "kuzu directory exists but is empty — auto backend "
+                "falls back to SQLite. Consider `rm -rf "
+                f"{kuzu_dir}` or wire a kuzu reindexer.",
+                {"present": True, "data_bytes": 0},
+            )
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "C24", "graph_kuzu_state", SEV_PASS,
+            f"kuzu populated ({size} bytes)",
+            {"present": True, "data_bytes": size},
+        )
+    )
+
+
+def add_check_c25_evidence_table(
+    report: "DoctorReport", conn: sqlite3.Connection | None
+) -> None:
+    """C25: graph_evidence_v12 table is required by sqlite_backend's
+    schema verifier; without it the backend constructor raises and
+    every cos_graph_* tool returns `unavailable`."""
+    from cli.doctor import CheckResult, SEV_PASS, SEV_WARN, SEV_FAIL
+
+    if conn is None:
+        report.checks.append(
+            CheckResult(
+                "C25", "graph_evidence_table", SEV_WARN,
+                "no graph DB connection — skipped",
+            )
+        )
+        return
+    try:
+        row = conn.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name='graph_evidence_v12'"
+        ).fetchone()
+    except sqlite3.Error as exc:
+        report.checks.append(
+            CheckResult(
+                "C25", "graph_evidence_table", SEV_FAIL,
+                f"check failed: {exc}",
+            )
+        )
+        return
+    if row is None:
+        report.checks.append(
+            CheckResult(
+                "C25", "graph_evidence_table", SEV_FAIL,
+                "graph_evidence_v12 missing — run init_db",
+            )
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "C25", "graph_evidence_table", SEV_PASS,
+            "graph_evidence_v12 present",
+        )
+    )
+
+
+def add_check_c26_orphan_symbols(
+    report: "DoctorReport", conn: sqlite3.Connection | None
+) -> None:
+    """C26: count code symbols with no contains-parent. Warn when the
+    ratio crosses 5 % so the orphan rate doesn't silently regress."""
+    from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
+
+    if conn is None:
+        report.checks.append(
+            CheckResult(
+                "C26", "graph_orphan_symbols", SEV_WARN,
+                "no graph DB connection — skipped",
+            )
+        )
+        return
+    try:
+        total = conn.execute(
+            "SELECT COUNT(*) FROM graph_nodes "
+            "WHERE kind IN ('class','method','function')"
+        ).fetchone()[0]
+        orphans = conn.execute(
+            """
+            SELECT COUNT(*) FROM graph_nodes m
+            WHERE m.kind IN ('class','method','function')
+              AND NOT EXISTS (
+                SELECT 1 FROM graph_edges_v12 e
+                JOIN graph_nodes p ON p.id = e.source_id
+                WHERE e.target_id = m.id
+                  AND e.edge_type = 'contains'
+                  AND p.kind IN ('file','module','class','method')
+              )
+            """
+        ).fetchone()[0]
+    except sqlite3.Error as exc:
+        report.checks.append(
+            CheckResult(
+                "C26", "graph_orphan_symbols", SEV_WARN,
+                f"check failed: {exc}",
+            )
+        )
+        return
+    rate = (orphans / total) if total else 0.0
+    detail = {"orphans": orphans, "total": total, "rate": round(rate, 4)}
+    if total == 0:
+        report.checks.append(
+            CheckResult("C26", "graph_orphan_symbols", SEV_PASS,
+                        "no symbols indexed yet", detail))
+        return
+    if rate > 0.05:
+        report.checks.append(
+            CheckResult(
+                "C26", "graph_orphan_symbols", SEV_WARN,
+                f"{orphans}/{total} ({rate:.1%}) symbols are orphans",
+                detail,
+            )
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "C26", "graph_orphan_symbols", SEV_PASS,
+            f"{orphans}/{total} ({rate:.1%}) orphans — within budget",
+            detail,
+        )
+    )
+
+
+def add_check_c27_legacy_kinds(
+    report: "DoctorReport", conn: sqlite3.Connection | None
+) -> None:
+    """C27: every stored kind should be a canonical NodeKind short
+    form. Legacy colon-prefixed kinds (`code:function`, `doc:heading`)
+    indicate the storage-time normalizer is bypassed somewhere."""
+    from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
+
+    if conn is None:
+        report.checks.append(
+            CheckResult(
+                "C27", "graph_legacy_kinds", SEV_WARN,
+                "no graph DB connection — skipped",
+            )
+        )
+        return
+    try:
+        bad = conn.execute(
+            "SELECT COUNT(*) FROM graph_nodes "
+            "WHERE kind LIKE 'code:%' OR kind LIKE 'doc:%' "
+            "OR kind LIKE 'cos:%' OR kind LIKE 'task:%'"
+        ).fetchone()[0]
+    except sqlite3.Error as exc:
+        report.checks.append(
+            CheckResult(
+                "C27", "graph_legacy_kinds", SEV_WARN,
+                f"check failed: {exc}",
+            )
+        )
+        return
+    if bad > 0:
+        report.checks.append(
+            CheckResult(
+                "C27", "graph_legacy_kinds", SEV_WARN,
+                f"{bad} nodes carry legacy colon-prefixed kinds — "
+                "run `cos graph-reindex --rebuild-kinds`",
+                {"count": bad},
+            )
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "C27", "graph_legacy_kinds", SEV_PASS,
+            "all kinds canonical",
+        )
+    )
+
+
 def run_graph_checks(
     report: "DoctorReport",
     state_dir: Path,
     conn: sqlite3.Connection | None,
 ) -> None:
-    """Run C16-C22. Called from cli/doctor.py::run_doctor."""
+    """Run C16-C27. Called from cli/doctor.py::run_doctor."""
     add_check_c16(report, conn)
     add_check_c17(report, state_dir)
     add_check_c18(report, state_dir)
@@ -372,6 +569,10 @@ def run_graph_checks(
     add_check_c20(report, state_dir)
     add_check_c21(report, conn, state_dir)
     add_check_c22(report, state_dir)
+    add_check_c24_kuzu_state(report, state_dir)
+    add_check_c25_evidence_table(report, conn)
+    add_check_c26_orphan_symbols(report, conn)
+    add_check_c27_legacy_kinds(report, conn)
 
 
 __all__ = ["run_graph_checks"]

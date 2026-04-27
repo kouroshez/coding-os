@@ -245,13 +245,20 @@ def _detect_communities(
         return []
 
     # Score entry points (TASK-081) once so process priority is
-    # deterministic.  Import lazily to avoid a cold-load cycle.
-    from . import entry_points
+    # deterministic.  Import lazily to avoid a cold-load cycle and
+    # tolerate the WIP entry_points module being absent — community
+    # detection still produces a useful result without entry-point
+    # scoring (priority just degrades to step-count order).
+    eps: dict[str, float] = {}
+    try:
+        from . import entry_points  # type: ignore[attr-defined]
 
-    eps = {
-        ep.uid: ep.score
-        for ep in entry_points.discover(backend, min_score=0.0)
-    }
+        eps = {
+            ep.uid: ep.score
+            for ep in entry_points.discover(backend, min_score=0.0)
+        }
+    except ImportError as exc:
+        logger.debug("entry_points unavailable; priority degrades: %s", exc)
 
     out: list[Community] = []
     for cluster in clusters:

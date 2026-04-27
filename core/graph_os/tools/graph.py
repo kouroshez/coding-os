@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import difflib
 import logging
+import os
 import re
 import sys
 from collections import deque
@@ -50,6 +51,7 @@ def _envelope_module():
 def _ok(data: dict[str, Any], meta: dict[str, Any] | None = None) -> dict[str, Any]:
     shared = _envelope_module()
     merged = {"layer": "graph", **(meta or {})}
+    _emit_telemetry(meta=merged, ok=True)
     return shared.ok(data, meta=merged)
 
 
@@ -60,7 +62,72 @@ def _fail(
     retryable: bool | None = None,
 ) -> dict[str, Any]:
     shared = _envelope_module()
+    _emit_telemetry(
+        meta={"layer": "graph", "category": category, "message": message},
+        ok=False,
+    )
     return shared.fail(category, message, retryable=retryable)
+
+
+# -- Telemetry --------------------------------------------------------
+# Append-only JSONL log of every cos_graph_* invocation. One line per
+# call: {ts, ok, layer, source, backend, ...meta}. The file lives in
+# $COS_STATE_DIR/.graph-telemetry.jsonl and is rotated when it crosses
+# a soft cap so the disk footprint stays bounded.
+
+_TELEMETRY_MAX_BYTES = 2 * 1024 * 1024  # 2 MB
+_TELEMETRY_PATH_CACHE: list[str] = []
+
+
+def _telemetry_path() -> str | None:
+    if _TELEMETRY_PATH_CACHE:
+        return _TELEMETRY_PATH_CACHE[0]
+    state_dir = os.environ.get("COS_STATE_DIR")
+    if not state_dir:
+        # Fall back to repo-rooted .coding-os when env unset.
+        from pathlib import Path as _Path  # noqa: PLC0415
+        state_dir = str(_Path.cwd() / ".coding-os")
+    try:
+        from pathlib import Path as _Path  # noqa: PLC0415
+        path = _Path(state_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        full = str(path / ".graph-telemetry.jsonl")
+        _TELEMETRY_PATH_CACHE.append(full)
+        return full
+    except OSError as exc:
+        logger.debug("telemetry path setup failed: %s", exc)
+        return None
+
+
+def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
+    """Append one JSONL row. Fail-open — telemetry must never block a tool."""
+    try:
+        path = _telemetry_path()
+        if path is None:
+            return
+        import json as _json  # noqa: PLC0415
+        import time as _time  # noqa: PLC0415
+        row = {
+            "ts": int(_time.time()),
+            "ok": ok,
+            **{k: v for k, v in meta.items() if isinstance(v, (str, int, float, bool))},
+        }
+        line = _json.dumps(row, default=str) + "\n"
+        # Soft rotation — when the file grows past the cap, drop the
+        # first half (cheap mtime-cap policy).
+        try:
+            size = os.path.getsize(path)
+            if size > _TELEMETRY_MAX_BYTES:
+                with open(path, "rb") as fh:
+                    chunk = fh.read()
+                with open(path, "wb") as fh:
+                    fh.write(chunk[len(chunk) // 2:])
+        except OSError:
+            pass
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(line)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("telemetry emit suppressed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -109,25 +176,68 @@ class NodeSummary:
     label: str
     file_path: str | None
     start_line: int | None
+    # Optional centrality / hub score, populated by exporters that
+    # have a degree map handy (graph_export, graph_query). None when
+    # the caller did not pre-compute degrees.
+    degree: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "uid": self.uid,
             "kind": self.kind,
             "label": self.label,
             "file_path": self.file_path,
             "start_line": self.start_line,
         }
+        if self.degree is not None:
+            out["degree"] = self.degree
+        return out
 
     @classmethod
-    def from_node(cls, node: GraphNode) -> "NodeSummary":
+    def from_node(
+        cls, node: GraphNode, *, degree: int | None = None
+    ) -> "NodeSummary":
         return cls(
             uid=node.uid,
             kind=node.kind,
             label=node.label,
             file_path=node.file_path,
             start_line=node.start_line,
+            degree=degree,
         )
+
+
+def _degree_map_for(
+    backend: GraphBackend, uids: Sequence[str]
+) -> dict[str, int]:
+    """Server-side degree count for a node set.
+
+    Cheaper than the client recomputing on every render: one query per
+    export instead of N. Falls back to {} when the backend is not
+    SQLite-backed (Kuzu can extend later) so consumers can degrade
+    gracefully.
+    """
+    if not uids:
+        return {}
+    sqlite_conn = getattr(backend, "_conn", None)
+    if sqlite_conn is None:
+        return {}
+    placeholders = ",".join("?" * len(uids))
+    try:
+        rows = sqlite_conn.execute(
+            f"""
+            SELECT n.uid, COUNT(*)
+            FROM graph_edges_v12 e
+            JOIN graph_nodes n ON n.id = e.source_id OR n.id = e.target_id
+            WHERE n.uid IN ({placeholders})
+            GROUP BY n.uid
+            """,
+            tuple(uids),
+        ).fetchall()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("degree query suppressed: %s", exc)
+        return {}
+    return {row[0]: int(row[1]) for row in rows}
 
 
 def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[str, Any]:
@@ -698,13 +808,18 @@ def cos_graph_trace(
         # TASK-081: fall back to the highest-scoring entry point whose
         # label / file matches the supplied identifier.  Lets agents
         # call cos_graph_trace("login") without first running a
-        # separate query to resolve the uid.
-        from .. import entry_points as ep_mod
+        # separate query to resolve the uid. The entry_points module
+        # is part of an in-flight TASK; tolerate its absence so the
+        # tool still returns a useful not_found instead of crashing.
+        try:
+            from .. import entry_points as ep_mod  # type: ignore[attr-defined]
 
-        ep = ep_mod.best_start_for_query(be, entry_uid)
-        if ep is not None:
-            root = be.get_node(ep.uid)
-            start_source = "entry-point-heuristic"
+            ep = ep_mod.best_start_for_query(be, entry_uid)
+            if ep is not None:
+                root = be.get_node(ep.uid)
+                start_source = "entry-point-heuristic"
+        except ImportError as exc:
+            logger.debug("entry_points fallback unavailable: %s", exc)
     if root is None:
         return _fail("not_found", f"no node with uid {entry_uid!r}")
 
@@ -807,11 +922,56 @@ def cos_graph_similar(
 
     candidates = [n for n in raw_candidates if n.uid != uid]
 
+    # Phase I.1 — use BGE-M3 embeddings when the model is available;
+    # fall back to lexical SequenceMatcher otherwise. Both signals get
+    # combined linearly so partially-loaded environments still rank.
+    scorer_name = "difflib-baseline"
+    embed_scores: dict[str, float] = {}
+    try:
+        from thinking_os.embeddings import (  # type: ignore
+            embed_text,
+            cosine_similarity,
+            is_available,
+        )
+        if is_available():
+            ref_text = (
+                f"{root.label or ''} "
+                f"{root.signature or ''} "
+                f"{root.doc_blob or ''}"
+            ).strip()
+            ref_vec = embed_text(ref_text)
+            if ref_vec:
+                cand_texts = [
+                    f"{n.label or ''} {n.signature or ''} {n.doc_blob or ''}".strip()
+                    for n in candidates
+                ]
+                # batch encode candidate side, then cosine in one shot
+                cand_vecs: list[bytes | None] = [
+                    embed_text(t) for t in cand_texts
+                ]
+                valid = [v for v in cand_vecs if v]
+                if valid:
+                    sims = cosine_similarity(ref_vec, valid)
+                    valid_iter = iter(sims)
+                    for n, vec in zip(candidates, cand_vecs):
+                        if vec is not None:
+                            embed_scores[n.uid] = float(next(valid_iter))
+                    scorer_name = "bge-m3+difflib-blend"
+    except ImportError as exc:
+        logger.debug("embeddings module unavailable: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("embedding similarity skipped: %s", exc)
+
     scored = []
     reference = f"{root.label or ''} {root.signature or ''} {root.doc_blob or ''}"
     for node in candidates:
         other = f"{node.label or ''} {node.signature or ''} {node.doc_blob or ''}"
-        ratio = difflib.SequenceMatcher(None, reference, other).ratio()
+        lex = difflib.SequenceMatcher(None, reference, other).ratio()
+        emb = embed_scores.get(node.uid)
+        # Linear blend: 70% embedding, 30% lexical when embedding ran;
+        # 100% lexical otherwise. Keeps results deterministic and lets
+        # cold-start environments still answer.
+        ratio = (0.7 * emb + 0.3 * lex) if emb is not None else lex
         if ratio >= confidence_min:
             scored.append((ratio, node))
     scored.sort(key=lambda pair: pair[0], reverse=True)
@@ -821,7 +981,7 @@ def cos_graph_similar(
     ]
     return _ok(
         {"root": NodeSummary.from_node(root).to_dict(), "results": results},
-        meta={"backend": be.backend_id, "scorer": "difflib-baseline"},
+        meta={"backend": be.backend_id, "scorer": scorer_name},
     )
 
 
@@ -1084,9 +1244,16 @@ def cos_graph_export(
             edges = list(edges) + list(spine_edges)
 
     if format == "json":
+        # Server-side degree map so consumers (3D adapter, search,
+        # NodeInspector) all see the same hub score without each
+        # recomputing client-side.
+        degree_map = _degree_map_for(be, [n.uid for n in nodes])
         payload: dict[str, Any] = {
             "format": "json",
-            "nodes": [NodeSummary.from_node(n).to_dict() for n in nodes],
+            "nodes": [
+                NodeSummary.from_node(n, degree=degree_map.get(n.uid)).to_dict()
+                for n in nodes
+            ],
             "edges": [_edge_to_dict(e) for e in edges],
         }
     elif format == "mermaid":
@@ -1418,33 +1585,91 @@ def _lexical_search(
     limit: int,
     max_hops: int,
 ) -> list[GraphNode]:
+    """Multi-signal lexical search with centrality tie-breaker."""
     lower = q.lower()
-    seen: dict[str, GraphNode] = {}
-    for edge in backend.list_edges(limit=1000):
-        for side in (edge.source_uid, edge.target_uid):
-            if side in seen:
-                continue
-            node = backend.get_node(side)
-            if node is None:
-                continue
-            if kinds and node.kind not in kinds:
-                continue
-            haystack = " ".join(
-                filter(
-                    None,
-                    [node.uid, node.label, node.signature, node.doc_blob],
-                )
-            ).lower()
-            if lower in haystack:
-                seen[side] = node
-            if len(seen) >= limit * 3:
-                break
-    scored = sorted(
-        seen.values(),
-        key=lambda n: difflib.SequenceMatcher(None, lower, (n.label or "").lower()).ratio(),
-        reverse=True,
-    )
-    return scored[:limit]
+    sqlite_conn = getattr(backend, "_conn", None)
+    candidates: list[GraphNode] = []
+    if sqlite_conn is not None:
+        like_q = f"%{lower}%"
+        kinds_clause = ""
+        params: list[Any] = [like_q, like_q, like_q]
+        if kinds:
+            placeholders = ",".join(["?"] * len(kinds))
+            kinds_clause = f" AND kind IN ({placeholders})"
+            params.extend(list(kinds))
+        params.append(int(limit) * 6)
+        try:
+            rows = sqlite_conn.execute(
+                f"""
+                SELECT kind, label, uid, file_path, start_line, end_line,
+                       signature, lang, doc_blob, ast_hash, content_hash,
+                       metadata_json
+                FROM graph_nodes
+                WHERE (LOWER(label) LIKE ?
+                       OR LOWER(COALESCE(signature, '')) LIKE ?
+                       OR LOWER(COALESCE(doc_blob, '')) LIKE ?)
+                {kinds_clause}
+                LIMIT ?
+                """,
+                tuple(params),
+            ).fetchall()
+            row_to_node = getattr(backend, "_row_to_node", None)
+            for row in rows:
+                if row_to_node is not None:
+                    candidates.append(row_to_node(row))
+                else:
+                    n = backend.get_node(row[2])
+                    if n is not None:
+                        candidates.append(n)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("lexical sql search suppressed: %s", exc)
+
+    if not candidates:
+        seen: dict[str, GraphNode] = {}
+        for edge in backend.list_edges(limit=1000):
+            for side in (edge.source_uid, edge.target_uid):
+                if side in seen:
+                    continue
+                node = backend.get_node(side)
+                if node is None:
+                    continue
+                if kinds and node.kind not in kinds:
+                    continue
+                haystack = " ".join(
+                    filter(
+                        None,
+                        [node.uid, node.label, node.signature, node.doc_blob],
+                    )
+                ).lower()
+                if lower in haystack:
+                    seen[side] = node
+                if len(seen) >= limit * 3:
+                    break
+        candidates = list(seen.values())
+
+    degree_map = _degree_map_for(backend, [n.uid for n in candidates])
+    from math import log2  # noqa: PLC0415
+
+    def score(n: GraphNode) -> float:
+        label = (n.label or "").lower()
+        sig = (n.signature or "").lower()
+        doc = (n.doc_blob or "").lower()
+        if label == lower:
+            base = 1.0
+        elif label.startswith(lower):
+            base = 0.85
+        elif lower in label:
+            base = 0.70
+        elif lower in sig:
+            base = 0.45
+        elif lower in doc:
+            base = 0.30
+        else:
+            base = difflib.SequenceMatcher(None, lower, label).ratio() * 0.5
+        boost = log2((degree_map.get(n.uid) or 0) + 1) * 0.05
+        return base + min(boost, 0.4)
+
+    return sorted(candidates, key=score, reverse=True)[:limit]
 
 
 def _grep_string_literals(name: str) -> list[dict[str, Any]]:
@@ -1516,7 +1741,14 @@ def cos_graph_entrypoints(
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
 
-    from .. import entry_points as ep_mod  # local import: avoids cycle on cold load
+    try:
+        from .. import entry_points as ep_mod  # type: ignore[attr-defined]
+    except ImportError as exc:
+        return _fail(
+            "unavailable",
+            f"entry_points module not installed: {exc}",
+            retryable=False,
+        )
 
     eps = ep_mod.discover(be, min_score=float(min_score), kind_filter=kind)
     rows = [ep.to_dict() for ep in eps[:top]]

@@ -189,14 +189,41 @@ def dispatch(
                 "reason": f"read_failed: {read_error}",
             }
         else:
-            try:
-                graph_result = _reindex_graph(
-                    rel,
-                    file_content=file_content or "",
-                    chain=graph_chain[1],
-                    db_path=db_path,
-                    project_root=project_root,
+            graph_result: dict[str, Any] | None = None
+            last_error: Exception | None = None
+            # Lock-retry loop: a busy SQLite under many parallel
+            # writers can return "database is locked" even with
+            # busy_timeout (because BEGIN IMMEDIATE on a fresh
+            # connection isn't covered). Retry a few times with
+            # exponential backoff so the dispatcher doesn't drop
+            # writes the application would otherwise lose.
+            for attempt in range(3):
+                try:
+                    graph_result = _reindex_graph(
+                        rel,
+                        file_content=file_content or "",
+                        chain=graph_chain[1],
+                        db_path=db_path,
+                        project_root=project_root,
+                    )
+                    last_error = None
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_error = exc
+                    msg = str(exc).lower()
+                    if "locked" not in msg and "busy" not in msg:
+                        break
+                    time.sleep(0.05 * (2 ** attempt))
+            if last_error is not None:
+                logger.debug(
+                    "graph reindex failed for %s after retries: %s",
+                    rel, last_error,
                 )
+                result["layers"]["graph"] = {
+                    "status": "error",
+                    "reason": str(last_error),
+                }
+            elif graph_result is not None:
                 graph_result["chain"] = graph_chain[0]
                 result["layers"]["graph"] = graph_result
                 if content_hash is not None:
@@ -214,22 +241,20 @@ def dispatch(
                         db_path=db_path,
                         advance_hash=graph_result.get("status") == "ok",
                     )
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("graph reindex failed for %s: %s", rel, exc)
-                result["layers"]["graph"] = {"status": "error", "reason": str(exc)}
-                if content_hash is not None:
-                    _record_state_safe(
-                        rel,
-                        content_hash=content_hash,
-                        chain_key=",".join(graph_chain[1]),
-                        nodes_written=0,
-                        edges_written=0,
-                        parse_errors_count=0,
-                        last_error=str(exc),
-                        project_root=project_root,
-                        db_path=db_path,
-                        advance_hash=False,
-                    )
+
+            if last_error is not None and content_hash is not None:
+                _record_state_safe(
+                    rel,
+                    content_hash=content_hash,
+                    chain_key=",".join(graph_chain[1]),
+                    nodes_written=0,
+                    edges_written=0,
+                    parse_errors_count=0,
+                    last_error=str(last_error),
+                    project_root=project_root,
+                    db_path=db_path,
+                    advance_hash=False,
+                )
 
     if not result["layers"]:
         result["status"] = "skipped"

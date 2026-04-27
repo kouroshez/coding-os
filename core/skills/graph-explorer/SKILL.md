@@ -44,8 +44,10 @@ the answer came from the SQLite fallback (lower precision on deep walks).
   Edit without a prior `cos_graph_rename_plan` in this session, the
   hook warns + suggests the command.
 
-Both hooks are off by default; set `COS_ENFORCE_GRAPH_CONTEXT=1` to
-warn or `COS_ENFORCE_GRAPH_CONTEXT=strict` to block.
+Both hooks default to **warn** so agents discover the graph layer
+instead of writing blind. Opt-out with `COS_ENFORCE_GRAPH_CONTEXT=off`
+(or `=0`); promote to block with `=strict`. Same for
+`COS_ENFORCE_RENAME_PLAN`.
 
 ## Auto-reindex contract
 

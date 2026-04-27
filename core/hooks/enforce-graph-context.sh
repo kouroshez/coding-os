@@ -9,8 +9,11 @@ set -eu
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook enforce-graph-context enter || true
 
-MODE="${COS_ENFORCE_GRAPH_CONTEXT:-}"   # unset = disabled; 1 = warn; strict = block
-if [[ -z "$MODE" ]]; then
+# Default-on at "warn" so agents discover the graph_os layer instead
+# of writing blind to load-bearing files. Opt-out: COS_ENFORCE_GRAPH_CONTEXT=off
+# Opt-in stricter mode: COS_ENFORCE_GRAPH_CONTEXT=strict (block on miss).
+MODE="${COS_ENFORCE_GRAPH_CONTEXT:-1}"
+if [[ "$MODE" == "off" || "$MODE" == "0" ]]; then
   cos_log_hook enforce-graph-context disabled || true
   exit 0
 fi
@@ -40,21 +43,21 @@ if [[ ! -f "$CONFIG" ]]; then
 fi
 
 # Ask Python to decide whether FILE_PATH matches the configured globs.
-MATCHED="$(
-python3 - <<PY 2>/dev/null
-import fnmatch, yaml, sys
-with open("${CONFIG}", "r", encoding="utf-8") as fh:
-    data = yaml.safe_load(fh) or {}
-patterns = (((data.get("graph") or {}).get("enforce_context_on")) or [])
-fp = "${FILE_PATH}"
-for pat in patterns:
-    if fnmatch.fnmatchcase(fp, pat):
-        print("yes")
-        break
-else:
-    print("no")
-PY
-)"
+# bash 5.3.9 deadlocks `$(python3 - <<HEREDOC)`; extracted to helper.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _dir
+HELPER="${HSRC}/_helpers/graph_context_match.py"
+if [[ -f "$HELPER" ]]; then
+  MATCHED="$(python3 "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
+else
+  MATCHED="no"
+fi
 if [[ "$MATCHED" != "yes" ]]; then
   cos_log_hook enforce-graph-context skip || true
   exit 0
