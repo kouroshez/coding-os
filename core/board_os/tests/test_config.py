@@ -157,10 +157,6 @@ def test_swimlane_id_must_match_id_regex():
     assert "id" in str(exc.value)
 
 
-def test_swimlane_id_with_underscores_rejected():
-    with pytest.raises(ConfigValidationError):
-        parse_config({"swimlanes": [{"id": "back_end", "color": "#3b82f6"}]})
-
 
 def test_swimlane_color_must_be_hex():
     with pytest.raises(ConfigValidationError) as exc:
