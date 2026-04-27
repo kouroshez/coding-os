@@ -44,6 +44,25 @@ _EXT_MAP = {
 _DOCS_CHAIN_KEY = "docs:md"
 
 
+# Task-file path matcher. Comma-separated path fragments, env-overridable
+# so projects that keep tickets under e.g. `docs/tickets/` or `tasks/`
+# can opt into task_deps without forking the dispatcher. Each fragment
+# is a substring match against the forward-slash-normalised repo-
+# relative path.
+_DEFAULT_TASK_PATH_FRAGMENTS = ("/tasks/", "docs/tasks/")
+
+
+def _is_task_path(rel: str) -> bool:
+    raw = os.environ.get("COS_TASK_PATH_FRAGMENTS", "").strip()
+    fragments: tuple[str, ...]
+    if raw:
+        fragments = tuple(p.strip() for p in raw.split(",") if p.strip())
+    else:
+        fragments = _DEFAULT_TASK_PATH_FRAGMENTS
+    needle = rel.replace("\\", "/")
+    return any(frag in needle for frag in fragments)
+
+
 def dispatch(
     file_path: str | Path,
     *,
@@ -87,7 +106,7 @@ def dispatch(
         graph_chain = _EXT_MAP[suffix]
     elif suffix == ".md":
         graph_chain = ("markdown", ["md_links"])
-        if "/tasks/" in rel.replace("\\", "/"):
+        if _is_task_path(rel):
             graph_chain = ("markdown-task", ["task_deps", "md_links"])
 
     docs_in_scope = include_docs and suffix == ".md"
@@ -463,10 +482,32 @@ def _reindex_graph(
         "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
     )
     conn = init_db(effective_db)
-    nodes_written = edges_written = 0
+    nodes_written = edges_written = nodes_pruned = 0
     parse_errors: list[dict[str, Any]] = []
     try:
         backend = SqliteBackend(conn=conn)
+        # Prune stale rows from the file's previous run BEFORE re-
+        # extracting so renamed / deleted symbols don't linger as
+        # zombies (the rename-survives-as-extra-node bug). Scope the
+        # delete to *this run's* extractor IDs so cross-file stubs
+        # other extractors created for the same path stay intact.
+        chain_extractor_ids: list[str] = []
+        for name in chain:
+            extractor = extractor_map.get(name)
+            if extractor is None:
+                continue
+            module = sys.modules.get(extractor.__module__)
+            extractor_id = getattr(module, "EXTRACTOR_ID", None) if module else None
+            if isinstance(extractor_id, str):
+                chain_extractor_ids.append(extractor_id)
+        if chain_extractor_ids:
+            try:
+                nodes_pruned = backend.delete_nodes_for_file(
+                    rel_path, extractors=chain_extractor_ids
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("prune-before-reindex skipped for %s: %s", rel_path, exc)
+
         for extractor_name in chain:
             extractor = extractor_map.get(extractor_name)
             if extractor is None:
@@ -485,6 +526,7 @@ def _reindex_graph(
         "status": "ok",
         "nodes_written": nodes_written,
         "edges_written": edges_written,
+        "nodes_pruned": nodes_pruned,
         "parse_errors": parse_errors,
     }
 

@@ -898,12 +898,31 @@ class _PythonVisitor(ast.NodeVisitor):
             self.decorators_edges.append((uid, _dotted_name(dec)))
 
         # TASK-083: scan class body for `name: T` and `name: T = default`.
+        # Each annotated field becomes a real `code:variable` decl so it
+        # appears in the contains tree (parent class → field) instead of
+        # surfacing as an orphan stub. The stub UID still anchors the
+        # `field_of_type` edge that points at the annotation type.
         for stmt in node.body:
             if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
                 ann_name = _dotted_name(stmt.annotation)
+                field_name = stmt.target.id
+                field_stub = f"code:variable:{self.path}::{qualname}.{field_name}"
                 if ann_name:
-                    field_stub = f"{uid}.{stmt.target.id}"
                     self.field_types.append((field_stub, ann_name))
+                self.decls.append(
+                    _SymbolDecl(
+                        uid=field_stub,
+                        kind="code:variable",
+                        name=field_name,
+                        qualname=f"{qualname}.{field_name}",
+                        line=stmt.lineno,
+                        end_line=getattr(stmt, "end_lineno", None),
+                        signature=ann_name or "",
+                        docstring=None,
+                        decorators=tuple(),
+                        parent_uid=uid,
+                    )
+                )
 
         self._scope_uid_stack.append(uid)
         try:

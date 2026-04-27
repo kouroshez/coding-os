@@ -182,6 +182,29 @@ hooks:
         matcher: Write|Edit
         status_message: "🔍 Verifying Plan checkpoint for COMPLICATED+..."
 
+  - id: enforce-doc-sync
+    script: enforce-doc-sync.sh
+    description: |
+      PostToolUse Write|Edit|MultiEdit — code → doc staleness scanner.
+      Closes the docs-first loop in the OTHER direction. Three signals:
+      (1) public symbol removed/renamed + doc still mentions it,
+      (2) signature changed (param count diff) on a kept symbol — catches
+      the "agent invented a non-spec'd field" case, (3) doc mtime older
+      than code AND mentions a current symbol (soft).
+      Collaborates with thinking_os FTS5 doc index (better than path-mirror
+      heuristic) + graph_os reference count when backend is up. WARN class,
+      never blocks. Helper: _helpers/doc_sync_check.py.
+    category: enforcement
+    phase: "0"
+    timeout: 2000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📚 Scanning related docs for drift..."
+      - event: PostToolUse
+        matcher: Write|Edit|MultiEdit
+        status_message: "📚 Scanning related docs for drift..."
+
   # ── observability ──────────────────────────────────────────────────
   - id: capture-observation
     script: capture-observation.sh
@@ -204,6 +227,17 @@ hooks:
       - event: PostToolUse
         matcher: Write|Edit
         status_message: "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness..."
+
+  - id: auto-reindex-shell-ops
+    script: auto-reindex-shell-ops.sh
+    description: Catch bulk file ops (mv/cp/rm/git checkout/git restore) the Write/Edit hook misses; debounced full reindex in background so the graph stays fresh after a rename or branch switch.
+    category: retrieval
+    phase: I
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "🔁 Bulk shell op detected — scheduling graph reindex..."
 
   # ── graph_os enforcement (Phase I.14) ──────────────────────────────
   - id: enforce-graph-context

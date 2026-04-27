@@ -326,6 +326,44 @@ class SqliteBackend:
             self._conn.commit()
             return cursor.rowcount > 0
 
+    def delete_nodes_for_file(
+        self, file_path: str, *, extractors: Sequence[str] | None = None
+    ) -> int:
+        """Prune nodes belonging to a single source file before reindex.
+
+        PURPOSE:  Incremental reindex needs to discard stale symbols
+                  (functions / classes / imports the file no longer
+                  defines) before re-extracting; otherwise renamed or
+                  deleted symbols persist as zombies.
+        INPUT:    file_path — repo-relative file path stored on
+                  graph_nodes. extractors — optional list of extractor
+                  IDs to scope the prune to (matches on
+                  metadata.extractor); when None every node tied to
+                  the file is wiped.
+        OUTPUT:   number of nodes deleted (edges + evidence cascade
+                  via FK).
+        NOTES:    Cross-file STUB nodes (md_links targets for other
+                  files) carry file_path of the *target* file, not the
+                  source — the extractor scoping protects them.
+        """
+        with self._write_lock:
+            if not extractors:
+                cursor = self._conn.execute(
+                    "DELETE FROM graph_nodes WHERE file_path=?", (file_path,)
+                )
+                self._conn.commit()
+                return int(cursor.rowcount or 0)
+            placeholders = " OR ".join(["metadata_json LIKE ?"] * len(extractors))
+            params: list[Any] = [file_path]
+            for ex in extractors:
+                params.append(f'%"extractor": "{ex}"%')
+            cursor = self._conn.execute(
+                f"DELETE FROM graph_nodes WHERE file_path=? AND ({placeholders})",
+                params,
+            )
+            self._conn.commit()
+            return int(cursor.rowcount or 0)
+
     # -- Read path ---------------------------------------------------------
 
     def get_node(self, uid: str) -> GraphNode | None:

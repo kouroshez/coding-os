@@ -95,7 +95,14 @@ _LEGACY_KIND_MAP: dict[str, str] = {
     "code:variable": "variable",
     "code:interface": "interface",
     "code:import": "import_",
-    "code:external": "unknown",
+    # `code:external:*` UIDs are unresolved cross-module references —
+    # builtin types, dynamic attribute accesses, third-party imports
+    # the extractor couldn't pin to a real definition. They're not
+    # "unknown" (which the canvas treats as a true mystery), they're
+    # bonafide identifiers without resolution. Mapping to `identifier`
+    # gets them their own legend slot + colour and lets the noise
+    # filter on the export side hide them when needed.
+    "code:external": "identifier",
     # doc:*
     "doc:file": "doc_file",
     "doc:heading": "doc_heading",

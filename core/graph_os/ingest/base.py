@@ -46,7 +46,7 @@ class IngestPlan:
 
 
 DEFAULT_INCLUDE = ("*.py", "*.ts", "*.tsx", "*.md", "*.sh", "*.yaml", "*.yml", "*.go")
-DEFAULT_EXCLUDE = (".git", "node_modules", ".venv", "__pycache__", "dist", "build", ".build", ".coding-os", ".claude", ".codex", ".cursor", ".agents")
+DEFAULT_EXCLUDE = (".git", "node_modules", ".venv", "__pycache__", "dist", "build", ".build", ".coding-os", ".claude", ".codex", ".cursor", ".agents", ".pytest_cache", ".mypy_cache", ".ruff_cache")
 
 
 def walk_local(

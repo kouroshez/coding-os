@@ -186,8 +186,22 @@ def get_backend(
     NOTES:    In I.0, auto resolves to SQLite unless Kuzu is importable
               AND the plan's kuzu_path is writable. I.1 promotes auto
               to prefer Kuzu once the migration is in place.
+
+              The default-path SQLite backend (no explicit conn or
+              kuzu_path) is cached per-process so MCP tool calls and
+              hub routes share one connection instead of opening a
+              fresh sqlite3.Connection on every request.
     """
     choice = _resolve_backend_choice(backend)
+    # Only the default-path case is safe to cache. Tests + explicit
+    # callers that pass `sqlite_conn=` or `kuzu_path=` get a fresh
+    # backend so they retain control over the underlying handle.
+    cacheable = sqlite_conn is None and kuzu_path is None and not extra
+    cache_key = (choice,) if cacheable else None
+    if cache_key is not None:
+        cached = _BACKEND_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
 
     if choice in ("kuzu", "auto"):
         try:
@@ -196,6 +210,8 @@ def get_backend(
             try:
                 backend = KuzuBackend(path=kuzu_path, **extra)
                 _record_backend_probe(backend)
+                if cache_key is not None:
+                    _BACKEND_CACHE[cache_key] = backend
                 return backend
             except BackendUnavailable as exc:
                 if choice == "kuzu":
@@ -216,7 +232,30 @@ def get_backend(
 
     backend = SqliteBackend(conn=sqlite_conn, **extra)
     _record_backend_probe(backend)
+    if cache_key is not None:
+        _BACKEND_CACHE[cache_key] = backend
     return backend
+
+
+# Per-process cache of backend instances. Sized to one or two entries
+# in practice (default + maybe an explicit kuzu_path).
+_BACKEND_CACHE: dict[Any, "GraphBackend"] = {}
+
+
+def reset_backend_cache() -> None:
+    """Drop the cached backend(s).
+
+    Tests + the dispatcher worker call this after wiping the DB so
+    the next get_backend() opens a fresh connection.
+    """
+    while _BACKEND_CACHE:
+        _, backend = _BACKEND_CACHE.popitem()
+        close = getattr(backend, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("backend close suppressed: %s", exc)
 
 
 def _record_backend_probe(backend: "GraphBackend") -> None:
@@ -236,4 +275,9 @@ def _record_backend_probe(backend: "GraphBackend") -> None:
         logger.debug("backend probe write skipped: %s", exc)
 
 
-__all__ = ["GraphBackend", "BackendUnavailable", "get_backend"]
+__all__ = [
+    "GraphBackend",
+    "BackendUnavailable",
+    "get_backend",
+    "reset_backend_cache",
+]

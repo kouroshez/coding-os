@@ -962,6 +962,11 @@ _DEFAULT_NOISE_KINDS: frozenset[str] = frozenset({
     "doc_frontmatter",
     "doc:heading",
     "doc_heading",
+    # Unresolved external identifiers (typing.*, builtins, dynamic
+    # method accesses) — they're stub nodes synthesised to satisfy
+    # FK constraints, not navigation targets. Hidden by default; pass
+    # `exclude_kinds=""` to show them when you really need to.
+    "identifier",
 })
 
 
