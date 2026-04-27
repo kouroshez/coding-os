@@ -199,6 +199,19 @@ def _build_target_assets(
                     rel_link=f"{commands_dir_rel}/{cmd.name}",
                     source_path=cmd,
                 ))
+        # Phase M formula-agent slash commands installed by install.sh §7b.
+        # F1_research.md → formula-f1.md (same naming as install.sh).
+        import re as _re
+        agents_src = CORE_DIR / "thinking_os" / "agents"
+        if agents_src.exists():
+            for agent in sorted(agents_src.glob("F*.md")):
+                m = _re.match(r"F(\d+)_", agent.name)
+                if m:
+                    result["commands"].append(AssetRef(
+                        name=f"formula-f{m.group(1)}.md",
+                        rel_link=f"{commands_dir_rel}/formula-f{m.group(1)}.md",
+                        source_path=agent,
+                    ))
 
     return result
 

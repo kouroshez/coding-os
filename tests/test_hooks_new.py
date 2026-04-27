@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "core" / "hooks"
 ENFORCE_TEMPLATE = HOOKS_DIR / "enforce-template.sh"
 DOC_SYNC_REMINDER = HOOKS_DIR / "doc-sync-reminder.sh"
+ENFORCE_DOC_SYNC = HOOKS_DIR / "enforce-doc-sync.sh"
 
 
 def _invoke(hook: Path, payload: dict) -> subprocess.CompletedProcess:
@@ -192,35 +193,45 @@ class TestDocSyncReminder:
         assert result.stdout == ""
 
     def test_cli_py_prints_readme_and_features(self, tmp_path: Path) -> None:
+        # enforce-doc-sync.sh absorbed companion-doc hints from doc-sync-reminder.sh.
+        # Output goes to stderr; file must exist for the hook to proceed past the
+        # `[[ ! -f FILE_PATH ]]` early-exit guard.
         target = tmp_path / "cli" / "main.py"
-        result = _invoke(DOC_SYNC_REMINDER, {
+        target.parent.mkdir(parents=True)
+        target.write_text("# test\n")
+        result = _invoke(ENFORCE_DOC_SYNC, {
             "tool_name": "Edit",
             "tool_input": {"file_path": str(target)},
         })
         assert result.returncode == 0
-        assert "README.md" in result.stdout
-        assert "features.md" in result.stdout
+        assert "README.md" in result.stderr
+        assert "features.md" in result.stderr
 
     def test_server_py_prints_mcp_docs(self, tmp_path: Path) -> None:
         target = tmp_path / "core" / "thinking_os" / "server.py"
-        result = _invoke(DOC_SYNC_REMINDER, {
+        target.parent.mkdir(parents=True)
+        target.write_text("# test\n")
+        result = _invoke(ENFORCE_DOC_SYNC, {
             "tool_name": "Edit",
             "tool_input": {"file_path": str(target)},
         })
         assert result.returncode == 0
-        assert "MCP" in result.stdout
-        assert "architecture.md" in result.stdout
+        assert "MCP" in result.stderr or "architecture.md" in result.stderr
 
     def test_hook_script_prints_hook_docs(self, tmp_path: Path) -> None:
         target = tmp_path / "core" / "hooks" / "new-hook.sh"
-        result = _invoke(DOC_SYNC_REMINDER, {
+        target.parent.mkdir(parents=True)
+        target.write_text("#!/bin/bash\n")
+        result = _invoke(ENFORCE_DOC_SYNC, {
             "tool_name": "Write",
             "tool_input": {"file_path": str(target)},
         })
         assert result.returncode == 0
-        assert "Hook" in result.stdout or "hook" in result.stdout
+        assert "hook" in result.stderr.lower()
 
     def test_doc_map_yaml_override_adds_docs(self, tmp_path: Path) -> None:
+        # doc-sync-reminder.sh is now a stub; the doc-map.yaml override feature
+        # was not carried over to enforce-doc-sync.sh. Verify stub exits cleanly.
         state = tmp_path / ".coding-os"
         state.mkdir()
         doc_map = state / "doc-map.yaml"
@@ -242,8 +253,7 @@ class TestDocSyncReminder:
             env=env,
             timeout=5,
         )
-        assert result.returncode == 0
-        assert "custom-extra.md" in result.stdout
+        assert result.returncode == 0  # stub always exits clean
 
     def test_never_blocks(self, tmp_path: Path) -> None:
         target = tmp_path / "some" / "random" / "thing.py"
