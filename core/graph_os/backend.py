@@ -209,6 +209,27 @@ def get_backend(
 
             try:
                 backend = KuzuBackend(path=kuzu_path, **extra)
+                # `auto` falls back to SQLite when Kuzu is reachable
+                # but empty — that's the common state for projects
+                # whose reindexer only writes to SQLite. An explicit
+                # backend="kuzu" caller stays on Kuzu (for tests +
+                # eventual Kuzu-primary deployments).
+                if choice == "auto":
+                    try:
+                        if backend.count_nodes() == 0:
+                            logger.info(
+                                "Kuzu backend opened but empty; "
+                                "falling back to SQLite for `auto`.",
+                            )
+                            try:
+                                backend.close()
+                            except Exception:  # noqa: BLE001
+                                pass
+                            raise BackendUnavailable("kuzu_empty")
+                    except BackendUnavailable:
+                        raise
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("kuzu probe failed: %s", exc)
                 _record_backend_probe(backend)
                 if cache_key is not None:
                     _BACKEND_CACHE[cache_key] = backend
