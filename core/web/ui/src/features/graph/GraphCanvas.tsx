@@ -25,9 +25,24 @@ export default function GraphCanvas() {
   // string) — the backend would interpret that as "look up empty uid,
   // find nothing" and return 0 nodes.  Pass the key only when a root
   // is actually pinned.
+  const overviewBudgetByDepth: Record<string, number> = {
+    '1': 120,
+    '2': 320,
+    '3': 700,
+    all: 1400,
+  };
+  const rootedBudgetByDepth: Record<string, number> = {
+    '1': 80,
+    '2': 250,
+    '3': 600,
+    all: 1500,
+  };
+  const depthKey = String(depth);
   const exportParams: Record<string, unknown> = {
     format: 'json',
-    max_nodes: selectedRootUid ? 500 : 400,
+    max_nodes: selectedRootUid
+      ? rootedBudgetByDepth[depthKey] ?? 600
+      : overviewBudgetByDepth[depthKey] ?? 400,
     mode: viewMode,
   };
   if (selectedRootUid) {
@@ -35,7 +50,7 @@ export default function GraphCanvas() {
     exportParams.include_spine = true;
   }
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
-    ['graph-export', selectedRootUid ?? '__overview__', viewMode],
+    ['graph-export', selectedRootUid ?? '__overview__', viewMode, depthKey],
     '/api/graph/export',
     exportParams,
   );

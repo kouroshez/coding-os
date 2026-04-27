@@ -38,6 +38,7 @@ export interface SigmaNodeAttrs {
   filePath?: string;
   startLine?: number;
   hidden?: boolean;
+  forceLabel?: boolean;
 }
 
 export interface SigmaEdgeAttrs {
@@ -73,18 +74,26 @@ export function buildGraph(
   const nodes = allNodes.filter((n) => !CANVAS_NOISE_KINDS.has(n.kind));
   const edges = payload.edges ?? [];
 
-  // Pre-compute degree for size scaling: hubs get visibly bigger nodes
-  // (log curve so a 200-deg hub doesn't dwarf the canvas).
   const degree = new Map<string, number>();
   for (const e of edges) {
     if (!e.source_uid || !e.target_uid) continue;
     degree.set(e.source_uid, (degree.get(e.source_uid) ?? 0) + 1);
     degree.set(e.target_uid, (degree.get(e.target_uid) ?? 0) + 1);
   }
+  const SEMANTIC_KINDS = new Set([
+    'folder', 'file', 'module', 'class', 'route',
+    'mcp_tool', 'task', 'doc_file', 'rule', 'skill', 'hook', 'contract',
+  ]);
   const sizeFor = (uid: string, kind: string): number => {
-    const base = kind === 'folder' ? 6 : kind === 'file' ? 5 : 3;
+    const base = kind === 'folder' ? 5 : kind === 'file' ? 4 : kind === 'module' ? 3.5 : 2;
     const d = degree.get(uid) ?? 0;
-    return Math.min(20, base + Math.log2(d + 1) * 1.6);
+    return Math.min(28, base + Math.log2(d + 1) * 2.6);
+  };
+  const labelForceFor = (uid: string, kind: string): boolean => {
+    const d = degree.get(uid) ?? 0;
+    if (d >= 10) return true;
+    if (SEMANTIC_KINDS.has(kind) && d >= 2) return true;
+    return false;
   };
 
   for (const n of nodes) {
@@ -108,6 +117,7 @@ export function buildGraph(
       filePath: n.file_path ?? undefined,
       startLine: n.start_line ?? undefined,
       hidden: !kindVisible,
+      forceLabel: labelForceFor(n.uid, normalKind),
     });
   }
 
