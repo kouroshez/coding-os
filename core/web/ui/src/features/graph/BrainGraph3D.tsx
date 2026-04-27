@@ -178,12 +178,14 @@ function adaptPayload(
     if (!e.source_uid || !e.target_uid) continue;
     if (!nodeUids.has(e.source_uid) || !nodeUids.has(e.target_uid)) continue;
     if (visibleEdgeTypes.size > 0 && !visibleEdgeTypes.has(e.edge_type)) continue;
-    const palette = EDGE_PALETTE[e.edge_type] ?? { color: '#A89788', width: 0.3 };
+    const palette = EDGE_PALETTE[e.edge_type] ?? { color: '#A89788', width: 0.6 };
     const combined =
       (degreeMap.get(e.source_uid) ?? 0) + (degreeMap.get(e.target_uid) ?? 0);
-    // Highway edges visibly thicker — 0.4 baseline, up to 1.4 for the
-    // top-shaharah routes between major hubs.
-    const widthBoost = combined >= highwayThreshold ? 1.0 : 0.0;
+    // Edge importance has a midband: highway (top 15%) gets +1.6,
+    // major (top 35%) gets +0.6, rest stays at palette baseline.
+    const isHighway = combined >= highwayThreshold;
+    const isMajor = combined >= highwayThreshold * 0.55;
+    const widthBoost = isHighway ? 1.6 : isMajor ? 0.6 : 0.2;
     links.push({
       source: e.source_uid,
       target: e.target_uid,
@@ -295,9 +297,9 @@ export default function BrainGraph3D() {
     if (alreadyHas) return;
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(size.w || 800, size.h || 600),
-      0.9, // strength
-      0.6, // radius
-      0.15, // threshold — lower = more things glow
+      0.45, // strength — gentle so leaves don't blow out
+      0.4, // radius
+      0.78, // threshold — only the brightest emissive hubs get bloom
     );
     (bloom as unknown as { name: string }).name = 'cos-bloom';
     composer.addPass(bloom);
@@ -330,14 +332,22 @@ export default function BrainGraph3D() {
       hovered != null && neighbourMap.get(hovered)?.has(node.id);
     const dim = hovered != null && !isHovered && !isNeighbour;
 
+    // Tiered emissive — leaves stay matte, mid-degree nodes barely
+    // glow, only real hubs (size > ~16) push past the bloom threshold.
+    // This is what gives the reference screenshots their "bright stars
+    // on a calm sky" look instead of a flat field of stars.
+    const isMajorHub = node.size > 16;
+    const emissiveIntensity = isMajorHub
+      ? Math.min(1.6, 0.6 + (node.size - 16) / 14)
+      : node.size > 9
+        ? 0.18
+        : 0.05;
     const sphereMat = new THREE.MeshStandardMaterial({
       color: node.color,
       emissive: node.color,
-      // Hubs glow more — emissiveIntensity scales with size (which is
-      // log of degree). Capped so smaller nodes stay subtle.
-      emissiveIntensity: Math.min(0.9, 0.15 + node.size / 36),
-      roughness: 0.32,
-      metalness: 0.08,
+      emissiveIntensity,
+      roughness: 0.45,
+      metalness: 0.05,
       transparent: dim,
       opacity: dim ? 0.18 : 1.0,
     });
@@ -363,23 +373,41 @@ export default function BrainGraph3D() {
       group.add(halo);
     }
 
+    // Label visibility tiers — labels are the #1 readability win the
+    // reference screenshots have and the previous version didn't.
+    //   - hovered + its neighbours: always shown, brighter
+    //   - any folder / file / module / class / route / mcp_tool: shown
+    //   - any node whose size hits the "I matter" bar (>= 8): shown
+    //   - everything else: hidden until hover
+    const SEMANTIC_KINDS = new Set([
+      'folder', 'file', 'module', 'class', 'route',
+      'mcp_tool', 'task', 'doc_file', 'rule', 'skill', 'hook', 'contract',
+    ]);
     const showLabel =
-      isHovered ||
-      isNeighbour ||
-      node.size > 12 ||
-      (!hovered && (node.kind === 'folder' || node.kind === 'file') && node.degree > 5);
+      !dim &&
+      (isHovered ||
+        isNeighbour ||
+        node.size >= 8 ||
+        SEMANTIC_KINDS.has(node.kind));
     if (showLabel) {
       const sprite = new SpriteText(node.label);
-      sprite.color = isHovered ? '#FFF6F0' : '#E8DFD0';
+      sprite.color = isHovered
+        ? '#FFFFFF'
+        : node.size > 12
+          ? '#FFF6F0'
+          : '#C8BFB0';
       sprite.backgroundColor = false;
       sprite.fontFace = '"Inter", system-ui, sans-serif';
-      sprite.fontWeight = isHovered ? '600' : '400';
-      sprite.textHeight = isHovered ? Math.max(node.size * 0.7, 4) : Math.max(node.size * 0.5, 2.5);
-      sprite.position.set(0, node.size + 2, 0);
-      // Cheap outline via padding-coloured stroke — keeps labels
-      // legible against the dark canvas without an extra pass.
+      sprite.fontWeight = isHovered || isMajorHub ? '600' : '400';
+      // Labels are clamped so a tiny class doesn't get a 1px label
+      // and a giant hub doesn't take half the screen.
+      sprite.textHeight = isHovered
+        ? Math.max(node.size * 0.85, 5)
+        : Math.max(node.size * 0.45, 3.2);
+      sprite.position.set(0, node.size + 2.5, 0);
+      // Outline keeps labels legible on busy backgrounds.
       sprite.strokeColor = CANVAS_BG;
-      sprite.strokeWidth = 2;
+      sprite.strokeWidth = isHovered ? 4 : 2.5;
       group.add(sprite);
     }
 
@@ -430,10 +458,10 @@ export default function BrainGraph3D() {
           nodeRelSize={4}
           linkColor={linkColor}
           linkWidth={linkWidth}
-          linkOpacity={hovered ? 0.95 : 0.55}
+          linkOpacity={hovered ? 0.95 : 0.78}
           linkDirectionalParticles={linkDirectionalParticles}
-          linkDirectionalParticleWidth={0.7}
-          linkDirectionalParticleSpeed={0.005}
+          linkDirectionalParticleWidth={1.2}
+          linkDirectionalParticleSpeed={0.006}
           linkDirectionalParticleColor={(l: object) =>
             (l as ForceLink).color
           }
