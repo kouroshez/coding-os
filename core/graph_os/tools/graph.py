@@ -19,6 +19,7 @@ import logging
 import os
 import re
 import sys
+import threading
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -99,6 +100,29 @@ def _telemetry_path() -> str | None:
         return None
 
 
+def _rotate_telemetry_atomically(path: str) -> None:
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        return
+    if size <= _TELEMETRY_MAX_BYTES:
+        return
+    tmp = f"{path}.rotating"
+    try:
+        with open(path, "rb") as src:
+            src.seek(size // 2)
+            tail = src.read()
+        with open(tmp, "wb") as dst:
+            dst.write(tail)
+        os.replace(tmp, path)
+    except OSError as exc:
+        logger.debug("telemetry rotation skipped: %s", exc)
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
 def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
     """Append one JSONL row. Fail-open — telemetry must never block a tool."""
     try:
@@ -113,17 +137,7 @@ def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
             **{k: v for k, v in meta.items() if isinstance(v, (str, int, float, bool))},
         }
         line = _json.dumps(row, default=str) + "\n"
-        # Soft rotation — when the file grows past the cap, drop the
-        # first half (cheap mtime-cap policy).
-        try:
-            size = os.path.getsize(path)
-            if size > _TELEMETRY_MAX_BYTES:
-                with open(path, "rb") as fh:
-                    chunk = fh.read()
-                with open(path, "wb") as fh:
-                    fh.write(chunk[len(chunk) // 2:])
-        except OSError:
-            pass
+        _rotate_telemetry_atomically(path)
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(line)
     except Exception as exc:  # noqa: BLE001
@@ -136,6 +150,7 @@ def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
 
 
 _BACKEND_SINGLETON: GraphBackend | None = None
+_BACKEND_LOCK = threading.Lock()
 
 
 def _backend(*, backend: str | None = None) -> GraphBackend:
@@ -143,25 +158,28 @@ def _backend(*, backend: str | None = None) -> GraphBackend:
 
     B7: close the previous backend before replacing the singleton when the
     caller asks for a different backend, so file handles / DB connections
-    don't leak across the swap.
+    don't leak across the swap. Lock guards against concurrent MCP
+    callers swapping the singleton mid-call.
     """
     global _BACKEND_SINGLETON
-    if _BACKEND_SINGLETON is None or backend is not None:
-        if _BACKEND_SINGLETON is not None:
-            try:
-                _BACKEND_SINGLETON.close()
-            except Exception as exc:  # noqa: BLE001 — swap must not raise
-                logger.debug("previous backend close suppressed: %s", exc)
-        _BACKEND_SINGLETON = get_backend(backend=backend)
-    return _BACKEND_SINGLETON
+    with _BACKEND_LOCK:
+        if _BACKEND_SINGLETON is None or backend is not None:
+            if _BACKEND_SINGLETON is not None:
+                try:
+                    _BACKEND_SINGLETON.close()
+                except Exception as exc:  # noqa: BLE001 — swap must not raise
+                    logger.debug("previous backend close suppressed: %s", exc)
+            _BACKEND_SINGLETON = get_backend(backend=backend)
+        return _BACKEND_SINGLETON
 
 
 def reset_backend() -> None:
     """Test-only: drop the cached backend so tests get a fresh one."""
     global _BACKEND_SINGLETON
-    if _BACKEND_SINGLETON is not None:
-        _BACKEND_SINGLETON.close()
-    _BACKEND_SINGLETON = None
+    with _BACKEND_LOCK:
+        if _BACKEND_SINGLETON is not None:
+            _BACKEND_SINGLETON.close()
+        _BACKEND_SINGLETON = None
 
 
 # ---------------------------------------------------------------------------

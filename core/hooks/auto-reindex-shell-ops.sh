@@ -58,14 +58,39 @@ fi
 
 date +%s > "$SENTINEL" 2>/dev/null || true
 
-# Detached background reindex — Bash tool returns immediately.
 ERR_LOG="${STATE_DIR}/.reindex-shell-ops.log"
+
+# Bulk patterns force a full walk; everything else can dispatch the
+# explicit paths it touched and skip the 17s repo walk.
+BULK_RE='git[[:space:]]+(checkout|restore|reset|stash)([[:space:]]+\.|[[:space:]]+--[[:space:]]+\.|[[:space:]]*$)|find[[:space:]].*-delete|rm[[:space:]]+-rf'
+EXPLICIT_PATHS="$(printf '%s' "$CMD" | grep -oE '[A-Za-z0-9_./-]+\.(py|ts|tsx|md|sh|yaml|yml|go|rs|java|toml|json)\b' | sort -u)"
+
+if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
+  (
+    (
+      cos graph-reindex --force >>"$ERR_LOG" 2>&1
+      rm -f "$SENTINEL" 2>/dev/null || true
+    ) &
+  ) &
+  cos_log_hook auto-reindex-shell-ops full "cmd_head=$(printf '%.80s' "$CMD")" || true
+  exit 0
+fi
+
 (
   (
-    cos graph-reindex --force >>"$ERR_LOG" 2>&1
+    while IFS= read -r path; do
+      [[ -f "$path" ]] || continue
+      "${COS_PYTHON:-python3}" -c "
+import sys
+sys.path.insert(0, 'core')
+sys.path.insert(0, 'core/thinking_os')
+from graph_os.tools.reindex_dispatch import dispatch
+dispatch('${path}', project_root='$(pwd)', force=True)
+" >>"$ERR_LOG" 2>&1
+    done <<< "$EXPLICIT_PATHS"
     rm -f "$SENTINEL" 2>/dev/null || true
   ) &
 ) &
 
-cos_log_hook auto-reindex-shell-ops scheduled "cmd_head=$(printf '%.80s' "$CMD")" || true
+cos_log_hook auto-reindex-shell-ops paths "$(echo "$EXPLICIT_PATHS" | wc -l) files" || true
 exit 0

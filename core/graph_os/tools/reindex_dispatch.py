@@ -44,6 +44,11 @@ _EXT_MAP = {
 _DOCS_CHAIN_KEY = "docs:md"
 
 
+def _is_retryable_lock_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return "locked" in msg or "busy" in msg
+
+
 # Task-file path matcher. Comma-separated path fragments, env-overridable
 # so projects that keep tickets under e.g. `docs/tickets/` or `tasks/`
 # can opt into task_deps without forking the dispatcher. Each fragment
@@ -210,8 +215,7 @@ def dispatch(
                     break
                 except Exception as exc:  # noqa: BLE001
                     last_error = exc
-                    msg = str(exc).lower()
-                    if "locked" not in msg and "busy" not in msg:
+                    if not _is_retryable_lock_error(exc):
                         break
                     time.sleep(0.05 * (2 ** attempt))
             if last_error is not None:

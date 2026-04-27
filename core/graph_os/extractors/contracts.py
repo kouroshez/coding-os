@@ -19,6 +19,7 @@ NOTES:    Pattern-based; cannot see dynamic handlers. When we spot a
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import logging
 import re
@@ -178,6 +179,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    file_doc_blob = _python_file_docstring(content) if normalised.endswith(".py") else None
 
     file_node = GraphNode(
         uid=f"code:file:{normalised}",
@@ -185,6 +187,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         label=PurePosixPath(normalised).name,
         file_path=normalised,
         lang=_lang_for(normalised),
+        doc_blob=file_doc_blob,
         content_hash=content_hash,
         metadata={"extractor": EXTRACTOR_ID},
     )
@@ -547,6 +550,14 @@ def _scan_fiber(content: str) -> list[ContractMatch]:
 
 _MCP_NOISE_NAMES = {"name", "x", "y", "z", "foo", "bar", "tool", "test"}
 _MCP_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{2,}$")
+
+
+def _python_file_docstring(content: str) -> str | None:
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return None
+    return ast.get_docstring(tree)
 
 
 def _scan_mcp(content: str) -> list[ContractMatch]:

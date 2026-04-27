@@ -158,7 +158,9 @@ class SqliteBackend:
             kind_value = node.kind
         with self._write_lock:
             row = self._conn.execute(
-                "SELECT id FROM graph_nodes WHERE uid = ?", (node.uid,)
+                "SELECT id, doc_blob, signature, metadata_json "
+                "FROM graph_nodes WHERE uid = ?",
+                (node.uid,),
             ).fetchone()
             if row is None:
                 cursor = self._conn.execute(
@@ -190,26 +192,25 @@ class SqliteBackend:
                 return int(cursor.lastrowid)
 
             node_id = int(row[0])
-            existing = self._conn.execute(
-                "SELECT doc_blob, signature, metadata_json FROM graph_nodes WHERE id=?",
-                (node_id,),
-            ).fetchone()
+            existing_doc_blob = row[1]
+            existing_signature = row[2]
+            existing_meta_json = row[3]
             incoming_is_stub = bool(node.metadata.get("stub")) if node.metadata else False
-            existing_meta = json.loads(existing[2] or "{}") if existing else {}
-            existing_is_stub = bool(existing_meta.get("stub")) if existing else False
+            existing_meta = json.loads(existing_meta_json or "{}")
+            existing_is_stub = bool(existing_meta.get("stub"))
 
             doc_blob_to_write = node.doc_blob
             sig_to_write = node.signature
             meta_to_write = metadata_json
             if incoming_is_stub and not existing_is_stub:
-                doc_blob_to_write = existing[0] if existing else None
-                sig_to_write = existing[1] if existing else None
-                meta_to_write = existing[2] if existing else metadata_json
+                doc_blob_to_write = existing_doc_blob
+                sig_to_write = existing_signature
+                meta_to_write = existing_meta_json or metadata_json
             else:
-                if existing and existing[0] and not node.doc_blob:
-                    doc_blob_to_write = existing[0]
-                if existing and existing[1] and not node.signature:
-                    sig_to_write = existing[1]
+                if existing_doc_blob and not node.doc_blob:
+                    doc_blob_to_write = existing_doc_blob
+                if existing_signature and not node.signature:
+                    sig_to_write = existing_signature
 
             self._conn.execute(
                 """
@@ -412,40 +413,61 @@ class SqliteBackend:
                     """
                 ).fetchall()
 
-            rewrites = 0
+            stubs_by_label: dict[str, list[tuple[int, str, str]]] = {}
             for stub_id, stub_uid in stub_rows:
                 rest = stub_uid[len("code:external:"):]
                 module, _, name = rest.rpartition(":")
                 if not module or not name:
                     continue
-                module_path = module.replace(".", "/")
-                file_candidates = [
-                    f"%/{module_path}.py",
-                    f"{module_path}.py",
-                    f"%/{module_path}/__init__.py",
-                    f"{module_path}/__init__.py",
-                ]
-                like_clause = " OR ".join(
-                    ["file_path LIKE ?"] * len(file_candidates)
+                stubs_by_label.setdefault(name, []).append(
+                    (int(stub_id), module, stub_uid)
                 )
-                real_row = self._conn.execute(
-                    f"""
-                    SELECT id, uid FROM graph_nodes
-                    WHERE kind IN ('function','method','class','variable','interface')
-                      AND label = ?
-                      AND ({like_clause})
-                    LIMIT 1
-                    """,
-                    (name, *file_candidates),
-                ).fetchone()
-                if real_row is None:
+
+            if not stubs_by_label:
+                return 0
+
+            labels = list(stubs_by_label.keys())
+            placeholders = ",".join(["?"] * len(labels))
+            real_rows = self._conn.execute(
+                f"""
+                SELECT id, label, file_path FROM graph_nodes
+                WHERE kind IN ('function','method','class','variable','interface')
+                  AND label IN ({placeholders})
+                  AND file_path IS NOT NULL
+                """,
+                tuple(labels),
+            ).fetchall()
+            real_by_label: dict[str, list[tuple[int, str]]] = {}
+            for real_id, real_label, real_file in real_rows:
+                real_by_label.setdefault(real_label, []).append(
+                    (int(real_id), real_file)
+                )
+
+            rewrites = 0
+            for label, candidate_stubs in stubs_by_label.items():
+                real_candidates = real_by_label.get(label, [])
+                if not real_candidates:
                     continue
-                real_id = int(real_row[0])
-                self._conn.execute(
-                    "UPDATE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
-                    (real_id, stub_id),
-                )
-                rewrites += 1
+                for stub_id, module, _stub_uid in candidate_stubs:
+                    module_suffix = module.replace(".", "/")
+                    matched_real_id: int | None = None
+                    for real_id, real_file in real_candidates:
+                        if (
+                            real_file == f"{module_suffix}.py"
+                            or real_file.endswith(f"/{module_suffix}.py")
+                            or real_file == f"{module_suffix}/__init__.py"
+                            or real_file.endswith(f"/{module_suffix}/__init__.py")
+                        ):
+                            matched_real_id = real_id
+                            break
+                    if matched_real_id is None:
+                        continue
+                    self._conn.execute(
+                        "UPDATE graph_edges_v12 SET target_id = ? "
+                        "WHERE target_id = ?",
+                        (matched_real_id, stub_id),
+                    )
+                    rewrites += 1
             self._conn.commit()
             return rewrites
 
