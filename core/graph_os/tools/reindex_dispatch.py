@@ -34,7 +34,7 @@ _EXT_MAP = {
     ".sh":  ("shell",   ["code_shell"]),
     ".yaml":("yaml",    ["code_yaml"]),
     ".yml": ("yaml",    ["code_yaml"]),
-    ".go":  ("go",      ["contracts"]),
+    ".go":  ("go",      ["code_go", "contracts"]),
 }
 
 # Sentinel chain key stored on file_index_state for docs-only rows
@@ -424,8 +424,7 @@ def _record_state_safe(
 
 
 def _open_conn(*, project_root: Path, db_path: str | None):
-    _ensure_thinking_os_on_path()
-    from db import init_db  # type: ignore
+    from thinking_os.db import init_db  # type: ignore
 
     effective_db = db_path or os.environ.get(
         "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
@@ -455,9 +454,8 @@ def _reindex_docs(
     project_root: Path,
     db_path: str | None,
 ) -> dict[str, Any]:
-    _ensure_thinking_os_on_path()
-    from db import init_db  # type: ignore
-    from doc_indexer import index_single_file  # type: ignore
+    from thinking_os.db import init_db  # type: ignore
+    from thinking_os.doc_indexer import index_single_file  # type: ignore
 
     config_path = project_root / ".coding-os" / "rag-config.yaml"
     effective_db = db_path or os.environ.get(
@@ -483,11 +481,10 @@ def _reindex_graph(
     db_path: str | None,
     project_root: Path,
 ) -> dict[str, Any]:
-    _ensure_core_on_path()
-    _ensure_thinking_os_on_path()
-    from db import init_db  # type: ignore
-    from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
+    from thinking_os.db import init_db  # type: ignore
+    from graph_os.backends.sqlite_backend import SqliteBackend
     from graph_os.extractors import (  # type: ignore
+        code_go,
         code_python,
         code_shell,
         code_ts,
@@ -498,6 +495,7 @@ def _reindex_graph(
     )
 
     extractor_map = {
+        "code_go": code_go.extract,
         "code_python": code_python.extract,
         "code_ts": code_ts.extract,
         "code_shell": code_shell.extract,
@@ -563,20 +561,6 @@ def _reindex_graph(
         "nodes_pruned": nodes_pruned,
         "parse_errors": parse_errors,
     }
-
-
-def _ensure_thinking_os_on_path() -> None:
-    here = Path(__file__).resolve()
-    target = here.parent.parent.parent / "thinking_os"
-    if target.exists() and str(target) not in sys.path:
-        sys.path.insert(0, str(target))
-
-
-def _ensure_core_on_path() -> None:
-    here = Path(__file__).resolve()
-    target = here.parent.parent.parent
-    if target.exists() and str(target) not in sys.path:
-        sys.path.insert(0, str(target))
 
 
 def _main() -> int:
