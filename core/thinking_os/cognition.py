@@ -343,7 +343,13 @@ def apply_backtrack(
 # Anti-Ambiguity gate
 # ---------------------------------------------------------------------------
 
+# Per-formula required criteria. Each formula's output schema determines
+# which fields are evidence for which criterion (see _CRITERIA_FIELD_MAP).
 _CRITERIA_WEIGHTS: dict[str, list[AmbiguityCriterion]] = {
+    "F1": [
+        AmbiguityCriterion.OBSERVABLE,
+        AmbiguityCriterion.SCOPED,
+    ],
     "F2": [
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.OWNED,
@@ -355,12 +361,131 @@ _CRITERIA_WEIGHTS: dict[str, list[AmbiguityCriterion]] = {
         AmbiguityCriterion.MEASURABLE,
         AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED,
     ],
+    "F4": [
+        AmbiguityCriterion.OBSERVABLE,
+        AmbiguityCriterion.SCOPED,
+    ],
     "F5": [
         AmbiguityCriterion.TESTABLE,
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.OWNED,
     ],
+    "F6": [
+        AmbiguityCriterion.MEASURABLE,
+        AmbiguityCriterion.TESTABLE,
+    ],
+    "F7": [
+        AmbiguityCriterion.OBSERVABLE,
+        AmbiguityCriterion.TESTABLE,
+        AmbiguityCriterion.SCOPED,
+    ],
+    "F8": [
+        AmbiguityCriterion.OBSERVABLE,
+        AmbiguityCriterion.SCOPED,
+        AmbiguityCriterion.OWNED,
+    ],
+    "F9": [
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED,
+        AmbiguityCriterion.TESTABLE,
+        AmbiguityCriterion.OBSERVABLE,
+    ],
+    "F10": [
+        AmbiguityCriterion.MEASURABLE,
+        AmbiguityCriterion.OBSERVABLE,
+    ],
+    "F11": [
+        AmbiguityCriterion.SCOPED,
+        AmbiguityCriterion.MEASURABLE,
+        AmbiguityCriterion.TESTABLE,
+    ],
 }
+
+
+# Maps (formula_id, criterion) → tuple of (field_name, detail_when_missing).
+# A criterion passes when at least one of its mapped fields is non-empty.
+# When multiple fields map to one criterion, ANY non-empty satisfies. Detail
+# message describes the missing evidence for the agent to fix.
+_CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], ...]]] = {
+    "F1": {
+        AmbiguityCriterion.OBSERVABLE: (("sources", "No sources cited in F1 research"),),
+        AmbiguityCriterion.SCOPED: (
+            ("key_findings", "No key_findings recorded in F1"),
+            ("recommended_next", "recommended_next is empty in F1"),
+        ),
+    },
+    "F2": {
+        AmbiguityCriterion.SCOPED: (("scope_in", "scope_in is empty in F2 output"),),
+        AmbiguityCriterion.OWNED: (("actors", "No actors defined in F2 output"),),
+        AmbiguityCriterion.OBSERVABLE: (("success_metrics", "No success_metrics in F2 output"),),
+        AmbiguityCriterion.TESTABLE: (("scenarios", "No scenarios defined in F2 output"),),
+    },
+    "F3": {
+        AmbiguityCriterion.SCOPED: (("selected_style", "selected_style empty in F3 output"),),
+        AmbiguityCriterion.MEASURABLE: (("nfr_targets", "No NFR targets recorded in F3"),),
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("adrs", "No ADRs recorded in F3"),),
+    },
+    "F4": {
+        AmbiguityCriterion.OBSERVABLE: (
+            ("docs_created", "No docs_created in F4"),
+            ("docs_updated", "No docs_updated in F4"),
+        ),
+        AmbiguityCriterion.SCOPED: (("changelog_entry", "changelog_entry empty in F4"),),
+    },
+    "F5": {
+        AmbiguityCriterion.TESTABLE: (
+            ("files_created", "No files_created in F5"),
+            ("files_modified", "No files_modified in F5"),
+        ),
+        AmbiguityCriterion.SCOPED: (("implementation_notes", "implementation_notes empty in F5"),),
+        AmbiguityCriterion.OWNED: (("open_items", "open_items unset (None) in F5"),),
+    },
+    "F6": {
+        AmbiguityCriterion.MEASURABLE: (("coverage_summary", "No coverage_summary in F6"),),
+        AmbiguityCriterion.TESTABLE: (("test_cases", "No test_cases in F6"),),
+    },
+    "F7": {
+        AmbiguityCriterion.OBSERVABLE: (("root_cause", "root_cause empty in F7"),),
+        AmbiguityCriterion.TESTABLE: (("regression_tests_added", "No regression tests in F7"),),
+        AmbiguityCriterion.SCOPED: (("fix_applied", "fix_applied empty in F7"),),
+    },
+    "F8": {
+        AmbiguityCriterion.OBSERVABLE: (("findings", "No security findings in F8"),),
+        AmbiguityCriterion.SCOPED: (("auth_coverage", "auth_coverage empty in F8"),),
+        AmbiguityCriterion.OWNED: (("secrets_audit", "secrets_audit empty in F8"),),
+    },
+    "F9": {
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("rollback_steps", "No rollback_steps in F9"),),
+        AmbiguityCriterion.TESTABLE: (("deploy_steps", "No deploy_steps in F9"),),
+        AmbiguityCriterion.OBSERVABLE: (("release_notes", "release_notes empty in F9"),),
+    },
+    "F10": {
+        AmbiguityCriterion.MEASURABLE: (("slo_targets", "No SLO targets in F10"),),
+        AmbiguityCriterion.OBSERVABLE: (
+            ("alerts_added", "No alerts in F10"),
+            ("dashboards_updated", "No dashboards in F10"),
+        ),
+    },
+    "F11": {
+        AmbiguityCriterion.SCOPED: (("items", "No refactor items in F11"),),
+        AmbiguityCriterion.MEASURABLE: (("debt_score_after", "debt_score_after unset in F11"),),
+        AmbiguityCriterion.TESTABLE: (("files_changed", "No files_changed in F11"),),
+    },
+}
+
+
+def _criterion_satisfied(
+    output_dict: dict,
+    fields: tuple[tuple[str, str], ...],
+) -> tuple[bool, str]:
+    """Return (passed, detail). Passes if any mapped field is truthy."""
+    last_detail = ""
+    for field_name, detail in fields:
+        value = output_dict.get(field_name)
+        # Treat 0 / 0.0 / empty containers as missing — only real evidence passes.
+        if value:
+            return True, ""
+        last_detail = detail
+    return False, last_detail
 
 
 def ambiguity_check(bundle: EvidenceBundle) -> list[dict[str, str]]:
@@ -369,6 +494,8 @@ def ambiguity_check(bundle: EvidenceBundle) -> list[dict[str, str]]:
     INPUT:        EvidenceBundle after formula dispatch.
     OUTPUT:       List of violation dicts {formula, criterion, detail}.
     NOTES:        Empty list = gate passes. Called once at PLAN→EXECUTE.
+                  Formulas without dispatched output are skipped — gate
+                  fires only over evidence the agent already produced.
     """
     violations: list[dict[str, str]] = []
 
@@ -381,30 +508,22 @@ def ambiguity_check(bundle: EvidenceBundle) -> list[dict[str, str]]:
             # Formula not dispatched — skip check
             continue
 
+        output_dict = output.model_dump() if hasattr(output, "model_dump") else {}
+        per_formula_map = _CRITERIA_FIELD_MAP.get(formula_id, {})
+
         for criterion in criteria:
-            # Simple heuristic: check the output dict contains non-empty fields
-            # that correspond to the criterion. Full enforcement deferred to tools.
-            output_dict = output.model_dump() if hasattr(output, "model_dump") else {}
-            if criterion == AmbiguityCriterion.OWNED:
-                if not output_dict.get("actors") and formula_id == "F2":
-                    violations.append({
-                        "formula": formula_id,
-                        "criterion": criterion.value,
-                        "detail": "No actors defined in F2 output",
-                    })
-            elif criterion == AmbiguityCriterion.SCOPED:
-                if not output_dict.get("scope_in") and formula_id == "F2":
-                    violations.append({
-                        "formula": formula_id,
-                        "criterion": criterion.value,
-                        "detail": "scope_in is empty in F2 output",
-                    })
-            elif criterion == AmbiguityCriterion.TESTABLE:
-                if not output_dict.get("scenarios") and formula_id == "F2":
-                    violations.append({
-                        "formula": formula_id,
-                        "criterion": criterion.value,
-                        "detail": "No scenarios defined in F2 output",
-                    })
+            field_specs = per_formula_map.get(criterion)
+            if not field_specs:
+                # No mapped fields for this criterion — skip silently rather
+                # than raise, so adding a new criterion to _CRITERIA_WEIGHTS
+                # without updating the field map remains a soft change.
+                continue
+            passed, detail = _criterion_satisfied(output_dict, field_specs)
+            if not passed:
+                violations.append({
+                    "formula": formula_id,
+                    "criterion": criterion.value,
+                    "detail": detail,
+                })
 
     return violations

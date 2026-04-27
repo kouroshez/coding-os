@@ -131,29 +131,31 @@ def _detect_agent() -> str:
     return "default"
 
 
-def _try_load_claude_sdk_dispatcher() -> AgentDispatcher | None:
+def _try_load_adapter_dispatcher(agent: str) -> "AgentDispatcher | None":
     """
-    PURPOSE: Dynamically import adapters/claude/sdk_dispatcher.py without
-             making core/ depend on it. Returns None if the extra isn't
-             installed OR the adapter file is absent.
+    PURPOSE: Dynamically import adapters/<agent>/sdk_dispatcher.py without
+             making core/ depend on it. Returns None if the adapter file is
+             absent or the SDK/binary is not available in this environment.
+    INPUT:   agent — one of "claude", "codex", "cursor".
+    NOTES:   Backward-compatible with the old
+             ``_try_load_claude_sdk_dispatcher`` call-site.
     """
-    adapter_path = _ADAPTERS_DIR / "claude" / "sdk_dispatcher.py"
+    adapter_path = _ADAPTERS_DIR / agent / "sdk_dispatcher.py"
     if not adapter_path.exists():
         return None
 
-    spec = importlib.util.spec_from_file_location(
-        "cos_adapters_claude_sdk_dispatcher", adapter_path,
-    )
+    mod_name = f"cos_adapters_{agent}_sdk_dispatcher"
+    spec = importlib.util.spec_from_file_location(mod_name, adapter_path)
     if spec is None or spec.loader is None:
         return None
     try:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     except ImportError as exc:
-        logger.debug("claude-sdk dispatcher unavailable: %s", exc)
+        logger.debug("%s-sdk dispatcher unavailable: %s", agent, exc)
         return None
     except Exception as exc:
-        logger.warning("claude-sdk dispatcher load failed: %s", exc)
+        logger.warning("%s-sdk dispatcher load failed: %s", agent, exc)
         return None
 
     factory = getattr(module, "build_dispatcher", None)
@@ -162,21 +164,25 @@ def _try_load_claude_sdk_dispatcher() -> AgentDispatcher | None:
     try:
         return factory()
     except Exception as exc:
-        logger.warning("claude-sdk dispatcher init failed: %s", exc)
+        logger.warning("%s-sdk dispatcher init failed: %s", agent, exc)
         return None
+
+
+def _try_load_claude_sdk_dispatcher() -> "AgentDispatcher | None":
+    """Backward-compat alias for the claude-specific load path."""
+    return _try_load_adapter_dispatcher("claude")
 
 
 def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
     """
     PURPOSE:      Return the right dispatcher for the current adapter.
     INPUT:        Optional agent override; defaults to _detect_agent().
-    OUTPUT:       A live AgentDispatcher (claude-sdk or default fallback).
-    DEPENDENCIES: dispatchers/default.py is always available; claude-sdk is
-                  best-effort (requires `uv sync --extra claude-sdk` and
-                  adapters/claude/sdk_dispatcher.py).
+    OUTPUT:       A live AgentDispatcher (adapter-sdk or default fallback).
+    DEPENDENCIES: dispatchers/default.py is always available; adapter SDKs
+                  are best-effort (claude-sdk: `uv sync --extra claude-sdk`;
+                  codex-sdk: `codex` binary in PATH).
     NOTES:        If COS_FORCE_DEFAULT_DISPATCHER=1, always returns default.
-                  This lets tests exercise the fallback path on a Claude
-                  machine, and lets the user disable real spawning.
+                  This lets tests exercise the fallback path on any machine.
     """
     if os.environ.get("COS_FORCE_DEFAULT_DISPATCHER") == "1":
         from dispatchers.default import DefaultDispatcher
@@ -184,13 +190,13 @@ def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
 
     agent = agent or _detect_agent()
 
-    if agent == "claude":
-        sdk = _try_load_claude_sdk_dispatcher()
+    if agent in ("claude", "codex", "cursor"):
+        sdk = _try_load_adapter_dispatcher(agent)
         if sdk is not None and sdk.available():
             return sdk
         logger.info(
-            "claude-sdk dispatcher unavailable; falling back to default "
-            "(install with: uv sync --extra claude-sdk)"
+            "%s-sdk dispatcher unavailable; falling back to default",
+            agent,
         )
 
     from dispatchers.default import DefaultDispatcher

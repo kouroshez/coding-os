@@ -90,11 +90,24 @@ def test_factory_force_default(monkeypatch):
     assert d.name == "default"
 
 
-def test_factory_codex_falls_back_to_default(monkeypatch):
+def test_factory_codex_falls_back_to_default_when_binary_absent(monkeypatch):
+    """When `codex` binary is not in PATH, factory returns default."""
+    import shutil
     monkeypatch.delenv("COS_FORCE_DEFAULT_DISPATCHER", raising=False)
     monkeypatch.setenv("COS_AGENT", "codex")
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
     d = get_dispatcher()
     assert d.name == "default"
+
+
+def test_factory_codex_returns_codex_sdk_when_binary_present(monkeypatch):
+    """When `codex` binary is found, factory returns codex-sdk dispatcher."""
+    import shutil
+    monkeypatch.delenv("COS_FORCE_DEFAULT_DISPATCHER", raising=False)
+    monkeypatch.setenv("COS_AGENT", "codex")
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    d = get_dispatcher()
+    assert d.name == "codex-sdk"
 
 
 def test_factory_unknown_agent_falls_back(monkeypatch):
@@ -105,8 +118,11 @@ def test_factory_unknown_agent_falls_back(monkeypatch):
 
 
 def test_factory_reads_agent_dir(monkeypatch, tmp_path):
+    import shutil
     monkeypatch.delenv("COS_FORCE_DEFAULT_DISPATCHER", raising=False)
     monkeypatch.delenv("COS_AGENT", raising=False)
+    # Ensure no codex binary so codex-sdk doesn't intercept.
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
     codex_dir = tmp_path / "codex"
     codex_dir.mkdir()
     monkeypatch.setenv("COS_AGENT_DIR", str(codex_dir))
@@ -249,3 +265,138 @@ def test_claude_sdk_dispatcher_missing_json(monkeypatch, tmp_path):
     result = asyncio.run(d.dispatch(req))
     assert result.status == "error"
     assert "no JSON block" in (result.error or "")
+
+
+# ---------------------------------------------------------------------------
+# CodexSDKDispatcher — availability + mocked dispatch
+# ---------------------------------------------------------------------------
+
+def _import_codex_sdk_dispatcher_module():
+    """Load adapters/codex/sdk_dispatcher.py by path (same way factory does)."""
+    import importlib.util
+    adapter_path = (
+        _CORE_TOS.parent.parent / "adapters" / "codex" / "sdk_dispatcher.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "_test_codex_sdk_dispatcher", adapter_path,
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_codex_sdk_dispatcher_name():
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+    assert d.name == "codex-sdk"
+
+
+def test_codex_sdk_dispatcher_unavailable_when_no_binary(monkeypatch):
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+    assert d.available() is False
+
+
+def test_codex_sdk_dispatcher_available_when_binary_present(monkeypatch):
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+    assert d.available() is True
+
+
+def test_codex_sdk_dispatcher_error_when_unavailable(monkeypatch, tmp_path):
+    """dispatch() returns error result when binary absent."""
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+    agent_file = tmp_path / "F1_test.md"
+    agent_file.write_text("---\nid: F1\n---\n\nTest.")
+    req = DispatchRequest(
+        formula_id="F1",
+        agent_file=str(agent_file),
+        prompt="test",
+    )
+    result = asyncio.run(d.dispatch(req))
+    assert result.status == "error"
+    assert result.dispatcher_name == "codex-sdk"
+    assert "not in PATH" in (result.error or "")
+
+
+def test_codex_sdk_dispatcher_mocked_success(monkeypatch, tmp_path):
+    """Mock subprocess.run to simulate a successful codex run."""
+    import shutil
+    import subprocess
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+
+    fake_output = '```json\n{"summary": "done", "risks": []}\n```'
+
+    class FakeResult:
+        returncode = 0
+        stdout = fake_output
+        stderr = ""
+
+    monkeypatch.setattr(subprocess, "run", lambda *a, **kw: FakeResult())
+
+    agent_file = tmp_path / "F2_test.md"
+    agent_file.write_text("---\nid: F2\n---\n\nTest formula.")
+    req = DispatchRequest(
+        formula_id="F2",
+        agent_file=str(agent_file),
+        prompt="analyse",
+        input_slice={"task": "review"},
+    )
+    result = asyncio.run(d.dispatch(req))
+    assert result.status == "ok"
+    assert result.output_json.get("summary") == "done"
+    assert result.dispatcher_name == "codex-sdk"
+    assert result.latency_ms >= 0
+
+
+def test_codex_sdk_dispatcher_mocked_timeout(monkeypatch, tmp_path):
+    """Mock subprocess.run raising TimeoutExpired."""
+    import shutil
+    import subprocess
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+
+    def _raise_timeout(*a, **kw):
+        raise subprocess.TimeoutExpired(cmd="codex", timeout=1.0)
+
+    monkeypatch.setattr(subprocess, "run", _raise_timeout)
+
+    agent_file = tmp_path / "F3_test.md"
+    agent_file.write_text("---\nid: F3\n---\n\nSlow formula.")
+    req = DispatchRequest(formula_id="F3", agent_file=str(agent_file), prompt="slow", timeout_s=1.0)
+    result = asyncio.run(d.dispatch(req))
+    assert result.status == "timeout"
+    assert "timed out" in (result.error or "")
+
+
+def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
+    """Non-zero return code → error result."""
+    import shutil
+    import subprocess
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    mod = _import_codex_sdk_dispatcher_module()
+    d = mod.CodexSDKDispatcher()
+
+    class FakeResult:
+        returncode = 1
+        stdout = ""
+        stderr = "codex: unknown flag --json"
+
+    monkeypatch.setattr(subprocess, "run", lambda *a, **kw: FakeResult())
+
+    agent_file = tmp_path / "F4_test.md"
+    agent_file.write_text("---\nid: F4\n---\n\nBad flag formula.")
+    req = DispatchRequest(formula_id="F4", agent_file=str(agent_file), prompt="fail")
+    result = asyncio.run(d.dispatch(req))
+    assert result.status == "error"
+    assert "rc=1" in (result.error or "")

@@ -183,6 +183,83 @@ def reset_backend() -> None:
 
 
 # ---------------------------------------------------------------------------
+# UID resolution
+# ---------------------------------------------------------------------------
+#
+# Tools accept fully-qualified node uids ("code:file:foo.py",
+# "code:function:foo.py::bar", "doc:file:README.md", "folder:src/utils").
+# Agents (and humans) often pass a raw repo path because that is the most
+# natural mental model. _resolve_uid bridges the gap by transparently
+# retrying a small set of well-known prefixes when the literal lookup
+# misses, and _fail_uid_not_found returns the candidates tried plus a
+# scheme cheat-sheet so failures are self-explanatory.
+
+_UID_PATH_PREFIXES: tuple[str, ...] = (
+    "code:file:",
+    "doc:file:",
+    "folder:",
+)
+
+_UID_FORMAT_HINT = (
+    "uids follow the scheme code:file:<path> | "
+    "code:function:<path>::<name> | code:class:<path>::<name> | "
+    "code:module:<dotted> | doc:file:<path> | "
+    "doc:heading:<path>#<slug>:<level> | folder:<path>. "
+    "Use cos_graph_query to discover candidates."
+)
+
+
+def _looks_prefixed(raw: str) -> bool:
+    """True when input already carries an explicit uid scheme."""
+    head = raw.split("/", 1)[0]
+    return ":" in head
+
+
+def _resolve_uid(
+    backend: GraphBackend, raw_uid: str
+) -> tuple[GraphNode | None, list[str]]:
+    """Look up a node uid, with path-prefix fallback for raw paths.
+
+    Returns ``(node, tried)`` where ``tried`` is the ordered list of uid
+    candidates we attempted. The first entry is always the literal input
+    so error messages can reflect the user's original intent.
+    """
+    direct = backend.get_node(raw_uid)
+    if direct is not None:
+        return direct, [raw_uid]
+
+    if _looks_prefixed(raw_uid):
+        return None, [raw_uid]
+
+    tried: list[str] = [raw_uid]
+    for prefix in _UID_PATH_PREFIXES:
+        candidate = f"{prefix}{raw_uid}"
+        tried.append(candidate)
+        node = backend.get_node(candidate)
+        if node is not None:
+            return node, tried
+    return None, tried
+
+
+def _fail_uid_not_found(
+    raw_uid: str,
+    tried: list[str],
+    *,
+    label: str = "uid",
+) -> dict[str, Any]:
+    """Helpful 'not_found' envelope including the candidates tried."""
+    if len(tried) > 1:
+        suggestions = ", ".join(repr(c) for c in tried[1:])
+        msg = (
+            f"no node with {label} {raw_uid!r} (also tried {suggestions}). "
+            f"{_UID_FORMAT_HINT}"
+        )
+    else:
+        msg = f"no node with {label} {raw_uid!r}. {_UID_FORMAT_HINT}"
+    return _fail("not_found", msg)
+
+
+# ---------------------------------------------------------------------------
 # Shared retrieval helpers
 # ---------------------------------------------------------------------------
 
@@ -475,8 +552,8 @@ def cos_graph_query(
     OUTPUT:       ok({results: [NodeSummary + confidence + path]}).
     DEPENDS:      GraphBackend.
     """
-    if not q or not q.strip():
-        return _fail("validation", "query must be a non-empty string")
+    if (not q or not q.strip()) and not kinds:
+        return _fail("validation", "query must be a non-empty string (or provide kinds for kind-only browse)")
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -558,9 +635,11 @@ def cos_graph_context(
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
 
-    root = be.get_node(uid_or_name) or _fuzzy_resolve(be, uid_or_name)
+    root, tried_uids = _resolve_uid(be, uid_or_name)
     if root is None:
-        return _fail("not_found", f"no node matching {uid_or_name!r}")
+        root = _fuzzy_resolve(be, uid_or_name)
+    if root is None:
+        return _fail_uid_not_found(uid_or_name, tried_uids, label="uid_or_name")
 
     nodes, edges = _walk_bfs(
         be,
@@ -671,9 +750,9 @@ def cos_graph_impact(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root = be.get_node(uid)
+    root, tried_uids = _resolve_uid(be, uid)
     if root is None:
-        return _fail("not_found", f"no node with uid {uid!r}")
+        return _fail_uid_not_found(uid, tried_uids)
 
     walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(
         direction, "in"
@@ -820,7 +899,7 @@ def cos_graph_trace(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root = be.get_node(entry_uid)
+    root, tried_entry_uids = _resolve_uid(be, entry_uid)
     start_source = "explicit"
     if root is None:
         # TASK-081: fall back to the highest-scoring entry point whose
@@ -839,7 +918,7 @@ def cos_graph_trace(
         except ImportError as exc:
             logger.debug("entry_points fallback unavailable: %s", exc)
     if root is None:
-        return _fail("not_found", f"no node with uid {entry_uid!r}")
+        return _fail_uid_not_found(entry_uid, tried_entry_uids, label="entry_uid")
 
     steps: list[dict[str, Any]] = []
     branches: list[dict[str, Any]] = []
@@ -915,9 +994,9 @@ def cos_graph_similar(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root = be.get_node(uid)
+    root, tried_uids = _resolve_uid(be, uid)
     if root is None:
-        return _fail("not_found", f"no node with uid {uid!r}")
+        return _fail_uid_not_found(uid, tried_uids)
 
     # B13: use sample_nodes for an unbiased candidate pool.
     sample_size = 200  # bounded to keep latency predictable
@@ -1015,11 +1094,12 @@ def cos_graph_references(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    node = be.get_node(uid)
+    node, tried_uids = _resolve_uid(be, uid)
     if node is None:
-        return _fail("not_found", f"no node with uid {uid!r}")
+        return _fail_uid_not_found(uid, tried_uids)
 
-    edges = be.list_edges(target_uid=uid, edge_types=tuple(kinds), limit=limit)
+    canonical_uid = node.uid
+    edges = be.list_edges(target_uid=canonical_uid, edge_types=tuple(kinds), limit=limit)
     return _ok(
         {
             "node": NodeSummary.from_node(node).to_dict(),
@@ -1048,10 +1128,14 @@ def cos_graph_path(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    if be.get_node(source_uid) is None:
-        return _fail("not_found", f"source uid {source_uid!r}")
-    if be.get_node(target_uid) is None:
-        return _fail("not_found", f"target uid {target_uid!r}")
+    src_node, tried_src = _resolve_uid(be, source_uid)
+    if src_node is None:
+        return _fail_uid_not_found(source_uid, tried_src, label="source_uid")
+    tgt_node, tried_tgt = _resolve_uid(be, target_uid)
+    if tgt_node is None:
+        return _fail_uid_not_found(target_uid, tried_tgt, label="target_uid")
+    source_uid = src_node.uid
+    target_uid = tgt_node.uid
     _PATH_HOP_LIMIT = 1000
     truncated = False
     parents: dict[str, tuple[str, GraphEdge] | None] = {source_uid: None}
@@ -1450,9 +1534,10 @@ def cos_graph_rename_plan(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root = be.get_node(uid)
+    root, tried_uids = _resolve_uid(be, uid)
     if root is None:
-        return _fail("not_found", f"no node with uid {uid!r}")
+        return _fail_uid_not_found(uid, tried_uids)
+    uid = root.uid
 
     call_sites = [
         _edge_to_dict(e)
@@ -1608,39 +1693,51 @@ def _lexical_search(
     sqlite_conn = getattr(backend, "_conn", None)
     candidates: list[GraphNode] = []
     if sqlite_conn is not None:
-        like_q = f"%{lower}%"
-        kinds_clause = ""
-        params: list[Any] = [like_q, like_q, like_q]
-        if kinds:
-            placeholders = ",".join(["?"] * len(kinds))
-            kinds_clause = f" AND kind IN ({placeholders})"
-            params.extend(list(kinds))
-        params.append(int(limit) * 6)
+        rows: list[Any] = []
         try:
-            rows = sqlite_conn.execute(
-                f"""
-                SELECT kind, label, uid, file_path, start_line, end_line,
-                       signature, lang, doc_blob, ast_hash, content_hash,
-                       metadata_json
-                FROM graph_nodes
-                WHERE (LOWER(label) LIKE ?
-                       OR LOWER(COALESCE(signature, '')) LIKE ?
-                       OR LOWER(COALESCE(doc_blob, '')) LIKE ?)
-                {kinds_clause}
-                LIMIT ?
-                """,
-                tuple(params),
-            ).fetchall()
-            row_to_node = getattr(backend, "_row_to_node", None)
-            for row in rows:
-                if row_to_node is not None:
-                    candidates.append(row_to_node(row))
-                else:
-                    n = backend.get_node(row[2])
-                    if n is not None:
-                        candidates.append(n)
+            if not lower and kinds:
+                # kinds-only browse — no text filter needed
+                placeholders = ",".join(["?"] * len(kinds))
+                rows = sqlite_conn.execute(
+                    f"SELECT kind, label, uid, file_path, start_line, end_line,"
+                    f"       signature, lang, doc_blob, ast_hash, content_hash,"
+                    f"       metadata_json"
+                    f" FROM graph_nodes WHERE kind IN ({placeholders}) LIMIT ?",
+                    tuple(list(kinds) + [int(limit) * 6]),
+                ).fetchall()
+            else:
+                like_q = f"%{lower}%"
+                kinds_clause = ""
+                params: list[Any] = [like_q, like_q, like_q]
+                if kinds:
+                    placeholders = ",".join(["?"] * len(kinds))
+                    kinds_clause = f" AND kind IN ({placeholders})"
+                    params.extend(list(kinds))
+                params.append(int(limit) * 6)
+                rows = sqlite_conn.execute(
+                    f"""
+                    SELECT kind, label, uid, file_path, start_line, end_line,
+                           signature, lang, doc_blob, ast_hash, content_hash,
+                           metadata_json
+                    FROM graph_nodes
+                    WHERE (LOWER(label) LIKE ?
+                           OR LOWER(COALESCE(signature, '')) LIKE ?
+                           OR LOWER(COALESCE(doc_blob, '')) LIKE ?)
+                    {kinds_clause}
+                    LIMIT ?
+                    """,
+                    tuple(params),
+                ).fetchall()
         except Exception as exc:  # noqa: BLE001
             logger.debug("lexical sql search suppressed: %s", exc)
+        row_to_node = getattr(backend, "_row_to_node", None)
+        for row in rows:
+            if row_to_node is not None:
+                candidates.append(row_to_node(row))
+            else:
+                n = backend.get_node(row[2])
+                if n is not None:
+                    candidates.append(n)
 
     if not candidates:
         seen: dict[str, GraphNode] = {}
@@ -1826,6 +1923,615 @@ def cos_graph_communities(
     )
 
 
+def cos_graph_centrality(
+    *,
+    top: int = 20,
+    kind: str | None = None,
+    metric: str = "degree",
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Hub detection via degree (or betweenness) centrality.
+
+    PURPOSE:      Identify structurally important nodes — high-degree
+                  hubs indicate shared utilities, God-objects, or
+                  critical integration points that carry disproportionate
+                  blast radius.
+    INPUT:        ``top`` — max rows (1-200).
+                  ``kind`` — optional node kind filter.
+                  ``metric`` — "degree" (default) or "betweenness".
+                  Betweenness is O(V·E) so it's capped at 300 nodes
+                  and returns ``meta.truncated=True`` if the graph
+                  exceeds that.
+    OUTPUT:       ok({nodes: [{uid, kind, label, in_degree, out_degree,
+                  centrality_score}]}).
+    NOTES:        Degree centrality = (in+out) / (2*(N-1)) normalised to
+                  [0,1] when N>1. Returns raw counts when N=1.
+    """
+    if not isinstance(top, int) or top <= 0:
+        return _fail("validation", "top must be a positive int")
+    if top > 200:
+        top = 200
+    if metric not in ("degree", "betweenness"):
+        return _fail("validation", "metric must be 'degree' or 'betweenness'")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    sqlite_conn = getattr(be, "_conn", None)
+    truncated = False
+
+    if sqlite_conn is not None:
+        try:
+            kind_clause = ""
+            params: list[Any] = []
+            if kind:
+                kind_clause = "WHERE n.kind = ?"
+                params.append(kind)
+
+            in_deg_rows = sqlite_conn.execute(
+                f"""
+                SELECT n.uid, n.kind, n.label, COUNT(e.id) AS cnt
+                FROM graph_nodes n
+                LEFT JOIN graph_edges_v12 e ON e.target_id = n.id
+                {kind_clause}
+                GROUP BY n.id
+                """,
+                tuple(params),
+            ).fetchall()
+            out_deg_rows = sqlite_conn.execute(
+                f"""
+                SELECT n.uid, COUNT(e.id) AS cnt
+                FROM graph_nodes n
+                LEFT JOIN graph_edges_v12 e ON e.source_id = n.id
+                {kind_clause}
+                GROUP BY n.id
+                """,
+                tuple(params),
+            ).fetchall()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("centrality SQL suppressed: %s", exc)
+            in_deg_rows = []
+            out_deg_rows = []
+
+        out_map = {row[0]: int(row[1]) for row in out_deg_rows}
+        N = len(in_deg_rows)
+        norm = 2 * (N - 1) if N > 1 else 1
+        rows_out = []
+        for uid, nkind, label, in_cnt in in_deg_rows:
+            out_cnt = out_map.get(uid, 0)
+            in_cnt = int(in_cnt)
+            score = (in_cnt + out_cnt) / norm
+            rows_out.append({
+                "uid": uid,
+                "kind": nkind,
+                "label": label,
+                "in_degree": in_cnt,
+                "out_degree": out_cnt,
+                "centrality_score": round(score, 6),
+            })
+    else:
+        # Fallback: scan edges
+        in_deg: dict[str, int] = {}
+        out_deg: dict[str, int] = {}
+        uid_meta: dict[str, tuple[str, str]] = {}  # uid -> (kind, label)
+        for edge in be.list_edges(limit=10000):
+            out_deg[edge.source_uid] = out_deg.get(edge.source_uid, 0) + 1
+            in_deg[edge.target_uid] = in_deg.get(edge.target_uid, 0) + 1
+        all_uids = set(in_deg) | set(out_deg)
+        if kind:
+            filtered_uids = set()
+            for u in all_uids:
+                node = be.get_node(u)
+                if node and node.kind == kind:
+                    filtered_uids.add(u)
+                    uid_meta[u] = (node.kind or "", node.label or "")
+            all_uids = filtered_uids
+        else:
+            for u in all_uids:
+                node = be.get_node(u)
+                if node:
+                    uid_meta[u] = (node.kind or "", node.label or "")
+        N = len(all_uids)
+        norm = 2 * (N - 1) if N > 1 else 1
+        rows_out = []
+        for u in all_uids:
+            ic = in_deg.get(u, 0)
+            oc = out_deg.get(u, 0)
+            meta_entry = uid_meta.get(u, ("", u))
+            rows_out.append({
+                "uid": u,
+                "kind": meta_entry[0],
+                "label": meta_entry[1],
+                "in_degree": ic,
+                "out_degree": oc,
+                "centrality_score": round((ic + oc) / norm, 6),
+            })
+
+    if metric == "betweenness" and sqlite_conn is not None:
+        _BETWEENNESS_CAP = 300
+        try:
+            all_uids_list: list[str] = [r["uid"] for r in rows_out]
+            if len(all_uids_list) > _BETWEENNESS_CAP:
+                # Approximate: sample the top-degree nodes only.
+                rows_out.sort(key=lambda r: r["centrality_score"], reverse=True)
+                all_uids_list = [r["uid"] for r in rows_out[:_BETWEENNESS_CAP]]
+                truncated = True
+            uid_idx = {u: i for i, u in enumerate(all_uids_list)}
+            adj: dict[int, list[int]] = {i: [] for i in range(len(all_uids_list))}
+            for u in all_uids_list:
+                i = uid_idx[u]
+                edges_out = be.list_edges(source_uid=u, limit=500)
+                for e in edges_out:
+                    j = uid_idx.get(e.target_uid)
+                    if j is not None:
+                        adj[i].append(j)
+            betweenness = _betweenness_centrality(adj, len(all_uids_list))
+            bt_map = {all_uids_list[i]: v for i, v in enumerate(betweenness)}
+            for r in rows_out:
+                r["centrality_score"] = round(bt_map.get(r["uid"], 0.0), 6)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("betweenness computation suppressed: %s", exc)
+
+    rows_out.sort(key=lambda r: r["centrality_score"], reverse=True)
+    return _ok(
+        {"nodes": rows_out[:top]},
+        meta={
+            "backend": be.backend_id,
+            "metric": metric,
+            "node_count": len(rows_out),
+            "truncated": truncated,
+        },
+    )
+
+
+def _betweenness_centrality(adj: dict[int, list[int]], n: int) -> list[float]:
+    """Brandes' algorithm — O(V·E) exact betweenness for small graphs."""
+    bet = [0.0] * n
+    for s in range(n):
+        stack: list[int] = []
+        pred: list[list[int]] = [[] for _ in range(n)]
+        sigma = [0] * n
+        sigma[s] = 1
+        dist = [-1] * n
+        dist[s] = 0
+        from collections import deque as _deque  # noqa: PLC0415
+        q: _deque[int] = _deque([s])
+        while q:
+            v = q.popleft()
+            stack.append(v)
+            for w in adj.get(v, []):
+                if dist[w] < 0:
+                    dist[w] = dist[v] + 1
+                    q.append(w)
+                if dist[w] == dist[v] + 1:
+                    sigma[w] += sigma[v]
+                    pred[w].append(v)
+        delta = [0.0] * n
+        while stack:
+            w = stack.pop()
+            for v in pred[w]:
+                if sigma[w]:
+                    delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w])
+            if w != s:
+                bet[w] += delta[w]
+    norm_factor = (n - 1) * (n - 2) if n > 2 else 1
+    return [v / norm_factor for v in bet]
+
+
+def cos_graph_ranking(
+    *,
+    query: str | None = None,
+    top: int = 20,
+    kind: str | None = None,
+    damping: float = 0.85,
+    iterations: int = 30,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """PageRank-based node ranking with optional query personalisation.
+
+    PURPOSE:      Surface the most structurally authoritative nodes —
+                  used by the Hub "Top nodes" sidebar and F2 dependency
+                  ranking. When ``query`` is given, the initial rank
+                  vector is personalised toward query-matching nodes
+                  (Personalised PageRank) so the result is both
+                  authority-aware and query-relevant.
+    INPUT:        ``query`` — optional label filter for personalisation.
+                  ``top`` — max rows (1-200).
+                  ``kind`` — optional kind filter.
+                  ``damping`` — PageRank damping factor (default 0.85).
+                  ``iterations`` — max power-iteration steps (default 30).
+    OUTPUT:       ok({nodes: [{uid, kind, label, rank_score,
+                  file_path, start_line}]}).
+    NOTES:        Bounded at 5000 nodes for memory safety. Graphs larger
+                  than this are sampled by degree (highest first).
+    """
+    if not isinstance(top, int) or top <= 0:
+        return _fail("validation", "top must be a positive int")
+    if top > 200:
+        top = 200
+    if not (0.0 < damping < 1.0):
+        return _fail("validation", "damping must be in (0, 1)")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    _NODE_CAP = 5000
+    truncated = False
+    sqlite_conn = getattr(be, "_conn", None)
+
+    if sqlite_conn is not None:
+        try:
+            kind_filter = ("WHERE kind = ?" if kind else "")
+            params_n: list[Any] = ([kind] if kind else []) + [_NODE_CAP]
+            uid_rows = sqlite_conn.execute(
+                f"SELECT id, uid, kind, label, file_path, start_line "
+                f"FROM graph_nodes {kind_filter} LIMIT ?",
+                tuple(params_n),
+            ).fetchall()
+            if len(uid_rows) >= _NODE_CAP:
+                truncated = True
+            edge_rows = sqlite_conn.execute(
+                "SELECT source_id, target_id FROM graph_edges_v12 LIMIT ?",
+                (_NODE_CAP * 20,),
+            ).fetchall()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("ranking SQL suppressed: %s", exc)
+            uid_rows = []
+            edge_rows = []
+        int_to_uid = {row[0]: row[1] for row in uid_rows}
+        int_to_meta: dict[int, tuple[str, str, str | None, int | None]] = {
+            row[0]: (row[2], row[3], row[4], row[5]) for row in uid_rows
+        }
+        uid_to_int: dict[str, int] = {row[1]: row[0] for row in uid_rows}
+        valid_ids = set(int_to_uid)
+        out_links: dict[int, list[int]] = {i: [] for i in valid_ids}
+        for src, tgt in edge_rows:
+            if src in valid_ids and tgt in valid_ids:
+                out_links[src].append(tgt)
+        N = len(valid_ids)
+        node_ids = list(valid_ids)
+    else:
+        # Edge-scan fallback
+        uid_set: set[str] = set()
+        edge_pairs: list[tuple[str, str]] = []
+        for edge in be.list_edges(limit=_NODE_CAP * 10):
+            uid_set.add(edge.source_uid)
+            uid_set.add(edge.target_uid)
+            edge_pairs.append((edge.source_uid, edge.target_uid))
+        if len(uid_set) > _NODE_CAP:
+            truncated = True
+        node_ids_str = list(uid_set)[:_NODE_CAP]
+        uid_to_int = {u: i for i, u in enumerate(node_ids_str)}
+        int_to_uid = {i: u for i, u in enumerate(node_ids_str)}
+        int_to_meta = {}
+        valid_ids_int = set(range(len(node_ids_str)))
+        out_links_str: dict[int, list[int]] = {i: [] for i in valid_ids_int}
+        for s, t in edge_pairs:
+            si, ti = uid_to_int.get(s, -1), uid_to_int.get(t, -1)
+            if si >= 0 and ti >= 0:
+                out_links_str[si].append(ti)
+        out_links = out_links_str
+        N = len(node_ids_str)
+        node_ids = list(valid_ids_int)
+        # Kind filter post-hoc
+        if kind:
+            keep = set()
+            for nid in node_ids:
+                u = int_to_uid.get(nid, "")
+                node = be.get_node(u)
+                if node and node.kind == kind:
+                    keep.add(nid)
+                    int_to_meta[nid] = (node.kind or "", node.label or "", node.file_path, node.start_line)
+            node_ids = [n for n in node_ids if n in keep]
+            N = len(node_ids)
+
+    if N == 0:
+        return _ok({"nodes": []}, meta={"backend": be.backend_id, "count": 0})
+
+    # Personalisation vector: uniform unless query given.
+    personalized: dict[int, float] = {}
+    if query:
+        lower_q = query.lower()
+        for nid in node_ids:
+            meta_entry = int_to_meta.get(nid)
+            label = meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))
+            if lower_q in label.lower():
+                personalized[nid] = 1.0
+        total_p = sum(personalized.values())
+        if total_p:
+            personalized = {k: v / total_p for k, v in personalized.items()}
+
+    # Power iteration
+    rank: dict[int, float] = {nid: 1.0 / N for nid in node_ids}
+    dangling = {nid for nid in node_ids if not out_links.get(nid)}
+    for _ in range(iterations):
+        dangling_sum = sum(rank[nid] for nid in dangling) / N
+        new_rank: dict[int, float] = {}
+        for nid in node_ids:
+            inbound = [src for src in node_ids if nid in out_links.get(src, [])]
+            push = sum(rank[src] / len(out_links[src]) for src in inbound if out_links.get(src))
+            if personalized:
+                teleport = personalized.get(nid, 0.0)
+            else:
+                teleport = 1.0 / N
+            new_rank[nid] = (1 - damping) * teleport + damping * (push + dangling_sum)
+        rank = new_rank
+
+    results: list[dict[str, Any]] = []
+    for nid, score in sorted(rank.items(), key=lambda x: x[1], reverse=True)[:top]:
+        uid = int_to_uid.get(nid, "")
+        meta_entry = int_to_meta.get(nid)
+        if meta_entry:
+            nkind, label, fpath, sline = meta_entry
+        else:
+            node = be.get_node(uid)
+            nkind = node.kind or "" if node else ""
+            label = node.label or uid if node else uid
+            fpath = node.file_path if node else None
+            sline = node.start_line if node else None
+        results.append({
+            "uid": uid,
+            "kind": nkind,
+            "label": label,
+            "rank_score": round(score, 8),
+            "file_path": fpath,
+            "start_line": sline,
+        })
+
+    return _ok(
+        {"nodes": results},
+        meta={
+            "backend": be.backend_id,
+            "node_count": N,
+            "iterations": iterations,
+            "damping": damping,
+            "truncated": truncated,
+            "personalized": bool(personalized),
+        },
+    )
+
+
+def cos_graph_doctor(
+    *,
+    fix: bool = False,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Graph health check — orphans, dangling edges, duplicates.
+
+    PURPOSE:      Routine integrity check surfacing structural anomalies
+                  that indicate extractor bugs, failed reindexes, or
+                  schema drift. Intended for ``cos doctor`` output and
+                  the Hub Diagnostics panel.
+    INPUT:        ``fix`` — if True, delete provably safe dangling edges
+                  (edges whose source OR target uid has no node record).
+                  Orphaned nodes and duplicates are reported only —
+                  auto-delete requires human confirmation.
+    OUTPUT:       ok({healthy, issues: [{category, count, sample}],
+                  stats: {node_count, edge_count, ...}}).
+    NOTES:        Always returns ok() — even a sick graph deserves a
+                  report. ``healthy`` is False when issue count > 0.
+    """
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    sqlite_conn = getattr(be, "_conn", None)
+    issues: list[dict[str, Any]] = []
+    stats: dict[str, Any] = {}
+    fixed_count = 0
+
+    if sqlite_conn is not None:
+        try:
+            node_count = sqlite_conn.execute(
+                "SELECT COUNT(*) FROM graph_nodes"
+            ).fetchone()[0]
+            edge_count = sqlite_conn.execute(
+                "SELECT COUNT(*) FROM graph_edges_v12"
+            ).fetchone()[0]
+            stats["node_count"] = node_count
+            stats["edge_count"] = edge_count
+
+            # 1. Dangling source edges (source_id FK points to deleted node)
+            dangling_src_rows = sqlite_conn.execute(
+                """
+                SELECT e.id, ns.uid, nt.uid
+                FROM graph_edges_v12 e
+                LEFT JOIN graph_nodes ns ON ns.id = e.source_id
+                LEFT JOIN graph_nodes nt ON nt.id = e.target_id
+                WHERE ns.id IS NULL
+                LIMIT 100
+                """
+            ).fetchall()
+            dangling_src_count = sqlite_conn.execute(
+                """
+                SELECT COUNT(*) FROM graph_edges_v12 e
+                LEFT JOIN graph_nodes ns ON ns.id = e.source_id
+                WHERE ns.id IS NULL
+                """
+            ).fetchone()[0]
+            if dangling_src_count:
+                issues.append({
+                    "category": "dangling_source",
+                    "count": dangling_src_count,
+                    "sample": [{"edge_id": r[0], "source_uid": r[1], "target_uid": r[2]}
+                               for r in dangling_src_rows[:5]],
+                })
+                if fix:
+                    ids_to_del = [r[0] for r in dangling_src_rows]
+                    if ids_to_del:
+                        placeholders = ",".join("?" * len(ids_to_del))
+                        sqlite_conn.execute(
+                            f"DELETE FROM graph_edges_v12 WHERE id IN ({placeholders})",
+                            ids_to_del,
+                        )
+                        sqlite_conn.commit()
+                        fixed_count += len(ids_to_del)
+
+            # 2. Dangling target edges (target_id FK points to deleted node)
+            dangling_tgt_count = sqlite_conn.execute(
+                """
+                SELECT COUNT(*) FROM graph_edges_v12 e
+                LEFT JOIN graph_nodes nt ON nt.id = e.target_id
+                WHERE nt.id IS NULL
+                """
+            ).fetchone()[0]
+            if dangling_tgt_count:
+                dangling_tgt_rows = sqlite_conn.execute(
+                    """
+                    SELECT e.id, ns.uid, nt.uid
+                    FROM graph_edges_v12 e
+                    LEFT JOIN graph_nodes ns ON ns.id = e.source_id
+                    LEFT JOIN graph_nodes nt ON nt.id = e.target_id
+                    WHERE nt.id IS NULL
+                    LIMIT 5
+                    """
+                ).fetchall()
+                issues.append({
+                    "category": "dangling_target",
+                    "count": dangling_tgt_count,
+                    "sample": [{"edge_id": r[0], "source_uid": r[1], "target_uid": r[2]}
+                               for r in dangling_tgt_rows],
+                })
+                if fix:
+                    all_dangling_tgt = sqlite_conn.execute(
+                        """
+                        SELECT e.id FROM graph_edges_v12 e
+                        LEFT JOIN graph_nodes nt ON nt.id = e.target_id
+                        WHERE nt.id IS NULL
+                        """
+                    ).fetchall()
+                    ids_to_del = [r[0] for r in all_dangling_tgt]
+                    if ids_to_del:
+                        placeholders = ",".join("?" * len(ids_to_del))
+                        sqlite_conn.execute(
+                            f"DELETE FROM graph_edges_v12 WHERE id IN ({placeholders})",
+                            ids_to_del,
+                        )
+                        sqlite_conn.commit()
+                        fixed_count += len(ids_to_del)
+
+            # 3. Duplicate edges (same source_id/target_id/edge_type/extractor)
+            dup_count = sqlite_conn.execute(
+                """
+                SELECT COUNT(*) FROM (
+                  SELECT source_id, target_id, edge_type, extractor,
+                         COUNT(*) AS cnt
+                  FROM graph_edges_v12
+                  GROUP BY source_id, target_id, edge_type, extractor
+                  HAVING cnt > 1
+                )
+                """
+            ).fetchone()[0]
+            if dup_count:
+                dup_sample = sqlite_conn.execute(
+                    """
+                    SELECT ns.uid, nt.uid, e.edge_type, e.extractor,
+                           COUNT(*) AS cnt
+                    FROM graph_edges_v12 e
+                    LEFT JOIN graph_nodes ns ON ns.id = e.source_id
+                    LEFT JOIN graph_nodes nt ON nt.id = e.target_id
+                    GROUP BY e.source_id, e.target_id, e.edge_type, e.extractor
+                    HAVING cnt > 1
+                    ORDER BY cnt DESC
+                    LIMIT 5
+                    """
+                ).fetchall()
+                issues.append({
+                    "category": "duplicate_edges",
+                    "count": dup_count,
+                    "sample": [
+                        {"source_uid": r[0], "target_uid": r[1],
+                         "edge_type": r[2], "extractor": r[3], "count": r[4]}
+                        for r in dup_sample
+                    ],
+                })
+
+            # 4. Orphaned nodes (nodes with zero edges in either direction)
+            orphan_count = sqlite_conn.execute(
+                """
+                SELECT COUNT(*) FROM graph_nodes n
+                LEFT JOIN graph_edges_v12 src ON src.source_id = n.id
+                LEFT JOIN graph_edges_v12 tgt ON tgt.target_id = n.id
+                WHERE src.id IS NULL AND tgt.id IS NULL
+                """
+            ).fetchone()[0]
+            stats["orphaned_nodes"] = orphan_count
+            if orphan_count > 0:
+                orphan_sample = sqlite_conn.execute(
+                    """
+                    SELECT n.uid, n.kind, n.label
+                    FROM graph_nodes n
+                    LEFT JOIN graph_edges_v12 src ON src.source_id = n.id
+                    LEFT JOIN graph_edges_v12 tgt ON tgt.target_id = n.id
+                    WHERE src.id IS NULL AND tgt.id IS NULL
+                    LIMIT 5
+                    """
+                ).fetchall()
+                issues.append({
+                    "category": "orphaned_nodes",
+                    "count": orphan_count,
+                    "sample": [{"uid": r[0], "kind": r[1], "label": r[2]}
+                               for r in orphan_sample],
+                })
+
+            # 5. Self-loop edges (source_id == target_id — extractor bugs)
+            self_loop_count = sqlite_conn.execute(
+                "SELECT COUNT(*) FROM graph_edges_v12 WHERE source_id = target_id"
+            ).fetchone()[0]
+            if self_loop_count:
+                sl_sample = sqlite_conn.execute(
+                    """
+                    SELECT ns.uid, e.edge_type FROM graph_edges_v12 e
+                    LEFT JOIN graph_nodes ns ON ns.id = e.source_id
+                    WHERE e.source_id = e.target_id LIMIT 5
+                    """
+                ).fetchall()
+                issues.append({
+                    "category": "self_loops",
+                    "count": self_loop_count,
+                    "sample": [{"uid": r[0], "edge_type": r[1]} for r in sl_sample],
+                })
+
+            stats["issue_count"] = len(issues)
+            if fix:
+                stats["fixed_edge_count"] = fixed_count
+
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("doctor SQL suppressed: %s", exc)
+            return _ok(
+                {"healthy": None, "issues": [], "stats": {}, "error": str(exc)},
+                meta={"backend": be.backend_id},
+            )
+    else:
+        # Non-SQLite backend: basic edge-endpoint check only
+        seen_uids: set[str] = set()
+        edge_list = be.list_edges(limit=5000)
+        for edge in edge_list:
+            seen_uids.add(edge.source_uid)
+            seen_uids.add(edge.target_uid)
+        missing = 0
+        for u in list(seen_uids)[:500]:
+            if be.get_node(u) is None:
+                missing += 1
+        if missing:
+            issues.append({"category": "dangling_endpoints", "count": missing, "sample": []})
+        stats["edge_count"] = len(edge_list)
+        stats["issue_count"] = len(issues)
+
+    healthy = len(issues) == 0
+    return _ok(
+        {"healthy": healthy, "issues": issues, "stats": stats},
+        meta={
+            "backend": be.backend_id,
+            "fix_applied": fix and fixed_count > 0,
+            "fixed_count": fixed_count,
+        },
+    )
+
+
 __all__ = [
     "cos_graph_query",
     "cos_graph_context",
@@ -1840,5 +2546,8 @@ __all__ = [
     "cos_graph_contracts",
     "cos_graph_entrypoints",
     "cos_graph_communities",
+    "cos_graph_centrality",
+    "cos_graph_ranking",
+    "cos_graph_doctor",
     "reset_backend",
 ]
