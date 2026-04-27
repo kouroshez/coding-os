@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGraphStore } from '@/store/graph-store';
 import ContainsTree from '@/features/graph/ContainsTree';
-import BrainGraph3D from '@/features/graph/BrainGraph3D';
+import GraphCanvas from '@/features/graph/GraphCanvas';
 import FilterBar from '@/features/graph/filter-bar';
 import DepthSlider from '@/features/graph/depth-slider';
 import ColorLegend from '@/features/graph/color-legend';
@@ -45,7 +45,7 @@ export default function GraphPage() {
         <div className="absolute bottom-3 right-3 z-10 w-48">
           <ColorLegend />
         </div>
-        <BrainGraph3D />
+        <GraphCanvas />
       </section>
     </div>
   );
