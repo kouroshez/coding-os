@@ -190,6 +190,27 @@ class SqliteBackend:
                 return int(cursor.lastrowid)
 
             node_id = int(row[0])
+            existing = self._conn.execute(
+                "SELECT doc_blob, signature, metadata_json FROM graph_nodes WHERE id=?",
+                (node_id,),
+            ).fetchone()
+            incoming_is_stub = bool(node.metadata.get("stub")) if node.metadata else False
+            existing_meta = json.loads(existing[2] or "{}") if existing else {}
+            existing_is_stub = bool(existing_meta.get("stub")) if existing else False
+
+            doc_blob_to_write = node.doc_blob
+            sig_to_write = node.signature
+            meta_to_write = metadata_json
+            if incoming_is_stub and not existing_is_stub:
+                doc_blob_to_write = existing[0] if existing else None
+                sig_to_write = existing[1] if existing else None
+                meta_to_write = existing[2] if existing else metadata_json
+            else:
+                if existing and existing[0] and not node.doc_blob:
+                    doc_blob_to_write = existing[0]
+                if existing and existing[1] and not node.signature:
+                    sig_to_write = existing[1]
+
             self._conn.execute(
                 """
                 UPDATE graph_nodes SET
@@ -204,12 +225,12 @@ class SqliteBackend:
                     node.file_path,
                     node.start_line,
                     node.end_line,
-                    node.signature,
+                    sig_to_write,
                     node.lang,
-                    node.doc_blob,
+                    doc_blob_to_write,
                     node.ast_hash,
                     node.content_hash,
-                    metadata_json,
+                    meta_to_write,
                     now,
                     node_id,
                 ),
@@ -366,6 +387,67 @@ class SqliteBackend:
             )
             self._conn.commit()
             return int(cursor.rowcount or 0)
+
+    def link_external_stubs(self, *, file_path: str | None = None) -> int:
+        with self._write_lock:
+            if file_path:
+                stub_rows = self._conn.execute(
+                    """
+                    SELECT DISTINCT stub.id, stub.uid
+                    FROM graph_edges_v12 e
+                    JOIN graph_nodes stub ON stub.id = e.target_id
+                    JOIN graph_nodes src ON src.id = e.source_id
+                    WHERE src.file_path = ?
+                      AND stub.uid LIKE 'code:external:%'
+                      AND stub.uid NOT LIKE 'code:external:unresolved:%'
+                    """,
+                    (file_path,),
+                ).fetchall()
+            else:
+                stub_rows = self._conn.execute(
+                    """
+                    SELECT id, uid FROM graph_nodes
+                    WHERE uid LIKE 'code:external:%'
+                      AND uid NOT LIKE 'code:external:unresolved:%'
+                    """
+                ).fetchall()
+
+            rewrites = 0
+            for stub_id, stub_uid in stub_rows:
+                rest = stub_uid[len("code:external:"):]
+                module, _, name = rest.rpartition(":")
+                if not module or not name:
+                    continue
+                module_path = module.replace(".", "/")
+                file_candidates = [
+                    f"%/{module_path}.py",
+                    f"{module_path}.py",
+                    f"%/{module_path}/__init__.py",
+                    f"{module_path}/__init__.py",
+                ]
+                like_clause = " OR ".join(
+                    ["file_path LIKE ?"] * len(file_candidates)
+                )
+                real_row = self._conn.execute(
+                    f"""
+                    SELECT id, uid FROM graph_nodes
+                    WHERE kind IN ('function','method','class','variable','interface')
+                      AND label = ?
+                      AND ({like_clause})
+                    LIMIT 1
+                    """,
+                    (name, *file_candidates),
+                ).fetchone()
+                if real_row is None:
+                    continue
+                real_id = int(real_row[0])
+                self._conn.execute(
+                    "UPDATE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
+                    (real_id, stub_id),
+                )
+                rewrites += 1
+            self._conn.commit()
+            return rewrites
 
     # -- Read path ---------------------------------------------------------
 

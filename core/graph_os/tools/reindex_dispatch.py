@@ -545,6 +545,11 @@ def _reindex_graph(
             n, e = backend.bulk_upsert(result.nodes, result.edges)
             nodes_written += n
             edges_written += e
+
+        try:
+            backend.link_external_stubs(file_path=rel_path)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:
         conn.close()
     return {

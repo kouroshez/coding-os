@@ -252,6 +252,15 @@ def extract(path: str, content: str) -> ExtractionResult:
 # ---------------------------------------------------------------------------
 
 
+_HTTP_NOISE_PATHS = {"/x", "/y", "/z", "/foo", "/bar", "/test", "/path"}
+
+
+def _looks_like_noise(match: ContractMatch) -> bool:
+    if match.kind == "http":
+        return match.path in _HTTP_NOISE_PATHS
+    return False
+
+
 def _emit(
     source_uid: str,
     match: ContractMatch,
@@ -259,6 +268,8 @@ def _emit(
     normalised: str,
     result: ExtractionResult,
 ) -> None:
+    if _looks_like_noise(match):
+        return
     target_uid = _contract_uid(match)
     label = _contract_label(match)
     metadata = {
@@ -534,15 +545,22 @@ def _scan_fiber(content: str) -> list[ContractMatch]:
     return hits
 
 
+_MCP_NOISE_NAMES = {"name", "x", "y", "z", "foo", "bar", "tool", "test"}
+_MCP_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{2,}$")
+
+
 def _scan_mcp(content: str) -> list[ContractMatch]:
     hits: list[ContractMatch] = []
     for match in _MCP_TOOL_RE.finditer(content):
+        name = (match.group("path") or "").strip()
+        if name in _MCP_NOISE_NAMES or not _MCP_NAME_RE.match(name):
+            continue
         hits.append(
             ContractMatch(
                 kind="mcp",
                 framework="mcp",
                 method="rpc",
-                path=match.group("path"),
+                path=name,
                 handler=_next_def_name(content, match.end()),
                 line=_line_of(content, match.start()),
             )

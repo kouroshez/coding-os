@@ -477,6 +477,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    file_header = _module_docstring(content)
 
     file_node = GraphNode(
         uid=file_uid(path),
@@ -484,6 +485,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         label=PurePosixPath(normalised).name,
         file_path=normalised,
         lang="py",
+        doc_blob=file_header,
         content_hash=content_hash,
         metadata={"extractor": EXTRACTOR_ID},
     )
@@ -525,6 +527,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         label=mod_name,
         file_path=normalised,
         lang="py",
+        doc_blob=ast.get_docstring(tree) or file_header,
         metadata={"extractor": EXTRACTOR_ID},
     )
     result.nodes.append(mod_node)
@@ -1023,19 +1026,28 @@ class _PythonVisitor(ast.NodeVisitor):
 # ---------------------------------------------------------------------------
 
 
-def _resolve_symbol(name: str, *, path: str, visitor: _PythonVisitor) -> str:
-    """Best-effort resolution of a bare / dotted name to a uid.
+def _absolute_module_for(source_module: str | None, *, path: str) -> str:
+    if not source_module:
+        return ""
+    if not source_module.startswith("."):
+        return source_module
+    file_module = _module_name_for_path(path)
+    file_parts = file_module.split(".") if file_module != "__root__" else []
+    leading = len(source_module) - len(source_module.lstrip("."))
+    tail = source_module.lstrip(".")
+    base = file_parts[:-leading] if leading <= len(file_parts) else []
+    if tail:
+        base = base + tail.split(".")
+    return ".".join(base)
 
-    Step 1: same-scope name map (visitor.symbols_by_name).
-    Step 2: imported_local_names (explicit imports).
-    Fallback: a synthetic external uid keeps downstream stubs happy.
-    """
+
+def _resolve_symbol(name: str, *, path: str, visitor: _PythonVisitor) -> str:
     root = name.split(".")[0]
     if root in visitor.symbols_by_name:
         return visitor.symbols_by_name[root]
     imp = visitor.imported_local_names.get(root)
     if imp is not None:
-        target_mod = imp.source_module or imp.imported
+        target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
         return f"code:external:{target_mod}:{imp.imported}"
     return f"code:external:unresolved:{name}"
 
@@ -1065,16 +1077,15 @@ def _resolve_call(
         imp = visitor.imported_local_names[call.callee_name]
         signals.append(EvidenceSignal("explicit_import", 0.4, note=imp.source_module))
         confidence += 0.4
-        target_mod = imp.source_module or imp.imported
+        target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
         resolved = f"code:external:{target_mod}:{imp.imported}"
     elif "." in call.full_expr and call.full_expr.split(".")[0] in visitor.imported_local_names:
-        # Dotted call like `mod.foo()` where `mod` was imported.
         root = call.full_expr.split(".")[0]
         imp = visitor.imported_local_names[root]
         signals.append(EvidenceSignal("explicit_import", 0.4, note=imp.source_module))
         confidence += 0.4
         tail = ".".join(call.full_expr.split(".")[1:])
-        target_mod = imp.source_module or imp.imported
+        target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
         resolved = f"code:external:{target_mod}:{tail}"
     else:
         signals.append(EvidenceSignal("unresolved_call", 0.3))
@@ -1132,6 +1143,14 @@ _BUILTIN_TYPES: frozenset[str] = frozenset({
 # ---------------------------------------------------------------------------
 # Misc helpers
 # ---------------------------------------------------------------------------
+
+
+def _module_docstring(content: str) -> str | None:
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return None
+    return ast.get_docstring(tree)
 
 
 def _module_name_for_path(path: str) -> str:

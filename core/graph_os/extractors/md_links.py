@@ -103,6 +103,28 @@ def _normalize_path(path: str) -> str:
     return str(PurePosixPath(path.replace("\\", "/")))
 
 
+def _classify_governance_path(normalised: str) -> tuple[str | None, str | None]:
+    parts = normalised.split("/")
+    if (
+        len(parts) >= 4
+        and parts[-1] == "SKILL.md"
+        and "skills" in parts
+    ):
+        skills_idx = parts.index("skills")
+        if skills_idx + 1 < len(parts) - 1:
+            return ("cos:skill", parts[skills_idx + 1])
+    if (
+        len(parts) >= 3
+        and parts[-1].endswith(".md")
+        and "rules" in parts
+        and parts[-1] != "SKILL.md"
+    ):
+        rules_idx = parts.index("rules")
+        if rules_idx + 1 == len(parts) - 1:
+            return ("cos:rule", parts[-1][:-3])
+    return (None, None)
+
+
 def _resolve_link(origin_path: str, target: str) -> str:
     """Resolve a link (possibly relative) to an absolute repo-rooted path.
 
@@ -175,12 +197,14 @@ def extract(
     result = ExtractionResult()
     try:
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+        normalised = _normalize_path(path)
+        special_kind, special_label = _classify_governance_path(normalised)
 
         file_node = GraphNode(
             uid=file_uid(path),
-            kind="doc:file",
-            label=PurePosixPath(_normalize_path(path)).name,
-            file_path=_normalize_path(path),
+            kind=special_kind or "doc:file",
+            label=special_label or PurePosixPath(normalised).name,
+            file_path=normalised,
             lang="md",
             doc_blob=_extract_doc_blob(content),
             content_hash=content_hash,

@@ -40,6 +40,9 @@ EXTRACTOR_ID = "task_deps@v1"
 # `task_parser.extract_task_id_from_h1`).
 _TASK_ID_RE = re.compile(r"TASK-(?P<num>\d+)")
 _DOC_PATH_RE = re.compile(r"([A-Za-z0-9_./\-]+\.md)")
+_SCOPE_PATH_RE = re.compile(
+    r"([A-Za-z0-9_./\-]+\.(?:py|ts|tsx|js|jsx|sh|yaml|yml|go|rs|java|md|json|toml))"
+)
 
 
 def task_uid(task_id: str) -> str:
@@ -200,6 +203,19 @@ def extract(path: str, content: str) -> ExtractionResult:
                 )
             )
 
+        for scope_path in _extract_scope_paths(parsed.scope_in):
+            kind_for_target = "produces_doc" if scope_path.endswith(".md") else "produces_code"
+            result.edges.append(
+                GraphEdge(
+                    source_uid=task_node.uid,
+                    target_uid=_target_uid_for_file(scope_path),
+                    edge_type=kind_for_target,
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.9,
+                    source_span=f"{normalised_path}:scope_in",
+                )
+            )
+
         # S3: Folder→...→File spine anchored at the task uid so tree-
         # view can render tasks under their folder parent.
         emit_contains_spine(
@@ -286,6 +302,19 @@ def _extract_doc_paths(bullets: list[str]) -> list[str]:
     seen: set[str] = set()
     for item in bullets:
         for match in _DOC_PATH_RE.finditer(item):
+            candidate = _normalize_path(match.group(1))
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            paths.append(candidate)
+    return paths
+
+
+def _extract_scope_paths(bullets: list[str]) -> list[str]:
+    paths: list[str] = []
+    seen: set[str] = set()
+    for item in bullets:
+        for match in _SCOPE_PATH_RE.finditer(item):
             candidate = _normalize_path(match.group(1))
             if candidate in seen:
                 continue
