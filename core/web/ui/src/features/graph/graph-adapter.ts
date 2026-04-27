@@ -73,6 +73,20 @@ export function buildGraph(
   const nodes = allNodes.filter((n) => !CANVAS_NOISE_KINDS.has(n.kind));
   const edges = payload.edges ?? [];
 
+  // Pre-compute degree for size scaling: hubs get visibly bigger nodes
+  // (log curve so a 200-deg hub doesn't dwarf the canvas).
+  const degree = new Map<string, number>();
+  for (const e of edges) {
+    if (!e.source_uid || !e.target_uid) continue;
+    degree.set(e.source_uid, (degree.get(e.source_uid) ?? 0) + 1);
+    degree.set(e.target_uid, (degree.get(e.target_uid) ?? 0) + 1);
+  }
+  const sizeFor = (uid: string, kind: string): number => {
+    const base = kind === 'folder' ? 6 : kind === 'file' ? 5 : 3;
+    const d = degree.get(uid) ?? 0;
+    return Math.min(20, base + Math.log2(d + 1) * 1.6);
+  };
+
   for (const n of nodes) {
     if (!n.uid) continue;
     // Normalise legacy colon-prefixed kinds (`code:function`,
@@ -87,7 +101,7 @@ export function buildGraph(
     graph.addNode(n.uid, {
       x: Math.random() * 2 - 1,
       y: Math.random() * 2 - 1,
-      size: normalKind === 'folder' || normalKind === 'file' ? 6 : 4,
+      size: sizeFor(n.uid, normalKind),
       color: kindColor(n.kind),
       label: n.label || n.uid,
       kind: normalKind,
@@ -106,8 +120,8 @@ export function buildGraph(
     if (graph.hasEdge(key)) continue;
     try {
       graph.addEdgeWithKey(key, e.source_uid, e.target_uid, {
-        size: 1,
-        color: '#3b4252',
+        size: edgeSize(e.edge_type),
+        color: edgeColor(e.edge_type),
         edgeType: e.edge_type,
         hidden: !typeVisible,
       });
@@ -117,6 +131,44 @@ export function buildGraph(
   }
 
   return graph;
+}
+
+// Edge styling — group edge types into visual families so the canvas
+// reads at a glance. Brand palette: structure = warm browns, calls /
+// dispatch = orange (Mocha primary), types = teal, docs = muted blue.
+const EDGE_PALETTE: Record<string, { color: string; size: number }> = {
+  contains: { color: '#8B5A2B', size: 1.2 },
+  calls: { color: '#FF7A3D', size: 1.0 },
+  constructs: { color: '#C84B16', size: 1.1 },
+  imports: { color: '#2C5AA0', size: 0.9 },
+  inherits_from: { color: '#7A3A7A', size: 1.3 },
+  implements: { color: '#7A3A7A', size: 1.3 },
+  extends: { color: '#7A3A7A', size: 1.3 },
+  has_param_type: { color: '#3A7A7A', size: 0.7 },
+  returns_type: { color: '#3A7A7A', size: 0.7 },
+  field_of_type: { color: '#3A7A7A', size: 0.7 },
+  is_decorated_by: { color: '#B19A93', size: 0.7 },
+  references_doc: { color: '#5A7CA8', size: 0.8 },
+  cites_heading: { color: '#5A7CA8', size: 0.8 },
+  links_to: { color: '#5A7CA8', size: 0.8 },
+  handles_route: { color: '#D96C2C', size: 1.1 },
+  handles_tool: { color: '#D96C2C', size: 1.1 },
+  handles_event: { color: '#D96C2C', size: 1.1 },
+  dispatches: { color: '#D96C2C', size: 1.1 },
+  defines_route: { color: '#D96C2C', size: 1.1 },
+  awaits: { color: '#FFA468', size: 0.9 },
+  blocks: { color: '#8B2318', size: 1.2 },
+  depends_on: { color: '#6B504A', size: 0.9 },
+  re_exports: { color: '#94a3b8', size: 0.7 },
+  member_of_community: { color: '#C0719B', size: 0.6 },
+};
+
+function edgeColor(edgeType: string): string {
+  return EDGE_PALETTE[edgeType]?.color ?? '#8a8378';
+}
+
+function edgeSize(edgeType: string): number {
+  return EDGE_PALETTE[edgeType]?.size ?? 0.8;
 }
 
 // Depth-bounded BFS from a root uid. Used client-side to prune the

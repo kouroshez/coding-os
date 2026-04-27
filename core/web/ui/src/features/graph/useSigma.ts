@@ -61,6 +61,14 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     const edgeHex = cs.getPropertyValue('--cos-border').trim() || '#b8ad9a';
     const fallbackNodeHex = cs.getPropertyValue('--cos-muted').trim() || '#6b665e';
 
+    // Hover-highlight state. Closed over by the reducers below; mutated
+    // by the enterNode / leaveNode listeners. Keeping it here (not in
+    // useState) so a hover doesn't trigger a React re-render — sigma
+    // handles the repaint itself via .refresh().
+    let hoveredNode: string | null = null;
+    let hoveredNeighbours: Set<string> | null = null;
+    const hostGraph = graph;
+
     // Cast graph for Sigma's less-permissive generic bounds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sigma = new Sigma(graph as any, containerRef.current, {
@@ -73,12 +81,27 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       minCameraRatio: 0.05,
       maxCameraRatio: 30,
       hideEdgesOnMove: false,
-      nodeReducer: (_node: string, data: SigmaNodeAttrs) => {
+      nodeReducer: (node: string, data: SigmaNodeAttrs) => {
         if (data.hidden) return { ...data, hidden: true };
+        if (hoveredNode && hoveredNeighbours) {
+          if (node === hoveredNode) {
+            return { ...data, size: data.size * 1.4, zIndex: 2 };
+          }
+          if (!hoveredNeighbours.has(node)) {
+            return { ...data, color: '#d4ccbf', label: '', zIndex: 0 };
+          }
+          return { ...data, zIndex: 1 };
+        }
         return data;
       },
-      edgeReducer: (_edge: string, data: SigmaEdgeAttrs) => {
+      edgeReducer: (edge: string, data: SigmaEdgeAttrs) => {
         if (data.hidden) return { ...data, hidden: true };
+        if (hoveredNode) {
+          if (hostGraph.hasExtremity(edge, hoveredNode)) {
+            return { ...data, size: data.size * 2, color: '#3A2925' };
+          }
+          return { ...data, color: '#e7dfd0', size: 0.4 };
+        }
         return data;
       },
     });
@@ -86,6 +109,19 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
 
     sigma.on('clickNode', (e: { node: string }) => options.onNodeClick?.(e.node));
     sigma.on('clickStage', () => options.onStageClick?.());
+    sigma.on('enterNode', (e: { node: string }) => {
+      hoveredNode = e.node;
+      const live = graphRef.current;
+      hoveredNeighbours = live
+        ? new Set([e.node, ...live.neighbors(e.node)])
+        : new Set([e.node]);
+      sigma.refresh();
+    });
+    sigma.on('leaveNode', () => {
+      hoveredNode = null;
+      hoveredNeighbours = null;
+      sigma.refresh();
+    });
 
     return () => {
       sigma.kill();
