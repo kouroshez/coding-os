@@ -442,11 +442,35 @@ def cos_graph_context(
         confidence_min=0.0,
         edge_types=None,
     )
+    # Group neighbours by edge_type for the SPA inspector. Each entry
+    # carries the *other endpoint*'s summary (uid / kind / label) plus
+    # the edge_type so the panel can render "contains → file.py" rows.
+    # Edge metadata (confidence / provenance / evidence) is folded in
+    # for callers that want it; the frontend only reads uid/kind/label.
+    nodes_by_uid = {n.uid: n for n in nodes}
+    nodes_by_uid[root.uid] = root
     grouped: dict[str, list[dict[str, Any]]] = {}
     for e in edges:
-        grouped.setdefault(e.edge_type, []).append(
-            _edge_to_dict(e, include_evidence=include_evidence)
-        )
+        # Pick the endpoint that isn't the root we queried; falls back
+        # to target on self-edges so the panel still has a row.
+        other_uid = e.target_uid if e.source_uid == root.uid else e.source_uid
+        other = nodes_by_uid.get(other_uid)
+        if other is None:
+            continue
+        entry: dict[str, Any] = {
+            "uid": other.uid,
+            "kind": other.kind,
+            "label": other.label,
+            "edge_type": e.edge_type,
+            "confidence": e.confidence,
+            "extractor": e.extractor,
+        }
+        if include_evidence and e.evidence:
+            entry["evidence"] = [
+                {"signal_name": s.signal_name, "weight": s.weight, "note": s.note}
+                for s in e.evidence
+            ]
+        grouped.setdefault(e.edge_type, []).append(entry)
 
     # B21: include source content for each node when requested.
     def _node_dict(node: GraphNode) -> dict[str, Any]:
@@ -1124,6 +1148,35 @@ def _export_blend(
         node_uids.add(e.source_uid)
         node_uids.add(e.target_uid)
     nodes = [n for n in (be.get_node(u) for u in node_uids) if n is not None]
+
+    # Spine connectivity: walk every node up the ancestor chain so the
+    # SPA's tree builder sees a connected forest. Without this, budget-
+    # driven exports drop intermediate folder→file edges and the
+    # orphans surface as fake "extra roots" (user's screenshot bug).
+    # Only kicks in when contains is genuinely in scope — `dependencies`
+    # mode promises no contains edges, so we leave its result alone.
+    contains_in_scope = (
+        (edge_types is not None and any(t == "contains" for t in edge_types))
+        or mode in ("auto", "containment")
+    )
+    if node_uids and contains_in_scope:
+        existing_pairs = {
+            (e.source_uid, e.target_uid, e.edge_type) for e in edges
+        }
+        nodes_by_uid = {n.uid: n for n in nodes}
+        for uid in list(node_uids):
+            ancestors, spine_edges = _contains_ancestors(be, leaf_uid=uid)
+            for a in ancestors:
+                if a.uid not in nodes_by_uid:
+                    nodes_by_uid[a.uid] = a
+                    node_uids.add(a.uid)
+            for se in spine_edges:
+                key = (se.source_uid, se.target_uid, se.edge_type)
+                if key not in existing_pairs:
+                    edges.append(se)
+                    existing_pairs.add(key)
+        nodes = list(nodes_by_uid.values())
+
     return nodes, edges
 
 

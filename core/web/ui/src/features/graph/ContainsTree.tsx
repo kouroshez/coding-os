@@ -133,10 +133,22 @@ export default function ContainsTree() {
   const selectedRootUid = useGraphStore((s) => s.selectedRootUid);
   const setRoot = useGraphStore((s) => s.setRoot);
 
+  // Spine needs the full folder→file→class→method→inner-class chain so
+  // every node has its true contains parent in the payload (otherwise
+  // orphans surface as fake "extra roots"). We only filter doc-internal
+  // chatter and unresolved externals — those don't participate in the
+  // navigation tree. The tree row filter below trims to spine-relevant
+  // kinds at render time.
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
     ['contains-tree'],
     '/api/graph/export',
-    { format: 'json', edge_types: 'contains', max_nodes: 500 },
+    {
+      format: 'json',
+      edge_types: 'contains',
+      max_nodes: 30000,
+      exclude_kinds:
+        'doc_heading,doc_frontmatter,doc_external,import_,identifier,unknown',
+    },
   );
 
   const forest = useMemo(() => (data ? buildForest(data) : []), [data]);
