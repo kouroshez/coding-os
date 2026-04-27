@@ -35,16 +35,29 @@ the answer came from the SQLite fallback (lower precision on deep walks).
 
 ## Enforcement
 
-- `enforce-graph-context.sh` — when editing a file that appears in the
-  `graph.enforce_context_on` list of `.coding-os/rag-config.yaml`, the
-  hook warns if you have not recorded a `.graph-context-<uid>` marker
-  in `$COS_AGENT_DIR` for this session.
+- `enforce-graph-context.sh` — when editing a file under a path the
+  hook treats as load-bearing (the matcher is built into the script —
+  there is no `rag-config.yaml::graph.enforce_context_on` key today),
+  the hook warns if no `.graph-context-<uid>` marker exists in
+  `$COS_AGENT_DIR` for this session.
 - `enforce-rename-plan.sh` — if you attempt a multi-file rename-like
   Edit without a prior `cos_graph_rename_plan` in this session, the
   hook warns + suggests the command.
 
-Both hooks are warn-by-default; set `COS_ENFORCE_GRAPH_CONTEXT=strict`
-to promote to block.
+Both hooks are off by default; set `COS_ENFORCE_GRAPH_CONTEXT=1` to
+warn or `COS_ENFORCE_GRAPH_CONTEXT=strict` to block.
+
+## Auto-reindex contract
+
+The PostToolUse hook `auto-reindex-docs.sh` re-indexes **only the file
+just written** via `graph_os.tools.reindex_dispatch.dispatch(path)` —
+not the whole repo. The dispatcher is incremental: it extracts that
+single file's nodes / edges, upserts them into the existing graph
+(idempotent on `uid`), and short-circuits via `file_index_state` when
+the content hash hasn't changed. Typical cost: 20–100 ms per file,
+fire-and-forget background. Use `cos graph-reindex --force` only after
+a bulk shell move (`mv` / `cp` / `git checkout`) where the hook never
+fired.
 
 ## Fail-loud failure modes
 
@@ -61,9 +74,10 @@ to promote to block.
 
 For visual exploration, the unified React SPA exposes the graph at
 [http://127.0.0.1:9188/graph](http://127.0.0.1:9188/graph). Start it
-with `cos web` (FastAPI + uvicorn on port 9188). The page picks a
-root node, runs depth-bounded BFS, and renders with Sigma.js +
-Graphology — useful when:
+with `cos hub start` (FastAPI + uvicorn singleton on port 9188 that
+serves every registered project). The page picks a root node, runs
+depth-bounded BFS, and renders with Sigma.js + Graphology — useful
+when:
 
 - An impact/rename plan returns >10 affected files and the agent (or
   user) wants to see clusters before approving.
