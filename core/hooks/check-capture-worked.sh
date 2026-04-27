@@ -45,20 +45,22 @@ OBS_COUNT=-1
 if [[ -f "$COS_DB_PATH" ]]; then
   # SQLite may not be installed in bare environments, so fallback to
   # Python which we already depend on.
-  OBS_COUNT=$(python3 - "$COS_DB_PATH" "$SESSION_ID" <<'PY' 2>/dev/null || echo -1
-import sqlite3, sys
-try:
-    conn = sqlite3.connect(sys.argv[1], timeout=2)
-    cur = conn.execute(
-        "SELECT COUNT(*) FROM observations WHERE session_id = ?",
-        (sys.argv[2],),
-    )
-    print(cur.fetchone()[0])
-    conn.close()
-except Exception:
-    print(-1)
-PY
-  )
+  # bash 5.3.9 deadlocks `$(python3 - <<HEREDOC)`. Form B (helper file)
+  # is the only deadlock-immune pattern.
+  _src="${BASH_SOURCE[0]}"
+  while [ -L "$_src" ]; do
+    _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+    _src="$(readlink "$_src")"
+    [[ "$_src" != /* ]] && _src="$_dir/$_src"
+  done
+  HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+  unset _src _dir
+  HELPER="${HSRC}/_helpers/observation_count.py"
+  if [[ -f "$HELPER" ]]; then
+    OBS_COUNT=$(python3 "$HELPER" "$COS_DB_PATH" "$SESSION_ID" 2>/dev/null || echo -1)
+  else
+    OBS_COUNT=-1
+  fi
 fi
 
 # --- 3. Decide what to say ------------------------------------------

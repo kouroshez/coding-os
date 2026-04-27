@@ -13,8 +13,9 @@
 # renamed file or to AGENTS.md.
 set -euo pipefail
 
-INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 case "$FILE_PATH" in
@@ -24,7 +25,6 @@ case "$FILE_PATH" in
   *) exit 0 ;;
 esac
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook check-agents-md-refs fire "trigger=${FILE_PATH}"
 
 # Locate AGENTS.md from the file path (may be editing from a subdir).

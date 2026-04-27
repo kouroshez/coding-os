@@ -26,12 +26,12 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # Only enforce on code files. Docs/tests/scaffold/state are exempt.
@@ -78,9 +78,9 @@ if type check_state >/dev/null 2>&1; then
   fi
 fi
 
-# One-shot override.
-if [[ -f "$COS_AGENT_DIR/.memory-check-override" ]]; then
-  rm -f "$COS_AGENT_DIR/.memory-check-override"
+# One-shot override. Unified registry preferred; legacy
+# $COS_AGENT_DIR/.memory-check-override still honoured.
+if cos_one_shot_override memory-check 2>/dev/null; then
   exit 0
 fi
 

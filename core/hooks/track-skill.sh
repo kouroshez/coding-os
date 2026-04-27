@@ -5,15 +5,15 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 # Only track Skill tool invocations
 if [[ "$TOOL" != "Skill" ]]; then
   exit 0
 fi
 
-SKILL_NAME=$(echo "$INPUT" | jq -r '.tool_input.skill // empty')
+SKILL_NAME=$(echo "$INPUT" | jq -r '.tool_input.skill // empty' 2>/dev/null || echo "")
 
 if [[ -n "$SKILL_NAME" ]]; then
   SESSION_FILE="$COS_SESSION_FILE"

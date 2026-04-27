@@ -63,41 +63,27 @@ lock_dir="${COS_AGENT_DIR:-.coding-os/claude}/locks"
 mkdir -p "$lock_dir" 2>/dev/null || exit 0
 lock_file="$lock_dir/${task_id}.lock"
 
-# Background fire-and-forget to avoid blocking the tool response.
-(
+# Background fire-and-forget. bash 5.3.9 deadlocks `python3 - <<HEREDOC`;
+# extracted to _helpers/work_log_append.py. task_id and summary pass via
+# argv (avoids triple-quote escaping fragility too).
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _dir
+HELPER="${HSRC}/_helpers/work_log_append.py"
+if [[ -f "$HELPER" ]]; then
+  (
     exec 9>"$lock_file"
     if flock -w 2 9; then
-        COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" python3 - <<PY 2>&1 >/dev/null
-import os
-import sqlite3
-from pathlib import Path
-
-try:
-    from core.board_os.mcp_tools import cos_work_log_append
-except ImportError:
-    import sys; sys.exit(0)
-
-project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
-db_path = os.environ.get(
-    "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db"),
-)
-if not Path(db_path).exists():
-    import sys; sys.exit(0)
-
-conn = sqlite3.connect(db_path)
-try:
-    cos_work_log_append(
-        conn,
-        task_id="$task_id",
-        summary="""$summary""",
-        agent_session=os.environ.get("COS_AGENT_SESSION_ID"),
-        source="auto",
-    )
-finally:
-    conn.close()
-PY
+      COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
+        python3 "$HELPER" "$task_id" "$summary" >/dev/null 2>&1
     fi
-) &
+  ) &
+fi
 
 cos_log_hook "capture-work-log" "spawned" 2>/dev/null || true
 exit 0

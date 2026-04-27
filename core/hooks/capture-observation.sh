@@ -9,10 +9,10 @@
 # end instead of us losing observations invisibly for an entire session.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
-
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
+
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
 # Heartbeat: prove the hook fires at all. If `cos hooks-log` shows no

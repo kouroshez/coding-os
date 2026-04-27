@@ -23,37 +23,23 @@ if [[ "$file_path" != *"docs/tasks/"*.md ]]; then
     exit 0
 fi
 
-# Background, fire-and-forget.
-(
-    COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" python3 - "$file_path" <<'PY' >/dev/null 2>&1
-import os
-import sqlite3
-import sys
-from pathlib import Path
-
-try:
-    from core.board_os.sync import sync_one
-except ImportError:
-    sys.exit(0)
-
-file_path = Path(sys.argv[1])
-if not file_path.exists():
-    sys.exit(0)
-
-project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
-db_path = os.environ.get(
-    "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db"),
-)
-if not Path(db_path).exists():
-    sys.exit(0)
-
-conn = sqlite3.connect(db_path)
-try:
-    sync_one(conn, file_path, project_root=project_root)
-finally:
-    conn.close()
-PY
-) &
+# Background, fire-and-forget. bash 5.3.9 deadlocks `python3 - <<HEREDOC`
+# — extracted to _helpers/task_sync.py.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _dir
+HELPER="${HSRC}/_helpers/task_sync.py"
+if [[ -f "$HELPER" ]]; then
+  (
+    COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
+      python3 "$HELPER" "$file_path" >/dev/null 2>&1
+  ) &
+fi
 
 cos_log_hook "auto-task-sync" "spawned" 2>/dev/null || true
 exit 0

@@ -3,14 +3,15 @@
 # Session-scoped: only accepts gate from the CURRENT session.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 
 # Only enforce for code files
 if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
@@ -26,7 +27,6 @@ if [[ "$FILE_PATH" == *.thinking_os-gate ]]; then
   exit 0
 fi
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 GATE_FILE="${COS_AGENT_DIR}/.thinking_os-gate"
 
 # Use session-scoped check

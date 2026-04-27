@@ -5,13 +5,13 @@ swimlane: core
 kind: refactor
 epic: naming-contract
 labels: [governance, naming]
-status: testing
+status: complete
 priority: P1
 appetite: "4h"
 created: 2026-04-26
 started: 2026-04-26
-completed: null
-agent_session: ses-claude-20260426-takeover
+completed: 2026-04-26
+agent_session: ses-claude-20260426-185755-6c29
 depends_on: []
 blocked_by: []
 references: []
@@ -44,3 +44,4 @@ references: []
 - 2026-04-26 — Created naming contract and scoped repo-wide migration.
 - 2026-04-26 — Codex session abandoned mid-task; ownership reassigned. Took over via Claude.
 - 2026-04-26 — Surgical migration committed: 32 file renames (hyphen→underscore in subsystem paths) + content sweep across 271 modified files. Mixed-content files split using HEAD-baseline sweep + WIP preservation, so unrelated WIP for other tasks (TASK-089..151) remains in working tree intact. Verification: `git ls-files | xargs grep "thinking-os|graph-os|board-os|external graph tooling"` → 0 hits in staged + tracked content. Display-name pass (Thinking OS / Graph OS / Board OS in human prose) intentionally deferred — current sweep was mechanical token rename; semantic prose audit is a separate pass.
+- 2026-04-26 [claude]: Status transitioned to complete via cos task-done.

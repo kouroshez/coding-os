@@ -1,6 +1,7 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { BoardThemeProvider } from '@/features/cos-board/BoardThemeProvider';
 import AppShell from '@/layout/AppShell';
+import { ErrorBoundary } from '@/layout/ErrorBoundary';
 import CosBoardPage from '@/features/cos-board/CosBoardPage';
 import GraphPage from './pages/GraphPage';
 import CognitionPage from './pages/CognitionPage';
@@ -9,6 +10,7 @@ import HubHome from './pages/HubHome';
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <BoardThemeProvider>
       <Routes>
         <Route element={<AppShell />}>
@@ -37,5 +39,6 @@ export default function App() {
         </Route>
       </Routes>
     </BoardThemeProvider>
+    </ErrorBoundary>
   );
 }

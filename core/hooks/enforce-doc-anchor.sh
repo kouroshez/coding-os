@@ -29,14 +29,16 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+# Fail-open if state dir is absent (fresh clone, mid-init, off-project cwd).
+cos_sanity_check enforce-doc-anchor state_dir 2>/dev/null || true
 
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # Only enforce on CODE. Docs/tests/config/state files are exempt — they
@@ -94,9 +96,9 @@ if type check_state >/dev/null 2>&1; then
   fi
 fi
 
-# One-shot manual override (consumed on use).
-if [[ -f "$COS_AGENT_DIR/.doc-anchor-override" ]]; then
-  rm -f "$COS_AGENT_DIR/.doc-anchor-override"
+# One-shot manual override (consumed on use). Unified registry preferred;
+# legacy $COS_AGENT_DIR/.doc-anchor-override still honoured.
+if cos_one_shot_override doc-anchor 2>/dev/null; then
   exit 0
 fi
 

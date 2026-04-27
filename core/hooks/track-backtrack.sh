@@ -15,7 +15,7 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook "track-backtrack" "PostToolUse"
 
-INPUT=$(cat)
+INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "mcp__coding-os__cos_backtrack_log" ]]; then
   exit 0

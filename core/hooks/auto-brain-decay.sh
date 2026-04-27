@@ -17,15 +17,57 @@ COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/thinking_os.db}"
 
 cos_log_hook auto-brain-decay fire
 
-# DB absent (fresh install, no patterns yet) → silent no-op.
+NOW_TS=$(date +%s)
+LAST_RUN_FILE="$COS_STATE_DIR/.last-decay"
+DEBOUNCE_SECONDS=$((24 * 60 * 60))
+
+# ---------------------------------------------------------------------------
+# Stale state-file GC.
+#
+# WHY
+#   Session-scoped markers under $COS_AGENT_DIR (.thinking_os-gate,
+#   .doc-anchor, .memory-check, .roles, .role, .situation, .active-skill,
+#   .zoom-checkpoint, .rename-plan, .graph-context, .task-current) are
+#   bound to a single session. Old sessions' markers stay on disk forever
+#   unless something reaps them. Over months of dogfooding the agent dir
+#   accumulates hundreds-thousands of stale dotfiles and traces/*.jsonl
+#   blobs, polluting `ls`, slowing `find`, and confusing debug runs.
+#
+# POLICY
+#   - Marker dotfiles older than 7 days → deleted.
+#   - traces/*.jsonl older than 30 days → deleted.
+#   - Bounded to ${COS_AGENT_DIR} only (never touches the shared
+#     COS_STATE_DIR root). Symlinks ignored.
+#
+# Runs UNCONDITIONALLY before the DB-debounced decay below — even fresh
+# installs without a DB benefit from the cleanup, and the GC is cheap
+# enough (≤20 stat calls) to run inline. Errors silently ignored.
+# ---------------------------------------------------------------------------
+if [[ -d "${COS_AGENT_DIR:-}" ]]; then
+  for marker in .thinking_os-gate .doc-anchor .memory-check .roles .role \
+                .situation .active-skill .zoom-checkpoint .rename-plan \
+                .graph-context .task-current; do
+    f="$COS_AGENT_DIR/$marker"
+    if [[ -f "$f" ]]; then
+      mtime=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+      if [[ "$mtime" -gt 0 ]] && [[ $((NOW_TS - mtime)) -gt $((7 * 24 * 60 * 60)) ]]; then
+        rm -f "$f" 2>/dev/null || true
+        cos_log_hook auto-brain-decay gc "removed=${marker} age_s=$((NOW_TS - mtime))"
+      fi
+    fi
+  done
+  if [[ -d "$COS_AGENT_DIR/traces" ]]; then
+    find "$COS_AGENT_DIR/traces" -maxdepth 1 -type f -name '*.jsonl' \
+      -mtime +30 -delete 2>/dev/null || true
+  fi
+fi
+
+# DB absent (fresh install, no patterns yet) → skip pattern decay (GC above
+# already ran).
 if [ ! -f "$COS_DB_PATH" ]; then
   cos_log_hook auto-brain-decay skip "reason=no_db"
   exit 0
 fi
-
-LAST_RUN_FILE="$COS_STATE_DIR/.last-decay"
-NOW_TS=$(date +%s)
-DEBOUNCE_SECONDS=$((24 * 60 * 60))
 
 if [ -f "$LAST_RUN_FILE" ]; then
   LAST_TS=$(cat "$LAST_RUN_FILE" 2>/dev/null | tr -d '[:space:]')
@@ -62,5 +104,7 @@ fi
   timeout 10 python3 "$DECAY_SCRIPT" > /dev/null 2>&1 \
     && echo "$NOW_TS" > "$LAST_RUN_FILE"
 ) &
+
+exit 0
 
 exit 0

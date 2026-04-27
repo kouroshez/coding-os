@@ -550,6 +550,19 @@ export default function CosBoardPage() {
 
   const clampZoom = (v: number) => Math.min(1.5, Math.max(0.5, Math.round(v * 100) / 100));
 
+  // Rules-of-Hooks: every hook MUST execute before any conditional return,
+  // otherwise the second render adds a hook the first did not call and
+  // React throws "Rendered more hooks than during the previous render."
+  // (#310). agentCatalog used to live after the loading/error guards;
+  // moved up to keep the call count stable across renders.
+  const agentCatalog = useMemo(
+    () =>
+      list?.agent_manifest && list.agent_manifest.length > 0
+        ? list.agent_manifest
+        : FALLBACK_AGENT_MANIFEST,
+    [list?.agent_manifest],
+  );
+
   // ---------- render ----------
   if (isLoading) {
     return (
@@ -567,14 +580,6 @@ export default function CosBoardPage() {
   }
 
   const totalWidth = Math.max(400, columns.length * 200 + 130);
-
-  const agentCatalog = useMemo(
-    () =>
-      list?.agent_manifest && list.agent_manifest.length > 0
-        ? list.agent_manifest
-        : FALLBACK_AGENT_MANIFEST,
-    [list?.agent_manifest],
-  );
 
   return (
     <AgentCatalogContext.Provider value={agentCatalog}>

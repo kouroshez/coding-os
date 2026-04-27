@@ -14,13 +14,14 @@
 # Escape hatch: $COS_STATE_DIR/.literals-override for one-shot bypass.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # Only guard the data-driven CLI layer.
@@ -29,18 +30,16 @@ case "$FILE_PATH" in
   *) exit 0 ;;
 esac
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
-if [[ -f "$COS_STATE_DIR/.literals-override" ]]; then
-  rm -f "$COS_STATE_DIR/.literals-override"
+if cos_one_shot_override literals 2>/dev/null; then
   exit 0
 fi
 
 if [[ "$TOOL" == "Write" ]]; then
-  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty')
+  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || echo "")
 else
-  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty')
+  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty' 2>/dev/null || echo "")
 fi
 [[ -z "$CONTENT" ]] && exit 0
 
@@ -56,6 +55,7 @@ RC=$?
 
 if [[ $RC -eq 2 ]]; then
   echo "  One-shot override: touch $COS_STATE_DIR/.literals-override" >&2
+  echo "  (or: echo '{\"literals\":{\"reason\":\"\"}}' > $COS_STATE_DIR/.overrides.json)" >&2
   exit 2
 fi
 

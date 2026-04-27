@@ -6,8 +6,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/codex-pretool-dispatch.sh",
-            "timeout": 2000
+            "command": "{{HOOKS_DIR}}/codex-pretool-dispatch.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/codex-posttool-dispatch.sh"
           }
         ]
       }
@@ -19,8 +29,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/codex-sessionstart-dispatch.sh",
-            "statusMessage": "🚀 Loading session context + MCP health...",
-            "timeout": 2000
+            "statusMessage": "🚀 Loading session context + MCP health..."
           }
         ]
       },
@@ -30,8 +39,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/codex-sessionstart-dispatch.sh",
-            "statusMessage": "🔄 Recovering workflow context + MCP health...",
-            "timeout": 2000
+            "statusMessage": "🔄 Recovering workflow context + MCP health..."
           }
         ]
       }
@@ -42,8 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/codex-userpromptsubmit-dispatch.sh",
-            "timeout": 2000
+            "command": "{{HOOKS_DIR}}/codex-userpromptsubmit-dispatch.sh"
           }
         ]
       }
@@ -57,18 +64,6 @@
             "command": "{{HOOKS_DIR}}/codex-stop-dispatch.sh",
             "statusMessage": "📝 Finalizing session recap + memory enrichment...",
             "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/codex-posttool-dispatch.sh",
-            "timeout": 2000
           }
         ]
       }

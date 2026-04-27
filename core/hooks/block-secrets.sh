@@ -2,14 +2,14 @@
 # PreToolUse hook: Block commits/writes containing hardcoded secrets or sensitive files.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 # For Bash tool: block git add of sensitive files
 if [[ "$TOOL" == "Bash" ]]; then
   cos_log_hook block-secrets fire "tool=Bash"
-  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 
   # Block git add of .env files (but allow .env.example, .env.template)
   if echo "$COMMAND" | grep -qE 'git add.*\.env($|\s)' || echo "$COMMAND" | grep -qE 'git add\s+\.env$'; then
@@ -35,8 +35,9 @@ fi
 
 # For Write/Edit tool: block writing secrets patterns
 if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
-  FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
-  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty')
+  FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty' 2>/dev/null || echo "")
+  FILE_BASENAME="$(basename "$FILE_PATH" 2>/dev/null || echo "")"
 
   # Skip .env.example, test files, mock files, and docs
   if [[ "$FILE_PATH" == *.env.example* ]] || [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *mock* ]] || [[ "$FILE_PATH" == *.md ]]; then
@@ -77,10 +78,12 @@ if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
     fi
   fi
 
-  # Block Django SECRET_KEY hardcoded
+  # Block Django SECRET_KEY hardcoded.
+  # Tighten allowlist: match the file BASENAME, not the whole path, so a path
+  # containing "development" elsewhere (e.g. /var/development-team/app/settings.py)
+  # doesn't open a hole.
   if echo "$CONTENT" | grep -qE "SECRET_KEY\s*=\s*['\"]django-insecure-"; then
-    # Allow in development settings only
-    if [[ "$FILE_PATH" != *development* ]] && [[ "$FILE_PATH" != *local* ]]; then
+    if [[ "$FILE_BASENAME" != *development* ]] && [[ "$FILE_BASENAME" != *local* ]]; then
       echo "BLOCKED: Insecure Django SECRET_KEY detected outside development settings. Use environment variables." >&2
       exit 2
     fi
@@ -90,6 +93,48 @@ if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
   if echo "$CONTENT" | grep -qE 'POSTMARK_SERVER_TOKEN\s*=\s*["\047][a-f0-9-]{36}["\047]'; then
     echo "BLOCKED: Postmark server token detected. Use environment variables." >&2
     exit 2
+  fi
+
+  # Block GitHub Personal Access Tokens (classic + fine-grained) and OAuth tokens.
+  # Format: ghp_/gho_/ghu_/ghs_/ghr_ + 36+ alnum.
+  if echo "$CONTENT" | grep -qE 'gh[pousr]_[A-Za-z0-9]{36,}'; then
+    echo "BLOCKED: GitHub token detected (ghp_/gho_/ghu_/ghs_/ghr_). Use \$GITHUB_TOKEN env var or gh auth login." >&2
+    exit 2
+  fi
+
+  # Block OpenAI / Anthropic API keys.
+  # OpenAI: sk-... (≥40 chars body), sk-proj-..., or org keys. Anthropic: sk-ant-...
+  if echo "$CONTENT" | grep -qE 'sk-(ant-)?(proj-)?[A-Za-z0-9_\-]{32,}'; then
+    echo "BLOCKED: OpenAI/Anthropic API key detected. Use environment variables (OPENAI_API_KEY, ANTHROPIC_API_KEY)." >&2
+    exit 2
+  fi
+
+  # Block Slack tokens (xoxb-/xoxa-/xoxp-/xoxr-/xoxs-).
+  if echo "$CONTENT" | grep -qE 'xox[abprs]-[A-Za-z0-9-]{10,}'; then
+    echo "BLOCKED: Slack token detected. Use environment variables." >&2
+    exit 2
+  fi
+
+  # Block Google API keys (AIza...).
+  if echo "$CONTENT" | grep -qE 'AIza[A-Za-z0-9_\-]{35}'; then
+    echo "BLOCKED: Google API key detected. Use environment variables." >&2
+    exit 2
+  fi
+
+  # Block JWT tokens hardcoded in source (header.payload.signature, base64url).
+  # Skip docs/examples — already filtered above. Require 3 segments with ≥10 chars each.
+  if echo "$CONTENT" | grep -qE 'eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}'; then
+    echo "BLOCKED: JWT token detected hardcoded in source. Issue tokens at runtime; do not commit." >&2
+    exit 2
+  fi
+
+  # Block basic-auth credentials embedded in URLs (http(s)://user:password@host).
+  # Only block when the password segment has real entropy (≥6 chars, not just "user:pass" placeholder).
+  if echo "$CONTENT" | grep -qE 'https?://[A-Za-z0-9._-]+:[^@[:space:]/"\047]{6,}@[A-Za-z0-9.-]+'; then
+    if ! echo "$CONTENT" | grep -qE 'https?://(user|username|admin|root|test|example|foo):(password|pass|secret|test|example|foo|changeme)@'; then
+      echo "BLOCKED: Basic-auth credentials embedded in URL. Use env vars or a secret manager, never inline in URLs." >&2
+      exit 2
+    fi
   fi
 fi
 

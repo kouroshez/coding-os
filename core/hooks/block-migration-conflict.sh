@@ -19,13 +19,14 @@
 # block, not warn.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # --- db.py-style registries ------------------------------------------
@@ -36,9 +37,9 @@ BASENAME=$(basename "$FILE_PATH")
 if [[ "$BASENAME" == "db.py" ]]; then
   # Extract proposed new version from the tool input.
   if [[ "$TOOL" == "Write" ]]; then
-    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty')
+    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || echo "")
   else
-    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty')
+    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty' 2>/dev/null || echo "")
   fi
 
   # Find any N in `MIGRATIONS.append((N, ...))` patterns in the new content.
@@ -63,7 +64,7 @@ if [[ "$BASENAME" == "db.py" ]]; then
       # already contain this version (i.e. truly adding a dup, not
       # renaming an existing one).
       if [[ "$TOOL" == "Edit" ]]; then
-        OLD_STRING=$(echo "$INPUT" | jq -r '.tool_input.old_string // empty')
+        OLD_STRING=$(echo "$INPUT" | jq -r '.tool_input.old_string // empty' 2>/dev/null || echo "")
         if echo "$OLD_STRING" | grep -qE "MIGRATIONS\.append\(\([[:space:]]*${v}[^0-9]"; then
           continue  # this edit is replacing the v entry in-place
         fi

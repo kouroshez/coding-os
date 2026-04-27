@@ -3,16 +3,16 @@
 # Source: AGENTS.md § Principles (P5), git safety
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
 
 cos_log_hook block-dangerous-commands fire "tool=Bash"
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 
 # Block force push to main/master
 if echo "$COMMAND" | grep -qE 'git push.*--force.*(main|master)'; then

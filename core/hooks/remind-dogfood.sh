@@ -14,8 +14,9 @@
 # Non-blocking, debounced (one reminder per 10 minutes) to avoid spam.
 set -euo pipefail
 
-INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 case "$FILE_PATH" in
@@ -38,7 +39,6 @@ while [[ "$DIR" != "/" && "$DIR" != "." ]]; do
 done
 [[ -z "$PROJECT_ROOT" ]] && exit 0
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook remind-dogfood fire "path=${FILE_PATH}"
 
 MARKER="${PROJECT_ROOT}/.coding-os/.dogfood-reminded"

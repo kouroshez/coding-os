@@ -19,13 +19,13 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 if [[ -z "$FILE_PATH" ]]; then
   exit 0
 fi
@@ -36,6 +36,26 @@ case "$FILE_PATH" in
 esac
 
 cos_log_hook auto-reindex-docs fire "file=${FILE_PATH}"
+
+# ── Debounce (D3) ────────────────────────────────────────────────────
+# Coalesce rapid successive writes on the same path within a 3-second
+# window to prevent N parallel background workers when an agent edits
+# a file in quick succession. Strategy: write a per-path lockfile with
+# the current timestamp; skip if the file was touched in the last 3 s.
+_DEBOUNCE_TTL=3
+_STATE_BASE="${COS_STATE_DIR:-${PWD}/.coding-os}"
+_SAFE_PATH=$(printf '%s' "$FILE_PATH" | tr '/' '_' | tr ' ' '_')
+_DEBOUNCE_FILE="${_STATE_BASE}/.reindex-debounce-${_SAFE_PATH}"
+_NOW=$(date +%s)
+if [[ -f "$_DEBOUNCE_FILE" ]]; then
+  _LAST=$(cat "$_DEBOUNCE_FILE" 2>/dev/null || echo 0)
+  if (( _NOW - _LAST < _DEBOUNCE_TTL )); then
+    cos_log_hook auto-reindex-docs skip "reason=debounced file=${FILE_PATH##*/}"
+    exit 0
+  fi
+fi
+mkdir -p "$(dirname "$_DEBOUNCE_FILE")"
+echo "$_NOW" > "$_DEBOUNCE_FILE"
 
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}"
 CORE_DIR=""

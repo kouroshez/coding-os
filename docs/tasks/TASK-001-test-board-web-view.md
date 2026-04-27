@@ -29,3 +29,18 @@ references: []
 - **Then** ...
 
 ## Work Log
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised
+- 2026-04-27 [claude]: audit smoke — all MCP tools exercised

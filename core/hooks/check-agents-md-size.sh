@@ -10,15 +10,15 @@
 # prevent legitimate growth.
 set -euo pipefail
 
-INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 case "$FILE_PATH" in
   */AGENTS.md|AGENTS.md) ;;
   *) exit 0 ;;
 esac
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook check-agents-md-size fire "path=${FILE_PATH}"
 
 CODEX_CAP=32768

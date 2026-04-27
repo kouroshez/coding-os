@@ -15,22 +15,22 @@
 # Use sparingly — the Python-file pattern is almost always cleaner.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 [[ -z "$CMD" ]] && exit 0
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 cos_log_hook block-uv-heredoc fire "tool=Bash"
 
-# One-shot override (consumed on use).
-if [[ -f "$COS_AGENT_DIR/.uv-heredoc-override" ]]; then
-  rm -f "$COS_AGENT_DIR/.uv-heredoc-override"
+# One-shot override (consumed on use). Unified registry checked first;
+# legacy $COS_AGENT_DIR/.uv-heredoc-override still honoured.
+if cos_one_shot_override uv-heredoc 2>/dev/null; then
   cos_log_hook block-uv-heredoc bypass "reason=override"
   exit 0
 fi

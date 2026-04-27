@@ -48,17 +48,17 @@ done
 MANIFEST="${PROJECT_ROOT}/.coding-os/installed-manifest.json"
 LINKER="${CODING_OS_ROOT}/core/scripts/link-stack-skills.sh"
 if [ -f "$MANIFEST" ] && [ -x "$LINKER" ]; then
-  STACKS=$(MANIFEST="$MANIFEST" python3 - <<'PY' 2>/dev/null || true
-import json, os, sys
-try:
-    with open(os.environ["MANIFEST"]) as f:
-        data = json.load(f)
-    print(" ".join(data.get("templates", [])))
-except Exception as exc:
-    sys.stderr.write(f"manifest parse error: {exc}\n")
-    sys.exit(1)
-PY
-)
+  # bash 5.3.9 sporadically deadlocks `python3 - <<HEREDOC` AND nested
+  # `$(python3 -c "$(cat <<'PY' ... PY)")` patterns inside command
+  # substitutions. The only deadlock-immune form is a separate .py file
+  # invoked as `python3 path/to/file.py args`. Helpers live next to this
+  # script in `_install_helpers/`.
+  STACKS_HELPER="${CODING_OS_ROOT}/adapters/claude/_install_helpers/extract_stacks.py"
+  if [ -f "$STACKS_HELPER" ]; then
+    STACKS=$(python3 "$STACKS_HELPER" "$MANIFEST" 2>/dev/null || true)
+  else
+    STACKS=""
+  fi
   if [ -n "$STACKS" ]; then
     bash "$LINKER" "${PROJECT_ROOT}/.claude/skills" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
     echo "  Re-linked stack skills: $STACKS"
@@ -80,40 +80,15 @@ if [ ! -f "$MCP_FILE" ]; then
 MCPEOF
 fi
 
-# Add thinking_os MCP server entry using Python (safe JSON manipulation).
-# Portable entry: `cos server-start` resolves the coding-os location at
-# runtime via whichever `cos` binary is on PATH. If `cos` is not on PATH
-# yet, fall back to the absolute `uv run` form so the project still works
-# before the user installs the CLI.
-#
-# Inputs are passed via env vars (not interpolated into the Python literal)
-# so paths containing single quotes do not break parsing or risk injection.
-MCP_FILE="$MCP_FILE" CODING_OS_ROOT="$CODING_OS_ROOT" python3 - <<'PY' || echo "  WARN: Could not update .mcp.json automatically (see error above)"
-import json, os, shutil, sys
-mcp_path = os.environ["MCP_FILE"]
-cos_root = os.environ["CODING_OS_ROOT"]
-has_cos = shutil.which("cos") is not None
-try:
-    with open(mcp_path) as f:
-        data = json.load(f)
-except json.JSONDecodeError as exc:
-    sys.stderr.write(f"  ERROR: {mcp_path} is not valid JSON: {exc}\n")
-    sys.exit(1)
-data.setdefault("mcpServers", {})
-if has_cos:
-    data["mcpServers"]["coding-os"] = {
-        "command": "cos",
-        "args": ["server-start"],
-    }
-else:
-    data["mcpServers"]["coding-os"] = {
-        "command": "uv",
-        "args": ["run", "--directory", f"{cos_root}/core/thinking_os", "python", "server.py"],
-        "cwd": "${workspaceFolder}",
-    }
-with open(mcp_path, "w") as f:
-    json.dump(data, f, indent=2)
-PY
+# Add thinking_os MCP server entry. Same deadlock concern as STACKS above —
+# any heredoc inside $(...) on bash 5.3.9 may hang. Use a separate helper.
+MCP_HELPER="${CODING_OS_ROOT}/adapters/claude/_install_helpers/update_mcp_json.py"
+if [ -f "$MCP_HELPER" ]; then
+  python3 "$MCP_HELPER" "$MCP_FILE" "$CODING_OS_ROOT" \
+    || echo "  WARN: Could not update .mcp.json automatically (see error above)"
+else
+  echo "  WARN: helper missing at $MCP_HELPER — .mcp.json not updated"
+fi
 
 # 7. Symlink commands
 COMMANDS_DIR="${CODING_OS_ROOT}/core/commands"
@@ -122,6 +97,35 @@ if [ -d "$COMMANDS_DIR" ]; then
   for cmd in "${COMMANDS_DIR}/"*.md; do
     name=$(basename "$cmd")
     ln -sf "$cmd" "${PROJECT_ROOT}/.claude/commands/${name}"
+  done
+fi
+
+# 7b. Symlink Phase M formula-agent slash commands (F1..F11) — parity
+# with .codex/commands/formula-f<N>.md and .cursor/commands/formula-f<N>.md.
+# Each formula-f<N>.md resolves to the agent prompt in
+# core/thinking_os/agents/. Claude Code surfaces them as /formula-f<N>.
+AGENTS_DIR="${CODING_OS_ROOT}/core/thinking_os/agents"
+if [ -d "$AGENTS_DIR" ]; then
+  for agent in "$AGENTS_DIR"/F*.md; do
+    [ -e "$agent" ] || continue
+    fname=$(basename "$agent")
+    # Convert F1_research.md → formula-f1.md
+    num=$(echo "$fname" | sed 's/F\([0-9]*\)_.*/\1/')
+    ln -sf "$agent" "${PROJECT_ROOT}/.claude/commands/formula-f${num}.md"
+  done
+fi
+
+# 7c. Expose the same formula prompts as Claude SDK sub-agents under
+# .claude/agents/F<N>_<slug>.md so the SDK can spawn them via
+# AgentDefinition (claude_agent_sdk v0.2.x). One canonical source —
+# core/thinking_os/agents/ — feeds both the slash-command path (7b) and
+# the sub-agent path (7c).
+mkdir -p "${PROJECT_ROOT}/.claude/agents"
+if [ -d "$AGENTS_DIR" ]; then
+  for agent in "$AGENTS_DIR"/F*.md; do
+    [ -e "$agent" ] || continue
+    name=$(basename "$agent")
+    ln -sf "$agent" "${PROJECT_ROOT}/.claude/agents/${name}"
   done
 fi
 

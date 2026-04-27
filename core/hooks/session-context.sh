@@ -27,7 +27,7 @@ SOURCE=$(echo "$INPUT" | jq -r '
   elif has("prompt") then "user-prompt-submit"
   else "startup"
   end
-')
+' 2>/dev/null || echo "startup")
 cos_log_hook session-context fire "source=${SOURCE}"
 
 # Ensure BOTH dirs exist — COS_STATE_DIR for shared, COS_AGENT_DIR for per-agent.
@@ -117,22 +117,24 @@ fi
 if [[ "$SOURCE" == "startup" ]]; then
   WIP_LISTED=0
   if [ -d "docs/tasks" ] && [ -f "$COS_DB_PATH" ]; then
-    WIP_LINES=$(python3 - "$COS_DB_PATH" <<'PY' 2>/dev/null || true
-import sqlite3, sys
-try:
-    conn = sqlite3.connect(sys.argv[1])
-    rows = conn.execute(
-        "SELECT task_id, title FROM tasks "
-        "WHERE status IN ('in_progress','testing','emergency') "
-        "ORDER BY status DESC, task_id LIMIT 5"
-    ).fetchall()
-    conn.close()
-    for tid, title in rows:
-        print(f"  {tid}: {title}")
-except Exception:
-    sys.exit(1)
-PY
-)
+    # bash 5.3.9 deadlocks `$(python3 - <<HEREDOC)`. Form B (separate
+    # .py file invoked as `python3 path/to/file.py`) is the only
+    # deadlock-immune pattern. Resolve via readlink so symlinked install
+    # paths still find _helpers/.
+    _src="${BASH_SOURCE[0]}"
+    while [ -L "$_src" ]; do
+      _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+      _src="$(readlink "$_src")"
+      [[ "$_src" != /* ]] && _src="$_dir/$_src"
+    done
+    HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+    unset _src _dir
+    WIP_HELPER="${HSRC}/_helpers/wip_lines.py"
+    if [[ -f "$WIP_HELPER" ]]; then
+      WIP_LINES=$(python3 "$WIP_HELPER" "$COS_DB_PATH" 2>/dev/null || true)
+    else
+      WIP_LINES=""
+    fi
     if [ -n "$WIP_LINES" ]; then
       echo "[Session Start] Active tasks (in_progress / testing):"
       echo "$WIP_LINES"

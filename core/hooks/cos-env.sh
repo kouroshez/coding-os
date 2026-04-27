@@ -230,3 +230,247 @@ cos_log_hook() {
     fi
   } 2>/dev/null || true
 }
+
+
+# ---------------------------------------------------------------------------
+# cos_read_stdin_bounded — drain stdin with a hard timeout
+#
+# WHY
+#   Hooks read JSON from stdin (PreToolUse / PostToolUse / Stop / etc.).
+#   When invoked from a terminal (`bash hook.sh` for testing), stdin is
+#   a tty and `cat` would block forever waiting for the user. perl's
+#   alarm() gives us a portable stdin read with a hard ceiling — bash's
+#   `read -t` doesn't slurp multi-line JSON, and `timeout(1)` is missing
+#   on macOS by default. Also: when the agent runtime sends nothing, we
+#   want to fall through to defaults rather than hang the hook.
+#
+# USAGE
+#   INPUT="$(cos_read_stdin_bounded 2)"      # 2-second ceiling
+#
+# CONTRACT
+#   - Returns whatever bytes arrived on stdin (possibly empty).
+#   - On timeout: prints nothing, returns 0 (fail-open).
+#   - When stdin is a tty: returns immediately with empty output.
+# ---------------------------------------------------------------------------
+cos_read_stdin_bounded() {
+  local timeout_s="${1:-2}"
+  if [[ -t 0 ]]; then
+    return 0
+  fi
+  perl -e '
+    my $timeout = shift // 2;
+    eval {
+      local $SIG{ALRM} = sub { die "cos_stdin_timeout\n" };
+      alarm $timeout;
+      local $/;
+      my $data = <STDIN>;
+      alarm 0;
+      print $data if defined $data;
+    };
+    exit 0;
+  ' "$timeout_s" 2>/dev/null || true
+}
+
+
+# ---------------------------------------------------------------------------
+# cos_require_or_skip — fail-open when a required CLI binary is absent
+#
+# WHY
+#   Hooks hard-depend on `jq` and `python3`. Fresh-clone or minimal-CI
+#   runtimes may lack one. With `set -euo pipefail` a missing binary
+#   would kill the hook (exit ≠ 0 → BLOCK from the agent's POV). This
+#   helper logs a `skip reason=missing_dep` event and exits 0 so the
+#   hook degrades gracefully.
+#
+# USAGE (top of hook, after sourcing cos-env.sh)
+#   cos_require_or_skip jq block-secrets
+#
+# STRICT MODE
+#   COS_STRICT_DEPS=1 makes missing deps exit 2 (block) instead of 0.
+#   Opt-in for CI that demands a fully-set-up environment.
+# ---------------------------------------------------------------------------
+cos_require_or_skip() {
+  local bin="$1"
+  local hook_id="${2:-unknown-hook}"
+  if command -v "$bin" >/dev/null 2>&1; then
+    return 0
+  fi
+  cos_log_hook "$hook_id" "skip" "reason=missing_dep dep=$bin" 2>/dev/null || true
+  if [[ "${COS_STRICT_DEPS:-0}" == "1" ]]; then
+    echo "BLOCKED: hook $hook_id needs '$bin' on PATH (COS_STRICT_DEPS=1)" >&2
+    exit 2
+  fi
+  exit 0
+}
+
+
+# ---------------------------------------------------------------------------
+# cos_sanity_check — verify project state before a hook does real work
+#
+# WHY
+#   Hooks assume the coding-os layout: $COS_STATE_DIR exists, the project
+#   has docs/ and core/, etc. When a hook fires in an unconfigured project
+#   (fresh clone, mid-cos-init, accidentally-running-elsewhere) the bare
+#   jq/python invocations emit cryptic errors. This helper centralises the
+#   "is the world sane?" probe so individual hooks can fail-open cleanly.
+#
+# USAGE
+#   cos_sanity_check <hook_id> [check1 check2 ...]
+#     - returns 0 if all named checks pass.
+#     - on failure: logs "skip reason=sanity_<check>" and exits 0 (fail-open).
+#
+# CHECKS
+#   state_dir   — $COS_STATE_DIR exists and is writable.
+#   agent_dir   — $COS_AGENT_DIR exists.
+#   db          — $COS_DB_PATH exists.
+#   tasks_dir   — docs/tasks/ exists relative to project root.
+#   board_os    — core/board_os/ exists.
+#   git         — .git/ exists somewhere up the tree.
+#
+# Default check set when no args: state_dir.
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# cos_one_shot_override — unified one-shot bypass for blocking hooks
+#
+# WHY
+#   Several hooks (block-hardcoded-literals, block-uv-heredoc,
+#   enforce-doc-anchor, enforce-memory-check, enforce-template) historically
+#   consumed their own bypass dotfile in different directories with
+#   different name prefixes. That made overrides:
+#     - hard to discover (no central list of what bypasses are active)
+#     - impossible to audit (no trail of who/when/why)
+#     - error-prone (touching the wrong path silently fails)
+#
+# UNIFIED MODEL
+#   Single JSON registry: $COS_STATE_DIR/.overrides.json
+#     {
+#       "doc-anchor": {"reason": "spike", "ts": 1714234567, "agent": "claude"},
+#       "memory-check": {...}
+#     }
+#   Audit trail (append-only): $COS_STATE_DIR/.overrides.audit.log
+#
+# CONTRACT
+#   cos_one_shot_override <key>  → returns 0 if override found and consumed,
+#                                  1 otherwise. On hit, appends to audit log
+#                                  and removes the entry from the registry
+#                                  (or deletes the legacy dotfile).
+#
+# BACK-COMPAT
+#   Legacy paths remain consulted so existing tooling and docs keep working:
+#     $COS_AGENT_DIR/.<key>-override
+#     $COS_STATE_DIR/.<key>-override   (literals only, historic)
+#   When a legacy file is found, it is consumed identically. New writes
+#   should prefer the unified registry, but legacy is permanently supported.
+#
+# SETTING AN OVERRIDE
+#   echo '{"doc-anchor": {"reason": "spike-XYZ"}}' > $COS_STATE_DIR/.overrides.json
+#   (or simply: touch $COS_AGENT_DIR/.doc-anchor-override)
+# ---------------------------------------------------------------------------
+cos_one_shot_override() {
+  local key="${1:-}"
+  [[ -z "$key" ]] && return 1
+  local reg="$COS_STATE_DIR/.overrides.json"
+  local audit="$COS_STATE_DIR/.overrides.audit.log"
+  local legacy_agent="$COS_AGENT_DIR/.${key}-override"
+  local legacy_shared="$COS_STATE_DIR/.${key}-override"
+  local ts
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  _audit() {
+    {
+      mkdir -p "$(dirname "$audit")" 2>/dev/null
+      echo "[${ts}] consumed key=${key} agent=${COS_AGENT:-unknown} source=$1" >> "$audit"
+    } 2>/dev/null || true
+  }
+
+  # 1. Unified registry — preferred path. Use python (already a hard dep) for safe JSON ops.
+  if [[ -f "$reg" ]] && command -v python3 >/dev/null 2>&1; then
+    if python3 - "$reg" "$key" >/dev/null 2>&1 <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+key = sys.argv[2]
+try:
+    data = json.loads(p.read_text())
+except Exception:
+    sys.exit(1)
+if not isinstance(data, dict) or key not in data:
+    sys.exit(1)
+del data[key]
+p.write_text(json.dumps(data, indent=2) + "\n")
+sys.exit(0)
+PY
+    then
+      _audit "registry"
+      return 0
+    fi
+  fi
+
+  # 2. Legacy per-agent dotfile.
+  if [[ -f "$legacy_agent" ]]; then
+    rm -f "$legacy_agent" 2>/dev/null || true
+    _audit "legacy_agent"
+    return 0
+  fi
+
+  # 3. Legacy shared dotfile (historic literals path).
+  if [[ -f "$legacy_shared" ]]; then
+    rm -f "$legacy_shared" 2>/dev/null || true
+    _audit "legacy_shared"
+    return 0
+  fi
+
+  return 1
+}
+
+cos_sanity_check() {
+  local hook_id="${1:-unknown-hook}"
+  shift 2>/dev/null || true
+  local checks=("$@")
+  if [[ ${#checks[@]} -eq 0 ]]; then
+    checks=(state_dir)
+  fi
+
+  local check fail
+  for check in "${checks[@]}"; do
+    fail=""
+    case "$check" in
+      state_dir)
+        [[ -d "$COS_STATE_DIR" ]] || fail="state_dir_missing"
+        ;;
+      agent_dir)
+        [[ -d "$COS_AGENT_DIR" ]] || fail="agent_dir_missing"
+        ;;
+      db)
+        [[ -f "$COS_DB_PATH" ]] || fail="db_missing"
+        ;;
+      tasks_dir)
+        [[ -d "${CLAUDE_PROJECT_DIR:-.}/docs/tasks" ]] \
+          || [[ -d "./docs/tasks" ]] \
+          || fail="tasks_dir_missing"
+        ;;
+      board_os)
+        [[ -d "${CLAUDE_PROJECT_DIR:-.}/core/board_os" ]] \
+          || [[ -d "./core/board_os" ]] \
+          || fail="board_os_missing"
+        ;;
+      git)
+        local d="$(pwd)"
+        local found=0
+        while [[ "$d" != "/" ]]; do
+          [[ -d "$d/.git" ]] && { found=1; break; }
+          d="$(dirname "$d")"
+        done
+        [[ "$found" -eq 1 ]] || fail="git_missing"
+        ;;
+      *)
+        fail="unknown_check_${check}"
+        ;;
+    esac
+    if [[ -n "$fail" ]]; then
+      cos_log_hook "$hook_id" "skip" "reason=sanity_${fail}" 2>/dev/null || true
+      exit 0
+    fi
+  done
+  return 0
+}

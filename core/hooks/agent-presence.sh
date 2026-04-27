@@ -52,10 +52,9 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
-INPUT=""
-if [[ ! -t 0 ]]; then
-  INPUT=$(cat 2>/dev/null || true)
-fi
+# bash 5.3.9 sporadically deadlocks `INPUT=$(cat)` (any $() with stdin).
+# `cos_read_stdin_bounded` uses perl alarm — bounded read, never hangs.
+INPUT="$(cos_read_stdin_bounded 2)"
 
 # Derive the logical event.  Prefer the explicit hook_event_name field
 # Claude Code sends; fall back to `$1` so the script stays testable
@@ -99,55 +98,27 @@ AGENT_PID="${PPID:-$$}"
 NOW="$(date +%s)"
 PRESENCE_FILE="${PRESENCE_DIR}/${SESSION_ID}.json"
 
-# Delegate JSON read/merge/write to Python so we preserve prior fields
-# across events (e.g. a Stop must not clobber started_at).
-python3 - "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" <<'PY' 2>/dev/null || exit 0
-import json, os, sys
+# Delegate JSON merge to a separate helper. Inline `python3 - <<'PY'`
+# sporadically deadlocks in heredoc_write on bash 5.3.9 — and this hook
+# fires on every tool call, so even rare hangs accumulate dozens of
+# zombies that starve agent runtime spawns. Form B (separate .py)
+# is the only deadlock-immune pattern. Resolve via readlink so symlinked
+# install paths still find _helpers/.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+COS_HOOK_SRC_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _dir
 
-path, agent, sid, pid, event, now_s = sys.argv[1:]
-pid = int(pid)
-now = int(now_s)
-
-prev = {}
-if os.path.exists(path):
-    try:
-        with open(path, encoding="utf-8") as f:
-            prev = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        prev = {}
-
-new = {
-    "agent": agent,
-    "session_id": sid,
-    "pid": pid,
-    "started_at": prev.get("started_at"),
-    "last_prompt_at": prev.get("last_prompt_at"),
-    "last_tool_at": prev.get("last_tool_at"),
-    "last_stop_at": prev.get("last_stop_at"),
-    "ended_at": prev.get("ended_at"),
-}
-
-if event == "start":
-    new["started_at"] = now
-    new["ended_at"] = None
-    new["last_stop_at"] = None
-elif event == "prompt":
-    new["last_prompt_at"] = now
-    new["last_stop_at"] = None
-    new["started_at"] = new["started_at"] or now
-elif event == "tool":
-    new["last_tool_at"] = now
-    new["started_at"] = new["started_at"] or now
-elif event == "stop":
-    new["last_stop_at"] = now
-elif event == "end":
-    new["ended_at"] = now
-
-tmp = f"{path}.tmp.{os.getpid()}"
-with open(tmp, "w", encoding="utf-8") as f:
-    json.dump(new, f, separators=(",", ":"))
-os.replace(tmp, path)
-PY
+PRESENCE_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_write.py"
+if [[ -f "$PRESENCE_HELPER" ]]; then
+  python3 "$PRESENCE_HELPER" \
+    "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" \
+    2>/dev/null || true
+fi
 
 # Lazy GC — drop presence files whose session ended >1h ago.
 # The hook fires on every tool call; running the GC scan every time adds
@@ -161,32 +132,10 @@ if [[ ! -f "$GC_MARKER" ]] || [[ "$(cat "$GC_MARKER" 2>/dev/null)" != "$GC_TICK"
   RUN_GC=1
 fi
 if [[ "$RUN_GC" == "1" ]]; then
-python3 - "$PRESENCE_DIR" "$NOW" <<'PY' 2>/dev/null || true
-import json, os, sys
-d, now = sys.argv[1], int(sys.argv[2])
-if not os.path.isdir(d):
-    sys.exit(0)
-for name in os.listdir(d):
-    if not name.endswith(".json"):
-        continue
-    p = os.path.join(d, name)
-    try:
-        with open(p, encoding="utf-8") as f:
-            data = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        try:
-            if now - os.path.getmtime(p) > 3600:
-                os.unlink(p)
-        except OSError:
-            pass
-        continue
-    ended = data.get("ended_at")
-    if isinstance(ended, int) and now - ended > 3600:
-        try:
-            os.unlink(p)
-        except OSError:
-            pass
-PY
+  GC_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_gc.py"
+  if [[ -f "$GC_HELPER" ]]; then
+    python3 "$GC_HELPER" "$PRESENCE_DIR" "$NOW" 2>/dev/null || true
+  fi
 fi
 
 cos_log_hook agent-presence fire "event=${EVENT}" 2>/dev/null || true

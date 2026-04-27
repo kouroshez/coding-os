@@ -3,15 +3,66 @@
 # Source: docs/engineering/backend-rules.md, docs/engineering/frontend-rules.md
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
-CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty' 2>/dev/null || echo "")
+
+# === SHELL HOOK / INSTALLER GUARD (bash 5.3.9 deadlock) ===
+# Homebrew bash 5.3.9 sporadically deadlocks `cmd - <<HEREDOC` patterns
+# in heredoc_write before forking the child. Hot-path hooks accumulate
+# zombie bashes that eventually starve the agent runtime's auxiliary
+# subprocess spawns ("Subprocess initialization did not complete within
+# 60000ms"). install.sh hangs at the first heredoc that hits the bug.
+#
+# Safe replacements (verified zero-zombie under stress):
+#   A) python3 -c "$(cat <<'PY' ... PY)" arg1 arg2  ← cat captures heredoc;
+#      python3 receives -c <string> as argument. No stdin pipe.
+#   B) python3 path/to/helper.py arg1 arg2          ← extracted helper.
+#
+# Past incidents: agent-presence zombie pile-up (2026-04-25 morning),
+# install.sh hang on `Re-linked stack skills` (2026-04-26).
+# Forensics: docs/engineering/bash-heredoc-deadlock.md.
+if [[ "$FILE_PATH" == *.sh ]] && [[
+      "$FILE_PATH" == *core/hooks/* ||
+      "$FILE_PATH" == *adapters/*/install* ||
+      "$FILE_PATH" == *adapters/*/hooks/* ||
+      "$FILE_PATH" == *.claude/hooks/* ||
+      "$FILE_PATH" == *.codex/hooks/* ||
+      "$FILE_PATH" == *.cursor/hooks/* ]]; then
+  if echo "$CONTENT" | grep -qE 'python3? +- +.*<<'; then
+    echo "BLOCKED: \`cmd - <<HEREDOC\` pattern detected — bash 5.3.9 sporadically" >&2
+    echo "         deadlocks this in heredoc_write before fork. Hot-path hooks +" >&2
+    echo "         installer scripts that fire it accumulate zombies and starve" >&2
+    echo "         agent runtime spawns. See docs/engineering/bash-heredoc-deadlock.md." >&2
+    echo "" >&2
+    echo "         Safe replacement: separate .py file invoked as" >&2
+    echo "           python3 \$(dirname \"\$0\")/_helpers/<name>.py arg1 arg2" >&2
+    exit 2
+  fi
+  # Detect form A nested inside command substitution. Verified 2026-04-26
+  # to ALSO sporadically deadlock on bash 5.3.9 — sample(1) shows the hang
+  # at expand_word_internal → command_substitute → wait_for. Form A is
+  # OK at top-level (`python3 -c "$(cat <<'PY'..."` as a standalone
+  # command), but NOT inside `VAR=$(python3 -c "$(cat <<'PY'..." ...)`.
+  # The only deadlock-immune option is form B (separate .py file).
+  if echo "$CONTENT" | grep -qE '\$\(.*python3? +-c +.*\$\(cat +<<'; then
+    echo "BLOCKED: nested heredoc-in-\$(...)  detected — bash 5.3.9 sporadically" >&2
+    echo "         deadlocks even \`python3 -c \"\$(cat <<'PY'...)\"\` when wrapped" >&2
+    echo "         inside another \$(...). install.sh hung on this 2026-04-26." >&2
+    echo "" >&2
+    echo "         Safe replacement: separate .py file" >&2
+    echo "           VAR=\$(python3 \"\$HELPER_DIR/extract.py\" \"\$arg1\")" >&2
+    echo "         See docs/engineering/bash-heredoc-deadlock.md for forensics." >&2
+    exit 2
+  fi
+fi
 
 # Skip non-code files and migration files
 if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]] && [[ "$FILE_PATH" != *.js ]]; then

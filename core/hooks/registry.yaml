@@ -33,6 +33,7 @@ hooks:
     description: Scans command and file content for credentials (AWS keys, tokens, .env leaks).
     category: safety
     phase: "0"
+    timeout: 800
     events:
       - event: PreToolUse
         matcher: Bash
@@ -46,6 +47,7 @@ hooks:
     description: Blocks destructive commands (rm -rf, force-push, reset --hard) without confirmation.
     category: safety
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Bash
@@ -56,6 +58,7 @@ hooks:
     description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).
     category: safety
     phase: E
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Bash
@@ -66,6 +69,7 @@ hooks:
     description: "Rejects bare `except: pass`, mock-where-real-needed, and other anti-patterns."
     category: safety
     phase: "0"
+    timeout: 800
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -76,6 +80,7 @@ hooks:
     description: Blocks edits to governance-protected files unless the active task is a governance task.
     category: safety
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -86,6 +91,7 @@ hooks:
     description: Detects duplicate migration version numbers in db.py (Rule #10 — append-only migrations).
     category: safety
     phase: E
+    timeout: 800
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -96,6 +102,7 @@ hooks:
     description: Rejects hardcoded stack/adapter name literals in cli/*.py (Rule #12 — data-driven CLI).
     category: safety
     phase: E
+    timeout: 800
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -107,6 +114,7 @@ hooks:
     description: Blocks `task-done` commands unless the required verification suite has recorded a recent pass.
     category: enforcement
     phase: "0"
+    timeout: 1500
     events:
       - event: PreToolUse
         matcher: Bash
@@ -117,6 +125,7 @@ hooks:
     description: Requires structured task / ADR / PRD / breakthrough documents to follow the template.
     category: enforcement
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -127,6 +136,7 @@ hooks:
     description: Requires a recorded Complexity Gate classification before code writes.
     category: enforcement
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -137,6 +147,7 @@ hooks:
     description: Requires an active task marker so every edit is traceable.
     category: enforcement
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -147,6 +158,7 @@ hooks:
     description: Blocks code writes without a recorded doc anchor (Rule #0 — docs-first principle).
     category: enforcement
     phase: E
+    timeout: 800
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -157,6 +169,7 @@ hooks:
     description: Requires a cos_search memory check before code writes on COMPLICATED/COMPLEX tasks.
     category: enforcement
     phase: F
+    timeout: 800
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -167,6 +180,7 @@ hooks:
     description: Requires a domain skill to be invoked before editing stack-scoped code files.
     category: enforcement
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -177,6 +191,7 @@ hooks:
     description: Requires a Plan checkpoint for COMPLICATED/COMPLEX tasks before code writes.
     category: enforcement
     phase: "0"
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -198,9 +213,6 @@ hooks:
     phase: "0"
     timeout: 2000
     events:
-      - event: PostToolUse
-        matcher: Write|Edit
-        status_message: "📚 Scanning related docs for drift..."
       - event: PostToolUse
         matcher: Write|Edit|MultiEdit
         status_message: "📚 Scanning related docs for drift..."
@@ -359,6 +371,7 @@ hooks:
     description: Analyzes changed file + cross-module impact after each write.
     category: observability
     phase: "0"
+    timeout: 1500
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -369,6 +382,7 @@ hooks:
     description: Tracks which skills have been invoked this session.
     category: observability
     phase: "0"
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Skill
@@ -379,6 +393,7 @@ hooks:
     description: Loads session context + memory digest on session start / compact / resume.
     category: observability
     phase: "0"
+    timeout: 3000
     events:
       - event: SessionStart
         matcher: startup
@@ -406,6 +421,7 @@ hooks:
     description: Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don't appear offline between tool calls.
     category: observability
     phase: "0"
+    timeout: 800
     events:
       - event: SessionStart
         matcher: startup
@@ -429,6 +445,7 @@ hooks:
     description: Probes thinking_os MCP liveness at session start; loud banner if unreachable.
     category: observability
     phase: F
+    timeout: 6000
     events:
       - event: SessionStart
         matcher: startup
@@ -456,6 +473,7 @@ hooks:
     description: Phase I.10 — SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
     category: observability
     phase: I
+    timeout: 1500
     events:
       - event: SessionStart
         matcher: startup
@@ -469,6 +487,7 @@ hooks:
     description: Session-end recap — warns if zero observations captured despite code edits.
     category: observability
     phase: F
+    timeout: 1500
     events:
       - event: Stop
         matcher: ""
@@ -480,6 +499,7 @@ hooks:
     description: Reminds to regenerate derived artifacts when their sources change.
     category: reminder
     phase: E
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -490,6 +510,7 @@ hooks:
     description: Points at the companion test file after a code edit (or suggests one if absent).
     category: reminder
     phase: E
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -500,6 +521,7 @@ hooks:
     description: Lists companion docs to keep in sync when code changes.
     category: reminder
     phase: "0"
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -510,6 +532,7 @@ hooks:
     description: Surfaces cos_learn_validate reminder after task-done so the agent feeds back.
     category: reminder
     phase: F
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Bash
@@ -521,6 +544,7 @@ hooks:
     description: Warns when AGENTS.md approaches Codex's 32 KiB read cap.
     category: meta
     phase: G
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -531,6 +555,7 @@ hooks:
     description: Flags AGENTS.md references to core/rules or core/skills that no longer exist.
     category: meta
     phase: G
+    timeout: 800
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -541,6 +566,7 @@ hooks:
     description: Reminds to run `make dogfood-full` after edits to core/ or adapters/.
     category: meta
     phase: G
+    timeout: 500
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -551,6 +577,7 @@ hooks:
     description: Transitional — warns if adapter template JSON is edited directly instead of registry.yaml. Delete when registry.yaml is the only write path.
     category: meta
     phase: G
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -563,6 +590,7 @@ hooks:
     description: Blocks code writes at EXECUTE phase when Anti-Ambiguity gate has failures. Bypassed for CLEAR 1.
     category: cognition
     phase: M
+    timeout: 500
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -573,6 +601,7 @@ hooks:
     description: Non-blocking advisor that fires when cos_backtrack_log records ≥3 backtracks per session.
     category: cognition
     phase: M
+    timeout: 800
     events:
       - event: PostToolUse
         matcher: mcp__coding-os__cos_backtrack_log
@@ -589,6 +618,7 @@ hooks:
       Spec: formulas-en.md §Navigation Protocol §4 (Discovery Protocol).
     category: cognition
     phase: N
+    timeout: 800
     events:
       - event: PostToolUse
         matcher: "Write|Edit|TodoWrite"

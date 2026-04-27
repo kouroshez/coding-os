@@ -15,15 +15,16 @@
 # allow a one-time raw write. Useful for scaffold regeneration.
 set -euo pipefail
 
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 # Only enforce on Write (true creation). Edit implies the file exists.
 if [[ "$TOOL" != "Write" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # Not a markdown file → nothing to enforce here.
@@ -38,7 +39,6 @@ case "$FILE_PATH" in
     exit 0 ;;
 esac
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
 # Phase M: formula-agents that write docs (F3/F4) produce structured output by
@@ -54,8 +54,8 @@ if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
 fi
 
 # One-shot escape hatch for tooling (scaffold writers, migration scripts).
-if [[ -f "$COS_AGENT_DIR/.template-override" ]]; then
-  rm -f "$COS_AGENT_DIR/.template-override"
+# Unified registry preferred; legacy $COS_AGENT_DIR/.template-override still honoured.
+if cos_one_shot_override template 2>/dev/null; then
   exit 0
 fi
 

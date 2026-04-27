@@ -17,15 +17,16 @@
 # Missing state file → no suggestions retrieved → nothing to validate → silent.
 set -euo pipefail
 
-INPUT=$(cat)
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+INPUT="$(cos_read_stdin_bounded 2)"
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
 export COS_HOOK_RUNTIME_MODEL
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 [[ -z "$CMD" ]] && exit 0
 
 # Fire on every completion pathway: `make task-done`, `cos task-done`,
@@ -36,7 +37,6 @@ if ! echo "$CMD" | grep -qE '(make|cos)[[:space:]]+task-done|cos[[:space:]]+task
   exit 0
 fi
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 cos_log_hook remind-learn-validate fire "tool=Bash task_done=true"
 

@@ -38,8 +38,26 @@ test-install: ## Test Claude adapter install on temp dir
 test-cli: ## Test CLI health command
 	@uv run python -m cli.main health --project-dir .
 
+.PHONY: verify-install
+verify-install: ## Sandbox-test all 3 adapter install.sh scripts with hard 15s timeout (catches bash 5.3.9 heredoc deadlocks BEFORE `make sync` does)
+	@for adapter in claude codex cursor; do \
+	  TEST=$$(mktemp -d); \
+	  printf "  testing adapters/%s/install.sh ... " "$$adapter"; \
+	  ( cd "$$TEST" && bash $(COS_ROOT)/adapters/$$adapter/install.sh ) > "$$TEST/install.log" 2>&1 & \
+	  BPID=$$!; W=0; \
+	  while kill -0 $$BPID 2>/dev/null && [ $$W -lt 15 ]; do sleep 1; W=$$((W+1)); done; \
+	  if kill -0 $$BPID 2>/dev/null; then \
+	    kill -9 $$BPID; \
+	    echo "FAIL — hung > 15s"; \
+	    echo "  --- last log lines ---"; tail -8 "$$TEST/install.log" | sed 's/^/  /'; \
+	    rm -rf "$$TEST"; exit 1; \
+	  fi; \
+	  echo "OK ($${W}s)"; \
+	  rm -rf "$$TEST"; \
+	done
+
 .PHONY: verify
-verify: verify-hooks test-mcp ## Run all verification checks
+verify: verify-hooks verify-install test-mcp ## Run all verification checks
 	@echo ""
 	@echo "All checks passed."
 

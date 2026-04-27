@@ -60,7 +60,8 @@ for delegate in \
   check-agents-md-size.sh \
   check-agents-md-refs.sh \
   remind-dogfood.sh \
-  track-discovery.sh; do
+  track-discovery.sh \
+  enforce-doc-sync.sh; do
   run_delegate "$delegate"
 done
 
