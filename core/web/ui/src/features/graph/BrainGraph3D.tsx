@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { useGraphStore } from '@/store/graph-store';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor, normalizeKind } from '@/lib/node-colors';
@@ -13,16 +14,23 @@ interface ForceNode {
   kind: string;
   color: string;
   size: number;
+  degree: number;
+  // Used by linkDirectionalParticles to identify highway edges.
   filePath?: string;
   startLine?: number;
+  // force-graph fills these in after sim runs.
+  x?: number;
+  y?: number;
+  z?: number;
 }
 
 interface ForceLink {
-  source: string;
-  target: string;
+  source: string | ForceNode;
+  target: string | ForceNode;
   edge_type: string;
   color: string;
   width: number;
+  combinedDegree: number;
 }
 
 interface ForceGraphData {
@@ -30,35 +38,73 @@ interface ForceGraphData {
   links: ForceLink[];
 }
 
-// Edge palette — mirrors graph-adapter.ts so 2D and 3D views agree on
-// what each edge type means visually.
+// Edge palette — vivid on dark canvas. Each family has its own hue
+// family so highways read at a glance:
+//   structure (contains)        → warm amber
+//   call/dispatch                → primary orange (Mocha)
+//   inheritance / API surface    → magenta / royal orange
+//   types                        → teal
+//   docs / cross-refs            → cool blue
+//   noise / weak ties            → muted graphite
 const EDGE_PALETTE: Record<string, { color: string; width: number }> = {
-  contains: { color: '#8B5A2B', width: 0.6 },
-  calls: { color: '#FF7A3D', width: 0.5 },
-  constructs: { color: '#C84B16', width: 0.55 },
-  imports: { color: '#2C5AA0', width: 0.45 },
-  inherits_from: { color: '#7A3A7A', width: 0.6 },
-  implements: { color: '#7A3A7A', width: 0.6 },
-  extends: { color: '#7A3A7A', width: 0.6 },
-  has_param_type: { color: '#3A7A7A', width: 0.35 },
-  returns_type: { color: '#3A7A7A', width: 0.35 },
-  field_of_type: { color: '#3A7A7A', width: 0.35 },
-  is_decorated_by: { color: '#B19A93', width: 0.35 },
-  references_doc: { color: '#5A7CA8', width: 0.4 },
-  cites_heading: { color: '#5A7CA8', width: 0.4 },
-  links_to: { color: '#5A7CA8', width: 0.4 },
-  handles_route: { color: '#D96C2C', width: 0.55 },
-  handles_tool: { color: '#D96C2C', width: 0.55 },
-  handles_event: { color: '#D96C2C', width: 0.55 },
-  dispatches: { color: '#D96C2C', width: 0.55 },
-  defines_route: { color: '#D96C2C', width: 0.55 },
-  awaits: { color: '#FFA468', width: 0.45 },
-  blocks: { color: '#8B2318', width: 0.6 },
-  depends_on: { color: '#6B504A', width: 0.45 },
-  re_exports: { color: '#94a3b8', width: 0.35 },
-  member_of_community: { color: '#C0719B', width: 0.3 },
+  contains: { color: '#FFB37A', width: 0.5 },
+  calls: { color: '#FF7A3D', width: 0.4 },
+  constructs: { color: '#FF9966', width: 0.5 },
+  imports: { color: '#5A9FFF', width: 0.4 },
+  inherits_from: { color: '#C575FF', width: 0.6 },
+  implements: { color: '#C575FF', width: 0.6 },
+  extends: { color: '#C575FF', width: 0.6 },
+  has_param_type: { color: '#5FE6CD', width: 0.3 },
+  returns_type: { color: '#5FE6CD', width: 0.3 },
+  field_of_type: { color: '#5FE6CD', width: 0.3 },
+  is_decorated_by: { color: '#B19A93', width: 0.3 },
+  references_doc: { color: '#7BB6FF', width: 0.4 },
+  cites_heading: { color: '#7BB6FF', width: 0.4 },
+  links_to: { color: '#7BB6FF', width: 0.4 },
+  handles_route: { color: '#FFA73D', width: 0.5 },
+  handles_tool: { color: '#FFA73D', width: 0.5 },
+  handles_event: { color: '#FFA73D', width: 0.5 },
+  dispatches: { color: '#FFA73D', width: 0.5 },
+  defines_route: { color: '#FFA73D', width: 0.5 },
+  awaits: { color: '#FFD27A', width: 0.4 },
+  blocks: { color: '#FF5E5E', width: 0.7 },
+  depends_on: { color: '#A89788', width: 0.4 },
+  re_exports: { color: '#94a3b8', width: 0.3 },
+  member_of_community: { color: '#FF8FCB', width: 0.3 },
 };
 
+// Vibrant kind palette — restated for the dark canvas so spheres pop
+// against #0a0606. The 2D adapter keeps its paper-bg palette; this
+// component owns its own hex map so neither view looks washed out.
+const KIND_3D_COLOR: Record<string, string> = {
+  folder: '#FFB37A',
+  file: '#5A9FFF',
+  module: '#7BB6FF',
+  class: '#FF7A3D',
+  method: '#FF9966',
+  function: '#FFA73D',
+  variable: '#5FE6CD',
+  interface: '#C575FF',
+  import_: '#A89788',
+  route: '#FF5E5E',
+  tool: '#FFD27A',
+  mcp_tool: '#FFA73D',
+  event: '#5FE6CD',
+  task: '#FF8FCB',
+  doc_file: '#7BB6FF',
+  doc_heading: '#5A9FFF',
+  doc_frontmatter: '#5A9FFF',
+  doc_external: '#A89788',
+  rule: '#FF5E5E',
+  skill: '#C575FF',
+  contract: '#5FE6CD',
+  community: '#FF8FCB',
+  hook: '#FFA73D',
+  identifier: '#A89788',
+  unknown: '#A89788',
+};
+
+const CANVAS_BG = '#0a0606';
 const NOISE_KINDS: ReadonlySet<string> = new Set([
   'doc:frontmatter_key',
   'doc_frontmatter',
@@ -66,38 +112,62 @@ const NOISE_KINDS: ReadonlySet<string> = new Set([
   'doc_heading',
 ]);
 
+function colorForKind(kind: string, raw: string | null | undefined): string {
+  return KIND_3D_COLOR[kind] ?? kindColor(raw);
+}
+
 function adaptPayload(
   payload: ApiGraphPayload,
   visibleKinds: Set<string>,
   visibleEdgeTypes: Set<string>,
-): ForceGraphData {
+): { data: ForceGraphData; degreeMap: Map<string, number>; highwayThreshold: number } {
   const allNodes = payload.nodes ?? [];
   const filtered = allNodes.filter((n) => !NOISE_KINDS.has(n.kind ?? ''));
   const edges = payload.edges ?? [];
 
-  // Degree map for size scaling — hubs visibly larger.
-  const degree = new Map<string, number>();
+  const degreeMap = new Map<string, number>();
   for (const e of edges) {
     if (!e.source_uid || !e.target_uid) continue;
-    degree.set(e.source_uid, (degree.get(e.source_uid) ?? 0) + 1);
-    degree.set(e.target_uid, (degree.get(e.target_uid) ?? 0) + 1);
+    degreeMap.set(e.source_uid, (degreeMap.get(e.source_uid) ?? 0) + 1);
+    degreeMap.set(e.target_uid, (degreeMap.get(e.target_uid) ?? 0) + 1);
   }
+
+  // Highway edge threshold: top-quartile by combined degree. This is
+  // what the screenshots call "shaharah" (شاهراه) — the major routes
+  // between hubs. They get particle flow + brighter colour.
+  const combinedDegrees: number[] = [];
+  for (const e of edges) {
+    if (!e.source_uid || !e.target_uid) continue;
+    combinedDegrees.push(
+      (degreeMap.get(e.source_uid) ?? 0) + (degreeMap.get(e.target_uid) ?? 0),
+    );
+  }
+  combinedDegrees.sort((a, b) => b - a);
+  const highwayThreshold =
+    combinedDegrees.length === 0
+      ? Number.POSITIVE_INFINITY
+      : combinedDegrees[Math.floor(combinedDegrees.length * 0.15)] ?? 0;
+
   const nodeUids = new Set<string>();
   const nodes: ForceNode[] = [];
   for (const n of filtered) {
     if (!n.uid || nodeUids.has(n.uid)) continue;
     const kind = normalizeKind(n.kind);
     if (visibleKinds.size > 0 && !visibleKinds.has(kind)) continue;
-    const base = kind === 'folder' ? 5 : kind === 'file' ? 4 : 2.5;
-    const d = degree.get(n.uid) ?? 0;
-    const size = Math.min(18, base + Math.log2(d + 1) * 1.4);
+    const d = degreeMap.get(n.uid) ?? 0;
+    // More aggressive scaling: tiny leaves stay tiny, big hubs really
+    // dominate. Range 1.5 → 30 follows log curve so a 200-deg hub is
+    // ~10× a 5-deg neighbour but never blows out the canvas.
+    const base = kind === 'folder' ? 4 : kind === 'file' ? 3 : 1.5;
+    const size = Math.min(30, base + Math.log2(d + 1) * 2.4);
     nodeUids.add(n.uid);
     nodes.push({
       id: n.uid,
       label: n.label || n.uid,
       kind,
-      color: kindColor(n.kind),
+      color: colorForKind(kind, n.kind),
       size,
+      degree: d,
       filePath: n.file_path ?? undefined,
       startLine: n.start_line ?? undefined,
     });
@@ -108,21 +178,27 @@ function adaptPayload(
     if (!e.source_uid || !e.target_uid) continue;
     if (!nodeUids.has(e.source_uid) || !nodeUids.has(e.target_uid)) continue;
     if (visibleEdgeTypes.size > 0 && !visibleEdgeTypes.has(e.edge_type)) continue;
-    const palette = EDGE_PALETTE[e.edge_type] ?? { color: '#8a8378', width: 0.4 };
+    const palette = EDGE_PALETTE[e.edge_type] ?? { color: '#A89788', width: 0.3 };
+    const combined =
+      (degreeMap.get(e.source_uid) ?? 0) + (degreeMap.get(e.target_uid) ?? 0);
+    // Highway edges visibly thicker — 0.4 baseline, up to 1.4 for the
+    // top-shaharah routes between major hubs.
+    const widthBoost = combined >= highwayThreshold ? 1.0 : 0.0;
     links.push({
       source: e.source_uid,
       target: e.target_uid,
       edge_type: e.edge_type,
       color: palette.color,
-      width: palette.width,
+      width: palette.width + widthBoost,
+      combinedDegree: combined,
     });
   }
-  return { nodes, links };
+  return { data: { nodes, links }, degreeMap, highwayThreshold };
 }
 
-// Three.js Three3D graph host. Replaces the legacy Sigma.js 2D canvas
-// with a depth-aware force-directed view: spheres sized by degree,
-// labels rendered as billboarded sprite-text, edges coloured by type.
+// Three.js Three3D graph host. Spheres + sprite labels + bloom post-
+// processing for the enterprise look. Hubs get emissive glow; highway
+// edges flow particles.
 export default function BrainGraph3D() {
   const fgRef = useRef<unknown>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -134,17 +210,6 @@ export default function BrainGraph3D() {
   const visibleKinds = useGraphStore((s) => s.visibleKinds);
   const visibleEdgeTypes = useGraphStore((s) => s.visibleEdgeTypes);
   const setSelectedNode = useGraphStore((s) => s.setSelectedNode);
-
-  // Read brand tokens for canvas BG and label colour so the 3D scene
-  // matches the rest of the SPA in either light or dark theme.
-  const [bgColor, setBgColor] = useState('#f4efe1');
-  const [labelColor, setLabelColor] = useState('#1a1814');
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const cs = getComputedStyle(containerRef.current);
-    setBgColor(cs.getPropertyValue('--cos-bg').trim() || '#f4efe1');
-    setLabelColor(cs.getPropertyValue('--cos-text').trim() || '#1a1814');
-  }, []);
 
   // Resize observer: 3d-force-graph wants explicit width/height props.
   useEffect(() => {
@@ -162,7 +227,7 @@ export default function BrainGraph3D() {
 
   const exportParams: Record<string, unknown> = {
     format: 'json',
-    max_nodes: selectedRootUid ? 800 : 600,
+    max_nodes: selectedRootUid ? 1000 : 700,
     mode: viewMode,
   };
   if (selectedRootUid) {
@@ -175,27 +240,30 @@ export default function BrainGraph3D() {
     exportParams,
   );
 
-  const graphData = useMemo<ForceGraphData>(() => {
-    if (!data) return { nodes: [], links: [] };
-    return adaptPayload(
+  const { graphData, highwayThreshold } = useMemo(() => {
+    if (!data) {
+      return {
+        graphData: { nodes: [], links: [] } as ForceGraphData,
+        highwayThreshold: Number.POSITIVE_INFINITY,
+      };
+    }
+    const adapted = adaptPayload(
       data,
       new Set(visibleKinds),
       new Set(visibleEdgeTypes),
     );
+    return {
+      graphData: adapted.data,
+      highwayThreshold: adapted.highwayThreshold,
+    };
   }, [data, visibleKinds, visibleEdgeTypes]);
 
   // Pre-compute neighbour adjacency so hover-highlight is O(1).
   const neighbourMap = useMemo<Map<string, Set<string>>>(() => {
     const map = new Map<string, Set<string>>();
     for (const link of graphData.links) {
-      const src =
-        typeof link.source === 'string'
-          ? link.source
-          : (link.source as ForceNode).id;
-      const tgt =
-        typeof link.target === 'string'
-          ? link.target
-          : (link.target as ForceNode).id;
+      const src = typeof link.source === 'string' ? link.source : link.source.id;
+      const tgt = typeof link.target === 'string' ? link.target : link.target.id;
       if (!map.has(src)) map.set(src, new Set());
       if (!map.has(tgt)) map.set(tgt, new Set());
       map.get(src)!.add(tgt);
@@ -204,71 +272,177 @@ export default function BrainGraph3D() {
     return map;
   }, [graphData.links]);
 
-  // Custom node renderer: sphere mesh with optional label sprite.
-  // Labels are gated on `hovered` to keep the scene legible — showing
-  // every label on a 600-node scene is illegible.
+  // Bloom post-processing — gives hubs that "glowing star" look from
+  // the reference screenshots.
+  useEffect(() => {
+    const fg = fgRef.current as
+      | {
+          postProcessingComposer?: () => {
+            addPass: (p: unknown) => void;
+            passes?: unknown[];
+          };
+          scene?: () => THREE.Scene;
+        }
+      | null;
+    if (!fg || typeof fg.postProcessingComposer !== 'function') return;
+    const composer = fg.postProcessingComposer();
+    if (!composer) return;
+    // Idempotent — only add the bloom pass once.
+    const passes = composer.passes ?? [];
+    const alreadyHas = passes.some(
+      (p) => (p as { name?: string }).name === 'cos-bloom',
+    );
+    if (alreadyHas) return;
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(size.w || 800, size.h || 600),
+      0.9, // strength
+      0.6, // radius
+      0.15, // threshold — lower = more things glow
+    );
+    (bloom as unknown as { name: string }).name = 'cos-bloom';
+    composer.addPass(bloom);
+
+    // Add ambient + a couple of point lights for proper sphere shading.
+    if (typeof fg.scene === 'function') {
+      const scene = fg.scene();
+      const hasLight = scene.children.some(
+        (c) => c instanceof THREE.AmbientLight,
+      );
+      if (!hasLight) {
+        scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+        const key = new THREE.PointLight(0xffd2a0, 1.1, 0, 2);
+        key.position.set(180, 220, 280);
+        scene.add(key);
+        const fill = new THREE.PointLight(0x5a9fff, 0.6, 0, 2);
+        fill.position.set(-220, -100, -280);
+        scene.add(fill);
+      }
+    }
+  }, [size.w, size.h, graphData.nodes.length]);
+
+  // Custom node renderer — Lambert sphere with emissive scaling on
+  // degree, optional sprite label.
   const nodeThreeObject = (raw: object): THREE.Object3D => {
     const node = raw as ForceNode;
     const group = new THREE.Group();
+    const isHovered = hovered === node.id;
+    const isNeighbour =
+      hovered != null && neighbourMap.get(hovered)?.has(node.id);
+    const dim = hovered != null && !isHovered && !isNeighbour;
+
+    const sphereMat = new THREE.MeshStandardMaterial({
+      color: node.color,
+      emissive: node.color,
+      // Hubs glow more — emissiveIntensity scales with size (which is
+      // log of degree). Capped so smaller nodes stay subtle.
+      emissiveIntensity: Math.min(0.9, 0.15 + node.size / 36),
+      roughness: 0.32,
+      metalness: 0.08,
+      transparent: dim,
+      opacity: dim ? 0.18 : 1.0,
+    });
     const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(node.size, 16, 16),
-      new THREE.MeshLambertMaterial({
-        color: node.color,
-        transparent: true,
-        opacity:
-          hovered && node.id !== hovered && !neighbourMap.get(hovered)?.has(node.id)
-            ? 0.18
-            : 1.0,
-      }),
+      new THREE.SphereGeometry(node.size, 24, 24),
+      sphereMat,
     );
     group.add(sphere);
+
+    // Halo ring for the very biggest hubs — extra emphasis on the
+    // major spines like server.py / cli/main.py.
+    if (node.size > 14) {
+      const halo = new THREE.Mesh(
+        new THREE.RingGeometry(node.size * 1.3, node.size * 1.55, 48),
+        new THREE.MeshBasicMaterial({
+          color: node.color,
+          transparent: true,
+          opacity: dim ? 0.06 : 0.35,
+          side: THREE.DoubleSide,
+        }),
+      );
+      halo.rotation.x = Math.PI / 2;
+      group.add(halo);
+    }
+
     const showLabel =
-      node.id === hovered ||
-      (!hovered && (node.kind === 'folder' || node.kind === 'file')) ||
-      (hovered && neighbourMap.get(hovered)?.has(node.id));
+      isHovered ||
+      isNeighbour ||
+      node.size > 12 ||
+      (!hovered && (node.kind === 'folder' || node.kind === 'file') && node.degree > 5);
     if (showLabel) {
       const sprite = new SpriteText(node.label);
-      sprite.color = labelColor;
+      sprite.color = isHovered ? '#FFF6F0' : '#E8DFD0';
       sprite.backgroundColor = false;
       sprite.fontFace = '"Inter", system-ui, sans-serif';
-      sprite.textHeight = node.id === hovered ? node.size * 0.9 : node.size * 0.6;
-      sprite.position.set(0, node.size + 1.5, 0);
+      sprite.fontWeight = isHovered ? '600' : '400';
+      sprite.textHeight = isHovered ? Math.max(node.size * 0.7, 4) : Math.max(node.size * 0.5, 2.5);
+      sprite.position.set(0, node.size + 2, 0);
+      // Cheap outline via padding-coloured stroke — keeps labels
+      // legible against the dark canvas without an extra pass.
+      sprite.strokeColor = CANVAS_BG;
+      sprite.strokeWidth = 2;
       group.add(sprite);
     }
+
     return group;
   };
 
+  // Highway / hover-aware link styling.
+  const linkColor = (l: object): string => {
+    const link = l as ForceLink;
+    const src = typeof link.source === 'string' ? link.source : link.source.id;
+    const tgt = typeof link.target === 'string' ? link.target : link.target.id;
+    if (hovered) {
+      if (src === hovered || tgt === hovered) return link.color;
+      return '#1a1814';
+    }
+    return link.color;
+  };
+
+  const linkWidth = (l: object): number => {
+    const link = l as ForceLink;
+    return link.width;
+  };
+
+  const linkDirectionalParticles = (l: object): number => {
+    const link = l as ForceLink;
+    if (link.combinedDegree >= highwayThreshold) {
+      // Highway: particles flow steadily — visible only when hover
+      // doesn't dim the link.
+      const src = typeof link.source === 'string' ? link.source : link.source.id;
+      const tgt = typeof link.target === 'string' ? link.target : link.target.id;
+      if (hovered && src !== hovered && tgt !== hovered) return 0;
+      return 3;
+    }
+    return 0;
+  };
+
   return (
-    <div ref={containerRef} className="absolute inset-0">
+    <div ref={containerRef} className="absolute inset-0 bg-[#0a0606]">
       {size.w > 0 && size.h > 0 && (
         <ForceGraph3D
           ref={fgRef as unknown as React.MutableRefObject<undefined>}
           width={size.w}
           height={size.h}
-          backgroundColor={bgColor}
+          backgroundColor={CANVAS_BG}
           graphData={graphData}
           nodeThreeObject={nodeThreeObject}
           nodeThreeObjectExtend={false}
-          linkColor={(l: object) =>
-            hovered &&
-            (l as ForceLink).source !== hovered &&
-            (l as ForceLink).target !== hovered &&
-            !(
-              typeof (l as ForceLink).source === 'object' &&
-              ((l as ForceLink).source as unknown as ForceNode).id === hovered
-            ) &&
-            !(
-              typeof (l as ForceLink).target === 'object' &&
-              ((l as ForceLink).target as unknown as ForceNode).id === hovered
-            )
-              ? '#e7dfd0'
-              : (l as ForceLink).color
+          nodeRelSize={4}
+          linkColor={linkColor}
+          linkWidth={linkWidth}
+          linkOpacity={hovered ? 0.95 : 0.55}
+          linkDirectionalParticles={linkDirectionalParticles}
+          linkDirectionalParticleWidth={0.7}
+          linkDirectionalParticleSpeed={0.005}
+          linkDirectionalParticleColor={(l: object) =>
+            (l as ForceLink).color
           }
-          linkWidth={(l: object) => (l as ForceLink).width}
-          linkOpacity={0.7}
-          linkDirectionalParticles={0}
           enableNodeDrag={true}
           showNavInfo={false}
+          warmupTicks={50}
+          cooldownTicks={120}
+          d3AlphaDecay={0.018}
+          d3VelocityDecay={0.32}
           onNodeHover={(n: object | null) =>
             setHovered(n ? (n as ForceNode).id : null)
           }
@@ -279,21 +453,28 @@ export default function BrainGraph3D() {
       {isLoading && (
         <div
           role="status"
-          className="absolute left-3 top-3 rounded bg-[var(--cos-panel)] px-2 py-1 text-xs"
+          className="absolute left-3 top-3 rounded bg-black/70 px-3 py-1.5 text-xs text-white/80 backdrop-blur"
         >
-          loading…
+          loading graph…
+        </div>
+      )}
+      {!isLoading && graphData.nodes.length > 0 && (
+        <div className="pointer-events-none absolute right-3 top-3 rounded bg-black/55 px-3 py-1.5 text-[11px] text-white/70 backdrop-blur">
+          <span className="font-mono tabular-nums">
+            {graphData.nodes.length} nodes · {graphData.links.length} edges
+          </span>
         </div>
       )}
       {error && (
         <div
           role="alert"
-          className="absolute left-3 top-3 rounded bg-rose-900/80 px-2 py-1 text-xs"
+          className="absolute left-3 top-3 rounded bg-rose-900/80 px-2 py-1 text-xs text-white"
         >
           {error.message}
         </div>
       )}
       {!isLoading && !error && graphData.nodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--cos-muted)]">
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-white/60">
           no nodes reachable at this depth
         </div>
       )}
