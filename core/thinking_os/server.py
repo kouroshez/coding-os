@@ -17,14 +17,6 @@ import logging
 import sys
 from pathlib import Path
 
-# Expose `core/` on sys.path so `import graph_os` resolves (Phase I).
-# The MCP server runs from `core/thinking_os/`; adding its parent makes
-# sibling packages like `graph_os` importable without install-time
-# packaging gymnastics.
-_CORE_DIR = Path(__file__).resolve().parent.parent
-if str(_CORE_DIR) not in sys.path:
-    sys.path.insert(0, str(_CORE_DIR))
-
 from mcp.server.fastmcp import FastMCP
 
 from db import get_db_stats, init_db
@@ -1613,7 +1605,14 @@ if _GRAPH_TOOLS_AVAILABLE:
         """Return callers + callees + siblings + referenced docs around a symbol.
 
         Args:
-            uid_or_name: Node uid or fuzzy label.
+            uid_or_name: Node uid or fuzzy label. Uid scheme:
+                ``code:file:<path>`` | ``code:function:<path>::<name>`` |
+                ``code:class:<path>::<name>`` | ``code:module:<dotted>`` |
+                ``doc:file:<path>`` | ``doc:heading:<path>#<slug>:<level>`` |
+                ``folder:<path>``. Raw repo paths (``core/foo.py``) are
+                auto-resolved to ``code:file:`` / ``doc:file:`` / ``folder:``;
+                if all variants miss, a fuzzy label match is tried. Run
+                ``cos_graph_query`` first to discover candidates.
             direction: "in" | "out" | "both".
             depth: BFS depth (default 1).
             include_content: When True, each returned node gains a ``content``
@@ -1650,7 +1649,20 @@ if _GRAPH_TOOLS_AVAILABLE:
         depth: int = 3,
         confidence_min: float = 0.5,
     ) -> str:
-        """Group affected nodes by risk tier (will_break / should_review / context)."""
+        """Group affected nodes by risk tier (will_break / should_review / context).
+
+        Args:
+            uid: Fully-qualified node uid. Scheme: ``code:file:<path>`` |
+                ``code:function:<path>::<name>`` | ``code:class:<path>::<name>`` |
+                ``code:module:<dotted>`` | ``doc:file:<path>`` | ``folder:<path>``.
+                Raw repo paths (``core/foo.py``) are auto-resolved to
+                ``code:file:`` / ``doc:file:`` / ``folder:``. If unsure, run
+                ``cos_graph_query`` first to discover the right uid.
+            direction: "downstream" (callers — break if `uid` changes) |
+                "upstream" (deps `uid` calls/imports) | "both".
+            depth: BFS hop limit (default 3).
+            confidence_min: Drop edges below this score (default 0.5).
+        """
         return _graph_tools.cos_graph_impact(
             uid,
             direction=str(direction),
@@ -1703,7 +1715,16 @@ if _GRAPH_TOOLS_AVAILABLE:
         terminals: str = "return,exception",
         max_steps: int = 50,
     ) -> str:
-        """Forward execution walk from `entry_uid` until terminals."""
+        """Forward execution walk from `entry_uid` until terminals.
+
+        Args:
+            entry_uid: Function/method uid to start from, e.g.
+                ``code:function:core/foo.py::bar``. Raw paths or names are
+                auto-resolved (file → ``code:file:`` then entry-point heuristic).
+                Run ``cos_graph_query`` first if unsure.
+            terminals: Comma-separated edge labels that stop the walk.
+            max_steps: Hard cap on emitted steps.
+        """
         return _graph_tools.cos_graph_trace(
             entry_uid,
             terminals=tuple(_csv(terminals) or ("return", "exception")),
@@ -1726,7 +1747,15 @@ if _GRAPH_TOOLS_AVAILABLE:
         top_k: int = 5,
         confidence_min: float = 0.5,
     ) -> str:
-        """Return the top-K nodes most similar to `uid` (difflib baseline)."""
+        """Return the top-K nodes most similar to `uid` (difflib baseline).
+
+        Args:
+            uid: Fully-qualified node uid (see ``cos_graph_impact`` for
+                scheme). Raw repo paths are auto-resolved to
+                ``code:file:`` / ``doc:file:`` / ``folder:``.
+            top_k: Number of similar nodes to return.
+            confidence_min: Minimum similarity score (0.0–1.0).
+        """
         return _graph_tools.cos_graph_similar(
             uid,
             top_k=int(top_k),
@@ -1749,7 +1778,16 @@ if _GRAPH_TOOLS_AVAILABLE:
         kinds: str = "calls,accesses_field,imports,references_doc",
         limit: int = 100,
     ) -> str:
-        """List inbound edges — "who references this?"."""
+        """List inbound edges — "who references this?".
+
+        Args:
+            uid: Fully-qualified node uid. Scheme: ``code:file:<path>`` |
+                ``code:function:<path>::<name>`` | ``code:class:<path>::<name>`` |
+                ``code:module:<dotted>`` | ``doc:file:<path>`` | ``folder:<path>``.
+                Raw repo paths are auto-resolved.
+            kinds: Comma-separated edge types to include.
+            limit: Max edges returned (default 100).
+        """
         return _graph_tools.cos_graph_references(
             uid,
             kinds=tuple(_csv(kinds) or ("calls", "accesses_field", "imports", "references_doc")),
@@ -1772,7 +1810,14 @@ if _GRAPH_TOOLS_AVAILABLE:
         target_uid: str,
         max_hops: int = 5,
     ) -> str:
-        """Shortest path between two nodes (either direction)."""
+        """Shortest path between two nodes (either direction).
+
+        Args:
+            source_uid: Origin uid (auto-resolves raw paths; see
+                ``cos_graph_impact`` for the scheme).
+            target_uid: Destination uid (same rules as ``source_uid``).
+            max_hops: BFS depth limit (default 5).
+        """
         return _graph_tools.cos_graph_path(
             source_uid,
             target_uid,
@@ -1846,7 +1891,15 @@ if _GRAPH_TOOLS_AVAILABLE:
         new_name: str,
         check_strings: bool = True,
     ) -> str:
-        """Plan a rename — call-sites, docs, tests, strings, risk."""
+        """Plan a rename — call-sites, docs, tests, strings, risk.
+
+        Args:
+            uid: Symbol to rename. Scheme: ``code:function:<path>::<name>`` |
+                ``code:class:<path>::<name>`` | ``code:module:<dotted>``.
+                Raw paths are auto-resolved when applicable.
+            new_name: Replacement symbol name.
+            check_strings: Also scan string literals for the old name.
+        """
         return _graph_tools.cos_graph_rename_plan(
             uid,
             new_name,

@@ -22,7 +22,6 @@ import json
 import logging
 import os
 import sqlite3
-import sys
 import threading
 import time
 from pathlib import Path
@@ -34,21 +33,16 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 
 
 def _import_db_module() -> Any:
-    """Locate the thinking_os db module without hardcoding a sys.path tweak.
+    """Return the thinking_os db module.
 
-    Consumers may call get_backend() from several entry points (MCP
-    server, CLI, tests) — the server already puts core/thinking_os on
-    sys.path, but tests and CLI paths may not. This helper finds the
-    right directory relative to graph_os and imports on demand.
+    Prefers the installed package path (thinking_os.db); falls back to the
+    bare ``db`` name for environments where core/thinking_os/ is still on
+    sys.path directly (e.g. direct script invocation without editable install).
     """
     try:
-        import db  # type: ignore  # noqa: PLC0415
-        return db
+        from thinking_os import db as _db  # type: ignore  # noqa: PLC0415
+        return _db
     except ImportError:
-        graph_os_dir = Path(__file__).resolve().parent.parent
-        thinking_os_dir = graph_os_dir.parent / "thinking_os"
-        if thinking_os_dir.exists() and str(thinking_os_dir) not in sys.path:
-            sys.path.insert(0, str(thinking_os_dir))
         import db  # type: ignore  # noqa: PLC0415
         return db
 

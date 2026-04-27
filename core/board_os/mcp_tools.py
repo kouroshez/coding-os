@@ -24,7 +24,6 @@ import logging
 import os
 import re
 import sqlite3
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -41,11 +40,7 @@ from core.board_os.workflow import (
     validate_dependencies_no_cycle,
 )
 
-# Import ok/fail/safe_tool from the thinking_os tools shared module.
-_THINKING_OS_TOOLS = Path(__file__).resolve().parents[1] / "thinking_os" / "tools"
-if str(_THINKING_OS_TOOLS) not in sys.path:
-    sys.path.insert(0, str(_THINKING_OS_TOOLS))
-from _shared import fail, ok, safe_tool  # type: ignore
+from thinking_os.tools._shared import fail, ok, safe_tool
 
 logger = logging.getLogger("coding_os.board_os.mcp_tools")
 
@@ -282,28 +277,14 @@ def _last_log_line(work_log_json: str | None) -> str | None:
 
 
 def _agent_label(agent_session: str | None) -> str:
-    """Normalize work-log actor label to a readable agent name."""
-    if agent_session:
-        s = agent_session.strip().lower()
-        if "cursor" in s:
-            return "cursor"
-        if "codex" in s:
-            return "codex"
-        if "claude" in s:
-            return "claude"
-        return agent_session.strip()[:24]
+    """Normalize work-log actor label to a readable agent name.
 
-    # Fallbacks when session is not provided by caller.
-    env_agent = (os.environ.get("COS_AGENT") or "").strip().lower()
-    if env_agent in {"cursor", "codex", "claude", "human"}:
-        return env_agent
-    if os.environ.get("CURSOR_AGENT"):
-        return "cursor"
-    if os.environ.get("CODEX_SESSION_ID") or os.environ.get("CODEX_AGENT_DIR"):
-        return "codex"
-    if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_SSE_PORT"):
-        return "claude"
-    return "agent"
+    Detection logic lives in ``core.board_os._agent_runtime.detect_agent``
+    so cli/board_commands.py and this module share one code path (Wave 0
+    audit fix E2). The shell counterpart is core/hooks/cos-env.sh.
+    """
+    from ._agent_runtime import detect_agent
+    return detect_agent(agent_session)
 
 
 _BOARD_SELECT = (

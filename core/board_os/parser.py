@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -20,10 +19,6 @@ import yaml
 from core.board_os.config import (
     APPETITE_RE, KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM,
 )
-
-_THINKING_OS_DIR = Path(__file__).resolve().parents[1] / "thinking_os"
-if str(_THINKING_OS_DIR) not in sys.path:
-    sys.path.insert(0, str(_THINKING_OS_DIR))
 
 logger = logging.getLogger("coding_os.board_os.parser")
 
@@ -214,9 +209,12 @@ def parse_task(content: str, *, path: Path | None = None) -> ParsedTask | None:
 
 def _parse_legacy_fallback(content: str, source_str: str | None) -> ParsedTask | None:
     try:
-        import task_parser as legacy  # type: ignore
+        from thinking_os import task_parser as legacy  # type: ignore
     except ImportError:
-        return None
+        try:
+            import task_parser as legacy  # type: ignore  # fallback for script invocation
+        except ImportError:
+            return None
     try:
         result = legacy.parse_task_file(content)
     except Exception as exc:
