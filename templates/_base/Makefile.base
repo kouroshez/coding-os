@@ -164,10 +164,19 @@ ref: ## Resolve REF code to file path (REF=PLAYBOOK-BACKEND [READ=1])
 # ── Hooks & Health ──────────────────────────────────────────────────
 
 .PHONY: verify-hooks
-verify-hooks: ## Syntax-check all hook scripts
+verify-hooks: ## Syntax-check + shellcheck (warning level) on all hook scripts
 	@FAIL=0; for f in $(COS_HOOKS)/*.sh; do bash -n "$$f" 2>&1 || FAIL=1; done; \
 	if [ $$FAIL -eq 1 ]; then echo "ERROR: Hook syntax errors found" >&2; exit 1; \
 	else echo "OK: All hooks pass syntax check"; fi
+	@if command -v shellcheck >/dev/null 2>&1; then \
+	  if shellcheck -S warning $(COS_HOOKS)/*.sh; then \
+	    echo "OK: shellcheck (warning level) clean"; \
+	  else \
+	    echo "ERROR: shellcheck warnings found" >&2; exit 1; \
+	  fi; \
+	else \
+	  echo "WARN: shellcheck not installed — install with 'brew install shellcheck' to enforce" >&2; \
+	fi
 
 .PHONY: cos-reindex
 cos-reindex: ## Re-embed all observations/patterns/outcomes (Phase B RAG)

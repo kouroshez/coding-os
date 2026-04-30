@@ -120,11 +120,12 @@ def thinking_os_health() -> str:
 # Import tool modules
 # ---------------------------------------------------------------------------
 from graph import query_related
-from tools.docs import doc_search
+from tools.audit import audit_log_query, audit_log_record, audit_log_timeline
+from tools.docs import doc_search, doc_section, list_doc_headers, parse_doc_header
 from tools.learning import generate_feedback_drafts, learn_extract, learn_narrative, learn_suggest, learn_validate
 from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
 from tools.metrics import metric_query, metric_record, metric_trend
-from tools.retrieve import cite_retrievals, learn_from_retrievals, log_retrieval
+from tools.retrieve import cite_retrievals, learn_from_retrievals, log_retrieval, log_router_decision
 from tools.routing import route_model, route_skill
 from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search
 
@@ -265,6 +266,142 @@ def cos_metric_trend(
 
 
 # ---------------------------------------------------------------------------
+# Audit-log tools (Phase O — append-only doc + decision history).
+# Backed by migration v21 (db.py::_migrate_v21_doc_audit_trail).
+# ---------------------------------------------------------------------------
+@mcp.tool(
+    name="cos_audit_log_record",
+    annotations={
+        "title": "Record Doc / Decision Audit Entry",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_audit_log_record(
+    doc_path: str,
+    action: str,
+    session_id: str = "",
+    agent: str = "",
+    old_frontmatter: str = "",
+    new_frontmatter: str = "",
+    old_content: str = "",
+    new_content: str = "",
+    reason: str = "",
+    supersedes_id: int = 0,
+) -> str:
+    """Append an immutable doc-edit / decision-change entry.
+
+    Use when:
+      • A spec / ADR / playbook is created, updated, or deleted.
+      • A previous decision is being explicitly reverted (action='reverted',
+        supersedes_id=<the row being undone>).
+      • A doc is moved / renamed (action='moved' / 'renamed').
+
+    Args:
+        doc_path: Repo-relative path under docs/ (required).
+        action: created|updated|deleted|reverted|moved|renamed.
+        session_id: Agent session id ($COS_AGENT_DIR/session-id contents).
+        agent: claude / codex / cursor / human.
+        old_frontmatter: Pre-edit frontmatter HTML/JSON; optional but useful.
+        new_frontmatter: Post-edit frontmatter; optional but useful.
+        old_content: Pre-edit body — used only to compute a 16-hex hash for
+            drift detection. Not stored verbatim.
+        new_content: Post-edit body — same hashing treatment.
+        reason: Free-text rationale (strongly encouraged for
+            updated/reverted/deleted).
+        supersedes_id: When action='reverted', the doc_audit_trail.id of
+            the prior decision being undone. 0 = none.
+
+    Returns:
+        JSON envelope with the inserted row id.
+    """
+    result = audit_log_record(
+        _db_conn,
+        doc_path=doc_path,
+        action=action,
+        session_id=session_id or None,
+        agent=agent or None,
+        old_frontmatter=old_frontmatter or None,
+        new_frontmatter=new_frontmatter or None,
+        old_content=old_content or None,
+        new_content=new_content or None,
+        reason=reason or None,
+        supersedes_id=supersedes_id or None,
+    )
+    return ok(result, meta={"layer": "audit", "source": "cos_audit_log_record"})
+
+
+@mcp.tool(
+    name="cos_audit_log_query",
+    annotations={
+        "title": "Query Doc / Decision Audit Trail",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_audit_log_query(
+    doc_path: str = "",
+    session_id: str = "",
+    agent: str = "",
+    action: str = "",
+    only_reverted: bool = False,
+    since_iso: str = "",
+    limit: int = 25,
+) -> str:
+    """Filter the doc audit trail. Most-recent first.
+
+    All arguments are optional; an empty/zero value means "no filter on
+    that field". Combine filters freely.
+
+    Returns:
+        JSON envelope with `total`, `count`, `rows`.
+    """
+    result = audit_log_query(
+        _db_conn,
+        doc_path=doc_path or None,
+        session_id=session_id or None,
+        agent=agent or None,
+        action=action or None,
+        only_reverted=only_reverted,
+        since_iso=since_iso or None,
+        limit=limit,
+    )
+    return ok(result, meta={"layer": "audit", "source": "cos_audit_log_query"})
+
+
+@mcp.tool(
+    name="cos_audit_log_timeline",
+    annotations={
+        "title": "Per-Doc Audit Timeline",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_audit_log_timeline(
+    doc_path: str,
+    limit: int = 50,
+) -> str:
+    """Return the chronological history of one document, oldest→newest.
+
+    Designed for the hub UI's "decision history" panel beside a doc.
+
+    Returns:
+        JSON envelope with `doc_path`, `count`, `rows`.
+    """
+    result = audit_log_timeline(_db_conn, doc_path=doc_path, limit=limit)
+    return ok(result, meta={"layer": "audit", "source": "cos_audit_log_timeline"})
+
+
+# ---------------------------------------------------------------------------
 # Memory tools (TASK-142)
 # ---------------------------------------------------------------------------
 @mcp.tool(
@@ -330,16 +467,27 @@ def thinking_os_search(
     query: str,
     limit: int = 5,
     memory_type: str = "",
+    min_confidence: float = 0.0,
+    since_days: int = 0,
 ) -> str:
     """Search observations and learned patterns with 5-signal ranking.
 
     Use during Orient step to find relevant past experience.
     Updates access_count and confidence on retrieved results.
 
+    Stage-1 metadata pre-filter (Phase O):
+      - `min_confidence` drops decayed/low-trust patterns BEFORE ranking.
+        Stale low-signal patterns can otherwise crowd out fresh hits.
+      - `since_days` caps row age. 0 = no cap.
+
     Args:
         query: Search text (e.g. "backend rework", "django migration").
         limit: Max results (1-20, default 5).
         memory_type: Filter by type (pattern/workflow/error/decision/discovery). Optional.
+        min_confidence: Drop learned_patterns with confidence below this
+            value (0.0-1.0). Default 0.0 = no filter. Common: 0.3.
+        since_days: Drop rows older than now-`since_days`. 0 = no cap.
+            Common: 90 (one quarter) for "recent" queries.
 
     Returns:
         str: JSON with results list [{id, title, confidence, impact_score, memory_type, source_table}].
@@ -351,14 +499,17 @@ def thinking_os_search(
         limit=limit,
         memory_type=memory_type or None,
         use_fts5=has_fts5_table(_db_conn),
+        min_confidence=float(min_confidence),
+        since_days=int(since_days) if since_days and since_days > 0 else None,
     )
     # Phase G.8 — log each returned row for the outcome-feedback loop.
-    rids = log_retrieval(
-        _db_conn, layer="memory", query=query,
-        rows=(result.get("results") or []) if isinstance(result, dict) else [],
-    )
+    rows = (result.get("results") or []) if isinstance(result, dict) else []
+    rids = log_retrieval(_db_conn, layer="memory", query=query, rows=rows)
     if isinstance(result, dict):
         result["retrieval_ids"] = rids
+    # Phase J.3 — router-level telemetry.
+    log_router_decision(_db_conn, query=query, chosen_layer="memory",
+                        bytes_returned=len(str(rows)))
     return ok(result, meta={"layer": "memory", "query": query,
                             "source": result.get("source") if isinstance(result, dict) else None})
 
@@ -864,33 +1015,64 @@ def cos_doc_search(
     source_types: str = "",
     limit: int = 5,
     mode: str = "auto",
+    domain: str = "",
+    layer: str = "",
+    since_iso: str = "",
+    include_inactive: bool = False,
+    auto_context: bool = False,
 ) -> str:
-    """Semantic search over project documentation chunks (PRD, architecture, ADRs, ...).
+    """Semantic + lexical search over project documentation chunks.
 
-    Use this when you need to find a specific spec, rule, or architecture
-    decision. Returns chunks (300-500 tokens each) instead of full files,
-    so you load only the relevant slice of a doc.
-
-    The chunks come from `make docs-index` which walks `docs/` and embeds
-    each H2/H3 section into the document_chunks table. Source types are
-    configured in `.coding-os/rag-config.yaml`.
+    Stage-1 metadata pre-filter (since migration v22 — Phase O):
+    `domain`, `layer`, `since_iso`, and `include_inactive` narrow the
+    chunk universe BEFORE vector / FTS ranking. Vector search finds
+    meaning; metadata enforces reality (correct era, correct domain,
+    not superseded). Combine with `source_types` for cheap, indexed
+    pre-filtering.
 
     Args:
         query: Natural language search query (e.g. "commission rate calculation").
         source_types: Optional comma-separated filter — restrict to specific
             source types (e.g. "prd,architecture,adr"). Empty = all types.
         limit: Maximum results (1-50, default 5).
+        mode: "auto" (default) | "semantic" | "lexical".
+        domain: Frontmatter `domain:` filter (BACKEND, FRONTEND, OPS,
+            DOCS, …). Empty = any. Indexed.
+        layer: Frontmatter `layer:` filter (adr, playbook, spec, policy,
+            reference, runbook, postmortem, task). Empty = any. Indexed.
+        since_iso: Lower bound on frontmatter `updated:` (YYYY-MM-DD).
+            Use when the agent asks about "recent" or "current" state and
+            a stale older doc would be the wrong answer. Empty = any age.
+        include_inactive: When False (default), hide chunks marked
+            is_active=0 by cos_audit_log_record (action='deleted' or
+            'reverted'). Set True for forensic / decision-history
+            retrieval that must surface superseded specs.
+        auto_context: When True, soft-default `domain` from the active
+            task's swimlane ($COS_AGENT_DIR/.swimlane). Explicit `domain`
+            argument always wins. Off by default.
+
+    Response meta carries `filter_hints` — heuristic suggestions
+    extracted from the query (date phrasing, domain keywords, layer
+    cues). Suggestions are NEVER auto-applied; the agent decides
+    whether to re-query with them. Mental model: Filter → Search →
+    Summarize. Vector finds meaning, metadata enforces correctness.
 
     Returns:
-        str: JSON with results list and count. Each result contains:
-             source_path, source_type, heading_path, content, score, priority,
-             mtime, chunk_index. Empty results when embeddings unavailable
-             or no matches.
+        str: JSON envelope with results list and count. Each result
+             carries source_path, source_type, heading_path, content,
+             score, priority, mtime, chunk_index, retrieval_source.
     """
     types = [t.strip() for t in source_types.split(",") if t.strip()] or None
     mode_clean = mode if mode in ("auto", "semantic", "lexical") else "auto"
-    results = doc_search(
+    domain_clean = domain.strip() or None
+    layer_clean = layer.strip() or None
+    since_clean = since_iso.strip() or None
+
+    results, search_meta = doc_search(
         _db_conn, query=query, source_types=types, limit=limit, mode=mode_clean,
+        domain=domain_clean, layer=layer_clean, since_iso=since_clean,
+        include_inactive=include_inactive,
+        auto_context=auto_context, return_meta=True,
     )
     # Derive retrieval source from result rows for diagnostic meta.
     if results:
@@ -900,11 +1082,252 @@ def cos_doc_search(
         source_label = "empty"
     # Phase G.8 — outcome-feedback loop logging.
     rids = log_retrieval(_db_conn, layer="docs", query=query, rows=results)
+    # Phase J.3 — router-level telemetry.
+    log_router_decision(_db_conn, query=query, chosen_layer="docs",
+                        bytes_returned=len(str(results)))
     return ok(
         {"results": results, "count": len(results), "retrieval_ids": rids},
         meta={"layer": "docs", "query": query, "mode": mode_clean,
               "source": source_label,
-              "filters_applied": {"source_types": types} if types else {}},
+              "filters_applied": search_meta.get("applied", {}),
+              "filter_hints": search_meta.get("filter_hints", {})},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Doc header tools (Phase O.4 — TASK-155): header-only lazy load
+# ---------------------------------------------------------------------------
+@mcp.tool(
+    name="cos_doc_header",
+    annotations={
+        "title": "Read Doc Header (frontmatter + opening block)",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_doc_header(path: str) -> str:
+    """Return a single doc's header without reading the body.
+
+    PURPOSE:      Header-only lazy load (TASK-155). The agent decides
+                  whether the body is worth reading using only the
+                  frontmatter and opening block (Purpose / Read when /
+                  Skip when / Read next), saving 70-90% of tokens vs. a
+                  full Read.
+    INPUT:        path — repo-relative or absolute path to a `.md` file.
+                  Resolved path MUST stay inside the project root —
+                  ``../../etc/passwd``-style escapes return
+                  ``fail("permission")``.
+    OUTPUT:       JSON envelope with `frontmatter`, `opening_block`,
+                  `title`, `mtime`, `size_bytes`, `header_token_estimate`.
+    DEPENDENCIES: filesystem only — bypasses the embeddings store and
+                  document_chunks index.
+    NOTES:        Returns `fail("not_found", …)` for missing files;
+                  `fail("validation", …)` for unreadable / binary files;
+                  `fail("permission", …)` when the resolved path escapes
+                  the project root (TASK-162).
+    """
+    candidate = (path or "").strip()
+    if not candidate:
+        return fail("validation", "path is required")
+    target = Path(candidate)
+    if not target.is_absolute():
+        target = (Path.cwd() / target).resolve()
+    else:
+        try:
+            target = target.resolve()
+        except OSError as exc:
+            return fail("validation", f"cannot resolve path: {exc}")
+    # Path-traversal guard (TASK-162). The MCP server is trusted today,
+    # but a future external client must never read files outside the
+    # project root via this tool.
+    project_root = Path.cwd().resolve()
+    try:
+        target.relative_to(project_root)
+    except ValueError:
+        return fail(
+            "permission",
+            f"path escapes project root: {candidate}",
+        )
+    if not target.exists():
+        return fail("not_found", f"no such file: {candidate}")
+    header = parse_doc_header(target)
+    if header is None:
+        return fail("validation", f"cannot parse doc header: {candidate}")
+    return ok(
+        header,
+        meta={"layer": "docs", "source": "filesystem", "query": candidate},
+    )
+
+
+@mcp.tool(
+    name="cos_doc_headers_by",
+    annotations={
+        "title": "List Doc Headers by Frontmatter Filter",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_doc_headers_by(
+    domain: str = "",
+    layer: str = "",
+    ssot: str = "",
+    since_iso: str = "",
+    root: str = "docs",
+    limit: int = 50,
+) -> str:
+    """Bulk header-only scan filtered by frontmatter.
+
+    PURPOSE:      Answer "show me every {layer} doc in {domain}" without
+                  fetching bodies. Result is a routing table the agent
+                  uses to pick the next doc to actually read.
+    INPUT:        domain     — frontmatter `domain:` (DOCS, BACKEND, …).
+                  layer      — frontmatter `layer:` (policy, playbook, …).
+                  ssot       — `true` | `ref` | empty.
+                  since_iso  — keep docs whose `updated:` ≥ this value.
+                  root       — directory to walk; defaults to `docs`.
+                  limit      — defensive cap (1-200, default 50).
+    OUTPUT:       JSON envelope `{results, count}`; each row carries the
+                  same shape as `cos_doc_header`.
+    DEPENDENCIES: filesystem only.
+    NOTES:        Empty filters are treated as "any". Files without
+                  parseable frontmatter are skipped silently — call
+                  `cos_doc_header(path)` directly to inspect malformed.
+    """
+    cap = max(1, min(int(limit) if limit else 50, 200))
+    root_path = Path(root) if root else Path("docs")
+    if not root_path.is_absolute():
+        root_path = (Path.cwd() / root_path).resolve()
+    else:
+        try:
+            root_path = root_path.resolve()
+        except OSError as exc:
+            return fail("validation", f"cannot resolve root: {exc}")
+    # Path-traversal guard (TASK-162) — root must stay inside project.
+    project_root = Path.cwd().resolve()
+    try:
+        root_path.relative_to(project_root)
+    except ValueError:
+        return fail("permission", f"root escapes project root: {root}")
+    if not root_path.exists():
+        return fail("not_found", f"no such root: {root}")
+    rows = list_doc_headers(
+        root_path,
+        domain=domain or None,
+        layer=layer or None,
+        ssot=ssot or None,
+        since_iso=since_iso or None,
+        limit=cap,
+    )
+    return ok(
+        {"results": rows, "count": len(rows)},
+        meta={
+            "layer": "docs",
+            "source": "filesystem",
+            "filters_applied": {
+                k: v for k, v in {
+                    "domain": domain, "layer": layer, "ssot": ssot,
+                    "since_iso": since_iso, "root": str(root_path),
+                }.items() if v
+            },
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Section index lookup (TASK-165 — intra-file navigation)
+# ---------------------------------------------------------------------------
+@mcp.tool(
+    name="cos_doc_section",
+    annotations={
+        "title": "Read One Section of a Fat Doc by Slug",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_doc_section(
+    path: str,
+    slug: str = "",
+    section: str = "",
+    with_body: bool = True,
+) -> str:
+    """Resolve a single section of a fat markdown doc via its INDEX sidecar.
+
+    PURPOSE:      Cut intra-file navigation cost from full-read (≥5k tokens)
+                  to slice-only (≈300-800 tokens). The companion
+                  `auto-regen-section-index.sh` PostToolUse hook keeps the
+                  `<file>.INDEX.md` fresh on every Write/Edit (debounced 5s).
+                  Spec: docs/engineering/section-index.md (TASK-165).
+    INPUT:        path       — repo-relative or absolute path to the source
+                               `.md` (NOT the `.INDEX.md` sidecar).
+                  slug       — preferred lookup; stable across edits unless
+                               the heading text is renamed.
+                  section    — fallback fuzzy title (case-insensitive
+                               substring match) when slug is unknown.
+                  with_body  — when True (default), include the section body
+                               in the response. False = cheap recon mode
+                               (~40 tokens out, line range only).
+    OUTPUT:       JSON envelope `{path, index_path, slug, title, start, end,
+                  lines, token_estimate, body?}`.
+    DEPENDENCIES: filesystem only — no DB, no embeddings.
+    NOTES:        Path-traversal guarded (must stay inside project root).
+                  Fail categories:
+                    - validation : empty path / unresolvable
+                    - permission : path escapes project root
+                    - not_found  : source missing OR no INDEX sidecar OR
+                                   slug/section did not match. The not_found
+                                   message hints at `cos_graph_rename_plan`
+                                   when a slug appears to have been renamed.
+    """
+    candidate = (path or "").strip()
+    if not candidate:
+        return fail("validation", "path is required")
+    if not (slug or section):
+        return fail("validation", "either slug or section is required")
+    target = Path(candidate)
+    if not target.is_absolute():
+        target = (Path.cwd() / target).resolve()
+    else:
+        try:
+            target = target.resolve()
+        except OSError as exc:
+            return fail("validation", f"cannot resolve path: {exc}")
+    project_root = Path.cwd().resolve()
+    try:
+        target.relative_to(project_root)
+    except ValueError:
+        return fail("permission", f"path escapes project root: {candidate}")
+    if not target.exists():
+        return fail("not_found", f"no such file: {candidate}")
+    if target.suffix.lower() != ".md":
+        return fail("validation", f"not a markdown file: {candidate}")
+
+    payload = doc_section(target, slug=slug, section=section, with_body=with_body)
+    if payload is None:
+        index_file = target.with_name(target.stem + ".INDEX.md")
+        if not index_file.exists():
+            return fail(
+                "not_found",
+                f"no section index for {candidate} — file is sub-threshold "
+                "or `scripts/regen_section_index.py --force` has not been run",
+            )
+        return fail(
+            "not_found",
+            f"no section matched slug='{slug}' section='{section}' in "
+            f"{index_file.name}; if a heading was renamed, run "
+            "`cos_graph_rename_plan` to find downstream references",
+        )
+    return ok(
+        payload,
+        meta={"layer": "docs", "source": "section-index", "query": slug or section},
     )
 
 
@@ -952,6 +1375,8 @@ def cos_task_search(
         limit=limit,
     )
     rids = log_retrieval(_db_conn, layer="tasks", query=query, rows=results)
+    log_router_decision(_db_conn, query=query, chosen_layer="tasks",
+                        bytes_returned=len(str(results)))
     return ok(
         {"results": results, "count": len(results), "retrieval_ids": rids},
         meta={"layer": "tasks", "query": query,
@@ -1065,12 +1490,12 @@ def cos_task_by_filter(
 # @mcp.tool-decorated wrapper that injects the server's shared _db_conn.
 
 try:
-    # `from core.board_os...` requires the project root (parent of `core/`)
+    # `from board_os...` requires the project root (parent of `core/`)
     # on sys.path, since `core/` is a namespace package without __init__.py.
     _PROJECT_ROOT = Path(__file__).resolve().parents[2]
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
-    from core.board_os import mcp_tools as _board_mcp  # type: ignore
+    from board_os import mcp_tools as _board_mcp  # type: ignore
     _BOARD_OS_AVAILABLE = True
 except ImportError as _exc:
     logger.warning("board_os MCP tools unavailable: %s", _exc)

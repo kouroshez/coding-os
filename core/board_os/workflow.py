@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import yaml
 
-from core.board_os.config import STATUS_ENUM, ScrumbanConfig
+from board_os.config import STATUS_ENUM, ScrumbanConfig
 
 logger = logging.getLogger("coding_os.board_os.workflow")
 
@@ -322,11 +322,11 @@ def transition(
         and to_status in {"in_progress", "complete"}
     ):
         try:
-            from core.board_os.transition_gates import (
+            from board_os.transition_gates import (
                 GatesConfigError,
                 load_gates_config,
             )
-            from core.board_os.transition_gates_validator import (
+            from board_os.transition_gates_validator import (
                 validate_transition as _gate_validate,
             )
 
@@ -335,7 +335,7 @@ def transition(
                 kind = _extract_kind_from_frontmatter(body_text) or "feature"
                 # DoD inputs: read the .last-verify.json freshness signal
                 # via the same helper the CLI uses (avoids drift).
-                from core.board_os.transition_gates_cli import (
+                from board_os.transition_gates_cli import (
                     _has_work_log_entries as _wl,
                     _verify_state as _vs,
                 )

@@ -182,6 +182,100 @@ class TestFrontmatter:
 
 
 # ---------------------------------------------------------------------------
+# Opening-block + reads:[…] edges (TASK-156)
+# ---------------------------------------------------------------------------
+
+
+class TestOpeningBlockReadNext:
+    def test_frontmatter_reads_vector_emits_one_edge_per_target(self):
+        content = (
+            "<!-- domain:DOCS | layer:policy | reads:[a.md, b.md, c.md] -->\n"
+            "# H\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        assert {e.target_uid for e in rn} == {
+            "doc:file:a.md",
+            "doc:file:b.md",
+            "doc:file:c.md",
+        }
+        # `reads` itself is NOT a frontmatter_key node — it expands into edges.
+        assert all(
+            (n.metadata or {}).get("key") != "reads"
+            for n in r.nodes if n.kind == "doc:frontmatter_key"
+        )
+
+    def test_long_form_opening_block_emits_edges(self):
+        content = (
+            "<!-- domain:DOCS | layer:policy -->\n"
+            "# H\n\n"
+            "Purpose: x.\n"
+            "Read when: x.\n"
+            "Skip when: x.\n"
+            "Read next: [a](a.md), [b](b.md)\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
+
+    def test_short_form_opening_block_emits_edges(self):
+        content = (
+            "<!-- domain:DOCS | layer:playbook -->\n"
+            "# H\n\n"
+            "> P: short purpose.\n"
+            "> R: trigger.\n"
+            "> S: do not.\n"
+            "> N: a.md, b.md\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
+
+    def test_external_url_targets_become_external_uid(self):
+        content = (
+            "# H\n\n"
+            "Read next: https://example.com/spec\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        assert any(
+            e.target_uid == "doc:external:https://example.com/spec" for e in rn
+        )
+
+    def test_read_next_inside_fenced_code_ignored(self):
+        # TASK-162 fix #4 — fenced code blocks are stripped before the
+        # opening-block scan, so a ``Read next:`` line in an example block
+        # must NOT emit a graph edge.
+        content = (
+            "<!-- domain:DOCS | layer:reference -->\n"
+            "# H\n\n"
+            "Example below:\n\n"
+            "```\n"
+            "Read next: not-a-real-doc.md\n"
+            "```\n\n"
+            "Read next: real.md\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        targets = {e.target_uid for e in rn}
+        assert "doc:file:real.md" in targets
+        assert "doc:file:not-a-real-doc.md" not in targets
+
+    def test_duplicate_targets_deduplicated(self):
+        content = (
+            "<!-- reads:[a.md, a.md, b.md] -->\n"
+            "# H\n\n"
+            "Read next: a.md, b.md\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        # Frontmatter dedupe: 2 unique. Body dedupe inside opening block: 2.
+        # Frontmatter and body are independent passes — both emit edges so we
+        # expect 4 distinct edges with 2 distinct targets.
+        assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
+
+
+# ---------------------------------------------------------------------------
 # Links
 # ---------------------------------------------------------------------------
 

@@ -1,6 +1,11 @@
 <!-- domain:ALL | layer:engineering | ssot:true | updated:2026-04-19 -->
 # Graph-OS Query Guide
 
+> P: Decision guide for picking the right `cos_graph_*` tool per query and slotting it into the three-layer retrieval contract.
+> R: Routing an agent flow that touches the graph (rename, impact analysis, dependency walk).
+> S: Designing the graph itself — see [docs/roadmap/graph_os-redesign.md](../roadmap/graph_os-redesign.md).
+> N: [docs/engineering/retrieval-routing.md](retrieval-routing.md), [docs/engineering/rename-workflow.md](rename-workflow.md)
+
 > When to use each `cos_graph_*` tool, and which three-layer retrieval
 > slot it occupies. Read this before routing any agent flow that touches
 > Phase I.

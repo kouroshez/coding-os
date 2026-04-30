@@ -1,6 +1,11 @@
 <!-- domain:ALL | layer:benchmark | ssot:true | updated:2026-04-20 -->
 # Token Cost Baseline — Phase L
 
+> P: Snapshot of agent-loaded file token counts captured before Phase L tooling so future passes can quantify their impact.
+> R: Comparing pre/post numbers when proposing a token-economics change (skill split, doc compression, hook lazy-load).
+> S: Designing a new feature — this file is a measurement artifact, not a design doc.
+> N: [docs/phase-l-scrumban-task-system-plan.md](../phase-l-scrumban-task-system-plan.md)
+
 > Measured via `scripts/measure_token_baseline.py`.
 > Token ≈ `wc -w × 1.3` (conservative OpenAI-style estimate).
 

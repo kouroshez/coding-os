@@ -48,6 +48,137 @@ _YAML_FENCE_RE = re.compile(r"^---\s*\n(?P<body>.*?)\n---\s*", re.DOTALL)
 # Fenced code blocks: ```...``` — stripped before link extraction.
 _FENCED_CODE_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
 
+# Opening-block "Read next:" lines (TASK-156). Long form lives plain in the
+# body; short form lives inside a blockquote (`> N: …`). Both produce
+# read_next edges to every comma-separated target.
+_OPENING_READ_NEXT_RE = re.compile(
+    r"^(?:Read next:|>\s*N:)\s*(?P<targets>.+?)\s*$",
+    re.MULTILINE,
+)
+
+# Strip markdown link wrapper `[label](href)` to keep only the href.
+_LINK_HREF_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+
+
+def _split_read_targets(raw: str) -> list[str]:
+    """Split a comma-or-bracket list of read_next targets into clean paths.
+
+    PURPOSE:      Accept every authoring style observed across coding-os
+                  docs in one helper: ``a.md, b.md``, ``[a](a.md), [b](b.md)``,
+                  ``[a.md, b.md]`` (short-form `reads:`).
+    INPUT:        single string from frontmatter or opening-block.
+    OUTPUT:       deduplicated list of path strings (markdown link wrappers
+                  collapsed to their href).
+    DEPENDENCIES: stdlib regex.
+    NOTES:        Anchors (`a.md#section`) are preserved — link resolution
+                  decides whether to drop them. External `http(s)://` URLs
+                  pass through unchanged.
+    """
+    text = raw.strip()
+    # Only collapse the wrapping brackets when the whole value is `[…]` —
+    # short-form `reads:[a, b]`. Markdown links like `[a](a.md), [b](b.md)`
+    # must keep their `[`/`]` so the link regex can still match.
+    if text.startswith("[") and text.endswith("]") and "](" not in text:
+        text = text[1:-1]
+    if not text:
+        return []
+    fragments = [frag.strip() for frag in text.split(",") if frag.strip()]
+    out: list[str] = []
+    seen: set[str] = set()
+    for frag in fragments:
+        match = _LINK_HREF_RE.search(frag)
+        href = (match.group(1) if match else frag).strip()
+        href = href.strip("`").strip()
+        if not href or href in seen:
+            continue
+        seen.add(href)
+        out.append(href)
+    return out
+
+
+def _emit_read_next_targets(
+    path: str,
+    raw_value: str,
+    result: "ExtractionResult",
+    *,
+    source: str,
+) -> None:
+    """Emit one ``read_next`` edge per parsed target in ``raw_value``.
+
+    PURPOSE:      Single chokepoint so frontmatter `reads:` and opening-
+                  block `Read next:` produce identical graph shape.
+    INPUT:        path        — origin doc.
+                  raw_value   — comma-or-bracket list (untrusted).
+                  result      — extractor accumulator (mutated).
+                  source      — diagnostic span string written into
+                                ``GraphEdge.source_span`` for replay.
+    OUTPUT:       none — appends edges in place.
+    DEPENDENCIES: ``_split_read_targets``.
+    NOTES:        External URLs become ``doc:external:`` stub uids;
+                  internal paths become ``doc:file:<normalized>``. Edge
+                  type is ``read_next`` to match the existing frontmatter
+                  ``read_next:path`` convention.
+    """
+    for target_path in _split_read_targets(raw_value):
+        if target_path.startswith(("http://", "https://")):
+            target_uid = f"doc:external:{target_path}"
+        else:
+            target_uid = f"doc:file:{_normalize_path(target_path)}"
+        result.edges.append(
+            GraphEdge(
+                source_uid=file_uid(path),
+                target_uid=target_uid,
+                edge_type="read_next",
+                extractor=EXTRACTOR_ID,
+                confidence=0.9,
+                source_span=f"{_normalize_path(path)}:{source}",
+            )
+        )
+
+
+def _extract_opening_block_reads(
+    path: str, content: str, result: "ExtractionResult"
+) -> None:
+    """Parse opening-block ``Read next:`` (long) and ``> N:`` (short).
+
+    PURPOSE:      Promote every authored "next-doc" hint to a
+                  first-class graph edge regardless of whether the
+                  author chose long or short form.
+    INPUT:        path     — origin doc.
+                  content  — raw markdown (caller pre-strips fenced
+                             code only when calling from the link
+                             pass; here we scan whole content because
+                             the opening block is always above any
+                             first fenced code block).
+                  result   — extractor accumulator.
+    OUTPUT:       none — appends edges in place.
+    DEPENDENCIES: ``_OPENING_READ_NEXT_RE`` + ``_emit_read_next_targets``.
+    NOTES:        First match wins per form — opening blocks are
+                  authored once per doc by contract (docs-system.md).
+                  Multiple matches still parse; duplicate hrefs are
+                  deduplicated inside ``_split_read_targets``.
+    """
+    seen_targets: set[str] = set()
+    for match in _OPENING_READ_NEXT_RE.finditer(content):
+        for target_path in _split_read_targets(match.group("targets")):
+            if target_path in seen_targets:
+                continue
+            seen_targets.add(target_path)
+            if target_path.startswith(("http://", "https://")):
+                target_uid = f"doc:external:{target_path}"
+            else:
+                target_uid = f"doc:file:{_normalize_path(target_path)}"
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid(path),
+                    target_uid=target_uid,
+                    edge_type="read_next",
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.9,
+                    source_span=f"{_normalize_path(path)}:opening-block",
+                )
+            )
+
 
 @dataclass(frozen=True)
 class ParseError:
@@ -215,6 +346,15 @@ def extract(
         # Frontmatter FIRST so linked docs get ssot/read_next edges even
         # when headings / body parsing fails later.
         _extract_frontmatter(path, content, result)
+
+        # Opening-block "Read next:" / "> N:" → read_next edges. Runs after
+        # frontmatter so duplicate-href dedupe inside the scan only fires
+        # within the body. Frontmatter `reads:[…]` is handled inline via
+        # `_emit_read_next_targets` to keep both forms graph-symmetric.
+        # Strip fenced code first — TASK-162 fix #4 — so a `Read next:` line
+        # that lives inside a ```bash``` block does not produce a false edge.
+        _opening_block_content = _FENCED_CODE_RE.sub("", content)
+        _extract_opening_block_reads(path, _opening_block_content, result)
 
         # Heading scan builds the containment tree AND a slug→uid map
         # for subsequent in-page fragment resolution.
@@ -480,6 +620,13 @@ def _extract_frontmatter(path: str, content: str, result: ExtractionResult) -> N
             key = key.strip().lower()
             value = value.strip().strip('"').strip("'")
             if not key or not value:
+                continue
+            # `reads:[a, b, c]` short-form vector — emit one read_next edge
+            # per target instead of a single key node carrying the literal
+            # bracket-string. Short-form authors get the same graph
+            # surface as long-form `read_next:path` keys.
+            if key == "reads":
+                _emit_read_next_targets(path, value, result, source="frontmatter:reads")
                 continue
             node = GraphNode(
                 uid=frontmatter_key_uid(path, key),

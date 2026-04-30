@@ -44,7 +44,7 @@ class DispatchRequest(BaseModel):
              consumers can embed it in filenames/session-ids/paths
              without worrying about traversal.
     """
-    formula_id: str                        # e.g. "F5"
+    formula_id: str                        # e.g. "implementer"
     agent_file: str                        # absolute path to F<N>_name.md
     prompt: str                            # composed system+user prompt
     input_slice: dict[str, Any] = Field(default_factory=dict)
@@ -185,7 +185,7 @@ def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
                   This lets tests exercise the fallback path on any machine.
     """
     if os.environ.get("COS_FORCE_DEFAULT_DISPATCHER") == "1":
-        from dispatchers.default import DefaultDispatcher
+        from thinking_os.dispatchers.default import DefaultDispatcher
         return DefaultDispatcher()
 
     agent = agent or _detect_agent()
@@ -199,5 +199,5 @@ def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
             agent,
         )
 
-    from dispatchers.default import DefaultDispatcher
+    from thinking_os.dispatchers.default import DefaultDispatcher
     return DefaultDispatcher()

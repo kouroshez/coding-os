@@ -28,12 +28,12 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from core.board_os.config import (
+from board_os.config import (
     KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM, APPETITE_RE, load_config,
 )
-from core.board_os.parser import parse_task
-from core.board_os.sync import sync_one
-from core.board_os.workflow import (
+from board_os.parser import parse_task
+from board_os.sync import sync_one
+from board_os.workflow import (
     check_wip,
     patch_task_frontmatter_scalars,
     transition,
@@ -141,7 +141,7 @@ def _render_kind_aware_body(
     try:
         # Lazy import — keeps this module loadable in environments where
         # pydantic/yaml haven't been installed yet (fresh `cos init`).
-        from core.board_os.transition_gates import load_gates_config
+        from board_os.transition_gates import load_gates_config
 
         config = load_gates_config()
         rules = config.definition_of_ready.for_kind(kind)
@@ -216,7 +216,7 @@ def _next_steps_for_kind(kind: str) -> dict:
     sees exactly what to fill before `cos task-start TASK-NN`.
     """
     try:
-        from core.board_os.transition_gates import load_gates_config
+        from board_os.transition_gates import load_gates_config
 
         config = load_gates_config()
         rules = config.definition_of_ready.for_kind(kind)

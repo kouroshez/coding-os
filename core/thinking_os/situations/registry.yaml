@@ -8,13 +8,13 @@ situations:
         description: "rollback / feature-flag / scale-up to restore service"
       - action: communicate
         description: "notify stakeholders of incident and ETA"
-      - dispatch: F7
+      - dispatch: debugger
         description: "debug root cause"
-      - dispatch: F6
+      - dispatch: reviewer
         description: "regression testing before re-deploy"
       - action: post_mortem
         description: "structured writeup via F4 template"
-      - dispatch: F10
+      - dispatch: observer
         description: "update monitoring so next incident is caught earlier"
 
   - id: onboarding
@@ -25,44 +25,44 @@ situations:
         description: "read existing docs produced by F4"
       - action: read_f3_adrs
         description: "read ADRs from F3 outputs"
-      - dispatch: F5
+      - dispatch: implementer
         description: "small scoped implementation task"
-      - dispatch: F6
+      - dispatch: reviewer
         description: "review role — understand test patterns"
-      - dispatch: F2
+      - dispatch: analyst
         description: "graduate to problem analysis"
 
   - id: scope-change
     trigger_signals: [requirements_changed, client_pivot]
     persona_overlay: tech-lead
     dispatch_chain:
-      - dispatch: F2
+      - dispatch: analyst
         description: "re-evaluate scope boundary (step 1 only)"
         mode: partial
       - action: traceability_check
         description: "top-bottom audit before modifying anything"
-      - dispatch: F2
+      - dispatch: analyst
         description: "update affected scenarios and decision tables"
-      - dispatch: F3
+      - dispatch: architect
         description: "update architecture if affected"
-      - dispatch: F4
+      - dispatch: documenter
         description: "update docs to reflect new scope"
 
   - id: external-integration
     trigger_signals: [new_third_party_api, payment_gateway, auth_provider]
     persona_overlay: senior-backend
     dispatch_chain:
-      - dispatch: F1
+      - dispatch: researcher
         description: "mini research — pricing, SDKs, rate limits, SLAs"
-      - dispatch: F2
+      - dispatch: analyst
         description: "integration-specific scenarios and actor map"
-      - dispatch: F3
+      - dispatch: architect
         description: "API contract + circuit breaker design"
-      - dispatch: F5
+      - dispatch: implementer
         description: "implement integration"
-      - dispatch: F6
+      - dispatch: reviewer
         description: "integration tests + contract tests"
-      - dispatch: F8
+      - dispatch: security_auditor
         description: "security implications of new dependency"
 
   - id: design-review
@@ -81,19 +81,19 @@ situations:
     trigger_signals: [legacy_codebase, inherited_repo, no_docs]
     persona_overlay: legacy-maintainer
     dispatch_chain:
-      - dispatch: F2
+      - dispatch: analyst
         description: "reverse-engineer problem definition, actors, data model"
         mode: reverse
-      - dispatch: F6
+      - dispatch: reviewer
         description: "characterization tests before changing anything"
         mode: stabilize
-      - dispatch: F4
+      - dispatch: documenter
         description: "document what was discovered"
-      - dispatch: F5
+      - dispatch: implementer
         description: "enter standard dev loop"
-      - dispatch: F6
+      - dispatch: reviewer
         description: "regression tests for changes"
-      - dispatch: F11
+      - dispatch: refactorer
         description: "prioritize technical debt items"
-      - dispatch: F3
+      - dispatch: architect
         description: "evaluate architecture evolution options"

@@ -10,14 +10,14 @@ from cognition_schemas import (
     BacktrackEvent,
     Discovery,
     EvidenceBundle,
-    F1Output,
-    F2Input,
-    F2Output,
-    F3Output,
-    F5Output,
-    F6Output,
-    F7Output,
-    F8Output,
+    ResearcherOutput,
+    AnalystInput,
+    AnalystOutput,
+    ArchitectOutput,
+    ImplementerOutput,
+    ReviewerOutput,
+    DebuggerOutput,
+    SecurityAuditorOutput,
     GoalNode,
     NextAction,
     Scenario,
@@ -54,13 +54,13 @@ class TestGoalNodeRecursion:
 
 class TestF2Output:
     def test_minimal_valid(self):
-        out = F2Output(problem_statement="Users cannot reset passwords.")
+        out = AnalystOutput(problem_statement="Users cannot reset passwords.")
         assert out.problem_statement
         assert out.actors == []
         assert out.unknowns == []
 
     def test_with_actors_and_scenarios(self):
-        out = F2Output(
+        out = AnalystOutput(
             problem_statement="Add payment flow.",
             actors=[Actor(id="user", role="buyer", capabilities=["pay"])],
             scenarios=[Scenario(id="S1", given="user has card", when="checkout", then="payment succeeds")],
@@ -71,33 +71,33 @@ class TestF2Output:
 
 class TestF2Input:
     def test_default_intensity_steps(self):
-        inp = F2Input(task_description="Add auth")
+        inp = AnalystInput(task_description="Add auth")
         assert inp.intensity_steps == list(range(1, 13))
 
     def test_optional_f1_research(self):
-        inp = F2Input(task_description="Add auth", f1_research=None)
-        assert inp.f1_research is None
+        inp = AnalystInput(task_description="Add auth", researcher=None)
+        assert inp.researcher is None
 
 
 class TestEvidenceBundle:
     def test_empty_bundle(self):
         bundle = EvidenceBundle(task_marker="feat-auth", persona_id="senior-backend")
-        assert bundle.F1_research is None
-        assert bundle.F2_decompose is None
+        assert bundle.researcher is None
+        assert bundle.analyst is None
         assert bundle.backtracks == []
         assert bundle.intensity == "standard"
 
     def test_bundle_accumulates(self):
         bundle = EvidenceBundle(task_marker="feat-auth", persona_id="senior-backend")
-        bundle.F1_research = F1Output(summary="Found OAuth2 patterns")
-        bundle.F2_decompose = F2Output(problem_statement="Add OAuth2 login")
-        assert bundle.F1_research.summary == "Found OAuth2 patterns"
-        assert bundle.F2_decompose.problem_statement
+        bundle.researcher = ResearcherOutput(summary="Found OAuth2 patterns")
+        bundle.analyst = AnalystOutput(problem_statement="Add OAuth2 login")
+        assert bundle.researcher.summary == "Found OAuth2 patterns"
+        assert bundle.analyst.problem_statement
 
     def test_degraded_formulas_list(self):
         bundle = EvidenceBundle(task_marker="t", persona_id="p")
-        bundle.degraded_formulas.append("F3")
-        assert "F3" in bundle.degraded_formulas
+        bundle.degraded_formulas.append("architect")
+        assert "architect" in bundle.degraded_formulas
 
     def test_situation_id_optional(self):
         bundle = EvidenceBundle(task_marker="t", persona_id="p", situation_id="incident-response")
@@ -112,15 +112,15 @@ class TestSupervisorState:
 
     def test_dispatched_list(self):
         s = SupervisorState(session_id="ses-1", task_marker="t", persona_id="tech-lead")
-        s.dispatched.append("F2")
-        assert "F2" in s.dispatched
+        s.dispatched.append("analyst")
+        assert "analyst" in s.dispatched
 
 
 class TestNextAction:
     def test_dispatch_action(self):
-        action = NextAction(action="dispatch", formula="F2", agent_file="core/thinking_os/agents/F2_decompose.md")
+        action = NextAction(action="dispatch", formula="analyst", agent_file="core/thinking_os/agents/analyst.md")
         assert action.action == "dispatch"
-        assert action.formula == "F2"
+        assert action.formula == "analyst"
 
     def test_done_action(self):
         action = NextAction(action="done", reason="All formulas complete")
@@ -128,14 +128,14 @@ class TestNextAction:
         assert action.formulas == []
 
     def test_backtrack_action(self):
-        action = NextAction(action="backtrack", formula="F2", reason="Missing actor")
+        action = NextAction(action="backtrack", formula="analyst", reason="Missing actor")
         assert action.action == "backtrack"
 
 
 class TestBacktrackAndDiscovery:
     def test_backtrack_event(self):
-        evt = BacktrackEvent(from_formula="F3", to_formula="F2", reason="missing actor")
-        assert evt.from_formula == "F3"
+        evt = BacktrackEvent(from_formula="architect", to_formula="analyst", reason="missing actor")
+        assert evt.from_formula == "architect"
 
     def test_discovery_decision(self):
         d = Discovery(
@@ -149,21 +149,21 @@ class TestBacktrackAndDiscovery:
 
 class TestOutputModelsPassOrFail:
     def test_f6_passed_default_true(self):
-        out = F6Output()
+        out = ReviewerOutput()
         assert out.passed is True
 
     def test_f8_passed_default_true(self):
-        out = F8Output()
+        out = SecurityAuditorOutput()
         assert out.passed is True
 
     def test_f7_root_cause_required(self):
-        out = F7Output(root_cause="nil pointer dereference in auth.go:42")
+        out = DebuggerOutput(root_cause="nil pointer dereference in auth.go:42")
         assert out.root_cause
 
     def test_f3_open_questions_optional(self):
-        out = F3Output(selected_style="hexagonal")
+        out = ArchitectOutput(selected_style="hexagonal")
         assert out.open_questions == []
 
     def test_f5_output_files_lists(self):
-        out = F5Output(files_created=["src/new.py"], files_modified=["src/old.py"])
+        out = ImplementerOutput(files_created=["src/new.py"], files_modified=["src/old.py"])
         assert "src/new.py" in out.files_created

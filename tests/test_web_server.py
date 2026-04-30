@@ -21,7 +21,7 @@ if str(_REPO_ROOT / "core") not in sys.path:
 
 from fastapi.testclient import TestClient
 
-from core.web.server import create_app
+from web.server import create_app
 
 
 @pytest.fixture(scope="module")
@@ -239,7 +239,7 @@ class TestSSEStream:
 
     def test_sse_endpoint_content_type(self, client):
         """GET /api/stream/events returns text/event-stream content type."""
-        import core.web.routes.stream as _stream_mod
+        import web.routes.stream as _stream_mod
 
         async def _finite_gen():
             yield "event: connected\ndata: {\"message\": \"test\"}\n\n"
@@ -257,7 +257,7 @@ class TestSSEStream:
 
     def test_sse_endpoint_emits_connected_event(self, client):
         """GET /api/stream/events emits a 'connected' event as the first event."""
-        import core.web.routes.stream as _stream_mod
+        import web.routes.stream as _stream_mod
 
         async def _finite_gen():
             yield "event: connected\ndata: {\"message\": \"SSE stream connected\"}\n\n"
@@ -294,7 +294,7 @@ class TestRateLimit:
         """Firing N+1 rapid requests to a rate-limited endpoint should eventually 429."""
         # We need to exhaust the bucket (capacity=60 by default).
         # To avoid needing 60+ requests, patch the rate_limiter to a very low cap.
-        from core.web._deps import _get_enterprise
+        from web._deps import _get_enterprise
 
         # Directly override the enterprise rate limiter for this test.
         from graph_os.enterprise import RateLimiter  # type: ignore
@@ -308,7 +308,7 @@ class TestRateLimit:
             return tiny_limiter, metrics()
 
         # Monkey-patch the module-level function.
-        import core.web._deps as _deps_mod
+        import web._deps as _deps_mod
         _deps_mod._get_enterprise = _patched_enterprise
 
         try:
@@ -347,7 +347,7 @@ class TestEnvelopeShape:
             },
         })
 
-        import core.web.routes.graph as _graph_route
+        import web.routes.graph as _graph_route
         original_tools = _graph_route._tools
 
         def _mock_tools():

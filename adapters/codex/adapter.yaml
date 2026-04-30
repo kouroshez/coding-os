@@ -111,6 +111,8 @@ hook_dispatchers:
     script: codex-posttool-dispatch.sh
     delegates:
       - remind-learn-validate.sh
+      - auto-reindex-shell-ops.sh
+      - auto-prune-deleted-files.sh
       - agent-presence.sh
   - event: UserPromptSubmit
     matcher: ""

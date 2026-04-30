@@ -1,0 +1,25 @@
+# Scaffold boundary for the fastapi stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: fastapi
+
+roots:
+  - backend/
+
+file_patterns:
+  - "backend/**/*.py"
+
+imports_from:
+  - shared/
+  - shared/types/
+  - shared/contracts/
+
+forbids_writing_in:
+  - frontend/
+  - mobile/
+  - ai-service/
+
+notes:
+  - "Routers thin; services own logic; repositories own DB access."
+  - "Alembic revisions append-only; never edit a merged revision."

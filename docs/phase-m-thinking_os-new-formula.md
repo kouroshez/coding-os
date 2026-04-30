@@ -108,9 +108,9 @@ Canonical sources live in `core/thinking_os/formulas/registry.yaml` plus prompt 
 
 ```markdown
 ---
-id: F2
+id: analyst
 name: "Problem Decomposition & Analysis"
-formula_ref: F2
+formula_ref: analyst
 attach_phases: [MAP, ORIENT, PLAN]
 intensity_min: light                   # included in Light intensity
 backtrack_targets: [F1]                # may signal "need more research"
@@ -125,8 +125,8 @@ tools_budget:                          # MCP tools the agent may call
   - Grep
   - Glob
   - Read
-input_schema: cognition.F2Input        # references Pydantic class
-output_schema: cognition.F2Output
+input_schema: cognition.AnalystInput        # references Pydantic class
+output_schema: cognition.AnalystOutput
 max_tokens_in: 8000                    # input cap for token-budget rollup
 max_tokens_out: 4000
 timeout_s: 90
@@ -161,18 +161,18 @@ criteria_required:                     # 7-criteria gate per step
 ## Your role
 You are the F2 cognitive agent. Your job is to decompose a problem from
 zero to leaf-tasks where each is implementable in 1–2 days. You produce a
-structured `F2Output` (problem statement, actor map, goal tree, scenarios,
+structured `AnalystOutput` (problem statement, actor map, goal tree, scenarios,
 decision table, conceptual data model, state machines, event map,
 permission matrix, dependency map, unknowns).
 
 ## Inputs you receive
-{{ F2Input rendered }}
+{{ AnalystInput rendered }}
 
 ## Procedure
 [12 steps verbatim from formulas-en.md §Formula 2]
 
 ## Output contract
-Return JSON matching F2Output. No prose outside the JSON.
+Return JSON matching AnalystOutput. No prose outside the JSON.
 ```
 
 The formula source is projected into runtime surfaces:
@@ -271,14 +271,14 @@ class EvidenceBundle(BaseModel):
     task_marker: str
     persona_id: str
     intensity: Literal["light", "standard", "full"]
-    F1_research: F1Output | None = None
-    F2_decompose: F2Output | None = None
-    F3_architect: F3Output | None = None
+    researcher: ResearcherOutput | None = None
+    analyst: AnalystOutput | None = None
+    architect: ArchitectOutput | None = None
     # ... through F11
     backtracks: list[BacktrackEvent] = []
     discoveries: list[Discovery] = []
 
-class F2Output(BaseModel):
+class AnalystOutput(BaseModel):
     problem_statement: str
     scope_in: list[str]
     scope_out: list[str]
@@ -550,8 +550,8 @@ The existing skills remain **domain implementation guides** referenced during F5
 - Verify baseline with `bash core/scripts/docs-staleness-check.sh`, `cos doctor`, and a quick board_os smoke before any cognition code lands.
 
 **M.1 — Registries + schemas + prompt sources (foundation)**
-- New: `core/thinking_os/cognition_schemas.py` — Pydantic models (EvidenceBundle, F1Output..F11Output, plus inputs)
-- New: `core/thinking_os/formulas/registry.yaml` + `core/thinking_os/formulas/F1_research.md` ... `F11_refactor.md` — canonical prompt sources + metadata
+- New: `core/thinking_os/cognition_schemas.py` — Pydantic models (EvidenceBundle, ResearcherOutput..RefactorerOutput, plus inputs)
+- New: `core/thinking_os/formulas/registry.yaml` + `core/thinking_os/formulas/researcher.md` ... `refactorer.md` — canonical prompt sources + metadata
 - New: `core/thinking_os/personas/registry.yaml` — generic core personas only
 - New: `core/thinking_os/situations/registry.yaml` — situational overrides
 - New: `core/thinking_os/cognition.py` — pure-Python loader, validators, supervisor state machine (no DB, no MCP)
@@ -655,7 +655,7 @@ Total budget: ≤30s wall, ≤200 MB peak RSS, no network, hard timeouts on ever
 | New | `core/thinking_os/cognition.py` | Loader, supervisor state machine, persona resolver, situation router |
 | New | `core/thinking_os/cognition_schemas.py` | Pydantic IO contracts (EvidenceBundle, F1..F11 in/out, AmbiguityCriterion enum) |
 | New | `core/thinking_os/formulas/registry.yaml` | Canonical formula metadata SSOT |
-| New | `core/thinking_os/formulas/F1_research.md` ... `F11_refactor.md` | Formula prompt sources |
+| New | `core/thinking_os/formulas/researcher.md` ... `refactorer.md` | Formula prompt sources |
 | New | `core/thinking_os/personas/registry.yaml` | Generic core persona SSOT |
 | New | `core/thinking_os/situations/registry.yaml` | 6 situational dispatch chains (incident / onboarding / scope-change / external-integration / design-review / takeover) |
 | New | `core/thinking_os/tools/cognition.py` | 10 MCP tools |

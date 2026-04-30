@@ -32,3 +32,11 @@ phase to build your Read List.
 - **Content / SEO** (M) → `docs/playbooks/content-seo.md`, `docs/engineering/copywriting-standard.md`
 - **i18n** (M) → `docs/engineering/i18n-policy.md`
 - **Accessibility** (M) → `docs/engineering/accessibility-checklist.md`
+
+## react-native
+
+- **RN screen** (M) → `docs/playbooks/mobile-app.md`, `docs/engineering/mobile-rules.md`
+- **RN component** (M) → `docs/engineering/mobile-rules.md`
+- **Offline / sync** (M) → `docs/engineering/offline-first.md`, `docs/playbooks/mobile-app.md`
+- **Native bridge** (M) → `docs/playbooks/mobile-app.md`
+- **Accessibility** (M) → `docs/engineering/accessibility-checklist.md`

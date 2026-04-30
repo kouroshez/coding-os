@@ -41,8 +41,12 @@ DEFAULT_MAX_CHARS = 2000
 DEFAULT_OVERLAP_CHARS = 200
 
 # Regex for the standard front-matter header used by docs/governance/docs-system.md.
-# Stripped from chunk content (it's metadata, not user-facing knowledge).
-_FRONT_MATTER_RE = re.compile(r"^<!--\s*domain:[^>]*-->\s*\n?", re.MULTILINE)
+# Captured (NOT just stripped) so Stage-1 RAG pre-filtering can route on
+# domain / layer / ssot / updated. The pipe-separated body is parsed by
+# _parse_front_matter into the document_chunks metadata columns added in
+# migration v22.
+_FRONT_MATTER_RE = re.compile(r"^<!--\s*(domain:[^>]*?)\s*-->\s*\n?", re.MULTILINE)
+_FRONT_MATTER_KV_RE = re.compile(r"([a-z_]+)\s*:\s*([^|]+?)(?=\s*\||$)")
 
 # H1, H2, H3 detection
 _H1_RE = re.compile(r"^# (.+)$", re.MULTILINE)
@@ -53,6 +57,31 @@ _H3_RE = re.compile(r"^### (.+)$", re.MULTILINE)
 # ---------------------------------------------------------------------------
 # Markdown chunking
 # ---------------------------------------------------------------------------
+
+def _parse_front_matter(content: str) -> dict[str, str]:
+    """Extract `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` keys.
+
+    PURPOSE: Surface frontmatter metadata to Stage-1 RAG pre-filter. The
+             return dict is written to document_chunks columns so
+             cos_doc_search can `WHERE domain = ? AND layer = ?` before
+             vector retrieval (per docs-system.md frontmatter contract).
+    INPUT:   raw markdown.
+    OUTPUT:  dict with optional keys: domain, layer, ssot, updated_iso.
+             Missing/malformed → empty dict (callers default to NULL).
+    """
+    match = _FRONT_MATTER_RE.search(content)
+    if not match:
+        return {}
+    body = match.group(1)
+    pairs: dict[str, str] = {}
+    for k, v in _FRONT_MATTER_KV_RE.findall(body):
+        pairs[k.strip()] = v.strip()
+    # Normalize: docs-system.md stores `updated:YYYY-MM-DD` — keep as-is
+    # but expose under updated_iso for column clarity.
+    if "updated" in pairs and "updated_iso" not in pairs:
+        pairs["updated_iso"] = pairs.pop("updated")
+    return pairs
+
 
 def _strip_front_matter(content: str) -> str:
     """Remove the leading `<!-- domain:... -->` header before chunking."""
@@ -470,6 +499,11 @@ def index_docs(
         overlap = int(source_config.get("chunk_overlap", DEFAULT_OVERLAP_CHARS))
         chunks = chunk_markdown(content, max_chars=max_chars, overlap_chars=overlap)
 
+        # Stage-1 RAG metadata — frontmatter parsed BEFORE the chunker
+        # strips it. Written to columns added in migration v22 so
+        # cos_doc_search can pre-filter by domain/layer/updated.
+        fm = _parse_front_matter(content)
+
         # Delete previous chunks (and their embeddings)
         _delete_chunks_for_path(conn, rel_path)
 
@@ -483,8 +517,9 @@ def index_docs(
         for chunk in chunks:
             cursor = conn.execute(
                 "INSERT INTO document_chunks "
-                "(source_path, source_type, chunk_index, heading_path, content, content_hash, priority, mtime) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "(source_path, source_type, chunk_index, heading_path, content, content_hash, priority, mtime, "
+                " domain, layer, ssot, updated_iso, is_active) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
                 (
                     rel_path,
                     source_type,
@@ -494,6 +529,10 @@ def index_docs(
                     chunk["content_hash"],
                     priority,
                     file_mtime,
+                    fm.get("domain"),
+                    fm.get("layer"),
+                    fm.get("ssot"),
+                    fm.get("updated_iso"),
                 ),
             )
             stats["new_chunks"] += 1
@@ -656,6 +695,7 @@ def index_single_file(
     max_chars = int(source_config.get("chunk_size", DEFAULT_MAX_CHARS))
     overlap = int(source_config.get("chunk_overlap", DEFAULT_OVERLAP_CHARS))
     chunks = chunk_markdown(content, max_chars=max_chars, overlap_chars=overlap)
+    fm = _parse_front_matter(content)
 
     existing_ids = [
         r[0]
@@ -679,8 +719,9 @@ def index_single_file(
         cursor = conn.execute(
             "INSERT INTO document_chunks "
             "(source_path, source_type, chunk_index, heading_path, content, "
-            " content_hash, priority, mtime) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            " content_hash, priority, mtime, "
+            " domain, layer, ssot, updated_iso, is_active) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
             (
                 rel_path,
                 source_type,
@@ -690,6 +731,10 @@ def index_single_file(
                 chunk["content_hash"],
                 priority,
                 current_mtime,
+                fm.get("domain"),
+                fm.get("layer"),
+                fm.get("ssot"),
+                fm.get("updated_iso"),
             ),
         )
         new_chunk_count += 1

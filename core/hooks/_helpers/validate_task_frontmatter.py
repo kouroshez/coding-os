@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 try:
-    from core.board_os.parser import is_lean_format, extract_frontmatter
-    from core.board_os.config import KIND_ENUM, STATUS_ENUM, PRIORITY_ENUM, APPETITE_RE, load_config
+    from board_os.parser import is_lean_format, extract_frontmatter
+    from board_os.config import KIND_ENUM, STATUS_ENUM, PRIORITY_ENUM, APPETITE_RE, load_config
 except ImportError as exc:
     # Fail-soft: warn but don't block.
     print(f"WARN validate-task-frontmatter: board_os import failed: {exc}",

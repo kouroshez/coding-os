@@ -39,8 +39,8 @@ spec.loader.exec_module(mod)
 SCENARIOS = [
     {
         "name": "F2-decompose-small",
-        "formula": "F2",
-        "agent_file": str(ROOT / "core/thinking_os/agents/F2_decompose.md"),
+        "formula": "analyst",
+        "agent_file": str(ROOT / "core/thinking_os/agents/analyst.md"),
         "prompt": (
             "Decompose this task: 'Add a health-check endpoint /healthz to "
             "a FastAPI service that returns {status: ok, version: X}.' "
@@ -51,8 +51,8 @@ SCENARIOS = [
     },
     {
         "name": "F7-debug-syntax",
-        "formula": "F7",
-        "agent_file": str(ROOT / "core/thinking_os/agents/F7_debug.md"),
+        "formula": "debugger",
+        "agent_file": str(ROOT / "core/thinking_os/agents/debugger.md"),
         "prompt": (
             "Debug this Python error: "
             "`TypeError: '<' not supported between instances of str and int` "
@@ -65,8 +65,8 @@ SCENARIOS = [
     },
     {
         "name": "F5-implement-trivial",
-        "formula": "F5",
-        "agent_file": str(ROOT / "core/thinking_os/agents/F5_implement.md"),
+        "formula": "implementer",
+        "agent_file": str(ROOT / "core/thinking_os/agents/implementer.md"),
         "prompt": (
             "Implement plan: add a Python function `slugify(s: str) -> str` "
             "that lowercases, strips, and replaces spaces with '-'. "

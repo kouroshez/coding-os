@@ -1,6 +1,6 @@
 """End-to-end persona coverage for the task system (Phase L.10).
 
-Verifies that EVERY formula-role persona can:
+Verifies that EVERY role persona can:
   1. create a task of the matching kind via cos_task_create
   2. see kind-appropriate next_steps in the response
   3. see kind-appropriate placeholders in the body
@@ -8,20 +8,20 @@ Verifies that EVERY formula-role persona can:
   5. transition through the full lifecycle: icebox → in_progress →
      testing → complete, with the gate firing at the right places.
 
-Persona ↔ kind mapping (from AGENTS.md + core/thinking_os/roles/):
-  F1  Researcher → spike
-  F2  Designer   → feature   (architecture work uses feature kind)
-  F3  Architect  → feature   (or refactor for component re-shape)
-  F4  Document   → docs
-  F5  Implementer→ feature   (or bug for fixes)
-  F6  Reviewer   → (no specific kind — operates on others' tasks)
-  F7  Tester     → test
-  F8  Releaser   → (no specific kind — closes tasks)
-  F9  Operator   → chore
-  F10 Security   → security
-  F11 Refactorer → refactor
+Role ↔ kind mapping (from AGENTS.md + core/thinking_os/roles/):
+  researcher       → spike
+  analyst          → feature   (decomposition work uses feature kind)
+  architect        → feature   (or refactor for component re-shape)
+  documenter       → docs
+  implementer      → feature   (or bug for fixes)
+  reviewer         → (no specific kind — operates on others' tasks)
+  debugger         → bug
+  security_auditor → security
+  deployer         → chore
+  observer         → chore     (monitoring/runbooks)
+  refactorer       → refactor
 
-Plus: bug (universal — every implementer-style persona files them).
+Plus: bug (universal — every implementer-style role files them).
 """
 
 from __future__ import annotations
@@ -38,15 +38,15 @@ from core.thinking_os import db
 
 
 PERSONAS = [
-    ("F1-Researcher",  "spike",     "Investigate whether kuzu can replace sqlite for graph layer."),
-    ("F2-Designer",    "feature",   "Add OAuth login flow that issues 24-hour JWT tokens with refresh."),
-    ("F3-Architect",   "refactor",  "Extract retry logic into shared decorator with exponential backoff."),
-    ("F4-Document",    "docs",      "Document the Phase L.10 override-audit policy in docs/governance/."),
-    ("F5-Implementer", "bug",       "Stop double-charging users on retry of failed payment webhook."),
-    ("F7-Tester",      "test",      "Cover the OAuth refresh-token edge case at integration level."),
-    ("F9-Operator",    "chore",     "Bump dependency cryptography to v45 for security advisory."),
-    ("F10-Security",   "security",  "Rotate all signing keys and tighten cookie SameSite policy."),
-    ("F11-Refactorer", "refactor",  "Collapse three duplicate auth middleware shims into one composable unit."),
+    ("researcher",       "spike",     "Investigate whether kuzu can replace sqlite for graph layer."),
+    ("analyst",          "feature",   "Add OAuth login flow that issues 24-hour JWT tokens with refresh."),
+    ("architect",        "refactor",  "Extract retry logic into shared decorator with exponential backoff."),
+    ("documenter",       "docs",      "Document the Phase L.10 override-audit policy in docs/governance/."),
+    ("implementer",      "bug",       "Stop double-charging users on retry of failed payment webhook."),
+    ("debugger",         "bug",       "Cover the OAuth refresh-token edge case at integration level."),
+    ("deployer",         "chore",     "Bump dependency cryptography to v45 for security advisory."),
+    ("security_auditor", "security",  "Rotate all signing keys and tighten cookie SameSite policy."),
+    ("refactorer",       "refactor",  "Collapse three duplicate auth middleware shims into one composable unit."),
 ]
 
 

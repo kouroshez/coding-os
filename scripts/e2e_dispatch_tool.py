@@ -58,7 +58,7 @@ def run_single(mcp, db_path) -> dict:
     fn = mcp.tools["cos_dispatch_formula_run"]
     t0 = time.monotonic()
     raw = fn(
-        formula_id="F7",
+        formula_id="debugger",
         session_id=SESSION_ID,
         task_marker=TASK_MARKER,
         persona_id=PERSONA_ID,
@@ -83,7 +83,7 @@ def run_parallel(mcp, db_path) -> dict:
     fn = mcp.tools["cos_dispatch_parallel_run"]
     t0 = time.monotonic()
     raw = fn(
-        formula_ids=["F5", "F7"],
+        formula_ids=["implementer", "debugger"],
         session_id=SESSION_ID,
         task_marker=TASK_MARKER + "-par",
         persona_id=PERSONA_ID,
@@ -110,9 +110,9 @@ def verify_bundle():
     bundle = _load_bundle(SESSION_ID, TASK_MARKER, PERSONA_ID)
     filled = []
     for attr in (
-        "F1_research", "F2_decompose", "F3_architect", "F4_document",
-        "F5_implement", "F6_test_review", "F7_debug", "F8_security",
-        "F9_deploy", "F10_monitor", "F11_refactor",
+        "researcher", "analyst", "architect", "documenter",
+        "implementer", "reviewer", "debugger", "security_auditor",
+        "deployer", "observer", "refactorer",
     ):
         if getattr(bundle, attr, None) is not None:
             filled.append(attr)
@@ -156,7 +156,7 @@ def main():
         parallel["envelope"].get("ok") is True
         and parallel["envelope"]["data"].get("ok_count", 0) >= 1
     )
-    bundle_ok = "F7_debug" in filled and "F5_implement" in filled
+    bundle_ok = "debugger" in filled and "implementer" in filled
     db_ok = len(rows) >= 2
     print(f"  single dispatch:    {'✓' if single_ok else '✗'}")
     print(f"  parallel dispatch:  {'✓' if parallel_ok else '✗'}")

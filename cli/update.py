@@ -199,19 +199,20 @@ def _build_target_assets(
                     rel_link=f"{commands_dir_rel}/{cmd.name}",
                     source_path=cmd,
                 ))
-        # Phase M formula-agent slash commands installed by install.sh §7b.
-        # F1_research.md → formula-f1.md (same naming as install.sh).
-        import re as _re
+        # Phase N role-agent slash commands installed by install-adapter.sh §8.
+        # Each semantic agent (researcher.md, analyst.md, …) is exposed as
+        # /role-<name>. README.md is excluded (catalog, not a role).
         agents_src = CORE_DIR / "thinking_os" / "agents"
         if agents_src.exists():
-            for agent in sorted(agents_src.glob("F*.md")):
-                m = _re.match(r"F(\d+)_", agent.name)
-                if m:
-                    result["commands"].append(AssetRef(
-                        name=f"formula-f{m.group(1)}.md",
-                        rel_link=f"{commands_dir_rel}/formula-f{m.group(1)}.md",
-                        source_path=agent,
-                    ))
+            for agent in sorted(agents_src.glob("*.md")):
+                if agent.name == "README.md":
+                    continue
+                role = agent.stem
+                result["commands"].append(AssetRef(
+                    name=f"role-{role}.md",
+                    rel_link=f"{commands_dir_rel}/role-{role}.md",
+                    source_path=agent,
+                ))
 
     return result
 
@@ -327,7 +328,7 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
 
 
 def _run_db_migrations(project: Path) -> None:
-    db = project / STATE_DIR / "thinking_os.db"
+    db = project / STATE_DIR / "coding-os.db"
     if not db.exists():
         return
     import subprocess

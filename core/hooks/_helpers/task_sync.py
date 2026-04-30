@@ -16,7 +16,7 @@ def main(argv: list[str]) -> int:
     if len(argv) != 2:
         return 0
     try:
-        from core.board_os.sync import sync_one
+        from board_os.sync import sync_one
     except ImportError:
         return 0
 

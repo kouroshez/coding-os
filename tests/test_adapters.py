@@ -376,9 +376,18 @@ class TestCodexAdapter:
         linked = {p.name for p in codex_cmds.glob("*.md")}
         missing = source_cmds - linked
         assert not missing, f"missing command symlinks: {missing}"
-        # Phase M formula commands are codex-only extras — verify they're present
-        for n in range(1, 12):
-            assert f"formula-f{n}.md" in linked, f"formula-f{n}.md missing from codex commands"
+        # Role-prompt slash commands (semantic naming, post-rename) — verify
+        # all 11 are present. These mirror core/thinking_os/agents/<role>.md
+        # and are exposed as /role-<slug> by Codex.
+        expected_roles = {
+            "researcher", "analyst", "architect", "documenter", "implementer",
+            "reviewer", "debugger", "security_auditor", "deployer", "observer",
+            "refactorer",
+        }
+        for role in expected_roles:
+            assert f"role-{role}.md" in linked, (
+                f"role-{role}.md missing from codex commands"
+            )
 
     def test_idempotent_install(self, project: Path) -> None:
         run_adapter_install("codex", project)

@@ -45,7 +45,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "greenfield-backend-api",
-        "must_include": ["F2", "F5", "F6"],
+        "must_include": ["analyst", "implementer", "reviewer"],
     },
     # Schema migration with breaking change
     {
@@ -56,7 +56,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "schema-migration",
-        "must_include": ["F2", "F3", "F8", "F5", "F6"],
+        "must_include": ["analyst", "architect", "security_auditor", "implementer", "reviewer"],
     },
     # External integration (Stripe)
     {
@@ -67,7 +67,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "external-integration",
-        "must_include": ["F1", "F2", "F3", "F5", "F6", "F8"],
+        "must_include": ["researcher", "analyst", "architect", "implementer", "reviewer", "security_auditor"],
     },
     # Frontend feature
     {
@@ -78,7 +78,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "greenfield-frontend-feature",
-        "must_include": ["F2", "F5", "F6"],
+        "must_include": ["analyst", "implementer", "reviewer"],
     },
     # Debug standard (non-incident)
     {
@@ -89,7 +89,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "debug-standard",
-        "must_include": ["F7", "F6"],
+        "must_include": ["debugger", "reviewer"],
     },
     # Docs-only
     {
@@ -100,7 +100,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "docs-only-update",
-        "must_include": ["F4"],
+        "must_include": ["documenter"],
     },
     # Security audit full
     {
@@ -111,7 +111,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "security-audit-full",
-        "must_include": ["F8"],
+        "must_include": ["security_auditor"],
     },
     # Research spike
     {
@@ -122,7 +122,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "research-spike",
-        "must_include": ["F1"],
+        "must_include": ["researcher"],
     },
     # Refactor sprint
     {
@@ -133,7 +133,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "refactor-sprint",
-        "must_include": ["F11", "F3", "F5", "F6"],
+        "must_include": ["refactorer", "architect", "implementer", "reviewer"],
     },
     # Deploy release
     {
@@ -144,7 +144,7 @@ def _reset():
         "situation": None,
         "expected_source": "preset",
         "expected_preset_id": "deploy-release",
-        "must_include": ["F8", "F9", "F10"],
+        "must_include": ["security_auditor", "deployer", "observer"],
     },
     # Incident override (situation wins even if preset would match)
     {
@@ -155,7 +155,7 @@ def _reset():
         "situation": "incident-response",
         "expected_source": "situation",
         "expected_preset_id": None,
-        "must_include": ["F7", "F6"],
+        "must_include": ["debugger", "reviewer"],
     },
     # Legacy takeover (via situation)
     {
@@ -166,7 +166,7 @@ def _reset():
         "situation": "existing-project-takeover",
         "expected_source": "situation",
         "expected_preset_id": None,
-        "must_include": ["F2"],
+        "must_include": ["analyst"],
     },
 ])
 def test_e2e_scenario(scenario):

@@ -1,1 +1,1 @@
-../../../core/thinking_os/agents/F2_decompose.md
+../../../core/thinking_os/agents/analyst.md

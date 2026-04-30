@@ -16,7 +16,7 @@ from typing import Any
 
 import yaml
 
-from core.board_os.config import (
+from board_os.config import (
     APPETITE_RE, KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM,
 )
 

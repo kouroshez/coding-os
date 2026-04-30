@@ -48,7 +48,7 @@ def _tasks_dir() -> Path:
     OUTPUT:  Path to docs/tasks/.
     DEPENDENCIES: core.web._project_context.current_project_root.
     """
-    from core.web._project_context import current_project_root
+    from web._project_context import current_project_root
 
     return current_project_root() / "docs" / "tasks"
 
@@ -72,7 +72,7 @@ def _poll_interval_secs() -> float:
 
 def _db_conn() -> sqlite3.Connection:
     """Open project SQLite DB used by board/task routes."""
-    from core.web._project_context import current_db_path
+    from web._project_context import current_db_path
 
     return sqlite3.connect(str(current_db_path()), check_same_thread=False)
 

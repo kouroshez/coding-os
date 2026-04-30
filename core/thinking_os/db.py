@@ -19,11 +19,42 @@ from typing import Callable, Generator, Union
 logger = logging.getLogger("coding_os.db")
 
 # Default DB path — configurable via COS_DB_PATH env var
-# Falls back to .coding-os/thinking_os.db in current working directory
+# Falls back to .coding-os/coding-os.db in current working directory.
+# Canonical filename, single source of truth for every consumer (MCP server,
+# Hub web, every CLI subcommand, every hook).
+DB_FILENAME = "coding-os.db"
+LEGACY_DB_FILENAME = "thinking_os.db"  # rename target for migrate_legacy_db_filename()
 DEFAULT_DB_PATH = Path(
     os.environ.get("COS_DB_PATH", "")
-    or str(Path.cwd() / ".coding-os" / "thinking_os.db")
+    or str(Path.cwd() / ".coding-os" / DB_FILENAME)
 )
+
+
+def migrate_legacy_db_filename(target: Path) -> bool:
+    """Rename `<dir>/thinking_os.db` → `<dir>/coding-os.db` once, in place.
+
+    PURPOSE:      Backward-compat for projects initialised before the
+                  2026-04-30 rename. Runs at the top of init_db() so the
+                  first cos invocation in a project after the upgrade
+                  silently relocates the file (plus its -shm / -wal
+                  sidecars). No data loss; idempotent.
+    INPUT:        target — desired path (e.g. .coding-os/coding-os.db).
+    OUTPUT:       True when a rename happened; False when nothing to do.
+    NOTES:        Only fires when target.exists() is False AND the legacy
+                  sibling exists — never overwrites an already-renamed DB.
+    """
+    if target.exists():
+        return False
+    legacy = target.with_name(LEGACY_DB_FILENAME)
+    if not legacy.exists():
+        return False
+    legacy.rename(target)
+    for ext in ("-shm", "-wal"):
+        legacy_aux = legacy.with_name(legacy.name + ext)
+        if legacy_aux.exists():
+            legacy_aux.rename(target.with_name(target.name + ext))
+    logger.info("Migrated legacy DB filename: %s -> %s", legacy.name, target.name)
+    return True
 
 # ---------------------------------------------------------------------------
 # FTS5 detection (must be defined before migrations that use it)
@@ -1220,6 +1251,149 @@ def _migrate_v20_override_audit(conn: sqlite3.Connection) -> None:
     logger.info("Migration v20 applied: override audit columns on task_status_history")
 
 
+def _migrate_v21_doc_audit_trail(conn: sqlite3.Connection) -> None:
+    """Migration v21 — append-only doc edit + decision-history log.
+
+    PURPOSE: Capture every documentation change so a human or agent can
+             audit *what* was decided, *when* it changed, and *why*. Closes
+             the audit gap noted in the Phase O retrieval review: outcomes
+             have outcome_history; tasks have task_status_history; docs
+             had nothing until now.
+    INPUT:   sqlite connection.
+    OUTPUT:  doc_audit_trail table + append-only triggers blocking
+             UPDATE / DELETE on existing rows. Index on (doc_path, created_at)
+             for fast per-doc timelines.
+    NOTES:   Triggers mirror the pattern used for memory_audit. Reverts are
+             modeled as a new row with action='reverted' + supersedes_id
+             pointing at the decision being undone — never as a row
+             rewrite. The hub UI surfaces the timeline via
+             cos_audit_log MCP tool.
+    """
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS doc_audit_trail (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            doc_path          TEXT NOT NULL,
+            session_id        TEXT,
+            agent             TEXT,
+            action            TEXT NOT NULL CHECK (action IN (
+                'created','updated','deleted','reverted','moved','renamed'
+            )),
+            old_frontmatter   TEXT,
+            new_frontmatter   TEXT,
+            old_content_hash  TEXT,
+            new_content_hash  TEXT,
+            reason            TEXT,
+            supersedes_id     INTEGER REFERENCES doc_audit_trail(id),
+            created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_doc_audit_path_created
+            ON doc_audit_trail(doc_path, created_at DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_doc_audit_session
+            ON doc_audit_trail(session_id);
+
+        CREATE INDEX IF NOT EXISTS idx_doc_audit_supersedes
+            ON doc_audit_trail(supersedes_id)
+            WHERE supersedes_id IS NOT NULL;
+
+        -- Append-only: forbid UPDATE / DELETE on this table. The audit
+        -- log is meaningful only if it cannot be rewritten.
+        CREATE TRIGGER IF NOT EXISTS doc_audit_trail_no_update
+        BEFORE UPDATE ON doc_audit_trail
+        BEGIN
+            SELECT RAISE(FAIL, 'doc_audit_trail is append-only');
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS doc_audit_trail_no_delete
+        BEFORE DELETE ON doc_audit_trail
+        BEGIN
+            SELECT RAISE(FAIL, 'doc_audit_trail is append-only');
+        END;
+        """
+    )
+    conn.commit()
+    logger.info("Migration v21 applied: doc_audit_trail (append-only)")
+
+
+def has_doc_audit_trail_table(conn: sqlite3.Connection) -> bool:
+    """Check whether doc_audit_trail exists (migration v21)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name='doc_audit_trail'"
+    ).fetchone()
+    return row is not None
+
+
+def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
+    """Migration v22 — frontmatter metadata columns on document_chunks.
+
+    PURPOSE: Enable Stage-1 metadata pre-filtering on cos_doc_search.
+             Doc indexer was previously stripping the
+             `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` header
+             before chunking, which discarded the very metadata RAG needs
+             to enforce reality (correct era, correct domain, not
+             superseded). Columns added:
+               - domain      (BACKEND|FRONTEND|OPS|DOCS|...)
+               - layer       (adr|playbook|spec|policy|reference|...)
+               - ssot        (true|ref|false)
+               - updated_iso (YYYY-MM-DD from frontmatter)
+               - is_active   (1=live, 0=superseded — flipped via
+                              cos_audit_log_record action='deleted'/'reverted')
+    INPUT:   sqlite connection.
+    OUTPUT:  Five columns + four indexes added; existing rows backfill to
+             NULL/1 (default). doc_indexer.reindex() repopulates them.
+    NOTES:   Idempotent — guards each ALTER on _column_exists_table.
+             Indexes are partial where possible to keep storage minimal
+             (most rows lack frontmatter on first migration; partial
+             indexes skip those nulls).
+    """
+    if not _table_exists(conn, "document_chunks"):
+        logger.info("Migration v22 skipped: document_chunks not present yet")
+        return
+
+    cols = [
+        ("domain",      "TEXT"),
+        ("layer",       "TEXT"),
+        ("ssot",        "TEXT"),
+        ("updated_iso", "TEXT"),
+        ("is_active",   "INTEGER DEFAULT 1"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "document_chunks", name):
+            conn.execute(f"ALTER TABLE document_chunks ADD COLUMN {name} {decl}")
+
+    # Backfill is_active for rows that pre-date this migration.
+    conn.execute(
+        "UPDATE document_chunks SET is_active = 1 WHERE is_active IS NULL"
+    )
+
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_chunks_domain
+            ON document_chunks(domain) WHERE domain IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_chunks_layer
+            ON document_chunks(layer) WHERE layer IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_chunks_active
+            ON document_chunks(is_active);
+        CREATE INDEX IF NOT EXISTS idx_chunks_updated
+            ON document_chunks(updated_iso) WHERE updated_iso IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v22 applied: document_chunks gained domain/layer/ssot/updated_iso/is_active"
+    )
+
+
+def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone()
+    return row is not None
+
+
 def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
     """Check whether the file_index_state table exists (migration v17)."""
     row = conn.execute(
@@ -1485,6 +1659,12 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # Phase L.10: override audit — task_status_history.override_reason/actor
     (20, "Phase L.10: override audit columns on task_status_history",
      _migrate_v20_override_audit),
+    # Phase O: doc_audit_trail — append-only doc edit + decision history
+    (21, "Phase O: doc_audit_trail (append-only) for doc edits + decision history",
+     _migrate_v21_doc_audit_trail),
+    # Phase O: document_chunks frontmatter metadata for Stage-1 RAG pre-filter
+    (22, "Phase O: document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
+     _migrate_v22_doc_chunks_metadata),
 ]
 
 
@@ -1742,7 +1922,15 @@ def get_db_stats(conn: sqlite3.Connection) -> dict:
 # ---------------------------------------------------------------------------
 
 def init_db(db_path: str | Path | None = None) -> sqlite3.Connection:
-    """Open the DB, run migrations, return the live connection."""
-    conn = get_connection(db_path)
+    """Open the DB, run migrations, return the live connection.
+
+    Renames a legacy `thinking_os.db` sibling to the canonical
+    `coding-os.db` once, before opening — silent no-op when the
+    rename has already happened or no legacy file exists.
+    """
+    target = Path(db_path) if db_path else DEFAULT_DB_PATH
+    target.parent.mkdir(parents=True, exist_ok=True)
+    migrate_legacy_db_filename(target)
+    conn = get_connection(str(target))
     run_migrations(conn)
     return conn

@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 
 try:
-    from core.board_os.parser import extract_frontmatter, is_lean_format
-    from core.board_os.config import load_config
-    from core.board_os.workflow import check_wip
+    from board_os.parser import extract_frontmatter, is_lean_format
+    from board_os.config import load_config
+    from board_os.workflow import check_wip
 except ImportError:
     sys.exit(0)
 

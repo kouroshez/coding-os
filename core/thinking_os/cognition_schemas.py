@@ -141,12 +141,12 @@ class RefactorItem(BaseModel):
 # Formula input/output contracts (F1–F11)
 # ---------------------------------------------------------------------------
 
-class F1Input(BaseModel):
+class ResearcherInput(BaseModel):
     task_description: str
     domain: str = ""
     scope_hint: str = ""
 
-class F1Output(BaseModel):
+class ResearcherOutput(BaseModel):
     summary: str
     sources: list[dict[str, str]] = Field(default_factory=list)
     key_findings: list[str] = Field(default_factory=list)
@@ -154,12 +154,12 @@ class F1Output(BaseModel):
     recommended_next: str = ""
 
 
-class F2Input(BaseModel):
+class AnalystInput(BaseModel):
     task_description: str
-    f1_research: F1Output | None = None
+    researcher: ResearcherOutput | None = None
     intensity_steps: list[int] = Field(default_factory=lambda: list(range(1, 13)))
 
-class F2Output(BaseModel):
+class AnalystOutput(BaseModel):
     problem_statement: str
     scope_in: list[str] = Field(default_factory=list)
     scope_out: list[str] = Field(default_factory=list)
@@ -176,12 +176,12 @@ class F2Output(BaseModel):
     unknowns: list[Unknown] = Field(default_factory=list)
 
 
-class F3Input(BaseModel):
+class ArchitectInput(BaseModel):
     task_description: str
-    f1_research: F1Output | None = None
-    f2_decompose: F2Output | None = None
+    researcher: ResearcherOutput | None = None
+    analyst: AnalystOutput | None = None
 
-class F3Output(BaseModel):
+class ArchitectOutput(BaseModel):
     selected_style: str
     adrs: list[ADR] = Field(default_factory=list)
     component_diagram: str = ""
@@ -193,37 +193,37 @@ class F3Output(BaseModel):
     open_questions: list[str] = Field(default_factory=list)
 
 
-class F4Input(BaseModel):
+class DocumenterInput(BaseModel):
     task_description: str
-    f2_decompose: F2Output | None = None
-    f3_architect: F3Output | None = None
+    analyst: AnalystOutput | None = None
+    architect: ArchitectOutput | None = None
 
-class F4Output(BaseModel):
+class DocumenterOutput(BaseModel):
     docs_created: list[str] = Field(default_factory=list)
     docs_updated: list[str] = Field(default_factory=list)
     changelog_entry: str = ""
     readme_sections: list[str] = Field(default_factory=list)
 
 
-class F5Input(BaseModel):
+class ImplementerInput(BaseModel):
     task_description: str
-    f2_decompose: F2Output | None = None
-    f3_architect: F3Output | None = None
+    analyst: AnalystOutput | None = None
+    architect: ArchitectOutput | None = None
     intensity_steps: list[int] = Field(default_factory=lambda: list(range(1, 9)))
 
-class F5Output(BaseModel):
+class ImplementerOutput(BaseModel):
     files_created: list[str] = Field(default_factory=list)
     files_modified: list[str] = Field(default_factory=list)
     implementation_notes: str = ""
     open_items: list[str] = Field(default_factory=list)
 
 
-class F6Input(BaseModel):
+class ReviewerInput(BaseModel):
     task_description: str
-    f2_decompose: F2Output | None = None
-    f5_implement: F5Output | None = None
+    analyst: AnalystOutput | None = None
+    implementer: ImplementerOutput | None = None
 
-class F6Output(BaseModel):
+class ReviewerOutput(BaseModel):
     test_cases: list[TestCase] = Field(default_factory=list)
     coverage_summary: dict[str, Any] = Field(default_factory=dict)
     review_findings: list[dict[str, Any]] = Field(default_factory=list)
@@ -231,12 +231,12 @@ class F6Output(BaseModel):
     passed: bool = True
 
 
-class F7Input(BaseModel):
+class DebuggerInput(BaseModel):
     task_description: str
     error_description: str
-    f2_decompose: F2Output | None = None
+    analyst: AnalystOutput | None = None
 
-class F7Output(BaseModel):
+class DebuggerOutput(BaseModel):
     root_cause: str
     fault_chain: list[str] = Field(default_factory=list)
     fix_applied: str = ""
@@ -244,13 +244,13 @@ class F7Output(BaseModel):
     prevention_recommendation: str = ""
 
 
-class F8Input(BaseModel):
+class SecurityAuditorInput(BaseModel):
     task_description: str
-    f2_decompose: F2Output | None = None
-    f3_architect: F3Output | None = None
+    analyst: AnalystOutput | None = None
+    architect: ArchitectOutput | None = None
     scope: Literal["pre_design", "pre_release", "audit"] = "pre_release"
 
-class F8Output(BaseModel):
+class SecurityAuditorOutput(BaseModel):
     findings: list[SecurityFinding] = Field(default_factory=list)
     auth_coverage: dict[str, Any] = Field(default_factory=dict)
     dependency_risks: list[dict[str, Any]] = Field(default_factory=list)
@@ -258,13 +258,13 @@ class F8Output(BaseModel):
     passed: bool = True
 
 
-class F9Input(BaseModel):
+class DeployerInput(BaseModel):
     task_description: str
-    f5_implement: F5Output | None = None
-    f6_test_review: F6Output | None = None
-    f8_security: F8Output | None = None
+    implementer: ImplementerOutput | None = None
+    reviewer: ReviewerOutput | None = None
+    security_auditor: SecurityAuditorOutput | None = None
 
-class F9Output(BaseModel):
+class DeployerOutput(BaseModel):
     deploy_steps: list[DeployStep] = Field(default_factory=list)
     rollback_steps: list[DeployStep] = Field(default_factory=list)
     feature_flags: list[str] = Field(default_factory=list)
@@ -272,22 +272,22 @@ class F9Output(BaseModel):
     deployed: bool = False
 
 
-class F10Input(BaseModel):
+class ObserverInput(BaseModel):
     task_description: str
-    f9_deploy: F9Output | None = None
+    deployer: DeployerOutput | None = None
 
-class F10Output(BaseModel):
+class ObserverOutput(BaseModel):
     alerts_added: list[MonitorAlert] = Field(default_factory=list)
     dashboards_updated: list[str] = Field(default_factory=list)
     runbooks_created: list[str] = Field(default_factory=list)
     slo_targets: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class F11Input(BaseModel):
+class RefactorerInput(BaseModel):
     task_description: str
     scope: Literal["scout", "targeted", "full"] = "targeted"
 
-class F11Output(BaseModel):
+class RefactorerOutput(BaseModel):
     items: list[RefactorItem] = Field(default_factory=list)
     debt_score_before: float = 0.0
     debt_score_after: float = 0.0
@@ -321,17 +321,17 @@ class EvidenceBundle(BaseModel):
     persona_id: str
     intensity: Literal["light", "standard", "full"] = "standard"
     situation_id: str | None = None
-    F1_research: F1Output | None = None
-    F2_decompose: F2Output | None = None
-    F3_architect: F3Output | None = None
-    F4_document: F4Output | None = None
-    F5_implement: F5Output | None = None
-    F6_test_review: F6Output | None = None
-    F7_debug: F7Output | None = None
-    F8_security: F8Output | None = None
-    F9_deploy: F9Output | None = None
-    F10_monitor: F10Output | None = None
-    F11_refactor: F11Output | None = None
+    researcher: ResearcherOutput | None = None
+    analyst: AnalystOutput | None = None
+    architect: ArchitectOutput | None = None
+    documenter: DocumenterOutput | None = None
+    implementer: ImplementerOutput | None = None
+    reviewer: ReviewerOutput | None = None
+    debugger: DebuggerOutput | None = None
+    security_auditor: SecurityAuditorOutput | None = None
+    deployer: DeployerOutput | None = None
+    observer: ObserverOutput | None = None
+    refactorer: RefactorerOutput | None = None
     backtracks: list[BacktrackEvent] = Field(default_factory=list)
     discoveries: list[Discovery] = Field(default_factory=list)
     degraded_formulas: list[str] = Field(default_factory=list)

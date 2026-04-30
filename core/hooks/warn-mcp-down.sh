@@ -88,13 +88,15 @@ if [[ -z "$LAUNCH" ]]; then
 fi
 
 # Probe with a real initialize handshake. Any response containing
-# `"jsonrpc"` + `"result"` within 5 seconds means the server is live.
+# `"jsonrpc"` + `"result"` within 2 seconds means the server is live.
+# Capped at 2s to avoid blocking SessionStart on a sluggish MCP — banner
+# false-negatives self-resolve on the next session start.
 HANDSHAKE='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"warn-mcp-down","version":"1"}}}'
 
 RESULT=$(
   cd "$PROJECT_ROOT" || exit 0
   # perl has a portable timeout alarm on macOS where `timeout` is absent.
-  (echo "$HANDSHAKE" | perl -e 'alarm 5; exec @ARGV' sh -c "$LAUNCH" 2>/dev/null) | head -c 4096
+  (echo "$HANDSHAKE" | perl -e 'alarm 2; exec @ARGV' sh -c "$LAUNCH" 2>/dev/null) | head -c 4096
 ) || true
 
 if echo "$RESULT" | grep -q '"jsonrpc"' && echo "$RESULT" | grep -q '"result"'; then

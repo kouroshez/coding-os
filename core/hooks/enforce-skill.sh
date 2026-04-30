@@ -25,13 +25,13 @@ fi
 
 SKILL_FILE="${COS_AGENT_DIR}/.active-skill"
 
-# Phase M: skip skill gate during formula dispatches other than F5/F6.
-# The supervisor writes .active-formula before each dispatch; F5 (Implement)
-# and F6 (Test/Review) are the only formulas that actually write domain code.
+# Phase M: skip skill gate during formula dispatches other than implementer/reviewer.
+# The supervisor writes .active-formula before each dispatch; implementer
+# and reviewer are the only roles that actually write domain code.
 ACTIVE_FORMULA_FILE="${COS_AGENT_DIR}/.active-formula"
 if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
   ACTIVE_FORMULA=$(cat "$ACTIVE_FORMULA_FILE" 2>/dev/null || echo "")
-  if [[ "$ACTIVE_FORMULA" != "F5" && "$ACTIVE_FORMULA" != "F6" && -n "$ACTIVE_FORMULA" ]]; then
+  if [[ "$ACTIVE_FORMULA" != "implementer" && "$ACTIVE_FORMULA" != "reviewer" && -n "$ACTIVE_FORMULA" ]]; then
     exit 0
   fi
 fi

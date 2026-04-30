@@ -52,7 +52,7 @@ def test_situation_override_wins_over_preset():
     chain = compose_chain(sig, situation_id="incident-response")
     assert chain.source == "situation"
     assert chain.situation_id == "incident-response"
-    assert "F7" in chain.chain
+    assert "debugger" in chain.chain
 
 
 def test_unknown_situation_falls_through():
@@ -80,7 +80,7 @@ def test_preset_schema_migration():
     chain = compose_chain(sig)
     assert chain.source == "preset"
     assert chain.preset_id == "schema-migration"
-    assert chain.chain == ["F2", "F3", "F8", "F5", "F6"]
+    assert chain.chain == ["analyst", "architect", "security_auditor", "implementer", "reviewer"]
     assert chain.preset_version is not None and len(chain.preset_version) == 16
 
 
@@ -143,7 +143,15 @@ def test_canonical_order_preserved():
         complexity="COMPLEX",
     )
     chain = compose_chain(sig)
-    indices = [int(r[1:]) for r in chain.chain]
+    # Canonical order: roles must appear in the formula-1..11 sequence
+    # (researcher → … → refactorer). Map name → ordinal, assert ordinals
+    # are non-decreasing.
+    canonical_order = [
+        "researcher", "analyst", "architect", "documenter", "implementer",
+        "reviewer", "debugger", "security_auditor", "deployer", "observer",
+        "refactorer",
+    ]
+    indices = [canonical_order.index(r) for r in chain.chain]
     assert indices == sorted(indices), f"chain not in canonical order: {chain.chain}"
 
 
@@ -161,7 +169,7 @@ def test_hard_fallback_never_empty():
     assert len(chain.chain) >= 1
     # Either composer scoring succeeds or hard fallback fires
     if chain.source == "fallback":
-        assert chain.chain == ["F2", "F3", "F5", "F6"]
+        assert chain.chain == ["analyst", "architect", "implementer", "reviewer"]
 
 
 def test_hard_fallback_for_clear():
@@ -171,7 +179,7 @@ def test_hard_fallback_for_clear():
     )
     chain = compose_chain(sig, preset_min_score=15)
     if chain.source == "fallback":
-        assert chain.chain == ["F5", "F6"]
+        assert chain.chain == ["implementer", "reviewer"]
 
 
 # --- 5. Role scoring primitives --------------------------------------------
@@ -183,7 +191,7 @@ def test_scoring_debug_incident():
         complexity="CHAOTIC",
     )
     activations = score_all_roles(sig)
-    f7 = next(a for a in activations if a.role_id == "F7")
+    f7 = next(a for a in activations if a.role_id == "debugger")
     assert f7.score >= 5, f"F7 should fire strongly on debug+incident, got {f7.score}"
 
 
@@ -193,8 +201,8 @@ def test_scoring_research_deactivates_debug():
         complexity="COMPLEX",
     )
     activations = score_all_roles(sig)
-    f7 = next(a for a in activations if a.role_id == "F7")
-    f1 = next(a for a in activations if a.role_id == "F1")
+    f7 = next(a for a in activations if a.role_id == "debugger")
+    f1 = next(a for a in activations if a.role_id == "researcher")
     assert f1.score > f7.score, "F1 should beat F7 when action=research"
 
 
@@ -208,7 +216,7 @@ def test_presets_production_bug_mitigate_via_situation():
     chain = compose_chain(sig)
     # Either preset production-bug-mitigate OR situation override wins
     assert chain.source in ("preset", "situation", "composer")
-    assert "F7" in chain.chain
+    assert "debugger" in chain.chain
 
 
 def test_takeover_preset():
@@ -220,7 +228,7 @@ def test_takeover_preset():
     chain = compose_chain(sig)
     assert chain.source == "preset"
     assert chain.preset_id == "legacy-takeover"
-    assert chain.chain[0] == "F2"      # starts with F2-reverse per formula spec
+    assert chain.chain[0] == "analyst"      # starts with F2-reverse per formula spec
 
 
 # --- 6. Parallel roles metadata --------------------------------------------

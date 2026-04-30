@@ -63,22 +63,26 @@ for file in "${TARGETS[@]}"; do
   CHECKED=$((CHECKED + 1))
   rel="${file#./}"
 
-  # Check 1: front-matter header on first non-empty line
+  # Check 1: front-matter header on first non-empty line.
+  # Required keys: domain · layer · ssot · updated. Extra middle keys
+  # (e.g. `source:outcome_history#183` on breakthrough files) are tolerated.
   first_line=$(head -1 "$file")
-  if ! echo "$first_line" | grep -qE '^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref) \| updated:[0-9-]+ -->'; then
+  if ! echo "$first_line" | grep -qE '^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref|false)( \| [a-z_]+:[^ ]+)* \| updated:[0-9-]+ -->'; then
     err "$rel: missing or malformed front-matter header on line 1"
     ERRORS=$((ERRORS + 1))
   fi
 
-  # Check 2: opening block (Purpose / Read when / Skip when) — skip task index, changelog, README
+  # Check 2: opening block — accept long form (Purpose:/Read when:) or short
+  # form blockquote (`> P:` / `> R:`). TASK-158 adopted both. Skip task
+  # index, changelog, README.
   base=$(basename "$file")
   if [[ "$base" != "tasks.md" && "$base" != "questions.md" && "$base" != "changes.log" ]]; then
-    if ! grep -q "^Purpose:" "$file"; then
-      [ "$QUIET" -eq 0 ] && warn "$rel: missing 'Purpose:' line in opening block"
+    if ! grep -qE "^(Purpose:|>\s*P:)" "$file"; then
+      [ "$QUIET" -eq 0 ] && warn "$rel: missing Purpose line in opening block (expected 'Purpose:' or '> P:')"
       WARNINGS=$((WARNINGS + 1))
     fi
-    if ! grep -q "^Read when:" "$file"; then
-      [ "$QUIET" -eq 0 ] && warn "$rel: missing 'Read when:' line in opening block"
+    if ! grep -qE "^(Read when:|>\s*R:)" "$file"; then
+      [ "$QUIET" -eq 0 ] && warn "$rel: missing Read-when line in opening block (expected 'Read when:' or '> R:')"
       WARNINGS=$((WARNINGS + 1))
     fi
   fi

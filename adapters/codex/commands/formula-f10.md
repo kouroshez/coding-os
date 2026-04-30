@@ -1,1 +1,1 @@
-../../../core/thinking_os/agents/F10_monitor.md
+../../../core/thinking_os/agents/observer.md

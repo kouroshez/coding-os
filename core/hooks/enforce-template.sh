@@ -41,12 +41,12 @@ esac
 
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
-# Phase M: formula-agents that write docs (F3/F4) produce structured output by
-# design — skip template gate when a persona's formula dispatch is active.
+# Phase M: formula-agents that write docs (architect/documenter) produce
+# structured output by design — skip template gate when a role dispatch is active.
 ACTIVE_FORMULA_FILE="${COS_AGENT_DIR}/.active-formula"
 if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
   ACTIVE_FORMULA=$(cat "$ACTIVE_FORMULA_FILE" 2>/dev/null || echo "")
-  # F3 (Architect) creates ADRs; F4 (Document) creates task/PRD/breakthrough docs.
+  # architect creates ADRs; documenter creates task/PRD/breakthrough docs.
   # Both operate within structured output contracts — no template re-enforcement needed.
   if [[ -n "$ACTIVE_FORMULA" ]]; then
     exit 0

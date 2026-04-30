@@ -1,24 +1,28 @@
 # Role Registry (Phase N)
 
-11 role configs `F1_*.yaml … F11_*.yaml` driving cognitive routing. **Not** the
-agent prompts — those live in [../agents/](../agents/) (separation of concerns).
+11 role configs (`researcher.yaml` … `refactorer.yaml`) driving cognitive
+routing. **Not** the agent prompts — those live in [../agents/](../agents/)
+(separation of concerns).
 
-| File         | Owns                                                                         |
-|--------------|------------------------------------------------------------------------------|
-| `roles/F*.yaml`  | **Routing**: when this formula activates (triggers, deactivators, scoring weights, intensity defaults, prompt_prefix). Read by `cos_compose_chain` to build a chain of formulas for a task. |
-| `agents/F*.md`   | **Execution**: the actual prompt the dispatched agent sees, plus frontmatter (model_pref, tools_budget, schemas, criteria_required, intensity_steps, backtrack_triggers). |
+| File           | Owns |
+|----------------|------|
+| `roles/<slug>.yaml` | **Routing**: when this role activates (triggers, deactivators, scoring weights, intensity defaults, prompt_prefix). Read by `cos_compose_chain` to build a chain of roles for a task. |
+| `agents/<slug>.md`  | **Execution**: the actual prompt the dispatched agent sees, plus frontmatter (model_pref, tools_budget, schemas, criteria_required, intensity_steps, backtrack_triggers). |
 
-Each `roles/F<n>_*.yaml` carries an `agent_file:` field that points to its
-matching `agents/F<n>_*.md` — this is the contract that joins them.
+Each `roles/<slug>.yaml` carries an `agent_file:` field that points to its
+matching `agents/<slug>.md` — this is the contract that joins them. Slugs
+in canonical order: `researcher · analyst · architect · documenter ·
+implementer · reviewer · debugger · security_auditor · deployer · observer
+· refactorer`.
 
 ## Contract
 
 ```yaml
-# roles/F1_researcher.yaml
-id: F1
+# roles/researcher.yaml
+id: researcher
 role_name: "Researcher"
-formula_ref: F1
-agent_file: agents/F1_research.md   # ← cross-ref into agents/
+formula_ref: researcher
+agent_file: agents/researcher.md   # ← cross-ref into agents/
 activation:
   primary_triggers: [...]
   deactivators:    [...]
@@ -27,20 +31,20 @@ prompt_prefix: |
 ```
 
 ```markdown
-<!-- agents/F1_research.md -->
+<!-- agents/researcher.md -->
 ---
-id: F1
+id: researcher
 name: "Research & Discovery"
-formula_ref: F1
+formula_ref: researcher
 attach_phases: [MAP, CLASSIFY]
 intensity_min: light
 model_pref: {...}
 tools_budget: [...]
-input_schema: cognition.F1Input
-output_schema: cognition.F1Output
+input_schema: cognition.ResearcherInput
+output_schema: cognition.ResearcherOutput
 ---
 
-# F1 — Research & Discovery
+# Researcher — Research & Discovery
 ...prompt body...
 ```
 

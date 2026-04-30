@@ -1,0 +1,83 @@
+# F2 Role — Problem Decomposition & Analysis
+# Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 2
+id: analyst
+role_name: "Analyst"
+formula_ref: analyst
+agent_file: agents/analyst.md
+
+activation:
+  primary_triggers:
+    - signal: complexity
+      in: [COMPLICATED, COMPLEX]
+      weight: 4
+    - signal: action
+      in: [create, modify, refactor]
+      weight: 2
+    - signal: scope_size
+      in: [medium, large, recursive]
+      weight: 2
+    - signal: has_unknowns
+      equals: true
+      weight: 2
+  secondary_triggers:
+    - signal: breaking_change
+      equals: true
+      weight: 1
+  deactivators:
+    - signal: action
+      equals: document
+      weight: 3
+    - signal: urgency
+      equals: incident
+      weight: 2
+  min_score: 3
+
+intensity_steps:
+  light:    [1, 2, 3, 4, 5]
+  standard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  full:     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+tools_budget:
+  - cos_search
+  - cos_doc_search
+  - cos_graph_query
+  - cos_graph_context
+  - Grep
+  - Glob
+  - Read
+max_tokens_in: 8000
+max_tokens_out: 4000
+timeout_s: 120
+
+model_pref:
+  complicated: sonnet
+  complex: opus
+
+output_schema: cognition_schemas.AnalystOutput
+
+backtrack_triggers:
+  - signal_phrase_regex: "(no|missing) (prior art|research|landscape)"
+    target: F1
+    reason_template: "F2 needs research landscape — backtrack to F1"
+
+criteria_required:
+  step_1:  [scoped, measurable, owned, connected_to_user_value]
+  step_2:  [observable, scoped, owned]
+  step_3:  [scoped, testable, observable]
+  step_4:  [testable, observable, scoped]
+  step_5:  [testable, scoped]
+  step_6:  [scoped, observable]
+  step_7:  [observable, testable]
+  step_8:  [observable, scoped]
+  step_9:  [scoped, owned, reversible_or_justified]
+  step_10: [scoped, observable]
+  step_11: [observable, owned]
+  step_12: [testable, scoped, owned, observable]
+
+prompt_prefix: |
+  You are in the F2 Analyst role. Your job is to decompose a problem from
+  zero to leaf-tasks where each is implementable in 1-2 days. You produce
+  problem statement, actor map, goal tree, scenarios, decision table,
+  conceptual data model, state machines, event map, permission matrix,
+  dependency map, unknowns, and a recursive decomposition checklist.
+  You are NOT architecting — that is F3. Output strict AnalystOutput JSON.

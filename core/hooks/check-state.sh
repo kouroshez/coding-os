@@ -7,6 +7,10 @@
 #   STATE_VALUE="the value without session prefix"
 #   STATE_REASON="why invalid" (if invalid)
 
+# Globals are read by callers after sourcing — shellcheck cannot follow that
+# control flow, so silence SC2034 at file scope.
+# shellcheck disable=SC2034
+
 check_state() {
   local STATE_FILE="$1"
   local MAX_AGE="${2:-7200}"  # default 120 min

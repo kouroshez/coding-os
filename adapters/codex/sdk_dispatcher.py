@@ -1,23 +1,30 @@
 """
-Coding OS — Codex-SDK dispatcher (adapters/codex).
+Coding OS — Codex dispatcher (adapters/codex).
 
-PURPOSE:      Formula-agent spawning for Codex sessions via the Codex CLI
-              binary (`codex`). Translates DispatchRequest → a subprocess
-              call, collects the output text, and returns a DispatchResult.
-              Enables Phase M formulas (F1..F11) to execute as real Codex
-              sub-sessions rather than being inlined by the main agent.
+PURPOSE:      Formula-agent spawning for Codex sessions. Two backend modes:
+              1. PRIMARY — subprocess wrapper around the public `codex` CLI
+                 binary (the only distribution channel OpenAI ships today).
+                 Translates DispatchRequest → `codex --json` invocation,
+                 collects output, returns DispatchResult.
+              2. EXPERIMENTAL — OpenAI's Python SDK (sdk/python in the
+                 open-source Codex repo) is JSON-RPC against a local Codex
+                 app-server. NOT on PyPI, requires a Codex repo checkout
+                 (`pip install -e ./sdk/python`) and Python 3.10+. We
+                 detect it lazily; if importable AND the user opts in via
+                 COS_CODEX_USE_PYTHON_SDK=1, prefer it. Otherwise fall back
+                 to the subprocess path.
 INPUT:        DispatchRequest built by cos_supervise / cos_dispatch_formula.
 OUTPUT:       DispatchResult with parsed JSON output_json, latency_ms.
-DEPENDENCIES: shutil (stdlib), subprocess (stdlib), anyio (optional for
-              async bridge). Core contract imported dynamically from
-              core/thinking_os/dispatcher.py (Rule 1 — no core/ imports
-              at module level).
+DEPENDENCIES: shutil + subprocess (stdlib) for primary; codex_sdk (optional,
+              opt-in) for experimental path. Core contract imported
+              dynamically from core/thinking_os/dispatcher.py (Rule 1).
 NOTES:        Rule 1: core/ stays agent-agnostic. This file is Codex-only
               and MUST NOT be imported from core/. The factory in
               core/thinking_os/dispatcher.py loads it by path at runtime.
-              `available()` returns False when the `codex` binary is absent
-              from PATH, so the factory transparently falls back to the
-              DefaultDispatcher — zero friction for machines without Codex.
+              `available()` returns False when neither path is usable, so
+              the factory transparently falls back to the DefaultDispatcher.
+              See https://developers.openai.com/codex/sdk for upstream
+              status of the experimental Python SDK.
 """
 
 from __future__ import annotations
@@ -25,66 +32,19 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
-import sys
 import time
-from pathlib import Path
-from typing import Any
 
-_CORE_TOS = Path(__file__).resolve().parent.parent.parent / "core" / "thinking_os"
-if str(_CORE_TOS) not in sys.path:
-    sys.path.insert(0, str(_CORE_TOS))
-
-from dispatcher import DispatchRequest, DispatchResult  # noqa: E402
+from thinking_os.dispatcher import DispatchRequest, DispatchResult
+from thinking_os.dispatcher_helpers import extract_json_block, load_agent_prompt
 
 logger = logging.getLogger("coding_os.dispatcher.codex_sdk")
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _codex_binary() -> str | None:
     """Return the absolute path of the `codex` binary, or None."""
     return shutil.which("codex")
-
-
-def _extract_json_block(text: str) -> dict[str, Any]:
-    """Extract the first ```json ... ``` fenced block from text."""
-    m = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if not m:
-        m = re.search(r"(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})", text, re.DOTALL)
-        if not m:
-            return {}
-    try:
-        return json.loads(m.group(1))
-    except json.JSONDecodeError as exc:
-        logger.debug("JSON parse failed in codex output: %s", exc)
-        return {}
-
-
-def _load_agent_prompt(agent_file: str) -> tuple[str, dict[str, Any]]:
-    """Read F<N>_name.md, split YAML frontmatter from body."""
-    path = Path(agent_file)
-    if not path.is_absolute():
-        path = _CORE_TOS / agent_file.lstrip("/")
-    if not path.exists():
-        raise FileNotFoundError(f"agent file not found: {agent_file}")
-
-    text = path.read_text(encoding="utf-8")
-    if text.startswith("---"):
-        parts = text.split("---", 2)
-        if len(parts) >= 3:
-            try:
-                import yaml
-                meta = yaml.safe_load(parts[1]) or {}
-            except ImportError:
-                meta = {}
-            return parts[2].strip(), meta
-    return text.strip(), {}
 
 
 # ---------------------------------------------------------------------------
@@ -133,7 +93,7 @@ class CodexSDKDispatcher:
         # Build the prompt. Codex reads a single system prompt from --instructions
         # and the user message from stdin (or --prompt flag depending on version).
         try:
-            system_body, _meta = _load_agent_prompt(request.agent_file)
+            system_body, _meta = load_agent_prompt(request.agent_file)
         except FileNotFoundError as exc:
             return DispatchResult(
                 formula_id=request.formula_id,
@@ -215,13 +175,13 @@ class CodexSDKDispatcher:
                 formula_id=request.formula_id,
                 status="error",
                 error=f"codex rc={result.returncode}: {stderr[:300]}",
-                output_json=_extract_json_block(stdout),
+                output_json=extract_json_block(stdout),
                 raw_transcript=stdout,
                 dispatcher_name=self.name,
                 latency_ms=int((time.monotonic() - t0) * 1000),
             )
 
-        output_json = _extract_json_block(stdout)
+        output_json = extract_json_block(stdout)
         return DispatchResult(
             formula_id=request.formula_id,
             status="ok",

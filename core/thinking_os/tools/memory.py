@@ -261,8 +261,17 @@ def memory_search(
     limit: int = 5,
     memory_type: Optional[str] = None,
     use_fts5: bool = True,
+    min_confidence: float = 0.0,
+    since_days: Optional[int] = None,
 ) -> dict:
     """Search observations and learned_patterns with 5-signal ranking.
+
+    Stage-1 RAG metadata pre-filter (Phase O):
+      - `min_confidence` drops learned_patterns whose confidence is below
+        the threshold BEFORE ranking. Stale low-confidence patterns can
+        otherwise crowd out fresh high-signal hits via raw text overlap.
+      - `since_days` caps recency; rows older than now-`since_days` are
+        dropped in pre-filter. Observations and patterns both filtered.
 
     Args:
         conn: SQLite connection.
@@ -270,6 +279,11 @@ def memory_search(
         limit: Max results (1-20, default 5).
         memory_type: Filter by memory type (optional).
         use_fts5: Whether FTS5 is available.
+        min_confidence: Drop learned_patterns with confidence below this
+            value (0.0-1.0; default 0.0 = no filter). Common: 0.3 to skip
+            de-cayed unvalidated patterns.
+        since_days: Drop rows older than now-`since_days`. None = no cap.
+            Common: 90 (one quarter) for "recent" queries.
 
     Returns:
         Dict with results list and metadata.
@@ -280,6 +294,11 @@ def memory_search(
     limit = max(1, min(20, limit))
     like_pattern = f"%{query}%"
     candidates: list[dict] = []
+    since_clause = ""
+    since_param: list = []
+    if since_days is not None and since_days > 0:
+        since_clause = " AND created_at >= datetime('now', '-' || ? || ' days')"
+        since_param = [int(since_days)]
 
     # --- Search observations ---
     if use_fts5:
@@ -302,10 +321,14 @@ def memory_search(
             "SELECT id, title, memory_type, impact_score, created_at, concepts, "
             "0.5 AS fts_rank "
             "FROM observations "
-            "WHERE title LIKE ? OR narrative LIKE ? OR concepts LIKE ? "
-            "ORDER BY created_at DESC LIMIT ?",
-            (like_pattern, like_pattern, like_pattern, limit * 3),
+            "WHERE (title LIKE ? OR narrative LIKE ? OR concepts LIKE ?)"
+            + since_clause
+            + " ORDER BY created_at DESC LIMIT ?",
+            (like_pattern, like_pattern, like_pattern, *since_param, limit * 3),
         ).fetchall()
+    elif since_param:
+        # FTS5 path doesn't honor since_clause natively — apply post-filter
+        obs_rows = [r for r in obs_rows if _days_since(dict(r).get("created_at")) <= since_days]
 
     for row in obs_rows:
         row_dict = dict(row)
@@ -341,9 +364,11 @@ def memory_search(
         "SELECT id, pattern, memory_type, confidence, impact_score, "
         "access_count, created_at, concepts, domain "
         "FROM learned_patterns "
-        "WHERE pattern LIKE ? OR concepts LIKE ? "
-        "ORDER BY confidence DESC LIMIT ?",
-        (like_pattern, like_pattern, limit * 3),
+        "WHERE (pattern LIKE ? OR concepts LIKE ?) "
+        "AND confidence >= ?"
+        + since_clause
+        + " ORDER BY confidence DESC LIMIT ?",
+        (like_pattern, like_pattern, float(min_confidence), *since_param, limit * 3),
     ).fetchall()
 
     for row in lp_rows:

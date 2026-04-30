@@ -17,8 +17,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from core.board_os.parser import _extract_body_sections, _extract_outcome
-from core.board_os.transition_gates import (
+from board_os.parser import _extract_body_sections, _extract_outcome
+from board_os.transition_gates import (
     DoDKindRules,
     DoRKindRules,
     GatesConfig,

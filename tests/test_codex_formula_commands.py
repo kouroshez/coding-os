@@ -1,4 +1,11 @@
-"""Tests that Phase M formula symlinks in adapters/codex/commands/ resolve correctly."""
+"""Tests that Phase M formula symlinks in adapters/codex/commands/ resolve correctly.
+
+Phase N (Rule 15) replaced legacy F<N>_<name>.md filenames with semantic role
+ids: researcher · analyst · architect · documenter · implementer · reviewer ·
+debugger · security_auditor · deployer · observer · refactorer. The
+formula-f<N>.md symlinks remain as the codex CLI surface; their targets are
+now the semantic agent files.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +16,22 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CODEX_COMMANDS = REPO_ROOT / "adapters" / "codex" / "commands"
 AGENTS_DIR = REPO_ROOT / "core" / "thinking_os" / "agents"
+
+# Canonical Formula <N> → semantic role mapping. Source: AGENTS.md Rule 15
+# and core/thinking_os/agents/README.md.
+FORMULA_TO_ROLE: dict[int, str] = {
+    1: "researcher",
+    2: "analyst",
+    3: "architect",
+    4: "documenter",
+    5: "implementer",
+    6: "reviewer",
+    7: "debugger",
+    8: "security_auditor",
+    9: "deployer",
+    10: "observer",
+    11: "refactorer",
+}
 
 
 class TestCodexFormulaSymlinks:
@@ -31,14 +54,26 @@ class TestCodexFormulaSymlinks:
             content = link.read_text()
             assert content.startswith("---"), f"formula-f{n}.md missing frontmatter"
 
-    def test_agent_files_have_id_field(self):
-        for n in range(1, 12):
+    def test_symlinks_target_canonical_role(self):
+        """Each formula-fN.md must resolve to its canonical semantic role file."""
+        for n, role in FORMULA_TO_ROLE.items():
+            link = CODEX_COMMANDS / f"formula-f{n}.md"
+            target = link.resolve()
+            assert target.name == f"{role}.md", (
+                f"formula-f{n}.md → {target.name}, expected {role}.md"
+            )
+
+    def test_agent_files_have_semantic_id(self):
+        """Frontmatter `id` field is the semantic role, not F<N>."""
+        for n, role in FORMULA_TO_ROLE.items():
             link = CODEX_COMMANDS / f"formula-f{n}.md"
             content = link.read_text()
-            assert f"id: F{n}" in content, f"formula-f{n}.md missing 'id: F{n}' in frontmatter"
+            assert f"id: {role}" in content, (
+                f"formula-f{n}.md missing 'id: {role}' in frontmatter"
+            )
 
-    def test_all_agent_files_exist_directly(self):
-        for n in range(1, 12):
-            # Find the corresponding agent file
-            matches = list(AGENTS_DIR.glob(f"F{n}_*.md"))
-            assert matches, f"No agent file found for F{n} in agents/"
+    def test_all_role_agent_files_exist(self):
+        """Each canonical role has a corresponding agent file."""
+        for role in FORMULA_TO_ROLE.values():
+            agent_file = AGENTS_DIR / f"{role}.md"
+            assert agent_file.exists(), f"agent file missing: {agent_file}"

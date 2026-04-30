@@ -2,6 +2,11 @@
 <!-- domain:graph_os | layer:roadmap | ssot:true | updated:2026-04-21 -->
 # graph_os Redesign — MVP → v1 → v2 Checklist
 
+> P: SSOT slice list for the graph_os + unified WebUI redesign — every slice maps to one Scrumban task.
+> R: Picking the next slice to build, or sizing scope when proposing a graph_os change.
+> S: Querying the deployed graph — see [docs/engineering/graph_os-queries.md](../engineering/graph_os-queries.md).
+> N: [docs/phase-i-knowledge-graph-plan.md](../phase-i-knowledge-graph-plan.md), [docs/benchmarks/graph_os.md](../benchmarks/graph_os.md)
+
 > Master checklist for the graph_os + unified WebUI redesign. SSOT for slice scope + completion criteria. One Scrumban task per slice.
 
 ## Context (one paragraph)

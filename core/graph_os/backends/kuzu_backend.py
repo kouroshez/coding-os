@@ -187,16 +187,6 @@ class KuzuBackend:
     def upsert_edge(self, edge: GraphEdge) -> int:
         import json  # noqa: PLC0415
 
-        with self._write_lock:
-            if self._get_node_props(edge.source_uid) is None:
-                raise ValueError(
-                    f"unknown uid {edge.source_uid!r}: upsert the node first"
-                )
-            if self._get_node_props(edge.target_uid) is None:
-                raise ValueError(
-                    f"unknown uid {edge.target_uid!r}: upsert the node first"
-                )
-
         now = int(time.time())
         evidence_payload = json.dumps(
             [
@@ -226,7 +216,18 @@ class KuzuBackend:
             "edge_type": params["edge_type"],
             "extractor": params["extractor"],
         }
+        # Hold the write lock across existence check + DELETE + CREATE so a
+        # concurrent deleter cannot remove an endpoint between validation and
+        # rewrite. Process-level lock; for crash-safety rely on Kuzu's WAL.
         with self._write_lock:
+            if self._get_node_props(edge.source_uid) is None:
+                raise ValueError(
+                    f"unknown uid {edge.source_uid!r}: upsert the node first"
+                )
+            if self._get_node_props(edge.target_uid) is None:
+                raise ValueError(
+                    f"unknown uid {edge.target_uid!r}: upsert the node first"
+                )
             self._conn.execute(
                 """
                 MATCH (a:GraphNodeV12 {uid: $src}), (b:GraphNodeV12 {uid: $dst})

@@ -15,24 +15,19 @@ from __future__ import annotations
 
 import asyncio
 import os
-import sys
 from pathlib import Path
 
 import pytest
 
-# Ensure core/thinking_os on sys.path
-_HERE = Path(__file__).resolve().parent
-_CORE_TOS = _HERE.parent
-if str(_CORE_TOS) not in sys.path:
-    sys.path.insert(0, str(_CORE_TOS))
-
-from dispatcher import (  # noqa: E402
+from thinking_os.dispatcher import (
     AgentDispatcher,
     DispatchRequest,
     DispatchResult,
     get_dispatcher,
 )
-from dispatchers.default import DefaultDispatcher  # noqa: E402
+from thinking_os.dispatchers.default import DefaultDispatcher
+
+_CORE_TOS = Path(__file__).resolve().parent.parent
 
 
 # ---------------------------------------------------------------------------
@@ -48,14 +43,14 @@ def test_default_dispatcher_satisfies_protocol():
 
 def test_dispatch_request_roundtrip():
     req = DispatchRequest(
-        formula_id="F5",
-        agent_file="core/thinking_os/agents/F5_implement.md",
+        formula_id="implementer",
+        agent_file="core/thinking_os/agents/implementer.md",
         prompt="implement feature X",
         input_slice={"task_description": "add-dispatcher"},
         persona_id=None,
         intensity="standard",
     )
-    assert req.formula_id == "F5"
+    assert req.formula_id == "implementer"
     assert req.timeout_s == 300.0
 
 
@@ -66,8 +61,8 @@ def test_dispatch_request_roundtrip():
 def test_default_dispatcher_returns_skipped():
     d = DefaultDispatcher()
     req = DispatchRequest(
-        formula_id="F2",
-        agent_file="core/thinking_os/agents/F2_decompose.md",
+        formula_id="analyst",
+        agent_file="core/thinking_os/agents/analyst.md",
         prompt="decompose the task",
     )
     result = asyncio.run(d.dispatch(req))
@@ -75,7 +70,7 @@ def test_default_dispatcher_returns_skipped():
     assert result.status == "skipped"
     assert result.dispatcher_name == "default"
     assert result.error == "inline-dispatch-required"
-    assert result.output_json["formula_id"] == "F2"
+    assert result.output_json["formula_id"] == "analyst"
     assert "dispatch_hint" in result.output_json
 
 
@@ -316,7 +311,7 @@ def test_codex_sdk_dispatcher_error_when_unavailable(monkeypatch, tmp_path):
     agent_file = tmp_path / "F1_test.md"
     agent_file.write_text("---\nid: F1\n---\n\nTest.")
     req = DispatchRequest(
-        formula_id="F1",
+        formula_id="researcher",
         agent_file=str(agent_file),
         prompt="test",
     )
@@ -346,7 +341,7 @@ def test_codex_sdk_dispatcher_mocked_success(monkeypatch, tmp_path):
     agent_file = tmp_path / "F2_test.md"
     agent_file.write_text("---\nid: F2\n---\n\nTest formula.")
     req = DispatchRequest(
-        formula_id="F2",
+        formula_id="analyst",
         agent_file=str(agent_file),
         prompt="analyse",
         input_slice={"task": "review"},
@@ -373,7 +368,7 @@ def test_codex_sdk_dispatcher_mocked_timeout(monkeypatch, tmp_path):
 
     agent_file = tmp_path / "F3_test.md"
     agent_file.write_text("---\nid: F3\n---\n\nSlow formula.")
-    req = DispatchRequest(formula_id="F3", agent_file=str(agent_file), prompt="slow", timeout_s=1.0)
+    req = DispatchRequest(formula_id="architect", agent_file=str(agent_file), prompt="slow", timeout_s=1.0)
     result = asyncio.run(d.dispatch(req))
     assert result.status == "timeout"
     assert "timed out" in (result.error or "")
@@ -396,7 +391,7 @@ def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
 
     agent_file = tmp_path / "F4_test.md"
     agent_file.write_text("---\nid: F4\n---\n\nBad flag formula.")
-    req = DispatchRequest(formula_id="F4", agent_file=str(agent_file), prompt="fail")
+    req = DispatchRequest(formula_id="documenter", agent_file=str(agent_file), prompt="fail")
     result = asyncio.run(d.dispatch(req))
     assert result.status == "error"
     assert "rc=1" in (result.error or "")

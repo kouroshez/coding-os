@@ -536,6 +536,100 @@ def _overlay_scaffold(
     return copied
 
 
+def _aggregate_scaffold_boundaries(
+    project: Path,
+    state: Path,
+    templates: list[str],
+) -> None:
+    """Merge per-stack `scaffold-boundary.yaml` files into the consumer.
+
+    PURPOSE:      Power `enforce-scaffold-boundary.sh` at consumer-side by
+                  writing `<state>/scaffold-boundary.yaml` with a flat
+                  `stacks:` list — one row per installed stack.
+    INPUT:        project    — consumer project root.
+                  state      — state dir (`.coding-os/`).
+                  templates  — list of installed stack ids.
+    OUTPUT:       Writes `state/scaffold-boundary.yaml` (or removes when no
+                  stack ships a boundary file).
+    DEPENDENCIES: PyYAML.
+    NOTES:        SSOT spec: docs/governance/scaffold-boundary-contract.md.
+                  Aggregator-side invariants enforced here:
+                    1. No two installed stacks may share a `roots` entry.
+                    2. Every `forbids_writing_in` entry must be a real root
+                       of an installed stack OR `shared/`.
+                  Violations raise `click.ClickException` so init fails fast.
+    """
+    import yaml
+
+    stacks_data: list[dict] = []
+    for stack_id in templates:
+        boundary_src = TEMPLATES_DIR / stack_id / "scaffold-boundary.yaml"
+        if not boundary_src.exists():
+            continue
+        try:
+            data = yaml.safe_load(boundary_src.read_text(encoding="utf-8"))
+        except yaml.YAMLError as exc:
+            raise click.ClickException(
+                f"templates/{stack_id}/scaffold-boundary.yaml is not valid YAML: {exc}"
+            )
+        if not isinstance(data, dict):
+            continue
+        stacks_data.append(
+            {
+                "stack": data.get("stack") or stack_id,
+                "roots": list(data.get("roots") or []),
+                "file_patterns": list(data.get("file_patterns") or []),
+                "imports_from": list(data.get("imports_from") or []),
+                "forbids_writing_in": list(data.get("forbids_writing_in") or []),
+            }
+        )
+
+    target = state / "scaffold-boundary.yaml"
+    if not stacks_data:
+        if target.exists():
+            target.unlink()
+        return
+
+    # Invariant 1: no two installed stacks may share a root.
+    seen: dict[str, str] = {}
+    for entry in stacks_data:
+        for root in entry["roots"]:
+            existing = seen.get(root)
+            if existing and existing != entry["stack"]:
+                raise click.ClickException(
+                    f"scaffold-boundary aggregation: root '{root}' claimed by "
+                    f"both '{existing}' and '{entry['stack']}'. Two installed "
+                    f"stacks may not share a root — pick one per project."
+                )
+            seen[root] = entry["stack"]
+
+    # Invariant 2: every forbid references an installed root OR `shared/`.
+    all_roots = {root.rstrip("/") for root in seen}
+    all_roots.add("shared")
+    for entry in stacks_data:
+        for forbidden in entry["forbids_writing_in"]:
+            stripped = forbidden.rstrip("/")
+            if stripped not in all_roots:
+                # Soft: mention but do not fail — a stack may legitimately
+                # forbid a subtree no installed stack owns yet.
+                click.echo(
+                    f"  WARN: stack '{entry['stack']}' forbids writes in "
+                    f"'{forbidden}', but no installed stack owns that root.",
+                    err=True,
+                )
+
+    aggregated = {
+        "version": 1,
+        "generated_by": "cli/_aggregate_scaffold_boundaries",
+        "stacks": stacks_data,
+    }
+    target.write_text(
+        yaml.safe_dump(aggregated, sort_keys=False, default_flow_style=False),
+        encoding="utf-8",
+    )
+    click.echo(f"  Aggregated scaffold-boundary for {len(stacks_data)} stack(s) → {target.relative_to(project)}")
+
+
 def _copy_workflow_docs(project: Path) -> None:
     """Copy thinking_os-final-edition.md from core/docs/ into project workflow-docs/.
 
@@ -606,6 +700,18 @@ cli.add_command(brain_gc_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(eject_file_cmd)
+
+# Fast scope-aware verification: `cos verify --since-edit`.
+try:
+    from cli.verify_since_edit import verify_since_edit_cmd as _verify_cmd  # noqa: WPS433
+
+    cli.add_command(_verify_cmd)
+except ImportError as _verify_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug(
+        "verify CLI unavailable: %s", _verify_exc
+    )
 
 # Phase O.1 — Hub propagation: push meta-repo edits to every registered
 # project via symlink re-link + DB migration.  Lives in cli/sync_all.py
@@ -825,7 +931,7 @@ def init(
             "error": git_result.error,
         },
         "files_created": files_created,
-        "db_path": str(project / STATE_DIR / "thinking_os.db"),
+        "db_path": str(project / STATE_DIR / "coding-os.db"),
         "config_file": str(project / CONFIG_FILE),
     }
 
@@ -872,7 +978,7 @@ def _run_scaffold_phase(
     click.echo(f"  Created {STATE_DIR}/")
 
     # 2. Initialize DB directory
-    db_path = state / "thinking_os.db"
+    db_path = state / "coding-os.db"
     if not db_path.exists():
         # Initialize the database
         brain_dir = str(CORE_DIR / "thinking_os")
@@ -970,6 +1076,11 @@ def _run_scaffold_phase(
                 f"# Add your project-specific targets below:\n\n"
             )
             click.echo("  Generated Makefile")
+
+    # 9b. Aggregate scaffold-boundary.yaml from every installed stack so the
+    # consumer-side enforce-scaffold-boundary.sh hook can enforce subtree
+    # isolation at runtime. SSOT spec: docs/governance/scaffold-boundary-contract.md.
+    _aggregate_scaffold_boundaries(project, state, template)
 
     # 10. Generate AGENTS.md by composing fragments from base + stacks.
     # No template file is read; the content is assembled by render_agents_md()
@@ -1148,7 +1259,7 @@ def health(project_dir: str) -> None:
         click.echo(f"  State dir:  MISSING")
 
     # Database
-    db_path = state / "thinking_os.db"
+    db_path = state / "coding-os.db"
     if db_path.exists():
         size_kb = db_path.stat().st_size / 1024
         click.echo(f"  Database:   OK ({size_kb:.0f} KB)")
@@ -1349,7 +1460,7 @@ def server_start() -> None:
     # explicit overrides for tests / multi-project setups.
     env.setdefault(
         "COS_DB_PATH",
-        str(caller_cwd / STATE_DIR / "thinking_os.db"),
+        str(caller_cwd / STATE_DIR / "coding-os.db"),
     )
     env.setdefault(
         "COS_STATE_DIR",

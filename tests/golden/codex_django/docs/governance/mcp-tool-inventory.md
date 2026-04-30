@@ -18,7 +18,7 @@ Read next: The domain playbook matching your task type.
 
 ### `coding-os` (thinking_os MCP server)
 
-Self-learning memory system. SQLite backend at `.coding-os/thinking_os.db`. 18 MCP tools in 6 categories:
+Self-learning memory system. SQLite backend at `.coding-os/thinking_os.db`. MCP tools surface in groups:
 
 - **Health (1):** `cos_health` (DB stats, schema version, FTS5 availability)
 - **Memory (4):** `cos_search` (5-signal ranked search), `cos_timeline` (recent outcomes), `cos_details` (full record), `cos_promote` (pattern → rule/feedback file)
@@ -26,6 +26,7 @@ Self-learning memory system. SQLite backend at `.coding-os/thinking_os.db`. 18 M
 - **Learning (5):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_feedback`, `cos_learn_narrative`
 - **Routing (2):** `cos_route_model`, `cos_route_skill`
 - **Graph (1):** `cos_graph` (BFS traversal of file/concept graph)
+- **Docs RAG (3):** `cos_doc_search` (semantic + lexical chunk search), `cos_doc_header` (single-file frontmatter + opening block, no body read), `cos_doc_headers_by` (bulk filter by `domain` / `layer` / `ssot` / `since_iso`)
 
 ## Recommended External MCPs
 

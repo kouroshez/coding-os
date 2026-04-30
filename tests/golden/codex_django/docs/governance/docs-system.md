@@ -39,12 +39,23 @@ Every file inside `docs/` starts with:
 
 ## Opening Block Contract
 
-Immediately after the H1, every active doc includes these four lines:
+Immediately after the H1, every active doc includes these four lines. Two equivalent forms are accepted; pick one per file.
+
+**Long form** (default):
 
 - `Purpose:`
 - `Read when:`
 - `Skip when:`
 - `Read next:`
+
+**Short form** (token-tight, ~30% fewer header bytes — recommended for high-traffic routing files):
+
+- `> P:`
+- `> R:`
+- `> S:`
+- `> N:`
+
+`docs-lint` accepts either form. `cos_doc_header` (MCP) parses both into the same structured response (`opening_block.purpose` / `read_when` / `skip_when` / `read_next`). The `md_links` graph extractor emits `read_next` edges from either.
 
 These lines must let an agent decide within the first screenful whether to keep reading.
 
@@ -95,3 +106,31 @@ When adding a new domain to the project, follow this order:
 5. REF codes → `docs/foundation-map.md`
 6. Index updates → `docs/00-index.md`
 7. Run `make docs-lint` to verify
+
+## Authoring a NEW Doc — Read This First
+
+Before creating any new file under `docs/`, read [`templates/doc-cheat-sheet.md`](templates/doc-cheat-sheet.md). It contains:
+
+- The decision tree (intent → layer → directory → token budget).
+- Mandatory frontmatter + opening block contract.
+- Required sections per layer (adr · playbook · runbook · post-mortem · spec · policy · reference · task).
+- Anti-patterns (code dumps, version-suffix files, "future work" sections).
+- Token-efficiency rules — the audience is the next agent that has to act on the doc.
+
+Available templates under `docs/governance/templates/`:
+
+- `task-detail.md` — task execution log.
+- `runbook-template.md` — operational SOP for an alert / incident type.
+- `post-mortem-template.md` — blameless retrospective for a specific incident.
+- `playbook-template.md` — repeatable workflow.
+- `security-review-template.md` — OWASP-aligned per-change checklist.
+- `doc-cheat-sheet.md` — decision guide for new docs (read first).
+
+## Audit Trail (Phase O)
+
+Every doc edit can be appended to the immutable `doc_audit_trail` table via `cos_audit_log_record` MCP tool. Reverts are modeled as a new row with `action='reverted'` + `supersedes_id` pointing at the prior decision — never a row rewrite. The hub UI surfaces the per-doc timeline via `cos_audit_log_timeline`.
+
+Use cases:
+- Investigating "why did we change X back to Y?" — `cos_audit_log_query --doc-path <path>`.
+- Detecting agent hallucination drift — `cos_audit_log_query --only-reverted` shows decisions the team explicitly walked back.
+- Onboarding context — a doc's full decision history travels with the file.

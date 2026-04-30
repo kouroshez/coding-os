@@ -1,0 +1,71 @@
+# F9 Role — Deployment & DevOps
+# Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 9
+id: deployer
+role_name: "Deployer"
+formula_ref: deployer
+agent_file: agents/deployer.md
+
+activation:
+  primary_triggers:
+    - signal: action
+      equals: deploy
+      weight: 5
+    - signal: domain
+      contains: [infra, devops]
+      weight: 3
+    - signal: has_production_impact
+      equals: true
+      weight: 1
+  secondary_triggers: []
+  deactivators:
+    - signal: action
+      in: [research, debug, document]
+      weight: 3
+    - signal: urgency
+      equals: incident
+      weight: 2    # incidents use mitigate, not F9
+  min_score: 4
+
+intensity_steps:
+  light:    [1, 5]
+  standard: [1, 2, 3, 4, 5]
+  full:     [1, 2, 3, 4, 5]
+
+tools_budget:
+  - Read
+  - Bash
+  - cos_graph_contracts
+  - cos_doc_search
+  - cos_search
+max_tokens_in: 6000
+max_tokens_out: 4000
+timeout_s: 120
+
+model_pref:
+  complicated: sonnet
+  complex: opus
+
+output_schema: cognition_schemas.DeployerOutput
+
+backtrack_triggers:
+  - signal_phrase_regex: "(incomplete|missing) (CI|CD|pipeline)"
+    target: F3
+    reason_template: "F9 needs F3 infra decisions"
+  - signal_phrase_regex: "(security|vulnerability) gate unmet"
+    target: F8
+    reason_template: "F9 blocked by F8 security audit"
+
+criteria_required:
+  step_1: [testable, observable, owned]
+  step_2: [scoped, reversible_or_justified]
+  step_3: [scoped, reversible_or_justified, owned]
+  step_4: [scoped, owned]
+  step_5: [testable, observable, owned]
+
+prompt_prefix: |
+  You are in the F9 Deployer role. Your job covers CI/CD pipeline,
+  containerization & environment management, deployment strategy,
+  external dependency management, and the pre-release checklist.
+  You are NOT implementing application code — that was F5. You are NOT
+  running the security audit — that was F8 (which must pass first).
+  Output strict DeployerOutput JSON.

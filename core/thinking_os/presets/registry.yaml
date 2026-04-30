@@ -17,7 +17,7 @@ presets:
       domain_any: [backend, api]
       novelty_gte: 0.4
       scope_size_in: [medium, large]
-    chain: [F1, F2, F3, F4, F5, F6]
+    chain: [researcher, analyst, architect, documenter, implementer, reviewer]
     score: 10
 
   - id: greenfield-frontend-feature
@@ -26,7 +26,7 @@ presets:
       action: create
       domain_any: [frontend]
       scope_size_in: [small, medium]
-    chain: [F2, F5, F6]
+    chain: [analyst, implementer, reviewer]
     score: 8
 
   - id: schema-migration
@@ -35,7 +35,7 @@ presets:
       action: modify
       breaking_change: true
       domain_any: [db, backend]
-    chain: [F2, F3, F8, F5, F6]
+    chain: [analyst, architect, security_auditor, implementer, reviewer]
     score: 10
 
   - id: production-bug-mitigate
@@ -43,7 +43,7 @@ presets:
     match:
       urgency: incident
     chain_before: ["mitigate", "communicate"]
-    chain: [F7, F6]
+    chain: [debugger, reviewer]
     chain_after: ["post_mortem", "update_F10"]
     score: 12
 
@@ -52,7 +52,7 @@ presets:
     match:
       action: audit
       domain_any: [security, auth]
-    chain: [F8]
+    chain: [security_auditor]
     parallel: true
     parallel_layers: [L1, L2, L3, L4, L5]
     score: 10
@@ -61,9 +61,9 @@ presets:
     rationale: "Existing project takeover — reverse-engineer, stabilize with characterization tests, then evolve."
     match:
       is_takeover: true
-    chain: [F2, F6, F4, F5, F6, F11, F3]
+    chain: [analyst, reviewer, documenter, implementer, reviewer, refactorer, architect]
     chain_notes:
-      F2: "reverse mode — derive problem definition from existing code"
+      analyst: "reverse mode — derive problem definition from existing code"
       F6: "characterization tests before changing anything"
     score: 11
 
@@ -72,14 +72,14 @@ presets:
     match:
       action: create
       external_dependency: true
-    chain: [F1, F2, F3, F5, F6, F8]
+    chain: [researcher, analyst, architect, implementer, reviewer, security_auditor]
     score: 9
 
   - id: refactor-sprint
     rationale: "Planned refactoring cycle — identify debt, re-evaluate architecture, execute, verify."
     match:
       action: refactor
-    chain: [F11, F3, F5, F6]
+    chain: [refactorer, architect, implementer, reviewer]
     score: 9
 
   - id: docs-only-update
@@ -87,7 +87,7 @@ presets:
     match:
       action: document
       domain_any: [docs]
-    chain: [F4]
+    chain: [documenter]
     score: 9
 
   - id: debug-standard
@@ -95,21 +95,21 @@ presets:
     match:
       action: debug
       urgency_in: [normal, elevated]
-    chain: [F7, F6, F4]
+    chain: [debugger, reviewer, documenter]
     score: 8
 
   - id: deploy-release
     rationale: "Planned release — security gate, deployment, monitoring update."
     match:
       action: deploy
-    chain: [F8, F9, F10]
+    chain: [security_auditor, deployer, observer]
     score: 9
 
   - id: research-spike
     rationale: "Pure research task — F1 only, no implementation."
     match:
       action: research
-    chain: [F1]
+    chain: [researcher]
     score: 8
 
 # Config reference — effective threshold is read from .coding-os/config.yaml

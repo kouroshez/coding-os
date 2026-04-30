@@ -168,7 +168,8 @@ if [[ "$SOURCE" == "startup" ]]; then
     for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
       STARTUP_SCRIPT="${SCRIPT_DIR}/session_startup.py"
       if [ -f "$STARTUP_SCRIPT" ]; then
-        COS_DB_PATH="$COS_DB_PATH" python3 "$STARTUP_SCRIPT" "$COS_DB_PATH" 2>/dev/null || true
+        # COS_DB_PATH already exported by cos-env.sh — pass as positional arg only.
+        python3 "$STARTUP_SCRIPT" "$COS_DB_PATH" 2>/dev/null || true
         break
       fi
     done

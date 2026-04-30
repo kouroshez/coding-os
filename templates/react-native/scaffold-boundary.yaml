@@ -1,0 +1,30 @@
+# Scaffold boundary for the react-native stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+# SSOT for what `mobile/` may write, read, or import.
+
+version: 1
+stack: react-native
+
+roots:
+  - mobile/
+
+file_patterns:
+  - "mobile/**/*.ts"
+  - "mobile/**/*.tsx"
+  - "mobile/**/*.js"
+  - "mobile/**/*.jsx"
+
+imports_from:
+  - shared/
+  - shared/types/
+  - shared/contracts/
+
+forbids_writing_in:
+  - frontend/
+  - backend/
+  - ai-service/
+
+notes:
+  - "Hermes + Reanimated worklets impose constraints — mark `'worklet'` on UI-thread functions."
+  - "Cross-stack types live in shared/types — never import directly from another stack root."
+  - "Offline-first by default: every screen handles loading / empty / error states."

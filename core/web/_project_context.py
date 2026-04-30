@@ -49,14 +49,19 @@ def current_project_root() -> Path:
 
 
 def current_db_path() -> Path:
-    """Return the active sqlite DB path (project-scoped or env fallback)."""
+    """Return the active sqlite DB path (project-scoped or env fallback).
+
+    Filename is `coding-os.db` (canonical). Legacy `thinking_os.db` is
+    auto-renamed by `core.thinking_os.db.migrate_legacy_db_filename()`
+    on first init_db() call, so Hub never needs to know about it.
+    """
     bound = _current_project.get()
     if bound is not None:
-        return bound / ".coding-os" / "thinking_os.db"
+        return bound / ".coding-os" / "coding-os.db"
     env = os.environ.get("COS_DB_PATH")
     if env:
         return Path(env)
-    return current_project_root() / ".coding-os" / "thinking_os.db"
+    return current_project_root() / ".coding-os" / "coding-os.db"
 
 
 class ProjectScopeMiddleware(BaseHTTPMiddleware):

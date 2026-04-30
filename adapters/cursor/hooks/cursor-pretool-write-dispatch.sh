@@ -115,6 +115,7 @@ for delegate in \
   enforce-doc-anchor.sh \
   enforce-memory-check.sh \
   enforce-skill.sh \
+  enforce-scaffold-boundary.sh \
   enforce-zoom.sh \
   enforce-graph-context.sh \
   enforce-rename-plan.sh \

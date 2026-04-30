@@ -1,0 +1,28 @@
+{
+  "pythonVersion": "3.10",
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    "core",
+    "core/thinking_os",
+    "core/graph_os",
+    "core/board_os",
+    "core/web"
+  ],
+  "include": [
+    "cli",
+    "core",
+    "adapters",
+    "scripts",
+    "tests"
+  ],
+  "exclude": [
+    ".venv",
+    ".build",
+    "**/__pycache__",
+    "**/.coding-os",
+    "**/.claude/worktrees"
+  ],
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "none"
+}

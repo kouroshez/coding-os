@@ -1,6 +1,11 @@
 <!-- domain:THINKING_OS | layer:plan | ssot:true | updated:2026-04-24 -->
 # Phase N — Role-Based Cognitive Routing
 
+> P: Plan for replacing F1..F11 formula dispatch with semantic role chains (researcher · architect · …) addressed via cos_compose_chain.
+> R: Working on thinking_os routing, role yaml, dispatcher, or the agents/roles surface.
+> S: Looking for the executed implementation — read AGENTS.md § Cognition & Tracing.
+> N: [phase-m-thinking_os-new-formula.md](phase-m-thinking_os-new-formula.md), [thinking_os-formulas.md](thinking_os-formulas.md), [code-os-core-docs/thinkingos-formulas/formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md)
+
 > Nav: [AGENTS.md](../AGENTS.md) › [roadmap](development-roadmap.md) › **Phase N**
 > Predecessor: [Phase M — Hybrid thinking_os v0.3](phase-m-thinking_os-new-formula.md) (implemented but architecturally incorrect on the routing layer)
 > Reference: [formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md), [thinking_os-formulas.md](thinking_os-formulas.md)
@@ -100,13 +105,13 @@ class TaskSignals(BaseModel):
 
 Location: `core/thinking_os/roles/` (11 files, one per formula)
 
-**Shape of `roles/F3_architect.yaml`:**
+**Shape of `roles/architect.yaml`:**
 
 ```yaml
-id: F3
+id: architect
 role_name: "Architect"
-formula_ref: F3
-agent_file: agents/F3_architect.md
+formula_ref: architect
+agent_file: agents/architect.md
 
 # when this role should be activated (fed by TaskSignals)
 activation:
@@ -142,7 +147,7 @@ model_pref:
   complex: opus
 
 # downstream wiring
-output_schema: cognition_schemas.F3Output
+output_schema: cognition_schemas.ArchitectOutput
 backtrack_triggers:
   - signal_phrase_regex: "(missing|unknown) actor"
     target: F2
@@ -164,7 +169,7 @@ prompt_prefix: |
   You are in the F3 Architect role. Your job is to produce NFRs, pattern,
   DB design, API contracts, infrastructure decisions, and ADRs. You are
   NOT implementing. You are NOT researching options (that was F1). You
-  are NOT defining scenarios (that was F2). Output strict F3Output JSON.
+  are NOT defining scenarios (that was F2). Output strict ArchitectOutput JSON.
 ```
 
 All 11 role files follow this shape. The `role_name` is the human-readable noun (Researcher, Analyst, Architect, Documenter, Implementer, Reviewer, Debugger, Security Auditor, Deployer, Observer, Refactorer).
@@ -199,7 +204,7 @@ def compose_chain(signals: TaskSignals, complexity: str, situation: str | None) 
 
     # 5. Apply intensity filter
     if complexity == "CLEAR":
-        chain = [r for r in chain if r in {"F5","F6"}]   # Light default
+        chain = [r for r in chain if r in {"implementer","reviewer"}]   # Light default
     return chain
 ```
 
@@ -252,7 +257,7 @@ presets:
   - id: legacy-takeover
     match:
       is_takeover: true
-    chain: [F2_reverse, F6_characterization, F4, F5, F6, F11, F3]
+    chain: [analyst_reverse, reviewer_characterization, documenter, implementer, reviewer, refactorer, architect]
     rationale: "formulas-en.md §Existing Project Takeover — reverse-engineer, stabilize, then evolve."
     score: 11
 
@@ -388,17 +393,17 @@ All downstream states (`DISPATCHING`, `AWAITING_AGENT`, `INTEGRATING`, backtrack
 
 | Action | Path | Why |
 |---|---|---|
-| New | `core/thinking_os/roles/F1_researcher.yaml` | F1 role metadata |
-| New | `core/thinking_os/roles/F2_analyst.yaml` | F2 role |
-| New | `core/thinking_os/roles/F3_architect.yaml` | F3 role |
-| New | `core/thinking_os/roles/F4_documenter.yaml` | F4 role |
-| New | `core/thinking_os/roles/F5_implementer.yaml` | F5 role |
-| New | `core/thinking_os/roles/F6_reviewer.yaml` | F6 role |
-| New | `core/thinking_os/roles/F7_debugger.yaml` | F7 role |
-| New | `core/thinking_os/roles/F8_security_auditor.yaml` | F8 role |
-| New | `core/thinking_os/roles/F9_deployer.yaml` | F9 role |
-| New | `core/thinking_os/roles/F10_observer.yaml` | F10 role |
-| New | `core/thinking_os/roles/F11_refactorer.yaml` | F11 role |
+| New | `core/thinking_os/roles/researcher.yaml` | F1 role metadata |
+| New | `core/thinking_os/roles/analyst.yaml` | F2 role |
+| New | `core/thinking_os/roles/architect.yaml` | F3 role |
+| New | `core/thinking_os/roles/documenter.yaml` | F4 role |
+| New | `core/thinking_os/roles/implementer.yaml` | F5 role |
+| New | `core/thinking_os/roles/reviewer.yaml` | F6 role |
+| New | `core/thinking_os/roles/debugger.yaml` | F7 role |
+| New | `core/thinking_os/roles/security_auditor.yaml` | F8 role |
+| New | `core/thinking_os/roles/deployer.yaml` | F9 role |
+| New | `core/thinking_os/roles/observer.yaml` | F10 role |
+| New | `core/thinking_os/roles/refactorer.yaml` | F11 role |
 | New | `core/thinking_os/presets/registry.yaml` | Validated chain combinations |
 | New | `core/thinking_os/task_analyzer.py` | Signal extractor |
 | New | `core/thinking_os/formula_composer.py` | Dynamic chain builder |

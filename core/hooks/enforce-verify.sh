@@ -34,7 +34,6 @@ while IFS= read -r segment; do
   case "$segment" in
     "make "*"task-done"*)              IS_TASK_DONE=true ;;
     "cos task-done"*)                  IS_TASK_DONE=true ;;
-    "cos task-move"*" complete"*)      IS_TASK_DONE=true ;;
     "cos task-move"*"--to complete"*)  IS_TASK_DONE=true ;;
     "cos task-move"*"--to=complete"*)  IS_TASK_DONE=true ;;
   esac

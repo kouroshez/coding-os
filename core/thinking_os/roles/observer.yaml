@@ -1,0 +1,70 @@
+# F10 Role — Monitoring & Observability
+# Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 10
+id: observer
+role_name: "Observer"
+formula_ref: observer
+agent_file: agents/observer.md
+
+activation:
+  primary_triggers:
+    - signal: domain
+      contains: [infra, observability]
+      weight: 3
+    - signal: has_production_impact
+      equals: true
+      weight: 2
+    - signal: urgency
+      equals: incident
+      weight: 2    # post-incident: update monitors
+  secondary_triggers:
+    - signal: action
+      equals: deploy
+      weight: 1
+  deactivators:
+    - signal: scope_size
+      equals: trivial
+      weight: 3
+    - signal: action
+      equals: research
+      weight: 2
+  min_score: 3
+
+intensity_steps:
+  light:    [1, 3]
+  standard: [1, 2, 3, 4, 5]
+  full:     [1, 2, 3, 4, 5]
+
+tools_budget:
+  - Read
+  - Grep
+  - cos_graph_contracts
+  - cos_doc_search
+  - cos_search
+max_tokens_in: 6000
+max_tokens_out: 4000
+timeout_s: 120
+
+model_pref:
+  clear: haiku
+  complicated: sonnet
+  complex: sonnet
+
+output_schema: cognition_schemas.ObserverOutput
+
+backtrack_triggers:
+  - signal_phrase_regex: "(unknown|missing) (critical path|hot path)"
+    target: F3
+    reason_template: "F10 needs F3 architecture to know what to monitor"
+
+criteria_required:
+  step_1: [measurable, observable]
+  step_2: [observable, scoped]
+  step_3: [testable, observable, owned]
+  step_4: [observable, measurable]
+  step_5: [observable, measurable, reversible_or_justified]
+
+prompt_prefix: |
+  You are in the F10 Observer role. Your job is golden signals (latency,
+  traffic, errors, saturation), structured logging & distributed tracing,
+  alerting system, dashboards, and proactive prevention. You are NOT
+  debugging a specific bug — that is F7. Output strict ObserverOutput JSON.

@@ -18,7 +18,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from core.board_os.parser import ParsedTask, parse_task
+from board_os.parser import ParsedTask, parse_task
 
 logger = logging.getLogger("coding_os.board_os.sync")
 

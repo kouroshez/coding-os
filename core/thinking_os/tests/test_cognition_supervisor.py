@@ -16,9 +16,9 @@ from cognition import (
 from cognition_schemas import (
     Actor,
     EvidenceBundle,
-    F1Output,
-    F2Output,
-    F3Output,
+    ResearcherOutput,
+    AnalystOutput,
+    ArchitectOutput,
     Scenario,
     SupervisorState,
 )
@@ -41,7 +41,7 @@ class TestRegistries:
 
     def test_agent_registry_loads(self):
         reg = load_agent_registry()
-        for fid in ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11"]:
+        for fid in ["researcher", "analyst", "architect", "documenter", "implementer", "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer"]:
             assert fid in reg, f"Missing agent file for {fid}"
 
     def test_agent_registry_has_11_formulas(self):
@@ -93,8 +93,8 @@ class TestSupervisorAdvance:
 
     def test_done_when_all_dispatched(self):
         state = _make_state(phase="DISPATCHING", persona_id="chain:F5,F6")
-        state.dispatched = ["F5", "F6"]
-        state.pending = ["F5", "F6"]
+        state.dispatched = ["implementer", "reviewer"]
+        state.pending = ["implementer", "reviewer"]
         bundle = _make_bundle(persona_id="chain:F5,F6")
         action = advance(state, bundle)
         assert action.action == "done"
@@ -108,36 +108,36 @@ class TestSupervisorAdvance:
         bundle = _make_bundle(situation_id="onboarding")
         action = advance(state, bundle)
         assert action.action == "dispatch"
-        assert action.formula == "F5"
+        assert action.formula == "implementer"
 
 
 class TestApplyBacktrack:
     def test_backtrack_increments_count(self):
         state = _make_state(phase="DISPATCHING")
-        state.dispatched = ["F2", "F3"]
-        action = apply_backtrack(state, "F3", "F2")
+        state.dispatched = ["analyst", "architect"]
+        action = apply_backtrack(state, "architect", "analyst")
         assert action.action == "backtrack"
         assert state.backtrack_count == 1
 
     def test_backtrack_clears_downstream(self):
         state = _make_state(phase="DISPATCHING")
-        state.dispatched = ["F2", "F3", "F5"]
-        apply_backtrack(state, "F5", "F2")
-        assert "F3" not in state.dispatched
-        assert "F5" not in state.dispatched
+        state.dispatched = ["analyst", "architect", "implementer"]
+        apply_backtrack(state, "implementer", "analyst")
+        assert "architect" not in state.dispatched
+        assert "implementer" not in state.dispatched
 
     def test_anti_paralysis_advisory_at_3(self):
         state = _make_state(phase="DISPATCHING")
         state.backtrack_count = 2
-        state.dispatched = ["F2"]
-        action = apply_backtrack(state, "F2", "F1")
+        state.dispatched = ["analyst"]
+        action = apply_backtrack(state, "analyst", "researcher")
         assert "Anti-Paralysis" in action.advisory
 
     def test_anti_paralysis_stronger_at_5(self):
         state = _make_state(phase="DISPATCHING")
         state.backtrack_count = 4
-        state.dispatched = ["F2"]
-        action = apply_backtrack(state, "F2", "F1")
+        state.dispatched = ["analyst"]
+        action = apply_backtrack(state, "analyst", "researcher")
         assert "Anti-Paralysis" in action.advisory
 
 
@@ -148,34 +148,34 @@ class TestApplyBacktrack:
 class TestBuildInputSlice:
     def test_f3_gets_f1_and_f2(self):
         bundle = _make_bundle()
-        bundle.F1_research = F1Output(summary="Research done")
-        bundle.F2_decompose = F2Output(problem_statement="Add auth")
-        slice_data = build_input_slice("F3", bundle)
-        assert "F1_research" in slice_data
-        assert "F2_decompose" in slice_data
-        assert "F3_architect" not in slice_data
+        bundle.researcher = ResearcherOutput(summary="Research done")
+        bundle.analyst = AnalystOutput(problem_statement="Add auth")
+        slice_data = build_input_slice("architect", bundle)
+        assert "researcher" in slice_data
+        assert "analyst" in slice_data
+        assert "architect" not in slice_data
 
     def test_f2_gets_f1_only(self):
         bundle = _make_bundle()
-        bundle.F1_research = F1Output(summary="Research done")
-        bundle.F2_decompose = F2Output(problem_statement="Add auth")
-        slice_data = build_input_slice("F2", bundle)
-        assert "F1_research" in slice_data
-        assert "F2_decompose" not in slice_data
+        bundle.researcher = ResearcherOutput(summary="Research done")
+        bundle.analyst = AnalystOutput(problem_statement="Add auth")
+        slice_data = build_input_slice("analyst", bundle)
+        assert "researcher" in slice_data
+        assert "analyst" not in slice_data
 
     def test_input_hash_deterministic(self):
         bundle = _make_bundle()
-        bundle.F1_research = F1Output(summary="Research done")
-        s1 = build_input_slice("F2", bundle)
-        s2 = build_input_slice("F2", bundle)
+        bundle.researcher = ResearcherOutput(summary="Research done")
+        s1 = build_input_slice("analyst", bundle)
+        s2 = build_input_slice("analyst", bundle)
         assert input_hash(s1) == input_hash(s2)
 
     def test_different_bundles_different_hash(self):
         b1 = _make_bundle()
-        b1.F1_research = F1Output(summary="Research A")
+        b1.researcher = ResearcherOutput(summary="Research A")
         b2 = _make_bundle()
-        b2.F1_research = F1Output(summary="Research B")
-        assert input_hash(build_input_slice("F2", b1)) != input_hash(build_input_slice("F2", b2))
+        b2.researcher = ResearcherOutput(summary="Research B")
+        assert input_hash(build_input_slice("analyst", b1)) != input_hash(build_input_slice("analyst", b2))
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +190,7 @@ class TestAmbiguityCheck:
 
     def test_f2_with_actors_no_owned_violation(self):
         bundle = _make_bundle()
-        bundle.F2_decompose = F2Output(
+        bundle.analyst = AnalystOutput(
             problem_statement="Add auth",
             actors=[Actor(id="user", role="buyer")],
             scope_in=["login flow"],
@@ -202,7 +202,7 @@ class TestAmbiguityCheck:
 
     def test_f2_missing_actors_flags_owned(self):
         bundle = _make_bundle()
-        bundle.F2_decompose = F2Output(
+        bundle.analyst = AnalystOutput(
             problem_statement="Add auth",
             actors=[],
         )
@@ -212,7 +212,7 @@ class TestAmbiguityCheck:
 
     def test_f2_missing_scope_flags_scoped(self):
         bundle = _make_bundle()
-        bundle.F2_decompose = F2Output(
+        bundle.analyst = AnalystOutput(
             problem_statement="Add auth",
             scope_in=[],
         )

@@ -1,1 +1,1 @@
-../../../core/thinking_os/agents/F11_refactor.md
+../../../core/thinking_os/agents/refactorer.md

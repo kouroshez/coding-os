@@ -40,7 +40,7 @@ def _appetite_hours(appetite: str | None) -> float | None:
 def _open_conn(state_dir: Path) -> sqlite3.Connection | None:
     if state_dir is None:
         return None
-    db_path = Path(state_dir) / "thinking_os.db"
+    db_path = Path(state_dir) / "coding-os.db"
     if not db_path.exists():
         return None
     try:
@@ -53,8 +53,8 @@ def _check_c24_wip(report, conn: sqlite3.Connection, project: Path) -> None:
     from cli.doctor import CheckResult as _CR
 
     try:
-        from core.board_os.config import load_config
-        from core.board_os.workflow import check_wip
+        from board_os.config import load_config
+        from board_os.workflow import check_wip
     except ImportError as exc:
         report.checks.append(
             _CR("C24", "board_wip", SEV_WARN, f"board_os not importable: {exc}")
@@ -169,7 +169,7 @@ def _check_c26_frontmatter(report, project: Path) -> None:
     from cli.doctor import CheckResult as _CR
 
     try:
-        from core.board_os.parser import parse_task
+        from board_os.parser import parse_task
     except ImportError as exc:
         report.checks.append(
             _CR("C26", "board_frontmatter", SEV_WARN,

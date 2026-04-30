@@ -22,7 +22,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from core.web.routes import board as board_routes  # noqa: E402
+from web.routes import board as board_routes  # noqa: E402
 
 
 @pytest.fixture
@@ -214,7 +214,7 @@ def test_agent_state_falls_back_to_db_as_present(fake_project, monkeypatch):
     and shouldn't pulse the live-agents dot green."""
     import sqlite3
 
-    from core.thinking_os.db import init_db
+    from thinking_os.db import init_db
 
     db_path = fake_project / ".coding-os" / "thinking_os.db"
     init_db(db_path).close()

@@ -96,10 +96,15 @@ def test_v20_skips_when_history_table_missing() -> None:
     assert has is False  # we genuinely skipped
 
 
-def test_v20_is_last_migration_in_chain() -> None:
-    """End-to-end: v20 is the highest declared migration."""
-    assert MIGRATIONS[-1][0] == 20
-    assert "Phase L.10" in MIGRATIONS[-1][1]
+def test_v20_is_in_migration_chain() -> None:
+    """v20 (Phase L.10 override audit) is registered in the migration chain.
+
+    No longer asserts last-migration position — Phase O added v21
+    (doc_audit_trail). Just verifies v20 is still discoverable.
+    """
+    by_version = {row[0]: row[1] for row in MIGRATIONS}
+    assert 20 in by_version, "v20 missing from MIGRATIONS"
+    assert "Phase L.10" in by_version[20]
 
 
 def test_v20_runs_via_run_migrations() -> None:

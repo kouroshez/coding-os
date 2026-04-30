@@ -1,9 +1,14 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-04-24 -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-04-28 -->
 # thinking_os Formula-Agents (Phase M + N)
 
+> P: Reference map between the 11 formula specs in formulas-en.md and the live agent prompts / role yaml addressed by semantic id.
+> R: Composing a chain, debugging supervisor dispatch, or adding a new role.
+> S: Editing a formula's substantive content — that lives in formulas-en.md (SSOT).
+> N: [code-os-core-docs/thinkingos-formulas/formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md), [phase-n-role-based-routing-plan.md](phase-n-role-based-routing-plan.md)
+
 Source of truth: [docs/code-os-core-docs/thinkingos-formulas/formulas-en.md](code-os-core-docs/thinkingos-formulas/formulas-en.md)
-Agent files: `core/thinking_os/agents/F<N>_<name>.md`
-**Role registry (Phase N)**: `core/thinking_os/roles/F{1..11}_*.yaml`
+Agent files: `core/thinking_os/agents/<role>.md` (semantic naming — `researcher.md`, `analyst.md`, …)
+**Role registry (Phase N)**: `core/thinking_os/roles/<role>.yaml`
 **Preset registry (Phase N)**: `core/thinking_os/presets/registry.yaml`
 Situation registry: `core/thinking_os/situations/registry.yaml`
 ~~Persona registry~~ (deprecated, removed v0.4): `core/thinking_os/personas/registry.yaml`
@@ -45,17 +50,17 @@ Task prompt + memory + MCP context
 
 | Formula | Agent file | Attach phases | Intensity min | Input | Output |
 |---|---|---|---|---|---|
-| F1 Research | `F1_research.md` | MAP | light | `F1Input` | `F1Output` |
-| F2 Decompose | `F2_decompose.md` | MAP, ORIENT, PLAN | light | `F2Input` | `F2Output` |
-| F3 Architect | `F3_architect.md` | PLAN | standard | `F3Input` | `F3Output` |
-| F4 Document | `F4_document.md` | EXECUTE | light | `F4Input` | `F4Output` |
-| F5 Implement | `F5_implement.md` | EXECUTE | light | `F5Input` | `F5Output` |
-| F6 Test/Review | `F6_test_review.md` | post-EXECUTE | light | `F6Input` | `F6Output` |
-| F7 Debug | `F7_debug.md` | post-EXECUTE | light | `F7Input` | `F7Output` |
-| F8 Security | `F8_security.md` | post-EXECUTE | standard | `F8Input` | `F8Output` |
-| F9 Deploy | `F9_deploy.md` | post-EXECUTE | full | `F9Input` | `F9Output` |
-| F10 Monitor | `F10_monitor.md` | periodic | standard | `F10Input` | `F10Output` |
-| F11 Refactor | `F11_refactor.md` | periodic | standard | `F11Input` | `F11Output` |
+| F1 Research | `researcher.md` | MAP | light | `ResearcherInput` | `ResearcherOutput` |
+| F2 Decompose | `analyst.md` | MAP, ORIENT, PLAN | light | `AnalystInput` | `AnalystOutput` |
+| F3 Architect | `architect.md` | PLAN | standard | `ArchitectInput` | `ArchitectOutput` |
+| F4 Document | `documenter.md` | EXECUTE | light | `DocumenterInput` | `DocumenterOutput` |
+| F5 Implement | `implementer.md` | EXECUTE | light | `ImplementerInput` | `ImplementerOutput` |
+| F6 Test/Review | `reviewer.md` | post-EXECUTE | light | `ReviewerInput` | `ReviewerOutput` |
+| F7 Debug | `debugger.md` | post-EXECUTE | light | `DebuggerInput` | `DebuggerOutput` |
+| F8 Security | `security_auditor.md` | post-EXECUTE | standard | `SecurityAuditorInput` | `SecurityAuditorOutput` |
+| F9 Deploy | `deployer.md` | post-EXECUTE | full | `DeployerInput` | `DeployerOutput` |
+| F10 Monitor | `observer.md` | periodic | standard | `ObserverInput` | `ObserverOutput` |
+| F11 Refactor | `refactorer.md` | periodic | standard | `RefactorerInput` | `RefactorerOutput` |
 
 All IO contracts are Pydantic models in `core/thinking_os/cognition_schemas.py`.
 The `EvidenceBundle` accumulates F1–F11 outputs across dispatches (append-only per session).

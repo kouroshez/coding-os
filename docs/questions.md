@@ -10,4 +10,12 @@ Read next: The blocked task file referenced in each question.
      Format: each question is `Q-NNN: <question>` followed by context lines.
      Resolve a question by removing it and adding the answer to the related task or ADR. -->
 
-(no open questions)
+## Open
+
+### Q-001 — Defer mtime-aware header cache for `list_doc_headers` (TASK-162 #3)
+
+- **Source:** review of TASK-155 `cos_doc_headers_by`.
+- **Status:** explicitly deferred — current cost (~80 ms / 200 docs / call) is below pain threshold.
+- **Trigger:** revisit when the meta-repo OR a consumer project crosses **>500 markdown docs** OR when `cos_doc_headers_by` shows up in the slow-tool log (`cos cognition trace --slow`).
+- **Implementation sketch when reactivated:** persist `{path: (mtime, frontmatter, opening_block)}` JSON in `$COS_STATE_DIR/.headers-cache.json`; invalidate per-row on `os.stat().st_mtime` mismatch; rebuild lazily on first `list_doc_headers` call after `auto-reindex-docs.sh` fires.
+- **Why not now:** premature optimization — the rglob walk is dominated by stat() calls that the OS page-cache already handles.

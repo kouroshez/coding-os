@@ -13,7 +13,7 @@
     cos board-config --init
 
 Thin click wrappers over core.board_os.{mcp_tools,workflow,parser,sync}.
-All commands use the project's SQLite DB (.coding-os/thinking_os.db)
+All commands use the project's SQLite DB (.coding-os/coding-os.db)
 unless COS_DB_PATH overrides.
 """
 
@@ -40,7 +40,7 @@ def _project_root() -> Path:
 def _db_conn() -> sqlite3.Connection:
     root = _project_root()
     db_path = os.environ.get(
-        "COS_DB_PATH", str(root / ".coding-os" / "thinking_os.db"),
+        "COS_DB_PATH", str(root / ".coding-os" / "coding-os.db"),
     )
     if not Path(db_path).exists():
         click.echo(f"ERROR: DB not found at {db_path}. Run `cos setup` first.", err=True)
@@ -220,7 +220,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
     click.echo(f"Starting Coding OS web server on {host}:{port} ... (Ctrl-C to stop)")
     click.echo(f"Once it is up, open {url} in your browser.")
     try:
-        from core.web.server import run_server
+        from web.server import run_server
     except ImportError as exc:
         click.echo(
             f"ERROR: could not import core.web.server: {exc}\n"
@@ -243,7 +243,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
 @click.option("--priority", default=None, help="Comma-separated (e.g. P0,P1)")
 @click.option("--format", type=click.Choice(["text", "json"]), default="text")
 def board_cmd(web, port, host, bind, swimlane, kind, epic, priority, format):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     if web:
         _launch_board_in_spa(host=(bind or host), port=port)
         return
@@ -341,7 +341,7 @@ def _render_board_ascii(envelope: str) -> None:
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
 def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels,
                     outcome, depends_on):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_create(
@@ -371,7 +371,7 @@ def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels,
          "(e.g. archive → in_progress after an accidental archive).",
 )
 def task_move_cmd(task_id, to, reason, force):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
@@ -390,7 +390,7 @@ def task_move_cmd(task_id, to, reason, force):
 
 def _simple_move(task_id: str, to: str, *, reason: str | None = None,
                  force: bool = False):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
@@ -434,7 +434,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     surface a brain-pipeline failure to the user.
     """
     try:
-        from core.thinking_os.record_outcome import record_outcome
+        from thinking_os.record_outcome import record_outcome
         row = conn.execute(
             "SELECT kind, title FROM tasks WHERE task_id = ?", (task_id,),
         ).fetchone()
@@ -442,7 +442,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         msg = row[1] if row else ""
         task_type = _KIND_TO_OUTCOME_TYPE.get(kind, "feat")
         db_path = os.environ.get(
-            "COS_DB_PATH", str(_project_root() / ".coding-os" / "thinking_os.db"),
+            "COS_DB_PATH", str(_project_root() / ".coding-os" / "coding-os.db"),
         )
         record_outcome(
             task_id=task_id,
@@ -482,7 +482,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     try:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
-            from core.thinking_os.tools.learning import learn_extract
+            from thinking_os.tools.learning import learn_extract
             result = learn_extract(conn)
             extracted = result.get("extracted", [])
             if extracted:
@@ -504,7 +504,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     try:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
-            from core.thinking_os.tools.routing import recalculate_weights
+            from thinking_os.tools.routing import recalculate_weights
             recalculate_weights(conn)
     except Exception as exc:
         _brain_logger.debug("recalculate_weights failed: %s", exc)
@@ -516,7 +516,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     try:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
-            from core.thinking_os.tools.retrieve import learn_from_retrievals
+            from thinking_os.tools.retrieve import learn_from_retrievals
             learn_from_retrievals(conn, lookback_days=14)
     except Exception as exc:
         _brain_logger.debug("learn_from_retrievals failed: %s", exc)
@@ -527,10 +527,10 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     try:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
-            from core.thinking_os.memory_gc import gc_memory
+            from thinking_os.memory_gc import gc_memory
             _db_path = os.environ.get(
                 "COS_DB_PATH",
-                str(_project_root() / ".coding-os" / "thinking_os.db"),
+                str(_project_root() / ".coding-os" / "coding-os.db"),
             )
             gc_memory(db_path=_db_path)
     except Exception as exc:
@@ -540,7 +540,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
 @click.command("task-done")
 @click.argument("task_id")
 def task_done_cmd(task_id):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
@@ -590,7 +590,7 @@ def task_cancel_cmd(task_id, reason):
 @click.option("--priority-min", default="P2", type=click.Choice(["P0", "P1", "P2", "P3"]))
 @click.option("--max-candidates", default=3, type=int)
 def task_pick_cmd(swimlane, priority_min, max_candidates):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_pick(
@@ -613,7 +613,7 @@ def task_pick_cmd(swimlane, priority_min, max_candidates):
 @click.command("daily", help="Morning standup — summary of last 24h.")
 @click.option("--since", default="24h")
 def daily_cmd(since):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_daily(conn, since=since)
@@ -633,7 +633,7 @@ def daily_cmd(since):
 @click.command("retro", help="Weekly retrospective — throughput + cycle time.")
 @click.option("--since", default="7d")
 def retro_cmd(since):
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_retro(conn, since=since)
@@ -644,7 +644,7 @@ def retro_cmd(since):
 
 @click.command("wip", help="Current WIP counts vs. caps.")
 def wip_cmd():
-    from core.board_os import mcp_tools
+    from board_os import mcp_tools
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_wip_check(conn)
@@ -797,7 +797,7 @@ def task_validate_cmd(task_id, for_status, as_json):
 
 
 def _task_validate_lint_all() -> None:
-    from core.board_os.parser import parse_task
+    from board_os.parser import parse_task
     root = _project_root()
     tasks_dir = root / "docs" / "tasks"
     if not tasks_dir.exists():
@@ -825,12 +825,12 @@ def _task_validate_lint_all() -> None:
 def _task_validate_preflight(task_id: str, for_status: str, as_json: bool) -> None:
     """Run the transition gate validator without applying any change."""
     import json as _json
-    from core.board_os.parser import extract_frontmatter
-    from core.board_os.transition_gates import GatesConfigError, load_gates_config
-    from core.board_os.transition_gates_cli import (
+    from board_os.parser import extract_frontmatter
+    from board_os.transition_gates import GatesConfigError, load_gates_config
+    from board_os.transition_gates_cli import (
         _has_work_log_entries, _verify_state,
     )
-    from core.board_os.transition_gates_validator import (
+    from board_os.transition_gates_validator import (
         Verdict, validate_transition,
     )
 

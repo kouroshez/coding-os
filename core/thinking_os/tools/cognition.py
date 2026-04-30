@@ -198,16 +198,16 @@ def register_cos_supervise_record_output(mcp, db_path):
         bundle = _load_bundle(session_id, task_marker, persona_id)
 
         field_map = {
-            "F1": "F1_research", "F2": "F2_decompose", "F3": "F3_architect",
-            "F4": "F4_document", "F5": "F5_implement", "F6": "F6_test_review",
-            "F7": "F7_debug", "F8": "F8_security", "F9": "F9_deploy",
-            "F10": "F10_monitor", "F11": "F11_refactor",
+            "researcher": "researcher", "analyst": "analyst", "architect": "architect",
+            "documenter": "documenter", "implementer": "implementer", "reviewer": "reviewer",
+            "debugger": "debugger", "security_auditor": "security_auditor", "deployer": "deployer",
+            "observer": "observer", "refactorer": "refactorer",
         }
         output_cls_map = {
-            "F1": schemas.F1Output, "F2": schemas.F2Output, "F3": schemas.F3Output,
-            "F4": schemas.F4Output, "F5": schemas.F5Output, "F6": schemas.F6Output,
-            "F7": schemas.F7Output, "F8": schemas.F8Output, "F9": schemas.F9Output,
-            "F10": schemas.F10Output, "F11": schemas.F11Output,
+            "researcher": schemas.ResearcherOutput, "analyst": schemas.AnalystOutput, "architect": schemas.ArchitectOutput,
+            "documenter": schemas.DocumenterOutput, "implementer": schemas.ImplementerOutput, "reviewer": schemas.ReviewerOutput,
+            "debugger": schemas.DebuggerOutput, "security_auditor": schemas.SecurityAuditorOutput, "deployer": schemas.DeployerOutput,
+            "observer": schemas.ObserverOutput, "refactorer": schemas.RefactorerOutput,
         }
 
         field = field_map.get(formula_id)
@@ -399,8 +399,8 @@ def register_cos_traceability(mcp, db_path):
         gaps = []
         bundle = _load_bundle(session_id, task_marker, persona_id)
         field_map = {
-            "F1": "F1_research", "F2": "F2_decompose", "F3": "F3_architect",
-            "F4": "F4_document", "F5": "F5_implement", "F6": "F6_test_review",
+            "researcher": "researcher", "analyst": "analyst", "architect": "architect",
+            "documenter": "documenter", "implementer": "implementer", "reviewer": "reviewer",
         }
 
         try:
@@ -816,6 +816,34 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
             "source": chain.source,
             "preset_id": chain.preset_id,
         })
+        # Phase M telemetry — persist the lead persona for the dispatch.
+        # Schema (migration v14): one row per compose_chain call.
+        try:
+            import sqlite3 as _sqlite
+            _conn = _sqlite.connect(db_path)
+            try:
+                lead_persona = chain.chain[0] if chain.chain else "unknown"
+                # Confidence proxy: preset_matched > situation_override >
+                # composer_fallback > hard_fallback (1.0 / 0.85 / 0.7 / 0.4).
+                conf_map = {"preset": 1.0, "situation": 0.85,
+                            "composer": 0.7, "hard": 0.4}
+                conf = conf_map.get(chain.source, 0.5)
+                # Intensity is per-role; use lead role's first step as the
+                # session-level signal (pragmatic — full breakdown lives in
+                # the trace event).
+                intensity = "default"
+                _conn.execute(
+                    "INSERT INTO persona_selections "
+                    "(session_id, task_marker, persona_id, confidence, reason, intensity) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (sid, chain.preset_id or "",
+                     lead_persona, conf, chain.source, intensity),
+                )
+                _conn.commit()
+            finally:
+                _conn.close()
+        except Exception as exc:  # noqa: BLE001 — telemetry must never block dispatch
+            logger.debug("persona_selections insert failed: %s", exc)
         return ok(
             chain.model_dump(),
             meta={"layer": "routing", "source": "formula_composer"},
@@ -879,16 +907,16 @@ def _persist_dispatch_output(
     schemas = _schemas()
     bundle = _load_bundle(session_id, task_marker, persona_id)
     field_map = {
-        "F1": "F1_research", "F2": "F2_decompose", "F3": "F3_architect",
-        "F4": "F4_document", "F5": "F5_implement", "F6": "F6_test_review",
-        "F7": "F7_debug", "F8": "F8_security", "F9": "F9_deploy",
-        "F10": "F10_monitor", "F11": "F11_refactor",
+        "researcher": "researcher", "analyst": "analyst", "architect": "architect",
+        "documenter": "documenter", "implementer": "implementer", "reviewer": "reviewer",
+        "debugger": "debugger", "security_auditor": "security_auditor", "deployer": "deployer",
+        "observer": "observer", "refactorer": "refactorer",
     }
     output_cls_map = {
-        "F1": schemas.F1Output, "F2": schemas.F2Output, "F3": schemas.F3Output,
-        "F4": schemas.F4Output, "F5": schemas.F5Output, "F6": schemas.F6Output,
-        "F7": schemas.F7Output, "F8": schemas.F8Output, "F9": schemas.F9Output,
-        "F10": schemas.F10Output, "F11": schemas.F11Output,
+        "researcher": schemas.ResearcherOutput, "analyst": schemas.AnalystOutput, "architect": schemas.ArchitectOutput,
+        "documenter": schemas.DocumenterOutput, "implementer": schemas.ImplementerOutput, "reviewer": schemas.ReviewerOutput,
+        "debugger": schemas.DebuggerOutput, "security_auditor": schemas.SecurityAuditorOutput, "deployer": schemas.DeployerOutput,
+        "observer": schemas.ObserverOutput, "refactorer": schemas.RefactorerOutput,
     }
     field = field_map.get(formula_id)
     cls = output_cls_map.get(formula_id)
@@ -932,7 +960,7 @@ def _build_dispatch_request(
     persona_id: str, intensity: str, timeout_s: float | None,
 ):
     """Build a DispatchRequest from session state (shared by run-one and run-parallel)."""
-    import dispatcher as _disp  # lazy: dispatcher module lives alongside server
+    from thinking_os import dispatcher as _disp  # lazy: avoid circular at import time
     cog = _cog()
     agents = cog.load_agent_registry()
     meta = agents.get(formula_id) or {}
@@ -960,10 +988,16 @@ def register_cos_dispatch_formula_run(mcp, db_path):
     @mcp.tool(
         name="cos_dispatch_formula_run",
         description=(
-            "Actually spawn a formula-agent and persist its output. Uses the "
-            "agent-specific dispatcher (Claude→claude-agent-sdk, others→default). "
-            "Returns DispatchResult. If no SDK is available, returns status='skipped' "
-            "and the main agent must execute the formula inline (Phase M fallback)."
+            "EXPLICIT, OPT-IN sub-agent spawn for one role. Costs ~5k tokens "
+            "per call (system prompt + input slice + completion) and rebuilds "
+            "context inside the sub-agent. PREFER lazy-loading: read "
+            "core/thinking_os/agents/<role>.md inline and produce the output "
+            "schema yourself — same accuracy, far fewer tokens, no context "
+            "rebuild penalty. Use this tool only when (a) the role's work is "
+            "long-running and would dominate the main loop, or (b) you "
+            "explicitly want a separate session for parallelism. If no SDK is "
+            "available, returns status='skipped' and the main agent should "
+            "execute the role's procedure inline."
         ),
     )
     @safe_tool
@@ -986,7 +1020,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                       to avoid nested-loop issues when the server itself is async.
         """
         import asyncio as _asyncio
-        import dispatcher as _disp
+        from thinking_os import dispatcher as _disp
 
         try:
             req = _build_dispatch_request(
@@ -1069,7 +1103,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         OUTPUT:       {results: [...], parallel_wall_ms, ok_count, total}.
         """
         import asyncio as _asyncio
-        import dispatcher as _disp
+        from thinking_os import dispatcher as _disp
 
         if not formula_ids:
             return fail("validation", "formula_ids must be non-empty")
@@ -1156,8 +1190,160 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
     return cos_dispatch_parallel_run
 
 
+def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved for hit-rate metrics
+    """Register cos_classify_prompt — heuristic Cynefin + dimensions classifier.
+
+    Replaces the manual `bash write-state.sh .thinking_os-gate "COMPLICATED 3"`
+    step. The agent calls this on the user's prompt and gets back a recorded
+    gate without manually counting domains or evaluating Cynefin signals.
+    """
+    @mcp.tool(
+        name="cos_classify_prompt",
+        description=(
+            "Heuristic Cynefin + dimensions classifier. Reads a user prompt "
+            "and returns {complexity, dimensions, reasoning, signals}. "
+            "Optionally writes the gate marker so enforce-task-start.sh "
+            "passes. Replaces the manual `write-state.sh .thinking_os-gate` "
+            "step. Sub-second; deterministic; no LLM call."
+        ),
+    )
+    @safe_tool
+    def cos_classify_prompt(
+        prompt: str,
+        record: bool = True,
+        agent_dir: str = "",
+    ) -> str:
+        """
+        PURPOSE:      Auto-classify a prompt's Cynefin complexity + dimension count.
+        INPUT:        prompt — user request text.
+                      record — if True, writes `.thinking_os-gate` marker.
+                      agent_dir — override $COS_AGENT_DIR (testing only).
+        OUTPUT:       envelope {complexity, dimensions, reasoning, signals,
+                      recorded}.
+        DEPENDENCIES: stdlib only — pattern-based.
+        NOTES:        Heuristics intentionally conservative — when signals
+                      conflict, escalates to the higher complexity tier
+                      (CLEAR<COMPLICATED<COMPLEX<CHAOTIC). Agent can override
+                      manually if domain knowledge says otherwise.
+        """
+        import os as _os
+        import re as _re
+        text = (prompt or "").strip().lower()
+        if not text:
+            return ok({
+                "complexity": "CLEAR",
+                "dimensions": 1,
+                "reasoning": "empty prompt",
+                "signals": [],
+                "recorded": False,
+            }, meta={"layer": "routing"})
+
+        signals: list[str] = []
+        complexity = "CLEAR"
+
+        # CHAOTIC — production fire / urgent intervention
+        chaotic_re = _re.compile(
+            r"\b(p0|p1|outage|down|broken|crashed?|emergency|urgent|"
+            r"fire|on[- ]call|paged|rollback (?:now|asap))\b"
+        )
+        if chaotic_re.search(text):
+            complexity = "CHAOTIC"
+            signals.append("incident-language")
+
+        # COMPLEX — exploratory / unknown answer
+        complex_re = _re.compile(
+            r"\b(best way|explore|experiment|optimi[sz]e|research|novel|"
+            r"investigate|figure out|prototype|spike|trade[- ]off|benchmark)\b"
+        )
+        if complexity == "CLEAR" and complex_re.search(text):
+            complexity = "COMPLEX"
+            signals.append("exploratory-language")
+
+        # COMPLICATED — design / architect / integrate / multi-step
+        complicated_re = _re.compile(
+            r"\b(design|architect|integrate|refactor|implement|build|migrat\w*|"
+            r"split|merge|extract|generali[sz]e|extend|orchestrat\w*|"
+            r"normali[sz]e|denormali[sz]e)\b"
+        )
+        if complexity == "CLEAR" and complicated_re.search(text):
+            complexity = "COMPLICATED"
+            signals.append("design-language")
+
+        # Promotion: long prompt without trivial keywords ⇒ at least COMPLICATED
+        word_count = len(text.split())
+        if complexity == "CLEAR" and word_count > 60:
+            complexity = "COMPLICATED"
+            signals.append(f"prompt-length={word_count}")
+
+        # Dimensions — count distinct domains touched
+        domain_patterns = {
+            "backend":   r"\b(api|backend|server|django|fastapi|fiber|endpoint|router|service)\b",
+            "frontend":  r"\b(frontend|react|next\.?js|nextjs|component|ui|client|page|jsx|tsx)\b",
+            "mobile":    r"\b(mobile|ios|android|react native|expo|swift|kotlin)\b",
+            "ai":        r"\b(llm|ai|prompt|embedding|rag|model|completion|token)\b",
+            "security":  r"\b(security|auth|permission|csrf|xss|sql injection|jwt|oauth|tls|encryption|secret)\b",
+            "ops":       r"\b(deploy|ci/cd|docker|kubernetes|k8s|infra|monitoring|alert|runbook|sre)\b",
+            "docs":      r"\b(doc|documentation|readme|spec|playbook|adr)\b",
+            "db":        r"\b(database|sql|sqlite|postgres|mysql|migration|schema|index|query)\b",
+            "graph":     r"\b(graph|neo4j|kuzu|node|edge|traversal)\b",
+            "test":      r"\b(test|testing|pytest|jest|coverage|fixture|mock)\b",
+        }
+        hit_domains: list[str] = []
+        for name, pat in domain_patterns.items():
+            if _re.search(pat, text):
+                hit_domains.append(name)
+        dimensions = max(1, len(hit_domains))
+        if dimensions >= 5 and complexity == "CLEAR":
+            complexity = "COMPLICATED"
+            signals.append(f"multi-dimension={dimensions}")
+
+        # Trivial-fix shortcut: VERY short prompt + obvious one-shot keyword,
+        # AND no multi-domain signal. Conservative — ambiguous prompts must
+        # NOT silently degrade to CLEAR (the gate exists to prevent that).
+        trivial_re = _re.compile(
+            r"^(fix typo|update doc(?:string)?|tweak (?:wording|comment))\b"
+        )
+        if (
+            trivial_re.search(text)
+            and word_count < 15
+            and len(hit_domains) <= 1
+            and complexity != "CHAOTIC"
+        ):
+            complexity = "CLEAR"
+            dimensions = 1
+            signals = ["trivial-edit-shortcut"]
+
+        reasoning = (
+            f"Cynefin: {complexity} ({', '.join(signals) or 'no escalating signals'}); "
+            f"dims={dimensions} from domains: {', '.join(hit_domains) or 'none'}"
+        )
+
+        # Optionally record the gate so enforce-task-start.sh passes.
+        recorded = False
+        if record:
+            target_dir = agent_dir or _os.environ.get("COS_AGENT_DIR", "")
+            if target_dir:
+                gate_path = Path(target_dir) / ".thinking_os-gate"
+                gate_path.parent.mkdir(parents=True, exist_ok=True)
+                gate_path.write_text(
+                    f"{complexity} {dimensions}\n", encoding="utf-8"
+                )
+                recorded = True
+
+        return ok({
+            "complexity": complexity,
+            "dimensions": dimensions,
+            "reasoning": reasoning,
+            "signals": signals,
+            "domains": hit_domains,
+            "recorded": recorded,
+        }, meta={"layer": "routing"})
+
+    return cos_classify_prompt
+
+
 def register_all(mcp, db_path: str) -> None:
-    """Register all 14 cognition tools with the MCP server (9 Phase M + 3 Phase N + 2 Phase N.SDK).
+    """Register all 15 cognition tools with the MCP server.
     cos_route_persona was removed in v0.3 — use cos_compose_chain instead."""
     # Phase M
     register_cos_supervise(mcp, db_path)
@@ -1173,6 +1359,8 @@ def register_all(mcp, db_path: str) -> None:
     register_cos_analyze_task(mcp, db_path)
     register_cos_compose_chain(mcp, db_path)
     register_cos_role_info(mcp, db_path)
-    # Phase N.SDK — real dispatch
+    # Phase N.SDK — real dispatch (opt-in, costly)
     register_cos_dispatch_formula_run(mcp, db_path)
     register_cos_dispatch_parallel_run(mcp, db_path)
+    # Phase O — auto-Classify (eliminates manual gate recording)
+    register_cos_classify_prompt(mcp, db_path)

@@ -1,1 +1,1 @@
-../../../core/thinking_os/agents/F9_deploy.md
+../../../core/thinking_os/agents/deployer.md

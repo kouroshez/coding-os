@@ -23,7 +23,7 @@ def _db_path() -> Path:
     env = os.environ.get("COS_DB_PATH")
     if env:
         return Path(env)
-    return Path(".coding-os/thinking_os.db")
+    return Path(".coding-os/coding-os.db")
 
 
 def _parse_since(since: str | None) -> str | None:

@@ -10,3 +10,4 @@ invoke the matching skill via the `Skill` tool.
 | `backend/**/*.go` | `go-patterns` | clean-code | go |
 | `backend/**/*.go` | `go-fiber` | clean-code | go-fiber |
 | `frontend/**/*.{ts,tsx}` | `nextjs-react` | clean-code, frontend-design | nextjs |
+| `mobile/**/*.{ts,tsx}` | `react-native-mobile` | clean-code, frontend-fundamentals | react-native |

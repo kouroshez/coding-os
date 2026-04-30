@@ -12,14 +12,8 @@ NOTES:  Follows the same lazy-import pattern as graph_commands.py.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import click
-
-# Ensure repo root is on sys.path so `from core.web...` works.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 
 @click.command(name="web")
@@ -46,7 +40,7 @@ def web_cmd(port: int, host: str, reload: bool, log_level: str) -> None:
             coding-os web SPA (bookmarkable across sessions).
     """
     try:
-        from core.web.server import run_server  # type: ignore
+        from web.server import run_server  # type: ignore
     except ImportError as exc:
         click.echo(
             f"ERROR: could not import core.web.server: {exc}\n"

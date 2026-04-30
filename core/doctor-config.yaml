@@ -20,12 +20,13 @@ placeholder_scan:
   skip_paths:
   - docs/governance/templates
 schema:
-  expected_version: 14
+  expected_version: 22
   expected_tables:
   - agent_metrics
   - ambiguity_violations
   - backtrack_events
   - concept_graph
+  - doc_audit_trail
   - document_chunks
   - document_chunks_fts
   - document_chunks_fts_config
@@ -34,6 +35,7 @@ schema:
   - document_chunks_fts_idx
   - embeddings
   - experiment_log
+  - file_index_state
   - formula_dispatches
   - graph_edges_v12
   - graph_evidence_v12
@@ -50,6 +52,7 @@ schema:
   - pattern_validations
   - persona_selections
   - retrieval_quality
+  - retrieval_router_log
   - retrievals
   - routing_weights
   - schema_version

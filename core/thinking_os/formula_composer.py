@@ -34,11 +34,11 @@ _CANONICAL_ORDER: list[str] = [f"F{i}" for i in range(1, 12)]
 _CANONICAL_INDEX: dict[str, int] = {r: i for i, r in enumerate(_CANONICAL_ORDER)}
 
 _HARD_FALLBACK: dict[str, list[str]] = {
-    "CLEAR": ["F5", "F6"],
-    "COMPLICATED": ["F2", "F3", "F5", "F6"],
-    "COMPLEX": ["F1", "F2", "F3", "F5", "F6"],
-    "CHAOTIC": ["F7", "F6"],
-    "CONFUSION": ["F2", "F5", "F6"],
+    "CLEAR": ["implementer", "reviewer"],
+    "COMPLICATED": ["analyst", "architect", "implementer", "reviewer"],
+    "COMPLEX": ["researcher", "analyst", "architect", "implementer", "reviewer"],
+    "CHAOTIC": ["debugger", "reviewer"],
+    "CONFUSION": ["analyst", "implementer", "reviewer"],
 }
 
 _DEFAULT_PRESET_MIN_SCORE = 8
@@ -59,13 +59,18 @@ def reset_registry_cache() -> None:
 
 
 def load_roles() -> dict[str, dict]:
-    """Load all F*.yaml role files into a dict keyed by role id."""
+    """Load all role yaml files into a dict keyed by role id.
+
+    Filenames are now semantic (researcher.yaml, analyst.yaml, ...). The
+    role id inside each file is the same slug; we ignore README.md and
+    similar non-role yaml files.
+    """
     global _roles_cache
     if _roles_cache is not None:
         return _roles_cache
     roles: dict[str, dict] = {}
     if _ROLES_DIR.is_dir():
-        for path in sorted(_ROLES_DIR.glob("F*.yaml")):
+        for path in sorted(_ROLES_DIR.glob("*.yaml")):
             try:
                 data = yaml.safe_load(path.read_text()) or {}
                 if "id" in data:
@@ -74,7 +79,7 @@ def load_roles() -> dict[str, dict]:
                 raise RuntimeError(f"Invalid role file {path.name}: {exc}") from exc
     override_dir = _find_override_dir("roles.override")
     if override_dir is not None:
-        for path in sorted(override_dir.glob("F*.yaml")):
+        for path in sorted(override_dir.glob("*.yaml")):
             try:
                 data = yaml.safe_load(path.read_text()) or {}
                 rid = data.get("id")
@@ -200,7 +205,7 @@ def compose_chain(
             reason=f"composer scoring: {len(active)} roles activated",
         )
 
-    chain = _HARD_FALLBACK.get(signals.complexity, ["F2", "F5", "F6"])
+    chain = _HARD_FALLBACK.get(signals.complexity, ["analyst", "implementer", "reviewer"])
     return ComposedChain(
         chain=chain,
         source="fallback",

@@ -50,6 +50,7 @@ run_delegate() {
 for delegate in \
   capture-observation.sh \
   auto-reindex-docs.sh \
+  auto-regen-doc-index.sh \
   capture-work-log.sh \
   auto-task-sync.sh \
   lint-task.sh \

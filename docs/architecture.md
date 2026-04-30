@@ -101,7 +101,7 @@ The thinking_os DB tracks everything and learns from past sessions.
 | `COS_DB_PATH` | `.coding-os/thinking_os.db` | SQLite database path |
 | `COS_SESSION_FILE` | `.coding-os/session-id` | Session ID file |
 
-## MCP Tools (27 tools, `cos_*` prefix)
+## MCP Tools (32 tools, `cos_*` prefix)
 
 ### Response Contract (applies to ALL tools below)
 
@@ -148,9 +148,11 @@ Helpers: `ok(data)` / `fail(category, message)` / `@safe_tool` decorator in [cor
 
 - `cos_graph` — BFS traversal of concept/file graph
 
-### Document RAG (1, Phase B)
+### Document RAG (3, Phase B + Phase O.4)
 
 - `cos_doc_search` — Semantic search over `document_chunks` populated by `make docs-index` from `docs/` (PRD, architecture, ADRs, api-contracts, page specs, engineering, ops, design). Supports `source_types` filter and per-source dedupe. Falls back gracefully when `sentence-transformers` is not installed.
+- `cos_doc_header` — Single-file header-only lazy load. Returns frontmatter (`domain` / `layer` / `ssot` / `updated` / `tokens` / `reads`) + opening block (`Purpose` / `Read when` / `Skip when` / `Read next`, both long and short `P/R/S/N` forms) + H1 title. Body is never read. Designed so the agent decides whether the body is worth a full Read in <300 tokens.
+- `cos_doc_headers_by` — Bulk filter form. Walks a docs root and yields every header matching `domain` / `layer` / `ssot` / `since_iso`. Sorted by frontmatter `priority` then `updated`. Defensive cap at 50 results (override via `limit`).
 
 ### Task Store (4, Phase C)
 
@@ -159,9 +161,12 @@ Helpers: `ok(data)` / `fail(category, message)` / `@safe_tool` decorator in [cor
 - `cos_task_dependents` — Downstream tasks that depend on this one (quoted-JSON matcher prevents TASK-19 vs TASK-195 false positives)
 - `cos_task_by_filter` — Structured filter by status and/or domain
 
-## Database Schema (v20)
+## Database Schema (v22)
 
-20 core tables in SQLite with WAL mode + FTS5 (graceful degradation if FTS5 unavailable):
+22 migrations in SQLite with WAL mode + FTS5 (graceful degradation if FTS5 unavailable). Phase O migrations:
+
+- **v21 — `doc_audit_trail`**: append-only doc edit + decision history (see [governance/docs-system.md](governance/docs-system.md)).
+- **v22 — `document_chunks` frontmatter columns**: `domain`, `layer`, `ssot`, `updated_iso`, `is_active` for Stage-1 RAG metadata pre-filtering. `is_active` is flipped to 0 by `cos_audit_log_record` on `action='deleted'|'reverted'`, hiding superseded chunks from `cos_doc_search` by default.
 
 | Table | Migration | Purpose |
 | --- | --- | --- |

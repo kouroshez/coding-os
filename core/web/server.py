@@ -77,21 +77,21 @@ def create_app() -> FastAPI:
     # Per-request project scope — lets a single uvicorn serve every
     # registered coding-os project under /api/p/<slug>/...  (Hub mode).
     # Legacy launches without /p/<slug>/ keep using the cwd/env fallback.
-    from core.web._project_context import ProjectScopeMiddleware
+    from web._project_context import ProjectScopeMiddleware
 
     app.add_middleware(ProjectScopeMiddleware)
 
     # ------------------------------------------------------------------
     # Route registration
     # ------------------------------------------------------------------
-    from core.web.routes.board import router as board_router
-    from core.web.routes.cognition import router as cognition_router
-    from core.web.routes.graph import router as graph_router
-    from core.web.routes.health import router as health_router
-    from core.web.routes.hub import router as hub_router
-    from core.web.routes.metrics import router as metrics_router
-    from core.web.routes.search import router as search_router
-    from core.web.routes.stream import router as stream_router
+    from web.routes.board import router as board_router
+    from web.routes.cognition import router as cognition_router
+    from web.routes.graph import router as graph_router
+    from web.routes.health import router as health_router
+    from web.routes.hub import router as hub_router
+    from web.routes.metrics import router as metrics_router
+    from web.routes.search import router as search_router
+    from web.routes.stream import router as stream_router
 
     app.include_router(health_router)
     app.include_router(metrics_router)
@@ -171,9 +171,11 @@ def run_server(
     INPUT:   host, port, reload, log_level — all optional, fall back to env.
     OUTPUT:  none (blocks until server is stopped).
     DEPENDENCIES: uvicorn.
-    NOTES:  Uses the app factory string "core.web.server:create_app" with
+    NOTES:  Uses the app factory string "web.server:create_app" with
             factory=True so uvicorn can reload cleanly.  reload=True enables
-            watchfiles for development.
+            watchfiles for development. The string targets the editable-install
+            package name (web), not the on-disk path (core/web), so reload
+            works regardless of the launching cwd.
     """
     import uvicorn
 
@@ -181,7 +183,7 @@ def run_server(
     _port = port or DEFAULT_PORT
 
     uvicorn.run(
-        "core.web.server:create_app",
+        "web.server:create_app",
         host=_host,
         port=_port,
         reload=reload,

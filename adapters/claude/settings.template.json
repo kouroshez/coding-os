@@ -27,11 +27,6 @@
             "command": "{{HOOKS_DIR}}/enforce-verify.sh",
             "statusMessage": "✅ Verifying suites before task-done...",
             "timeout": 1500
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 800
           }
         ]
       },
@@ -79,6 +74,12 @@
             "command": "{{HOOKS_DIR}}/thinking_os-gate.sh",
             "statusMessage": "🧠 Verifying Complexity Gate recorded...",
             "timeout": 500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-scaffold-boundary.sh",
+            "statusMessage": "🚧 Checking scaffold-boundary (multi-stack subtree isolation)...",
+            "timeout": 1500
           },
           {
             "type": "command",
@@ -133,11 +134,6 @@
             "command": "{{HOOKS_DIR}}/enforce-task-body.sh",
             "statusMessage": "🚦 Validating transition gates (DoR/DoD)...",
             "timeout": 4000
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 800
           },
           {
             "type": "command",
@@ -197,6 +193,18 @@
             "command": "{{HOOKS_DIR}}/auto-reindex-docs.sh",
             "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness...",
             "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-regen-doc-index.sh",
+            "statusMessage": "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter...",
+            "timeout": 1500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-regen-section-index.sh",
+            "statusMessage": "🧭 Regenerating <file>.INDEX.md for fat doc...",
+            "timeout": 1500
           },
           {
             "type": "command",
@@ -276,14 +284,26 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 800
+            "command": "{{HOOKS_DIR}}/auto-prune-deleted-files.sh",
+            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
+            "timeout": 1500
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
             "statusMessage": "💡 Checking if learn-validate reminder is due...",
             "timeout": 500
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/verify-rename-callers.sh",
+            "statusMessage": "🔁 Checking for unreplaced rename callers...",
+            "timeout": 2000
           }
         ]
       },
@@ -330,7 +350,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness...",
-            "timeout": 6000
+            "timeout": 2500
           },
           {
             "type": "command",
@@ -375,7 +395,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/warn-mcp-down.sh",
             "statusMessage": "🩺 Probing MCP coding-os liveness...",
-            "timeout": 6000
+            "timeout": 2500
           },
           {
             "type": "command",

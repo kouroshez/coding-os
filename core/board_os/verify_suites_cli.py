@@ -23,12 +23,12 @@ import sys
 import time
 from pathlib import Path
 
-from core.board_os.transition_gates import load_gates_config
-from core.board_os.transition_gates_validator import (
+from board_os.transition_gates import load_gates_config
+from board_os.transition_gates_validator import (
     Verdict,
     evaluate_override,
 )
-from core.board_os.verify_suites import (
+from board_os.verify_suites import (
     VerifySuitesError,
     load_verify_suites,
     match_suites,

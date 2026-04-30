@@ -1,0 +1,38 @@
+# Phase L — Scrumban board configuration (base default).
+# Per-stack overrides ship in templates/<stack>/scaffold/.coding-os/.
+# See docs/phase-l-scrumban-task-system-plan.md §6.1.1 + §17 (Multi-Repo).
+#
+# Four categorization axes for tasks:
+#   swimlane = domain (rows on the board) — defined HERE
+#   kind     = work type (card colour) — closed enum, NOT configurable
+#   epic     = initiative (optional badge) — free string
+#   labels   = free tags — must NOT overlap kind enum
+
+swimlanes:
+  - id: backend
+    label: "Backend"
+    color: "#3b82f6"
+    description: "Server-side logic, API, persistence"
+  - id: frontend
+    label: "Frontend"
+    color: "#22c55e"
+    description: "UI, components, client-side"
+  - id: docs
+    label: "Documentation"
+    color: "#a855f7"
+    description: "Docs, ADRs, READMEs"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "DevOps, CI/CD, deployment"
+
+# WIP caps (perfectionism defense for solo dev; teams may raise).
+wip_limits:
+  in_progress: 1   # do one thing at a time
+  testing: 3
+  emergency: 2
+
+# Optional extra label families (kind colours are fixed, NOT here).
+# Custom labels not in this list still work — they get a deterministic
+# hash-based colour, but no emoji.
+label_families: []

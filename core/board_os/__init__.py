@@ -20,7 +20,7 @@ later slices (see docs/phase-l-scrumban-task-system-plan.md Section
 legacy aiohttp viewer was removed in S6 of the graph_os redesign.
 """
 
-from core.board_os.config import (
+from .config import (
     KIND_ENUM,
     PRIORITY_ENUM,
     STATUS_ENUM,

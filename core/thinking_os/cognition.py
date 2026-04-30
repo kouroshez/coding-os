@@ -66,23 +66,26 @@ def load_situation_registry() -> dict[str, dict[str, Any]]:
 
 def load_agent_registry() -> dict[str, dict[str, Any]]:
     """
-    PURPOSE:      Parse frontmatter from each F<N>_<name>.md agent file.
-    INPUT:        agents/ directory.
-    OUTPUT:       {formula_id: frontmatter_dict}  e.g. {"F2": {...}}
+    PURPOSE:      Parse frontmatter from each role .md prompt file.
+    INPUT:        agents/ directory (researcher.md, analyst.md, ...).
+    OUTPUT:       {role_id: frontmatter_dict}  e.g. {"analyst": {...}}
     DEPENDENCIES: PyYAML, AGENTS_DIR.
-    NOTES:        Frontmatter delimited by '---' lines.
+    NOTES:        Frontmatter delimited by '---' lines. README.md is
+                  skipped (it documents the catalog, not a role).
     """
     global _agent_registry
     if _agent_registry is not None:
         return _agent_registry
     registry: dict[str, dict[str, Any]] = {}
-    for agent_file in sorted(AGENTS_DIR.glob("F*.md")):
+    for agent_file in sorted(AGENTS_DIR.glob("*.md")):
+        if agent_file.name == "README.md":
+            continue
         text = agent_file.read_text()
         if text.startswith("---"):
             parts = text.split("---", 2)
             if len(parts) >= 3:
                 meta = yaml.safe_load(parts[1]) or {}
-                fid = meta.get("id", agent_file.stem.split("_")[0])
+                fid = meta.get("id", agent_file.stem)
                 meta["_file"] = agent_file.name
                 registry[str(fid)] = meta
     _agent_registry = registry
@@ -139,17 +142,17 @@ def _situation_dispatch_chain(situation_id: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 _FORMULA_BUNDLE_FIELD = {
-    "F1": "F1_research",
-    "F2": "F2_decompose",
-    "F3": "F3_architect",
-    "F4": "F4_document",
-    "F5": "F5_implement",
-    "F6": "F6_test_review",
-    "F7": "F7_debug",
-    "F8": "F8_security",
-    "F9": "F9_deploy",
-    "F10": "F10_monitor",
-    "F11": "F11_refactor",
+    "researcher": "researcher",
+    "analyst": "analyst",
+    "architect": "architect",
+    "documenter": "documenter",
+    "implementer": "implementer",
+    "reviewer": "reviewer",
+    "debugger": "debugger",
+    "security_auditor": "security_auditor",
+    "deployer": "deployer",
+    "observer": "observer",
+    "refactorer": "refactorer",
 }
 
 
@@ -346,54 +349,54 @@ def apply_backtrack(
 # Per-formula required criteria. Each formula's output schema determines
 # which fields are evidence for which criterion (see _CRITERIA_FIELD_MAP).
 _CRITERIA_WEIGHTS: dict[str, list[AmbiguityCriterion]] = {
-    "F1": [
+    "researcher": [
         AmbiguityCriterion.OBSERVABLE,
         AmbiguityCriterion.SCOPED,
     ],
-    "F2": [
+    "analyst": [
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.OWNED,
         AmbiguityCriterion.OBSERVABLE,
         AmbiguityCriterion.TESTABLE,
     ],
-    "F3": [
+    "architect": [
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.MEASURABLE,
         AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED,
     ],
-    "F4": [
+    "documenter": [
         AmbiguityCriterion.OBSERVABLE,
         AmbiguityCriterion.SCOPED,
     ],
-    "F5": [
+    "implementer": [
         AmbiguityCriterion.TESTABLE,
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.OWNED,
     ],
-    "F6": [
+    "reviewer": [
         AmbiguityCriterion.MEASURABLE,
         AmbiguityCriterion.TESTABLE,
     ],
-    "F7": [
+    "debugger": [
         AmbiguityCriterion.OBSERVABLE,
         AmbiguityCriterion.TESTABLE,
         AmbiguityCriterion.SCOPED,
     ],
-    "F8": [
+    "security_auditor": [
         AmbiguityCriterion.OBSERVABLE,
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.OWNED,
     ],
-    "F9": [
+    "deployer": [
         AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED,
         AmbiguityCriterion.TESTABLE,
         AmbiguityCriterion.OBSERVABLE,
     ],
-    "F10": [
+    "observer": [
         AmbiguityCriterion.MEASURABLE,
         AmbiguityCriterion.OBSERVABLE,
     ],
-    "F11": [
+    "refactorer": [
         AmbiguityCriterion.SCOPED,
         AmbiguityCriterion.MEASURABLE,
         AmbiguityCriterion.TESTABLE,
@@ -406,32 +409,32 @@ _CRITERIA_WEIGHTS: dict[str, list[AmbiguityCriterion]] = {
 # When multiple fields map to one criterion, ANY non-empty satisfies. Detail
 # message describes the missing evidence for the agent to fix.
 _CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], ...]]] = {
-    "F1": {
+    "researcher": {
         AmbiguityCriterion.OBSERVABLE: (("sources", "No sources cited in F1 research"),),
         AmbiguityCriterion.SCOPED: (
             ("key_findings", "No key_findings recorded in F1"),
             ("recommended_next", "recommended_next is empty in F1"),
         ),
     },
-    "F2": {
+    "analyst": {
         AmbiguityCriterion.SCOPED: (("scope_in", "scope_in is empty in F2 output"),),
         AmbiguityCriterion.OWNED: (("actors", "No actors defined in F2 output"),),
         AmbiguityCriterion.OBSERVABLE: (("success_metrics", "No success_metrics in F2 output"),),
         AmbiguityCriterion.TESTABLE: (("scenarios", "No scenarios defined in F2 output"),),
     },
-    "F3": {
+    "architect": {
         AmbiguityCriterion.SCOPED: (("selected_style", "selected_style empty in F3 output"),),
         AmbiguityCriterion.MEASURABLE: (("nfr_targets", "No NFR targets recorded in F3"),),
         AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("adrs", "No ADRs recorded in F3"),),
     },
-    "F4": {
+    "documenter": {
         AmbiguityCriterion.OBSERVABLE: (
             ("docs_created", "No docs_created in F4"),
             ("docs_updated", "No docs_updated in F4"),
         ),
         AmbiguityCriterion.SCOPED: (("changelog_entry", "changelog_entry empty in F4"),),
     },
-    "F5": {
+    "implementer": {
         AmbiguityCriterion.TESTABLE: (
             ("files_created", "No files_created in F5"),
             ("files_modified", "No files_modified in F5"),
@@ -439,33 +442,33 @@ _CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], .
         AmbiguityCriterion.SCOPED: (("implementation_notes", "implementation_notes empty in F5"),),
         AmbiguityCriterion.OWNED: (("open_items", "open_items unset (None) in F5"),),
     },
-    "F6": {
+    "reviewer": {
         AmbiguityCriterion.MEASURABLE: (("coverage_summary", "No coverage_summary in F6"),),
         AmbiguityCriterion.TESTABLE: (("test_cases", "No test_cases in F6"),),
     },
-    "F7": {
+    "debugger": {
         AmbiguityCriterion.OBSERVABLE: (("root_cause", "root_cause empty in F7"),),
         AmbiguityCriterion.TESTABLE: (("regression_tests_added", "No regression tests in F7"),),
         AmbiguityCriterion.SCOPED: (("fix_applied", "fix_applied empty in F7"),),
     },
-    "F8": {
+    "security_auditor": {
         AmbiguityCriterion.OBSERVABLE: (("findings", "No security findings in F8"),),
         AmbiguityCriterion.SCOPED: (("auth_coverage", "auth_coverage empty in F8"),),
         AmbiguityCriterion.OWNED: (("secrets_audit", "secrets_audit empty in F8"),),
     },
-    "F9": {
+    "deployer": {
         AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("rollback_steps", "No rollback_steps in F9"),),
         AmbiguityCriterion.TESTABLE: (("deploy_steps", "No deploy_steps in F9"),),
         AmbiguityCriterion.OBSERVABLE: (("release_notes", "release_notes empty in F9"),),
     },
-    "F10": {
+    "observer": {
         AmbiguityCriterion.MEASURABLE: (("slo_targets", "No SLO targets in F10"),),
         AmbiguityCriterion.OBSERVABLE: (
             ("alerts_added", "No alerts in F10"),
             ("dashboards_updated", "No dashboards in F10"),
         ),
     },
-    "F11": {
+    "refactorer": {
         AmbiguityCriterion.SCOPED: (("items", "No refactor items in F11"),),
         AmbiguityCriterion.MEASURABLE: (("debt_score_after", "debt_score_after unset in F11"),),
         AmbiguityCriterion.TESTABLE: (("files_changed", "No files_changed in F11"),),

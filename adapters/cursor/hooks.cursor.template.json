@@ -76,6 +76,17 @@
         ]
       },
       {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/verify-rename-callers.sh",
+            "statusMessage": "🔁 Checking for unreplaced rename callers...",
+            "timeout": 2000
+          }
+        ]
+      },
+      {
         "matcher": "Skill",
         "hooks": [
           {

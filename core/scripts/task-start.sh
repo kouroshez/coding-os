@@ -355,7 +355,7 @@ try:
 
     # Phase N: compose role chain from task signals (replaces deprecated persona auto-route).
     # Frontmatter override (chain or single role) wins; otherwise use a default
-    # F2,F3,F5,F6 chain — agents call cos_compose_chain for refinement.
+    # analyst,architect,implementer,reviewer chain — agents call cos_compose_chain for refinement.
     _brain_dir = os.environ.get("COS_BRAIN_DIR", str(Path.cwd() / "core/thinking_os"))
     if _brain_dir not in sys.path:
         sys.path.insert(0, _brain_dir)
@@ -364,7 +364,7 @@ try:
         if not _chain.startswith("chain:") and "," in _chain:
             _chain = "chain:" + _chain
     else:
-        _chain = "chain:F2,F3,F5,F6"
+        _chain = "chain:analyst,architect,implementer,reviewer"
 
     (_cos_agent_dir / ".persona").write_text(_chain, encoding="utf-8")
     if _chain.startswith("chain:"):

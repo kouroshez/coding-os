@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from core.board_os.parser import ParsedTask, is_lean_format, parse_task
+from board_os.parser import ParsedTask, is_lean_format, parse_task
 
 logger = logging.getLogger("coding_os.board_os.migration")
 

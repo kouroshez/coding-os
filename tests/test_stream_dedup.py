@@ -24,7 +24,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from core.thinking_os.db import init_db  # noqa: E402
+from thinking_os.db import init_db  # noqa: E402
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ async def _run_scenario(on_poll, max_polls: int = 5, want_events: int = 1) -> li
     resumes, letting the test inject DB rows / file changes between
     iterations.  Returns the list of parsed task-updated payloads.
     """
-    from core.web.routes import stream as stream_mod
+    from web.routes import stream as stream_mod
 
     polls = [0]
 

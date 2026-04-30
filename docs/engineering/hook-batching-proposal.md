@@ -1,4 +1,11 @@
+<!-- domain:INFRA | layer:reference | ssot:ref | updated:2026-04-28 -->
 # Hook Batching Proposal — PreToolUse Write|Edit super-hooks
+
+Purpose: Design exploration for collapsing N PreToolUse Write/Edit hooks into one batched super-hook.
+Read when: Considering hook performance refactors.
+Skip when: Looking for the live registry — see core/hooks/registry.yaml.
+Read next: [registry.yaml](../../core/hooks/registry.yaml)
+
 
 Status: **Proposal** (not yet implemented). Drafted 2026-04-27 during the
 hook-stack hardening sweep.

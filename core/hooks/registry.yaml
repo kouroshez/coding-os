@@ -142,6 +142,17 @@ hooks:
         matcher: Write|Edit
         status_message: "🧠 Verifying Complexity Gate recorded..."
 
+  - id: enforce-scaffold-boundary
+    script: enforce-scaffold-boundary.sh
+    description: TASK-163 — block Write/Edit when target path violates an installed stack's `forbids_writing_in`. Reads aggregated $COS_STATE_DIR/scaffold-boundary.yaml; fail-open when missing.
+    category: enforcement
+    phase: O
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚧 Checking scaffold-boundary (multi-stack subtree isolation)..."
+
   - id: enforce-task-start
     script: enforce-task-start.sh
     description: Requires an active task marker so every edit is traceable.
@@ -251,6 +262,39 @@ hooks:
         matcher: Bash
         status_message: "🔁 Bulk shell op detected — scheduling graph reindex..."
 
+  - id: auto-regen-doc-index
+    script: auto-regen-doc-index.sh
+    description: TASK-161 freshness — regenerate the affected docs/<dir>/00-index.md from frontmatter on every Write/Edit of a docs/**/*.md file. Debounced (5s/dir), fire-and-forget; failures land in $COS_STATE_DIR/.regen-doc-index-errors.log.
+    category: retrieval
+    phase: O
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter..."
+
+  - id: auto-regen-section-index
+    script: auto-regen-section-index.sh
+    description: TASK-165 freshness — regenerate the sidecar `<file>.INDEX.md` for fat markdown docs (≥400 lines or ≥5k tokens) on every Write/Edit so `cos_doc_section` resolves to a stable slug + fresh line range. Debounced (5s/file), fire-and-forget; sub-threshold edits silently skipped. Failures land in $COS_STATE_DIR/.section-index-errors.log.
+    category: retrieval
+    phase: O
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🧭 Regenerating <file>.INDEX.md for fat doc..."
+
+  - id: auto-prune-deleted-files
+    script: auto-prune-deleted-files.sh
+    description: PostToolUse Bash — when the agent runs rm/git rm/mv on a code or markdown file, prune graph_nodes (cascade to edges + evidence), document_chunks, file_index_state, and the `<file>.INDEX.md` sidecar. Counterpart to auto-reindex-docs.sh; closes the deleted-file zombie-row gap.
+    category: retrieval
+    phase: O
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "🧹 Pruning graph + docs RAG state for deleted files..."
+
   # ── graph_os enforcement (Phase I.14) ──────────────────────────────
   - id: enforce-graph-context
     script: enforce-graph-context.sh
@@ -273,6 +317,17 @@ hooks:
       - event: PreToolUse
         matcher: Edit
         status_message: "✏️  Verifying rename-plan marker..."
+
+  - id: verify-rename-callers
+    script: verify-rename-callers.sh
+    description: PostToolUse Edit — when an Edit looks like an identifier rename, greps the repo for unreplaced callers and warns. Closes the gap left by enforce-rename-plan (which verifies plan-existence, not site-completeness). Always non-blocking.
+    category: enforcement
+    phase: O
+    timeout: 2000
+    events:
+      - event: PostToolUse
+        matcher: Edit
+        status_message: "🔁 Checking for unreplaced rename callers..."
 
   # ── board_os Scrumban (Phase L.4) ──────────────────────────────────
   - id: validate-task-frontmatter
@@ -418,7 +473,7 @@ hooks:
 
   - id: agent-presence
     script: agent-presence.sh
-    description: Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don't appear offline between tool calls.
+    description: Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don't appear offline between tool calls. Consolidated from 8→5 events (board UI uses kill -0 PID check for fine-grained liveness, no per-tool ping needed).
     category: observability
     phase: "0"
     timeout: 800
@@ -429,12 +484,6 @@ hooks:
         matcher: compact|resume
       - event: UserPromptSubmit
         matcher: ""
-      - event: PreToolUse
-        matcher: Bash
-      - event: PreToolUse
-        matcher: Write|Edit
-      - event: PostToolUse
-        matcher: Bash
       - event: PostToolUse
         matcher: Write|Edit
       - event: Stop
@@ -442,10 +491,10 @@ hooks:
 
   - id: warn-mcp-down
     script: warn-mcp-down.sh
-    description: Probes thinking_os MCP liveness at session start; loud banner if unreachable.
+    description: Probes thinking_os MCP liveness at session start; loud banner if unreachable. Capped at 2s probe (perl alarm 2 + 500ms slack).
     category: observability
     phase: F
-    timeout: 6000
+    timeout: 2500
     events:
       - event: SessionStart
         matcher: startup

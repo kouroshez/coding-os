@@ -1,1 +1,1 @@
-../../../core/thinking_os/agents/F8_security.md
+../../../core/thinking_os/agents/security_auditor.md

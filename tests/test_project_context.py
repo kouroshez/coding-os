@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from core.web._project_context import (
+from web._project_context import (
     ProjectScopeMiddleware,
     current_db_path,
     current_project_root,

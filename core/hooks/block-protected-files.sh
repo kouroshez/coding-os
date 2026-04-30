@@ -10,7 +10,6 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 OLD_STRING=$(echo "$INPUT" | jq -r '.tool_input.old_string // empty' 2>/dev/null || echo "")
 
@@ -35,6 +34,28 @@ fi
 # Exception: paths inside templates/.../scaffold/ are SCAFFOLD TEMPLATES, not
 # runtime state. They need to be writable so coding-os itself can ship updates
 # to the scaffold (e.g. adding rag-config.yaml under .coding-os/ scaffold).
+# BUT: scaffold/docs/governance/ is the canonical home of governance docs
+# that propagate to every future consumer project — TASK-162 requires the
+# same template-update / governance / docs-update keyword guard the
+# meta-repo's own governance dir uses. Other scaffold paths still pass.
+if [[ "$FILE_PATH" == *"/scaffold/docs/governance/"* ]]; then
+  AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
+  TASK_FILE="$AGENT_DIR/.task-current"
+  TASK_NAME=""
+  if [ -f "$TASK_FILE" ]; then
+    TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
+    TASK_NAME="${TASK_VALUE##* }"
+  fi
+  case "$TASK_NAME" in
+    *template-update*|*docs-update*|*docs-sync*|*governance*|*claude-md-update*|*agents-md-update*)
+      exit 0
+      ;;
+    *)
+      echo "BLOCKED: Edits to templates/_base/scaffold/docs/governance/ propagate to every future consumer project. Open a task whose title includes one of: template-update, docs-update, governance. Active task: '${TASK_NAME:-none}'." >&2
+      exit 2
+      ;;
+  esac
+fi
 if [[ "$FILE_PATH" == *"/scaffold/"* ]]; then
   exit 0
 fi

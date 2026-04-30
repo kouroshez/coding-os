@@ -18,7 +18,7 @@ def main(argv: list[str]) -> int:
     task_id, summary = argv[1], argv[2]
 
     try:
-        from core.board_os.mcp_tools import cos_work_log_append
+        from board_os.mcp_tools import cos_work_log_append
     except ImportError:
         return 0
 

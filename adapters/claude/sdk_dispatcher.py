@@ -23,66 +23,14 @@ import asyncio
 import json
 import logging
 import re
-import sys
 import time
 from pathlib import Path
 from typing import Any
 
-# Load the core Protocol/contracts dynamically. core/thinking_os is on
-# sys.path when the MCP server runs; for standalone testing we inject it.
-_CORE_TOS = Path(__file__).resolve().parent.parent.parent / "core" / "thinking_os"
-if str(_CORE_TOS) not in sys.path:
-    sys.path.insert(0, str(_CORE_TOS))
-
-from dispatcher import DispatchRequest, DispatchResult  # noqa: E402
+from thinking_os.dispatcher import DispatchRequest, DispatchResult
+from thinking_os.dispatcher_helpers import extract_json_block, load_agent_prompt
 
 logger = logging.getLogger("coding_os.dispatcher.claude_sdk")
-
-
-# ---------------------------------------------------------------------------
-# Agent-file → system prompt loader
-# ---------------------------------------------------------------------------
-
-def _load_agent_prompt(agent_file: str) -> tuple[str, dict[str, Any]]:
-    """
-    PURPOSE: Read F<N>_<name>.md, split frontmatter from body, return
-             (body_prompt, frontmatter_dict).
-    """
-    path = Path(agent_file)
-    if not path.is_absolute():
-        path = _CORE_TOS / agent_file.lstrip("/")
-    if not path.exists():
-        raise FileNotFoundError(f"agent file not found: {agent_file}")
-
-    text = path.read_text()
-    if text.startswith("---"):
-        parts = text.split("---", 2)
-        if len(parts) >= 3:
-            import yaml  # local import — only needed for real dispatch
-            meta = yaml.safe_load(parts[1]) or {}
-            return parts[2].strip(), meta
-    return text.strip(), {}
-
-
-def _extract_json_block(transcript: str) -> dict[str, Any]:
-    """
-    PURPOSE: Find the first fenced ```json ... ``` block in the agent's
-             transcript and parse it. Formula-agents are instructed to
-             emit their EvidenceBundle slice inside such a block.
-    NOTES:   Falls back to {} on parse failure — caller treats that as a
-             validation error, not a crash.
-    """
-    m = re.search(r"```json\s*(\{.*?\})\s*```", transcript, re.DOTALL)
-    if not m:
-        # Try a bare JSON object as a last resort
-        m = re.search(r"(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})", transcript, re.DOTALL)
-        if not m:
-            return {}
-    try:
-        return json.loads(m.group(1))
-    except json.JSONDecodeError as exc:
-        logger.debug("JSON parse failed: %s", exc)
-        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +140,7 @@ class ClaudeSDKDispatcher:
         )
 
         try:
-            system_prompt_body, _meta = _load_agent_prompt(request.agent_file)
+            system_prompt_body, _meta = load_agent_prompt(request.agent_file)
         except FileNotFoundError as exc:
             return DispatchResult(
                 formula_id=request.formula_id,
@@ -293,7 +241,7 @@ class ClaudeSDKDispatcher:
             return dispatch_outcome
 
         transcript = "\n".join(transcript_parts)
-        output_json = _extract_json_block(transcript)
+        output_json = extract_json_block(transcript)
         if result_meta:
             output_json.setdefault("_meta", {}).update(result_meta)
 

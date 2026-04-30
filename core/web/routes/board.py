@@ -45,7 +45,7 @@ def _db_conn() -> sqlite3.Connection:
                   ContextVar set by ProjectScopeMiddleware when the URL
                   has an /api/p/<slug>/ prefix; falls back to env vars.
     """
-    from core.web._project_context import current_db_path
+    from web._project_context import current_db_path
 
     return sqlite3.connect(str(current_db_path()), check_same_thread=False)
 
@@ -60,7 +60,7 @@ def _board_tools():
     NOTES:   Module is cached by Python after first import.
     """
     try:
-        from core.board_os import mcp_tools  # type: ignore
+        from board_os import mcp_tools  # type: ignore
         return mcp_tools
     except ImportError:
         return None
@@ -101,7 +101,7 @@ def _pid_alive(pid: int) -> bool:
 
 def _presence_files(agent: str) -> list[Path]:
     """Return the per-session presence JSON files for this agent."""
-    from core.web._project_context import current_project_root
+    from web._project_context import current_project_root
 
     d = current_project_root() / ".coding-os" / agent / "sessions"
     if not d.is_dir():
@@ -203,7 +203,7 @@ def _presence_state(agent: str) -> str:
 
 def _cursor_model_display() -> str | None:
     """Optional display-only line from .coding-os/cursor/.model (not presence)."""
-    from core.web._project_context import current_project_root
+    from web._project_context import current_project_root
 
     p = current_project_root() / ".coding-os" / "cursor" / ".model"
     try:
@@ -323,7 +323,7 @@ async def board_task_detail(
         labels = []
 
     file_rel = row[9] or ""
-    from core.web._project_context import current_project_root
+    from web._project_context import current_project_root
 
     project_root = current_project_root()
     file_abs = (project_root / file_rel).resolve() if file_rel else None
@@ -432,7 +432,7 @@ async def board_list(
         # agent_states is the new, richer shape: {agent: "active"|"present"|"offline"}.
         # active_agents preserves the v0.5 contract ("list of ids that are not
         # offline") so older UI builds keep working during the rollout.
-        from core.board_os.hub_adapter_manifest import list_agent_manifest_rows
+        from board_os.hub_adapter_manifest import list_agent_manifest_rows
 
         adapter_rows = list_agent_manifest_rows()
         agent_ids = [str(r["id"]) for r in adapter_rows]
@@ -559,13 +559,13 @@ async def board_config(
 ):
     """Return scrumban-config swimlanes + WIP caps + status column ids for the SPA."""
     try:
-        from core.board_os.config import STATUS_ENUM, load_config
+        from board_os.config import STATUS_ENUM, load_config
     except ImportError:
         return JSONResponse(
             status_code=503,
             content={"error": {"category": "unavailable", "message": "board_os not importable"}},
         )
-    from core.web._project_context import current_project_root
+    from web._project_context import current_project_root
 
     project_root = current_project_root()
     try:

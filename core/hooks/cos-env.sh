@@ -4,7 +4,7 @@
 #
 # Provides:
 #   COS_STATE_DIR    — shared state directory root (default: .coding-os)
-#                      Holds agent-agnostic artifacts: thinking_os.db, .hooks.log,
+#                      Holds agent-agnostic artifacts: coding-os.db, .hooks.log,
 #                      .agent marker, .capture-errors.log, .dogfood-reminded,
 #                      installed-manifest.json, domain-config.json.
 #   COS_AGENT        — which agent runtime invoked this hook (claude|codex|cursor|unknown)
@@ -15,7 +15,7 @@
 #                      Two agents running against the same project write to
 #                      different dirs and never collide.
 #   COS_SESSION_FILE — path to session-id file (inside COS_AGENT_DIR)
-#   COS_DB_PATH      — path to thinking_os SQLite DB (shared, in COS_STATE_DIR)
+#   COS_DB_PATH      — path to the project's coding-os SQLite DB (shared, in COS_STATE_DIR)
 #   COS_HOOK_LOG     — path to the append-only hook activity log (shared,
 #                      every line carries agent=X session=Y task=Z so downstream
 #                      tools can filter by agent without a separate file)
@@ -40,7 +40,10 @@ case "${COS_STATE_DIR}" in
     fi
     ;;
 esac
-COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/thinking_os.db}"
+# Default DB filename is `coding-os.db`. Legacy `thinking_os.db` is auto-renamed
+# by core/thinking_os/db.py::migrate_legacy_db_filename() on first init_db()
+# call after the upgrade — no shell-side migration needed.
+COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
 COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
 
 # Cap the log at 500 lines so `cos hooks-log` stays snappy and the file
@@ -455,7 +458,8 @@ cos_sanity_check() {
           || fail="board_os_missing"
         ;;
       git)
-        local d="$(pwd)"
+        local d
+        d="$(pwd)"
         local found=0
         while [[ "$d" != "/" ]]; do
           [[ -d "$d/.git" ]] && { found=1; break; }

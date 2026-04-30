@@ -30,7 +30,11 @@ from formula_composer import (  # noqa: E402
 )
 
 ROLES_DIR = _THINKING_OS / "roles"
-EXPECTED_ROLES = [f"F{i}" for i in range(1, 12)]
+EXPECTED_ROLES = [
+    "researcher", "analyst", "architect", "documenter", "implementer",
+    "reviewer", "debugger", "security_auditor", "deployer", "observer",
+    "refactorer",
+]
 
 
 @pytest.fixture(autouse=True)
@@ -41,12 +45,14 @@ def _reset_cache():
 
 
 def test_all_eleven_role_files_exist():
-    files = sorted(ROLES_DIR.glob("F*.yaml"))
+    files = [p for p in sorted(ROLES_DIR.glob("*.yaml")) if p.stem in EXPECTED_ROLES]
     assert len(files) == 11, f"expected 11 role files, got {len(files)}"
 
 
 def test_each_role_has_required_fields():
-    for path in sorted(ROLES_DIR.glob("F*.yaml")):
+    for path in sorted(ROLES_DIR.glob("*.yaml")):
+        if path.stem not in EXPECTED_ROLES:
+            continue
         data = yaml.safe_load(path.read_text())
         assert data["id"] in EXPECTED_ROLES, f"unknown role id in {path.name}"
         assert "role_name" in data
@@ -94,6 +100,6 @@ def test_situations_registry_present():
 
 def test_role_parallel_dispatch_on_F8_and_F6():
     roles = load_roles()
-    assert roles["F8"].get("parallel_dispatch", {}).get("enabled") is True
-    assert "L5" in roles["F8"]["parallel_dispatch"]["layers"]
-    assert roles["F6"].get("parallel_dispatch", {}).get("enabled") is True
+    assert roles["security_auditor"].get("parallel_dispatch", {}).get("enabled") is True
+    assert "L5" in roles["security_auditor"]["parallel_dispatch"]["layers"]
+    assert roles["reviewer"].get("parallel_dispatch", {}).get("enabled") is True

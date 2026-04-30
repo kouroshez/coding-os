@@ -460,13 +460,13 @@ async def test_cognition():
     _rec("cognition", "cos_situation_detect(no signals)", env, ms=ms)
 
     # cos_role_info — needs role_id
-    env, ms = await T("cos_role_info", role_id="F2")
+    env, ms = await T("cos_role_info", role_id="analyst")
     _rec("cognition", "cos_role_info(F2)", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
         _ok("cognition", "cos_role_info", bool(d), f"keys={list(d.keys())[:5]}")
 
-    env, ms = await T("cos_role_info", role_id="F5")
+    env, ms = await T("cos_role_info", role_id="implementer")
     _rec("cognition", "cos_role_info(F5)", env, ms=ms)
 
     # cos_compose_chain — needs `signals_json`
@@ -502,7 +502,7 @@ async def test_cognition():
 
     # cos_dispatch_formula
     env, ms = await T("cos_dispatch_formula",
-                      formula_id="F2", session_id=SESSION,
+                      formula_id="analyst", session_id=SESSION,
                       task_marker="graph-os-uid-resolver", persona_id="backend-engineer")
     _rec("cognition", "cos_dispatch_formula(F2)", env, ms=ms)
     if env.get("ok"):
@@ -520,7 +520,7 @@ async def test_cognition():
 
     # cos_backtrack_log
     env, ms = await T("cos_backtrack_log",
-                      session_id=SESSION, from_formula="F5", to_formula="F2",
+                      session_id=SESSION, from_formula="implementer", to_formula="analyst",
                       reason="uid scheme was wrong, need to re-research graph node format")
     _rec("cognition", "cos_backtrack_log", env, ms=ms)
 

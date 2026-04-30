@@ -1,1 +1,1 @@
-../../../core/thinking_os/agents/F7_debug.md
+../../../core/thinking_os/agents/debugger.md

@@ -130,8 +130,8 @@ class TestCosSupervise:
             task_marker="feat-auth",
             persona_id="chain:F5,F6",
             phase="DISPATCHING",
-            dispatched='["F5", "F6"]',
-            pending='["F5", "F6"]',
+            dispatched='["implementer", "reviewer"]',
+            pending='["implementer", "reviewer"]',
         )
         assert result["data"]["action"] == "done"
 
@@ -145,8 +145,8 @@ class TestCosBacktrackLog:
         result = mcp_tools.call(
             "cos_backtrack_log",
             session_id="ses-bt-1",
-            from_formula="F3",
-            to_formula="F2",
+            from_formula="architect",
+            to_formula="analyst",
             reason="missing actor",
         )
         assert result["ok"] is True
@@ -157,8 +157,8 @@ class TestCosBacktrackLog:
             result = mcp_tools.call(
                 "cos_backtrack_log",
                 session_id="ses-bt-adv",
-                from_formula="F3",
-                to_formula="F2",
+                from_formula="architect",
+                to_formula="analyst",
                 reason="test",
             )
         assert "Anti-Paralysis" in result["data"]["advisory"]
@@ -180,13 +180,13 @@ class TestCosAmbiguityCheck:
         assert result["data"]["passed"] is True
 
     def test_f2_missing_actors_fails(self, mcp_tools, db_path):
-        from cognition_schemas import EvidenceBundle, F2Output
+        from cognition_schemas import EvidenceBundle, AnalystOutput
         import json
         from pathlib import Path
 
         # Write a bundle with missing actors to disk
         bundle = EvidenceBundle(task_marker="feat-amb", persona_id="senior-backend")
-        bundle.F2_decompose = F2Output(problem_statement="Add auth", actors=[])
+        bundle.analyst = AnalystOutput(problem_statement="Add auth", actors=[])
         agent_dir = Path(".coding-os") / "claude"
         agent_dir.mkdir(parents=True, exist_ok=True)
         bp = agent_dir / "evidence_bundle_ses-amb-missing.json"

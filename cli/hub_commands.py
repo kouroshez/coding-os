@@ -130,7 +130,7 @@ def hub_start(port: int, foreground: bool) -> None:
            running" and immediately exit).
     """
     if foreground:
-        from core.web.server import run_server  # type: ignore
+        from web.server import run_server  # type: ignore
 
         click.echo(f"Starting Hub on http://{HUB_HOST}:{port} (foreground)")
         run_server(host=HUB_HOST, port=port)

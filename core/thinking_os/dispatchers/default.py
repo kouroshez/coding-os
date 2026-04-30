@@ -21,7 +21,7 @@ import logging
 import time
 from typing import Any
 
-from dispatcher import DispatchRequest, DispatchResult
+from thinking_os.dispatcher import DispatchRequest, DispatchResult
 
 logger = logging.getLogger("coding_os.dispatcher.default")
 

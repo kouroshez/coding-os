@@ -324,7 +324,7 @@ def _graph_reference_hint(symbol: str, code_file: Path, deadline: float) -> str 
         # Lazy import — adds 30 ms but only when we already decided to WARN.
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
         sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-        from core.graph_os.tools import graph as gtools  # type: ignore
+        from graph_os.tools import graph as gtools  # type: ignore
         # cos_graph_references signature varies per version; call defensively.
         backend = gtools._backend()
         if backend is None:

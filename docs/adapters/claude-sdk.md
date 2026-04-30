@@ -70,7 +70,7 @@ The dispatcher probe (`available()`) returns True only after this.
 
 | field | type | description |
 |---|---|---|
-| `formula_id` | str | e.g. `"F5"` |
+| `formula_id` | str | e.g. `"implementer"` |
 | `agent_file` | str | absolute path to `F<N>_<name>.md` |
 | `prompt` | str | composed system+user prompt |
 | `input_slice` | dict | upstream-only bundle view from `build_input_slice()` |
@@ -159,11 +159,11 @@ persisted. Call when `cos_supervise` returns
 ```
 main agent:
   cos_route_persona    → { persona_id: "senior-backend", … }
-  cos_supervise        → NextAction(action="dispatch",   formula="F5", …)
-  cos_dispatch_formula_run(formula_id="F5", …)
+  cos_supervise        → NextAction(action="dispatch",   formula="implementer", …)
+  cos_dispatch_formula_run(formula_id="implementer", …)
                        → { status:"ok", output_json:{…}, bundle_fields_filled:1 }
-  cos_supervise        → NextAction(action="dispatch_parallel", formulas=["F6","F8"], …)
-  cos_dispatch_parallel_run(formula_ids=["F6","F8"], …)
+  cos_supervise        → NextAction(action="dispatch_parallel", formulas=["reviewer","security_auditor"], …)
+  cos_dispatch_parallel_run(formula_ids=["reviewer","security_auditor"], …)
                        → { ok_count:2/2, parallel_wall_ms:13839 }
   cos_supervise        → NextAction(action="done")
 ```
@@ -189,7 +189,7 @@ itself.
   ok_count: 2/2   parallel_wall_ms: 13.8s
   F5: latency=13.8s   F7: latency=10.7s (ran concurrently)
 
-=== Bundle ===    populated: [F5_implement, F7_debug]
+=== Bundle ===    populated: [implementer, debugger]
 === DB audit ===  3 rows in formula_dispatches
 
 E2E: PASS

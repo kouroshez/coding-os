@@ -41,7 +41,7 @@ def _db_conn() -> sqlite3.Connection:
              memory.py's dict(row) calls work correctly.
     DEPENDENCIES: core.web._project_context.current_db_path.
     """
-    from core.web._project_context import current_db_path
+    from web._project_context import current_db_path
 
     conn = sqlite3.connect(str(current_db_path()), check_same_thread=False)
     conn.row_factory = sqlite3.Row

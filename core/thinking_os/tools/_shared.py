@@ -61,6 +61,7 @@ VALID_LAYERS: frozenset[str] = frozenset({
     "graph",
     "health",
     "learning",
+    "audit",
 })
 
 

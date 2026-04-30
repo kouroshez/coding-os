@@ -177,6 +177,14 @@ stats: ## Show project statistics
 	@echo -n "Core skills: " && ls core/skills/*/SKILL.md | wc -l | tr -d ' '
 	@echo -n "Templates: " && find templates -type f | wc -l | tr -d ' '
 
+.PHONY: docs-index-regen
+docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (TASK-157+161)
+	@python3 scripts/regen_doc_index.py docs --all
+
+.PHONY: docs-index-regen-dry
+docs-index-regen-dry: ## Preview docs-index-regen output without writing
+	@python3 scripts/regen_doc_index.py docs --all --dry-run
+
 .PHONY: ui-dev
 ui-dev: ## Vite dev server with HMR → http://127.0.0.1:5173 (proxies /api to hub on 9188)
 	@echo "Starting Vite dev server — edits hot-reload without rebuild."

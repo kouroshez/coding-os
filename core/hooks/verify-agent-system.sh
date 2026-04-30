@@ -16,7 +16,7 @@ set -uo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT" || exit 1
 
 HOOKS_DIR="$(dirname "$0")"
 PASS=0

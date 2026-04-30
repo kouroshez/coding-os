@@ -310,18 +310,18 @@ class TestPhaseM_RoleChainDispatch:
         assert action.action in ("dispatch", "classify"), f"Unexpected action: {action}"
 
     def test_evidence_bundle_accumulates_across_dispatches(self) -> None:
-        from cognition_schemas import EvidenceBundle, F2Output
+        from cognition_schemas import EvidenceBundle, AnalystOutput
         bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:F2,F3",
                                 intensity="standard")
-        f2_out = F2Output(problem_statement="Schema migration for commission model",
+        f2_out = AnalystOutput(problem_statement="Schema migration for commission model",
                           scope_in=["commission_rate column"], scope_out=["reporting"],
                           success_metrics=[], actors=[], goal_tree=None, scenarios=[],
                           decision_table=None, data_model=None, state_machines=[],
                           events=[], permissions=None, dependencies=None, unknowns=[])
-        bundle2 = bundle.model_copy(update={"F2_decompose": f2_out})
-        assert bundle2.F2_decompose is not None
-        assert bundle2.F2_decompose.problem_statement == "Schema migration for commission model"
-        assert bundle.F2_decompose is None  # original is immutable
+        bundle2 = bundle.model_copy(update={"analyst": f2_out})
+        assert bundle2.analyst is not None
+        assert bundle2.analyst.problem_statement == "Schema migration for commission model"
+        assert bundle.analyst is None  # original is immutable
 
 
 class TestPhaseM_SituationOverride:
@@ -339,8 +339,8 @@ class TestPhaseM_SituationOverride:
         situations = load_situation_registry()
         chain = situations["incident-response"].get("dispatch_chain", [])
         formula_ids = {step["dispatch"] for step in chain if "dispatch" in step}
-        assert "F7" in formula_ids, "incident-response chain missing F7 (Debug)"
-        assert "F10" in formula_ids, "incident-response chain missing F10 (Monitor)"
+        assert "debugger" in formula_ids, "incident-response chain missing F7 (Debug)"
+        assert "observer" in formula_ids, "incident-response chain missing F10 (Monitor)"
 
     def test_supervisor_uses_situation_chain_when_set(self) -> None:
         from cognition import advance
@@ -371,6 +371,6 @@ class TestPhaseM_TakeoverFlow:
         chain = situations["existing-project-takeover"].get("dispatch_chain", [])
         first_dispatch = next((step for step in chain if "dispatch" in step), None)
         assert first_dispatch is not None, "takeover chain has no dispatch steps"
-        assert first_dispatch["dispatch"] == "F2", (
+        assert first_dispatch["dispatch"] == "analyst", (
             f"takeover should start with F2 (reverse decompose), got {first_dispatch}"
         )

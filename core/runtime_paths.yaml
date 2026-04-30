@@ -6,6 +6,12 @@ version: 1
 # all loaders (doctor, manifest generator, golden capture) exclude it
 # consistently.
 runtime_files:
+  - .coding-os/coding-os.db
+  - .coding-os/coding-os.db-shm
+  - .coding-os/coding-os.db-wal
+  # Legacy filenames — auto-renamed by core.thinking_os.db on first init_db()
+  # after the 2026-04-30 rename. Kept here so any sidecar a consumer hasn't
+  # yet upgraded still gets ignored by scaffold scans + manifest generator.
   - .coding-os/thinking_os.db
   - .coding-os/thinking_os.db-shm
   - .coding-os/thinking_os.db-wal

@@ -1,6 +1,11 @@
 <!-- domain:ALL | layer:benchmark | ssot:true | updated:2026-04-19 -->
 # graph_os Benchmarks
 
+> P: Empirical scale measurements for graph_os ingest, query, and storage — replaces speculative targets with numbers from real runs.
+> R: Choosing a backend, sizing a deploy, or proposing a perf improvement to graph_os.
+> S: Reading the design rationale — see [docs/roadmap/graph_os-redesign.md](../roadmap/graph_os-redesign.md).
+> N: [docs/engineering/graph_os-queries.md](../engineering/graph_os-queries.md), [docs/phase-i-knowledge-graph-plan.md](../phase-i-knowledge-graph-plan.md)
+
 **Purpose.** Replace the extrapolated scale targets in
 [phase-i-knowledge-graph-plan.md §8.5](../phase-i-knowledge-graph-plan.md)
 with measured numbers. Append-only — new runs are added at the top so

@@ -219,6 +219,98 @@ def _infer_source_table(row: dict, layer: str) -> Optional[str]:
     return None
 
 
+def _has_router_log(conn: sqlite3.Connection) -> bool:
+    try:
+        row = conn.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name='retrieval_router_log'"
+        ).fetchone()
+    except sqlite3.Error:
+        return False
+    return row is not None
+
+
+_IDENTIFIER_QUERY_RE = __import__("re").compile(
+    r"[A-Za-z_][A-Za-z0-9_]{1,}\(\)|[a-z]+(?:_[a-z0-9]+)+|"
+    r"[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]+|TASK-\d+|`[^`]+`|[\w]+\.(py|ts|tsx|md|go|sh)\b"
+)
+
+
+def _classify_query_shape(query: str) -> str:
+    """Return a coarse shape label for retrieval_router_log.
+
+    Three buckets — keep it small so the column stays groupable:
+      - identifier  : code-shaped (snake_case / CamelCase / file path)
+      - task_id     : raw TASK-NNN reference
+      - natural     : everything else (free-text)
+    """
+    q = (query or "").strip()
+    if not q:
+        return "empty"
+    if _IDENTIFIER_QUERY_RE.search(q):
+        return "task_id" if "TASK-" in q else "identifier"
+    return "natural"
+
+
+def log_router_decision(
+    conn: sqlite3.Connection,
+    *,
+    query: str,
+    chosen_layer: str,
+    confidence: float = 1.0,
+    fanout_layers: list[str] | None = None,
+    bytes_returned: int = 0,
+    truncated: bool = False,
+    agent_override: str | None = None,
+) -> int | None:
+    """Append one row to retrieval_router_log per cos_search/cos_doc_search/cos_task_search call.
+
+    PURPOSE:      Telemetry on which layer absorbed each query, plus the
+                  query shape (identifier vs natural language vs task-id).
+                  Phase J.3 ship landed the schema; this writer wires it.
+                  Reading: SELECT query_shape, chosen_layer, COUNT(*) FROM
+                  retrieval_router_log GROUP BY 1,2 — answers "agents
+                  spend retrieval budget on which kind of queries?".
+    INPUT:        conn, raw query, chosen_layer (memory/docs/tasks/graph),
+                  optional confidence + fanout_layers + bytes_returned +
+                  truncated flag + agent_override (when caller forced a
+                  layer instead of letting the router pick).
+    OUTPUT:       row id, or None if the table is missing (fail-open).
+    DEPENDENCIES: retrieval_router_log (migration v18).
+    NOTES:        query is hashed with sha1 (truncated to 16 hex) — the
+                  raw text never lands on disk because routing telemetry
+                  must not become a privacy footgun. shape is the
+                  groupable column.
+    """
+    if not _has_router_log(conn):
+        return None
+    import hashlib
+    digest = hashlib.sha1((query or "").encode("utf-8")).hexdigest()[:16]
+    fanout_csv = ",".join(fanout_layers) if fanout_layers else None
+    try:
+        cursor = conn.execute(
+            "INSERT INTO retrieval_router_log "
+            "(query_hash, query_shape, confidence, chosen_layer, fanout_layers, "
+            " bytes_returned, truncated, agent_override) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                digest,
+                _classify_query_shape(query),
+                float(confidence),
+                chosen_layer,
+                fanout_csv,
+                int(bytes_returned),
+                1 if truncated else 0,
+                agent_override,
+            ),
+        )
+        conn.commit()
+        return int(cursor.lastrowid) if cursor.lastrowid else None
+    except sqlite3.Error as exc:
+        logger.debug("retrieval_router_log insert failed: %s", exc)
+        return None
+
+
 def cite_retrievals(
     conn: sqlite3.Connection, retrieval_ids: list[int],
 ) -> dict:

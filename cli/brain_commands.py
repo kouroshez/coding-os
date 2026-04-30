@@ -87,7 +87,7 @@ def docs_index(project_dir: str, config: str | None, force: bool) -> None:
     """
     project = _resolve_project_dir(project_dir)
     cfg_path = Path(config).resolve() if config else project / ".coding-os" / "rag-config.yaml"
-    db_path = project / ".coding-os" / "thinking_os.db"
+    db_path = project / ".coding-os" / "coding-os.db"
 
     args = [
         "--config", str(cfg_path),
@@ -113,7 +113,7 @@ def docs_index(project_dir: str, config: str | None, force: bool) -> None:
 def task_sync(project_dir: str, force: bool) -> None:
     """Sync docs/tasks/*.md into the thinking_os tasks table."""
     project = _resolve_project_dir(project_dir)
-    db_path = project / ".coding-os" / "thinking_os.db"
+    db_path = project / ".coding-os" / "coding-os.db"
 
     args = [
         "--project-root", str(project),
@@ -134,7 +134,7 @@ def task_sync(project_dir: str, force: bool) -> None:
 def reindex(project_dir: str) -> None:
     """Re-embed all observations/patterns/outcomes after an embedding model change."""
     project = _resolve_project_dir(project_dir)
-    db_path = project / ".coding-os" / "thinking_os.db"
+    db_path = project / ".coding-os" / "coding-os.db"
 
     rc = _run_brain_module(
         EMBEDDINGS,
@@ -183,7 +183,7 @@ def graph_reindex(
     hook `auto-reindex-graph.sh` calls this path).
     """
     project = _resolve_project_dir(project_dir)
-    db_path = project / ".coding-os" / "thinking_os.db"
+    db_path = project / ".coding-os" / "coding-os.db"
 
     args = [
         "--project-root", str(project),

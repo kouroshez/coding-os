@@ -20,9 +20,9 @@ import sys
 import time
 from pathlib import Path
 
-from core.board_os.parser import extract_frontmatter, parse_task
-from core.board_os.transition_gates import GatesConfigError, load_gates_config
-from core.board_os.transition_gates_validator import (
+from board_os.parser import extract_frontmatter, parse_task
+from board_os.transition_gates import GatesConfigError, load_gates_config
+from board_os.transition_gates_validator import (
     ValidationResult,
     Verdict,
     validate_transition,
