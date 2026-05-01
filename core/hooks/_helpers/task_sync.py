@@ -26,7 +26,7 @@ def main(argv: list[str]) -> int:
 
     project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
     db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db"),
+        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"),
     )
     if not Path(db_path).exists():
         return 0

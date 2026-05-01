@@ -104,7 +104,7 @@ class TestPersonaFullStack:
         # All stack skills symlinked into .claude/skills/.
         skills_dir = project / ".claude" / "skills"
         expected_skills = {
-            "thinking_os", "clean-code", "codebase-explorer", "worktree-orchestration",
+            "thinking_os", "clean-code", "codebase-explorer",
             "python-django", "nextjs-react", "frontend-design",
         }
         actual_skills = {p.name for p in skills_dir.iterdir() if p.is_dir()}

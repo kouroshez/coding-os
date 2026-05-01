@@ -9,7 +9,7 @@ PURPOSE:      After observations/document_chunks get purged (bulk prune,
               This module is the janitor — invoked manually via
               `cos brain-gc` or automatically every 10 task-done calls.
 
-INPUT:        --project-dir (resolves thinking_os.db); --dry-run to
+INPUT:        --project-dir (resolves coding-os.db); --dry-run to
               report without writing.
 OUTPUT:       JSON stats {orphan_embeddings, orphan_edges, trash_obs,
               trash_edges}.
@@ -150,7 +150,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    db = args.db or str(Path(args.project_root) / ".coding-os" / "thinking_os.db")
+    db = args.db or str(Path(args.project_root) / ".coding-os" / "coding-os.db")
     stats = gc_memory(db, dry_run=args.dry_run)
     print(json.dumps(stats, indent=2))
 

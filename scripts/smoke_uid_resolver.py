@@ -7,7 +7,7 @@ PURPOSE:    Verify that cos_graph_impact / cos_graph_context /
             not_found envelope when the path truly does not exist.
 INPUT:      none. Runs against the local sqlite graph backend.
 OUTPUT:     prints PASS/FAIL per scenario; exits non-zero on any FAIL.
-DEPENDS:    core/graph_os/tools/graph.py, populated thinking_os.db.
+DEPENDS:    core/graph_os/tools/graph.py, populated coding-os.db.
 NOTES:      Mirrors the failure pattern observed in the screenshot —
             the offending agent passed unprefixed paths as the `uid`.
 """

@@ -14,7 +14,7 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 ├── .capture-errors.log                 background capture.py errors
 ├── .dogfood-reminded                   10-min debounce for remind-dogfood
 ├── .last-decay / .last-verify*         singleton timestamps
-├── thinking_os.db + -shm + -wal        SQLite brain (WAL = shared reader; one writer lock)
+├── coding-os.db + -shm + -wal        SQLite brain (WAL = shared reader; one writer lock)
 ├── domain-config.json                  project config (routing, paths)
 ├── rag-config.yaml                     doc indexer config
 ├── installed-manifest.json             what `cos init` installed
@@ -176,14 +176,14 @@ Question: "should `.hooks.log` also be per-agent?"
 
 Answer: **no**. A shared log with `agent=X` tag gives you one chronological stream, filterable in any direction. Per-agent logs would split the timeline and lose the ability to see "Claude edited X, then Codex saw the git status change and reacted" causality.
 
-Similarly `thinking_os.db` is shared because:
+Similarly `coding-os.db` is shared because:
 - Observations across agents should analyze together ("which agent gets what rework rate?")
 - Learned patterns are universal knowledge
 - DB rows carry `session_id` (which includes agent) — analytics can split if needed
 
 Explicitly shared things:
 - `.hooks.log` — one stream, agent-tagged
-- `thinking_os.db` — one brain, session-tagged
+- `coding-os.db` — one brain, session-tagged
 - `installed-manifest.json` — one install
 - `.agent` — identity marker (written by install.sh, not mutated per session)
 - `domain-config.json`, `rag-config.yaml` — one project config

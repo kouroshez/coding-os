@@ -6,7 +6,7 @@ PURPOSE: Exercise the ``file_index_state`` cache added in migration v17
          content, and that mutation / failure / force paths behave.
 INPUT:   tmp_path SQLite DB + throwaway project layout.
 OUTPUT:  pytest assertions.
-DEPENDS: graph_os.tools.reindex_dispatch.dispatch, thinking_os.db.
+DEPENDS: graph_os.tools.reindex_dispatch.dispatch, coding-os.db.
 """
 
 from __future__ import annotations

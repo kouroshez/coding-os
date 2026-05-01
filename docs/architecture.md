@@ -98,7 +98,7 @@ The thinking_os DB tracks everything and learns from past sessions.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `COS_STATE_DIR` | `.coding-os` | State files directory |
-| `COS_DB_PATH` | `.coding-os/thinking_os.db` | SQLite database path |
+| `COS_DB_PATH` | `.coding-os/coding-os.db` | SQLite database path |
 | `COS_SESSION_FILE` | `.coding-os/session-id` | Session ID file |
 
 ## MCP Tools (32 tools, `cos_*` prefix)

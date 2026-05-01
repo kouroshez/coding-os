@@ -164,20 +164,17 @@ All task and infrastructure scripts use standardized output prefixes:
 ## Execution Mode
 
 - Default to single-agent execution.
-- Dispatch subagents only for independent parallel research, inventory, or verification branches.
+- Dispatch subagents only for independent parallel **read-only** research, inventory, or verification branches.
 - Use at most 3 workers on one task.
 - Do not use subagents for normal sequential coding, single-file changes, or tightly coupled edits.
-
-### Worktree Isolation
-
-When dispatching write-capable subagents, use `isolation: "worktree"` on the Agent tool call. This creates an independent filesystem copy per agent via `git worktree`. For full orchestration patterns: load `worktree-orchestration` skill.
+- **Never** pass `isolation: "worktree"` to the Agent tool. Write-capable parallel dispatch is disabled in coding-os projects — orphaned worktrees + locked branches caused recurring deadlocks. All write work runs single-agent on the main working tree.
 
 ### Hooks (Deterministic Compliance)
 
 Hooks in `.claude/settings.json` enforce rules that prompt instructions cannot guarantee:
 
 - **PostToolUse** (Write/Edit): Domain-specific verification reminders
-- **PostToolUse** (Write/Edit): Auto-capture observations to thinking_os.db (fire-and-forget)
+- **PostToolUse** (Write/Edit): Auto-capture observations to coding-os.db (fire-and-forget)
 - **PreToolUse** (Write/Edit): Complexity Gate blocks code writes until classification recorded
 - **PreToolUse** (Write/Edit): Block protected files (changes.log, tasks.md status)
 - **PreToolUse** (Bash): Blocks `git add .env` to prevent secret commits
@@ -186,7 +183,7 @@ Hooks provide deterministic enforcement. Do not rely on prompt instructions alon
 
 ## Memory & Learning (Thinking OS)
 
-Self-learning layer built on thinking_os MCP server with SQLite backend (`.coding-os/thinking_os.db`).
+Self-learning layer built on thinking_os MCP server with SQLite backend (`.coding-os/coding-os.db`).
 
 **Data flow:** Auto-Capture (every tool call) → Outcome Record (every task) → Learning Loop (every 10 tasks) → Memory Inject (next session).
 

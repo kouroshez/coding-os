@@ -108,7 +108,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -154,7 +153,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 147
+      "count": 146
     },
     "claude_django": {
       "agent": "claude",
@@ -266,7 +265,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -326,7 +324,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 163
+      "count": 162
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -438,7 +436,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -491,7 +488,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 156
+      "count": 155
     },
     "claude_go": {
       "agent": "claude",
@@ -603,7 +600,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -656,7 +652,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 156
+      "count": 155
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -768,7 +764,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -821,7 +816,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 156
+      "count": 155
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -934,7 +929,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1001,7 +995,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 171
+      "count": 170
     },
     "claude_react-native": {
       "agent": "claude",
@@ -1113,7 +1107,6 @@
         ".claude/skills/security-web/SKILL.md",
         ".claude/skills/task-driver/SKILL.md",
         ".claude/skills/thinking_os/SKILL.md",
-        ".claude/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1168,7 +1161,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 158
+      "count": 157
     },
     "codex_base": {
       "agent": "codex",
@@ -1270,7 +1263,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1315,7 +1307,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 140
+      "count": 139
     },
     "codex_django": {
       "agent": "codex",
@@ -1421,7 +1413,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1480,7 +1471,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 156
+      "count": 155
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -1586,7 +1577,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1638,7 +1628,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 149
+      "count": 148
     },
     "codex_go": {
       "agent": "codex",
@@ -1744,7 +1734,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1796,7 +1785,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 149
+      "count": 148
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -1902,7 +1891,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -1954,7 +1942,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 149
+      "count": 148
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -2061,7 +2049,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -2127,7 +2114,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 164
+      "count": 163
     },
     "codex_react-native": {
       "agent": "codex",
@@ -2233,7 +2220,6 @@
         ".codex/skills/security-web/SKILL.md",
         ".codex/skills/task-driver/SKILL.md",
         ".codex/skills/thinking_os/SKILL.md",
-        ".codex/skills/worktree-orchestration/SKILL.md",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/Makefile.base",
@@ -2287,7 +2273,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 151
+      "count": 150
     },
     "cursor_base": {
       "agent": "cursor",
@@ -2396,7 +2382,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -2435,7 +2420,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 141
+      "count": 140
     },
     "cursor_django": {
       "agent": "cursor",
@@ -2553,7 +2538,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -2601,7 +2585,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 157
+      "count": 156
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -2719,7 +2703,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -2760,7 +2743,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 150
+      "count": 149
     },
     "cursor_go": {
       "agent": "cursor",
@@ -2878,7 +2861,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -2919,7 +2901,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 150
+      "count": 149
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -3037,7 +3019,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3078,7 +3059,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 150
+      "count": 149
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -3198,7 +3179,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3252,7 +3232,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 165
+      "count": 164
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -3370,7 +3350,6 @@
         ".cursor/skills/security-web/SKILL.md",
         ".cursor/skills/task-driver/SKILL.md",
         ".cursor/skills/thinking_os/SKILL.md",
-        ".cursor/skills/worktree-orchestration/SKILL.md",
         "AGENTS.md",
         "Makefile",
         "changes.log",
@@ -3413,7 +3392,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 152
+      "count": 151
     }
   }
 }

@@ -86,7 +86,7 @@ def test_codex_stop_dispatch_returns_valid_json(tmp_path: Path) -> None:
     state = tmp_path / ".coding-os"
     state.mkdir()
     (state / "session-id").write_text("ses-stop\n")
-    db = state / "thinking_os.db"
+    db = state / "coding-os.db"
     conn = sqlite3.connect(str(db))
     conn.execute(
         "CREATE TABLE observations (id INTEGER PRIMARY KEY, session_id TEXT, body TEXT)"

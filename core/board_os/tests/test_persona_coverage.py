@@ -70,7 +70,7 @@ def project(tmp_path: Path, monkeypatch) -> Path:
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
-    return db.init_db(tmp_path / "thinking_os.db")
+    return db.init_db(tmp_path / "coding-os.db")
 
 
 # ────────────────────────────────────────────────────────────────────

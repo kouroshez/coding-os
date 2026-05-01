@@ -5,7 +5,7 @@ PURPOSE: Expose Scrumban board operations (create/move/list/daily/retro/wip)
 INPUT:   HTTP request bodies / query params matching each cos_task_* signature.
 OUTPUT:  JSON response unwrapped from the MCP envelope ({data, meta} on 200).
 DEPENDENCIES: fastapi, core.web._envelope, core.board_os.mcp_tools,
-              core.thinking_os.db.
+              core.coding-os.db.
 NOTES:  The board_os functions need a SQLite connection; we open one per
         request using the same DB path as the CLI.  No connection pooling
         in S4 — pooling lands with S6 if needed.

@@ -8,7 +8,7 @@ PURPOSE:      Catch the failure mode found during the 2026-04-30 enterprise
               tables behind on a fresh init.
 INPUT:        a freshly-init'd `:memory:` DB.
 OUTPUT:       pytest assertions; <1 s.
-DEPENDENCIES: thinking_os.db.init_db.
+DEPENDENCIES: coding-os.db.init_db.
 NOTES:        Also smoke-tests the two zombie-table writers (persona
               selections + retrieval router log) so a future migration
               that drops them gets caught by CI.

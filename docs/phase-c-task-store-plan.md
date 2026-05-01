@@ -330,7 +330,7 @@ Why fire-and-forget? Because:
 
 ```makefile
 .PHONY: task-sync
-task-sync: ## Sync docs/tasks/*.md → thinking_os.db (Phase C)
+task-sync: ## Sync docs/tasks/*.md → coding-os.db (Phase C)
 	@uv run --extra rag --directory $(COS_ROOT) python -m core.thinking_os.task_sync --project-root . --db $(COS_DB_PATH)
 
 .PHONY: task-resync
@@ -503,7 +503,7 @@ All non-rag tests (≥52 of the ~64) must pass without `rag` extras installed �
 ```bash
 # 1. Migration v6 applied cleanly
 uv run python -c "
-from core.thinking_os.db import init_db, has_tasks_table, MIGRATIONS
+from core.coding-os.db import init_db, has_tasks_table, MIGRATIONS
 c = init_db()
 assert has_tasks_table(c)
 assert len(MIGRATIONS) == 6

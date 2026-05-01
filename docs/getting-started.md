@@ -92,7 +92,7 @@ For `--agent claude,codex --template django --template nextjs`:
 ```text
 your-project/
 ├── .coding-os/              # State directory (gitignored)
-│   ├── thinking_os.db       # Self-learning database (schema v6)
+│   ├── coding-os.db       # Self-learning database (schema v6)
 │   ├── domain-config.json   # Domain → REF code mapping for task-create
 │   ├── Makefile.base        # Universal make targets (copied from template)
 │   └── rag-config.yaml      # RAG indexer configuration (Phase B)

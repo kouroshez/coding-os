@@ -239,7 +239,7 @@ class TestCosEnv:
             env={**os.environ, "COS_STATE_DIR": ".custom"},
             timeout=10,
         )
-        assert result.stdout.strip() == ".custom/thinking_os.db"
+        assert result.stdout.strip() == ".custom/coding-os.db"
 
     def test_db_path_override(self, tmp_path: Path) -> None:
         """COS_DB_PATH env var overrides the state-dir-derived default."""

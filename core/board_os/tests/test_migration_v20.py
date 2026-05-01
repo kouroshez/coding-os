@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from core.thinking_os.db import (
+from core.coding-os.db import (
     MIGRATIONS,
     _migrate_v13_board_os,
     _migrate_v20_override_audit,

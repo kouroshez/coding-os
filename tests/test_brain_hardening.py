@@ -33,7 +33,7 @@ def _seed_db(tmp: Path) -> Path:
     """Initialise a fresh schema-v18 DB for isolation."""
     sys.path.insert(0, str(BRAIN))
     import db as _db  # type: ignore
-    path = tmp / "thinking_os.db"
+    path = tmp / "coding-os.db"
     conn = _db.init_db(str(path))
     conn.close()
     return path

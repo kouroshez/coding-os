@@ -22,7 +22,7 @@ cos_log_hook warn-graph-empty enter || true
 
 STATE_DIR="${COS_STATE_DIR:-$PWD/.coding-os}"
 AGENT_DIR="${COS_AGENT_DIR:-${STATE_DIR}/claude}"
-DB_PATH="${COS_DB_PATH:-${STATE_DIR}/thinking_os.db}"
+DB_PATH="${COS_DB_PATH:-${STATE_DIR}/coding-os.db}"
 LOG_FILE="${STATE_DIR}/.warn-graph-empty.log"
 MARKER="${AGENT_DIR}/.graph-empty-warning-shown"
 

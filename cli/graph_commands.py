@@ -774,7 +774,7 @@ def _graph_reindex_print_status() -> None:
     PURPOSE:      Debugging aid — surface the per-file cache state so a
                   human can spot stale hashes, stuck errors, or files
                   that never re-indexed after a change.
-    INPUT:        none (uses the default thinking_os.db lookup path).
+    INPUT:        none (uses the default coding-os.db lookup path).
     OUTPUT:       stdout table (file, hash[:12], indexed_at, status).
     DEPENDENCIES: core/thinking_os/db.py (init_db),
                   file_index_state table (migration v17).

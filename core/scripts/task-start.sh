@@ -283,7 +283,7 @@ else:
     print()
 
 # --- Learning suggestions (fire-and-forget) ---
-db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/thinking_os.db"))
+db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/coding-os.db"))
 if db_path.exists():
     try:
         import sqlite3

@@ -149,7 +149,7 @@ EMERGENCY_TASKS = [
 
 def _open_conn() -> sqlite3.Connection:
     db_path = os.environ.get(
-        "COS_DB_PATH", str(_REPO_ROOT / ".coding-os" / "thinking_os.db"),
+        "COS_DB_PATH", str(_REPO_ROOT / ".coding-os" / "coding-os.db"),
     )
     return sqlite3.connect(db_path)
 

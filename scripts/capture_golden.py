@@ -41,9 +41,9 @@ SECTIONS: list[tuple[str, str, list[str]]] = [
 # Files created at runtime — never tracked in golden.
 # Must match cli/doctor.py::RUNTIME_PATHS.
 RUNTIME_PATHS = {
-    ".coding-os/thinking_os.db",
-    ".coding-os/thinking_os.db-shm",
-    ".coding-os/thinking_os.db-wal",
+    ".coding-os/coding-os.db",
+    ".coding-os/coding-os.db-shm",
+    ".coding-os/coding-os.db-wal",
     ".coding-os/session-id",
     ".coding-os/.thinking_os-gate",
     ".coding-os/.task-current",

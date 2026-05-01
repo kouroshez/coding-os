@@ -15,7 +15,7 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook "validate-task-frontmatter" "entry" 2>/dev/null || true
 
 # Read JSON payload from stdin (Claude/Codex hook input format).
-payload="$(cat)"
+payload="$(cos_read_stdin_bounded 5)"
 
 # Only act on docs/tasks/*.md writes.
 file_path="$(echo "$payload" | python3 -c '

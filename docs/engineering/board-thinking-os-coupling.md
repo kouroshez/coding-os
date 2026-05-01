@@ -1,5 +1,5 @@
 <!-- domain:OPS | layer:reference | ssot:true | updated:2026-04-28 -->
-# board_os ↔ thinking_os.db Coupling Contract
+# board_os ↔ coding-os.db Coupling Contract
 
 Purpose: Defines the read/write contract between board_os and the shared SQLite owned by thinking_os.
 Read when: Modifying board_os DB access or thinking_os tables that board_os reads.

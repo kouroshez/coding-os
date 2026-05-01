@@ -1376,7 +1376,7 @@ python3 .claude/thinking_os/bootstrap_outcomes.py          # populate from docs/
 python3 .claude/thinking_os/bootstrap_outcomes.py --dry-run # preview only
 ```
 
-**10 SQLite tables** (`.claude/thinking_os/thinking_os.db`):
+**10 SQLite tables** (`.claude/thinking_os/coding-os.db`):
 
 | Table             | Populated by                  | When                          |
 | ----------------- | ----------------------------- | ----------------------------- |

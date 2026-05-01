@@ -62,7 +62,7 @@ Skills are either **project** (custom SKILL.md with NakoDigital SSOT references)
 | EXPLAIN, JSONB, replication, VACUUM | `postgres-pro` | global | COMPLICATED | Performance |
 | New table design, constraints | `postgresql-table-design` | global | COMPLICATED | New schemas |
 | SQL query tuning, EXPLAIN plans, indexing | `sql-optimization` | global | COMPLICATED | Universal SQL perf |
-| SQLite DB, FTS5, migrations, thinking_os.db | `sqlite-database-expert` | global | COMPLICATED | SQLite/embedded DB |
+| SQLite DB, FTS5, migrations, coding-os.db | `sqlite-database-expert` | global | COMPLICATED | SQLite/embedded DB |
 
 **Payments (Stripe + Payment Core)**
 
@@ -79,7 +79,6 @@ Skills are either **project** (custom SKILL.md with NakoDigital SSOT references)
 | Complexity Gate, Zoom cycle, 10 tools | `thinking_os` | project | COMPLICATED | Classify + Plan |
 | Error handling, edge cases | `clean-code` | project | COMPLICATED | Any code |
 | Explore unfamiliar code | `codebase-explorer` | project | COMPLICATED | Before modifying |
-| Parallel agent dispatch | `worktree-orchestration` | project | COMPLEX | Multi-domain tasks |
 | API design, REST patterns | `api-design-principles` | global | COMPLICATED | API work |
 | Naming conventions | `naming-analyzer` | global | COMPLEX | Naming review |
 | Shell scripts, terminal | `bash-linux` | global | CLEAR | Infra/scripts |

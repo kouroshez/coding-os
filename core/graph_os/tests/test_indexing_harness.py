@@ -60,7 +60,7 @@ def tiny_project(tmp_path: Path):
         "# Proj\n\nSee [mod](pkg/mod.py).\n", encoding="utf-8"
     )
     (root / ".coding-os").mkdir()
-    db_path = root / ".coding-os" / "thinking_os.db"
+    db_path = root / ".coding-os" / "coding-os.db"
     return root, db_path
 
 

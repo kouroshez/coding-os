@@ -3,7 +3,7 @@
 PURPOSE:    Call every cos_* tool, validate the ok/error envelope contract,
             spot-check data quality. Uses mcp.call_tool() — same code path
             an agent uses over stdio.
-INPUT:      none — reads .coding-os/thinking_os.db + graph backend.
+INPUT:      none — reads .coding-os/coding-os.db + graph backend.
 OUTPUT:     per-tool PASS/WARN/FAIL lines; grouped summary + failure list.
 """
 
@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "core"))
 sys.path.insert(0, str(ROOT / "core" / "thinking_os"))
 
-os.environ.setdefault("COS_DB_PATH", str(ROOT / ".coding-os/thinking_os.db"))
+os.environ.setdefault("COS_DB_PATH", str(ROOT / ".coding-os/coding-os.db"))
 
 print("Loading server…")
 import thinking_os.server as srv_mod  # noqa: E402
@@ -86,7 +86,7 @@ async def T(tool: str, **kwargs) -> dict:
 
 from thinking_os.db import init_db  # noqa: E402
 
-DB = init_db(str(ROOT / ".coding-os/thinking_os.db"))
+DB = init_db(str(ROOT / ".coding-os/coding-os.db"))
 _obs = DB.execute("SELECT id FROM observations LIMIT 1").fetchone()
 OBS_ID = _obs["id"] if _obs else 1
 _pat = DB.execute("SELECT id FROM learned_patterns LIMIT 1").fetchone()

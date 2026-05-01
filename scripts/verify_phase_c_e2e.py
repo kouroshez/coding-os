@@ -159,7 +159,7 @@ def sync_first_run(project: Path) -> dict:
         ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT),
          "python", "-m", "core.thinking_os.task_sync",
          "--project-root", str(project),
-         "--db", str(project / ".coding-os" / "thinking_os.db")],
+         "--db", str(project / ".coding-os" / "coding-os.db")],
         timeout=TIMEOUT_SYNC_FIRST,
     )
     # Parse the JSON line in the output
@@ -178,7 +178,7 @@ def sync_second_run(project: Path, expected_count: int) -> dict:
         ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT),
          "python", "-m", "core.thinking_os.task_sync",
          "--project-root", str(project),
-         "--db", str(project / ".coding-os" / "thinking_os.db")],
+         "--db", str(project / ".coding-os" / "coding-os.db")],
         timeout=TIMEOUT_SYNC_SECOND,
     )
     stats = _extract_json_stats(result.stdout)
@@ -240,7 +240,7 @@ def python_queries(project: Path) -> None:
         timeout=TIMEOUT_QUERY,
         env={
             "COS_ROOT": str(COS_ROOT),
-            "TEST_DB": str(project / ".coding-os" / "thinking_os.db"),
+            "TEST_DB": str(project / ".coding-os" / "coding-os.db"),
         },
     )
     metrics = _parse_kv_lines(result.stdout)

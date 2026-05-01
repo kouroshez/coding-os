@@ -13,7 +13,7 @@ cos_log_hook "enforce-wip-limit" "entry" 2>/dev/null || true
 # where a task file is edited directly (bypassing cos_task_move).
 # If board_os + config are unavailable, fail-soft.
 
-payload="$(cat)"
+payload="$(cos_read_stdin_bounded 5)"
 file_path="$(echo "$payload" | python3 -c '
 import json, sys
 try:

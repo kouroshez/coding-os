@@ -30,10 +30,10 @@ for _p in [str(_CORE), str(_CORE / "thinking_os")]:
 
 @pytest.fixture()
 def db_setup(tmp_path):
-    """Initialise a real SQLite DB at tmp_path/.coding-os/thinking_os.db."""
+    """Initialise a real SQLite DB at tmp_path/.coding-os/coding-os.db."""
     import db as thinking_os_db  # type: ignore
 
-    db_file = tmp_path / ".coding-os" / "thinking_os.db"
+    db_file = tmp_path / ".coding-os" / "coding-os.db"
     db_file.parent.mkdir(parents=True)
     conn = thinking_os_db.init_db(str(db_file))
     yield tmp_path, db_file, conn

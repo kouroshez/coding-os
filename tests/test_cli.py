@@ -75,7 +75,7 @@ class TestInit:
     def test_initializes_database(self, runner: CliRunner, project_dir: Path) -> None:
         project_dir.mkdir()
         runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        db_path = project_dir / ".coding-os" / "thinking_os.db"
+        db_path = project_dir / ".coding-os" / "coding-os.db"
         assert db_path.exists()
         assert db_path.stat().st_size > 0
 
@@ -379,7 +379,7 @@ class TestServerStart:
         ]
         env = captured["env"]
         assert isinstance(env, dict)
-        assert env["COS_DB_PATH"] == str(tmp_path / ".coding-os" / "thinking_os.db")
+        assert env["COS_DB_PATH"] == str(tmp_path / ".coding-os" / "coding-os.db")
         assert env["COS_STATE_DIR"] == str(tmp_path / ".coding-os")
 
 

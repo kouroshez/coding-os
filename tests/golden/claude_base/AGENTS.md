@@ -112,7 +112,7 @@ Order of preference when two layers look equally plausible: **Memory → Docs �
 
 ## Skills
 
-`thinking_os`, `clean-code`, `codebase-explorer`, `worktree-orchestration`. Config: `$COS_STATE_DIR/settings.json`.
+`thinking_os`, `clean-code`, `codebase-explorer`. Config: `$COS_STATE_DIR/settings.json`.
 
 ## Context Discipline
 
@@ -209,4 +209,4 @@ pressure the human (ADHD-friendly default).
 
 ## Subagent Dispatch
 
-Default: single-agent. Max 3 subagents for independent parallel work only. Use `isolation: "worktree"` for write-capable subagents when 2+ independent file groups, different domains, no shared targets, clean git. Never for: single-file, coupled chains, migrations, global state files. Details: `docs/governance/agent-workflow.md` § Execution Mode.
+Default: single-agent. Subagents are allowed **only** for parallel read-only research, inventory, or verification (max 3 workers). Never pass `isolation: "worktree"` — write-capable parallel dispatch is disabled (orphaned worktrees + locked branches caused recurring deadlocks). All write work runs single-agent on the main working tree. Details: `docs/governance/agent-workflow.md` § Execution Mode.

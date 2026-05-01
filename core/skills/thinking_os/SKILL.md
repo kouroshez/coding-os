@@ -279,4 +279,4 @@ How Thinking OS maps to AGENTS.md 5-phase Core Loop:
      - Repeat until all MVP dimensions covered
    - **Execute phase** (do): implement the plan, on-demand reads only
 4. Output of Plan phase feeds into Execute: domain skill selection, implementation plan, risk awareness
-5. After task completion: outcome recorded to thinking_os.db via `cos_metric_record`. Every 10 tasks, Learning Loop extracts patterns and may promote them to rules or skill-enforcement updates.
+5. After task completion: outcome recorded to coding-os.db via `cos_metric_record`. Every 10 tasks, Learning Loop extracts patterns and may promote them to rules or skill-enforcement updates.

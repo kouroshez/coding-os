@@ -15,7 +15,7 @@ COS_ROOT ?= $(shell dirname "$$(dirname "$(COS_HOOKS)")")
 COS_SCRIPTS := $(COS_ROOT)/core/scripts
 
 export COS_STATE_DIR ?= .coding-os
-export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking_os.db
+export COS_DB_PATH ?= $(COS_STATE_DIR)/coding-os.db
 export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking_os
 
 # ── Session & Status ────────────────────────────────────────────────
@@ -134,7 +134,7 @@ docs-reindex: ## Force full re-index of docs/ (after model upgrade)
 	@cos docs-index --project-dir $(CURDIR) --force
 
 .PHONY: task-sync
-task-sync: ## Sync docs/tasks/*.md → thinking_os.db (Phase C incremental)
+task-sync: ## Sync docs/tasks/*.md → coding-os.db (Phase C incremental)
 	@cos task-sync --project-dir $(CURDIR)
 
 .PHONY: task-resync

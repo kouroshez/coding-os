@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook: Record enriched session summary to thinking_os.db.
+# Stop hook: Record enriched session summary to coding-os.db.
 # Agent-agnostic: uses COS_STATE_DIR and COS_DB_PATH.
 # Fire-and-forget — never blocks or errors visibly.
 set -euo pipefail

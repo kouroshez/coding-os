@@ -33,12 +33,12 @@ NakoDigital has 12 scripts (1,523 lines) in `infrastructure/scripts/` that form 
 
 | Script | Line | Reference | Fix |
 |--------|------|-----------|-----|
-| `task-start.sh` | 196 | `Path(".claude/thinking_os/thinking_os.db")` | → `COS_DB_PATH` env |
+| `task-start.sh` | 196 | `Path(".claude/thinking_os/coding-os.db")` | → `COS_DB_PATH` env |
 | `task-start.sh` | 217 | `Path(".claude/.thinking_os-gate")` | → `COS_STATE_DIR` env |
 | `task-start.sh` | 223 | `sys.path.insert(0, ".claude/thinking_os")` | → `COS_BRAIN_DIR` env |
 | `task-start.sh` | 240 | `bash .claude/hooks/write-state.sh .claude/.task-current` | → `COS_HOOKS_DIR` / `COS_STATE_DIR` |
 | `task-done.sh` | 172 | `Path(".claude/thinking_os/record_outcome.py")` | → `COS_BRAIN_DIR` |
-| `task-done.sh` | 186 | `Path(".claude/thinking_os/thinking_os.db")` | → `COS_DB_PATH` |
+| `task-done.sh` | 186 | `Path(".claude/thinking_os/coding-os.db")` | → `COS_DB_PATH` |
 | `task-done.sh` | 199 | `nako_learn_narrative` | → `cos_learn_narrative` |
 | `task-done.sh` | 208-216 | Same DB + sys.path | Same fixes |
 

@@ -341,7 +341,7 @@ def _default_graph_index_runner() -> dict:
         return {"status": "skipped", "reason": f"no project_root at {project_root}"}
 
     db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
     )
     max_files_raw = os.environ.get("COS_BACKGROUND_GRAPH_MAX_FILES", "")
     try:

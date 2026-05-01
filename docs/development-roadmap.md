@@ -20,7 +20,7 @@ Read next: The current phase's plan for open work items; [features.md](./feature
 - [x] Core thinking_os MCP server (18 tools, cos_* prefix)
 - [x] Core hooks (20 scripts, parameterized via cos-env.sh)
 - [x] Core rules (thinking_os.md, memory.md)
-- [x] Core skills (thinking_os, clean-code, codebase-explorer, worktree-orchestration)
+- [x] Core skills (thinking_os, clean-code, codebase-explorer)
 - [x] Claude adapter (settings.template.json, install.sh)
 - [x] Codex adapter (hooks.template.json, install.sh)
 - [x] CLI (init, add-adapter, health, eject)
@@ -260,7 +260,7 @@ Phase F addresses the invisible failure modes that bit us during Phase D/E devel
 
 #### F.8 — `cos server-start` portability fix
 
-- [x] `cli/main.py::server_start` now captures the caller's cwd BEFORE `uv run --directory` chdirs into the server tree and injects `COS_DB_PATH` + `COS_STATE_DIR` as env vars — so the server resolves `.coding-os/thinking_os.db` against the actual project root, not against the server source tree. Uses `os.execvpe` to pass env through the exec.
+- [x] `cli/main.py::server_start` now captures the caller's cwd BEFORE `uv run --directory` chdirs into the server tree and injects `COS_DB_PATH` + `COS_STATE_DIR` as env vars — so the server resolves `.coding-os/coding-os.db` against the actual project root, not against the server source tree. Uses `os.execvpe` to pass env through the exec.
 
 #### Wire-up
 

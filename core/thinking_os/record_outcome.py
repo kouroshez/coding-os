@@ -3,7 +3,7 @@
 Thinking OS — Record task outcome to task_outcomes table (TASK-136).
 
 Called by task-done.sh as fire-and-forget background process.
-Writes to thinking_os.db if it exists, exits silently otherwise.
+Writes to coding-os.db if it exists, exits silently otherwise.
 
 Usage:
     python record_outcome.py --task TASK-140 --type feat --outcome success --msg "summary"
@@ -157,7 +157,7 @@ def record_outcome(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Record task outcome to thinking_os.db")
+    parser = argparse.ArgumentParser(description="Record task outcome to coding-os.db")
     parser.add_argument("--task", required=True, help="Task ID (e.g. TASK-140)")
     parser.add_argument("--type", required=True, dest="task_type", help="Task type (feat/fix/...)")
     parser.add_argument("--outcome", required=True, help="success/rework/partial/blocked")

@@ -7,7 +7,7 @@ COS_SCRIPTS := $(COS_ROOT)/core/scripts
 COS_HOOKS := $(COS_ROOT)/core/hooks
 
 export COS_STATE_DIR ?= .coding-os
-export COS_DB_PATH ?= $(COS_STATE_DIR)/thinking_os.db
+export COS_DB_PATH ?= $(COS_STATE_DIR)/coding-os.db
 export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking_os
 
 # ── Include base targets ────────────────────────────────────────────

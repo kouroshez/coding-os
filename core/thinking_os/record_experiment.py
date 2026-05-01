@@ -3,7 +3,7 @@
 Thinking OS — Record experiment to experiment_log table (TASK-140).
 
 Called via `make record-experiment` or directly.
-Writes to thinking_os.db if it exists, exits silently otherwise.
+Writes to coding-os.db if it exists, exits silently otherwise.
 
 Usage:
     python record_experiment.py --task TASK-140 --hypothesis "..." --outcome "pass" --learning "..."
@@ -74,7 +74,7 @@ def record_experiment(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Record an experiment to thinking_os.db")
+    parser = argparse.ArgumentParser(description="Record an experiment to coding-os.db")
     parser.add_argument("--task", required=True, help="Task ID (e.g. TASK-140)")
     parser.add_argument("--hypothesis", required=True, help="What is being tested")
     parser.add_argument("--test", default=None, help="How it was tested")

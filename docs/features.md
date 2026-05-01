@@ -347,7 +347,6 @@ enforce-doc-anchor.sh reads .doc-anchor
 | `thinking_os` | Complexity Gate + Cognitive Cycle + 10 Thinking Tools |
 | `clean-code` | fail-closed error handling, self-documenting code, edge coverage |
 | `codebase-explorer` | mapping unfamiliar code before editing |
-| `worktree-orchestration` | dispatching parallel subagents via git worktrees |
 
 ### Stack Skills (`templates/<stack>/skills/`)
 
@@ -367,7 +366,7 @@ All skills are symlinked into `.claude/skills/<name>/SKILL.md`. From D.1 onward 
 ```
 my-project/
 ├── .coding-os/                  ← STATE (gitignored), per-project
-│   ├── thinking_os.db           ← SQLite v6 (13+ tables, FTS5, embeddings)
+│   ├── coding-os.db           ← SQLite v6 (13+ tables, FTS5, embeddings)
 │   ├── rag-config.yaml          ← RAG sources + priorities
 │   ├── domain-config.json       ← task-create REF code map
 │   ├── installed-manifest.json  ← NEW in D.3: snapshot of linked assets

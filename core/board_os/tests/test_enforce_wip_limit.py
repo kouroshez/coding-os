@@ -31,8 +31,8 @@ pytestmark = pytest.mark.skipif(
 
 
 def _make_db(tmp_path: Path, in_progress_count: int) -> Path:
-    """Create a minimal DB at tmp_path/thinking_os.db with N in_progress tasks."""
-    db_path = tmp_path / ".coding-os" / "thinking_os.db"
+    """Create a minimal DB at tmp_path/coding-os.db with N in_progress tasks."""
+    db_path = tmp_path / ".coding-os" / "coding-os.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     if str(_CORE / "thinking_os") not in sys.path:
@@ -94,7 +94,7 @@ def _invoke_hook(
     wip_override: bool = False,
 ) -> subprocess.CompletedProcess:
     """Run enforce-wip-limit.sh with a Write payload transitioning task to in_progress."""
-    db_path = tmp_path / ".coding-os" / "thinking_os.db"
+    db_path = tmp_path / ".coding-os" / "coding-os.db"
     payload = json.dumps({
         "tool_name": "Write",
         "tool_input": {

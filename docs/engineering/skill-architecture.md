@@ -20,7 +20,6 @@ core/skills/                              ← agent-agnostic, stack-agnostic
 ├── clean-code/SKILL.md                   ← fail-closed errors, no PII in logs, typed exceptions
 ├── thinking_os/SKILL.md                  ← Complexity Gate, Zoom cycle (always-active via rule)
 ├── codebase-explorer/SKILL.md            ← trace-flow, dependency-map
-├── worktree-orchestration/SKILL.md       ← parallel subagent dispatch
 ├── backend-fundamentals/SKILL.md         ← services, idempotency, envelopes, migrations, N+1
 └── frontend-fundamentals/SKILL.md        ← loading/error/empty states, hydration, a11y, SEO
 

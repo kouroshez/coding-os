@@ -22,7 +22,7 @@ if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   echo "  1. Validate task exists and is open or in-progress"
   echo "  2. Change checkbox to [x] in docs/tasks.md"
   echo "  3. Write structured entry to changes.log (1-4 lines)"
-  echo "  4. Record outcome to thinking_os.db (if DB exists)"
+  echo "  4. Record outcome to coding-os.db (if DB exists)"
   echo ""
   echo "Log format:"
   echo "  - TASK-###: <type> — <title>"
@@ -170,7 +170,7 @@ title_match = re.search(rf"{re.escape(task_id)}:\s*(.+)$", new_line)
 title = title_match.group(1).strip() if title_match else task_id
 print(f"\nDone: {task_id} — {title}")
 
-# --- Record outcome to thinking_os.db + breakthrough detection ---
+# --- Record outcome to coding-os.db + breakthrough detection ---
 # Resolve thinking_os dir in this order: explicit COS_BRAIN_DIR →
 # meta-project layout (core/thinking_os/) → consumer-project installed
 # layout (.coding-os/thinking_os/) → pre-rename legacy layout.
@@ -202,7 +202,7 @@ if record_script is not None:
 
     # Phase G.8: back-fill outcome on every retrieval row that supported
     # this task. Fire-and-forget — pre-v10 DBs silently no-op.
-    _db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/thinking_os.db"))
+    _db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/coding-os.db"))
     if _db_path.exists():
         try:
             import sqlite3 as _sq_bf
@@ -218,7 +218,7 @@ if record_script is not None:
             pass  # fire-and-forget
 
     # Check for breakthrough after recording
-    _db = Path(os.environ.get("COS_DB_PATH", ".coding-os/thinking_os.db"))
+    _db = Path(os.environ.get("COS_DB_PATH", ".coding-os/coding-os.db"))
     if _db.exists() and outcome == "success":
         try:
             import sqlite3 as _sq
@@ -240,7 +240,7 @@ if record_script is not None:
             pass
 
 # --- Auto learn_extract every 10 tasks (fire-and-forget) ---
-db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/thinking_os.db"))
+db_path = Path(os.environ.get("COS_DB_PATH", ".coding-os/coding-os.db"))
 if db_path.exists():
     try:
         import sqlite3
@@ -303,7 +303,7 @@ except Exception as exc:
 # with the updated identity/beliefs snapshot. Fire-and-forget, bounded at
 # 2s so a slow DB never holds up task completion.
 (
-  COS_DB_PATH="${COS_DB_PATH:-.coding-os/thinking_os.db}" \
+  COS_DB_PATH="${COS_DB_PATH:-.coding-os/coding-os.db}" \
   timeout 2 python3 -c "
 import os, sys, logging
 from pathlib import Path

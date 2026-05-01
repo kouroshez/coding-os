@@ -13,7 +13,7 @@ PURPOSE: Close the "I edited core/ or adapters/, how do consumer projects
 INPUT:   ~/.coding-os/registry.json, every project's .coding-os.yaml.
 OUTPUT:  Click command group `cos sync-all` + `cos sync-doctor`.
 DEPENDENCIES: cli.registry (project list), cli.main (_run_adapter_install /
-              _link_stack_skills), core.thinking_os.db (init_db).
+              _link_stack_skills), core.coding-os.db (init_db).
 NOTES:   All mutations are idempotent — re-running is safe.
 """
 from __future__ import annotations
@@ -87,7 +87,7 @@ def _dangling(link: Path) -> bool:
 
 
 def _apply_migrations(project: Path) -> tuple[bool, str]:
-    """Run init_db on the project's thinking_os.db.  Returns (ok, msg)."""
+    """Run init_db on the project's coding-os.db.  Returns (ok, msg)."""
     db_path = project / ".coding-os" / "coding-os.db"
     if not db_path.exists():
         return True, "no DB (pre-Phase-C install)"

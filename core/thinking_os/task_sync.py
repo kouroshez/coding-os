@@ -394,7 +394,7 @@ def _embed_task_safe(conn: sqlite3.Connection, parsed) -> None:
 # ---------------------------------------------------------------------------
 
 def _main() -> None:
-    parser = argparse.ArgumentParser(description="Sync docs/tasks/ → thinking_os.db")
+    parser = argparse.ArgumentParser(description="Sync docs/tasks/ → coding-os.db")
     parser.add_argument(
         "--project-root",
         type=str,

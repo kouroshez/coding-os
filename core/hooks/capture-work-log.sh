@@ -14,7 +14,7 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 cos_log_hook "capture-work-log" "entry" 2>/dev/null || true
 
 # Only care about Edit/Write on code files.
-payload="$(cat)"
+payload="$(cos_read_stdin_bounded 5)"
 tool_name="$(echo "$payload" | python3 -c '
 import json, sys
 try:

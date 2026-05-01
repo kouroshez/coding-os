@@ -753,7 +753,7 @@ New directory `core/graph_os/` — parallel peer, not a subdirectory. Importable
 
 ```
 .coding-os/
-├── thinking_os.db     ← SQLite: observations, learned_patterns, doc_chunks, tasks, metrics
+├── coding-os.db     ← SQLite: observations, learned_patterns, doc_chunks, tasks, metrics
 └── graph_os.kuzu      ← Kùzu: graph_nodes, graph_edges, graph_node_embeddings, HNSW vector index
 ```
 
@@ -1241,7 +1241,7 @@ All twelve open questions are resolved:
 
 6. **Windows** — ✅ Full cross-platform CI matrix (macOS + Linux + Windows). Viewer falls back to printing the file path if `webbrowser.open` returns False.
 
-7. **`cos update` vs user data** — ✅ Clarified. `cos update` only updates framework files (`core/**`, `adapters/**`, `templates/**`). User data (`.coding-os/thinking_os.db`, `.coding-os/graph_os.kuzu`, `.coding-os/<agent>/`) is **never** touched. Schema migrations are append-only (Rule 10) and run on MCP server startup — user's existing data is preserved across all schema upgrades.
+7. **`cos update` vs user data** — ✅ Clarified. `cos update` only updates framework files (`core/**`, `adapters/**`, `templates/**`). User data (`.coding-os/coding-os.db`, `.coding-os/graph_os.kuzu`, `.coding-os/<agent>/`) is **never** touched. Schema migrations are append-only (Rule 10) and run on MCP server startup — user's existing data is preserved across all schema upgrades.
 
 8. **LSP overlay** — ✅ Default ON (not opt-in). pyright + tsserver as long-lived subprocesses, reused across files. Circuit breaker on crash. Target precision ≥95% with LSP (vs ≥85% tree-sitter-only).
 

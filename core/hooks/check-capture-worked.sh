@@ -22,7 +22,7 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/thinking_os.db}"
+COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/coding-os.db}"
 SESSION_FILE="${COS_SESSION_FILE:-$COS_STATE_DIR/session-id}"
 
 SESSION_ID=""

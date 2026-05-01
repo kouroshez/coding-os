@@ -24,7 +24,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from thinking_os.db import init_db  # noqa: E402
+from coding-os.db import init_db  # noqa: E402
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def cos_project(tmp_path, monkeypatch):
     project = tmp_path / "fake-project"
     (project / ".coding-os").mkdir(parents=True)
     (project / "docs" / "tasks").mkdir(parents=True)
-    db = project / ".coding-os" / "thinking_os.db"
+    db = project / ".coding-os" / "coding-os.db"
     conn = init_db(db)
     conn.close()
 
@@ -122,7 +122,7 @@ async def _run_scenario(on_poll, max_polls: int = 5, want_events: int = 1) -> li
 
 def test_db_transition_emits_with_agent_attribution(cos_project):
     """A DB row inserted after init surfaces with its agent_session intact."""
-    db = cos_project / ".coding-os" / "thinking_os.db"
+    db = cos_project / ".coding-os" / "coding-os.db"
     _write_task_file(cos_project, "TASK-001", status="in_progress")
 
     async def on_poll(poll_num: int) -> None:
@@ -172,7 +172,7 @@ def test_db_event_suppresses_duplicate_file_event(cos_project):
     """A DB row aligned with a file mtime must suppress the file event."""
     import time as _time
 
-    db = cos_project / ".coding-os" / "thinking_os.db"
+    db = cos_project / ".coding-os" / "coding-os.db"
     path = _write_task_file(cos_project, "TASK-003", status="ready")
 
     async def on_poll(poll_num: int) -> None:

@@ -12,7 +12,7 @@ INPUT:        argv — one or more repo-relative or absolute paths.
                       `--quiet` suppresses per-path output (errors still go
                       to stderr).
 OUTPUT:       One `OK:` / `SKIP:` / `ERROR:` line per path; final summary.
-DEPENDENCIES: graph_os.backends.sqlite_backend, thinking_os.db. No
+DEPENDENCIES: graph_os.backends.sqlite_backend, coding-os.db. No
               embeddings stack required — pure DB DELETEs.
 NOTES:        Idempotent — re-running on an already-pruned path is a
               no-op. Defensive on missing tables (fresh init / stripped
@@ -34,7 +34,7 @@ sys.path.insert(0, str(_REPO_ROOT / "core" / "thinking_os"))
 
 def _resolve_db_path(project_root: Path) -> Path:
     return Path(
-        os.environ.get("COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db"))
+        os.environ.get("COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"))
     )
 
 

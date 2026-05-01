@@ -126,7 +126,7 @@ class TestSessionEndSummary:
         agent_dir.mkdir(parents=True)
         (agent_dir / "session-id").write_text("ses-codex-test\n", encoding="utf-8")
 
-        db_path = state / "thinking_os.db"
+        db_path = state / "coding-os.db"
         init_db(db_path).close()
 
         start = time.time()

@@ -1,0 +1,1 @@
+/Users/ciro/Files/Project/coding-os/core/hooks/remind-daily.sh

@@ -1686,7 +1686,7 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
 
     Args:
         db_path: Path to the SQLite database file.
-                 Defaults to .coding-os/thinking_os.db (via COS_DB_PATH env).
+                 Defaults to .coding-os/coding-os.db (via COS_DB_PATH env).
 
     Returns:
         A configured sqlite3.Connection.

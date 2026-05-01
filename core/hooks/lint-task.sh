@@ -8,7 +8,7 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 cos_log_hook "lint-task" "entry" 2>/dev/null || true
 
-payload="$(cat)"
+payload="$(cos_read_stdin_bounded 5)"
 file_path="$(echo "$payload" | python3 -c '
 import json, sys
 try:

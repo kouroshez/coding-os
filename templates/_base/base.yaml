@@ -35,7 +35,7 @@ substitutions:
   QUICK_ROUTING: "- See `docs/governance/agent-workflow.md` for routing without playbooks"
   STACK_REF_CODES: ""
 
-skills: [thinking_os, clean-code, codebase-explorer, worktree-orchestration]
+skills: [thinking_os, clean-code, codebase-explorer]
 
 # AGENTS.md section registry — order determines rendered position.
 # Each entry references a fragment file relative to `templates/_base/`.

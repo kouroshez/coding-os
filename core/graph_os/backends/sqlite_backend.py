@@ -35,7 +35,7 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 def _import_db_module() -> Any:
     """Return the thinking_os db module.
 
-    Prefers the installed package path (thinking_os.db); falls back to the
+    Prefers the installed package path (coding-os.db); falls back to the
     bare ``db`` name for environments where core/thinking_os/ is still on
     sys.path directly (e.g. direct script invocation without editable install).
     """
@@ -80,7 +80,7 @@ class SqliteBackend:
             self._conn = conn
         else:
             resolved = db_path or os.environ.get(
-                "COS_DB_PATH", ".coding-os/thinking_os.db"
+                "COS_DB_PATH", ".coding-os/coding-os.db"
             )
             Path(resolved).parent.mkdir(parents=True, exist_ok=True)
             db = _import_db_module()

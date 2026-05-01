@@ -12,7 +12,7 @@ Read next: any of the entries below.
 ### Reference (2)
 
 - [Hook Batching Proposal — PreToolUse Write|Edit super-hooks](hook-batching-proposal.md) — `ssot:ref` · updated 2026-04-28
-- [board_os ↔ thinking_os.db Coupling Contract](board-thinking-os-coupling.md) — `ssot:true` · updated 2026-04-28
+- [board_os ↔ coding-os.db Coupling Contract](board-thinking-os-coupling.md) — `ssot:true` · updated 2026-04-28
 
 ### Contract (1)
 

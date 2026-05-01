@@ -186,7 +186,7 @@ def _fts_candidates(
 ) -> list[Path]:
     """Use thinking_os document_chunks_fts to find docs that lexically
     mention any of the given symbols. ~10 ms total for ≤8 symbols."""
-    db_path = project_root / ".coding-os" / "thinking_os.db"
+    db_path = project_root / ".coding-os" / "coding-os.db"
     if not db_path.is_file() or not symbols:
         return []
     try:

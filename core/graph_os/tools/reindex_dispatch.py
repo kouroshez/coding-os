@@ -427,7 +427,7 @@ def _open_conn(*, project_root: Path, db_path: str | None):
     from thinking_os.db import init_db  # type: ignore
 
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
     )
     return init_db(effective_db)
 
@@ -459,7 +459,7 @@ def _reindex_docs(
 
     config_path = project_root / ".coding-os" / "rag-config.yaml"
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
     )
     conn = init_db(effective_db)
     try:
@@ -506,7 +506,7 @@ def _reindex_graph(
     }
 
     effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "thinking_os.db")
+        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
     )
     conn = init_db(effective_db)
     nodes_written = edges_written = nodes_pruned = 0

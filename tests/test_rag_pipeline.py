@@ -85,8 +85,8 @@ def test_cos_docs_index_populates_chunks(tmp_path: Path) -> None:
         f"cos docs-index failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
     )
 
-    db_path = project / ".coding-os" / "thinking_os.db"
-    assert db_path.exists(), "thinking_os.db not created"
+    db_path = project / ".coding-os" / "coding-os.db"
+    assert db_path.exists(), "coding-os.db not created"
 
     conn = sqlite3.connect(str(db_path))
     try:

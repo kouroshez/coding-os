@@ -238,7 +238,7 @@ uv run --extra rag pytest core/thinking_os/tests/test_capture.py core/thinking_o
 # Smoke test: simulate observation insert, verify embedding row created
 uv run --extra rag python -c "
 from core.thinking_os.capture import capture_observation
-from core.thinking_os.db import init_db
+from core.coding-os.db import init_db
 import sqlite3
 conn = init_db('/tmp/cos-test.db')
 result = capture_observation({'tool_name': 'Edit', 'tool_input': {'file_path': 'app/auth.py'}})
@@ -373,7 +373,7 @@ uv run --directory ~/Files/Project/coding-os python -m cli.main init --agent cla
 cp /Users/ciro/Files/Project/NakoDigital/docs/PRD/0[1-5]*.md "$TMPDIR/docs/PRD/"
 cd "$TMPDIR"
 make docs-index
-sqlite3 .coding-os/thinking_os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
+sqlite3 .coding-os/coding-os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
 # Expected: prd | <count>
 ```
 
@@ -462,8 +462,8 @@ Update `cos_health` to include `embeddings_count`, `document_chunks_count`, `emb
 # After indexing NakoDigital subset:
 uv run --extra rag python -c "
 from core.thinking_os.tools.docs import doc_search
-from core.thinking_os.db import init_db
-c = init_db('.coding-os/thinking_os.db')
+from core.coding-os.db import init_db
+c = init_db('.coding-os/coding-os.db')
 import json
 print(json.dumps(doc_search(c, 'commission rate', source_types=['prd', 'architecture'], limit=3), indent=2))
 "
@@ -618,7 +618,7 @@ uv run pytest core/thinking_os/tests/test_memory.py -v
 
 ```bash
 # 1. Migration v5 applied cleanly
-uv run python -c "from core.thinking_os.db import init_db; c=init_db(); tables = {r[0] for r in c.execute('SELECT name FROM sqlite_master').fetchall()}; assert 'embeddings' in tables and 'document_chunks' in tables; print('OK')"
+uv run python -c "from core.coding-os.db import init_db; c=init_db(); tables = {r[0] for r in c.execute('SELECT name FROM sqlite_master').fetchall()}; assert 'embeddings' in tables and 'document_chunks' in tables; print('OK')"
 
 # 2. All embedding tests pass (with RAG extras)
 uv run --extra rag pytest core/thinking_os/tests/test_embeddings.py core/thinking_os/tests/test_doc_indexer.py core/thinking_os/tests/test_doc_search.py -v
@@ -636,7 +636,7 @@ cp /Users/ciro/Files/Project/NakoDigital/docs/PRD/*.md "$TMPDIR/docs/PRD/" 2>/de
 cp /Users/ciro/Files/Project/NakoDigital/docs/architecture/0[12]*.md "$TMPDIR/docs/architecture/" 2>/dev/null || true
 cd "$TMPDIR"
 make docs-index
-sqlite3 .coding-os/thinking_os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
+sqlite3 .coding-os/coding-os.db "SELECT source_type, COUNT(*) FROM document_chunks GROUP BY source_type;"
 # Expected: prd | N, architecture | M (where N+M > 0)
 
 # 6. cos_doc_search returns results
@@ -645,7 +645,7 @@ import json, sys
 sys.path.insert(0, '/Users/ciro/Files/Project/coding-os/core/thinking_os')
 from db import init_db
 from tools.docs import doc_search
-c = init_db('.coding-os/thinking_os.db')
+c = init_db('.coding-os/coding-os.db')
 print(json.dumps(doc_search(c, 'commission', limit=3), indent=2))
 "
 
