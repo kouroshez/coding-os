@@ -64,7 +64,7 @@ async def health():
     result["file_index_state_rows"] = None
     result["file_index_state_last_indexed_at"] = None
     try:
-        import db  # type: ignore
+        from thinking_os import db  # type: ignore
         conn = db.init_db()
         try:
             if db.has_file_index_state_table(conn):
