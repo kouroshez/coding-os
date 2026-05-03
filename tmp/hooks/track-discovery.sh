@@ -1,1 +1,0 @@
-/Users/ciro/Files/Project/coding-os/core/hooks/track-discovery.sh

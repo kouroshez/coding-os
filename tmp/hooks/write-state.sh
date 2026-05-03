@@ -1,1 +1,0 @@
-/Users/ciro/Files/Project/coding-os/core/hooks/write-state.sh

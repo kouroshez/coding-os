@@ -222,6 +222,7 @@ class TestLifecycle:
             interval_seconds=30,
             run_docs_index=_ok_runner("docs", counter),
             run_task_sync=_ok_runner("tasks"),
+            run_graph_index=_ok_runner("graph"),
         )
         idx.start()
         # Give thread a moment to run once

@@ -1,1 +1,0 @@
-/Users/ciro/Files/Project/coding-os/core/hooks/auto-prune-deleted-files.sh
