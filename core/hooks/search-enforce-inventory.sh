@@ -3,17 +3,18 @@
 #
 # PURPOSE
 #   When the agent is about to run a bulk text replace (sed -i, xargs sed,
-#   python replace), extract the OLD pattern, run a ground-truth inventory
-#   grep BEFORE the edit, and store count + pattern in session state so the
-#   companion verify hook can compare after.
+#   xargs python), extract the OLD pattern, store it in session state, and
+#   emit a reminder to run ground-truth inventory grep before proceeding.
 #
-#   Surfaces: "Ground truth: N matches in X files" before the agent edits —
-#   so it knows exactly how many sites to update and cannot declare done early.
+#   Does NOT run grep itself — full-repo grep exceeds PreToolUse timeout on
+#   large codebases. Instead, surfaces the exact inventory command for the
+#   agent to run. The companion PostToolUse hook (search-verify-remaining.sh)
+#   runs a bounded verify grep after the replace.
 #
 # NON-BLOCKING — always exits 0.
 #
 # PATTERN EXTRACTION ORDER
-#   1. grep -r*F "PATTERN" / 'PATTERN' (from File-layer protocol in search skill)
+#   1. grep -r*F "PATTERN" / 'PATTERN' (skill File-layer protocol)
 #   2. OLD="PATTERN" / OLD='PATTERN' env assignment
 #   3. sed 's|OLD|NEW|g' / 's/OLD/NEW/g' expression
 #   Falls through to no-op when none match or pattern < 2 chars.
@@ -41,8 +42,7 @@ if ! printf '%s' "$CMD" | grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:spac
     exit 0
 fi
 
-# Extract OLD pattern — try multiple forms, using chr() to avoid single-quote
-# conflict inside bash single-quoted -c string
+# Extract OLD pattern — chr() avoids single-quote conflict in bash -c string
 OLD="$(printf '%s' "$CMD" | python3 -c '
 import sys, re
 cmd = sys.stdin.read()
@@ -61,7 +61,7 @@ patterns = [
     # 3. sed '"'"'s|OLD|NEW|'"'"' or '"'"'s/OLD/NEW/'"'"'
     r"sed\s+\S+\s+[" + dq + sq + r"]s([|/,!])([^|/,!\n]{2,80})\1",
 ]
-for i, pat in enumerate(patterns):
+for pat in patterns:
     m = re.search(pat, cmd)
     if m:
         grps = m.groups()
@@ -74,29 +74,19 @@ if [[ -z "$OLD" || "${#OLD}" -lt 2 ]]; then
     exit 0
 fi
 
-# Ground-truth inventory grep
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-cd "$REPO_ROOT" || exit 0
-
-EXCL="--exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist
-  --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next
-  --exclude-dir=vendor"
-
-COUNT="$(grep -rnF "$OLD" . $EXCL 2>/dev/null | wc -l | tr -d ' ' || echo "?")"
-FILES="$(grep -rlF "$OLD" . $EXCL 2>/dev/null | wc -l | tr -d ' ' || echo "?")"
-
-# Store ground truth for verify hook
+# Store pattern for PostToolUse verify hook (no grep here — timeout risk)
 STATE_DIR="${COS_AGENT_DIR:-.coding-os/claude}"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 SESSION_ID="$(cat "$COS_SESSION_FILE" 2>/dev/null || echo "unknown")"
-printf '%s\t%s\t%s\n' "$SESSION_ID" "$OLD" "$COUNT" > "${STATE_DIR}/.search-inventory" 2>/dev/null || true
+printf '%s\t%s\n' "$SESSION_ID" "$OLD" > "${STATE_DIR}/.search-inventory" 2>/dev/null || true
 
-cos_log_hook search-enforce-inventory "pattern=${OLD} ground_truth=${COUNT}" 2>/dev/null || true
+cos_log_hook search-enforce-inventory "pattern=${OLD} stored" 2>/dev/null || true
 
 cat >&2 <<MSG
-🔎 Search inventory — \`${OLD}\`
-   Ground truth: ${COUNT} matches across ${FILES} file(s)
-   Target: reach 0 before declaring done.
+🔎 Bulk replace detected — pattern: \`${OLD}\`
+   If you have not run inventory yet:
+     grep -rnF "${OLD}" . --exclude-dir=.git --exclude-dir=node_modules | wc -l
+   That count is your ground truth — must reach 0 before declaring done.
 MSG
 
 exit 0
