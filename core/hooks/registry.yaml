@@ -331,7 +331,7 @@ hooks:
 
   - id: search-enforce-inventory
     script: search-enforce-inventory.sh
-    description: PreToolUse Bash — when a bulk replace (sed -i, xargs sed, python replace) is about to run, extracts the OLD pattern, runs ground-truth inventory grep, and stores count in session state. Surfaces "N matches in X files" before editing so agent cannot declare done at partial completion. Always non-blocking.
+    description: PreToolUse Bash — when a bulk replace (sed -i, xargs sed, python replace) is about to run, extracts the OLD pattern, stores it in session state, and emits the inventory grep command for the agent to run. Does NOT run grep itself (full-repo grep exceeds PreToolUse timeout on large codebases). Companion PostToolUse hook (search-verify-remaining) runs bounded verify grep after replace. Always non-blocking.
     category: enforcement
     phase: O
     timeout: 3000

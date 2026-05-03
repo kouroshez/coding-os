@@ -3,15 +3,15 @@
 #
 # PURPOSE
 #   After a bulk replace (sed -i, xargs sed, xargs python), reads the
-#   pattern stored by search-enforce-inventory.sh and runs a bounded verify
-#   grep (timeout 15s). Reports remaining match count so the agent knows
+#   pattern stored by search-enforce-inventory.sh and runs a verify grep
+#   scoped by EXCL. Reports remaining match count so the agent knows
 #   whether work is complete or more sites remain.
 #
 #   Closes the "declared done but 20 remain" gap for Bash-based operations.
 #   (verify-rename-callers.sh covers Edit-based identifier renames.)
 #
 # NON-BLOCKING — always exits 0.
-# BOUNDED — grep runs under `timeout 15` to prevent hanging on large repos.
+# BOUNDED — EXCL flags scope the search; `timeout` not used (unavailable on macOS).
 #
 # DESIGN
 #   Reads session state from $COS_AGENT_DIR/.search-inventory written by
@@ -74,7 +74,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT" || exit 0
 
 # Single-line to avoid newline word-split issues under pipefail
-EXCL="--exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next --exclude-dir=vendor"
+EXCL="--exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next --exclude-dir=vendor --exclude-dir=.coding-os"
 
 # `command grep` bypasses any shell-function override (e.g. Claude Code wraps
 # grep → ugrep which applies --ignore-files and changes behaviour).
@@ -91,14 +91,6 @@ if [[ "$REMAINING" == "0" ]]; then
     rm -f "$STATE_FILE" 2>/dev/null || true
     cat >&2 <<MSG
 ✅ Search verify — \`${OLD}\` → 0 remaining — complete.
-MSG
-    exit 0
-fi
-
-if [[ "$REMAINING" == "?" ]]; then
-    cat >&2 <<MSG
-⚠️  Search verify — \`${OLD}\` — verify timed out (large repo). Run manually:
-   grep -rnF "${OLD}" . --exclude-dir=.git --exclude-dir=node_modules
 MSG
     exit 0
 fi
