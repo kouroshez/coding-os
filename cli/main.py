@@ -933,6 +933,11 @@ def init(
         "files_created": files_created,
         "db_path": str(project / STATE_DIR / "coding-os.db"),
         "config_file": str(project / CONFIG_FILE),
+        "warnings": (
+            ["No stack template selected — AGENTS.md has placeholder routing. Run: cos add-stack"]
+            if not template
+            else []
+        ),
     }
 
     if output_format == "json":
@@ -957,6 +962,16 @@ def init(
     click.echo("  make session-init    # See project status")
     click.echo("  make task-next       # See next task")
     click.echo("  make task-start TASK=001  # Start working")
+
+    if not template:
+        available = sorted(_get_stack_registry().keys())
+        click.echo(
+            "\n  WARN: No stack template selected.\n"
+            "  AGENTS.md has placeholder routing — agent works but lacks domain rules,\n"
+            "  verify commands, and engineering guidelines.\n"
+            f"  Add a stack now:  cos add-stack <id>\n"
+            f"  Available stacks: {', '.join(available)}"
+        )
 
 
 def _run_scaffold_phase(
