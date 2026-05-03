@@ -7,6 +7,15 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Resolve physical hooks dir for symlink-safe thinking_os lookup.
+_cos_src="${BASH_SOURCE[0]}"
+while [ -L "$_cos_src" ]; do
+  _cos_dir="$(cd -P "$(dirname "$_cos_src")" && pwd)"
+  _cos_src="$(readlink "$_cos_src")"
+  [[ "$_cos_src" != /* ]] && _cos_src="${_cos_dir}/${_cos_src}"
+done
+_COS_HOOKS_PHYS="$(cd -P "$(dirname "$_cos_src")" && pwd)"
+unset _cos_src _cos_dir
 
 SESSION_ID=""
 if [ -f "$COS_SESSION_FILE" ]; then
@@ -46,17 +55,13 @@ except Exception:
 ' "$script" "$timeout_s" "$SESSION_ID" "$ACTIVE_TASK" "$COS_DB_PATH" >/dev/null 2>&1 || true
 }
 
-# Find scripts in coding-os core or legacy .claude path
-for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
-  if [ -f "${SCRIPT_DIR}/session_summary.py" ]; then
-    run_bounded_python "${SCRIPT_DIR}/session_summary.py" 2
-    break
-  fi
-done
+# Find scripts in coding-os core — physical path resolves symlinked installs.
+SUMMARY_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_summary.py"
+if [ -f "$SUMMARY_PY" ]; then
+  run_bounded_python "$SUMMARY_PY" 2
+fi
 
-for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
-  if [ -f "${SCRIPT_DIR}/session_enrich.py" ]; then
-    run_bounded_python "${SCRIPT_DIR}/session_enrich.py" 2
-    break
-  fi
-done
+ENRICH_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_enrich.py"
+if [ -f "$ENRICH_PY" ]; then
+  run_bounded_python "$ENRICH_PY" 2
+fi

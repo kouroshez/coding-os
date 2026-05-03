@@ -8,6 +8,19 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Resolve physical hooks dir — required for consumer projects where
+# .claude/hooks/ is a real dir but each hook FILE is a symlink to
+# core/hooks/. pwd -P only resolves symlinked directories, not files,
+# so dirname+"$0" stays in .claude/hooks/ and ../thinking_os misses.
+# BASH_SOURCE[0]+readlink follows the file symlink to its physical target.
+_cos_src="${BASH_SOURCE[0]}"
+while [ -L "$_cos_src" ]; do
+  _cos_dir="$(cd -P "$(dirname "$_cos_src")" && pwd)"
+  _cos_src="$(readlink "$_cos_src")"
+  [[ "$_cos_src" != /* ]] && _cos_src="${_cos_dir}/${_cos_src}"
+done
+_COS_HOOKS_PHYS="$(cd -P "$(dirname "$_cos_src")" && pwd)"
+unset _cos_src _cos_dir
 
 INPUT="$(cos_read_stdin_bounded 2)"
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
@@ -60,13 +73,11 @@ if [[ "$SOURCE" == "startup" ]]; then
   fi
 
   if [ -n "$PREV_SESSION_ID" ] && [ -f "$COS_DB_PATH" ]; then
-    for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
-      if [ -f "${SCRIPT_DIR}/session_summary.py" ]; then
-        python3 "${SCRIPT_DIR}/session_summary.py" "$PREV_SESSION_ID" "" "$COS_DB_PATH" 2>/dev/null || true
-        cos_log_hook session-context recovered "prev_session=${PREV_SESSION_ID}"
-        break
-      fi
-    done
+    SUMMARY_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_summary.py"
+    if [ -f "$SUMMARY_PY" ]; then
+      python3 "$SUMMARY_PY" "$PREV_SESSION_ID" "" "$COS_DB_PATH" 2>/dev/null || true
+      cos_log_hook session-context recovered "prev_session=${PREV_SESSION_ID}"
+    fi
   fi
 
   # Session-id is agent-prefixed so logs and state files are self-describing.
@@ -166,15 +177,10 @@ if [[ "$SOURCE" == "startup" ]]; then
 
   # Token economics display — informational, non-blocking
   if [ -f "$COS_DB_PATH" ]; then
-    # Look for startup script in coding-os core or .claude
-    for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
-      STARTUP_SCRIPT="${SCRIPT_DIR}/session_startup.py"
-      if [ -f "$STARTUP_SCRIPT" ]; then
-        # COS_DB_PATH already exported by cos-env.sh — pass as positional arg only.
-        python3 "$STARTUP_SCRIPT" "$COS_DB_PATH" 2>/dev/null || true
-        break
-      fi
-    done
+    STARTUP_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_startup.py"
+    if [ -f "$STARTUP_PY" ]; then
+      python3 "$STARTUP_PY" "$COS_DB_PATH" 2>/dev/null || true
+    fi
   fi
 fi
 
