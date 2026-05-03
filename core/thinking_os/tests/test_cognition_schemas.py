@@ -141,7 +141,7 @@ class TestBacktrackAndDiscovery:
         d = Discovery(
             kind="new_requirement",
             summary="Found compliance constraint",
-            impact_assessment="high — affects F3 security boundaries",
+            impact_assessment="high — affects Architect security boundaries",
             decision="backtrack_now",
         )
         assert d.decision == "backtrack_now"

@@ -68,7 +68,7 @@ def _presence_file(project: Path, sid: str) -> Path:
 
 
 def test_write_start_creates_file_with_expected_schema(dispatcher_mod, project: Path):
-    sid = "ses-claude-sdk-F5-1777030000-12345"
+    sid = "ses-claude-sdk-impl-1777030000-12345"
     dispatcher_mod._presence_write(project, "claude", sid, "start", pid=4242)
 
     path = _presence_file(project, sid)
@@ -90,7 +90,7 @@ def test_write_start_creates_file_with_expected_schema(dispatcher_mod, project: 
 
 def test_lifecycle_preserves_started_at(dispatcher_mod, project: Path):
     """start → tool → stop → end must leave started_at untouched."""
-    sid = "ses-claude-sdk-F1-1-100"
+    sid = "ses-claude-sdk-res-1-100"
     dispatcher_mod._presence_write(project, "claude", sid, "start", pid=1)
     initial = json.loads(_presence_file(project, sid).read_text())["started_at"]
 
@@ -105,7 +105,7 @@ def test_lifecycle_preserves_started_at(dispatcher_mod, project: Path):
 
 
 def test_atomic_write_leaves_no_tmp_garbage(dispatcher_mod, project: Path):
-    sid = "ses-claude-sdk-F2-2-200"
+    sid = "ses-claude-sdk-ana-2-200"
     dispatcher_mod._presence_write(project, "claude", sid, "start", pid=2)
     dispatcher_mod._presence_write(project, "claude", sid, "tool", pid=2)
 
@@ -115,7 +115,7 @@ def test_atomic_write_leaves_no_tmp_garbage(dispatcher_mod, project: Path):
 
 
 def test_corrupt_prior_file_is_overwritten_cleanly(dispatcher_mod, project: Path):
-    sid = "ses-claude-sdk-F3-3-300"
+    sid = "ses-claude-sdk-arc-3-300"
     path = _presence_file(project, sid)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("not-json {{{", encoding="utf-8")
@@ -130,7 +130,7 @@ def test_corrupt_prior_file_is_overwritten_cleanly(dispatcher_mod, project: Path
 def test_double_end_is_idempotent(dispatcher_mod, project: Path):
     """try/finally in the dispatcher may call end on both the happy path
     AND an already-terminal path; subsequent end must not corrupt state."""
-    sid = "ses-claude-sdk-F4-4-400"
+    sid = "ses-claude-sdk-doc-4-400"
     dispatcher_mod._presence_write(project, "claude", sid, "start", pid=4)
     dispatcher_mod._presence_write(project, "claude", sid, "stop", pid=4)
     dispatcher_mod._presence_write(project, "claude", sid, "end", pid=4)

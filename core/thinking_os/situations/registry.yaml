@@ -13,7 +13,7 @@ situations:
       - dispatch: reviewer
         description: "regression testing before re-deploy"
       - action: post_mortem
-        description: "structured writeup via F4 template"
+        description: "structured writeup via Documenter template"
       - dispatch: observer
         description: "update monitoring so next incident is caught earlier"
 
@@ -21,10 +21,10 @@ situations:
     trigger_signals: [new_team_member, first_time_contributor]
     persona_overlay: junior-dev
     dispatch_chain:
-      - action: read_f4_outputs
-        description: "read existing docs produced by F4"
-      - action: read_f3_adrs
-        description: "read ADRs from F3 outputs"
+      - action: read_documenter_outputs
+        description: "read existing docs produced by Documenter"
+      - action: read_architect_adrs
+        description: "read ADRs from Architect outputs"
       - dispatch: implementer
         description: "small scoped implementation task"
       - dispatch: reviewer
@@ -67,15 +67,15 @@ situations:
 
   - id: design-review
     trigger_signals: [pre_implementation_review_requested]
-    precondition: "F3 and F4 must have produced outputs for this task"
+    precondition: "Architect and Documenter must have produced outputs for this task"
     persona_overlay: tech-lead
     dispatch_chain:
-      - action: verify_f2_scenarios_satisfied
-        description: "check every F2 scenario is addressed in F3"
+      - action: verify_analyst_scenarios_satisfied
+        description: "check every Analyst scenario is addressed in Architect"
       - action: verify_adr_tradeoffs_documented
         description: "check all major decisions have ADRs"
       - action: approval_gate
-        description: "block F5 dispatch until reviewer approves"
+        description: "block Implementer dispatch until Reviewer approves"
 
   - id: existing-project-takeover
     trigger_signals: [legacy_codebase, inherited_repo, no_docs]

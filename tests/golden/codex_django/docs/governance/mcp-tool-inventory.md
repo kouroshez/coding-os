@@ -16,17 +16,23 @@ Read next: The domain playbook matching your task type.
 
 ## Coding-OS Provided
 
-### `coding-os` (thinking_os MCP server)
+### `coding-os` MCP server
 
-Self-learning memory system. SQLite backend at `.coding-os/coding-os.db`. MCP tools surface in groups:
+Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.coding-os/coding-os.db`. All tools use `cos_*` prefix.
 
-- **Health (1):** `cos_health` (DB stats, schema version, FTS5 availability)
-- **Memory (4):** `cos_search` (5-signal ranked search), `cos_timeline` (recent outcomes), `cos_details` (full record), `cos_promote` (pattern → rule/feedback file)
+- **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
+- **Memory (5):** `cos_search` (5-signal ranked), `cos_timeline` (chronological), `cos_details` (full record), `cos_promote` (pattern → rule), `cos_observation_record`
 - **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 - **Learning (5):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_feedback`, `cos_learn_narrative`
-- **Routing (2):** `cos_route_model`, `cos_route_skill`
-- **Graph (1):** `cos_graph` (BFS traversal of file/concept graph)
-- **Docs RAG (3):** `cos_doc_search` (semantic + lexical chunk search), `cos_doc_header` (single-file frontmatter + opening block, no body read), `cos_doc_headers_by` (bulk filter by `domain` / `layer` / `ssot` / `since_iso`)
+- **Retrieval Quality (4):** `cos_retrieval_cite`, `cos_retrieval_learn`, `cos_retrieval_quality`, `cos_retrieval_enrichment_check`
+- **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
+- **Docs RAG (4):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`, `cos_doc_section`
+- **Graph (14):** `cos_graph`, `cos_graph_context`, `cos_graph_query`, `cos_graph_communities`, `cos_graph_path`, `cos_graph_impact`, `cos_graph_references`, `cos_graph_rename_plan`, `cos_graph_similar`, `cos_graph_detect_changes`, `cos_graph_entrypoints`, `cos_graph_trace`, `cos_graph_contracts`, `cos_graph_export`
+- **Board / Tasks (13):** `cos_task_board`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
+- **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
+- **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
+- **Audit (3):** `cos_audit_log_record`, `cos_audit_log_query`, `cos_audit_log_timeline`
+- **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
 
 ## Recommended External MCPs
 
@@ -42,16 +48,22 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - Command execution → Bash (make targets, git, scripts)
 - Web search → WebSearch (current facts, fallback when MCP unavailable)
 - Web fetch → WebFetch (scrape single URL to markdown)
-- Subagents → Agent tool (parallel/background task dispatch; supports `isolation: "worktree"` for filesystem-isolated parallel writes)
+- Subagents → Agent tool (read-only research/inventory/verification only; write work runs single-agent — never use `isolation: "worktree"`)
 
 ## Task-to-Tool Selection Matrix
 
 - Framework/library docs → context7 first, ref as fallback, WebSearch as last resort
-- Memory search / past patterns → coding-os (`cos_search`, `cos_learn_suggest`)
-- Agent performance metrics → coding-os (`cos_metric_record`, `cos_metric_query`, `cos_metric_trend`)
-- Model/skill routing → coding-os (`cos_route_model`, `cos_route_skill`)
-- File/concept relationships → coding-os (`cos_graph`)
-- Breakthrough narrative capture → coding-os (`cos_learn_narrative`)
+- Memory search / past patterns → `cos_search`, `cos_timeline`, `cos_learn_suggest`
+- Task board / status → `cos_task_board`, `cos_task_search`, `cos_task_by_filter`
+- Task create/move/complete → `cos_task_create`, `cos_task_move`, `cos_work_log_append`
+- File/concept relationships → `cos_graph_context`, `cos_graph_impact`, `cos_graph_references`
+- Rename planning → `cos_graph_rename_plan` (callers + impact before any rename)
+- Doc search (semantic) → `cos_doc_search`; single-file frontmatter → `cos_doc_header`
+- Model/skill routing → `cos_route_model`, `cos_route_skill`, `cos_compose_chain`
+- Role chain for complex task → `cos_compose_chain` → writes `.coding-os/<agent>/.roles`
+- Formula dispatch → `cos_dispatch_formula`, `cos_dispatch_formula_run`
+- Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
+- Breakthrough narrative → `cos_learn_narrative`
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)
 - Lints/tests/builds → Bash (make targets per playbook)

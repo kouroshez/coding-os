@@ -117,7 +117,7 @@ class TestCosSupervise:
             "cos_supervise",
             session_id="ses-test",
             task_marker="feat-auth",
-            persona_id="chain:F5,F6",
+            persona_id="chain:implementer,reviewer",
             phase="ROUTING",
         )
         assert result["data"]["action"] == "dispatch"
@@ -128,7 +128,7 @@ class TestCosSupervise:
             "cos_supervise",
             session_id="ses-test",
             task_marker="feat-auth",
-            persona_id="chain:F5,F6",
+            persona_id="chain:implementer,reviewer",
             phase="DISPATCHING",
             dispatched='["implementer", "reviewer"]',
             pending='["implementer", "reviewer"]',

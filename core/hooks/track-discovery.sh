@@ -116,7 +116,7 @@ or risk during this formula's execution, call:
   )
 
 Non-blocking — continuing. But if ignored, the discovery becomes a
-hidden gap (F6 Layer 3 will flag it as an uncovered edge case).
+hidden gap (Reviewer Layer 3 will flag it as an uncovered edge case).
 EOF
 
 exit 0

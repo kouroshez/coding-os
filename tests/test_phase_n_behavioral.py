@@ -147,7 +147,7 @@ def test_trace_greenfield_backend_api(session_id):
     s = r["summary"]
     _assert_canonical_path(s)
     assert s["preset"] == "greenfield-backend-api"
-    # Chain must include F2 and F5 and F6 (the backend trio)
+    # Chain must include analyst, implementer, and reviewer (the backend trio)
     assert all(r in s["chain"] for r in ("analyst", "implementer", "reviewer"))
     # At least 5 role dispatches happened
     assert s["kinds"].get("role_dispatch", 0) >= 5
@@ -167,7 +167,7 @@ def test_trace_incident_override_wins(session_id):
     assert s["kinds"].get("situation_override", 0) == 1
     assert s["kinds"].get("preset_matched", 0) == 0
     assert s["situation"] == "incident-response"
-    # F7 (Debugger) MUST appear as dispatched
+    # debugger MUST appear as dispatched
     assert "debugger" in s["roles"]
 
 
@@ -181,9 +181,9 @@ def test_trace_schema_migration(session_id):
     s = r["summary"]
     _assert_canonical_path(s)
     assert s["preset"] == "schema-migration"
-    # Chain must include F8 (security layer for data protection)
+    # Chain must include security_auditor (security layer for data protection)
     assert "security_auditor" in s["chain"]
-    # Ordering preserved in trace: F2 before F3 before F8 before F5 before F6
+    # Ordering preserved in trace: analyst before architect before security_auditor before implementer before reviewer
     role_order = [r for r in s["roles"] if r]
     indices = {r: role_order.index(r) for r in ("analyst", "architect", "security_auditor", "implementer", "reviewer") if r in role_order}
     assert indices["analyst"] < indices["architect"] < indices["security_auditor"] < indices["implementer"] < indices["reviewer"]
@@ -199,7 +199,7 @@ def test_trace_external_integration_stripe(session_id):
     s = r["summary"]
     _assert_canonical_path(s)
     assert s["preset"] == "external-integration"
-    # F1 (research — mini) must fire first
+    # researcher (mini) must fire first
     role_order = [r for r in s["roles"] if r]
     assert role_order[0] == "researcher"
 
@@ -230,7 +230,7 @@ def test_trace_legacy_takeover_via_situation(session_id):
     s = r["summary"]
     _assert_canonical_path(s)
     assert s["situation"] == "existing-project-takeover"
-    # Takeover chain must start with F2
+    # Takeover chain must start with analyst
     assert s["chain"][0] == "analyst"
 
 

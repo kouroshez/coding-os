@@ -1266,19 +1266,25 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
         except Exception as exc:
             issues.append(f"situations/registry.yaml invalid YAML: {exc}")
 
-    # Formula-agent files F1..F11 (shared)
+    # Formula-agent files (semantic names — one file per role)
+    _EXPECTED_ROLES = [
+        "researcher", "analyst", "architect", "documenter", "implementer",
+        "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
+    ]
     agents_dir = thinking_os / "agents"
-    _FM_ID_RE = _re.compile(r"^id:\s*F(\d+)", _re.MULTILINE)
-    for n in range(1, 12):
-        matches = list(agents_dir.glob(f"F{n}_*.md")) if agents_dir.is_dir() else []
-        if not matches:
-            issues.append(f"agents/F{n}_*.md missing")
+    _ROLE_ID_RE = _re.compile(r"^id:\s*(\w+)", _re.MULTILINE)
+    for role in _EXPECTED_ROLES:
+        agent_file = agents_dir / f"{role}.md"
+        if not agent_file.exists():
+            issues.append(f"agents/{role}.md missing")
             continue
-        content = matches[0].read_text(encoding="utf-8")
+        content = agent_file.read_text(encoding="utf-8")
         if not content.startswith("---"):
-            issues.append(f"{matches[0].name}: missing YAML frontmatter")
-        elif not _FM_ID_RE.search(content):
-            issues.append(f"{matches[0].name}: missing 'id: F{n}' in frontmatter")
+            issues.append(f"{agent_file.name}: missing YAML frontmatter")
+        else:
+            m = _ROLE_ID_RE.search(content)
+            if not m or m.group(1) != role:
+                issues.append(f"{agent_file.name}: missing or wrong 'id: {role}' in frontmatter")
 
     # Phase M personas/registry.yaml was removed in v0.3 — no further check needed.
 

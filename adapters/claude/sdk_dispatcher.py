@@ -4,7 +4,7 @@ Coding OS — Claude-SDK dispatcher (adapters/claude).
 PURPOSE:      Real formula-agent spawning for Claude sessions via the
               official claude-agent-sdk. Translates DispatchRequest →
               ClaudeAgentOptions, runs the agent, and collects text blocks
-              into a DispatchResult. Enables Phase M formulas (F1..F11) to
+              into a DispatchResult. Enables Phase M formula-roles to
               execute as actual Claude Code sub-agents rather than being
               inlined by the main agent.
 INPUT:        DispatchRequest built by cos_supervise / cos_dispatch_formula.

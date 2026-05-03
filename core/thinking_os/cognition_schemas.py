@@ -138,7 +138,7 @@ class RefactorItem(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Formula input/output contracts (F1–F11)
+# Formula-role input/output contracts (researcher..refactorer)
 # ---------------------------------------------------------------------------
 
 class ResearcherInput(BaseModel):

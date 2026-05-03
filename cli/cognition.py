@@ -3,7 +3,7 @@ Phase M — `cos cognition` CLI.
 
 Provides introspection commands over the v14 cognition tables:
   cos cognition log          — recent formula dispatches + backtracks
-  cos cognition log --formula F2
+  cos cognition log --formula analyst
   cos cognition log --persona tech-lead
   cos cognition log --backtrack
   cos cognition log --since 1h
@@ -53,7 +53,7 @@ def cognition_group() -> None:
 
 
 @cognition_group.command("log")
-@click.option("--formula", default=None, help="Filter by formula ID (e.g. F2, F5)")
+@click.option("--formula", default=None, help="Filter by role ID (e.g. analyst, implementer)")
 @click.option("--persona", default=None, help="Filter by persona ID (e.g. tech-lead)")
 @click.option("--backtrack", is_flag=True, default=False, help="Show backtrack events only")
 @click.option("--since", default=None, help="Show entries since duration ago (e.g. 1h, 30m, 2d)")

@@ -296,22 +296,22 @@ if str(_THINKING_OS) not in _sys.path:
 class TestPhaseM_RoleChainDispatch:
     """Scenario (a): role-chain dispatch on a COMPLICATED schema migration (Phase N).
     Replaces the deprecated tech-lead persona path — supervisor now consumes a
-    composer-derived chain via persona_id='chain:F2,F3'."""
+    composer-derived chain via persona_id='chain:analyst,architect'."""
 
     def test_supervisor_dispatches_for_role_chain(self) -> None:
         from cognition import advance
         from cognition_schemas import SupervisorState, EvidenceBundle
-        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:F2,F3",
+        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:analyst,architect",
                                 intensity="standard")
         state = SupervisorState(session_id="ses-test-01", task_marker="schema-migration",
-                                phase="ROUTING", persona_id="chain:F2,F3",
+                                phase="ROUTING", persona_id="chain:analyst,architect",
                                 intensity="standard", dispatched=[], pending=[])
         action = advance(state, bundle)
         assert action.action in ("dispatch", "classify"), f"Unexpected action: {action}"
 
     def test_evidence_bundle_accumulates_across_dispatches(self) -> None:
         from cognition_schemas import EvidenceBundle, AnalystOutput
-        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:F2,F3",
+        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:analyst,architect",
                                 intensity="standard")
         f2_out = AnalystOutput(problem_statement="Schema migration for commission model",
                           scope_in=["commission_rate column"], scope_out=["reporting"],
@@ -339,16 +339,16 @@ class TestPhaseM_SituationOverride:
         situations = load_situation_registry()
         chain = situations["incident-response"].get("dispatch_chain", [])
         formula_ids = {step["dispatch"] for step in chain if "dispatch" in step}
-        assert "debugger" in formula_ids, "incident-response chain missing F7 (Debug)"
-        assert "observer" in formula_ids, "incident-response chain missing F10 (Monitor)"
+        assert "debugger" in formula_ids, "incident-response chain missing debugger"
+        assert "observer" in formula_ids, "incident-response chain missing observer"
 
     def test_supervisor_uses_situation_chain_when_set(self) -> None:
         from cognition import advance
         from cognition_schemas import SupervisorState, EvidenceBundle
-        bundle = EvidenceBundle(task_marker="prod-down", persona_id="chain:F7,F10",
+        bundle = EvidenceBundle(task_marker="prod-down", persona_id="chain:debugger,observer",
                                 intensity="standard")
         state = SupervisorState(session_id="ses-test-02", task_marker="prod-down",
-                                phase="ROUTING", persona_id="chain:F7,F10",
+                                phase="ROUTING", persona_id="chain:debugger,observer",
                                 intensity="standard", dispatched=[], pending=[],
                                 situation_id="incident-response")
         action = advance(state, bundle)
@@ -356,7 +356,7 @@ class TestPhaseM_SituationOverride:
 
 
 class TestPhaseM_TakeoverFlow:
-    """Scenario (c): Takeover situation produces reverse-F2 + F6-characterization dispatch."""
+    """Scenario (c): Takeover situation produces reverse-analyst + reviewer-characterization dispatch."""
 
     def test_takeover_situation_in_registry(self) -> None:
         from cognition import load_situation_registry
@@ -365,12 +365,12 @@ class TestPhaseM_TakeoverFlow:
             f"takeover not in registry: {list(situations.keys())}"
         )
 
-    def test_takeover_chain_starts_with_f2(self) -> None:
+    def test_takeover_chain_starts_with_analyst(self) -> None:
         from cognition import load_situation_registry
         situations = load_situation_registry()
         chain = situations["existing-project-takeover"].get("dispatch_chain", [])
         first_dispatch = next((step for step in chain if "dispatch" in step), None)
         assert first_dispatch is not None, "takeover chain has no dispatch steps"
         assert first_dispatch["dispatch"] == "analyst", (
-            f"takeover should start with F2 (reverse decompose), got {first_dispatch}"
+            f"takeover should start with analyst (reverse decompose), got {first_dispatch}"
         )

@@ -44,7 +44,7 @@ presets:
       urgency: incident
     chain_before: ["mitigate", "communicate"]
     chain: [debugger, reviewer]
-    chain_after: ["post_mortem", "update_F10"]
+    chain_after: ["post_mortem", "update_observer"]
     score: 12
 
   - id: security-audit-full
@@ -64,7 +64,7 @@ presets:
     chain: [analyst, reviewer, documenter, implementer, reviewer, refactorer, architect]
     chain_notes:
       analyst: "reverse mode — derive problem definition from existing code"
-      F6: "characterization tests before changing anything"
+      reviewer: "characterization tests before changing anything"
     score: 11
 
   - id: external-integration
@@ -83,7 +83,7 @@ presets:
     score: 9
 
   - id: docs-only-update
-    rationale: "Pure documentation task — F4 only."
+    rationale: "Pure documentation task — Documenter only."
     match:
       action: document
       domain_any: [docs]
@@ -106,7 +106,7 @@ presets:
     score: 9
 
   - id: research-spike
-    rationale: "Pure research task — F1 only, no implementation."
+    rationale: "Pure research task — Researcher only, no implementation."
     match:
       action: research
     chain: [researcher]

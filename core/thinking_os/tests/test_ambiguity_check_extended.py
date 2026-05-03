@@ -1,4 +1,4 @@
-"""Tests for ambiguity_check coverage of F1..F11 (Wave 0 C1)."""
+"""Tests for ambiguity_check coverage of all formula roles (Wave 0 C1)."""
 from __future__ import annotations
 
 from cognition import ambiguity_check
@@ -123,5 +123,5 @@ def test_empty_bundle_yields_no_violations():
 
 def test_only_dispatched_formula_is_checked():
     v = ambiguity_check(_bundle(refactorer=RefactorerOutput()))
-    # F11 violations only — F1..F10 not present
+    # Refactorer violations only — other roles not present
     assert all(i["formula"] == "refactorer" for i in v)

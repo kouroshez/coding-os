@@ -160,8 +160,8 @@ def build_input_slice(formula_id: str, bundle: EvidenceBundle) -> dict[str, Any]
     """
     PURPOSE:      Extract only the bundle fields a formula needs as its input.
     INPUT:        Formula id + current EvidenceBundle.
-    OUTPUT:       dict matching F<N>Input (upstream outputs only; no future formulas).
-    NOTES:        F3 sees F1+F2; F5 sees F2+F3; etc.
+    OUTPUT:       dict matching role input (upstream outputs only; no future formulas).
+    NOTES:        architect sees researcher+analyst; implementer sees analyst+architect; etc.
     """
     upstream: dict[str, Any] = {
         "task_description": bundle.task_marker,
@@ -243,11 +243,11 @@ def _next_dispatch(
     formula_id = remaining[0]
     agents = load_agent_registry()
     meta = agents.get(formula_id, {})
-    agent_file = meta.get("_file", f"F{formula_id[1:]}.md")
+    agent_file = meta.get("_file", f"{formula_id}.md")
 
     slice_data = build_input_slice(formula_id, bundle)
 
-    # Check for parallelisable formulas (F8 layers)
+    # Check for parallelisable formulas (security_auditor layers)
     parallel = meta.get("parallel_siblings", [])
     parallel_available = [
         f for f in parallel
@@ -293,7 +293,7 @@ def _build_queue(state: SupervisorState) -> list[str]:
             return chain
 
     # Phase N — caller passed a composer-derived role chain as persona_id?
-    # Format: "chain:F2,F3,F5,F6" (supported by task-start.sh)
+    # Format: "chain:analyst,architect,implementer,reviewer" (supported by task-start.sh)
     if state.persona_id.startswith("chain:"):
         return [r.strip() for r in state.persona_id[6:].split(",") if r.strip()]
 
@@ -410,68 +410,68 @@ _CRITERIA_WEIGHTS: dict[str, list[AmbiguityCriterion]] = {
 # message describes the missing evidence for the agent to fix.
 _CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], ...]]] = {
     "researcher": {
-        AmbiguityCriterion.OBSERVABLE: (("sources", "No sources cited in F1 research"),),
+        AmbiguityCriterion.OBSERVABLE: (("sources", "No sources cited in Researcher output"),),
         AmbiguityCriterion.SCOPED: (
-            ("key_findings", "No key_findings recorded in F1"),
-            ("recommended_next", "recommended_next is empty in F1"),
+            ("key_findings", "No key_findings recorded in Researcher output"),
+            ("recommended_next", "recommended_next is empty in Researcher output"),
         ),
     },
     "analyst": {
-        AmbiguityCriterion.SCOPED: (("scope_in", "scope_in is empty in F2 output"),),
-        AmbiguityCriterion.OWNED: (("actors", "No actors defined in F2 output"),),
-        AmbiguityCriterion.OBSERVABLE: (("success_metrics", "No success_metrics in F2 output"),),
-        AmbiguityCriterion.TESTABLE: (("scenarios", "No scenarios defined in F2 output"),),
+        AmbiguityCriterion.SCOPED: (("scope_in", "scope_in is empty in Analyst output"),),
+        AmbiguityCriterion.OWNED: (("actors", "No actors defined in Analyst output"),),
+        AmbiguityCriterion.OBSERVABLE: (("success_metrics", "No success_metrics in Analyst output"),),
+        AmbiguityCriterion.TESTABLE: (("scenarios", "No scenarios defined in Analyst output"),),
     },
     "architect": {
-        AmbiguityCriterion.SCOPED: (("selected_style", "selected_style empty in F3 output"),),
-        AmbiguityCriterion.MEASURABLE: (("nfr_targets", "No NFR targets recorded in F3"),),
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("adrs", "No ADRs recorded in F3"),),
+        AmbiguityCriterion.SCOPED: (("selected_style", "selected_style empty in Architect output"),),
+        AmbiguityCriterion.MEASURABLE: (("nfr_targets", "No NFR targets recorded in Architect output"),),
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("adrs", "No ADRs recorded in Architect output"),),
     },
     "documenter": {
         AmbiguityCriterion.OBSERVABLE: (
-            ("docs_created", "No docs_created in F4"),
-            ("docs_updated", "No docs_updated in F4"),
+            ("docs_created", "No docs_created in Documenter output"),
+            ("docs_updated", "No docs_updated in Documenter output"),
         ),
-        AmbiguityCriterion.SCOPED: (("changelog_entry", "changelog_entry empty in F4"),),
+        AmbiguityCriterion.SCOPED: (("changelog_entry", "changelog_entry empty in Documenter output"),),
     },
     "implementer": {
         AmbiguityCriterion.TESTABLE: (
-            ("files_created", "No files_created in F5"),
-            ("files_modified", "No files_modified in F5"),
+            ("files_created", "No files_created in Implementer output"),
+            ("files_modified", "No files_modified in Implementer output"),
         ),
-        AmbiguityCriterion.SCOPED: (("implementation_notes", "implementation_notes empty in F5"),),
-        AmbiguityCriterion.OWNED: (("open_items", "open_items unset (None) in F5"),),
+        AmbiguityCriterion.SCOPED: (("implementation_notes", "implementation_notes empty in Implementer output"),),
+        AmbiguityCriterion.OWNED: (("open_items", "open_items unset (None) in Implementer output"),),
     },
     "reviewer": {
-        AmbiguityCriterion.MEASURABLE: (("coverage_summary", "No coverage_summary in F6"),),
-        AmbiguityCriterion.TESTABLE: (("test_cases", "No test_cases in F6"),),
+        AmbiguityCriterion.MEASURABLE: (("coverage_summary", "No coverage_summary in Reviewer output"),),
+        AmbiguityCriterion.TESTABLE: (("test_cases", "No test_cases in Reviewer output"),),
     },
     "debugger": {
-        AmbiguityCriterion.OBSERVABLE: (("root_cause", "root_cause empty in F7"),),
-        AmbiguityCriterion.TESTABLE: (("regression_tests_added", "No regression tests in F7"),),
-        AmbiguityCriterion.SCOPED: (("fix_applied", "fix_applied empty in F7"),),
+        AmbiguityCriterion.OBSERVABLE: (("root_cause", "root_cause empty in Debugger output"),),
+        AmbiguityCriterion.TESTABLE: (("regression_tests_added", "No regression tests in Debugger output"),),
+        AmbiguityCriterion.SCOPED: (("fix_applied", "fix_applied empty in Debugger output"),),
     },
     "security_auditor": {
-        AmbiguityCriterion.OBSERVABLE: (("findings", "No security findings in F8"),),
-        AmbiguityCriterion.SCOPED: (("auth_coverage", "auth_coverage empty in F8"),),
-        AmbiguityCriterion.OWNED: (("secrets_audit", "secrets_audit empty in F8"),),
+        AmbiguityCriterion.OBSERVABLE: (("findings", "No security findings in SecurityAuditor output"),),
+        AmbiguityCriterion.SCOPED: (("auth_coverage", "auth_coverage empty in SecurityAuditor output"),),
+        AmbiguityCriterion.OWNED: (("secrets_audit", "secrets_audit empty in SecurityAuditor output"),),
     },
     "deployer": {
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("rollback_steps", "No rollback_steps in F9"),),
-        AmbiguityCriterion.TESTABLE: (("deploy_steps", "No deploy_steps in F9"),),
-        AmbiguityCriterion.OBSERVABLE: (("release_notes", "release_notes empty in F9"),),
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("rollback_steps", "No rollback_steps in Deployer output"),),
+        AmbiguityCriterion.TESTABLE: (("deploy_steps", "No deploy_steps in Deployer output"),),
+        AmbiguityCriterion.OBSERVABLE: (("release_notes", "release_notes empty in Deployer output"),),
     },
     "observer": {
-        AmbiguityCriterion.MEASURABLE: (("slo_targets", "No SLO targets in F10"),),
+        AmbiguityCriterion.MEASURABLE: (("slo_targets", "No SLO targets in Observer output"),),
         AmbiguityCriterion.OBSERVABLE: (
-            ("alerts_added", "No alerts in F10"),
-            ("dashboards_updated", "No dashboards in F10"),
+            ("alerts_added", "No alerts in Observer output"),
+            ("dashboards_updated", "No dashboards in Observer output"),
         ),
     },
     "refactorer": {
-        AmbiguityCriterion.SCOPED: (("items", "No refactor items in F11"),),
-        AmbiguityCriterion.MEASURABLE: (("debt_score_after", "debt_score_after unset in F11"),),
-        AmbiguityCriterion.TESTABLE: (("files_changed", "No files_changed in F11"),),
+        AmbiguityCriterion.SCOPED: (("items", "No refactor items in Refactorer output"),),
+        AmbiguityCriterion.MEASURABLE: (("debt_score_after", "debt_score_after unset in Refactorer output"),),
+        AmbiguityCriterion.TESTABLE: (("files_changed", "No files_changed in Refactorer output"),),
     },
 }
 

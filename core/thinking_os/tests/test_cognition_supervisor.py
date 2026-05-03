@@ -74,16 +74,15 @@ class TestSupervisorAdvance:
 
     def test_routing_builds_queue_and_dispatches(self):
         # Phase N: persona_id carries a composer-derived chain.
-        state = _make_state(phase="ROUTING", persona_id="chain:F2,F3,F5,F6")
-        bundle = _make_bundle(persona_id="chain:F2,F3,F5,F6")
+        state = _make_state(phase="ROUTING", persona_id="chain:analyst,architect,implementer,reviewer")
+        bundle = _make_bundle(persona_id="chain:analyst,architect,implementer,reviewer")
         action = advance(state, bundle)
         assert action.action == "dispatch"
         assert action.formula is not None
-        assert action.formula.startswith("F")
 
     def test_dispatch_advances_through_chain(self):
-        state = _make_state(phase="ROUTING", persona_id="chain:F5,F6")
-        bundle = _make_bundle(persona_id="chain:F5,F6")
+        state = _make_state(phase="ROUTING", persona_id="chain:implementer,reviewer")
+        bundle = _make_bundle(persona_id="chain:implementer,reviewer")
         action1 = advance(state, bundle)
         assert action1.action == "dispatch"
         state.dispatched.append(action1.formula)
@@ -92,10 +91,10 @@ class TestSupervisorAdvance:
         assert action2.action in ("dispatch", "done")
 
     def test_done_when_all_dispatched(self):
-        state = _make_state(phase="DISPATCHING", persona_id="chain:F5,F6")
+        state = _make_state(phase="DISPATCHING", persona_id="chain:implementer,reviewer")
         state.dispatched = ["implementer", "reviewer"]
         state.pending = ["implementer", "reviewer"]
-        bundle = _make_bundle(persona_id="chain:F5,F6")
+        bundle = _make_bundle(persona_id="chain:implementer,reviewer")
         action = advance(state, bundle)
         assert action.action == "done"
 

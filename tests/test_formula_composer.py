@@ -8,7 +8,7 @@ Validate the 4-tier strategy:
   4. Hard fallback (never empty)
 
 Plus: preset version stamping (N.5-C), effective_threshold stamping,
-canonical F1→F11 ordering, parallel dispatch metadata.
+canonical researcher→refactorer ordering, parallel dispatch metadata.
 
 Spec: docs/phase-n-role-based-routing-plan.md §2.3 · §7a
 """
@@ -192,7 +192,7 @@ def test_scoring_debug_incident():
     )
     activations = score_all_roles(sig)
     f7 = next(a for a in activations if a.role_id == "debugger")
-    assert f7.score >= 5, f"F7 should fire strongly on debug+incident, got {f7.score}"
+    assert f7.score >= 5, f"debugger should fire strongly on debug+incident, got {f7.score}"
 
 
 def test_scoring_research_deactivates_debug():
@@ -203,7 +203,7 @@ def test_scoring_research_deactivates_debug():
     activations = score_all_roles(sig)
     f7 = next(a for a in activations if a.role_id == "debugger")
     f1 = next(a for a in activations if a.role_id == "researcher")
-    assert f1.score > f7.score, "F1 should beat F7 when action=research"
+    assert f1.score > f7.score, "researcher should beat debugger when action=research"
 
 
 def test_presets_production_bug_mitigate_via_situation():
@@ -228,7 +228,7 @@ def test_takeover_preset():
     chain = compose_chain(sig)
     assert chain.source == "preset"
     assert chain.preset_id == "legacy-takeover"
-    assert chain.chain[0] == "analyst"      # starts with F2-reverse per formula spec
+    assert chain.chain[0] == "analyst"      # starts with analyst in reverse mode per formula spec
 
 
 # --- 6. Parallel roles metadata --------------------------------------------

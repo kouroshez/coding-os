@@ -60,7 +60,32 @@ Optional section:
 
 ## Script Contract
 
-### Core Commands
+**Preferred (Phase L Scrumban — board_os):** `cos task-*` CLI + `cos_task_*` MCP tools. Live board backed by `.coding-os/coding-os.db`.
+
+**Legacy (make targets):** still valid; Codex agents MUST use `cos_work_log_append` (no PostToolUse hook).
+
+### Scrumban Commands (`cos task-*`)
+
+| Action | CLI | MCP equivalent |
+|---|---|---|
+| View board | `cos board` / `cos board --web` | `cos_task_board` |
+| Create task | `cos task-create --title "…" --swimlane … --kind …` | `cos_task_create` |
+| Start task | `cos task-start TASK-NNN` | `cos_task_move` → `in_progress` |
+| Complete task | `cos task-done TASK-NNN` | `cos_task_move` → `complete` |
+| Block task | `cos task-move TASK-NNN --to blocked` | `cos_task_move` → `blocked` |
+| Move to testing | `cos task-move TASK-NNN --to testing` | `cos_task_move` → `testing` |
+| Append work log | `cos work-log TASK-NNN "note"` | `cos_work_log_append` |
+| Daily summary | `cos daily` | `cos_task_daily` |
+| WIP check | `cos wip` | `cos_task_wip_check` |
+| Pick next task | `cos task-pick` | `cos_task_pick` |
+
+**Status states (board_os):** `open → in_progress → testing → complete` · `→ blocked` (any state)
+
+**Kind enum (8 values):** `feat · fix · refactor · docs · test · infra · spike · chore` — use in `--kind`; never in labels.
+
+**Swimlanes:** agent-defined; common values: `backlog · active · review · done`.
+
+### Legacy Make Commands
 
 - `make task-create NUM=<num> TITLE="<title>"` scaffolds a task file and active index entry
 - `make task-start TASK=<num>` creates the detail file if missing, marks `[/]` in `docs/tasks.md`, then loads context
