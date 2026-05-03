@@ -37,7 +37,7 @@ except Exception:
 [[ -z "$CMD" ]] && exit 0
 
 # Only fire on bulk replace operations (sed -i, xargs sed, xargs python)
-if ! printf '%s' "$CMD" | grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
+if ! printf '%s' "$CMD" | command grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
     cos_log_hook search-enforce-inventory skip-not-replace 2>/dev/null || true
     exit 0
 fi

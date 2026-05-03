@@ -36,7 +36,7 @@ except Exception:
 [[ -z "$CMD" ]] && exit 0
 
 # Only fire after bulk replace operations (same detector as inventory hook)
-if ! printf '%s' "$CMD" | grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
+if ! printf '%s' "$CMD" | command grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
     cos_log_hook search-verify-remaining skip-not-replace 2>/dev/null || true
     exit 0
 fi
@@ -76,11 +76,13 @@ cd "$REPO_ROOT" || exit 0
 # Single-line to avoid newline word-split issues under pipefail
 EXCL="--exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next --exclude-dir=vendor"
 
-# || true inside pipeline prevents pipefail from triggering on grep exit 1
-# (grep exits 1 = no matches — not an error, just empty result)
-REMAINING="$( { timeout 15 grep -rnF "$OLD" . $EXCL 2>/dev/null || true; } | wc -l | tr -d ' ')"
-FILE_LIST="$( { timeout 15 grep -rlF "$OLD" . $EXCL 2>/dev/null || true; } | head -10)"
-FILE_COUNT="$( { printf '%s\n' "$FILE_LIST" | grep -c . || true; } 2>/dev/null)"
+# `command grep` bypasses any shell-function override (e.g. Claude Code wraps
+# grep → ugrep which applies --ignore-files and changes behaviour).
+# No `timeout` — not available on macOS BSD coreutils; EXCL bounds the search.
+# `|| true` inside `{ }` neutralises pipefail on grep exit 1 (no matches).
+REMAINING="$( { command grep -rnF "$OLD" . $EXCL 2>/dev/null || true; } | wc -l | tr -d ' ')"
+FILE_LIST="$( { command grep -rlF "$OLD" . $EXCL 2>/dev/null || true; } | head -10)"
+FILE_COUNT="$( { printf '%s\n' "$FILE_LIST" | command grep -c . || true; } 2>/dev/null)"
 [[ -z "$FILE_COUNT" ]] && FILE_COUNT=0
 
 cos_log_hook search-verify-remaining "pattern=${OLD} remaining=${REMAINING}" 2>/dev/null || true
