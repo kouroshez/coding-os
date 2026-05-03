@@ -286,7 +286,7 @@ def register_cos_dispatch_formula(mcp, db_path):  # noqa: ARG001 — reserved fo
     ) -> str:
         """
         PURPOSE:      Build the dispatch prompt for formula_id from the agent file.
-        INPUT:        formula_id (F1..F11), current session state.
+        INPUT:        formula_id (role id e.g. analyst), current session state.
         OUTPUT:       {agent_file, prompt_text, input_slice}.
         DEPENDENCIES: load_agent_registry, EvidenceBundle on disk.
         """
@@ -617,7 +617,7 @@ def register_cos_takeover(mcp, db_path):  # noqa: ARG001 — reserved for takeov
         description=(
             "Bootstrap an existing-project-takeover session: sets the situation "
             "to existing-project-takeover, picks legacy-maintainer persona, "
-            "and returns the first dispatch action (F2 in reverse mode). "
+            "and returns the first dispatch action (Analyst in reverse mode). "
             "Use when inheriting a legacy repo with no docs."
         ),
     )
@@ -625,7 +625,7 @@ def register_cos_takeover(mcp, db_path):  # noqa: ARG001 — reserved for takeov
     def cos_takeover(
         session_id: str,
         task_marker: str,
-        repo_description: str = "",  # reserved for F1 pre-seeding in future slice
+        repo_description: str = "",  # reserved for Researcher pre-seeding in future slice
     ) -> str:
         """
         PURPOSE:      Bootstrap takeover flow for legacy/inherited repos.
@@ -754,7 +754,7 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
     @mcp.tool(
         name="cos_compose_chain",
         description=(
-            "Compose an ordered formula-role chain (F1..F11) from TaskSignals. "
+            "Compose an ordered formula-role chain from TaskSignals. "
             "Strategy: situation override > preset match > per-role scoring "
             "composer > hard fallback. Returns ComposedChain with provenance "
             "(preset_id, preset_version, effective_threshold, activations)."
@@ -856,7 +856,7 @@ def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-
     @mcp.tool(
         name="cos_role_info",
         description=(
-            "Return metadata for a formula-role (F1..F11): prompt_prefix, "
+            "Return metadata for a formula-role (researcher..refactorer): prompt_prefix, "
             "tools_budget, intensity_steps, backtrack_triggers, "
             "criteria_required. Useful for the main agent before dispatch."
         ),
@@ -865,7 +865,7 @@ def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-
     def cos_role_info(role_id: str) -> str:
         """
         PURPOSE:      Expose role YAML metadata over MCP.
-        INPUT:        role_id (F1..F11).
+        INPUT:        role_id (researcher|analyst|architect|documenter|implementer|reviewer|debugger|security_auditor|deployer|observer|refactorer).
         OUTPUT:       Role metadata dict minus raw yaml noise.
         DEPENDENCIES: formula_composer.load_roles.
         """
@@ -1085,7 +1085,7 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         description=(
             "Spawn multiple formula-agents concurrently via asyncio.gather. "
             "Use when the supervisor returns action='dispatch_parallel' "
-            "(e.g. F8 security layers). Each output is persisted to the bundle. "
+            "(e.g. security_auditor layers). Each output is persisted to the bundle. "
             "Returns list of DispatchResults in input order."
         ),
     )

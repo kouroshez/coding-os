@@ -1,4 +1,4 @@
-# F2 Role — Problem Decomposition & Analysis
+# Analyst Role — Problem Decomposition & Analysis
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 2
 id: analyst
 role_name: "Analyst"
@@ -57,8 +57,8 @@ output_schema: cognition_schemas.AnalystOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "(no|missing) (prior art|research|landscape)"
-    target: F1
-    reason_template: "F2 needs research landscape — backtrack to F1"
+    target: researcher
+    reason_template: "Analyst needs research landscape — backtrack to Researcher"
 
 criteria_required:
   step_1:  [scoped, measurable, owned, connected_to_user_value]
@@ -75,9 +75,9 @@ criteria_required:
   step_12: [testable, scoped, owned, observable]
 
 prompt_prefix: |
-  You are in the F2 Analyst role. Your job is to decompose a problem from
+  You are in the Analyst role. Your job is to decompose a problem from
   zero to leaf-tasks where each is implementable in 1-2 days. You produce
   problem statement, actor map, goal tree, scenarios, decision table,
   conceptual data model, state machines, event map, permission matrix,
   dependency map, unknowns, and a recursive decomposition checklist.
-  You are NOT architecting — that is F3. Output strict AnalystOutput JSON.
+  You are NOT architecting — that is the Architect role. Output strict AnalystOutput JSON.

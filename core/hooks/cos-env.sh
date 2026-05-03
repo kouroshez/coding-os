@@ -134,6 +134,10 @@ COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 
 export COS_STATE_DIR COS_AGENT_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL
 
+# Activity heartbeat — written on every hook invocation so GC can measure
+# inactivity rather than session age.
+date +%s > "${COS_AGENT_DIR}/heartbeat" 2>/dev/null || true
+
 # ---------------------------------------------------------------------------
 # Identity helpers — pure reads, cheap enough to call per hook invocation.
 # ---------------------------------------------------------------------------

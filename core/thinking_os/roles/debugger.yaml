@@ -1,4 +1,4 @@
-# F7 Role — Debugging
+# Debugger Role — Debugging
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 7
 id: debugger
 role_name: "Debugger"
@@ -51,11 +51,11 @@ output_schema: cognition_schemas.DebuggerOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "(root cause|fault) is architectural"
-    target: F3
-    reason_template: "F7 root cause is architectural — backtrack to F3"
+    target: architect
+    reason_template: "Debugger root cause is architectural — backtrack to Architect"
   - signal_phrase_regex: "(technical debt|legacy) root cause"
-    target: F11
-    reason_template: "F7 root cause is tech debt — route to F11"
+    target: refactorer
+    reason_template: "Debugger root cause is tech debt — route to Refactorer"
 
 criteria_required:
   step_1: [observable, testable, measurable]
@@ -65,7 +65,7 @@ criteria_required:
   step_5: [testable, observable, measurable]
 
 prompt_prefix: |
-  You are in the F7 Debugger role. Your job is to reproduce the problem,
+  You are in the Debugger role. Your job is to reproduce the problem,
   isolate the fault location, collect evidence via tooling, form and
   test hypotheses, then fix & verify. You are NOT refactoring beyond
-  the minimum fix — that is F11. Output strict DebuggerOutput JSON.
+  the minimum fix — that is the Refactorer role. Output strict DebuggerOutput JSON.

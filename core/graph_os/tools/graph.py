@@ -625,7 +625,7 @@ def cos_graph_context(
     """Neighbourhood around a node.
 
     PURPOSE:      "what does this symbol depend on / who depends on it?"
-                  The primary F5 Pre-Implementation tool (plan §14).
+                  The primary Implementer pre-implementation tool (plan §14).
     INPUT:        uid or fuzzy label, direction, depth, optional
                   inclusion flags.
     OUTPUT:       ok({node, edges, neighbours, grouped_by_type}).
@@ -722,8 +722,8 @@ def cos_graph_impact(
 ) -> dict[str, Any]:
     """Blast-radius: which nodes depend on (or are depended on by) `uid`.
 
-    PURPOSE:      F2 Step 10 Dependency Map. Groups the neighbourhood
-                  into risk tiers so F11 refactors can sequence work.
+    PURPOSE:      Analyst Dependency Map. Groups the neighbourhood
+                  into risk tiers so Refactorer can sequence work.
     OUTPUT:       ok({nodes_by_tier, edges}).
 
     Direction semantics (B12):
@@ -798,7 +798,7 @@ def cos_graph_detect_changes(
 ) -> dict[str, Any]:
     """Pre-commit self-review: map changed files to affected graph nodes.
 
-    PURPOSE:      F6 Layer 2 + F9 pre-release diff. In I.8 the file set
+    PURPOSE:      Reviewer Layer 2 + Deployer pre-release diff. In I.8 the file set
                   is passed in (`files=[...]`) since the git wiring
                   lives in the CLI / hook layer. `scope` is forwarded
                   as metadata for the caller's bookkeeping.
@@ -891,7 +891,7 @@ def cos_graph_trace(
 ) -> dict[str, Any]:
     """Forward execution walk from an entry point.
 
-    PURPOSE:      F7 Step 2 fault isolation / distributed tracing
+    PURPOSE:      Debugger fault isolation / distributed tracing
                   scaffolding.
     OUTPUT:       ok({steps: [NodeSummary], branches}).
     """
@@ -2131,7 +2131,7 @@ def cos_graph_ranking(
     """PageRank-based node ranking with optional query personalisation.
 
     PURPOSE:      Surface the most structurally authoritative nodes —
-                  used by the Hub "Top nodes" sidebar and F2 dependency
+                  used by the Hub "Top nodes" sidebar and Analyst dependency
                   ranking. When ``query`` is given, the initial rank
                   vector is personalised toward query-matching nodes
                   (Personalised PageRank) so the result is both

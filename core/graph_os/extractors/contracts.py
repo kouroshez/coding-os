@@ -5,8 +5,8 @@ PURPOSE:  Detect the first-class service surface declared in a file —
           MCP tools, gRPC services, event handlers (Celery / RQ /
           Kafka / Channels), websockets — and emit typed edges
           (`handles_route`, `handles_tool`, `handles_event`) onto the
-          graph. Consumers: `cos_graph_contracts` (I.8) and F4 / F9
-          formula checks (auto-generated API reference, pre-release
+          graph. Consumers: `cos_graph_contracts` (I.8) and Documenter / Deployer
+          role checks (auto-generated API reference, pre-release
           contract diff).
 INPUT:    file path + raw source text.
 OUTPUT:   ExtractionResult.

@@ -1,4 +1,4 @@
-# F8 Role — Security Audit
+# SecurityAuditor Role — Security Audit
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 8
 id: security_auditor
 role_name: "SecurityAuditor"
@@ -57,11 +57,11 @@ output_schema: cognition_schemas.SecurityAuditorOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "(undefined|missing) auth (policy|boundary)"
-    target: F3
-    reason_template: "F8 needs F3 auth design"
+    target: architect
+    reason_template: "SecurityAuditor needs Architect auth design"
   - signal_phrase_regex: "(new|unknown) attack surface"
-    target: F2
-    reason_template: "F8 found scope change — backtrack to F2"
+    target: analyst
+    reason_template: "SecurityAuditor found scope change — backtrack to Analyst"
 
 criteria_required:
   layer_L1: [observable, testable, owned]
@@ -70,14 +70,14 @@ criteria_required:
   layer_L4: [scoped, owned, observable]
   layer_L5: [observable, owned, measurable]
 
-# F8's 5 layers are independent → parallel dispatch is the default
+# SecurityAuditor's 5 layers are independent → parallel dispatch is the default
 parallel_dispatch:
   enabled: true
   layers: ["L1", "L2", "L3", "L4", "L5"]
 
 prompt_prefix: |
-  You are in the F8 Security Auditor role. Your 5 layers (AuthN/AuthZ,
+  You are in the SecurityAuditor role. Your 5 layers (AuthN/AuthZ,
   Input Validation, Data Protection, Infrastructure & Configuration,
   Security Readiness) can and SHOULD be audited in parallel — each
   layer is independent. You are NOT implementing fixes here — that goes
-  back through F5. Output strict SecurityAuditorOutput JSON per layer.
+  back through the Implementer. Output strict SecurityAuditorOutput JSON per layer.

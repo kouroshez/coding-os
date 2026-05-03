@@ -19,11 +19,11 @@ self-contained one-file edit with no callers.
 ## Decision ladder
 
 1. **Need to know "what calls this?"** → `cos_graph_references(uid)`.
-2. **Need surrounding context before editing?** → `cos_graph_context(uid_or_name, depth=1)` (F5 Step 1).
-3. **Planning a refactor?** → `cos_graph_impact(uid, depth=3)` (F2 Step 10) groups edges by risk tier.
+2. **Need surrounding context before editing?** → `cos_graph_context(uid_or_name, depth=1)` (Implementer pre-impl step).
+3. **Planning a refactor?** → `cos_graph_impact(uid, depth=3)` (Analyst dependency map) groups edges by risk tier.
 4. **Renaming a symbol?** → `cos_graph_rename_plan(uid, new_name)` before any `Edit` — returns call-sites, doc refs, tests, string literals.
-5. **API / contract audit?** → `cos_graph_contracts(kinds=["http","mcp"])` (F4 + F9).
-6. **Tracing a fault?** → `cos_graph_trace(entry_uid)` (F7 Step 2).
+5. **API / contract audit?** → `cos_graph_contracts(kinds=["http","mcp"])` (Documenter + Deployer).
+6. **Tracing a fault?** → `cos_graph_trace(entry_uid)` (Debugger fault isolation step).
 7. **"Is anything similar?"** → `cos_graph_similar(uid, top_k=5)`.
 8. **Shortest dependency path?** → `cos_graph_path(source, target)`.
 9. **Need a diagram?** → `cos_graph_export(format="mermaid", root_uid=...)`.

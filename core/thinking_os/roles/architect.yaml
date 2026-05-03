@@ -1,4 +1,4 @@
-# F3 Role — Architecture & System Design
+# Architect Role — Architecture & System Design
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 3
 id: architect
 role_name: "Architect"
@@ -63,14 +63,14 @@ output_schema: cognition_schemas.ArchitectOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "(missing|unknown) actor"
-    target: F2
-    reason_template: "F3 encountered missing actor — backtrack to F2 actor map"
+    target: analyst
+    reason_template: "Architect encountered missing actor — backtrack to Analyst actor map"
   - signal_phrase_regex: "undefined (capability|requirement)"
-    target: F2
-    reason_template: "F3 needs defined capability from F2"
+    target: analyst
+    reason_template: "Architect needs defined capability from Analyst"
   - signal_phrase_regex: "(no|missing) (prior art|research|landscape)"
-    target: F1
-    reason_template: "F3 needs research landscape — backtrack to F1"
+    target: researcher
+    reason_template: "Architect needs research landscape — backtrack to Researcher"
 
 criteria_required:
   step_1: [scoped, measurable, testable]
@@ -81,8 +81,8 @@ criteria_required:
   step_6: [scoped, observable, owned]
 
 prompt_prefix: |
-  You are in the F3 Architect role. Your job is to produce NFRs, select
+  You are in the Architect role. Your job is to produce NFRs, select
   pattern & tech, design DB schema, define API contracts, make
   infrastructure decisions, and record ADRs. You are NOT implementing —
-  that is F5. You are NOT researching options in isolation — that was F1.
-  You are NOT defining scenarios — that was F2. Output strict ArchitectOutput JSON.
+  that is the Implementer role. You are NOT researching options in isolation — that was the Researcher.
+  You are NOT defining scenarios — that was the Analyst. Output strict ArchitectOutput JSON.

@@ -1,4 +1,4 @@
-# F5 Role — Implementation
+# Implementer Role — Implementation
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 5
 id: implementer
 role_name: "Implementer"
@@ -19,7 +19,7 @@ activation:
   secondary_triggers:
     - signal: action
       equals: debug
-      weight: 1    # fix step happens in F5 after F7 hypothesis
+      weight: 1    # fix step happens in implementer after debugger hypothesis
   deactivators:
     - signal: action
       equals: research
@@ -58,14 +58,14 @@ output_schema: cognition_schemas.ImplementerOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "(missing|unknown) actor"
-    target: F2
-    reason_template: "F5 sees unknown actor — backtrack to F2"
+    target: analyst
+    reason_template: "Implementer sees unknown actor — backtrack to Analyst"
   - signal_phrase_regex: "undefined (capability|endpoint|contract)"
-    target: F3
-    reason_template: "F5 needs F3 API contract"
+    target: architect
+    reason_template: "Implementer needs Architect API contract"
   - signal_phrase_regex: "architectural (conflict|inconsistency)"
-    target: F3
-    reason_template: "F5 detected architectural conflict"
+    target: architect
+    reason_template: "Implementer detected architectural conflict"
 
 criteria_required:
   step_1: [observable, testable, owned]
@@ -75,9 +75,9 @@ criteria_required:
   step_5: [testable, observable, measurable]
 
 prompt_prefix: |
-  You are in the F5 Implementer role. Your job is to pre-verify, design
+  You are in the Implementer role. Your job is to pre-verify, design
   the smallest change, branch/commit with discipline, implement, and
   post-verify. You MUST invoke the matching domain skill (python-django,
   nextjs-react, etc.) before writing code. You are NOT architecting —
-  that was F3. You are NOT testing broadly — that is F6 Section A.
+  that was the Architect. You are NOT testing broadly — that is the Reviewer (Section A).
   Output strict ImplementerOutput JSON.

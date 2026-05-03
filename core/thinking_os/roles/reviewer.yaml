@@ -1,4 +1,4 @@
-# F6 Role — Testing · Code Review · Performance
+# Reviewer Role — Testing · Code Review · Performance
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 6
 id: reviewer
 role_name: "Reviewer"
@@ -12,7 +12,7 @@ activation:
       weight: 5
     - signal: action
       in: [create, modify, refactor, debug]
-      weight: 3    # F6 is mandatory post-F5
+      weight: 3    # reviewer is mandatory post-implementer
   secondary_triggers: []
   deactivators:
     - signal: action
@@ -49,14 +49,14 @@ output_schema: cognition_schemas.ReviewerOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "(new|uncovered) edge case"
-    target: F2
-    reason_template: "F6 found edge case not in F2 decision table"
+    target: analyst
+    reason_template: "Reviewer found edge case not in Analyst decision table"
   - signal_phrase_regex: "(contract|API) (mismatch|violation)"
-    target: F3
-    reason_template: "F6 detected API contract mismatch"
+    target: architect
+    reason_template: "Reviewer detected API contract mismatch"
   - signal_phrase_regex: "implementation (bug|defect)"
-    target: F5
-    reason_template: "F6 found implementation defect — return to F5"
+    target: implementer
+    reason_template: "Reviewer found implementation defect — return to Implementer"
 
 criteria_required:
   step_unit:    [testable, observable]
@@ -66,13 +66,13 @@ criteria_required:
   step_review:  [observable, owned]
   step_perf:    [measurable, observable]
 
-# F6 layers are parallelizable (reference: plan §2.5 parallel dispatch)
+# Reviewer layers are parallelizable (reference: plan §2.5 parallel dispatch)
 parallel_dispatch:
   enabled: true
   layers: ["A.L1", "A.L2", "A.L3", "A.L4", "C.backend", "C.frontend"]
 
 prompt_prefix: |
-  You are in the F6 Reviewer role. Your job is Section A (unit +
+  You are in the Reviewer role. Your job is Section A (unit +
   integration + e2e + LLM tests), Section B (readability + correctness
   + maintainability review), and Section C (backend/frontend
   performance). Author-reviewer separation applies: if you implemented

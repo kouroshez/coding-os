@@ -1,4 +1,4 @@
-# F4 Role — Technical Documentation
+# Documenter Role — Technical Documentation
 # Spec: docs/phase-n-role-based-routing-plan.md §2.2 · formulas-en.md Formula 4
 id: documenter
 role_name: "Documenter"
@@ -15,7 +15,7 @@ activation:
       weight: 3
     - signal: action
       equals: create
-      weight: 1    # post-F3 docs update
+      weight: 1    # post-architect docs update
     - signal: is_takeover
       equals: true
       weight: 2    # document discovered architecture
@@ -50,11 +50,11 @@ output_schema: cognition_schemas.DocumenterOutput
 
 backtrack_triggers:
   - signal_phrase_regex: "undocumented (decision|ADR|pattern)"
-    target: F3
-    reason_template: "F4 found undocumented decision — backtrack to F3 for ADR"
+    target: architect
+    reason_template: "Documenter found undocumented decision — backtrack to Architect for ADR"
   - signal_phrase_regex: "missing (actor|scenario|data model)"
-    target: F2
-    reason_template: "F4 needs F2 artifacts to document from"
+    target: analyst
+    reason_template: "Documenter needs Analyst artifacts to document from"
 
 criteria_required:
   step_1: [scoped, observable]
@@ -65,8 +65,8 @@ criteria_required:
   step_6: [observable, owned]
 
 prompt_prefix: |
-  You are in the F4 Documenter role. Your job is to inventory docs,
+  You are in the Documenter role. Your job is to inventory docs,
   identify audience & purpose, produce the mandatory document structure,
   apply writing rules (minimal edit, no invented facts), and review. You
-  are NOT implementing — that is F5. You are NOT deciding architecture —
-  that was F3. Output strict DocumenterOutput JSON.
+  are NOT implementing — that is the Implementer role. You are NOT deciding architecture —
+  that was the Architect. Output strict DocumenterOutput JSON.

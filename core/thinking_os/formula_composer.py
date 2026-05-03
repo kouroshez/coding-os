@@ -2,7 +2,7 @@
 Phase N — Formula Composer.
 
 PURPOSE:      Turn TaskSignals into an ordered ComposedChain of formula-roles
-              (F1..F11). Strategy: situation override > preset match > per-role
+              (researcher..refactorer). Strategy: situation override > preset match > per-role
               scoring composer > hard fallback. Loads role/preset/situation
               registries once (cached) and stamps preset version hash on the
               chain for mid-session drift protection (N.5-C).
@@ -30,7 +30,10 @@ _ROLES_DIR = _HERE / "roles"
 _PRESETS_FILE = _HERE / "presets" / "registry.yaml"
 _SITUATIONS_FILE = _HERE / "situations" / "registry.yaml"
 
-_CANONICAL_ORDER: list[str] = [f"F{i}" for i in range(1, 12)]
+_CANONICAL_ORDER: list[str] = [
+    "researcher", "analyst", "architect", "documenter", "implementer",
+    "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
+]
 _CANONICAL_INDEX: dict[str, int] = {r: i for i, r in enumerate(_CANONICAL_ORDER)}
 
 _HARD_FALLBACK: dict[str, list[str]] = {
@@ -347,7 +350,7 @@ def _preset_match_satisfied(match: dict, signals: TaskSignals) -> bool:
 
 
 def _order_canonical(role_ids: list[str]) -> list[str]:
-    """Sort into canonical F1→F11 order, dedup."""
+    """Sort into canonical researcher→refactorer order, dedup."""
     seen: set[str] = set()
     ordered: list[str] = []
     for rid in sorted(role_ids, key=lambda r: _CANONICAL_INDEX.get(r, 999)):

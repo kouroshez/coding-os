@@ -178,7 +178,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             )
 
         # Doc references — Source of Truth + Read First sections hold
-        # doc paths; emit `references_doc` edges so F1/F5 can jump
+        # doc paths; emit `references_doc` edges so Researcher/Implementer can jump
         # task → authoritative spec.
         for doc_ref in _extract_doc_paths(parsed.source_of_truth):
             result.edges.append(

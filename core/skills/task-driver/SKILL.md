@@ -31,7 +31,7 @@ You are in task-management mode. Apply these rules mechanically.
 2. **Rule 15 — tasks are pointers, not specs.** Never inline content from
    `docs/**`, `core/rules/**`, `CLAUDE.md`, or `AGENTS.md`. If you find
    yourself writing >800 tokens of task body: stop, find the doc to link,
-   or create a new doc (Formula 4) and link to it.
+   or create a new doc (Documenter role) and link to it.
 
 3. **Acceptance = Definition of Done.** G/W/T are the tests. When all pass,
    task is Done — not "perfect", Done. Scope creep ⇒ create a new task via
