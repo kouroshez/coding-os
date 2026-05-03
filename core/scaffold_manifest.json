@@ -51,6 +51,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -120,6 +121,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -153,7 +155,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 146
+      "count": 148
     },
     "claude_django": {
       "agent": "claude",
@@ -206,6 +208,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -282,6 +285,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -324,7 +328,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 162
+      "count": 164
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -377,6 +381,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -453,6 +458,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -488,7 +494,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 155
+      "count": 157
     },
     "claude_go": {
       "agent": "claude",
@@ -541,6 +547,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -617,6 +624,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -652,7 +660,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 155
+      "count": 157
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -705,6 +713,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -781,6 +790,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -816,7 +826,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 155
+      "count": 157
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -869,6 +879,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -947,6 +958,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -995,7 +1007,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 170
+      "count": 172
     },
     "claude_react-native": {
       "agent": "claude",
@@ -1048,6 +1060,7 @@
         ".claude/hooks/check-agents-md-refs.sh",
         ".claude/hooks/check-agents-md-size.sh",
         ".claude/hooks/check-capture-worked.sh",
+        ".claude/hooks/check-doc-size.sh",
         ".claude/hooks/check-state.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/doc-sync-reminder.sh",
@@ -1124,6 +1137,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -1161,7 +1175,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 157
+      "count": 159
     },
     "codex_base": {
       "agent": "codex",
@@ -1203,6 +1217,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -1274,6 +1289,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -1307,7 +1323,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 139
+      "count": 141
     },
     "codex_django": {
       "agent": "codex",
@@ -1351,6 +1367,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -1429,6 +1446,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -1471,7 +1489,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 155
+      "count": 157
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -1515,6 +1533,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -1593,6 +1612,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -1628,7 +1648,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 148
+      "count": 150
     },
     "codex_go": {
       "agent": "codex",
@@ -1672,6 +1692,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -1750,6 +1771,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -1785,7 +1807,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 148
+      "count": 150
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -1829,6 +1851,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -1907,6 +1930,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -1942,7 +1966,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 148
+      "count": 150
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -1986,6 +2010,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -2066,6 +2091,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -2114,7 +2140,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 163
+      "count": 165
     },
     "codex_react-native": {
       "agent": "codex",
@@ -2158,6 +2184,7 @@
         ".codex/hooks/check-agents-md-refs.sh",
         ".codex/hooks/check-agents-md-size.sh",
         ".codex/hooks/check-capture-worked.sh",
+        ".codex/hooks/check-doc-size.sh",
         ".codex/hooks/check-state.sh",
         ".codex/hooks/codex-posttool-dispatch.sh",
         ".codex/hooks/codex-pretool-dispatch.sh",
@@ -2236,6 +2263,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -2273,7 +2301,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 150
+      "count": 152
     },
     "cursor_base": {
       "agent": "cursor",
@@ -2320,6 +2348,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -2387,6 +2416,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -2420,7 +2450,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 140
+      "count": 142
     },
     "cursor_django": {
       "agent": "cursor",
@@ -2474,6 +2504,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -2543,6 +2574,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -2585,7 +2617,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 156
+      "count": 158
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -2639,6 +2671,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -2708,6 +2741,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -2743,7 +2777,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 149
+      "count": 151
     },
     "cursor_go": {
       "agent": "cursor",
@@ -2797,6 +2831,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -2866,6 +2901,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -2901,7 +2937,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 149
+      "count": 151
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -2955,6 +2991,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -3024,6 +3061,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -3059,7 +3097,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 149
+      "count": 151
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -3114,6 +3152,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -3184,6 +3223,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -3232,7 +3272,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 164
+      "count": 166
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -3286,6 +3326,7 @@
         ".cursor/hooks/check-agents-md-refs.sh",
         ".cursor/hooks/check-agents-md-size.sh",
         ".cursor/hooks/check-capture-worked.sh",
+        ".cursor/hooks/check-doc-size.sh",
         ".cursor/hooks/check-state.sh",
         ".cursor/hooks/cos-env.sh",
         ".cursor/hooks/cursor-posttool-write-dispatch.sh",
@@ -3355,6 +3396,7 @@
         "changes.log",
         "docs/00-index.md",
         "docs/PRD/00-index.md",
+        "docs/PRD/01-snapshot-vision.md",
         "docs/api-contracts/00-index.md",
         "docs/api-contracts/error-format.md",
         "docs/architecture/00-index.md",
@@ -3392,7 +3434,7 @@
         "docs/workflow-docs/thinking_os-final-edition.md",
         "docs/workflow-docs/workflow-guide.md"
       ],
-      "count": 151
+      "count": 153
     }
   }
 }

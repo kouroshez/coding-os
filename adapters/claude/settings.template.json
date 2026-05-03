@@ -220,6 +220,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/check-doc-size.sh",
+            "statusMessage": "📐 Checking doc size budget...",
+            "timeout": 800
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/verify-changed-file.sh",
             "statusMessage": "📊 Analyzing changed file + cross-module impact...",
             "timeout": 1500

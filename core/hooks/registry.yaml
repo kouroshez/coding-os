@@ -410,6 +410,17 @@ hooks:
         matcher: Write|Edit
         status_message: "📏 Lint task (Rule 15)..."
 
+  - id: check-doc-size
+    script: check-doc-size.sh
+    description: Soft size budget per `layer:` (index/playbook/spec/policy/reference/adr/task). Warn-only — complements lint-task with non-task layers.
+    category: reminder
+    phase: O
+    timeout: 800
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📐 Checking doc size budget..."
+
   - id: enforce-task-body
     script: enforce-task-body.sh
     description: Phase L.10 — DoR/DoD validator. Blocks transitions to in_progress/complete when task body fails the kind's rules. SSOT in core/board_os/transition-gates.yaml.

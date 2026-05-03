@@ -39,7 +39,7 @@
     "substitutions": {
       "type": "object",
       "additionalProperties": {"type": "string"},
-      "description": "Template substitution keys merged into the aggregated world. Stack values override base defaults."
+      "description": "Template substitution keys merged into the aggregated world. Stack values override base defaults. Required keys depend on `category` (enforced by root-level allOf): backend/frontend/mobile must contribute routing + verify keys. Library/devops/data stacks may omit routing."
     },
     "verify": {
       "type": "array",
@@ -162,5 +162,73 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "$comment": "Backend stacks must contribute routing + backend verify substitutions.",
+      "if": {"properties": {"category": {"const": "backend"}}, "required": ["category"]},
+      "then": {
+        "properties": {
+          "substitutions": {
+            "required": [
+              "DOMAIN_ROUTES",
+              "SKILL_ROUTES",
+              "ENGINEERING_RULE_ROUTING",
+              "TOOL_ROUTING_IMPL",
+              "QUICK_ROUTING",
+              "STACK_REF_CODES",
+              "VERIFY_BACKEND_GLOB",
+              "VERIFY_BACKEND_SUITES",
+              "VERIFY_BACKEND"
+            ]
+          }
+        },
+        "required": ["substitutions"]
+      }
+    },
+    {
+      "$comment": "Frontend stacks must contribute routing + frontend verify substitutions.",
+      "if": {"properties": {"category": {"const": "frontend"}}, "required": ["category"]},
+      "then": {
+        "properties": {
+          "substitutions": {
+            "required": [
+              "DOMAIN_ROUTES",
+              "SKILL_ROUTES",
+              "ENGINEERING_RULE_ROUTING",
+              "TOOL_ROUTING_IMPL",
+              "QUICK_ROUTING",
+              "STACK_REF_CODES",
+              "VERIFY_FRONTEND_GLOB",
+              "VERIFY_FRONTEND_SUITES",
+              "VERIFY_FRONTEND"
+            ]
+          }
+        },
+        "required": ["substitutions"]
+      }
+    },
+    {
+      "$comment": "Mobile stacks must contribute routing + mobile verify substitutions.",
+      "if": {"properties": {"category": {"const": "mobile"}}, "required": ["category"]},
+      "then": {
+        "properties": {
+          "substitutions": {
+            "required": [
+              "DOMAIN_ROUTES",
+              "SKILL_ROUTES",
+              "ENGINEERING_RULE_ROUTING",
+              "TOOL_ROUTING_IMPL",
+              "QUICK_ROUTING",
+              "STACK_REF_CODES",
+              "VERIFY_MOBILE_GLOB",
+              "VERIFY_MOBILE_SUITES",
+              "VERIFY_MOBILE"
+            ]
+          }
+        },
+        "required": ["substitutions"]
+      }
+    }
+  ]
 }

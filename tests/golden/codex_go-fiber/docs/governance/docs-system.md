@@ -76,11 +76,18 @@ Playbook read packs must not exceed 10 files. Most tasks need 3-6; complex multi
 
 ## Task File Rules
 
-- `docs/governance/templates/task-detail.md` is the canonical template reference, not a live task record.
-- A started or completed task has exactly one primary detail file: `docs/tasks/TASK-###-slug.md`.
-- Optional companion docs may exist when a task needs a checklist, appendix, or research annex that would otherwise break length limits.
-- Companion docs use `layer:reference`, link back to the parent task, and do not carry canonical status for the task lifecycle.
-- A backlog index entry may exist without a detail file until execution begins; once a task is marked `[/]`, `- [x]`, or `(BLOCKED: reason)`, the primary detail file is required.
+**SSOT split (Phase L scrumban):**
+
+- `docs/tasks/TASK-###-slug.md` — **canonical detail file**. One per started or completed task. Holds frontmatter (swimlane / kind / epic / labels), Outcome, Read First, Acceptance, Notes, Work Log. Authored from `docs/governance/templates/task-detail.md`. Token cap: warn ≥1.5k, block ≥3k (Rule 14).
+- `docs/tasks.md` — **derived backlog index** (legacy view). Lists every task with `- [ ] / [/] / [x] / (BLOCKED: reason)`. Status here is mirrored by `cos task-*` / `make task-*` commands. Manual edits are tolerated for backlog grooming, but the detail file remains the source of truth for execution status.
+- `cos task-board` (or `cos board --web`) — **live view** off `core/board_os/db.py`. Reflects detail-file state without reading `tasks.md`.
+
+**Lifecycle:**
+
+- A backlog entry MAY exist in `tasks.md` without a detail file until execution begins.
+- Once a task is `[/]` (in-progress), `[x]` (complete), or `(BLOCKED: reason)` → the primary detail file under `docs/tasks/` is REQUIRED.
+- Companion docs (checklists, research annexes that would break the 3k cap) use `layer:reference`, link back to the parent task, and never carry canonical status.
+- `docs/governance/templates/task-detail.md` is a template reference, not a live task record. Do not edit it as if it were a task.
 
 ## Architecture Boundary
 

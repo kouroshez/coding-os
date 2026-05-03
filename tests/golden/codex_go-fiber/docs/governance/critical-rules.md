@@ -165,6 +165,13 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **How:** Convention + Rule. SSOT is `core/rules/test-discipline.md`; AGENTS.md § Verification Matrix mirrors it.
 - **Where:** [core/rules/test-discipline.md](../../../../core/rules/test-discipline.md)
 
+## Rule 21 — Never use `isolation: "worktree"` in this repo
+
+- **Rule:** Subagent dispatch is allowed **only** for read-only research / inventory / verification (Agent tool without `isolation`). Write work runs single-agent on the main working tree. Never pass `isolation: "worktree"` to the Agent tool.
+- **Why:** Past worktree runs left orphaned `.claude/worktrees/<slug>/` plus locked `worktree-*` branches with broken `.git` links — required manual `find .git/worktrees/...` cleanup and deadlocked sessions.
+- **How:** Convention. The `worktree-orchestration` skill has been removed from `core/skills/` and `templates/_base/base.yaml`. Reviewers reject re-introduction.
+- **Where:** [AGENTS.md](../../AGENTS.md) § Critical Rules
+
 ---
 
 ## Rule Index (quick lookup)
@@ -192,3 +199,4 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 18 | Task reconciliation | (none — convention) |
 | 19 | Docs are contract | enforce-doc-sync.sh |
 | 20 | Test discipline | (none — convention) |
+| 21 | No worktree isolation | (none — convention) |
