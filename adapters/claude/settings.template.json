@@ -27,6 +27,12 @@
             "command": "{{HOOKS_DIR}}/enforce-verify.sh",
             "statusMessage": "✅ Verifying suites before task-done...",
             "timeout": 1500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/search-enforce-inventory.sh",
+            "statusMessage": "🔎 Running search inventory before bulk replace...",
+            "timeout": 3000
           }
         ]
       },
@@ -296,6 +302,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/search-verify-remaining.sh",
+            "statusMessage": "✅ Verifying 0 matches remain after replace...",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
             "statusMessage": "💡 Checking if learn-validate reminder is due...",
             "timeout": 500
@@ -329,6 +341,12 @@
       {
         "matcher": "startup",
         "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/check-mcp-extras.sh",
+            "statusMessage": "🔌 Checking MCP extras health...",
+            "timeout": 2000
+          },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-daily.sh",

@@ -329,6 +329,28 @@ hooks:
         matcher: Edit
         status_message: "🔁 Checking for unreplaced rename callers..."
 
+  - id: search-enforce-inventory
+    script: search-enforce-inventory.sh
+    description: PreToolUse Bash — when a bulk replace (sed -i, xargs sed, python replace) is about to run, extracts the OLD pattern, runs ground-truth inventory grep, and stores count in session state. Surfaces "N matches in X files" before editing so agent cannot declare done at partial completion. Always non-blocking.
+    category: enforcement
+    phase: O
+    timeout: 3000
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🔎 Running search inventory before bulk replace..."
+
+  - id: search-verify-remaining
+    script: search-verify-remaining.sh
+    description: PostToolUse Bash — after a bulk replace, reads session state from search-enforce-inventory and re-runs verify grep. Reports remaining match count vs ground truth. Warns if > 0 remain with file list. Closes the "declared done but 20 remain" gap for Bash-based replace operations. Always non-blocking.
+    category: enforcement
+    phase: O
+    timeout: 3000
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "✅ Verifying 0 matches remain after replace..."
+
   # ── board_os Scrumban (Phase L.4) ──────────────────────────────────
   - id: validate-task-frontmatter
     script: validate-task-frontmatter.sh
@@ -373,6 +395,17 @@ hooks:
       - event: PostToolUse
         matcher: Write|Edit
         status_message: "♻️ Re-syncing task to DB..."
+
+  - id: check-mcp-extras
+    script: check-mcp-extras.sh
+    description: SessionStart — verifies global cos binary has required Python extras (graph_os, board_os, rag). If missing, MCP crashes silently and all cos_* tools fail. Emits loud warning with exact fix command before agent uses any MCP tools. Fast (<200ms, no server start). Always non-blocking.
+    category: safety
+    phase: "0"
+    timeout: 2000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🔌 Checking MCP extras health..."
 
   - id: remind-daily
     script: remind-daily.sh
