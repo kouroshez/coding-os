@@ -14,6 +14,8 @@
 
 set -eu
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 cos_log_hook "check-doc-size" "entry" 2>/dev/null || true
 
 payload="$(cos_read_stdin_bounded 5)"

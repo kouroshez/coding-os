@@ -55,6 +55,7 @@ for delegate in \
   block-dangerous-commands.sh \
   block-uv-heredoc.sh \
   enforce-verify.sh \
+  search-enforce-inventory.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done

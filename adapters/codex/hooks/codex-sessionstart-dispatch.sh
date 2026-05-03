@@ -40,7 +40,7 @@ delegate_path() {
 CAPTURED_FILE="$(mktemp "${TMPDIR:-/tmp}/codex-sessionstart.XXXXXX")"
 trap 'rm -f "$CAPTURED_FILE"' EXIT
 
-for delegate in session-context.sh warn-mcp-down.sh remind-daily.sh agent-presence.sh; do
+for delegate in session-context.sh warn-mcp-down.sh check-mcp-extras.sh remind-daily.sh agent-presence.sh; do
   DELEGATE_PATH="$(delegate_path "$delegate")"
   if ! bash "$DELEGATE_PATH" <<< "$INPUT" >>"$CAPTURED_FILE" 2>&1 ; then
     cos_log_hook codex-sessionstart-dispatch warn "delegate=${delegate} source=${SOURCE}"

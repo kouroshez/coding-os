@@ -20,6 +20,8 @@
 
 set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 cos_log_hook search-verify-remaining entry 2>/dev/null || true
 
 PAYLOAD="$(cat 2>/dev/null || true)"
@@ -41,8 +43,12 @@ if ! printf '%s' "$CMD" | command grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-
     exit 0
 fi
 
-# Read pattern from state written by PreToolUse hook
-STATE_FILE="${COS_AGENT_DIR:-.coding-os/claude}/.search-inventory"
+# Read pattern from state written by PreToolUse hook (Rule 1 — no hardcoded agent name)
+if [[ -z "${COS_AGENT_DIR:-}" ]]; then
+    cos_log_hook search-verify-remaining skip-no-agent-dir 2>/dev/null || true
+    exit 0
+fi
+STATE_FILE="${COS_AGENT_DIR}/.search-inventory"
 if [[ ! -f "$STATE_FILE" ]]; then
     cat >&2 <<MSG
 ⚠️  Search verify — no inventory state. Pattern unknown; verify manually:
@@ -73,15 +79,21 @@ fi
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT" || exit 0
 
-# Single-line to avoid newline word-split issues under pipefail
-EXCL="--exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next --exclude-dir=vendor --exclude-dir=.coding-os"
+# Array avoids SC2089/SC2090: globs in string elements are not expanded at
+# word-split time; "${EXCL[@]}" expands each element as a separate word.
+EXCL=(
+  --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist
+  --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next
+  --exclude-dir=vendor --exclude-dir=.coding-os
+  '--exclude=*.min.*' '--exclude=*.map'
+)
 
 # `command grep` bypasses any shell-function override (e.g. Claude Code wraps
 # grep → ugrep which applies --ignore-files and changes behaviour).
 # No `timeout` — not available on macOS BSD coreutils; EXCL bounds the search.
 # `|| true` inside `{ }` neutralises pipefail on grep exit 1 (no matches).
-REMAINING="$( { command grep -rnF "$OLD" . $EXCL 2>/dev/null || true; } | wc -l | tr -d ' ')"
-FILE_LIST="$( { command grep -rlF "$OLD" . $EXCL 2>/dev/null || true; } | head -10)"
+REMAINING="$( { command grep -rnF "$OLD" . "${EXCL[@]}" 2>/dev/null || true; } | wc -l | tr -d ' ')"
+FILE_LIST="$( { command grep -rlF "$OLD" . "${EXCL[@]}" 2>/dev/null || true; } | head -10)"
 FILE_COUNT="$( { printf '%s\n' "$FILE_LIST" | command grep -c . || true; } 2>/dev/null)"
 [[ -z "$FILE_COUNT" ]] && FILE_COUNT=0
 

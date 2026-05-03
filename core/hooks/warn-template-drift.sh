@@ -14,6 +14,8 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 INPUT="$(cos_read_stdin_bounded 2)"
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0

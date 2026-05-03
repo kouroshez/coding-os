@@ -335,6 +335,17 @@
             "timeout": 500
           }
         ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_backtrack_log",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/track-backtrack.sh",
+            "statusMessage": "↩️ Backtrack counter updated...",
+            "timeout": 800
+          }
+        ]
       }
     ],
     "SessionStart": [

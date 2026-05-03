@@ -11,8 +11,11 @@ INPUT="$(cat 2>/dev/null || true)"
 
 delegate_path() {
   local name="$1"
-  local path="${SCRIPT_DIR}/${name}"
-  echo "$path"
+  if [[ -f "${SCRIPT_DIR}/${name}" ]]; then
+    echo "${SCRIPT_DIR}/${name}"
+  else
+    echo "${SCRIPT_DIR}/../../../core/hooks/${name}"
+  fi
 }
 
 run_delegate() {
@@ -23,12 +26,15 @@ run_delegate() {
     return 0
   fi
   if ! printf '%s' "$INPUT" | bash "$path" >/dev/null 2>&1; then
-    cos_log_hook codex-posttool-dispatch warn "delegate=${name} failed"
+    cos_log_hook codex-posttool-dispatch warn "delegate=${name} failed" 2>/dev/null || true
   fi
   return 0
 }
 
-for delegate in remind-learn-validate.sh agent-presence.sh; do
+for delegate in \
+  remind-learn-validate.sh \
+  search-verify-remaining.sh \
+  agent-presence.sh; do
   run_delegate "$delegate"
 done
 

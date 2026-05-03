@@ -32,7 +32,7 @@ CODEX_PROJECT_CONFIG="$PROJECT_ROOT/.codex/config.toml"
 resolve_launch_from_mcp_json() {
   local mcp_file="${1:-}"
   [[ -f "$mcp_file" ]] || return 0
-  grep -q '"coding-os"' "$mcp_file" 2>/dev/null || return 0
+  command grep -q '"coding-os"' "$mcp_file" 2>/dev/null || return 0
   python3 -c '
 import json, shlex, sys
 from pathlib import Path
@@ -99,7 +99,7 @@ RESULT=$(
   (echo "$HANDSHAKE" | perl -e 'alarm 2; exec @ARGV' sh -c "$LAUNCH" 2>/dev/null) | head -c 4096
 ) || true
 
-if echo "$RESULT" | grep -q '"jsonrpc"' && echo "$RESULT" | grep -q '"result"'; then
+if echo "$RESULT" | command grep -q '"jsonrpc"' && echo "$RESULT" | command grep -q '"result"'; then
   # Server is live — silent success.
   cos_log_hook warn-mcp-down ok
   exit 0

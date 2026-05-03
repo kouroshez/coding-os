@@ -22,6 +22,8 @@
 
 set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 cos_log_hook check-mcp-extras entry 2>/dev/null || true
 
 # Locate global cos (the one .mcp.json uses — resolved via PATH)
@@ -34,9 +36,14 @@ fi
 COS_BIN_DIR="$(dirname "$GLOBAL_COS")"
 COS_PYTHON="${COS_BIN_DIR}/python3"
 
+# Fallback: if no sibling python3 (e.g. cos installed via brew wrapper script),
+# try PATH python3. If nothing found, skip check — can't validate safely.
 if [[ ! -x "$COS_PYTHON" ]]; then
-    cos_log_hook check-mcp-extras skip-python-not-found 2>/dev/null || true
-    exit 0
+    COS_PYTHON="$(command -v python3 2>/dev/null || true)"
+    if [[ -z "$COS_PYTHON" || ! -x "$COS_PYTHON" ]]; then
+        cos_log_hook check-mcp-extras skip-python-not-found 2>/dev/null || true
+        exit 0
+    fi
 fi
 
 # Quick import check — no server startup needed
@@ -55,7 +62,7 @@ for mod, label in checks.items():
 print(",".join(missing))
 ' 2>/dev/null || echo "check-failed")"
 
-if [[ -z "$MISSING" || "$MISSING" == "ok" ]]; then
+if [[ -z "$MISSING" ]]; then
     cos_log_hook check-mcp-extras ok 2>/dev/null || true
     exit 0
 fi

@@ -21,6 +21,8 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/coding-os.db}"
 SESSION_FILE="${COS_SESSION_FILE:-$COS_STATE_DIR/session-id}"

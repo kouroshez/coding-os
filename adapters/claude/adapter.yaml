@@ -61,7 +61,7 @@ hook_capabilities:
   PreToolUse:
     matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
   PostToolUse:
-    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, "mcp__coding-os__cos_backtrack_log"]
   Stop:
     matchers: [""]
   SessionStart:

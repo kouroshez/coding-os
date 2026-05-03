@@ -5,6 +5,8 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 
 SESSION_ID=""
 if [ -f "$COS_SESSION_FILE" ]; then
@@ -45,14 +47,14 @@ except Exception:
 }
 
 # Find scripts in coding-os core or legacy .claude path
-for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
+for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
   if [ -f "${SCRIPT_DIR}/session_summary.py" ]; then
     run_bounded_python "${SCRIPT_DIR}/session_summary.py" 2
     break
   fi
 done
 
-for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
+for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
   if [ -f "${SCRIPT_DIR}/session_enrich.py" ]; then
     run_bounded_python "${SCRIPT_DIR}/session_enrich.py" 2
     break

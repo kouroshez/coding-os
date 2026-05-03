@@ -9,6 +9,8 @@
 set -eu
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 cos_log_hook enforce-rename-plan enter || true
 
 MODE="${COS_ENFORCE_RENAME_PLAN:-1}"

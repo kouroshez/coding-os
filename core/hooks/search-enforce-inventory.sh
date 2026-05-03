@@ -21,6 +21,8 @@
 
 set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 cos_log_hook search-enforce-inventory entry 2>/dev/null || true
 
 PAYLOAD="$(cat 2>/dev/null || true)"
@@ -75,7 +77,12 @@ if [[ -z "$OLD" || "${#OLD}" -lt 2 ]]; then
 fi
 
 # Store pattern for PostToolUse verify hook (no grep here — timeout risk)
-STATE_DIR="${COS_AGENT_DIR:-.coding-os/claude}"
+# COS_AGENT_DIR is set by cos-env.sh; skip if unavailable (Rule 1 — no hardcoded agent name)
+if [[ -z "${COS_AGENT_DIR:-}" ]]; then
+    cos_log_hook search-enforce-inventory skip-no-agent-dir 2>/dev/null || true
+    exit 0
+fi
+STATE_DIR="$COS_AGENT_DIR"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 SESSION_ID="$(cat "$COS_SESSION_FILE" 2>/dev/null || echo "unknown")"
 printf '%s\t%s\n' "$SESSION_ID" "$OLD" > "${STATE_DIR}/.search-inventory" 2>/dev/null || true

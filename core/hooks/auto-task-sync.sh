@@ -7,6 +7,8 @@
 
 set -eu
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 
 cos_log_hook "auto-task-sync" "entry" 2>/dev/null || true
 

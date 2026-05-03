@@ -5,7 +5,8 @@
 ```bash
 EXCL="--exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist \
   --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next \
-  --exclude-dir=vendor --exclude='*.lock' --exclude='*.min.*' --exclude='*.map'"
+  --exclude-dir=vendor --exclude-dir=.coding-os \
+  --exclude='*.lock' --exclude='*.min.*' --exclude='*.map'"
 ```
 
 ## Core flags

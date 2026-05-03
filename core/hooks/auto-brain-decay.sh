@@ -12,6 +12,8 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/coding-os.db}"
 
@@ -101,7 +103,7 @@ fi
 # untouched.
 (
   COS_DB_PATH="$COS_DB_PATH" \
-  timeout 10 python3 "$DECAY_SCRIPT" > /dev/null 2>&1 \
+  python3 "$DECAY_SCRIPT" > /dev/null 2>&1 \
     && echo "$NOW_TS" > "$LAST_RUN_FILE"
 ) &
 

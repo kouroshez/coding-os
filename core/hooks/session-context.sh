@@ -6,6 +6,8 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+
 
 INPUT="$(cos_read_stdin_bounded 2)"
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
@@ -58,7 +60,7 @@ if [[ "$SOURCE" == "startup" ]]; then
   fi
 
   if [ -n "$PREV_SESSION_ID" ] && [ -f "$COS_DB_PATH" ]; then
-    for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
+    for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
       if [ -f "${SCRIPT_DIR}/session_summary.py" ]; then
         python3 "${SCRIPT_DIR}/session_summary.py" "$PREV_SESSION_ID" "" "$COS_DB_PATH" 2>/dev/null || true
         cos_log_hook session-context recovered "prev_session=${PREV_SESSION_ID}"
@@ -165,7 +167,7 @@ if [[ "$SOURCE" == "startup" ]]; then
   # Token economics display — informational, non-blocking
   if [ -f "$COS_DB_PATH" ]; then
     # Look for startup script in coding-os core or .claude
-    for SCRIPT_DIR in "$(dirname "$0")/../thinking_os" ".claude/thinking_os" "$(dirname "$0")/../thinking_os" ".claude/thinking_os"; do
+    for SCRIPT_DIR in "$(cd "$(dirname "$0")" && pwd -P)/../thinking_os" "$(dirname "$0")/../thinking_os"; do
       STARTUP_SCRIPT="${SCRIPT_DIR}/session_startup.py"
       if [ -f "$STARTUP_SCRIPT" ]; then
         # COS_DB_PATH already exported by cos-env.sh — pass as positional arg only.

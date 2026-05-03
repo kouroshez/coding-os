@@ -78,6 +78,7 @@ hook_dispatchers:
       - block-dangerous-commands.sh
       - block-uv-heredoc.sh
       - enforce-verify.sh
+      - search-enforce-inventory.sh
       - agent-presence.sh
   - event: SessionStart
     matcher: startup
@@ -113,6 +114,7 @@ hook_dispatchers:
       - remind-learn-validate.sh
       - auto-reindex-shell-ops.sh
       - auto-prune-deleted-files.sh
+      - search-verify-remaining.sh
       - agent-presence.sh
   - event: UserPromptSubmit
     matcher: ""
