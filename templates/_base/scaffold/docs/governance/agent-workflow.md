@@ -43,6 +43,18 @@ When two domains share weight, route to the higher blast-radius domain first.
 
 Always provide `WHAT` and `FILES` on completion for traceability. For Phase L scrumban, prefer `cos task-*` (see `task-lifecycle.md`).
 
+## Change Initiation Path
+
+Every non-trivial change follows this order — no skipping:
+
+1. **PRD/spec** — define *what* and *why* (edit the doc first; Rule 19)
+2. **Requirements / acceptance criteria** — atomic, testable
+3. **Schema / migrations** — data shape before any code
+4. **Code** — implement against spec
+5. **Docs sync** — update any doc that drifted (`enforce-doc-sync.sh` surfaces these)
+
+If two sources conflict: higher blast-radius wins (see Blast Radius ranking above). Update the lower-rank doc — never the higher.
+
 ## Minimal-Read & Context Hygiene
 
 - Do not read an entire domain folder when one index file routes correctly.
