@@ -1286,8 +1286,6 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
             if not m or m.group(1) != role:
                 issues.append(f"{agent_file.name}: missing or wrong 'id: {role}' in frontmatter")
 
-    # Phase M personas/registry.yaml was removed in v0.3 — no further check needed.
-
     if issues:
         report.checks.append(CheckResult(
             "C28", "cognition_registries", SEV_FAIL, "; ".join(issues), {"issues": issues, "warnings": warnings},
@@ -1332,6 +1330,66 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
         "summary": {**report.summary(), "exit_code": report.exit_code(strict=strict)},
     }
     return json.dumps(payload, indent=2)
+
+
+def _probe_claude_sdk() -> None:
+    """Print Claude SDK + CLI compatibility report (T14.4).
+
+    PURPOSE: Aggregate SDK version, CLI version, env auth, MCP server config
+             into one ops-debugging table so an operator can verify the
+             dispatcher will work before the first real run.
+    INPUT:   Environment + installed package versions.
+    OUTPUT:  Status table to stdout — each row: PASS / WARN / FAIL.
+    NOTES:   Pure read — never mutates state. Exit 0 even on FAIL so this
+             can run in monitoring scripts that want the report only.
+    """
+    import importlib.metadata
+    import os
+    import shutil
+    import subprocess
+
+    click.echo("Claude SDK compatibility report")
+    click.echo("=" * 60)
+
+    # SDK version
+    try:
+        sdk_version = importlib.metadata.version("claude-agent-sdk")
+        click.echo(f"  [OK]   claude-agent-sdk = {sdk_version}")
+    except importlib.metadata.PackageNotFoundError:
+        click.echo("  [FAIL] claude-agent-sdk not installed (uv sync --extra rag)")
+
+    # Claude Code CLI
+    cli_path = shutil.which("claude")
+    if cli_path:
+        try:
+            result = subprocess.run(
+                [cli_path, "--version"], capture_output=True, text=True, timeout=5
+            )
+            cli_version = result.stdout.strip() or result.stderr.strip()
+            click.echo(f"  [OK]   claude CLI    = {cli_version} ({cli_path})")
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            click.echo(f"  [WARN] claude CLI unreachable: {exc}")
+    else:
+        click.echo("  [WARN] claude CLI not on PATH")
+
+    # API key auth
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        click.echo("  [OK]   ANTHROPIC_API_KEY set")
+    elif os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        click.echo("  [OK]   ANTHROPIC_AUTH_TOKEN set")
+    else:
+        click.echo("  [WARN] no Anthropic auth env var set")
+
+    # CLAUDECODE markers (live session detection)
+    if os.environ.get("CLAUDECODE"):
+        click.echo(f"  [OK]   CLAUDECODE = {os.environ.get('CLAUDECODE')!r}")
+
+    # MCP server registration check
+    mcp_json = Path(".mcp.json")
+    if mcp_json.exists():
+        click.echo(f"  [OK]   .mcp.json present ({mcp_json.resolve()})")
+    else:
+        click.echo("  [WARN] .mcp.json missing (cos init not run?)")
 
 
 def _probe_otel() -> None:
@@ -1395,10 +1453,14 @@ def _probe_otel() -> None:
 @click.option("--strict", is_flag=True, default=False, help="Promote WARN to exit 1")
 @click.option("--manifest", default=None, help="Override manifest file path")
 @click.option("--otel", is_flag=True, default=False, help="Probe OTEL exporter config and exit")
-def doctor(project_dir: str, output_format: str, strict: bool, manifest: str | None, otel: bool) -> None:
+@click.option("--claude-sdk", "claude_sdk", is_flag=True, default=False, help="Print Claude SDK + CLI compat report and exit")
+def doctor(project_dir: str, output_format: str, strict: bool, manifest: str | None, otel: bool, claude_sdk: bool) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
     if otel:
         _probe_otel()
+        return
+    if claude_sdk:
+        _probe_claude_sdk()
         return
     project = Path(project_dir).resolve()
     manifest_path = Path(manifest).resolve() if manifest else None

@@ -61,6 +61,21 @@ verify: verify-hooks verify-install test-mcp ## Run all verification checks
 	@echo ""
 	@echo "All checks passed."
 
+.PHONY: verify-claude
+verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + branding tests (~30s)
+	@echo "Running Claude-only verification subset..."
+	@uv run --extra rag pytest \
+	    core/thinking_os/tests/test_dispatcher.py \
+	    core/thinking_os/tests/test_db.py \
+	    tests/test_claude_dispatcher_options.py \
+	    tests/test_skill_frontmatter.py \
+	    tests/test_branding.py \
+	    tests/test_no_hardcoded_anthropic.py \
+	    tests/test_adapters.py \
+	    -q --tb=short
+	@echo ""
+	@echo "Claude verification passed."
+
 .PHONY: eval-operational eval-sandboxes eval-clean
 eval-operational: ## Full operational evaluation — scaffolds sandboxes, runs all checks, writes .build/
 	@uv run python scripts/operational_eval.py all

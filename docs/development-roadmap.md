@@ -1,4 +1,4 @@
-<!-- domain:ALL | layer:reference | ssot:true | updated:2026-04-20 -->
+<!-- domain:ALL | layer:reference | ssot:true | updated:2026-05-05 -->
 # Coding OS Development Roadmap
 
 Purpose: Phase-by-phase status of coding-os development, from v0.1.0 through the current v0.3.0.
@@ -6,12 +6,15 @@ Read when: Checking what's done, what's planned, or picking up the next piece of
 Skip when: You need implementation details — go to the corresponding phase plan (`phase-b-rag-plan.md`, `phase-c-task-store-plan.md`, `phase-m-thinking_os-new-formula.md`, `phase-n-role-based-routing-plan.md`).
 Read next: The current phase's plan for open work items; [features.md](./features.md) for a cross-cutting system map. Authoritative live status: [../AGENTS.md §Development Status](../AGENTS.md).
 
-## Current State (v0.3.0 — Phases A → N complete)
+## Current State (v0.3.0 — Phases A → Q.deep complete)
 
 - **Phase M** — Formula-agents + supervisor + DB v14 + 10 MCP cognition tools + 2 hooks ✅
 - **Phase N** — Role-based routing (11 roles = 11 formulas) + TaskSignals + Formula Composer + 12 Presets + 3 MCP tools + connection pool (N.5-A) + preset versioning (N.5-C) + multi-tenant override (N.5-E) ✅
 - **Phase N.6** — Behavioral tracing: `core/thinking_os/tracing.py` + 5 instrumented MCP tools + `cos cognition trace` CLI + [HTML replay viewer](cognition-trace-replay.html) + 10 behavioral tests ✅
+- **Phase Q-bundle (TASK-002)** — Claude SDK floor → 0.1.73; dispatcher hardened (preset/cache/dontAsk/Opus 4.7 effort); `mcp__coding-os__*` permission; SubagentStart/Stop/PostToolUseFailure hooks ✅
+- **Phase Q.deep (TASK-003)** — output_format JSON Schema; max_budget_usd ceiling; programmatic hooks; OTEL env propagation; deny-list; DB v23+v27 telemetry columns; AGENT STREAM correctness; Pydantic validate before INSERT; hub `/api/cognition/cost`+`/dispatchers`+`/dispatchers/{id}/tools`; `cos doctor --otel` and `--claude-sdk`; SSE `dispatch-completed` events; `/api/hooks/list`; branding + security guard tests; `make verify-claude` target ✅
 - **Deferred (post-usage-data)**: N.5-B metrics observability · N.5-D circuit breaker · N.5-F rate-limit semaphore on `cos_graph_impact`.
+- **Deferred (Q.deep follow-up)**: T7.2 SessionStore (resume) · T5.3 can_use_tool SSE bridge (interactive perms) · T9.3 `cos dispatch rewind` CLI · T19.5–T19.6 hub charts + budget alerts.
 
 ## Historical (v0.1 → v0.2 sections below preserved verbatim)
 

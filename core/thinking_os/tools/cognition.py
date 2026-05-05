@@ -1475,8 +1475,7 @@ def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved 
 
 
 def register_all(mcp, db_path: str) -> None:
-    """Register all 15 cognition tools with the MCP server.
-    cos_route_persona was removed in v0.3 — use cos_compose_chain instead."""
+    """Register all 15 cognition tools with the MCP server."""
     # Phase M
     register_cos_supervise(mcp, db_path)
     register_cos_supervise_record_output(mcp, db_path)

@@ -2160,7 +2160,7 @@ def cos_retrieval_enrichment_check(lookback_days: int = 14) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Phase M — 9 formula-agent supervisor tools (cos_route_persona removed in v0.3).
+# Phase M — 9 formula-agent supervisor tools.
 # Phase N — 3 role-based routing tools (cos_analyze_task, cos_compose_chain,
 #           cos_role_info).
 # Phase N.SDK — 2 dispatch tools.

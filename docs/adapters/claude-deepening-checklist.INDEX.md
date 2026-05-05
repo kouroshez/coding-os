@@ -22,18 +22,18 @@
 | H2 | T5 — Permissions completeness | `t5-permissions-completeness` | 65 | 72 | 8 | 305 |
 | H2 | T6 — Skills layer (frontmatter + auto-scope + dynamic context) | `t6-skills-layer-frontmatter-auto-scope-dynamic-context` | 73 | 81 | 9 | 417 |
 | H2 | T7 — Sessions + persistence | `t7-sessions-persistence` | 82 | 89 | 8 | 250 |
-| H2 | T8 — Observability + telemetry | `t8-observability-telemetry` | 90 | 98 | 9 | 376 |
+| H2 | T8 — Observability + telemetry | `t8-observability-telemetry` | 90 | 98 | 9 | 412 |
 | H2 | T9 — File checkpointing (safety on Edit-heavy roles) | `t9-file-checkpointing-safety-on-edit-heavy-roles` | 99 | 105 | 7 | 271 |
 | H2 | T10 — Long context + thinking config (D6) | `t10-long-context-thinking-config-d6` | 106 | 113 | 8 | 223 |
 | H2 | T11 — Plugin manifest (D3 deferred — keep scaffold) | `t11-plugin-manifest-d3-deferred-keep-scaffold` | 114 | 117 | 4 | 50 |
-| H2 | T12 — CI / verification (no flake) | `t12-ci-verification-no-flake` | 118 | 126 | 9 | 412 |
-| H2 | T13 — Documentation lockstep | `t13-documentation-lockstep` | 127 | 135 | 9 | 307 |
-| H2 | T14 — Migration & rollback | `t14-migration-rollback` | 136 | 142 | 7 | 240 |
-| H2 | T15 — Cleanup / loose ends | `t15-cleanup-loose-ends` | 143 | 151 | 9 | 316 |
+| H2 | T12 — CI / verification (no flake) | `t12-ci-verification-no-flake` | 118 | 126 | 9 | 518 |
+| H2 | T13 — Documentation lockstep | `t13-documentation-lockstep` | 127 | 135 | 9 | 332 |
+| H2 | T14 — Migration & rollback | `t14-migration-rollback` | 136 | 142 | 7 | 272 |
+| H2 | T15 — Cleanup / loose ends | `t15-cleanup-loose-ends` | 143 | 151 | 9 | 345 |
 | H2 | T16 — Branding / compliance | `t16-branding-compliance` | 152 | 156 | 5 | 185 |
 | H2 | T18 — Hub presence + AGENT STREAM correctness (added 2026-05-05) | `t18-hub-presence-agent-stream-correctness-added-2026-05-05` | 157 | 162 | 6 | 310 |
-| H2 | T19 — Hub admin panel surfacing (deferred, post-Q.deep follow-up) | `t19-hub-admin-panel-surfacing-deferred-post-qdeep-follow-up` | 163 | 171 | 9 | 285 |
-| H2 | T17 — Release & ops | `t17-release-ops` | 172 | 179 | 8 | 130 |
+| H2 | T19 — Hub admin panel surfacing (deferred, post-Q.deep follow-up) | `t19-hub-admin-panel-surfacing-deferred-post-qdeep-follow-up` | 163 | 171 | 9 | 331 |
+| H2 | T17 — Release & ops | `t17-release-ops` | 172 | 179 | 8 | 162 |
 | H2 | Progress dashboard | `progress-dashboard` | 180 | 195 | 16 | 158 |
 | H2 | Snapshot 2026-05-05 (P1 wave) | `snapshot-2026-05-05-p1-wave` | 196 | 203 | 8 | 227 |
 | H2 | Changelog | `changelog` | 204 | 209 | 6 | 173 |
@@ -50,18 +50,18 @@
 - verify / claude / verified → §`t5-permissions-completeness` (T5 — Permissions completeness)
 - skill / add / verify → §`t6-skills-layer-frontmatter-auto-scope-dynamic-context` (T6 — Skills layer (frontmatter + auto-scope + dynamic context))
 - verify / adapters / session-id → §`t7-sessions-persistence` (T7 — Sessions + persistence)
-- dispatch / env / landed → §`t8-observability-telemetry` (T8 — Observability + telemetry)
+- env / landed / dispatch → §`t8-observability-telemetry` (T8 — Observability + telemetry)
 - enable_file_checkpointing / checkpoints / true → §`t9-file-checkpointing-safety-on-edit-heavy-roles` (T9 — File checkpointing (safety on Edit-heavy roles))
 - t10 / long_context / landed → §`t10-long-context-thinking-config-d6` (T10 — Long context + thinking config (D6))
 - t11 / package / coding-os → §`t11-plugin-manifest-d3-deferred-keep-scaffold` (T11 — Plugin manifest (D3 deferred — keep scaffold))
-- t12 / tests / verify → §`t12-ci-verification-no-flake` (T12 — CI / verification (no flake))
+- t12 / tests / landed → §`t12-ci-verification-no-flake` (T12 — CI / verification (no flake))
 - t13 / landed / table → §`t13-documentation-lockstep` (T13 — Documentation lockstep)
-- t14 / adapter / claude → §`t14-migration-rollback` (T14 — Migration & rollback)
+- t14 / adapter / cos → §`t14-migration-rollback` (T14 — Migration & rollback)
 - t15 / include / claude → §`t15-cleanup-loose-ends` (T15 — Cleanup / loose ends)
 - claude / code / cli → §`t16-branding-compliance` (T16 — Branding / compliance)
 - t18 / v23 / agent_session → §`t18-hub-presence-agent-stream-correctness-added-2026-05-05` (T18 — Hub presence + AGENT STREAM correctness (added 2026-05-05))
 - t19 / api / cognition → §`t19-hub-admin-panel-surfacing-deferred-post-qdeep-follow-up` (T19 — Hub admin panel surfacing (deferred, post-Q.deep follow-up))
-- t17 / deferred / docs → §`t17-release-ops` (T17 — Release & ops)
+- t17 / deep / deferred → §`t17-release-ops` (T17 — Release & ops)
 - command / grep / docs → §`progress-dashboard` (Progress dashboard)
 - t12 / t13 / t15 → §`snapshot-2026-05-05-p1-wave` (Snapshot 2026-05-05 (P1 wave))
 - items / work / schema → §`changelog` (Changelog)

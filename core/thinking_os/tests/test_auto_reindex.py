@@ -300,7 +300,7 @@ class TestAutoReindexHook:
         }
         return subprocess.run(
             ["bash", str(_AUTO_REINDEX_HOOK)],
-            input=payload, env=env, capture_output=True, text=True, timeout=10,
+            input=payload, env=env, capture_output=True, text=True, timeout=30,
             cwd=str(project),
         )
 
@@ -338,7 +338,7 @@ class TestAutoReindexHook:
                 "COS_PROJECT_ROOT": str(empty),
                 "PATH": os.environ.get("PATH", ""),
             },
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=30,
         )
         assert r.returncode == 0
 

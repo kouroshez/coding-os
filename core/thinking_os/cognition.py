@@ -278,7 +278,7 @@ def _build_queue(state: SupervisorState) -> list[str]:
     """
     Build the ordered dispatch queue.
 
-    Priority (Phase N — Phase M personas removed in v0.3):
+    Priority (Phase N composer chain):
       1. If state.pending already set by caller (composer chain) → use as-is.
       2. If state.situation_id set → situation dispatch chain.
       3. If persona_id starts with "chain:" (composer output) → that chain.

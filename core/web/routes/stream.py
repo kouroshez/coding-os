@@ -151,6 +151,7 @@ async def _event_generator() -> AsyncGenerator[str, None]:
     poll = _poll_interval_secs()
     last_mtimes: dict[str, float] = {}
     last_history_id = 0
+    last_dispatch_id = 0  # T8.6: track formula_dispatches.id watermark
     last_heartbeat = time.monotonic()
 
     try:
@@ -158,10 +159,13 @@ async def _event_generator() -> AsyncGenerator[str, None]:
         try:
             row = conn.execute("SELECT COALESCE(MAX(id), 0) FROM task_status_history").fetchone()
             last_history_id = int(row[0]) if row and row[0] is not None else 0
+            row = conn.execute("SELECT COALESCE(MAX(id), 0) FROM formula_dispatches").fetchone()
+            last_dispatch_id = int(row[0]) if row and row[0] is not None else 0
         finally:
             conn.close()
     except sqlite3.Error:
         last_history_id = 0
+        last_dispatch_id = 0
 
     yield await _sse_event("connected", {"message": "SSE stream connected", "poll_ms": int(poll * 1000)})
 
@@ -220,6 +224,44 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     # the UI show "→ NOW: complete" when the transition is
                     # historical and the task has moved on.
                     "current_status": r[7],
+                },
+            )
+
+        # ----- Dispatch events (T8.6) -----
+        try:
+            conn = _db_conn()
+            try:
+                d_rows = conn.execute(
+                    """
+                    SELECT id, session_id, formula_id, status, latency_ms,
+                           cost_usd, sub_session_id, model, ts
+                    FROM formula_dispatches
+                    WHERE id > ?
+                    ORDER BY id ASC
+                    LIMIT 100
+                    """,
+                    (last_dispatch_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            logger.debug("stream dispatch fetch failed: %s", exc)
+            d_rows = []
+
+        for d in d_rows:
+            last_dispatch_id = max(last_dispatch_id, int(d[0]))
+            yield await _sse_event(
+                "dispatch-completed",
+                {
+                    "dispatch_id": int(d[0]),
+                    "session_id": d[1],
+                    "formula_id": d[2],
+                    "status": d[3],
+                    "latency_ms": d[4],
+                    "cost_usd": d[5],
+                    "sub_session_id": d[6],
+                    "model": d[7],
+                    "ts": d[8],
                 },
             )
 

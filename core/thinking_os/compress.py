@@ -61,10 +61,14 @@ def _call_claude_api(title: str, files_modified: str) -> dict | None:
         f"Respond with ONLY the JSON object, no markdown."
     )
 
+    # Model selection — env-overridable for enterprise deployments that
+    # pin to a specific model snapshot. Default is the cheapest model
+    # appropriate for narrative generation.
+    model_id = os.environ.get("COS_COMPRESS_MODEL", "claude-haiku-4-5-20251001")
     try:
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=model_id,
             max_tokens=300,
             messages=[{"role": "user", "content": prompt}],
         )
