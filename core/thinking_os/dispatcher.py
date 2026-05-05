@@ -125,21 +125,43 @@ class AgentDispatcher(Protocol):
 _ADAPTERS_DIR = Path(__file__).resolve().parent.parent.parent / "adapters"
 
 
+def _known_agents() -> set[str]:
+    """
+    PURPOSE: Discover registered adapter ids by scanning adapters/ for
+             directories that ship an `adapter.yaml`. Data-driven so
+             adding a new adapter requires zero core/ edits.
+    OUTPUT:  Set of adapter ids (e.g. {"claude", "codex", "cursor"}).
+    NOTES:   Falls back to a static seed if adapters/ is missing — keeps
+             dispatch working on stripped-down test fixtures.
+    """
+    try:
+        if not _ADAPTERS_DIR.is_dir():
+            return {"claude", "codex", "cursor"}
+        return {
+            d.name for d in _ADAPTERS_DIR.iterdir()
+            if d.is_dir() and (d / "adapter.yaml").exists()
+        } or {"claude", "codex", "cursor"}
+    except OSError:
+        return {"claude", "codex", "cursor"}
+
+
 def _detect_agent() -> str:
     """
     PURPOSE: Identify which adapter owns this session. Order of precedence:
              1. COS_AGENT env var (set by install.sh)
-             2. $COS_AGENT_DIR folder name (.coding-os/claude/ vs codex/)
+             2. $COS_AGENT_DIR folder name (.coding-os/<agent>/)
              3. Fallback to 'default'
+    NOTES:   Adapter list is data-driven from adapters/ — Rule 11.
     """
+    known = _known_agents()
     explicit = os.environ.get("COS_AGENT", "").strip().lower()
-    if explicit in ("claude", "codex", "cursor"):
+    if explicit in known:
         return explicit
 
     agent_dir = os.environ.get("COS_AGENT_DIR", "")
     if agent_dir:
         name = Path(agent_dir).name.lower()
-        if name in ("claude", "codex", "cursor"):
+        if name in known:
             return name
 
     return "default"
@@ -150,7 +172,7 @@ def _try_load_adapter_dispatcher(agent: str) -> "AgentDispatcher | None":
     PURPOSE: Dynamically import adapters/<agent>/sdk_dispatcher.py without
              making core/ depend on it. Returns None if the adapter file is
              absent or the SDK/binary is not available in this environment.
-    INPUT:   agent — one of "claude", "codex", "cursor".
+    INPUT:   agent — any registered adapter id (see _known_agents()).
     NOTES:   Backward-compatible with the old
              ``_try_load_claude_sdk_dispatcher`` call-site.
     """
@@ -204,7 +226,7 @@ def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
 
     agent = agent or _detect_agent()
 
-    if agent in ("claude", "codex", "cursor"):
+    if agent in _known_agents():
         sdk = _try_load_adapter_dispatcher(agent)
         if sdk is not None and sdk.available():
             return sdk

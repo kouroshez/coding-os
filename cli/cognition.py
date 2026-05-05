@@ -213,7 +213,7 @@ def _print_persona_selections(
 @click.option("--summary", is_flag=True, help="Print only the summary block")
 @click.option(
     "--agent-dir", default=None,
-    help="Agent dir (default: .coding-os/claude/)",
+    help="Agent dir (default: $COS_AGENT_DIR or .coding-os/<agent>/)",
 )
 def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | None) -> None:
     """

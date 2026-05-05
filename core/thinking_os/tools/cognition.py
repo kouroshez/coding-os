@@ -45,9 +45,30 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _resolve_agent_dir() -> Path:
+    """
+    PURPOSE: Generic resolver for the per-agent state dir (Rule 1 — never
+             hardcode `.claude/`). Works for any registered adapter.
+    INPUT:   $COS_AGENT_DIR > $COS_AGENT > fallback "claude" for back-compat.
+    OUTPUT:  Path to .coding-os/<agent>/ (created on access).
+    NOTES:   When neither env var is set, falls back to "claude" so
+             bare invocations from the meta repo still work. Consumer
+             projects always have COS_AGENT_DIR exported by hooks.
+    """
+    import os as _os
+    explicit = _os.environ.get("COS_AGENT_DIR")
+    if explicit:
+        d = Path(explicit)
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+    agent = _os.environ.get("COS_AGENT") or "claude"
+    d = Path(".coding-os") / agent
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def _bundle_path(session_id: str) -> Path:
-    agent_dir = Path(".coding-os") / "claude"
-    agent_dir.mkdir(parents=True, exist_ok=True)
+    agent_dir = _resolve_agent_dir()
     return agent_dir / f"evidence_bundle_{session_id}.json"
 
 
@@ -751,7 +772,7 @@ def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for me
         """
         import task_analyzer  # lazy
         import tracing
-        agent_dir = Path(".coding-os") / "claude"
+        agent_dir = _resolve_agent_dir()
         pd = Path(project_dir) if project_dir else Path.cwd()
         sid = session_id or "anon"
         tracing.emit(sid, "analyze_start", {

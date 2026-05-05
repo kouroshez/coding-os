@@ -29,7 +29,7 @@ CONTEXTUAL_ALLOW_RE = [
 
 BUILTIN_FALLBACK = {
     "django", "nextjs", "fastapi", "go", "go-fiber",
-    "claude", "codex",
+    "claude", "codex", "cursor",
     "python-django", "nextjs-react", "python-fastapi", "go-patterns",
     "go-fiber", "frontend-design",
 }

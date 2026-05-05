@@ -8,7 +8,7 @@
 # every session to zero institutional memory.
 #
 # Mechanism: the agent records "I did the memory check" by calling
-#   bash .claude/hooks/write-state.sh $COS_AGENT_DIR/.memory-check "cos_search:<query>"
+#   bash "$COS_AGENT_DIR/hooks/write-state.sh" "$COS_AGENT_DIR/.memory-check" "cos_search:<query>"
 # once per session. This hook validates that marker exists. A future
 # enhancement could auto-write this from inside the MCP server when
 # cos_search is called, but the state-marker pattern keeps the hook

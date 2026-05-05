@@ -58,9 +58,21 @@ def _iter_symlinks(project: Path) -> list[Path]:
              wrote it against an old meta repo location that no longer
              exists.  We surface them for --repair.
     """
+    # Data-driven adapter discovery (Rule 11): scan adapters/ for
+    # registered adapter ids, fall back to the historical triplet on
+    # stripped-down test fixtures.
+    _meta_root = Path(__file__).resolve().parent.parent / "adapters"
+    try:
+        agent_ids = sorted(
+            d.name for d in _meta_root.iterdir()
+            if d.is_dir() and (d / "adapter.yaml").exists()
+        ) or ["claude", "codex", "cursor"]
+    except OSError:
+        agent_ids = ["claude", "codex", "cursor"]
+
     out: list[Path] = []
-    for agent_dir in (".claude", ".codex", ".cursor"):
-        root = project / agent_dir
+    for agent_id in agent_ids:
+        root = project / f".{agent_id}"
         if not root.exists():
             continue
         for sub in ("hooks", "rules", "skills", "commands"):

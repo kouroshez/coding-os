@@ -50,7 +50,7 @@ else
   fail "State directory missing ($COS_STATE_DIR)"
 fi
 
-# Detect installed adapter
+# Detect installed adapter (data-driven — checks every adapter probe path)
 ADAPTER=""
 if [ -f ".claude/settings.json" ]; then
   ADAPTER="claude"
@@ -60,8 +60,12 @@ if [ -f ".codex/hooks.json" ]; then
   ADAPTER="${ADAPTER:+$ADAPTER+}codex"
   pass "Codex adapter installed (.codex/hooks.json)"
 fi
+if [ -d ".cursor/hooks" ]; then
+  ADAPTER="${ADAPTER:+$ADAPTER+}cursor"
+  pass "Cursor adapter installed (.cursor/hooks/)"
+fi
 if [ -z "$ADAPTER" ]; then
-  warn "No adapter detected — run 'coding-os init --agent claude'"
+  warn "No adapter detected — run 'cos init -a <agent>' (claude / codex / cursor)"
 fi
 
 # AGENTS.md or CLAUDE.md
@@ -126,7 +130,7 @@ echo "--- Layer 3: Skills ---"
 
 # Check for skills in any adapter dir
 SKILL_COUNT=0
-for skill_dir in .claude/skills .codex/skills .coding-os/skills; do
+for skill_dir in .claude/skills .codex/skills .cursor/skills .coding-os/skills; do
   if [ -d "$skill_dir" ]; then
     count=$(ls "$skill_dir"/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
     SKILL_COUNT=$((SKILL_COUNT + count))

@@ -35,7 +35,7 @@ check_state "$GATE_FILE" 7200  # 120 min
 
 if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: Thinking OS Complexity Gate not valid. Reason: $STATE_REASON" >&2
-  echo "Record gate: bash .claude/hooks/write-state.sh ${COS_AGENT_DIR}/.thinking_os-gate \"CLEAR 1\"" >&2
+  echo "Record gate: bash \"\${COS_AGENT_DIR}/hooks/write-state.sh\" \"\${COS_AGENT_DIR}/.thinking_os-gate\" \"CLEAR 1\"" >&2
   echo '  (or COMPLICATED/COMPLEX with dimension count)' >&2
   exit 2
 fi

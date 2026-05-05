@@ -69,8 +69,19 @@ FLOWCHART_NODES: dict[str, str] = {
 
 
 def _trace_dir(agent_dir: Path | None = None) -> Path:
+    """Resolve trace dir generically (Rule 1 — agent-agnostic).
+
+    Resolution order: explicit arg → $COS_AGENT_DIR → $COS_AGENT
+    → fallback "claude" for back-compat with bare invocations.
+    """
     if agent_dir is None:
-        agent_dir = Path(".coding-os") / "claude"
+        import os as _os
+        explicit = _os.environ.get("COS_AGENT_DIR")
+        if explicit:
+            agent_dir = Path(explicit)
+        else:
+            agent = _os.environ.get("COS_AGENT") or "claude"
+            agent_dir = Path(".coding-os") / agent
     d = agent_dir / _TRACE_SUBDIR
     d.mkdir(parents=True, exist_ok=True)
     return d
