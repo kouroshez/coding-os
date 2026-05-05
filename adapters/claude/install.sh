@@ -4,8 +4,15 @@
 # Thin wrapper: delegates the common install work (dirs, hooks, rules,
 # skills, commands, role prompts, agent identity) to
 # core/scripts/install-adapter.sh, then performs Claude-specific
-# finalization (settings.json render, .mcp.json, .claude/agents/ for
-# Claude SDK sub-agent spawning).
+# finalization (settings.json render, .mcp.json).
+#
+# History: prior versions also symlinked role files into .claude/agents/
+# anticipating an AgentDefinition-driven dispatch path. Decision D2 of
+# Phase Q.deep (2026-05-05) keeps `query()`-per-formula because role
+# sub-sessions need their own permission_mode + MCP + hooks; the
+# AgentDefinition path would force inheritance from the parent.
+# .claude/agents/ symlinks were therefore removed — slash-command
+# role prompts still ship via .claude/commands/role-*.md.
 set -euo pipefail
 shopt -s nullglob
 
@@ -43,19 +50,14 @@ else
   echo "  WARN: helper missing at $MCP_HELPER — .mcp.json not updated"
 fi
 
-# 11. .claude/agents/ — expose role prompts as Claude SDK sub-agents.
-# AgentDefinition (claude_agent_sdk v0.2.x) reads files from this dir;
-# one canonical source (core/thinking_os/agents/) feeds both the
-# slash-command path (handled by the shared installer) and the
-# sub-agent path here.
-mkdir -p "${PROJECT_ROOT}/.claude/agents"
-AGENTS_DIR="${CODING_OS_ROOT}/core/thinking_os/agents"
-if [[ -d "$AGENTS_DIR" ]]; then
-  for agent in "${AGENTS_DIR}/"*.md; do
-    name=$(basename "$agent")
-    [[ "$name" == "README.md" ]] && continue
-    ln -sf "$agent" "${PROJECT_ROOT}/.claude/agents/${name}"
+# 11. Strip any pre-Q.deep .claude/agents/ symlinks — D2 retired the
+# AgentDefinition path; presence of these symlinks was misleading
+# because the dispatcher uses query() not the Agent tool.
+if [[ -d "${PROJECT_ROOT}/.claude/agents" ]]; then
+  for legacy in "${PROJECT_ROOT}/.claude/agents/"*.md; do
+    [[ -L "$legacy" ]] && rm -f "$legacy"
   done
+  rmdir "${PROJECT_ROOT}/.claude/agents" 2>/dev/null || true
 fi
 
 # 12. Local permission overrides — copy template once if not present.
@@ -70,7 +72,7 @@ echo "Claude adapter installed successfully."
 echo "  Settings: .claude/settings.json (generated)"
 echo "  Perms:    .claude/settings.local.json (copied)"
 echo "  MCP:      .mcp.json (updated)"
-echo "  Sub-agents: .claude/agents/ (role prompts symlinked for SDK)"
+echo "  Roles:    .claude/commands/role-*.md (slash commands)"
 echo ""
 echo "Optional: real role-agent dispatch via claude-agent-sdk"
 echo "  uv sync --extra claude-sdk"

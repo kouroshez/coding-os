@@ -7,6 +7,8 @@ intensity_min: light
 model_pref:
   complicated: sonnet
   complex: opus
+skills: [clean-code]
+structured_output: true
 tools_budget:
   - cos_search
   - cos_graph_query

@@ -517,7 +517,7 @@ hooks:
 
   - id: agent-presence
     script: agent-presence.sh
-    description: Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don't appear offline between tool calls. Consolidated from 8→5 events (board UI uses kill -0 PID check for fine-grained liveness, no per-tool ping needed).
+    description: 'Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don''t appear offline between tool calls. Consolidated from 8→5 events (board UI uses kill -0 PID check for fine-grained liveness, no per-tool ping needed). Updated 2026-05-04 — also fires on SubagentStart/SubagentStop/PostToolUseFailure so parent-session activity stays accurate while sub-agents work.'
     category: observability
     phase: "0"
     timeout: 800
@@ -530,6 +530,12 @@ hooks:
         matcher: ""
       - event: PostToolUse
         matcher: Write|Edit
+      - event: PostToolUseFailure
+        matcher: ""
+      - event: SubagentStart
+        matcher: ""
+      - event: SubagentStop
+        matcher: ""
       - event: Stop
         matcher: ""
 

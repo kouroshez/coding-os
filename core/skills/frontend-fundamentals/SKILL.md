@@ -2,6 +2,7 @@
 name: frontend-fundamentals
 description: Stack-agnostic frontend patterns. Use when writing or modifying any UI code (React, React Native, Vue, Svelte) regardless of framework. Covers three-state async UI, loading/error/empty handling, client vs server components, hydration safety, accessibility, performance, SEO basics, and state management patterns.
 globs: "frontend/**/*"
+paths: ["frontend/**/*"]
 context: fork
 depends_on:
   - clean-code

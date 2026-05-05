@@ -24,7 +24,8 @@
       "Bash(make verify-hooks:*)",
       "Bash(make verify:*)",
       "Bash(make help:*)",
-      "Bash(bash .coding-os/hooks/write-state.sh:*)"
+      "Bash(bash .coding-os/hooks/write-state.sh:*)",
+      "mcp__coding-os__*"
     ]
   }
 }

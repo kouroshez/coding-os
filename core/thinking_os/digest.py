@@ -33,6 +33,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+try:
+    from tools.trajectory import trajectory_digest_line as _trajectory_digest_line
+except ImportError:
+    def _trajectory_digest_line(conn) -> str:  # type: ignore[misc]
+        return ""  # noqa: ARG001
+
 logger = logging.getLogger("coding_os.digest")
 
 # Hard cap on the rendered markdown. Chosen so the digest fits comfortably
@@ -106,6 +112,7 @@ def render(
     date_str = now.strftime("%Y-%m-%d")
 
     identity = _collect_identity(conn)
+    trajectory = _trajectory_digest_line(conn)
     beliefs = _collect_beliefs(conn, limit=_TOP_BELIEFS)
     fading = _collect_fading(conn, limit=_TOP_FADING)
     breakthroughs = _collect_breakthroughs(conn, limit=_TOP_BREAKTHROUGHS)
@@ -116,6 +123,11 @@ def render(
     lines.append("## Identity")
     lines.append(identity if identity else "_No completed tasks yet._")
     lines.append("")
+
+    if trajectory:
+        lines.append("## Trajectory")
+        lines.append(trajectory)
+        lines.append("")
 
     if beliefs:
         lines.append("## Active Beliefs (top patterns)")

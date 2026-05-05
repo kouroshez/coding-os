@@ -280,6 +280,43 @@ def learn_extract(
                         )
                     )
 
+    # --- Failure anatomy patterns (Phase EVO v25) ---
+    # Mine structured backtrack_events for recurring root_cause patterns.
+    # Only runs when anatomy columns are present (migration v25).
+    try:
+        anat_rows = conn.execute(
+            "SELECT root_cause, COUNT(*) AS cnt, "
+            "       GROUP_CONCAT(DISTINCT from_formula) AS formulas "
+            "FROM backtrack_events "
+            "WHERE root_cause IS NOT NULL "
+            "GROUP BY root_cause "
+            "HAVING cnt >= ?",
+            (min_occurrences,),
+        ).fetchall()
+        for row in anat_rows:
+            d = dict(row)
+            confidence = min(0.85, d["cnt"] / 20.0 + 0.3)
+            formulas_str = d["formulas"] or ""
+            pattern_text = (
+                f"Recurring backtrack root cause '{d['root_cause']}' "
+                f"({d['cnt']} occurrences"
+                + (f"; formulas: {formulas_str[:60]}" if formulas_str else "")
+                + ")"
+            )
+            extracted.append(
+                _upsert_pattern(
+                    conn,
+                    pattern=pattern_text,
+                    memory_type="failure",
+                    domain=None,
+                    source="learn_extract",
+                    confidence=confidence,
+                    concepts=json.dumps(["failure", d["root_cause"], "backtrack"]),
+                )
+            )
+    except Exception as exc:  # backtrack_events or anatomy columns absent — fire-and-forget
+        logger.debug("learn_extract: failure anatomy skipped: %s", exc)
+
     conn.commit()
     return {
         "status": "ok",

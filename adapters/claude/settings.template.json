@@ -488,6 +488,42 @@
           }
         ]
       }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 800
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 800
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 800
+          }
+        ]
+      }
     ]
   }
 }

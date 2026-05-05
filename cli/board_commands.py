@@ -142,15 +142,38 @@ def _agent_session_id() -> str | None:
              so `task_status_history.agent_session` captures who moved
              each task. The stream / retro / active-agents surfaces all
              read from this column.
-    INPUT:   COS_AGENT_SESSION_ID (explicit override); runtime env
-             markers; per-agent session-id files under
+    INPUT:   COS_AGENT_SESSION_ID (explicit override); $COS_AGENT_DIR
+             (matches the shell contract from core/hooks/cos-env.sh);
+             runtime env markers; per-agent session-id files under
              $COS_STATE_DIR/<agent>/session-id.
     OUTPUT:  The session id string or None (treated as "human action").
     DEPENDENCIES: _detect_agent_runtime, _project_root.
+    NOTES:   2026-05-05 — added $COS_AGENT_DIR fast-path (Phase Q.deep).
+             Without it, hook subprocesses with COS_AGENT_DIR set but no
+             matching state_dir/agent layout returned None, so task moves
+             rendered as "H" (human) on the hub instead of "Cl".
     """
     sid = os.environ.get("COS_AGENT_SESSION_ID")
     if sid:
         return sid.strip() or None
+
+    # Honor $COS_AGENT_DIR set by hook subprocesses. Mirrors the shell
+    # `cos_read_session_id` contract from core/hooks/cos-env.sh — without
+    # this priority a Claude hook calling `cos task-move` would fall
+    # through to the runtime+state-dir lookup and miss its own session id.
+    agent_dir_env = os.environ.get("COS_AGENT_DIR")
+    if agent_dir_env:
+        agent_dir_path = Path(agent_dir_env)
+        if not agent_dir_path.is_absolute():
+            agent_dir_path = _project_root() / agent_dir_path
+        sid_file = agent_dir_path / "session-id"
+        if sid_file.is_file():
+            try:
+                raw = sid_file.read_text(encoding="utf-8", errors="ignore").strip()
+            except OSError:
+                raw = ""
+            if raw:
+                return raw
 
     runtime = _detect_agent_runtime()
     if runtime is None:

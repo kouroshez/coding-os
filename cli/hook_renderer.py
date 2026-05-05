@@ -37,7 +37,17 @@ HOOKS_DIR_PLACEHOLDER = "{{HOOKS_DIR}}"
 
 @dataclass(frozen=True)
 class HookEntry:
-    """One hook declaration from registry.yaml."""
+    """One hook declaration from registry.yaml.
+
+    `adapter_scope` (added 2026-05-05, Phase Q.deep D4):
+        - None / empty → cross-adapter; renderer keeps for every adapter
+          whose hook_capabilities allow the event/matcher pair.
+        - A specific adapter id (e.g. "claude") → renderer ONLY emits
+          this hook for that adapter. The script must live under
+          adapters/<adapter>/hooks/ (resolved by the installer's
+          two-pass symlink so .claude/hooks/<script> ends up pointing
+          at the adapter-private file).
+    """
 
     id: str
     script: str
@@ -46,6 +56,7 @@ class HookEntry:
     phase: str
     events: list[dict[str, Any]]
     timeout: int | None = None
+    adapter_scope: str | None = None
 
 
 @dataclass(frozen=True)
@@ -107,6 +118,8 @@ def load_registry(registry_path: Path) -> list[HookEntry]:
         script = item.get("script")
         if not hook_id or not script:
             raise ValueError(f"hook entry missing id/script: {item!r}")
+        scope_raw = item.get("adapter_scope")
+        adapter_scope = str(scope_raw).strip() if scope_raw else None
         entries.append(
             HookEntry(
                 id=hook_id,
@@ -116,6 +129,7 @@ def load_registry(registry_path: Path) -> list[HookEntry]:
                 phase=str(item.get("phase", "")),
                 events=list(item.get("events") or []),
                 timeout=item.get("timeout"),
+                adapter_scope=adapter_scope,
             )
         )
     return entries
@@ -158,6 +172,11 @@ def render_for_adapter(
     """
     output: dict[str, Any] = {"hooks": {}}
     for hook in registry:
+        # Adapter-scope filter (Phase Q.deep D4): an entry tagged with a
+        # specific adapter only renders for that adapter. Untagged
+        # entries remain cross-adapter.
+        if hook.adapter_scope and hook.adapter_scope != caps.agent_id:
+            continue
         for ev in hook.events:
             event = ev["event"]
             matcher = ev.get("matcher", "")

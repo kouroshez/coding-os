@@ -9,11 +9,17 @@ presence:
   hub_color: "#d97706"
   # Events Claude Code's hook spec actually fires; SessionEnd is not in the
   # spec — Stop is the canonical session-end signal — so it is omitted.
+  # 2026-05-04: SDK 0.1.73 also fires SubagentStart/Stop and
+  # PostToolUseFailure — declared so the agent-presence hook stays
+  # accurate while sub-agents work and when tools error out.
   presence_events:
     - SessionStart
     - UserPromptSubmit
     - PreToolUse
     - PostToolUse
+    - PostToolUseFailure
+    - SubagentStart
+    - SubagentStop
     - Stop
 settings_file: ".claude/settings.json"
 hooks_dir: ".claude/hooks"
@@ -62,7 +68,17 @@ hook_capabilities:
     matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
   PostToolUse:
     matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, "mcp__coding-os__cos_backtrack_log"]
+  # PostToolUseFailure (SDK 0.1.73): fires when a tool errored. Empty
+  # matcher = match all tools; presence/observation hooks keep the
+  # board's activity signal accurate even on failures.
+  PostToolUseFailure:
+    matchers: [""]
   Stop:
+    matchers: [""]
+  # Subagent lifecycle (SDK 0.1.73 native; previously TS-only).
+  SubagentStart:
+    matchers: [""]
+  SubagentStop:
     matchers: [""]
   SessionStart:
     matchers: [startup, "compact|resume"]

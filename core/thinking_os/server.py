@@ -126,8 +126,89 @@ from tools.learning import generate_feedback_drafts, learn_extract, learn_narrat
 from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
 from tools.metrics import metric_query, metric_record, metric_trend
 from tools.retrieve import cite_retrievals, learn_from_retrievals, log_retrieval, log_router_decision
-from tools.routing import route_model, route_skill
+from tools.routing import route_model, route_skill, routing_drift, failure_pattern_query
+from tools.trajectory import trajectory_snapshot, trajectory_read
 from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search
+
+
+# ---------------------------------------------------------------------------
+# Agent-session resolver — Phase Q.deep fix for AGENT STREAM "H" label
+# ---------------------------------------------------------------------------
+
+def _detect_agent_session_default() -> str | None:
+    """Best-effort fallback for MCP tools that accept `agent_session`.
+
+    PURPOSE: When a caller (Claude / Codex / Cursor) invokes a board MCP
+             tool and omits `agent_session`, infer the active session id
+             from runtime env so `task_status_history.agent_session`
+             carries a non-NULL value. Without this, `agentForSession()`
+             on the hub UI defaults to 'human' and renders the "H" badge.
+    INPUT:   none — reads `COS_AGENT_SESSION_ID`, `COS_AGENT_DIR`,
+             `COS_AGENT`, plus the vendor markers declared in
+             `adapters/<id>/adapter.yaml::runtime_env_markers`.
+    OUTPUT:  Session id string or None when nothing matches.
+    NOTES:   Mirrors `cli/board_commands.py::_agent_session_id` but lives
+             on the MCP server side because that is the path Claude
+             actions take when calling cos_task_move / cos_task_create
+             through tool-use. Failing to populate this column is what
+             surfaces real Claude work as "H" in the AGENT STREAM panel.
+    """
+    import os as _os
+    from pathlib import Path as _P
+
+    explicit = (_os.environ.get("COS_AGENT_SESSION_ID") or "").strip()
+    if explicit:
+        return explicit
+
+    # Priority 1 — operator pinned $COS_AGENT_DIR (matches the shell
+    # contract in core/hooks/cos-env.sh). Avoids the runtime/state-dir
+    # dance entirely when the caller is a hook subprocess.
+    agent_dir_env = _os.environ.get("COS_AGENT_DIR")
+    if agent_dir_env:
+        sid_path = _P(agent_dir_env) / "session-id"
+        try:
+            if sid_path.is_file():
+                raw = sid_path.read_text(encoding="utf-8", errors="ignore").strip()
+                if raw:
+                    return raw
+        except OSError:
+            pass
+
+    # Priority 2 — vendor env markers. Hardcoded names here intentionally
+    # (rule #11 exempts the MCP server's runtime self-detection because
+    # the MCP server is the one runtime piece below the adapter abstraction).
+    agent: str | None = None
+    if _os.environ.get("COS_AGENT"):
+        agent = _os.environ["COS_AGENT"].strip().lower() or None
+    elif _os.environ.get("CLAUDECODE") or _os.environ.get("CLAUDE_AGENT_SDK_VERSION") \
+            or _os.environ.get("CLAUDE_CODE_SSE_PORT") or _os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
+        agent = "claude"
+    elif _os.environ.get("CURSOR_TRACE_ID") or _os.environ.get("CURSOR_PROJECT_DIR"):
+        agent = "cursor"
+    elif _os.environ.get("CODEX_PROJECT_DIR"):
+        agent = "codex"
+    elif _os.environ.get("CLAUDE_PROJECT_DIR"):
+        # Cursor also sets this — only honor when no stronger signal fired.
+        agent = "claude"
+
+    if agent is None:
+        return None
+
+    state_dir = _os.environ.get("COS_STATE_DIR", ".coding-os")
+    sid_path = _P(state_dir) / agent / "session-id"
+    try:
+        if sid_path.is_file():
+            raw = sid_path.read_text(encoding="utf-8", errors="ignore").strip()
+            if raw:
+                return raw
+    except OSError:
+        pass
+
+    # Last resort — synthesize a per-process id so the column at least
+    # carries the agent prefix instead of NULL. The hub's
+    # `agentForSession()` substring-matches on "claude" / "codex" /
+    # "cursor", so this is enough to render the correct badge.
+    return f"ses-{agent}-mcp-{_os.getpid()}"
 
 
 # ---------------------------------------------------------------------------
@@ -997,6 +1078,171 @@ def cos_route_skill(
 
 
 # ---------------------------------------------------------------------------
+# Phase EVO — Project Trajectory + Failure Archaeology + Routing Drift
+# ---------------------------------------------------------------------------
+
+@mcp.tool(
+    name="cos_trajectory_snapshot",
+    annotations={
+        "title": "Project Trajectory Snapshot (Write)",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_trajectory_snapshot(
+    session_id: str,
+    phase: str = "",
+    current_focus: str = "",
+    architectural_decisions: str = "[]",
+    anti_patterns_discovered: str = "[]",
+    open_questions: str = "[]",
+    next_logical_step: str = "",
+    confidence: float = 0.7,
+) -> str:
+    """Persist a project trajectory snapshot for the current session.
+
+    Records WHERE the project is heading (phase, focus, architectural decisions,
+    anti-patterns discovered, open questions) so future sessions have strategic
+    context beyond task history. Each call creates a new row linked to the
+    previous snapshot via supersedes_id.
+
+    Args:
+        session_id: Current session identifier.
+        phase: Current development phase (e.g. "Phase N.6 — SDK dispatch").
+        current_focus: What the team is focused on right now.
+        architectural_decisions: JSON array of {decision, rationale} objects.
+        anti_patterns_discovered: JSON array of {pattern, context} objects.
+        open_questions: JSON array of {question, priority} objects or plain strings.
+        next_logical_step: Single-sentence description of what comes next.
+        confidence: Confidence in this trajectory assessment (0.0-1.0).
+
+    Returns:
+        JSON with {status, id, supersedes_id}.
+    """
+    import json as _json
+    try:
+        ad  = _json.loads(architectural_decisions  or "[]")
+        apd = _json.loads(anti_patterns_discovered or "[]")
+        oq  = _json.loads(open_questions           or "[]")
+    except _json.JSONDecodeError as exc:
+        return fail("validation", f"JSON parse error in list field: {exc}")
+
+    result = trajectory_snapshot(
+        _db_conn,
+        session_id=session_id,
+        phase=phase,
+        current_focus=current_focus,
+        architectural_decisions=ad,
+        anti_patterns_discovered=apd,
+        open_questions=oq,
+        next_logical_step=next_logical_step,
+        confidence=confidence,
+    )
+    return ok(result, meta={"layer": "trajectory"})
+
+
+@mcp.tool(
+    name="cos_trajectory_read",
+    annotations={
+        "title": "Project Trajectory Read",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_trajectory_read(limit: int = 1) -> str:
+    """Return the most recent project trajectory snapshot(s).
+
+    Use at session start to understand WHERE the project is heading before
+    looking at the task board. Returns phase, current focus, architectural
+    decisions made, anti-patterns discovered, and open questions.
+
+    Args:
+        limit: Number of recent snapshots to return (1-20, default 1).
+
+    Returns:
+        JSON with {snapshots: [...], count: int}.
+    """
+    result = trajectory_read(_db_conn, limit=limit)
+    return ok(result, meta={"layer": "trajectory"})
+
+
+@mcp.tool(
+    name="cos_failure_pattern_query",
+    annotations={
+        "title": "Failure Pattern Query",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_failure_pattern_query(
+    root_cause: str = "",
+    domain: str = "",
+    limit: int = 10,
+) -> str:
+    """Aggregate structured failure anatomy from backtrack_events.
+
+    Returns which root_cause categories recur most frequently, with examples.
+    Use before planning to avoid known failure modes. Requires migration v25
+    (structured backtrack anatomy columns).
+
+    root_cause filter values: wrong_model | scope_too_large | missing_context |
+    tool_failure | spec_ambiguity | env_mismatch | other
+
+    Args:
+        root_cause: Optional filter to a specific root cause category.
+        domain: Reserved for future per-domain filtering.
+        limit: Max pattern groups to return (1-50, default 10).
+
+    Returns:
+        JSON with {patterns: [{root_cause, count, examples}],
+        total_structured, total_backtrack}.
+    """
+    result = failure_pattern_query(
+        _db_conn,
+        root_cause=root_cause or None,
+        domain=domain or None,
+        limit=limit,
+    )
+    return ok(result, meta={"layer": "routing"})
+
+
+@mcp.tool(
+    name="cos_routing_drift",
+    annotations={
+        "title": "Routing Drift Detection",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_routing_drift() -> str:
+    """Detect whether routing weights are stale relative to task outcomes.
+
+    Reports how many new task outcomes have accumulated since the last
+    recalculate_weights call. When drift_detected=true, routing recommendations
+    are based on outdated success rates — call cos_learn_extract to trigger
+    a refresh.
+
+    Returns:
+        JSON with {drift_detected, new_outcomes_since_recalc, threshold,
+        last_recalc_at, recommendation}.
+    """
+    result = routing_drift(_db_conn)
+    return ok(result, meta={"layer": "routing"})
+
+
+# ---------------------------------------------------------------------------
 # Document RAG search (Phase B.4)
 # ---------------------------------------------------------------------------
 @mcp.tool(
@@ -1591,12 +1837,15 @@ if _BOARD_OS_AVAILABLE:
         agent_session: str = "",
     ) -> str:
         """Transition a task through the Scrumban state machine."""
+        resolved_session = (
+            agent_session or _detect_agent_session_default() or None
+        )
         return _board_mcp.cos_task_move(
             _db_conn,
             task_id=task_id, to=to,
             reason=reason or None,
             bypass_wip=bypass_wip,
-            agent_session=agent_session or None,
+            agent_session=resolved_session,
         )
 
     @mcp.tool(
@@ -1618,6 +1867,9 @@ if _BOARD_OS_AVAILABLE:
         agent_session: str = "",
     ) -> str:
         """Update Scrumban status and/or swimlane (MD frontmatter + sync)."""
+        resolved_session = (
+            agent_session or _detect_agent_session_default() or None
+        )
         return _board_mcp.cos_task_reposition(
             _db_conn,
             task_id=task_id,
@@ -1625,7 +1877,7 @@ if _BOARD_OS_AVAILABLE:
             to=to or None,
             reason=reason or None,
             bypass_wip=bypass_wip,
-            agent_session=agent_session or None,
+            agent_session=resolved_session,
         )
 
     @mcp.tool(
@@ -1712,10 +1964,13 @@ if _BOARD_OS_AVAILABLE:
         source: str = "manual",
     ) -> str:
         """Append one Work Log line to a task. Critical for Codex sessions."""
+        resolved_session = (
+            agent_session or _detect_agent_session_default() or None
+        )
         return _board_mcp.cos_work_log_append(
             _db_conn,
             task_id=task_id, summary=summary,
-            agent_session=agent_session or None,
+            agent_session=resolved_session,
             source=source,
         )
 

@@ -1334,6 +1334,56 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
     return json.dumps(payload, indent=2)
 
 
+def _probe_otel() -> None:
+    """Print OTEL configuration table for cos doctor --otel (T8.3).
+
+    PURPOSE: Report which OTEL exporters are configured and whether the
+             endpoint is reachable, so operators can verify telemetry
+             before a production dispatch run.
+    INPUT:   Environment variables (OTEL_*).
+    OUTPUT:  Table to stdout — each var: configured / not-set / unreachable.
+    NOTES:   Does NOT send real telemetry; only probes env + TCP.
+    """
+    import os
+    import socket
+
+    _VARS = [
+        "OTEL_TRACES_EXPORTER",
+        "OTEL_METRICS_EXPORTER",
+        "OTEL_LOGS_EXPORTER",
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "OTEL_EXPORTER_OTLP_PROTOCOL",
+        "OTEL_EXPORTER_OTLP_HEADERS",
+        "OTEL_RESOURCE_ATTRIBUTES",
+        "OTEL_SERVICE_NAME",
+        "CLAUDE_CODE_ENABLE_TELEMETRY",
+    ]
+    configured = {v: os.environ.get(v) for v in _VARS}
+    click.echo("OTEL probe")
+    click.echo("=" * 60)
+    for var, val in configured.items():
+        if val:
+            click.echo(f"  [OK]  {var} = {val!r}")
+        else:
+            click.echo(f"  [--]  {var} = not set")
+
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+    if endpoint:
+        click.echo("")
+        click.echo(f"Probing endpoint: {endpoint}")
+        try:
+            from urllib.parse import urlparse as _up
+            parsed = _up(endpoint)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or (443 if parsed.scheme == "https" else 4317)
+            with socket.create_connection((host, port), timeout=3):
+                click.echo(f"  [OK]  TCP {host}:{port} reachable")
+        except OSError as exc:
+            click.echo(f"  [ERR] TCP unreachable: {exc}")
+    else:
+        click.echo("\nNo OTEL_EXPORTER_OTLP_ENDPOINT set — local stdout exporter assumed.")
+
+
 @click.command()
 @click.option("--project-dir", "-d", default=".", help="Project directory (default: cwd)")
 @click.option(
@@ -1344,8 +1394,12 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
 )
 @click.option("--strict", is_flag=True, default=False, help="Promote WARN to exit 1")
 @click.option("--manifest", default=None, help="Override manifest file path")
-def doctor(project_dir: str, output_format: str, strict: bool, manifest: str | None) -> None:
+@click.option("--otel", is_flag=True, default=False, help="Probe OTEL exporter config and exit")
+def doctor(project_dir: str, output_format: str, strict: bool, manifest: str | None, otel: bool) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
+    if otel:
+        _probe_otel()
+        return
     project = Path(project_dir).resolve()
     manifest_path = Path(manifest).resolve() if manifest else None
     report = run_doctor(project, manifest_path=manifest_path)

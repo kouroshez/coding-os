@@ -259,7 +259,7 @@ def test_claude_sdk_dispatcher_missing_json(monkeypatch, tmp_path):
     )
     result = asyncio.run(d.dispatch(req))
     assert result.status == "error"
-    assert "no JSON block" in (result.error or "")
+    assert "no usable JSON" in (result.error or "")
 
 
 # ---------------------------------------------------------------------------

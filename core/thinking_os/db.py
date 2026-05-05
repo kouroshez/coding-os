@@ -1387,6 +1387,230 @@ def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v23_dispatch_cost(conn: sqlite3.Connection) -> None:
+    """Migration v23 (Phase Q.deep T2.3) — formula_dispatches cost columns.
+
+    PURPOSE:      Persist the cost / budget / tool-trace fields the Claude
+                  adapter dispatcher now captures (cost_usd, budget_usd,
+                  usage breakdown, model_usage breakdown, programmatic
+                  hook tool_calls, tool_failures). Without this, the Q.deep
+                  dispatcher hardening would have nowhere to write its
+                  audit trail and the hub board could not surface spend.
+    INPUT:        sqlite connection (idempotent — guards each ALTER).
+    OUTPUT:       Six nullable columns added to formula_dispatches:
+                    - cost_usd            REAL  (client-side estimate)
+                    - budget_usd          REAL  (cap forwarded by request)
+                    - usage_jsonb         TEXT  (per-step token breakdown)
+                    - model_usage_jsonb   TEXT  (per-model spend rollup)
+                    - tool_calls_jsonb    TEXT  (PreToolUse hook capture)
+                    - tool_failures_jsonb TEXT  (PostToolUseFailure capture)
+    DEPENDENCIES: formula_dispatches (v14).
+    NOTES:        SQLite cannot enforce non-null on ALTER ADD COLUMN
+                  without a default, so all six are nullable. Old rows
+                  pre-dating this migration carry NULL and are visible
+                  to readers as "no telemetry" — DO NOT join on cost_usd
+                  IS NOT NULL without filtering by ts >= migration date.
+    """
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v23 skipped: formula_dispatches not present yet")
+        return
+
+    cols = [
+        ("cost_usd",            "REAL"),
+        ("budget_usd",          "REAL"),
+        ("usage_jsonb",         "TEXT"),
+        ("model_usage_jsonb",   "TEXT"),
+        ("tool_calls_jsonb",    "TEXT"),
+        ("tool_failures_jsonb", "TEXT"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "formula_dispatches", name):
+            conn.execute(
+                f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}"
+            )
+
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_dispatches_cost
+            ON formula_dispatches(cost_usd) WHERE cost_usd IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v23 applied: formula_dispatches gained "
+        "cost_usd / budget_usd / usage_jsonb / model_usage_jsonb / "
+        "tool_calls_jsonb / tool_failures_jsonb"
+    )
+
+
+def _migrate_v24_project_trajectory(conn: sqlite3.Connection) -> None:
+    """Migration v24 — project_trajectory table for long-term project intent.
+
+    PURPOSE:      Persist the agent's running understanding of WHERE the project
+                  is heading (phase, focus, architectural decisions, discovered
+                  anti-patterns, open questions). Each session snapshot is a
+                  new row (supersedes_id links to previous), enabling temporal
+                  diff of how understanding evolves across sessions.
+    INPUT:        sqlite connection (idempotent).
+    OUTPUT:       project_trajectory table created; index on session_id.
+    DEPENDENCIES: None (standalone table).
+    NOTES:        architectural_decisions / anti_patterns_discovered /
+                  open_questions are stored as JSON arrays so the schema
+                  stays flat. supersedes_id supports temporal chaining but
+                  is nullable — first snapshot has no predecessor.
+    """
+    conn.executescript("""\
+CREATE TABLE IF NOT EXISTS project_trajectory (
+    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id                  TEXT NOT NULL,
+    phase                       TEXT,
+    current_focus               TEXT,
+    architectural_decisions     TEXT DEFAULT '[]',
+    anti_patterns_discovered    TEXT DEFAULT '[]',
+    open_questions              TEXT DEFAULT '[]',
+    next_logical_step           TEXT,
+    confidence                  REAL DEFAULT 0.7,
+    created_at                  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    supersedes_id               INTEGER REFERENCES project_trajectory(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trajectory_session
+    ON project_trajectory(session_id);
+CREATE INDEX IF NOT EXISTS idx_trajectory_created
+    ON project_trajectory(created_at DESC);
+""")
+    conn.commit()
+    logger.info("Migration v24 applied: project_trajectory table created")
+
+
+def _migrate_v25_backtrack_failure_anatomy(conn: sqlite3.Connection) -> None:
+    """Migration v25 — structured failure anatomy columns on backtrack_events.
+
+    PURPOSE:      Transform backtrack_events.reason (free text, unminable) into
+                  structured fields that learn_extract can aggregate into
+                  failure patterns. Without structure, "why approach X failed"
+                  is locked in prose and never feeds routing decisions.
+    INPUT:        sqlite connection (idempotent via _column_exists_table).
+    OUTPUT:       Four nullable columns added to backtrack_events:
+                    - hypothesis       TEXT  (what we thought would work)
+                    - failure_signal   TEXT  (what indicated failure)
+                    - root_cause       TEXT  (classified category)
+                    - corrective_action TEXT (what we switched to)
+    DEPENDENCIES: backtrack_events (v14).
+    NOTES:        All new columns are nullable — existing rows pre-dating this
+                  migration keep NULL and remain valid records. root_cause is
+                  a TEXT with an application-level enum; SQLite CHECK cannot
+                  be added to existing tables via ALTER TABLE.
+    """
+    if not _table_exists(conn, "backtrack_events"):
+        logger.info("Migration v25 skipped: backtrack_events not present yet")
+        return
+
+    cols = [
+        ("hypothesis",        "TEXT"),
+        ("failure_signal",    "TEXT"),
+        ("root_cause",        "TEXT"),
+        ("corrective_action", "TEXT"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "backtrack_events", name):
+            conn.execute(
+                f"ALTER TABLE backtrack_events ADD COLUMN {name} {decl}"
+            )
+
+    conn.executescript("""\
+CREATE INDEX IF NOT EXISTS idx_backtrack_root_cause
+    ON backtrack_events(root_cause) WHERE root_cause IS NOT NULL;
+""")
+    conn.commit()
+    logger.info(
+        "Migration v25 applied: backtrack_events gained "
+        "hypothesis / failure_signal / root_cause / corrective_action"
+    )
+
+
+def _migrate_v26_routing_evolution(conn: sqlite3.Connection) -> None:
+    """Migration v26 — routing_weights staleness tracking for autonomous refresh.
+
+    PURPOSE:      Enable the session-startup hook to detect when routing weights
+                  are stale (N new task_outcomes since last recalculate_weights
+                  call) and auto-trigger a refresh. Without these columns there
+                  is no cheap way to check staleness without a full table scan.
+    INPUT:        sqlite connection (idempotent via _column_exists_table).
+    OUTPUT:       Two nullable columns added to routing_weights:
+                    - last_recalc_at      TEXT  (ISO timestamp of last recalc)
+                    - outcomes_at_recalc  INTEGER (task_outcomes.COUNT() at recalc)
+    DEPENDENCIES: routing_weights (v3).
+    NOTES:        Both columns default NULL in old rows; recalculate_weights()
+                  is updated to stamp them on every call. The staleness check
+                  reads MAX(outcomes_at_recalc) vs COUNT(*) from task_outcomes.
+    """
+    if not _table_exists(conn, "routing_weights"):
+        logger.info("Migration v26 skipped: routing_weights not present yet")
+        return
+
+    for name, decl in [("last_recalc_at", "TEXT"), ("outcomes_at_recalc", "INTEGER")]:
+        if not _column_exists_table(conn, "routing_weights", name):
+            conn.execute(
+                f"ALTER TABLE routing_weights ADD COLUMN {name} {decl}"
+            )
+    conn.commit()
+    logger.info(
+        "Migration v26 applied: routing_weights gained "
+        "last_recalc_at / outcomes_at_recalc"
+    )
+
+
+def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
+    """Migration v27 (Phase Q.deep wave 3) — full SDK telemetry on formula_dispatches.
+
+    PURPOSE:      Persist three Claude-SDK-specific fields the dispatcher
+                  now captures but currently buries in output_json["_meta"]:
+                    - sub_session_id: SDK-side session id (T7.1) — needed
+                      for resume + JOIN against per-session traces.
+                    - model: which Anthropic model actually ran (claude-
+                      opus-4-7 / claude-sonnet-4-6) — cost rollup needs
+                      this for opus-vs-sonnet breakdown.
+                    - checkpoints_jsonb: UserMessage UUIDs (T9.2) — needed
+                      for `cos dispatch rewind <id>` to map dispatch row
+                      → checkpoint UUID without parsing the meta blob.
+    INPUT:        sqlite connection at v26 (idempotent — guards each ALTER).
+    OUTPUT:       Three nullable columns + idx_dispatches_sub_session.
+    DEPENDENCIES: formula_dispatches (v14) + v23 telemetry columns.
+    NOTES:        Append-only per Rule 9. Old rows pre-dating this migration
+                  carry NULL — readers join `WHERE sub_session_id IS NOT NULL`
+                  to filter to SDK-spawned dispatches.
+    """
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v27 skipped: formula_dispatches not present yet")
+        return
+
+    cols = [
+        ("sub_session_id",   "TEXT"),
+        ("model",            "TEXT"),
+        ("checkpoints_jsonb", "TEXT"),
+    ]
+    for name, decl in cols:
+        if not _column_exists_table(conn, "formula_dispatches", name):
+            conn.execute(
+                f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}"
+            )
+
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_dispatches_sub_session
+            ON formula_dispatches(sub_session_id) WHERE sub_session_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_dispatches_model
+            ON formula_dispatches(model) WHERE model IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info(
+        "Migration v27 applied: formula_dispatches gained "
+        "sub_session_id / model / checkpoints_jsonb"
+    )
+
+
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     row = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
@@ -1665,6 +1889,21 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # Phase O: document_chunks frontmatter metadata for Stage-1 RAG pre-filter
     (22, "Phase O: document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
      _migrate_v22_doc_chunks_metadata),
+    (23, "Phase Q.deep T2.3: formula_dispatches cost / budget / usage / tool_calls columns",
+     _migrate_v23_dispatch_cost),
+    # Phase EVO v24: project_trajectory — long-term project intent across sessions
+    (24, "Phase EVO v24: project_trajectory table for cross-session project intent",
+     _migrate_v24_project_trajectory),
+    # Phase EVO v25: structured failure anatomy on backtrack_events
+    (25, "Phase EVO v25: backtrack_events failure anatomy (hypothesis/failure_signal/root_cause/corrective_action)",
+     _migrate_v25_backtrack_failure_anatomy),
+    # Phase EVO v26: routing_weights staleness tracking for autonomous refresh
+    (26, "Phase EVO v26: routing_weights last_recalc_at + outcomes_at_recalc",
+     _migrate_v26_routing_evolution),
+    # Phase Q.deep wave 3: formula_dispatches gains sub_session_id (SDK key),
+    # model (claude-opus-4-7 / claude-sonnet-4-6), checkpoints_jsonb (T9.2).
+    (27, "Phase Q.deep v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
+     _migrate_v27_dispatch_sdk_columns),
 ]
 
 

@@ -447,23 +447,60 @@ def register_cos_backtrack_log(mcp, db_path):
         from_formula: str,
         to_formula: str,
         reason: str,
-        task_marker: str = "",   # reserved for future per-task backtrack analytics
-        persona_id: str = "",    # reserved for future per-persona backtrack analytics
+        task_marker: str = "",
+        persona_id: str = "",
+        hypothesis: str = "",
+        failure_signal: str = "",
+        root_cause: str = "",
+        corrective_action: str = "",
     ) -> str:
         """
         PURPOSE:      Persist backtrack event; compute Anti-Paralysis advisory.
-        INPUT:        session_id, from/to formula ids, reason.
+                      Optional structured failure anatomy (hypothesis, failure_signal,
+                      root_cause, corrective_action) enables learn_extract to mine
+                      failure patterns across sessions (Phase EVO v25).
+        INPUT:        session_id, from/to formula ids, reason (required).
+                      Structured fields (optional, backward-compatible):
+                        hypothesis — what we thought would work
+                        failure_signal — what indicated failure
+                        root_cause — one of: wrong_model | scope_too_large |
+                          missing_context | tool_failure | spec_ambiguity |
+                          env_mismatch | other
+                        corrective_action — what we switched to
         OUTPUT:       {count, advisory}.
-        DEPENDENCIES: backtrack_events table.
+        DEPENDENCIES: backtrack_events table (v14); anatomy columns (v25).
         """
+        _VALID_ROOT_CAUSES = {
+            "wrong_model", "scope_too_large", "missing_context",
+            "tool_failure", "spec_ambiguity", "env_mismatch", "other",
+        }
+        # Silently clear invalid root_cause to avoid polluting the enum
+        if root_cause and root_cause not in _VALID_ROOT_CAUSES:
+            root_cause = "other"
+
         try:
             with sqlite3.connect(db_path) as conn:
-                conn.execute(
-                    "INSERT INTO backtrack_events "
-                    "(session_id, from_formula, to_formula, reason, ts) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (session_id, from_formula, to_formula, reason, _now_iso()),
-                )
+                # Try inserting with anatomy columns (v25); fall back to base schema
+                try:
+                    conn.execute(
+                        "INSERT INTO backtrack_events "
+                        "(session_id, from_formula, to_formula, reason, ts, "
+                        " hypothesis, failure_signal, root_cause, corrective_action) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            session_id, from_formula, to_formula, reason, _now_iso(),
+                            hypothesis or None, failure_signal or None,
+                            root_cause or None, corrective_action or None,
+                        ),
+                    )
+                except sqlite3.OperationalError:
+                    # v25 columns not yet applied — insert base fields only
+                    conn.execute(
+                        "INSERT INTO backtrack_events "
+                        "(session_id, from_formula, to_formula, reason, ts) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (session_id, from_formula, to_formula, reason, _now_iso()),
+                    )
                 count = conn.execute(
                     "SELECT COUNT(*) FROM backtrack_events WHERE session_id=?",
                     (session_id,),
@@ -920,32 +957,81 @@ def _persist_dispatch_output(
     }
     field = field_map.get(formula_id)
     cls = output_cls_map.get(formula_id)
+    validation_failed = False
     if field and cls and status == "ok":
         try:
             parsed = cls.model_validate(output_json)
             setattr(bundle, field, parsed)
         except Exception as exc:
+            # T1.6 — Pydantic validation runs BEFORE persistence.
+            # On failure: mark degraded, skip the formula_dispatches INSERT
+            # entirely (row would carry untrusted output_hash). Bundle still
+            # saved with degraded_formulas marker so the supervisor can
+            # backtrack.
             logger.warning(
                 "Failed to validate %s output against schema: %s", formula_id, exc,
             )
             bundle.degraded_formulas.append(formula_id)
             status = "fail"
+            validation_failed = True
     elif status == "timeout":
         bundle.degraded_formulas.append(formula_id)
 
     _save_bundle(session_id, bundle)
 
+    # T1.6: skip the dispatch row INSERT when schema validation failed.
+    # Returning the bundle field count keeps the caller signature stable.
+    if validation_failed:
+        return sum(
+            1 for f in field_map if getattr(bundle, field_map[f], None) is not None
+        )
+
     raw = json.dumps(output_json, sort_keys=True, default=str).encode()
     output_hash = hashlib.sha256(raw).hexdigest()[:16]
     input_hash = hashlib.sha256(f"{session_id}:{formula_id}".encode()).hexdigest()[:16]
+    # Phase Q.deep T2.3: pull telemetry the Claude dispatcher stamps
+    # into output_json["_meta"] (cost_usd, usage, model_usage, tool_calls,
+    # tool_failures) and persist into the v23 columns. JSON-encoded so
+    # the schema migration stays append-only — readers parse on demand.
+    meta = output_json.get("_meta") if isinstance(output_json, dict) else None
+    meta = meta if isinstance(meta, dict) else {}
+    cost_usd_raw = meta.get("total_cost_usd")
+    if isinstance(cost_usd_raw, (int, float)):
+        cost_usd_val: float | None = float(cost_usd_raw)
+    else:
+        cost_usd_val = None
+
+    def _jsonb(value: Any) -> str | None:
+        if value is None:
+            return None
+        try:
+            return json.dumps(value, default=str, sort_keys=True)
+        except (TypeError, ValueError):
+            return None
+
     try:
         with sqlite3.connect(db_path) as conn:
             conn.execute(
                 "INSERT INTO formula_dispatches "
                 "(session_id, task_marker, persona_id, formula_id, input_hash, "
-                "output_hash, latency_ms, status, ts) VALUES (?,?,?,?,?,?,?,?,?)",
-                (session_id, task_marker, persona_id, formula_id, input_hash,
-                 output_hash, latency_ms, status, _now_iso()),
+                "output_hash, latency_ms, status, ts, "
+                "cost_usd, budget_usd, usage_jsonb, model_usage_jsonb, "
+                "tool_calls_jsonb, tool_failures_jsonb, "
+                "sub_session_id, model, checkpoints_jsonb) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    session_id, task_marker, persona_id, formula_id, input_hash,
+                    output_hash, latency_ms, status, _now_iso(),
+                    cost_usd_val,
+                    meta.get("budget_usd"),
+                    _jsonb(meta.get("usage")),
+                    _jsonb(meta.get("model_usage")),
+                    _jsonb(meta.get("tool_calls")),
+                    _jsonb(meta.get("tool_failures")),
+                    meta.get("session_id"),
+                    meta.get("model"),
+                    _jsonb(meta.get("checkpoints")),
+                ),
             )
     except Exception as exc:
         logger.debug("formula_dispatches insert failed: %s", exc)
@@ -953,6 +1039,41 @@ def _persist_dispatch_output(
     return sum(
         1 for f in field_map if getattr(bundle, field_map[f], None) is not None
     )
+
+
+def _emit_dispatch_metrics_safe(
+    *, db_path: str, formula_id: str, status: str,
+    latency_ms: int, output_json: dict,
+) -> None:
+    """
+    PURPOSE: Emit dispatch latency + outcome as a coding-os agent_metric row (T2.5, T8.4).
+    INPUT:   dispatch result fields, db_path for metric storage.
+    OUTPUT:  One row in agent_metrics: agent_type=dispatch, domain=<formula_id>.
+    NOTES:   Rule 6 — fire-and-forget, any error silently logged.
+             cost_usd is already persisted in formula_dispatches.cost_usd (T2.3).
+             Use `cos_metric_query agent_type=dispatch` to retrieve these rows.
+    """
+    import sqlite3 as _sqlite3
+
+    try:
+        from tools.metrics import metric_record  # type: ignore[import]
+        _outcome_map = {"ok": "success", "timeout": "blocked", "error": "partial", "skipped": "partial"}
+        outcome = _outcome_map.get(status, "partial")
+        meta = output_json.get("_meta") if isinstance(output_json, dict) else {}
+        meta = meta if isinstance(meta, dict) else {}
+        model_used = meta.get("model") or None
+        with _sqlite3.connect(db_path) as conn:
+            metric_record(
+                conn,
+                agent_type="dispatch",
+                outcome=outcome,
+                duration_ms=latency_ms,
+                domain=formula_id,
+                model=model_used,
+                complexity="CLEAR",
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("dispatch metric emit failed: %s", exc)
 
 
 def _build_dispatch_request(
@@ -981,6 +1102,7 @@ def _build_dispatch_request(
         intensity=intensity if intensity in ("light", "standard", "full") else "standard",
         timeout_s=float(timeout_s) if timeout_s else float(meta.get("timeout_s", 300)),
         session_id=session_id,
+        long_context=bool(meta.get("long_context", False)),
     )
 
 
@@ -1062,6 +1184,16 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 output_json=result.output_json, status=result.status,
                 latency_ms=result.latency_ms, db_path=db_path,
             )
+
+        # T2.5 + T8.4: emit dispatch cost and duration as coding-os metrics
+        # so cos_metric_trend surfaces spend over time.
+        _emit_dispatch_metrics_safe(
+            db_path=db_path,
+            formula_id=formula_id,
+            status=result.status,
+            latency_ms=result.latency_ms,
+            output_json=result.output_json,
+        )
 
         return ok(
             {

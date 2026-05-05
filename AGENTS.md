@@ -64,8 +64,8 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 | 12 | New Python (MCP tools / CLI / parsers under `core/thinking_os` + `cli/`) starts with PURPOSE/INPUT/OUTPUT/DEPENDENCIES/NOTES docstring. | [Rule 12](docs/governance/critical-rules.md#rule-12--function-header-convention) |
 | 13 | MCP envelope — every `cos_*` returns `ok(data)` / `fail(category, message)` via `@safe_tool`. | [Rule 13](docs/governance/critical-rules.md#rule-13--mcp-tool-response-envelope) · [contract](docs/engineering/mcp-error-envelope.md) |
 | 14 | Tasks are pointers — `TASK-NNN-slug.md` never inlines doc content; lint-task warns >1.5k blocks >3k. Axes: swimlane · kind · epic · labels. | [Rule 14](docs/governance/critical-rules.md#rule-14--tasks-are-pointers-not-specs) |
-| 15 | COMPLICATED+ tasks call `cos_compose_chain` — 11 semantic roles (researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer). | [Rule 15](docs/governance/critical-rules.md#rule-15--role-chain-composed-for-complicated-tasks) |
-| 16 | Formula dispatch produces typed EvidenceBundle via `cos_supervise_record_output`. | [Rule 16](docs/governance/critical-rules.md#rule-16--formula-dispatch-produces-typed-evidencebundle) |
+| 15 | COMPLICATED+ tasks call `cos_compose_chain` — 11 semantic roles (researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer). Claude path: [claude-sdk.md](docs/adapters/claude-sdk.md) · deepening checklist: [claude-deepening-checklist.md](docs/adapters/claude-deepening-checklist.md). | [Rule 15](docs/governance/critical-rules.md#rule-15--role-chain-composed-for-complicated-tasks) |
+| 16 | Formula dispatch produces typed EvidenceBundle via `cos_supervise_record_output` (or `cos_dispatch_formula_run` when the Claude SDK extra is installed). | [Rule 16](docs/governance/critical-rules.md#rule-16--formula-dispatch-produces-typed-evidencebundle) · [claude-sdk.md §7](docs/adapters/claude-sdk.md) |
 | 17 | Situational Paths override role chain when `.situation` set (6 situations). | [Rule 17](docs/governance/critical-rules.md#rule-17--situational-paths-override-role-chain) |
 | 18 | Task reconciliation mandatory — check `cos_task_board` first; reuse or create with Outcome/Read First/Acceptance. | [Rule 18](docs/governance/critical-rules.md#rule-18--task-reconciliation-is-mandatory-before-implementation) |
 | 19 | Docs are the contract — edit doc before extending code; `enforce-doc-sync.sh` surfaces drift. | [Rule 19](docs/governance/critical-rules.md#rule-19--docs-are-the-contract--never-extend-code-beyond-doc-spec) |
@@ -88,7 +88,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 **Orient (targeted reads):** Read List only · `cos_search` for past patterns · grep/glob existing code.
 **Plan:** per dimension → current/target/gap/risk → ordered steps. If no matching task exists, create one and fill Outcome/Read First/Acceptance before coding. COMPLICATED+ loads the `thinking_os` skill for Zoom cycles.
 **Execute:** smallest correct change [P1, P4]. After code: run verification.
-**Verify & Close:** move task to `testing` → run verification (`make verify` or targeted matrix command) → append concise work-log note → `cos task-done TASK-NNN` (Scrumban) or `make task-done` (legacy).
+**Verify & Close:** move task to `testing` → run verification (`make verify` or targeted matrix command) → append concise work-log note → `cos task-done TASK-NNN` (Scrumban) or `make task-done` (legacy). Loop on failure: fix → re-run → assert green; never close on assumed pass.
 
 ## Verification Matrix
 

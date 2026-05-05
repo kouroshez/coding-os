@@ -1,244 +1,433 @@
-<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-04-24 -->
-# Claude-SDK Dispatcher — `adapters/claude/sdk_dispatcher.py`
+<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-05-04 -->
+# Claude Adapter — Full Reference
 
-Purpose: Explain how the Claude adapter spawns formula-agent sub-sessions via `claude-agent-sdk`.
-Read when: touching `adapters/claude/sdk_dispatcher.py`, debugging formula dispatch, enabling the claude-sdk extra.
-Skip when: other adapters, retrieval, board_os.
+**Scope:** Everything `adapters/claude/` does for a consumer project: install,
+hook rendering, MCP wiring, formula-agent dispatch, observability.
 
-> Nav: [AGENTS.md](../../AGENTS.md) › [adapters](../adapters/) › **claude-sdk**
-> Introduced: 2026-04-20 (Phase N.SDK slice)
-> Status: live · optional extra · Claude-adapter-only
+**Read when:** touching `adapters/claude/**`, debugging the Claude install,
+adding/renaming hooks, enabling new SDK features, planning permission/MCP
+changes for Claude users.
 
-## 1. What it is
+**Skip when:** working on `core/`, other adapters, or pure docs.
 
-The claude-sdk dispatcher turns Phase M **formula-agents** (F1..F11) into
-**real sub-sessions** spawned via [`claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-python).
-Before this slice, `cos_supervise` returned `NextAction(action="dispatch", …)`
-and the main agent had to execute the formula inline. Now, when the adapter
-is Claude *and* the `claude-sdk` extra is installed, the supervisor can ask
-the dispatcher to **actually run** the agent and return a structured
-EvidenceBundle slice — including in parallel.
+> Nav: [AGENTS.md](../../AGENTS.md) › [adapters](../adapters/) › **claude**
+> Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
+> SDK floor: `claude-agent-sdk>=0.1.73,<0.2.0`. CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable).
 
-## 2. Why it is Claude-only
+## 1. The mRNA layer — what this adapter is
 
-`claude-agent-sdk` wraps the **Claude Code CLI** (Go binary) and targets
-Anthropic models exclusively. Codex, Cursor, and future agents have their
-own SDKs (OpenAI Agents SDK, etc.) or no SDK at all — they use the
-**default dispatcher** in [core/thinking_os/dispatchers/default.py](../../core/thinking_os/dispatchers/default.py),
-which records the dispatch intent and returns `status="skipped"`, letting
-the main agent execute the formula inline (the Phase M behaviour).
-
-This keeps `core/` agent-agnostic (Rule 1): the Protocol lives in core,
-the Claude-specific implementation lives under `adapters/claude/`.
-
-## 3. Architecture
+Claude is the **primary** adapter coding-os targets. Codex and Cursor are
+secondary; they reuse the same kernel but expose fewer capabilities (Codex
+has Bash-only PreToolUse; Cursor has no skills/agents at all). This file
+documents the Claude-specific translation of the agent-agnostic kernel.
 
 ```
-core/thinking_os/cognition.py          pure state machine (unchanged)
-        │                               returns NextAction(dispatch, …)
-        ▼
-core/thinking_os/dispatcher.py         AgentDispatcher Protocol + factory
-        │
-        ├── get_dispatcher() ──────┐
-        │                          │
-        ▼                          ▼
-core/thinking_os/dispatchers/      adapters/claude/sdk_dispatcher.py
-  default.py  (fallback)             ClaudeSDKDispatcher
-  status="skipped"                    wraps claude-agent-sdk.query()
+core/  ──►  adapters/claude/  ──►  consumer project's .claude/
+(DNA)        (mRNA — this file)     (phenotype)
 ```
 
-### Factory resolution order
+Three jobs:
+1. **Install** — render `.claude/{settings.json,settings.local.json,.mcp.json,agents,skills,commands,rules,hooks}` into a consumer project (via [install.sh](../../adapters/claude/install.sh) + [core/scripts/install-adapter.sh](../../core/scripts/install-adapter.sh)).
+2. **Dispatch** — spawn formula-agent sub-sessions via `claude-agent-sdk` ([sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py)).
+3. **Declare capabilities** — tell the kernel which `{event, matcher}` pairs Claude's CLI can actually fire ([adapter.yaml](../../adapters/claude/adapter.yaml)).
 
-1. If `COS_FORCE_DEFAULT_DISPATCHER=1` → default.
-2. Detect agent: `COS_AGENT` env → `COS_AGENT_DIR` folder name → "default".
-3. If agent is `claude`, import `adapters/claude/sdk_dispatcher.py` by path.
-4. If the import succeeds AND `claude_agent_sdk` is installed → use it.
-5. Otherwise → default dispatcher.
+## 2. SDK + tooling versions (audit 2026-05-04)
 
-## 4. Install
+| Component | Floor | Latest | Notes |
+|---|---|---|---|
+| `claude-agent-sdk` (PyPI) | `>=0.1.73,<0.2.0` | 0.1.73 (2026-05-04) | Pinned in `pyproject.toml::optional-dependencies.claude-sdk`. |
+| `mcp` (PyPI) | `>=1.27.0` | 1.27.0 (2026-04-02) | Used by central FastMCP server. |
+| `@anthropic-ai/claude-code` (npm CLI) | 2.1.119 stable | 2.1.128 latest | User-installed; `brew install claude-code` or `npm i -g @anthropic-ai/claude-code`. |
+| `@anthropic-ai/claude-agent-sdk` (npm) | n/a (Py only) | 0.2.128 | Reference only — coding-os uses the Py SDK exclusively. |
+
+Verify:
 
 ```bash
-uv sync --extra claude-sdk
+uv pip show claude-agent-sdk mcp | grep -E "^(Name|Version)"
+claude --version          # CLI on PATH
 ```
 
-This adds `claude-agent-sdk>=0.1.0` and `anyio>=4.0.0` to the project.
-The dispatcher probe (`available()`) returns True only after this.
+## 3. Install flow
 
-## 5. Contract
+`bash adapters/claude/install.sh` invoked from a consumer project root:
 
-**Input** — `DispatchRequest`:
+1. Calls shared installer ([core/scripts/install-adapter.sh](../../core/scripts/install-adapter.sh)) which:
+   - Creates `.claude/{hooks,rules,skills,commands,agents}/` symlinking to `core/{hooks,rules,skills,commands,thinking_os/agents}/`.
+   - Writes `.claude/cos-env.sh` (sources `COS_AGENT_DIR`, `COS_AGENT`, etc.).
+2. Renders `.claude/settings.json` from [settings.template.json](../../adapters/claude/settings.template.json) (substituting `{{HOOKS_DIR}}`).
+3. Adds `coding-os` entry to `.mcp.json` via [_install_helpers/update_mcp_json.py](../../adapters/claude/_install_helpers/update_mcp_json.py):
+   - Prefers `cos server-start` if `cos` is on `PATH`.
+   - Falls back to `uv run --directory <CODING_OS_ROOT>/core/thinking_os python server.py`.
+4. Symlinks role prompts to `.claude/agents/role-*.md` (SDK reads from this dir for filesystem-fallback `AgentDefinition`).
+5. Copies [settings.local.template.json](../../adapters/claude/settings.local.template.json) to `.claude/settings.local.json` (only if absent — never overwrites user customizations).
+
+## 4. settings.json (rendered, do not hand-edit)
+
+`adapters/claude/settings.template.json` is **derived** from
+`core/hooks/registry.yaml` via `make regen-adapter-templates`. Hand-edits
+are caught by `core/hooks/warn-template-drift.sh`.
+
+Hook events declared (post-2026-05-04 hardening):
+
+| Event | Matchers | Why |
+|---|---|---|
+| `PreToolUse` | `Bash`, `Write\|Edit`, `Write\|Edit\|MultiEdit`, `Skill` | Block secrets, dangerous commands, missing doc anchor, missing memory check, missing skill invocation. |
+| `PostToolUse` | `Bash`, `Write\|Edit`, `Write\|Edit\|MultiEdit`, `Skill`, `mcp__coding-os__cos_backtrack_log` | Capture observation, regen doc index, route backtrack-log calls. |
+| `PostToolUseFailure` | `""` | (NEW 2026-05-04) keep agent-presence accurate when a tool errors. |
+| `Stop` | `""` | Session summary + memory enrichment. |
+| `SubagentStart` | `""` | (NEW 2026-05-04) agent-presence ping when sub-session spawns. |
+| `SubagentStop` | `""` | (NEW 2026-05-04) agent-presence ping when sub-session exits. |
+| `SessionStart` | `startup`, `compact\|resume` | Bootstrap session, decay scan, MCP liveness probe. |
+| `UserPromptSubmit` | `""` | Caveman-mode gating, presence ping. |
+
+Events the Py SDK supports but coding-os does NOT yet wire:
+`PreCompact`, `Notification`, `PermissionRequest`. These are TS-only or
+filesystem-hook-only as of SDK 0.1.73 — leave them off until a need
+emerges.
+
+## 5. settings.local.json (user-scoped allow-list)
+
+Template at [settings.local.template.json](../../adapters/claude/settings.local.template.json).
+Copied **once** during install; never overwritten so user customizations
+survive `cos sync-all`.
+
+Critical entry added 2026-05-04:
+
+```json
+{ "permissions": { "allow": [ ..., "mcp__coding-os__*" ] } }
+```
+
+**Why required:** Claude Agent SDK 0.1.73 evaluates permissions in this
+order (digest §B.4): hooks → deny rules → permission_mode → allow rules
+→ `can_use_tool`. `acceptEdits` mode auto-approves filesystem ops only —
+**MCP tools are NOT auto-approved**. Without the `mcp__coding-os__*`
+wildcard, every `cos_*` call would either deny silently (in `dontAsk`)
+or prompt the user (in `default`).
+
+## 6. .mcp.json wiring
+
+Generated by [_install_helpers/update_mcp_json.py](../../adapters/claude/_install_helpers/update_mcp_json.py)
+during install. Loaded by Claude Code only when `setting_sources` includes
+`"project"` (default).
+
+The central server lives at [core/thinking_os/server.py](../../core/thinking_os/server.py)
+and exposes ~60 tools under the `cos_*` namespace (categories in
+[AGENTS.md](../../AGENTS.md) §Four-Layer Retrieval).
+
+Claude addresses these tools as `mcp__coding-os__cos_<name>` per SDK
+docs §D.2.
+
+## 7. Formula-agent dispatcher
+
+[adapters/claude/sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py) — the only place
+in coding-os that calls `claude_agent_sdk.query()`.
+
+### 7.1 Why a dispatcher
+
+Phase M formula-roles (researcher, analyst, architect, …, refactorer)
+need to run as **real sub-sessions** so the supervisor (`cos_supervise`)
+can collect parallel evidence and merge it into a typed `EvidenceBundle`.
+The dispatcher converts a `DispatchRequest` into a single-turn SDK
+`query()` call.
+
+### 7.2 Hardened options (2026-05-04)
+
+```python
+ClaudeAgentOptions(
+    system_prompt={
+        "type": "preset",
+        "preset": "claude_code",
+        "append": <role spec + dispatch context + JSON instruction>,
+        "exclude_dynamic_sections": True,   # cross-cwd cache reuse
+    },
+    max_turns=1,
+    allowed_tools=[..., "mcp__coding-os__*"],  # MCP wildcard always added
+    permission_mode="dontAsk",                  # headless; no prompts
+    setting_sources=["project"],                # isolate from ~/.claude/
+    model=request.model,
+    effort="max" if request.model in OPUS_47_IDS else None,
+    skills=role_skills,                         # from agent frontmatter
+    cwd=request.cwd,
+)
+```
+
+Why each line:
+
+| Line | Reason |
+|---|---|
+| `system_prompt = preset claude_code + append` | Default SDK prompt is **minimal** since the rename. Without the `claude_code` preset, formulas lose Claude Code's coding/safety baseline. |
+| `exclude_dynamic_sections=True` | Strips cwd/git/date/OS/memory_paths from the system prompt, emits them as a first-user-message block. Lets the prompt cache survive across consumer-project cwds. |
+| `permission_mode="dontAsk"` | Headless — never prompt the user. Allow-list is the contract; unmatched tools deny silently. |
+| `setting_sources=["project"]` | Sub-sessions must be reproducible across machines. Default loads `user`+`project`+`local` — `~/.claude/` would silently change behavior. |
+| `allowed_tools` includes `mcp__coding-os__*` | `acceptEdits` does NOT auto-approve MCP. Always inject the wildcard alongside caller-provided allow-list. |
+| `effort="max"` on Opus 4.7 | Py SDK 0.1.73 caps at `"max"` (no `"xhigh"` yet — TS-only as of 2026-05-04). |
+| `skills=role_skills` | Sub-sessions don't inherit parent skills. Each role's `skills:` frontmatter declares dependencies (e.g. implementer → `["clean-code"]`). |
+
+### 7.3 Contract
+
+**Input** — [DispatchRequest](../../core/thinking_os/dispatcher.py):
 
 | field | type | description |
 |---|---|---|
-| `formula_id` | str | e.g. `"implementer"` |
-| `agent_file` | str | absolute path to `F<N>_<name>.md` |
-| `prompt` | str | composed system+user prompt |
-| `input_slice` | dict | upstream-only bundle view from `build_input_slice()` |
-| `persona_id` | str\|None | dispatch persona (Phase N) |
-| `intensity` | `"light"\|"standard"\|"full"` | filters agent step list |
-| `allowed_tools` | list[str] | SDK `allowed_tools` passthrough |
-| `timeout_s` | float | hard timeout, default 300s |
+| `formula_id` | str | e.g. `"implementer"`. Restricted to `[A-Za-z0-9_-]+`. |
+| `agent_file` | str | **absolute** path to role md file. Dispatcher rejects relative paths. |
+| `prompt` | str | composed system+user prompt. |
+| `input_slice` | dict | upstream-only bundle view from `build_input_slice()`. |
+| `persona_id` | str\|None | dispatch persona. |
+| `intensity` | `"light"\|"standard"\|"full"` | filters role step list. |
+| `allowed_tools` | list[str] | caller-provided allow-list — `mcp__coding-os__*` is always appended. |
+| `timeout_s` | float | hard timeout, default 300s. |
+| `cwd` | str\|None | project root for the sub-session. |
+| `model` | str\|None | (NEW) model id. None = SDK default. |
 
 **Output** — `DispatchResult`:
 
-| field | type | description |
-|---|---|---|
-| `status` | `"ok"\|"timeout"\|"error"\|"skipped"` | outcome |
-| `output_json` | dict | parsed from ```json``` fenced block in transcript |
-| `latency_ms` | int | wall-clock dispatch time |
-| `dispatcher_name` | str | `"claude-sdk"` or `"default"` |
-| `error` | str\|None | failure reason if not ok |
-| `raw_transcript` | str\|None | full assistant text, for debugging |
-
-## 6. Real benchmarks (2026-04-20)
-
-Run: `uv run --extra claude-sdk python scripts/bench_sdk_dispatcher.py`
-
-### Sequential (3 formulas, real Claude Code spawning)
-
-| Scenario | Formula | Latency | Output size | Fields populated |
-|---|---|---|---|---|
-| decompose a /healthz endpoint | F2 | 30.0s | 3549 B | actors, decision_table, data_model, events, dependencies |
-| debug `sorted(...)` TypeError | F7 | 15.9s | 1582 B | root_cause, fault_chain, fix_applied, regression_tests_added, prevention |
-| implement `slugify()` helper | F5 | 14.7s | 1080 B | files_created, files_modified, implementation_notes, open_items |
-| **Total** | | **60.6s** | | **3/3 ok** |
-
-### Parallel (F7 + F5 via `asyncio.gather`)
-
-| Metric | Value |
+| field | type |
 |---|---|
-| Parallel wall time | 15.8s |
-| Sequential equivalent | 30.6s |
-| **Speedup** | **1.93x** (near-perfect) |
+| `status` | `"ok"\|"timeout"\|"error"\|"skipped"` |
+| `output_json` | parsed JSON from the formula's ```json``` block |
+| `latency_ms` | wall clock |
+| `dispatcher_name` | `"claude-sdk"` or `"default"` |
+| `error` | str\|None |
+| `raw_transcript` | str\|None |
 
-### Interpretation
+### 7.4 Failure modes
 
-- F2 is the slowest because decompose-intensity produces the largest JSON (~3.5 KB, 6+ entity fields).
-- F5/F7 are ~14s — typical for light-intensity formulas emitting <2 KB JSON.
-- Parallel dispatch is bandwidth-bound, not CPU-bound — `asyncio.gather` gives near-linear speedup. The F8 security-layers parallel path (Phase M feature) will benefit similarly.
-
-## 7. How the supervisor wires in
-
-The main agent doesn't call the dispatcher directly — it goes through
-two MCP tools registered in [core/thinking_os/tools/cognition.py](../../core/thinking_os/tools/cognition.py):
-
-### 7.1 — `cos_dispatch_formula_run` (single)
-
-```
-Input:  formula_id, session_id, task_marker, persona_id, intensity, timeout_s?
-Output: {status, formula_id, dispatcher_name, latency_ms,
-         output_json, error, bundle_fields_filled}
-```
-
-Under the hood:
-
-1. Build `DispatchRequest` from session state (agent file, input slice, intensity).
-2. `get_dispatcher()` picks `claude-sdk` or `default` automatically.
-3. `asyncio.run(d.dispatch(req))` — nested-loop fallback spins a dedicated thread.
-4. On `ok`, output is validated against the formula's `F<N>Output` Pydantic
-   schema, merged into the EvidenceBundle, and the dispatch row is written
-   to `formula_dispatches`.
-5. On `default` dispatcher (Codex/Cursor/no-SDK): status is `"skipped"` with
-   `error="inline-dispatch-required"`, and the main agent falls back to
-   Phase M inline-execution.
-
-### 7.2 — `cos_dispatch_parallel_run` (concurrent)
-
-```
-Input:  formula_ids: list[str], session_id, …
-Output: {results: [...], parallel_wall_ms, ok_count, total}
-```
-
-Uses `asyncio.gather(*(d.dispatch(req) for req in requests))` under the
-same nested-loop fallback. Each output is independently validated and
-persisted. Call when `cos_supervise` returns
-`action="dispatch_parallel"` (e.g. F8 security layers).
-
-### 7.3 — Typical call sequence
-
-```
-main agent:
-  cos_route_persona    → { persona_id: "senior-backend", … }
-  cos_supervise        → NextAction(action="dispatch",   formula="implementer", …)
-  cos_dispatch_formula_run(formula_id="implementer", …)
-                       → { status:"ok", output_json:{…}, bundle_fields_filled:1 }
-  cos_supervise        → NextAction(action="dispatch_parallel", formulas=["reviewer","security_auditor"], …)
-  cos_dispatch_parallel_run(formula_ids=["reviewer","security_auditor"], …)
-                       → { ok_count:2/2, parallel_wall_ms:13839 }
-  cos_supervise        → NextAction(action="done")
-```
-
-`cos_supervise_record_output` is still useful when the **default** dispatcher
-is in use (main agent runs the formula inline), but you don't need to call
-it manually after `cos_dispatch_formula_run` — that tool persists the bundle
-itself.
-
-## 8. End-to-end validation (2026-04-20)
-
-`scripts/e2e_dispatch_tool.py` exercises the full MCP-tool path:
-
-```
-→ registered tools: ['cos_dispatch_formula_run', 'cos_dispatch_parallel_run']
-
-=== Single-formula dispatch (F7) ===
-  dispatcher: claude-sdk  latency: 10.4s
-  output keys: [_meta, fault_chain, fix_applied, prevention, regression_tests, root_cause]
-  bundle_fields_filled: 1
-
-=== Parallel (F5+F7) ===
-  ok_count: 2/2   parallel_wall_ms: 13.8s
-  F5: latency=13.8s   F7: latency=10.7s (ran concurrently)
-
-=== Bundle ===    populated: [implementer, debugger]
-=== DB audit ===  3 rows in formula_dispatches
-
-E2E: PASS
-```
-
-Compared to sequential (10.7 + 13.8 = 24.5s), parallel wall was **13.8s —
-a 1.78x speedup** on a 2-formula dispatch.
-
-## 9. Tests
-
-| File | Tests | Covers |
+| Failure | Status | Note |
 |---|---|---|
-| [core/thinking_os/tests/test_dispatcher.py](../../core/thinking_os/tests/test_dispatcher.py) | 11 | Protocol shape, factory env routing, default dispatcher, SDK dispatcher (mocked happy/timeout/missing-json) |
-| [scripts/bench_sdk_dispatcher.py](../../scripts/bench_sdk_dispatcher.py) | — | Real sequential + parallel benchmark (spawns real Claude Code) |
-| [scripts/e2e_dispatch_tool.py](../../scripts/e2e_dispatch_tool.py) | — | Real MCP tool → dispatcher → Claude → bundle → DB audit row |
+| `claude_agent_sdk` not importable | `error` | Factory falls back to `default` dispatcher. |
+| `agent_file` is relative | `error` | Dispatcher rejects to avoid silent cwd-search ambiguity. |
+| Agent file missing | `error` | `FileNotFoundError`. |
+| Sub-session exceeds `timeout_s` | `timeout` | Includes partial transcript. |
+| No `json` block in transcript | `error` | "no JSON block found in agent output". |
+| Tool denied by permission_mode | n/a | Logged in `result.permission_denials`; transcript continues without that tool. |
 
-Run:
+### 7.5 MCP envelope path
+
+After successful dispatch, callers should NOT call `cos_supervise_record_output`
+manually — `cos_dispatch_formula_run` (in [core/thinking_os/tools/cognition.py](../../core/thinking_os/tools/cognition.py))
+persists the bundle and writes the `formula_dispatches` audit row.
+
+## 8. Subagent skill inheritance
+
+Agent SDK 0.1.73 docs are explicit: "Subagents do NOT inherit skills
+unless listed in `AgentDefinition.skills`." This adapter implements that
+contract by reading `skills:` from each role's frontmatter and forwarding
+to `ClaudeAgentOptions.skills`.
+
+Current mapping (2026-05-04):
+
+| Role | Skills declared |
+|---|---|
+| `implementer` | `[clean-code]` |
+| `reviewer` | `[clean-code]` |
+| `debugger` | `[search, codebase-explorer]` |
+| `security_auditor` | `[security-web, clean-code]` |
+| `refactorer` | `[clean-code, search]` |
+| `researcher` | `[search, codebase-explorer]` |
+| `analyst` | `[thinking_os]` |
+| `architect` | `[thinking_os]` |
+| `documenter`, `deployer`, `observer` | `(none)` |
+
+Add a skill to a role: edit `core/thinking_os/agents/<role>.md` frontmatter.
+Other adapters that don't understand `skills:` ignore it (Rule 1 — core
+stays agent-agnostic).
+
+## 9. Permissions — gotchas the SDK docs flag
+
+Evaluation order (digest §B.4):
+1. Hooks
+2. Deny rules (`disallowedTools` + settings.json `deny`) — wins even in `bypassPermissions`.
+3. Permission mode
+4. Allow rules (`allowedTools` + settings.json `allow`)
+5. `can_use_tool` callback (skipped in `dontAsk`)
+
+**Multi-decision precedence:** `deny > defer > ask > allow`.
+
+| Mode | Behavior | Use for coding-os |
+|---|---|---|
+| `default` | Unmatched tools call `can_use_tool`; no callback = deny | NOT used (would prompt). |
+| `acceptEdits` | Auto-approves Edit/Write/filesystem-Bash within cwd | NOT used in dispatcher (would still prompt for MCP). |
+| `dontAsk` | Never prompts; only allow-listed tools run | **Dispatcher uses this.** |
+| `plan` | No tool execution; `AskUserQuestion` only | n/a. |
+| `bypassPermissions` | All tools run; deny rules + hooks still apply; `allowed_tools` does NOT constrain | NEVER use — security hole. |
+| `auto` | Model classifier per call | Reserve for interactive UI. |
+
+Subagent inheritance warning: parent in `bypassPermissions`/`acceptEdits`/`auto`
+inherits to all children — cannot override per-subagent. Dispatcher uses
+`dontAsk` so this is moot for our tree.
+
+## 10. Skills — frontmatter contract
+
+Audited by [scripts/audit_skill_descriptions.py](../../scripts/audit_skill_descriptions.py).
+Per SDK docs §E.1:
+
+| Field | Limit | Notes |
+|---|---|---|
+| `name` | ≤64 chars, lowercase + digits + hyphens | Cannot contain "anthropic"/"claude". |
+| `description` | ≤1024 chars | Third-person voice. |
+| `name + description + when_to_use` | ≤1,536 chars listing budget | Otherwise truncated in skill listing. |
+
+Run audit:
 
 ```bash
-uv run --extra claude-sdk --extra rag pytest core/thinking_os/tests/test_dispatcher.py -v
-# 11 passed in 0.34s
-
-uv run --extra claude-sdk python scripts/bench_sdk_dispatcher.py
-# sequential: 3/3 ok in 54–60s; parallel speedup: 1.93x
-
-uv run --extra claude-sdk python scripts/e2e_dispatch_tool.py
-# E2E: PASS (single + parallel + bundle + DB)
+uv run python scripts/audit_skill_descriptions.py
 ```
 
-## 9. What other adapters do
+11 coding-os skills currently audited; all OK (longest is `a11y` @ 561 chars).
 
-| Adapter | Dispatcher | Behaviour |
+YAML gotcha: descriptions containing `: ` (colon-space) MUST be quoted.
+The SDK loader uses YAML — unquoted colon-space breaks the parser
+(found and fixed in `core/skills/search/SKILL.md` 2026-05-04).
+
+## 11. Plugins
+
+Loadable via `plugins=[{type:"local", path}]` only — SDK 0.1.73 has no
+remote plugin registry. coding-os "templates" model is compatible —
+distribute as local plugin paths.
+
+Plugin layout per SDK §E.2:
+
+```
+my-plugin/
+├── .claude-plugin/plugin.json    # required
+├── skills/<name>/SKILL.md
+├── commands/*.md                 # legacy
+├── agents/*.md
+├── hooks/hooks.json
+└── .mcp.json
+```
+
+coding-os does not currently package any plugin manifests; templates ship
+as scaffold overlays instead.
+
+## 12. Observability
+
+### 12.1 Cost / usage
+
+`ResultMessage.total_cost_usd` is a **client-side estimate** — do NOT
+bill from it. Use Anthropic's Usage and Cost API for billing.
+
+Per-step:
+- `assistant_msg.usage.input_tokens / output_tokens / cache_read_input_tokens / cache_creation_input_tokens`
+- Dedupe by `assistant_msg.message_id` (parallel tool calls share IDs).
+
+Per-model breakdown: `result.model_usage` map.
+
+### 12.2 OpenTelemetry
+
+| Signal | Enable env | Notes |
 |---|---|---|
-| `claude` + `claude-sdk` extra | `ClaudeSDKDispatcher` | Real sub-agent spawning via CLI |
-| `claude` without extra | `DefaultDispatcher` | Inline dispatch (Phase M fallback) |
-| `codex` | `DefaultDispatcher` | Inline dispatch (OpenAI Agents SDK integration pending) |
-| `cursor` | `DefaultDispatcher` | Inline dispatch (no SDK planned) |
-| any other | `DefaultDispatcher` | Inline dispatch |
+| Metrics | `OTEL_METRICS_EXPORTER=otlp` | Tokens, cost, sessions, LoC. |
+| Logs | `OTEL_LOGS_EXPORTER=otlp` | Prompts, API requests, tool results. |
+| Traces | `OTEL_TRACES_EXPORTER=otlp` + `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1` | Hook spans require `ENABLE_BETA_TRACING_DETAILED=1`. |
 
-New adapter with its own SDK? Drop `sdk_dispatcher.py` under
-`adapters/<your-agent>/` exposing a `build_dispatcher()` factory, teach
-`_detect_agent()` the name, and add a `_try_load_<agent>_sdk_dispatcher()`
-branch to the factory. Core never learns your SDK's shape.
+**Never** use `console` exporter — it collides with the SDK's stdout
+pipe. Override `OTEL_SERVICE_NAME` (default `claude-code`) per-adapter
+when shipping multiple agents in one collector.
 
-## 10. Related
+### 12.3 Sessions
 
+Stored at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl` where
+`<encoded-cwd>` replaces non-alphanumerics with `-`. Cross-host = ship
+the .jsonl.
+
+### 12.4 File checkpointing
+
+NOT enabled by default in dispatcher. To enable:
+
+```python
+ClaudeAgentOptions(
+    enable_file_checkpointing=True,
+    extra_args={"replay-user-messages": None},
+    ...
+)
+```
+
+Caveats:
+- Only tracks `Write`, `Edit`, `NotebookEdit` — `Bash` mutations bypass.
+- Same-session only; rewind requires `resume: sessionId` + empty `""`
+  prompt + `rewind_files(uuid)` + break.
+
+## 13. Verification
+
+```bash
+# Unit + smoke
+uv run --extra claude-sdk --extra rag pytest core/thinking_os/tests/test_dispatcher.py -q
+
+# Adapter install + parity
+uv run pytest tests/test_adapters.py tests/test_adapter_parity.py tests/test_adapter_registry.py -q
+
+# Real CLI dispatch (requires Claude CLI on PATH + Anthropic API key)
+uv run --extra claude-sdk python scripts/e2e_dispatch_tool.py
+
+# Skill description audit
+uv run python scripts/audit_skill_descriptions.py
+
+# Hook syntax
+make verify-hooks
+
+# SDK version smoke
+uv pip show claude-agent-sdk mcp | grep -E "^(Name|Version)"
+claude --version
+```
+
+## 14. Branding
+
+Per Anthropic licensing: cannot ship as "Claude Code" / "Claude Code
+Agent". OK: "Claude Agent", "Powered by Claude". coding-os internal
+tooling is fine; user-facing surfaces (UI labels, README, marketing)
+require review.
+
+## 15. What this adapter does NOT do (yet)
+
+1. **`PermissionRequest` hook** — SDK supports it, would let coding-os
+   centralize permission UX. Not wired.
+2. **Plugin manifests** — coding-os ships skills directly under
+   `.claude/skills/`, no `plugin.json`. Reasonable trade-off; revisit
+   when consumer projects need third-party plugin discovery.
+3. **`auto` permission mode UI** — TS preview reaches further than Py;
+   leave off until coding-os has an interactive permission surface.
+4. **OTEL collector defaults** — env vars work, but no project-default
+   collector endpoint in install.sh. Phase Q.8 candidate.
+5. **`PreCompact` hook** — useful for memory-state rehydration; SDK
+   supports it but no coding-os hook listens yet.
+
+## 16. Related
+
+- [adapters/claude/adapter.yaml](../../adapters/claude/adapter.yaml) — capability declaration
+- [adapters/claude/sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py) — formula dispatcher
+- [adapters/claude/install.sh](../../adapters/claude/install.sh) — install entry
+- [adapters/claude/settings.template.json](../../adapters/claude/settings.template.json) — rendered hook config (do not hand-edit)
+- [adapters/claude/settings.local.template.json](../../adapters/claude/settings.local.template.json) — user permission seed
 - [core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py) — Protocol + factory
-- [core/thinking_os/dispatchers/default.py](../../core/thinking_os/dispatchers/default.py) — fallback
-- [adapters/claude/sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py) — Claude-specific
-- [scripts/bench_sdk_dispatcher.py](../../scripts/bench_sdk_dispatcher.py) — real benchmark
-- [docs/phase-n-role-based-routing-plan.md](../phase-n-role-based-routing-plan.md) — routing layer (what formula to pick)
-- [docs/phase-m-thinking_os-new-formula.md](../phase-m-thinking_os-new-formula.md) — formula-agents (what this dispatcher spawns)
+- [core/thinking_os/dispatchers/default.py](../../core/thinking_os/dispatchers/default.py) — non-Claude fallback
+- [core/hooks/registry.yaml](../../core/hooks/registry.yaml) — hook SSOT
+- [docs/engineering/adapter-parity.md](../engineering/adapter-parity.md) — cross-adapter contract
+- [docs/engineering/mcp-error-envelope.md](../engineering/mcp-error-envelope.md) — `cos_*` response shape
+- [docs/phase-m-thinking_os-new-formula.md](../phase-m-thinking_os-new-formula.md) — formula roles
+- [docs/phase-n-role-based-routing-plan.md](../phase-n-role-based-routing-plan.md) — routing layer
+
+## 17. Changelog
+
+| Date | Change |
+|---|---|
+| 2026-04-20 | Phase N.SDK slice — initial Claude-SDK dispatcher (`claude-agent-sdk>=0.1.0`). |
+| 2026-04-24 | Doc anchor pinned at v0.1.0 dispatcher reference. |
+| 2026-05-04 | **Q-bundle:** SDK floor → `>=0.1.73,<0.2.0`; dispatcher hardened (preset+exclude_dynamic_sections+setting_sources+dontAsk+Opus 4.7 effort gate+abs-path assertion+role-skills inheritance); `mcp__coding-os__*` added to `settings.local.template.json`; `SubagentStart`/`SubagentStop`/`PostToolUseFailure` declared in `registry.yaml` + `adapter.yaml`; `agent-presence.sh` extended; skill descriptions audited (`search` SKILL.md frontmatter quoted); doc rewritten as full reference (TASK-002). |
+| 2026-05-05 | **Q.deep P0 wave:** `output_format` JSON Schema enforcement; `max_budget_usd` ceiling; programmatic `PreToolUse`+`PostToolUseFailure` hooks; OTEL env propagation; `disallowed_tools` deny-list; schema migration v23 (6 cost columns on `formula_dispatches`); skill `paths:` globs + pytest gate; `ClaudeAgentOptions` regression test; `.claude/agents/` cleanup (D2); `cos sync-all` propagation (TASK-003 P0 wave). |
+| 2026-05-05 | **Q.deep P1 wave:** `UserMessage.uuid` capture for file checkpointing (T9); `session_id` forwarded to SDK (T7.1); `error_max_structured_output_retries` surfaced in `DispatchResult.error` (T1.5); `long_context: true` on researcher frontmatter (T10.3); `enable_file_checkpointing` on implementer/refactorer (T9.1); dispatch metrics emitted via `agent_metrics` (T2.5/T8.4); hub `/api/cognition/cost`+`/dispatchers`+`/dispatchers/{id}/tools` endpoints (T2.4/T19.1/T19.2); `cos doctor --otel` probe (T8.3); `sdk_e2e` pytest marker (T12.2); import-failure test (T12.4). |
+| 2026-05-05 | **Q.deep wave 3:** schema migration v27 — `formula_dispatches` gains `sub_session_id` / `model` / `checkpoints_jsonb` columns + 2 indices for SDK telemetry persistence; `_persist_dispatch_output` writes 18-column INSERT including the 3 new fields; T1.6 — Pydantic validate runs before INSERT, malformed output skips row; T19.3 — `/api/board/list` exposes `sub_session_counts`; T16.2 — branding test (`test_branding.py`); T17.1 — version 0.2.0 → 0.3.0. |
+
+## 17a. Architectural Decisions (D1–D6)
+
+Decisions settled 2026-05-05 during TASK-003. See [claude-deepening-checklist.md](claude-deepening-checklist.md) for full rationale.
+
+| ID | Decision | Rationale |
+|---|---|---|
+| **D1** | KEEP `query()` per formula | `agents={…}` + Agent tool forces sub-sessions to inherit parent `permission_mode`; headless `dontAsk` contract would break. Cache reuse via `exclude_dynamic_sections` already achieved. |
+| **D2** | DELETE `.claude/agents/` symlinks | D1 keeps `query()` so symlinks are misleading scaffolding. Slash-command path (`.claude/commands/role-*.md`) retained. Removed in `install.sh` + `scaffold_manifest.json`. |
+| **D3** | KEEP scaffold (no plugin manifest) | Plugins target third-party distribution; coding-os ships its own kernel. Revisit when external consumers want plug-and-play. |
+| **D4** | ALLOW adapter-private hooks under `adapters/claude/hooks/` | Cross-adapter hooks stay in `core/hooks/`; SDK-only matchers (SubagentStart etc.) live adapter-side. `hook_renderer.py` respects `adapter_scope:` field. |
+| **D5** | Leave OTEL collector to operator | coding-os exports the env-var contract; bundling a collector would couple the kernel to a specific backend. `cos doctor --otel` probes the configured endpoint instead. |
+| **D6** | Long context opt-in per request | Formula bundles fit in 200k; only big-doc research needs 1M. `DispatchRequest.long_context: bool` + role frontmatter `long_context: true` (researcher). |

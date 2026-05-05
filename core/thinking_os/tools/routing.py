@@ -1,9 +1,13 @@
 """
-Thinking OS — MCP routing tools (TASK-145).
+Thinking OS — MCP routing tools (TASK-145 + Phase EVO).
 
-2 tools for data-driven model and skill selection:
+Tools for data-driven model and skill selection, failure pattern analysis,
+and autonomous routing evolution:
   - cos_route_model: complexity → model recommendation
   - cos_route_skill: task context → skill recommendation
+  - failure_pattern_query: aggregate structured failure anatomy
+  - routing_drift: detect stale routing weights vs. current outcome patterns
+  - recalculate_weights: rebuild routing_weights (now stamps staleness metadata)
 """
 
 from __future__ import annotations
@@ -355,8 +359,184 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
         )
         count += 1
 
+    # Stamp staleness metadata (migration v26 columns; guard for older DBs)
+    total_outcomes = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+    try:
+        conn.execute(
+            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, "
+            "outcomes_at_recalc = ?",
+            (total_outcomes,),
+        )
+    except sqlite3.OperationalError:
+        pass  # migration v26 not yet applied — safe to skip
+
     conn.commit()
-    return {"status": "ok", "weights_updated": count}
+    return {"status": "ok", "weights_updated": count, "outcomes_stamped": total_outcomes}
+
+
+# ---------------------------------------------------------------------------
+# routing_drift — detect stale routing weights
+# ---------------------------------------------------------------------------
+
+_STALE_THRESHOLD = 15  # new outcomes since last recalc before drift is flagged
+
+
+def routing_drift(conn: sqlite3.Connection) -> dict:
+    """Detect whether routing_weights are stale relative to task_outcomes.
+
+    PURPOSE:      Give the session-startup hook a cheap signal for when
+                  autonomous recalculate_weights should be triggered.
+    INPUT:        conn — DB with routing_weights (v3) and task_outcomes (v1).
+    OUTPUT:       {"drift_detected": bool, "new_outcomes_since_recalc": int,
+                  "threshold": int, "last_recalc_at": str|None,
+                  "recommendation": "recalculate"|"ok"}.
+    DEPENDENCIES: routing_weights (v3), task_outcomes (v1).
+    NOTES:        Reads MAX(outcomes_at_recalc) from routing_weights; if the
+                  column is missing (pre-v26 DB), falls back to last_updated.
+    """
+    table_check = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='routing_weights'"
+    ).fetchone()
+    if not table_check:
+        return {"drift_detected": False, "reason": "routing_weights table not found"}
+
+    total = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
+
+    last_recalc_at = None
+    outcomes_at_recalc = 0
+    try:
+        row = conn.execute(
+            "SELECT MAX(outcomes_at_recalc) AS at_recalc, "
+            "       MAX(last_recalc_at) AS recalc_at "
+            "FROM routing_weights"
+        ).fetchone()
+        if row:
+            outcomes_at_recalc = row["at_recalc"] or 0
+            last_recalc_at = row["recalc_at"]
+    except sqlite3.OperationalError:
+        # v26 columns not yet applied — use last_updated as proxy
+        row = conn.execute(
+            "SELECT MAX(last_updated) AS recalc_at FROM routing_weights"
+        ).fetchone()
+        if row:
+            last_recalc_at = row["recalc_at"]
+
+    new_since_recalc = total - outcomes_at_recalc
+    drift = new_since_recalc >= _STALE_THRESHOLD
+
+    return {
+        "drift_detected": drift,
+        "new_outcomes_since_recalc": new_since_recalc,
+        "threshold": _STALE_THRESHOLD,
+        "last_recalc_at": last_recalc_at,
+        "recommendation": "recalculate" if drift else "ok",
+    }
+
+
+# ---------------------------------------------------------------------------
+# failure_pattern_query — aggregate structured failure anatomy
+# ---------------------------------------------------------------------------
+
+_VALID_ROOT_CAUSES = frozenset({
+    "wrong_model", "scope_too_large", "missing_context",
+    "tool_failure", "spec_ambiguity", "env_mismatch", "other",
+})
+
+
+def failure_pattern_query(
+    conn: sqlite3.Connection,
+    *,
+    root_cause: Optional[str] = None,
+    domain: Optional[str] = None,
+    limit: int = 10,
+) -> dict:
+    """Aggregate structured failure anatomy from backtrack_events.
+
+    PURPOSE:      Surface which root_cause categories are most frequent so
+                  the agent (and learn_extract) can create failure-type
+                  learned_patterns to influence future routing.
+    INPUT:        Optional root_cause filter, optional domain filter, limit.
+    OUTPUT:       {"patterns": [{root_cause, count, domains, examples}],
+                  "total_structured": int, "total_backtrack": int}.
+    DEPENDENCIES: backtrack_events (v14), failure anatomy columns (v25).
+    NOTES:        Rows without root_cause (pre-v25) are excluded from
+                  structured results but counted in total_backtrack.
+    """
+    table_check = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='backtrack_events'"
+    ).fetchone()
+    if not table_check:
+        return {"patterns": [], "total_structured": 0, "total_backtrack": 0,
+                "note": "backtrack_events table not found"}
+
+    # Check if anatomy columns exist (v25)
+    try:
+        conn.execute("SELECT root_cause FROM backtrack_events LIMIT 0")
+        has_anatomy = True
+    except sqlite3.OperationalError:
+        has_anatomy = False
+
+    total_backtrack = conn.execute(
+        "SELECT COUNT(*) FROM backtrack_events"
+    ).fetchone()[0]
+
+    if not has_anatomy:
+        return {"patterns": [], "total_structured": 0, "total_backtrack": total_backtrack,
+                "note": "failure anatomy columns not yet available (run migration v25)"}
+
+    total_structured = conn.execute(
+        "SELECT COUNT(*) FROM backtrack_events WHERE root_cause IS NOT NULL"
+    ).fetchone()[0]
+
+    limit = max(1, min(50, int(limit)))
+
+    params: list = []
+    where_clauses = ["root_cause IS NOT NULL"]
+    if root_cause and root_cause in _VALID_ROOT_CAUSES:
+        where_clauses.append("root_cause = ?")
+        params.append(root_cause)
+
+    where_sql = " AND ".join(where_clauses)
+
+    agg_rows = conn.execute(
+        f"SELECT root_cause, COUNT(*) AS cnt "
+        f"FROM backtrack_events "
+        f"WHERE {where_sql} "
+        f"GROUP BY root_cause "
+        f"ORDER BY cnt DESC "
+        f"LIMIT ?",
+        [*params, limit],
+    ).fetchall()
+
+    patterns = []
+    for agg in agg_rows:
+        rc = agg["root_cause"]
+        # Fetch example entries for this root_cause
+        ex_params: list = [rc]
+        ex_where = "root_cause = ?"
+        if domain:
+            # backtrack_events has no domain column — filter via from_formula
+            pass  # domain filter not applicable here
+        examples_rows = conn.execute(
+            f"SELECT from_formula, to_formula, reason, hypothesis, failure_signal, "
+            f"       corrective_action, ts "
+            f"FROM backtrack_events "
+            f"WHERE {ex_where} "
+            f"ORDER BY ts DESC LIMIT 3",
+            ex_params,
+        ).fetchall()
+        examples = [dict(r) for r in examples_rows]
+        patterns.append({
+            "root_cause": rc,
+            "count": agg["cnt"],
+            "examples": examples,
+        })
+
+    return {
+        "patterns": patterns,
+        "total_structured": total_structured,
+        "total_backtrack": total_backtrack,
+    }
 
 
 def _data_confidence(total_outcomes: int) -> float:

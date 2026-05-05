@@ -73,6 +73,9 @@ case "$EVENT_RAW" in
   SessionStart|start)      EVENT="start" ;;
   UserPromptSubmit|prompt) EVENT="prompt" ;;
   PreToolUse|PostToolUse|tool) EVENT="tool" ;;
+  PostToolUseFailure)      EVENT="tool" ;;   # tool errored — still recent activity
+  SubagentStart)           EVENT="tool" ;;   # sub-session spawn: parent is active
+  SubagentStop)            EVENT="tool" ;;   # sub-session done: parent activity
   Stop|stop)               EVENT="stop" ;;
   SessionEnd|end)          EVENT="end" ;;
   *)                       EVENT="tool" ;;   # safest default: count as activity

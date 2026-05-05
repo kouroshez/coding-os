@@ -175,6 +175,26 @@ if [[ "$SOURCE" == "startup" ]]; then
     cat "$DIGEST_PATH"
   fi
 
+  # Phase EVO — Project Trajectory: inject latest trajectory snapshot so the
+  # agent knows WHERE the project is heading (not just what tasks are open).
+  # The trajectory section is already embedded in digest.md when present;
+  # this helper also surfaces it as a standalone block for emphasis.
+  if [ -f "$COS_DB_PATH" ]; then
+    TRAJ_HELPER="${_COS_HOOKS_PHYS}/_helpers/trajectory_startup.py"
+    if [ -f "$TRAJ_HELPER" ]; then
+      python3 "$TRAJ_HELPER" "$COS_DB_PATH" 2>/dev/null || true
+    fi
+  fi
+
+  # Phase EVO — Autonomous Routing Evolution: detect stale routing weights
+  # and auto-trigger recalculate_weights when N=15 new outcomes accumulated.
+  if [ -f "$COS_DB_PATH" ]; then
+    ROUTING_HELPER="${_COS_HOOKS_PHYS}/_helpers/routing_evolution.py"
+    if [ -f "$ROUTING_HELPER" ]; then
+      python3 "$ROUTING_HELPER" "$COS_DB_PATH" 2>/dev/null || true
+    fi
+  fi
+
   # Token economics display — informational, non-blocking
   if [ -f "$COS_DB_PATH" ]; then
     STARTUP_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_startup.py"

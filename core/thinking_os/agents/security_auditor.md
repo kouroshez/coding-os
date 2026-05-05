@@ -8,6 +8,7 @@ parallel_siblings: []
 model_pref:
   complicated: sonnet
   complex: opus
+skills: [security-web, clean-code]
 tools_budget:
   - cos_search
   - cos_graph_contracts

@@ -7,6 +7,18 @@ intensity_min: light
 model_pref:
   complicated: sonnet
   complex: opus
+# Skills the Claude adapter pre-loads when this role runs as a real
+# subagent via claude-agent-sdk (AgentDefinition.skills / Options.skills).
+# Other adapters that don't understand this key ignore it (Rule 1).
+skills: [clean-code]
+# When true, the Claude dispatcher passes
+# `output_format={type:"json_schema", schema:<output_schema cls>}` to
+# the SDK so the runtime enforces the contract instead of relying on
+# transcript regex extraction. See docs/adapters/claude-sdk.md §7.
+structured_output: true
+# Enable file checkpointing so edit-heavy runs can be rewound.
+# See docs/adapters/claude-sdk.md §12.4 (T9.1).
+enable_file_checkpointing: true
 tools_budget:
   - cos_search
   - cos_doc_search

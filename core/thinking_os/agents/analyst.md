@@ -7,6 +7,7 @@ intensity_min: light
 model_pref:
   complicated: sonnet
   complex: opus
+skills: [thinking_os]
 tools_budget:
   - cos_search
   - cos_doc_search

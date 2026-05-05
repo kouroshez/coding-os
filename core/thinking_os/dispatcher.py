@@ -54,6 +54,20 @@ class DispatchRequest(BaseModel):
     timeout_s: float = 300.0
     session_id: str | None = None
     cwd: str | None = None
+    # Optional model id forwarded to the adapter (e.g. "claude-opus-4-7",
+    # "claude-sonnet-4-6"). None = let the adapter pick its default. Kept
+    # generic so non-Claude adapters can use their own model strings.
+    model: str | None = None
+    # Per-call cost ceiling (USD). None = no ceiling. Adapters that
+    # cannot enforce this MUST surface a warning rather than silently
+    # dropping the cap. The Claude adapter forwards this to
+    # ClaudeAgentOptions.max_budget_usd; on exhaustion the SDK emits
+    # subtype="error_max_budget_usd" which the dispatcher maps to
+    # status="error" with the budget figure in `error`.
+    max_budget_usd: float | None = None
+    # Long-context opt-in (Phase Q.deep D6). Adapters that support a
+    # 1M-token context beta should expand the budget when True.
+    long_context: bool = False
 
     @field_validator("formula_id")
     @classmethod

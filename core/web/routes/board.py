@@ -445,6 +445,34 @@ async def board_list(
             conn.close()
         env["data"]["agent_states"] = states
         env["data"]["active_agents"] = [a for a, st in states.items() if st != "offline"]
+        # T19.3 — surface dispatcher sub-session count so the live-agents
+        # panel can show "Claude (+ N sub-agents)". Sub-sessions are written
+        # by adapters/claude/sdk_dispatcher.py::_presence_write() with
+        # session_id prefix `ses-claude-sdk-`.
+        sub_counts: dict[str, int] = {}
+        for agent in agent_ids:
+            try:
+                files = _presence_files(agent)
+                count = 0
+                import time as _time
+                now = _time.time()
+                for path in files:
+                    if not path.stem.startswith(f"ses-{agent}-sdk-"):
+                        continue
+                    try:
+                        data = json.loads(path.read_text(encoding="utf-8"))
+                    except (OSError, json.JSONDecodeError):
+                        continue
+                    if data.get("ended_at") is not None:
+                        continue
+                    last_tool = data.get("last_tool_at") or 0
+                    if isinstance(last_tool, int) and now - last_tool <= _ACTIVE_WINDOW_SECS:
+                        count += 1
+                if count:
+                    sub_counts[agent] = count
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("sub-session count failed for %s: %s", agent, exc)
+        env["data"]["sub_session_counts"] = sub_counts
         human_row = {
             "id": "human",
             "label": "human",

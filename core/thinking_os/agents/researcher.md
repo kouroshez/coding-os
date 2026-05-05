@@ -7,6 +7,10 @@ intensity_min: light
 model_pref:
   complicated: sonnet
   complex: opus
+skills: [search, codebase-explorer]
+# Full-intensity research may need 1M context (large codebase/doc ingestion).
+# The Claude dispatcher passes betas=["context-1m-2025-08-07"] when set.
+long_context: true
 tools_budget:
   - cos_search
   - cos_doc_search

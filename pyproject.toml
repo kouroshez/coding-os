@@ -1,11 +1,11 @@
 [project]
 name = "coding-os"
-version = "0.2.0"
+version = "0.3.0"
 description = "Agent-agnostic cognitive operating system for AI coding agents"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.26.0",
+    "mcp>=1.27.0",
     "pydantic>=2.12.5",
     "click>=8.1.0",
     "pyyaml>=6.0",
@@ -56,7 +56,9 @@ web = [
 # Other adapters (codex, cursor, ...) fall back to the default DB-only dispatcher.
 # Install with: uv sync --extra claude-sdk
 claude-sdk = [
-    "claude-agent-sdk>=0.1.0",
+    # 2026-05-04: pin floor to 0.1.73 (latest); cap below 0.2 — major bump
+    # would change SDK shape and invalidate dispatcher assumptions.
+    "claude-agent-sdk>=0.1.73,<0.2.0",
     "anyio>=4.0.0",
 ]
 
@@ -107,4 +109,5 @@ packages = [
 testpaths = ["core/thinking_os/tests", "core/graph_os/tests", "tests"]
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
+    "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",
 ]
