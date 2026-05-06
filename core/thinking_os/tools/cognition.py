@@ -66,6 +66,13 @@ def _resolve_role_persistence(role_id: str) -> tuple[str | None, Any]:
         _role_persistence_cache = {}
         cog = _cog()
         schemas_mod = _schemas()
+        # Primary source: ROLE_OUTPUT_CLASSES registry in cognition_schemas.
+        # Frontmatter `output_schema:` / `bundle_field:` override on a per-
+        # role basis (lets a deployment swap the Pydantic class without
+        # editing the registry).
+        for rid, cls in schemas_mod.ROLE_OUTPUT_CLASSES.items():
+            _role_persistence_cache[rid] = (rid, cls)
+
         try:
             registry = cog.load_agent_registry()
         except Exception as exc:  # noqa: BLE001
@@ -76,11 +83,13 @@ def _resolve_role_persistence(role_id: str) -> tuple[str | None, Any]:
                 continue
             field = meta.get("bundle_field") or rid
             schema_ref = meta.get("output_schema")
-            cls = None
+            cls = _role_persistence_cache.get(rid, (None, None))[1]
             if isinstance(schema_ref, str) and schema_ref.strip():
                 cls_name = schema_ref.split(".")[-1].strip()
                 if cls_name.isidentifier():
-                    cls = getattr(schemas_mod, cls_name, None)
+                    override = getattr(schemas_mod, cls_name, None)
+                    if override is not None:
+                        cls = override
             _role_persistence_cache[rid] = (field, cls)
     return _role_persistence_cache.get(role_id, (None, None))
 

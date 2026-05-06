@@ -338,6 +338,41 @@ class EvidenceBundle(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Bundle-field registry — single source of truth (Rule 1)
+# ---------------------------------------------------------------------------
+#
+# Adding a new role still requires a Pydantic Output class above and a
+# matching field on EvidenceBundle (compile-time Python typing constraint).
+# This registry centralizes the role_id → output_class mapping so callers
+# (cognition.py tools, dispatcher persistence, traceability gate) read
+# from one place instead of duplicating the dict literal.
+
+ROLE_OUTPUT_CLASSES: dict[str, type[BaseModel]] = {
+    "researcher": ResearcherOutput,
+    "analyst": AnalystOutput,
+    "architect": ArchitectOutput,
+    "documenter": DocumenterOutput,
+    "implementer": ImplementerOutput,
+    "reviewer": ReviewerOutput,
+    "debugger": DebuggerOutput,
+    "security_auditor": SecurityAuditorOutput,
+    "deployer": DeployerOutput,
+    "observer": ObserverOutput,
+    "refactorer": RefactorerOutput,
+}
+
+
+def output_class_for(role_id: str) -> type[BaseModel] | None:
+    """Pydantic Output class for a role id. None when unknown."""
+    return ROLE_OUTPUT_CLASSES.get(role_id)
+
+
+def all_role_ids() -> tuple[str, ...]:
+    """All known role ids in canonical (declaration) order."""
+    return tuple(ROLE_OUTPUT_CLASSES.keys())
+
+
+# ---------------------------------------------------------------------------
 # Supervisor state
 # ---------------------------------------------------------------------------
 
