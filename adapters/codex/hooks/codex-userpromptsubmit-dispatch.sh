@@ -37,7 +37,7 @@ run_delegate() {
   return 0
 }
 
-for delegate in session-context.sh agent-presence.sh; do
+for delegate in session-context.sh nudge-thinking-os.sh agent-presence.sh; do
   run_delegate "$delegate"
 done
 

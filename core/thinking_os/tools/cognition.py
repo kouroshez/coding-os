@@ -1089,6 +1089,11 @@ def register_cos_dispatch_formula_run(mcp, db_path):
     ) -> str:
         import asyncio as _asyncio
         from thinking_os import dispatcher as _disp
+        from thinking_os import budget as _budget
+
+        gate = _budget.check(db_path)
+        if not gate.allowed:
+            return fail("budget", gate.reason)
 
         try:
             req = _build_dispatch_request(
@@ -1212,9 +1217,14 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
     ) -> str:
         import asyncio as _asyncio
         from thinking_os import dispatcher as _disp
+        from thinking_os import budget as _budget
 
         if not formula_ids:
             return fail("validation", "formula_ids must be non-empty")
+
+        gate = _budget.check(db_path)
+        if not gate.allowed:
+            return fail("budget", gate.reason)
 
         try:
             requests = [

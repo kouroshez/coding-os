@@ -102,6 +102,7 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_AGENT_DIR}/.doc-anchor-override" \
     "${COS_AGENT_DIR}/.memory-check-override" \
     "${COS_AGENT_DIR}/.uv-heredoc-override" \
+    "${COS_AGENT_DIR}/.zoom-prompt-suggested" \
     "${COS_STATE_DIR}/.capture-errors.log"; do
     if [ -e "$STATE_FILE" ]; then
       rm -f "$STATE_FILE"
@@ -202,6 +203,47 @@ if [[ "$SOURCE" == "startup" ]]; then
       python3 "$STARTUP_PY" "$COS_DB_PATH" 2>/dev/null || true
     fi
   fi
+fi
+
+# On user-prompt-submit: emit a compact per-turn workflow state via the
+# Claude Code hookSpecificOutput JSON format so the operator sees the
+# system pulse on every prompt (active task, complexity gate, board WIP,
+# session-id tail). Mirrors the caveman-mode-tracker.js pattern so the UI
+# renders this as a compact labeled "additionalContext" block.
+if [[ "$SOURCE" == "user-prompt-submit" ]]; then
+  TASK_CUR=""
+  if [ -f "${COS_AGENT_DIR}/.task-current" ]; then
+    TASK_CUR=$(tr -d '\n\r' < "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -c 32)
+  fi
+  GATE_STATE=""
+  if [ -f "${COS_AGENT_DIR}/.thinking_os-gate" ]; then
+    GATE_STATE=$(tr -d '\n\r' < "${COS_AGENT_DIR}/.thinking_os-gate" 2>/dev/null | head -c 24)
+  fi
+  WIP_TOTAL=""
+  if [ -f "$COS_DB_PATH" ] && command -v python3 >/dev/null 2>&1; then
+    WIP_TOTAL=$(python3 -c "
+import sqlite3, sys
+try:
+    c = sqlite3.connect('$COS_DB_PATH').cursor()
+    n = c.execute(\"SELECT COUNT(*) FROM tasks WHERE status IN ('in_progress','testing')\").fetchone()[0]
+    print(n)
+except Exception:
+    pass
+" 2>/dev/null | head -c 6)
+  fi
+  SES_TAIL=""
+  if [ -n "${COS_SESSION_ID:-}" ]; then
+    SES_TAIL="${COS_SESSION_ID: -8}"
+  fi
+
+  PARTS="agent=${COS_AGENT:-?}"
+  [[ -n "$SES_TAIL" ]] && PARTS="${PARTS} ses=${SES_TAIL}"
+  [[ -n "$TASK_CUR" ]] && PARTS="${PARTS} task=${TASK_CUR}" || PARTS="${PARTS} task=none"
+  [[ -n "$GATE_STATE" ]] && PARTS="${PARTS} gate=${GATE_STATE}" || PARTS="${PARTS} gate=unset"
+  [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
+
+  CONTEXT="[coding-os pulse] ${PARTS}"
+  printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 fi
 
 exit 0

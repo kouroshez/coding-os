@@ -52,7 +52,7 @@ run_delegate() {
   return 0
 }
 
-for delegate in session-end.sh check-capture-worked.sh; do
+for delegate in session-end.sh check-capture-worked.sh auto-trace-rotate.sh; do
   run_delegate "$delegate"
 done
 

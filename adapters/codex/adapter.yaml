@@ -106,6 +106,7 @@ hook_dispatchers:
     delegates:
       - session-end.sh
       - check-capture-worked.sh
+      - auto-trace-rotate.sh
       - agent-presence.sh
   - event: PostToolUse
     matcher: Bash
@@ -121,4 +122,5 @@ hook_dispatchers:
     script: codex-userpromptsubmit-dispatch.sh
     delegates:
       - session-context.sh
+      - nudge-thinking-os.sh
       - agent-presence.sh

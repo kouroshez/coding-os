@@ -123,6 +123,7 @@ hook_dispatchers:
     delegates:
       - session-end.sh
       - check-capture-worked.sh
+      - auto-trace-rotate.sh
   - event: PostToolUse
     matcher: Bash
     script: remind-learn-validate.sh

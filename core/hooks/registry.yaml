@@ -738,3 +738,35 @@ hooks:
     events:
       - event: PostToolUseFailure
         matcher: ""
+
+  - id: auto-trace-rotate
+    script: auto-trace-rotate.sh
+    description: |
+      Stop hook — rotate trace JSONL. gzip files older than
+      COS_TRACE_GZIP_AGE_DAYS (default 3). Delete (gz or jsonl) older than
+      COS_TRACE_DELETE_AGE_DAYS (default 30). Bounded, fire-and-forget.
+      Closes the unbounded growth gap on .coding-os/<agent>/traces/*.jsonl.
+    category: observability
+    phase: O
+    timeout: 3000
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "🧹 Rotating old trace files..."
+
+  - id: nudge-thinking-os
+    script: nudge-thinking-os.sh
+    description: |
+      UserPromptSubmit nudge — heuristic Complexity Gate + Rule 18 task reconciliation.
+      Counts signal words (design, architect, debug, investigate, refactor,
+      best way, optimize, etc.) plus length. For COMPLICATED+ emits a
+      stdout additional-context block mandating: (1) cos_task_board check per
+      Rule 18, (2) Complexity Gate recording, (3) thinking_os skill load,
+      (4) cos_compose_chain call. Debounced once per session via
+      .zoom-prompt-suggested marker; skipped if .thinking_os-gate already exists.
+    category: cognition
+    phase: O
+    timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""

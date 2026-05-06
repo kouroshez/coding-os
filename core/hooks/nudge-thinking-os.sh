@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook — heuristic Complexity Gate nudge.
+# UserPromptSubmit hook — heuristic Complexity Gate nudge + Rule 18 task reconciliation.
 #
 # Reads user prompt from stdin payload. Counts signal words to classify
 # as CLEAR / COMPLICATED / COMPLEX / CHAOTIC. For COMPLICATED+ emits an
-# additional-context block to stdout suggesting `/thinking_os` skill load
-# and Complexity Gate recording. Debounced per session via marker file
-# so the same session is nudged at most once.
+# additional-context block mandating Rule 18 task board check (cos_task_board),
+# Complexity Gate recording, and thinking_os skill load.
+# Debounced per session via marker file so the same session is nudged at most once.
 #
 # Always exits 0 — never blocks input.
 set -euo pipefail
@@ -77,18 +77,10 @@ cos_log_hook nudge-thinking-os fire "class=${CLASSIFICATION} len=${LEN} cplx=${C
 mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
 printf '%s' "$CLASSIFICATION" > "$MARKER" 2>/dev/null || true
 
-# Emit stdout — UserPromptSubmit hook stdout is forwarded as additional
-# system context to the model.
-cat <<EOF
-[thinking_os auto-classify] heuristic: ${CLASSIFICATION} (~${DIM_HINT} dimension signals).
-
-Recommended:
-1. Load skill via Skill tool: skill="thinking_os"
-2. Record Complexity Gate:
-   bash "\$COS_AGENT_DIR/hooks/write-state.sh" "\$COS_AGENT_DIR/.thinking_os-gate" "${CLASSIFICATION} <N>"
-3. For COMPLICATED+ — call \`cos_compose_chain(signals)\` before writing code.
-
-Heuristic only. Re-classify after reading the prompt fully.
-EOF
+# Emit structured hookSpecificOutput JSON — Claude Code renders UserPromptSubmit
+# hooks that return this format as a compact labeled "additionalContext" block,
+# matching the pattern used by caveman-mode-tracker.js for consistent UI.
+CONTEXT="[thinking_os ${CLASSIFICATION} ~${DIM_HINT}dim] MANDATORY: (1) cos_task_board [Rule 18] (2) write-state.sh gate (3) Skill(thinking_os) (4) cos_compose_chain — heuristic, re-classify after full read."
+printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 
 exit 0
