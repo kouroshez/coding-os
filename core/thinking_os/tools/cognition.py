@@ -1204,6 +1204,20 @@ def register_cos_dispatch_formula_run(mcp, db_path):
 
         d = _disp.get_dispatcher()
 
+        # Trace event — visible in cos cognition trace replay so the
+        # flowchart shows the actual sub-agent execution span.
+        try:
+            import tracing
+            tracing.emit(session_id, "dispatch_started", {
+                "formula_id": formula_id,
+                "dispatcher_name": getattr(d, "name", "unknown"),
+                "intensity": intensity,
+                "model": req.model,
+                "long_context": req.long_context,
+            }, role=formula_id, phase="EXECUTE")
+        except Exception as exc:  # noqa: BLE001 — tracing must never break dispatch
+            logger.debug("dispatch_started trace emit failed: %s", exc)
+
         try:
             result = _asyncio.run(d.dispatch(req))
         except RuntimeError as exc:
@@ -1244,6 +1258,26 @@ def register_cos_dispatch_formula_run(mcp, db_path):
             latency_ms=result.latency_ms,
             output_json=result.output_json,
         )
+
+        # Trace event — pairs with dispatch_started above so the cognition
+        # replay shows the full sub-agent execution span (not just supervisor
+        # routing decision).
+        try:
+            import tracing
+            _meta = result.output_json.get("_meta") if isinstance(result.output_json, dict) else {}
+            _meta = _meta if isinstance(_meta, dict) else {}
+            tracing.emit(session_id, "dispatch_completed", {
+                "formula_id": formula_id,
+                "status": result.status,
+                "latency_ms": result.latency_ms,
+                "cost_usd": _meta.get("total_cost_usd"),
+                "sub_session_id": _meta.get("session_id"),
+                "model": _meta.get("model"),
+                "bundle_fields_filled": filled,
+                "error": result.error,
+            }, role=formula_id, phase="EXECUTE")
+        except Exception as exc:  # noqa: BLE001 — tracing must never break dispatch
+            logger.debug("dispatch_completed trace emit failed: %s", exc)
 
         return ok(
             {

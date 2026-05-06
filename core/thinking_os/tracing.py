@@ -49,6 +49,9 @@ FLOWCHART_NODES: dict[str, str] = {
     "role_dispatch":        "n-supervisor",
     "role_output_recorded": "n-supervisor",
     "parallel_dispatch":    "n-supervisor",
+    # Dispatcher (real SDK execution, not just supervisor decision)
+    "dispatch_started":     "n-supervisor",
+    "dispatch_completed":   "n-supervisor",
     # Gates
     "ambiguity_check":      "n-ambi",
     "ambiguity_violation":  "n-ambi",
