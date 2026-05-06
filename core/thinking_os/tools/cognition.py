@@ -45,6 +45,60 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+_role_persistence_cache: dict[str, tuple[str | None, Any]] | None = None
+
+
+def _resolve_role_persistence(role_id: str) -> tuple[str | None, Any]:
+    """
+    PURPOSE: Map role id → (EvidenceBundle field name, Pydantic Output class).
+             Data-driven from role frontmatter so adding a role needs zero
+             cognition.py edits — only a new agents/<role>.md file plus the
+             matching Pydantic class in cognition_schemas.py.
+    INPUT:   role_id (e.g. "researcher").
+    OUTPUT:  (field_name, output_cls). Either may be None when the role
+             does not declare `output_schema:` or when the class import fails.
+    NOTES:   Frontmatter contract:
+             - `output_schema: cognition.<X>Output` — Pydantic class ref.
+             - `bundle_field: <name>` (optional, defaults to role id).
+    """
+    global _role_persistence_cache
+    if _role_persistence_cache is None:
+        _role_persistence_cache = {}
+        cog = _cog()
+        schemas_mod = _schemas()
+        try:
+            registry = cog.load_agent_registry()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("agent registry load failed: %s", exc)
+            registry = {}
+        for rid, meta in registry.items():
+            if not isinstance(meta, dict):
+                continue
+            field = meta.get("bundle_field") or rid
+            schema_ref = meta.get("output_schema")
+            cls = None
+            if isinstance(schema_ref, str) and schema_ref.strip():
+                cls_name = schema_ref.split(".")[-1].strip()
+                if cls_name.isidentifier():
+                    cls = getattr(schemas_mod, cls_name, None)
+            _role_persistence_cache[rid] = (field, cls)
+    return _role_persistence_cache.get(role_id, (None, None))
+
+
+def _all_bundle_fields() -> set[str]:
+    """Bundle field names from every registered role (data-driven)."""
+    cog = _cog()
+    try:
+        registry = cog.load_agent_registry()
+    except Exception:
+        return set()
+    out: set[str] = set()
+    for rid, meta in registry.items():
+        if isinstance(meta, dict):
+            out.add(str(meta.get("bundle_field") or rid))
+    return out
+
+
 def _resolve_agent_dir() -> Path:
     """
     PURPOSE: Generic resolver for the per-agent state dir (Rule 1 — never
@@ -215,24 +269,10 @@ def register_cos_supervise_record_output(mcp, db_path):
         OUTPUT:       ok with bundle field count.
         DEPENDENCIES: EvidenceBundle on disk, formula_dispatches table.
         """
-        schemas = _schemas()
         bundle = _load_bundle(session_id, task_marker, persona_id)
 
-        field_map = {
-            "researcher": "researcher", "analyst": "analyst", "architect": "architect",
-            "documenter": "documenter", "implementer": "implementer", "reviewer": "reviewer",
-            "debugger": "debugger", "security_auditor": "security_auditor", "deployer": "deployer",
-            "observer": "observer", "refactorer": "refactorer",
-        }
-        output_cls_map = {
-            "researcher": schemas.ResearcherOutput, "analyst": schemas.AnalystOutput, "architect": schemas.ArchitectOutput,
-            "documenter": schemas.DocumenterOutput, "implementer": schemas.ImplementerOutput, "reviewer": schemas.ReviewerOutput,
-            "debugger": schemas.DebuggerOutput, "security_auditor": schemas.SecurityAuditorOutput, "deployer": schemas.DeployerOutput,
-            "observer": schemas.ObserverOutput, "refactorer": schemas.RefactorerOutput,
-        }
-
-        field = field_map.get(formula_id)
-        cls = output_cls_map.get(formula_id)
+        # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
+        field, cls = _resolve_role_persistence(formula_id)
         if field and cls and status == "ok":
             try:
                 parsed = cls.model_validate_json(output_json)
@@ -262,7 +302,7 @@ def register_cos_supervise_record_output(mcp, db_path):
             logger.debug("formula_dispatches insert failed: %s", exc)
 
         filled = sum(
-            1 for f in field_map if getattr(bundle, field_map[f], None) is not None
+            1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None
         )
         # Phase N — emit trace event so the flowchart replay knows a role completed
         try:
@@ -419,10 +459,6 @@ def register_cos_traceability(mcp, db_path):
         """
         gaps = []
         bundle = _load_bundle(session_id, task_marker, persona_id)
-        field_map = {
-            "researcher": "researcher", "analyst": "analyst", "architect": "architect",
-            "documenter": "documenter", "implementer": "implementer", "reviewer": "reviewer",
-        }
 
         try:
             with sqlite3.connect(db_path) as conn:
@@ -435,8 +471,12 @@ def register_cos_traceability(mcp, db_path):
             rows = []
 
         dispatched_ids = {r[0] for r in rows if r[1] == "ok"}
-        for fid, field in field_map.items():
-            if fid in dispatched_ids and getattr(bundle, field, None) is None:
+        # Data-driven traceability: every dispatched role with a bundle field
+        # is checked. Roles missing bundle_field in their frontmatter are skipped
+        # (correct behavior — non-persisting roles don't appear in the bundle).
+        for fid in dispatched_ids:
+            field, _cls = _resolve_role_persistence(fid)
+            if field and getattr(bundle, field, None) is None:
                 gaps.append({"formula": fid, "detail": "dispatched but no output in bundle"})
 
         total = len(dispatched_ids)
@@ -962,22 +1002,11 @@ def _persist_dispatch_output(
     NOTES:        Shared between run-single and run-parallel tools so the
                   record-output contract stays identical.
     """
-    schemas = _schemas()
     bundle = _load_bundle(session_id, task_marker, persona_id)
-    field_map = {
-        "researcher": "researcher", "analyst": "analyst", "architect": "architect",
-        "documenter": "documenter", "implementer": "implementer", "reviewer": "reviewer",
-        "debugger": "debugger", "security_auditor": "security_auditor", "deployer": "deployer",
-        "observer": "observer", "refactorer": "refactorer",
-    }
-    output_cls_map = {
-        "researcher": schemas.ResearcherOutput, "analyst": schemas.AnalystOutput, "architect": schemas.ArchitectOutput,
-        "documenter": schemas.DocumenterOutput, "implementer": schemas.ImplementerOutput, "reviewer": schemas.ReviewerOutput,
-        "debugger": schemas.DebuggerOutput, "security_auditor": schemas.SecurityAuditorOutput, "deployer": schemas.DeployerOutput,
-        "observer": schemas.ObserverOutput, "refactorer": schemas.RefactorerOutput,
-    }
-    field = field_map.get(formula_id)
-    cls = output_cls_map.get(formula_id)
+    # Data-driven role → bundle field + Pydantic class resolution.
+    # Role frontmatter declares `output_schema: cognition.<X>Output`;
+    # `bundle_field` defaults to role id but can be overridden in frontmatter.
+    field, cls = _resolve_role_persistence(formula_id)
     validation_failed = False
     if field and cls and status == "ok":
         try:
@@ -1058,7 +1087,7 @@ def _persist_dispatch_output(
         logger.debug("formula_dispatches insert failed: %s", exc)
 
     return sum(
-        1 for f in field_map if getattr(bundle, field_map[f], None) is not None
+        1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None
     )
 
 

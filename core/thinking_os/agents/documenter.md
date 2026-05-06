@@ -3,6 +3,7 @@ id: documenter
 name: "Documentation"
 formula_ref: documenter
 attach_phases: [EXECUTE]
+canonical_order: 3
 intensity_min: light
 model_pref:
   complicated: sonnet

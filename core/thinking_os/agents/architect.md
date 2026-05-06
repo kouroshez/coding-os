@@ -3,6 +3,7 @@ id: architect
 name: "Architecture & Design"
 formula_ref: architect
 attach_phases: [PLAN]
+canonical_order: 2
 intensity_min: standard
 model_pref:
   complicated: sonnet

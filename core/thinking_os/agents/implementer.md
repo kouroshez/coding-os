@@ -3,6 +3,7 @@ id: implementer
 name: "Implementation"
 formula_ref: implementer
 attach_phases: [EXECUTE]
+canonical_order: 4
 intensity_min: light
 model_pref:
   complicated: sonnet

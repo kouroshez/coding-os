@@ -3,6 +3,7 @@ id: analyst
 name: "Problem Decomposition & Analysis"
 formula_ref: analyst
 attach_phases: [MAP, ORIENT, PLAN]
+canonical_order: 1
 intensity_min: light
 model_pref:
   complicated: sonnet

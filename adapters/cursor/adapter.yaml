@@ -28,6 +28,7 @@ install_script: install.sh
 runtime_env_markers:
   - CURSOR_AGENT
   - CURSOR_PROJECT_DIR
+  - CURSOR_TRACE_ID
   - CURSOR_VERSION
 
 # MCP — project `.cursor/mcp.json`.

@@ -3,6 +3,7 @@ id: deployer
 name: "Deployment"
 formula_ref: deployer
 attach_phases: [EXECUTE]
+canonical_order: 8
 intensity_min: standard
 model_pref:
   complicated: sonnet

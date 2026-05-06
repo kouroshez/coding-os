@@ -3,6 +3,7 @@ id: debugger
 name: "Debugging & Fault Isolation"
 formula_ref: debugger
 attach_phases: [EXECUTE]
+canonical_order: 6
 intensity_min: light
 model_pref:
   complicated: sonnet

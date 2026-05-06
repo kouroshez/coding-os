@@ -3,6 +3,7 @@ id: observer
 name: "Monitoring & Observability"
 formula_ref: observer
 attach_phases: [EXECUTE]
+canonical_order: 9
 intensity_min: standard
 model_pref:
   complicated: sonnet

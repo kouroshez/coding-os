@@ -3,6 +3,7 @@ id: refactorer
 name: "Refactoring & Technical Debt"
 formula_ref: refactorer
 attach_phases: [ORIENT, EXECUTE]
+canonical_order: 10
 intensity_min: light
 model_pref:
   complicated: sonnet

@@ -3,6 +3,7 @@ id: security_auditor
 name: "Security Audit"
 formula_ref: security_auditor
 attach_phases: [PLAN, EXECUTE]
+canonical_order: 7
 intensity_min: standard
 parallel_siblings: []
 model_pref:

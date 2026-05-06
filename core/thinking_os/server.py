@@ -174,22 +174,26 @@ def _detect_agent_session_default() -> str | None:
         except OSError:
             pass
 
-    # Priority 2 — vendor env markers. Hardcoded names here intentionally
-    # (rule #11 exempts the MCP server's runtime self-detection because
-    # the MCP server is the one runtime piece below the adapter abstraction).
+    # Priority 2 — vendor env markers. Data-driven from
+    # adapters/<id>/adapter.yaml::runtime_env_markers (rule #11 — no
+    # hardcoded vendor lists in core).
     agent: str | None = None
     if _os.environ.get("COS_AGENT"):
         agent = _os.environ["COS_AGENT"].strip().lower() or None
-    elif _os.environ.get("CLAUDECODE") or _os.environ.get("CLAUDE_AGENT_SDK_VERSION") \
-            or _os.environ.get("CLAUDE_CODE_SSE_PORT") or _os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
-        agent = "claude"
-    elif _os.environ.get("CURSOR_TRACE_ID") or _os.environ.get("CURSOR_PROJECT_DIR"):
-        agent = "cursor"
-    elif _os.environ.get("CODEX_PROJECT_DIR"):
-        agent = "codex"
-    elif _os.environ.get("CLAUDE_PROJECT_DIR"):
-        # Cursor also sets this — only honor when no stronger signal fired.
-        agent = "claude"
+    else:
+        try:
+            from board_os._agent_runtime import detect_agent as _detect_agent
+            detected = _detect_agent(None)
+            # detect_agent returns "agent" or "human" when nothing matches;
+            # only treat real adapter ids as a positive identification.
+            if detected and detected not in ("human", "agent"):
+                agent = detected
+        except Exception:  # noqa: BLE001
+            agent = None
+        # Fallback heuristic — CLAUDE_PROJECT_DIR is shared with Cursor,
+        # so it only fires when no stronger signal matched.
+        if agent is None and _os.environ.get("CLAUDE_PROJECT_DIR"):
+            agent = "claude"
 
     if agent is None:
         return None

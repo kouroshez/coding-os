@@ -3,6 +3,7 @@ id: reviewer
 name: "Testing, Review & Performance"
 formula_ref: reviewer
 attach_phases: [EXECUTE]
+canonical_order: 5
 intensity_min: light
 model_pref:
   complicated: sonnet

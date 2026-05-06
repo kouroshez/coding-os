@@ -3,6 +3,7 @@ id: researcher
 name: "Research & Discovery"
 formula_ref: researcher
 attach_phases: [MAP, CLASSIFY]
+canonical_order: 0
 intensity_min: light
 model_pref:
   complicated: sonnet

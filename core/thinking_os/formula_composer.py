@@ -30,10 +30,58 @@ _ROLES_DIR = _HERE / "roles"
 _PRESETS_FILE = _HERE / "presets" / "registry.yaml"
 _SITUATIONS_FILE = _HERE / "situations" / "registry.yaml"
 
-_CANONICAL_ORDER: list[str] = [
+# Canonical role ordering — data-driven from agents/<role>.md frontmatter
+# `canonical_order: N` field. Sorted ascending; ties broken alphabetically.
+# Adding a new role requires only a frontmatter entry — no edit here.
+_CANONICAL_ORDER_FALLBACK: list[str] = [
     "researcher", "analyst", "architect", "documenter", "implementer",
     "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
 ]
+
+
+def _load_canonical_order() -> list[str]:
+    """Read agents/<role>.md frontmatter `canonical_order:` and sort.
+
+    PURPOSE: Single source of truth for role workflow order is the role
+             frontmatter, not a Python constant.
+    OUTPUT:  List of role ids ordered by their declared canonical_order.
+    NOTES:   Falls back to the static list if the agents/ dir is empty
+             or YAML parsing fails — keeps cold-start safe.
+    """
+    try:
+        import yaml as _yaml  # type: ignore
+    except ImportError:
+        return list(_CANONICAL_ORDER_FALLBACK)
+    agents_dir = _HERE / "agents"
+    if not agents_dir.exists():
+        return list(_CANONICAL_ORDER_FALLBACK)
+
+    entries: list[tuple[int, str]] = []
+    for md in sorted(agents_dir.glob("*.md")):
+        if md.name == "README.md":
+            continue
+        try:
+            text = md.read_text(encoding="utf-8")
+            if not text.startswith("---"):
+                continue
+            parts = text.split("---", 2)
+            if len(parts) < 3:
+                continue
+            meta = _yaml.safe_load(parts[1]) or {}
+            order = meta.get("canonical_order")
+            if not isinstance(order, int):
+                continue
+            rid = str(meta.get("id") or md.stem)
+            entries.append((order, rid))
+        except (OSError, _yaml.YAMLError):
+            continue
+
+    if not entries:
+        return list(_CANONICAL_ORDER_FALLBACK)
+    return [rid for _, rid in sorted(entries)]
+
+
+_CANONICAL_ORDER: list[str] = _load_canonical_order()
 _CANONICAL_INDEX: dict[str, int] = {r: i for i, r in enumerate(_CANONICAL_ORDER)}
 
 _HARD_FALLBACK: dict[str, list[str]] = {
