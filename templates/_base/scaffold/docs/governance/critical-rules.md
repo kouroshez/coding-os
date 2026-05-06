@@ -102,12 +102,26 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **How:** Hook `block-hardcoded-literals.sh` greps `cli/*.py`. Test `tests/test_no_hardcoded_stacks.py` enforces in CI.
 - **Where:** [cli/main.py](../../../../cli/main.py)
 
-## Rule 12 — Function header convention
+## Rule 12 — Comments by exception, not by default
 
-- **Rule:** New MCP tools / CLI commands / parsers under `core/thinking_os/**` and `cli/**` start with a `PURPOSE / INPUT / OUTPUT / DEPENDENCIES / NOTES` docstring.
-- **Why:** Header is the contract; body is the implementation. Header lets a reader / agent decide whether to keep reading.
-- **How:** Hook `lint-function-header.sh` warns on missing fields. (WARN class — review enforces semantically.)
-- **Where:** Sample: [core/thinking_os/tools/docs.py](../../../../core/thinking_os/tools/docs.py)
+- **Rule:** Default to NO comments and NO docstrings. Code reads like prose;
+  good names and small functions remove the need. Add a comment only when
+  the WHY is non-obvious: a hidden constraint, subtle invariant, workaround
+  for a specific bug, or behavior that would surprise a reader.
+- **Exception — public MCP tools (`@mcp.tool` decorated functions):**
+  ONE-line docstring is permitted because FastMCP exposes it as the tool
+  description to the client. Keep it under 80 chars. No multi-section
+  PURPOSE/INPUT/OUTPUT/DEPENDENCIES/NOTES blocks — they bloat tokens and
+  duplicate what arg names and types already convey.
+- **Why:** Comments rot, names don't (well-named code stays self-describing).
+  Long header blocks balloon every file and burn tokens on every read for
+  zero runtime benefit. Past convention was wrong; legacy `PURPOSE / INPUT
+  / OUTPUT / DEPENDENCIES / NOTES` blocks are a tech debt to be removed
+  when touching a file, not a pattern to extend.
+- **How:** No automated enforcement (was never in any active hook). Code
+  review rejects new PURPOSE/INPUT/OUTPUT blocks; `block-bad-patterns.sh`
+  already blocks bare `except: pass`-style noise.
+- **Where:** [core/skills/clean-code/SKILL.md](../../../../core/skills/clean-code/SKILL.md) §Self-Documenting
 
 ## Rule 13 — MCP tool response envelope
 
