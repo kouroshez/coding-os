@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Brain, KanbanSquare, Network, Search } from 'lucide-react';
+import { Brain, KanbanSquare, Network, Search, Settings } from 'lucide-react';
 import Inspector from '@/layout/Inspector';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
 
@@ -26,6 +26,7 @@ const NAV = [
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'search', label: 'Search', Icon: Search, end: true },
   { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
+  { feature: 'settings', label: 'Settings', Icon: Settings, end: true },
 ] as const;
 
 const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(?:\/|$)/;
@@ -72,7 +73,7 @@ export default function AppShell({
           {NAV.map(({ feature, label, Icon, end }) => (
             <NavLink
               key={feature}
-              to={linkFor(feature)}
+              to={feature === 'settings' ? '/settings' : linkFor(feature)}
               end={end}
               className={({ isActive }) =>
                 [

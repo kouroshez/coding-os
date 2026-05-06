@@ -24,6 +24,25 @@ logger = logging.getLogger("coding_os.budget")
 ENV_VAR = "COS_DAILY_BUDGET_USD"
 
 
+def _read_hub_settings_cap() -> float | None:
+    """Fall back to .coding-os/hub-settings.json when env var is absent."""
+    import json
+    state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
+    path = Path(state_dir) / "hub-settings.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+        bc = data.get("budget_cap", {})
+        if not bc.get("enabled"):
+            return None
+        v = float(bc.get("cap_usd", 0))
+        return v if v > 0 else None
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("hub-settings budget read failed: %s", exc)
+        return None
+
+
 @dataclass
 class BudgetGate:
     allowed: bool
@@ -76,7 +95,7 @@ def _spent_today(db_path: str | Path) -> float:
 
 
 def check(db_path: str | Path, *, additional_estimate_usd: float = 0.0) -> BudgetGate:
-    cap = _read_cap()
+    cap = _read_cap() or _read_hub_settings_cap()
     if cap is None:
         return BudgetGate(allowed=True, cap_usd=None, spent_usd=0.0)
     spent = _spent_today(db_path)

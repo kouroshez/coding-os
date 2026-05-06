@@ -7,6 +7,7 @@ import GraphPage from './pages/GraphPage';
 import CognitionPage from './pages/CognitionPage';
 import SearchPage from './pages/SearchPage';
 import HubHome from './pages/HubHome';
+import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/cognition" element={<CognitionPage />} />
           <Route path="/cognition/:sessionId" element={<CognitionPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {/*
             Per-project deep links.  The backend middleware rewrites
             /api/p/<slug>/... → /api/... and scopes the project for the

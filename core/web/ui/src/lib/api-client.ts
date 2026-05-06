@@ -132,6 +132,23 @@ export async function apiPost<T>(
   return handle<T>(res);
 }
 
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  init?: RequestInit,
+): Promise<[T, ApiMeta | null]> {
+  const res = await fetch(buildUrl(path), {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    ...init,
+  });
+  return handle<T>(res);
+}
+
 export async function apiDelete<T>(
   path: string,
   init?: RequestInit,
