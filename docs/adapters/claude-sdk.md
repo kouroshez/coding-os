@@ -54,7 +54,7 @@ claude --version          # CLI on PATH
 1. Calls shared installer ([core/scripts/install-adapter.sh](../../core/scripts/install-adapter.sh)) which:
    - Creates `.claude/{hooks,rules,skills,commands,agents}/` symlinking to `core/{hooks,rules,skills,commands,thinking_os/agents}/`.
    - Writes `.claude/cos-env.sh` (sources `COS_AGENT_DIR`, `COS_AGENT`, etc.).
-2. Renders `.claude/settings.json` from [settings.template.json](../../adapters/claude/settings.template.json) (substituting `{{HOOKS_DIR}}`).
+2. Renders `.claude/settings.json` from [settings.template.json](../../adapters/claude/settings.template.json) (substituting the `HOOKS_DIR` placeholder).
 3. Adds `coding-os` entry to `.mcp.json` via [_install_helpers/update_mcp_json.py](../../adapters/claude/_install_helpers/update_mcp_json.py):
    - Prefers `cos server-start` if `cos` is on `PATH`.
    - Falls back to `uv run --directory <CODING_OS_ROOT>/core/thinking_os python server.py`.

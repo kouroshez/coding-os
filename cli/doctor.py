@@ -1210,26 +1210,31 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
     issues: list[str] = []
     warnings: list[str] = []
 
-    # Phase N — Role registry (primary)
+    _EXPECTED_ROLES = [
+        "researcher", "analyst", "architect", "documenter", "implementer",
+        "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
+    ]
+
+    # Phase N — Role registry (primary, semantic names)
     roles_dir = thinking_os / "roles"
     if not roles_dir.is_dir():
         issues.append("roles/ directory missing (Phase N)")
     else:
-        for n in range(1, 12):
-            matches = list(roles_dir.glob(f"F{n}_*.yaml"))
-            if not matches:
-                issues.append(f"roles/F{n}_*.yaml missing")
+        for role in _EXPECTED_ROLES:
+            yaml_file = roles_dir / f"{role}.yaml"
+            if not yaml_file.exists():
+                issues.append(f"roles/{role}.yaml missing")
                 continue
             try:
                 import yaml as _yaml
-                data = _yaml.safe_load(matches[0].read_text()) or {}
-                if data.get("id") != f"F{n}":
-                    issues.append(f"{matches[0].name}: id mismatch (expected F{n})")
+                data = _yaml.safe_load(yaml_file.read_text()) or {}
+                if data.get("id") != role:
+                    issues.append(f"{yaml_file.name}: id mismatch (expected {role})")
                 for required in ("activation", "prompt_prefix", "criteria_required", "intensity_steps"):
                     if required not in data:
-                        issues.append(f"{matches[0].name}: missing '{required}'")
+                        issues.append(f"{yaml_file.name}: missing '{required}'")
             except Exception as exc:
-                issues.append(f"{matches[0].name}: invalid YAML: {exc}")
+                issues.append(f"{yaml_file.name}: invalid YAML: {exc}")
 
     # Phase N — Preset registry
     preset_reg = thinking_os / "presets" / "registry.yaml"
@@ -1267,11 +1272,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
         except Exception as exc:
             issues.append(f"situations/registry.yaml invalid YAML: {exc}")
 
-    # Formula-agent files (semantic names — one file per role)
-    _EXPECTED_ROLES = [
-        "researcher", "analyst", "architect", "documenter", "implementer",
-        "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
-    ]
+    # Formula-agent files (semantic names — one file per role; reuses _EXPECTED_ROLES above)
     agents_dir = thinking_os / "agents"
     _ROLE_ID_RE = _re.compile(r"^id:\s*(\w+)", _re.MULTILINE)
     for role in _EXPECTED_ROLES:

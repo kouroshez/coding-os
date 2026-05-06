@@ -72,3 +72,12 @@ AUTOSNAP_PY="${_COS_HOOKS_PHYS}/_helpers/trajectory_autosnap.py"
 if [ -f "$AUTOSNAP_PY" ]; then
   run_bounded_python "$AUTOSNAP_PY" 2
 fi
+
+# End-of-turn visible recap — Stop hooks accept hookSpecificOutput JSON, which
+# Claude Code surfaces as a labeled additionalContext block between turns.
+# Mirrors the always-on caveman pattern so the operator never sees a silent
+# session boundary. Bounded fire-and-forget — never blocks.
+RECAP_PY="${_COS_HOOKS_PHYS}/_helpers/session_recap.py"
+if [ -f "$RECAP_PY" ] && [ -f "$COS_DB_PATH" ] && [ -n "$SESSION_ID" ]; then
+  python3 "$RECAP_PY" "$COS_DB_PATH" "$SESSION_ID" 2>/dev/null || true
+fi

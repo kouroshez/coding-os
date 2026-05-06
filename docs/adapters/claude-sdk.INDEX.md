@@ -15,7 +15,7 @@
 | H1 | Claude Adapter — Full Reference | `claude-adapter-full-reference` | 2 | 16 | 15 | 171 |
 | H2 | 1. The mRNA layer — what this adapter is | `1-the-mrna-layer-what-this-adapter-is` | 17 | 33 | 17 | 260 |
 | H2 | 2. SDK + tooling versions (audit 2026-05-04) | `2-sdk-tooling-versions-audit-2026-05-04` | 34 | 49 | 16 | 185 |
-| H2 | 3. Install flow | `3-install-flow` | 50 | 63 | 14 | 288 |
+| H2 | 3. Install flow | `3-install-flow` | 50 | 63 | 14 | 291 |
 | H2 | 4. settings.json (rendered, do not hand-edit) | `4-settingsjson-rendered-do-not-hand-edit` | 64 | 87 | 24 | 352 |
 | H2 | 5. settings.local.json (user-scoped allow-list) | `5-settingslocaljson-user-scoped-allow-list` | 88 | 106 | 19 | 186 |
 | H2 | 6. .mcp.json wiring | `6-mcpjson-wiring` | 107 | 119 | 13 | 130 |

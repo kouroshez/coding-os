@@ -236,11 +236,51 @@ except Exception:
     SES_TAIL="${COS_SESSION_ID: -8}"
   fi
 
+  # Active skill (whichever skill was last loaded via Skill tool).
+  SKILL_CUR=""
+  if [ -f "${COS_AGENT_DIR}/.active-skill" ]; then
+    SKILL_CUR=$(tr -d '\n\r' < "${COS_AGENT_DIR}/.active-skill" 2>/dev/null | head -c 24)
+  fi
+
+  # Recent block events from the hook log (last ~5 min). Surfaces hook
+  # activity so the operator sees what's happening behind the scenes —
+  # mirrors the caveman-mode-tracker visibility pattern.
+  BLK_RECENT=""
+  if [ -f "${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}" ] && command -v python3 >/dev/null 2>&1; then
+    BLK_RECENT=$(python3 -c "
+import re, sys
+from datetime import datetime, timedelta, timezone
+log = '${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}'
+cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+n = 0
+last_rules = []
+try:
+    with open(log) as f:
+        for line in f.readlines()[-200:]:
+            m = re.match(r'\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)\]\s+\[([^\]]+)\]\s+\[block\]\s+(.*)', line)
+            if not m: continue
+            try:
+                ts = datetime.strptime(m.group(1), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+            except ValueError: continue
+            if ts < cutoff: continue
+            n += 1
+            rm = re.search(r'rule=(\S+)', m.group(3) or '')
+            if rm: last_rules.append(rm.group(1))
+    if n:
+        last = last_rules[-1] if last_rules else m.group(2)
+        print(f'{n}({last})')
+except OSError:
+    pass
+" 2>/dev/null | head -c 32)
+  fi
+
   PARTS="agent=${COS_AGENT:-?}"
   [[ -n "$SES_TAIL" ]] && PARTS="${PARTS} ses=${SES_TAIL}"
   [[ -n "$TASK_CUR" ]] && PARTS="${PARTS} task=${TASK_CUR}" || PARTS="${PARTS} task=none"
   [[ -n "$GATE_STATE" ]] && PARTS="${PARTS} gate=${GATE_STATE}" || PARTS="${PARTS} gate=unset"
   [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
+  [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
+  [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
   CONTEXT="[coding-os pulse] ${PARTS}"
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
