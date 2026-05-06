@@ -498,8 +498,10 @@ def register_cos_backtrack_log(mcp, db_path):
     @mcp.tool(
         name="cos_backtrack_log",
         description=(
-            "Record a backtrack event and return the Anti-Paralysis advisory "
-            "if the session count threshold is reached (≥3 = warning, ≥5 = strong)."
+            "Record a backtrack event. Returns {count, advisory, suggested_action, "
+            "root_cause_summary}. advisory fires at ≥3/≥5 backtracks. "
+            "suggested_action gives a concrete next step when root_cause is supplied. "
+            "root_cause_summary shows per-cause counts for this session."
         ),
     )
     @safe_tool
@@ -528,13 +530,25 @@ def register_cos_backtrack_log(mcp, db_path):
                           missing_context | tool_failure | spec_ambiguity |
                           env_mismatch | other
                         corrective_action — what we switched to
-        OUTPUT:       {count, advisory}.
+        OUTPUT:       {count, advisory, suggested_action, root_cause_summary}.
+                      suggested_action — concrete next step for the given root_cause.
+                      root_cause_summary — {root_cause: count} across all session backtracks.
         DEPENDENCIES: backtrack_events table (v14); anatomy columns (v25).
         """
         _VALID_ROOT_CAUSES = {
             "wrong_model", "scope_too_large", "missing_context",
             "tool_failure", "spec_ambiguity", "env_mismatch", "other",
         }
+        _SUGGESTED_ACTIONS: dict[str, str] = {
+            "wrong_model":     "Use cos_route_model to select the right model before re-dispatching.",
+            "scope_too_large": "Decompose via cos_task_create and pick the smallest slice.",
+            "missing_context": "Run cos_doc_search or cos_search to load relevant context first.",
+            "tool_failure":    "Run cos_health to verify permissions/env vars, then retry with explicit paths.",
+            "spec_ambiguity":  "Log open questions via cos_discovery and resolve with user before implementing.",
+            "env_mismatch":    "Run cos doctor to validate environment config, then restart the session.",
+            "other":           "Re-classify the problem (Cynefin gate) and review the Anti-Paralysis advisory.",
+        }
+
         # Silently clear invalid root_cause to avoid polluting the enum
         if root_cause and root_cause not in _VALID_ROOT_CAUSES:
             root_cause = "other"
@@ -566,6 +580,20 @@ def register_cos_backtrack_log(mcp, db_path):
                     "SELECT COUNT(*) FROM backtrack_events WHERE session_id=?",
                     (session_id,),
                 ).fetchone()[0]
+
+                # C1: root_cause_summary — per-cause backtrack counts this session
+                root_cause_summary: dict[str, int] = {}
+                try:
+                    rows = conn.execute(
+                        "SELECT root_cause, COUNT(*) AS cnt FROM backtrack_events "
+                        "WHERE session_id=? AND root_cause IS NOT NULL "
+                        "GROUP BY root_cause",
+                        (session_id,),
+                    ).fetchall()
+                    root_cause_summary = {r[0]: r[1] for r in rows}
+                except sqlite3.OperationalError:
+                    root_cause_summary = {}  # pre-v25: root_cause column absent
+
         except Exception as exc:
             return fail("internal", f"backtrack_log failed: {exc}")
 
@@ -580,6 +608,9 @@ def register_cos_backtrack_log(mcp, db_path):
                 f"Anti-Paralysis: {count} backtracks. Review scope if pattern continues."
             )
 
+        # C2: concrete next step for the supplied root_cause
+        suggested_action = _SUGGESTED_ACTIONS.get(root_cause, "") if root_cause else ""
+
         # Phase N — emit trace event for replay
         try:
             import tracing
@@ -591,10 +622,18 @@ def register_cos_backtrack_log(mcp, db_path):
                 tracing.emit(session_id, "anti_paralysis_warn", {
                     "count": count, "advisory": advisory,
                 })
-        except Exception:
-            pass
+        except Exception as _exc:
+            logger.debug("backtrack tracing skipped: %s", _exc)
 
-        return ok({"count": count, "advisory": advisory}, meta={"layer": "routing"})
+        return ok(
+            {
+                "count": count,
+                "advisory": advisory,
+                "suggested_action": suggested_action,
+                "root_cause_summary": root_cause_summary,
+            },
+            meta={"layer": "routing"},
+        )
 
     return cos_backtrack_log
 

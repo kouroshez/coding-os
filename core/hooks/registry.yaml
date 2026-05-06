@@ -722,3 +722,19 @@ hooks:
       - event: PostToolUse
         matcher: "Write|Edit|TodoWrite"
         status_message: "🔍 Scanning for discoveries..."
+
+  - id: capture-tool-failure
+    script: capture-tool-failure.sh
+    description: |
+      Phase EVO — Capture meaningful tool failures (especially hook-blocked
+      events) to the observations table so they feed failure_pattern_query
+      and learn_extract. Only captures blocked events and repeated failures —
+      transient Bash errors are skipped to avoid noise. This closes the
+      "experience capture" gap: previously the system only learned from
+      completed outcomes, not from what failed mid-execution.
+    category: observability
+    phase: EVO
+    timeout: 500
+    events:
+      - event: PostToolUseFailure
+        matcher: ""

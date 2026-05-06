@@ -497,6 +497,11 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/agent-presence.sh",
             "timeout": 800
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/capture-tool-failure.sh",
+            "timeout": 500
           }
         ]
       }
