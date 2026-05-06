@@ -1,16 +1,4 @@
-"""core.web._project_context — per-request project scope.
-
-PURPOSE: Let a single uvicorn process serve multiple coding-os projects
-         by carrying the active project root through each request via a
-         ContextVar.  Routes that need the project root or sqlite DB
-         should call `current_project_root()` / `current_db_path()` and
-         fall back to env vars if no project is bound.
-INPUT:   Set by ProjectScopeMiddleware when the URL matches /api/p/<slug>/.
-OUTPUT:  Context accessors used by route helpers (`_db_conn`, etc.).
-DEPENDENCIES: stdlib contextvars + the registry module under cli/.
-NOTES:   ContextVar is task-local so concurrent ASGI requests do not
-         leak project scope across each other.
-"""
+"""core.web._project_context — per-request project scope."""
 from __future__ import annotations
 
 import os
@@ -36,12 +24,7 @@ _current_project: ContextVar[Path | None] = ContextVar(
 
 
 def current_project_root() -> Path:
-    """Return the active project root for this request (or env fallback).
-
-    PURPOSE: Single resolver every route uses.  Prefers the ContextVar
-             set by middleware; falls back to COS_PROJECT_ROOT / cwd so
-             the old single-project launch path keeps working.
-    """
+    """Return the active project root for this request (or env fallback)."""
     bound = _current_project.get()
     if bound is not None:
         return bound
@@ -65,17 +48,7 @@ def current_db_path() -> Path:
 
 
 class ProjectScopeMiddleware(BaseHTTPMiddleware):
-    """Rewrite /api/p/<slug>/* → /api/* and bind slug's project root.
-
-    PURPOSE: Enable Hub-style multi-project serving.  When a request
-             arrives at /api/p/<slug>/foo, this middleware:
-               1. looks up <slug> in the global registry,
-               2. binds the project root to the ContextVar,
-               3. rewrites the ASGI path to /api/foo so all existing
-                  routes match unchanged.
-             Requests without /api/p/<slug>/ pass through untouched.
-    NOTES:   404 with a clear message if the slug is not registered.
-    """
+    """Rewrite /api/p/<slug>/* → /api/* and bind slug's project root."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
         path: str = request.url.path
@@ -105,15 +78,7 @@ class ProjectScopeMiddleware(BaseHTTPMiddleware):
 
 
 def _resolve_slug(slug: str) -> Path | None:
-    """Look up a slug → absolute path via the global registry.
-
-    PURPOSE: Resolve per-request project scope. Accepts registered slugs
-             first; falls back to the running process cwd when the slug
-             matches its dirname. The cwd fallback mirrors hub.py so the
-             meta-project (coding-os itself) can be reached without a
-             manual `cos registry add`.
-    OUTPUT:  Absolute path that contains .coding-os/, or None.
-    """
+    """Look up a slug → absolute path via the global registry."""
     try:
         from cli.registry import load_registry  # type: ignore
         reg = load_registry()

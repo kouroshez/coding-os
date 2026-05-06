@@ -1,14 +1,4 @@
-"""cli.registry — global coding-os project registry + `cos registry` CLI.
-
-PURPOSE: Maintain the list of coding-os projects installed on this
-         machine, so the global Hub (port 9188) can enumerate them and
-         route requests to each project's local sqlite DB.
-INPUT:   JSON file at ~/.coding-os/registry.json (atomic writes).
-OUTPUT:  Typed Registry + click subcommand group `cos registry`.
-DEPENDENCIES: click, stdlib only (json, os, pathlib).
-NOTES:   Schema v1.  Versioned envelope so future upgrades can migrate.
-         Writes via tempfile + os.replace for crash-safe atomicity.
-"""
+"""cli.registry — global coding-os project registry + `cos registry` CLI."""
 from __future__ import annotations
 
 import json
@@ -26,13 +16,7 @@ REGISTRY_VERSION = 1
 
 
 def registry_path() -> Path:
-    """Resolve the global registry file path.
-
-    PURPOSE: Single source-of-truth path for the cross-project registry.
-    INPUT:   Optional env override COS_REGISTRY_PATH.
-    OUTPUT:  Absolute Path; parent directory is created on demand by
-             save_registry when needed (read-side stays pure).
-    """
+    """Resolve the global registry file path."""
     override = os.environ.get("COS_REGISTRY_PATH")
     if override:
         return Path(override).expanduser().resolve()
@@ -81,14 +65,7 @@ class Registry:
 
 
 def load_registry() -> Registry:
-    """Load the registry, returning an empty one if the file is absent.
-
-    PURPOSE: Safe read that never fails on missing file.
-    OUTPUT:  Registry instance (may be empty).
-    NOTES:   Malformed JSON raises click.ClickException so callers can
-             abort cleanly; this is by design — silent repair would mask
-             corruption.
-    """
+    """Load the registry, returning an empty one if the file is absent."""
     path = registry_path()
     if not path.exists():
         return Registry()
@@ -103,11 +80,7 @@ def load_registry() -> Registry:
 
 
 def save_registry(registry: Registry) -> None:
-    """Atomically persist the registry.
-
-    PURPOSE: Crash-safe write via tempfile + os.replace so a SIGKILL
-             mid-write cannot leave a half-written JSON file.
-    """
+    """Atomically persist the registry."""
     path = registry_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(registry.to_dict(), indent=2, ensure_ascii=False) + "\n"
@@ -137,16 +110,7 @@ def _derive_slug(project_path: Path) -> str:
 
 
 def add_project(project_path: Path, *, slug: str | None = None) -> ProjectEntry:
-    """Register a project (idempotent on path; appends/updates slug).
-
-    PURPOSE: Single write-side entry point used by `cos init` and the
-             `cos registry add` CLI.
-    INPUT:   project_path — absolute dir containing .coding-os/.
-    OUTPUT:  The ProjectEntry that ended up in the registry.
-    NOTES:   If path already registered, returns the existing entry
-             (slug not overwritten to preserve user edits).  If slug
-             collides with another path, raises ClickException.
-    """
+    """Register a project (idempotent on path; appends/updates slug)."""
     project_path = project_path.resolve()
     registry = load_registry()
     for existing in registry.projects:
@@ -187,7 +151,7 @@ def remove_project(selector: str) -> ProjectEntry | None:
 
 @click.group(name="registry", help="Manage the global coding-os project registry.")
 def registry_cli() -> None:
-    """PURPOSE: Parent group so `cos registry …` shows consistent help."""
+    pass
 
 
 @registry_cli.command("list")
@@ -254,13 +218,7 @@ def _looks_like_cos_project(path: Path) -> bool:
 @click.option("--dry-run", is_flag=True, default=False,
               help="Report what would be removed without mutating the registry.")
 def registry_gc(dry_run: bool) -> None:
-    """Prune registry entries whose directory no longer exists.
-
-    PURPOSE: Test runs, backup restores, and manual rm -rf all leave
-             stale paths in registry.json.  The hub filters them at
-             read-time (panel never shows dead cards) but the file
-             itself grows indefinitely.  This command rewrites it.
-    """
+    """Prune registry entries whose directory no longer exists."""
     registry = load_registry()
     kept: list[ProjectEntry] = []
     removed: list[ProjectEntry] = []
@@ -295,13 +253,7 @@ def registry_gc(dry_run: bool) -> None:
 @click.option("--register", is_flag=True, default=False,
               help="Register every hit that isn't already in the registry.")
 def registry_scan(root: str, max_depth: int, limit: int, register: bool) -> None:
-    """Walk ROOT and report every `.coding-os/` project found.
-
-    PURPOSE: CLI parity with /api/hub/registry/scan — lets users
-             discover projects after restoring a backup or migrating
-             machines without hand-importing each one.  Read-only by
-             default; pass --register to add every new hit in one go.
-    """
+    """Walk ROOT and report every `.coding-os/` project found."""
     from collections import deque
 
     root_path = Path(root)

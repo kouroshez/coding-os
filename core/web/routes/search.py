@@ -1,13 +1,4 @@
-"""core.web.routes.search — /api/search/* HTTP wrappers for search tools.
-
-PURPOSE: Expose cos_search (memory search) and cos_doc_search (RAG doc search)
-         as FastAPI endpoints for the SPA unified search page (S5).
-INPUT:   HTTP query params matching each tool's signature.
-OUTPUT:  JSON response unwrapped from the MCP envelope ({data, meta} on 200).
-DEPENDENCIES: fastapi, core.web._envelope, core.thinking_os.tools.
-NOTES:  Both search tools need a SQLite DB connection for the thinking_os
-        memory tables.  We reuse the same DB path logic as board.py.
-"""
+"""core.web.routes.search — /api/search/* HTTP wrappers for search tools."""
 
 from __future__ import annotations
 
@@ -33,14 +24,7 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 
 
 def _db_conn() -> sqlite3.Connection:
-    """Open the project SQLite DB for thinking_os search.
-
-    PURPOSE: Provide a DB connection to thinking_os search tools per-request.
-    INPUT:   none.
-    OUTPUT:  sqlite3.Connection with row_factory=sqlite3.Row set so that
-             memory.py's dict(row) calls work correctly.
-    DEPENDENCIES: core.web._project_context.current_db_path.
-    """
+    """Open the project SQLite DB for thinking_os search."""
     from web._project_context import current_db_path
 
     conn = sqlite3.connect(str(current_db_path()), check_same_thread=False)
@@ -63,14 +47,7 @@ async def memory_search(
     _rl=Depends(make_rate_limit_dep("search.memory")),
     _m=Depends(make_metrics_dep("search.memory")),
 ):
-    """Search thinking_os memory (observations + learned patterns).
-
-    PURPOSE: HTTP wrapper for cos_search tool.
-    INPUT:   query, limit, memory_type (pattern/workflow/error/decision/discovery).
-    OUTPUT:  {data: {results, count}, meta} on 200.
-    DEPENDENCIES: core.thinking_os.tools.memory.memory_search.
-    NOTES:   Falls back to LIKE when FTS5 unavailable.
-    """
+    """Search thinking_os memory (observations + learned patterns)."""
     try:
         from db import has_fts5_table  # type: ignore
         from tools.memory import memory_search as _search  # type: ignore
@@ -118,14 +95,7 @@ async def doc_search(
     _rl=Depends(make_rate_limit_dep("search.docs")),
     _m=Depends(make_metrics_dep("search.docs")),
 ):
-    """Semantic search over project documentation chunks.
-
-    PURPOSE: HTTP wrapper for cos_doc_search tool.
-    INPUT:   query, source_types (csv), limit, mode (auto/semantic/lexical).
-    OUTPUT:  {data: {results, count}, meta} on 200.
-    DEPENDENCIES: core.thinking_os.tools.docs.doc_search.
-    NOTES:   Requires docs-index to have been run; returns empty on cold cache.
-    """
+    """Semantic search over project documentation chunks."""
     try:
         sys.path.insert(0, str(_TOS_DIR))
         from tools.docs import doc_search as _doc_search  # type: ignore

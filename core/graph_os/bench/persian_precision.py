@@ -1,14 +1,6 @@
 """Persian / multilingual retrieval precision harness (Phase I.1 gate).
 
-PURPOSE:  Quantify how well the active embedding model (MiniLM vs
-          BGE-M3 after migration) handles Persian queries against a
-          fixture of mixed Persian/English document chunks.
-INPUT:    --model NAME (default: active_model_name()).
-OUTPUT:   JSON report with precision@1 and precision@3.
 DEPENDS:  embeddings module + SQLite.
-NOTES:    Small fixture (12 docs x 5 Persian queries) so the harness
-          runs in seconds. The real payoff is running it once before
-          and once after BGE-M3 migration and diffing the numbers.
 """
 
 from __future__ import annotations

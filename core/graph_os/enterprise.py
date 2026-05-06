@@ -42,19 +42,7 @@ class _Bucket:
 
 
 class RateLimiter:
-    """Bounded-burst token bucket, thread-safe.
-
-    PURPOSE:      Prevent an agent runaway from hammering MCP tools —
-                  e.g. looping cos_graph_query without backoff. Works
-                  per (tool_name, session_id) key.
-    INPUT:        capacity (max burst) + rate (tokens / second).
-    OUTPUT:       `acquire(key)` returns True (allowed) or False
-                  (throttled); callers translate to
-                  `fail("transient", retryable=True)` at the envelope
-                  layer.
-    NOTES:        Single-process; use a shared Redis-backed version
-                  when the MCP server fans out to multiple workers.
-    """
+    """Bounded-burst token bucket, thread-safe."""
 
     def __init__(
         self,
@@ -109,19 +97,7 @@ class RateLimiter:
 
 
 class PrometheusSnapshot:
-    """In-process metric collector that renders Prometheus text format.
-
-    PURPOSE:      Enterprise observability without pulling in the
-                  `prometheus_client` package. Call `inc_counter` from
-                  hot paths; scrape via `render()` from a health
-                  endpoint or a CLI command.
-    INPUT:        counter / gauge / histogram-lite updates.
-    OUTPUT:       Prometheus exposition format string.
-    NOTES:        Histogram is a running mean + percentile-free
-                  summary to keep the implementation tiny. Full
-                  HDR-histogram support can arrive with prometheus
-                  _client when network-exposed scraping lands.
-    """
+    """In-process metric collector that renders Prometheus text format."""
 
     def __init__(self) -> None:
         self._counters: dict[str, float] = {}

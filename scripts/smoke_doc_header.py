@@ -1,13 +1,4 @@
-"""Smoke test for cos_doc_header + cos_doc_headers_by (TASK-155).
-
-PURPOSE:      Confirm header parser + bulk filter behave on real meta-repo
-              docs without spinning up the full MCP server.
-INPUT:        none — runs from repo root.
-OUTPUT:       Prints a compact table; exits non-zero on any failure.
-DEPENDENCIES: core/thinking_os/tools/docs.py (parse_doc_header,
-              list_doc_headers).
-NOTES:        Lives in scripts/ per Rule 8 — no bash heredoc with uv run.
-"""
+"""Smoke test for cos_doc_header + cos_doc_headers_by (TASK-155)."""
 
 from __future__ import annotations
 

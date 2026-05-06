@@ -1,10 +1,5 @@
 """GitHub shallow-clone ingestion (I.11).
 
-PURPOSE:  Clone a public repo to `~/.coding-os/remote-repos/<alias>/`
-          and hand the path to `walk_local`. Private repos are
-          refused without an explicit `auth` token (R-I-14).
-INPUT:    URL + clone / cap knobs.
-OUTPUT:   IngestPlan.
 DEPENDS:  `git` on PATH; no third-party libraries.
 """
 
@@ -57,13 +52,8 @@ def clone_github(
 ) -> IngestPlan:
     """Clone + ingest.
 
-    PURPOSE:      Operator-facing entry for `cos graph-index-github`.
-    INPUT:        URL, optional alias / branch / auth.
-    OUTPUT:       IngestPlan rooted at the clone dir.
     RAISES:       IngestError on invalid URL, private-without-auth, or
                   guard-rail trips.
-    NOTES:        `runner` is injectable for tests — default uses
-                  subprocess.run which enforces the timeout.
     """
     if not url.startswith(("http://", "https://")):
         raise IngestError("only https:// GitHub URLs are supported in I.11")

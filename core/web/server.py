@@ -1,17 +1,4 @@
-"""core.web.server — FastAPI app factory + uvicorn launcher.
-
-PURPOSE: Create and configure the unified web server that exposes graph_os,
-         board_os, cognition, and search as /api/* REST routes.  Also mounts
-         the SPA static files when core/web/ui/dist/ exists.
-INPUT:   Environment variables: COS_WEB_PORT (default 9188),
-         COS_WEB_HOST (default 127.0.0.1), COS_WEB_CORS_ALLOW_ALL.
-OUTPUT:  FastAPI application instance (create_app()) or starts uvicorn
-         (run_server()).
-DEPENDENCIES: fastapi, uvicorn[standard], core.web.routes.*.
-NOTES:  CORS is locked to http://localhost:5173 (Vite dev) + same-origin
-        unless COS_WEB_CORS_ALLOW_ALL=1 (dev override).
-        Static SPA is mounted last (catch-all) so API routes take priority.
-"""
+"""core.web.server — FastAPI app factory + uvicorn launcher."""
 
 from __future__ import annotations
 
@@ -42,15 +29,7 @@ _CORS_ORIGINS = [
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application.
-
-    PURPOSE: App factory — idempotent, importable by tests and production.
-    INPUT:   none (reads env vars for port/CORS at call time).
-    OUTPUT:  Configured FastAPI instance with all /api/* routes registered.
-    DEPENDENCIES: fastapi, core.web.routes.*, core.web._deps.
-    NOTES:  Registers routers lazily so missing extras (graph_os, board_os)
-            don't prevent the server from starting; those routes return 503.
-    """
+    """Create and configure the FastAPI application."""
     app = FastAPI(
         title="Coding OS Web API",
         description="Unified HTTP backbone for graph_os + board_os + cognition + search.",
@@ -167,18 +146,7 @@ def run_server(
     reload: bool = False,
     log_level: str = "info",
 ) -> None:
-    """Start the uvicorn server.
-
-    PURPOSE: Production-ready launcher called by `cos web` CLI command.
-    INPUT:   host, port, reload, log_level — all optional, fall back to env.
-    OUTPUT:  none (blocks until server is stopped).
-    DEPENDENCIES: uvicorn.
-    NOTES:  Uses the app factory string "web.server:create_app" with
-            factory=True so uvicorn can reload cleanly.  reload=True enables
-            watchfiles for development. The string targets the editable-install
-            package name (web), not the on-disk path (core/web), so reload
-            works regardless of the launching cwd.
-    """
+    """Start the uvicorn server."""
     import uvicorn
 
     _host = host or DEFAULT_HOST

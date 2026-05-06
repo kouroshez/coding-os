@@ -136,23 +136,7 @@ from tools.tasks import task_by_filter, task_dependencies, task_dependents, task
 # ---------------------------------------------------------------------------
 
 def _detect_agent_session_default() -> str | None:
-    """Best-effort fallback for MCP tools that accept `agent_session`.
-
-    PURPOSE: When a caller (Claude / Codex / Cursor) invokes a board MCP
-             tool and omits `agent_session`, infer the active session id
-             from runtime env so `task_status_history.agent_session`
-             carries a non-NULL value. Without this, `agentForSession()`
-             on the hub UI defaults to 'human' and renders the "H" badge.
-    INPUT:   none — reads `COS_AGENT_SESSION_ID`, `COS_AGENT_DIR`,
-             `COS_AGENT`, plus the vendor markers declared in
-             `adapters/<id>/adapter.yaml::runtime_env_markers`.
-    OUTPUT:  Session id string or None when nothing matches.
-    NOTES:   Mirrors `cli/board_commands.py::_agent_session_id` but lives
-             on the MCP server side because that is the path Claude
-             actions take when calling cos_task_move / cos_task_create
-             through tool-use. Failing to populate this column is what
-             surfaces real Claude work as "H" in the AGENT STREAM panel.
-    """
+    """Best-effort fallback for MCP tools that accept `agent_session`."""
     import os as _os
     from pathlib import Path as _P
 
@@ -504,27 +488,7 @@ def cos_observation_record(
     file_path: str,
     tool_name: str = "Edit",
 ) -> str:
-    """Record an observation explicitly.
-
-    PURPOSE:      Adapter-parity escape hatch. Claude and Cursor auto-capture
-                  every Write/Edit/MultiEdit through the PostToolUse hook;
-                  Codex's hook capability is Bash-only so its edits never
-                  reach the memory layer. Codex agents call this tool after
-                  every code-edit turn to keep the observation / concept-graph
-                  / embedding pipeline populated on parity with the other
-                  adapters.
-    INPUT:        file_path — repo-relative or absolute path of the edited
-                               file.
-                  tool_name — one of Write / Edit / MultiEdit (default Edit).
-    OUTPUT:       envelope {status, id?} where status ∈ {captured, deduped,
-                  filtered, skipped, rejected}.
-    DEPENDENCIES: capture.capture_observation (fire-and-forget internally);
-                  observations + observations_fts + embeddings tables (v5+).
-    NOTES:        Idempotent within the 30 s dedup window. Safe to call
-                  repeatedly — duplicates collapse on content_hash. Callers
-                  must have a valid session via $COS_AGENT_DIR/session-id
-                  or the row is tagged ses-anonymous-<pid>.
-    """
+    """Record an observation explicitly."""
     from capture import capture_observation
     tool_name = (tool_name or "Edit").strip()
     if tool_name not in {"Write", "Edit", "MultiEdit"}:
@@ -707,17 +671,7 @@ def thinking_os_promote_tool(
 # Learning tools (TASK-144)
 # ---------------------------------------------------------------------------
 def _persist_learn_suggestions_safe(result: dict) -> None:
-    """Append surfaced pattern ids to $COS_AGENT_DIR/.learn-suggestions.
-
-    PURPOSE:      Feed the remind-learn-validate.sh Stop-hook with the
-                  patterns this task saw, so the agent gets a concrete
-                  reminder to call cos_learn_validate after task-done.
-                  Without the file, the learning loop one-way drifts.
-    INPUT:        result dict returned from learn_suggest (expected key
-                  'suggestions' → list of {id, pattern}).
-    OUTPUT:       none; writes to file fire-and-forget.
-    NOTES:        Never raises. Truncation is the hook's job, not ours.
-    """
+    """Append surfaced pattern ids to $COS_AGENT_DIR/.learn-suggestions."""
     try:
         import os as _os
         from pathlib import Path as _P
@@ -1359,26 +1313,7 @@ def cos_doc_search(
 )
 @safe_tool
 def cos_doc_header(path: str) -> str:
-    """Return a single doc's header without reading the body.
-
-    PURPOSE:      Header-only lazy load (TASK-155). The agent decides
-                  whether the body is worth reading using only the
-                  frontmatter and opening block (Purpose / Read when /
-                  Skip when / Read next), saving 70-90% of tokens vs. a
-                  full Read.
-    INPUT:        path — repo-relative or absolute path to a `.md` file.
-                  Resolved path MUST stay inside the project root —
-                  ``../../etc/passwd``-style escapes return
-                  ``fail("permission")``.
-    OUTPUT:       JSON envelope with `frontmatter`, `opening_block`,
-                  `title`, `mtime`, `size_bytes`, `header_token_estimate`.
-    DEPENDENCIES: filesystem only — bypasses the embeddings store and
-                  document_chunks index.
-    NOTES:        Returns `fail("not_found", …)` for missing files;
-                  `fail("validation", …)` for unreadable / binary files;
-                  `fail("permission", …)` when the resolved path escapes
-                  the project root (TASK-162).
-    """
+    """Return a single doc's header without reading the body."""
     candidate = (path or "").strip()
     if not candidate:
         return fail("validation", "path is required")
@@ -1431,24 +1366,7 @@ def cos_doc_headers_by(
     root: str = "docs",
     limit: int = 50,
 ) -> str:
-    """Bulk header-only scan filtered by frontmatter.
-
-    PURPOSE:      Answer "show me every {layer} doc in {domain}" without
-                  fetching bodies. Result is a routing table the agent
-                  uses to pick the next doc to actually read.
-    INPUT:        domain     — frontmatter `domain:` (DOCS, BACKEND, …).
-                  layer      — frontmatter `layer:` (policy, playbook, …).
-                  ssot       — `true` | `ref` | empty.
-                  since_iso  — keep docs whose `updated:` ≥ this value.
-                  root       — directory to walk; defaults to `docs`.
-                  limit      — defensive cap (1-200, default 50).
-    OUTPUT:       JSON envelope `{results, count}`; each row carries the
-                  same shape as `cos_doc_header`.
-    DEPENDENCIES: filesystem only.
-    NOTES:        Empty filters are treated as "any". Files without
-                  parseable frontmatter are skipped silently — call
-                  `cos_doc_header(path)` directly to inspect malformed.
-    """
+    """Bulk header-only scan filtered by frontmatter."""
     cap = max(1, min(int(limit) if limit else 50, 200))
     root_path = Path(root) if root else Path("docs")
     if not root_path.is_absolute():
@@ -1509,34 +1427,7 @@ def cos_doc_section(
     section: str = "",
     with_body: bool = True,
 ) -> str:
-    """Resolve a single section of a fat markdown doc via its INDEX sidecar.
-
-    PURPOSE:      Cut intra-file navigation cost from full-read (≥5k tokens)
-                  to slice-only (≈300-800 tokens). The companion
-                  `auto-regen-section-index.sh` PostToolUse hook keeps the
-                  `<file>.INDEX.md` fresh on every Write/Edit (debounced 5s).
-                  Spec: docs/engineering/section-index.md (TASK-165).
-    INPUT:        path       — repo-relative or absolute path to the source
-                               `.md` (NOT the `.INDEX.md` sidecar).
-                  slug       — preferred lookup; stable across edits unless
-                               the heading text is renamed.
-                  section    — fallback fuzzy title (case-insensitive
-                               substring match) when slug is unknown.
-                  with_body  — when True (default), include the section body
-                               in the response. False = cheap recon mode
-                               (~40 tokens out, line range only).
-    OUTPUT:       JSON envelope `{path, index_path, slug, title, start, end,
-                  lines, token_estimate, body?}`.
-    DEPENDENCIES: filesystem only — no DB, no embeddings.
-    NOTES:        Path-traversal guarded (must stay inside project root).
-                  Fail categories:
-                    - validation : empty path / unresolvable
-                    - permission : path escapes project root
-                    - not_found  : source missing OR no INDEX sidecar OR
-                                   slug/section did not match. The not_found
-                                   message hints at `cos_graph_rename_plan`
-                                   when a slug appears to have been renamed.
-    """
+    """Resolve a single section of a fat markdown doc via its INDEX sidecar."""
     candidate = (path or "").strip()
     if not candidate:
         return fail("validation", "path is required")

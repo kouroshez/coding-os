@@ -1,19 +1,7 @@
 """graph_os — SQLite fallback backend.
 
-PURPOSE:  Implement the GraphBackend Protocol against the shared
-          thinking_os SQLite file (migration v12). This is the
-          agnostic fallback that runs everywhere Python runs, and is
-          the parity target Kuzu must match (Section 12.6 of the
-          plan).
-INPUT:    an opened sqlite3.Connection (ideally via init_db so the
-          v12 migration has already applied) OR a db_path string.
-OUTPUT:   a GraphBackend-compatible object.
 DEPENDS:  sqlite3 stdlib; core/thinking_os/db.py for init_db when
           path-based; core/graph_os/types.py for the value types.
-NOTES:    Uses its own tiny DB connection pool when path-based so
-          MCP-side callers that do not share a connection still see
-          WAL-mode isolation. Idempotent upserts implemented via
-          INSERT ... ON CONFLICT DO UPDATE.
 """
 
 from __future__ import annotations
@@ -50,16 +38,9 @@ def _import_db_module() -> Any:
 class SqliteBackend:
     """SQLite-backed graph store (thinking_os DB, migration v12).
 
-    PURPOSE:  Satisfy GraphBackend with ON CONFLICT upserts and plain
-              SQL reads. Latency is higher than Kuzu for graph walks
-              but every method is correct and deterministic.
-    INPUT:    see __init__.
-    OUTPUT:   see GraphBackend Protocol.
     DEPENDS:  migration v12 (graph_nodes, graph_edges_v12,
               graph_evidence_v12 tables + optional FTS5 virtual
               table).
-    NOTES:    Manages its own connection when constructed from a path
-              so the caller gets WAL + foreign-key enforcement.
     """
 
     backend_id: str = "sqlite"
@@ -134,12 +115,7 @@ class SqliteBackend:
     def upsert_node(self, node: GraphNode) -> int:
         """Insert a node or update it in place; return the primary key.
 
-        PURPOSE:  Idempotent write keyed on uid.
-        INPUT:    GraphNode.
-        OUTPUT:   integer graph_nodes.id.
         DEPENDS:  migration v12 schema.
-        NOTES:    metadata is JSON-serialised; unknown keys survive
-                  round-trip. updated_at always refreshed.
         """
         now = int(time.time())
         metadata_json = json.dumps(dict(node.metadata), sort_keys=True)
@@ -236,14 +212,7 @@ class SqliteBackend:
     def upsert_edge(self, edge: GraphEdge) -> int:
         """Insert or update an edge; replace evidence atomically.
 
-        PURPOSE:  Keep the (source, target, edge_type, extractor)
-                  tuple unique across re-resolves and rewrite the
-                  evidence trail in a single transaction.
-        INPUT:    GraphEdge.
-        OUTPUT:   integer graph_edges_v12.id.
         DEPENDS:  upsert_node must have been called for both endpoints.
-        NOTES:    Raises ValueError when source/target uid is unknown
-                  — edges cannot dangle.
         """
         now = int(time.time())
         with self._write_lock:
@@ -348,23 +317,7 @@ class SqliteBackend:
     def delete_nodes_for_file(
         self, file_path: str, *, extractors: Sequence[str] | None = None
     ) -> int:
-        """Prune nodes belonging to a single source file before reindex.
-
-        PURPOSE:  Incremental reindex needs to discard stale symbols
-                  (functions / classes / imports the file no longer
-                  defines) before re-extracting; otherwise renamed or
-                  deleted symbols persist as zombies.
-        INPUT:    file_path — repo-relative file path stored on
-                  graph_nodes. extractors — optional list of extractor
-                  IDs to scope the prune to (matches on
-                  metadata.extractor); when None every node tied to
-                  the file is wiped.
-        OUTPUT:   number of nodes deleted (edges + evidence cascade
-                  via FK).
-        NOTES:    Cross-file STUB nodes (md_links targets for other
-                  files) carry file_path of the *target* file, not the
-                  source — the extractor scoping protects them.
-        """
+        """Prune nodes belonging to a single source file before reindex."""
         with self._write_lock:
             if not extractors:
                 cursor = self._conn.execute(
@@ -483,13 +436,7 @@ class SqliteBackend:
         return self._row_to_node(row)
 
     def get_nodes_bulk(self, uids: Sequence[str]) -> dict[str, GraphNode]:
-        """B6: batch variant of get_node — one SELECT per call, not N.
-
-        PURPOSE:  avoid the N+1 read pattern in ``_walk_bfs`` where every
-                  neighbour triggered its own round-trip to SQLite.
-        INPUT:    sequence of uids.
-        OUTPUT:   {uid: GraphNode} mapping; missing uids are absent.
-        """
+        """B6: batch variant of get_node — one SELECT per call, not N."""
         if not uids:
             return {}
         uniq = list(dict.fromkeys(uids))
@@ -643,13 +590,7 @@ class SqliteBackend:
         return edges
 
     def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
-        """B13: return up to `limit` nodes, optionally filtered by kind.
-
-        PURPOSE:  Provide an unbiased node sample for ``cos_graph_similar``.
-        INPUT:    kind — filter by node kind, or None for all.
-                  limit — max nodes to return.
-        OUTPUT:   list of GraphNode ordered by rowid ASC.
-        """
+        """B13: return up to `limit` nodes, optionally filtered by kind."""
         with self._write_lock:
             if kind is None:
                 rows = self._conn.execute(

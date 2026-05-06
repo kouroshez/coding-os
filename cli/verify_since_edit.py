@@ -1,26 +1,4 @@
-"""
-Coding OS — `cos verify --since-edit`.
-
-PURPOSE:      Fast, scope-aware verification. Diffs git working tree, maps
-              changed files to the Verification Matrix from AGENTS.md, and
-              runs only those test commands. Optional symbol-ref check
-              catches partial renames (rule "if agent renames in one place,
-              must catch the other 10").
-
-INPUT:        --since {HEAD|branch|commit}, --refs (enable symbol scan),
-              --staged (only staged), --no-tests (skip pytest, lint only),
-              --parallel.
-
-OUTPUT:       Exit 0 = all pass; non-zero = at least one suite failed.
-              JSON with --format json for tooling.
-
-DEPENDENCIES: git, uv (preferred runner), pytest. ruff is best-effort.
-
-NOTES:        Single source of truth for matrix is core/rules/test-discipline.md
-              + AGENTS.md table; this module mirrors it. When you add a new
-              row to the matrix, update MATRIX_RULES below + the docs in
-              one PR.
-"""
+"""Coding OS — `cos verify --since-edit`."""
 
 from __future__ import annotations
 

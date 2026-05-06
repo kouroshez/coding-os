@@ -1,16 +1,4 @@
-"""Contract test for `templates/<stack>/skills/<skill>/references/anatomy.md`.
-
-PURPOSE:      Lock the uniform anatomy contract so every stack ships the
-              same shape and every agent emits identical scaffold-growth
-              output. The contract is defined in
-              `docs/governance/anatomy-contract.md`.
-INPUT:        repo state on disk.
-OUTPUT:       pytest assertions; no external calls.
-DEPENDENCIES: pure stdlib + pyyaml (already in deps).
-NOTES:        A stack legitimately without an anatomy file (no skill yet)
-              is skipped, not failed. Once a stack ships skills/<skill>/
-              the anatomy MUST be present and contract-compliant.
-"""
+"""Contract test for `templates/<stack>/skills/<skill>/references/anatomy.md`."""
 
 from __future__ import annotations
 

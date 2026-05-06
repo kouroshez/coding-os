@@ -1,17 +1,6 @@
 """graph_os viewer template (I.10) — Sigma.js + Graphology + CSP nonce.
 
-PURPOSE:  Produce a self-contained HTML page that renders a graph
-          payload via Sigma.js v3 (WebGL) and Graphology. The template
-          enforces a strict CSP: `default-src 'none'` with a per-page
-          nonce required on every <script> / <style> so inline graph
-          data stays in a safe `<script type="application/json">`
-          block.
-INPUT:    `render(nodes, edges, *, title, nonce, bundled)` → HTML.
-OUTPUT:   str (the full HTML document).
 DEPENDS:  stdlib only.
-NOTES:    No template engine — plain str formatting is simpler and
-          means we can keep the output byte-deterministic for the
-          nonce-uniqueness test.
 """
 
 from __future__ import annotations
@@ -61,14 +50,7 @@ def render(
     nonce: str,
     bundled: bool = False,
 ) -> str:
-    """Return the final HTML document.
-
-    PURPOSE:      Assemble CSP + scripts + JSON block + a11y fallback.
-    INPUT:        node / edge iterables, title, nonce, bundled flag.
-    OUTPUT:       HTML string.
-    NOTES:        When `bundled` is True the CSP swaps CDN entries for
-                  'self' so air-gapped use keeps the nonce guarantee.
-    """
+    """Return the final HTML document."""
     node_list = list(nodes)
     edge_list = list(edges)
     payload = {

@@ -1,18 +1,4 @@
-"""Lint guard — no hardcoded Anthropic secrets / model IDs in source (T12.5).
-
-PURPOSE:      Fail CI if an Anthropic API key prefix or hardcoded model id
-              leaks into the source tree outside the registry. coding-os
-              must stay vendor-agnostic at the kernel — model ids belong
-              in `adapters/<agent>/adapter.yaml` or role frontmatter,
-              never inline in code.
-INPUT:        All `*.py` files under `core/`, `cli/`, `adapters/`.
-OUTPUT:       pytest fail when guarded patterns appear off-allowlist.
-DEPENDENCIES: pytest, pathlib, re.
-NOTES:        ALLOWED_PATHS lists files where model ids are intentional
-              (the dispatcher's `_OPUS_47_MODEL_IDS` constant, the registry
-              loader, the SDK options regression test). API key prefixes
-              are NEVER allow-listed.
-"""
+"""Lint guard — no hardcoded Anthropic secrets / model IDs in source (T12.5)."""
 from __future__ import annotations
 
 import re

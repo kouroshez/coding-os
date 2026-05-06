@@ -1,19 +1,4 @@
-"""Boundary check delegate for `enforce-scaffold-boundary.sh`.
-
-PURPOSE:      Decide whether a Write/Edit at `<rel_path>` violates any
-              installed stack's `scaffold-boundary.yaml::forbids_writing_in`.
-              Lives as a real .py file (not heredoc) per Rule 8 — bash
-              heredoc inside `$(...)` is banned.
-INPUT:        argv[1] — boundary YAML path (aggregated `stacks` list).
-              argv[2] — repo-relative path the agent is about to write.
-              argv[3] — project root (informational only).
-OUTPUT:       Exit code 0 / 2 + a single message line on stdout. Shell
-              wrapper interprets `BLOCKED: …` (exit 2) and `WARN: …`
-              (exit 0) lines.
-DEPENDENCIES: PyYAML (fail-open if missing).
-NOTES:        Fail-open on any unexpected error so a malformed boundary
-              file never gates real work.
-"""
+"""Boundary check delegate for `enforce-scaffold-boundary.sh`."""
 
 from __future__ import annotations
 

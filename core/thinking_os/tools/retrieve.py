@@ -96,20 +96,7 @@ _TASK_ID_PATTERN = __import__("re").compile(r"\bTASK-\d+\b")
 
 
 def _normalize_task_id(raw: str) -> str:
-    """Extract a canonical task identifier from a `.task-current` payload.
-
-    PURPOSE:      write-state.sh prepends a session id to every state file so
-                  stale markers can be detected across sessions. When the
-                  payload includes a TASK-NNN token anywhere, that is the
-                  identifier the board cares about; otherwise return the
-                  slug portion so downstream consumers keep a stable key.
-    INPUT:        raw value read from `.task-current` (may be empty).
-    OUTPUT:       canonical task id — `TASK-NNN` when present, else the
-                  slug minus the leading `ses-…` session token.
-    NOTES:        Never returns an empty string — falls back to the raw
-                  trimmed text so callers keep at least SOME correlation
-                  key for retrieval feedback.
-    """
+    """Extract a canonical task identifier from a `.task-current` payload."""
     if not raw:
         return raw
     s = raw.strip()
@@ -158,20 +145,7 @@ def log_retrieval(
     rows: Iterable[dict],
     task_id: Optional[str] = None,
 ) -> list[int]:
-    """Append one retrievals row per returned result. Fire-and-forget.
-
-    PURPOSE:      Anchor every MCP retrieval so priority learning can later
-                  correlate rows with the task they supported.
-    INPUT:        conn, layer name, user query, rows returned by the search,
-                  optional explicit task_id (falls back to `.task-current`).
-    OUTPUT:       list of inserted retrieval row ids (empty if pre-v10 or
-                  rows empty).
-    DEPENDENCIES: retrievals (v10+).
-    NOTES:        Each row dict must carry at least `source_table` + `id`
-                  (or `source_id`) + optional `score`. Row shapes that don't
-                  expose an id are silently skipped — we never raise from
-                  the logger path.
-    """
+    """Append one retrievals row per returned result. Fire-and-forget."""
     if not rows:
         return []
     if not _has_retrievals(conn):
@@ -263,25 +237,7 @@ def log_router_decision(
     truncated: bool = False,
     agent_override: str | None = None,
 ) -> int | None:
-    """Append one row to retrieval_router_log per cos_search/cos_doc_search/cos_task_search call.
-
-    PURPOSE:      Telemetry on which layer absorbed each query, plus the
-                  query shape (identifier vs natural language vs task-id).
-                  Phase J.3 ship landed the schema; this writer wires it.
-                  Reading: SELECT query_shape, chosen_layer, COUNT(*) FROM
-                  retrieval_router_log GROUP BY 1,2 — answers "agents
-                  spend retrieval budget on which kind of queries?".
-    INPUT:        conn, raw query, chosen_layer (memory/docs/tasks/graph),
-                  optional confidence + fanout_layers + bytes_returned +
-                  truncated flag + agent_override (when caller forced a
-                  layer instead of letting the router pick).
-    OUTPUT:       row id, or None if the table is missing (fail-open).
-    DEPENDENCIES: retrieval_router_log (migration v18).
-    NOTES:        query is hashed with sha1 (truncated to 16 hex) — the
-                  raw text never lands on disk because routing telemetry
-                  must not become a privacy footgun. shape is the
-                  groupable column.
-    """
+    """Append one row to retrieval_router_log per cos_search/cos_doc_search/cos_task_search call."""
     if not _has_router_log(conn):
         return None
     import hashlib
@@ -314,17 +270,7 @@ def log_router_decision(
 def cite_retrievals(
     conn: sqlite3.Connection, retrieval_ids: list[int],
 ) -> dict:
-    """Mark retrievals as actively cited by the agent.
-
-    PURPOSE:      Honest signal that the agent used the retrieved row.
-                  Priority learning weights cited retrievals ~4× stronger
-                  than passive ones.
-    INPUT:        list of retrieval row ids.
-    OUTPUT:       {"updated": N, "unknown": [...]}.
-    DEPENDENCIES: retrievals (v10+).
-    NOTES:        Idempotent — re-citing has no extra effect; the flag is
-                  a set bit not a counter.
-    """
+    """Mark retrievals as actively cited by the agent."""
     if not _has_retrievals(conn):
         return {"updated": 0, "unknown": retrieval_ids}
     if not retrieval_ids:
@@ -351,16 +297,7 @@ def cite_retrievals(
 def backfill_task_outcome(
     conn: sqlite3.Connection, task_id: str, outcome: str,
 ) -> int:
-    """Back-fill `outcome` and `outcome_at` for all retrievals of a task.
-
-    PURPOSE:      Close the feedback loop — `task-done` hook calls this so
-                  priority learning can read (retrieval, outcome) pairs.
-    INPUT:        task_id string, outcome label ("success", "rework", ...).
-    OUTPUT:       count of rows updated.
-    DEPENDENCIES: retrievals (v10+).
-    NOTES:        No-op on pre-v10 DBs. Existing outcome values are NOT
-                  overwritten (append-only intent) — first outcome wins.
-    """
+    """Back-fill `outcome` and `outcome_at` for all retrievals of a task."""
     if not _has_retrievals(conn):
         return 0
     cur = conn.execute(
@@ -378,21 +315,7 @@ def learn_from_retrievals(
     lookback_days: int = 7,
     dry_run: bool = False,
 ) -> dict:
-    """Adjust document_chunks.priority based on retrieval outcomes.
-
-    PURPOSE:      Make priority reflect empirical usefulness instead of a
-                  static rag-config number.
-    INPUT:        lookback window in days; dry_run=True reports changes
-                  without writing.
-    OUTPUT:       {"adjusted": N, "gained": M, "lost": K, "changes": [...]}.
-    DEPENDENCIES: retrievals, document_chunks (v10+).
-    NOTES:        - Only document_chunks rows are adjusted in this pass;
-                    other source_tables are logged but not mutated (their
-                    priority concept is less central).
-                  - Per-chunk delta is the SUM of individual retrieval
-                    signals, then clamped — protects against single-run
-                    cliff jumps on heavily retrieved chunks.
-    """
+    """Adjust document_chunks.priority based on retrieval outcomes."""
     if not _has_retrievals(conn):
         return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [],
                 "status": "pre_v10_no_op"}

@@ -1,21 +1,4 @@
-"""Shared agent-runtime detection helper (E2 of Wave 0 audit fixes).
-
-PURPOSE:      Single source of truth for "which adapter / agent is running
-              right now?". Replaces three hardcoded duplicates that were
-              drifting independently:
-                - cli/board_commands.py::_detect_agent_runtime
-                - core/board_os/mcp_tools.py::_agent_label
-                - core/hooks/cos-env.sh (shell-only, kept separate)
-INPUT:        Optional explicit agent_session string from caller; otherwise
-              reads env vars + the persisted .agent marker file.
-OUTPUT:       Adapter id (e.g. "claude" / "codex" / "cursor") or "agent"
-              when nothing matches.
-DEPENDENCIES: stdlib only. Adapter registry is imported lazily so consumer
-              installs without an adapters/ tree fall back gracefully.
-NOTES:        Detection is data-driven — adapter env markers come from
-              adapters/<id>/adapter.yaml::runtime_env_markers (rule #11).
-              Adding a new agent never requires editing this file.
-"""
+"""Shared agent-runtime detection helper (E2 of Wave 0 audit fixes)."""
 
 from __future__ import annotations
 

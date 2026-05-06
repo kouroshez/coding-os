@@ -1,17 +1,4 @@
-"""B14 contract test — edge_types emitted by contracts.py match cos_graph_contracts.
-
-PURPOSE:  Assert that every edge_type string emitted by
-          ``core/graph_os/extractors/contracts.py`` appears in the
-          ``cos_graph_contracts`` tool's filter list, and vice versa,
-          so that the tool never silently ignores an extractor edge_type
-          and the extractor never produces orphaned edge_types.
-INPUT:    contracts.py source (introspected via the ``_emit`` helper)
-          + cos_graph_contracts filter list (read from tools/graph.py).
-OUTPUT:   pytest assertions.
-DEPENDENCIES:  graph_os.extractors.contracts, graph_os.tools.graph.
-NOTES:    This test does NOT require a live backend — it only reads
-          the static mapping tables from each module.
-"""
+"""B14 contract test — edge_types emitted by contracts.py match cos_graph_contracts."""
 
 from __future__ import annotations
 

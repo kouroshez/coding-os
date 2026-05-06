@@ -1,15 +1,4 @@
-"""
-Session startup helper — autonomous routing evolution check.
-
-PURPOSE:  Detect whether routing_weights are stale (>= 15 new task_outcomes
-          since last recalculate_weights call) and auto-trigger a refresh.
-          Eliminates the need for manual recalculate_weights calls — routing
-          evolves autonomously as outcomes accumulate.
-INPUT:    sys.argv[1] = COS_DB_PATH
-OUTPUT:   stdout line when weights are refreshed; silent otherwise.
-NOTES:    Fire-and-forget — exits 1 on any error so hook never blocks startup.
-          Threshold mirrors routing.py _STALE_THRESHOLD = 15.
-"""
+"""Session startup helper — autonomous routing evolution check."""
 from __future__ import annotations
 
 import sqlite3

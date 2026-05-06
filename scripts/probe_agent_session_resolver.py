@@ -1,14 +1,7 @@
 """Probe `_detect_agent_session_default` to verify the H-bug fix.
 
-PURPOSE: Confirm the new MCP-side helper returns a non-NULL session id
 under the same env that runs the live Claude CLI. Source-of-truth doc:
 docs/adapters/claude-deepening-checklist.md.
-INPUT:   none — reads CLAUDECODE / CLAUDE_AGENT_SDK_VERSION /
-         CLAUDE_PROJECT_DIR / COS_AGENT_DIR.
-OUTPUT:  Resolved session id or "(unresolved)".
-DEPENDENCIES: core/thinking_os imported via PYTHONPATH (uv editable install).
-NOTES:   Run after restarting the MCP server / Claude CLI so the running
-         server has the new code.
 """
 from __future__ import annotations
 

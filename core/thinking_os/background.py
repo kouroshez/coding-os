@@ -320,17 +320,7 @@ def _default_task_sync_runner() -> dict:
 
 
 def _default_graph_index_runner() -> dict:
-    """Run graph_indexer.index_project against the configured project root.
-
-    PURPOSE:      Phase I.10 — gives Codex (no PostToolUse on Write/Edit)
-                  a freshness path. Content-hash skipping keeps the 99%
-                  no-op case cheap (~100ms on a 1k-file repo per tick).
-    INPUT:        none — reads COS_PROJECT_ROOT + COS_DB_PATH + a
-                  COS_BACKGROUND_GRAPH_MAX_FILES safety cap.
-    OUTPUT:       {status, stats} per iteration.
-    NOTES:        Never raises; failures roll into BackgroundIndexer's
-                  error counter via the surrounding try/except.
-    """
+    """Run graph_indexer.index_project against the configured project root."""
     try:
         import graph_indexer
     except ImportError as exc:
@@ -383,13 +373,7 @@ def get_indexer() -> BackgroundIndexer:
 
 
 def maybe_start_indexer() -> dict:
-    """Start the indexer iff COS_BACKGROUND_INDEX=1. Return a status dict.
-
-    PURPOSE:      Single entrypoint called from server.py on_startup so
-                  activation is opt-in and boot-safe.
-    INPUT:        none (env-driven).
-    OUTPUT:       {"started": bool, "reason": str, "status": {...}}.
-    """
+    """Start the indexer iff COS_BACKGROUND_INDEX=1. Return a status dict."""
     if not is_enabled():
         return {"started": False,
                 "reason": f"{ENV_ENABLED} not set (opt-in)",

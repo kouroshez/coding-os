@@ -1,24 +1,4 @@
-"""Regenerate `00-index.md` for a docs directory from frontmatter.
-
-PURPOSE:      Auto-build the navigation index from each file's frontmatter
-              (domain · layer · ssot · updated · priority) + H1 title.
-              Removes the manual-curation drift the docs-system policy
-              calls out (TASK-157).
-INPUT:        argv[1]  — target directory (default `docs`).
-              argv[2…] — optional flags: `--write` (default — write the
-                          file), `--dry-run` (print to stdout), `--all`
-                          (recurse into every subdir that contains ≥2
-                          frontmatter docs).
-OUTPUT:       Writes (or previews) `00-index.md` files. Prints
-              `OK:` / `WARN:` / `ERROR:` lines per AGENTS.md script
-              output convention.
-DEPENDENCIES: core/thinking_os/tools/docs.py::list_doc_headers.
-NOTES:        Preserves hand-authored prose outside the
-              `<!-- BEGIN auto-index -->` / `<!-- END auto-index -->`
-              fence; if the fence is missing, the whole file is
-              regenerated. Files without canonical frontmatter are
-              ignored — never mass-rewritten.
-"""
+"""Regenerate `00-index.md` for a docs directory from frontmatter."""
 
 from __future__ import annotations
 

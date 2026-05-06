@@ -1,19 +1,4 @@
-"""
-Phase N — Formula Composer.
-
-PURPOSE:      Turn TaskSignals into an ordered ComposedChain of formula-roles
-              (researcher..refactorer). Strategy: situation override > preset match > per-role
-              scoring composer > hard fallback. Loads role/preset/situation
-              registries once (cached) and stamps preset version hash on the
-              chain for mid-session drift protection (N.5-C).
-INPUT:        TaskSignals, optional situation_id, optional preset_min_score.
-OUTPUT:       ComposedChain (see cognition_schemas.py).
-DEPENDENCIES: pydantic, yaml, hashlib; no DB or MCP dependency.
-NOTES:        Pure function — deterministic given (signals, situation,
-              threshold, registry contents). Safe to call concurrently;
-              registries are immutable after load. Reloadable via
-              reset_registry_cache().
-"""
+"""Phase N — Formula Composer."""
 
 from __future__ import annotations
 
@@ -40,14 +25,7 @@ _CANONICAL_ORDER_FALLBACK: list[str] = [
 
 
 def _load_canonical_order() -> list[str]:
-    """Read agents/<role>.md frontmatter `canonical_order:` and sort.
-
-    PURPOSE: Single source of truth for role workflow order is the role
-             frontmatter, not a Python constant.
-    OUTPUT:  List of role ids ordered by their declared canonical_order.
-    NOTES:   Falls back to the static list if the agents/ dir is empty
-             or YAML parsing fails — keeps cold-start safe.
-    """
+    """Read agents/<role>.md frontmatter `canonical_order:` and sort."""
     try:
         import yaml as _yaml  # type: ignore
     except ImportError:
@@ -199,13 +177,6 @@ def compose_chain(
     situation_id: str | None = None,
     preset_min_score: int | None = None,
 ) -> ComposedChain:
-    """
-    PURPOSE:      Deterministic chain composition per plan §2.3.
-    INPUT:        TaskSignals (required) + optional situation_id + tunable threshold.
-    OUTPUT:       ComposedChain with provenance.
-    DEPENDENCIES: Role + preset + situation registries (cached).
-    NOTES:        Never raises. Empty or illegal chains fall back to hard defaults.
-    """
     threshold = _resolve_threshold(preset_min_score)
 
     if situation_id:

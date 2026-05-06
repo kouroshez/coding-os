@@ -1,14 +1,4 @@
-"""
-Coding OS — Cognitive agent IO contracts (Phase M).
-
-PURPOSE:      Pydantic models for formula-agent inputs, outputs, and the
-              immutable EvidenceBundle that accumulates per session.
-INPUT:        Instantiated by cos_supervise, cos_dispatch_formula, and tests.
-OUTPUT:       Validated bundles; serialised to evidence_bundle.json per session.
-DEPENDENCIES: pydantic, Python 3.11+; no DB or MCP dependency.
-NOTES:        All models are append-only — new fields must be Optional with
-              defaults so existing stored bundles deserialise without error.
-"""
+"""Coding OS — Cognitive agent IO contracts (Phase M)."""
 
 from __future__ import annotations
 
@@ -406,16 +396,6 @@ class NextAction(BaseModel):
 # ---------------------------------------------------------------------------
 
 class TaskSignals(BaseModel):
-    """
-    PURPOSE:      Extracted signals from prompt + memory + MCP context that
-                  drive role composition. Produced by task_analyzer.analyze_task().
-    INPUT:        Instantiated by task_analyzer; never by hand.
-    OUTPUT:       Consumed by formula_composer.compose_chain().
-    DEPENDENCIES: None (pure data).
-    NOTES:        All fields default to "no signal" so partial extraction
-                  (e.g. MCP down, git unavailable) still yields a valid object.
-                  Composer treats defaulted fields as lowest-weight.
-    """
 
     domain: list[str] = Field(default_factory=list)
     action: Literal[
@@ -449,12 +429,6 @@ class RoleActivation(BaseModel):
 
 
 class ComposedChain(BaseModel):
-    """
-    PURPOSE:      Final chain returned by formula_composer.compose_chain().
-    NOTES:        Carries provenance so the supervisor + observability layer
-                  know WHY this chain was picked (preset hit vs composer vs
-                  situation override vs fallback).
-    """
     chain: list[str]
     source: Literal["preset", "composer", "situation", "fallback"]
     preset_id: str | None = None

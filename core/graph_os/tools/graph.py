@@ -1,15 +1,6 @@
 """graph_os — the 11 cos_graph_* MCP tools (I.8).
 
-PURPOSE:  Expose graph_os to agents through the MCP server. Every tool
-          honours the Rule 14 envelope contract (ok / fail, @safe_tool)
-          and sets `data.meta.layer="graph"` so agents can see which
-          retrieval layer answered them.
-INPUT:    arguments per-tool (see docstrings).
-OUTPUT:   envelope dicts produced by `core/thinking_os/tools/_shared.py`.
 DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
-NOTES:    The tool layer is backend-agnostic — it calls GraphBackend
-          and lets the factory pick Kuzu vs SQLite. Fail-loud on
-          backend errors per plan §12.5.
 """
 
 from __future__ import annotations
@@ -460,19 +451,7 @@ def _contains_ancestors(
     leaf_uid: str,
     max_hops: int = 16,
 ) -> tuple[list[GraphNode], list[GraphEdge]]:
-    """Walk the CONTAINS spine from ``leaf_uid`` up to the repo root.
-
-    PURPOSE:      S3 — when ``include_spine=True`` on context/query/export
-                  we surface the File→Folder→…→RepoRoot chain so the SPA
-                  can render breadcrumbs and the tree-view anchor.
-    INPUT:        backend + leaf uid + safety cap.
-    OUTPUT:       (ancestor nodes in root→leaf order, edges along the
-                  chain in child→parent direction).
-    NOTES:        Follows inbound ``contains`` edges one step at a time
-                  until no more parent is found or ``max_hops``
-                  exhausts. ``folder:`` uids terminate the walk at the
-                  repo-root sentinel ``folder:.``.
-    """
+    """Walk the CONTAINS spine from ``leaf_uid`` up to the repo root."""
     nodes: list[GraphNode] = []
     edges: list[GraphEdge] = []
     seen: set[str] = {leaf_uid}
@@ -544,12 +523,6 @@ def cos_graph_query(
 ) -> dict[str, Any]:
     """Hybrid search over node labels + docstrings.
 
-    PURPOSE:      "find me nodes that look like X" — lexical today
-                  (SQLite LIKE / FTS5 on the dogfood backend), hybrid
-                  embedding + FTS once Phase I.1's BGE-M3 is ready.
-    INPUT:        q (non-empty), optional kind filter, limit, depth +
-                  confidence floor for the graph-walk expansion.
-    OUTPUT:       ok({results: [NodeSummary + confidence + path]}).
     DEPENDS:      GraphBackend.
     """
     if (not q or not q.strip()) and not kinds:
@@ -622,14 +595,7 @@ def cos_graph_context(
     include_spine: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Neighbourhood around a node.
-
-    PURPOSE:      "what does this symbol depend on / who depends on it?"
-                  The primary Implementer pre-implementation tool (plan §14).
-    INPUT:        uid or fuzzy label, direction, depth, optional
-                  inclusion flags.
-    OUTPUT:       ok({node, edges, neighbours, grouped_by_type}).
-    """
+    """Neighbourhood around a node."""
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -722,10 +688,6 @@ def cos_graph_impact(
 ) -> dict[str, Any]:
     """Blast-radius: which nodes depend on (or are depended on by) `uid`.
 
-    PURPOSE:      Analyst Dependency Map. Groups the neighbourhood
-                  into risk tiers so Refactorer can sequence work.
-    OUTPUT:       ok({nodes_by_tier, edges}).
-
     Direction semantics (B12):
       "downstream" — nodes that DEPEND ON `uid` (inbound edges from
                      their perspective, i.e. direction="in" in BFS).
@@ -796,14 +758,7 @@ def cos_graph_detect_changes(
     analyze_downstream: bool = True,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Pre-commit self-review: map changed files to affected graph nodes.
-
-    PURPOSE:      Reviewer Layer 2 + Deployer pre-release diff. In I.8 the file set
-                  is passed in (`files=[...]`) since the git wiring
-                  lives in the CLI / hook layer. `scope` is forwarded
-                  as metadata for the caller's bookkeeping.
-    OUTPUT:       ok({files, symbols, downstream_tasks, risk_level}).
-    """
+    """Pre-commit self-review: map changed files to affected graph nodes."""
     if not files:
         return _ok(
             {
@@ -889,12 +844,7 @@ def cos_graph_trace(
     max_steps: int = 50,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Forward execution walk from an entry point.
-
-    PURPOSE:      Debugger fault isolation / distributed tracing
-                  scaffolding.
-    OUTPUT:       ok({steps: [NodeSummary], branches}).
-    """
+    """Forward execution walk from an entry point."""
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1632,16 +1582,7 @@ def cos_graph_contracts(
 
 
 def _read_node_content(node: GraphNode, *, cap: int = 2000) -> dict[str, Any] | None:
-    """B21: read source snippet for a node from its file_path + line range.
-
-    PURPOSE:  Inline source text so ``cos_graph_context(include_content=True)``
-              returns a ``content`` field per node without extra round-trips.
-    INPUT:    node with file_path, start_line, end_line set.
-              cap — max chars to include (default 2000).
-    OUTPUT:   dict with ``content`` (str) and ``truncated`` (bool), or None
-              when the file is missing or the node has no file_path.
-    NOTES:    Silently returns None on any IO error — callers must handle None.
-    """
+    """B21: read source snippet for a node from its file_path + line range."""
     if not node.file_path:
         return None
     try:
@@ -1831,17 +1772,7 @@ def cos_graph_entrypoints(
     min_score: float = 0.05,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Return scored entry-point candidates (TASK-081).
-
-    PURPOSE:    Surface high-value starting nodes for traces / Hub UI.
-    INPUT:      ``top`` — max rows returned (1-200).
-                ``kind`` — optional filter on entry_kind
-                          (main / cli / http / cron / test).
-                ``min_score`` — drop rows below this score.
-    OUTPUT:     ok({entrypoints: [{uid, kind, score, label, file_path,
-                start_line, components}]}). Empty list when no
-                candidates pass the threshold.
-    """
+    """Return scored entry-point candidates (TASK-081)."""
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -1883,19 +1814,7 @@ def cos_graph_communities(
     min_size: int = 2,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Return Louvain-detected processes / communities (TASK-075).
-
-    PURPOSE:    Surface named clusters (LoginFlow / RegistrationFlow /
-                TokenRefresh-style) for the Hub Search tab grouping
-                and the Inspector "Member of processes" section.
-    INPUT:      ``top`` — max rows returned (1-200).
-                ``min_size`` — drop singleton clusters smaller than
-                                this floor (default 2).
-    OUTPUT:     ok({processes: [{community_id, name, summary,
-                priority, member_count, members: [...]}]}).
-                Sorted by priority desc; empty when the graph has no
-                clustering signal yet (a fresh repo before reindex).
-    """
+    """Return Louvain-detected processes / communities (TASK-075)."""
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -1930,23 +1849,7 @@ def cos_graph_centrality(
     metric: str = "degree",
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Hub detection via degree (or betweenness) centrality.
-
-    PURPOSE:      Identify structurally important nodes — high-degree
-                  hubs indicate shared utilities, God-objects, or
-                  critical integration points that carry disproportionate
-                  blast radius.
-    INPUT:        ``top`` — max rows (1-200).
-                  ``kind`` — optional node kind filter.
-                  ``metric`` — "degree" (default) or "betweenness".
-                  Betweenness is O(V·E) so it's capped at 300 nodes
-                  and returns ``meta.truncated=True`` if the graph
-                  exceeds that.
-    OUTPUT:       ok({nodes: [{uid, kind, label, in_degree, out_degree,
-                  centrality_score}]}).
-    NOTES:        Degree centrality = (in+out) / (2*(N-1)) normalised to
-                  [0,1] when N>1. Returns raw counts when N=1.
-    """
+    """Hub detection via degree (or betweenness) centrality."""
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -2128,24 +2031,7 @@ def cos_graph_ranking(
     iterations: int = 30,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """PageRank-based node ranking with optional query personalisation.
-
-    PURPOSE:      Surface the most structurally authoritative nodes —
-                  used by the Hub "Top nodes" sidebar and Analyst dependency
-                  ranking. When ``query`` is given, the initial rank
-                  vector is personalised toward query-matching nodes
-                  (Personalised PageRank) so the result is both
-                  authority-aware and query-relevant.
-    INPUT:        ``query`` — optional label filter for personalisation.
-                  ``top`` — max rows (1-200).
-                  ``kind`` — optional kind filter.
-                  ``damping`` — PageRank damping factor (default 0.85).
-                  ``iterations`` — max power-iteration steps (default 30).
-    OUTPUT:       ok({nodes: [{uid, kind, label, rank_score,
-                  file_path, start_line}]}).
-    NOTES:        Bounded at 5000 nodes for memory safety. Graphs larger
-                  than this are sampled by degree (highest first).
-    """
+    """PageRank-based node ranking with optional query personalisation."""
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -2298,21 +2184,7 @@ def cos_graph_doctor(
     fix: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Graph health check — orphans, dangling edges, duplicates.
-
-    PURPOSE:      Routine integrity check surfacing structural anomalies
-                  that indicate extractor bugs, failed reindexes, or
-                  schema drift. Intended for ``cos doctor`` output and
-                  the Hub Diagnostics panel.
-    INPUT:        ``fix`` — if True, delete provably safe dangling edges
-                  (edges whose source OR target uid has no node record).
-                  Orphaned nodes and duplicates are reported only —
-                  auto-delete requires human confirmation.
-    OUTPUT:       ok({healthy, issues: [{category, count, sample}],
-                  stats: {node_count, edge_count, ...}}).
-    NOTES:        Always returns ok() — even a sick graph deserves a
-                  report. ``healthy`` is False when issue count > 0.
-    """
+    """Graph health check — orphans, dangling edges, duplicates."""
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:

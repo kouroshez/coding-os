@@ -1,13 +1,4 @@
-"""Transition Gate validator (Phase L.10 — TASK-104).
-
-PURPOSE: Pure-python evaluator that takes (task_kind, task_body, target_status,
-         GatesConfig) and returns a structured ValidationResult.
-INPUT:   kind: str, body: str, new_status: str, config: GatesConfig.
-OUTPUT:  ValidationResult{verdict, messages: list[ValidationMessage]}.
-DEPENDENCIES: pydantic, re, board_os.transition_gates, board_os.parser.
-NOTES:   Stable error codes (DOR_*, DOD_*, OVERRIDE_*) so hooks and the UI
-         can localise messages without re-parsing free-form strings.
-"""
+"""Transition Gate validator (Phase L.10 — TASK-104)."""
 
 from __future__ import annotations
 

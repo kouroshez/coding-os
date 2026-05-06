@@ -1,21 +1,4 @@
-"""cli.sync_all — push the meta-repo's current state to every registered project.
-
-PURPOSE: Close the "I edited core/ or adapters/, how do consumer projects
-         pick it up?" gap.  Symlinks already propagate core/hooks / core/rules
-         live, but three paths need explicit re-runs:
-           1. adapters/<agent>/*.template.* → .claude/settings.json (RENDER,
-              not symlink) — must be re-rendered per install.sh.
-           2. .coding-os/coding-os.db pending migrations (e.g. v19 "drop
-              ready status") — applied lazily via init_db.
-           3. Broken symlinks if the meta repo itself moved — symlink
-              targets become dangling; this surfaces + repairs them.
-
-INPUT:   ~/.coding-os/registry.json, every project's .coding-os.yaml.
-OUTPUT:  Click command group `cos sync-all` + `cos sync-doctor`.
-DEPENDENCIES: cli.registry (project list), cli.main (_run_adapter_install /
-              _link_stack_skills), core.coding-os.db (init_db).
-NOTES:   All mutations are idempotent — re-running is safe.
-"""
+"""cli.sync_all — push the meta-repo's current state to every registered project."""
 from __future__ import annotations
 
 import json
@@ -51,13 +34,7 @@ def _load_project_config(project: Path) -> dict:
 
 
 def _iter_symlinks(project: Path) -> list[Path]:
-    """Yield every symlink under a consumer project's agent dirs.
-
-    PURPOSE: Symlinks to core/hooks, core/rules, core/skills are the
-             propagation mechanism — a dangling one means install.sh
-             wrote it against an old meta repo location that no longer
-             exists.  We surface them for --repair.
-    """
+    """Yield every symlink under a consumer project's agent dirs."""
     # Data-driven adapter discovery (Rule 11): scan adapters/ for
     # registered adapter ids, fall back to the historical triplet on
     # stripped-down test fixtures.
@@ -223,14 +200,7 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
               help="Re-run install.sh on projects with dangling links to fix them.")
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 def sync_doctor_cmd(slug: str | None, repair: bool, fmt: str) -> None:
-    """Walk each project's agent dirs, flag broken symlinks.
-
-    PURPOSE: When the meta repo moves (e.g. user relocates ~/coding-os)
-             every install.sh-written symlink becomes dangling — hooks
-             silently stop firing.  This surfaces + repairs them.
-    OUTPUT:  Text or JSON.  Exit code = number of projects still broken
-             AFTER the optional --repair pass (so CI can gate on it).
-    """
+    """Walk each project's agent dirs, flag broken symlinks."""
     report: list[dict] = []
     for entry, path in _each_registered_project(slug):
         links = _iter_symlinks(path)

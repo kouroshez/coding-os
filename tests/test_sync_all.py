@@ -1,16 +1,4 @@
-"""Tests for cli.sync_all — cos sync-all + cos sync-doctor.
-
-PURPOSE: Guard the hub propagation story:
-  - sync-all iterates ~/.coding-os/registry.json and hits every project
-  - migrations apply (schema_version advances)
-  - dangling symlinks surface; --repair fixes them when the meta repo
-    is reachable
-  - --dry-run never mutates
-INPUT:   Synthetic tmp registry + synthetic project dirs with fake
-         `.coding-os/` + `.claude/hooks/` symlinks pointing at a fake
-         "old meta" we then remove to simulate a relocated meta repo.
-OUTPUT:  Assertions on CLI output (CliRunner) and filesystem state.
-"""
+"""Tests for cli.sync_all — cos sync-all + cos sync-doctor."""
 from __future__ import annotations
 
 import json

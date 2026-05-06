@@ -1,14 +1,6 @@
 """graph_os viewer exporter (I.10).
 
-PURPOSE:  High-level facade that turns a backend snapshot into an
-          HTML file on disk. Owns the CSP nonce generator and the
-          bundled-vs-CDN decision.
-INPUT:    backend, output path, options.
-OUTPUT:   Path to the written HTML.
 DEPENDS:  stdlib + template.py + backend.
-NOTES:    No npm build — the template pins CDN URLs + SRI-compatible
-          scripts. `--bundled` mode is a future enhancement documented
-          in the plan; I.10 ships CDN mode with the CSP nonce.
 """
 
 from __future__ import annotations

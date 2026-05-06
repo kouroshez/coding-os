@@ -1,13 +1,6 @@
 """graph_os S1 B1 — concurrency smoke test.
 
-PURPOSE:      Exercise mixed read/write load across ≥4 threads against
-              both SqliteBackend and KuzuBackend (when installed).
-              Asserts no ``sqlite3.ProgrammingError``, no ``ValueError``,
-              no data corruption (final counts match expectations).
-INPUT:        fresh DB per backend via pytest fixtures.
-OUTPUT:       pass / fail via pytest.
 DEPENDS:      graph_os.backends.{sqlite,kuzu}_backend, threading.
-NOTES:        Rule 9 / Rule 14 unaffected — pure test module.
 """
 
 from __future__ import annotations

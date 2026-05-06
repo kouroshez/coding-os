@@ -1,20 +1,4 @@
-"""Viewer FPS scale harness (Phase I.10 ship gate).
-
-PURPOSE:  Produce a 10k-node HTML viewer file, then measure how long
-          Sigma.js takes to build the Graphology graph + perform a
-          Force-Atlas iteration. Pure headless node count + layout
-          timing — no headless browser dependency.
-INPUT:    --nodes N (default 10_000).
-OUTPUT:   JSON report with build_ms + first-paint estimate.
-NOTES:    A browser-runtime FPS measurement requires a headless
-          browser (chromium via playwright / selenium). That is
-          intentionally outside Phase I.10's CI scope — the gate here
-          measures the server-side work (HTML size, JSON payload
-          generation, linear time per node). The plan §15 records
-          "FPS >= 30 on 10k nodes" as the browser-side goal; this
-          harness verifies the input to that goal (payload shape +
-          generation time) stays within budget.
-"""
+"""Viewer FPS scale harness (Phase I.10 ship gate)."""
 
 from __future__ import annotations
 

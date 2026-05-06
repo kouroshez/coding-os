@@ -1,13 +1,4 @@
-"""core.web.routes.hooks — /api/hooks/* HTTP wrappers (T19.4).
-
-PURPOSE: Surface the hook registry (core/hooks/registry.yaml) for the hub
-         dashboard so operators can audit which hooks are wired per agent
-         + event without grepping the filesystem.
-INPUT:   Optional adapter / event filters.
-OUTPUT:  JSON list of hook entries.
-DEPENDENCIES: cli.hook_renderer (canonical loader).
-NOTES:   Read-only, fast — registry.yaml is small. No DB hit.
-"""
+"""core.web.routes.hooks — /api/hooks/* HTTP wrappers (T19.4)."""
 from __future__ import annotations
 
 import json
@@ -34,13 +25,7 @@ async def list_hooks(
     _rl=Depends(make_rate_limit_dep("hooks.list")),
     _m=Depends(make_metrics_dep("hooks.list")),
 ):
-    """List registered hooks with their event, matcher, scope, category.
-
-    PURPOSE: Hub dashboard — show every hook the runtime would fire so
-             operators can audit blast-radius before merging changes.
-    INPUT:   adapter / event filters.
-    OUTPUT:  {data: {hooks: [...], count}, meta}.
-    """
+    """List registered hooks with their event, matcher, scope, category."""
     try:
         from cli.hook_renderer import load_registry  # type: ignore[import]
     except ImportError as exc:

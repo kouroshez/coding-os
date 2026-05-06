@@ -27,20 +27,7 @@ _SESSION_ID_TIMESTAMP_RE = __import__("re").compile(
 
 
 def _compute_session_duration(conn, session_id: str) -> int | None:
-    """Return whole minutes elapsed from session start → now, or None.
-
-    PURPOSE:      Fill session_summaries.duration_minutes so retro / daily
-                  surfaces can show time-in-session without relying on an
-                  always-on presence tracker.
-    INPUT:        conn - live sqlite connection.
-                  session_id - canonical ses-<agent>-YYYYMMDD-HHMMSS-xxxx.
-    OUTPUT:       int minutes (floored), or None when no reliable start
-                  timestamp can be derived (e.g. legacy session id).
-    NOTES:        Prefers the parseable suffix of session_id; falls back
-                  to the earliest observation in the session. Clamps to
-                  zero — returning a negative minute count would confuse
-                  downstream dashboards.
-    """
+    """Return whole minutes elapsed from session start → now, or None."""
     from datetime import datetime, timezone
     import sqlite3 as _sq
 

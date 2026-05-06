@@ -103,19 +103,7 @@ def precision_snapshot(
     *,
     lookback_days: int = 30,
 ) -> PrecisionSnapshot:
-    """Compute a retrieval-precision snapshot from recent retrievals.
-
-    PURPOSE:      Cheap read-only metric the trigger gate consumes. Used
-                  stand-alone by `cos doctor` / G.11 scaffolding tests.
-    INPUT:        open DB connection, lookback window in days.
-    OUTPUT:       PrecisionSnapshot (immutable).
-    DEPENDENCIES: retrievals table (v10+).
-    NOTES:        - Pre-v10 DBs → empty snapshot (precision 0.0, sample 0).
-                    Never raises.
-                  - Unresolved outcomes (NULL / "wip") are reported but NOT
-                    counted in the denominator — we measure only resolved
-                    retrievals, which is the honest base for precision.
-    """
+    """Compute a retrieval-precision snapshot from recent retrievals."""
     lookback_days = max(1, int(lookback_days))
     if not _has_retrievals(conn):
         return PrecisionSnapshot(lookback_days, 0, 0, 0, 0, 0.0, False)
@@ -161,25 +149,7 @@ def should_enable_contextual_enrichment(
     target: float = PRECISION_TARGET,
     min_sample: int = MIN_SAMPLE_FOR_DECISION,
 ) -> tuple[bool, str, dict]:
-    """Return (enable?, reason, snapshot_dict).
-
-    PURPOSE:      Gatekeeper for the expensive contextual-enrichment step.
-                  Never auto-enables — the tuple is a recommendation for
-                  `cos doctor` / a future CLI flag.
-    INPUT:        DB conn, optional thresholds (mostly for tests).
-    OUTPUT:       tuple:
-                    - enable_bool: True iff precision < target AND sample
-                      is large enough.
-                    - reason: short explanation the agent/user sees.
-                    - snapshot: dict view of PrecisionSnapshot for logs.
-    DEPENDENCIES: precision_snapshot.
-    NOTES:        - The function is idempotent and side-effect free. It
-                    does NOT flip a feature flag — that remains manual per
-                    the anti-over-engineering rule in the plan.
-                  - When retrievals table is absent (pre-v10) we return
-                    (False, "pre_v10_no_signal", snapshot) so consumers
-                    can detect the bootstrapping phase.
-    """
+    """Return (enable?, reason, snapshot_dict)."""
     snap = precision_snapshot(conn, lookback_days=lookback_days)
     snap_d = asdict(snap)
 
@@ -213,28 +183,7 @@ def contextual_enrichment_stub(
     content: str,
     doc_title: str = "",
 ) -> dict:
-    """Placeholder for Anthropic-style Contextual Retrieval enrichment.
-
-    PURPOSE:      Reserve the wiring point. Does NOT call an LLM. Callers
-                  (doc_indexer) can route through this interface today and
-                  the future activation is a 1-line swap of the body.
-    INPUT:        heading_path, chunk content, optional doc title.
-    OUTPUT:       dict:
-                    {
-                      "enriched_content": <same as input>,
-                      "would_enrich": True,
-                      "model": None,
-                      "reason": "stub_only_no_llm_call",
-                    }
-                  The shape pins the future contract.
-    DEPENDENCIES: none (pure function).
-    NOTES:        - `would_enrich` is always True so the stub serves as a
-                    no-op marker; flip to False in a real implementation
-                    for fallback paths (empty input, LLM unavailable).
-                  - Opening `model: None` now means consumers can check
-                    this key to decide whether to embed the returned text
-                    as-is or skip re-embedding.
-    """
+    """Placeholder for Anthropic-style Contextual Retrieval enrichment."""
     return {
         "enriched_content": content,
         "would_enrich": True,

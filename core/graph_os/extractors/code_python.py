@@ -1,22 +1,6 @@
 """graph_os — Python extractor (I.4).
 
-PURPOSE:  Turn a single Python module into GraphNodes + GraphEdges —
-          imports, classes, methods, calls, decorators — using the
-          standard-library `ast` parser as the deterministic baseline.
-          The tree-sitter + LSP overlays in I.5 and I.7 raise
-          confidence for edges this pass can only guess at.
-INPUT:    module path + raw source text.
-OUTPUT:   ExtractionResult (same shape as md_links / task_deps).
 DEPENDS:  Python's stdlib `ast`; no tree-sitter / LSP.
-NOTES:    This module deliberately does NOT require tree-sitter —
-          builds CI stays green on machines that cannot install the
-          grammar. The tree-sitter adapter lives in a sibling module
-          (`code_python_ts.py`, ships in I.4b) and agrees with this
-          baseline on deterministic fixtures. See plan Section 7
-          (7-step lookup) for the resolution ladder; this extractor
-          implements the pure-Python subset (steps 1-3) and marks
-          everything else as `unresolved` so the LSP overlay can fix
-          them later.
 """
 
 from __future__ import annotations
@@ -69,13 +53,6 @@ def _tree_sitter_imports_active() -> bool:
 
 def _imports_via_tree_sitter(content: str) -> list[_ImportDecl] | None:
     """Parse Python imports via tree-sitter.
-
-    PURPOSE:    Equivalent of ``visit_Import`` / ``visit_ImportFrom`` for
-                the tree-sitter primary path (TASK-119 / TASK-080a).
-                Returns the same `_ImportDecl` shape as the ast visitor
-                so the emission code is unchanged.
-    OUTPUT:     ``list[_ImportDecl]`` ordered by source line, or ``None``
-                when the grammar cannot parse the content.
 
     Notes:
       - Aliases are honoured: `from pkg.sub import Foo as F` keeps
@@ -248,14 +225,6 @@ def _heritage_via_tree_sitter(
     content: str,
 ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]] | None:
     """Walk the tree-sitter Python AST and return ``(inherits, decorators)``.
-
-    PURPOSE:    Equivalent of `_PythonVisitor.inherits` and
-                `decorators_edges` for the tree-sitter primary path.
-                Returns the same `(uid, dotted_name)` tuple shape so
-                the emission code is unchanged — only the per-edge
-                ``extractor`` tag changes when this path is active.
-    OUTPUT:     ``(inherits, decorators_edges)`` or ``None`` when the
-                grammar can't parse the content.
 
     Notes:
       - Qualnames mirror the ast visitor (nested classes nest, nested
@@ -457,23 +426,7 @@ class _ImportDecl:
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a `.py` file into nodes + edges.
-
-    PURPOSE:      Per-file write path for the orchestrator. Invoked by
-                  `auto-reindex-docs.sh` (and the background indexer in
-                  Codex sessions) on every save of a Python file
-                  matched by `.coding-os/rag-config.yaml::graph.include`.
-    INPUT:        file path (repo-relative preferred; normalised) +
-                  raw source.
-    OUTPUT:       ExtractionResult with code:file, code:module,
-                  code:class, code:function, code:method, code:import
-                  nodes plus `contains`, `imports`, `inherits_from`,
-                  `is_decorated_by`, `calls` edges.
-    DEPENDENCIES: stdlib only.
-    NOTES:        SyntaxError is caught; we still emit the file node
-                  with a `parse_error` entry so the agent can query
-                  "which files failed to parse".
-    """
+    """Parse a `.py` file into nodes + edges."""
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
@@ -805,13 +758,7 @@ def extract(path: str, content: str) -> ExtractionResult:
 
 
 class _PythonVisitor(ast.NodeVisitor):
-    """Walk an AST once, collecting decls + imports + calls.
-
-    PURPOSE:      Single-pass depth-first walk that stays fast enough
-                  for the sync <200ms incremental budget (plan §8.2).
-    NOTES:        Nested functions are tracked but lambdas are only
-                  counted when assigned to a name.
-    """
+    """Walk an AST once, collecting decls + imports + calls."""
 
     def __init__(self, *, path: str, module_name: str, content: str) -> None:
         self.path = path

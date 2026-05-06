@@ -1,14 +1,4 @@
-"""Cross-repo edge inference (I.12).
-
-PURPOSE:  Given a group manifest + each member's extracted routes /
-          MCP tools / fetch call-sites, infer cross-repo edges
-          (`calls_contract`, `calls_mcp_tool`, `shares_proto`,
-          `shares_config`). Confidence 0.6 for inferred edges; 0.95
-          when a member's `owns.http_routes` explicitly declares the
-          target (plan §17.3).
-INPUT:    `infer_cross_repo_edges(manifest, data)`.
-OUTPUT:   CrossRepoReport.
-"""
+"""Cross-repo edge inference (I.12)."""
 
 from __future__ import annotations
 
@@ -27,12 +17,7 @@ EXTRACTOR_ID = "groups.cross_repo@v1"
 
 @dataclass
 class MemberInputs:
-    """Normalised per-member contribution to the group.
-
-    PURPOSE:      Decouples the group inference from extractor output —
-                  callers flatten their contracts / fetch sites into
-                  these fields.
-    """
+    """Normalised per-member contribution to the group."""
 
     alias: str
     routes: list[dict] = field(default_factory=list)   # {method, path, handler_uid?}
@@ -51,15 +36,7 @@ def infer_cross_repo_edges(
     manifest: GroupManifest,
     inputs: Iterable[MemberInputs],
 ) -> CrossRepoReport:
-    """Build cross-repo edges from per-member extract data.
-
-    PURPOSE:      Single pure function the group orchestrator calls
-                  after running the per-member indexer.
-    INPUT:        manifest (with ownership) + per-member inputs.
-    OUTPUT:       CrossRepoReport.
-    NOTES:        Does NOT touch the backend — caller persists the
-                  edges via `bulk_upsert` into the group-level store.
-    """
+    """Build cross-repo edges from per-member extract data."""
     report = CrossRepoReport()
 
     # Index all routes for quick lookup by (method, path).

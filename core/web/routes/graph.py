@@ -1,14 +1,4 @@
-"""core.web.routes.graph — /api/graph/* HTTP wrappers for 11 cos_graph_* tools.
-
-PURPOSE: Expose all 11 cos_graph_* MCP tools as FastAPI endpoints so the SPA
-         (S5) and external HTTP clients can call them without the MCP protocol.
-INPUT:   HTTP request bodies / query params matching each tool's signature.
-OUTPUT:  JSON response unwrapped from the MCP envelope ({data, meta} on 200,
-         error body on 4xx/5xx).
-DEPENDENCIES: fastapi, core.web._envelope, core.web._deps, core.graph_os.tools.graph.
-NOTES:  All params are optional where the underlying tool has defaults.
-        Comma-separated strings are used for list params (mirrors MCP conventions).
-"""
+"""core.web.routes.graph — /api/graph/* HTTP wrappers for 11 cos_graph_* tools."""
 
 from __future__ import annotations
 
@@ -30,15 +20,7 @@ router = APIRouter(prefix="/api/graph", tags=["graph"])
 
 
 def _tools():
-    """Lazy import guard for graph_os tools.
-
-    PURPOSE: Defer import so the web package boots even when graph_os extras
-             are absent; the endpoint returns 503 in that case.
-    INPUT:   none.
-    OUTPUT:  graph tools module or None.
-    DEPENDENCIES: graph_os.tools.graph.
-    NOTES:   Called per-request; Python module cache makes this effectively free.
-    """
+    """Lazy import guard for graph_os tools."""
     try:
         from graph_os.tools import graph as _g  # type: ignore
         return _g
@@ -69,14 +51,7 @@ async def graph_query(
     _rl=Depends(make_rate_limit_dep("graph.query")),
     _m=Depends(make_metrics_dep("graph.query")),
 ):
-    """Hybrid search over node labels + docstrings.
-
-    PURPOSE: HTTP wrapper for cos_graph_query.
-    INPUT:   q, kinds (csv), limit, max_hops, confidence_min, include_spine.
-    OUTPUT:  {data: {results}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_query.
-    NOTES:   kinds is a comma-separated string split internally.
-    """
+    """Hybrid search over node labels + docstrings."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -103,14 +78,7 @@ async def graph_context(
     _rl=Depends(make_rate_limit_dep("graph.context")),
     _m=Depends(make_metrics_dep("graph.context")),
 ):
-    """Return neighbourhood around a node.
-
-    PURPOSE: HTTP wrapper for cos_graph_context.
-    INPUT:   uid_or_name (path), direction, depth, include_* flags.
-    OUTPUT:  {data: {node, neighbours, edges_by_type}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_context.
-    NOTES:   uid_or_name uses :path so colons in uids don't get mis-parsed.
-    """
+    """Return neighbourhood around a node."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -134,14 +102,7 @@ async def graph_impact(
     _rl=Depends(make_rate_limit_dep("graph.impact")),
     _m=Depends(make_metrics_dep("graph.impact")),
 ):
-    """Blast-radius grouped by risk tier.
-
-    PURPOSE: HTTP wrapper for cos_graph_impact.
-    INPUT:   uid (path), direction, depth, confidence_min.
-    OUTPUT:  {data: {root, tiers, impacted_count}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_impact.
-    NOTES:   direction is "downstream" | "upstream" | "both".
-    """
+    """Blast-radius grouped by risk tier."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -157,14 +118,7 @@ async def graph_detect_changes(
     _rl=Depends(make_rate_limit_dep("graph.detect_changes")),
     _m=Depends(make_metrics_dep("graph.detect_changes")),
 ):
-    """Map changed files to affected symbols.
-
-    PURPOSE: HTTP wrapper for cos_graph_detect_changes.
-    INPUT:   files (csv), scope, analyze_downstream.
-    OUTPUT:  {data: {files, symbols, downstream_tasks, risk_level}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_detect_changes.
-    NOTES:   files is a comma-separated string.
-    """
+    """Map changed files to affected symbols."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -181,14 +135,7 @@ async def graph_trace(
     _rl=Depends(make_rate_limit_dep("graph.trace")),
     _m=Depends(make_metrics_dep("graph.trace")),
 ):
-    """Forward execution walk from an entry point.
-
-    PURPOSE: HTTP wrapper for cos_graph_trace.
-    INPUT:   entry_uid (path), terminals (csv), max_steps.
-    OUTPUT:  {data: {entry, steps, branches, terminals}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_trace.
-    NOTES:   terminals is a comma-separated string.
-    """
+    """Forward execution walk from an entry point."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -205,14 +152,7 @@ async def graph_similar(
     _rl=Depends(make_rate_limit_dep("graph.similar")),
     _m=Depends(make_metrics_dep("graph.similar")),
 ):
-    """Top-K nodes most similar to uid.
-
-    PURPOSE: HTTP wrapper for cos_graph_similar.
-    INPUT:   uid (path), top_k, confidence_min.
-    OUTPUT:  {data: {root, results}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_similar.
-    NOTES:   Uses difflib baseline; BGE-M3 lands in S-future.
-    """
+    """Top-K nodes most similar to uid."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -228,14 +168,7 @@ async def graph_references(
     _rl=Depends(make_rate_limit_dep("graph.references")),
     _m=Depends(make_metrics_dep("graph.references")),
 ):
-    """Inbound references to uid.
-
-    PURPOSE: HTTP wrapper for cos_graph_references.
-    INPUT:   uid (path), kinds (csv), limit.
-    OUTPUT:  {data: {node, references, count}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_references.
-    NOTES:   kinds is a comma-separated string.
-    """
+    """Inbound references to uid."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -252,14 +185,7 @@ async def graph_path(
     _rl=Depends(make_rate_limit_dep("graph.path")),
     _m=Depends(make_metrics_dep("graph.path")),
 ):
-    """Shortest path between two nodes.
-
-    PURPOSE: HTTP wrapper for cos_graph_path.
-    INPUT:   source_uid, target_uid, max_hops (all query params).
-    OUTPUT:  {data: {path, edges, hops, truncated}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_path.
-    NOTES:   Uses BFS with 1000-edge hop limit.
-    """
+    """Shortest path between two nodes."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -279,16 +205,7 @@ async def graph_export(
     _rl=Depends(make_rate_limit_dep("graph.export")),
     _m=Depends(make_metrics_dep("graph.export")),
 ):
-    """Export a subgraph as json | mermaid | dot.
-
-    PURPOSE: HTTP wrapper for cos_graph_export.
-    INPUT:   format, root_uid, edge_types (csv), max_nodes, include_spine,
-             mode (auto|containment|dependencies|processes — TASK-141),
-             exclude_kinds (csv; pass empty string to disable noise filter).
-    OUTPUT:  {data: {format, nodes|diagram, edges}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_export.
-    NOTES:   Large exports may be slow; use max_nodes to cap.
-    """
+    """Export a subgraph as json | mermaid | dot."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -327,14 +244,7 @@ async def graph_rename_plan(
     _rl=Depends(make_rate_limit_dep("graph.rename_plan")),
     _m=Depends(make_metrics_dep("graph.rename_plan")),
 ):
-    """Plan a rename — call-sites, docs, tests, risk.
-
-    PURPOSE: HTTP wrapper for cos_graph_rename_plan.
-    INPUT:   uid (path), new_name, check_strings.
-    OUTPUT:  {data: {old_name, new_name, call_sites, ...}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_rename_plan.
-    NOTES:   Read-only — doesn't actually perform the rename.
-    """
+    """Plan a rename — call-sites, docs, tests, risk."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -349,14 +259,7 @@ async def graph_contracts(
     _rl=Depends(make_rate_limit_dep("graph.contracts")),
     _m=Depends(make_metrics_dep("graph.contracts")),
 ):
-    """Enumerate every handler declared in the graph.
-
-    PURPOSE: HTTP wrapper for cos_graph_contracts.
-    INPUT:   scope, kinds (csv).
-    OUTPUT:  {data: {http_routes, mcp_tools, ...}, meta} on 200.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_contracts.
-    NOTES:   Useful for contract tests and API surface audits.
-    """
+    """Enumerate every handler declared in the graph."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -372,12 +275,7 @@ async def graph_communities(
     _rl=Depends(make_rate_limit_dep("graph.communities")),
     _m=Depends(make_metrics_dep("graph.communities")),
 ):
-    """Louvain-detected processes for the Hub Search tab grouping (TASK-075).
-
-    PURPOSE: HTTP wrapper for cos_graph_communities.
-    INPUT:   top (1-200), min_size (1-100).
-    OUTPUT:  {data: {processes: [...]}, meta}.
-    """
+    """Louvain-detected processes for the Hub Search tab grouping (TASK-075)."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
@@ -392,13 +290,7 @@ async def graph_entrypoints(
     _rl=Depends(make_rate_limit_dep("graph.entrypoints")),
     _m=Depends(make_metrics_dep("graph.entrypoints")),
 ):
-    """Scored entry points for the Hub Graph tab (TASK-081).
-
-    PURPOSE: HTTP wrapper for cos_graph_entrypoints.
-    INPUT:   top (1-200), kind (main|cli|http|cron|test), min_score.
-    OUTPUT:  {data: {entrypoints: [...]}, meta}.
-    DEPENDENCIES: graph_os.tools.graph.cos_graph_entrypoints.
-    """
+    """Scored entry points for the Hub Graph tab (TASK-081)."""
     g = _tools()
     if g is None:
         return unwrap(_unavailable())

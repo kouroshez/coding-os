@@ -1,16 +1,6 @@
 """graph_os — S3 CONTAINS spine + NodeKind enum regression suite.
 
-PURPOSE:  Lock in the structural tree-spine invariants introduced in
-          slice S3 so the SPA tree-view (S5) can render a readable
-          Folder→File→Class→Method tree. Also exercises
-          ``normalize_kind`` / ``NodeKind.from_any`` and the v16 data
-          migration that rewrites legacy colon-prefixed kinds.
-INPUT:    pytest + in-memory sqlite via the migrated_conn fixture.
-OUTPUT:   pass/fail assertions.
 DEPENDS:  graph_os.types, graph_os.extractors.*.
-NOTES:    Small hand-rolled fixture (1 folder, 2 files, 3 classes, 5
-          methods) exercised through every extractor so the spine is
-          proven end-to-end.
 """
 
 from __future__ import annotations

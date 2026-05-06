@@ -1,19 +1,4 @@
-"""
-Coding OS — Project Trajectory tools (Phase EVO).
-
-PURPOSE:      Persist and retrieve the agent's running understanding of WHERE
-              the project is heading across sessions. Complements the agent
-              digest (which captures WHO the agent is) with WHERE the project
-              is going — phase, focus, architectural decisions, discovered
-              anti-patterns, and open questions.
-INPUT:        Called by the main agent after meaningful sessions or when
-              architectural decisions are made.
-OUTPUT:       project_trajectory rows in DB; readable snapshot for session
-              startup context injection.
-DEPENDENCIES: project_trajectory table (migration v24), db.py.
-NOTES:        Each snapshot is a new row; supersedes_id links temporal chain.
-              Functions are pure (no MCP coupling) — server.py wraps them.
-"""
+"""Coding OS — Project Trajectory tools (Phase EVO)."""
 
 from __future__ import annotations
 
@@ -64,18 +49,7 @@ def trajectory_snapshot(
     next_logical_step: str = "",
     confidence: float = 0.7,
 ) -> dict:
-    """Persist a project trajectory snapshot for the current session.
-
-    PURPOSE:      Record WHERE the project is heading so future sessions have
-                  strategic context, not just operational task history.
-    INPUT:        session_id (required); all other fields optional.
-    OUTPUT:       {"status": "ok", "id": int, "supersedes_id": int|None}.
-    DEPENDENCIES: project_trajectory (v24).
-    NOTES:        Each call creates a new row. supersedes_id is set to the
-                  previous snapshot's id (if any) to enable temporal chaining.
-                  architectural_decisions / anti_patterns / open_questions
-                  are stored as JSON arrays; pass Python lists directly.
-    """
+    """Persist a project trajectory snapshot for the current session."""
     if not _table_ready(conn):
         return {"status": "skipped", "reason": "project_trajectory table not found (run migration v24)"}
 
@@ -127,19 +101,7 @@ def trajectory_read(
     *,
     limit: int = 1,
 ) -> dict:
-    """Return the most recent project trajectory snapshot(s).
-
-    PURPOSE:      Provide the agent with strategic context at session startup:
-                  where are we, what has been decided, what is still open.
-    INPUT:        limit — how many recent snapshots to return (default 1).
-    OUTPUT:       {"snapshots": [{id, session_id, phase, current_focus,
-                  architectural_decisions, anti_patterns_discovered,
-                  open_questions, next_logical_step, confidence,
-                  created_at, supersedes_id}], "count": int}.
-    DEPENDENCIES: project_trajectory (v24).
-    NOTES:        Lists are decoded from JSON. Returns empty list gracefully
-                  when table is missing or empty.
-    """
+    """Return the most recent project trajectory snapshot(s)."""
     if not _table_ready(conn):
         return {"snapshots": [], "count": 0,
                 "note": "project_trajectory table not found (run migration v24)"}
@@ -175,14 +137,7 @@ def trajectory_read(
 # ---------------------------------------------------------------------------
 
 def trajectory_digest_line(conn: sqlite3.Connection) -> str:
-    """Return a compact single-paragraph trajectory summary for digest.md.
-
-    PURPOSE:      Inject project trajectory into the agent digest without
-                  blowing the 2400-char budget. Max 300 chars.
-    INPUT:        conn — DB with project_trajectory table.
-    OUTPUT:       Plain-text summary string, or "" when no data.
-    DEPENDENCIES: project_trajectory (v24).
-    """
+    """Return a compact single-paragraph trajectory summary for digest.md."""
     if not _table_ready(conn):
         return ""
     try:

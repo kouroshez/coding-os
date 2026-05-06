@@ -1,14 +1,3 @@
-"""
-PURPOSE:      Discover the per-agent state-dir markers (".claude/", ".codex/", ...)
-              from adapters/<id>/adapter.yaml so that core/ stays agent-agnostic
-              (Rule 1 / P2). Used by concepts.py and capture.py to classify
-              file paths without hardcoding any agent name.
-INPUT:        none — reads adapters/*/adapter.yaml at module import.
-OUTPUT:       AGENT_STATE_PREFIXES — frozenset like {".claude/", ".codex/"}.
-DEPENDENCIES: PyYAML (already a hard dep of coding-os).
-NOTES:        Pure helper, no circular imports with cli/. Falls back to an
-              empty set if the adapters dir is missing — callers must handle.
-"""
 
 from __future__ import annotations
 

@@ -145,17 +145,6 @@ class LabelFamily:
 
 @dataclass(frozen=True)
 class ScrumbanConfig:
-    """
-    PURPOSE:      Typed view of `.coding-os/scrumban-config.yaml`.
-    INPUT:        load_config(project_root) discovers + parses YAML.
-    OUTPUT:       Frozen dataclass; safe to share across threads.
-    DEPENDENCIES: PyYAML.
-    NOTES:        kind colours are NOT in this struct — they live in
-                  _DEFAULT_KIND_COLORS because they must be stable
-                  across all repos for card-colour muscle memory.
-                  Per-project config can define EXTRA label_families
-                  but cannot override kind colours.
-    """
 
     swimlanes: tuple[Swimlane, ...]
     wip_limits: WipLimits = field(default_factory=WipLimits)
@@ -192,13 +181,6 @@ def _validate_color(value: Any, field_name: str, errors: list[str]) -> None:
 
 
 def parse_config(data: dict[str, Any], source_path: Path | None = None) -> ScrumbanConfig:
-    """
-    PURPOSE:      Parse a dict into ScrumbanConfig with full validation.
-    INPUT:        data = parsed YAML; source_path optional for errors.
-    OUTPUT:       ScrumbanConfig on success; raises ConfigValidationError.
-    DEPENDENCIES: none (pure).
-    NOTES:        Used by load_config + tests.  Idempotent.
-    """
     errors: list[str] = []
 
     # swimlanes (required, non-empty)
@@ -310,16 +292,6 @@ def _config_path(project_root: Path) -> Path:
 
 
 def load_config(project_root: str | os.PathLike[str] | None = None) -> ScrumbanConfig:
-    """
-    PURPOSE:      Locate and parse the project's scrumban-config.yaml.
-    INPUT:        project_root path; defaults to cwd.
-    OUTPUT:       ScrumbanConfig; raises FileNotFoundError if config
-                  missing, ConfigValidationError if malformed.
-    DEPENDENCIES: yaml.safe_load, parse_config.
-    NOTES:        No silent fallback to defaults — a missing config
-                  is a real configuration bug the user must fix
-                  (probably by running `cos board-config --init`).
-    """
     root = Path(project_root or os.getcwd()).resolve()
     path = _config_path(root)
     if not path.exists():

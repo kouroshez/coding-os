@@ -1,11 +1,5 @@
 """V1 file-level incremental indexing tests (graph_os V1).
 
-PURPOSE: Exercise the ``file_index_state`` cache added in migration v17
-         and wired into ``reindex_dispatch.dispatch``. These tests
-         guarantee the short-circuit actually fires on unchanged
-         content, and that mutation / failure / force paths behave.
-INPUT:   tmp_path SQLite DB + throwaway project layout.
-OUTPUT:  pytest assertions.
 DEPENDS: graph_os.tools.reindex_dispatch.dispatch, coding-os.db.
 """
 

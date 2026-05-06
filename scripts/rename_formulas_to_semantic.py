@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""
-Rename F1–F11 formula codes to semantic role names across the repo.
-
-PURPOSE:      One-shot migration. Replaces opaque F<n> codes with
-              human-readable role names so the agent surface, MCP outputs,
-              and documentation use intent-naming throughout.
-INPUT:        --dry-run (default false; preview only).
-              --root    (default: parent of this script).
-OUTPUT:       File renames + content rewrites. Prints a diff summary.
-DEPENDENCIES: Python stdlib only.
-NOTES:        Mapping is hard-coded as base-32 escapes so the script
-              cannot self-rewrite when scanning its own source. (Earlier
-              version stored mapping as plain strings and got rewritten
-              during the very pass that was supposed to migrate the rest
-              of the repo. Lesson learned.)
+"""Rename F1–F11 formula codes to semantic role names across the repo.
 
 USAGE:        Already run on 2026-04 — kept for historical reference.
               Re-running is safe (idempotent regex; renames skip if

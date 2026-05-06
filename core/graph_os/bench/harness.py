@@ -1,12 +1,6 @@
 """Benchmark harness (I.13).
 
-PURPOSE:  Measure indexer throughput + read-path latency on fixture
-          corpora. Results feed `docs/benchmarks/graph_os.md` and the
-          regression gate.
-INPUT:    backend + fixture paths.
-OUTPUT:   BenchResult (JSON-friendly).
 DEPENDS:  extractors, backend, stdlib time.
-NOTES:    The gate is enforced by `assert_within_budget`.
 """
 
 from __future__ import annotations

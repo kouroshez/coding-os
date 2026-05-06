@@ -1,19 +1,4 @@
-"""
-Coding OS — MCP audit-log tools (Phase O).
-
-PURPOSE:      Append-only doc edit + decision-history log. Every doc
-              change records: who, when, what changed, why, and (when
-              reverting) which prior decision is being superseded.
-INPUT:        See per-tool docstrings.
-OUTPUT:       JSON envelope via ok()/fail() (see _shared.safe_tool).
-DEPENDENCIES: sqlite3 only. Triggers on doc_audit_trail enforce
-              append-only at the DB layer.
-NOTES:        Backed by migration v21 (db.py::_migrate_v21_doc_audit_trail).
-              Reverts are modeled as a NEW row with action='reverted' +
-              supersedes_id pointing at the decision being undone — never
-              as a row rewrite. The hub UI reads this table via
-              cos_audit_log_query for human review.
-"""
+"""Coding OS — MCP audit-log tools (Phase O)."""
 
 from __future__ import annotations
 

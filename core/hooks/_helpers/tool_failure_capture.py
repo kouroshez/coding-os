@@ -1,20 +1,4 @@
-"""
-PostToolUseFailure hook helper — capture meaningful tool failures to DB.
-
-PURPOSE:  Record tool failures that indicate blocked or failing patterns so
-          they feed failure_pattern_query and ultimately learn_extract. Only
-          captures failures worth learning from — hook-blocked events (cos hooks
-          enforced a rule) and repeated failures on the same tool.
-INPUT:    stdin JSON from Claude Code:
-            {hook_event_name, tool_name, tool_input: {...}, error: str}
-          sys.argv[1] = session_id
-          sys.argv[2] = COS_DB_PATH
-OUTPUT:   Writes to observations(memory_type='hook_block') when blocked by cos hook.
-          Skips transient errors (file not found, network, timeouts).
-NOTES:    Fire-and-forget — exits 1 on any error, never blocks agent.
-          COS hook blocked events contain "BLOCKED:" in error string.
-          We do NOT capture every Bash failure — only structured signals.
-"""
+"""PostToolUseFailure hook helper — capture meaningful tool failures to DB."""
 from __future__ import annotations
 
 import json

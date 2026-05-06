@@ -31,18 +31,7 @@ DEFAULT_DB_PATH = Path(
 
 
 def migrate_legacy_db_filename(target: Path) -> bool:
-    """Rename `<dir>/thinking_os.db` → `<dir>/coding-os.db` once, in place.
-
-    PURPOSE:      Backward-compat for projects initialised before the
-                  2026-04-30 rename. Runs at the top of init_db() so the
-                  first cos invocation in a project after the upgrade
-                  silently relocates the file (plus its -shm / -wal
-                  sidecars). No data loss; idempotent.
-    INPUT:        target — desired path (e.g. .coding-os/coding-os.db).
-    OUTPUT:       True when a rename happened; False when nothing to do.
-    NOTES:        Only fires when target.exists() is False AND the legacy
-                  sibling exists — never overwrites an already-renamed DB.
-    """
+    """Rename `<dir>/thinking_os.db` → `<dir>/coding-os.db` once, in place."""
     if target.exists():
         return False
     legacy = target.with_name(LEGACY_DB_FILENAME)
@@ -330,26 +319,7 @@ def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
 
 
 def _migrate_v7_brain_hardening(conn: sqlite3.Connection) -> None:
-    """Migration v7 (Phase G.1): trust_tier + provenance + memory_audit.
-
-    PURPOSE:      Close the memory-poisoning chain (audit findings A3/A4/A8).
-    INPUT:        sqlite3.Connection at schema v6.
-    OUTPUT:       In-place schema upgrade to v7. No return value.
-    DEPENDENCIES: learned_patterns, observations (both from v1).
-    NOTES:        - Column ADDs are guarded with `_column_exists` so re-running
-                    on a partially-migrated DB is safe.
-                  - CHECK constraints are NOT added at the SQL level because
-                    ALTER TABLE ADD COLUMN with CHECK is fragile across SQLite
-                    versions. Python-side validators (VALID_TRUST_TIERS,
-                    VALID_PROVENANCE) enforce at write-time in Phase G.2.
-                  - Protection triggers raise `RAISE(ABORT, ...)` on any
-                    UPDATE/DELETE touching a locked/core row. This is the
-                    hard chokepoint — bypass is only possible through a
-                    non-MCP admin helper (see plan G.1 §Risks R3).
-                  - Audit log is append-only: INSERT trigger on learned_patterns
-                    records every mutation. UPDATE/DELETE on memory_audit
-                    itself is blocked by its own trigger.
-    """
+    """Migration v7 (Phase G.1): trust_tier + provenance + memory_audit."""
     # 1. Add trust_tier + provenance to learned_patterns (idempotent per column)
     if not _column_exists(conn, "learned_patterns", "trust_tier"):
         conn.execute(
@@ -426,18 +396,7 @@ def has_memory_audit_table(conn: sqlite3.Connection) -> bool:
 
 
 def is_pattern_protected(conn: sqlite3.Connection, pattern_id: int) -> bool:
-    """Return True if the pattern's trust_tier is in PROTECTED_TRUST_TIERS.
-
-    PURPOSE:      Pre-flight check before calling update/delete paths to
-                  avoid triggering the protection trigger as a normal flow.
-    INPUT:        connection, pattern row id.
-    OUTPUT:       bool. False for missing rows (they are not protected by
-                  virtue of not existing).
-    DEPENDENCIES: learned_patterns table, v7 schema.
-    NOTES:        Callers should check this BEFORE attempting a mutation
-                  and return a clean `fail("permission", ...)` rather than
-                  letting the SQLite trigger raise an OperationalError.
-    """
+    """Return True if the pattern's trust_tier is in PROTECTED_TRUST_TIERS."""
     if not _column_exists(conn, "learned_patterns", "trust_tier"):
         return False  # pre-v7 DB has no concept of protection
     row = conn.execute(
@@ -450,23 +409,7 @@ def is_pattern_protected(conn: sqlite3.Connection, pattern_id: int) -> bool:
 
 
 def _migrate_v8_validation_throttle(conn: sqlite3.Connection) -> None:
-    """Migration v8 (Phase G.4): pattern_validations table for anti-sycophancy.
-
-    PURPOSE:      Close audit finding A5 — agent self-validating the same
-                  pattern repeatedly in one session silently inflated
-                  confidence via the LTP formula. Throttle requires one
-                  acceptance per (session_id, pattern_id) per window.
-    INPUT:        sqlite3.Connection at schema v7.
-    OUTPUT:       In-place upgrade to v8. No return value.
-    DEPENDENCIES: learned_patterns.
-    NOTES:        - Table is INSERT-only from the throttle path. We rely
-                    on created_at + window arithmetic rather than UPDATE.
-                  - No FK on pattern_id so a pattern delete doesn't raise;
-                    orphaned rows are fine (they decay out of window).
-                  - `was_throttled` column lets analytics separate
-                    accepted validations from rejected ones for later
-                    sycophancy-detection work (Phase G follow-up).
-    """
+    """Migration v8 (Phase G.4): pattern_validations table for anti-sycophancy."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS pattern_validations (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -494,17 +437,7 @@ def has_pattern_validations_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v9_docs_fts(conn: sqlite3.Connection) -> None:
-    """Migration v9 (Phase G.7.3): FTS5 virtual table over document_chunks.
-
-    PURPOSE:      Lexical fallback for `cos_doc_search` when the query is an
-                  exact identifier or when embeddings are unavailable.
-    INPUT:        sqlite3.Connection at schema v8.
-    OUTPUT:       In-place upgrade to v9. No return value.
-    DEPENDENCIES: document_chunks (v5).
-    NOTES:        - Graceful degradation — skips silently without FTS5.
-                  - Triggers keep FTS in sync on INSERT/UPDATE/DELETE.
-                  - Back-fill inserts existing rows.
-    """
+    """Migration v9 (Phase G.7.3): FTS5 virtual table over document_chunks."""
     if not has_fts5(conn):
         logger.warning(
             "FTS5 unavailable — skipping document_chunks_fts. doc_search "
@@ -554,22 +487,7 @@ def has_document_chunks_fts(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v10_retrievals(conn: sqlite3.Connection) -> None:
-    """Migration v10 (Phase G.8): retrievals table for outcome-driven priority.
-
-    PURPOSE:      Log every chunk/pattern/task the agent retrieved so we can
-                  later correlate retrievals with task outcomes and boost the
-                  priority of chunks that led to success.
-    INPUT:        sqlite3.Connection at schema v9.
-    OUTPUT:       In-place upgrade to v10.
-    DEPENDENCIES: document_chunks, learned_patterns, observations, tasks.
-    NOTES:        - `outcome` is NULL at insert time; task-done back-fills it
-                    based on the active task's result (success/rework/blocked).
-                  - `was_cited` tracks whether the agent declared "I used this"
-                    via `cos_retrieval_cite`. Priority learning only moves
-                    chunks the agent actively cited — passive retrievals are
-                    weaker signal.
-                  - No FK — tables may move/rename; we resolve at read time.
-    """
+    """Migration v10 (Phase G.8): retrievals table for outcome-driven priority."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS retrievals (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -603,21 +521,7 @@ def has_retrievals_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v11_retrieval_quality(conn: sqlite3.Connection) -> None:
-    """Migration v11 (Phase G.11): retrieval precision tracking.
-
-    PURPOSE:      Gate the eventual LLM contextual-chunk enrichment with a
-                  measured precision metric. If we never see mean precision
-                  dip below 0.7 over a healthy sample, we never pay the
-                  cost of a per-chunk LLM pass.
-    INPUT:        sqlite3.Connection at schema v10.
-    OUTPUT:       Adds:
-                    - retrieval_quality table (per-retrieval precision signal)
-                    - contextual_chunks column on document_chunks
-                      (nullable — populated only if enrichment enabled)
-    DEPENDENCIES: retrievals (v10), document_chunks (v5).
-    NOTES:        Column add is guarded by `_column_exists` so re-running
-                  on a partially-migrated DB is safe.
-    """
+    """Migration v11 (Phase G.11): retrieval precision tracking."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS retrieval_quality (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -663,23 +567,7 @@ def has_retrieval_quality_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v12_graph_os(conn: sqlite3.Connection) -> None:
-    """Migration v12 (Phase I.0): graph_os knowledge-graph tables.
-
-    PURPOSE:      Provision SQLite-backed storage for graph_os (sibling
-                  subsystem to thinking_os). Adds graph_nodes,
-                  graph_edges_v12, graph_evidence_v12, graph_nodes_fts
-                  plus an embedding_dim column on legacy embeddings to
-                  keep cosine_similarity correct during the MiniLM to
-                  BGE-M3 migration window (see
-                  docs/phase-i-knowledge-graph-plan.md Section 6 Stage 6).
-    INPUT:        sqlite3.Connection at schema v11.
-    OUTPUT:       Four tables created / column added. Idempotent.
-    DEPENDENCIES: embeddings (v5) for the column add; has_fts5 for the
-                  FTS virtual table.
-    NOTES:        Append-only (Rule 10). Primary graph store is Kuzu
-                  (Section 12); these SQLite tables are the fallback and
-                  parity-test target in I.0 ship gate (Section 12.6).
-    """
+    """Migration v12 (Phase I.0): graph_os knowledge-graph tables."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS graph_nodes (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -800,27 +688,7 @@ def has_graph_nodes_fts(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v13_board_os(conn: sqlite3.Connection) -> None:
-    """Migration v13 (Phase L.0): board_os Scrumban task workflow extensions.
-
-    PURPOSE:      Extend the existing `tasks` table (v6) with Scrumban
-                  workflow state — swimlane, kind, epic, labels_json,
-                  priority, appetite, started_at, completed_at,
-                  agent_session, work_log_last_5 — and add a new
-                  task_status_history audit table.  See
-                  docs/phase-l-scrumban-task-system-plan.md §6.3.
-    INPUT:        sqlite3.Connection at schema v12.
-    OUTPUT:       Columns added to tasks (idempotent via _column_exists);
-                  task_status_history table created; new indices.
-    DEPENDENCIES: tasks table (migration v6).
-    NOTES:        Append-only (Rule 10).  Existing rows survive — new
-                  columns default to NULL (or '[]' for labels_json /
-                  work_log_last_5).  Legacy status values (open / wip /
-                  done) remain readable; the parser at
-                  core/board_os/parser.py (ships in L.1) maps them on
-                  read to the new 8-value enum (icebox / ready /
-                  emergency / in_progress / testing / complete /
-                  blocked / archive).
-    """
+    """Migration v13 (Phase L.0): board_os Scrumban task workflow extensions."""
     # Idempotent ADD COLUMN (re-running is safe).
     if not _column_exists(conn, "tasks", "swimlane"):
         conn.execute("ALTER TABLE tasks ADD COLUMN swimlane TEXT")
@@ -881,17 +749,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_priority_status
 
 
 def _migrate_v14_cognition(conn: sqlite3.Connection) -> None:
-    """Migration v14 (Phase M): formula-agent supervisor cognition tables.
-
-    PURPOSE:      Add 4 append-only tables for the formula-agent dispatch
-                  loop: backtrack_events, persona_selections,
-                  ambiguity_violations, formula_dispatches.
-    INPUT:        sqlite3.Connection at schema v13.
-    OUTPUT:       4 new tables + 4 indices.
-    DEPENDENCIES: No dependency on prior tables.
-    NOTES:        All rows are append-only (<1 KB/row × ~50 rows/session).
-                  WAL already on. Rule 10: never edit past migrations.
-    """
+    """Migration v14 (Phase M): formula-agent supervisor cognition tables."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS backtrack_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -951,22 +809,7 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_session
 
 
 def _migrate_v15_graph_edges_confidence_check(conn: sqlite3.Connection) -> None:
-    """Migration v15 (graph_os S1 / B17): CHECK (confidence BETWEEN 0 AND 1).
-
-    PURPOSE:      Enforce the [0,1] confidence range at the DB layer, not
-                  just in the Python dataclass. Defends against direct
-                  SQL writers (tests, migrations, manual scripts) leaving
-                  invalid rows behind.
-    INPUT:        sqlite3.Connection at schema v14.
-    OUTPUT:       Two triggers on graph_edges_v12 (INSERT + UPDATE) that
-                  raise ABORT when confidence is outside [0,1] OR NULL.
-    DEPENDENCIES: graph_edges_v12 (v12).
-    NOTES:        SQLite cannot ``ALTER TABLE ADD CONSTRAINT``, so the
-                  CHECK is implemented as a BEFORE INSERT / BEFORE UPDATE
-                  trigger pair. Idempotent via IF NOT EXISTS. Rule 9:
-                  append-only — this is a new migration number, never an
-                  edit to past migrations.
-    """
+    """Migration v15 (graph_os S1 / B17): CHECK (confidence BETWEEN 0 AND 1)."""
     conn.executescript("""\
 CREATE TRIGGER IF NOT EXISTS graph_edges_v12_confidence_ins
 BEFORE INSERT ON graph_edges_v12
@@ -994,26 +837,7 @@ END;
 
 
 def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
-    """Migration v16 (graph_os S3): normalize graph_nodes.kind values.
-
-    PURPOSE:      S3 introduces a ``NodeKind`` enum + ``normalize_kind``
-                  helper in ``core/graph_os/types.py``. Legacy rows use
-                  colon-prefixed strings like ``code:function`` or
-                  ``doc:heading``; this migration rewrites them to the
-                  canonical short form (``function`` / ``doc_heading``)
-                  so the upcoming SPA tree-view can key on a single
-                  vocabulary.
-    INPUT:        sqlite3.Connection at schema v15.
-    OUTPUT:       Row counts are surfaced via logger.info; the caller
-                  observes them through ``run_migrations`` logs.
-    DEPENDENCIES: graph_nodes (migration v12). No-op when the table
-                  doesn't exist or is empty.
-    NOTES:        Append-only per Rule 9 — this is a **data migration**,
-                  not a schema change. Wrapped in a transaction (via
-                  SQLite's implicit transaction around UPDATE). Idempo-
-                  tent: re-running normalizes already-normalized kinds
-                  to themselves.
-    """
+    """Migration v16 (graph_os S3): normalize graph_nodes.kind values."""
     row = conn.execute(
         "SELECT name FROM sqlite_master "
         "WHERE type='table' AND name='graph_nodes'"
@@ -1075,24 +899,7 @@ def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v17_file_index_state(conn: sqlite3.Connection) -> None:
-    """Migration v17 (graph_os V1): per-file content-hash cache.
-
-    PURPOSE:      V1 introduces file-level incremental indexing. The
-                  reindex_dispatch entry looks up the prior content
-                  hash + extractor chain for a file; on a match it
-                  skips the extractor pipeline entirely. This migration
-                  creates the ``file_index_state`` table that backs
-                  that cache.
-    INPUT:        sqlite3.Connection at schema v16.
-    OUTPUT:       ``file_index_state`` table + hash index created.
-    DEPENDENCIES: none (self-contained).
-    NOTES:        Append-only per Rule 9. Primary key is ``file_path``
-                  so callers get one row per file, keyed by repo-relative
-                  path. ``extractor_chain`` stores the comma-joined
-                  chain (e.g. ``code_python,contracts``) so that a
-                  different chain for the same file correctly forces a
-                  reindex rather than a false cache hit.
-    """
+    """Migration v17 (graph_os V1): per-file content-hash cache."""
     conn.executescript(
         """
 CREATE TABLE IF NOT EXISTS file_index_state (
@@ -1143,18 +950,7 @@ CREATE INDEX IF NOT EXISTS idx_router_log_shape
 
 
 def _migrate_v19_drop_ready_status(conn: sqlite3.Connection) -> None:
-    """Migration v19: fold 'ready' status into icebox + 'ready' label.
-
-    PURPOSE: Board-os dropped the dedicated 'ready' column (see
-             core/board_os/config.py::STATUS_ENUM).  Any existing row
-             with status='ready' must move to 'icebox' AND gain a
-             'ready' label so the signal "this task is ready to pick up"
-             survives the column collapse.
-    NOTES:   Idempotent — re-running on a migrated DB finds no rows to
-             rewrite and is a no-op.  Writes to task_status_history so
-             the stream attribution shows WHY the task moved (reason =
-             'migrated from ready column').
-    """
+    """Migration v19: fold 'ready' status into icebox + 'ready' label."""
     rows = conn.execute(
         "SELECT task_id, labels_json FROM tasks WHERE status = 'ready'",
     ).fetchall()
@@ -1207,20 +1003,7 @@ def _column_exists_table(
 
 
 def _migrate_v20_override_audit(conn: sqlite3.Connection) -> None:
-    """Migration v20 — override audit columns on task_status_history.
-
-    PURPOSE: Phase L.10 transition gates (see docs/phase-l10-plan.md).
-             Every COS_*_OVERRIDE=1 must carry a reason. The reason and
-             actor land in two new columns so retro/audit queries can
-             enumerate bypassed gates without grepping logs.
-    INPUT:   sqlite connection.
-    OUTPUT:  task_status_history gains override_reason TEXT, override_actor
-             TEXT, both NULL-default. Existing rows backfill to NULL.
-    NOTES:   Idempotent — checks _column_exists_table before adding.
-             ALTER TABLE ADD COLUMN with a NULL default is metadata-only
-             on SQLite, so this is fast even on tables with millions of
-             rows.
-    """
+    """Migration v20 — override audit columns on task_status_history."""
     if not has_task_status_history_table(conn):
         # Older DBs that never reached v13 don't have this table; the
         # v13 migration will create it with the modern shape via
@@ -1252,23 +1035,7 @@ def _migrate_v20_override_audit(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v21_doc_audit_trail(conn: sqlite3.Connection) -> None:
-    """Migration v21 — append-only doc edit + decision-history log.
-
-    PURPOSE: Capture every documentation change so a human or agent can
-             audit *what* was decided, *when* it changed, and *why*. Closes
-             the audit gap noted in the Phase O retrieval review: outcomes
-             have outcome_history; tasks have task_status_history; docs
-             had nothing until now.
-    INPUT:   sqlite connection.
-    OUTPUT:  doc_audit_trail table + append-only triggers blocking
-             UPDATE / DELETE on existing rows. Index on (doc_path, created_at)
-             for fast per-doc timelines.
-    NOTES:   Triggers mirror the pattern used for memory_audit. Reverts are
-             modeled as a new row with action='reverted' + supersedes_id
-             pointing at the decision being undone — never as a row
-             rewrite. The hub UI surfaces the timeline via
-             cos_audit_log MCP tool.
-    """
+    """Migration v21 — append-only doc edit + decision-history log."""
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS doc_audit_trail (
@@ -1327,28 +1094,7 @@ def has_doc_audit_trail_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
-    """Migration v22 — frontmatter metadata columns on document_chunks.
-
-    PURPOSE: Enable Stage-1 metadata pre-filtering on cos_doc_search.
-             Doc indexer was previously stripping the
-             `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` header
-             before chunking, which discarded the very metadata RAG needs
-             to enforce reality (correct era, correct domain, not
-             superseded). Columns added:
-               - domain      (BACKEND|FRONTEND|OPS|DOCS|...)
-               - layer       (adr|playbook|spec|policy|reference|...)
-               - ssot        (true|ref|false)
-               - updated_iso (YYYY-MM-DD from frontmatter)
-               - is_active   (1=live, 0=superseded — flipped via
-                              cos_audit_log_record action='deleted'/'reverted')
-    INPUT:   sqlite connection.
-    OUTPUT:  Five columns + four indexes added; existing rows backfill to
-             NULL/1 (default). doc_indexer.reindex() repopulates them.
-    NOTES:   Idempotent — guards each ALTER on _column_exists_table.
-             Indexes are partial where possible to keep storage minimal
-             (most rows lack frontmatter on first migration; partial
-             indexes skip those nulls).
-    """
+    """Migration v22 — frontmatter metadata columns on document_chunks."""
     if not _table_exists(conn, "document_chunks"):
         logger.info("Migration v22 skipped: document_chunks not present yet")
         return
@@ -1388,29 +1134,7 @@ def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v23_dispatch_cost(conn: sqlite3.Connection) -> None:
-    """Migration v23 (Phase Q.deep T2.3) — formula_dispatches cost columns.
-
-    PURPOSE:      Persist the cost / budget / tool-trace fields the Claude
-                  adapter dispatcher now captures (cost_usd, budget_usd,
-                  usage breakdown, model_usage breakdown, programmatic
-                  hook tool_calls, tool_failures). Without this, the Q.deep
-                  dispatcher hardening would have nowhere to write its
-                  audit trail and the hub board could not surface spend.
-    INPUT:        sqlite connection (idempotent — guards each ALTER).
-    OUTPUT:       Six nullable columns added to formula_dispatches:
-                    - cost_usd            REAL  (client-side estimate)
-                    - budget_usd          REAL  (cap forwarded by request)
-                    - usage_jsonb         TEXT  (per-step token breakdown)
-                    - model_usage_jsonb   TEXT  (per-model spend rollup)
-                    - tool_calls_jsonb    TEXT  (PreToolUse hook capture)
-                    - tool_failures_jsonb TEXT  (PostToolUseFailure capture)
-    DEPENDENCIES: formula_dispatches (v14).
-    NOTES:        SQLite cannot enforce non-null on ALTER ADD COLUMN
-                  without a default, so all six are nullable. Old rows
-                  pre-dating this migration carry NULL and are visible
-                  to readers as "no telemetry" — DO NOT join on cost_usd
-                  IS NOT NULL without filtering by ts >= migration date.
-    """
+    """Migration v23 (Phase Q.deep T2.3) — formula_dispatches cost columns."""
     if not _table_exists(conn, "formula_dispatches"):
         logger.info("Migration v23 skipped: formula_dispatches not present yet")
         return
@@ -1444,21 +1168,7 @@ def _migrate_v23_dispatch_cost(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v24_project_trajectory(conn: sqlite3.Connection) -> None:
-    """Migration v24 — project_trajectory table for long-term project intent.
-
-    PURPOSE:      Persist the agent's running understanding of WHERE the project
-                  is heading (phase, focus, architectural decisions, discovered
-                  anti-patterns, open questions). Each session snapshot is a
-                  new row (supersedes_id links to previous), enabling temporal
-                  diff of how understanding evolves across sessions.
-    INPUT:        sqlite connection (idempotent).
-    OUTPUT:       project_trajectory table created; index on session_id.
-    DEPENDENCIES: None (standalone table).
-    NOTES:        architectural_decisions / anti_patterns_discovered /
-                  open_questions are stored as JSON arrays so the schema
-                  stays flat. supersedes_id supports temporal chaining but
-                  is nullable — first snapshot has no predecessor.
-    """
+    """Migration v24 — project_trajectory table for long-term project intent."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS project_trajectory (
     id                          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1484,24 +1194,7 @@ CREATE INDEX IF NOT EXISTS idx_trajectory_created
 
 
 def _migrate_v25_backtrack_failure_anatomy(conn: sqlite3.Connection) -> None:
-    """Migration v25 — structured failure anatomy columns on backtrack_events.
-
-    PURPOSE:      Transform backtrack_events.reason (free text, unminable) into
-                  structured fields that learn_extract can aggregate into
-                  failure patterns. Without structure, "why approach X failed"
-                  is locked in prose and never feeds routing decisions.
-    INPUT:        sqlite connection (idempotent via _column_exists_table).
-    OUTPUT:       Four nullable columns added to backtrack_events:
-                    - hypothesis       TEXT  (what we thought would work)
-                    - failure_signal   TEXT  (what indicated failure)
-                    - root_cause       TEXT  (classified category)
-                    - corrective_action TEXT (what we switched to)
-    DEPENDENCIES: backtrack_events (v14).
-    NOTES:        All new columns are nullable — existing rows pre-dating this
-                  migration keep NULL and remain valid records. root_cause is
-                  a TEXT with an application-level enum; SQLite CHECK cannot
-                  be added to existing tables via ALTER TABLE.
-    """
+    """Migration v25 — structured failure anatomy columns on backtrack_events."""
     if not _table_exists(conn, "backtrack_events"):
         logger.info("Migration v25 skipped: backtrack_events not present yet")
         return
@@ -1530,21 +1223,7 @@ CREATE INDEX IF NOT EXISTS idx_backtrack_root_cause
 
 
 def _migrate_v26_routing_evolution(conn: sqlite3.Connection) -> None:
-    """Migration v26 — routing_weights staleness tracking for autonomous refresh.
-
-    PURPOSE:      Enable the session-startup hook to detect when routing weights
-                  are stale (N new task_outcomes since last recalculate_weights
-                  call) and auto-trigger a refresh. Without these columns there
-                  is no cheap way to check staleness without a full table scan.
-    INPUT:        sqlite connection (idempotent via _column_exists_table).
-    OUTPUT:       Two nullable columns added to routing_weights:
-                    - last_recalc_at      TEXT  (ISO timestamp of last recalc)
-                    - outcomes_at_recalc  INTEGER (task_outcomes.COUNT() at recalc)
-    DEPENDENCIES: routing_weights (v3).
-    NOTES:        Both columns default NULL in old rows; recalculate_weights()
-                  is updated to stamp them on every call. The staleness check
-                  reads MAX(outcomes_at_recalc) vs COUNT(*) from task_outcomes.
-    """
+    """Migration v26 — routing_weights staleness tracking for autonomous refresh."""
     if not _table_exists(conn, "routing_weights"):
         logger.info("Migration v26 skipped: routing_weights not present yet")
         return
@@ -1562,25 +1241,7 @@ def _migrate_v26_routing_evolution(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
-    """Migration v27 (Phase Q.deep wave 3) — full SDK telemetry on formula_dispatches.
-
-    PURPOSE:      Persist three Claude-SDK-specific fields the dispatcher
-                  now captures but currently buries in output_json["_meta"]:
-                    - sub_session_id: SDK-side session id (T7.1) — needed
-                      for resume + JOIN against per-session traces.
-                    - model: which Anthropic model actually ran (claude-
-                      opus-4-7 / claude-sonnet-4-6) — cost rollup needs
-                      this for opus-vs-sonnet breakdown.
-                    - checkpoints_jsonb: UserMessage UUIDs (T9.2) — needed
-                      for `cos dispatch rewind <id>` to map dispatch row
-                      → checkpoint UUID without parsing the meta blob.
-    INPUT:        sqlite connection at v26 (idempotent — guards each ALTER).
-    OUTPUT:       Three nullable columns + idx_dispatches_sub_session.
-    DEPENDENCIES: formula_dispatches (v14) + v23 telemetry columns.
-    NOTES:        Append-only per Rule 9. Old rows pre-dating this migration
-                  carry NULL — readers join `WHERE sub_session_id IS NOT NULL`
-                  to filter to SDK-spawned dispatches.
-    """
+    """Migration v27 (Phase Q.deep wave 3) — full SDK telemetry on formula_dispatches."""
     if not _table_exists(conn, "formula_dispatches"):
         logger.info("Migration v27 skipped: formula_dispatches not present yet")
         return
@@ -1681,16 +1342,7 @@ def record_audit(
     new_value: str | None = None,
     reason: str | None = None,
 ) -> int | None:
-    """Append a row to memory_audit. Fire-and-forget — never raises.
-
-    PURPOSE:      Single-chokepoint helper so every guard-emission looks
-                  identical in the audit log.
-    INPUT:        typed kwargs mirroring memory_audit columns.
-    OUTPUT:       inserted rowid, or None if table missing (pre-v7).
-    DEPENDENCIES: memory_audit table (v7+).
-    NOTES:        Swallows OperationalError so callers can use this even
-                  against pre-v7 DBs without branching.
-    """
+    """Append a row to memory_audit. Fire-and-forget — never raises."""
     if not has_memory_audit_table(conn):
         return None
     try:
@@ -1956,15 +1608,6 @@ _pool_stats = {"hits": 0, "misses": 0, "active": 0}
 
 
 def get_pooled_conn(db_path: str | Path | None = None) -> sqlite3.Connection:
-    """
-    PURPOSE:      Thread-local cached SQLite connection for multi-agent load.
-    INPUT:        db_path (defaults to DEFAULT_DB_PATH).
-    OUTPUT:       sqlite3.Connection (WAL, busy_timeout=5000, reusable).
-    DEPENDENCIES: threading.local, sqlite3.
-    NOTES:        Do NOT .close() — the pool owns the lifecycle. Use
-                  close_pool() at shutdown. Each thread gets its own
-                  connection so per-call connect() overhead disappears.
-    """
     path = str(db_path or DEFAULT_DB_PATH)
     existing = getattr(_thread_local, "conns", {}).get(path)
     if existing is not None:

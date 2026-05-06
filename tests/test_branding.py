@@ -1,18 +1,4 @@
-"""Branding compliance gate (T16.2).
-
-PURPOSE:      Fail CI if "Claude Code" appears in user-visible coding-os
-              copy (UI, banners, error messages, README banners). Anthropic's
-              terms allow descriptive references but coding-os MUST NOT
-              present itself as "Claude Code". The Q.deep audit (2026-05-05)
-              confirmed only descriptive references remain — this test
-              guards that state.
-INPUT:        Source files under core/web/ui/src/, adapters/claude/install.sh,
-              user-facing CLI banners.
-OUTPUT:       pytest fail when forbidden strings appear in scanned files.
-NOTES:        Allow-listed paths carry intentional descriptive references
-              (adapter.yaml::label, install.sh comments, doc files). Add
-              new paths only when the reference is genuinely descriptive.
-"""
+"""Branding compliance gate (T16.2)."""
 from __future__ import annotations
 
 from pathlib import Path

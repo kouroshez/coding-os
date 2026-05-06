@@ -1,15 +1,4 @@
-"""core.web.routes.stream — /api/stream/events SSE for live board updates.
-
-PURPOSE: Poll docs/tasks/ for TASK-*.md mtime changes and push SSE events so
-         the SPA board page stays live without polling REST endpoints.
-INPUT:   HTTP GET (EventSource connection), env COS_WEB_SSE_POLL_MS.
-OUTPUT:  Server-Sent Events: task-updated {task_id, status} on change;
-         heartbeat every 15 seconds.
-DEPENDENCIES: fastapi, sse-starlette, asyncio, pathlib.
-NOTES:  This is a simple mtime-polling SSE, not a full pubsub. For high
-        throughput, replace with inotify/watchdog in a future slice.
-        Poll interval: COS_WEB_SSE_POLL_MS env var (default 2000ms).
-"""
+"""core.web.routes.stream — /api/stream/events SSE for live board updates."""
 
 from __future__ import annotations
 
@@ -41,27 +30,14 @@ _HEARTBEAT_INTERVAL = 15.0  # seconds
 
 
 def _tasks_dir() -> Path:
-    """Resolve the docs/tasks directory (project-scoped).
-
-    PURPOSE: Find where TASK-*.md files live for polling.
-    INPUT:   none.
-    OUTPUT:  Path to docs/tasks/.
-    DEPENDENCIES: core.web._project_context.current_project_root.
-    """
+    """Resolve the docs/tasks directory (project-scoped)."""
     from web._project_context import current_project_root
 
     return current_project_root() / "docs" / "tasks"
 
 
 def _poll_interval_secs() -> float:
-    """Read COS_WEB_SSE_POLL_MS from env, default 2000ms.
-
-    PURPOSE: Allow runtime tuning of SSE poll frequency.
-    INPUT:   COS_WEB_SSE_POLL_MS env var.
-    OUTPUT:  float seconds.
-    DEPENDENCIES: os.environ.
-    NOTES:   Clamped to [0.5, 30] to prevent abuse.
-    """
+    """Read COS_WEB_SSE_POLL_MS from env, default 2000ms."""
     raw = os.environ.get("COS_WEB_SSE_POLL_MS", "2000")
     try:
         ms = float(raw)
@@ -100,14 +76,7 @@ def _latest_transition(conn: sqlite3.Connection, task_id: str) -> dict[str, obje
 
 
 def _read_task_meta(path: Path) -> dict[str, str | None]:
-    """Read the status and agent_session fields from a TASK-*.md frontmatter.
-
-    PURPOSE: Extract metadata without parsing full YAML.
-    INPUT:   path — the TASK-*.md file.
-    OUTPUT:  dict with status and agent_session.
-    DEPENDENCIES: pathlib.
-    NOTES:   Uses simple regex to avoid yaml dep in the hot path.
-    """
+    """Read the status and agent_session fields from a TASK-*.md frontmatter."""
     try:
         content = path.read_text(encoding="utf-8", errors="replace")
         m_status = re.search(r"^status:\s*(\S+)", content, re.MULTILINE)
@@ -121,14 +90,7 @@ def _read_task_meta(path: Path) -> dict[str, str | None]:
 
 
 async def _sse_event(event_type: str, data: dict) -> str:
-    """Format a single SSE event string.
-
-    PURPOSE: Produce the SSE wire format for a single event.
-    INPUT:   event_type — SSE event name; data — JSON-serializable dict.
-    OUTPUT:  SSE-formatted string with trailing double newline.
-    DEPENDENCIES: json.
-    NOTES:   The double newline is required by the SSE spec to flush the event.
-    """
+    """Format a single SSE event string."""
     return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
 
 
@@ -136,17 +98,7 @@ _TRANSITION_ALIGN_SECS = 8  # file mtime within this many seconds of a DB row = 
 
 
 async def _event_generator() -> AsyncGenerator[str, None]:
-    """Poll docs/tasks/ and yield SSE events.
-
-    PURPOSE: Core SSE generator — monitors task files and emits change events.
-    INPUT:   none (uses module-level constants).
-    OUTPUT:  Async generator of SSE event strings.
-    DEPENDENCIES: asyncio, pathlib.
-    NOTES:   Emits canonical DB transitions FIRST each cycle, then
-             promotes raw file edits to human-authored events, suppressing
-             duplicates by aligning mtime with the transition timestamp.
-             Heartbeat every 15s keeps idle connections alive.
-    """
+    """Poll docs/tasks/ and yield SSE events."""
     tasks_dir = _tasks_dir()
     poll = _poll_interval_secs()
     last_mtimes: dict[str, float] = {}
@@ -317,15 +269,7 @@ async def _event_generator() -> AsyncGenerator[str, None]:
 
 @router.get("/events")
 async def sse_events():
-    """SSE endpoint for live board task updates.
-
-    PURPOSE: Push task-updated events to connected SPA clients via SSE.
-    INPUT:   HTTP GET (EventSource connection, no params).
-    OUTPUT:  text/event-stream with task-updated and heartbeat events.
-    DEPENDENCIES: sse_starlette.sse.EventSourceResponse, _event_generator.
-    NOTES:   Uses sse-starlette for EventSourceResponse; falls back to a
-             streaming plain response if the package is unavailable.
-    """
+    """SSE endpoint for live board task updates."""
     # Use plain SSE framing to keep event names stable (`task-updated`) across
     # environments and avoid adapter-specific formatting differences.
     from fastapi.responses import StreamingResponse

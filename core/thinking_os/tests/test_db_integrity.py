@@ -1,18 +1,4 @@
-"""Regression: every migration creates the table it claims, no zombie schema.
-
-PURPOSE:      Catch the failure mode found during the 2026-04-30 enterprise
-              audit — `schema_version` advanced to v22 but migration v17's
-              `file_index_state` table was never present in the on-disk DB,
-              silently disabling the reindex cache for an unknown stretch
-              of time. Every migration is now asserted to leave its
-              tables behind on a fresh init.
-INPUT:        a freshly-init'd `:memory:` DB.
-OUTPUT:       pytest assertions; <1 s.
-DEPENDENCIES: coding-os.db.init_db.
-NOTES:        Also smoke-tests the two zombie-table writers (persona
-              selections + retrieval router log) so a future migration
-              that drops them gets caught by CI.
-"""
+"""Regression: every migration creates the table it claims, no zombie schema."""
 
 from __future__ import annotations
 

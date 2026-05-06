@@ -30,18 +30,7 @@ _THROTTLE_WINDOW_SECONDS = 3600
 
 
 def _read_session_id_for_validate() -> str:
-    """Read active session id for throttle bookkeeping.
-
-    PURPOSE:      Key the throttle table by the current agent session.
-    INPUT:        none.
-    OUTPUT:       session id string ('ses-unknown' fallback).
-    DEPENDENCIES: COS_AGENT_DIR / COS_STATE_DIR / .agent marker — Rule 1
-                  agent-agnostic. Mirrors capture._read_session_id resolution
-                  order and core/hooks/cos-env.sh.
-    NOTES:        Duplicates capture._read_session_id deliberately — that
-                  helper lives in a fire-and-forget hook script and pulling
-                  it here would create a circular import.
-    """
+    """Read active session id for throttle bookkeeping."""
     import os
     from pathlib import Path
     state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
@@ -76,17 +65,7 @@ def _has_recent_validation(
     session_id: str,
     pattern_id: int,
 ) -> bool:
-    """Return True when (session, pattern, was_helpful=1) was logged recently.
-
-    PURPOSE:      Core throttle predicate. Pre-v8 DBs (no table) return
-                  False — throttle silently degrades to off rather than
-                  blocking legitimate callers.
-    INPUT:        conn, session_id, pattern_id.
-    OUTPUT:       bool.
-    DEPENDENCIES: pattern_validations (v8+).
-    NOTES:        Only positive validations count — violations are always
-                  allowed through.
-    """
+    """Return True when (session, pattern, was_helpful=1) was logged recently."""
     try:
         row = conn.execute(
             "SELECT 1 FROM pattern_validations "
@@ -108,17 +87,7 @@ def _log_validation(
     was_helpful: bool,
     was_throttled: bool,
 ) -> None:
-    """Append a row to pattern_validations. Fire-and-forget — never raises.
-
-    PURPOSE:      Full audit trail for every validation attempt (accepted
-                  or throttled). Later phases mine this for sycophancy
-                  signals.
-    INPUT:        connection, typed kwargs.
-    OUTPUT:       none.
-    DEPENDENCIES: pattern_validations (v8+).
-    NOTES:        Swallows OperationalError on pre-v8 DBs so the throttle
-                  logic itself can't break legacy deployments.
-    """
+    """Append a row to pattern_validations. Fire-and-forget — never raises."""
     try:
         conn.execute(
             "INSERT INTO pattern_validations "

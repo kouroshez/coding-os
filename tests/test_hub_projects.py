@@ -1,12 +1,4 @@
-"""Tests for /api/hub/projects filtering + auto cwd entry.
-
-PURPOSE: Guard the Hub landing page so it:
-  1. Hides registry entries whose directory no longer exists (pytest
-     tmp dirs that leaked into ~/.coding-os/registry.json).
-  2. Surfaces the currently-running project (cwd) even when it was
-     never explicitly registered, so the meta-project you are serving
-     from always shows up.
-"""
+"""Tests for /api/hub/projects filtering + auto cwd entry."""
 from __future__ import annotations
 
 import os

@@ -1,16 +1,4 @@
-"""Tests for /api/hub/registry/{add, remove, scan, gc} + /api/hub/suggest-roots.
-
-PURPOSE: Guard the panel-side CRUD endpoints.  Before these, the only way
-         to mutate the registry was the terminal (cos registry add/remove)
-         — so the UI could list projects but not manage them.
-
-         We cover every happy path + the important failure modes that
-         real users hit: missing path, path exists but no .coding-os/,
-         slug collision, idempotent re-add, delete missing slug, scan
-         depth / hit limits, GC with nothing to prune, GC that actually
-         prunes a dead entry.
-INPUT:   tmp_path fixture + a per-test registry JSON (COS_REGISTRY_PATH).
-"""
+"""Tests for /api/hub/registry/{add, remove, scan, gc} + /api/hub/suggest-roots."""
 from __future__ import annotations
 
 import shutil

@@ -1,15 +1,4 @@
-"""core.web.routes.board — /api/board/* HTTP wrappers for cos_task_* tools.
-
-PURPOSE: Expose Scrumban board operations (create/move/list/daily/retro/wip)
-         as FastAPI endpoints so the SPA can render the board without MCP.
-INPUT:   HTTP request bodies / query params matching each cos_task_* signature.
-OUTPUT:  JSON response unwrapped from the MCP envelope ({data, meta} on 200).
-DEPENDENCIES: fastapi, core.web._envelope, core.board_os.mcp_tools,
-              core.coding-os.db.
-NOTES:  The board_os functions need a SQLite connection; we open one per
-        request using the same DB path as the CLI.  No connection pooling
-        in S4 — pooling lands with S6 if needed.
-"""
+"""core.web.routes.board — /api/board/* HTTP wrappers for cos_task_* tools."""
 
 from __future__ import annotations
 
@@ -36,29 +25,14 @@ router = APIRouter(prefix="/api/board", tags=["board"])
 
 
 def _db_conn() -> sqlite3.Connection:
-    """Open the project SQLite DB for one request.
-
-    PURPOSE: Provide a DB connection to board_os tools per-request.
-    INPUT:   none.
-    OUTPUT:  sqlite3.Connection (check_same_thread=False for async context).
-    DEPENDENCIES: core.web._project_context.current_db_path — honours the
-                  ContextVar set by ProjectScopeMiddleware when the URL
-                  has an /api/p/<slug>/ prefix; falls back to env vars.
-    """
+    """Open the project SQLite DB for one request."""
     from web._project_context import current_db_path
 
     return sqlite3.connect(str(current_db_path()), check_same_thread=False)
 
 
 def _board_tools():
-    """Lazy import for board_os mcp_tools.
-
-    PURPOSE: Defer import so web package boots even when board_os is absent.
-    INPUT:   none.
-    OUTPUT:  mcp_tools module or None.
-    DEPENDENCIES: core.board_os.mcp_tools.
-    NOTES:   Module is cached by Python after first import.
-    """
+    """Lazy import for board_os mcp_tools."""
     try:
         from board_os import mcp_tools  # type: ignore
         return mcp_tools
@@ -114,34 +88,7 @@ def _presence_files(agent: str) -> list[Path]:
 
 
 def _presence_state(agent: str) -> str:
-    """Compute {"active", "present", "offline"} from lifecycle session files.
-
-    PURPOSE: Answer "is this agent running right now?" with enough
-             resolution to distinguish "generating / tool-using" (ACTIVE)
-             from "session alive, waiting or thinking" (PRESENT) from
-             "not here" (OFFLINE).
-    INPUT:   agent key (adapter id from adapters/*/adapter.yaml, e.g.
-             claude / codex / cursor).
-    OUTPUT:  one of "active" / "present" / "offline".
-    NOTES:   Presence files are written atomically by
-             core/hooks/agent-presence.sh on SessionStart / UserPromptSubmit /
-             PreToolUse / PostToolUse / Stop / SessionEnd.
-
-             Decision ladder (TASK-088 hardening):
-
-               1. Heartbeat within ACTIVE window (30 s) wins unconditionally
-                  — tolerates runtimes that rotate subprocesses between
-                  hook fires (Cursor, Claude Code VSCode).
-               2. Past the ACTIVE window → PID liveness is mandatory.  A
-                  dead PID + stale heartbeat means the session was killed
-                  (rate-limit / SIGKILL) before emitting SessionEnd; we
-                  MUST flip to OFFLINE, not linger as PRESENT for up to
-                  the PRESENT window (which used to keep Claude's pill
-                  green for an hour after a rate-limit kill).
-               3. PID alive + any signal within PRESENT window (1 h) →
-                  PRESENT — the "user hasn't typed in a while but the
-                  runtime is still here" case.
-    """
+    """Compute {"active", "present", "offline"} from lifecycle session files."""
     import time as _time
     now = int(_time.time())
     best = "offline"
@@ -252,17 +199,7 @@ def _agent_active_from_db(conn: sqlite3.Connection, agent: str) -> bool:
 
 
 def _agent_state(conn: sqlite3.Connection, agent: str) -> str:
-    """Preferred signal: presence files.  Falls back to DB for legacy.
-
-    PURPOSE: Return one of "active" / "present" / "offline" for the
-             live-agents panel.
-    NOTES:   When the presence layer has nothing (older projects that
-             haven't re-installed the hook bundle yet), we consult the
-             DB as a coarser signal.  A DB hit proves "this agent has
-             touched the project recently" but NOT "right now", so we
-             report "present" — reserving "active" for the hook-backed
-             path.  This keeps the pulsing-green visual honest.
-    """
+    """Preferred signal: presence files.  Falls back to DB for legacy."""
     state = _presence_state(agent)
     if state != "offline":
         return state
@@ -277,23 +214,7 @@ async def board_task_detail(
     _rl=Depends(make_rate_limit_dep("board.task.detail")),
     _m=Depends(make_metrics_dep("board.task.detail")),
 ):
-    """Return the full markdown content + resolved metadata for one task.
-
-    PURPOSE: Back the SPA task-detail drawer with the on-disk SSoT
-             (docs/tasks/TASK-*.md).  Keeps rendering logic in the
-             browser while leaving file IO on the server where path
-             sandboxing lives.
-    INPUT:   task_id — TASK-NNN identifier (path param).
-    OUTPUT:  {data: {task_id, file_path, exists, content, size, mtime,
-             row: {title, status, swimlane, kind, priority, appetite,
-             epic, labels}}, meta} on 200;
-             404 when task_id not in DB; 410 when row present but file
-             missing on disk.
-    DEPENDENCIES: sqlite3 (tasks row lookup), pathlib (file read).
-    NOTES:   Content is returned as-is (no markdown → HTML conversion);
-             the client renders it. Size capped at 256 KB; larger files
-             are truncated with a marker so the drawer stays snappy.
-    """
+    """Return the full markdown content + resolved metadata for one task."""
     if not task_id or not task_id.startswith("TASK-"):
         return JSONResponse(
             status_code=400,
@@ -402,14 +323,7 @@ async def board_list(
     _rl=Depends(make_rate_limit_dep("board.list")),
     _m=Depends(make_metrics_dep("board.list")),
 ):
-    """Return the board state grouped by (swimlane, status).
-
-    PURPOSE: HTTP wrapper for cos_task_board.
-    INPUT:   swimlane, kind, epic, include_archive, limit (all query params).
-    OUTPUT:  {data: {grouped, cards, count, wip}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_board.
-    NOTES:   Returns all non-archive tasks by default.
-    """
+    """Return the board state grouped by (swimlane, status)."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -506,14 +420,7 @@ async def board_create(
     _rl=Depends(make_rate_limit_dep("board.create")),
     _m=Depends(make_metrics_dep("board.create")),
 ):
-    """Create a new Scrumban task file + sync to DB.
-
-    PURPOSE: HTTP wrapper for cos_task_create.
-    INPUT:   JSON body with task fields.
-    OUTPUT:  {data: {task_id, file_path, ...}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_create.
-    NOTES:   Validates swimlane and kind against scrumban-config.yaml.
-    """
+    """Create a new Scrumban task file + sync to DB."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -550,17 +457,7 @@ async def board_move(
     _rl=Depends(make_rate_limit_dep("board.move")),
     _m=Depends(make_metrics_dep("board.move")),
 ):
-    """Transition a task through the Scrumban state machine.
-
-    PURPOSE: HTTP wrapper for cos_task_move.
-    INPUT:   JSON body with task_id, to, optional reason / bypass_wip / force.
-    OUTPUT:  {data: {task_id, previous_status, new_status, warnings}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_move.
-    NOTES:   Enforces WIP caps unless bypass_wip=true.  `force=true` ALSO
-             overrides state-machine validation so the UI can let a user
-             undo an accidental drag (with an explicit confirm + the
-             forced-transition warning recorded in history).
-    """
+    """Transition a task through the Scrumban state machine."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -676,14 +573,7 @@ async def board_daily(
     _rl=Depends(make_rate_limit_dep("board.daily")),
     _m=Depends(make_metrics_dep("board.daily")),
 ):
-    """Daily standup summary.
-
-    PURPOSE: HTTP wrapper for cos_task_daily.
-    INPUT:   since (e.g. "24h"), agent_session (optional).
-    OUTPUT:  {data: {yesterday, in_progress, blockers, wip}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_daily.
-    NOTES:   since supports h/d/w/m suffixes (e.g. "48h", "7d").
-    """
+    """Daily standup summary."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -701,14 +591,7 @@ async def board_retro(
     _rl=Depends(make_rate_limit_dep("board.retro")),
     _m=Depends(make_metrics_dep("board.retro")),
 ):
-    """Weekly retrospective metrics.
-
-    PURPOSE: HTTP wrapper for cos_task_retro.
-    INPUT:   since (e.g. "7d").
-    OUTPUT:  {data: {completed, cycle_time_avg_minutes, ...}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_retro.
-    NOTES:   Returns throughput and cycle time for the window.
-    """
+    """Weekly retrospective metrics."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -725,14 +608,7 @@ async def board_wip(
     _rl=Depends(make_rate_limit_dep("board.wip")),
     _m=Depends(make_metrics_dep("board.wip")),
 ):
-    """WIP cap health check.
-
-    PURPOSE: HTTP wrapper for cos_task_wip_check.
-    INPUT:   none.
-    OUTPUT:  {data: {counts, caps, violations, over_cap}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_wip_check.
-    NOTES:   Returns 503 if scrumban-config.yaml is missing.
-    """
+    """WIP cap health check."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -752,14 +628,7 @@ async def board_pick(
     _rl=Depends(make_rate_limit_dep("board.pick")),
     _m=Depends(make_metrics_dep("board.pick")),
 ):
-    """Top candidate tasks to start next.
-
-    PURPOSE: HTTP wrapper for cos_task_pick.
-    INPUT:   swimlane, priority_min, max_candidates.
-    OUTPUT:  {data: {candidates, count}, meta} on 200.
-    DEPENDENCIES: board_os.mcp_tools.cos_task_pick.
-    NOTES:   Returns tasks in ready/emergency status, ranked by priority.
-    """
+    """Top candidate tasks to start next."""
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())

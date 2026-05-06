@@ -1,13 +1,4 @@
-"""
-Session startup helper — inject project trajectory context.
-
-PURPOSE:  Print the latest project trajectory snapshot at session start so the
-          agent knows WHERE the project is heading without an explicit
-          cos_trajectory_read call. Emits nothing when no snapshot exists yet.
-INPUT:    sys.argv[1] = COS_DB_PATH
-OUTPUT:   stdout lines (captured by session-context.sh and shown to agent).
-NOTES:    Fire-and-forget — exits 1 on any error so hook never blocks startup.
-"""
+"""Session startup helper — inject project trajectory context."""
 from __future__ import annotations
 
 import json

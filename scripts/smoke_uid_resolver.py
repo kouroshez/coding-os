@@ -1,15 +1,6 @@
 """Smoke test for graph_os uid auto-resolution + helpful error envelopes.
 
-PURPOSE:    Verify that cos_graph_impact / cos_graph_context /
-            cos_graph_references / cos_graph_path / cos_graph_similar /
-            cos_graph_trace / cos_graph_rename_plan now succeed when the
-            caller passes a raw repo path, and produce a helpful
-            not_found envelope when the path truly does not exist.
-INPUT:      none. Runs against the local sqlite graph backend.
-OUTPUT:     prints PASS/FAIL per scenario; exits non-zero on any FAIL.
 DEPENDS:    core/graph_os/tools/graph.py, populated coding-os.db.
-NOTES:      Mirrors the failure pattern observed in the screenshot —
-            the offending agent passed unprefixed paths as the `uid`.
 """
 
 from __future__ import annotations

@@ -59,16 +59,7 @@ _H3_RE = re.compile(r"^### (.+)$", re.MULTILINE)
 # ---------------------------------------------------------------------------
 
 def _parse_front_matter(content: str) -> dict[str, str]:
-    """Extract `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` keys.
-
-    PURPOSE: Surface frontmatter metadata to Stage-1 RAG pre-filter. The
-             return dict is written to document_chunks columns so
-             cos_doc_search can `WHERE domain = ? AND layer = ?` before
-             vector retrieval (per docs-system.md frontmatter contract).
-    INPUT:   raw markdown.
-    OUTPUT:  dict with optional keys: domain, layer, ssot, updated_iso.
-             Missing/malformed → empty dict (callers default to NULL).
-    """
+    """Extract `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` keys."""
     match = _FRONT_MATTER_RE.search(content)
     if not match:
         return {}
@@ -555,19 +546,7 @@ def _match_source_config(
     project_root: Path,
     global_excludes: list[str],
 ) -> dict | None:
-    """Return the source_config dict whose scope covers `file_path`, or None.
-
-    PURPOSE:      Classify a single file against rag-config.yaml so the
-                  auto-reindex hook (Phase H) can skip unscoped paths with
-                  zero DB work and zero embed cost.
-    INPUT:        absolute file_path, sources list from load_rag_config,
-                  project_root (resolved), global_excludes list.
-    OUTPUT:       source_config dict (with path/type/chunk_size/priority) or
-                  None when the file is not covered by any source.
-    DEPENDENCIES: _is_excluded (same exclusion semantics as walk_sources).
-    NOTES:        Resolves both file_path and source_root before compare to
-                  avoid the macOS /tmp ↔ /private/tmp symlink trap.
-    """
+    """Return the source_config dict whose scope covers `file_path`, or None."""
     if not file_path.exists():
         return None
     resolved = file_path.resolve()
@@ -612,23 +591,7 @@ def index_single_file(
     config_path: Path | str = ".coding-os/rag-config.yaml",
     force: bool = False,
 ) -> dict:
-    """Incrementally re-index a single markdown file.
-
-    PURPOSE:      Single-file freshness path for Phase H's auto-reindex hook.
-                  Called on every Write/Edit to a scoped doc; must be cheap.
-    INPUT:        conn (schema >= v5), abs-or-rel file_path, project_root,
-                  optional config_path override, force flag.
-    OUTPUT:       {status, file, new_chunks, deleted_chunks, source_type}
-                  where status ∈ { reindexed | unchanged | unscoped |
-                                   deleted   | missing   | error }.
-    DEPENDENCIES: load_rag_config, chunk_markdown, _delete_chunks_for_path,
-                  _embed_chunk_safe, document_chunks schema (v5).
-    NOTES:        - Missing-on-disk => treat as delete signal (ghost cleanup).
-                  - mtime guard: stored >= current AND not force =>
-                    short-circuit "unchanged", no chunk or embed work.
-                  - Embedding failures are swallowed by _embed_chunk_safe so
-                    chunk rows always land, even without `rag` extras.
-    """
+    """Incrementally re-index a single markdown file."""
     file_path = Path(file_path)
     project_root = Path(project_root)
     config_path = Path(config_path)

@@ -1,21 +1,4 @@
-"""core.web.routes.hub — global Hub registry endpoints.
-
-PURPOSE: Expose the ~/.coding-os/registry.json contents + mutate it from
-         the panel so the Hub home can list, add, scan, gc, and remove
-         projects without the user dropping to a terminal.
-INPUT:   GET  /api/hub/projects         — list
-         POST /api/hub/registry/add     — register an existing .coding-os/ path
-         POST /api/hub/registry/scan    — scan a filesystem root for cos projects
-         POST /api/hub/registry/gc      — rewrite registry without stale entries
-         DELETE /api/hub/registry/{slug}— unregister by slug
-OUTPUT:  Envelope-style JSON ({data, meta} on success; {error} on failure).
-DEPENDENCIES: cli.registry (single source of truth for the on-disk file).
-NOTES:   Mutation endpoints are localhost-only because the Hub itself
-         binds to 127.0.0.1.  Path inputs are validated (must be a real
-         directory containing .coding-os/, must resolve to an absolute
-         path).  No remote execution — scan only reads directory entries,
-         never spawns subprocesses.
-"""
+"""core.web.routes.hub — global Hub registry endpoints."""
 from __future__ import annotations
 
 import logging
@@ -59,12 +42,7 @@ def _resolve_slug_from_registry(cwd: Path) -> str:
 
 
 def _derive_runtime_entry() -> dict | None:
-    """Return an in-memory entry for the cwd project when it's a cos repo.
-
-    PURPOSE: Auto-surface the project the Hub is actually serving.
-             Without this, the main meta-project never shows up because
-             `cos init` is not run on it — only on consumer projects.
-    """
+    """Return an in-memory entry for the cwd project when it's a cos repo."""
     cwd = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
     if not _looks_like_cos_project(cwd):
         return None
@@ -91,16 +69,7 @@ def _err(category: str, message: str, *, status: int = 400) -> JSONResponse:
 
 
 def _validate_project_path(raw: str) -> tuple[Path | None, JSONResponse | None]:
-    """Sanitize an incoming project-path string for registry mutations.
-
-    PURPOSE: Every mutation endpoint takes a user-supplied path.  The
-             Hub binds to 127.0.0.1, so the blast radius is "this user"
-             — but we still reject non-absolute paths, missing dirs,
-             and paths that aren't cos projects so a typo can't write
-             an entry that would later 404 every board render.
-    OUTPUT:  (resolved_path, None) on success; (None, JSONResponse) when
-             the input must be rejected.
-    """
+    """Sanitize an incoming project-path string for registry mutations."""
     if not isinstance(raw, str) or not raw.strip():
         return None, _err("validation", "path is required and must be a non-empty string")
     try:
@@ -169,17 +138,7 @@ def hub_registry_add(
     path: str = Body(..., embed=True),
     slug: Optional[str] = Body(None, embed=True),
 ):
-    """Register an existing `.coding-os/` directory with the Hub.
-
-    PURPOSE: Panel-side "Import existing project" flow.  Accepts an
-             already-initialized project (one `cos init` has run on)
-             and appends it to the registry.
-    INPUT:   {path: absolute path, slug?: override for derived slug}.
-    OUTPUT:  {data: {slug, path, created_at}, meta} on success.
-    NOTES:   Idempotent on path — re-registering a known path returns
-             the existing entry without error.  Slug collision (same
-             slug, different path) raises 400.
-    """
+    """Register an existing `.coding-os/` directory with the Hub."""
     resolved, err = _validate_project_path(path)
     if err is not None:
         return err
@@ -254,20 +213,7 @@ def hub_registry_scan(
     max_depth: int = Body(_SCAN_MAX_DEPTH, embed=True),
     limit: int = Body(50, embed=True),
 ):
-    """Walk a filesystem root and return every `.coding-os/` project found.
-
-    PURPOSE: Panel-side auto-discovery — "I backed up my dev folder,
-             find the coding-os projects for me."  Read-only; never
-             mutates the registry.  The caller decides which hits to
-             import via the /registry/add endpoint.
-    INPUT:   {root: absolute path, max_depth: cap directory recursion,
-              limit: cap number of hits returned}.
-    OUTPUT:  {data: {root, hits: [{path, slug, already_registered}], count,
-              visited_dirs, hit_limit_reached}, meta}.
-    NOTES:   Skips conventional noise dirs (.git, node_modules, .venv,
-             .coding-os itself, Library, Trash).  max_depth and
-             limit are hard-clamped to defensive values.
-    """
+    """Walk a filesystem root and return every `.coding-os/` project found."""
     if not isinstance(root, str) or not root.strip():
         return _err("validation", "root is required")
     try:
@@ -376,17 +322,7 @@ def hub_registry_scan(
 def hub_registry_gc(
     dry_run: bool = Body(False, embed=True),
 ):
-    """Remove registry entries whose directory no longer exists.
-
-    PURPOSE: Test suites, `rm -rf` on a project dir, or migrating projects
-             across machines all leave stale entries in the registry JSON.
-             We already filter them at read-time (so the panel never
-             shows dead cards), but the file itself grows indefinitely.
-             This endpoint rewrites it in-place.
-    INPUT:   {dry_run: bool}.  When true, reports what would be removed
-             without writing.
-    OUTPUT:  {data: {kept, removed, dry_run}, meta}.
-    """
+    """Remove registry entries whose directory no longer exists."""
     try:
         from cli.registry import Registry, load_registry, save_registry  # type: ignore
     except Exception as exc:  # noqa: BLE001
@@ -434,16 +370,7 @@ def hub_registry_gc(
 
 @router.get("/suggest-roots")
 def hub_suggest_roots(depth: int = Query(0)):
-    """Return sensible default scan roots for the UI's import wizard.
-
-    PURPOSE: The UI can't look at the server's filesystem, so we give
-             it a shortlist of likely spots (HOME, HOME/code, HOME/Projects,
-             HOME/Developer) that actually exist and the user's cwd so
-             the "+ Import existing" modal has non-empty defaults.
-    OUTPUT:  {data: {suggestions: [path, ...]}, meta}.
-    NOTES:   Paths that don't exist are filtered out.  Order is stable:
-             cwd → ~/code → ~/Projects → ~/Developer → ~.
-    """
+    """Return sensible default scan roots for the UI's import wizard."""
     _ = depth  # reserved — currently unused; keeps the route parameter list stable
     candidates: list[Path] = [
         Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve(),

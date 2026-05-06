@@ -1,12 +1,4 @@
-"""Transition Gates — DoR / DoD / WIP / size / override policy (Phase L.10).
-
-PURPOSE: Pure-python loader + Pydantic schema for `core/board_os/transition-gates.yaml`.
-INPUT:   YAML config path (or content string).
-OUTPUT:  GatesConfig — typed, deep-merge-able, kind-aware.
-DEPENDENCIES: pydantic, yaml, pathlib; no DB or MCP dependency.
-NOTES:   Validator logic lives in `transition_gates_validator.py` (TASK-104) so the
-         loader can be exercised independently of body parsing.
-"""
+"""Transition Gates — DoR / DoD / WIP / size / override policy (Phase L.10)."""
 
 from __future__ import annotations
 

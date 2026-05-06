@@ -1,19 +1,7 @@
 """thinking_os — background embedding migrator (Phase I.1).
 
-PURPOSE:  Re-embed every row in the legacy `embeddings` table with the
-          target model (default BGE-M3), writing `embedding`, `model_name`,
-          and `embedding_dim` in batches. Safe to crash / resume —
-          progress checkpointed to `.coding-os/.embedding-migration.json`.
-INPUT:    opened sqlite3.Connection plus target model name.
-OUTPUT:   a report dict (batches_done, rows_migrated, eta_seconds, ...).
 DEPENDS:  embeddings.py (encoder + dim helpers), db.py migration v12
           (`embedding_dim` column).
-NOTES:    This module stands alone in I.1 so the orchestrator role
-          (I.9) can call it in `migrator:embeddings` without further
-          refactoring. The MCP server startup path must never invoke
-          `migrate_blocking` — use `run_one_batch` iterated by the
-          orchestrator (see docs/phase-i-knowledge-graph-plan.md
-          Section 6 Stage 6 background-migration contract).
 """
 
 from __future__ import annotations
@@ -38,20 +26,7 @@ DEFAULT_CHECKPOINT = ".coding-os/.embedding-migration.json"
 
 @dataclass
 class MigrationCheckpoint:
-    """On-disk progress marker — survives crash / SIGTERM.
-
-    PURPOSE:      Let the orchestrator resume the migrator in < 1s
-                  after a restart by pointing at the last committed row.
-    INPUT:        loaded via `load()`; updated via `save()` after each
-                  batch.
-    OUTPUT:       JSON dict persisted at `path`.
-    NOTES:        `last_id` is the maximum `embeddings.id` already
-                  re-embedded to the target model; the next batch is
-                  `SELECT ... WHERE id > last_id AND model_name != target`.
-                  `target_model` is captured so a half-run migration
-                  for model A cannot be misinterpreted as progress
-                  toward model B.
-    """
+    """On-disk progress marker — survives crash / SIGTERM."""
 
     target_model: str = DEFAULT_TARGET_MODEL
     total: int = 0
@@ -186,21 +161,7 @@ def run_one_batch(
     batch_size: int = DEFAULT_BATCH_SIZE,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT,
 ) -> dict:
-    """Process one batch; persist checkpoint; return status dict.
-
-    PURPOSE:      Atomic unit of migration — the orchestrator role
-                  `migrator:embeddings` calls this in a loop, picking
-                  up where a crash left off.
-    INPUT:        open DB + target model + batch size + checkpoint path.
-    OUTPUT:       {
-                    done, total, migrated_this_batch, remaining,
-                    target_model, eta_seconds, stopped_reason
-                  }.
-    NOTES:        Each batch commits in its own implicit transaction
-                  via upsert_embedding — crash loses ≤ batch_size rows
-                  of work. If the checkpoint's target_model does not
-                  match the requested one, it is reset (fresh cycle).
-    """
+    """Process one batch; persist checkpoint; return status dict."""
     checkpoint = MigrationCheckpoint.load(checkpoint_path)
     if checkpoint.target_model != target_model:
         checkpoint = MigrationCheckpoint(target_model=target_model)
@@ -286,16 +247,7 @@ def migration_status(
     target_model: str = DEFAULT_TARGET_MODEL,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT,
 ) -> dict:
-    """Read-only: report current migration state.
-
-    PURPOSE:      Back the `cos doctor` C20 / C21 checks and the MCP
-                  `meta.migration_in_progress` envelope flag without
-                  mutating anything.
-    INPUT:        open DB + target model + checkpoint path.
-    OUTPUT:       dict with keys matching run_one_batch plus
-                  `migration_complete` (bool).
-    NOTES:        Never writes — safe to call from read-only contexts.
-    """
+    """Read-only: report current migration state."""
     checkpoint = MigrationCheckpoint.load(checkpoint_path)
     pending = _total_pending(conn, target_model)
     done = checkpoint.done
@@ -321,20 +273,7 @@ def run_until_idle(
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT,
     max_batches: int | None = None,
 ) -> dict:
-    """Synchronous driver — for tests and manual runs only.
-
-    PURPOSE:      Loop `run_one_batch` until nothing is pending. **Not**
-                  suitable for the MCP server startup path — it blocks.
-                  The orchestrator role schedules one batch per tick
-                  instead.
-    INPUT:        open DB + batching knobs + optional hard cap on
-                  batches (safety rail for tests).
-    OUTPUT:       final run_one_batch report.
-    NOTES:        If the encoder is unavailable (no sentence-
-                  transformers) this returns status "skipped" without
-                  touching the DB, so operators can safely try again
-                  once deps install.
-    """
+    """Synchronous driver — for tests and manual runs only."""
     if not embeddings.is_available():
         return {
             "status": "skipped",

@@ -49,17 +49,7 @@ _IDENTIFIER_RE = re.compile(
 
 
 def looks_like_identifier(query: str) -> bool:
-    """Return True when `query` contains a code-shaped token.
-
-    PURPOSE:      Pick a retrieval mode in `auto` without round-tripping
-                  through embeddings first.
-    INPUT:        raw user query string.
-    OUTPUT:       bool.
-    DEPENDENCIES: none.
-    NOTES:        Intentionally false-positive-biased — if unsure, FTS wins
-                  on identifier recall and is dirt-cheap. Worst case: FTS
-                  returns empty and we fall back to semantic anyway.
-    """
+    """Return True when `query` contains a code-shaped token."""
     if not query or not query.strip():
         return False
     return bool(_IDENTIFIER_RE.search(query))
@@ -111,19 +101,7 @@ _BARE_YEAR_RE = re.compile(r"\b(20\d{2})\b")
 
 
 def _suggest_filters_from_query(query: str) -> dict[str, Any]:
-    """Heuristic query-time metadata extraction (non-binding hints).
-
-    PURPOSE: Implement the "Filter → Search → Summarize" mental model
-             without magic auto-filtering. Returns suggested filters in
-             response meta so the agent can decide whether to re-query
-             with them. Never silently changes search results — the
-             agent stays in control.
-    INPUT:   raw user query.
-    OUTPUT:  dict with optional keys: suggested_domain, suggested_layer,
-             suggested_since_iso. Empty dict when no hints fire.
-    NOTES:   Heuristics deliberately conservative. False-positive in this
-             helper costs only one round-trip; false-negative is silent.
-    """
+    """Heuristic query-time metadata extraction (non-binding hints)."""
     if not query:
         return {}
     text = query.lower()
@@ -178,20 +156,7 @@ _SWIMLANE_DOMAIN: dict[str, str] = {
 
 
 def _active_task_context() -> dict[str, str]:
-    """Read the active task's swimlane / kind from $COS_AGENT_DIR.
-
-    PURPOSE: Implement the "Use the user's identity context as an
-             implicit filter" pattern (Pre-Filtered RAG article). When an
-             agent is in a backend-swimlane task, default the doc search
-             domain to BACKEND unless caller explicitly overrode it.
-             Soft default — caller's explicit `domain=` always wins.
-    INPUT:   reads $COS_AGENT_DIR/.task (active TASK id), .swimlane,
-             .kind state files (written by enforce-task-start.sh).
-    OUTPUT:  dict with optional keys: domain, layer. Empty when no
-             active task or env var unset.
-    NOTES:   Fail-soft — any IO error returns {} so doc_search keeps
-             working in test / fresh-install environments.
-    """
+    """Read the active task's swimlane / kind from $COS_AGENT_DIR."""
     agent_dir_str = os.environ.get("COS_AGENT_DIR", "")
     if not agent_dir_str:
         return {}
@@ -217,20 +182,7 @@ def _build_metadata_filter(
     include_inactive: bool,
     table_alias: str = "",
 ) -> tuple[str, list[Any]]:
-    """Stage-1 RAG pre-filter SQL fragment + params.
-
-    PURPOSE: Compose the WHERE-AND clause that narrows document_chunks to
-             the rows allowed to compete in vector / FTS retrieval. Per
-             RAG production-grade staged hybrid: cheap indexed pre-filter
-             before expensive ranking. Backed by migration v22 columns +
-             partial indexes.
-    INPUT:   filters as keyword args; `table_alias` like "dc." for joins
-             that reference document_chunks via an alias.
-    OUTPUT:  (sql_fragment, params). sql_fragment is empty when no filter
-             applies; otherwise begins with " AND ".
-    NOTES:   `include_inactive=False` (default) hides rows whose
-             cos_audit_log flipped is_active=0 (superseded / deleted).
-    """
+    """Stage-1 RAG pre-filter SQL fragment + params."""
     p = table_alias if table_alias.endswith(".") or not table_alias else f"{table_alias}."
     if table_alias and not p.endswith("."):
         p = f"{table_alias}."
@@ -661,16 +613,7 @@ _BULK_MAX_RESULTS = 50
 
 
 def _parse_frontmatter_block(text: str) -> dict[str, Any]:
-    """Parse the leading `<!-- key:value | … -->` block.
-
-    PURPOSE:      Decode the canonical Header Contract (docs-system.md §
-                  Header Contract) into a structured dict.
-    INPUT:        raw file text (only first chunk needed).
-    OUTPUT:       dict — keys present in the comment; missing keys absent.
-    DEPENDENCIES: none.
-    NOTES:        Tolerates whitespace and missing keys. Treats `reads:[a,b]`
-                  as a comma-separated list of relative doc paths/slugs.
-    """
+    """Parse the leading `<!-- key:value | … -->` block."""
     match = _FRONTMATTER_RE.match(text)
     if not match:
         return {}
@@ -701,19 +644,7 @@ def _parse_frontmatter_block(text: str) -> dict[str, Any]:
 
 
 def _parse_opening_block(text: str) -> dict[str, str]:
-    """Extract Purpose / Read when / Skip when / Read next (long OR short).
-
-    PURPOSE:      Pull the four routing-decision lines an agent uses to
-                  decide whether to read body — without reading body.
-    INPUT:        raw file text.
-    OUTPUT:       dict — present keys mapped to single-line values; absent
-                  keys are simply missing (caller decides whether the doc
-                  is malformed).
-    DEPENDENCIES: none.
-    NOTES:        Long form (Purpose:) and short form (`> P:`) are both
-                  accepted; long form wins on conflict to preserve back-
-                  compat while TASK-158 phases in P/R/S/N.
-    """
+    """Extract Purpose / Read when / Skip when / Read next (long OR short)."""
     out: dict[str, str] = {}
     for key, regex in _SHORT_OPENING_RE.items():
         match = regex.search(text)
@@ -727,19 +658,7 @@ def _parse_opening_block(text: str) -> dict[str, str]:
 
 
 def parse_doc_header(path: Path) -> dict[str, Any] | None:
-    """Read a doc's first 3 KB and extract header.
-
-    PURPOSE:      Header-only lazy load (TASK-155). Returns frontmatter +
-                  opening block + H1 title. Body is never read.
-    INPUT:        path — absolute or repo-relative path to a `.md` file.
-    OUTPUT:       dict {path, title, frontmatter, opening_block, mtime,
-                  size_bytes, header_token_estimate}, or None if file is
-                  missing / unreadable.
-    DEPENDENCIES: filesystem only — no DB, no embeddings.
-    NOTES:        Read budget is 3072 bytes — covers every observed opening
-                  block by 4× margin. Returns None for binary / missing
-                  files; caller surfaces the proper envelope error.
-    """
+    """Read a doc's first 3 KB and extract header."""
     p = Path(path)
     try:
         if not p.is_file():
@@ -786,21 +705,7 @@ def list_doc_headers(
     since_iso: str | None = None,
     limit: int = _BULK_MAX_RESULTS,
 ) -> list[dict[str, Any]]:
-    """Walk a docs root and return matching headers.
-
-    PURPOSE:      Bulk header-only scan with frontmatter filters. The agent
-                  asks "show me every policy doc in domain DOCS" and gets
-                  enough to route, in <2 KB total.
-    INPUT:        root           — directory to walk (typically `docs/`).
-                  domain/layer/ssot/since_iso — frontmatter filters.
-                  limit          — defensive cap (50 default).
-    OUTPUT:       list of dicts produced by `parse_doc_header`, sorted by
-                  frontmatter `priority` DESC then `updated` DESC.
-    DEPENDENCIES: filesystem only.
-    NOTES:        Skips files without parseable frontmatter to keep the
-                  shape sane (no half-rows). Agents who need the malformed
-                  list should call `parse_doc_header` directly per path.
-    """
+    """Walk a docs root and return matching headers."""
     root_path = Path(root)
     if not root_path.is_dir():
         return []
@@ -860,19 +765,7 @@ def _index_path_for(source: Path) -> Path:
 
 
 def _parse_section_index(index_file: Path) -> list[dict[str, Any]]:
-    """Parse the auto-generated table inside a `<file>.INDEX.md`.
-
-    PURPOSE:      Read the INDEX sidecar so `cos_doc_section` can resolve a
-                  slug or fuzzy section title to a concrete (start, end)
-                  line range without re-scanning the source doc.
-    INPUT:        index_file — path to a `<file>.INDEX.md` produced by
-                  `scripts/regen_section_index.py`.
-    OUTPUT:       list of dicts: {title, slug, start, end, lines, tokens}.
-                  Empty list when the file has no recognizable rows.
-    DEPENDENCIES: filesystem only.
-    NOTES:        Tolerant — silently skips malformed rows so a partial /
-                  hand-edited index still yields the rows it can parse.
-    """
+    """Parse the auto-generated table inside a `<file>.INDEX.md`."""
     if not index_file.exists():
         return []
     rows: list[dict[str, Any]] = []
@@ -937,28 +830,7 @@ def doc_section(
     section: str = "",
     with_body: bool = True,
 ) -> dict[str, Any] | None:
-    """Return one section of a fat doc by slug, sourced from the INDEX sidecar.
-
-    PURPOSE:      Cut intra-file navigation cost from full-read (≥5k tokens)
-                  to slice-only (≈300-800 tokens). Pairs with the
-                  `auto-regen-section-index.sh` PostToolUse hook that keeps
-                  the INDEX fresh on every Write/Edit.
-    INPUT:        source     — path to the source `.md` (NOT the INDEX file).
-                  slug       — preferred lookup (stable across edits).
-                  section    — fallback fuzzy title (case-insensitive substring).
-                  with_body  — when True (default), include the section body.
-                               Set False for cheap recon — caller learns the
-                               line range and decides whether to fetch.
-    OUTPUT:       dict {path, slug, title, start, end, lines, token_estimate,
-                       body?} or None when no INDEX exists or no row matches.
-    DEPENDENCIES: filesystem only — no embeddings, no DB.
-    NOTES:        - INDEX missing → returns None so the caller can degrade
-                    to a full Read or grep.
-                  - Slug rename → row not found → caller signals not_found
-                    and hints at `cos_graph_rename_plan`.
-                  - Body slice uses 1-indexed inclusive line numbers, matching
-                    the format `Read(file, offset=N, limit=L)` already uses.
-    """
+    """Return one section of a fat doc by slug, sourced from the INDEX sidecar."""
     if not source.exists() or not source.is_file():
         return None
     index_file = _index_path_for(source)

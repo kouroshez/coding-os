@@ -1,17 +1,4 @@
-"""
-Coding OS — Formula-agent supervisor MCP tools (Phase M).
-
-PURPOSE:      10 cos_* tools exposing the formula-agent dispatch loop to
-              the main agent: persona routing, supervisor state machine,
-              evidence bundle management, ambiguity gate, traceability,
-              backtrack logging, discovery capture, situation detection,
-              and legacy takeover bootstrap.
-INPUT:        Called by the main agent (Claude/Codex) during task execution.
-OUTPUT:       ok()/fail() envelopes per Rule 14.
-DEPENDENCIES: cognition.py, cognition_schemas.py, db.py, tools/_shared.py.
-NOTES:        All tools are wrapped in @safe_tool. Supervisor never spawns
-              agents — it only returns NextAction for the main agent to act on.
-"""
+"""Coding OS — Formula-agent supervisor MCP tools (Phase M)."""
 
 from __future__ import annotations
 
@@ -49,18 +36,6 @@ _role_persistence_cache: dict[str, tuple[str | None, Any]] | None = None
 
 
 def _resolve_role_persistence(role_id: str) -> tuple[str | None, Any]:
-    """
-    PURPOSE: Map role id → (EvidenceBundle field name, Pydantic Output class).
-             Data-driven from role frontmatter so adding a role needs zero
-             cognition.py edits — only a new agents/<role>.md file plus the
-             matching Pydantic class in cognition_schemas.py.
-    INPUT:   role_id (e.g. "researcher").
-    OUTPUT:  (field_name, output_cls). Either may be None when the role
-             does not declare `output_schema:` or when the class import fails.
-    NOTES:   Frontmatter contract:
-             - `output_schema: cognition.<X>Output` — Pydantic class ref.
-             - `bundle_field: <name>` (optional, defaults to role id).
-    """
     global _role_persistence_cache
     if _role_persistence_cache is None:
         _role_persistence_cache = {}
@@ -109,15 +84,6 @@ def _all_bundle_fields() -> set[str]:
 
 
 def _resolve_agent_dir() -> Path:
-    """
-    PURPOSE: Generic resolver for the per-agent state dir (Rule 1 — never
-             hardcode `.claude/`). Works for any registered adapter.
-    INPUT:   $COS_AGENT_DIR > $COS_AGENT > fallback "claude" for back-compat.
-    OUTPUT:  Path to .coding-os/<agent>/ (created on access).
-    NOTES:   When neither env var is set, falls back to "claude" so
-             bare invocations from the meta repo still work. Consumer
-             projects always have COS_AGENT_DIR exported by hooks.
-    """
     import os as _os
     explicit = _os.environ.get("COS_AGENT_DIR")
     if explicit:
@@ -181,12 +147,6 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
         pending: str = "[]",
         backtrack_count: int = 0,
     ) -> str:
-        """
-        PURPOSE:      Deterministic supervisor state machine — returns NextAction.
-        INPUT:        Current state serialised as flat args (avoids nested JSON).
-        OUTPUT:       NextAction envelope.
-        DEPENDENCIES: cognition.advance, EvidenceBundle from disk.
-        """
         cog = _cog()
         schemas = _schemas()
 
@@ -272,12 +232,6 @@ def register_cos_supervise_record_output(mcp, db_path):
         status: str = "ok",
         latency_ms: int = 0,
     ) -> str:
-        """
-        PURPOSE:      Append formula output to EvidenceBundle; write dispatch row.
-        INPUT:        session_id, formula_id, output_json (serialised F<N>Output), status.
-        OUTPUT:       ok with bundle field count.
-        DEPENDENCIES: EvidenceBundle on disk, formula_dispatches table.
-        """
         bundle = _load_bundle(session_id, task_marker, persona_id)
 
         # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
@@ -354,12 +308,6 @@ def register_cos_dispatch_formula(mcp, db_path):  # noqa: ARG001 — reserved fo
         persona_id: str,
         intensity: str = "standard",
     ) -> str:
-        """
-        PURPOSE:      Build the dispatch prompt for formula_id from the agent file.
-        INPUT:        formula_id (role id e.g. analyst), current session state.
-        OUTPUT:       {agent_file, prompt_text, input_slice}.
-        DEPENDENCIES: load_agent_registry, EvidenceBundle on disk.
-        """
         cog = _cog()
         agents = cog.load_agent_registry()
         meta = agents.get(formula_id)
@@ -408,12 +356,6 @@ def register_cos_ambiguity_check(mcp, db_path):
         task_marker: str,
         persona_id: str,
     ) -> str:
-        """
-        PURPOSE:      Verify bundle satisfies 7-criteria gate; record violations.
-        INPUT:        session_id identifies the bundle on disk.
-        OUTPUT:       {violations: [...], passed: bool}.
-        DEPENDENCIES: cognition.ambiguity_check, ambiguity_violations table.
-        """
         cog = _cog()
         bundle = _load_bundle(session_id, task_marker, persona_id)
         violations = cog.ambiguity_check(bundle)
@@ -460,12 +402,6 @@ def register_cos_traceability(mcp, db_path):
         persona_id: str,
         scope: str = "task",
     ) -> str:
-        """
-        PURPOSE:      Top-to-bottom traceability audit (read-only).
-        INPUT:        session_id, scope (task|project).
-        OUTPUT:       {gaps: [...], redundancies: [...], score: float}.
-        DEPENDENCIES: formula_dispatches table, EvidenceBundle.
-        """
         gaps = []
         bundle = _load_bundle(session_id, task_marker, persona_id)
 
@@ -526,24 +462,6 @@ def register_cos_backtrack_log(mcp, db_path):
         root_cause: str = "",
         corrective_action: str = "",
     ) -> str:
-        """
-        PURPOSE:      Persist backtrack event; compute Anti-Paralysis advisory.
-                      Optional structured failure anatomy (hypothesis, failure_signal,
-                      root_cause, corrective_action) enables learn_extract to mine
-                      failure patterns across sessions (Phase EVO v25).
-        INPUT:        session_id, from/to formula ids, reason (required).
-                      Structured fields (optional, backward-compatible):
-                        hypothesis — what we thought would work
-                        failure_signal — what indicated failure
-                        root_cause — one of: wrong_model | scope_too_large |
-                          missing_context | tool_failure | spec_ambiguity |
-                          env_mismatch | other
-                        corrective_action — what we switched to
-        OUTPUT:       {count, advisory, suggested_action, root_cause_summary}.
-                      suggested_action — concrete next step for the given root_cause.
-                      root_cause_summary — {root_cause: count} across all session backtracks.
-        DEPENDENCIES: backtrack_events table (v14); anatomy columns (v25).
-        """
         _VALID_ROOT_CAUSES = {
             "wrong_model", "scope_too_large", "missing_context",
             "tool_failure", "spec_ambiguity", "env_mismatch", "other",
@@ -670,12 +588,6 @@ def register_cos_discovery(mcp, db_path):
         impact_assessment: str,
         decision: str,
     ) -> str:
-        """
-        PURPOSE:      Capture new facts discovered mid-work.
-        INPUT:        kind, summary, impact_assessment, decision (backtrack_now|record_for_later).
-        OUTPUT:       {stored, action_required}.
-        DEPENDENCIES: observations table (via db insert), EvidenceBundle.
-        """
         if decision not in ("backtrack_now", "record_for_later"):
             return fail("validation", "decision must be backtrack_now or record_for_later")
 
@@ -729,12 +641,6 @@ def register_cos_situation_detect(mcp, db_path):  # noqa: ARG001 — reserved fo
     )
     @safe_tool
     def cos_situation_detect(signals: str = "[]") -> str:
-        """
-        PURPOSE:      Match signal set to situation registry.
-        INPUT:        signals — JSON array of string signal names.
-        OUTPUT:       {situation_id, matched_signals} or {situation_id: null}.
-        DEPENDENCIES: cognition.load_situation_registry.
-        """
         cog = _cog()
         signal_set = set(json.loads(signals))
         situations = cog.load_situation_registry()
@@ -773,12 +679,6 @@ def register_cos_takeover(mcp, db_path):  # noqa: ARG001 — reserved for takeov
         task_marker: str,
         repo_description: str = "",  # reserved for Researcher pre-seeding in future slice
     ) -> str:
-        """
-        PURPOSE:      Bootstrap takeover flow for legacy/inherited repos.
-        INPUT:        session_id, task_marker, optional repo_description.
-        OUTPUT:       {persona_id, situation_id, first_action}.
-        DEPENDENCIES: cos_situation_detect logic + situations/registry.yaml.
-        """
         cog = _cog()
         schemas = _schemas()
 
@@ -848,16 +748,6 @@ def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for me
         project_dir: str = "",
         session_id: str = "",
     ) -> str:
-        """
-        PURPOSE:      Task analyzer MCP wrapper — returns TaskSignals.
-        INPUT:        prompt, optional task_marker, complexity, dimensions,
-                      project_dir, session_id (for trace correlation).
-        OUTPUT:       {signals: TaskSignals dict, extraction_ms, source_errors}.
-        DEPENDENCIES: task_analyzer.analyze_task (<500ms budget), tracing.emit.
-        NOTES:        Emits analyze_start + analyze_done events on the session's
-                      trace stream so the flowchart node n-analyzer shows as
-                      visited in replay.
-        """
         import task_analyzer  # lazy
         import tracing
         agent_dir = _resolve_agent_dir()
@@ -913,17 +803,6 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
         preset_min_score: int = -1,
         session_id: str = "",
     ) -> str:
-        """
-        PURPOSE:      Composer MCP wrapper — returns ComposedChain.
-        INPUT:        signals_json (TaskSignals serialised), situation_id,
-                      preset_min_score (-1 = config default), session_id
-                      (trace correlation).
-        OUTPUT:       ComposedChain dict with full provenance.
-        DEPENDENCIES: formula_composer.compose_chain, tracing.emit.
-        NOTES:        Emits one of preset_matched / situation_override /
-                      composer_fallback / hard_fallback plus compose_done so
-                      replay knows exactly which branch fired.
-        """
         import formula_composer  # lazy
         import tracing
         schemas = _schemas()
@@ -1009,12 +888,6 @@ def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-
     )
     @safe_tool
     def cos_role_info(role_id: str) -> str:
-        """
-        PURPOSE:      Expose role YAML metadata over MCP.
-        INPUT:        role_id (researcher|analyst|architect|documenter|implementer|reviewer|debugger|security_auditor|deployer|observer|refactorer).
-        OUTPUT:       Role metadata dict minus raw yaml noise.
-        DEPENDENCIES: formula_composer.load_roles.
-        """
         import formula_composer  # lazy
         roles = formula_composer.load_roles()
         role = roles.get(role_id)
@@ -1043,13 +916,6 @@ def _persist_dispatch_output(
     formula_id: str, output_json: dict, status: str, latency_ms: int,
     db_path: str,
 ) -> int:
-    """
-    PURPOSE:      Merge dispatcher output into the EvidenceBundle and log
-                  the dispatch row, mirroring cos_supervise_record_output.
-    OUTPUT:       Number of bundle fields now populated.
-    NOTES:        Shared between run-single and run-parallel tools so the
-                  record-output contract stays identical.
-    """
     bundle = _load_bundle(session_id, task_marker, persona_id)
     # Data-driven role → bundle field + Pydantic class resolution.
     # Role frontmatter declares `output_schema: cognition.<X>Output`;
@@ -1143,14 +1009,6 @@ def _emit_dispatch_metrics_safe(
     *, db_path: str, formula_id: str, status: str,
     latency_ms: int, output_json: dict,
 ) -> None:
-    """
-    PURPOSE: Emit dispatch latency + outcome as a coding-os agent_metric row (T2.5, T8.4).
-    INPUT:   dispatch result fields, db_path for metric storage.
-    OUTPUT:  One row in agent_metrics: agent_type=dispatch, domain=<formula_id>.
-    NOTES:   Rule 6 — fire-and-forget, any error silently logged.
-             cost_usd is already persisted in formula_dispatches.cost_usd (T2.3).
-             Use `cos_metric_query agent_type=dispatch` to retrieve these rows.
-    """
     import sqlite3 as _sqlite3
 
     try:
@@ -1229,16 +1087,6 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         intensity: str = "standard",
         timeout_s: float | None = None,
     ) -> str:
-        """
-        PURPOSE:      Sync wrapper that runs dispatcher.dispatch() in its own
-                      event loop and persists the EvidenceBundle slice on ok.
-        INPUT:        formula_id, session state, optional timeout override.
-        OUTPUT:       {status, formula_id, output_json, latency_ms, error,
-                      dispatcher_name, bundle_fields_filled}.
-        DEPENDENCIES: dispatcher.get_dispatcher() (picks SDK vs default at runtime).
-        NOTES:        MCP tools are sync; we use asyncio.run in a helper thread
-                      to avoid nested-loop issues when the server itself is async.
-        """
         import asyncio as _asyncio
         from thinking_os import dispatcher as _disp
 
@@ -1362,10 +1210,6 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         intensity: str = "standard",
         timeout_s: float | None = None,
     ) -> str:
-        """
-        PURPOSE:      Parallel-dispatch N formulas and persist each output.
-        OUTPUT:       {results: [...], parallel_wall_ms, ok_count, total}.
-        """
         import asyncio as _asyncio
         from thinking_os import dispatcher as _disp
 
@@ -1477,19 +1321,6 @@ def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved 
         record: bool = True,
         agent_dir: str = "",
     ) -> str:
-        """
-        PURPOSE:      Auto-classify a prompt's Cynefin complexity + dimension count.
-        INPUT:        prompt — user request text.
-                      record — if True, writes `.thinking_os-gate` marker.
-                      agent_dir — override $COS_AGENT_DIR (testing only).
-        OUTPUT:       envelope {complexity, dimensions, reasoning, signals,
-                      recorded}.
-        DEPENDENCIES: stdlib only — pattern-based.
-        NOTES:        Heuristics intentionally conservative — when signals
-                      conflict, escalates to the higher complexity tier
-                      (CLEAR<COMPLICATED<COMPLEX<CHAOTIC). Agent can override
-                      manually if domain knowledge says otherwise.
-        """
         import os as _os
         import re as _re
         text = (prompt or "").strip().lower()

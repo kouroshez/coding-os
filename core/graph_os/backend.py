@@ -1,17 +1,6 @@
 """graph_os — backend Protocol + factory.
 
-PURPOSE:  Define the contract every storage backend (SQLite fallback,
-          Kuzu primary) honours so that extractors and MCP tools
-          remain storage-agnostic. The factory picks a backend based
-          on availability + configuration.
-INPUT:    see GraphBackend.__init__ signatures (storage-specific
-          kwargs are passed through get_backend).
-OUTPUT:   an object satisfying the GraphBackend Protocol.
 DEPENDS:  types.GraphNode / GraphEdge / EvidenceSignal.
-NOTES:    Fail-loud on explicit misconfiguration (e.g. backend="kuzu"
-          requested but kuzu not installed). Silent fallback would
-          hide 10x latency regressions mid-session (Section 12.5 of
-          the plan).
 """
 
 from __future__ import annotations
@@ -27,34 +16,14 @@ logger = logging.getLogger("graph_os.backend")
 
 
 class BackendUnavailable(RuntimeError):
-    """Raised when a backend was explicitly requested but cannot load.
-
-    PURPOSE:  Distinguish "kuzu missing on this machine" from "kuzu
-              threw at runtime" — the first is deterministic, the
-              second is transient and retryable.
-    INPUT:    message and optional cause.
-    OUTPUT:   exception instance.
-    NOTES:    MCP tools translate this to fail("unavailable", ...).
-    """
+    """Raised when a backend was explicitly requested but cannot load."""
 
 
 @runtime_checkable
 class GraphBackend(Protocol):
     """Abstract storage backend for graph_nodes + graph_edges + evidence.
 
-    PURPOSE:  Surface the minimum set of operations needed by the
-              extractors (write path) and MCP tools (read path). The
-              Protocol is intentionally small in I.0 — additional
-              methods ship with the slice that needs them (e.g.
-              vector_search lands with I.1 alongside BGE-M3).
-    INPUT:    see per-method signatures.
-    OUTPUT:   see per-method signatures.
     DEPENDS:  GraphNode, GraphEdge, EvidenceSignal from .types.
-    NOTES:    Implementations MUST be idempotent on upsert calls
-              (same uid / same edge identity tuple => no duplicate
-              row). Implementations MUST honour the Section 12.6
-              parity contract so both backends return identical
-              results for the I.0 parity matrix.
     """
 
     backend_id: str
@@ -124,20 +93,7 @@ class GraphBackend(Protocol):
         """
 
     def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
-        """B13: return up to `limit` nodes, optionally filtered by kind.
-
-        PURPOSE:  Provide an unbiased node sample for ``cos_graph_similar``
-                  so the candidate pool is drawn from all nodes of the
-                  given kind, not just edge endpoints (which skews toward
-                  high-degree nodes).
-        INPUT:    kind — filter by node kind string, or None for all kinds.
-                  limit — maximum number of nodes to return.
-        OUTPUT:   list of GraphNode (may be shorter than limit if the
-                  graph has fewer matching nodes).
-        NOTES:    Ordering is implementation-defined; SQLite returns by
-                  rowid (insertion order), Kuzu by internal id. The
-                  contract only guarantees ``len(result) <= limit``.
-        """
+        """B13: return up to `limit` nodes, optionally filtered by kind."""
 
 
 # -------------------------------------------------------------------------
@@ -170,27 +126,8 @@ def get_backend(
 ) -> GraphBackend:
     """Factory — build a backend honoring the fail-loud contract.
 
-    PURPOSE:  Select Kuzu when available and requested (or default),
-              SQLite otherwise. Raise BackendUnavailable when an
-              explicit choice cannot be honoured — never silently
-              downgrade.
-    INPUT:    backend: None|"auto"|"kuzu"|"sqlite" (explicit > env).
-              sqlite_conn: pre-opened sqlite3.Connection reused from
-              thinking_os (recommended) — if None, backend picks
-              COS_DB_PATH via init_db.
-              kuzu_path: override for the .kuzu file path.
-              extra: forwarded to the backend constructor.
-    OUTPUT:   a GraphBackend instance.
     DEPENDS:  .backends.sqlite_backend.SqliteBackend always; Kuzu
               optional (ImportError tolerated when auto).
-    NOTES:    In I.0, auto resolves to SQLite unless Kuzu is importable
-              AND the plan's kuzu_path is writable. I.1 promotes auto
-              to prefer Kuzu once the migration is in place.
-
-              The default-path SQLite backend (no explicit conn or
-              kuzu_path) is cached per-process so MCP tool calls and
-              hub routes share one connection instead of opening a
-              fresh sqlite3.Connection on every request.
     """
     choice = _resolve_backend_choice(backend)
     # Only the default-path case is safe to cache. Tests + explicit

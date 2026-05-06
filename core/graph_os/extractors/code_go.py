@@ -1,23 +1,7 @@
 """graph_os — Go source file extractor (Wave 1 A3).
 
-PURPOSE:  Map a `.go` file to code:file / code:module + function /
-          method / import edges. Closes the language-coverage gap
-          flagged in the audit (templates ship `go` and `go-fiber`
-          but no Go extractor existed).
-INPUT:    file path + raw text (pure extractor).
-OUTPUT:   ExtractionResult.
 DEPENDS:  stdlib regex only — no go AST library to keep the dep
           surface tight.
-NOTES:    The Go grammar is intentionally narrow — we track:
-            * top-level `func Name(...)` declarations
-            * top-level `func (recv *T) Name(...)` method declarations
-            * single + grouped `import "X"` blocks (Go std-lib, vendor,
-              and third-party)
-            * type / struct / interface declarations (recorded as
-              `code:class` for symmetry with the TS / Python extractors)
-          Anything inside a function body, generics edge cases, or
-          unusual syntax (CGO `import "C"` blocks, build tags) is
-          skipped — best-effort regex parsing.
 """
 
 from __future__ import annotations
@@ -128,15 +112,7 @@ def _line_number_for(content: str, span_start: int) -> int:
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a Go source file → nodes + edges.
-
-    PURPOSE:      Per-file write path. The auto-reindex hook calls this
-                  when a `*.go` file changes.
-    INPUT:        repo-relative path + raw source.
-    OUTPUT:       ExtractionResult.
-    NOTES:        Never raises. Empty file produces a file + module
-                  pair so the graph still has the spine entry.
-    """
+    """Parse a Go source file → nodes + edges."""
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]

@@ -103,15 +103,6 @@ def migrate(
     dry_run: bool = True,
     resume: bool = False,
 ) -> MigrationReport:
-    """
-    PURPOSE:      Two-phase atomic migration from 12-section to lean.
-    INPUT:        project_root; dry_run=True (default) to preview;
-                  resume=True picks up a prior staging dir.
-    OUTPUT:       MigrationReport with per-file counters + errors.
-    DEPENDENCIES: parser.parse_task (handles both formats), tarfile.
-    NOTES:        Zero writes on dry_run. On --apply, either all files
-                  migrate or none do (R-L-27).
-    """
     report = MigrationReport()
     tasks_dir = (project_root / "docs" / "tasks").resolve()
     if not tasks_dir.exists():

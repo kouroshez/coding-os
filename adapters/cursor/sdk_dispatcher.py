@@ -1,26 +1,4 @@
-"""
-Coding OS — Cursor dispatcher (adapters/cursor).
-
-PURPOSE:      Stub dispatcher that satisfies the AgentDispatcher protocol
-              for Cursor sessions. Cursor is an IDE without a headless CLI
-              and has no Python/TypeScript SDK as of 2026-04, so there is
-              no programmatic path to spawn a sub-agent. The dispatcher
-              therefore declares itself unavailable; the factory in
-              core/thinking_os/dispatcher.py will transparently fall back
-              to the DefaultDispatcher (DB-only persistence, no spawn) and
-              the main Cursor agent must execute the role inline by
-              reading core/thinking_os/agents/<role>.md.
-INPUT:        DispatchRequest (passed through but not used).
-OUTPUT:       DispatchResult(status="skipped") — caller treats this as a
-              signal to inline the role's procedure.
-DEPENDENCIES: Core contract imported dynamically from
-              core/thinking_os/dispatcher.py (Rule 1 — no core/ imports
-              at module level).
-NOTES:        Rule 1: this file is Cursor-only and MUST NOT be imported
-              from core/. When Cursor ships a programmable headless mode,
-              extend `dispatch()` to invoke it and update `available()`.
-              Until then, lazy-load is the only sane path.
-"""
+"""Coding OS — Cursor dispatcher (adapters/cursor)."""
 
 from __future__ import annotations
 
@@ -32,14 +10,6 @@ logger = logging.getLogger("coding_os.dispatcher.cursor")
 
 
 class CursorDispatcher:
-    """
-    PURPOSE:      Conformance stub. Declares unavailable; caller falls
-                  back to default dispatcher.
-    INPUT:        DispatchRequest.
-    OUTPUT:       DispatchResult(status="skipped").
-    DEPENDENCIES: stdlib only.
-    NOTES:        No SDK exists. Lazy-load is the canonical path.
-    """
 
     name = "cursor"
 

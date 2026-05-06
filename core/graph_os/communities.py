@@ -1,27 +1,4 @@
-"""graph_os — process-grouped search via Louvain communities (TASK-075).
-
-PURPOSE:      Detect named "processes" (LoginFlow / RegistrationFlow /
-              TokenRefresh-style clusters) by running Louvain community
-              detection over the call/import subgraph.  Surfaced via:
-                - `cos_graph_communities` MCP tool  (full list)
-                - `cos_graph_query`                  (groups search hits
-                                                       under their community)
-                - Hub Search tab                      (process-grouped UI)
-INPUT:        A GraphBackend already populated by the extractor pipeline.
-              No file re-parsing — detection is graph-derivative.
-OUTPUT:       list[Community] sorted by (-priority, community_id) so the
-              same call returns the same order across runs.
-DEPENDENCIES: networkx + networkx.algorithms.community.louvain_communities
-              (already on PATH via the `graph_os` extra).  Falls back to
-              greedy_modularity_communities when louvain isn't available.
-NOTES:        Communities are computed *on demand* and cached per backend
-              + edge-count signature.  We deliberately do NOT persist
-              COMMUNITY nodes to the graph — that would require a
-              migration and a post-reindex hook.  This makes TASK-075
-              shippable without touching the schema and keeps the
-              detection invalidation logic simple (recompute when
-              edge count changes).
-"""
+"""graph_os — process-grouped search via Louvain communities (TASK-075)."""
 
 from __future__ import annotations
 
@@ -113,14 +90,6 @@ def compute_communities(
     max_communities: int = 200,
 ) -> tuple[list[Community], dict[str, str]]:
     """Return ``(communities, membership)``.
-
-    PURPOSE:    Single batch pass for the MCP tool, the search-grouping
-                fan-out, and the Hub UI panel.
-    INPUT:      ``min_size`` — drop singleton clusters below this floor.
-                ``max_communities`` — hard cap on returned cluster count.
-    OUTPUT:     ``(list[Community], membership_map)`` where
-                ``membership_map[uid]`` is the community_id (or absent
-                if the node belongs to no qualifying community).
 
     Caching: keyed by ``(backend_id, edge_count(`calls`+`imports`))``.
     First call after a reindex computes; subsequent calls within the

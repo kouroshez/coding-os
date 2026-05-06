@@ -1333,16 +1333,7 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
 
 
 def _probe_claude_sdk() -> None:
-    """Print Claude SDK + CLI compatibility report (T14.4).
-
-    PURPOSE: Aggregate SDK version, CLI version, env auth, MCP server config
-             into one ops-debugging table so an operator can verify the
-             dispatcher will work before the first real run.
-    INPUT:   Environment + installed package versions.
-    OUTPUT:  Status table to stdout — each row: PASS / WARN / FAIL.
-    NOTES:   Pure read — never mutates state. Exit 0 even on FAIL so this
-             can run in monitoring scripts that want the report only.
-    """
+    """Print Claude SDK + CLI compatibility report (T14.4)."""
     import importlib.metadata
     import os
     import shutil
@@ -1393,15 +1384,7 @@ def _probe_claude_sdk() -> None:
 
 
 def _probe_otel() -> None:
-    """Print OTEL configuration table for cos doctor --otel (T8.3).
-
-    PURPOSE: Report which OTEL exporters are configured and whether the
-             endpoint is reachable, so operators can verify telemetry
-             before a production dispatch run.
-    INPUT:   Environment variables (OTEL_*).
-    OUTPUT:  Table to stdout — each var: configured / not-set / unreachable.
-    NOTES:   Does NOT send real telemetry; only probes env + TCP.
-    """
+    """Print OTEL configuration table for cos doctor --otel (T8.3)."""
     import os
     import socket
 

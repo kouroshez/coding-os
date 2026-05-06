@@ -1,15 +1,4 @@
-"""Tests for `scripts/regen_doc_index.py` (TASK-157).
-
-PURPOSE:      Lock the contract for auto-generated `00-index.md` so the
-              navigation surface stays in sync with frontmatter without
-              hand-curation drift.
-INPUT:        synthetic doc trees in tmp_path.
-OUTPUT:       pytest assertions; no DB / no MCP server.
-DEPENDENCIES: scripts.regen_doc_index module.
-NOTES:        Lives under tests/ (not core/thinking_os/tests/) — the
-              regenerator is a script, not a thinking_os tool, so it
-              belongs in the integration matrix.
-"""
+"""Tests for `scripts/regen_doc_index.py` (TASK-157)."""
 
 from __future__ import annotations
 

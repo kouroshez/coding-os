@@ -135,16 +135,7 @@ class SanitizeResult:
 # ---------------------------------------------------------------------------
 
 def detect_injection(text: str) -> Optional[str]:
-    """Return the label of the first injection pattern matched, or None.
-
-    PURPOSE:      Isolated detector so callers (e.g. test, external guard)
-                  can reuse the detection logic without invoking audit.
-    INPUT:        text str (may be empty).
-    OUTPUT:       label str | None.
-    DEPENDENCIES: INJECTION_PATTERNS (module-level).
-    NOTES:        Returns on first match — scan order is the declaration
-                  order in _INJECTION_SPECS. Case-insensitive per regex flag.
-    """
+    """Return the label of the first injection pattern matched, or None."""
     if not text:
         return None
     for compiled, label in INJECTION_PATTERNS:
@@ -175,24 +166,7 @@ def sanitize_write(
     source_id: Optional[int] = None,
     conn: Optional[sqlite3.Connection] = None,
 ) -> SanitizeResult:
-    """Validate and clean text before it is written into memory storage.
-
-    PURPOSE:      Single chokepoint defending against prompt-injection and
-                  runaway-size writes into the agent brain.
-    INPUT:        field — one of FIELD_CAPS keys (unknown fields are passed
-                  through with only injection check, no length cap).
-                  text — raw text to sanitize (may be None or empty).
-                  actor — component name for audit (e.g. 'capture.py').
-                  source_table — target table name for audit correlation.
-                  source_id — optional pk of the row being sanitized.
-                  conn — optional SQLite connection for audit logging; if
-                  None or pre-v7, audit is silently skipped.
-    OUTPUT:       SanitizeResult. Check `.ok` before persisting.
-    DEPENDENCIES: db.record_audit (fire-and-forget), INJECTION_PATTERNS.
-    NOTES:        None/empty input returns ok with empty cleaned text — an
-                  empty field is not an injection. Callers decide whether
-                  empty is a business-level error.
-    """
+    """Validate and clean text before it is written into memory storage."""
     if text is None:
         return SanitizeResult(ok=True, cleaned="", reason="ok", original_len=0, cleaned_len=0)
 

@@ -49,16 +49,7 @@ def _db_conn() -> sqlite3.Connection:
 
 
 def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
-    """Load adapter ids + their runtime env markers from adapter registry.
-
-    PURPOSE: Keep _detect_agent_runtime data-driven — the function does
-             not hardcode agent-name string literals; it iterates over
-             whatever adapters declare their markers in adapter.yaml.
-    OUTPUT:  (set_of_ids, {id: tuple_of_env_var_names}).  When the
-             adapters dir isn't reachable (e.g. a consumer install with
-             no adapters/ tree), returns empty structures; callers fall
-             back to the .coding-os/.agent marker.
-    """
+    """Load adapter ids + their runtime env markers from adapter registry."""
     adapters_dir = Path(__file__).resolve().parent.parent / "adapters"
     try:
         from cli.adapter_registry import load_adapter_registry
@@ -78,16 +69,6 @@ def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
 def _detect_agent_runtime() -> str | None:
     """Detect which agent runtime is invoking this CLI process.
 
-    PURPOSE: Mirror core/hooks/cos-env.sh priority so agent_session
-             attribution in the DB matches what the hook layer records.
-    INPUT:   COS_AGENT override, runtime env vars declared in each
-             adapter.yaml::runtime_env_markers, .coding-os/.agent marker,
-             CLAUDE_PROJECT_DIR legacy fallback.
-    OUTPUT:  One of the registered adapter ids (discovered at load time
-             from adapters/<id>/adapter.yaml), or None.
-    NOTES:   Vendor env vars (CURSOR_*, CLAUDE_*, CODEX_*) are declared
-             in adapter.yaml — NOT hardcoded here — so adding a new agent
-             is data-only (rule #11 compliance).
     DRIFT WARNING: The same priority table is maintained in shell form
              at core/hooks/cos-env.sh.  Update both sides when changing
              priorities.  Only the adapter-id names are data-driven; the
@@ -136,23 +117,7 @@ def _detect_agent_runtime() -> str | None:
 
 
 def _agent_session_id() -> str | None:
-    """Best-effort agent session resolver for CLI-originated task transitions.
-
-    PURPOSE: Supply a stable agent-prefixed session id (ses-<agent>-...)
-             so `task_status_history.agent_session` captures who moved
-             each task. The stream / retro / active-agents surfaces all
-             read from this column.
-    INPUT:   COS_AGENT_SESSION_ID (explicit override); $COS_AGENT_DIR
-             (matches the shell contract from core/hooks/cos-env.sh);
-             runtime env markers; per-agent session-id files under
-             $COS_STATE_DIR/<agent>/session-id.
-    OUTPUT:  The session id string or None (treated as "human action").
-    DEPENDENCIES: _detect_agent_runtime, _project_root.
-    NOTES:   2026-05-05 — added $COS_AGENT_DIR fast-path (Phase Q.deep).
-             Without it, hook subprocesses with COS_AGENT_DIR set but no
-             matching state_dir/agent layout returned None, so task moves
-             rendered as "H" (human) on the hub instead of "Cl".
-    """
+    """Best-effort agent session resolver for CLI-originated task transitions."""
     sid = os.environ.get("COS_AGENT_SESSION_ID")
     if sid:
         return sid.strip() or None
@@ -210,17 +175,7 @@ def _print_envelope(envelope: str, *, format: str = "text") -> int:
 
 
 def _launch_board_in_spa(*, host: str, port: int) -> None:
-    """Open the unified SPA Board page; auto-start `cos web` if needed.
-
-    PURPOSE: Opens http://{host}:{port}/board in the default browser.
-             If the unified web server is already running on the given
-             port, just opens the browser; otherwise spawns the server
-             in-process and blocks until it is killed.
-    INPUT:   host, port — overrideable web server bind.
-    OUTPUT:  none.  Opens browser; blocks if it had to spawn the server.
-    DEPENDENCIES: urllib (stdlib), webbrowser (stdlib),
-                  core.web.server.run_server (lazy).
-    """
+    """Open the unified SPA Board page; auto-start `cos web` if needed."""
     import urllib.error
     import urllib.request
     import webbrowser

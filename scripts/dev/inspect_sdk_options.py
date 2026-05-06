@@ -1,12 +1,7 @@
 """Inspect ClaudeAgentOptions schema — exploratory probe for Q.2 dispatcher hardening.
 
-PURPOSE: Verify field names + defaults available in installed claude-agent-sdk
 before editing adapters/claude/sdk_dispatcher.py. Source-of-truth doc:
 docs/adapters/claude-sdk.md.
-INPUT: none.
-OUTPUT: stdout dump of dataclass fields and HookMatcher schema.
-DEPENDENCIES: claude-agent-sdk (>=0.1.73).
-NOTES: One-shot script. Safe to delete after dispatcher work lands.
 """
 from __future__ import annotations
 

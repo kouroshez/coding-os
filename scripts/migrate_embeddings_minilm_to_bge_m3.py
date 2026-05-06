@@ -1,15 +1,6 @@
 """CLI — re-embed the existing `embeddings` table with BGE-M3 (Phase I.1).
 
-PURPOSE:  Operator entry point for the Phase I embedding upgrade. Runs
-          `run_until_idle` on the live DB so an administrator can kick
-          off the migration manually. The orchestrator (I.9) drives the
-          same module one batch at a time in production.
-INPUT:    optional `--db` path (defaults to COS_DB_PATH /
-          `.coding-os/coding-os.db`), `--target-model`, `--batch-size`.
-OUTPUT:   JSON status dict to stdout.
 DEPENDS:  core/thinking_os/migrator_embeddings.py.
-NOTES:    Never blocks the MCP server — this is out-of-band. Safe to
-          Ctrl-C; next run resumes from the checkpoint.
 """
 
 from __future__ import annotations

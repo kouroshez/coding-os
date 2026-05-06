@@ -517,18 +517,7 @@ def register(cli: click.Group) -> None:
     )
     @click.option("--pretty", is_flag=True)
     def graph_detect_changes(mode, git_range, pretty):
-        """Map changed files to affected graph symbols + downstream tasks.
-
-        PURPOSE:  B24 CLI wrapper for cos_graph_detect_changes. Runs the
-                  appropriate git diff --name-only command and forwards the
-                  resulting file list to the MCP tool, which walks the graph
-                  to surface affected symbols, downstream tasks, and risk level.
-        INPUT:    --staged | --working (default) | --range RANGE
-        OUTPUT:   JSON envelope matching cos_graph_detect_changes.
-        DEPENDENCIES:  git on PATH; graph_os SQLite backend.
-        NOTES:    When no changed files are found the tool returns an empty
-                  envelope (risk_level=none) rather than an error.
-        """
+        """Map changed files to affected graph symbols + downstream tasks."""
         import subprocess  # noqa: PLC0415
 
         # Build the git command based on selected mode.
@@ -769,17 +758,7 @@ def _group_manifest_path(name: str, manifest_dir: str | None) -> Path:
 
 
 def _graph_reindex_print_status() -> None:
-    """V1 ``--status``: print top 50 most-recently-indexed file_index_state rows.
-
-    PURPOSE:      Debugging aid — surface the per-file cache state so a
-                  human can spot stale hashes, stuck errors, or files
-                  that never re-indexed after a change.
-    INPUT:        none (uses the default coding-os.db lookup path).
-    OUTPUT:       stdout table (file, hash[:12], indexed_at, status).
-    DEPENDENCIES: core/thinking_os/db.py (init_db),
-                  file_index_state table (migration v17).
-    NOTES:        Degrades gracefully when the table or DB is missing.
-    """
+    """V1 ``--status``: print top 50 most-recently-indexed file_index_state rows."""
     from datetime import datetime
 
     _bootstrap_paths()

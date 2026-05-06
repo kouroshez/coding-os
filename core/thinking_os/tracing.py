@@ -1,17 +1,4 @@
-"""
-Phase N — Behavioral tracing (Cognition Trace Stream).
-
-PURPOSE:      Emit structured trace events to a per-session JSONL file so we
-              can replay an agent's path through the workflow flowchart.
-              Every significant cognition event (analyze, compose, dispatch,
-              record, backtrack, discovery, gate, done) writes one line.
-INPUT:        Called by MCP tools, hooks, and supervisor via `emit()`.
-OUTPUT:       Appends one JSON line per event to
-              `.coding-os/<agent>/traces/<session_id>.jsonl`.
-DEPENDENCIES: stdlib only (json, time, uuid, pathlib, fcntl for flock).
-NOTES:        Append-only; never mutates prior lines. Readers use line-by-line
-              parse. Safe under concurrent writes (flock per write).
-              Bounded: trace files rotate at 5MB. Older files kept for forensics.
+"""Phase N — Behavioral tracing (Cognition Trace Stream).
 
 Flowchart nodes emitted correspond to the node IDs in
 `docs/agent-workflow-flowchart-V1.html` so a viewer can animate exactly which
@@ -116,15 +103,6 @@ def emit(
     role: str | None = None,
     phase: str | None = None,
 ) -> dict[str, Any]:
-    """
-    PURPOSE:      Append a single trace event to this session's JSONL file.
-    INPUT:        session_id, kind (must map to FLOWCHART_NODES), optional
-                  structured data dict, IDs, role/phase context.
-    OUTPUT:       The event dict that was written (for local inspection).
-    DEPENDENCIES: fcntl.flock if available for concurrent-writer safety.
-    NOTES:        Never raises. On any failure, logs via stderr and continues.
-                  Absent trace_id is derived from session_id + timestamp.
-    """
     try:
         event = {
             "ts": time.time(),

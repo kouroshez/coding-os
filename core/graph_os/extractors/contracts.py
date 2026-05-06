@@ -1,20 +1,6 @@
 """graph_os — service contracts extractor (I.7).
 
-PURPOSE:  Detect the first-class service surface declared in a file —
-          HTTP routes (Django / DRF / FastAPI / Flask / Next.js),
-          MCP tools, gRPC services, event handlers (Celery / RQ /
-          Kafka / Channels), websockets — and emit typed edges
-          (`handles_route`, `handles_tool`, `handles_event`) onto the
-          graph. Consumers: `cos_graph_contracts` (I.8) and Documenter / Deployer
-          role checks (auto-generated API reference, pre-release
-          contract diff).
-INPUT:    file path + raw source text.
-OUTPUT:   ExtractionResult.
 DEPENDS:  stdlib only.
-NOTES:    Pattern-based; cannot see dynamic handlers. When we spot a
-          template literal / variable path we emit an `opaque_route`
-          node so the agent knows the surface is incomplete (see plan
-          §9.11 "Unmatchable routes are still reported").
 """
 
 from __future__ import annotations
@@ -166,16 +152,7 @@ _DYNAMIC_FETCH_RE = re.compile(r"fetch\s*\(\s*`[^`]*\$\{")
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a source file for service contracts.
-
-    PURPOSE:      Feed `cos_graph_contracts` with HTTP / MCP / gRPC /
-                  event nodes + edges on every save.
-    INPUT:        file path + raw content.
-    OUTPUT:       ExtractionResult.
-    NOTES:        Dispatches by suffix. Unknown suffixes yield an
-                  empty result without error — the orchestrator
-                  decides which extractors to fan out per file.
-    """
+    """Parse a source file for service contracts."""
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]

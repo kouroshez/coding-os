@@ -1,17 +1,4 @@
-"""graph_os — score-and-rank entry-point candidates (TASK-081).
-
-PURPOSE:      Surface high-value starting nodes (main / cli / http / cron /
-              test) for traces, Hub UI badges, and as a priority weight for
-              Louvain community ordering (communities.py).
-INPUT:        A GraphBackend already populated by the extractor pipeline.
-OUTPUT:       list[EntryPoint] sorted by ``-score, uid`` so the same call
-              returns the same order across runs.
-DEPENDENCIES: graph_os.types, graph_os.backend (read-only interface).
-NOTES:        Pure heuristic over node attributes + kind — no extractor
-              change required. Five canonical entry-kinds; scoring is the
-              weighted sum of independent signals so a node can earn a high
-              score from any signal combination.
-"""
+"""graph_os — score-and-rank entry-point candidates (TASK-081)."""
 
 from __future__ import annotations
 
@@ -195,12 +182,7 @@ def _kind_signals(
 
 
 def best_start_for_query(backend: GraphBackend, query: str) -> "EntryPoint | None":
-    """Return the highest-scoring entry point whose label/uid contains ``query``.
-
-    PURPOSE:  Fallback for cos_graph_trace when the caller passes a fuzzy
-              name ("login") rather than a fully-qualified uid. Returns None
-              when nothing matches so the caller can issue a proper not_found.
-    """
+    """Return the highest-scoring entry point whose label/uid contains ``query``."""
     lower = query.lower()
     candidates = discover(backend, min_score=0.05)
     matches = [

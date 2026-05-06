@@ -1,19 +1,4 @@
-"""Regression guard for the live `ClaudeAgentOptions` field surface.
-
-PURPOSE:      Pin the set of fields the dispatcher relies on so an SDK
-              upgrade that renames or removes one fails CI immediately,
-              not silently in production. Pairs with the smoke test
-              (`scripts/smoke_sdk_dispatch.py`) which exercises the
-              runtime path end-to-end.
-INPUT:        none — imports `claude_agent_sdk` and inspects.
-OUTPUT:       pytest pass / fail. Skipped if SDK extra not installed.
-DEPENDENCIES: claude-agent-sdk (>=0.1.73), pytest.
-NOTES:        Source-of-truth contract:
-              docs/adapters/claude-sdk.md §7.2 + adapters/claude/sdk_dispatcher.py.
-              When a new SDK version intentionally adds fields, extend
-              `EXPECTED_OPTIONAL_FIELDS`. Adding REQUIRED_FIELDS without
-              wiring the dispatcher is a code smell.
-"""
+"""Regression guard for the live `ClaudeAgentOptions` field surface."""
 from __future__ import annotations
 
 import dataclasses

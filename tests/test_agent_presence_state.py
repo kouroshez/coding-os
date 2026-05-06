@@ -1,13 +1,4 @@
-"""Presence state machine: active / present / offline.
-
-PURPOSE: Guard the 3-state presence model so the live-agents panel
-         distinguishes "generating right now" from "session alive but
-         thinking" from "not here".  Writes are driven by
-         core/hooks/agent-presence.sh; reads are from board.py.
-INPUT:   Synthetic tmp project with per-agent session JSON files.
-OUTPUT:  Assertions on _presence_state for every state transition +
-         PID-liveness fallback (crashed session).
-"""
+"""Presence state machine: active / present / offline."""
 from __future__ import annotations
 
 import json

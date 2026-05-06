@@ -1,14 +1,4 @@
-"""Unit tests for cli.board_commands runtime/session detection.
-
-PURPOSE: Guard the agent_session attribution path so task-move / task-start
-         / task-done record the correct `ses-<agent>-...` id in the DB.
-         Before this change the detector only honored CURSOR_*, so Claude
-         and Codex transitions landed as NULL — silently breaking the
-         board "active agents" + stream attribution views.
-INPUT:   monkeypatched env + a tmp_path project that contains
-         .coding-os/<agent>/session-id files.
-OUTPUT:  Assertions on `_detect_agent_runtime` and `_agent_session_id`.
-"""
+"""Unit tests for cli.board_commands runtime/session detection."""
 from __future__ import annotations
 
 from pathlib import Path

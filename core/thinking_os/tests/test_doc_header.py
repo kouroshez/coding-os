@@ -1,14 +1,4 @@
-"""Tests for header-only doc parsing (TASK-155).
-
-PURPOSE:      Lock the contract for `parse_doc_header` and
-              `list_doc_headers`. Header-only lazy load is the agent's
-              cheapest doc-routing primitive — regressions here cost
-              tokens directly.
-INPUT:        synthetic .md files in tmp_path.
-OUTPUT:       pytest assertions; no DB / no embeddings / no MCP server.
-DEPENDENCIES: tools.docs.
-NOTES:        Must stay quick (<1s) — runs on every thinking_os matrix.
-"""
+"""Tests for header-only doc parsing (TASK-155)."""
 
 from __future__ import annotations
 

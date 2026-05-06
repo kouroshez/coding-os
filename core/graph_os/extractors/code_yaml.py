@@ -1,17 +1,6 @@
 """graph_os — YAML extractor (I.7).
 
-PURPOSE:  Map YAML config files (`stack.yaml`, `adapter.yaml`,
-          `registry.yaml`, `rag-config.yaml`) into graph nodes so
-          `cos_graph_context` over a stack shows which scaffold files
-          it includes and which rules it references. Intentionally
-          narrow — we do NOT model arbitrary YAML, just the keys the
-          coding-os registry cares about.
-INPUT:    file path + raw YAML text.
-OUTPUT:   ExtractionResult with file + key nodes and references_doc /
-          imports / contains edges.
 DEPENDS:  pyyaml (already in base `dependencies`).
-NOTES:    Unparseable YAML → file node + `yaml_parse_error` parse
-          error; no edges.
 """
 
 from __future__ import annotations
@@ -58,17 +47,7 @@ def module_uid(path: str) -> str:
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a YAML file → nodes + edges.
-
-    PURPOSE:      Capture config-level references (stack → scaffold,
-                  registry → hook scripts) so the agent can answer
-                  "which YAML file owns this path?".
-    INPUT:        path + raw text.
-    OUTPUT:       ExtractionResult.
-    DEPENDENCIES: pyyaml.
-    NOTES:        Unknown keys are nested into `metadata_json` of the
-                  file node so downstream tools can pull them on demand.
-    """
+    """Parse a YAML file → nodes + edges."""
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]

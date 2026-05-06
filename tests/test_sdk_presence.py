@@ -1,23 +1,4 @@
-"""Unit tests for adapters.claude.sdk_dispatcher._presence_write.
-
-PURPOSE: The SDK dispatcher spawns formula sub-agents in-process via
-         claude_agent_sdk.query() and must surface their liveness on the
-         board's live-agents panel.  It does this by writing the same
-         presence JSON format that core/hooks/agent-presence.sh produces
-         for shell-hook-driven sessions.
-
-         This test guards:
-           1. the payload shape stays in lock-step with agent-presence.sh
-           2. lifecycle merges preserve prior fields (start → tool → stop
-              → end doesn't clobber started_at)
-           3. atomic write leaves no .tmp.* garbage after success
-           4. corrupt prior file is recovered (written cleanly, not crashed)
-
-INPUT:   tmp_path-scoped project root.
-OUTPUT:  Assertions on the json file.
-NOTES:   Imports the dispatcher module by path so the test doesn't need
-         the claude-agent-sdk extra installed.
-"""
+"""Unit tests for adapters.claude.sdk_dispatcher._presence_write."""
 from __future__ import annotations
 
 import importlib.util

@@ -1,17 +1,6 @@
 """graph_os — typed records exchanged between extractors and backends.
 
-PURPOSE:  Single source of truth for what a node / edge / evidence
-          signal looks like, independent of the storage backend. Every
-          extractor (I.2-I.7) produces these; every backend accepts
-          them. Matches the schema defined in
-          docs/phase-i-knowledge-graph-plan.md Section 5.
-INPUT:    n/a (pure value types).
-OUTPUT:   n/a.
 DEPENDS:  stdlib only.
-NOTES:    Frozen dataclasses so nodes/edges can be used as dict keys
-          and in sets. uid is the stable identity (never the integer
-          primary key), so migrations and re-indexes do not invalidate
-          downstream references.
 """
 
 from __future__ import annotations
@@ -25,22 +14,7 @@ from typing import Any, Mapping
 class NodeKind(str, Enum):
     """Canonical node kinds for the graph_os tree / spine (S3).
 
-    PURPOSE:  Enumerate every canonical node kind so extractors, tools,
-              and the SPA agree on the vocabulary. Values are the short
-              forms emitted by post-S3 extractors (e.g. ``"file"``,
-              ``"method"``); legacy colon-prefixed strings
-              (``"code:file"``, ``"doc:heading"``, …) are accepted via
-              :func:`normalize_kind` and :meth:`NodeKind.from_any` and
-              mapped back to these canonical values.
-    INPUT:    n/a.
-    OUTPUT:   n/a (enum members).
     DEPENDS:  stdlib Enum.
-    NOTES:    Inherits ``str`` so members compare equal to their string
-              values (matches existing ``GraphNode.kind: str`` usage).
-              ``import_`` has a trailing underscore because ``import`` is
-              a Python keyword. The DB + dataclass fields keep
-              ``kind: str`` to avoid a breaking change; normalization
-              runs at the extractor / migration boundary.
     """
 
     FOLDER = "folder"
@@ -125,20 +99,7 @@ _LEGACY_KIND_MAP: dict[str, str] = {
 
 
 def normalize_kind(value: object) -> NodeKind:
-    """Map a stored/extracted kind string to a canonical ``NodeKind``.
-
-    PURPOSE:      Single normalizer so the tool layer, migration v16,
-                  and the SPA all agree on kinds regardless of whether
-                  the producer emits legacy colon-prefixed strings
-                  (pre-S3) or new short forms (post-S3).
-    INPUT:        any object (commonly a string) — the raw ``kind``.
-    OUTPUT:       a ``NodeKind`` enum member.
-    DEPENDENCIES: ``_LEGACY_KIND_MAP``.
-    NOTES:        Raises ``ValueError`` when the value is empty or does
-                  not match a known legacy/canonical kind. Callers that
-                  want a permissive read path should catch and fall back
-                  to ``NodeKind.UNKNOWN`` themselves.
-    """
+    """Map a stored/extracted kind string to a canonical ``NodeKind``."""
     if value is None:
         raise ValueError("kind cannot be None")
     raw = str(value).strip()
@@ -164,21 +125,7 @@ def normalize_kind(value: object) -> NodeKind:
 
 @dataclass(frozen=True)
 class GraphNode:
-    """A single node in the knowledge graph.
-
-    PURPOSE:  Represent one indexable entity (code symbol, doc file,
-              doc heading, task, hook, rule, MCP tool, scaffold file)
-              in a backend-agnostic shape.
-    INPUT:    see field list — uid and kind are mandatory.
-    OUTPUT:   see field list.
-    NOTES:    uid is the stable identity. Format guidelines:
-                code:method:path::Class.method
-                doc:heading:path#slug
-                task:file:docs/tasks/TASK-042-slug.md
-                cos:skill:name
-              kind uses the category:subkind form described in Section
-              5.1 of the plan.
-    """
+    """A single node in the knowledge graph."""
 
     uid: str
     kind: str
@@ -209,15 +156,8 @@ class GraphNode:
 class EvidenceSignal:
     """One signal that contributed to an edge's confidence.
 
-    PURPOSE:  Decompose each edge's confidence into human-auditable
-              reasons (same_scope, type_binding, lsp_overlay, ...).
-    INPUT:    see field list.
-    OUTPUT:   see field list.
     DEPENDS:  GraphEdge references these via EvidenceSignal rows keyed
               by edge_id (normalized, Section 5.3 of the plan).
-    NOTES:    weight is the contribution this signal made (clamped to
-              [0,1] at edge level; signals themselves can be any
-              non-negative real before clamping).
     """
 
     signal_name: str
@@ -229,18 +169,7 @@ class EvidenceSignal:
 class GraphEdge:
     """A directed relation between two nodes.
 
-    PURPOSE:  Encode "source node depends on / refers to / contains
-              target node" semantics in a backend-agnostic shape.
-    INPUT:    source_uid + target_uid + edge_type + extractor are
-              required. evidence is a list of EvidenceSignal rows.
-    OUTPUT:   see field list.
     DEPENDS:  GraphNode (via uid references), EvidenceSignal.
-    NOTES:    confidence must live in [0,1]. The (source_uid,
-              target_uid, edge_type, extractor) tuple is the unique
-              identity (matches the UNIQUE constraint in migration v12).
-              source_span is a file:line-range citation used by the
-              viewer and by cos_graph_context for "where did this
-              come from" traceability.
     """
 
     source_uid: str
@@ -297,17 +226,7 @@ _EXTRACTOR_PROVENANCE: dict[str, str] = {
 
 
 def provenance_for(extractor: str | None) -> str:
-    """Return the provenance label for an extractor ID.
-
-    PURPOSE:    Single source of truth for "what kind of parser
-                produced this edge". Used by the Hub UI Inspector,
-                cos_graph_query for source filtering, and the A/B
-                rollout switch in `cos graph-reindex`.
-    INPUT:      ``extractor`` — the GraphEdge.extractor string; may be
-                None if a legacy row has no extractor recorded.
-    OUTPUT:     One of PROVENANCE_VALUES. Defaults to "unknown" so a
-                stray new extractor doesn't crash the consumer.
-    """
+    """Return the provenance label for an extractor ID."""
     if not extractor:
         return "unknown"
     return _EXTRACTOR_PROVENANCE.get(extractor, "unknown")

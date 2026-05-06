@@ -70,25 +70,7 @@ VALID_LAYERS: frozenset[str] = frozenset({
 # ---------------------------------------------------------------------------
 
 def ok(data: Any, *, meta: dict | None = None) -> str:
-    """Wrap a successful tool result in the canonical envelope.
-
-    PURPOSE:      Single chokepoint for every success response — applies
-                  meta merging, token estimation, and budget trimming so
-                  all 21 cos_* tools speak the same shape.
-    INPUT:        `data` — any JSON-serializable value. When a dict, it
-                  gets a `meta` key merged/created. When scalar/list, it
-                  passes through (no meta) for back-compat.
-                  `meta` — optional dict merged into `data.meta`. Typical
-                  keys: layer, source, query, filters_applied.
-    OUTPUT:       JSON string: `{ok:true, data:{...|..., meta:{...}}}`.
-    DEPENDENCIES: none (keeps helper import-fast).
-    NOTES:        - Callers set business-level meta (layer, source); this
-                    helper sets diagnostic meta (tokens_estimated, truncated).
-                  - Over-budget responses trim `data.results` from the tail
-                    and set `meta.truncated=True` + `meta.truncated_results_*`.
-                  - Non-serializable fields fall back via `default=str`,
-                    matching the prior contract.
-    """
+    """Wrap a successful tool result in the canonical envelope."""
     if not isinstance(data, dict):
         return json.dumps({"ok": True, "data": data}, indent=2, default=str)
 
@@ -132,19 +114,7 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
 
 
 def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict]:
-    """Shrink `body` to fit TOKEN_BUDGET_CHARS by trimming `results` list.
-
-    PURPOSE:      Deterministic payload shrinking. Strategy is list-tail
-                  trim on `data.results`; other shapes (e.g. single record)
-                  are left alone — the caller's limit is already small.
-    INPUT:        body — the data dict without meta.
-                  meta — the meta dict (mutated: adds truncated_results_*).
-    OUTPUT:       (body, meta) tuple with body possibly shortened.
-    DEPENDENCIES: none.
-    NOTES:        Binary search for max kept prefix would be faster, but
-                  linear tail-shrink is dead-simple and runs ≤ len(results)
-                  JSON dumps — typically <50 iterations.
-    """
+    """Shrink `body` to fit TOKEN_BUDGET_CHARS by trimming `results` list."""
     results = body.get("results")
     if not isinstance(results, list) or not results:
         # Shape doesn't match the standard list-wrapper; leave it alone

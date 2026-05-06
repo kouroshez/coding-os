@@ -187,26 +187,6 @@ def transition(
     config: ScrumbanConfig | None = None,
     file_path: Path | None = None,
 ) -> TransitionResult:
-    """
-    PURPOSE:      Central state machine for every Scrumban transition.
-    INPUT:        open DB conn; task_id; target status; optional reason,
-                  agent_session, expected_from (optimistic concurrency),
-                  bypass_wip flag, force (skip state-machine validation for
-                  human self-correction), ScrumbanConfig, and explicit
-                  file_path.
-    OUTPUT:       TransitionResult with ok + previous_status + new_status.
-                  On validation/WIP/cycle errors → ok=False with
-                  error_category ∈ {validation, transient, unavailable}.
-                  `warnings` includes a `forced-transition` line whenever
-                  force=True skipped a rule so the audit trail is explicit.
-    DEPENDENCIES: tasks table (v6 + v13 cols), task_status_history table,
-                  core.board_os.config.ScrumbanConfig.
-    NOTES:        Writes MD frontmatter via atomic rename (temp + rename).
-                  If file_path is None, the DB-level status is updated
-                  but no MD write happens — used by tests + migrations.
-                  force also implies bypass_wip so a single flag covers
-                  "just let me drag this where I want".
-    """
     if force:
         bypass_wip = True
         bypass_gates = True
@@ -579,14 +559,6 @@ def _format_yaml_scalar_token(value: str) -> str:
 
 
 def patch_task_frontmatter_scalars(path: Path, updates: dict[str, str]) -> None:
-    """
-    PURPOSE:      Atomically patch one or more scalar keys in task frontmatter.
-    INPUT:        path to TASK-*.md; updates maps YAML key -> string value.
-    OUTPUT:       none; raises on missing file / broken YAML.
-    DEPENDENCIES: same regex/YAML rules as _write_status_to_frontmatter.
-    NOTES:        Used for swimlane edits without a status transition; preserves
-                  comments and key order via _patch_fm_field.
-    """
     if not updates:
         return
     if not path.exists():

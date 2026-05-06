@@ -1,19 +1,7 @@
 """graph_os — markdown link + heading + frontmatter extractor (I.2).
 
-PURPOSE:  Parse a Markdown file into GraphNodes (doc:file, doc:heading,
-          doc:frontmatter_key) and GraphEdges (contains, links_to,
-          cites_heading, ssot_of, read_next, read_before) so that
-          cos_graph_context on a doc answers "what does this doc point
-          to and which other docs claim to own this topic".
-INPUT:    file path + raw text (extractor is pure — no filesystem I/O
-          beyond what the caller hands in).
-OUTPUT:   ExtractionResult dataclass with nodes + edges + parse_errors.
 DEPENDS:  stdlib regex; frontmatter is parsed from the HTML comment or
           YAML-fence convention used across coding-os docs.
-NOTES:    Shipped in I.2 (see phase-i-knowledge-graph-plan.md Section 19).
-          Heading slugs use the same convention as `doc_indexer.py` so
-          cross-references resolve. Fenced code blocks are stripped
-          before link extraction — code inside them is not a doc link.
 """
 
 from __future__ import annotations
@@ -61,19 +49,7 @@ _LINK_HREF_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
 def _split_read_targets(raw: str) -> list[str]:
-    """Split a comma-or-bracket list of read_next targets into clean paths.
-
-    PURPOSE:      Accept every authoring style observed across coding-os
-                  docs in one helper: ``a.md, b.md``, ``[a](a.md), [b](b.md)``,
-                  ``[a.md, b.md]`` (short-form `reads:`).
-    INPUT:        single string from frontmatter or opening-block.
-    OUTPUT:       deduplicated list of path strings (markdown link wrappers
-                  collapsed to their href).
-    DEPENDENCIES: stdlib regex.
-    NOTES:        Anchors (`a.md#section`) are preserved — link resolution
-                  decides whether to drop them. External `http(s)://` URLs
-                  pass through unchanged.
-    """
+    """Split a comma-or-bracket list of read_next targets into clean paths."""
     text = raw.strip()
     # Only collapse the wrapping brackets when the whole value is `[…]` —
     # short-form `reads:[a, b]`. Markdown links like `[a](a.md), [b](b.md)`
@@ -103,22 +79,7 @@ def _emit_read_next_targets(
     *,
     source: str,
 ) -> None:
-    """Emit one ``read_next`` edge per parsed target in ``raw_value``.
-
-    PURPOSE:      Single chokepoint so frontmatter `reads:` and opening-
-                  block `Read next:` produce identical graph shape.
-    INPUT:        path        — origin doc.
-                  raw_value   — comma-or-bracket list (untrusted).
-                  result      — extractor accumulator (mutated).
-                  source      — diagnostic span string written into
-                                ``GraphEdge.source_span`` for replay.
-    OUTPUT:       none — appends edges in place.
-    DEPENDENCIES: ``_split_read_targets``.
-    NOTES:        External URLs become ``doc:external:`` stub uids;
-                  internal paths become ``doc:file:<normalized>``. Edge
-                  type is ``read_next`` to match the existing frontmatter
-                  ``read_next:path`` convention.
-    """
+    """Emit one ``read_next`` edge per parsed target in ``raw_value``."""
     for target_path in _split_read_targets(raw_value):
         if target_path.startswith(("http://", "https://")):
             target_uid = f"doc:external:{target_path}"
@@ -139,25 +100,7 @@ def _emit_read_next_targets(
 def _extract_opening_block_reads(
     path: str, content: str, result: "ExtractionResult"
 ) -> None:
-    """Parse opening-block ``Read next:`` (long) and ``> N:`` (short).
-
-    PURPOSE:      Promote every authored "next-doc" hint to a
-                  first-class graph edge regardless of whether the
-                  author chose long or short form.
-    INPUT:        path     — origin doc.
-                  content  — raw markdown (caller pre-strips fenced
-                             code only when calling from the link
-                             pass; here we scan whole content because
-                             the opening block is always above any
-                             first fenced code block).
-                  result   — extractor accumulator.
-    OUTPUT:       none — appends edges in place.
-    DEPENDENCIES: ``_OPENING_READ_NEXT_RE`` + ``_emit_read_next_targets``.
-    NOTES:        First match wins per form — opening blocks are
-                  authored once per doc by contract (docs-system.md).
-                  Multiple matches still parse; duplicate hrefs are
-                  deduplicated inside ``_split_read_targets``.
-    """
+    """Parse opening-block ``Read next:`` (long) and ``> N:`` (short)."""
     seen_targets: set[str] = set()
     for match in _OPENING_READ_NEXT_RE.finditer(content):
         for target_path in _split_read_targets(match.group("targets")):
@@ -309,22 +252,7 @@ def extract(
     path: str,
     content: str,
 ) -> ExtractionResult:
-    """Parse a Markdown document → nodes + edges.
-
-    PURPOSE:      Single pure-function entry point consumed by
-                  `auto-reindex-docs.sh` and the orchestrator. Never
-                  touches the DB.
-    INPUT:        file path (doc-rooted or absolute — stored
-                  normalised) + raw content.
-    OUTPUT:       ExtractionResult with file + heading + frontmatter
-                  nodes and links_to / cites_heading / contains /
-                  ssot_of / read_next / read_before edges.
-    DEPENDENCIES: none beyond stdlib.
-    NOTES:        Returns an empty result with a single ParseError
-                  entry for catastrophic failures — the caller logs
-                  to `.coding-os/.graph-parse-errors.log` and
-                  continues the pipeline (invariant from Section 6).
-    """
+    """Parse a Markdown document → nodes + edges."""
     result = ExtractionResult()
     try:
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
@@ -417,25 +345,7 @@ def emit_contains_spine(
     result: ExtractionResult,
     extractor_id: str,
 ) -> None:
-    """Append folder nodes + Folder→Folder → Folder→File ``contains`` edges.
-
-    PURPOSE:      Build the CONTAINS spine (S3). Every extractor invokes
-                  this after emitting the file's own node so the graph
-                  always has a connected Folder→File chain up to the
-                  repo root.
-    INPUT:        repo-relative file path + the file's uid +
-                  ExtractionResult to mutate + extractor id for
-                  evidence/attribution.
-    OUTPUT:       mutates ``result`` — appends folder nodes and contains
-                  edges. Idempotent: re-calling with the same path just
-                  re-appends (bulk_upsert de-dupes on uid, and the
-                  backend enforces edge uniqueness per
-                  (source,target,edge_type,extractor)).
-    DEPENDENCIES: ``_normalize_path`` + ``folder_uid``.
-    NOTES:        Capped at the repo root (``folder:.``). Folder labels
-                  use the path segment; top-level folders (``core``,
-                  ``docs``, …) list the synthetic repo root as parent.
-    """
+    """Append folder nodes + Folder→Folder → Folder→File ``contains`` edges."""
     normalised = _normalize_path(file_path)
     if not normalised or normalised in (".", "/"):
         return
@@ -499,22 +409,7 @@ def emit_contains_spine(
 
 
 def _promote_stubs(result: ExtractionResult) -> None:
-    """Emit a minimal stub node for every edge target we do not own.
-
-    PURPOSE:      Extractors only see one source file; their edges often
-                  point at other files / external URLs / not-yet-
-                  indexed headings. The SqliteBackend refuses to insert
-                  an edge with an unknown target uid. We close the gap
-                  by synthesising a placeholder node per unseen uid.
-                  When the orchestrator later reaches the real file,
-                  upsert_node replaces the stub in place (uid is the
-                  join key).
-    INPUT:        ExtractionResult with edges already populated.
-    OUTPUT:       result mutated in place — new nodes appended only
-                  for unknown uids (both source and target sides).
-    NOTES:        The stub's `kind` is inferred from the uid prefix.
-                  Unknown prefixes fall through to `doc:external`.
-    """
+    """Emit a minimal stub node for every edge target we do not own."""
     known = {n.uid for n in result.nodes}
     seen_extra: set[str] = set()
     for edge in result.edges:

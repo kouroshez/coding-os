@@ -68,18 +68,7 @@ def regenerate(
     project_root: Path,
     now: Optional[datetime] = None,
 ) -> dict:
-    """Render the digest and write it to `.coding-os/digest.md`.
-
-    PURPOSE:      Single entry for cos digest / background refresh. Writes
-                  the file idempotently and returns a stats dict.
-    INPUT:        SQLite connection (any schema ≥ v1 works; missing tables
-                  fall back to empty sections), project root Path.
-    OUTPUT:       {"path": str, "size_chars": int, "truncated": bool,
-                   "status": "ok"}.
-    DEPENDENCIES: task_outcomes, learned_patterns, outcome_history.
-    NOTES:        Fire-and-forget semantics — never raises on malformed
-                  data; empty sections just omit their headings.
-    """
+    """Render the digest and write it to `.coding-os/digest.md`."""
     body = render(conn, now=now)
     target = read_digest_path(project_root)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -98,16 +87,7 @@ def render(
     *,
     now: Optional[datetime] = None,
 ) -> str:
-    """Build the digest markdown string and enforce the token budget.
-
-    PURPOSE:      Pure function so tests can assert shape without disk IO.
-    INPUT:        conn — DB with at least v1 tables; now — clock override.
-    OUTPUT:       markdown string, always ≤ _RENDER_BUDGET_CHARS + marker.
-    DEPENDENCIES: see _collect_* helpers.
-    NOTES:        When the DB is empty, still emits a valid (tiny) digest
-                  rather than an empty file — preserves the always-active
-                  contract in session-startup.
-    """
+    """Build the digest markdown string and enforce the token budget."""
     now = now or datetime.now(timezone.utc)
     date_str = now.strftime("%Y-%m-%d")
 

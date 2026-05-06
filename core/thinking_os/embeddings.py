@@ -67,19 +67,7 @@ DEFAULT_SOURCE_TABLES = (
 
 
 def active_model_name() -> str:
-    """Return the model the *current* process should encode with.
-
-    PURPOSE:      Resolve which model to use for fresh embeds — reads
-                  COS_EMBEDDING_MODEL (Phase I) with fallback to the
-                  legacy MiniLM default.
-    INPUT:        none (reads env).
-    OUTPUT:       a model name that either sits in MODEL_DIMS or is an
-                  external identifier we have not yet hard-coded.
-    NOTES:        The migrator uses this to decide the target model;
-                  search queries use this to pick which row group to
-                  score against when the caller does not pass an
-                  explicit model_name.
-    """
+    """Return the model the *current* process should encode with."""
     import os
 
     return os.environ.get("COS_EMBEDDING_MODEL", DEFAULT_MODEL_NAME).strip() or DEFAULT_MODEL_NAME
@@ -124,18 +112,7 @@ def is_available() -> bool:
 
 @functools.lru_cache(maxsize=4)
 def _get_model_by_name(name: str) -> Any:
-    """Load and cache an embedding model by name.
-
-    PURPOSE:      Phase I — multi-model loader so MiniLM and BGE-M3 can
-                  coexist during the migration window. Each model is
-                  cached separately so the MCP server does not reload
-                  BGE-M3's 560MB weights per call.
-    INPUT:        Hugging-Face / sentence-transformers model name.
-    OUTPUT:       SentenceTransformer instance or None on failure.
-    DEPENDENCIES: sentence-transformers + numpy (is_available()).
-    NOTES:        Tests can override via _override_model() below without
-                  touching the cache.
-    """
+    """Load and cache an embedding model by name."""
     if not is_available():
         return None
     override = _MODEL_OVERRIDES.get(name)
@@ -182,18 +159,7 @@ def _get_model() -> Any:
 # ---------------------------------------------------------------------------
 
 def embed_text(text: str, model_name: str | None = None) -> bytes | None:
-    """Embed a single text string with the active (or explicit) model.
-
-    PURPOSE:      Produce a normalised float32 byte blob for downstream
-                  cosine similarity. Phase I adds the model_name kwarg
-                  so the migrator and BGE-M3 code paths can opt into a
-                  specific model while legacy callers keep MiniLM.
-    INPUT:        text (non-empty string) + optional model_name.
-    OUTPUT:       raw bytes sized dim*4, or None when unavailable.
-    DEPENDENCIES: sentence-transformers + numpy.
-    NOTES:        Empty / whitespace text short-circuits to None so the
-                  caller can skip an upsert cheaply.
-    """
+    """Embed a single text string with the active (or explicit) model."""
     if not text or not text.strip():
         return None
     # When the caller doesn't pick a model, route through the legacy
@@ -218,16 +184,7 @@ def embed_text(text: str, model_name: str | None = None) -> bytes | None:
 def embed_texts(
     texts: list[str], model_name: str | None = None
 ) -> list[bytes | None]:
-    """Batch-embed with the active (or explicit) model.
-
-    PURPOSE:      Amortise model-batching cost across many texts for the
-                  migrator and the extractor write-path.
-    INPUT:        list of strings + optional model_name.
-    OUTPUT:       list aligned with input; None for empty entries /
-                  encoding failures.
-    NOTES:        Uses batch_size=32 for MiniLM; BGE-M3 (larger model)
-                  still runs comfortably at 32 on consumer hardware.
-    """
+    """Batch-embed with the active (or explicit) model."""
     if not texts:
         return []
     if model_name is None:
@@ -264,21 +221,7 @@ def embed_texts(
 # ---------------------------------------------------------------------------
 
 def cosine_similarity(query_vec: bytes, candidate_vecs: list[bytes]) -> list[float]:
-    """Compute cosine similarity — dim-aware (Phase I contract).
-
-    PURPOSE:      Return cosine scores of `candidate_vecs` against
-                  `query_vec`, silently **skipping** candidates whose
-                  dim does not match the query's (0.0 score) instead of
-                  returning a wholesale empty list — the pre-I.1 silent
-                  empty bug (embeddings.py:185-194 before I.1).
-    INPUT:        query bytes + list of candidate bytes.
-    OUTPUT:       list aligned with `candidate_vecs`; 0.0 for
-                  mismatched / malformed rows. Empty list (legacy
-                  behaviour) when either input is itself empty.
-    DEPENDENCIES: numpy.
-    NOTES:        Phase I callers that need dim-mismatch diagnostics
-                  use `cosine_similarity_with_meta`.
-    """
+    """Compute cosine similarity — dim-aware (Phase I contract)."""
     if not query_vec or not candidate_vecs:
         return []
     return cosine_similarity_with_meta(query_vec, candidate_vecs)["scores"]
@@ -288,29 +231,7 @@ def cosine_similarity_with_meta(
     query_vec: bytes,
     candidate_vecs: list[bytes],
 ) -> dict:
-    """Dim-aware cosine with diagnostic metadata.
-
-    PURPOSE:      Primary entry point for Phase I callers — same math as
-                  `cosine_similarity` but also reports how many rows
-                  were skipped because their dim did not match the
-                  query. MCP tools surface this as
-                  `meta.dim_mismatch_skipped` so agents can reason
-                  about in-flight migrations.
-    INPUT:        query bytes + list of candidate bytes.
-    OUTPUT:       dict {
-                    scores (list[float] aligned with candidate_vecs),
-                    query_dim (int | None),
-                    dim_mismatch_skipped (int),
-                    malformed_skipped (int),
-                    total (int),
-                    matched (int),
-                  }
-    DEPENDENCIES: numpy.
-    NOTES:        When every candidate is mismatched, scores are all
-                  0.0 and `matched == 0` — the MCP tool should
-                  translate that into
-                  `fail("transient", "migration in progress", retryable=True)`.
-    """
+    """Dim-aware cosine with diagnostic metadata."""
     default = {
         "scores": [0.0] * len(candidate_vecs),
         "query_dim": bytes_to_dim(query_vec),
@@ -410,23 +331,7 @@ def upsert_embedding(
     *,
     model_name: str | None = None,
 ) -> dict:
-    """Insert or refresh an embedding row with the active model.
-
-    PURPOSE:      Idempotent upsert keyed on (source_table, source_id).
-                  Phase I — writes `model_name` AND `embedding_dim` so
-                  dim-aware cosine can route mixed populations during
-                  the BGE-M3 migration window.
-    INPUT:        open DB, owner table + id, source text, optional
-                  model_name override (defaults to active_model_name()).
-    OUTPUT:       status dict; never raises — preserves fire-and-forget
-                  contract used by capture.py.
-    DEPENDENCIES: embeddings table with model_name + embedding_dim
-                  columns (migration v5 + v12).
-    NOTES:        If a row already exists with same text_hash AND same
-                  model_name we return unchanged. A row with same text
-                  but different model is re-embedded — that is the
-                  migrator's code path.
-    """
+    """Insert or refresh an embedding row with the active model."""
     if not is_available():
         return {"status": "skipped", "reason": "unavailable"}
     if not text or not text.strip():

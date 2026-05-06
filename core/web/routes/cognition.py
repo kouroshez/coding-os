@@ -1,15 +1,4 @@
-"""core.web.routes.cognition — /api/cognition/* HTTP wrappers.
-
-PURPOSE: Expose cos_cognition_* MCP tools and trace file reading as HTTP
-         endpoints so the SPA can render the cognition timeline page (S5).
-INPUT:   HTTP request query params matching each tool's signature.
-OUTPUT:  JSON response unwrapped from the MCP envelope ({data, meta} on 200).
-DEPENDENCIES: fastapi, core.web._envelope, core.thinking_os tools,
-              pathlib (trace file reading).
-NOTES:  Trace files live at .coding-os/<agent>/traces/<session_id>.jsonl.
-        The reader endpoint scans the directory and streams JSONL lines as a
-        list so the SPA doesn't need to parse JSONL itself.
-"""
+"""core.web.routes.cognition — /api/cognition/* HTTP wrappers."""
 
 from __future__ import annotations
 
@@ -33,14 +22,7 @@ router = APIRouter(prefix="/api/cognition", tags=["cognition"])
 
 
 def _state_dir() -> Path:
-    """Resolve the .coding-os state directory.
-
-    PURPOSE: Find where cognition traces live on this machine.
-    INPUT:   COS_STATE_DIR or COS_AGENT_DIR env vars, fallback to .coding-os.
-    OUTPUT:  Path to the .coding-os directory.
-    DEPENDENCIES: os.environ.
-    NOTES:   Uses COS_STATE_DIR when set (multi-agent deployments).
-    """
+    """Resolve the .coding-os state directory."""
     base = os.environ.get("COS_STATE_DIR") or os.environ.get("COS_AGENT_DIR")
     if base:
         return Path(base).resolve()
@@ -50,14 +32,7 @@ def _state_dir() -> Path:
 
 
 def _cognition_module():
-    """Lazy import for cognition tools.
-
-    PURPOSE: Defer import so web package boots when cognition extras absent.
-    INPUT:   none.
-    OUTPUT:  tools.cognition module or None.
-    DEPENDENCIES: core.thinking_os.tools.cognition.
-    NOTES:   Module cached by Python after first import.
-    """
+    """Lazy import for cognition tools."""
     try:
         tos_dir = _CORE_DIR / "thinking_os"
         if str(tos_dir) not in sys.path:
@@ -81,14 +56,7 @@ async def list_traces(
     _rl=Depends(make_rate_limit_dep("cognition.traces")),
     _m=Depends(make_metrics_dep("cognition.traces")),
 ):
-    """List available trace sessions.
-
-    PURPOSE: Scan .coding-os/<agent>/traces/ and return session IDs.
-    INPUT:   agent (optional, defaults to scanning all subdirs).
-    OUTPUT:  {data: {sessions: [{agent, session_id, path, size_bytes}]}, meta}.
-    DEPENDENCIES: pathlib, os.
-    NOTES:   Returns empty list when no traces directory exists; never 404.
-    """
+    """List available trace sessions."""
     state = _state_dir()
     sessions = []
 
@@ -124,14 +92,7 @@ async def get_trace(
     _rl=Depends(make_rate_limit_dep("cognition.trace")),
     _m=Depends(make_metrics_dep("cognition.trace")),
 ):
-    """Read a single cognition trace file as a list of events.
-
-    PURPOSE: Parse .coding-os/<agent>/traces/<session_id>.jsonl into events.
-    INPUT:   session_id (path param), agent (optional query param).
-    OUTPUT:  {data: {session_id, events, count}, meta} on 200.
-    DEPENDENCIES: pathlib, json.
-    NOTES:   Scans all agent dirs when agent is not specified.
-    """
+    """Read a single cognition trace file as a list of events."""
     state = _state_dir()
     target: Path | None = None
 
@@ -177,12 +138,7 @@ async def get_trace(
 # ---------------------------------------------------------------------------
 
 def _db_path() -> str | None:
-    """Resolve coding-os SQLite DB path.
-
-    PURPOSE: Find the formula_dispatches DB for the current project.
-    INPUT:   COS_DB_PATH env var, fallback to .coding-os/thinking_os.db.
-    OUTPUT:  Absolute path string or None when not found.
-    """
+    """Resolve coding-os SQLite DB path."""
     explicit = os.environ.get("COS_DB_PATH")
     if explicit and Path(explicit).exists():
         return explicit
@@ -203,14 +159,7 @@ async def dispatcher_cost_summary(
     _rl=Depends(make_rate_limit_dep("cognition.cost")),
     _m=Depends(make_metrics_dep("cognition.cost")),
 ):
-    """Aggregate dispatch cost rolled up by formula and day (T2.4).
-
-    PURPOSE: Surface formula_dispatches.cost_usd for the hub cost panel.
-    INPUT:   Optional formula_id filter, row limit.
-    OUTPUT:  {data: {rows: [{formula_id, date, total_cost_usd, count, avg_latency_ms}],
-             total_usd, count}, meta}.
-    DEPENDENCIES: sqlite3, formula_dispatches table (schema v23).
-    """
+    """Aggregate dispatch cost rolled up by formula and day (T2.4)."""
     db = _db_path()
     if db is None:
         return unwrap(json.dumps({
@@ -263,13 +212,7 @@ async def list_dispatchers(
     _rl=Depends(make_rate_limit_dep("cognition.dispatchers")),
     _m=Depends(make_metrics_dep("cognition.dispatchers")),
 ):
-    """List recent formula dispatches with telemetry (T19.1).
-
-    PURPOSE: Expose formula_dispatches rows for the hub dispatcher panel.
-    INPUT:   Optional status filter, row limit.
-    OUTPUT:  {data: {dispatches: [{session_id, formula_id, ts, cost_usd,
-             budget_usd, status, latency_ms}], count}, meta}.
-    """
+    """List recent formula dispatches with telemetry (T19.1)."""
     db = _db_path()
     if db is None:
         return unwrap(json.dumps({
@@ -311,12 +254,7 @@ async def dispatcher_tools(
     _rl=Depends(make_rate_limit_dep("cognition.dispatcher_tools")),
     _m=Depends(make_metrics_dep("cognition.dispatcher_tools")),
 ):
-    """Parse tool_calls_jsonb for one dispatch session (T19.2).
-
-    PURPOSE: Expose per-dispatch tool call audit trail for the hub drawer.
-    INPUT:   session_id path param.
-    OUTPUT:  {data: {session_id, tool_calls: [...], failures: [...], count}, meta}.
-    """
+    """Parse tool_calls_jsonb for one dispatch session (T19.2)."""
     db = _db_path()
     if db is None:
         raise HTTPException(status_code=503, detail="DB not available")
@@ -366,14 +304,7 @@ async def cognition_analyze(
     _rl=Depends(make_rate_limit_dep("cognition.analyze")),
     _m=Depends(make_metrics_dep("cognition.analyze")),
 ):
-    """Analyze a task via cos_analyze_task.
-
-    PURPOSE: HTTP wrapper for cos_analyze_task cognition tool.
-    INPUT:   task_description, complexity_hint.
-    OUTPUT:  {data: {analysis, ...}, meta} on 200.
-    DEPENDENCIES: core.thinking_os.tools.cognition.
-    NOTES:   Returns 503 if cognition tools are unavailable.
-    """
+    """Analyze a task via cos_analyze_task."""
     cog = _cognition_module()
     if cog is None:
         return unwrap(_unavailable())

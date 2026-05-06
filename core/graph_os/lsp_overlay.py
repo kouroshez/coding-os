@@ -1,19 +1,8 @@
 """graph_os — LSP overlay (I.5).
 
-PURPOSE:  Share one long-lived pyright / tsserver per graph_os process
-          across every indexer worker and overlay its higher-precision
-          symbol resolutions onto tree-sitter / AST edges. Includes a
-          circuit breaker so a misbehaving LSP does not take down the
-          pipeline.
-INPUT:    `LspOverlay.lookup(file, symbol)` from the call-site resolver.
-OUTPUT:   `LspOverlayResult` carrying resolved uids + evidence.
 DEPENDS:  stdlib subprocess / threading; the real LSP binaries are
           discovered at runtime from $PATH. The binary contract is
           hidden behind `LspDriver` so unit tests can swap in a fake.
-NOTES:    This module never crashes the caller. All failures are
-          logged and translated into `unavailable` results — the
-          extractor keeps its tree-sitter confidence rather than
-          raising. See plan §7.4 for the latency budget.
 """
 
 from __future__ import annotations
@@ -44,16 +33,7 @@ DEFAULT_WARM_START_TIMEOUT_SECONDS = 120.0
 
 @dataclass(frozen=True)
 class LspOverlayResult:
-    """One LSP-raised resolution of a symbol reference.
-
-    PURPOSE:  Structured signal returned to the extractor so edges can
-              be upserted with a richer evidence trail.
-    INPUT:    uid of the resolved target + LSP kind + raw server hint.
-    OUTPUT:   used as extra evidence rows by code_python / code_ts.
-    NOTES:    `status` is "ok", "unavailable", or "timeout"; callers
-              use this to decide whether to keep the tree-sitter
-              confidence or overwrite it.
-    """
+    """One LSP-raised resolution of a symbol reference."""
 
     status: str
     uid: str | None = None
@@ -76,14 +56,7 @@ class _BreakerState:
 
 
 class LspDriver(Protocol):
-    """Minimum surface graph_os needs from any language-server client.
-
-    PURPOSE:  Hide pyright / tsserver behind a testable boundary.
-    INPUT:    see per-method signatures.
-    OUTPUT:   see per-method signatures.
-    NOTES:    Real drivers wrap subprocess pipes; unit tests supply a
-              deterministic fake via `FakeLspDriver`.
-    """
+    """Minimum surface graph_os needs from any language-server client."""
 
     language: str
 
@@ -112,19 +85,7 @@ class LspDriver(Protocol):
 class _PyrightLspDriver:
     """Real pyright driver — wires `pyright-langserver` over LSP stdio.
 
-    PURPOSE:      Turn pyright into a shared long-lived resolver so
-                  call-site precision on Python code climbs from the
-                  tree-sitter/ast baseline (~85%) to the enterprise
-                  target (≥95%). Uses the LspClient shipped alongside.
-    INPUT:        project_root (must be a real directory so pyright
-                  can build its workspace), binary override, log path.
-    OUTPUT:       LspOverlayResult per resolve call.
     DEPENDS:      pyright + pyright-langserver on PATH; lsp_client.py.
-    NOTES:        The overlay calls `resolve(file_path=..., symbol=...)`
-                  but pyright speaks positions. We map the `symbol`
-                  to the first line that mentions it inside `file_path`
-                  — cheap heuristic; tree-sitter already narrowed the
-                  candidate so the mapping is usually unique.
     """
 
     language = "python"
@@ -254,14 +215,7 @@ def _locate_symbol(path: "Path", symbol: str) -> tuple[int, int]:
 
 
 class FakeLspDriver:
-    """Deterministic fake driver for tests.
-
-    PURPOSE:  Exercise the overlay's circuit-breaker / cache / timeout
-              logic without pyright.
-    INPUT:    a `resolver` callable that maps (file, symbol) to an
-              LspOverlayResult OR raises. `latency` simulates server
-              RTT so timeout tests are meaningful.
-    """
+    """Deterministic fake driver for tests."""
 
     language = "python"
 
@@ -316,15 +270,7 @@ class _ResolveTimeout(RuntimeError):
 class LspOverlay:
     """Thread-safe overlay wrapping a single LSP driver.
 
-    PURPOSE:  Funnel every indexer worker's symbol lookup through one
-              driver, cache positive resolves for reuse, and trip a
-              circuit breaker when the server starts crashing so the
-              pipeline stays healthy.
-    INPUT:    see __init__.
-    OUTPUT:   LspOverlayResult per `lookup(...)`.
     DEPENDS:  LspDriver implementation.
-    NOTES:    A tripped breaker is released after the cooldown; `state`
-              exposes the live transition for `cos_graph_health`.
     """
 
     def __init__(
@@ -468,17 +414,7 @@ def build_overlay(
     config: dict[str, Any] | None = None,
     clock: Callable[[], float] = time.monotonic,
 ) -> LspOverlay:
-    """Construct an overlay from config — env / rag-config.yaml.
-
-    PURPOSE:      Single entry for the orchestrator's `lsp:warm-start`
-                  role. Honours `COS_LSP_ENABLED=0` to opt out; uses a
-                  FakeLspDriver when `config.fake=True`.
-    INPUT:        language id + optional config dict.
-    OUTPUT:       LspOverlay (possibly disabled).
-    NOTES:        Returning a disabled overlay rather than None keeps
-                  call-site code branch-free (always lookup, check
-                  state, proceed).
-    """
+    """Construct an overlay from config — env / rag-config.yaml."""
     cfg = dict(config or {})
     enabled = cfg.pop("enabled", None)
     if enabled is None:

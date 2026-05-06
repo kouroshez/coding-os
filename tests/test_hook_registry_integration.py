@@ -1,18 +1,4 @@
-"""Hook registry → adapter rendering integration test (TASK-162 fix #5).
-
-PURPOSE:      Lock the contract that every hook declared in
-              `core/hooks/registry.yaml` (a) exists on disk and (b)
-              surfaces in the rendered claude / cursor adapter
-              templates per its declared `events`. Codex is intentionally
-              skipped — its adapter capability set excludes the
-              Write|Edit / Skill matchers (see adapter_parity rule).
-INPUT:        repo state on disk.
-OUTPUT:       pytest assertions; no external calls.
-DEPENDENCIES: PyYAML.
-NOTES:        Catches the failure mode the manual review flagged: a hook
-              registered in YAML but missing from the rendered adapter
-              template (or vice versa).
-"""
+"""Hook registry → adapter rendering integration test (TASK-162 fix #5)."""
 
 from __future__ import annotations
 

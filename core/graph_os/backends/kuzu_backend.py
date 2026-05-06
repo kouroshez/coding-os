@@ -1,18 +1,6 @@
 """graph_os — Kuzu primary backend.
 
-PURPOSE:  Implement GraphBackend on top of Kuzu (embedded columnar
-          graph DB, Cypher-capable, Apache 2.0). Primary store for
-          graph walks at scale (Section 12 of the plan). I.0 provides
-          the bootstrap schema + write + read parity with
-          SqliteBackend. Graph-walk primitives (BFS, shortest-path,
-          HNSW vector search) land in later slices.
-INPUT:    a path to the .kuzu database file (defaults to
-          .coding-os/graph_os.kuzu).
-OUTPUT:   a GraphBackend-compatible object.
 DEPENDS:  kuzu>=0.7.x (optional extra 'graph_os' in pyproject.toml).
-NOTES:    Construction raises BackendUnavailable when kuzu is not
-          importable OR when the path cannot be created — matches the
-          fail-loud contract from Section 12.5. No silent downgrade.
 """
 
 from __future__ import annotations
@@ -69,15 +57,7 @@ _SCHEMA_STATEMENTS = [
 class KuzuBackend:
     """Kuzu-backed graph store.
 
-    PURPOSE:  Satisfy GraphBackend with Kuzu's Cypher engine. In I.0,
-              graph walks still use the same shapes as SqliteBackend;
-              Kuzu-native traversal ships with the slice that needs
-              it (e.g. _trace in I.8).
-    INPUT:    see __init__.
-    OUTPUT:   see GraphBackend Protocol.
     DEPENDS:  kuzu Python package.
-    NOTES:    Single-writer lock — Kuzu DB handle is not thread-safe
-              for concurrent writes.
     """
 
     backend_id: str = "kuzu"
@@ -440,13 +420,7 @@ class KuzuBackend:
         return edges
 
     def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
-        """B13: return up to `limit` nodes, optionally filtered by kind.
-
-        PURPOSE:  Provide an unbiased node sample for ``cos_graph_similar``.
-        INPUT:    kind — filter by node kind, or None for all.
-                  limit — max nodes to return.
-        OUTPUT:   list of GraphNode.
-        """
+        """B13: return up to `limit` nodes, optionally filtered by kind."""
         with self._write_lock:
             if kind is None:
                 result = self._conn.execute(

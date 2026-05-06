@@ -1,21 +1,4 @@
-"""
-Coding OS — Agent Dispatcher Protocol (Phase N.SDK).
-
-PURPOSE:      Agent-agnostic contract for spawning formula-agents. The
-              supervisor state machine (cognition.py) decides WHICH formula
-              to dispatch and WHAT input slice to send; this Protocol
-              decides HOW to actually run it. Each adapter provides its
-              own implementation — Claude uses claude-agent-sdk, others
-              fall back to the default DB-only dispatcher.
-INPUT:        DispatchRequest (formula_id, prompt, input_slice, persona,
-              intensity, timeout_s).
-OUTPUT:       DispatchResult (status, output_json, latency_ms, error).
-DEPENDENCIES: pydantic, pathlib, os; no Claude- or Codex-specific imports.
-NOTES:        core/ MUST stay agent-agnostic (Rule 1). Claude-specific code
-              lives in adapters/claude/sdk_dispatcher.py. Factory
-              `get_dispatcher()` picks the right implementation at runtime
-              based on COS_AGENT env + SDK availability.
-"""
+"""Coding OS — Agent Dispatcher Protocol (Phase N.SDK)."""
 
 from __future__ import annotations
 
@@ -35,15 +18,6 @@ logger = logging.getLogger("coding_os.dispatcher")
 # ---------------------------------------------------------------------------
 
 class DispatchRequest(BaseModel):
-    """
-    PURPOSE: Everything a dispatcher needs to run one formula-agent.
-    NOTES:   `input_slice` is the upstream-only bundle view built by
-             build_input_slice(); dispatchers forward it as structured
-             context rather than re-deriving from the full bundle.
-             `formula_id` is restricted to [A-Za-z0-9_-] so downstream
-             consumers can embed it in filenames/session-ids/paths
-             without worrying about traversal.
-    """
     formula_id: str                        # e.g. "implementer"
     agent_file: str                        # absolute path to F<N>_name.md
     prompt: str                            # composed system+user prompt
@@ -82,11 +56,6 @@ class DispatchRequest(BaseModel):
 
 
 class DispatchResult(BaseModel):
-    """
-    PURPOSE: Normalised outcome regardless of which adapter ran the agent.
-    NOTES:   `output_json` must validate against the formula's output_schema
-             from cognition_schemas (checked by caller, not dispatcher).
-    """
     formula_id: str
     status: Literal["ok", "timeout", "error", "skipped"]
     output_json: dict[str, Any] = Field(default_factory=dict)
@@ -102,11 +71,6 @@ class DispatchResult(BaseModel):
 
 @runtime_checkable
 class AgentDispatcher(Protocol):
-    """
-    PURPOSE: Agent-agnostic dispatch contract. Implementations live in
-             adapters (adapters/claude/sdk_dispatcher.py) or in
-             core/thinking_os/dispatchers/ (default fallback).
-    """
     name: str
 
     async def dispatch(self, request: DispatchRequest) -> DispatchResult:
@@ -126,14 +90,6 @@ _ADAPTERS_DIR = Path(__file__).resolve().parent.parent.parent / "adapters"
 
 
 def _known_agents() -> set[str]:
-    """
-    PURPOSE: Discover registered adapter ids by scanning adapters/ for
-             directories that ship an `adapter.yaml`. Data-driven so
-             adding a new adapter requires zero core/ edits.
-    OUTPUT:  Set of adapter ids (e.g. {"claude", "codex", "cursor"}).
-    NOTES:   Falls back to a static seed if adapters/ is missing — keeps
-             dispatch working on stripped-down test fixtures.
-    """
     try:
         if not _ADAPTERS_DIR.is_dir():
             return {"claude", "codex", "cursor"}
@@ -146,13 +102,6 @@ def _known_agents() -> set[str]:
 
 
 def _detect_agent() -> str:
-    """
-    PURPOSE: Identify which adapter owns this session. Order of precedence:
-             1. COS_AGENT env var (set by install.sh)
-             2. $COS_AGENT_DIR folder name (.coding-os/<agent>/)
-             3. Fallback to 'default'
-    NOTES:   Adapter list is data-driven from adapters/ — Rule 11.
-    """
     known = _known_agents()
     explicit = os.environ.get("COS_AGENT", "").strip().lower()
     if explicit in known:
@@ -168,14 +117,6 @@ def _detect_agent() -> str:
 
 
 def _try_load_adapter_dispatcher(agent: str) -> "AgentDispatcher | None":
-    """
-    PURPOSE: Dynamically import adapters/<agent>/sdk_dispatcher.py without
-             making core/ depend on it. Returns None if the adapter file is
-             absent or the SDK/binary is not available in this environment.
-    INPUT:   agent — any registered adapter id (see _known_agents()).
-    NOTES:   Backward-compatible with the old
-             ``_try_load_claude_sdk_dispatcher`` call-site.
-    """
     adapter_path = _ADAPTERS_DIR / agent / "sdk_dispatcher.py"
     if not adapter_path.exists():
         return None
@@ -210,16 +151,6 @@ def _try_load_claude_sdk_dispatcher() -> "AgentDispatcher | None":
 
 
 def get_dispatcher(agent: str | None = None) -> AgentDispatcher:
-    """
-    PURPOSE:      Return the right dispatcher for the current adapter.
-    INPUT:        Optional agent override; defaults to _detect_agent().
-    OUTPUT:       A live AgentDispatcher (adapter-sdk or default fallback).
-    DEPENDENCIES: dispatchers/default.py is always available; adapter SDKs
-                  are best-effort (claude-sdk: `uv sync --extra claude-sdk`;
-                  codex-sdk: `codex` binary in PATH).
-    NOTES:        If COS_FORCE_DEFAULT_DISPATCHER=1, always returns default.
-                  This lets tests exercise the fallback path on any machine.
-    """
     if os.environ.get("COS_FORCE_DEFAULT_DISPATCHER") == "1":
         from thinking_os.dispatchers.default import DefaultDispatcher
         return DefaultDispatcher()

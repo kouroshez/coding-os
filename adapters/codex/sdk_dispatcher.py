@@ -1,31 +1,4 @@
-"""
-Coding OS — Codex dispatcher (adapters/codex).
-
-PURPOSE:      Formula-agent spawning for Codex sessions. Two backend modes:
-              1. PRIMARY — subprocess wrapper around the public `codex` CLI
-                 binary (the only distribution channel OpenAI ships today).
-                 Translates DispatchRequest → `codex --json` invocation,
-                 collects output, returns DispatchResult.
-              2. EXPERIMENTAL — OpenAI's Python SDK (sdk/python in the
-                 open-source Codex repo) is JSON-RPC against a local Codex
-                 app-server. NOT on PyPI, requires a Codex repo checkout
-                 (`pip install -e ./sdk/python`) and Python 3.10+. We
-                 detect it lazily; if importable AND the user opts in via
-                 COS_CODEX_USE_PYTHON_SDK=1, prefer it. Otherwise fall back
-                 to the subprocess path.
-INPUT:        DispatchRequest built by cos_supervise / cos_dispatch_formula.
-OUTPUT:       DispatchResult with parsed JSON output_json, latency_ms.
-DEPENDENCIES: shutil + subprocess (stdlib) for primary; codex_sdk (optional,
-              opt-in) for experimental path. Core contract imported
-              dynamically from core/thinking_os/dispatcher.py (Rule 1).
-NOTES:        Rule 1: core/ stays agent-agnostic. This file is Codex-only
-              and MUST NOT be imported from core/. The factory in
-              core/thinking_os/dispatcher.py loads it by path at runtime.
-              `available()` returns False when neither path is usable, so
-              the factory transparently falls back to the DefaultDispatcher.
-              See https://developers.openai.com/codex/sdk for upstream
-              status of the experimental Python SDK.
-"""
+"""Coding OS — Codex dispatcher (adapters/codex)."""
 
 from __future__ import annotations
 
@@ -53,17 +26,6 @@ def _codex_binary() -> str | None:
 
 
 class CodexSDKDispatcher:
-    """
-    PURPOSE:      Spawn a formula-agent as a Codex CLI sub-session via
-                  `codex --no-interactive --json` subprocess invocation.
-    NOTES:        `available()` returns False if the `codex` binary is not
-                  in PATH — the factory then falls back to DefaultDispatcher
-                  transparently. Each dispatch writes structured context as
-                  stdin so the Codex agent sees the formula system prompt
-                  and the input_slice as a JSON message.
-                  Output is captured from stdout; the function waits for the
-                  subprocess to exit (bounded by ``timeout_s``).
-    """
 
     name = "codex-sdk"
     # Codex CLI flag for non-interactive JSON-output mode.

@@ -1,23 +1,5 @@
 #!/usr/bin/env python3
-"""
-Thinking OS — garbage collection for dangling memory rows.
-
-PURPOSE:      After observations/document_chunks get purged (bulk prune,
-              failed writes, doc deletions), their embeddings + concept
-              graph edges linger. cos_doc_search / cos_search then rank
-              dead IDs and waste budget on rows nobody can dereference.
-              This module is the janitor — invoked manually via
-              `cos brain-gc` or automatically every 10 task-done calls.
-
-INPUT:        --project-dir (resolves coding-os.db); --dry-run to
-              report without writing.
-OUTPUT:       JSON stats {orphan_embeddings, orphan_edges, trash_obs,
-              trash_edges}.
-DEPENDENCIES: core/thinking_os/db.py (init_db), sqlite stdlib.
-NOTES:        Idempotent. Safe to run under concurrent writers — each
-              DELETE is guarded by NOT EXISTS or a path-glob filter, so
-              a row reinserted mid-sweep is preserved.
-"""
+"""Thinking OS — garbage collection for dangling memory rows."""
 
 from __future__ import annotations
 

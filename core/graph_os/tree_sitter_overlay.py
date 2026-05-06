@@ -1,16 +1,7 @@
 """Tree-sitter overlay (Phase I.4b / I.6b).
 
-PURPOSE:  Wrap the pinned `tree-sitter` Python bindings + per-language
-          grammar packages (python, typescript, bash, yaml) in a
-          single cached registry. Gives extractors a reliable AST
-          without each one re-importing grammars.
-INPUT:    language id + raw content.
-OUTPUT:   `OverlayParse(tree, root, language_id)` — or None when the
-          grammar isn't installed.
 DEPENDS:  tree-sitter >= 0.22, tree-sitter-python, tree-sitter-typescript,
           tree-sitter-bash, tree-sitter-yaml (graph_os extra).
-NOTES:    Fallback-safe: if a grammar import fails, callers see None
-          and stay on their ast / regex baseline — zero crash.
 """
 
 from __future__ import annotations

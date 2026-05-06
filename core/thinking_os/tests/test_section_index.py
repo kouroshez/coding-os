@@ -1,15 +1,4 @@
-"""Tests for section index sidecar + cos_doc_section (TASK-165).
-
-PURPOSE:      Lock the contract for the intra-file navigation pipeline:
-              `scripts/regen_section_index.py` builds the sidecar,
-              `tools.docs.doc_section` reads it. Spec:
-              docs/engineering/section-index.md.
-INPUT:        synthetic .md files in tmp_path.
-OUTPUT:       pytest assertions; no DB / no embeddings / no MCP server.
-DEPENDENCIES: stdlib + tools.docs.doc_section + the regen script (loaded
-              via importlib so the script's CLI is also exercised).
-NOTES:        Must stay quick (<2 s) — runs on every thinking_os matrix.
-"""
+"""Tests for section index sidecar + cos_doc_section (TASK-165)."""
 
 from __future__ import annotations
 

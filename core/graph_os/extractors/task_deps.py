@@ -1,18 +1,6 @@
 """graph_os — task dependency extractor (I.3).
 
-PURPOSE:  Turn a `docs/tasks/TASK-NNN-slug.md` file into GraphNodes +
-          GraphEdges: `task:file` nodes + `depends_on` / `blocks` /
-          `references_doc` edges. Git-derived `produces_code` edges
-          live behind a separate entry point so the orchestrator (I.9)
-          can batch-compute them outside the per-file write path.
-INPUT:    task file path + raw content (pure extractor).
-OUTPUT:   ExtractionResult (reuses md_links' shape for uniformity).
 DEPENDS:  core/thinking_os/task_parser.py (existing Phase C parser).
-NOTES:    Falls back gracefully when parse_task_file returns None
-          (file is not a recognisable task) — emits just the task:file
-          node with a parse_error entry. Dependency references survive
-          TASK-19 vs TASK-195 ambiguity because we match on the
-          zero-padded canonical form returned by task_parser.
 """
 
 from __future__ import annotations
@@ -83,19 +71,7 @@ def _import_task_parser():
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a task file → task node + dependency / ssot / read_first edges.
-
-    PURPOSE:      Single pure entry point for the orchestrator.
-    INPUT:        task file path + raw markdown content.
-    OUTPUT:       ExtractionResult with one task:file node, dependency
-                  edges, and references_doc edges.
-    DEPENDENCIES: task_parser.parse_task_file.
-    NOTES:        When parse_task_file returns None (the file does not
-                  look like a task — missing `# TASK-NNN:` heading) we
-                  still emit the task:file node in `unknown` state so
-                  upstream dashboards can count it and operators can
-                  see the discrepancy.
-    """
+    """Parse a task file → task node + dependency / ssot / read_first edges."""
     result = ExtractionResult()
     try:
         parser = _import_task_parser()
@@ -244,20 +220,7 @@ def produces_code_edges(
     task_id: str,
     modified_files: list[str],
 ) -> list[GraphEdge]:
-    """Emit `produces_code` edges for files a task touched.
-
-    PURPOSE:      The orchestrator runs a git-log scan per task file to
-                  collect the set of source files modified while the
-                  task marker was active. This helper converts that
-                  list to edges. Kept pure + synchronous so tests and
-                  the background role both drive the same code path.
-    INPUT:        canonical task id + list of repo-relative file paths.
-    OUTPUT:       list of GraphEdges (one per unique file).
-    NOTES:        Confidence 0.85 — git-log heuristic, not deterministic
-                  (agents could commit outside the task window). The
-                  orchestrator may downweight further when there is
-                  noise.
-    """
+    """Emit `produces_code` edges for files a task touched."""
     canonical = _canonical_task_id(task_id)
     seen: set[str] = set()
     edges: list[GraphEdge] = []

@@ -1,21 +1,4 @@
-"""Cross-language lock-in: backend AgentPresence literals ↔ frontend visuals.
-
-PURPOSE: Guard the contract between
-  - core/web/routes/board.py::_agent_state (returns a string)
-  - core/web/ui/src/features/cos-board/agentPresenceVisuals.ts (renders it)
-
-         Adding a new state to the backend WITHOUT a matching visual
-         produces a TypeScript build error (because
-         AGENT_PRESENCE_VISUALS is a Record<AgentPresence, ...>); but a
-         drift the other way — extra TS variants not emitted by Python —
-         would still compile silently.  This test closes that loop.
-
-INPUT:   parses agentPresenceVisuals.ts with a regex scan (no node/ts
-         toolchain required in the pytest environment).
-OUTPUT:  equality assertion on the set of presence keys.
-NOTES:   Keep the regex permissive — it just needs to recognise the
-         Record<AgentPresence, ...> object literal entries.
-"""
+"""Cross-language lock-in: backend AgentPresence literals ↔ frontend visuals."""
 from __future__ import annotations
 
 import re

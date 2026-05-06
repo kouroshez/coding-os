@@ -1,12 +1,4 @@
-"""core.web.routes — route module registry.
-
-PURPOSE: Re-export every APIRouter so server.py can import them in one place.
-INPUT:   none.
-OUTPUT:  routers: graph_router, board_router, cognition_router, search_router,
-         stream_router, health_router, metrics_router.
-DEPENDENCIES: fastapi, sub-modules in this package.
-NOTES:  Each router has its own prefix (/api/graph, /api/board, …).
-"""
+"""core.web.routes — route module registry."""
 
 from .board import router as board_router
 from .cognition import router as cognition_router

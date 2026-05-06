@@ -1,18 +1,4 @@
-"""CLI dispatcher for verify-suite enforcement (Phase L.10 / TASK-100).
-
-PURPOSE: Reads stdin (newline-separated changed paths from `git diff`),
-         resolves required suites via verify-suites.yaml, checks
-         freshness in $COS_STATE_DIR/.last-verify.json, exits 2 with a
-         block report on stderr if any required suite is missing/stale,
-         else exits 0.
-INPUT:   stdin = changed file paths (one per line). CLI flags:
-         --verify-file PATH (defaults to $COS_STATE_DIR/.last-verify.json).
-OUTPUT:  stdout silent on PASS; stderr structured block message on FAIL;
-         exit code 0 (PASS) or 2 (BLOCK).
-DEPENDENCIES: argparse, json, sys, time, board_os.verify_suites,
-              board_os.transition_gates_validator (for override audit).
-NOTES:   Override path: COS_VERIFY_OVERRIDE=1 COS_OVERRIDE_REASON=…
-"""
+"""CLI dispatcher for verify-suite enforcement (Phase L.10 / TASK-100)."""
 
 from __future__ import annotations
 

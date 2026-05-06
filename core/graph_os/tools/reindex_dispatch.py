@@ -1,18 +1,7 @@
 """graph_os + docs unified auto-reindex dispatcher (Phase I.14, V1 cache).
 
-PURPOSE:  Called from `auto-reindex-docs.sh` PostToolUse hook. Routes
-          a single file path to the correct extractor(s) based on
-          extension, updates both the docs RAG index and the graph_os
-          backend in one pass.
-INPUT:    repo-relative file path + project root.
-OUTPUT:   status dict (always returns — never raises).
 DEPENDS:  thinking_os/doc_indexer (for md), graph_os.extractors.*,
           graph_os.backends.sqlite_backend.
-NOTES:    Single entry point so both Claude PostToolUse (shell hook)
-          and Codex opt-in background indexer can route through the
-          same code path — zero drift between adapters. V1 adds a
-          per-file content-hash cache (file_index_state, migration
-          v17) so unchanged files short-circuit the extractor pipeline.
 """
 
 from __future__ import annotations
@@ -76,18 +65,7 @@ def dispatch(
     include_docs: bool = True,
     force: bool = False,
 ) -> dict[str, Any]:
-    """Re-index `file_path` in both the docs layer and the graph layer.
-
-    PURPOSE:      One call, one DB, both layers updated.
-    INPUT:        absolute or repo-relative file path + project_root;
-                  ``force=True`` bypasses the file_index_state cache.
-    OUTPUT:       {status, path, layers: {docs, graph}, duration_ms,
-                   cache: "hit"|"miss"|"partial"|"bypass"}.
-    NOTES:        Catches every exception so the shell hook's fire-
-                  and-forget contract holds. When every requested
-                  layer resolves via the cache, returns early without
-                  opening the backend connection.
-    """
+    """Re-index `file_path` in both the docs layer and the graph layer."""
     started = time.monotonic()
     file_path = Path(file_path).resolve()
     project_root = Path(project_root).resolve()

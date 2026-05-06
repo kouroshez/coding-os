@@ -1,34 +1,4 @@
-"""
-Coding OS — Claude-SDK dispatcher (adapters/claude).
-
-PURPOSE:      Real formula-agent spawning for Claude sessions via the
-              official claude-agent-sdk. Translates DispatchRequest →
-              ClaudeAgentOptions, runs the agent, and collects text blocks
-              into a DispatchResult. Enables Phase M formula-roles to
-              execute as actual Claude Code sub-agents rather than being
-              inlined by the main agent.
-INPUT:        DispatchRequest built by cos_supervise / cos_dispatch_formula.
-OUTPUT:       DispatchResult with parsed JSON output_json, latency_ms.
-DEPENDENCIES: claude-agent-sdk (>=0.1.73,<0.2.0), anyio. Core contract
-              imported dynamically from core/thinking_os/dispatcher.py so
-              this module can live under adapters/ without breaking Rule 1.
-NOTES:        Rule 1: core/ stays agent-agnostic. This file is Claude-only
-              and MUST NOT be imported from core/. The factory in
-              core/thinking_os/dispatcher.py loads it by path at runtime.
-
-              Hardened 2026-05-04 to align with claude-agent-sdk 0.1.73:
-              - opts into `claude_code` preset with `exclude_dynamic_sections`
-                so the formula sub-session inherits Claude Code's coding/
-                safety baseline AND benefits from cross-cwd prompt cache;
-              - pins `setting_sources=["project"]` so user-global `~/.claude/`
-                state never leaks into a dispatched formula;
-              - uses `permission_mode="dontAsk"` for headless execution —
-                no interactive prompts, allow-list is the contract;
-              - asserts `agent_file` is absolute (the SDK searches cwd
-                otherwise, leading to silent prompt-source ambiguity);
-              - gates Opus 4.7 model selection (requires `effort="max"`
-                since Py SDK 0.1.73 has no `xhigh` level).
-"""
+"""Coding OS — Claude-SDK dispatcher (adapters/claude)."""
 
 from __future__ import annotations
 
@@ -99,15 +69,6 @@ _OTEL_FORWARDED_VARS = (
 
 
 def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
-    """
-    PURPOSE: Resolve the role's `output_schema: cognition.<Name>` frontmatter
-             into a JSON Schema dict via Pydantic's `.model_json_schema()`.
-    INPUT:   role frontmatter dict.
-    OUTPUT:  JSON Schema dict, or None if the role didn't declare a schema
-             or the import/getattr failed.
-    NOTES:   Lazy import keeps `core/thinking_os/cognition_schemas.py` off
-             the dispatcher's hot path when structured_output isn't enabled.
-    """
     raw = meta.get("output_schema") if isinstance(meta, dict) else None
     if not isinstance(raw, str) or not raw.strip():
         return None
@@ -137,21 +98,7 @@ def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
 
 def _presence_write(project_root: Path, agent: str, session_id: str,
                     event: str, pid: int | None = None) -> None:
-    """Write a single presence event for an SDK-spawned sub-agent.
-
-    PURPOSE: Formula sub-agents run as in-process SDK sessions, not via
-             Claude Code's hook pipeline, so they never fire
-             agent-presence.sh.  Writing presence directly from the
-             dispatcher keeps the board's 3-state panel honest: a
-             formula executing for 20s shows up as ACTIVE for that window.
-    INPUT:   project_root, agent key, session id, lifecycle event
-             ("start" / "tool" / "stop" / "end"), optional pid.
-    OUTPUT:  $COS_STATE_DIR/<agent>/sessions/<session_id>.json
-             (same schema as core/hooks/agent-presence.sh).
-    DEPENDENCIES: json, os, pathlib, time.
-    NOTES:   Fail-open — any error is silently logged; presence is a
-             UX signal, not a correctness boundary.
-    """
+    """Write a single presence event for an SDK-spawned sub-agent."""
     import json as _json
     import os as _os
     import time as _time
@@ -196,14 +143,6 @@ def _presence_write(project_root: Path, agent: str, session_id: str,
 
 
 class ClaudeSDKDispatcher:
-    """
-    PURPOSE:      Spawn a formula-agent as a real Claude Code sub-session
-                  via claude-agent-sdk.query().
-    NOTES:        available() returns False if the SDK import fails, so the
-                  factory transparently falls back to the default dispatcher.
-                  Each dispatch writes presence events so the board panel
-                  reflects sub-agents that are actively producing output.
-    """
     name = "claude-sdk"
 
     def __init__(self) -> None:

@@ -1,22 +1,4 @@
-"""Regenerate `<file>.INDEX.md` sidecar for a fat markdown doc.
-
-PURPOSE:      Build intra-file navigation index from H1/H2/H3 headings so
-              agents read only the section they need (≈300-800 tokens) via
-              `cos_doc_section` instead of full-reading the doc (≥5k tokens).
-              Spec: docs/engineering/section-index.md.
-INPUT:        argv[1] — path to the source `.md` file.
-              flags  — `--dry-run` prints to stdout, `--force` skips threshold
-                       check, `--all <root>` walks every fat doc under root.
-OUTPUT:       Writes `<file>.INDEX.md` next to the source. Prints `OK:` /
-              `WARN:` / `SKIP:` per AGENTS.md script convention.
-DEPENDENCIES: stdlib only — must run with the agent's `python3` without
-              installing anything (PostToolUse hook constraint).
-NOTES:        Slugs follow GitHub-flavored markdown: ASCII-lower, spaces
-              -> "-", strip punctuation except "-", collision suffix "-2".
-              Slug stability is the contract — line ranges drift, slugs do
-              not unless the heading text is renamed. Token estimate uses
-              `len(text)//4`, matching `core/thinking_os/tools/_shared.ok()`.
-"""
+"""Regenerate `<file>.INDEX.md` sidecar for a fat markdown doc."""
 
 from __future__ import annotations
 

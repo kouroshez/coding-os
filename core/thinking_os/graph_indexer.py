@@ -1,20 +1,4 @@
-"""graph_os indexing harness (Phase I.10 — full-hybrid indexing lifecycle).
-
-PURPOSE:  One module that owns "walk a project, feed the graph". It is the
-          single Python entry called by (a) `cos graph-reindex` CLI for
-          bulk runs, (b) the `auto-reindex-graph.sh` PostToolUse hook for
-          single-file incrementals, and (c) the background loop in
-          `background.py` for Codex / long-running sessions.
-INPUT:    paths + a GraphBackend (or a DB path the module opens itself).
-OUTPUT:   `IndexReport` dataclass (JSON-serialisable; CLI prints it;
-          hooks log it; background loop folds it into `last_stats`).
-DEPENDENCIES: graph_os extractors + backend + ingest.walk_local; db.init_db.
-NOTES:    The content-hash skip is what keeps bulk runs cheap on hot paths
-          and incremental writes single-file tight. Every stage is
-          bounded: respects max_files / max_bytes via ingest guards,
-          caps per-file extraction time via subprocess nowhere (pure
-          Python), and never raises — errors roll into IndexReport.errors.
-"""
+"""graph_os indexing harness (Phase I.10 — full-hybrid indexing lifecycle)."""
 
 from __future__ import annotations
 
@@ -108,10 +92,6 @@ class IndexReport:
 def _is_unchanged(backend: Any, rel_path: str, content_hash: str) -> bool:
     """Return True if any code:file / doc:file node for this path already
     carries the same content_hash. Skipping is then safe.
-
-    PURPOSE:      Cheap O(1) hit-check via backend.get_node. Sqlite and
-                  Kuzu both answer in < 1 ms.
-    NOTES:        Falsey hash (IO error upstream) → never skip.
     """
     if not content_hash:
         return False
@@ -174,16 +154,7 @@ def index_single_file(
     file_path: Path,
     force: bool = False,
 ) -> IndexReport:
-    """Single-file incremental — PostToolUse hook's target.
-
-    PURPOSE:      Keep extraction scoped to ONE file so the hook's sync
-                  budget (<200 ms on the plan's §8.2 target) is always
-                  met. Uses content-hash to short-circuit when the agent
-                  re-saves a file without changes.
-    INPUT:        an opened backend + project root + absolute path to file.
-    OUTPUT:       IndexReport with `mode='incremental'`.
-    NOTES:        Never raises — errors roll into `report.errors`.
-    """
+    """Single-file incremental — PostToolUse hook's target."""
     started = time.monotonic()
     rel_path = _safe_relpath(file_path, project_root)
     report = IndexReport(
@@ -247,16 +218,7 @@ def index_project(
     file_filter: Any = None,
     progress: Any = None,
 ) -> IndexReport:
-    """Full walk — CLI `cos graph-reindex` + background reindex.
-
-    PURPOSE:      Bulk indexing entry. Walks the repo via walk_local and
-                  runs per-file dispatch with content-hash skipping.
-    INPUT:        open backend + project root + optional caps.
-    OUTPUT:       IndexReport with `mode='bulk'`.
-    NOTES:        `progress` (optional callable) gets `(seen, total)` on
-                  each file so the CLI can render a lightweight bar.
-                  Errors roll into report.errors; the loop never aborts.
-    """
+    """Full walk — CLI `cos graph-reindex` + background reindex."""
     started = time.monotonic()
     reg = _load_graph_os()
     plan = reg["walk_local"](project_root, max_files=max_files)

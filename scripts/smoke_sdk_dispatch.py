@@ -1,17 +1,9 @@
 """Real one-shot dispatch smoke test for hardened ClaudeSDKDispatcher.
 
-PURPOSE: Verify Q-bundle hardening (preset system_prompt,
 exclude_dynamic_sections, setting_sources=['project'],
 permission_mode='dontAsk', mcp__coding-os__* allow-list, role skills
 inheritance) actually flies through claude-agent-sdk 0.1.73 against the
 real Claude CLI. Source-of-truth doc: docs/adapters/claude-sdk.md §13.
-INPUT:        none — picks the cheapest role (debugger, light intensity).
-OUTPUT:       prints status, latency, output_json keys, dispatcher_name.
-              Exit 0 on success, 1 on failure.
-DEPENDENCIES: claude-agent-sdk (>=0.1.73), claude CLI on PATH, valid
-              Anthropic credentials in ~/.claude.json or ANTHROPIC_API_KEY.
-NOTES:        Spawns a real sub-session. Expect 10-30s. Skip if no
-              credentials — exits 0 with a marker line so CI can gate.
 """
 from __future__ import annotations
 

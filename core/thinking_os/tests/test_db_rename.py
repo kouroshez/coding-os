@@ -1,13 +1,4 @@
-"""Migration test for the 2026-04-30 `thinking_os.db` → `coding-os.db` rename.
-
-PURPOSE:      Lock the auto-rename contract so consumer projects upgrade
-              transparently. Without this, a fresh consumer at v22+ would
-              orphan a real DB on the first cos invocation after the
-              upgrade.
-INPUT:        synthetic legacy DB in tmp_path.
-OUTPUT:       pytest assertions; <1 s.
-DEPENDENCIES: thinking_os.db.init_db, migrate_legacy_db_filename.
-"""
+"""Migration test for the 2026-04-30 `thinking_os.db` → `coding-os.db` rename."""
 
 from __future__ import annotations
 

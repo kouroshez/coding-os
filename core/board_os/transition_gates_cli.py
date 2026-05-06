@@ -1,14 +1,4 @@
-"""Thin CLI wrapper around the transition-gates validator (Phase L.10 / TASK-105).
-
-PURPOSE: Lets bash hooks invoke `python -m core.board_os.transition_gates_cli check`
-         without re-implementing parsing in shell.
-INPUT:   stdin = Claude Code hook payload (JSON), OR `--task-id` + `--new-status`.
-OUTPUT:  stdout = ValidationResult JSON; exit code 0 (PASS/WARN) or 2 (BLOCK).
-DEPENDENCIES: argparse, sys, json, board_os.parser, board_os.transition_gates,
-              board_os.transition_gates_validator.
-NOTES:   Designed for hook contracts: BLOCK → exit 2 + stderr message; WARN →
-         exit 0 + stderr banner; PASS → exit 0 silent.
-"""
+"""Thin CLI wrapper around the transition-gates validator (Phase L.10 / TASK-105)."""
 
 from __future__ import annotations
 

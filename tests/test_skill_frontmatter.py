@@ -1,18 +1,4 @@
-"""Pytest gate for SKILL.md frontmatter compliance with claude-agent-sdk.
-
-PURPOSE:      Prevent regressions on the SDK 0.1.73 skill contract:
-              description ≤1024 chars, listing budget (name + description
-              + when_to_use) ≤1,536 chars, third-person voice, valid YAML
-              frontmatter. Replaces the standalone
-              scripts/audit_skill_descriptions.py probe so CI catches
-              drift on every commit.
-INPUT:        none — globs core/skills/*/SKILL.md.
-OUTPUT:       pytest pass / per-skill failure with the actual measured
-              limit so a contributor can see exactly what to trim.
-DEPENDENCIES: pyyaml, pathlib, pytest.
-NOTES:        Source-of-truth contract:
-              docs/adapters/claude-sdk.md §10 + digest §E.1.
-"""
+"""Pytest gate for SKILL.md frontmatter compliance with claude-agent-sdk."""
 from __future__ import annotations
 
 import re

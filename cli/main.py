@@ -541,24 +541,7 @@ def _aggregate_scaffold_boundaries(
     state: Path,
     templates: list[str],
 ) -> None:
-    """Merge per-stack `scaffold-boundary.yaml` files into the consumer.
-
-    PURPOSE:      Power `enforce-scaffold-boundary.sh` at consumer-side by
-                  writing `<state>/scaffold-boundary.yaml` with a flat
-                  `stacks:` list — one row per installed stack.
-    INPUT:        project    — consumer project root.
-                  state      — state dir (`.coding-os/`).
-                  templates  — list of installed stack ids.
-    OUTPUT:       Writes `state/scaffold-boundary.yaml` (or removes when no
-                  stack ships a boundary file).
-    DEPENDENCIES: PyYAML.
-    NOTES:        SSOT spec: docs/governance/scaffold-boundary-contract.md.
-                  Aggregator-side invariants enforced here:
-                    1. No two installed stacks may share a `roots` entry.
-                    2. Every `forbids_writing_in` entry must be a real root
-                       of an installed stack OR `shared/`.
-                  Violations raise `click.ClickException` so init fails fast.
-    """
+    """Merge per-stack `scaffold-boundary.yaml` files into the consumer."""
     import yaml
 
     stacks_data: list[dict] = []
@@ -647,20 +630,7 @@ def _copy_workflow_docs(project: Path) -> None:
 
 
 def _bootstrap_hub_dir_if_first_run() -> None:
-    """Seed ~/.coding-os/ the very first time the CLI is invoked.
-
-    PURPOSE: Close the install UX gap — after `uv tool install coding-os`
-             the hub dir didn't exist until a user ran a command that
-             happened to touch it.  Creating the directory eagerly (and
-             an empty registry.json) means `cos hub start` and the
-             /api/hub/* endpoints behave deterministically from the
-             first command.
-    NOTES:   Fail-open: any OSError is silently swallowed.  We never
-             raise from the entry point because a home-dir permission
-             quirk shouldn't break every `cos ...` call.
-             Respects COS_REGISTRY_PATH so tests with custom paths are
-             untouched.
-    """
+    """Seed ~/.coding-os/ the very first time the CLI is invoked."""
     import os as _os
     override = _os.environ.get("COS_REGISTRY_PATH")
     hub_dir = Path(override).parent if override else Path.home() / ".coding-os"

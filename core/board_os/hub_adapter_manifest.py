@@ -1,13 +1,4 @@
-"""hub_adapter_manifest — discover adapter rows for Hub board API.
-
-PURPOSE: List installed adapters (id, label, Hub pill glyph/color) from
-         adapters/*/adapter.yaml without importing adapter SDKs (P8).
-INPUT:   Optional adapters_dir override; otherwise coding-os repo root.
-OUTPUT:  list[dict] suitable for JSON `agent_manifest` on /api/board/list.
-DEPENDENCIES: stdlib + PyYAML (already required by the repo).
-NOTES:  Cached by max mtime of */adapter.yaml under adapters/.  Human is
-        not included here — board route appends the pseudo-agent.
-"""
+"""hub_adapter_manifest — discover adapter rows for Hub board API."""
 
 from __future__ import annotations
 

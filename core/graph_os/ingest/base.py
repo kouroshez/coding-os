@@ -18,17 +18,7 @@ class IngestError(RuntimeError):
 
 @dataclass
 class IngestPlan:
-    """Normalised view of "a set of files to index".
-
-    PURPOSE:      Unify local walks, GitHub clones, and ZIP extracts
-                  behind one shape so the orchestrator only learns one
-                  API.
-    INPUT:        see field list.
-    OUTPUT:       iterated by role handlers.
-    NOTES:        `alias` is the display name (`my-platform-backend`);
-                  `root` is the filesystem path; `files` is the
-                  pre-filtered listing.
-    """
+    """Normalised view of "a set of files to index"."""
 
     alias: str
     root: Path
@@ -60,11 +50,6 @@ def walk_local(
 ) -> IngestPlan:
     """Walk a local folder → IngestPlan with guard rails.
 
-    PURPOSE:      Primary entry for `cos graph-index-local`. Enforces
-                  hard caps so the indexer cannot be DoS'd by a massive
-                  tree (plan §19 I.11 + Risk R-I-14 size guard).
-    INPUT:        root directory + filter / cap knobs.
-    OUTPUT:       IngestPlan.
     RAISES:       IngestError on caps exceeded.
     """
     root_path = Path(root).resolve()

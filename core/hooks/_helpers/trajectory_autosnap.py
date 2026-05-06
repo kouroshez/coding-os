@@ -1,17 +1,4 @@
-"""
-Session-end helper — auto-generate project trajectory snapshot.
-
-PURPOSE:  At Stop/session-end, derive a trajectory snapshot from this session's
-          DB signals (formula_dispatches, backtrack_events, task_outcomes) so
-          future sessions get strategic context without the agent manually calling
-          cos_trajectory_snapshot.
-INPUT:    sys.argv[1] = session_id
-          sys.argv[2] = active_task (may be empty)
-          sys.argv[3] = COS_DB_PATH
-OUTPUT:   Writes one row to project_trajectory (idempotent by session_id).
-NOTES:    Fire-and-forget — exits 1 on any error, never blocks session end.
-          Does NOT call LLM. Purely data-driven heuristics.
-"""
+"""Session-end helper — auto-generate project trajectory snapshot."""
 from __future__ import annotations
 
 import json

@@ -1,13 +1,4 @@
-"""cli.web_commands — `cos web` command for launching the unified web server.
-
-PURPOSE: CLI entry-point that starts the FastAPI/uvicorn server on port 9188
-         (default) with optional --reload for development and --host override.
-INPUT:   CLI flags: --port INT, --host STR, --reload (flag), --log-level STR.
-OUTPUT:  none (starts uvicorn, blocks until killed).
-DEPENDENCIES: click, core.web.server.run_server.
-NOTES:  Follows the same lazy-import pattern as graph_commands.py.
-        Registered in cli/main.py at the end alongside graph_commands.
-"""
+"""cli.web_commands — `cos web` command for launching the unified web server."""
 
 from __future__ import annotations
 
@@ -29,16 +20,7 @@ import click
                                 case_sensitive=False),
               help="Uvicorn log level.")
 def web_cmd(port: int, host: str, reload: bool, log_level: str) -> None:
-    """Start the Coding OS unified web server (S4 backbone).
-
-    PURPOSE: Launch FastAPI/uvicorn serving graph, board, cognition, and
-             search APIs at /api/*, plus SSE stream and Prometheus metrics.
-    INPUT:   --port, --host, --reload, --log-level CLI flags.
-    OUTPUT:  Running HTTP server (blocks until SIGTERM/SIGINT).
-    DEPENDENCIES: core.web.server.run_server, uvicorn.
-    NOTES:  The default port 9188 is the stable public URL for the
-            coding-os web SPA (bookmarkable across sessions).
-    """
+    """Start the Coding OS unified web server (S4 backbone)."""
     try:
         from web.server import run_server  # type: ignore
     except ImportError as exc:

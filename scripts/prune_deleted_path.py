@@ -1,23 +1,4 @@
-"""Prune graph + docs RAG state for a deleted path.
-
-PURPOSE:      Counterpart to `reindex_dispatch.dispatch()` — when a file
-              is removed (rm / git rm / mv away), wipe its rows from
-              graph_nodes (cascades to graph_edges_v12 + evidence),
-              document_chunks, and file_index_state. Deletes the
-              `<file>.INDEX.md` sidecar too (it would orphan otherwise).
-              Closes the gap noted in the TASK-165 follow-up.
-INPUT:        argv — one or more repo-relative or absolute paths.
-              flags — `--force` skips the "still exists?" guard so callers
-                      can pre-emptively prune before the unlink lands.
-                      `--quiet` suppresses per-path output (errors still go
-                      to stderr).
-OUTPUT:       One `OK:` / `SKIP:` / `ERROR:` line per path; final summary.
-DEPENDENCIES: graph_os.backends.sqlite_backend, coding-os.db. No
-              embeddings stack required — pure DB DELETEs.
-NOTES:        Idempotent — re-running on an already-pruned path is a
-              no-op. Defensive on missing tables (fresh init / stripped
-              install).
-"""
+"""Prune graph + docs RAG state for a deleted path."""
 
 from __future__ import annotations
 

@@ -1,19 +1,6 @@
 """graph_os — shell script extractor (I.7).
 
-PURPOSE:  Map a `.sh` file to code:file / code:module + `source` /
-          `calls` edges. Primary enterprise use-case is the coding-os
-          hook system — `source cos-env.sh` chains, Makefile-invoked
-          scripts, and hook cross-calls all become navigable graph
-          edges.
-INPUT:    file path + raw text (pure extractor).
-OUTPUT:   ExtractionResult.
 DEPENDS:  stdlib regex only.
-NOTES:    The shell grammar is intentionally narrow — we track:
-            * `source X` and `. X` includes (sourced-from edges)
-            * direct invocations of other `.sh` files in the repo
-            * `cos_log_hook name` calls (coding-os hook probe)
-          Anything dynamic (variable-expansion paths, `eval`, subshells)
-          is skipped with a `dynamic` parse_error.
 """
 
 from __future__ import annotations
@@ -92,15 +79,7 @@ def _resolve_script_target(origin: str, target: str) -> str:
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a shell script → nodes + edges.
-
-    PURPOSE:      Per-file write path. The coding-os hook graph is the
-                  primary consumer — `auto-reindex-docs.sh` calls this
-                  when a `core/hooks/*.sh` file changes.
-    INPUT:        repo-relative path + raw script.
-    OUTPUT:       ExtractionResult.
-    NOTES:        Never raises.
-    """
+    """Parse a shell script → nodes + edges."""
     result = ExtractionResult()
     normalised = _normalize_path(path)
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]

@@ -1,15 +1,4 @@
-"""Data-driven verify-suite resolution (Phase L.10 / TASK-100).
-
-PURPOSE: Match a list of changed file paths against the suites in
-         `core/board_os/verify-suites.yaml`. Replaces hardcoded
-         customer-specific path globs in `core/hooks/enforce-verify.sh`.
-INPUT:   list of changed path strings (relative to project root).
-OUTPUT:  list of required suite names; resolution rules in `match_suites`.
-DEPENDENCIES: pyyaml, fnmatch.
-NOTES:   Two-tier config — meta defaults + optional consumer-override
-         at `${COS_PROJECT_ROOT}/.coding-os/verify-suites.yaml`. Suite
-         names from the consumer file replace meta entries by name.
-"""
+"""Data-driven verify-suite resolution (Phase L.10 / TASK-100)."""
 
 from __future__ import annotations
 

@@ -1,14 +1,4 @@
-"""
-Coding OS — Formula-agent supervisor (Phase M).
-
-PURPOSE:      Pure-Python state machine that decides what to dispatch next.
-              Never spawns subagents — only returns NextAction for the main agent.
-INPUT:        SupervisorState + loaded persona/situation registries.
-OUTPUT:       NextAction (dispatch / backtrack / done).
-DEPENDENCIES: cognition_schemas, PyYAML, pathlib; no DB, no MCP.
-NOTES:        Deterministic and recursion-free. Formula-agents MUST NOT call
-              cos_supervise — only the main agent does.
-"""
+"""Coding OS — Formula-agent supervisor (Phase M)."""
 
 from __future__ import annotations
 
@@ -51,12 +41,6 @@ def _load_yaml(path: Path) -> Any:
 
 
 def load_situation_registry() -> dict[str, dict[str, Any]]:
-    """
-    PURPOSE:      Return all situational dispatch chains keyed by situation_id.
-    INPUT:        situations/registry.yaml on disk.
-    OUTPUT:       {situation_id: situation_dict}
-    DEPENDENCIES: PyYAML, SITUATIONS_DIR.
-    """
     global _situation_registry
     if _situation_registry is None:
         reg = _load_yaml(SITUATIONS_DIR / "registry.yaml")
@@ -65,14 +49,6 @@ def load_situation_registry() -> dict[str, dict[str, Any]]:
 
 
 def load_agent_registry() -> dict[str, dict[str, Any]]:
-    """
-    PURPOSE:      Parse frontmatter from each role .md prompt file.
-    INPUT:        agents/ directory (researcher.md, analyst.md, ...).
-    OUTPUT:       {role_id: frontmatter_dict}  e.g. {"analyst": {...}}
-    DEPENDENCIES: PyYAML, AGENTS_DIR.
-    NOTES:        Frontmatter delimited by '---' lines. README.md is
-                  skipped (it documents the catalog, not a role).
-    """
     global _agent_registry
     if _agent_registry is not None:
         return _agent_registry
@@ -157,12 +133,6 @@ _FORMULA_BUNDLE_FIELD = {
 
 
 def build_input_slice(formula_id: str, bundle: EvidenceBundle) -> dict[str, Any]:
-    """
-    PURPOSE:      Extract only the bundle fields a formula needs as its input.
-    INPUT:        Formula id + current EvidenceBundle.
-    OUTPUT:       dict matching role input (upstream outputs only; no future formulas).
-    NOTES:        architect sees researcher+analyst; implementer sees analyst+architect; etc.
-    """
     upstream: dict[str, Any] = {
         "task_description": bundle.task_marker,
         "intensity_steps": _intensity_steps(formula_id, bundle.intensity),
@@ -192,15 +162,6 @@ def advance(
     state: SupervisorState,
     bundle: EvidenceBundle,
 ) -> NextAction:
-    """
-    PURPOSE:      Return the next action the main agent should take.
-    INPUT:        Current supervisor state + evidence bundle.
-    OUTPUT:       NextAction — one of: classify | dispatch | dispatch_parallel |
-                  backtrack | done.
-    DEPENDENCIES: cognition_schemas, persona/situation registries.
-    NOTES:        Deterministic. Never spawns agents. Called repeatedly until
-                  action == "done".
-    """
     if state.phase == "IDLE":
         state.phase = "CLASSIFYING"
         return NextAction(action="classify", reason="Gate not yet recorded")
@@ -309,12 +270,6 @@ def apply_backtrack(
     from_formula: str,
     to_formula: str,
 ) -> NextAction:
-    """
-    PURPOSE:      Re-queue a formula for re-dispatch (backtrack path).
-    INPUT:        Current state, formula that triggered backtrack, target formula.
-    OUTPUT:       NextAction with action=backtrack.
-    NOTES:        Anti-Paralysis: ≥3 backtracks → advisory; ≥5 → stronger warning.
-    """
     state.backtrack_count += 1
     # Remove from_formula and all formulas after to_formula from dispatched
     order = list(_FORMULA_BUNDLE_FIELD.keys())
@@ -492,14 +447,6 @@ def _criterion_satisfied(
 
 
 def ambiguity_check(bundle: EvidenceBundle) -> list[dict[str, str]]:
-    """
-    PURPOSE:      Verify bundle satisfies per-formula ambiguity criteria.
-    INPUT:        EvidenceBundle after formula dispatch.
-    OUTPUT:       List of violation dicts {formula, criterion, detail}.
-    NOTES:        Empty list = gate passes. Called once at PLAN→EXECUTE.
-                  Formulas without dispatched output are skipped — gate
-                  fires only over evidence the agent already produced.
-    """
     violations: list[dict[str, str]] = []
 
     for formula_id, criteria in _CRITERIA_WEIGHTS.items():

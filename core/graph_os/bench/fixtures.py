@@ -1,9 +1,5 @@
 """Deterministic fixture generators (I.13).
 
-PURPOSE:  Produce N Python / TS / markdown files with stable content
-          so benchmark runs are reproducible (P-I-11 determinism).
-INPUT:    target directory + size knobs.
-OUTPUT:   list of produced paths.
 DEPENDS:  stdlib only.
 """
 

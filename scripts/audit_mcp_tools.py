@@ -1,11 +1,4 @@
-"""Comprehensive audit of all 63 cos_* MCP tools via the real FastMCP layer.
-
-PURPOSE:    Call every cos_* tool, validate the ok/error envelope contract,
-            spot-check data quality. Uses mcp.call_tool() — same code path
-            an agent uses over stdio.
-INPUT:      none — reads .coding-os/coding-os.db + graph backend.
-OUTPUT:     per-tool PASS/WARN/FAIL lines; grouped summary + failure list.
-"""
+"""Comprehensive audit of all 63 cos_* MCP tools via the real FastMCP layer."""
 
 from __future__ import annotations
 

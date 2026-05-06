@@ -63,19 +63,7 @@ def record_quality_signal(
     precision: float,
     signal_source: str,
 ) -> Optional[int]:
-    """Insert a precision observation. Fire-and-forget — never raises.
-
-    PURPOSE:      Log one (retrieval, precision) pair so precision_summary
-                  can drive the enrichment gate.
-    INPUT:        retrieval_id, task_id (may be None), layer, query text
-                  (nullable), precision in [0.0, 1.0], signal_source label
-                  ("backfill" | "explicit_feedback" | "test").
-    OUTPUT:       inserted row id or None (pre-v11 / malformed input).
-    DEPENDENCIES: retrieval_quality (v11+).
-    NOTES:        Precision is clamped to [0.0, 1.0]; anything outside is
-                  coerced silently so caller arithmetic quirks don't fail
-                  the insert.
-    """
+    """Insert a precision observation. Fire-and-forget — never raises."""
     if not _has_quality(conn):
         return None
 
@@ -109,13 +97,6 @@ def backfill_quality_from_outcomes(
 
     Rows already mirrored into retrieval_quality (same retrieval_id) are
     skipped — this function is idempotent.
-
-    PURPOSE:      Turn objective retrieval-outcome data into a derivable
-                  precision metric without asking the agent for feedback.
-    INPUT:        lookback window in days.
-    OUTPUT:       {"added": N, "skipped": M, "status": "ok"|"pre_v11_no_op"}.
-    DEPENDENCIES: retrievals (v10), retrieval_quality (v11).
-    NOTES:        Safe to call repeatedly — `skipped` counts duplicates.
     """
     if not _has_quality(conn):
         return {"added": 0, "skipped": 0, "status": "pre_v11_no_op"}
@@ -168,16 +149,7 @@ def precision_summary(
     lookback_days: int = 14,
     layer: Optional[str] = None,
 ) -> dict:
-    """Return mean precision + sample size for the lookback window.
-
-    PURPOSE:      Observation layer that drives the enrichment decision.
-    INPUT:        lookback_days window; optional layer filter.
-    OUTPUT:       {"mean_precision": float|None, "samples": int,
-                   "below_gate": bool, "layer": str|None, "gate": float}.
-    DEPENDENCIES: retrieval_quality (v11+).
-    NOTES:        Returns mean_precision=None when samples < _MIN_SAMPLE
-                  so callers never make decisions on noisy data.
-    """
+    """Return mean precision + sample size for the lookback window."""
     if not _has_quality(conn):
         return {"mean_precision": None, "samples": 0, "below_gate": False,
                 "layer": layer, "gate": PRECISION_GATE, "status": "pre_v11_no_op"}
@@ -253,20 +225,7 @@ def should_enable_enrichment(
 
 
 def enrich_chunk_context_stub(chunk: dict) -> dict:
-    """Stub for the LLM-generated contextual prefix.
-
-    PURPOSE:      Placeholder so the rest of the pipeline (indexer, tests,
-                  cos_health) can reference a stable function without
-                  committing us to a specific LLM vendor.
-    INPUT:        chunk dict (same shape as doc_indexer._build_chunk).
-    OUTPUT:       {"contextual_prefix": None, "context_model": None,
-                   "status": "stub"} — unchanged chunk until the real
-                  enricher lands.
-    DEPENDENCIES: none — pure function.
-    NOTES:        When implemented, this will call a small/fast model
-                  (Haiku or equivalent), prepend one sentence to
-                  chunk["content"], and return the model name for audit.
-    """
+    """Stub for the LLM-generated contextual prefix."""
     return {
         "contextual_prefix": None,
         "context_model": None,

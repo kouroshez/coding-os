@@ -1,16 +1,6 @@
 """Minimal LSP 3.17 stdio client (Phase I.14).
 
-PURPOSE:  Talk to a local language server (pyright, tsserver, gopls)
-          over the wire protocol defined in
-          https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/.
-INPUT:    subprocess command + project root.
-OUTPUT:   A small client that supports `initialize`, `textDocument/
-          didOpen`, `textDocument/definition`, and `shutdown/exit`.
 DEPENDS:  stdlib only.
-NOTES:    The goal is not to be a fully-general LSP client — it's to
-          honour the overlay contract from plan §7.4 and raise
-          precision on symbol resolution from ≥85% to ≥95%. We only
-          implement what `LspDriver.resolve()` needs.
 """
 
 from __future__ import annotations
@@ -44,14 +34,7 @@ class LspMessage:
 
 @dataclass
 class LspClient:
-    """Stdio JSON-RPC client for an LSP server.
-
-    PURPOSE:      Launch the server, maintain the reader thread, send
-                  requests / notifications, wait for responses.
-    NOTES:        Thread-safe by design — the reader thread owns stdout
-                  and feeds a queue keyed by request-id; callers block
-                  on the queue with a timeout.
-    """
+    """Stdio JSON-RPC client for an LSP server."""
 
     command: list[str]
     project_root: Path

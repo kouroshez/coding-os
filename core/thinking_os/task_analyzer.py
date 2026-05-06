@@ -1,22 +1,4 @@
-"""
-Phase N — Task Analyzer.
-
-PURPOSE:      Extract TaskSignals from prompt + memory + MCP context + complexity
-              gate. Replaces the job-title persona routing of Phase M with
-              signal-driven role selection (see docs/phase-n-role-based-routing-plan.md).
-INPUT:        prompt (str), task_marker (str|None), session_id (str),
-              complexity (str), dimensions (int). All optional MCP calls
-              degrade gracefully (source_errors recorded, not raised).
-OUTPUT:       TaskSignals (see cognition_schemas.py).
-DEPENDENCIES: pydantic, subprocess (git), optional: db (cos_search), graph
-              backend (cos_graph_impact), docs (cos_doc_search). Never raises.
-NOTES:        500ms total budget per plan §2.1. Per-signal timeouts enforced
-              with signal.alarm on POSIX. Cached at
-              .coding-os/<agent>/.signals keyed by task_marker.
-              Safe under concurrent load: all external calls wrapped in
-              per-call timeouts; git log uses a shared flock'd verdict cache
-              for is_takeover detection (N.5-F rate limit story).
-"""
+"""Phase N — Task Analyzer."""
 
 from __future__ import annotations
 
@@ -107,16 +89,6 @@ def analyze_task(
     project_dir: Path | None = None,
     mcp_hooks: dict[str, Any] | None = None,
 ) -> TaskSignals:
-    """
-    PURPOSE:      Run all signal extractors sequentially (within budget) and
-                  return the merged TaskSignals. Cached by task_marker.
-    INPUT:        See module docstring.
-    OUTPUT:       TaskSignals — always valid, source_errors lists degraded sources.
-    DEPENDENCIES: mcp_hooks dict allows injecting cos_search / cos_graph_impact
-                  / cos_doc_search callables. If absent, extractors skip.
-    NOTES:        Never raises. Every extractor is try/except'd. N.5-B adds
-                  a session_id parameter for per-session metric labels.
-    """
     t0 = time.time()
     source_errors: list[str] = []
     evidence: dict[str, Any] = {"prompt_len": len(prompt)}

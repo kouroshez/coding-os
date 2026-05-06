@@ -382,18 +382,7 @@ _STALE_THRESHOLD = 15  # new outcomes since last recalc before drift is flagged
 
 
 def routing_drift(conn: sqlite3.Connection) -> dict:
-    """Detect whether routing_weights are stale relative to task_outcomes.
-
-    PURPOSE:      Give the session-startup hook a cheap signal for when
-                  autonomous recalculate_weights should be triggered.
-    INPUT:        conn — DB with routing_weights (v3) and task_outcomes (v1).
-    OUTPUT:       {"drift_detected": bool, "new_outcomes_since_recalc": int,
-                  "threshold": int, "last_recalc_at": str|None,
-                  "recommendation": "recalculate"|"ok"}.
-    DEPENDENCIES: routing_weights (v3), task_outcomes (v1).
-    NOTES:        Reads MAX(outcomes_at_recalc) from routing_weights; if the
-                  column is missing (pre-v26 DB), falls back to last_updated.
-    """
+    """Detect whether routing_weights are stale relative to task_outcomes."""
     table_check = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='routing_weights'"
     ).fetchone()
@@ -450,18 +439,7 @@ def failure_pattern_query(
     domain: Optional[str] = None,
     limit: int = 10,
 ) -> dict:
-    """Aggregate structured failure anatomy from backtrack_events.
-
-    PURPOSE:      Surface which root_cause categories are most frequent so
-                  the agent (and learn_extract) can create failure-type
-                  learned_patterns to influence future routing.
-    INPUT:        Optional root_cause filter, optional domain filter, limit.
-    OUTPUT:       {"patterns": [{root_cause, count, domains, examples}],
-                  "total_structured": int, "total_backtrack": int}.
-    DEPENDENCIES: backtrack_events (v14), failure anatomy columns (v25).
-    NOTES:        Rows without root_cause (pre-v25) are excluded from
-                  structured results but counted in total_backtrack.
-    """
+    """Aggregate structured failure anatomy from backtrack_events."""
     table_check = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='backtrack_events'"
     ).fetchone()

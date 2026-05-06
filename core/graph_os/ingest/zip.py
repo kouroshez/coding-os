@@ -28,9 +28,6 @@ def extract_zip(
 ) -> IngestPlan:
     """Unzip safely, refuse bombs, then walk.
 
-    PURPOSE:      Operator-facing entry for `cos graph-index-zip`.
-    INPUT:        archive path, output directory, size knobs.
-    OUTPUT:       IngestPlan rooted at `out_dir/alias/`.
     RAISES:       IngestError on zip-bomb heuristics or traversal
                   attempts (`../` in any member path).
     """

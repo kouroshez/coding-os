@@ -1,13 +1,4 @@
-"""core.web.routes.health — /health backend liveness endpoint.
-
-PURPOSE: Expose a /health endpoint that checks if the graph_os backend is
-         reachable and returns node/edge counts as a liveness signal.
-INPUT:   HTTP GET (no params).
-OUTPUT:  200 JSON {status: "ok", backend_id, node_count, edge_count, ...}.
-DEPENDENCIES: fastapi, core.graph_os.backend.get_backend.
-NOTES:  Never returns 5xx for backend unavailability — health endpoints must
-        stay up.  Returns status: "degraded" when graph backend is missing.
-"""
+"""core.web.routes.health — /health backend liveness endpoint."""
 
 from __future__ import annotations
 
@@ -25,14 +16,7 @@ router = APIRouter(tags=["health"])
 
 @router.get("/health")
 async def health():
-    """Backend liveness check with node/edge counts.
-
-    PURPOSE: Verify graph backend is reachable; return counts as signal.
-    INPUT:   none.
-    OUTPUT:  JSON {status, backend_id, node_count, edge_count, ...}.
-    DEPENDENCIES: graph_os.backend.get_backend, graph_os.backend.BackendUnavailable.
-    NOTES:   Returns status: "degraded" instead of 5xx when backend fails.
-    """
+    """Backend liveness check with node/edge counts."""
     result: dict = {"status": "ok"}
     try:
         from graph_os.backend import BackendUnavailable, get_backend  # type: ignore

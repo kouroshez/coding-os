@@ -1,20 +1,6 @@
 """graph_os — TypeScript / TSX extractor (I.6).
 
-PURPOSE:  Turn a `.ts` / `.tsx` module into GraphNodes + GraphEdges
-          (imports, classes, interfaces, functions, methods, exports,
-          React components) using a regex-based scanner as the
-          deterministic baseline. Tree-sitter + tsserver overlays
-          raise confidence in later slices — see plan §7.4.
-INPUT:    file path + raw source text.
-OUTPUT:   ExtractionResult (same shape as md_links / code_python).
 DEPENDS:  stdlib regex only.
-NOTES:    The regex scanner is deliberately conservative: it catches
-          top-level declarations, imports (including `import type`),
-          and call-sites that resolve through the imported local name.
-          Inline JSX is tracked only as a React-component callsite
-          (`<Button/>` ⇒ `constructs Button`). Comments and strings
-          are stripped before the scan so `// import ...` does not
-          leak into the graph.
 """
 
 from __future__ import annotations
@@ -193,20 +179,7 @@ def function_uid(path: str, name: str) -> str:
 
 
 def extract(path: str, content: str) -> ExtractionResult:
-    """Parse a TS / TSX file → nodes + edges.
-
-    PURPOSE:      Per-file write path invoked by the orchestrator. Uses
-                  tree-sitter when the grammar is installed (Phase
-                  I.6b); falls back to the regex scanner otherwise so
-                  the dogfood build still works when the graph_os
-                  extra is skipped.
-    INPUT:        file path + raw source.
-    OUTPUT:       ExtractionResult.
-    DEPENDENCIES: stdlib + optional tree-sitter-typescript.
-    NOTES:        Returns the file node even when parsing fails so
-                  downstream queries can surface the presence of the
-                  file.
-    """
+    """Parse a TS / TSX file → nodes + edges."""
     # Tree-sitter overlay pass (I.6b) — runs first to enrich AST-level
     # metadata. Regex scan below continues unchanged so results stay
     # backwards-compatible when the grammar is absent.

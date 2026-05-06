@@ -1,19 +1,4 @@
-"""cli.hub_commands — `cos hub` + `cos service` CLI.
-
-PURPOSE: Manage the global coding-os Hub daemon (uvicorn on 127.0.0.1:9188)
-         that serves every registered project under /api/p/<slug>/.
-         Subcommands:
-           cos hub start|stop|status|logs
-           cos service install|uninstall   (launchd on macOS, systemd user on Linux)
-INPUT:   CLI flags + ~/.coding-os/hub.pid, ~/.coding-os/hub.log.
-OUTPUT:  Background uvicorn process (for start), plist/unit file (for install).
-DEPENDENCIES: click, stdlib (subprocess, signal, os, json, platform),
-              core.web.server (lazy).
-NOTES:   The daemon is user-scope only — never system-wide, no sudo needed.
-         launchd plist goes to ~/Library/LaunchAgents/; systemd unit to
-         ~/.config/systemd/user/.  The service command emits the unit and
-         loads it; removal undoes both.
-"""
+"""cli.hub_commands — `cos hub` + `cos service` CLI."""
 from __future__ import annotations
 
 import json
@@ -72,15 +57,7 @@ def _write_pid(pid: int) -> None:
 
 
 def _hub_health_ok(port: int) -> bool:
-    """Return True if something answers HTTP GET /health on the hub port.
-
-    PURPOSE: Detect stale ``hub.pid`` rows left after SIGTERM races (stop
-             exits before the child dies, start sees the old pid as
-             "already running", then the child exits — leaving no listener
-             on :9188).  A live hub always mounts ``/health``.
-    INPUT:   TCP port (default hub 9188).
-    OUTPUT:  True when HTTP status is 2xx; False on any failure.
-    """
+    """Return True if something answers HTTP GET /health on the hub port."""
     import urllib.error
     import urllib.request
 
@@ -95,12 +72,7 @@ def _hub_health_ok(port: int) -> bool:
 
 
 def _resolve_cos_bin() -> str:
-    """Locate the `cos` entrypoint for the daemon to invoke.
-
-    PURPOSE: launchd/systemd need an absolute path.  Use the current
-             sys.argv[0] if it points at the installed cos; otherwise
-             fall back to shutil.which.
-    """
+    """Locate the `cos` entrypoint for the daemon to invoke."""
     import shutil
 
     which = shutil.which("cos")
