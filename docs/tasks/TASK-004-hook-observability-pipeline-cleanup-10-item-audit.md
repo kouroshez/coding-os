@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [hooks, observability, noise-reduction, task-identity, persona]
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-05-07
 started: null
-completed: null
-agent_session: null
+completed: 2026-05-07
+agent_session: ses-claude-20260507-085328-06cd
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-004: Hook+observability pipeline cleanup (10-item audit)
 
 **Outcome (one sentence):** Hook firing cleaner: read-only Bash no longer fires false `[fire]`; check-capture-worked grep matches actual log order; reindex skips /tmp; tail timezone normalized; Stop hook description corrected; persona-aware task-mode marker classifies each prompt as formal/query/chore/adhoc/promote/system/gov-required so downstream hooks gate appropriately (Rule 18 honored without forcing TASK-NNN on Q&A).
@@ -61,3 +60,4 @@ references: []
 - **Then** the description states "fires on Stop = end-of-turn (not whole conversation)" so naming is unambiguous
 
 ## Work Log
+- 2026-05-07 [claude]: Shipped 10-item audit + persona task-mode + G1 H-badge fix in commit 93b1d30. 21 files / 494 LOC. Verify matrix green: b
