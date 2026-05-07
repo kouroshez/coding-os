@@ -25,9 +25,19 @@ export interface AgentVisual {
 export const AGENT_PRESENCE_VISUALS: Record<AgentPresence, AgentVisual> = {
   active: {
     color: '#16a34a',
-    ring: 'rgba(22,163,74,.25)',
+    ring: 'rgba(22,163,74,.30)',
     pulse: true,
     label: 'active',
+  },
+  // `working` = user turn in flight (prompt > stop, pid alive) but no
+  // recent tool call. Distinct hue from `present` so a thinking agent
+  // doesn't read as idle.  Cyan/teal — visually unrelated to any
+  // adapter brand color (claude amber, codex cyan-blue, cursor indigo).
+  working: {
+    color: '#0ea5e9',
+    ring: 'rgba(14,165,233,.30)',
+    pulse: true,
+    label: 'working',
   },
   present: {
     color: '#eab308',
@@ -36,8 +46,8 @@ export const AGENT_PRESENCE_VISUALS: Record<AgentPresence, AgentVisual> = {
     label: 'present',
   },
   offline: {
-    color: '#dc2626',
-    ring: 'rgba(220,38,38,.15)',
+    color: '#9ca3af',
+    ring: 'rgba(156,163,175,.15)',
     pulse: false,
     label: 'offline',
   },

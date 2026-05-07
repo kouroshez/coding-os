@@ -28,12 +28,17 @@ def main(argv: list[str]) -> int:
         return 0
 
     prev: dict = {}
+    parse_failed = False
     if os.path.exists(path):
         try:
             with open(path, encoding="utf-8") as f:
                 prev = json.load(f)
         except (OSError, json.JSONDecodeError):
+            # File exists but is corrupt — keep going with empty `prev`,
+            # but emit one breadcrumb to cos hooks-log so ops can spot a
+            # disk that's silently shredding presence files.
             prev = {}
+            parse_failed = True
 
     new = {
         "agent": agent,
@@ -46,16 +51,25 @@ def main(argv: list[str]) -> int:
         "ended_at": prev.get("ended_at"),
     }
     if event == "start":
+        # Authoritative session boundary — overwrite even if a prompt
+        # event raced ahead and stamped started_at first (observed when
+        # UserPromptSubmit fires before SessionStart on Claude Code 2.x
+        # cold boot).  Without the overwrite, started_at can land AFTER
+        # last_prompt_at and the board's "alive >5min" check trips on a
+        # fresh session.
         new["started_at"] = now
         new["ended_at"] = None
         new["last_stop_at"] = None
     elif event == "prompt":
         new["last_prompt_at"] = now
         new["last_stop_at"] = None
-        new["started_at"] = new["started_at"] or now
+        # Only seed started_at when we genuinely don't have one yet.
+        if not isinstance(new["started_at"], int):
+            new["started_at"] = now
     elif event == "tool":
         new["last_tool_at"] = now
-        new["started_at"] = new["started_at"] or now
+        if not isinstance(new["started_at"], int):
+            new["started_at"] = now
     elif event == "stop":
         new["last_stop_at"] = now
     elif event == "end":
@@ -68,6 +82,11 @@ def main(argv: list[str]) -> int:
         os.replace(tmp, path)
     except OSError:
         return 0
+    if parse_failed:
+        # One-line breadcrumb so `cos hooks-log` surfaces silent corruption.
+        # stderr only — agent-presence.sh discards stderr in the happy
+        # path, so this never reaches the user, only the ops log.
+        sys.stderr.write(f"presence_write: replaced corrupt {path}\n")
     return 0
 
 

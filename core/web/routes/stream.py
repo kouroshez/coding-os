@@ -97,6 +97,69 @@ async def _sse_event(event_type: str, data: dict) -> str:
 _TRANSITION_ALIGN_SECS = 8  # file mtime within this many seconds of a DB row = same event
 
 
+def _snapshot_activity() -> dict[str, dict[str, int | str | None]]:
+    """{agent: {ts, kind, sid}} where ts = max(last_tool_at, last_prompt_at).
+
+    Drives the agent-activity SSE event so the stream panel surfaces
+    tool/prompt fires, not just task transitions.  Returns empty on
+    import failure — agents lacking presence files are simply absent.
+    """
+    try:
+        from web.routes.board import _presence_files  # type: ignore
+        from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+    except ImportError as exc:
+        logger.debug("activity import failed: %s", exc)
+        return {}
+    out: dict[str, dict[str, int | str | None]] = {}
+    for r in list_agent_manifest_rows():
+        agent = str(r.get("id") or "")
+        if not agent:
+            continue
+        best_ts = 0
+        best_kind: str | None = None
+        best_sid: str | None = None
+        for path in _presence_files(agent):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if data.get("ended_at") is not None:
+                continue
+            for kind, key in (("tool", "last_tool_at"), ("prompt", "last_prompt_at")):
+                ts = data.get(key)
+                if isinstance(ts, int) and ts > best_ts:
+                    best_ts = ts
+                    best_kind = kind
+                    best_sid = data.get("session_id") or path.stem
+        if best_ts:
+            out[agent] = {"ts": best_ts, "kind": best_kind, "sid": best_sid}
+    return out
+
+
+def _snapshot_presence() -> dict[str, str]:
+    """Return {agent_id: state} snapshot — drives presence-updated SSE diff.
+
+    Imported lazily because board.py mounts later in the app graph and a
+    top-level import would create a cycle on cold reload.
+    """
+    try:
+        from web.routes.board import _presence_state  # type: ignore
+        from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+    except ImportError as exc:
+        logger.debug("presence import failed: %s", exc)
+        return {}
+    snap: dict[str, str] = {}
+    for r in list_agent_manifest_rows():
+        agent = str(r.get("id") or "")
+        if not agent:
+            continue
+        try:
+            snap[agent] = _presence_state(agent)
+        except Exception as exc:  # noqa: BLE001 — presence is UX, never fatal
+            logger.debug("presence snapshot failed for %s: %s", agent, exc)
+    return snap
+
+
 async def _event_generator() -> AsyncGenerator[str, None]:
     """Poll docs/tasks/ and yield SSE events."""
     tasks_dir = _tasks_dir()
@@ -105,6 +168,8 @@ async def _event_generator() -> AsyncGenerator[str, None]:
     last_history_id = 0
     last_dispatch_id = 0  # T8.6: track formula_dispatches.id watermark
     last_heartbeat = time.monotonic()
+    last_presence: dict[str, str] = _snapshot_presence()
+    last_activity: dict[str, dict[str, int | str | None]] = _snapshot_activity()
 
     try:
         conn = _db_conn()
@@ -178,6 +243,66 @@ async def _event_generator() -> AsyncGenerator[str, None]:
                     "current_status": r[7],
                 },
             )
+
+        # ----- Presence diff (P1) — push when an agent transitions
+        # active/working/present/offline. The board's React Query cache
+        # only refetches /api/board/list on `bump`, so without this loop
+        # the live-agents pill stays stale until the next task move.
+        try:
+            cur_presence = _snapshot_presence()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("presence snapshot raised: %s", exc)
+            cur_presence = last_presence
+        if cur_presence != last_presence:
+            changes = {
+                a: cur_presence.get(a)
+                for a in set(cur_presence) | set(last_presence)
+                if cur_presence.get(a) != last_presence.get(a)
+            }
+            yield await _sse_event(
+                "presence-updated",
+                {
+                    "states": cur_presence,
+                    "changes": changes,
+                    "ts": int(time.time()),
+                },
+            )
+            last_presence = cur_presence
+
+        # ----- Agent activity (P7) — emit on tool/prompt timestamp
+        # advance so the stream panel shows real-time agent fires, not
+        # just task transitions.  Per-agent debounce already lives in
+        # the timestamp granularity (1s); we additionally suppress
+        # repeats where the *kind* and *sid* didn't change AND ts
+        # advanced <2 s, which collapses bursty tool chains.
+        try:
+            cur_activity = _snapshot_activity()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("activity snapshot raised: %s", exc)
+            cur_activity = last_activity
+        for agent, cur in cur_activity.items():
+            prev = last_activity.get(agent)
+            cur_ts_raw = cur.get("ts")
+            prev_ts_raw = prev.get("ts") if prev else 0
+            cur_ts = cur_ts_raw if isinstance(cur_ts_raw, int) else 0
+            prev_ts = prev_ts_raw if isinstance(prev_ts_raw, int) else 0
+            if cur_ts <= prev_ts:
+                continue
+            if prev is not None \
+                    and prev.get("kind") == cur.get("kind") \
+                    and prev.get("sid") == cur.get("sid") \
+                    and cur_ts - prev_ts < 2:
+                continue
+            yield await _sse_event(
+                "agent-activity",
+                {
+                    "agent": agent,
+                    "kind": cur.get("kind"),
+                    "sid": cur.get("sid"),
+                    "ts": cur_ts,
+                },
+            )
+        last_activity = cur_activity
 
         # ----- Dispatch events (T8.6) -----
         try:

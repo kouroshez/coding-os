@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -52,100 +51,52 @@ def _unavailable():
     })
 
 
-_ACTIVE_WINDOW_SECS = 30      # "tool called within this many seconds" → ACTIVE
-_PRESENT_WINDOW_SECS = 60 * 60  # upper bound for PRESENT (session alive this long with no event → likely zombie)
+# Presence windows + state-rank live in board_os.presence (SSOT).  Re-
+# export the constants the tests still reference.
+from board_os.presence import (  # noqa: E402  (after sys.path bootstrap above)
+    ACTIVE_WINDOW_SECS as _ACTIVE_WINDOW_SECS,
+    PRESENT_WINDOW_SECS as _PRESENT_WINDOW_SECS,
+    WORKING_WINDOW_SECS as _WORKING_WINDOW_SECS,
+    agent_state as _agent_state_fs,
+    session_inventory as _session_inventory_fs,
+    session_presence as _session_presence_fn,
+    pid_alive as _pid_alive_fn,
+)
 _DB_FALLBACK_WINDOW_SECS = 300  # legacy DB-only signal window
 
 
-def _pid_alive(pid: int) -> bool:
-    """True when a PID is still a running process owned by this machine."""
-    if pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        # Process exists but belongs to another user — still alive.
-        return True
-    except OSError:
-        return False
-    return True
+# `_pid_alive` is re-exported from board_os.presence so legacy callers
+# inside this module keep working unchanged.
+_pid_alive = _pid_alive_fn
+
+
+def _presence_dir(agent: str) -> Path:
+    from web._project_context import current_project_root
+
+    return current_project_root() / ".coding-os" / agent / "sessions"
 
 
 def _presence_files(agent: str) -> list[Path]:
     """Return the per-session presence JSON files for this agent."""
-    from web._project_context import current_project_root
+    from board_os.presence import session_files
 
-    d = current_project_root() / ".coding-os" / agent / "sessions"
-    if not d.is_dir():
-        return []
-    try:
-        return [p for p in d.iterdir() if p.suffix == ".json" and p.is_file()]
-    except OSError as exc:
-        logger.debug("presence dir read failed for %s: %s", agent, exc)
-        return []
+    return session_files(_presence_dir(agent))
 
 
+# Per-agent / per-session presence math lives in board_os.presence.
+# Thin filesystem-bound wrappers below resolve the per-project
+# .coding-os/<agent>/sessions/ directory and delegate.
 def _presence_state(agent: str) -> str:
-    """Compute {"active", "present", "offline"} from lifecycle session files."""
-    import time as _time
-    now = int(_time.time())
-    best = "offline"
-    for path in _presence_files(agent):
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            # Corrupt presence files are rare (atomic tmp+rename), but when
-            # they happen we want a trail — otherwise the panel silently
-            # shows "offline" with no way to diagnose.
-            logger.debug("skipping corrupt presence file %s: %s", path, exc)
-            continue
-        if data.get("ended_at") is not None:
-            continue
+    return _agent_state_fs(_presence_dir(agent))
 
-        last_tool = data.get("last_tool_at")
-        last_prompt = data.get("last_prompt_at")
-        last_stop = data.get("last_stop_at")
 
-        # (1) ACTIVE: heartbeat within 30 s is enough — a fire this recent
-        # proves the runtime is alive even when the stored PID points at
-        # a rotated subprocess that has already exited.
-        if isinstance(last_tool, int) and now - last_tool <= _ACTIVE_WINDOW_SECS:
-            return "active"
-        # "User turn in flight" is ACTIVE only when it's genuinely in
-        # flight: prompt within the ACTIVE window, no matching stop yet.
-        # Using _ACTIVE_WINDOW_SECS (not _PRESENT_WINDOW_SECS) is the key
-        # TASK-088 fix — a session killed mid-turn by rate-limit used to
-        # stay "active" here for up to 1 h.
-        if isinstance(last_prompt, int) \
-                and now - last_prompt <= _ACTIVE_WINDOW_SECS \
-                and (not isinstance(last_stop, int) or last_stop < last_prompt):
-            return "active"
+def _session_inventory(agent: str) -> list[dict]:
+    return _session_inventory_fs(agent, _presence_dir(agent))
 
-        # (2) Past the ACTIVE window → PID liveness is mandatory for any
-        # "here" verdict.  No hook has fired in the last 30 s, so we can
-        # no longer trust the file alone to prove the process is alive.
-        pid = int(data.get("pid") or 0)
-        if not _pid_alive(pid):
-            continue
 
-        # (3) PID alive + heartbeat stale → PRESENT within the upper
-        # bound so truly abandoned sessions eventually flip to offline.
-        # Prefer last_prompt (strongest "turn in flight but thinking"
-        # signal) > last_tool > started_at.
-        if isinstance(last_prompt, int) \
-                and now - last_prompt <= _PRESENT_WINDOW_SECS \
-                and (not isinstance(last_stop, int) or last_stop < last_prompt):
-            best = "present" if best != "active" else best
-            continue
-        if isinstance(last_tool, int) and now - last_tool <= _PRESENT_WINDOW_SECS:
-            best = "present" if best != "active" else best
-            continue
-        started = data.get("started_at") or 0
-        if isinstance(started, int) and now - int(started) <= _PRESENT_WINDOW_SECS:
-            best = "present" if best != "active" else best
-    return best
+# `_session_presence` is preserved as a stable name for any in-tree
+# tests that imported it directly.
+_session_presence = _session_presence_fn
 
 
 def _cursor_model_display() -> str | None:
@@ -351,14 +302,25 @@ async def board_list(
         adapter_rows = list_agent_manifest_rows()
         agent_ids = [str(r["id"]) for r in adapter_rows]
         states: dict[str, str] = {"human": "active"}  # human is always considered present
+        session_states: list[dict] = []
+        session_counts: dict[str, int] = {}
         conn = _db_conn()
         try:
             for agent in agent_ids:
                 states[agent] = _agent_state(conn, agent)
+                inv = _session_inventory(agent)
+                session_states.extend(inv)
+                if inv:
+                    session_counts[agent] = len(inv)
         finally:
             conn.close()
         env["data"]["agent_states"] = states
         env["data"]["active_agents"] = [a for a, st in states.items() if st != "offline"]
+        # P2 — surface live sessions per agent so the UI can render
+        # "Cl·3" badges and a session-detail tooltip instead of
+        # collapsing N parallel sessions into one verdict.
+        env["data"]["session_states"] = session_states
+        env["data"]["session_counts"] = session_counts
         # T19.3 — surface dispatcher sub-session count so the live-agents
         # panel can show "Claude (+ N sub-agents)". Sub-sessions are written
         # by adapters/claude/sdk_dispatcher.py::_presence_write() with

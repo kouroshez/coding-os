@@ -215,23 +215,37 @@ function priorityStyle(priority: string): CSSProperties {
 // without a matching visual, so we can't silently under-paint a state.
 export type AgentState = AgentPresence;
 
-function AgentBadge({ agentId, state }: { agentId: string; state: AgentState }) {
+function AgentBadge({
+  agentId,
+  state,
+  sessionCount,
+}: {
+  agentId: string;
+  state: AgentState;
+  sessionCount?: number;
+}) {
   const catalog = useAgentCatalog();
   const a = catalog.find((x) => x.id === agentId);
   if (!a) return null;
   const dot = visualFor(state);
   const live = state !== 'offline';
+  // Border = STATE color (not brand) so the pill itself signals presence.
+  // Brand color survives in the faint background tint + label color, so
+  // adapter identity stays readable without competing with state.
+  // Fixes the regression where Claude's amber brand made every Claude
+  // pill look like it was in `present` (also amber) regardless of state.
+  const borderColor = live ? dot.color : 'var(--col-border)';
   return (
     <div
-      title={`${a.label} — ${dot.label}`}
+      title={`${a.label} — ${dot.label}${sessionCount && sessionCount > 1 ? ` (${sessionCount} sessions)` : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 5,
         padding: '3px 8px 3px 6px',
         borderRadius: 999,
-        background: live ? `${a.color}15` : 'var(--board-grain)',
-        border: `1px solid ${live ? a.color : 'var(--col-border)'}`,
+        background: live ? `${a.color}12` : 'var(--board-grain)',
+        border: `1.5px solid ${borderColor}`,
         color: live ? a.color : 'var(--ink-faint)',
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 10,
@@ -241,8 +255,8 @@ function AgentBadge({ agentId, state }: { agentId: string; state: AgentState }) 
     >
       <span
         style={{
-          width: 6,
-          height: 6,
+          width: 9,
+          height: 9,
           borderRadius: '50%',
           background: dot.color,
           boxShadow: `0 0 0 2px ${dot.ring}`,
@@ -250,6 +264,9 @@ function AgentBadge({ agentId, state }: { agentId: string; state: AgentState }) 
         }}
       />
       {a.label}
+      {sessionCount && sessionCount > 1 ? (
+        <span style={{ opacity: 0.85, fontWeight: 700 }}>·{sessionCount}</span>
+      ) : null}
     </div>
   );
 }
@@ -589,6 +606,7 @@ export default function CosBoardPage() {
         taskCount={list?.count ?? 0}
         connected={connected}
         cursorModel={list?.cursor_model}
+        sessionCounts={list?.session_counts ?? {}}
         agentStates={
           list?.agent_states ?? (
             // Back-compat: pre-0.5 backends only send active_agents list.
@@ -980,6 +998,7 @@ function TopBar({
   connected,
   cursorModel,
   agentStates,
+  sessionCounts,
   legendOpen,
   streamOpen,
   showArchive,
@@ -994,6 +1013,7 @@ function TopBar({
   connected: boolean;
   cursorModel?: string | null;
   agentStates: Record<string, AgentState>;
+  sessionCounts?: Record<string, number>;
   legendOpen: boolean;
   streamOpen: boolean;
   showArchive: boolean;
@@ -1080,10 +1100,11 @@ function TopBar({
                 key={a.id}
                 agentId={a.id}
                 state={agentStates[a.id] ?? 'offline'}
+                sessionCount={sessionCounts?.[a.id]}
               />
             ))}
           </div>
-          {cursorModel ? (
+          {cursorModel && agentStates.cursor && agentStates.cursor !== 'offline' ? (
             <span
               title="display-only: .coding-os/cursor/.model"
               style={{ color: 'var(--ink-faint)', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}

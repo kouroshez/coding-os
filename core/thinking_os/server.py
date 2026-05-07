@@ -1728,6 +1728,75 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_presence_query",
+        annotations={
+            "title": "Live Agent Presence (sessions + states)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_presence_query(agent: str = "") -> str:
+        """Return per-agent presence state and live-session inventory.
+
+        Reads `.coding-os/<agent>/sessions/*.json` (the same files
+        agent-presence.sh writes) and applies the SSOT rules in
+        `board_os.presence`.  When `agent` is empty, every adapter
+        registered in adapters/<id>/adapter.yaml is reported.
+
+        Used by `cos daily`, CI gates, and the live-agents board UI to
+        verify zombie sessions are gone after deploy.
+        """
+        try:
+            from board_os.hub_adapter_manifest import list_agent_manifest_rows
+            from board_os.presence import (
+                agent_state as _agent_state_q,
+                session_inventory as _session_inventory_q,
+            )
+        except ImportError as exc:
+            return fail(
+                "unavailable",
+                f"board_os presence module not importable: {exc}",
+                retryable=False,
+            )
+
+        # Resolve the project root the same way the web routes do so
+        # multi-project servers inspect the right .coding-os/ tree.
+        try:
+            from web._project_context import current_project_root  # type: ignore
+            root = current_project_root()
+        except Exception as exc:  # noqa: BLE001
+            return fail(
+                "unavailable",
+                f"cannot resolve project root: {exc}",
+                retryable=False,
+            )
+
+        agents = (
+            [agent.strip()] if agent.strip()
+            else [str(r.get("id") or "") for r in list_agent_manifest_rows() if r.get("id")]
+        )
+        states: dict[str, str] = {}
+        sessions: list[dict] = []
+        for aid in agents:
+            if not aid:
+                continue
+            d = root / ".coding-os" / aid / "sessions"
+            states[aid] = _agent_state_q(d)
+            sessions.extend(_session_inventory_q(aid, d))
+        return ok({
+            "agent_states": states,
+            "session_states": sessions,
+            "session_counts": {
+                aid: sum(1 for s in sessions if s["agent"] == aid)
+                for aid in agents
+            },
+            "scope": "per_project",
+            "root": str(root),
+        })
+
+    @mcp.tool(
         name="cos_task_move",
         annotations={
             "title": "Move Task to New Status",

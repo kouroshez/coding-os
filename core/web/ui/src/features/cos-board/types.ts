@@ -13,7 +13,7 @@ export interface BoardListCard {
   last_log_line?: string | null;
 }
 
-export type AgentPresence = 'active' | 'present' | 'offline';
+export type AgentPresence = 'active' | 'working' | 'present' | 'offline';
 
 /** One row in the live-agents strip — from GET /api/board/list `agent_manifest`. */
 export interface BoardAgentManifestEntry {
@@ -37,6 +37,21 @@ export interface BoardListPayload {
   active_agents?: string[];
   /** Preferred signal: per-agent presence state. */
   agent_states?: Record<string, AgentPresence>;
+  /** P2 — count of live (non-offline) sessions per agent. Drives the
+   *  `Cl·3` suffix on the live-agents pill so parallel sessions stop
+   *  collapsing into one verdict. */
+  session_counts?: Record<string, number>;
+  /** P2 — full per-session inventory; tooltip / debug surface. */
+  session_states?: Array<{
+    agent: string;
+    sid: string;
+    state: AgentPresence;
+    pid: number;
+    started_at: number | null;
+    last_prompt_at: number | null;
+    last_tool_at: number | null;
+    last_stop_at: number | null;
+  }>;
   /** Adapter ids + Hub pill metadata (includes trailing `human` row). */
   agent_manifest?: BoardAgentManifestEntry[];
   /** Display-only: first line of `.coding-os/cursor/.model` when present. */

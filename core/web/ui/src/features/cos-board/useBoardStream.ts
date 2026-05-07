@@ -26,7 +26,8 @@ export type BoardEventKind =
   | 'human-move'
   | 'human-create'
   | 'connected'
-  | 'agent';
+  | 'agent'
+  | 'agent-activity';
 
 export interface BoardEvent {
   id: string; // stable key for react lists
@@ -211,6 +212,39 @@ export function useBoardStream(): UseBoardStreamReturn {
         agent: 'human',
         message: 'SSE /api/stream/events online',
       });
+    });
+
+    // P1 — presence-updated bumps the board-list query so the live-agents
+    // pill reflects state transitions without waiting for a task move.
+    // Payload is informational; the bump+invalidate path does the work.
+    source.addEventListener('presence-updated', () => {
+      if (cancelled) return;
+      setBump((b) => b + 1);
+    });
+
+    // P7 — agent fired a tool or prompt; surface as a stream-panel row
+    // so the activity track stops feeling broken between task moves.
+    source.addEventListener('agent-activity', (evt) => {
+      if (cancelled) return;
+      try {
+        const data = JSON.parse((evt as MessageEvent).data) as {
+          agent?: string;
+          kind?: string;
+          sid?: string;
+          ts?: number;
+        };
+        const agentId = (data.agent || 'human') as 'claude' | 'codex' | 'cursor' | 'human';
+        push({
+          id: newId(),
+          t: hmsFromEpoch(data.ts),
+          kind: 'agent-activity',
+          taskId: null,
+          agent: agentId,
+          message: `${data.kind ?? 'fired'}${data.sid ? ` · ${data.sid}` : ''}`,
+        });
+      } catch {
+        /* ignore malformed payload */
+      }
     });
 
     source.addEventListener('task-updated', (evt) => {
