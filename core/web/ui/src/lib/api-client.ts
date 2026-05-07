@@ -160,3 +160,13 @@ export async function apiDelete<T>(
   });
   return handle<T>(res);
 }
+
+// Path-typed helpers — re-export the codegen `paths` interface so callers can
+// derive request/response shapes from the OpenAPI spec without hand-writing
+// types. Run `npm run gen-api` (with the hub up on :9188) to refresh.
+//
+// Usage:
+//   import type { paths } from './api-types';
+//   type CtxResp = paths['/api/graph/context/{uid_or_name}']['get']['responses']['200']['content']['application/json'];
+//   const [data] = await apiGet<CtxResp>('/api/graph/context/...');
+export type { paths, components, operations } from './api-types';
