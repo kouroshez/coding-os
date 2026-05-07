@@ -119,9 +119,53 @@ def _read_agent_marker_file() -> str:
         return ""
 
 
+def resolve_agent_session(explicit: str | None = None) -> str | None:
+    """Return the session id to attribute a board write to.
+
+    Adapter-agnostic resolver shared by ``cos_task_create``,
+    ``cos_task_move``, ``cos_work_log_append``, and any future board
+    mutator. Priority order:
+
+      1. ``explicit`` — caller-supplied session id wins.
+      2. ``$COS_SESSION_FILE`` — written by ``cos-env.sh`` /
+         ``session-context.sh`` at every ``SessionStart startup`` in the
+         shape ``ses-<agent>-YYYYMMDD-HHMMSS-xxxx``.
+      3. ``$COS_SESSION_ID`` — direct env override (CI / test harness).
+      4. Synthesised ``ses-<detected-agent>-pid<PID>`` fallback so the
+         row never lands as ``NULL`` (which the board UI maps to the
+         green ``H`` glyph by default — see
+         ``core/web/ui/src/features/cos-board/useBoardStream.ts``).
+
+    Never raises; never returns an empty string.
+    """
+    if explicit:
+        s = explicit.strip()
+        if s:
+            return s
+
+    session_file = os.environ.get("COS_SESSION_FILE")
+    if session_file:
+        try:
+            value = Path(session_file).read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            logger.debug("session file read failed: %s", exc)
+            value = ""
+        if value:
+            return value
+
+    env_id = (os.environ.get("COS_SESSION_ID") or "").strip()
+    if env_id:
+        return env_id
+
+    agent = detect_agent()
+    if agent and agent != _UNKNOWN_AGENT:
+        return f"ses-{agent}-pid{os.getpid()}"
+    return None
+
+
 def reset_cache() -> None:
     """Test-only: drop the cached registry so tests get fresh adapter data."""
     _known_agent_ids.cache_clear()
 
 
-__all__ = ["detect_agent", "reset_cache"]
+__all__ = ["detect_agent", "resolve_agent_session", "reset_cache"]

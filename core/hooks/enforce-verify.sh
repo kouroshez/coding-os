@@ -42,7 +42,9 @@ while IFS= read -r segment; do
 done <<< "$FIRST_TOKEN_OF_EACH"
 
 if ! $IS_TASK_DONE; then
-  cos_log_hook enforce-verify fire "tool=Bash task_done=false"
+  # Silent skip — logging [fire] for every Bash floods .hooks.log with
+  # noise the operator cannot act on. The hook only matters when the
+  # command IS task-done; non-matches are uninteresting.
   exit 0
 fi
 

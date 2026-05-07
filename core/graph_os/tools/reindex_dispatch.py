@@ -72,7 +72,18 @@ def dispatch(
     try:
         rel = str(file_path.relative_to(project_root))
     except ValueError:
-        rel = str(file_path)
+        # File lives outside project root — typically a /tmp scratch
+        # the agent edited. The PostToolUse hook fires for every Edit,
+        # but those throwaway paths must never enter the project graph
+        # or doc index. Skip fast so the background worker doesn't pile
+        # up phantom-path inserts.
+        return {
+            "status": "skipped",
+            "path": str(file_path),
+            "layers": {},
+            "duration_ms": int((time.monotonic() - started) * 1000),
+            "reason": "out-of-repo",
+        }
     suffix = file_path.suffix.lower()
 
     result: dict[str, Any] = {

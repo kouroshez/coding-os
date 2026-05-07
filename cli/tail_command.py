@@ -44,7 +44,14 @@ _AGENT_GLOBS: list[tuple[str, str]] = [
 
 _LEVEL_RE = re.compile(r"\b(ERROR|WARN|WARNING|INFO|DEBUG|FATAL|CRITICAL)\b", re.I)
 _TS_JSON_RE = re.compile(r'"ts"\s*:\s*"?([^",}]+)"?')
-_TS_BRACKET_RE = re.compile(r'^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})')
+# Capture optional Z / ±HH:MM tz suffix so UTC stamps can normalise to
+# the operator's local zone — hook logs use ISO-Z (UTC) while MCP /
+# Python ``logging`` writes bare local time. Without this, the same
+# wall-clock event shows two different times in the unified tail and
+# the cross-source sort order breaks.
+_TS_BRACKET_RE = re.compile(
+    r'^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?'
+)
 
 _COLORS = {
     "hooks": "\033[36m",
@@ -102,11 +109,40 @@ def _discover(state_dir: Path) -> list[tuple[str, str, Path]]:
     return found
 
 
-def _extract_ts(text: str) -> str:
-    """Return ISO-style ts (YYYY-MM-DD HH:MM:SS) for sorting + display.
+def _utc_to_local_str(stamp: str) -> str:
+    """Treat ``stamp`` (YYYY-MM-DD HH:MM:SS) as UTC, render in local zone."""
+    import datetime as _dt
+    parsed = _dt.datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S")
+    aware_utc = parsed.replace(tzinfo=_dt.timezone.utc)
+    return aware_utc.astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
-    Handles three sources: ISO strings in JSON `ts`, epoch floats/ints in
-    JSON `ts`, and ISO prefix on plain log lines. Empty when no ts found.
+
+def _try_parse_iso(iso: str) -> str:
+    """Try every supported ISO shape; return raw 19-char prefix on failure."""
+    import datetime as _dt
+    try:
+        if iso.endswith("Z"):
+            return _utc_to_local_str(iso[:-1].replace("T", " "))
+        if len(iso) >= 25 and iso[19] in ("+", "-"):
+            parsed = _dt.datetime.fromisoformat(iso)
+            return parsed.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return iso[:19].replace("T", " ")
+    return iso[:19].replace("T", " ")
+
+
+def _extract_ts(text: str) -> str:
+    """Return local-zone ISO ts (YYYY-MM-DD HH:MM:SS) for sorting + display.
+
+    Sources unified to the operator's local zone:
+      - JSON ``"ts"`` epoch — already UTC; convert via ``fromtimestamp``.
+      - JSON ``"ts"`` ISO with ``Z`` / ±HH:MM suffix — parse + convert.
+      - Bracket-prefixed log line — hook emitter writes UTC with explicit
+        ``Z``; MCP / Python ``logging`` writes bare local time. Detect
+        the suffix and convert UTC → local so the same wall-clock event
+        appears at the same time across both sources.
+      - Bare ISO-prefixed text without tz — assumed already in local time.
+    Empty string when no ts found.
     """
     import datetime as _dt
 
@@ -118,7 +154,20 @@ def _extract_ts(text: str) -> str:
     elif text.startswith("["):
         m = _TS_BRACKET_RE.match(text)
         if m:
-            return m.group(1).replace("T", " ")
+            stamp = m.group(1).replace("T", " ")
+            tz = m.group(2) or ""
+            if tz == "Z":
+                try:
+                    return _utc_to_local_str(stamp)
+                except ValueError:
+                    return stamp
+            if tz.startswith(("+", "-")):
+                try:
+                    parsed = _dt.datetime.fromisoformat(m.group(1) + tz)
+                    return parsed.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    return stamp
+            return stamp
     elif len(text) >= 19 and text[4:5] == "-" and text[10:11] in (" ", "T"):
         return text[:19].replace("T", " ")
 
@@ -129,7 +178,7 @@ def _extract_ts(text: str) -> str:
             return _dt.datetime.fromtimestamp(float(raw)).strftime("%Y-%m-%d %H:%M:%S")
         except (ValueError, OSError):
             return ""
-    return raw[:19].replace("T", " ")
+    return _try_parse_iso(raw[:25])
 
 
 def _extract_level(text: str) -> str:

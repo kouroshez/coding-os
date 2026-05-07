@@ -287,6 +287,19 @@ def _agent_label(agent_session: str | None) -> str:
     return detect_agent(agent_session)
 
 
+def _resolve_attribution(agent_session: str | None) -> str | None:
+    """Auto-fill agent_session for board mutators when caller passes None.
+
+    Without this, ``task_status_history.agent_session`` lands as NULL
+    and the board UI renders the green ``H`` glyph (human) for tasks
+    that were actually created by an MCP-driven agent. The resolver
+    reads ``$COS_SESSION_FILE`` (populated by every adapter via
+    ``core/hooks/session-context.sh``) so the fix is adapter-agnostic.
+    """
+    from ._agent_runtime import resolve_agent_session
+    return resolve_agent_session(agent_session)
+
+
 _BOARD_SELECT = (
     "SELECT task_id, title, swimlane, kind, epic, labels_json, "
     "       status, priority, appetite, agent_session, work_log_last_5, "
@@ -339,6 +352,12 @@ def cos_task_create(
                 "validation",
                 f"label {lbl!r} collides with KIND_ENUM — use kind, not labels",
             )
+
+    # Auto-attribute the create event to the running agent's session
+    # when the caller didn't pass one. Skipping this leaves NULL in
+    # task_status_history.agent_session, which the board UI maps to
+    # the green "H" glyph — making MCP-driven creates look human-led.
+    agent_session = _resolve_attribution(agent_session)
 
     project_root = _project_root()
     tasks_dir = project_root / "docs" / "tasks"

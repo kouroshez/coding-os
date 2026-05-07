@@ -480,6 +480,11 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/classify-task-mode.sh",
+            "timeout": 800
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-graph-os.sh",
             "timeout": 1000
           }
@@ -493,7 +498,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-end.sh",
-            "statusMessage": "📝 Writing session summary + enrichment to memory...",
+            "statusMessage": "📝 Writing turn summary + enrichment to memory...",
             "timeout": 5000
           },
           {

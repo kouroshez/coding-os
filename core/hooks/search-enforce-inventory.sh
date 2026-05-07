@@ -23,8 +23,6 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-cos_log_hook search-enforce-inventory entry 2>/dev/null || true
-
 PAYLOAD="$(cat 2>/dev/null || true)"
 [[ -z "$PAYLOAD" ]] && exit 0
 
@@ -38,11 +36,14 @@ except Exception:
 ' 2>/dev/null || true)"
 [[ -z "$CMD" ]] && exit 0
 
-# Only fire on bulk replace operations (sed -i, xargs sed, xargs python)
+# Only fire on bulk replace operations (sed -i, xargs sed, xargs python).
+# Silent skip otherwise — every Bash command would otherwise emit an
+# [entry] + [skip-not-replace] pair that drowns the hook log in noise.
 if ! printf '%s' "$CMD" | command grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
-    cos_log_hook search-enforce-inventory skip-not-replace 2>/dev/null || true
     exit 0
 fi
+
+cos_log_hook search-enforce-inventory entry 2>/dev/null || true
 
 # Extract OLD pattern — chr() avoids single-quote conflict in bash -c string
 OLD="$(printf '%s' "$CMD" | python3 -c '

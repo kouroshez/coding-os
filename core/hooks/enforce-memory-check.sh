@@ -49,6 +49,15 @@ case "$FILE_PATH" in
   */scaffold/*) exit 0 ;;
 esac
 
+# Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
+MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+if [[ -f "$MODE_FILE" ]]; then
+  TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
+  case "$TASK_MODE" in
+    query|adhoc|chore|system) exit 0 ;;
+  esac
+fi
+
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
 # --- Exemptions via state files -------------------------------------

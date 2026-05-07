@@ -75,7 +75,14 @@ fi
 HOOKS_LOG="${COS_STATE_DIR}/.hooks.log"
 WRITE_EDIT_COUNT=0
 if [[ -f "$HOOKS_LOG" ]]; then
-  WRITE_EDIT_COUNT=$(grep -c "session=${SESSION_ID}.*\[capture-observation\] \[fire\].*tool=\(Write\|Edit\)" "$HOOKS_LOG" 2>/dev/null || echo 0)
+  # The standard hook log line shape is:
+  #   [<ts>] [capture-observation] [fire] agent=<a> session=<sid> task=<t> tool=<T>
+  # so the literal "[capture-observation] [fire]" prefix comes BEFORE the
+  # session= field. The previous regex demanded the opposite order and
+  # silently always returned 0, falsely classifying every session as
+  # "read-only-session" even after Edits. Anchor on the prefix first,
+  # then assert the session id and tool downstream.
+  WRITE_EDIT_COUNT=$(grep -cE "\[capture-observation\] \[fire\].*session=${SESSION_ID}.*tool=(Write|Edit)" "$HOOKS_LOG" 2>/dev/null || echo 0)
   WRITE_EDIT_COUNT=${WRITE_EDIT_COUNT//[^0-9]/}
   : "${WRITE_EDIT_COUNT:=0}"
 fi

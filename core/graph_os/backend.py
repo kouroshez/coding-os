@@ -140,6 +140,21 @@ def get_backend(
         if cached is not None:
             return cached
 
+    # Negative cache: once we've confirmed Kuzu is empty / unreachable in
+    # this process, every subsequent `auto` call paid the probe cost
+    # again (open Kuzu DB, count_nodes(), close, raise). For projects
+    # whose reindexer only writes to SQLite that's the steady-state path,
+    # so the probe is pure overhead. Skip straight to SQLite once we've
+    # taken the verdict — explicit backend="kuzu" callers still re-probe
+    # so tests / Kuzu-primary deployments behave normally.
+    if choice == "auto" and _KUZU_AUTO_FALLBACK:
+        from .backends.sqlite_backend import SqliteBackend  # noqa: PLC0415
+        backend = SqliteBackend(conn=sqlite_conn, **extra)
+        _record_backend_probe(backend)
+        if cache_key is not None:
+            _BACKEND_CACHE[cache_key] = backend
+        return backend
+
     if choice in ("kuzu", "auto"):
         try:
             from .backends.kuzu_backend import KuzuBackend  # noqa: PLC0415
@@ -160,8 +175,11 @@ def get_backend(
                             )
                             try:
                                 backend.close()
-                            except Exception:  # noqa: BLE001
-                                pass
+                            except Exception as exc:  # noqa: BLE001
+                                logger.debug(
+                                    "kuzu close after empty probe failed: %s",
+                                    exc,
+                                )
                             raise BackendUnavailable("kuzu_empty")
                     except BackendUnavailable:
                         raise
@@ -178,6 +196,7 @@ def get_backend(
                     "Kuzu backend unavailable (%s); falling back to SQLite.",
                     exc,
                 )
+                _set_kuzu_auto_fallback()
         except ImportError as exc:
             if choice == "kuzu":
                 raise BackendUnavailable(
@@ -185,6 +204,7 @@ def get_backend(
                     "install the graph_os extra or use backend='sqlite'."
                 ) from exc
             logger.info("kuzu python package not installed; using SQLite.")
+            _set_kuzu_auto_fallback()
 
     from .backends.sqlite_backend import SqliteBackend  # noqa: PLC0415
 
@@ -199,6 +219,19 @@ def get_backend(
 # in practice (default + maybe an explicit kuzu_path).
 _BACKEND_CACHE: dict[Any, "GraphBackend"] = {}
 
+# Negative cache flag — set the first time `auto` falls back to SQLite
+# because Kuzu was empty / missing / unreachable, so subsequent `auto`
+# calls in the same process skip the probe entirely (each Kuzu probe
+# pays an open / count / close round-trip otherwise). Cleared by
+# reset_backend_cache() so tests / hot-reload scenarios re-probe.
+_KUZU_AUTO_FALLBACK: bool = False
+
+
+def _set_kuzu_auto_fallback() -> None:
+    """Mark `auto` to bypass the Kuzu probe for the rest of the process."""
+    global _KUZU_AUTO_FALLBACK
+    _KUZU_AUTO_FALLBACK = True
+
 
 def reset_backend_cache() -> None:
     """Drop the cached backend(s).
@@ -206,6 +239,8 @@ def reset_backend_cache() -> None:
     Tests + the dispatcher worker call this after wiping the DB so
     the next get_backend() opens a fresh connection.
     """
+    global _KUZU_AUTO_FALLBACK
+    _KUZU_AUTO_FALLBACK = False
     while _BACKEND_CACHE:
         _, backend = _BACKEND_CACHE.popitem()
         close = getattr(backend, "close", None)

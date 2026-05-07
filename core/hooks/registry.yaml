@@ -523,14 +523,21 @@ hooks:
 
   - id: session-end
     script: session-end.sh
-    description: Writes session summary + memory enrichment on Stop.
+    description: |
+      Stop hook — fires at end-of-turn (NOT end-of-conversation). Claude Code
+      emits `Stop` after each agent turn, so the same session_id persists
+      across many `session-end` invocations. The hook writes per-turn
+      summary + memory enrichment; idempotent UPSERT on session_summaries.
+      "session" in the hook name refers to the agent loop session-id, which
+      is rotated only on a fresh `SessionStart startup` (see
+      session-context.sh for rotation logic).
     category: observability
     phase: "0"
     timeout: 5000
     events:
       - event: Stop
         matcher: ""
-        status_message: "📝 Writing session summary + enrichment to memory..."
+        status_message: "📝 Writing turn summary + enrichment to memory..."
 
   - id: agent-presence
     script: agent-presence.sh
@@ -784,6 +791,24 @@ hooks:
     category: cognition
     phase: O
     timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
+  - id: classify-task-mode
+    script: classify-task-mode.sh
+    description: |
+      UserPromptSubmit — classify the prompt into a persona-aware
+      task-mode and write the verdict to $COS_AGENT_DIR/.task-mode.
+      Modes: formal | propose-formal | query | chore | adhoc |
+      gov-required. Downstream enforcement hooks read the marker so a
+      Q&A turn does not pay the same cost as a multi-file refactor —
+      Rule 18 ("task reconciliation mandatory") is honored without
+      forcing a TASK-NNN onto every analytical question.  Decision
+      matrix lives in docs/engineering/task-mode-matrix.md.
+    category: cognition
+    phase: O
+    timeout: 800
     events:
       - event: UserPromptSubmit
         matcher: ""

@@ -125,6 +125,7 @@ hook_dispatchers:
     script: codex-userpromptsubmit-dispatch.sh
     delegates:
       - session-context.sh
+      - classify-task-mode.sh
       - nudge-thinking-os.sh
       - nudge-graph-os.sh
       - agent-presence.sh

@@ -27,6 +27,19 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
   exit 0
 fi
 
+# Persona-aware skip — when classify-task-mode marked the turn as a
+# read-only / exploratory mode, the agent shouldn't pay task-start
+# enforcement on incidental edits. `formal` / `propose-formal` /
+# `gov-required` still go through the full block path below.  Fail
+# open if the marker is missing (older sessions, fresh adapter).
+MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+if [[ -f "$MODE_FILE" ]]; then
+  TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
+  case "$TASK_MODE" in
+    query|adhoc|chore|system) exit 0 ;;
+  esac
+fi
+
 
 # Allow CLEAR 1 ad-hoc fixes without a task
 source "$(dirname "$0")/check-state.sh"

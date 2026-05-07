@@ -93,7 +93,15 @@ try:
         project_root='${PROJECT_ROOT}',
         db_path=os.environ.get('COS_DB_PATH'),
     )
-    if report.get('status') != 'skipped':
+    # Silent on no-op dispatches (skipped or fully cached). 'skipped'
+    # covers out-of-repo + unsupported suffix; cache=hit means every
+    # layer short-circuited via the file_index_state hash so there is
+    # nothing to report. Without this filter every Edit emits a stderr
+    # line into the unified tail even when the graph never changed.
+    # NOTE: comments here are inside a bash double-quoted python -c
+    # argument, so backticks would trigger command substitution. Plain
+    # ASCII only.
+    if report.get('status') != 'skipped' and report.get('cache') != 'hit':
         print(f\"[auto-reindex] {report['status']}: {report['path']} \"
               f\"({report['duration_ms']}ms, layers={list(report['layers'].keys())})\",
               file=sys.stderr)
