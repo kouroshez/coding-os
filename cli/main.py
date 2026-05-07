@@ -48,6 +48,7 @@ from cli.list_adapters import list_adapters as list_adapters_cmd
 from cli.list_stacks import list_stacks as list_stacks_cmd
 from cli.setup import setup as setup_cmd
 from cli.stack_registry import load_base_profile, load_stack_registry
+from cli.tail_command import tail_cmd
 from cli.update import update as update_cmd
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent
@@ -670,6 +671,7 @@ cli.add_command(brain_gc_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(eject_file_cmd)
+cli.add_command(tail_cmd)
 
 # Fast scope-aware verification: `cos verify --since-edit`.
 try:

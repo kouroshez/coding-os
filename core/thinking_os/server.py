@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -25,12 +26,24 @@ from tools._shared import fail, ok, safe_tool
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
+_LOG_FORMAT = "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    format=_LOG_FORMAT,
     stream=sys.stderr,  # MCP stdio uses stdout for protocol — logs go to stderr
 )
 logger = logging.getLogger("thinking_os")
+
+# Mirror to .coding-os/.mcp.log so `cos tail` can show MCP activity.
+# Fail-open: if the path is unwritable, MCP boot must continue.
+try:
+    _state_dir = Path(os.environ.get("COS_STATE_DIR") or ".coding-os")
+    _state_dir.mkdir(parents=True, exist_ok=True)
+    _file_handler = logging.FileHandler(_state_dir / ".mcp.log", mode="a", encoding="utf-8")
+    _file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+    logging.getLogger().addHandler(_file_handler)
+except OSError as _exc:  # noqa: BLE001 — boot must not fail on log mirror
+    logger.debug("mcp log file mirror unavailable: %s", _exc)
 
 # ---------------------------------------------------------------------------
 # MCP Server
