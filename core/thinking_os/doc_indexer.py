@@ -812,7 +812,7 @@ def _main() -> None:
     args = parser.parse_args()
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from db import init_db
+    from database import init_db
 
     config_path = Path(args.config).resolve()
     project_root = Path(args.project_root).resolve()

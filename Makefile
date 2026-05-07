@@ -23,8 +23,8 @@ test-mcp: ## Run MCP server self-test
 	@rm -f /tmp/cos-test/test.db /tmp/cos-test/test.db-shm /tmp/cos-test/test.db-wal
 	@rmdir /tmp/cos-test 2>/dev/null || true
 
-.PHONY: test-install
-test-install: ## Test Claude adapter install on temp dir
+.PHONY: test-install-claude test-install
+test-install-claude: ## Claude-specific install smoke test (deeper than verify-install: checks generated files). Renamed from `test-install` to make adapter scope explicit.
 	@mkdir -p /tmp/cos-install-test
 	@cd /tmp/cos-install-test && bash $(COS_ROOT)/adapters/claude/install.sh 2>&1
 	@echo "Checking generated files..."
@@ -34,13 +34,25 @@ test-install: ## Test Claude adapter install on temp dir
 	@rm -r /tmp/cos-install-test
 	@echo "Install test PASSED"
 
+# Backward-compat alias — old `make test-install` still works.
+test-install: test-install-claude
+
 .PHONY: test-cli
 test-cli: ## Test CLI health command
 	@uv run python -m cli.main health --project-dir .
 
 .PHONY: verify-install
-verify-install: ## Sandbox-test all 3 adapter install.sh scripts with hard 15s timeout (catches bash 5.3.9 heredoc deadlocks BEFORE `make sync` does)
-	@for adapter in claude codex cursor; do \
+verify-install: ## Sandbox-test every adapters/*/install.sh with hard 15s timeout (catches bash 5.3.9 heredoc deadlocks BEFORE `make sync` does). Data-driven (Rule 11) — auto-detects new adapters via adapters/<id>/adapter.yaml.
+	@found=0; \
+	for adapter_yml in adapters/*/adapter.yaml; do \
+	  [ -f "$$adapter_yml" ] || continue; \
+	  adapter_dir=$$(dirname "$$adapter_yml"); \
+	  adapter=$$(basename "$$adapter_dir"); \
+	  if [ ! -f "$$adapter_dir/install.sh" ]; then \
+	    printf "  skip %s (no install.sh)\n" "$$adapter"; \
+	    continue; \
+	  fi; \
+	  found=$$((found + 1)); \
 	  TEST=$$(mktemp -d); \
 	  printf "  testing adapters/%s/install.sh ... " "$$adapter"; \
 	  ( cd "$$TEST" && bash $(COS_ROOT)/adapters/$$adapter/install.sh ) > "$$TEST/install.log" 2>&1 & \
@@ -54,7 +66,11 @@ verify-install: ## Sandbox-test all 3 adapter install.sh scripts with hard 15s t
 	  fi; \
 	  echo "OK ($${W}s)"; \
 	  rm -rf "$$TEST"; \
-	done
+	done; \
+	if [ "$$found" -eq 0 ]; then \
+	  echo "  WARN: no adapters with install.sh discovered under adapters/" >&2; \
+	  exit 1; \
+	fi
 
 .PHONY: verify
 verify: verify-hooks verify-install test-mcp ## Run all verification checks
@@ -126,30 +142,49 @@ logs-trim: ## Trim .coding-os/.hooks.log to last 200 lines (manual override of t
 	  echo "  no log at $$LOG"; \
 	fi
 
-.PHONY: dogfood
-dogfood: ## Re-render this repo's .claude/ + .mcp.json by running the Claude adapter install
+.PHONY: dogfood-claude dogfood
+dogfood-claude: ## Re-render only the Claude adapter (.claude/ + .mcp.json). Fast Claude-only iteration; for all-adapter sync use `make sync` or `make dogfood-full`.
 	@bash adapters/claude/install.sh
 	@echo "  Reload Claude Code to pick up the new config."
 
+# Backward-compat alias — old `make dogfood` still works.
+dogfood: dogfood-claude
+
 .PHONY: dogfood-full
-dogfood-full: ## Re-render claude + codex + cursor adapters — re-links core + stack skills
-	@bash adapters/claude/install.sh
-	@bash adapters/codex/install.sh
-	@bash adapters/cursor/install.sh
-	@echo "  Reload your agent (Claude Code, Codex CLI, or Cursor) to pick up the new config."
+dogfood-full: ## Re-render every adapter discovered under adapters/ — re-links core + stack skills. Data-driven (Rule 11) — auto-detects new adapters via adapters/<id>/adapter.yaml.
+	@found=0; \
+	for adapter_yml in adapters/*/adapter.yaml; do \
+	  [ -f "$$adapter_yml" ] || continue; \
+	  adapter_dir=$$(dirname "$$adapter_yml"); \
+	  if [ ! -f "$$adapter_dir/install.sh" ]; then \
+	    printf "  skip %s (no install.sh)\n" "$$(basename $$adapter_dir)"; \
+	    continue; \
+	  fi; \
+	  bash "$$adapter_dir/install.sh"; \
+	  found=$$((found + 1)); \
+	done; \
+	if [ "$$found" -eq 0 ]; then \
+	  echo "  WARN: no adapters with install.sh discovered under adapters/" >&2; \
+	  exit 1; \
+	fi; \
+	echo "  Reload your agent runtime to pick up the new config ($$found adapter(s) installed)."
 
 .PHONY: sync
-sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into claude, codex, and cursor (run after adding any core/ or templates/ asset)
+sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into every adapter discovered under adapters/. Data-driven (Rule 11) — handles new adapters automatically.
 	@echo ""
 	@echo "  ✅ Adapter sync complete."
 	@echo ""
-	@echo "  What just happened:"
-	@echo "    1. core/hooks/registry.yaml     → adapters/*/[settings|hooks].template.json"
-	@echo "    2. core/hooks/*.sh              → .claude/ + .codex/ + .cursor/hooks/  (symlinks)"
-	@echo "    3. core/rules/*.md              → .claude/ + .codex/ + .cursor/rules/ (symlinks)"
-	@echo "    4. core/skills/*/               → .claude/ + .codex/ + .cursor/skills/ (symlinks)"
-	@echo "    5. templates/<stack>/skills/*/  → .claude/ + .codex/ + .cursor/skills/ (stack overlay, per installed-manifest.json)"
-	@echo "    6. core/commands/*.md           → .claude/ + .codex/ + .cursor/commands/ (symlinks)"
+	@adapter_ids=$$(for d in adapters/*/adapter.yaml; do [ -f "$$d" ] && basename $$(dirname "$$d"); done | tr '\n' ',' | sed 's/,$$//; s/,/, /g'); \
+	wrapper_dirs=$$(for d in adapters/*/adapter.yaml; do [ -f "$$d" ] && printf ".%s/ " "$$(basename $$(dirname "$$d"))"; done); \
+	echo "  Adapters synced: $$adapter_ids"; \
+	echo ""; \
+	echo "  What just happened:"; \
+	echo "    1. core/hooks/registry.yaml     → adapters/*/[settings|hooks].template.json"; \
+	echo "    2. core/hooks/*.sh              → $$wrapper_dirs(hooks/, symlinks)"; \
+	echo "    3. core/rules/*.md              → $$wrapper_dirs(rules/, symlinks)"; \
+	echo "    4. core/skills/*/               → $$wrapper_dirs(skills/, symlinks)"; \
+	echo "    5. templates/<stack>/skills/*/  → $$wrapper_dirs(skills/, stack overlay per installed-manifest.json)"; \
+	echo "    6. core/commands/*.md           → $$wrapper_dirs(commands/, symlinks)"
 	@echo ""
 	@echo "  Reload your agent runtime to read the refreshed configs."
 
@@ -199,6 +234,67 @@ docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (T
 .PHONY: docs-index-regen-dry
 docs-index-regen-dry: ## Preview docs-index-regen output without writing
 	@python3 scripts/regen_doc_index.py docs --all --dry-run
+
+# ── Scheduled Jobs (CRON A + B) ─────────────────────────────────────
+_PLIST_SRC  := $(COS_ROOT)/core/scheduled/launchd/com.codingos.nightly.plist.template
+_PLIST_DEST := $(HOME)/Library/LaunchAgents/com.codingos.nightly.plist
+_UV         := $(shell which uv)
+# Override: COS_CRON_HOUR=22 make cron-install
+COS_CRON_HOUR ?= 3
+# Runtime PATH captured at install time so launchd inherits user's uv location
+_RUNTIME_PATH := $(shell echo $$PATH)
+
+.PHONY: cron-install
+cron-install: ## Install + load nightly launchd job (macOS only; COS_CRON_HOUR=3 override)
+	@mkdir -p $(HOME)/.coding-os/scheduled
+	@sed \
+		-e 's|{{CODING_OS_ROOT}}|$(COS_ROOT)|g' \
+		-e 's|{{UV_PATH}}|$(_UV)|g' \
+		-e 's|{{HOME}}|$(HOME)|g' \
+		-e 's|{{PATH}}|$(_RUNTIME_PATH)|g' \
+		-e 's|{{CRON_HOUR}}|$(COS_CRON_HOUR)|g' \
+		$(_PLIST_SRC) > $(_PLIST_DEST)
+	@launchctl load -w $(_PLIST_DEST)
+	@echo "✓ cron-install: com.codingos.nightly loaded (runs daily at $(COS_CRON_HOUR):00)"
+	@echo "  plist: $(_PLIST_DEST)"
+	@echo "  logs:  $(HOME)/.coding-os/scheduled/"
+
+.PHONY: cron-uninstall
+cron-uninstall: ## Unload + remove nightly launchd job
+	@launchctl unload -w $(_PLIST_DEST) 2>/dev/null || true
+	@rm -f $(_PLIST_DEST)
+	@echo "✓ cron-uninstall: com.codingos.nightly removed"
+
+.PHONY: cron-run
+cron-run: ## Run nightly maintenance right now (all projects)
+	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/core/scheduled/nightly.py $(ARGS)
+
+.PHONY: cron-dry
+cron-dry: ## Simulate nightly run without writing (ARGS passthrough)
+	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/core/scheduled/nightly.py --dry-run --verbose
+
+.PHONY: cron-status
+cron-status: ## Show last nightly run summary
+	@if [ -f "$(HOME)/.coding-os/scheduled/last_summary.json" ]; then \
+		cat "$(HOME)/.coding-os/scheduled/last_summary.json"; \
+	else \
+		echo "No nightly run recorded yet. Run: make cron-run"; \
+	fi
+
+.PHONY: cron-reset
+cron-reset: ## Reset consecutive_failures counter for all projects
+	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/core/scheduled/nightly.py --reset-failures --dry-run
+
+.PHONY: cron-b-setup
+cron-b-setup: ## Print CronCreate invocation for CRON B (weekly narrative agent)
+	@echo "=== CRON B — Weekly Narrative Agent ==="
+	@echo "Copy the prompt below into Claude Code and approve the CronCreate call."
+	@echo ""
+	@echo "Schedule: every Monday 09:00 (0 9 * * 1)"
+	@echo ""
+	@python3 -c "from core.scheduled.nightly import CRON_B_PROMPT; print(CRON_B_PROMPT)"
+	@echo ""
+	@echo "In Claude Code: 'Set up a weekly cron for me using CronCreate with the above prompt.'"
 
 .PHONY: ui-dev
 ui-dev: ## Vite dev server with HMR → http://127.0.0.1:5173 (proxies /api to hub on 9188)

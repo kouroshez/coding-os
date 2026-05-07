@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from db import DEFAULT_DB_PATH, get_connection
+from database import DEFAULT_DB_PATH, get_connection
 
 TASKS_FILE = Path("docs/tasks.md")
 

@@ -293,7 +293,7 @@ def index_project(
 def open_backend(db_path: str | Path) -> Any:
     """Open the configured GraphBackend against `db_path`. SQLite-first."""
     reg = _load_graph_os()
-    from db import init_db  # type: ignore  # noqa: PLC0415
+    from database import init_db  # type: ignore  # noqa: PLC0415
 
     db_p = Path(db_path)
     db_p.parent.mkdir(parents=True, exist_ok=True)

@@ -28,7 +28,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import init_db  # noqa: E402
+from database import init_db  # noqa: E402
 from doc_indexer import _match_source_config, index_single_file, load_rag_config  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]

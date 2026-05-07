@@ -75,6 +75,8 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     ) &
   ) &
   cos_log_hook auto-reindex-shell-ops full "cmd_head=$(printf '%.80s' "$CMD")" || true
+  cos_record_activity graph "full reindex" 2>/dev/null || true
+  printf '%s' '{"systemMessage":"[graph] full reindex"}'
   exit 0
 fi
 
@@ -94,5 +96,8 @@ dispatch('${path}', project_root='$(pwd)', force=True)
   ) &
 ) &
 
-cos_log_hook auto-reindex-shell-ops paths "$(echo "$EXPLICIT_PATHS" | wc -l) files" || true
+_N=$(printf '%s' "$EXPLICIT_PATHS" | grep -c . || true)
+cos_log_hook auto-reindex-shell-ops paths "${_N} files" || true
+cos_record_activity graph "reindex ${_N} files" 2>/dev/null || true
+printf '%s' "{\"systemMessage\":\"[graph] reindex ${_N} files\"}"
 exit 0

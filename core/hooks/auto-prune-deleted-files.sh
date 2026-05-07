@@ -100,4 +100,9 @@ if [[ -f "$ERR_LOG" ]]; then
 fi
 
 cos_log_hook auto-prune-deleted-files dispatched "paths=${#PATHS[@]}"
+
+# Visible signal — record activity + emit systemMessage. count is int.
+cos_record_activity graph "prune ${#PATHS[@]}" 2>/dev/null || true
+printf '%s' "{\"systemMessage\":\"[graph] prune ${#PATHS[@]}\"}"
+
 exit 0

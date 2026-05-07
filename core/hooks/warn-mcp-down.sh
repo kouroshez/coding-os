@@ -118,8 +118,36 @@ fi
   echo "⚠️  will error or return empty. Observations won't be persisted."
   echo "⚠️"
   echo "⚠️  Diagnose:  cos doctor         (check C15 mcp_actually_launches)"
-  echo "⚠️  Repair:    bash adapters/claude/install.sh     (Claude projects)"
-  echo "⚠️             bash adapters/codex/install.sh      (Codex projects)"
+  echo "⚠️  Repair:"
+  # Data-driven: list every adapter that ships an install.sh under
+  # adapters/<id>/. New adapters added tomorrow appear here automatically;
+  # no source edits required. Falls back to a generic line if the meta
+  # repo can't be located (consumer projects without the live tree).
+  _META_ROOT="${COS_ROOT:-}"
+  if [[ -z "$_META_ROOT" ]] || [[ ! -d "$_META_ROOT/adapters" ]]; then
+    # Best-effort: walk up from this hook script's physical location.
+    _src="${BASH_SOURCE[0]}"
+    while [ -L "$_src" ]; do
+      _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+      _src="$(readlink "$_src")"
+      [[ "$_src" != /* ]] && _src="$_dir/$_src"
+    done
+    _META_ROOT="$(cd -P "$(dirname "$_src")/../.." && pwd 2>/dev/null || true)"
+    unset _src _dir
+  fi
+  if [[ -d "$_META_ROOT/adapters" ]]; then
+    for _adapter_yml in "$_META_ROOT"/adapters/*/adapter.yaml; do
+      [[ -f "$_adapter_yml" ]] || continue
+      _adapter_dir="$(dirname "$_adapter_yml")"
+      _adapter="$(basename "$_adapter_dir")"
+      [[ -f "$_adapter_dir/install.sh" ]] || continue
+      printf "⚠️             bash adapters/%s/install.sh\n" "$_adapter"
+    done
+    unset _adapter_yml _adapter_dir _adapter
+  else
+    echo "⚠️             bash <adapter>/install.sh   (one per adapter under adapters/)"
+  fi
+  unset _META_ROOT
   echo "⚠️             OR: uv tool install --force --editable <coding-os>"
   echo "⚠️  ================================================================"
   echo ""

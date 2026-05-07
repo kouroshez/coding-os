@@ -33,11 +33,24 @@ if [[ -z "$GLOBAL_COS" ]]; then
     exit 0
 fi
 
-COS_BIN_DIR="$(dirname "$GLOBAL_COS")"
-COS_PYTHON="${COS_BIN_DIR}/python3"
+# Resolve symlink — `uv tool install` lays the entry point at
+# ~/.local/bin/cos as a symlink to ~/.local/share/uv/tools/coding-os/bin/cos.
+# dirname of the symlink (~/.local/bin) does NOT contain a python3 sibling;
+# only the resolved target's bin dir does. macOS `readlink -f` is missing in
+# default coreutils, so fall through to portable python3 realpath.
+ACTUAL_COS="$GLOBAL_COS"
+if [[ -L "$GLOBAL_COS" ]]; then
+    ACTUAL_COS="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$GLOBAL_COS" 2>/dev/null || echo "$GLOBAL_COS")"
+fi
 
-# Fallback: if no sibling python3 (e.g. cos installed via brew wrapper script),
-# try PATH python3. If nothing found, skip check — can't validate safely.
+# Most reliable: read the cos entry-point shebang — it points at the exact
+# python that imports cos's installed packages, including extras.
+COS_PYTHON="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$ACTUAL_COS" 2>/dev/null)"
+
+# Fallbacks: sibling python3 in resolved bin dir, then PATH python3.
+if [[ -z "$COS_PYTHON" || ! -x "$COS_PYTHON" ]]; then
+    COS_PYTHON="$(dirname "$ACTUAL_COS")/python3"
+fi
 if [[ ! -x "$COS_PYTHON" ]]; then
     COS_PYTHON="$(command -v python3 2>/dev/null || true)"
     if [[ -z "$COS_PYTHON" || ! -x "$COS_PYTHON" ]]; then

@@ -285,7 +285,7 @@ class TestMigrationV16:
     def test_rewrites_legacy_kinds(self, tmp_path):
         """Insert legacy-kind rows into a throwaway DB then apply v16."""
         import sqlite3
-        import db  # type: ignore
+        import database  # type: ignore
 
         db_path = str(tmp_path / "migration-v16.db")
         conn = sqlite3.connect(db_path)
@@ -295,7 +295,7 @@ class TestMigrationV16:
 
         # First open via init_db so schema is fully in place (including
         # the v16 migration — we'll pre-seed legacy rows, then re-run).
-        conn = db.init_db(db_path)
+        conn = database.init_db(db_path)
 
         # Insert fake legacy rows directly (created_at/updated_at NOT NULL).
         conn.execute("DELETE FROM graph_nodes")
@@ -318,7 +318,7 @@ class TestMigrationV16:
         # idempotent under re-run.
         conn.execute("DELETE FROM schema_version WHERE version >= 16")
         conn.commit()
-        db.run_migrations(conn)
+        database.run_migrations(conn)
 
         rows = conn.execute(
             "SELECT uid, kind FROM graph_nodes ORDER BY uid"

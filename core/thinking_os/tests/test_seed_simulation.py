@@ -25,7 +25,7 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import init_db, get_db_stats, has_fts5_table
+from database import init_db, get_db_stats, has_fts5_table
 from tools.learning import learn_extract, learn_suggest, learn_validate, generate_feedback_drafts
 from tools.memory import memory_search, memory_timeline, memory_details, memory_promote
 from tools.metrics import metric_record, metric_query, metric_trend
@@ -62,7 +62,7 @@ FRONTEND_FILES = [
 ]
 INFRA_FILES = [
     "core/scripts/task-done.sh", "core/scripts/task-start.sh",
-    "core/thinking_os/server.py", "core/thinking_os/db.py",
+    "core/thinking_os/server.py", "core/thinking_os/database.py",
     "Makefile", "docker-compose.yml", ".github/workflows/ci.yml",
 ]
 DOC_FILES = [
@@ -340,7 +340,7 @@ class TestSeedHealth:
         assert count == 500
 
     def test_schema_version(self, seeded_conn: sqlite3.Connection):
-        from db import MIGRATIONS, get_schema_version
+        from database import MIGRATIONS, get_schema_version
         # Tracks the latest applied migration — currently v5 (Phase B RAG).
         assert get_schema_version(seeded_conn) == len(MIGRATIONS)
 

@@ -282,6 +282,18 @@ except OSError:
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
+  # Aggregated PostToolUse activity since the previous prompt — Claude Code
+  # does not render PostToolUse stdout, so each PostToolUse hook calls
+  # `cos_record_activity` (cos-env.sh) which appends to .turn-activity.log.
+  # turn_summary.py reads + clears it, returning a compact string like
+  # `memory:5 graph:3 task:TASK-42 skill:clean-code` for inclusion below.
+  ACTIVITY=""
+  ACTIVITY_HELPER="${_COS_HOOKS_PHYS}/_helpers/turn_summary.py"
+  if [ -f "$ACTIVITY_HELPER" ] && command -v python3 >/dev/null 2>&1; then
+    ACTIVITY=$(python3 "$ACTIVITY_HELPER" 2>/dev/null | head -c 256)
+  fi
+  [[ -n "$ACTIVITY" ]] && PARTS="${PARTS} | ${ACTIVITY}"
+
   CONTEXT="[coding-os pulse] ${PARTS}"
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 fi

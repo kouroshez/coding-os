@@ -85,8 +85,8 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 - **Rule:** New tables → migration `vN+1`. Never edit a past migration’s body.
 - **Why:** Migrations run once per consumer DB; editing the past silently diverges schemas.
-- **How:** Hook `block-migration-conflict.sh` rejects duplicate version numbers in `core/thinking_os/db.py`.
-- **Where:** [core/thinking_os/db.py](../../../../core/thinking_os/db.py)
+- **How:** Hook `block-migration-conflict.sh` rejects duplicate version numbers in `core/thinking_os/database.py`.
+- **Where:** [core/thinking_os/database.py](../../../../core/thinking_os/database.py)
 
 ## Rule 10 — Regenerate derived artifacts
 

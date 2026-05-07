@@ -39,6 +39,8 @@ export interface SigmaNodeAttrs {
   startLine?: number;
   hidden?: boolean;
   forceLabel?: boolean;
+  type?: string;
+  image?: string;
 }
 
 export interface SigmaEdgeAttrs {
@@ -46,6 +48,7 @@ export interface SigmaEdgeAttrs {
   color: string;
   edgeType: string;
   hidden?: boolean;
+  weight?: number;
 }
 
 // TASK-141 P4: client-side noise filter — keeps the canvas focused on
@@ -96,6 +99,18 @@ export function buildGraph(
     return false;
   };
 
+  const createSvgIcon = (pathData: string) => 
+    `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${pathData}"/></svg>`)}`;
+
+  const ICONS: Record<string, string> = {
+    folder: createSvgIcon('M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'),
+    file: createSvgIcon('M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8'),
+    module: createSvgIcon('M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12'),
+    database: createSvgIcon('M12 5c-4.42 0-8 1.79-8 4s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4z M4 9v6c0 2.21 3.58 4 8 4s8-1.79 8-4V9 M4 15v6c0 2.21 3.58 4 8 4s8-1.79 8-4v-6'),
+    component: createSvgIcon('M12 2l9 4.9V17L12 22l-9-4.9V7z M12 22v-10 M12 12L3 7 M12 12l9-5'), // Cube
+    class: createSvgIcon('M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z M8 21h8 M12 17v4'), // Monitor
+  };
+
   for (const n of nodes) {
     if (!n.uid) continue;
     // Normalise legacy colon-prefixed kinds (`code:function`,
@@ -107,6 +122,9 @@ export function buildGraph(
       ? opts.visibleKinds.has(normalKind)
       : true;
     if (graph.hasNode(n.uid)) continue;
+    
+    const image = ICONS[normalKind];
+    
     graph.addNode(n.uid, {
       x: Math.random() * 2 - 1,
       y: Math.random() * 2 - 1,
@@ -118,6 +136,8 @@ export function buildGraph(
       startLine: n.start_line ?? undefined,
       hidden: !kindVisible,
       forceLabel: labelForceFor(n.uid, normalKind),
+      type: image ? 'image' : 'circle',
+      image: image,
     });
   }
 
@@ -134,6 +154,7 @@ export function buildGraph(
         color: edgeColor(e.edge_type),
         edgeType: e.edge_type,
         hidden: !typeVisible,
+        weight: edgeWeight(e.edge_type),
       });
     } catch {
       // duplicate — ignore
@@ -179,6 +200,14 @@ function edgeColor(edgeType: string): string {
 
 function edgeSize(edgeType: string): number {
   return EDGE_PALETTE[edgeType]?.size ?? 0.8;
+}
+
+function edgeWeight(edgeType: string): number {
+  // Strong structural bonds pull nodes together tightly in ForceAtlas2
+  if (['contains', 'defines_route'].includes(edgeType)) return 20;
+  if (['inherits_from', 'implements', 'extends'].includes(edgeType)) return 5;
+  // Weak operational bonds allow nodes to breathe
+  return 1;
 }
 
 // Depth-bounded BFS from a root uid. Used client-side to prune the

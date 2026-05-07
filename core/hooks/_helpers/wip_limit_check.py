@@ -62,9 +62,13 @@ except (FileNotFoundError, Exception):
     sys.exit(0)
 
 import sqlite3
-db_path = os.environ.get(
-    "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"),
-)
+try:
+    from thinking_os.database import resolve_db_path  # type: ignore
+    db_path = str(resolve_db_path(project_root))
+except ImportError:
+    db_path = os.environ.get(
+        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"),
+    )
 if not Path(db_path).exists():
     sys.exit(0)
 

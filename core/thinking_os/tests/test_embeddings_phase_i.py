@@ -16,7 +16,7 @@ import pytest
 
 import embeddings
 import migrator_embeddings
-from db import init_db
+from database import init_db
 
 
 # ---------------------------------------------------------------------------

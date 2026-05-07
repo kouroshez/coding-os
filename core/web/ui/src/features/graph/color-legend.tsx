@@ -6,7 +6,7 @@ export default function ColorLegend() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)]/95 text-xs shadow-lg backdrop-blur">
+    <div className="text-xs">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

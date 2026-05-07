@@ -20,7 +20,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import embeddings  # noqa: E402
-from db import init_db  # noqa: E402
+from database import init_db  # noqa: E402
 from task_sync import sync_tasks  # noqa: E402
 from tools.tasks import (  # noqa: E402
     task_by_filter,

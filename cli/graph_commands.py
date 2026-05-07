@@ -69,7 +69,7 @@ def _json_echo(payload: Any, *, pretty: bool = False) -> None:
 
 def _open_backend():
     _bootstrap_paths()
-    from db import init_db  # type: ignore
+    from database import init_db  # type: ignore
     from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
     from graph_os.tools import graph as graph_tools  # type: ignore
 
@@ -271,7 +271,7 @@ def register(cli: click.Group) -> None:
         """Quick snapshot: node count, edge count, schema version."""
         backend, _ = _open_backend()
         _bootstrap_paths()
-        from db import get_db_stats  # type: ignore
+        from database import get_db_stats  # type: ignore
 
         stats = get_db_stats(backend._conn)
         report = {
@@ -334,12 +334,12 @@ def register(cli: click.Group) -> None:
         if rebuild_kinds:
             # S3 data migration — idempotent; can be invoked standalone.
             try:
-                import db  # type: ignore
+                import database  # type: ignore
                 from graph_os.types import normalize_kind  # type: ignore
             except ImportError as exc:
                 click.echo(f"[graph-reindex] rebuild-kinds import failed: {exc}", err=True)
                 return
-            conn = db.get_connection()
+            conn = database.get_connection()
             try:
                 rows = conn.execute(
                     "SELECT DISTINCT kind FROM graph_nodes"
@@ -763,12 +763,12 @@ def _graph_reindex_print_status() -> None:
 
     _bootstrap_paths()
     try:
-        import db  # type: ignore
+        import database  # type: ignore
     except ImportError as exc:
         raise click.ClickException(f"thinking_os db import failed: {exc}") from exc
-    conn = db.init_db()
+    conn = database.init_db()
     try:
-        if not db.has_file_index_state_table(conn):
+        if not database.has_file_index_state_table(conn):
             click.echo(
                 "[graph-reindex] file_index_state table missing "
                 "(migration v17 not applied)."

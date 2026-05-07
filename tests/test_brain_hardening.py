@@ -32,7 +32,7 @@ HOOKS = REPO / "core" / "hooks"
 def _seed_db(tmp: Path) -> Path:
     """Initialise a fresh schema-v18 DB for isolation."""
     sys.path.insert(0, str(BRAIN))
-    import db as _db  # type: ignore
+    import database as _db  # type: ignore
     path = tmp / "coding-os.db"
     conn = _db.init_db(str(path))
     conn.close()

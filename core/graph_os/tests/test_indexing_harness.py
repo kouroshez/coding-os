@@ -284,7 +284,7 @@ class TestWarnGraphEmptyHook:
         assert "Graph not indexed" in result.stderr
 
     def test_empty_db_warns(self, thinking_os_on_path, tmp_path):
-        from db import init_db  # type: ignore
+        from database import init_db  # type: ignore
 
         db_path = tmp_path / "e.db"
         init_db(str(db_path)).close()
@@ -293,7 +293,7 @@ class TestWarnGraphEmptyHook:
         assert "graph_nodes=0" in result.stderr
 
     def test_non_empty_db_silent(self, thinking_os_on_path, tmp_path):
-        from db import init_db  # type: ignore
+        from database import init_db  # type: ignore
         from graph_os.backends.sqlite_backend import SqliteBackend
         from graph_os.types import GraphNode
 

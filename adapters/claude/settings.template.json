@@ -156,6 +156,17 @@
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-graph-first-read.sh",
+            "statusMessage": "🧭 Checking graph-first discipline before Read...",
+            "timeout": 1500
+          }
+        ]
+      },
+      {
         "matcher": "Edit",
         "hooks": [
           {
@@ -465,6 +476,11 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-thinking-os.sh",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/nudge-graph-os.sh",
             "timeout": 1000
           }
         ]

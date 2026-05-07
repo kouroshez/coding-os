@@ -5,6 +5,7 @@ import forceAtlas2 from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 import type { SigmaEdgeAttrs, SigmaNodeAttrs } from './graph-adapter';
 import { applyDagreLayout } from './dagre-layout';
+import { NodeImageProgram } from "@sigma/node-image";
 
 export type LayoutMode = 'force' | 'dagre';
 
@@ -67,11 +68,18 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     // handles the repaint itself via .refresh().
     let hoveredNode: string | null = null;
     let hoveredNeighbours: Set<string> | null = null;
-    const hostGraph = graph;
+    let inboundEdges: Set<string> | null = null;
+    let outboundEdges: Set<string> | null = null;
+    let currentLOD = 2; // 0 = zoomed far out, 1 = zoomed mid, 2 = zoomed in
 
     // Cast graph for Sigma's less-permissive generic bounds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sigma = new Sigma(graph as any, containerRef.current, {
+      nodeProgramClasses: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        image: NodeImageProgram as any,
+      },
       renderLabels: true,
       labelSize: 12,
       labelColor: { color: labelHex },
@@ -80,29 +88,50 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       labelGridCellSize: 90,
       defaultNodeColor: fallbackNodeHex,
       defaultEdgeColor: edgeHex,
+      defaultEdgeType: "arrow",
       minCameraRatio: 0.05,
       maxCameraRatio: 30,
       hideEdgesOnMove: false,
       nodeReducer: (node: string, data: SigmaNodeAttrs) => {
         if (data.hidden) return { ...data, hidden: true };
+        
+        const nodeData = { ...data };
+        
+        // Dynamic LOD: hide very low level concepts when zoomed out
+        if (!hoveredNode) {
+          if (currentLOD <= 1) {
+            if (['variable', 'field', 'method', 'function', 'import_', 'identifier', 'type'].includes(data.kind || '')) {
+              nodeData.hidden = true;
+            }
+          }
+          if (currentLOD === 0) {
+            if (['file', 'class', 'interface', 'task', 'doc_file', 'doc_heading', 'doc_frontmatter', 'doc_external', 'rule', 'skill', 'contract', 'community'].includes(data.kind || '')) {
+              nodeData.hidden = true;
+            }
+          }
+        }
+
         if (hoveredNode && hoveredNeighbours) {
           if (node === hoveredNode) {
-            return { ...data, size: data.size * 1.4, zIndex: 2 };
+            return { ...nodeData, size: nodeData.size * 1.4, zIndex: 2 };
           }
           if (!hoveredNeighbours.has(node)) {
-            return { ...data, color: '#d4ccbf', label: '', zIndex: 0 };
+            return { ...nodeData, color: '#d4ccbf', label: '', zIndex: 0 };
           }
-          return { ...data, zIndex: 1 };
+          return { ...nodeData, zIndex: 1 };
         }
-        return data;
+        return nodeData;
       },
       edgeReducer: (edge: string, data: SigmaEdgeAttrs) => {
         if (data.hidden) return { ...data, hidden: true };
-        if (hoveredNode) {
-          if (hostGraph.hasExtremity(edge, hoveredNode)) {
-            return { ...data, size: data.size * 2, color: '#3A2925' };
+        if (hoveredNode && inboundEdges && outboundEdges) {
+          if (outboundEdges.has(edge)) {
+            return { ...data, size: Math.max(data.size * 2, 2), color: '#d96c2c', zIndex: 2 }; // Outbound (orange)
           }
-          return { ...data, color: '#e7dfd0', size: 0.4 };
+          if (inboundEdges.has(edge)) {
+            return { ...data, size: Math.max(data.size * 2, 2), color: '#3A7A7A', zIndex: 1 }; // Inbound (teal)
+          }
+          return { ...data, color: '#e7dfd0', size: 0.4, zIndex: 0 };
         }
         return data;
       },
@@ -111,17 +140,78 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
 
     sigma.on('clickNode', (e: { node: string }) => options.onNodeClick?.(e.node));
     sigma.on('clickStage', () => options.onStageClick?.());
+    
+    sigma.getCamera().on('updated', () => {
+      const ratio = sigma.getCamera().ratio;
+      let newLOD = 2; 
+      if (ratio > 3.0) newLOD = 0;
+      else if (ratio > 1.2) newLOD = 1;
+      
+      if (newLOD !== currentLOD) {
+        currentLOD = newLOD;
+        sigma.refresh();
+      }
+    });
+
     sigma.on('enterNode', (e: { node: string }) => {
       hoveredNode = e.node;
       const live = graphRef.current;
-      hoveredNeighbours = live
-        ? new Set([e.node, ...live.neighbors(e.node)])
-        : new Set([e.node]);
+      if (live) {
+        hoveredNeighbours = new Set([e.node]);
+        inboundEdges = new Set();
+        outboundEdges = new Set();
+
+        const MAX_DEPTH = 3;
+
+        // BFS Outbound (Dependencies)
+        let outQueue = [e.node];
+        let depth = 0;
+        while (outQueue.length > 0 && depth < MAX_DEPTH) {
+          const nextQueue: string[] = [];
+          for (const n of outQueue) {
+            live.outEdges(n).forEach((edge: string) => {
+              outboundEdges!.add(edge);
+              const target = live.target(edge);
+              if (!hoveredNeighbours!.has(target)) {
+                hoveredNeighbours!.add(target);
+                nextQueue.push(target);
+              }
+            });
+          }
+          outQueue = nextQueue;
+          depth++;
+        }
+
+        // BFS Inbound (Dependents)
+        let inQueue = [e.node];
+        depth = 0;
+        while (inQueue.length > 0 && depth < MAX_DEPTH) {
+          const nextQueue: string[] = [];
+          for (const n of inQueue) {
+            live.inEdges(n).forEach((edge: string) => {
+              inboundEdges!.add(edge);
+              const source = live.source(edge);
+              if (!hoveredNeighbours!.has(source)) {
+                hoveredNeighbours!.add(source);
+                nextQueue.push(source);
+              }
+            });
+          }
+          inQueue = nextQueue;
+          depth++;
+        }
+      } else {
+        hoveredNeighbours = new Set([e.node]);
+        inboundEdges = new Set();
+        outboundEdges = new Set();
+      }
       sigma.refresh();
     });
     sigma.on('leaveNode', () => {
       hoveredNode = null;
       hoveredNeighbours = null;
+      inboundEdges = null;
+      outboundEdges = null;
       sigma.refresh();
     });
 
@@ -165,7 +255,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
           incoming as any,
           {
             iterations: FA2_ITERATIONS,
-            settings: { ...inferred, slowDown: 5, scalingRatio: 15, gravity: 0.4 },
+            settings: { ...inferred, slowDown: 5, scalingRatio: 15, gravity: 0.4, edgeWeightInfluence: 1 },
           },
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

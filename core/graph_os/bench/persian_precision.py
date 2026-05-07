@@ -116,7 +116,7 @@ def main() -> int:
     args = parser.parse_args()
 
     import embeddings  # type: ignore
-    from db import init_db  # type: ignore
+    from database import init_db  # type: ignore
 
     model_name = args.model or embeddings.active_model_name()
     if not embeddings.is_available():

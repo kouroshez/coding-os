@@ -49,14 +49,14 @@ async def memory_search(
 ):
     """Search thinking_os memory (observations + learned patterns)."""
     try:
-        from db import has_fts5_table  # type: ignore
+        from database import has_fts5_table  # type: ignore
         from tools.memory import memory_search as _search  # type: ignore
         from tools.retrieve import log_retrieval  # type: ignore
     except ImportError:
         # Try alternate import path (running from repo root rather than thinking_os dir).
         try:
             sys.path.insert(0, str(_TOS_DIR))
-            from db import has_fts5_table  # type: ignore
+            from database import has_fts5_table  # type: ignore
             from tools.memory import memory_search as _search  # type: ignore
             from tools.retrieve import log_retrieval  # type: ignore
         except ImportError as exc:

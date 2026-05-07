@@ -40,7 +40,7 @@ export default function ViewModeTabs() {
     <div
       role="tablist"
       aria-label="Graph view mode"
-      className="flex items-center gap-1 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)]/95 p-1 text-xs shadow-sm backdrop-blur"
+      className="flex items-center gap-1 p-1 text-xs"
     >
       {TABS.map((t) => {
         const active = viewMode === t.value;

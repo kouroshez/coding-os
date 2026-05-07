@@ -11,6 +11,7 @@ Checks (fail-fast ordering):
     C7  adapter-specific (Claude settings.json + hook executability, or
         Codex hooks.json)
     C9  no unresolved {{placeholder}} in scaffold text files
+    C30 nightly cron: plist installed, loaded, no failures, recent run
 
 C8 (manifest hash diff) and C10 (MCP self-test) are wired in Phase 2.
 
@@ -709,6 +710,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
         logger.debug("board doctor unavailable: %s", exc)
+    _check_scheduled(project, report)
     return report
 
 
@@ -1057,13 +1059,30 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
         )
         return
     if source_path is None:
+        # Data-driven (Rule 11): list every adapter that ships an
+        # install.sh under adapters/<id>/. New adapters appear here
+        # automatically — no edit to this diagnostic when one is added.
+        meta_root = Path(__file__).resolve().parent.parent / "adapters"
+        adapter_lines: list[str] = []
+        if meta_root.is_dir():
+            for adapter_yaml in sorted(meta_root.glob("*/adapter.yaml")):
+                install_sh = adapter_yaml.parent / "install.sh"
+                if install_sh.exists():
+                    adapter_lines.append(
+                        f"`bash <coding-os>/adapters/{adapter_yaml.parent.name}/install.sh`"
+                    )
+        if adapter_lines:
+            repair = "Run " + " or ".join(adapter_lines) + " from the project root."
+        else:
+            repair = (
+                "Run `bash <coding-os>/adapters/<adapter>/install.sh` for the "
+                "adapter you use, from the project root."
+            )
         report.checks.append(
             CheckResult(
                 "C15", "mcp_actually_launches", SEV_FAIL,
                 "coding-os MCP config missing — neither .mcp.json nor "
-                ".codex/config.toml defines coding-os. Run "
-                "`bash <coding-os>/adapters/claude/install.sh` or "
-                "`bash <coding-os>/adapters/codex/install.sh` from the project root.",
+                ".codex/config.toml defines coding-os. " + repair,
             )
         )
         return
@@ -1474,6 +1493,108 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
     ))
 
 
+def _check_scheduled(project: Path, report: DoctorReport) -> None:
+    """C30 — nightly cron: plist installed + loaded, no failures, run < 2d ago."""
+    import datetime as _datetime
+    import platform as _platform
+
+    plist_dest = Path.home() / "Library" / "LaunchAgents" / "com.codingos.nightly.plist"
+    last_run_path = project / ".coding-os" / "scheduled" / "last_run.json"
+    is_macos = _platform.system() == "Darwin"
+    plist_ok = True
+
+    if is_macos:
+        if not plist_dest.exists():
+            report.checks.append(CheckResult(
+                "C30", "scheduled_cron", SEV_WARN,
+                "nightly cron not installed — run `cos cron install`",
+                {"plist": str(plist_dest)},
+            ))
+            return
+        try:
+            r = subprocess.run(
+                ["launchctl", "list", "com.codingos.nightly"],
+                capture_output=True, timeout=5,
+            )
+            if r.returncode != 0:
+                report.checks.append(CheckResult(
+                    "C30", "scheduled_cron", SEV_WARN,
+                    "plist present but not loaded — run `cos cron install`",
+                    {"plist": str(plist_dest)},
+                ))
+                return
+        except OSError as exc:
+            logger.debug("launchctl probe failed: %s", exc)
+            plist_ok = False
+
+    if not last_run_path.exists():
+        prefix = "plist installed + loaded" if (is_macos and plist_ok) else "cron configured"
+        report.checks.append(CheckResult(
+            "C30", "scheduled_cron", SEV_PASS,
+            f"{prefix}, no run yet — run `cos cron run` to test",
+        ))
+        return
+
+    try:
+        data = json.loads(last_run_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        report.checks.append(CheckResult(
+            "C30", "scheduled_cron", SEV_WARN,
+            f"cannot read last_run.json: {exc}",
+            {"path": str(last_run_path)},
+        ))
+        return
+
+    disabled = data.get("disabled_reason")
+    if disabled:
+        report.checks.append(CheckResult(
+            "C30", "scheduled_cron", SEV_FAIL,
+            f"auto-disabled: {disabled} — run `cos cron run --reset-failures`",
+            {"disabled_reason": disabled, "last_error": data.get("last_error")},
+        ))
+        return
+
+    failures = int(data.get("consecutive_failures") or 0)
+    if failures >= 3:
+        report.checks.append(CheckResult(
+            "C30", "scheduled_cron", SEV_FAIL,
+            f"{failures} consecutive failures — run `cos cron run --reset-failures`",
+            {"consecutive_failures": failures, "last_error": data.get("last_error")},
+        ))
+        return
+
+    run_at = (data.get("run_at") or "")[:19]
+    if run_at:
+        try:
+            run_dt = _datetime.datetime.fromisoformat(run_at).replace(
+                tzinfo=_datetime.timezone.utc
+            )
+            now = _datetime.datetime.now(_datetime.timezone.utc)
+            age_days = (now - run_dt).total_seconds() / 86400
+            if age_days > 2:
+                report.checks.append(CheckResult(
+                    "C30", "scheduled_cron", SEV_WARN,
+                    f"last run {age_days:.1f}d ago — is launchd running?",
+                    {"run_at": run_at, "age_days": round(age_days, 1)},
+                ))
+                return
+        except (ValueError, TypeError) as exc:
+            logger.debug("run_at parse failed: %s", exc)
+
+    parts: list[str] = []
+    if is_macos and plist_ok:
+        parts.append("plist loaded")
+    if failures:
+        parts.append(f"failures={failures}")
+    if run_at:
+        parts.append(f"last={run_at[:10]}")
+    report.checks.append(CheckResult(
+        "C30", "scheduled_cron", SEV_PASS,
+        ", ".join(parts) if parts else "healthy",
+        {"consecutive_failures": failures, "run_at": run_at or None},
+    ))
+
+
 def _format_text(report: DoctorReport, *, strict: bool) -> str:
     header = (
         f"Coding OS Doctor — {report.project_dir}\n"
@@ -1505,35 +1626,57 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
 
 
 def _probe_claude_sdk() -> None:
-    """Print Claude SDK + CLI compatibility report (T14.4)."""
+    """Print agent SDK + CLI compatibility report (T14.4).
+
+    Reads `adapters/<id>/adapter.yaml::{cli_binary, sdk_package}` so
+    this file stays free of hardcoded adapter literals (Rule 11).
+    """
     import importlib.metadata
     import os
     import shutil
     import subprocess
+    from pathlib import Path
 
-    click.echo("Claude SDK compatibility report")
+    import yaml
+
+    target_id = os.environ.get("COS_AGENT", "")
+    adapters_root = Path(__file__).resolve().parent.parent / "adapters"
+    if not target_id:
+        for adapter_dir in sorted(adapters_root.iterdir()):
+            if adapter_dir.is_dir() and (adapter_dir / "adapter.yaml").exists():
+                target_id = adapter_dir.name
+                break
+
+    meta_path = adapters_root / target_id / "adapter.yaml"
+    adapter = yaml.safe_load(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+    cli_binary = adapter.get("cli_binary") or target_id
+    sdk_package = adapter.get("sdk_package") or ""
+    label = adapter.get("label") or target_id
+
+    click.echo(f"{label} SDK compatibility report")
     click.echo("=" * 60)
 
-    # SDK version
-    try:
-        sdk_version = importlib.metadata.version("claude-agent-sdk")
-        click.echo(f"  [OK]   claude-agent-sdk = {sdk_version}")
-    except importlib.metadata.PackageNotFoundError:
-        click.echo("  [FAIL] claude-agent-sdk not installed (uv sync --extra rag)")
+    if sdk_package:
+        try:
+            sdk_version = importlib.metadata.version(sdk_package)
+            click.echo(f"  [OK]   {sdk_package} = {sdk_version}")
+        except importlib.metadata.PackageNotFoundError:
+            click.echo(f"  [FAIL] {sdk_package} not installed (uv sync --extra rag)")
+    else:
+        click.echo(f"  [SKIP] no sdk_package declared in adapter.yaml")
 
-    # Claude Code CLI
-    cli_path = shutil.which("claude")
+    cli_path = shutil.which(cli_binary)
     if cli_path:
         try:
             result = subprocess.run(
                 [cli_path, "--version"], capture_output=True, text=True, timeout=5
             )
             cli_version = result.stdout.strip() or result.stderr.strip()
-            click.echo(f"  [OK]   claude CLI    = {cli_version} ({cli_path})")
+            click.echo(f"  [OK]   {cli_binary} CLI = {cli_version} ({cli_path})")
         except (subprocess.TimeoutExpired, OSError) as exc:
-            click.echo(f"  [WARN] claude CLI unreachable: {exc}")
+            click.echo(f"  [WARN] {cli_binary} CLI unreachable: {exc}")
     else:
-        click.echo("  [WARN] claude CLI not on PATH")
+        click.echo(f"  [WARN] {cli_binary} CLI not on PATH")
 
     # API key auth
     if os.environ.get("ANTHROPIC_API_KEY"):

@@ -3,8 +3,10 @@
 # is deterministic (Codex fires matching hooks concurrently otherwise).
 #
 # Delegates (order matters):
-#   1. session-context.sh  — same workflow banner Claude shows on prompts.
-#   2. agent-presence.sh   — mark the session "active" for the live panel.
+#   1. session-context.sh   — same workflow banner Claude shows on prompts.
+#   2. nudge-thinking-os.sh — heuristic Complexity Gate nudge.
+#   3. nudge-graph-os.sh    — graph_os discovery nudge for structural Qs.
+#   4. agent-presence.sh    — mark the session "active" for the live panel.
 #
 # Fail-open: any delegate failure is logged but does not block the prompt.
 set -euo pipefail
@@ -37,7 +39,7 @@ run_delegate() {
   return 0
 }
 
-for delegate in session-context.sh nudge-thinking-os.sh agent-presence.sh; do
+for delegate in session-context.sh nudge-thinking-os.sh nudge-graph-os.sh agent-presence.sh; do
   run_delegate "$delegate"
 done
 

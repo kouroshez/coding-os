@@ -25,6 +25,19 @@ phase to build your Read List.
 - **Middleware / auth** (M) → `docs/engineering/fiber-rules.md`, `docs/playbooks/security-review.md`
 - **Request validation / DTO** (M) → `docs/engineering/fiber-rules.md`, `docs/api-contracts/error-format.md`
 
+## meta
+
+- **MCP tool authoring (cos_*)** (M) → `docs/engineering/mcp-error-envelope.md`, `docs/governance/mcp-tool-inventory.md`
+- **Graph extractor / backend** (M) → `docs/engineering/graph_os-queries.md`, `docs/engineering/graph-hallucination-cures.md`
+- **Hook authoring (core/hooks/)** (M) → `core/hooks/registry.yaml`, `docs/engineering/hook-architecture.md`
+- **Adapter authoring (adapters/<id>/)** (M) → `docs/adapters/claude-sdk.md`, `docs/engineering/adapter-parity.md`
+- **Template / stack authoring (templates/<id>/)** (M) → `docs/architecture/meta-project.md`, `core/schemas/stack.schema.json`
+- **CLI command authoring (cli/)** (M) → `docs/architecture/meta-project.md`, `docs/engineering/cli-architecture.md`
+- **Hub / web routes (core/web/)** (M) → `docs/engineering/hub-architecture.md`
+- **Board / Scrumban (core/board_os/)** (M) → `docs/engineering/board_os.md`, `docs/governance/task-lifecycle.md`
+- **Cognition / formula composer** (M) → `docs/adapters/claude-sdk.md`, `docs/governance/critical-rules.md`
+- **Rule SSOT regen** (M) → `docs/architecture/meta-project.md`
+
 ## nextjs
 
 - **React component** (M) → `docs/engineering/frontend-rules.md`, `docs/playbooks/frontend-ui.md`

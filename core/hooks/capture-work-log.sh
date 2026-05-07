@@ -88,4 +88,10 @@ if [[ -f "$HELPER" ]]; then
 fi
 
 cos_log_hook "capture-work-log" "spawned" 2>/dev/null || true
+
+# Visible signal — record per-turn activity (rendered by next pulse) +
+# emit systemMessage for future agent renderers / SDK consumers.
+cos_record_activity worklog "+1 ${task_id}" 2>/dev/null || true
+printf '%s' "{\"systemMessage\":\"[worklog] +1 ${task_id}\"}"
+
 exit 0

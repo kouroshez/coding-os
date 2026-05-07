@@ -23,7 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "core"))
 sys.path.insert(0, str(REPO_ROOT / "core" / "thinking_os"))
 
-from db import init_db  # type: ignore  # noqa: E402
+from database import init_db  # type: ignore  # noqa: E402
 from graph_os.backends.sqlite_backend import SqliteBackend  # noqa: E402
 from graph_os.extractors import (  # noqa: E402
     code_python,

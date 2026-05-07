@@ -1,7 +1,7 @@
 """thinking_os test fixtures.
 
 Puts core/thinking_os on sys.path so tests using bare imports
-(``from cognition import ...``, ``from db import ...``) resolve the
+(``from cognition import ...``, ``from database import ...``) resolve the
 same way the MCP server does at runtime. Without this conftest,
 ``pytest core/thinking_os/tests/`` collects but cannot import these
 modules and aborts with ModuleNotFoundError. Mirrors the pattern in

@@ -14,7 +14,7 @@ _THINKING_OS = Path(__file__).resolve().parent.parent
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
-from db import init_db, has_formula_dispatches_table, has_backtrack_events_table
+from database import init_db, has_formula_dispatches_table, has_backtrack_events_table
 
 
 # ---------------------------------------------------------------------------

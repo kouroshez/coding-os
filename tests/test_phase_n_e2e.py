@@ -279,7 +279,7 @@ def test_empty_signals_returns_fallback_not_empty():
 def test_connection_pool_multithreaded_safe():
     """N.5-A: thread-local connection pool must survive concurrent gets."""
     sys.path.insert(0, str(_THINKING_OS))
-    from db import close_pool, get_pooled_conn, pool_stats
+    from database import close_pool, get_pooled_conn, pool_stats
 
     import threading
     close_pool()

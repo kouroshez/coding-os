@@ -20,7 +20,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from db import get_db_stats, init_db
+from database import get_db_stats, init_db
 from tools._shared import fail, ok, safe_tool
 
 # ---------------------------------------------------------------------------
@@ -554,7 +554,7 @@ def thinking_os_search(
     Returns:
         str: JSON with results list [{id, title, confidence, impact_score, memory_type, source_table}].
     """
-    from db import has_fts5_table
+    from database import has_fts5_table
     result = memory_search(
         _db_conn,
         query=query,
@@ -2074,7 +2074,7 @@ def cos_retrieval_enrichment_check(lookback_days: int = 14) -> str:
 # Phase N.SDK — 2 dispatch tools.
 # ---------------------------------------------------------------------------
 try:
-    from db import DEFAULT_DB_PATH as _DEFAULT_DB_PATH
+    from database import DEFAULT_DB_PATH as _DEFAULT_DB_PATH
     from tools.cognition import register_all as _register_cognition_tools
     _register_cognition_tools(mcp, str(_DEFAULT_DB_PATH))
     logger.info("Cognition tools registered (Phase M: 9 + Phase N: 3 + Phase N.SDK: 2 = 14 tools)")
@@ -2151,9 +2151,22 @@ if _GRAPH_TOOLS_AVAILABLE:
     ) -> str:
         """Hybrid search over node labels + docstrings (lexical + graph expansion).
 
+        TIP: prefer SHORT terms ("sdk_dispatcher", "ClaudeSDKDispatcher.dispatch") or
+        a literal path / uid. Long natural-language queries return weaker matches
+        because the index is built from labels + docstrings, not free text.
+
+        UID scheme (also accepted as `q`):
+          code:file:<path> · code:function:<path>::<name> · code:class:<path>::<name>
+          code:method:<path>::<class>.<name> · code:module:<dotted>
+          doc:file:<path> · doc:heading:<path>#<slug>:<level> · folder:<path>
+
+        When the query looks like a path or uid and the lexical pass
+        returns nothing, the tool falls back to a direct uid lookup so
+        the agent gets a single-item hit instead of empty results.
+
         Args:
-            q: Natural-language query (non-empty).
-            kinds: Comma-separated filter of node kinds (e.g. "code:function,code:class"). Empty = all.
+            q: Short term, path, or uid (non-empty). NL queries work but degrade.
+            kinds: Comma-separated filter of node kinds (e.g. "function,class,method"). Empty = all.
             limit: Max results (default 10).
             max_hops: Walk expansion depth (default 2).
             confidence_min: Edge confidence floor (default 0.3).
@@ -2559,10 +2572,159 @@ if _GRAPH_TOOLS_AVAILABLE:
             min_size=int(min_size),
         )
 
+    @mcp.tool(
+        name="cos_graph_resolve",
+        annotations={
+            "title": "Graph UID Resolver (NL → canonical uid)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_resolve_tool(
+        q: str,
+        kinds: str = "",
+        top: int = 10,
+    ) -> str:
+        """Resolve a natural-language label, path, or partial uid to canonical uids.
+
+        Use this BEFORE other cos_graph_* tools when you don't know the exact uid.
+        Tries: direct uid → path/qualname → FTS5 full-text → LIKE fallback.
+
+        UID scheme:
+          code:file:<path> · code:function:<path>::<name> · code:class:<path>::<name>
+          code:method:<path>::<class>.<name> · code:module:<dotted>
+          doc:file:<path> · doc:heading:<path>#<slug>:<level> · folder:<path>
+
+        Args:
+            q: Natural language ("the dispatcher function"), label ("ClaudeSDKDispatcher"),
+               path ("adapters/claude/sdk_dispatcher.py"), or qualname ("Class.method").
+            kinds: Comma-separated kind filter (e.g. "function,method,class"). Empty = all.
+            top: Max results (default 10).
+
+        Returns:
+            JSON envelope with `results` (ranked list of {uid, kind, label, …}) and
+            `strategy` (which resolution path matched).
+        """
+        return _graph_tools.cos_graph_resolve(
+            q,
+            kinds=_csv(kinds) or None,
+            top=int(top),
+        )
+
+    @mcp.tool(
+        name="cos_graph_centrality",
+        annotations={
+            "title": "Graph Centrality (degree / betweenness)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_centrality_tool(
+        metric: str = "degree",
+        top: int = 20,
+        kind: str = "",
+    ) -> str:
+        """Hub detection — surface high-degree (or high-betweenness) nodes.
+
+        Use to identify chokepoints / refactor priorities / nodes that demand
+        extra review.
+
+        Args:
+            metric: "degree" (cheap, default) or "betweenness" (expensive).
+            top: Max nodes returned (default 20).
+            kind: Optional kind filter (e.g. "function", "class"). Empty = all.
+
+        Returns:
+            JSON envelope with `nodes` ranked by centrality score.
+        """
+        return _graph_tools.cos_graph_centrality(
+            metric=metric,
+            top=int(top),
+            kind=kind or None,
+        )
+
+    @mcp.tool(
+        name="cos_graph_ranking",
+        annotations={
+            "title": "Graph PageRank (importance / personalised)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_ranking_tool(
+        query: str = "",
+        top: int = 20,
+        kind: str = "",
+        damping: float = 0.85,
+        iterations: int = 30,
+    ) -> str:
+        """PageRank — node importance, optionally personalised by query.
+
+        Use for: knowledge condensation (top-N canonical concepts),
+        query-personalised search ranking, documentation sourcing.
+
+        Args:
+            query: Optional personalisation query ("auth", "graph backend").
+                   Empty = global PageRank.
+            top: Max nodes returned (default 20).
+            kind: Optional kind filter. Empty = all.
+            damping: PageRank damping factor (default 0.85).
+            iterations: Power-iteration count (default 30).
+
+        Returns:
+            JSON envelope with `nodes` ranked by PageRank score.
+        """
+        return _graph_tools.cos_graph_ranking(
+            query=query or None,
+            top=int(top),
+            kind=kind or None,
+            damping=float(damping),
+            iterations=int(iterations),
+        )
+
+    @mcp.tool(
+        name="cos_graph_doctor",
+        annotations={
+            "title": "Graph Health Doctor",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_doctor_tool(
+        fix: bool = False,
+    ) -> str:
+        """Graph health snapshot — orphans, dangling edges, duplicates, backend status.
+
+        Call when graph queries return nothing or `meta.backend_fallback=true`.
+
+        Args:
+            fix: If True, attempt safe repairs (delete dangling edges). Default False
+                 — use the report-only mode to see what would change first.
+
+        Returns:
+            JSON envelope with `healthy` boolean, `issues` list, `stats` dict.
+        """
+        return _graph_tools.cos_graph_doctor(
+            fix=bool(fix),
+        )
+
 else:
     # Deterministic unavailable responses so agents still see a valid envelope.
     for _name in (
         "cos_graph_query",
+        "cos_graph_resolve",
         "cos_graph_context",
         "cos_graph_impact",
         "cos_graph_detect_changes",
@@ -2575,6 +2737,9 @@ else:
         "cos_graph_contracts",
         "cos_graph_entrypoints",
         "cos_graph_communities",
+        "cos_graph_centrality",
+        "cos_graph_ranking",
+        "cos_graph_doctor",
     ):
         def _make_stub(tool_name: str):
             @mcp.tool(

@@ -16,7 +16,7 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import (
+from database import (
     PROTECTED_TRUST_TIERS,
     VALID_PROVENANCE,
     VALID_TRUST_TIERS,

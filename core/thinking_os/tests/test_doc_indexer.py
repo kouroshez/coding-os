@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import doc_indexer  # noqa: E402
 import embeddings  # noqa: E402
-from db import init_db  # noqa: E402
+from database import init_db  # noqa: E402
 from doc_indexer import (  # noqa: E402
     DEFAULT_MAX_CHARS,
     chunk_markdown,

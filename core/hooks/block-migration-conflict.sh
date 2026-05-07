@@ -8,7 +8,7 @@
 # thinking_os) and on files under `*/migrations/` for frameworks that
 # use numbered migration files (Django, Alembic).
 #
-# For db.py-style files: detects `MIGRATIONS.append((N, ...))` in the
+# For database.py-style files: detects `MIGRATIONS.append((N, ...))` in the
 # new content and rejects N if it already exists in the current file.
 #
 # For framework migration files: detects attempts to create a file
@@ -29,12 +29,12 @@ fi
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
 [[ -z "$FILE_PATH" ]] && exit 0
 
-# --- db.py-style registries ------------------------------------------
+# --- database.py-style registries ------------------------------------------
 # Fires when the changed file is named db.py OR when the diff adds a
 # MIGRATIONS.append line — whichever comes first.
 BASENAME=$(basename "$FILE_PATH")
 
-if [[ "$BASENAME" == "db.py" ]]; then
+if [[ "$BASENAME" == "database.py" ]]; then
   # Extract proposed new version from the tool input.
   if [[ "$TOOL" == "Write" ]]; then
     CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || echo "")

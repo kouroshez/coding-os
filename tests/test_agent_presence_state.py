@@ -205,7 +205,7 @@ def test_agent_state_falls_back_to_db_as_present(fake_project, monkeypatch):
     and shouldn't pulse the live-agents dot green."""
     import sqlite3
 
-    from thinking_os.db import init_db
+    from thinking_os.database import init_db
 
     db_path = fake_project / ".coding-os" / "coding-os.db"
     init_db(db_path).close()

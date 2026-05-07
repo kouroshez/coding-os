@@ -267,7 +267,7 @@ def test_auto_regen_doc_index_dispatches_for_docs_md(tmp_path: Path) -> None:
 def test_auto_regen_doc_index_skips_non_md(tmp_path: Path) -> None:
     rc, _, _ = _run_hook(
         REPO_ROOT / "core" / "hooks" / "auto-regen-doc-index.sh",
-        {"tool_name": "Edit", "tool_input": {"file_path": "core/thinking_os/db.py"}},
+        {"tool_name": "Edit", "tool_input": {"file_path": "core/thinking_os/database.py"}},
         env={
             "COS_STATE_DIR": str(tmp_path),
             "COS_PROJECT_ROOT": str(REPO_ROOT),

@@ -237,7 +237,7 @@ never mutated in place — each formula appends its block via `cos_supervise_rec
 
 ### Enterprise hooks (Phase N.5)
 
-- **N.5-A Connection pool** (`core/thinking_os/db.py::get_pooled_conn`) — thread-local SQLite
+- **N.5-A Connection pool** (`core/thinking_os/database.py::get_pooled_conn`) — thread-local SQLite
   connections, WAL, `busy_timeout=5000`, `pool_stats()` for observability.
 - **N.5-C Preset versioning** — SHA256-16 hash stamped in `ComposedChain.preset_version`;
   mid-session preset edits don't change in-flight chains.
@@ -256,7 +256,7 @@ Total `cos_*` tools after Phase N: **42** (29 prior + 10 Phase M + 3 Phase N).
 ## DB Tables Added (v14)
 
 `backtrack_events`, `persona_selections`, `ambiguity_violations`, `formula_dispatches` —
-all append-only, indexed by `session_id`. See `core/thinking_os/db.py::_migrate_v14_cognition`.
+all append-only, indexed by `session_id`. See `core/thinking_os/database.py::_migrate_v14_cognition`.
 
 ## Phase N.6 — Behavioral Tracing
 

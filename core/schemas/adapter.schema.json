@@ -57,6 +57,14 @@
       "type": "string",
       "description": "Relative filename of the adapter install script (usually install.sh)."
     },
+    "cli_binary": {
+      "type": "string",
+      "description": "Executable name discoverable on PATH for this agent (e.g. \"claude\"). Consumed by cli/doctor.py::_probe_claude_sdk so that file stays free of hardcoded adapter literals (rule #11). Optional — defaults to the adapter id when missing."
+    },
+    "sdk_package": {
+      "type": "string",
+      "description": "Importable Python package whose installed version doctor reports for this adapter (e.g. \"claude-agent-sdk\"). Empty string = no SDK to probe."
+    },
     "default_settings": {
       "type": "object",
       "description": "Adapter-owned defaults deep-merged with aggregated world.hooks by render_settings_json()."

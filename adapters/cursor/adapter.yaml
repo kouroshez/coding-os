@@ -22,6 +22,9 @@ supports_rules: true
 supports_settings_json: true
 install_script: install.sh
 
+cli_binary: cursor
+sdk_package: ""
+
 # Env vars the Cursor IDE runtime exports.  Keeps agent detection in
 # cli/board_commands.py data-driven (rule #11) and matches the priority
 # in core/hooks/cos-env.sh.

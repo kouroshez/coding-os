@@ -704,6 +704,14 @@ try:
 except ImportError:
     pass  # board_os optional — don't break `cos` if deps missing.
 
+# Scheduled jobs (CRON A/B).
+try:
+    from cli.cron_commands import cron_cmd
+    cli.add_command(cron_cmd)
+except ImportError as _e:
+    import logging as _logging
+    _logging.getLogger("cli.main").debug("cron CLI unavailable: %s", _e)
+
 # Phase M — cognition CLI (formula dispatches, persona selections, backtracks).
 try:
     from cli.cognition import COGNITION_COMMANDS
@@ -945,6 +953,11 @@ def init(
             f"  Available stacks: {', '.join(available)}"
         )
 
+    import platform as _platform
+    if _platform.system() == "Darwin":
+        click.echo("\nNightly maintenance (optional):")
+        click.echo("  cos cron install  # launchd job — decay, learn, routing (daily 03:00)")
+
 
 def _run_scaffold_phase(
     agents: list[str],
@@ -972,7 +985,7 @@ def _run_scaffold_phase(
         init_code = (
             "import sys; "
             f"sys.path.insert(0, {brain_dir!r}); "
-            "from db import init_db; "
+            "from database import init_db; "
             f"init_db({str(db_path)!r})"
         )
         env = os.environ.copy()

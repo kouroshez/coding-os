@@ -439,7 +439,7 @@ def _lexical_search(
     (FTS5 unavailable or pre-v9). The LIKE path is intentionally scan-heavy
     — acceptable because it is only a last-resort fallback.
     """
-    from db import has_document_chunks_fts  # avoid circular at module top
+    from database import has_document_chunks_fts  # avoid circular at module top
 
     overfetch = limit * _OVERFETCH_MULTIPLIER
     md_kwargs = dict(

@@ -34,7 +34,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Optional
 
-from db import record_audit
+from database import record_audit
 
 # ---------------------------------------------------------------------------
 # Configuration

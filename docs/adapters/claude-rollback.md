@@ -46,10 +46,10 @@ If you need to drop the v23 columns entirely (e.g. storage budget):
 
 ```bash
 # Dump + recreate without v23 columns
-sqlite3 .coding-os/thinking_os.db .dump > backup.sql
+sqlite3 .coding-os/coding-os.db .dump > backup.sql
 # Edit backup.sql — remove v23 columns from CREATE TABLE formula_dispatches
 # Recreate DB
-sqlite3 .coding-os/thinking_os.db < backup.sql
+sqlite3 .coding-os/coding-os.db < backup.sql
 ```
 
 **Warning:** This destroys v23 cost_usd / usage_jsonb data. Back up first.

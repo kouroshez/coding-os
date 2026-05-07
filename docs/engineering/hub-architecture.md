@@ -54,7 +54,7 @@ purposes and you rarely run both at once.
 | `core/hooks/*.sh`, `core/rules/**`, `core/skills/**`, `core/commands/**` | instantly (symlinked by `install.sh`) | instantly (same symlinks in every project) |
 | `core/hooks/registry.yaml` | `make sync` (re-renders `adapters/*/[settings\|hooks].template.json`) | `cos sync-all` (calls each adapter's `install.sh` per project) |
 | `adapters/<agent>/adapter.yaml` field | `make sync` | `cos sync-all` |
-| `core/thinking_os/db.py` schema (new migration) | next `cos`/`hub` invocation runs `init_db` | `cos sync-all` forces `init_db` on every project's DB |
+| `core/thinking_os/database.py` schema (new migration) | next `cos`/`hub` invocation runs `init_db` | `cos sync-all` forces `init_db` on every project's DB |
 | `core/web/ui/src/**` (SPA source) | `make ui-build` → `dist/` → hub serves new bundle on next request (hard-refresh browser) | same — all projects share one SPA bundle served by the hub |
 | `core/web/routes/**` (FastAPI) | hub daemon auto-reloads if started with `--reload`, otherwise `cos hub stop && cos hub start` | same |
 | `cli/**` | `uv tool install --editable .` pointed at this repo, so next `cos` invocation picks it up | same |

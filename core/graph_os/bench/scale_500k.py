@@ -63,7 +63,7 @@ def main() -> int:
     import shutil
     import tempfile
 
-    from db import init_db  # type: ignore
+    from database import init_db  # type: ignore
     from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
     from graph_os.bench import run_benchmark  # type: ignore
 

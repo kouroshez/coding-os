@@ -31,11 +31,15 @@ if [[ -n "$SKILL_NAME" ]]; then
       # Same session — append skill
       EXISTING_SKILLS=$(head -1 "$SKILL_FILE" | cut -d' ' -f2-)
       echo "$SESSION_ID $EXISTING_SKILLS $SKILL_NAME" > "$SKILL_FILE"
+      cos_record_activity skill "${SKILL_NAME}" 2>/dev/null || true
+      printf '{"systemMessage":%s}' "$(printf '[skill] %s' "$SKILL_NAME" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
       exit 0
     fi
   fi
   # New session or no file — start fresh
   echo "$SESSION_ID $SKILL_NAME" > "$SKILL_FILE"
+  cos_record_activity skill "${SKILL_NAME}" 2>/dev/null || true
+  printf '{"systemMessage":%s}' "$(printf '[skill] %s' "$SKILL_NAME" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
 fi
 
 exit 0

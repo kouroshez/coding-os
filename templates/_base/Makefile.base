@@ -43,7 +43,7 @@ session-init: ## Run ONCE per session: phase + recent changes + task summary
 
 .PHONY: task-next
 task-next: ## Show next recommended task
-	@bash $(COS_SCRIPTS)/task-next.sh
+	@cos task-pick
 
 .PHONY: task-start
 task-start: ## Start a task (TASK=043)
@@ -66,13 +66,18 @@ task-create: ## Create new task (NUM=098 TITLE="description")
 	@bash $(COS_SCRIPTS)/task-create.sh $(NUM) "$(TITLE)"
 
 .PHONY: task-context
-task-context: ## Show compact task context (TASK=043)
+task-context: ## Show task content + frontmatter (TASK=043) — alias for task-show
 	@if [ -z "$(TASK)" ]; then echo "Usage: make task-context TASK=<number>"; exit 1; fi
-	@bash $(COS_SCRIPTS)/task-context.sh "$(TASK)"
+	@cos task-show TASK-$(TASK)
+
+.PHONY: task-show
+task-show: ## Show task content + frontmatter (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-show TASK=<number>"; exit 1; fi
+	@cos task-show TASK-$(TASK)
 
 .PHONY: task-list
 task-list: ## Show tasks (STATUS=open|wip|blocked|done|all)
-	@bash $(COS_SCRIPTS)/task-list.sh $(STATUS)
+	@cos board
 
 # ── Scrumban board (Phase L) ──────────────────────────────────────
 # These thin wrappers delegate to the `cos` CLI (cli/board_commands.py).
@@ -102,6 +107,21 @@ wip: ## Current WIP counts vs caps from scrumban-config.yaml
 .PHONY: task-pick
 task-pick: ## Print top candidate tasks to work on next
 	@cos task-pick
+
+.PHONY: task-cancel
+task-cancel: ## Cancel a task (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-cancel TASK=<number>"; exit 1; fi
+	@cos task-cancel TASK-$(TASK)
+
+.PHONY: task-log
+task-log: ## Show a task's Work Log (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-log TASK=<number>"; exit 1; fi
+	@cos task-log TASK-$(TASK)
+
+.PHONY: task-history
+task-history: ## Show task status transitions (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-history TASK=<number>"; exit 1; fi
+	@cos task-history TASK-$(TASK)
 
 .PHONY: task-validate
 task-validate: ## Lint all docs/tasks/*.md against the lean frontmatter schema
@@ -196,6 +216,24 @@ cos-health: ## Run coding-os health check
 	else echo "DB:        not initialized"; fi && \
 	echo "Hooks:     $$(ls $(COS_HOOKS)/*.sh 2>/dev/null | wc -l | tr -d ' ') scripts"
 
+.PHONY: doctor
+doctor: ## Deep health check: scaffold, DB schema, adapter, MCP, cron (cos doctor)
+	@cos doctor --project-dir $(CURDIR)
+
+# ── Hub (web UI + REST API) ──────────────────────────────────────────
+
+.PHONY: hub-start
+hub-start: ## Start the coding-os Hub daemon (port 9188 by default)
+	@cos hub start
+
+.PHONY: hub-stop
+hub-stop: ## Stop the Hub daemon
+	@cos hub stop
+
+.PHONY: hub-status
+hub-status: ## Show Hub daemon status + registered projects
+	@cos hub status
+
 # ── Verification (override in project Makefile) ─────────────────────
 
 .PHONY: verify
@@ -220,6 +258,67 @@ safe-test: ## Fast smoke for thinking_os + graph_os + Phase M (≤30s, no networ
 	  tests/test_hooks_phase_m.py \
 	  tests/test_codex_formula_commands.py
 
+# ── Nightly maintenance (CRON A) ────────────────────────────────────
+
+COS_CRON_HOUR ?= 3
+
+.PHONY: cron-install
+cron-install: ## Install nightly launchd job (macOS) — daily decay + learn
+	cos cron install --hour $(COS_CRON_HOUR)
+
+.PHONY: cron-uninstall
+cron-uninstall: ## Unload + remove nightly launchd job
+	cos cron uninstall
+
+.PHONY: cron-run
+cron-run: ## Run nightly maintenance now (dry-run safe to test)
+	cos cron run --verbose
+
+.PHONY: cron-status
+cron-status: ## Show last nightly run summary + plist status
+	cos cron status
+
+# ── Knowledge Graph (graph_os) ──────────────────────────────────────
+
+.PHONY: graph-reindex
+graph-reindex: ## Index codebase into the knowledge graph (incremental)
+	@cos graph-reindex
+
+.PHONY: graph-query
+graph-query: ## Semantic symbol search (QUERY="find all auth handlers")
+	@if [ -z "$(QUERY)" ]; then echo "Usage: make graph-query QUERY=\"...\""; exit 1; fi
+	@cos graph-query "$(QUERY)"
+
+.PHONY: graph-context
+graph-context: ## Callers + callees for a symbol (SYM=function_name)
+	@if [ -z "$(SYM)" ]; then echo "Usage: make graph-context SYM=<symbol>"; exit 1; fi
+	@cos graph-context "$(SYM)"
+
+.PHONY: graph-impact
+graph-impact: ## Blast-radius risk analysis for a symbol (SYM=function_name)
+	@if [ -z "$(SYM)" ]; then echo "Usage: make graph-impact SYM=<symbol>"; exit 1; fi
+	@cos graph-impact "$(SYM)"
+
+.PHONY: graph-contracts
+graph-contracts: ## List all HTTP / MCP / gRPC / event handlers in the codebase
+	@cos graph-contracts
+
+.PHONY: graph-entrypoints
+graph-entrypoints: ## Rank and show main / cli / http / cron / test entry points
+	@cos graph-entrypoints
+
+.PHONY: graph-communities
+graph-communities: ## Detect Louvain communities (logical module groups)
+	@cos graph-communities
+
+.PHONY: graph-export
+graph-export: ## Export the graph (FORMAT=json|mermaid|dot, default json)
+	@cos graph-export $(if $(FORMAT),--format $(FORMAT),)
+
+.PHONY: graph-stats
+graph-stats: ## Show knowledge graph DB statistics
+	@cos graph-stats
+
 # ── Help ────────────────────────────────────────────────────────────
 
 .PHONY: help
@@ -227,9 +326,12 @@ help: ## Show all commands
 	@echo "=== coding-os Commands ==="
 	@echo ""
 	@echo "Session:   make session-init"
-	@echo "Tasks:     make task-start TASK=### | task-done ... | task-block ... | task-create ..."
+	@echo "Tasks:     make task-start TASK=### | task-done ... | task-block ... | task-cancel ... | task-show ..."
+	@echo "Board:     make board | daily | retro | wip | task-pick | task-validate"
+	@echo "Graph:     make graph-reindex | graph-query QUERY=... | graph-context SYM=... | graph-impact SYM=..."
 	@echo "Logging:   make log-latest [N=5] | log-write TYPE=... MSG=... | log-search QUERY=..."
-	@echo "Health:    make cos-health | verify-hooks"
+	@echo "Health:    make doctor | cos-health | verify-hooks | hub-start | hub-status"
+	@echo "Cron:      make cron-install | cron-run | cron-status"
 	@echo ""
 	@echo "All targets:"
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  %-22s %s\n", $$1, $$2}'

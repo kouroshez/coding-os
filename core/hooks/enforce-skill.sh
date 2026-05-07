@@ -61,9 +61,24 @@ fi
 # Check skill matches file type (STATE_VALUE has all invoked skills)
 ALL_SKILLS="$STATE_VALUE"
 
+# Meta-stack guard: editing any meta-repo authoring path REQUIRES the
+# graph-explorer skill (clean-code alone is not enough). This closes
+# the dogfood gap where the agent could bypass graph by loading only
+# clean-code. Source of truth: templates/meta/stack.yaml::skill_enforcement.
+case "$FILE_PATH" in
+  *core/*.py|*cli/*.py|*adapters/*.py)
+    if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
+      echo "BLOCKED: Editing meta-repo authoring path ($FILE_PATH) requires Skill graph-explorer." >&2
+      echo "  Reason: load-bearing core/cli/adapter file — call cos_graph_context first." >&2
+      echo "  Fix:    Skill skill: \"graph-explorer\"" >&2
+      exit 2
+    fi
+    ;;
+esac
+
 if [[ "$FILE_PATH" == *.py ]]; then
-  if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code"; then
-    echo "BLOCKED: Writing .py file but no matching skill invoked. Invoke python-django or clean-code first." >&2
+  if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code|graph-explorer"; then
+    echo "BLOCKED: Writing .py file but no matching skill invoked. Invoke python-django, clean-code, or graph-explorer first." >&2
     exit 2
   fi
 fi

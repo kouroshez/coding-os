@@ -1,16 +1,44 @@
 version: '1.0'
+
+# This repo IS the meta-project (DNA + factory). Adapters live here in
+# real form so we dogfood every change. Templates list reflects what
+# this repo's own scaffolding installs — meta-stack only, since django
+# / nextjs / fastapi / go / react-native are consumer-stack overlays
+# this repo emits but does NOT itself use.
 agents:
-- claude
-- codex
+  - claude
+  - codex
+  - cursor
+
 templates:
-- django
-- nextjs
+  - meta
+
 state_dir: .coding-os
+
 code_extensions:
-- py
-- ts
-- tsx
-- js
-- jsx
+  - py
+  - ts
+  - tsx
+  - js
+  - jsx
+  - sh
+  - go
+  - md
+
+# Verification matrix is documented in AGENTS.md. Keys here override
+# only when a consumer wants stack-specific make targets — meta-repo
+# leaves it empty and uses the matrix.
 verify: {}
+
+# Files in this repo that should not be edited as a side-effect of
+# another task. Hook safety net is block-protected-files.sh.
 protected_files: []
+
+# Hub + Web UI binding (cos web / cos hub). Singleton on :9188.
+web:
+  port: 9188
+  autostart: false
+
+hub:
+  enabled: true
+  port: 9188

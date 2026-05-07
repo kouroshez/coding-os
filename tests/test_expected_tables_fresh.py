@@ -1,6 +1,6 @@
 """Guard: core/doctor-config.yaml::schema snapshot must match live db.py.
 
-If this test fails, `core/thinking_os/db.py::MIGRATIONS` has been updated
+If this test fails, `core/thinking_os/database.py::MIGRATIONS` has been updated
 but the committed schema snapshot in `core/doctor-config.yaml` is stale.
 
 Fix by running:
@@ -25,7 +25,7 @@ DOCTOR_CONFIG = REPO_ROOT / "core" / "doctor-config.yaml"
 @pytest.mark.slow
 def test_expected_tables_match_live_db() -> None:
     sys.path.insert(0, str(REPO_ROOT / "core" / "thinking_os"))
-    from db import MIGRATIONS, init_db  # type: ignore
+    from database import MIGRATIONS, init_db  # type: ignore
 
     live_version = max(m[0] for m in MIGRATIONS)
 

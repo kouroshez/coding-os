@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from db import (
+from database import (
     DB_FILENAME,
     DEFAULT_DB_PATH,
     LEGACY_DB_FILENAME,

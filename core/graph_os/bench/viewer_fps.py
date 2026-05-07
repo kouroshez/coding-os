@@ -19,7 +19,7 @@ for _p in (_CORE_DIR, _TOS_DIR):
 
 def build_scale_graph(*, node_count: int):
     """Produce `node_count` synthetic nodes + ~2x edges in SQLite backend."""
-    from db import init_db  # type: ignore
+    from database import init_db  # type: ignore
     from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
     from graph_os.types import GraphEdge, GraphNode  # type: ignore
 

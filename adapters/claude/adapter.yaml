@@ -31,6 +31,13 @@ supports_rules: true
 supports_settings_json: true
 install_script: install.sh
 
+# CLI binary discovery (consumed by cli/doctor.py — keeps that file free of
+# hardcoded "claude" literals; Rule 11). cli_binary is the executable name to
+# look up via shutil.which; sdk_package is the importable Python package whose
+# version doctor reports.
+cli_binary: claude
+sdk_package: claude-agent-sdk
+
 # Env vars the Claude Code runtime exports to hook subprocesses / the CLI
 # shell.  Consumed by cli/board_commands.py::_detect_agent_runtime so the
 # CLI can attribute agent_session correctly without hardcoded literals
@@ -65,7 +72,7 @@ hook_registry_output: settings.template.json
 # Source: per-event matchers observed in the live Claude Code hook spec.
 hook_capabilities:
   PreToolUse:
-    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, Read]
   PostToolUse:
     matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, "mcp__coding-os__cos_backtrack_log"]
   # PostToolUseFailure (SDK 0.1.73): fires when a tool errored. Empty

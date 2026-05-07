@@ -1,6 +1,6 @@
 """graph_os — SQLite fallback backend.
 
-DEPENDS:  sqlite3 stdlib; core/thinking_os/db.py for init_db when
+DEPENDS:  sqlite3 stdlib; core/thinking_os/database.py for init_db when
           path-based; core/graph_os/types.py for the value types.
 """
 
@@ -21,18 +21,19 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 
 
 def _import_db_module() -> Any:
-    """Return the thinking_os db module.
+    """Return the thinking_os database module.
 
-    Prefers the installed package path (coding-os.db); falls back to the
-    bare ``db`` name for environments where core/thinking_os/ is still on
-    sys.path directly (e.g. direct script invocation without editable install).
+    Prefers the installed package path (`thinking_os.database`); falls back
+    to the bare ``database`` name for environments where
+    core/thinking_os/ is on sys.path directly (e.g. direct script
+    invocation without editable install).
     """
     try:
-        from thinking_os import db as _db  # type: ignore  # noqa: PLC0415
+        from thinking_os import database as _db  # type: ignore  # noqa: PLC0415
         return _db
     except ImportError:
-        import db  # type: ignore  # noqa: PLC0415
-        return db
+        import database as _db  # type: ignore  # noqa: PLC0415
+        return _db
 
 
 class SqliteBackend:
@@ -60,9 +61,14 @@ class SqliteBackend:
         if conn is not None:
             self._conn = conn
         else:
-            resolved = db_path or os.environ.get(
-                "COS_DB_PATH", ".coding-os/coding-os.db"
-            )
+            try:
+                from thinking_os.database import resolve_db_path  # type: ignore
+                resolved = db_path or str(resolve_db_path())
+            except ImportError:
+                # Standalone — fall back to env var + repo-relative default.
+                resolved = db_path or os.environ.get(
+                    "COS_DB_PATH", ".coding-os/coding-os.db"
+                )
             Path(resolved).parent.mkdir(parents=True, exist_ok=True)
             db = _import_db_module()
             # B1: own-connection path opens with check_same_thread=False so

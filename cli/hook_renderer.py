@@ -42,7 +42,7 @@ class HookEntry:
     `adapter_scope` (added 2026-05-05, Phase Q.deep D4):
         - None / empty → cross-adapter; renderer keeps for every adapter
           whose hook_capabilities allow the event/matcher pair.
-        - A specific adapter id (e.g. "claude") → renderer ONLY emits
+        - A specific adapter id (e.g. an entry from adapters/) → renderer ONLY emits
           this hook for that adapter. The script must live under
           adapters/<adapter>/hooks/ (resolved by the installer's
           two-pass symlink so .claude/hooks/<script> ends up pointing

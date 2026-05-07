@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from db import run_migrations  # type: ignore
+from database import run_migrations  # type: ignore
 from doc_indexer import _parse_front_matter  # type: ignore
 from tools.audit import audit_log_record  # type: ignore
 from tools.docs import (  # type: ignore

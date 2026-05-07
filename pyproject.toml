@@ -65,6 +65,7 @@ claude-sdk = [
 [project.scripts]
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"
+cos-nightly = "scheduled.nightly:main"
 
 [dependency-groups]
 dev = [
@@ -80,7 +81,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 # v0.2: editable install. cli lives at repo root; the three OS subsystems
 # (thinking_os, graph_os, board_os) and web live under core/. Listed
-# explicitly so `from thinking_os.db import X` works after `uv sync`
+# explicitly so `from thinking_os.database import X` works after `uv sync`
 # without sys.path hacks.
 packages = [
     "cli",
@@ -97,6 +98,7 @@ packages = [
     "board_os",
     "web",
     "web.routes",
+    "scheduled",
 ]
 
 [tool.setuptools.package-dir]
@@ -104,6 +106,7 @@ packages = [
 "graph_os" = "core/graph_os"
 "board_os" = "core/board_os"
 "web" = "core/web"
+"scheduled" = "core/scheduled"
 
 [tool.pytest.ini_options]
 testpaths = ["core/thinking_os/tests", "core/graph_os/tests", "tests"]

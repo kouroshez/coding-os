@@ -21,7 +21,7 @@ import click
 
 MATRIX_RULES: list[tuple[str, str]] = [
     # (glob-prefix, command)
-    ("core/thinking_os/db.py",
+    ("core/thinking_os/database.py",
         "uv run --extra rag pytest core/thinking_os/tests/test_db.py -q"),
     ("core/thinking_os/",
         "uv run --extra rag pytest core/thinking_os/tests/ -q"),

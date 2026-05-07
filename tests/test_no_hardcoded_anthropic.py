@@ -23,7 +23,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "adapters/claude/sdk_dispatcher.py",       # _OPUS_47_MODEL_IDS gate
     "adapters/claude/adapter.yaml",            # adapter manifest
     "core/thinking_os/dispatcher.py",          # docstring example only
-    "core/thinking_os/db.py",                  # migration docstring example
+    "core/thinking_os/database.py",                  # migration docstring example
     "core/thinking_os/compress.py",            # COS_COMPRESS_MODEL env default
     "core/thinking_os/agents/researcher.md",   # role frontmatter
     "core/thinking_os/agents/implementer.md",

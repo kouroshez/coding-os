@@ -45,7 +45,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `block-uv-heredoc` | Bash | `uv run ... <<EOF` pattern (Rule 9 — silently hangs) |
 | `block-bad-patterns` | Write/Edit | bare `except: pass`, mock-where-real-needed, known anti-patterns |
 | `block-protected-files` | Write/Edit | edits to `CLAUDE.md`, `AGENTS.md`, `.coding-os/`, `core/rules/`, `core/hooks/` unless active task name contains `governance` / `docs-update` (Rule 8) |
-| `block-migration-conflict` | Write/Edit | duplicate migration version numbers in `core/thinking_os/db.py` (Rule 10 — append-only) |
+| `block-migration-conflict` | Write/Edit | duplicate migration version numbers in `core/thinking_os/database.py` (Rule 10 — append-only) |
 | `block-hardcoded-literals` | Write/Edit | `"django"` / `"claude"` / `"python-django"` as quoted literals in `cli/*.py` (Rule 12 — data-driven only) |
 
 ### Enforcement (8 hooks) — PreToolUse BLOCK

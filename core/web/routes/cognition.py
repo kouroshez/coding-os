@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import sys
@@ -13,6 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import unwrap
+
+logger = logging.getLogger(__name__)
 
 _CORE_DIR = Path(__file__).resolve().parents[3]
 if str(_CORE_DIR) not in sys.path:
@@ -138,17 +141,19 @@ async def get_trace(
 # ---------------------------------------------------------------------------
 
 def _db_path() -> str | None:
-    """Resolve coding-os SQLite DB path."""
-    explicit = os.environ.get("COS_DB_PATH")
-    if explicit and Path(explicit).exists():
-        return explicit
+    """Resolve coding-os SQLite DB path via canonical helper.
+
+    Returns None when nothing exists yet (the route returns a typed
+    ``unavailable`` envelope in that case).
+    """
     try:
+        from thinking_os.database import resolve_db_path  # type: ignore
         from web._project_context import current_project_root  # type: ignore[import]
-        candidate = current_project_root() / ".coding-os" / "thinking_os.db"
-        if candidate.exists():
-            return str(candidate)
-    except Exception:
-        pass
+        path = resolve_db_path(current_project_root())
+        if path.exists():
+            return str(path)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("project-root db path resolve failed: %s", exc)
     return None
 
 

@@ -65,7 +65,7 @@ thinking_os tables:
   document_chunks, document_chunks_fts,
   roles, personas, formulas,
   graph_nodes, graph_edges_v12, graph_evidence_v12
-  (all managed by core/thinking_os/db.py migrations)
+  (all managed by core/thinking_os/database.py migrations)
 
 board_os tables:
   board_tasks, work_log

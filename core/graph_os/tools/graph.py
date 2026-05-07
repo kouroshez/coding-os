@@ -44,7 +44,29 @@ def _ok(data: dict[str, Any], meta: dict[str, Any] | None = None) -> dict[str, A
     shared = _envelope_module()
     merged = {"layer": "graph", **(meta or {})}
     _emit_telemetry(meta=merged, ok=True)
+    _touch_session_marker()
     return shared.ok(data, meta=merged)
+
+
+def _touch_session_marker() -> None:
+    """Record that a cos_graph_* call succeeded this agent session.
+
+    Consumed by enforce-graph-first-read.sh — when the marker exists,
+    the hook stays silent on Read. Fail-open: any error is logged at
+    debug level only, never raises.
+    """
+    try:
+        agent_dir = os.environ.get("COS_AGENT_DIR")
+        if not agent_dir:
+            state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
+            agent = os.environ.get("COS_AGENT") or "claude"
+            agent_dir = f"{state_dir}/{agent}"
+        from pathlib import Path as _Path  # noqa: PLC0415
+        path = _Path(agent_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        (path / ".graph-call-seen").touch(exist_ok=True)
+    except OSError as exc:
+        logger.debug("graph-call-seen marker failed: %s", exc)
 
 
 def _fail(
@@ -536,6 +558,29 @@ def cos_graph_query(
     nodes = _lexical_search(
         be, q=q, kinds=kinds_filter, limit=limit, max_hops=max_hops
     )
+
+    # Fallback — when lexical hybrid returns nothing AND the query
+    # *looks* like a path or uid, try _resolve_uid so agents who pass
+    # "adapters/claude/sdk_dispatcher.py" or "ClaudeSDKDispatcher.dispatch"
+    # get a hit instead of an empty list. Cheap (one DB lookup) and
+    # additive — successful searches are untouched. Kind filter still
+    # applies: if the resolved node's kind isn't allowed, skip the
+    # fallback so behaviour matches the no-fallback path.
+    if not nodes and q and q.strip():
+        candidate = q.strip()
+        looks_pathlike = (
+            "/" in candidate
+            or "::" in candidate
+            or candidate.endswith((".py", ".ts", ".tsx", ".sh", ".md", ".yaml"))
+            or _looks_prefixed(candidate)
+        )
+        if looks_pathlike:
+            resolved, _tried = _resolve_uid(be, candidate)
+            if resolved is not None and (
+                kinds_filter is None or resolved.kind in kinds_filter
+            ):
+                nodes = [resolved]
+
     results = [
         {
             **NodeSummary.from_node(n).to_dict(),
@@ -2404,8 +2449,133 @@ def cos_graph_doctor(
     )
 
 
+def cos_graph_resolve(
+    q: str,
+    *,
+    kinds: Sequence[str] | None = None,
+    top: int = 10,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Resolve a natural-language label, path, or partial uid to canonical uids.
+
+    Tries three strategies in order, stopping at the first that yields hits:
+
+    1. Direct uid lookup (when `q` already carries `code:`/`doc:`/`folder:`).
+    2. Path-shaped fallback (paths, `::`-separated qualnames) → ``_resolve_uid``.
+    3. FTS5 full-text search over label + signature + doc_blob — handles
+       multi-word natural-language queries like "the dispatcher function"
+       far better than the LIKE pattern used by ``cos_graph_query``.
+    """
+    if not q or not q.strip():
+        return _fail("validation", "q must be a non-empty string")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+
+    candidate = q.strip()
+    kinds_set = set(kinds) if kinds else None
+    candidates: list[GraphNode] = []
+    strategy = ""
+
+    # Strategy 1 + 2: direct uid / path-shape resolve.
+    looks_pathlike = (
+        "/" in candidate
+        or "::" in candidate
+        or candidate.endswith((".py", ".ts", ".tsx", ".sh", ".md", ".yaml"))
+        or _looks_prefixed(candidate)
+    )
+    if looks_pathlike:
+        node, _tried = _resolve_uid(be, candidate)
+        if node is not None and (kinds_set is None or node.kind in kinds_set):
+            candidates.append(node)
+            strategy = "path_resolve"
+
+    # Strategy 3: FTS5 — only when path-resolve missed.
+    if not candidates:
+        sqlite_conn = getattr(be, "_conn", None)
+        if sqlite_conn is not None:
+            try:
+                fts_q = _fts5_safe_query(candidate)
+                if fts_q:
+                    rows = sqlite_conn.execute(
+                        """
+                        SELECT n.uid, n.kind, n.label, n.file_path, n.start_line,
+                               n.end_line, n.signature, n.lang, n.doc_blob,
+                               n.ast_hash, n.content_hash, n.metadata_json
+                        FROM graph_nodes_fts
+                        JOIN graph_nodes n ON n.id = graph_nodes_fts.rowid
+                        WHERE graph_nodes_fts MATCH ?
+                        ORDER BY rank
+                        LIMIT ?
+                        """,
+                        (fts_q, int(top) * 3),
+                    ).fetchall()
+                    row_to_node = getattr(be, "_row_to_node", None)
+                    for row in rows:
+                        node = row_to_node(row) if row_to_node else None
+                        if node is None:
+                            continue
+                        if kinds_set is not None and node.kind not in kinds_set:
+                            continue
+                        candidates.append(node)
+                        if len(candidates) >= int(top):
+                            break
+                    if candidates and not strategy:
+                        strategy = "fts5"
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("fts5 resolve suppressed: %s", exc)
+
+    # Strategy 4 (fallback): plain lexical search — last resort.
+    if not candidates:
+        candidates = _lexical_search(
+            be,
+            q=candidate,
+            kinds=tuple(kinds) if kinds else None,
+            limit=int(top),
+            max_hops=1,
+        )
+        if candidates:
+            strategy = "lexical_like"
+
+    results = [
+        {
+            **NodeSummary.from_node(n).to_dict(),
+            "confidence": 1.0 if strategy == "path_resolve" else 0.7,
+        }
+        for n in candidates[:top]
+    ]
+    return _ok(
+        {"results": results, "strategy": strategy or "miss"},
+        meta={"backend": be.backend_id, "query": candidate[:200]},
+    )
+
+
+def _fts5_safe_query(raw: str) -> str:
+    """Sanitise a free-text query for FTS5.
+
+    FTS5 reserves `"`, `*`, `(`, `)`, `:`. We strip them rather than
+    quote-escape because most agent queries are noun phrases — splitting
+    into tokens with implicit AND is the highest-recall behaviour.
+    Returns empty string on degenerate input so the caller skips FTS.
+    """
+    cleaned = []
+    for ch in raw:
+        if ch.isalnum() or ch in "._-":
+            cleaned.append(ch)
+        else:
+            cleaned.append(" ")
+    tokens = [t for t in "".join(cleaned).split() if len(t) >= 2]
+    if not tokens:
+        return ""
+    # Quote each token to handle digits + dotted names; join with space
+    # so FTS5 applies an implicit AND.
+    return " ".join(f'"{t}"' for t in tokens[:8])
+
+
 __all__ = [
     "cos_graph_query",
+    "cos_graph_resolve",
     "cos_graph_context",
     "cos_graph_impact",
     "cos_graph_detect_changes",

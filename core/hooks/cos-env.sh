@@ -41,7 +41,7 @@ case "${COS_STATE_DIR}" in
     ;;
 esac
 # Default DB filename is `coding-os.db`. Legacy `thinking_os.db` is auto-renamed
-# by core/thinking_os/db.py::migrate_legacy_db_filename() on first init_db()
+# by core/thinking_os/database.py::migrate_legacy_db_filename() on first init_db()
 # call after the upgrade — no shell-side migration needed.
 COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
 COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
@@ -201,6 +201,38 @@ cos_current_task() {
 # identity fields are appended in front of the free-form detail so downstream
 # filters (cos hooks-log --agent X) never need a JSON parser.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# cos_record_activity <category> <detail> — append a per-turn activity entry
+# ---------------------------------------------------------------------------
+# Logs operator-visible side effects (memory capture, graph reindex, task
+# sync, skill invoke, worklog) for the per-turn pulse. session-context.sh
+# reads this file on the next UserPromptSubmit, summarizes, then truncates.
+# Claude Code does NOT render PostToolUse stdout, so this aggregation is
+# the only reliable way to surface PostToolUse activity in the chat UI.
+# Fail-open: never aborts the parent hook on logging failure.
+# ---------------------------------------------------------------------------
+cos_record_activity() {
+  local category="${1:-}"
+  local detail="${2:-}"
+  [[ -z "$category" ]] && return 0
+  [[ -z "${COS_AGENT_DIR:-}" ]] && return 0
+  local log ts size
+  log="$COS_AGENT_DIR/.turn-activity.log"
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "")"
+  {
+    mkdir -p "$COS_AGENT_DIR" 2>/dev/null
+    printf '%s\t%s\t%s\n' "$category" "$detail" "$ts" >> "$log"
+  } 2>/dev/null || true
+  # Opportunistic truncation — keep last 500 lines once the file exceeds 50 KB.
+  size=$(stat -f%z "$log" 2>/dev/null || stat -c%s "$log" 2>/dev/null || echo 0)
+  if [[ "$size" -gt 50000 ]]; then
+    {
+      tail -n 500 "$log" > "${log}.tmp" && mv "${log}.tmp" "$log"
+    } 2>/dev/null || true
+  fi
+  return 0
+}
+
 cos_log_hook() {
   local hook_name="${1:-unknown}"
   local action="${2:-fire}"

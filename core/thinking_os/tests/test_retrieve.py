@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import init_db  # noqa: E402
+from database import init_db  # noqa: E402
 from tools.retrieve import (  # noqa: E402
     backfill_task_outcome,
     cite_retrievals,

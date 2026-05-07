@@ -289,7 +289,7 @@ try:
                 break
     if _brain:
         sys.path.insert(0, _brain)
-    from db import init_db
+    from database import init_db
     from task_sync import sync_status_only
     conn = init_db(os.environ.get('COS_DB_PATH'))
     sync_status_only(conn, project_root=Path.cwd())
@@ -317,7 +317,7 @@ try:
                 break
     if _brain:
         sys.path.insert(0, _brain)
-    from db import init_db
+    from database import init_db
     from digest import regenerate
     conn = init_db(os.environ.get('COS_DB_PATH'))
     regenerate(conn, project_root=Path.cwd())

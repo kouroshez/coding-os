@@ -15,7 +15,7 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import init_db
+from database import init_db
 from tools.metrics import metric_query, metric_record, metric_trend
 
 

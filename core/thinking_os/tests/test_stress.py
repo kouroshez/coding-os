@@ -16,7 +16,7 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import init_db, has_fts5_table, get_db_stats, get_schema_version
+from database import init_db, has_fts5_table, get_db_stats, get_schema_version
 from tools.learning import learn_extract, learn_suggest, learn_validate
 from tools.memory import memory_search, memory_timeline, memory_details, memory_promote
 from tools.metrics import metric_record, metric_query, metric_trend

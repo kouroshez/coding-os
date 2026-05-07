@@ -24,10 +24,34 @@ logger = logging.getLogger("coding_os.db")
 # Hub web, every CLI subcommand, every hook).
 DB_FILENAME = "coding-os.db"
 LEGACY_DB_FILENAME = "thinking_os.db"  # rename target for migrate_legacy_db_filename()
+STATE_DIRNAME = ".coding-os"
 DEFAULT_DB_PATH = Path(
     os.environ.get("COS_DB_PATH", "")
-    or str(Path.cwd() / ".coding-os" / DB_FILENAME)
+    or str(Path.cwd() / STATE_DIRNAME / DB_FILENAME)
 )
+
+
+def resolve_db_path(project_root: Path | str | None = None) -> Path:
+    """Single source of truth for the canonical SQLite DB path.
+
+    Resolution priority:
+    1. ``$COS_DB_PATH`` env var, when set.
+    2. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
+    3. ``<cwd>/.coding-os/coding-os.db`` (DEFAULT_DB_PATH).
+
+    Use this helper instead of inlining the same fallback formula in
+    ~30 different sites — a future filename change becomes one edit
+    here, not a sweep across `core/`, `cli/`, `adapters/`, and hooks.
+
+    The path is returned even if the file does not exist yet — callers
+    that need the file present should follow with ``init_db(path)``.
+    """
+    explicit = os.environ.get("COS_DB_PATH")
+    if explicit:
+        return Path(explicit)
+    if project_root is not None:
+        return Path(project_root) / STATE_DIRNAME / DB_FILENAME
+    return DEFAULT_DB_PATH
 
 
 def migrate_legacy_db_filename(target: Path) -> bool:

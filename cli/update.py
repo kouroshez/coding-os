@@ -338,7 +338,7 @@ def _run_db_migrations(project: Path) -> None:
         [
             sys.executable, "-c",
             f"import sys; sys.path.insert(0, {str(brain)!r}); "
-            f"from db import init_db; init_db({str(db)!r})",
+            f"from database import init_db; init_db({str(db)!r})",
         ],
         check=False,
         capture_output=True,

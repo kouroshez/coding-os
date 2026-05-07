@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from concepts import extract_concepts
-from db import DEFAULT_DB_PATH, get_connection
+from database import DEFAULT_DB_PATH, get_connection
 from impact import calculate_impact
 
 # Tools worth capturing (all others are filtered out).  MultiEdit is the

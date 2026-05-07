@@ -31,7 +31,7 @@ for _p in [str(_CORE), str(_CORE / "thinking_os")]:
 @pytest.fixture()
 def db_setup(tmp_path):
     """Initialise a real SQLite DB at tmp_path/.coding-os/coding-os.db."""
-    import db as thinking_os_db  # type: ignore
+    import database as thinking_os_db  # type: ignore
 
     db_file = tmp_path / ".coding-os" / "coding-os.db"
     db_file.parent.mkdir(parents=True)
@@ -54,7 +54,7 @@ def _dispatch(file_path: Path, tmp_path: Path, db_file: Path, *, force: bool = F
 
 def _make_backend(db_file: Path):
     """Open a fresh SqliteBackend from db_file (post-dispatch snapshot)."""
-    import db as thinking_os_db  # type: ignore
+    import database as thinking_os_db  # type: ignore
     from graph_os.backends.sqlite_backend import SqliteBackend
 
     conn = thinking_os_db.init_db(str(db_file))

@@ -24,7 +24,7 @@ from pathlib import Path
 # Ensure db module is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from db import DEFAULT_DB_PATH, get_connection, get_schema_version
+from database import DEFAULT_DB_PATH, get_connection, get_schema_version
 
 logging.basicConfig(
     level=logging.INFO,

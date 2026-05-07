@@ -279,7 +279,7 @@ def _default_docs_index_runner() -> dict:
     """Run doc_indexer.index_docs against the configured project root."""
     try:
         import doc_indexer
-        from db import init_db
+        from database import init_db
     except ImportError as exc:
         return {"status": "skipped", "reason": f"import: {exc}"}
 
@@ -302,7 +302,7 @@ def _default_task_sync_runner() -> dict:
     """Run task_sync.sync against the configured project root."""
     try:
         import task_sync
-        from db import init_db
+        from database import init_db
     except ImportError as exc:
         return {"status": "skipped", "reason": f"import: {exc}"}
 

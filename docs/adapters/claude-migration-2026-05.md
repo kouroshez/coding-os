@@ -48,7 +48,7 @@ None. All changes are additive. The dispatcher falls back to the
 
 ```bash
 # 1. Schema migration applied
-sqlite3 .coding-os/thinking_os.db ".schema formula_dispatches" | grep cost_usd
+sqlite3 .coding-os/coding-os.db ".schema formula_dispatches" | grep cost_usd
 
 # 2. Dispatcher options regression test
 uv run pytest tests/test_claude_dispatcher_options.py -v

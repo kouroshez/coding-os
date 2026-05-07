@@ -14,7 +14,7 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import (
+from database import (
     get_connection,
     get_schema_version,
     has_fts5,
@@ -231,7 +231,7 @@ class TestHasFTS5Table:
         conn = get_connection(tmp_path / "v1only.db")
         try:
             # Manually apply only v1
-            from db import MIGRATIONS, _ensure_version_table
+            from database import MIGRATIONS, _ensure_version_table
             _ensure_version_table(conn)
             version, description, sql = MIGRATIONS[0]
             conn.executescript(sql)

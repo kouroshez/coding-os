@@ -29,7 +29,7 @@ def _sync() -> None:
             str(Path(__file__).resolve().parent.parent / "thinking_os"),
         )
         sys.path.insert(0, brain_dir)
-        from db import init_db
+        from database import init_db
         from task_sync import sync_tasks
         conn = init_db(os.environ.get("COS_DB_PATH"))
         sync_tasks(conn, project_root=Path.cwd())

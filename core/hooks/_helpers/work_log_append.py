@@ -23,9 +23,13 @@ def main(argv: list[str]) -> int:
         return 0
 
     project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
-    db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"),
-    )
+    try:
+        from thinking_os.database import resolve_db_path  # type: ignore
+        db_path = str(resolve_db_path(project_root))
+    except ImportError:
+        db_path = os.environ.get(
+            "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"),
+        )
     if not Path(db_path).exists():
         return 0
 

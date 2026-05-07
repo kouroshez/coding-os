@@ -73,6 +73,7 @@ def create_app() -> FastAPI:
     from web.routes.search import router as search_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
+    from web.routes.scheduled import router as scheduled_router
     from web.routes.stream import router as stream_router
 
     app.include_router(health_router)
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(settings_router)
     app.include_router(stream_router)
     app.include_router(hub_router)
+    app.include_router(scheduled_router)
 
     # ------------------------------------------------------------------
     # Static SPA / fallback

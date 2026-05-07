@@ -77,7 +77,7 @@ async def T(tool: str, **kwargs) -> dict:
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
-from thinking_os.db import init_db  # noqa: E402
+from thinking_os.database import init_db  # noqa: E402
 
 DB = init_db(str(ROOT / ".coding-os/coding-os.db"))
 _obs = DB.execute("SELECT id FROM observations LIMIT 1").fetchone()

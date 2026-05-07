@@ -134,7 +134,7 @@ def verify_db_row(db_path):
 
 
 def main():
-    from db import DEFAULT_DB_PATH
+    from database import DEFAULT_DB_PATH
     db_path = str(DEFAULT_DB_PATH)
 
     mcp = FakeMCP()

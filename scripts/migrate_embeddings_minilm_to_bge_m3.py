@@ -49,7 +49,7 @@ def main() -> int:
 
     thinking_os = Path(__file__).resolve().parent.parent / "core" / "thinking_os"
     sys.path.insert(0, str(thinking_os))
-    from db import init_db  # type: ignore
+    from database import init_db  # type: ignore
     import migrator_embeddings  # type: ignore
 
     conn = init_db(args.db)

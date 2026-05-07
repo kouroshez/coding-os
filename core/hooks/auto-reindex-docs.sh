@@ -110,4 +110,11 @@ if [[ -f "$ERR_LOG" ]]; then
 fi
 
 cos_log_hook auto-reindex-docs dispatched "file=${FILE_PATH}"
+
+# Visible signal — record activity (rendered by next pulse) + emit
+# systemMessage. python3 json.dumps escapes filename specials safely.
+_FN="${FILE_PATH##*/}"
+cos_record_activity graph "reindex ${_FN}" 2>/dev/null || true
+printf '{"systemMessage":%s}' "$(printf '[graph] reindex %s' "$_FN" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
+
 exit 0

@@ -15,34 +15,34 @@ import pytest
 
 
 def test_v12_creates_graph_tables(migrated_conn):
-    import db  # type: ignore
+    import database  # type: ignore
 
-    assert db.get_schema_version(migrated_conn) >= 12
-    assert db.has_graph_nodes_table(migrated_conn)
-    assert db.has_graph_edges_table(migrated_conn)
-    assert db.has_graph_evidence_table(migrated_conn)
+    assert database.get_schema_version(migrated_conn) >= 12
+    assert database.has_graph_nodes_table(migrated_conn)
+    assert database.has_graph_edges_table(migrated_conn)
+    assert database.has_graph_evidence_table(migrated_conn)
 
 
 def test_v12_adds_embedding_dim_column(migrated_conn):
-    import db  # type: ignore
+    import database  # type: ignore
 
-    assert db.has_embeddings_table(migrated_conn)
-    assert db._column_exists(migrated_conn, "embeddings", "embedding_dim")
+    assert database.has_embeddings_table(migrated_conn)
+    assert database._column_exists(migrated_conn, "embeddings", "embedding_dim")
 
 
 def test_v12_is_idempotent(migrated_conn):
-    import db  # type: ignore
+    import database  # type: ignore
 
     # Re-running migrations on an already-migrated DB should apply nothing.
-    applied = db.run_migrations(migrated_conn)
+    applied = database.run_migrations(migrated_conn)
     assert applied == []
 
 
 def test_v12_fts_virtual_table_present_when_fts5_available(migrated_conn):
-    import db  # type: ignore
+    import database  # type: ignore
 
-    if db.has_fts5(migrated_conn):
-        assert db.has_graph_nodes_fts(migrated_conn)
+    if database.has_fts5(migrated_conn):
+        assert database.has_graph_nodes_fts(migrated_conn)
 
 
 def test_v12_unique_edge_identity_enforced(migrated_conn):
@@ -135,9 +135,9 @@ def test_v12_foreign_key_cascade_removes_edges(migrated_conn):
 
 
 def test_v12_stats_reports_new_tables(migrated_conn):
-    import db  # type: ignore
+    import database  # type: ignore
 
-    stats = db.get_db_stats(migrated_conn)
+    stats = database.get_db_stats(migrated_conn)
     assert "graph_nodes" in stats["tables"]
     assert "graph_edges_v12" in stats["tables"]
     assert "graph_evidence_v12" in stats["tables"]

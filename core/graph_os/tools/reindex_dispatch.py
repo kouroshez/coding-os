@@ -402,11 +402,9 @@ def _record_state_safe(
 
 
 def _open_conn(*, project_root: Path, db_path: str | None):
-    from thinking_os.db import init_db  # type: ignore
+    from thinking_os.database import init_db, resolve_db_path  # type: ignore
 
-    effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
-    )
+    effective_db = db_path or str(resolve_db_path(project_root))
     return init_db(effective_db)
 
 
@@ -432,13 +430,11 @@ def _reindex_docs(
     project_root: Path,
     db_path: str | None,
 ) -> dict[str, Any]:
-    from thinking_os.db import init_db  # type: ignore
+    from thinking_os.database import init_db, resolve_db_path  # type: ignore
     from thinking_os.doc_indexer import index_single_file  # type: ignore
 
     config_path = project_root / ".coding-os" / "rag-config.yaml"
-    effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
-    )
+    effective_db = db_path or str(resolve_db_path(project_root))
     conn = init_db(effective_db)
     try:
         return index_single_file(
@@ -459,7 +455,7 @@ def _reindex_graph(
     db_path: str | None,
     project_root: Path,
 ) -> dict[str, Any]:
-    from thinking_os.db import init_db  # type: ignore
+    from thinking_os.database import init_db, resolve_db_path  # type: ignore
     from graph_os.backends.sqlite_backend import SqliteBackend
     from graph_os.extractors import (  # type: ignore
         code_go,
@@ -483,9 +479,7 @@ def _reindex_graph(
         "task_deps": task_deps.extract,
     }
 
-    effective_db = db_path or os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
-    )
+    effective_db = db_path or str(resolve_db_path(project_root))
     conn = init_db(effective_db)
     nodes_written = edges_written = nodes_pruned = 0
     parse_errors: list[dict[str, Any]] = []

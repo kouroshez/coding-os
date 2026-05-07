@@ -40,7 +40,7 @@ def _make_db(tmp_path: Path, in_progress_count: int) -> Path:
     if str(_CORE) not in sys.path:
         sys.path.insert(0, str(_CORE))
 
-    import db as thinking_os_db  # type: ignore
+    import database as thinking_os_db  # type: ignore
 
     conn = thinking_os_db.init_db(str(db_path))
     for i in range(in_progress_count):

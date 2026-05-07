@@ -113,9 +113,9 @@ FIXTURES = (_build_tiny(), _build_medium())
 
 
 def _sqlite_factory(tmp_path, *, name: str) -> Any:
-    import db  # type: ignore
+    import database  # type: ignore
 
-    conn = db.init_db(str(tmp_path / f"sqlite_{name}.db"))
+    conn = database.init_db(str(tmp_path / f"sqlite_{name}.db"))
     return SqliteBackend(conn=conn), conn
 
 

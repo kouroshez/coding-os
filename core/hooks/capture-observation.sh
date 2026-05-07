@@ -45,4 +45,12 @@ ERROR_LOG="$COS_STATE_DIR/.capture-errors.log"
   echo "$INPUT" | python3 "$CAPTURE_PY" 2>>"$ERROR_LOG"
 ) > /dev/null 2>&1 &
 
+# Visible signal — Claude Code does NOT render PostToolUse `systemMessage`
+# directly in chat UI; route through the per-turn activity log so
+# session-context.sh aggregates + emits on the next UserPromptSubmit
+# (which IS rendered, mirroring the caveman pattern). systemMessage
+# stays for future agent renderers + SDK consumers.
+cos_record_activity memory "+obs" 2>/dev/null || true
+printf '%s' '{"systemMessage":"[memory] +obs queued"}'
+
 exit 0

@@ -1,0 +1,56 @@
+# Scaffold boundary for the meta stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+#
+# This is the meta-stack ITSELF — i.e. the boundary that applies when
+# coding-os edits its own meta-repo (not a consumer project). The
+# boundary teaches enforce-scaffold-boundary.sh which paths the meta
+# stack is responsible for and which paths are owned by other layers.
+
+version: 1
+stack: meta
+
+# Roots the meta-stack owns. Edits to files under these paths are the
+# meta-stack's responsibility — graph-explorer + clean-code + thinking_os
+# auto-load via skill_enforcement in stack.yaml.
+roots:
+  - core/
+  - cli/
+  - adapters/
+  - templates/
+
+# Concrete file globs that constitute meta-repo authoring surface.
+file_patterns:
+  - "core/**/*.py"
+  - "core/**/*.sh"
+  - "core/**/*.yaml"
+  - "core/**/*.md"
+  - "cli/**/*.py"
+  - "adapters/**/*.py"
+  - "adapters/**/*.sh"
+  - "adapters/**/*.yaml"
+  - "templates/**/*.yaml"
+  - "templates/**/*.md"
+  - "templates/**/*.sh"
+
+# Module imports the meta-stack may rely on.
+imports_from:
+  - core/
+  - cli/
+
+# Paths the meta-stack must NEVER write into. These belong to runtime
+# state or to other (consumer-shaped) overlays.
+forbids_writing_in:
+  - .coding-os/         # runtime state — managed by hooks, not edits
+  - .claude/            # agent-installed glue (rendered, not authored)
+  - .codex/             # agent-installed glue
+  - .cursor/            # agent-installed glue
+  - dist/               # build output
+  - build/              # build output
+  - coding_os.egg-info/ # build output
+
+notes:
+  - "Anything under core/ is DNA — propagates to every consumer."
+  - "Anything under adapters/<id>/ is mRNA — only that one agent."
+  - "Anything under templates/<id>/ is phenotype — only that one stack."
+  - "When ambiguous: ask 'would another agent or stack benefit?' — if yes, push to core/."
+  - "Regen targets (core/rules/{dimension-registry,skill-enforcement}.md) are NEVER hand-edited; edit templates/<stack>/stack.yaml + run `make regen-rules`."

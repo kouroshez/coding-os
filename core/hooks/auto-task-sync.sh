@@ -44,4 +44,13 @@ if [[ -f "$HELPER" ]]; then
 fi
 
 cos_log_hook "auto-task-sync" "spawned" 2>/dev/null || true
+
+# Visible signal — record activity + emit systemMessage. task_id is
+# regex-restricted to `TASK-[0-9]+` so JSON interpolation is safe.
+task_id="$(basename "$file_path" .md | grep -oE 'TASK-[0-9]+' | head -1 || true)"
+if [[ -n "$task_id" ]]; then
+  cos_record_activity task "${task_id}" 2>/dev/null || true
+  printf '%s' "{\"systemMessage\":\"[task] ${task_id} synced\"}"
+fi
+
 exit 0

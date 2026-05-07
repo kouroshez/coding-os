@@ -30,9 +30,9 @@ def fresh_db_path(tmp_path: Path) -> str:
 @pytest.fixture()
 def migrated_conn(fresh_db_path: str):
     """Return a freshly initialised sqlite3 connection at schema v12."""
-    import db  # type: ignore
+    import database  # type: ignore
 
-    conn = db.init_db(fresh_db_path)
+    conn = database.init_db(fresh_db_path)
     try:
         yield conn
     finally:

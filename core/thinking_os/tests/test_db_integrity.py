@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from db import init_db
+from database import init_db
 from tools.retrieve import log_router_decision
 
 

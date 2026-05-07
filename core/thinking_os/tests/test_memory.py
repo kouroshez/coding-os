@@ -15,7 +15,7 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import has_fts5, has_fts5_table, init_db
+from database import has_fts5, has_fts5_table, init_db
 from tools.memory import (
     memory_details,
     memory_promote,

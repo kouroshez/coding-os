@@ -135,7 +135,7 @@ if [[ -z "$HELPER_OUT" ]]; then
         "docs/engineering/mcp-error-envelope.md"
       )
       ;;
-    *core/thinking_os/db.py)
+    *core/thinking_os/database.py)
       COMPANION_DOCS=("docs/architecture.md (§ Database Schema)")
       ;;
     *cli/*.py)

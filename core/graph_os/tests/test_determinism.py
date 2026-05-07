@@ -69,12 +69,12 @@ def _dump_projection(backend: SqliteBackend) -> list[tuple]:
 
 
 def test_three_runs_produce_identical_projection(tmp_path):
-    import db  # type: ignore
+    import database  # type: ignore
 
     projections: list[list[tuple]] = []
     for run_idx in range(3):
         path = str(tmp_path / f"run_{run_idx}.db")
-        conn = db.init_db(path)
+        conn = database.init_db(path)
         try:
             backend = SqliteBackend(conn=conn)
             nodes, edges = _deterministic_corpus()
@@ -89,11 +89,11 @@ def test_three_runs_produce_identical_projection(tmp_path):
 
 
 def test_node_counts_are_stable(tmp_path):
-    import db  # type: ignore
+    import database  # type: ignore
 
     counts: list[tuple[int, int]] = []
     for run_idx in range(3):
-        conn = db.init_db(str(tmp_path / f"nodes_{run_idx}.db"))
+        conn = database.init_db(str(tmp_path / f"nodes_{run_idx}.db"))
         try:
             backend = SqliteBackend(conn=conn)
             nodes, edges = _deterministic_corpus()

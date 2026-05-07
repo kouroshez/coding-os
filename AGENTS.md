@@ -95,7 +95,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 | Changed | Required | Command |
 |---|---|---|
 | `core/thinking_os/*.py` | pytest + MCP self-test | `uv run --extra rag pytest core/thinking_os/tests/ -q` and `python core/thinking_os/server.py --test` |
-| `core/thinking_os/db.py` | migration tests | `uv run --extra rag pytest core/thinking_os/tests/test_db.py -q` |
+| `core/thinking_os/database.py` | migration tests | `uv run --extra rag pytest core/thinking_os/tests/test_db.py -q` |
 | `core/graph_os/**` | parity + extractor tests | `uv run --extra graph_os pytest core/graph_os/tests/ -q` |
 | `core/board_os/**` | board_os tests | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q` |
 | `core/hooks/*.sh` or `core/scripts/*.sh` | shell syntax | `make verify-hooks` |
@@ -126,12 +126,26 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 Routing decisions, freshness contract, graph rename workflow, contracts audit: see [docs/engineering/retrieval-routing.md](docs/engineering/retrieval-routing.md), [docs/engineering/graph_os-queries.md](docs/engineering/graph_os-queries.md), and [docs/engineering/rename-workflow.md](docs/engineering/rename-workflow.md).
 
+## Graph-First Discipline (mandatory for `core/**`, `cli/**`, `adapters/**`)
+
+> **Rule:** When the question is structural (callers, blast radius, rename, contracts, trace, similar, communities, context, detect-changes), call the graph **before** Read or grep. One graph envelope (~300 tok) replaces 5–10 file reads (5–50K tok). Hallucination matrix: [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
+
+| Pre-edit move | Tool / hook |
+|---|---|
+| Load skill | `Skill graph-explorer` (primary) + `Skill clean-code` (secondary). `enforce-skill.sh` BLOCKS edits to `core/**/*.py`, `cli/**/*.py`, `adapters/**/*.py` without `graph-explorer`. |
+| Read context before editing | `cos_graph_context(file_or_uid, depth=1)`. `enforce-graph-context.sh` warns (or blocks in strict) without the marker. |
+| Before any rename | `cos_graph_rename_plan(uid, new_name)`. `enforce-rename-plan.sh` warns. |
+| Before any Read on load-bearing file | `cos_graph_*` should already have run this session. `enforce-graph-first-read.sh` warns (toggle with `COS_ENFORCE_GRAPH_FIRST=strict`). |
+| Hot prompt patterns auto-recommend a tool | `nudge-graph-os.sh` (UserPromptSubmit) — 13 bilingual patterns, per-pattern debounced. |
+
+The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
+
 ## Key Files
 
 | What | Where |
 |---|---|
 | MCP server entry | [core/thinking_os/server.py](core/thinking_os/server.py) |
-| DB + migrations | [core/thinking_os/db.py](core/thinking_os/db.py) |
+| DB + migrations | [core/thinking_os/database.py](core/thinking_os/database.py) |
 | MCP tools | [core/thinking_os/tools/](core/thinking_os/tools/) (memory, metrics, learning, routing, docs, tasks, retrieve, cognition) |
 | Phase I graph_os | [core/graph_os/](core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
 | Phase L board_os | [core/board_os/](core/board_os/) — config, parser, sync, workflow, mcp_tools |

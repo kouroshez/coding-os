@@ -550,7 +550,7 @@ def _main() -> None:
     args = parser.parse_args()
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from db import init_db
+    from database import init_db
 
     if not is_available():
         print("ERROR: sentence-transformers not installed. Run: uv sync --extra rag", file=sys.stderr)
@@ -561,7 +561,7 @@ def _main() -> None:
         result = reindex_all(conn)
         print(json.dumps(result, indent=2))
     else:
-        from db import get_db_stats
+        from database import get_db_stats
         stats = get_db_stats(conn)
         print(json.dumps({"status": "ok", "embeddings_available": True, "db_stats": stats}, indent=2))
     conn.close()

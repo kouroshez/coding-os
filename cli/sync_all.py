@@ -39,13 +39,17 @@ def _iter_symlinks(project: Path) -> list[Path]:
     # registered adapter ids, fall back to the historical triplet on
     # stripped-down test fixtures.
     _meta_root = Path(__file__).resolve().parent.parent / "adapters"
+    # Discovery is data-driven via adapters/<id>/adapter.yaml. NEVER
+    # hardcode adapter ids here (Rule 11) — the test
+    # tests/test_no_hardcoded_stacks.py guards this. Empty list = safe
+    # no-op for stripped-down test fixtures.
     try:
         agent_ids = sorted(
             d.name for d in _meta_root.iterdir()
             if d.is_dir() and (d / "adapter.yaml").exists()
-        ) or ["claude", "codex", "cursor"]
+        )
     except OSError:
-        agent_ids = ["claude", "codex", "cursor"]
+        agent_ids = []
 
     out: list[Path] = []
     for agent_id in agent_ids:
@@ -81,7 +85,7 @@ def _apply_migrations(project: Path) -> tuple[bool, str]:
     if not db_path.exists():
         return True, "no DB (pre-Phase-C install)"
     try:
-        from thinking_os.db import get_schema_version, init_db  # type: ignore
+        from thinking_os.database import get_schema_version, init_db  # type: ignore
     except Exception as exc:  # noqa: BLE001
         return False, f"import failed: {exc}"
     try:

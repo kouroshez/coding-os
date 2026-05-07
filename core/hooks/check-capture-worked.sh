@@ -65,10 +65,33 @@ if [[ -f "$COS_DB_PATH" ]]; then
   fi
 fi
 
+# --- 2b. Count Write/Edit operations this session ------------------
+# A read-only session (no code edits) is EXPECTED to have 0 observations,
+# so the "0 obs" branch below is not actionable. We only flag drift when
+# the session actually attempted to capture something. Heuristic:
+# capture-observation.sh logs `fire tool=<X>` for every PostToolUse it
+# sees; counting `tool=Write` + `tool=Edit` entries for this session
+# tells us whether capture had any work to do.
+HOOKS_LOG="${COS_STATE_DIR}/.hooks.log"
+WRITE_EDIT_COUNT=0
+if [[ -f "$HOOKS_LOG" ]]; then
+  WRITE_EDIT_COUNT=$(grep -c "session=${SESSION_ID}.*\[capture-observation\] \[fire\].*tool=\(Write\|Edit\)" "$HOOKS_LOG" 2>/dev/null || echo 0)
+  WRITE_EDIT_COUNT=${WRITE_EDIT_COUNT//[^0-9]/}
+  : "${WRITE_EDIT_COUNT:=0}"
+fi
+
 # --- 3. Decide what to say ------------------------------------------
 # Silent success path: no errors AND observations > 0 → nothing to say.
 if [[ "$ERRORS_FOUND" == "0" ]] && [[ "$OBS_COUNT" -gt 0 ]]; then
   cos_log_hook check-capture-worked ok "observations=${OBS_COUNT}"
+  exit 0
+fi
+
+# Silent expected path: no errors, 0 obs, AND 0 Write/Edit calls →
+# read-only / dispatch-only session. Capture had nothing to record;
+# suppress the warning (it would be noise on every read-only session).
+if [[ "$ERRORS_FOUND" == "0" ]] && [[ "$OBS_COUNT" -eq 0 ]] && [[ "$WRITE_EDIT_COUNT" -eq 0 ]]; then
+  cos_log_hook check-capture-worked ok "observations=0 reason=read-only-session"
   exit 0
 fi
 
@@ -85,9 +108,10 @@ if [[ "$ERRORS_FOUND" -gt 0 ]]; then
   echo "   Likely cause: MCP / DB path broken. Run \`cos doctor\` to confirm." >&2
 fi
 
-if [[ "$OBS_COUNT" == "0" ]]; then
-  echo "⚠️  Zero observations recorded — thinking_os memory did NOT learn" >&2
-  echo "   from this session. Check MCP wiring + DB path before next session." >&2
+if [[ "$OBS_COUNT" == "0" ]] && [[ "$WRITE_EDIT_COUNT" -gt 0 ]]; then
+  echo "⚠️  ${WRITE_EDIT_COUNT} Write/Edit call(s) this session, 0 observations recorded —" >&2
+  echo "   thinking_os memory did NOT learn from those edits. Check MCP wiring +" >&2
+  echo "   DB path; run \`cos doctor\` to confirm." >&2
 fi
 
 if [[ "$OBS_COUNT" == "-1" ]]; then

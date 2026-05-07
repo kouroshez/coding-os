@@ -33,16 +33,16 @@ export default function GraphPage() {
         <ContainsTree />
       </aside>
       <section className="relative overflow-hidden">
-        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
+        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-white/10 bg-[var(--cos-panel)]/70 shadow-xl backdrop-blur-md">
           <ViewModeTabs />
         </div>
-        <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
+        <div className="absolute left-3 top-3 z-10 flex flex-col gap-2 rounded-xl border border-white/10 bg-[var(--cos-panel)]/70 p-3 shadow-xl backdrop-blur-md">
           <DepthSlider />
         </div>
-        <div className="absolute right-3 top-3 z-10 w-64 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)]/95 p-2 shadow-lg backdrop-blur">
+        <div className="absolute right-3 top-3 z-10 w-64 rounded-xl border border-white/10 bg-[var(--cos-panel)]/70 p-3 shadow-xl backdrop-blur-md transition-colors hover:bg-[var(--cos-panel)]/80">
           <FilterBar />
         </div>
-        <div className="absolute bottom-3 right-3 z-10 w-48">
+        <div className="absolute bottom-3 right-3 z-10 w-48 rounded-xl border border-white/10 bg-[var(--cos-panel)]/70 shadow-xl backdrop-blur-md transition-colors hover:bg-[var(--cos-panel)]/80">
           <ColorLegend />
         </div>
         <GraphCanvas />

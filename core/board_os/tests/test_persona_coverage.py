@@ -34,7 +34,7 @@ import pytest
 import yaml
 
 from core.board_os import mcp_tools
-from core.thinking_os import db
+from core.thinking_os import database as db
 
 
 PERSONAS = [

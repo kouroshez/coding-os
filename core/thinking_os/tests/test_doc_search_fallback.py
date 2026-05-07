@@ -17,7 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from db import has_document_chunks_fts, has_fts5, init_db  # noqa: E402
+from database import has_document_chunks_fts, has_fts5, init_db  # noqa: E402
 from tools.docs import doc_search, looks_like_identifier  # noqa: E402
 
 

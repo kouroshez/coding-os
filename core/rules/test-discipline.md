@@ -11,7 +11,7 @@
 | Changed | Command |
 |---|---|
 | `core/thinking_os/**.py` | `uv run --extra rag pytest core/thinking_os/tests/ -q` |
-| `core/thinking_os/db.py` | `uv run --extra rag pytest core/thinking_os/tests/test_db.py -q` |
+| `core/thinking_os/database.py` | `uv run --extra rag pytest core/thinking_os/tests/test_db.py -q` |
 | `core/graph_os/**` | `uv run --extra graph_os pytest core/graph_os/tests/ -q` |
 | `core/board_os/**` | `uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q` |
 | `core/hooks/*.sh` | `make verify-hooks` |

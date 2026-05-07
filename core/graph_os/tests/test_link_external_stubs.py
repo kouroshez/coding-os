@@ -8,7 +8,7 @@ from graph_os.types import GraphEdge, GraphNode
 
 
 def _migrated_conn() -> sqlite3.Connection:
-    import db as thinking_os_db
+    import database as thinking_os_db
     conn = sqlite3.connect(":memory:")
     thinking_os_db.run_migrations(conn)
     return conn

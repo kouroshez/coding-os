@@ -41,8 +41,12 @@ def _load_body_for_task(task_id: str, file_path: Path | None) -> tuple[str, str]
         kind = str(fm.get("kind") or "feature")
         return content, kind
 
-    # Fallback: query DB.
-    db_path = os.environ.get("COS_DB_PATH")
+    # Fallback: query DB via canonical resolver.
+    try:
+        from thinking_os.database import resolve_db_path  # type: ignore
+        db_path = str(resolve_db_path())
+    except ImportError:
+        db_path = os.environ.get("COS_DB_PATH") or ""
     if not db_path or not Path(db_path).exists():
         return "", "feature"
     conn = sqlite3.connect(db_path)

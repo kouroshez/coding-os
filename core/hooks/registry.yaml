@@ -296,6 +296,23 @@ hooks:
         status_message: "🧹 Pruning graph + docs RAG state for deleted files..."
 
   # ── graph_os enforcement (Phase I.14) ──────────────────────────────
+  - id: enforce-graph-first-read
+    script: enforce-graph-first-read.sh
+    description: |
+      Phase I.15 — PreToolUse Read on a load-bearing meta-repo file
+      WARNS (or BLOCKS in strict) when the agent reaches for Read before
+      any cos_graph_* tool has been called this session. Reuses the same
+      enforce_context_on glob list from .coding-os/rag-config.yaml. Silent
+      if the per-file .graph-context-<sha> marker exists. Toggle via
+      COS_ENFORCE_GRAPH_FIRST=off|1|strict.
+    category: enforcement
+    phase: I
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Read
+        status_message: "🧭 Checking graph-first discipline before Read..."
+
   - id: enforce-graph-context
     script: enforce-graph-context.sh
     description: Phase I — warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
@@ -766,6 +783,24 @@ hooks:
       .zoom-prompt-suggested marker; skipped if .thinking_os-gate already exists.
     category: cognition
     phase: O
+    timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
+  - id: nudge-graph-os
+    script: nudge-graph-os.sh
+    description: |
+      UserPromptSubmit nudge — graph_os discovery. Pattern-matches the prompt
+      against 13 structural-question patterns (callers, rename, blast radius,
+      contracts, trace, similar, communities, context, detect-changes,
+      entrypoints, doctor, export, path) — bilingual (EN + Persian) — and
+      emits a one-line additional-context block recommending the exact
+      cos_graph_* tool to call before Read/grep. Closes the dogfood gap
+      where the agent never reaches the graph layer. Debounced per session
+      via .graph-nudge-suggested marker.
+    category: cognition
+    phase: I
     timeout: 1000
     events:
       - event: UserPromptSubmit
