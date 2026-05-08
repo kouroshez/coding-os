@@ -112,7 +112,7 @@ if [[ "$SOURCE" == "startup" ]]; then
   cos_log_hook session-context reset "cleared=${CLEARED}"
 fi
 
-# On compact or resume: re-inject critical workflow reminders
+# On compact or resume: re-inject critical workflow reminders + current state snapshot
 if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
   printf '%s\n' \
     '[Session Context Recovery]' \
@@ -120,8 +120,33 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     'CRITICAL WORKFLOW RULES:' \
     '1. Task management — use make commands, NEVER edit task files directly' \
     '2. Verification Matrix — run domain verification BEFORE marking done' \
-    '3. Complexity Gate — record gate before writing code' \
-    '4. Domain skill — invoke matching skill before writing code'
+    '3. Complexity Gate — record gate before writing code (thinking_os-gate.sh BLOCKS without it)' \
+    '4. Domain skill — invoke matching skill before writing code' \
+    '5. MCP tools deferred — call ToolSearch("select:<tool>") before first use each session' \
+    ''
+
+  # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
+  source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
+  _GATE_STATUS="not recorded"
+  if [[ -f "${COS_AGENT_DIR}/.thinking_os-gate" ]]; then
+    check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
+    if [[ "$STATE_VALID" == "true" ]]; then
+      _GATE_STATUS="$STATE_VALUE (valid)"
+    else
+      _GATE_STATUS="STALE — ${STATE_REASON} — re-record: write-state.sh .thinking_os-gate \"CLEAR 1\""
+    fi
+  fi
+  _TASK_CURRENT=""
+  if [[ -f "${COS_AGENT_DIR}/.task-current" ]]; then
+    _TASK_CURRENT=$(cat "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
+  fi
+  _ACTIVE_SKILL=""
+  if [[ -f "${COS_AGENT_DIR}/.active-skill" ]]; then
+    _ACTIVE_SKILL=$(cat "${COS_AGENT_DIR}/.active-skill" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
+  fi
+
+  printf '%s\n' "[Session State] gate=${_GATE_STATUS} | task=${_TASK_CURRENT:-none} | skill=${_ACTIVE_SKILL:-none}"
+  printf '%s\n' ""
 fi
 
 # On startup: show active in-progress tasks (Phase L Scrumban) so the agent

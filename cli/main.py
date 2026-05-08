@@ -1479,6 +1479,61 @@ def server_start() -> None:
     )
 
 
+@cli.command("session-state")
+@click.option("--project-dir", "-d", default=".", help="Project directory")
+def session_state(project_dir: str) -> None:
+    """Show current session gate, task, and skill state."""
+    import time
+
+    project = Path(project_dir).resolve()
+    agent = os.environ.get("COS_AGENT") or "claude"
+    agent_dir = project / ".coding-os" / agent
+
+    if not agent_dir.exists():
+        click.echo(f"No session state at {agent_dir}")
+        sys.exit(1)
+
+    session_file = agent_dir / "session-id"
+    current_session = session_file.read_text().strip() if session_file.exists() else ""
+
+    def _read_state(path: Path, max_age: int = 7200) -> tuple[str, str]:
+        if not path.exists():
+            return ("none", "")
+        try:
+            content = path.read_text().splitlines()[0] if path.exists() else ""
+        except OSError:
+            return ("error", "")
+        parts = content.split(" ", 1)
+        file_session = parts[0] if parts else ""
+        value = parts[1] if len(parts) > 1 else ""
+        if current_session and file_session and file_session != current_session:
+            return ("session-mismatch", value)
+        age = int(time.time() - path.stat().st_mtime)
+        if age > max_age:
+            return (f"stale ({age // 60}min old, max {max_age // 60}min)", value)
+        return ("valid", value)
+
+    gate_status, gate_val = _read_state(agent_dir / ".thinking_os-gate")
+    task_status, task_val = _read_state(agent_dir / ".task-current")
+    skill_status, skill_val = _read_state(agent_dir / ".active-skill")
+    zoom_status, _ = _read_state(agent_dir / ".zoom-checkpoint")
+    doc_status, _ = _read_state(agent_dir / ".doc-anchor")
+
+    click.echo(f"Session   : {current_session or '(unset)'}")
+    click.echo(f"Agent     : {agent}")
+    click.echo(f"Gate      : {gate_status:30s} {gate_val}")
+    click.echo(f"Zoom      : {zoom_status}")
+    click.echo(f"Task      : {task_status:30s} {task_val}")
+    click.echo(f"Skill     : {skill_status:30s} {skill_val}")
+    click.echo(f"DocAnchor : {doc_status}")
+
+    if "stale" in gate_status or gate_status == "none":
+        click.echo("")
+        click.echo("Gate not valid — next Write/Edit on .py/.ts/.tsx will BLOCK")
+        click.echo(f'   Re-record: bash "{agent_dir}/hooks/write-state.sh" \\')
+        click.echo(f'              "{agent_dir}/.thinking_os-gate" "CLEAR 1"')
+
+
 # ---------------------------------------------------------------------------
 # Phase I — graph_os subcommand family (`cos graph-*`).
 # Registration lives in cli/graph_commands.py so the main file stays lean.

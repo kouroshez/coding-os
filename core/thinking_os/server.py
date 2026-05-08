@@ -912,60 +912,29 @@ def cos_learn_narrative(
     },
 )
 @safe_tool
-def thinking_os_graph(
-    node: str,
-    max_hops: int = 2,
-    limit: int = 10,
-    edge_types: str = "",
+def thinking_os_graph(  # noqa: ARG001
+    node: str,  # noqa: ARG001
+    max_hops: int = 2,  # noqa: ARG001
+    limit: int = 10,  # noqa: ARG001
+    edge_types: str = "",  # noqa: ARG001
 ) -> str:
-    """[DEPRECATED — use cos_graph_context] Query the concept/file graph.
-
-    Scheduled removal: one release cycle after Phase J ships (≥180 days
-    post Phase I). Callers SHOULD migrate to `cos_graph_context` /
-    `cos_graph_impact` / `cos_graph_references` for richer,
-    backend-agnostic results. This shim still works: it queries the v4
-    `concept_graph` table AND emits a DeprecationWarning so call sites
-    are auditable.
-
-    Edge types supported (legacy): co_edit (files modified together),
-    concept_link (co-occurring concepts).
-
-    Args:
-        node: Starting node — file path or concept.
-        max_hops: Traversal depth (1-3, default 2).
-        limit: Max results (1-50, default 10).
-        edge_types: Comma-separated filter. Empty = all.
-    """
-    import warnings
-
-    warnings.warn(
-        "cos_graph is deprecated; use cos_graph_context / cos_graph_impact "
-        "/ cos_graph_references instead. Sunset ≥ 180 days post-Phase I.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    types = [t.strip() for t in edge_types.split(",") if t.strip()] or None
-    result = query_related(_db_conn, node=node, max_hops=max_hops, limit=limit, edge_types=types)
+    """[REMOVED] cos_graph was removed. Migrate to cos_graph_context / cos_graph_impact."""
     try:
         metric_record(
             _db_conn,
             agent_type="system",
             outcome="deprecated_call",
-            task_id="cos_graph.shim",
+            task_id="cos_graph.removed",
             domain="graph_os",
             complexity="legacy",
         )
-    except Exception as exc:  # noqa: BLE001 — shim never raises
-        logger.debug("cos_graph deprecation metric emit failed: %s", exc)
-    return ok(
-        result,
-        meta={
-            "layer": "graph",
-            "query": node,
-            "deprecated": True,
-            "replacement": "cos_graph_context",
-            "sunset": "Phase J (≥ 180 days)",
-        },
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("cos_graph removal metric failed: %s", exc)
+    return fail(
+        "validation",
+        "cos_graph is removed. Use cos_graph_resolve(q) to get a uid, then "
+        "cos_graph_context(uid) / cos_graph_impact(uid) / cos_graph_references(uid). "
+        "See docs/engineering/mcp-schema-traps.md.",
     )
 
 

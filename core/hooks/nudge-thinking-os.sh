@@ -5,7 +5,10 @@
 # as CLEAR / COMPLICATED / COMPLEX / CHAOTIC. For COMPLICATED+ emits an
 # additional-context block mandating Rule 18 task board check (cos_task_board),
 # Complexity Gate recording, and thinking_os skill load.
-# Debounced per session via marker file so the same session is nudged at most once.
+#
+# Debounce: normally fires once per session. EXCEPTION: if the gate is stale
+# (expired or wrong session), debounce is bypassed and a re-record warning is
+# emitted regardless — preventing a surprise BLOCK at Write/Edit time later.
 #
 # Always exits 0 — never blocks input.
 set -euo pipefail
@@ -22,16 +25,34 @@ if [[ "$LEN" -lt 80 ]]; then
   exit 0
 fi
 
-# Debounce: one nudge per session. Marker cleared by session-context.sh on startup.
 MARKER="${COS_AGENT_DIR}/.zoom-prompt-suggested"
-if [[ -f "$MARKER" ]]; then
+GATE_FILE="${COS_AGENT_DIR}/.thinking_os-gate"
+
+# Check gate validity (not just file existence).
+# A stale or session-mismatched gate WILL cause a BLOCK on next Write/Edit —
+# warn now, before the agent does work it will have to redo.
+source "$(dirname "$0")/check-state.sh"
+check_state "$GATE_FILE" 7200
+GATE_STALE=false
+if [[ "$STATE_VALID" != "true" ]] && [[ -f "$GATE_FILE" ]]; then
+  # File exists but is invalid (expired or wrong session) — this is the silent trap.
+  GATE_STALE=true
+  # Clear the debounce marker so the stale-gate warning always gets through.
+  rm -f "$MARKER" 2>/dev/null || true
+  cos_log_hook nudge-thinking-os stale-gate "reason=${STATE_REASON}"
+fi
+
+# Normal debounce: one nudge per session (unless gate is stale, handled above).
+if [[ -f "$MARKER" ]] && [[ "$GATE_STALE" != "true" ]]; then
   exit 0
 fi
 
-# Existing gate already recorded? No nudge needed.
-GATE_FILE="${COS_AGENT_DIR}/.thinking_os-gate"
-if [[ -f "$GATE_FILE" ]]; then
-  exit 0
+# Gate valid and already recorded — no nudge needed.
+if [[ "$STATE_VALID" == "true" ]]; then
+  # Still debounce to avoid re-nudging on every prompt.
+  if [[ -f "$MARKER" ]]; then
+    exit 0
+  fi
 fi
 
 # Lowercase prompt for matching.
@@ -71,16 +92,18 @@ if [[ -z "$CLASSIFICATION" ]]; then
   exit 0
 fi
 
-cos_log_hook nudge-thinking-os fire "class=${CLASSIFICATION} len=${LEN} cplx=${COMPLICATED} cplex=${COMPLEX} chaos=${CHAOS}"
+cos_log_hook nudge-thinking-os fire "class=${CLASSIFICATION} stale=${GATE_STALE} len=${LEN} cplx=${COMPLICATED} cplex=${COMPLEX} chaos=${CHAOS}"
 
-# Set marker so we nudge at most once per session.
+# Set marker so we nudge at most once per session (stale-gate path already cleared it above).
 mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
 printf '%s' "$CLASSIFICATION" > "$MARKER" 2>/dev/null || true
 
-# Emit structured hookSpecificOutput JSON — Claude Code renders UserPromptSubmit
-# hooks that return this format as a compact labeled "additionalContext" block,
-# matching the pattern used by caveman-mode-tracker.js for consistent UI.
-CONTEXT="[thinking_os ${CLASSIFICATION} ~${DIM_HINT}dim] MANDATORY: (1) cos_task_board [Rule 18] (2) write-state.sh gate (3) Skill(thinking_os) (4) cos_compose_chain — heuristic, re-classify after full read."
+# Emit structured hookSpecificOutput JSON.
+if [[ "$GATE_STALE" == "true" ]]; then
+  CONTEXT="[thinking_os gate STALE — ${STATE_REASON}] Re-record NOW to avoid BLOCK on next Write/Edit: bash \"\${COS_AGENT_DIR}/hooks/write-state.sh\" \"\${COS_AGENT_DIR}/.thinking_os-gate\" \"${CLASSIFICATION} ${DIM_HINT}\". Then: (1) cos_task_board [Rule 18] (2) Skill(thinking_os) if COMPLICATED+."
+else
+  CONTEXT="[thinking_os ${CLASSIFICATION} ~${DIM_HINT}dim] MANDATORY: (1) cos_task_board [Rule 18] (2) write-state.sh gate (3) Skill(thinking_os) (4) cos_compose_chain — heuristic, re-classify after full read."
+fi
 printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 
 exit 0

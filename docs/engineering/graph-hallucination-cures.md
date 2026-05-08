@@ -25,10 +25,19 @@ graph instead of grep + Read + guess.
 
 Use file Read **only** for the 1–3 files the graph tells you matter.
 
-## Hallucination → Cure matrix (16 tools)
+## Hallucination → Cure matrix (17 tools)
+
+> **Rule #0 — resolve before querying.** All `cos_graph_*` tools that accept a `uid` parameter
+> require a fully-qualified UID (`code:file:<path>`, `code:function:<path>::<name>`, etc.).
+> `cos_graph_context` also accepts raw paths and fuzzy labels; most others do not.
+> **Always call `cos_graph_resolve(q)` first** when you don't have an exact uid.
+> Raw repo paths passed directly to `cos_graph_impact` / `cos_graph_references` /
+> `cos_graph_rename_plan` silently return empty results — the single highest-confidence
+> hallucination pattern in this repo (agent belief score 0.93).
 
 | # | Hallucination / blind-spot | Why it happens | Cure | Token win |
 |---|---|---|---|---|
+| 0 | "I'll pass a raw path to cos_graph_impact and expect results." | Tool accepts a `uid` parameter; raw paths like `core/foo.py` are NOT auto-resolved in most graph tools. | `cos_graph_resolve(q)` → get canonical uid → call target tool | One resolve (~100 tok) vs. repeated empty-result retries |
 | 1 | "I'll grep for callers and hope the variants match." | Identifier appears as `foo`, `foo()`, `"foo"`, `foo_bar`, … | `cos_graph_references(uid)` | One call vs. 4 grep variants × Read of each hit |
 | 2 | "Renaming this will only affect this file." | Doc refs, test fixtures, string literals, error messages stay invisible to grep | `cos_graph_rename_plan(uid, new_name)` | Pre-classified rename targets vs. iterative grep cycles |
 | 3 | "I think this function is unused." | False — used reflectively, via decorator, or via dynamic dispatch | `cos_graph_references(uid)` returning `count=0` is the **only** authoritative dead-code signal | Avoids deleting load-bearing code (catastrophic miss) |
@@ -51,6 +60,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 
 | Intent | First-call tool |
 |---|---|
+| **Resolve a name/path to a uid** | **`cos_graph_resolve`** ← start here when uid unknown |
 | Find by name / label | `cos_graph_query` |
 | Surrounding subgraph | `cos_graph_context` |
 | Who references this | `cos_graph_references` |

@@ -36,7 +36,12 @@ if [[ "$FILE_PATH" == *.sh ]] && [[
       "$FILE_PATH" == *.claude/hooks/* ||
       "$FILE_PATH" == *.codex/hooks/* ||
       "$FILE_PATH" == *.cursor/hooks/* ]]; then
-  if echo "$CONTENT" | grep -qE 'python3? +- +.*<<'; then
+  # Strip shell comment lines before scanning so docs that *describe* the
+  # dangerous pattern (e.g. session-context.sh line 159 warns about the
+  # heredoc-write deadlock) do not trip the regex.
+  CODE_ONLY=$(echo "$CONTENT" | grep -vE '^[[:space:]]*#')
+
+  if echo "$CODE_ONLY" | grep -qE 'python3? +- +.*<<'; then
     echo "BLOCKED: \`cmd - <<HEREDOC\` pattern detected — bash 5.3.9 sporadically" >&2
     echo "         deadlocks this in heredoc_write before fork. Hot-path hooks +" >&2
     echo "         installer scripts that fire it accumulate zombies and starve" >&2
@@ -46,13 +51,10 @@ if [[ "$FILE_PATH" == *.sh ]] && [[
     echo "           python3 \$(dirname \"\$0\")/_helpers/<name>.py arg1 arg2" >&2
     exit 2
   fi
-  # Detect form A nested inside command substitution. Verified 2026-04-26
-  # to ALSO sporadically deadlock on bash 5.3.9 — sample(1) shows the hang
-  # at expand_word_internal → command_substitute → wait_for. Form A is
-  # OK at top-level (`python3 -c "$(cat <<'PY'..."` as a standalone
-  # command), but NOT inside `VAR=$(python3 -c "$(cat <<'PY'..." ...)`.
-  # The only deadlock-immune option is form B (separate .py file).
-  if echo "$CONTENT" | grep -qE '\$\(.*python3? +-c +.*\$\(cat +<<'; then
+  # Detect form A nested inside command substitution (sample(1) shows the
+  # hang at expand_word_internal -> command_substitute -> wait_for).
+  # See docs/engineering/bash-heredoc-deadlock.md for the full forensics.
+  if echo "$CODE_ONLY" | grep -qE '\$\(.*python3? +-c +.*\$\(cat +<<'; then
     echo "BLOCKED: nested heredoc-in-\$(...)  detected — bash 5.3.9 sporadically" >&2
     echo "         deadlocks even \`python3 -c \"\$(cat <<'PY'...)\"\` when wrapped" >&2
     echo "         inside another \$(...). install.sh hung on this 2026-04-26." >&2

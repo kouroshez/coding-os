@@ -108,6 +108,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 **Scrumban (preferred):** `cos board [--web]` · `cos task-show TASK-NNN` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to blocked|testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
 **MCP equivalents:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
+**Deferred tool schemas (Claude only):** all 79 `cos_*` tools are deferred — schemas are NOT loaded at session start. Call `ToolSearch("select:<tool>")` before the first invocation each session or you get `InputValidationError`. Schema traps (TaskSignals field types, envelope format, UID scheme): [docs/engineering/mcp-schema-traps.md](docs/engineering/mcp-schema-traps.md).
 **Meta retrieval (when unsure):** `cos_retrieve(query, hint="auto")` dispatches to memory/docs/tasks or returns a code-grep hint for identifier queries.
 **Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `make cos-health` · `cos doctor` · `make log-{latest,write,search}`.
 **Web UI (visual exploration):** `cos hub start` boots the singleton FastAPI + React SPA at `http://127.0.0.1:9188`; one hub serves every registered project via `/api/p/<slug>/*`. `cos hub status` reports meta-repo path + symlink health. UI iteration: `make ui-dev` (HMR on :5173) or `make ui-build` (rebuild `dist/`). Full contract + propagation matrix: [docs/engineering/hub-architecture.md](docs/engineering/hub-architecture.md).
@@ -161,6 +162,20 @@ The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineeri
 ## Phase Status
 
 v0.2.x current. Phases A–N.6 shipped (core, RAG, task store, distribution, hook regime, graph_os, board_os, cognition supervisor, role-based routing, behavioral tracing). Test suite collects ~2,031 tests. Roadmap & open icebox: `cos board` and [docs/development-roadmap.md](docs/development-roadmap.md). Per-phase plans live as `docs/phase-*-plan.md`.
+
+## Persona Enforcement Coverage
+
+Hook enforcement varies by runtime — choose accordingly:
+
+| Runtime | Hooks fire | Use for |
+|---|---|---|
+| Claude Code | 58/62 ✅ | All protected work (gates + skills + doc-anchor enforce) |
+| Cursor (Agent mode) | 59/62 ✅ | All protected work |
+| Codex CLI (`codex exec`) | 21/62 ⚠️ | Bash-only — NOT for Write/Edit on `core/**` |
+| Codex.app (Antigravity GUI) | **0/62** ❌ | DO NOT use for protected work — `.codex/hooks.json` silently ignored upstream |
+| Human (direct edit) | 0/62 ❌ | Install `bash scripts/install-git-hooks.sh` for git pre-commit coverage |
+
+Audit + reasoning: [docs/engineering/workflow-audit-2026-04-25.md](docs/engineering/workflow-audit-2026-04-25.md). Codex GUI fallback details: [docs/engineering/codex-presence-fallback.md](docs/engineering/codex-presence-fallback.md).
 
 ## Stop Conditions
 
