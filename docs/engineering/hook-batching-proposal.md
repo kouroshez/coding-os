@@ -6,6 +6,8 @@ Read when: Considering hook performance refactors.
 Skip when: Looking for the live registry — see core/hooks/registry.yaml.
 Read next: [registry.yaml](../../core/hooks/registry.yaml)
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 
 Status: **Proposal** (not yet implemented). Drafted 2026-04-27 during the
 hook-stack hardening sweep.

@@ -377,12 +377,12 @@
       </div>
 
       <!-- ══════════════════════════════════════════════════════════════════
-           TASK ANALYZER — signal extraction (Phase N, TARGET)
+           TASK ANALYZER — signal extraction
            ══════════════════════════════════════════════════════════════════ -->
       <div class="node-wrapper"><div class="node action theme-amber" id="n-analyzer" data-role="analyzer" data-phase="analyze" style="max-width:460px;">
         <div class="n-num">A</div>
         <div class="n-content">
-          <div class="n-head">Task Analyzer <span class="n-badge" style="background:var(--green-dim);color:var(--green);">Phase N shipped</span></div>
+          <div class="n-head">Task Analyzer <span class="n-badge" style="background:var(--green-dim);color:var(--green);">Shipped</span></div>
           <div class="n-cmd">task_analyzer.py → TaskSignals</div>
           <div class="n-desc">Extract signals from <strong>prompt + memory + graph + docs</strong>:</div>
           <div class="role-row">
@@ -723,7 +723,7 @@
         <li><strong>Docs RAG (1):</strong> cos_doc_search</li>
         <li><strong>Tasks (4):</strong> cos_task_search/dependencies/dependents/by_filter</li>
         <li><strong>Board (8):</strong> cos_task_create/board/move/pick/daily/retro/wip_check/work_log_append</li>
-        <li><strong>Cognition (10):</strong> cos_route_persona (→roles in Phase N) · cos_supervise · cos_supervise_record_output · cos_dispatch_formula · cos_ambiguity_check · cos_traceability · cos_backtrack_log · cos_discovery · cos_situation_detect · cos_takeover</li>
+        <li><strong>Cognition (10):</strong> cos_route_persona (legacy → role-based routing) · cos_supervise · cos_supervise_record_output · cos_dispatch_formula · cos_ambiguity_check · cos_traceability · cos_backtrack_log · cos_discovery · cos_situation_detect · cos_takeover</li>
       </ul>
     </div>
 
@@ -741,12 +741,12 @@
       <h3><i style="background:var(--purple-dim);border:1px solid var(--purple);color:var(--purple);">D</i> DB Schema · v1..v14 (append-only)</h3>
       <ul>
         <li><strong>v1-v5:</strong> observations, learned_patterns, outcome_history, metrics, learning</li>
-        <li><strong>v6:</strong> tasks (Phase C)</li>
+        <li><strong>v6:</strong> tasks</li>
         <li><strong>v7-v8:</strong> trust_tier, provenance, retrievals audit</li>
         <li><strong>v9-v11:</strong> document_chunks FTS, retrieval_quality, validation throttle</li>
-        <li><strong>v12:</strong> graph_nodes, graph_edges_v12 (Phase I)</li>
-        <li><strong>v13:</strong> task_status_history (Phase L)</li>
-        <li><strong>v14:</strong> <code>backtrack_events</code>, <code>persona_selections</code>, <code>ambiguity_violations</code>, <code>formula_dispatches</code> (Phase M)</li>
+        <li><strong>v12:</strong> graph_nodes, graph_edges_v12 (knowledge graph)</li>
+        <li><strong>v13:</strong> task_status_history (Scrumban)</li>
+        <li><strong>v14:</strong> <code>backtrack_events</code>, <code>persona_selections</code>, <code>ambiguity_violations</code>, <code>formula_dispatches</code> (cognition)</li>
       </ul>
     </div>
 
@@ -767,7 +767,7 @@
     </div>
 
     <div class="card" data-section="phase-n-status">
-      <h3><i style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);">&#10004;</i> Phase N — Shipped</h3>
+      <h3><i style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);">&#10004;</i> Role-Based Routing — Shipped</h3>
       <ul>
         <li>✅ <strong>Cognitive roles</strong> replace job-title personas — 11 YAML files under <code>core/thinking_os/roles/F{1..11}_*.yaml</code></li>
         <li>✅ <strong>Task Analyzer</strong> — <code>core/thinking_os/task_analyzer.py</code>, &lt;500ms budget, flock'd cache</li>
@@ -797,8 +797,8 @@
         <li><strong>R8-10</strong> Governance edits require task-name · Python for verification scripts · migrations append-only</li>
         <li><strong>R11-13</strong> Regen derived artifacts · no hardcoded literals in CLI · function-header convention</li>
         <li><strong>R14</strong> MCP envelope — <code>ok()/fail()</code>, <code>@safe_tool</code></li>
-        <li><strong>R15</strong> Tasks are pointers, not specs (Phase L)</li>
-        <li><strong>R16</strong> <s>Persona</s> <strong>Role</strong> must be set for COMPLICATED+ (Phase N rewrite)</li>
+        <li><strong>R15</strong> Tasks are pointers, not specs</li>
+        <li><strong>R16</strong> <s>Persona</s> <strong>Role</strong> must be set for COMPLICATED+</li>
         <li><strong>R17</strong> Formula dispatch must produce typed EvidenceBundle</li>
         <li><strong>R18</strong> Situational Paths override role chain when <code>.situation</code> set</li>
       </ul>
@@ -818,7 +818,7 @@
     </div>
 
     <div class="card full" data-section="trace-replay">
-      <h3><i style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);">▶</i> Behavioral Trace Replay (Phase N.6)</h3>
+      <h3><i style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);">▶</i> Behavioral Trace Replay</h3>
       <p>Every cognition event writes a line to <code>.coding-os/&lt;agent&gt;/traces/&lt;session_id&gt;.jsonl</code>. The companion viewer animates an agent's actual path through this flowchart — every node highlights in the order the agent hit it, with event-list sidebar, speed control, and timeline scrubber.</p>
       <p style="margin-top:8px;"><strong style="color:var(--cyan);">→ <a href="cognition-trace-replay.html" style="color:var(--cyan);text-decoration:none;border-bottom:1px dashed var(--cyan);">Open trace replay viewer</a></strong> &middot; CLI: <code>cos cognition trace &lt;session_id&gt;</code></p>
     </div>

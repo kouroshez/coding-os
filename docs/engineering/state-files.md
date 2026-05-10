@@ -5,6 +5,8 @@ Purpose: Canonical explanation of what lives under `.coding-os/`, how state file
 
 Read when: Adding a new session-scoped marker · debugging a "session mismatch" BLOCK · planning a multi-agent (Claude + Codex) workflow on one repo · considering moving any of this to the database.
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 ## The split — shared root vs. agent-private subdir
 
 ```

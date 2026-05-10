@@ -5,6 +5,8 @@ Purpose: Canonical reference for the PreToolUse hook that BLOCKS raw `Write` on 
 
 Read when: a `Write` call on a markdown file is blocked · adding a new structured document class · deciding whether to add template enforcement for a new doc type.
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 **Hook source:** [core/hooks/enforce-template.sh](../../core/hooks/enforce-template.sh)
 
 ## Design principle

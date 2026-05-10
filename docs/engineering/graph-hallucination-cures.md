@@ -2,13 +2,14 @@
 # Graph-OS — Hallucination Cures & Token Economics
 
 > P: Catalogue every category of agent hallucination / blind-spot the
->    Phase I knowledge graph eliminates, mapped to the exact `cos_graph_*`
+>    knowledge graph subsystem eliminates, mapped to the exact `cos_graph_*`
 >    tool that prevents it, with token-economics rationale.
 > R: Routing decisions, post-mortem analysis, deciding when graph_os is
 >    cheaper than read+grep.
 > S: Designing new graph extractors. See `docs/engineering/graph_os-queries.md`.
-> N: [graph_os-queries.md](graph_os-queries.md), [retrieval-routing.md](retrieval-routing.md),
->    [rename-workflow.md](rename-workflow.md), [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+> N: [graph_os-queries.md](graph_os-queries.md), [graph-use-cases.md](graph-use-cases.md), [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 The four cures called out in agent guidance (`references`, `rename_plan`,
 `contracts`, `impact`) are a small slice of the surface. The full list

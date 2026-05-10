@@ -5,6 +5,8 @@ Purpose: Explicit, honest answer to "when is a rule file actually loaded, and by
 
 Read when: Adding a new `core/rules/*.md` file · wondering why a rule didn't seem to apply · deciding whether to rely on rule frontmatter or on explicit AGENTS.md references.
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 ## TL;DR
 
 > **Neither Claude Code nor Codex auto-load `core/rules/*.md` based on the frontmatter in those files.** Rules become effective because `AGENTS.md` explicitly instructs the agent to read them. The frontmatter is Cursor-compatible (for future use), but on today's runtimes it's decorative.

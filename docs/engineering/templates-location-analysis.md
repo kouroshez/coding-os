@@ -5,6 +5,8 @@ Purpose: Answer "should coding-os ship template files into every consumer projec
 
 Read when: considering a change to how templates (task-detail, ADR, PRD, skill skeleton, runbook, …) are distributed · deciding where to add a new template class · debating whether consumer projects should have `docs/governance/templates/` at all.
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 **Status:** analysis only — no implementation change. The user explicitly asked for analysis of scenarios before committing to a direction.
 
 ## Current state (as of 2026-04-18)

@@ -1,10 +1,14 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-07 -->
 # MCP Schema Traps — Exact Types for Agent Callers
 
-> **Why this doc exists.** The 79 `cos_*` tools are deferred — their schemas are not loaded at
-> session start. Agents must call `ToolSearch` before the first use of any tool. Several tools
-> also have Pydantic-validated inputs whose field types are non-obvious and produce opaque
-> validation errors when wrong. This file is the canonical reference for those traps.
+> P: Canonical reference for the non-obvious input shapes of `cos_*` MCP tools and the deferred-tool loading rule.
+> R: Authoring an agent flow that calls a `cos_*` tool, or debugging an `InputValidationError`.
+> S: The tool's signature is already loaded into context this session.
+> N: [mcp-error-envelope.md](mcp-error-envelope.md), [mcp-fast-path-entry.md](mcp-fast-path-entry.md)
+
+> Nav: [Engineering Index](./00-index.md) | [Docs Index](../00-index.md)
+
+> The 79 `cos_*` tools are deferred — their schemas are not loaded at session start. Agents must call `ToolSearch` before the first use of any tool. Several tools also have Pydantic-validated inputs whose field types are non-obvious and produce opaque validation errors when wrong. This file is the canonical reference for those traps.
 
 ## Deferred Tool Loading (mandatory, session-scoped)
 
@@ -139,4 +143,4 @@ Do not call it; callers that do will receive an empty result set.
 
 - [graph-hallucination-cures.md](graph-hallucination-cures.md)
 - [mcp-error-envelope.md](mcp-error-envelope.md)
-- [retrieval-routing.md](retrieval-routing.md)
+- [mcp-fast-path-entry.md](mcp-fast-path-entry.md)

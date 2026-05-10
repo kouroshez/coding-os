@@ -1,4 +1,12 @@
+<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-05-08 -->
 # Dispatcher Contract
+
+Purpose: TODO — one-line statement of why 'Dispatcher Contract' exists.
+Read when: TODO — concrete trigger that sends an agent here.
+Skip when: TODO — when another doc is the right choice instead.
+Read next: TODO — 1-3 follow-up doc links.
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 > **Source of truth.** When this doc and the code disagree, the code wins —
 > open a PR to update this doc, then merge.

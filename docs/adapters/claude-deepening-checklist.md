@@ -1,9 +1,14 @@
 <!-- domain:ADAPTERS | layer:plan | ssot:true | updated:2026-05-05 -->
-# Claude Adapter — Deepening Checklist (Phase Q.deep)
+# Claude Adapter — Deepening Checklist
 
-> **SSOT for [TASK-003](../tasks/TASK-003-phase-q-deep-claude-adapter-optimization-claude-only-focus.md).**
-> Scope: optimize `adapters/claude/` for the live `claude-agent-sdk` 0.1.73 surface.
-> Other adapters frozen at TASK-002 baseline until Claude stabilizes.
+> P: Tracker for the optimization items pending against the live `claude-agent-sdk` 0.1.73 surface.
+> R: Picking up an open Claude-adapter optimization item, or auditing what is still outstanding.
+> S: Implementing brand-new SDK features without an open checklist item — file a task instead.
+> N: [claude-sdk.md](claude-sdk.md), [claude-sdk-architecture.md](claude-sdk-architecture.md)
+
+> Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
+
+Scope: optimize `adapters/claude/` for the live `claude-agent-sdk` 0.1.73 surface. Other adapters are frozen at the prior baseline until Claude stabilizes.
 
 ## How to use this file
 
@@ -146,7 +151,7 @@
 - [x] **T15.2** P0 · Moved `scripts/inspect_sdk_options.py` → `scripts/dev/inspect_sdk_options.py` — 2026-05-05. No references found via grep; doctor still passes.
 - [x] **T15.3** P1 · Deleted `scripts/audit_skill_descriptions.py` — 2026-05-05. T6.2 pytest gate (`tests/test_skill_frontmatter.py`) covers its purpose. No references found.
 - [ ] **T15.4** P1 · Audit `core/thinking_os/agents/<role>.md` for unused fields (`tools_budget` overlaps with `Options.allowed_tools`) — decide canonical source — verify: doc matches code
-- [x] **T15.5** P2 · Pre-v0.3 placeholders removed — 2026-05-05: cleaned 3 stale comments (`cos_route_persona was removed in v0.3` in `tools/cognition.py`, `Phase M personas removed in v0.3` in `cognition.py` + `doctor.py`, `Phase M personas/registry.yaml was removed in v0.3` in `server.py`).
+- [x] **T15.5** P2 · Pre-v0.3 placeholders removed — 2026-05-05: cleaned 3 stale comments referring to the legacy persona system removed in v0.3 (in `tools/cognition.py`, `cognition.py`, `doctor.py`, and `server.py`).
 - [x] **T15.6** P2 · Confirmed no `.claude/agents/` reference in any test, golden file, or doc — 2026-05-05. `command grep -rn ".claude/agents" --include=*.py --include=*.md --include=*.sh --include=*.yaml --include=*.json` returned no hits (excluding the task doc and checklist themselves).
 
 ## T16 — Branding / compliance
@@ -172,7 +177,7 @@
 ## T17 — Release & ops
 
 - [x] **T17.1** P1 · `pyproject.toml` version bumped 0.2.0 → 0.3.0 — 2026-05-05. Git tag `v0.3.0-claude-q.deep` deferred to release commit (avoids tagging mid-task).
-- [x] **T17.2** P1 · Roadmap updated 2026-05-05: `docs/development-roadmap.md` Current State section now lists Phase Q-bundle (TASK-002) + Phase Q.deep (TASK-003) with full landed surface; deferred items split into N.5 follow-ups vs Q.deep follow-ups.
+- [x] **T17.2** P1 · Roadmap updated 2026-05-05: roadmap Current State section lists the adapter Q-bundle and deepening work with full landed surface; deferred items split into routing follow-ups versus adapter follow-ups.
 - [x] **T17.3** P2 · Post-mortem — landed 2026-05-05: `docs/postmortems/2026-05-claude-deepening.md` — summary, what worked, 4 surprise bugs with root cause + fix + lesson, deferred work priority order.
 
 ---

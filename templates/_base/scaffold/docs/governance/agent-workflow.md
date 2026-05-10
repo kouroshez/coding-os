@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-08 -->
 # Agent Workflow Policy
 
 Purpose: Domain routing, task protocol, escalation, and memory contract — supplements `AGENTS.md` § Core Loop.
@@ -41,7 +41,7 @@ When two domains share weight, route to the higher blast-radius domain first.
 | → blocked | `make task-block TASK=<num> REASON="why"` | Marks `(BLOCKED: reason)`, appends entry to `docs/questions.md`. |
 | Session bootstrap | `make session-init` | Once per session — surfaces phase from `roadmap.md`, recent `changes.log`, open task + question counts. |
 
-Always provide `WHAT` and `FILES` on completion for traceability. For Phase L scrumban, prefer `cos task-*` (see `task-lifecycle.md`).
+Always provide `WHAT` and `FILES` on completion for traceability. Prefer `cos task-*` (Scrumban; see `task-lifecycle.md`) over the legacy `make task-*` wrappers — `make` is retained only as a thin alias for backward compatibility.
 
 ## Change Initiation Path
 

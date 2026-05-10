@@ -1,5 +1,12 @@
 <!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-05-05 -->
-# Claude Adapter — Architecture (Phase Q.deep)
+# Claude Adapter — Architecture
+
+> P: Dependency graph from an MCP tool call through `cognition.py` and `dispatcher.py` down to the Claude Code sub-session result.
+> R: Debugging dispatcher errors, planning new SDK features, tracing where a hook fires inside the Claude sub-process.
+> S: Looking at the install pipeline — see `claude-sdk.md`.
+> N: [claude-sdk.md](claude-sdk.md), [claude-deepening-checklist.md](claude-deepening-checklist.md)
+
+> Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
 
 Dependency graph from MCP tool call down to sub-session result.
 

@@ -5,6 +5,8 @@ Purpose: Canonical explanation of how coding-os organizes skills. Two-layer mode
 
 Read when: adding a new stack · adding a new skill · debugging why `enforce-skill.sh` loaded the wrong skill · asking "is this a shared concern or a stack-specific one?".
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 **Aligned with:** Claude Certified Architect Foundations (TS 3.2 — skill frontmatter composition; TS 3.3 — path-scoped rules).
 
 ## The problem composition solves

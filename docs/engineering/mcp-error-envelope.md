@@ -7,6 +7,9 @@ gives consuming agents enough structure to decide whether to retry, escalate,
 or surface an error to the user — without parsing prose.
 
 Read when: Adding a new `cos_*` tool · modifying an existing one · writing
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 tests that assert tool return values · debugging agent recovery behavior.
 
 ## Why an envelope

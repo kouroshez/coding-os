@@ -1,7 +1,14 @@
 <!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-05-05 -->
-# Claude Adapter Migration Guide — Q-bundle + Q.deep (2026-05)
+# Claude Adapter Migration Guide — 2026-05
 
-What consumer projects must do to pick up TASK-002 (Q-bundle) and TASK-003 (Q.deep) changes.
+> P: Migration steps for consumer projects pulling the May 2026 Claude-adapter bundle (SDK floor bump, dispatcher hardening, hook permissions).
+> R: Updating an existing consumer project's `adapters/claude/` install after a `cos update`.
+> S: Fresh installs — `install.sh` already renders the new template.
+> N: [claude-sdk.md](claude-sdk.md), [claude-rollback.md](claude-rollback.md)
+
+> Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
+
+What consumer projects must do to pick up the recent Claude adapter changes (Q-bundle + adapter deepening).
 
 ## TL;DR
 
@@ -18,7 +25,7 @@ None. All changes are additive. The dispatcher falls back to the
 
 ## What changed
 
-### Q-bundle (TASK-002, 2026-05-04)
+### Q-bundle (2026-05-04)
 
 | Area | Change | Action required |
 |---|---|---|
@@ -27,7 +34,7 @@ None. All changes are additive. The dispatcher falls back to the
 | **Hook events** | `SubagentStart`, `SubagentStop`, `PostToolUseFailure` in `adapter.yaml` | Auto via `cos sync-all` |
 | **Skill descriptions** | `search/SKILL.md` frontmatter YAML-quoted | No action (auto via `cos update`) |
 
-### Q.deep wave 1 (TASK-003, 2026-05-05)
+### Q.deep wave 1 (2026-05-05)
 
 | Area | Change | Action required |
 |---|---|---|
@@ -37,7 +44,7 @@ None. All changes are additive. The dispatcher falls back to the
 | **Role frontmatter** | `long_context: true` on researcher | No action |
 | **Role frontmatter** | `enable_file_checkpointing: true` on implementer/refactorer | No action |
 
-### Q.deep wave 2 (TASK-003 T18, 2026-05-05)
+### Q.deep wave 2 (2026-05-05)
 
 | Area | Change | Action required |
 |---|---|---|
@@ -70,5 +77,5 @@ See [claude-rollback.md](claude-rollback.md).
 ## References
 
 - [claude-deepening-checklist.md](claude-deepening-checklist.md)
-- [TASK-002](../tasks/TASK-002-phase-q-bundle-claude-sdk-integration.md)
-- [TASK-003](../tasks/TASK-003-phase-q-deep-claude-adapter-optimization-claude-only-focus.md)
+- [claude-sdk.md](claude-sdk.md)
+- [claude-sdk-architecture.md](claude-sdk-architecture.md)

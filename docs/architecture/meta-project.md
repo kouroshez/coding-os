@@ -13,6 +13,8 @@
 >    [docs/engineering/graph-hallucination-cures.md](../engineering/graph-hallucination-cures.md),
 >    [docs/governance/critical-rules.md](../governance/critical-rules.md)
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 ## TL;DR
 
 - coding-os is **not a library** an application imports.

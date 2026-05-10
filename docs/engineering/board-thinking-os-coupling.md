@@ -4,7 +4,9 @@
 Purpose: Defines the read/write contract between board_os and the shared SQLite owned by thinking_os.
 Read when: Modifying board_os DB access or thinking_os tables that board_os reads.
 Skip when: Pure UI / scaffold edits.
-Read next: [docs-system.md](../governance/docs-system.md)
+Read next: [docs-system.md](../governance/docs-system.md), [mcp-tool-inventory.md](../governance/mcp-tool-inventory.md)
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 
 **Why this doc exists:** `board_os` is registered through `thinking_os/server.py` and
@@ -87,4 +89,4 @@ python core/thinking_os/server.py --test
 ---
 
 *This document is a governance artifact — AGENTS.md Rule 19 applies: keep it in sync
-when coupling points change. See also [mcp-tool-inventory.md](mcp-tool-inventory.md).*
+when coupling points change. See also [mcp-tool-inventory.md](../governance/mcp-tool-inventory.md).*

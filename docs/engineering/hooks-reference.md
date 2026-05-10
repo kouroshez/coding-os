@@ -5,6 +5,8 @@ Purpose: Canonical catalog of every hook coding-os ships. Lists what it fires on
 
 Read when: onboarding to hook authoring · deciding which hook governs a specific behavior · debugging why a hook fired or didn't.
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 **SSOT for registration:** [core/hooks/registry.yaml](../../core/hooks/registry.yaml). Adapter template files are GENERATED from it by `make regen-adapter-templates`. Never hand-edit `adapters/*/settings.template.json` or `adapters/*/hooks.template.json` — the `warn-template-drift.sh` hook catches drift.
 
 ## Effect classes — what the agent sees

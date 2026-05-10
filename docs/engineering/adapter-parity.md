@@ -5,9 +5,11 @@ Purpose: Concrete answer to "is Codex in sync with Claude?" — which hooks fire
 
 Read when: Codex behavior differs from Claude · evaluating whether a new hook will work for Codex users · auditing adapter coverage before a release.
 
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 ## TL;DR
 
-- **All 45 core hook scripts are symlinked into BOTH** `.claude/hooks/` AND `.codex/hooks/`. No file is missing. (36 pre-Phase-L hooks + 6 Phase L hooks + 3 dispatcher scripts.)
+- **All 45 core hook scripts are symlinked into BOTH** `.claude/hooks/` AND `.codex/hooks/`. No file is missing. (36 baseline hooks + 6 Scrumban hooks + 3 dispatcher scripts.)
 - **Only Claude wires most of them as events** (≈39). Codex wires ≈12. The remaining gap is architectural — Codex's runtime supports fewer event/matcher combinations than Claude's.
 - **Installed Codex hook commands are absolute paths.** Relative `.codex/hooks/...` commands break when Codex starts in a nested cwd instead of the project root.
 - **One command to sync:** `make sync`. Runs `regen-adapter-templates` + `dogfood-full` — re-links core, stack, rule, command, skill trees for both adapters and regenerates settings files.

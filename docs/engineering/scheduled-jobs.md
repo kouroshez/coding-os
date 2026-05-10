@@ -1,9 +1,12 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-06 -->
 # Scheduled Jobs
 
-Purpose: Canonical contract for the nightly maintenance pipeline — `core/scheduled/nightly.py` — and the optional CRON B agent (Claude Code `CronCreate`). Read when editing `core/scheduled/`, `core/web/routes/scheduled.py`, or `Makefile` cron targets.
+Purpose: Canonical contract for the nightly maintenance pipeline — `core/scheduled/nightly.py` — and the optional CRON B agent (Claude Code `CronCreate`).
+Read when: Editing `core/scheduled/`, `core/web/routes/scheduled.py`, or `Makefile` cron targets.
+Skip when: Investigating a one-off backfill that doesn't go through the scheduled pipeline.
+Read next: [hooks-reference.md](hooks-reference.md), [hub-architecture.md](hub-architecture.md)
 
-> Nav: [docs/](../) · [engineering/](./)
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 ## Why
 

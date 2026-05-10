@@ -10,6 +10,9 @@ task frontmatter, changing state filenames, or touching docs that name the OS
 subsystems.
 
 Skip when: Naming ordinary CLI commands, user-facing prose that does not name a
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
 subsystem, or external package names outside our control.
 
 ## Canonical Subsystem IDs

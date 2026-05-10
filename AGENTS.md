@@ -23,8 +23,8 @@ core/  ──►  adapters/<agent>/  ──►  templates/<stack>/  ──►  c
 
 Cognitive layers under `core/` (all on one MCP server, [core/thinking_os/server.py](core/thinking_os/server.py)):
 - **thinking_os** = hippocampus (memory + learning + metrics)
-- **graph_os** = corpus callosum (Phase I — Kùzu + SQLite knowledge graph)
-- **board_os** = prefrontal cortex (Phase L — Scrumban planner)
+- **graph_os** = corpus callosum 
+- **board_os** = prefrontal cortex
 
 ## Modularity Map — Blast Radius
 
@@ -72,11 +72,11 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 | 20 | Test discipline — matrix command only mid-task; full sweep only pre-merge / cross-cutting / explicit ask. | [Rule 20](docs/governance/critical-rules.md#rule-20--test-discipline-matrix-command-only-never-broad-sweep-mid-task) · [test-discipline.md](core/rules/test-discipline.md) |
 | 21 | Never `isolation: "worktree"` — Agent tool only for read-only research; write work single-agent. | [Rule 21](docs/governance/critical-rules.md#rule-21--never-use-isolation-worktree-in-this-repo) |
 
-## Cognition & Tracing (Phase N.6)
+## Cognition & Tracing
 
 Every `cos_analyze_task`, `cos_compose_chain`, `cos_supervise`, `cos_supervise_record_output`, `cos_backtrack_log` emits a structured event to `.coding-os/<agent>/traces/<session_id>.jsonl` via [core/thinking_os/tracing.py](core/thinking_os/tracing.py). Inspect:
 - `cos cognition trace <session_id>` (pretty timeline) · `cos cognition trace --summary` · `cos cognition trace-replay <session_id>` (CI assertion).
-- HTML replay: open [docs/cognition-trace-replay.html](docs/cognition-trace-replay.html) and load the JSONL.
+
 
 Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--category Y] [--phase Z]`. SSOT for hook registration: [core/hooks/registry.yaml](core/hooks/registry.yaml). Adapter templates are generated from it via `make regen-adapter-templates`.
 
@@ -120,12 +120,12 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 | Layer | Question | Tools |
 |---|---|---|
 | Agent Memory | "Have I solved this before?" | `cos_search`, `cos_timeline`, `cos_details`, `cos_learn_suggest` |
-| Doc KB (Phase B) | "What does the spec say?" | `cos_doc_search` |
-| Tasks + Board (C+L) | "What's related / next / blocked?" | `cos_task_*` family |
-| Meta Router (J) | "I am not sure which layer to use" | `cos_retrieve` |
-| Knowledge Graph (I) | "What is connected to what?" | `cos_graph_*` family |
+| Doc KB | "What does the spec say?" | `cos_doc_search` |
+| Tasks + Board | "What's related / next / blocked?" | `cos_task_*` family |
+| Meta Router | "I am not sure which layer to use" | `cos_retrieve` |
+| Knowledge Graph | "What is connected to what?" | `cos_graph_*` family |
 
-Routing decisions, freshness contract, graph rename workflow, contracts audit: see [docs/engineering/retrieval-routing.md](docs/engineering/retrieval-routing.md), [docs/engineering/graph_os-queries.md](docs/engineering/graph_os-queries.md), and [docs/engineering/rename-workflow.md](docs/engineering/rename-workflow.md).
+Routing decisions, freshness contract, contracts audit, and the rename workflow: see [docs/engineering/graph_os-queries.md](docs/engineering/graph_os-queries.md) and [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
 
 ## Graph-First Discipline (mandatory for `core/**`, `cli/**`, `adapters/**`)
 
@@ -148,8 +148,8 @@ The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineeri
 | MCP server entry | [core/thinking_os/server.py](core/thinking_os/server.py) |
 | DB + migrations | [core/thinking_os/database.py](core/thinking_os/database.py) |
 | MCP tools | [core/thinking_os/tools/](core/thinking_os/tools/) (memory, metrics, learning, routing, docs, tasks, retrieve, cognition) |
-| Phase I graph_os | [core/graph_os/](core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
-| Phase L board_os | [core/board_os/](core/board_os/) — config, parser, sync, workflow, mcp_tools |
+| graph_os | [core/graph_os/](core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
+| board_os | [core/board_os/](core/board_os/) — config, parser, sync, workflow, mcp_tools |
 | Web backbone (S4) | [core/web/](core/web/) — FastAPI on port 9188, `/api/{graph,board,cognition,search}` + `/api/stream/events` SSE |
 | React SPA (S5) | [core/web/ui/](core/web/ui/) — Vite + React 18 + Sigma.js, served at http://127.0.0.1:9188 |
 | Roles (11 semantic) | [core/thinking_os/roles/](core/thinking_os/roles/) — researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer + presets/registry.yaml |
@@ -159,9 +159,6 @@ The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineeri
 | Adapters | [adapters/claude/](adapters/claude/), [adapters/codex/](adapters/codex/) + [adapters/claude/sdk_dispatcher.py](adapters/claude/sdk_dispatcher.py) |
 | Templates | [templates/_base/](templates/_base/) + django/nextjs/fastapi/go/go-fiber |
 
-## Phase Status
-
-v0.2.x current. Phases A–N.6 shipped (core, RAG, task store, distribution, hook regime, graph_os, board_os, cognition supervisor, role-based routing, behavioral tracing). Test suite collects ~2,031 tests. Roadmap & open icebox: `cos board` and [docs/development-roadmap.md](docs/development-roadmap.md). Per-phase plans live as `docs/phase-*-plan.md`.
 
 ## Persona Enforcement Coverage
 

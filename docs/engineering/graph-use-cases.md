@@ -6,7 +6,9 @@
 >    layer can. Pairs with the hallucination-cure matrix.
 > R: Daily reference for agents and developers deciding "graph or grep?".
 > S: Internals of any single tool — see [graph_os-queries.md](graph_os-queries.md).
-> N: [graph-hallucination-cures.md](graph-hallucination-cures.md), [retrieval-routing.md](retrieval-routing.md), [rename-workflow.md](rename-workflow.md), [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+> N: [graph-hallucination-cures.md](graph-hallucination-cures.md), [graph_os-queries.md](graph_os-queries.md), [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 The hallucination-cures doc lists the 17 distinct hallucinations the
 graph eliminates. This doc is wider — every concrete situation in

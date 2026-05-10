@@ -1,18 +1,14 @@
 <!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-05-04 -->
 # Claude Adapter — Full Reference
 
-**Scope:** Everything `adapters/claude/` does for a consumer project: install,
-hook rendering, MCP wiring, formula-agent dispatch, observability.
+> P: Everything `adapters/claude/` does for a consumer project — install, hook rendering, MCP wiring, formula-agent dispatch, observability.
+> R: Touching `adapters/claude/**`, debugging the Claude install, adding/renaming hooks, enabling new SDK features, planning permission or MCP changes for Claude users.
+> S: Working on `core/`, other adapters, or pure docs.
+> N: [claude-sdk-architecture.md](claude-sdk-architecture.md), [claude-deepening-checklist.md](claude-deepening-checklist.md), [claude-migration-2026-05.md](claude-migration-2026-05.md)
 
-**Read when:** touching `adapters/claude/**`, debugging the Claude install,
-adding/renaming hooks, enabling new SDK features, planning permission/MCP
-changes for Claude users.
+> Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
 
-**Skip when:** working on `core/`, other adapters, or pure docs.
-
-> Nav: [AGENTS.md](../../AGENTS.md) › [adapters](../adapters/) › **claude**
-> Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
-> SDK floor: `claude-agent-sdk>=0.1.73,<0.2.0`. CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable).
+> SDK floor: `claude-agent-sdk>=0.1.73,<0.2.0`. CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
 
 ## 1. The mRNA layer — what this adapter is
 
@@ -124,7 +120,7 @@ in coding-os that calls `claude_agent_sdk.query()`.
 
 ### 7.1 Why a dispatcher
 
-Phase M formula-roles (researcher, analyst, architect, …, refactorer)
+formula roles (researcher, analyst, architect, …, refactorer)
 need to run as **real sub-sessions** so the supervisor (`cos_supervise`)
 can collect parallel evidence and merge it into a typed `EvidenceBundle`.
 The dispatcher converts a `DispatchRequest` into a single-turn SDK
@@ -259,7 +255,6 @@ inherits to all children — cannot override per-subagent. Dispatcher uses
 
 ## 10. Skills — frontmatter contract
 
-Audited by [scripts/audit_skill_descriptions.py](../../scripts/audit_skill_descriptions.py).
 Per SDK docs §E.1:
 
 | Field | Limit | Notes |
@@ -268,13 +263,11 @@ Per SDK docs §E.1:
 | `description` | ≤1024 chars | Third-person voice. |
 | `name + description + when_to_use` | ≤1,536 chars listing budget | Otherwise truncated in skill listing. |
 
-Run audit:
+Spot-check by running:
 
 ```bash
-uv run python scripts/audit_skill_descriptions.py
+uv run python -c "from pathlib import Path; import yaml; [print(p, len(yaml.safe_load(p.read_text().split('---', 2)[1])['description'])) for p in Path('core/skills').rglob('SKILL.md')]"
 ```
-
-11 coding-os skills currently audited; all OK (longest is `a11y` @ 561 chars).
 
 YAML gotcha: descriptions containing `: ` (colon-space) MUST be quoted.
 The SDK loader uses YAML — unquoted colon-space breaks the parser
@@ -361,9 +354,6 @@ uv run pytest tests/test_adapters.py tests/test_adapter_parity.py tests/test_ada
 # Real CLI dispatch (requires Claude CLI on PATH + Anthropic API key)
 uv run --extra claude-sdk python scripts/e2e_dispatch_tool.py
 
-# Skill description audit
-uv run python scripts/audit_skill_descriptions.py
-
 # Hook syntax
 make verify-hooks
 
@@ -389,7 +379,7 @@ require review.
 3. **`auto` permission mode UI** — TS preview reaches further than Py;
    leave off until coding-os has an interactive permission surface.
 4. **OTEL collector defaults** — env vars work, but no project-default
-   collector endpoint in install.sh. Phase Q.8 candidate.
+   collector endpoint in install.sh. Future enhancement.
 5. **`PreCompact` hook** — useful for memory-state rehydration; SDK
    supports it but no coding-os hook listens yet.
 
@@ -405,14 +395,14 @@ require review.
 - [core/hooks/registry.yaml](../../core/hooks/registry.yaml) — hook SSOT
 - [docs/engineering/adapter-parity.md](../engineering/adapter-parity.md) — cross-adapter contract
 - [docs/engineering/mcp-error-envelope.md](../engineering/mcp-error-envelope.md) — `cos_*` response shape
-- [docs/phase-m-thinking_os-new-formula.md](../phase-m-thinking_os-new-formula.md) — formula roles
-- [docs/phase-n-role-based-routing-plan.md](../phase-n-role-based-routing-plan.md) — routing layer
+- [docs/playbooks/adapter-authoring.md](../playbooks/adapter-authoring.md) — generic adapter authoring contract
+- [docs/playbooks/mcp-tool-authoring.md](../playbooks/mcp-tool-authoring.md) — MCP tool authoring
 
 ## 17. Changelog
 
 | Date | Change |
 |---|---|
-| 2026-04-20 | Phase N.SDK slice — initial Claude-SDK dispatcher (`claude-agent-sdk>=0.1.0`). |
+| 2026-04-20 | Initial Claude-SDK dispatcher (`claude-agent-sdk>=0.1.0`). |
 | 2026-04-24 | Doc anchor pinned at v0.1.0 dispatcher reference. |
 | 2026-05-04 | **Q-bundle:** SDK floor → `>=0.1.73,<0.2.0`; dispatcher hardened (preset+exclude_dynamic_sections+setting_sources+dontAsk+Opus 4.7 effort gate+abs-path assertion+role-skills inheritance); `mcp__coding-os__*` added to `settings.local.template.json`; `SubagentStart`/`SubagentStop`/`PostToolUseFailure` declared in `registry.yaml` + `adapter.yaml`; `agent-presence.sh` extended; skill descriptions audited (`search` SKILL.md frontmatter quoted); doc rewritten as full reference (TASK-002). |
 | 2026-05-05 | **Q.deep P0 wave:** `output_format` JSON Schema enforcement; `max_budget_usd` ceiling; programmatic `PreToolUse`+`PostToolUseFailure` hooks; OTEL env propagation; `disallowed_tools` deny-list; schema migration v23 (6 cost columns on `formula_dispatches`); skill `paths:` globs + pytest gate; `ClaudeAgentOptions` regression test; `.claude/agents/` cleanup (D2); `cos sync-all` propagation (TASK-003 P0 wave). |

@@ -1,17 +1,12 @@
----
-layer: engineering
-status: stable
-owners: [meta-engineering]
-related:
-  - core/hooks/classify-task-mode.sh
-  - core/hooks/enforce-task-start.sh
-  - core/hooks/enforce-skill.sh
-  - core/hooks/enforce-zoom.sh
-  - core/hooks/enforce-memory-check.sh
-  - docs/governance/critical-rules.md   # Rule 18
----
-
+<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-05-08 -->
 # Task-Mode Matrix — Persona-Aware Enforcement
+
+> P: Persona / mode classification produced by `classify-task-mode.sh` and how each enforcement hook gates itself against it.
+> R: Authoring or modifying a hook that should behave differently for analytical, exploratory, or formal-implementation turns.
+> S: Routine implementation work — every hook already reads the mode marker correctly.
+> N: [hooks-reference.md](hooks-reference.md), [adapter-parity.md](adapter-parity.md)
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 ## Why this exists
 

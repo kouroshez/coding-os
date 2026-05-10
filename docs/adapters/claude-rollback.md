@@ -1,6 +1,13 @@
 <!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-05-05 -->
 # Claude Adapter Rollback Guide
 
+> P: Procedure for reverting a Claude-adapter upgrade in a consumer project if the new bundle breaks production.
+> R: Post-deploy regression in `adapters/claude/` — agent boot failures, dispatcher errors, hook misfires after `cos update`.
+> S: Investigating a known-good adapter — see `claude-sdk.md` instead.
+> N: [claude-migration-2026-05.md](claude-migration-2026-05.md), [claude-sdk.md](claude-sdk.md)
+
+> Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
+
 ## Git revert window
 
 TASK-002 and TASK-003 shipped on 2026-05-05. The revert window (before dependent
