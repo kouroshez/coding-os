@@ -33,7 +33,7 @@ Three contracts every adapter must satisfy:
 1. **Locate the SSOT.** SDK pin → `adapter.yaml` or `pyproject.toml`. Hook coverage → `hook_capabilities` in `adapter.yaml` plus `core/hooks/registry.yaml`. Settings shape → `cli/hook_renderer.py`.
 2. **Edit the SSOT.** Never edit the generated artifact (`settings.template.json`) directly.
 3. **Regenerate.** `make regen-adapter-templates`.
-4. **Update golden tests.** `make golden-update` (or the equivalent target). Review the diff line by line — silent coverage shifts are real bugs.
+4. **Update golden tests.** Recapture with `uv run python scripts/capture_golden.py`. Review the diff line by line — silent coverage shifts are real bugs.
 5. **Document migration.** If consumers must take action, write a short note under `docs/adapters/<id>-migration-<date>.md` and link it from the adapter's main reference.
 
 ## Acceptance

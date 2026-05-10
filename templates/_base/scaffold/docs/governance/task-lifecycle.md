@@ -89,7 +89,19 @@ Optional sections:
 | WIP check | `cos wip` | `cos_task_wip_check` |
 | Pick next | `cos task-pick` | `cos_task_pick` |
 
-The legacy `make task-*` targets remain as thin aliases for back-compat with consumer projects that have not yet adopted the `cos` CLI. Prefer `cos` going forward.
+## Migration from `make task-*` to `cos task-*`
+
+The legacy `make task-*` targets (defined in `templates/_base/Makefile.base`) remain as thin aliases for back-compat with consumer projects that have not yet adopted the `cos` CLI. They shell out to the same `cli/board_commands.py` code path as the `cos` CLI, so behavior is identical.
+
+| Legacy | Preferred | Notes |
+|---|---|---|
+| `make task-create NUM=098 TITLE="…"` | `cos task-create --title "…" --swimlane … --kind …` | `cos` requires swimlane + kind; `make` infers defaults. |
+| `make task-start TASK=098` | `cos task-start TASK-098` | Identical. |
+| `make task-done TASK=098 …` | `cos task-done TASK-098` | `cos` reads metadata from frontmatter; `make` needs explicit args. |
+| `make task-block TASK=098 REASON="…"` | `cos task-move TASK-098 --to blocked` | `cos` records the reason in Work Log. |
+| `make task-list STATUS=wip` | `cos board` / `cos task-by-filter --status wip` | `cos` is the only surface that reads from the DB cache. |
+
+New consumer projects should not use `make task-*`. The targets will be removed from `Makefile.base` once two release cycles have passed with `cos` as the default — track the deprecation under the next icebox audit task. Existing projects that still rely on `make task-*` can keep using them; the aliases are stable for the duration of v0.2.x.
 
 ## Script Output Convention
 

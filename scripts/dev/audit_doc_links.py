@@ -9,8 +9,10 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 REPO = Path(__file__).resolve().parent.parent.parent
-DOCS = REPO / "docs"
+DOCS = (REPO / "docs").resolve()
 SKIP_DIRS = {"code-os-core-docs"}
+# Categories that signal real breakage — non-zero exit when any are present.
+_FAIL_CATEGORIES = {"BROKEN-FILE", "BROKEN-ANCHOR", "DEAD-NEXT-LINK"}
 
 _LINK = re.compile(r"\[([^\]]*?)\]\(([^)]+?)\)")
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.M)
@@ -191,6 +193,14 @@ def main() -> int:
 
     total = sum(len(v) for v in by_cat.values())
     print(f"TOTAL findings: {total}")
+
+    # Exit non-zero on real breakage (broken links/anchors). Warnings like
+    # ORPHAN-FILE, BAD-FRONTMATTER, DUP-H2 do not fail the audit — they are
+    # advisory categories the docs-lint suite tracks separately.
+    fail_count = sum(len(by_cat.get(cat, [])) for cat in _FAIL_CATEGORIES)
+    if fail_count > 0:
+        print(f"FAIL: {fail_count} breaking findings in {sorted(_FAIL_CATEGORIES)}")
+        return 1
     return 0
 
 

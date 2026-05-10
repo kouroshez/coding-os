@@ -24,8 +24,8 @@ Every `cos_*` tool returns `ok(data)` or `fail(category, message)`. Internally e
 4. **One-line docstring.** FastMCP exposes the docstring as the tool description. One actionable sentence — what the tool does and the canonical envelope key it returns. No multi-paragraph blocks.
 5. **Wrap with `@safe_tool`.** Always. Never rely on the framework's default error path.
 6. **Write the unit test.** `core/<domain>/tests/test_<module>.py`. Test the success envelope, the failure envelope, and at least one Pydantic validation error.
-7. **Run the surface test.** `python core/thinking_os/server.py --test` exercises every tool against the live registry; it must pass before merge.
-8. **Update inventory.** `docs/governance/mcp-tool-inventory.md` is generated from the live registry — run `make regen-mcp-inventory` (if present) or note in the PR that it needs regeneration.
+7. **Run the surface test.** `make test-mcp` exercises every tool against the live registry; it must pass before merge.
+8. **Update inventory.** `docs/governance/mcp-tool-inventory.md` is hand-maintained — append a row for the new tool in the same PR so the inventory stays in sync with the live registry.
 9. **Update tracing if behavior is novel.** If the tool emits a new trace category, register it in `core/thinking_os/tracing.py`.
 10. **Document a schema trap.** If the tool's input shape is non-obvious (enums, polymorphic fields, optional unions), add a row to [mcp-schema-traps.md](../engineering/mcp-schema-traps.md) with an example call. Future agents WILL guess wrong without it.
 
@@ -33,7 +33,7 @@ Every `cos_*` tool returns `ok(data)` or `fail(category, message)`. Internally e
 
 - The tool returns `ok(...)` on the happy path and `fail(category, message)` on at least three error categories (validation, not_found, integrity).
 - A failing call never raises through to the FastMCP transport — `@safe_tool` covers it.
-- `make verify-mcp` and `python core/thinking_os/server.py --test` both pass.
+- `make test-mcp` passes (runs the FastMCP self-test against the live registry).
 - The tool's input shape, output keys, and trace category are documented in the appropriate reference doc.
 
 ## Rollback
