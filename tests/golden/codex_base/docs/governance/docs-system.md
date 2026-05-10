@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-01-01 -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-08 -->
 # Documentation System Policy
 
 Purpose: Define the canonical documentation taxonomy, naming rules, file headers, and navigation contract for all active docs.
@@ -20,14 +20,16 @@ Read next: `agent-workflow.md`, `task-lifecycle.md`
 
 ## Naming Rules
 
-- Root index: `docs/00-index.md` (master navigation hub)
-- Sub-directory indexes: `00-index.md` in directories that have many files (architecture, PRD, api-contracts, pages-content-spec)
-- Task list: `docs/tasks.md` (SSOT for task status)
+- Root index: `docs/00-index.md` (master navigation hub).
+- Sub-directory indexes: `00-index.md` in directories that have many files (architecture, playbooks, api-contracts).
+- Per-file `<file>.INDEX.md` sidecars are NOT canonical — only `00-index.md` and `section-index.md` are recognized index forms.
+- Task SSOT: `docs/tasks/TASK-###-slug.md` (one detail file per active or completed task). Live board view: `cos board` (DB-mirrored from these files). There is no flat `docs/tasks.md` index.
 - Playbooks: `kebab-case.md`
 - ADRs: `ADR-###-kebab-case.md`
 - Tasks: `TASK-###-slug.md`
 - Historical archive docs: `YYYY-MM-topic.md` under `governance/archive/`
 - Other active docs: `kebab-case.md`
+- No version suffixes in filenames (`*-V1.md`, `*-v2.md`). Versioning lives in frontmatter `updated:` only.
 
 ## Header Contract
 
@@ -76,16 +78,17 @@ Playbook read packs must not exceed 10 files. Most tasks need 3-6; complex multi
 
 ## Task File Rules
 
-**SSOT split (Phase L scrumban):**
+**Single SSOT (Scrumban):**
 
-- `docs/tasks/TASK-###-slug.md` — **canonical detail file**. One per started or completed task. Holds frontmatter (swimlane / kind / epic / labels), Outcome, Read First, Acceptance, Notes, Work Log. Authored from `docs/governance/templates/task-detail.md`. Token cap: warn ≥1.5k, block ≥3k (Rule 14).
-- `docs/tasks.md` — **derived backlog index** (legacy view). Lists every task with `- [ ] / [/] / [x] / (BLOCKED: reason)`. Status here is mirrored by `cos task-*` / `make task-*` commands. Manual edits are tolerated for backlog grooming, but the detail file remains the source of truth for execution status.
-- `cos task-board` (or `cos board --web`) — **live view** off `core/board_os/db.py`. Reflects detail-file state without reading `tasks.md`.
+- `docs/tasks/TASK-###-slug.md` — **canonical detail file**. One per active or completed task. Holds frontmatter (swimlane / kind / epic / labels / status / priority / appetite / depends_on / blocked_by / references), Outcome, Read First, Acceptance, Work Log, Rollback. Authored from `docs/governance/templates/task-detail.md`. Token cap: warn ≥1.5k, block ≥3k (Rule 14).
+- `cos board` (or `cos board --web`) — **live view** rendered from `core/board_os/db.py`. The DB is a derived mirror of the detail files (mtime-incremental sync); the file is SSOT, the DB is the index.
+- Status transitions go through `cos task-move` / `cos task-start` / `cos task-done` (or the MCP `cos_task_*` family). These write the detail-file frontmatter and the DB atomically — never edit status by hand in only one place.
+- There is no flat `docs/tasks.md` index. The legacy index file has been retired in favor of `cos board` + per-task detail files.
 
 **Lifecycle:**
 
-- A backlog entry MAY exist in `tasks.md` without a detail file until execution begins.
-- Once a task is `[/]` (in-progress), `[x]` (complete), or `(BLOCKED: reason)` → the primary detail file under `docs/tasks/` is REQUIRED.
+- A task is created via `cos task-create` (writes both the detail file and the DB row).
+- Once a task is in_progress, completed, or blocked → the detail file under `docs/tasks/` is REQUIRED. DB-only mode exists in `core/board_os/workflow.py` but is reserved for migrations and tests, never normal authoring.
 - Companion docs (checklists, research annexes that would break the 3k cap) use `layer:reference`, link back to the parent task, and never carry canonical status.
 - `docs/governance/templates/task-detail.md` is a template reference, not a live task record. Do not edit it as if it were a task.
 
@@ -133,7 +136,7 @@ Available templates under `docs/governance/templates/`:
 - `security-review-template.md` — OWASP-aligned per-change checklist.
 - `doc-cheat-sheet.md` — decision guide for new docs (read first).
 
-## Audit Trail (Phase O)
+## Audit Trail
 
 Every doc edit can be appended to the immutable `doc_audit_trail` table via `cos_audit_log_record` MCP tool. Reverts are modeled as a new row with `action='reverted'` + `supersedes_id` pointing at the prior decision — never a row rewrite. The hub UI surfaces the per-doc timeline via `cos_audit_log_timeline`.
 

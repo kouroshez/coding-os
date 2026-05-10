@@ -219,12 +219,6 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/auto-regen-section-index.sh",
-            "statusMessage": "🧭 Regenerating <file>.INDEX.md for fat doc...",
-            "timeout": 1500
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/auto-task-sync.sh",
             "statusMessage": "♻️ Re-syncing task to DB...",
             "timeout": 1000

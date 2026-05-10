@@ -273,17 +273,6 @@ hooks:
         matcher: Write|Edit
         status_message: "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter..."
 
-  - id: auto-regen-section-index
-    script: auto-regen-section-index.sh
-    description: TASK-165 freshness — regenerate the sidecar `<file>.INDEX.md` for fat markdown docs (≥400 lines or ≥5k tokens) on every Write/Edit so `cos_doc_section` resolves to a stable slug + fresh line range. Debounced (5s/file), fire-and-forget; sub-threshold edits silently skipped. Failures land in $COS_STATE_DIR/.section-index-errors.log.
-    category: retrieval
-    phase: O
-    timeout: 1500
-    events:
-      - event: PostToolUse
-        matcher: Write|Edit
-        status_message: "🧭 Regenerating <file>.INDEX.md for fat doc..."
-
   - id: auto-prune-deleted-files
     script: auto-prune-deleted-files.sh
     description: PostToolUse Bash — when the agent runs rm/git rm/mv on a code or markdown file, prune graph_nodes (cascade to edges + evidence), document_chunks, file_index_state, and the `<file>.INDEX.md` sidecar. Counterpart to auto-reindex-docs.sh; closes the deleted-file zombie-row gap.
