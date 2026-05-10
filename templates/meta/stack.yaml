@@ -61,16 +61,17 @@ rules:
 # Dimensions feed core/rules/dimension-registry.md. They are the
 # Classify-phase Read List for an agent editing meta-repo files.
 dimensions:
-  - {name: "MCP tool authoring (cos_*)",          read_files: ["docs/engineering/mcp-error-envelope.md", "docs/governance/mcp-tool-inventory.md"]}
+  - {name: "MCP tool authoring (cos_*)",          read_files: ["docs/playbooks/mcp-tool-authoring.md", "docs/engineering/mcp-error-envelope.md", "docs/governance/mcp-tool-inventory.md"]}
   - {name: "Graph extractor / backend",           read_files: ["docs/engineering/graph_os-queries.md", "docs/engineering/graph-hallucination-cures.md"]}
-  - {name: "Hook authoring (core/hooks/)",        read_files: ["core/hooks/registry.yaml", "docs/engineering/hook-architecture.md"]}
-  - {name: "Adapter authoring (adapters/<id>/)",  read_files: ["docs/adapters/claude-sdk.md", "docs/engineering/adapter-parity.md"]}
-  - {name: "Template / stack authoring (templates/<id>/)", read_files: ["docs/architecture/meta-project.md", "core/schemas/stack.schema.json"]}
-  - {name: "CLI command authoring (cli/)",        read_files: ["docs/architecture/meta-project.md", "docs/engineering/cli-architecture.md"]}
+  - {name: "Hook authoring (core/hooks/)",        read_files: ["docs/playbooks/hook-authoring.md", "core/hooks/registry.yaml", "docs/engineering/hooks-reference.md"]}
+  - {name: "Adapter authoring (adapters/<id>/)",  read_files: ["docs/playbooks/adapter-authoring.md", "docs/adapters/claude-sdk.md", "docs/engineering/adapter-parity.md"]}
+  - {name: "Template / stack authoring (templates/<id>/)", read_files: ["docs/playbooks/template-authoring.md", "docs/architecture/meta-project.md", "core/schemas/stack.schema.json"]}
+  - {name: "CLI command authoring (cli/)",        read_files: ["docs/architecture/meta-project.md"]}
   - {name: "Hub / web routes (core/web/)",        read_files: ["docs/engineering/hub-architecture.md"]}
-  - {name: "Board / Scrumban (core/board_os/)",   read_files: ["docs/engineering/board_os.md", "docs/governance/task-lifecycle.md"]}
+  - {name: "Board / Scrumban (core/board_os/)",   read_files: ["docs/governance/task-lifecycle.md"]}
   - {name: "Cognition / formula composer",        read_files: ["docs/adapters/claude-sdk.md", "docs/governance/critical-rules.md"]}
   - {name: "Rule SSOT regen",                     read_files: ["docs/architecture/meta-project.md"]}
+  - {name: "Security review (overlay)",           read_files: ["docs/playbooks/security-review.md", "core/rules/api-contract-discipline.md"]}
 
 # Auto-load skills for meta-repo file globs. Each row picks the
 # narrowest skill that knows the conventions of that surface — the
