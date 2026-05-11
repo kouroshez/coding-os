@@ -32,16 +32,19 @@ When two domains share weight, route to the higher blast-radius domain first.
 5. Frontend UI/styling — appearance only.
 6. Documentation — no runtime impact.
 
-## Task Protocol (`make` targets)
+## Task Protocol (Scrumban)
 
 | Transition | Command | Effect |
 |---|---|---|
-| Open → in-progress | `make task-start TASK=<num>` | Creates detail file from `governance/templates/task-detail.md` (with domain REF codes), marks `[/]` in `docs/tasks.md`, runs `task-context`. |
-| in-progress → done | `make task-done TASK=<num> TYPE=<type> MSG="title" WHAT="impact" FILES="…"` | Validates type ∈ {feat,fix,refactor,docs,test,infra}, marks `[x]`, appends entry to `changes.log`. |
-| → blocked | `make task-block TASK=<num> REASON="why"` | Marks `(BLOCKED: reason)`, appends entry to `docs/questions.md`. |
-| Session bootstrap | `make session-init` | Once per session — surfaces phase from `roadmap.md`, recent `changes.log`, open task + question counts. |
+| icebox → in_progress | `cos task-start TASK-<id>` | Marks the detail file `in_progress`, writes `.coding-os/<agent>/.task-current`, mirrors to the board DB, enforces WIP cap. |
+| in_progress → testing | `cos task-move TASK-<id> --to testing` | Signals that the change is built and awaiting verification. |
+| → done | `cos task-done TASK-<id>` | Validates Acceptance, appends Work Log, mirrors to the board DB, appends a `changes.log` entry. |
+| → blocked | `cos task-move TASK-<id> --to blocked --reason "why"` | Records the blocker on the detail file and on the board. |
+| Session bootstrap | `cos daily` | Surfaces WIP, blockers, age, and roadmap phase. |
 
-Always provide `WHAT` and `FILES` on completion for traceability. Prefer `cos task-*` (Scrumban; see `task-lifecycle.md`) over the legacy `make task-*` wrappers — `make` is retained only as a thin alias for backward compatibility.
+The board state lives in `docs/tasks/TASK-<id>-<slug>.md` (canonical) and is mirrored to `.coding-os/coding-os.db` (derived index). There is no flat `docs/tasks.md` index; `cos board` renders the current state on demand.
+
+`make task-*` wrappers exist only as thin aliases for the `cos task-*` commands; new automation should call `cos` directly.
 
 ## Change Initiation Path
 

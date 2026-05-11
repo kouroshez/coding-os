@@ -134,7 +134,7 @@ def thinking_os_health() -> str:
 # ---------------------------------------------------------------------------
 from graph import query_related
 from tools.audit import audit_log_query, audit_log_record, audit_log_timeline
-from tools.docs import doc_search, doc_section, list_doc_headers, parse_doc_header
+from tools.docs import doc_search, list_doc_headers, parse_doc_header
 from tools.learning import generate_feedback_drafts, learn_extract, learn_narrative, learn_suggest, learn_validate
 from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
 from tools.metrics import metric_query, metric_record, metric_trend
@@ -1205,7 +1205,7 @@ def cos_doc_search(
     layer: str = "",
     since_iso: str = "",
     include_inactive: bool = False,
-    auto_context: bool = False,
+    auto_context: bool = True,
 ) -> str:
     """Semantic + lexical search over project documentation chunks.
 
@@ -1233,9 +1233,9 @@ def cos_doc_search(
             is_active=0 by cos_audit_log_record (action='deleted' or
             'reverted'). Set True for forensic / decision-history
             retrieval that must surface superseded specs.
-        auto_context: When True, soft-default `domain` from the active
-            task's swimlane ($COS_AGENT_DIR/.swimlane). Explicit `domain`
-            argument always wins. Off by default.
+        auto_context: When True (default), soft-default `domain` from the
+            active task's swimlane ($COS_AGENT_DIR/.swimlane). Explicit
+            `domain` argument always wins. Set False to disable.
 
     Response meta carries `filter_hints` — heuristic suggestions
     extracted from the query (date phrasing, domain keywords, layer
@@ -1386,71 +1386,6 @@ def cos_doc_headers_by(
                 }.items() if v
             },
         },
-    )
-
-
-# ---------------------------------------------------------------------------
-# Section index lookup (TASK-165 — intra-file navigation)
-# ---------------------------------------------------------------------------
-@mcp.tool(
-    name="cos_doc_section",
-    annotations={
-        "title": "Read One Section of a Fat Doc by Slug",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def cos_doc_section(
-    path: str,
-    slug: str = "",
-    section: str = "",
-    with_body: bool = True,
-) -> str:
-    """Resolve a single section of a fat markdown doc via its INDEX sidecar."""
-    candidate = (path or "").strip()
-    if not candidate:
-        return fail("validation", "path is required")
-    if not (slug or section):
-        return fail("validation", "either slug or section is required")
-    target = Path(candidate)
-    if not target.is_absolute():
-        target = (Path.cwd() / target).resolve()
-    else:
-        try:
-            target = target.resolve()
-        except OSError as exc:
-            return fail("validation", f"cannot resolve path: {exc}")
-    project_root = Path.cwd().resolve()
-    try:
-        target.relative_to(project_root)
-    except ValueError:
-        return fail("permission", f"path escapes project root: {candidate}")
-    if not target.exists():
-        return fail("not_found", f"no such file: {candidate}")
-    if target.suffix.lower() != ".md":
-        return fail("validation", f"not a markdown file: {candidate}")
-
-    payload = doc_section(target, slug=slug, section=section, with_body=with_body)
-    if payload is None:
-        index_file = target.with_name(target.stem + ".INDEX.md")
-        if not index_file.exists():
-            return fail(
-                "not_found",
-                f"no section index for {candidate} — file is sub-threshold "
-                "or `scripts/regen_section_index.py --force` has not been run",
-            )
-        return fail(
-            "not_found",
-            f"no section matched slug='{slug}' section='{section}' in "
-            f"{index_file.name}; if a heading was renamed, run "
-            "`cos_graph_rename_plan` to find downstream references",
-        )
-    return ok(
-        payload,
-        meta={"layer": "docs", "source": "section-index", "query": slug or section},
     )
 
 

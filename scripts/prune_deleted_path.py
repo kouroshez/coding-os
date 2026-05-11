@@ -33,10 +33,9 @@ def _delete_where(conn: sqlite3.Connection, table: str, column: str, value: str)
     return int(cursor.rowcount or 0)
 
 
-def _prune_one(rel_path: str, *, db_path: Path, project_root: Path) -> dict:
+def _prune_one(rel_path: str, *, db_path: Path) -> dict:
     """Run all DELETEs for one path. Returns counts per layer."""
-    counts = {"graph_nodes": 0, "document_chunks": 0, "file_index_state": 0,
-              "sidecar_deleted": False}
+    counts = {"graph_nodes": 0, "document_chunks": 0, "file_index_state": 0}
     conn = sqlite3.connect(str(db_path))
     try:
         # graph_os layer — cascades to graph_edges_v12 + graph_evidence_v12
@@ -57,19 +56,6 @@ def _prune_one(rel_path: str, *, db_path: Path, project_root: Path) -> dict:
         conn.commit()
     finally:
         conn.close()
-
-    # Sidecar `<file>.INDEX.md` cleanup. Resolve from project root; only
-    # delete if the parent dir still exists (avoid touching a tree that's
-    # already been removed wholesale).
-    abs_path = (project_root / rel_path).resolve() if not Path(rel_path).is_absolute() else Path(rel_path).resolve()
-    if abs_path.suffix.lower() == ".md":
-        sidecar = abs_path.with_name(abs_path.stem + ".INDEX.md")
-        if sidecar.exists() and sidecar.parent.exists():
-            try:
-                sidecar.unlink()
-                counts["sidecar_deleted"] = True
-            except OSError as exc:
-                print(f"WARN: could not unlink {sidecar}: {exc}", file=sys.stderr)
     return counts
 
 
@@ -108,12 +94,12 @@ def main(argv: list[str]) -> int:
             skipped += 1
             continue
         try:
-            counts = _prune_one(rel, db_path=db_path, project_root=project_root)
+            counts = _prune_one(rel, db_path=db_path)
         except sqlite3.Error as exc:
             print(f"ERROR: {rel}: {exc}", file=sys.stderr)
             continue
         total = counts["graph_nodes"] + counts["document_chunks"] + counts["file_index_state"]
-        if total == 0 and not counts["sidecar_deleted"]:
+        if total == 0:
             if not args.quiet:
                 print(f"SKIP: {rel} (no rows — never indexed)")
             skipped += 1
@@ -126,8 +112,6 @@ def main(argv: list[str]) -> int:
                 extras.append(f"docs={counts['document_chunks']}")
             if counts["file_index_state"]:
                 extras.append(f"cache={counts['file_index_state']}")
-            if counts["sidecar_deleted"]:
-                extras.append("sidecar")
             print(f"OK: {rel} ({', '.join(extras)})")
         pruned += 1
 

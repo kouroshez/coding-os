@@ -355,13 +355,23 @@ class TestAutoContextAndReturnMeta:
         # Explicit OPS wins over inferred BACKEND.
         assert meta["applied"]["domain"] == "OPS"
 
-    def test_auto_context_off_by_default(self, seeded_conn, monkeypatch, tmp_path):
+    def test_auto_context_on_by_default(self, seeded_conn, monkeypatch, tmp_path):
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
         (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
         _, meta = doc_search(
             seeded_conn, "audit log", mode="lexical", return_meta=True,
         )
-        # No auto_context → swimlane ignored.
+        # auto_context=True is now the default → swimlane derives domain.
+        assert meta["applied"].get("domain") == "BACKEND"
+
+    def test_auto_context_can_be_disabled(self, seeded_conn, monkeypatch, tmp_path):
+        monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
+        (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
+        _, meta = doc_search(
+            seeded_conn, "audit log", mode="lexical",
+            auto_context=False, return_meta=True,
+        )
+        # Explicit auto_context=False → swimlane ignored.
         assert "domain" not in meta["applied"]
 
     def test_return_meta_false_returns_list(self, seeded_conn):

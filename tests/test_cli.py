@@ -82,7 +82,10 @@ class TestInit:
     def test_creates_scaffold_files(self, runner: CliRunner, project_dir: Path) -> None:
         project_dir.mkdir()
         runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
-        assert (project_dir / "docs" / "tasks.md").exists()
+        # Scrumban replaced the flat docs/tasks.md index (governance/docs-system.md);
+        # canonical task state lives in docs/tasks/ + the board DB. Assert the
+        # docs root exists and changes.log is seeded.
+        assert (project_dir / "docs").is_dir()
         assert (project_dir / "changes.log").exists()
 
     def test_creates_makefile(self, runner: CliRunner, project_dir: Path) -> None:

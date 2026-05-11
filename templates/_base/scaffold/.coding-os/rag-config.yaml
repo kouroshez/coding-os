@@ -1,11 +1,14 @@
-# RAG indexer configuration for coding-os Phase B.
+# RAG indexer configuration — base scaffold (stack-agnostic defaults).
 #
-# Edit this file to add or remove indexed paths and tune chunking per source.
-# Run `make docs-index` after edits to apply changes.
+# Inherited by every consumer project from `cos init`. Stack overlays
+# may append additional sources or graph.enforce_context_on globs for
+# stack-specific load-bearing files.
+#
+# Edit and run `make docs-index` to apply.
 #
 # Source schema:
-#   - path: relative to project root
-#     type: short label used by cos_doc_search filter (prd, architecture, ...)
+#   - path: relative to project root (missing dirs silently skipped)
+#     type: short label used by cos_doc_search filter
 #     chunk_size: max chars per chunk (default 2000 ≈ 500 tokens)
 #     chunk_overlap: overlap between adjacent chunks (default 200)
 #     priority: ranking boost in [0.0, 1.0] (default 0.5)
@@ -29,9 +32,6 @@ sources:
   - path: docs/api-contracts/
     type: api_contract
 
-  - path: docs/pages-content-spec/
-    type: page_spec
-
   - path: docs/engineering/
     type: engineering
     priority: 0.7      # Engineering rules are high-actionability — boost ranking
@@ -39,80 +39,33 @@ sources:
   - path: docs/ops/
     type: ops
 
-  - path: docs/design/
-    type: design
-
   - path: docs/breakthroughs/
     type: breakthrough
     priority: 0.8      # High-signal lessons filed back by cos_learn_narrative
+
+  - path: docs/workflow-docs/
+    type: workflow
+    priority: 0.6      # SSOT references for core/rules/*.md (thinking_os, etc.)
 
 # Project-level excludes — paths under here are NEVER indexed regardless of source.
 exclude:
   - docs/playbooks/      # Playbooks are routing logic — full-read as skill
   - docs/governance/     # Always-active rules
-  - docs/tasks/          # Task files (Phase C handles structured task index)
+  - docs/tasks/          # Task files surfaced via cos_task_* family
   - docs/00-index.md     # Navigation hub
   - docs/foundation-map.md
   - docs/feature-dependency-tree.md
   - docs/roadmap.md
   - docs/questions.md
-  - docs/tasks.md
-  - docs/workflow-docs/  # Reference docs — opt-in: remove this line to index them
+  # docs/workflow-docs/ is INDEXED by default — holds SSOT references like
+  # thinking_os-final-edition.md that core/rules/thinking_os.md points to.
+  # Remove the file paths from `sources` below to opt-out per-project.
 
 # ── Graph enforcement (Phase I.14) ────────────────────────────────────
-# Files matching these globs are considered "load-bearing" — editing
-# them without a prior cos_graph_context call triggers
-# enforce-graph-context.sh (default warn; promote to block via
-# COS_ENFORCE_GRAPH_CONTEXT=strict) and enforce-graph-first-read.sh on
-# Read (toggle COS_ENFORCE_GRAPH_FIRST=off|1|strict). Globs use
-# fnmatch.fnmatchcase against the path the agent passes to Read/Write/Edit;
-# leading "*" makes absolute and repo-relative both match.
-#
-# This block is the BASE default. Every consumer project starts with
-# the meta-repo authoring paths populated so dogfood (P5) is wired
-# from day one. Add stack-specific paths below the meta block.
+# Files matching these globs are "load-bearing" — editing them without a
+# prior cos_graph_context call triggers enforce-graph-context.sh (default
+# warn; promote to block via COS_ENFORCE_GRAPH_CONTEXT=strict). Empty in
+# the base scaffold — stack overlays append their own globs (e.g. a
+# nextjs overlay adds `*src/app/**/*.tsx`).
 graph:
-  enforce_context_on:
-    # MCP server + tool surface — every cos_* tool consumer depends on this.
-    - "*core/thinking_os/server.py"
-    - "*core/thinking_os/database.py"
-    - "*core/thinking_os/dispatcher.py"
-    - "*core/thinking_os/tools/*.py"
-    - "*core/thinking_os/cognition.py"
-    - "*core/thinking_os/formula_composer.py"
-
-    # Knowledge-graph backbone itself.
-    - "*core/graph_os/backend.py"
-    - "*core/graph_os/backends/*.py"
-    - "*core/graph_os/tools/graph.py"
-    - "*core/graph_os/extractors/*.py"
-    - "*core/graph_os/ingest/*.py"
-    - "*core/graph_os/reindex_dispatch.py"
-
-    # Board-os core.
-    - "*core/board_os/parser.py"
-    - "*core/board_os/sync.py"
-    - "*core/board_os/workflow.py"
-
-    # CLI factory entry points — affect every consumer project.
-    - "*cli/main.py"
-    - "*cli/aggregator.py"
-    - "*cli/stack_registry.py"
-    - "*cli/adapter_registry.py"
-    - "*cli/hook_renderer.py"
-    - "*cli/setup.py"
-    - "*cli/update.py"
-
-    # Adapter dispatchers — agent-facing surface.
-    - "*adapters/claude/sdk_dispatcher.py"
-    - "*adapters/codex/sdk_dispatcher.py"
-    - "*adapters/claude/install.sh"
-    - "*adapters/codex/install.sh"
-
-    # Hook registry SSOT — propagates to every adapter template.
-    - "*core/hooks/registry.yaml"
-    - "*core/hooks/cos-env.sh"
-
-    # Rule SSOTs (regen targets — hand-edit causes drift).
-    - "*core/rules/dimension-registry.md"
-    - "*core/rules/skill-enforcement.md"
+  enforce_context_on: []

@@ -232,6 +232,25 @@ def _fts_candidates(
     return out
 
 
+def _fts_is_empty(project_root: Path) -> bool:
+    """True when document_chunks_fts has zero rows — Rule 19 enforcement is
+    effectively off until `make docs-index` populates it."""
+    db_path = project_root / ".coding-os" / "coding-os.db"
+    if not db_path.is_file():
+        return False
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=0.5)
+    except sqlite3.Error:
+        return False
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM document_chunks_fts").fetchone()
+    except sqlite3.OperationalError:
+        return False
+    finally:
+        conn.close()
+    return bool(row) and row[0] == 0
+
+
 def _path_mirror_candidates(project_root: Path, code_file: Path) -> list[Path]:
     """Last-resort heuristic: domain-typical doc paths. Used to catch the
     "no FTS index yet" / "doc anchor not set" startup case."""
@@ -380,6 +399,21 @@ def main(argv: list[str]) -> int:
     # Build candidate doc set (anchor → FTS hits → path mirror, capped).
     candidates: list[Path] = list(_doc_anchor_paths(project_root))
     seen: set[Path] = set(candidates)
+
+    # One-shot warning when FTS is empty — Rule 19 enforcement can't fire
+    # without it. Touched marker lives in state dir so we don't spam every Edit.
+    if _fts_is_empty(project_root):
+        marker = project_root / ".coding-os" / ".warn-fts-empty-shown"
+        if not marker.exists():
+            print(
+                "INFO\t-\tdoc-sync inactive — document_chunks_fts is empty; "
+                "run `make docs-index` to enable staleness detection"
+            )
+            try:
+                marker.parent.mkdir(parents=True, exist_ok=True)
+                marker.touch()
+            except OSError as exc:  # noqa: BLE001 — fail-open marker write
+                sys.stderr.write(f"doc_sync_check: marker write skipped: {exc}\n")
 
     fts_query_syms = list((set(new_syms) | set(old_syms)))[:8]
     for p in _fts_candidates(project_root, fts_query_syms, _MAX_CANDIDATES):

@@ -62,6 +62,14 @@ def _parse_front_matter(content: str) -> dict[str, str]:
     """Extract `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` keys."""
     match = _FRONT_MATTER_RE.search(content)
     if not match:
+        # File has body but no parseable header → Stage-1 metadata filter is
+        # off for this chunk. Log so the missing frontmatter surfaces in
+        # `.coding-os/.reindex-errors.log` instead of silently degrading
+        # cos_doc_search ranking.
+        stripped = content.lstrip()
+        if stripped and not stripped.startswith("<!--"):
+            logger.debug("doc_indexer: no parseable frontmatter (first line: %r)",
+                         stripped.splitlines()[0][:80] if stripped else "")
         return {}
     body = match.group(1)
     pairs: dict[str, str] = {}

@@ -1089,7 +1089,14 @@ def _run_scaffold_phase(
     if ensure_agents_md(project, world):
         click.echo("  Generated AGENTS.md")
 
-    # 11. Register project in the global ~/.coding-os/registry.json so the
+    # 11. Initial RAG indexing of the scaffolded docs so `cos_doc_search`
+    # returns hits from the very first session. Without this, the
+    # consumer's document_chunks table is empty until the user runs
+    # `make docs-index` manually — Rule 19 (doc-sync) enforcement is
+    # also effectively off until something hits the FTS index.
+    _initial_doc_index(project, state)
+
+    # 12. Register project in the global ~/.coding-os/registry.json so the
     # Hub web UI (`cos hub`) can enumerate it and serve its sqlite DB.
     try:
         from cli.registry import add_project as _registry_add_project
@@ -1099,6 +1106,39 @@ def _run_scaffold_phase(
     except Exception as exc:  # noqa: BLE001
         # Registry is non-fatal — a failed write should not break init.
         click.echo(f"  WARN: could not register project in hub registry: {exc}", err=True)
+
+
+def _initial_doc_index(project: Path, state: Path) -> None:
+    """Seed document_chunks + FTS for a freshly-scaffolded project."""
+    rag_config = state / "rag-config.yaml"
+    if not rag_config.exists():
+        return
+    db_path = state / "coding-os.db"
+    brain_dir = str(CORE_DIR / "thinking_os")
+    code = (
+        "import sys; "
+        f"sys.path.insert(0, {brain_dir!r}); "
+        "from database import init_db; "
+        "from doc_indexer import index_docs; "
+        "from pathlib import Path; "
+        f"conn = init_db({str(db_path)!r}); "
+        f"stats = index_docs(conn, Path({str(rag_config)!r}), Path({str(project)!r})); "
+        "conn.close(); "
+        "print(f\"  Indexed {stats['updated_files']} doc(s), {stats['new_chunks']} chunk(s)\")"
+    )
+    env = os.environ.copy()
+    env["COS_DB_PATH"] = str(db_path)
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        click.echo(result.stdout.rstrip())
+    elif result.returncode != 0:
+        # Non-fatal: missing yaml / embeddings extras shouldn't break init.
+        click.echo(f"  WARN: initial doc index skipped: {result.stderr.strip().splitlines()[-1] if result.stderr else 'unknown'}", err=True)
 
 
 @cli.command("add-adapter")

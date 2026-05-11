@@ -220,7 +220,7 @@ def doc_search(
     layer: str | None = None,
     since_iso: str | None = None,
     include_inactive: bool = False,
-    auto_context: bool = False,
+    auto_context: bool = True,
     return_meta: bool = False,
 ) -> list[dict] | tuple[list[dict], dict]:
     """Semantic + lexical search over project documentation chunks.
@@ -257,11 +257,11 @@ def doc_search(
         include_inactive: When False (default), hide chunks whose row was
             marked is_active=0 by cos_audit_log_record (action='deleted'
             or 'reverted'). Set True for forensic / audit retrieval.
-        auto_context: When True AND `domain` was not passed explicitly,
-            read the active task's swimlane from $COS_AGENT_DIR/.swimlane
-            and apply it as the default domain filter. Soft default —
-            never overrides an explicit `domain=` argument. Off by
-            default to keep search behavior predictable in tests.
+        auto_context: When True (default) AND `domain` was not passed
+            explicitly, read the active task's swimlane from
+            $COS_AGENT_DIR/.swimlane and apply it as the default domain
+            filter. Soft default — never overrides an explicit `domain=`
+            argument. Set False for predictable test behavior.
         return_meta: When True, returns (results, meta) tuple where meta
             carries `filter_hints` (heuristic suggestions extracted from
             the query) and `applied` (which filters actually ran). Keeps
@@ -604,9 +604,10 @@ _SHORT_OPENING_RE = {
 # H1 detection — first level-1 heading wins.
 _H1_RE = re.compile(r"^#\s+(.+?)\s*$", re.M)
 
-# Header read budget — first 3 KB of any doc covers all canonical openings
-# observed in the scaffold + meta-repo. Cheap to read; never touches the body.
-_HEADER_READ_BYTES = 3072
+# Header read budget — first 8 KB covers all canonical openings observed in
+# the scaffold + meta-repo, including docs with sizable `reads:[…]` lists or
+# multi-line short-form opening blocks. Cheap to read; never touches the body.
+_HEADER_READ_BYTES = 8192
 
 # Bulk scan budget — defensive cap to keep cos_doc_headers_by snappy.
 _BULK_MAX_RESULTS = 50
@@ -746,118 +747,3 @@ def list_doc_headers(
 
     rows.sort(key=_sort_key)
     return rows
-
-
-# ---------------------------------------------------------------------------
-# Section index lookup (TASK-165 — intra-file navigation)
-# ---------------------------------------------------------------------------
-
-_SECTION_INDEX_ROW_RE = re.compile(
-    r"^\|\s*H\d\s*\|\s*(?P<title>.+?)\s*\|\s*`(?P<slug>[^`]+)`\s*\|\s*"
-    r"(?P<start>\d+)\s*\|\s*(?P<end>\d+)\s*\|\s*(?P<lines>\d+)\s*\|\s*"
-    r"(?P<tokens>\d+)\s*\|\s*$"
-)
-
-
-def _index_path_for(source: Path) -> Path:
-    """Return the sidecar `<source-stem>.INDEX.md` next to `source`."""
-    return source.with_name(source.stem + ".INDEX.md")
-
-
-def _parse_section_index(index_file: Path) -> list[dict[str, Any]]:
-    """Parse the auto-generated table inside a `<file>.INDEX.md`."""
-    if not index_file.exists():
-        return []
-    rows: list[dict[str, Any]] = []
-    try:
-        text = index_file.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
-    for line in text.splitlines():
-        m = _SECTION_INDEX_ROW_RE.match(line)
-        if not m:
-            continue
-        try:
-            rows.append({
-                "title": m.group("title").strip(),
-                "slug": m.group("slug").strip(),
-                "start": int(m.group("start")),
-                "end": int(m.group("end")),
-                "lines": int(m.group("lines")),
-                "tokens": int(m.group("tokens")),
-            })
-        except (TypeError, ValueError):
-            continue
-    return rows
-
-
-def _match_section(
-    rows: list[dict[str, Any]],
-    *,
-    slug: str = "",
-    section: str = "",
-) -> dict[str, Any] | None:
-    """Pick a section row by slug (exact) or fuzzy title match.
-
-    Resolution order:
-        1. exact slug match
-        2. case-insensitive slug match
-        3. case-insensitive substring match on title
-    Returns None when nothing matches.
-    """
-    if not rows:
-        return None
-    if slug:
-        for r in rows:
-            if r["slug"] == slug:
-                return r
-        slug_lc = slug.lower()
-        for r in rows:
-            if r["slug"].lower() == slug_lc:
-                return r
-    if section:
-        sec_lc = section.lower()
-        for r in rows:
-            if sec_lc in r["title"].lower():
-                return r
-    return None
-
-
-def doc_section(
-    source: Path,
-    *,
-    slug: str = "",
-    section: str = "",
-    with_body: bool = True,
-) -> dict[str, Any] | None:
-    """Return one section of a fat doc by slug, sourced from the INDEX sidecar."""
-    if not source.exists() or not source.is_file():
-        return None
-    index_file = _index_path_for(source)
-    rows = _parse_section_index(index_file)
-    if not rows:
-        return None
-    row = _match_section(rows, slug=slug, section=section)
-    if row is None:
-        return None
-    payload: dict[str, Any] = {
-        "path": str(source),
-        "index_path": str(index_file),
-        "slug": row["slug"],
-        "title": row["title"],
-        "start": row["start"],
-        "end": row["end"],
-        "lines": row["lines"],
-        "token_estimate": row["tokens"],
-    }
-    if with_body:
-        try:
-            text = source.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            payload["body"] = ""
-            return payload
-        all_lines = text.splitlines()
-        start_idx = max(0, row["start"] - 1)
-        end_idx = min(len(all_lines), row["end"])
-        payload["body"] = "\n".join(all_lines[start_idx:end_idx])
-    return payload
