@@ -31,6 +31,16 @@ def current_project_root() -> Path:
     return Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
 
 
+def is_explicit_project_scope() -> bool:
+    """True when the request was routed via /api/p/<slug>/... middleware.
+
+    Routes use this to decide whether ambient COS_STATE_DIR / COS_AGENT_DIR
+    env vars are allowed to override the project's own .coding-os path.
+    Per-project URLs MUST NOT leak into a globally-set state dir.
+    """
+    return _current_project.get() is not None
+
+
 def current_db_path() -> Path:
     """Return the active sqlite DB path (project-scoped or env fallback).
 

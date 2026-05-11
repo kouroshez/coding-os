@@ -48,10 +48,10 @@ async def health():
     result["file_index_state_rows"] = None
     result["file_index_state_last_indexed_at"] = None
     try:
-        from thinking_os import db  # type: ignore
-        conn = db.init_db()
+        from thinking_os import database  # type: ignore
+        conn = database.init_db()
         try:
-            if db.has_file_index_state_table(conn):
+            if database.has_file_index_state_table(conn):
                 row = conn.execute(
                     "SELECT COUNT(*), MAX(last_indexed_at) "
                     "FROM file_index_state"

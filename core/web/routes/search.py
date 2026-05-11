@@ -123,3 +123,49 @@ async def doc_search(
             "meta": {"layer": "docs", "query": query, "mode": mode_clean},
         },
     }))
+
+
+@router.get("/tasks")
+async def task_search(
+    query: str = Query(..., description="Natural-language search query"),
+    status: Optional[str] = Query(None, description="open/wip/done/blocked"),
+    domain: Optional[str] = Query(None, description="BACKEND/FRONTEND/DOCS/INFRA/..."),
+    limit: int = Query(10),
+    _rl=Depends(make_rate_limit_dep("search.tasks")),
+    _m=Depends(make_metrics_dep("search.tasks")),
+):
+    """Semantic + structured search over the Scrumban task store."""
+    try:
+        sys.path.insert(0, str(_TOS_DIR))
+        from tools.tasks import task_search as _task_search  # type: ignore
+        from tools.retrieve import log_retrieval  # type: ignore
+    except ImportError as exc:
+        return unwrap(_unavailable(f"task search tools unavailable: {exc}"))
+
+    conn = _db_conn()
+    try:
+        results = _task_search(
+            conn,
+            query=query,
+            status=status or None,
+            domain=domain or None,
+            limit=limit,
+        )
+        rids = log_retrieval(conn, layer="tasks", query=query, rows=results)
+    finally:
+        conn.close()
+
+    import json as _json
+    return unwrap(_json.dumps({
+        "ok": True,
+        "data": {
+            "results": results,
+            "count": len(results),
+            "retrieval_ids": rids,
+            "meta": {
+                "layer": "tasks",
+                "query": query,
+                "filters_applied": {"status": status or None, "domain": domain or None},
+            },
+        },
+    }))

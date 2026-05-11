@@ -9,8 +9,8 @@ export default function Inspector() {
 
   if (!selectedUid) {
     return (
-      <div className="flex h-full flex-col p-4 text-sm text-[#9ea4ae]">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6c7280]">
+      <div className="flex h-full flex-col p-4 text-sm text-[var(--cos-faint)]">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
           Inspector
         </h2>
         <p>Click a node in the graph, a card on the board, or a trace event to inspect.</p>

@@ -40,7 +40,7 @@ interface HubProjectsPayload {
 }
 
 const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(\/.*)?$/;
-const FEATURE_PATH_RE = /^\/(board|graph|search|cognition)(\/.*)?$/;
+const FEATURE_PATH_RE = /^\/(dashboard|board|graph|search|cognition|observability|roles)(\/.*)?$/;
 
 function parseCurrentScope(pathname: string): {
   slug: string | null;
@@ -127,7 +127,7 @@ export default function ProjectSwitcher() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-md border border-[var(--col-border)] bg-[var(--col-bg)] px-2.5 py-1 font-mono text-[11px] text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        className="flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2.5 py-1 font-mono text-[11px] text-[var(--cos-text)] transition-colors hover:border-[var(--cos-accent)] hover:text-[var(--cos-accent)]"
         title={
           activeProject
             ? `${activeProject.slug} — ${activeProject.path}`
@@ -138,7 +138,7 @@ export default function ProjectSwitcher() {
           aria-hidden
           className="inline-block h-1.5 w-1.5 rounded-full"
           style={{
-            background: activeSlug ? 'var(--accent)' : 'var(--ink-faint)',
+            background: activeSlug ? 'var(--cos-accent)' : 'var(--cos-faint)',
           }}
         />
         <span className="max-w-[160px] truncate">{label}</span>
@@ -151,12 +151,9 @@ export default function ProjectSwitcher() {
           ref={menuRef}
           role="menu"
           aria-label="Switch project"
-          className="absolute left-0 top-[calc(100%+4px)] z-50 w-[320px] overflow-hidden rounded-md border border-[var(--col-border)] bg-[var(--col-bg)] shadow-lg"
-          style={{
-            background: 'var(--cos-panel, var(--col-bg))',
-          }}
+          className="absolute left-0 top-[calc(100%+4px)] z-50 w-[320px] overflow-hidden rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
         >
-          <div className="border-b border-[var(--col-border)] px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--ink-faint)]">
+          <div className="border-b border-[var(--cos-border)] px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--cos-faint)]">
             projects {data?.count != null ? `· ${data.count}` : ''}
           </div>
 
@@ -167,19 +164,19 @@ export default function ProjectSwitcher() {
               navigate('/');
               setOpen(false);
             }}
-            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-[var(--board-grain)]"
+            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-[var(--cos-grain)]"
           >
-            <span className="font-semibold text-[var(--accent)]">← All projects (Hub home)</span>
+            <span className="font-semibold text-[var(--cos-accent)]">← All projects (Hub home)</span>
           </button>
 
           <div className="max-h-[320px] overflow-auto cos-scroll">
             {isLoading && (
-              <div className="px-3 py-4 text-center text-xs text-[var(--ink-faint)]">
+              <div className="px-3 py-4 text-center text-xs text-[var(--cos-faint)]">
                 loading…
               </div>
             )}
             {!isLoading && !data?.projects.length && (
-              <div className="px-3 py-4 text-center text-xs text-[var(--ink-faint)]">
+              <div className="px-3 py-4 text-center text-xs text-[var(--cos-faint)]">
                 no projects yet — register one on the Hub home
               </div>
             )}
@@ -193,10 +190,10 @@ export default function ProjectSwitcher() {
                     role="menuitem"
                     onClick={() => jumpTo(p.slug)}
                     className={[
-                      'flex w-full flex-col gap-0.5 border-t border-[var(--col-border)] px-3 py-2 text-left text-xs transition-colors',
+                      'flex w-full flex-col gap-0.5 border-t border-[var(--cos-border)] px-3 py-2 text-left text-xs transition-colors',
                       isActive
-                        ? 'bg-[var(--board-grain)] text-[var(--accent)]'
-                        : 'hover:bg-[var(--board-grain)] text-[var(--ink)]',
+                        ? 'bg-[var(--cos-grain)] text-[var(--cos-accent)]'
+                        : 'hover:bg-[var(--cos-grain)] text-[var(--cos-text)]',
                     ].join(' ')}
                   >
                     <span className="flex items-center gap-2 font-semibold">
@@ -204,12 +201,12 @@ export default function ProjectSwitcher() {
                         <span
                           aria-hidden
                           className="inline-block h-1.5 w-1.5 rounded-full"
-                          style={{ background: 'var(--accent)' }}
+                          style={{ background: 'var(--cos-accent)' }}
                         />
                       )}
                       {p.slug}
                     </span>
-                    <span className="break-all font-mono text-[10px] text-[var(--ink-faint)]">
+                    <span className="break-all font-mono text-[10px] text-[var(--cos-faint)]">
                       {p.path}
                     </span>
                   </button>

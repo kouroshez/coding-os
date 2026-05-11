@@ -117,30 +117,52 @@ export function agentForSession(session: string | null | undefined): 'claude' | 
   return 'human';
 }
 
+// Module-level cache of board events keyed by pathname.  Survives the
+// CosBoardPage unmount + remount that happens every time the user nav
+// away to Graph / Cognition / etc.  Without it the panel re-bootstraps
+// from `/api/stream/history` on every visit and any live SSE events that
+// arrived between unmount and history-fetch silently disappear — the
+// "panel keeps resetting" complaint.  Cleared on full page reload (by
+// design — agent activity is browser-session-scoped, not durable).
+const _eventCache = new Map<string, BoardEvent[]>();
+
 export function useBoardStream(): UseBoardStreamReturn {
+  const { pathname } = useLocation();
   const [bump, setBump] = useState<number>(0);
   const [connected, setConnected] = useState<boolean>(false);
-  const [events, setEvents] = useState<BoardEvent[]>([]);
+  const [events, setEvents] = useState<BoardEvent[]>(
+    () => _eventCache.get(pathname) ?? [],
+  );
   const sourceRef = useRef<EventSource | null>(null);
-  // React Router doesn't unmount CosBoardPage when switching between
-  // /p/A/board and /p/B/board (same route pattern). We key both effects
-  // below on pathname so the SSE + history bootstrap rewire to the new
-  // project's scope instead of sticking to the first one opened.
-  const { pathname } = useLocation();
 
-  const push = useCallback((ev: BoardEvent) => {
-    setEvents((prev) => {
-      const next = [ev, ...prev];
-      if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
-      return next;
-    });
-  }, []);
+  const push = useCallback(
+    (ev: BoardEvent) => {
+      setEvents((prev) => {
+        const next = [ev, ...prev];
+        if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
+        _eventCache.set(pathname, next);
+        return next;
+      });
+    },
+    [pathname],
+  );
+
+  // Mirror every events-state update into the module cache so a navigate
+  // -away mid-stream still keeps the rows when we navigate back.
+  useEffect(() => {
+    _eventCache.set(pathname, events);
+  }, [pathname, events]);
 
   useEffect(() => {
     let cancelled = false;
-    // Wipe any events seeded by the previous project so we don't mix
-    // two different histories in the same panel.
-    setEvents([]);
+    // Keep whatever the previous mount already buffered for this
+    // pathname — only seed history if the cache is empty.
+    const cached = _eventCache.get(pathname);
+    if (!cached || cached.length === 0) {
+      setEvents([]);
+    } else {
+      setEvents(cached);
+    }
     const loadHistory = async () => {
       try {
         const [payload] = await apiGet<StreamHistoryPayload>('/api/stream/history', { limit: 20 });
@@ -204,13 +226,27 @@ export function useBoardStream(): UseBoardStreamReturn {
     source.addEventListener('connected', () => {
       if (cancelled) return;
       setConnected(true);
-      push({
-        id: newId(),
-        t: nowHMS(),
-        kind: 'connected',
-        taskId: null,
-        agent: 'human',
-        message: 'SSE /api/stream/events online',
+      // De-dupe the "SSE online" row — every CosBoardPage remount opens
+      // a fresh EventSource and the backend always greets with a
+      // `connected` event.  Without this guard, the cached panel
+      // accumulates one banner per nav-away/nav-back roundtrip.
+      setEvents((prev) => {
+        const recent = prev[0];
+        if (recent && recent.kind === 'connected') return prev;
+        const next = [
+          {
+            id: newId(),
+            t: nowHMS(),
+            kind: 'connected' as BoardEventKind,
+            taskId: null,
+            agent: 'human' as const,
+            message: 'SSE /api/stream/events online',
+          },
+          ...prev,
+        ];
+        if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
+        _eventCache.set(pathname, next);
+        return next;
       });
     });
 
@@ -222,29 +258,15 @@ export function useBoardStream(): UseBoardStreamReturn {
       setBump((b) => b + 1);
     });
 
-    // P7 — agent fired a tool or prompt; surface as a stream-panel row
-    // so the activity track stops feeling broken between task moves.
-    source.addEventListener('agent-activity', (evt) => {
+    // NOTE: `agent-activity` events still arrive over SSE but they are
+    // NOT pushed into the Board panel — that surface is task-only.
+    // Tool / hook fires belong to the Cognition → Live tab (HookStream)
+    // so the Board feed stays a clean kanban-transition audit log.
+    // Listeners that needed the bump (presence pill) keep getting it
+    // via `presence-updated` above.
+    source.addEventListener('agent-activity', () => {
       if (cancelled) return;
-      try {
-        const data = JSON.parse((evt as MessageEvent).data) as {
-          agent?: string;
-          kind?: string;
-          sid?: string;
-          ts?: number;
-        };
-        const agentId = (data.agent || 'human') as 'claude' | 'codex' | 'cursor' | 'human';
-        push({
-          id: newId(),
-          t: hmsFromEpoch(data.ts),
-          kind: 'agent-activity',
-          taskId: null,
-          agent: agentId,
-          message: `${data.kind ?? 'fired'}${data.sid ? ` · ${data.sid}` : ''}`,
-        });
-      } catch {
-        /* ignore malformed payload */
-      }
+      setBump((b) => b + 1);
     });
 
     source.addEventListener('task-updated', (evt) => {

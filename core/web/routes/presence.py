@@ -1,0 +1,195 @@
+"""core.web.routes.presence — /api/presence/* live HUD summary."""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sys
+from pathlib import Path
+from typing import Any
+
+from fastapi import APIRouter, Depends
+
+from .._deps import make_metrics_dep, make_rate_limit_dep
+from .._envelope import unwrap
+
+logger = logging.getLogger("coding_os.web.presence")
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+router = APIRouter(prefix="/api/presence", tags=["presence"])
+
+
+def _state_dir() -> Path:
+    from web._project_context import current_project_root, is_explicit_project_scope  # type: ignore
+
+    if is_explicit_project_scope():
+        return current_project_root() / ".coding-os"
+    env = os.environ.get("COS_STATE_DIR") or os.environ.get("COS_AGENT_DIR")
+    if env:
+        return Path(env).resolve()
+    return current_project_root() / ".coding-os"
+
+
+def _read_text(p: Path) -> str | None:
+    try:
+        return p.read_text(encoding="utf-8").strip() or None
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _strip_session_prefix(value: str | None, session_id: str | None) -> str | None:
+    """write-state.sh prefixes each value with the session-id — strip it."""
+    if not value:
+        return value
+    if session_id and value.startswith(session_id):
+        return value[len(session_id):].strip() or None
+    # Fall-through pattern: any "ses-<agent>-<digits>-<hex>" prefix.
+    import re as _re
+    m = _re.match(r"^ses-[^\s]+\s+(.*)$", value)
+    if m:
+        return m.group(1).strip() or None
+    return value
+
+
+def _read_json(p: Path) -> dict[str, Any] | None:
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+def _latest_claude_chat_uuid(project_root: Path) -> str | None:
+    """Newest Claude SDK transcript file (proxy for currently-active chat)."""
+    try:
+        from claude_agent_sdk import project_key_for_directory  # type: ignore
+        key = project_key_for_directory(project_root)
+    except Exception as exc:  # noqa: BLE001 — fall back to canonical dashed-path
+        logger.debug("project_key_for_directory unavailable: %s", exc)
+        key = "-" + str(project_root).replace("/", "-").lstrip("-")
+    base = Path.home() / ".claude" / "projects" / key
+    if not base.is_dir():
+        return None
+    newest: Path | None = None
+    newest_mtime = 0.0
+    for jsonl in base.glob("*.jsonl"):
+        try:
+            mt = jsonl.stat().st_mtime
+        except OSError:
+            continue
+        if mt > newest_mtime:
+            newest = jsonl
+            newest_mtime = mt
+    if newest is None:
+        return None
+    return newest.stem
+
+
+def _agent_runtime(agent_dir: Path, agent: str) -> dict[str, Any] | None:
+    """Best-effort runtime snapshot for one agent."""
+    if not agent_dir.is_dir():
+        return None
+    sid = _read_text(agent_dir / "session-id")
+    task = _strip_session_prefix(_read_text(agent_dir / ".task-current"), sid)
+    skill_active = _strip_session_prefix(_read_text(agent_dir / ".skill-active"), sid)
+    model = _strip_session_prefix(_read_text(agent_dir / ".model"), sid)
+    gate = _strip_session_prefix(_read_text(agent_dir / ".thinking_os-gate"), sid)
+    session_payload = None
+    if sid:
+        session_payload = _read_json(agent_dir / "sessions" / f"{sid}.json")
+    return {
+        "agent": agent,
+        "session_id": sid,
+        "task": task,
+        "skill_active": skill_active,
+        "model": model,
+        "gate": gate,
+        "session": session_payload,
+    }
+
+
+def _last_hook_event(state: Path) -> dict[str, Any] | None:
+    log = state / ".hooks.log"
+    if not log.exists():
+        return None
+    try:
+        with log.open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            window = min(size, 8192)
+            fh.seek(-window, os.SEEK_END)
+            tail = fh.read().decode("utf-8", errors="ignore")
+    except OSError:
+        return None
+    from .hooks import _parse_hook_line  # type: ignore
+    for line in reversed(tail.splitlines()):
+        evt = _parse_hook_line(line)
+        if evt is not None:
+            return evt
+    return None
+
+
+def _canonical_agents() -> list[str]:
+    """Return the canonical adapter ids (filter out test/legacy dirs)."""
+    try:
+        from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+        rows = list_agent_manifest_rows()
+        return [str(r["id"]) for r in rows if r.get("id")]
+    except Exception as exc:  # noqa: BLE001 — fall back to the hardcoded trio
+        logger.debug("list_agent_manifest_rows unavailable: %s", exc)
+        return ["claude", "codex", "cursor"]
+
+
+@router.get("/now")
+async def presence_now(
+    _rl=Depends(make_rate_limit_dep("presence.now")),
+    _m=Depends(make_metrics_dep("presence.now")),
+):
+    """Compact 'who is running, doing what, last hook fire' for the AppShell HUD."""
+    from web._project_context import current_project_root  # type: ignore
+
+    project = current_project_root()
+    state = _state_dir()
+    canonical = _canonical_agents()
+
+    agents: list[dict[str, Any]] = []
+    if state.is_dir():
+        for agent_id in canonical:
+            agent_dir = state / agent_id
+            snap = _agent_runtime(agent_dir, agent_id)
+            if snap is None:
+                continue
+            agents.append(snap)
+
+    last_hook = _last_hook_event(state)
+    chat_uuid = _latest_claude_chat_uuid(project)
+
+    # Use the same presence math as `/api/board/list` so the AppShell HUD
+    # and the Scrumban board agree on agent state.
+    agent_states: dict[str, str] = {"human": "active"}
+    try:
+        from web.routes.board import _agent_state, _db_conn  # type: ignore
+        conn = _db_conn()
+        try:
+            for agent_id in canonical:
+                agent_states[agent_id] = _agent_state(conn, agent_id)
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001 — presence HUD must not 500
+        logger.debug("agent_state lookup failed; using bare presence: %s", exc)
+
+    return unwrap(json.dumps({
+        "ok": True,
+        "data": {
+            "project_root": str(project),
+            "state_dir": str(state),
+            "agents": agents,
+            "agent_states": agent_states,
+            "last_hook": last_hook,
+            "current_chat_uuid": chat_uuid,
+            "meta": {"layer": "presence"},
+        },
+    }))

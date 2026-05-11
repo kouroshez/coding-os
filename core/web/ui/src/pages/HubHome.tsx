@@ -355,7 +355,7 @@ function ProjectCard({
     <div className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] transition-colors hover:border-[var(--cos-accent)]">
       <div className="flex items-start justify-between gap-2 border-b border-[var(--cos-border)] p-3">
         <Link
-          to={`/p/${encodeURIComponent(project.slug)}/board`}
+          to={`/p/${encodeURIComponent(project.slug)}`}
           className="min-w-0 flex-1"
         >
           <div className="flex items-center gap-2">

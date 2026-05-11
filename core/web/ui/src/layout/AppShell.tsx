@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Brain, KanbanSquare, Network, Search, Settings } from 'lucide-react';
+import { Brain, KanbanSquare, LayoutDashboard, Network, Search, Settings } from 'lucide-react';
 import Inspector from '@/layout/Inspector';
+import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
 
 /**
@@ -22,6 +23,7 @@ import ProjectSwitcher from '@/layout/ProjectSwitcher';
  */
 
 const NAV = [
+  { feature: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard, end: true },
   { feature: 'board', label: 'Board', Icon: KanbanSquare, end: true },
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'search', label: 'Search', Icon: Search, end: true },
@@ -42,30 +44,27 @@ export default function AppShell({
     return m ? decodeURIComponent(m[1]) : null;
   }, [location.pathname]);
 
+  // Inspector is bound to the graph-store (`selectedNodeUid`) — it is
+  // only meaningful on /graph. Other pages render their own context
+  // panes (Cognition right-aside, Search inline expand) so the global
+  // aside would just sit empty and steal width.
   const showInspector =
-    /^\/graph/.test(location.pathname) ||
-    /^\/search/.test(location.pathname) ||
-    /^\/cognition/.test(location.pathname) ||
-    /^\/p\/[^/]+\/(graph|search|cognition)/.test(location.pathname);
+    /^\/graph(?:\/|$)/.test(location.pathname) ||
+    /^\/p\/[^/]+\/graph(?:\/|$)/.test(location.pathname);
 
   const linkFor = (feature: string): string =>
     scopeSlug ? `/p/${encodeURIComponent(scopeSlug)}/${feature}` : `/${feature}`;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-[var(--board)] text-[var(--ink)]">
-      <header
-        className="flex shrink-0 items-center gap-4 border-b-2 border-[var(--line)] px-4 py-2"
-        style={{ background: 'var(--board)' }}
-      >
-        <div
-          className="font-semibold tracking-wide text-[var(--accent)]"
-          style={{ fontFamily: "'Permanent Marker', cursive", fontSize: 18 }}
-        >
+    <div className="flex h-full min-h-0 w-full flex-col bg-[var(--cos-bg)] text-[var(--cos-text)]">
+      <header className="flex shrink-0 items-center gap-4 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-2">
+        <div className="text-[15px] font-bold tracking-tight text-[var(--cos-accent)]">
           Coding OS
         </div>
         <ProjectSwitcher />
+        <LiveStatus />
         {brandingSlot && (
-          <div className="flex items-center gap-2 text-xs text-[var(--ink-soft)]">
+          <div className="flex items-center gap-2 text-xs text-[var(--cos-muted)]">
             {brandingSlot}
           </div>
         )}
@@ -80,8 +79,8 @@ export default function AppShell({
                   'flex items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold',
                   'font-mono transition-colors',
                   isActive
-                    ? 'bg-[var(--col-bg)] text-[var(--accent)] ring-1 ring-[var(--col-border)]'
-                    : 'text-[var(--ink-soft)] hover:bg-[var(--col-bg)] hover:text-[var(--ink)]',
+                    ? 'bg-[var(--cos-grain)] text-[var(--cos-accent)] ring-1 ring-[var(--cos-border)]'
+                    : 'text-[var(--cos-muted)] hover:bg-[var(--cos-grain)] hover:text-[var(--cos-text)]',
                 ].join(' ')
               }
             >
@@ -97,7 +96,7 @@ export default function AppShell({
         </div>
         {showInspector && (
           <aside
-            className="hidden w-[320px] shrink-0 overflow-auto border-l border-[var(--col-border)] bg-[var(--col-bg)] text-[var(--ink)] md:block"
+            className="hidden w-[320px] shrink-0 overflow-auto border-l border-[var(--cos-border)] bg-[var(--cos-panel)] text-[var(--cos-text)] md:block"
             aria-label="Inspector"
           >
             <Inspector />

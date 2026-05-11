@@ -23,11 +23,17 @@ function currentProjectSlug(): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+export interface UseApiGetOptions {
+  enabled?: boolean;
+  /** Polling interval in ms — translated to TanStack `refetchInterval`. */
+  refetchIntervalMs?: number;
+}
+
 export function useApiGet<T>(
   key: readonly unknown[],
   path: string,
   params?: Record<string, unknown>,
-  options?: { enabled?: boolean },
+  options?: UseApiGetOptions,
 ): UseQueryResult<T, Error> {
   // Hub-scoped endpoints (/api/hub/*) are global and MUST NOT be
   // partitioned by slug — otherwise the project switcher re-fetches
@@ -41,6 +47,7 @@ export function useApiGet<T>(
       return data;
     },
     enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchIntervalMs,
   });
 }
 

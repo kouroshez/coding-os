@@ -7,6 +7,7 @@ import GraphPage from './pages/GraphPage';
 import CognitionPage from './pages/CognitionPage';
 import SearchPage from './pages/SearchPage';
 import HubHome from './pages/HubHome';
+import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
@@ -16,12 +17,19 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<HubHome />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/board" element={<CosBoardPage />} />
           <Route path="/graph" element={<GraphPage />} />
           <Route path="/graph/:rootUid" element={<GraphPage />} />
           <Route path="/cognition" element={<CognitionPage />} />
           <Route path="/cognition/:sessionId" element={<CognitionPage />} />
           <Route path="/search" element={<SearchPage />} />
+          {/* Legacy top-level routes — fold into Cognition tabs.  Old
+              bookmarks + LiveStatus quick-links land here and the URL
+              is normalised silently so the new tab layout is the only
+              surface area. */}
+          <Route path="/observability" element={<Navigate to="/cognition?view=live" replace />} />
+          <Route path="/roles" element={<Navigate to="/cognition?view=roles" replace />} />
           <Route path="/settings" element={<SettingsPage />} />
           {/*
             Per-project deep links.  The backend middleware rewrites
@@ -31,6 +39,8 @@ export default function App() {
             api-client helpers pick it up to rewrite fetches to the
             per-project endpoint.
           */}
+          <Route path="/p/:slug" element={<DashboardPage />} />
+          <Route path="/p/:slug/dashboard" element={<DashboardPage />} />
           <Route path="/p/:slug/board" element={<CosBoardPage />} />
           <Route path="/p/:slug/graph" element={<GraphPage />} />
           <Route path="/p/:slug/graph/:rootUid" element={<GraphPage />} />
