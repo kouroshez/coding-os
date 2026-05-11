@@ -128,4 +128,5 @@ hook_dispatchers:
       - classify-task-mode.sh
       - nudge-thinking-os.sh
       - nudge-graph-os.sh
+      - nudge-docs-first.sh
       - agent-presence.sh

@@ -10,7 +10,7 @@
 
 <!--
   Format contract — DO NOT BREAK:
-    - `REF:CODE` → `./relative/path.md`
+    - `REF:<NAME>` → `./relative/path.md`
   The path MUST be the first backtick-wrapped value after the `→` arrow.
   Parsed by core/scripts/ref-resolve.sh (sed) and core/scripts/docs-lint.sh.
   Markdown links `[text](path)` here will BREAK the resolver — keep paths
@@ -23,7 +23,6 @@
 - `REF:CLAUDE` → `../CLAUDE.md`
 - `REF:DOCS-INDEX` → `./00-index.md`
 - `REF:CHANGES` → `../changes.log`
-- `REF:ROADMAP` → `./roadmap.md`
 - `REF:QUESTIONS` → `./questions.md`
 
 ## Governance (always-active rules + procedures)
@@ -46,7 +45,6 @@
 
 - `REF:ARCH-INDEX` → `./architecture/00-index.md`
 - `REF:META-ARCH` → `./architecture/meta-project.md`
-- `REF:ADR-INDEX` → `./architecture/adr/00-index.md`
 
 ## Engineering (SSOT references)
 
@@ -82,14 +80,6 @@
 - `REF:PB-TEMPLATE-AUTHOR` → `./playbooks/template-authoring.md`
 - `REF:PB-SECURITY-REVIEW` → `./playbooks/security-review.md`
 
-## API / Contracts
-
-- `REF:API-INDEX` → `./api-contracts/00-index.md`
-
-## Ops
-
-- `REF:OPS-INDEX` → `./ops/00-index.md`
-
 ## Source References
 
 - `REF:CORE-DOCS` → `./code-os-core-docs/`
@@ -105,7 +95,7 @@
 ## Authoring rules
 
 - Every REF code maps to **one** canonical path. Duplicate REF codes are rejected by `docs-lint`.
-- REF codes are UPPERCASE kebab-style: `REF:KEBAB-CASE`.
+- REF codes are UPPERCASE kebab-style (e.g. `REF:DOC-FIRST`).
 - Add a new REF code when a doc is referenced from ≥3 task / playbook files. One-off references stay as direct relative links.
 - Removing a REF code requires migrating every consumer first — `grep -rn 'REF:OLD-CODE' docs/` must return zero.
 - The `REF:` prefix is reserved; never reuse it for non-foundation-map shortcodes.

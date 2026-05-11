@@ -66,12 +66,16 @@ PY
 | `session-context` | SessionStart | startup | ✓ | ✓ | both |
 | `session-context` | SessionStart | `compact\|resume` | ✓ | `resume` | renderer narrows to the Codex-supported subset |
 | `session-context` | UserPromptSubmit | `` | — | ✓ | Claude's dedicated one is SessionStart; Codex uses UserPromptSubmit |
+| `classify-task-mode` | UserPromptSubmit | `` | ✓ | ✓ | both (Codex via `codex-userpromptsubmit-dispatch.sh`) |
+| `nudge-thinking-os` | UserPromptSubmit | `` | ✓ | ✓ | both (Codex via dispatcher) |
+| `nudge-graph-os` | UserPromptSubmit | `` | ✓ | ✓ | both (Codex via dispatcher) |
+| `nudge-docs-first` | UserPromptSubmit | `` | ✓ | ✓ | both (Codex via dispatcher) — recommends `cos_doc_search` before code-edit |
 | `warn-mcp-down` | SessionStart | startup | ✓ | ✓ | both |
 | `warn-mcp-down` | SessionStart | `compact\|resume` | ✓ | `resume` | renderer narrows to the Codex-supported subset |
 | `session-end` | Stop | `` | ✓ | ✓ | both |
 | `check-capture-worked` | Stop | `` | ✓ | ✓ | both |
 
-**Totals:** Claude fires 33/34 registered event pairs. Codex fires 11/34.
+**Totals:** Claude fires 37/38 registered event pairs. Codex fires 15/38 (UserPromptSubmit cognition nudges delivered via `codex-userpromptsubmit-dispatch.sh`).
 
 ## Why Codex fires fewer events (this is by design)
 
