@@ -6,8 +6,7 @@ alwaysApply: true
 
 # Thinking OS — Kernel (Always Active)
 
-Source of truth: `docs/workflow-docs/thinking_os-final-edition.md`
-Full methodology: `.claude/skills/thinking_os/SKILL.md`
+Source of truth: `core/skills/thinking_os/SKILL.md` (loaded as the `thinking_os` skill — `.claude/skills/thinking_os/SKILL.md` is the rendered adapter copy).
 
 > **Golden Rule:** Never start acting before separating problem, behavior, rules, and risk. Applies to Deep dimensions. Light dimensions may skip behavior and risk after Complexity Gate confirms low complexity.
 
