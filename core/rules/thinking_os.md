@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Thinking OS — Kernel (Always Active)
 
-Source of truth: `core/skills/thinking_os/SKILL.md` (loaded as the `thinking_os` skill — `.claude/skills/thinking_os/SKILL.md` is the rendered adapter copy).
+Source of truth: `core/docs/thinking_os-final-edition.md` (meta-repo) — copied to `docs/workflow-docs/thinking_os-final-edition.md` in consumer projects by `cos init` (see `cli/main.py::_copy_workflow_docs`). Full methodology summary loaded on demand from `core/skills/thinking_os/SKILL.md` (rendered as `.claude/skills/thinking_os/SKILL.md` per adapter).
 
 > **Golden Rule:** Never start acting before separating problem, behavior, rules, and risk. Applies to Deep dimensions. Light dimensions may skip behavior and risk after Complexity Gate confirms low complexity.
 

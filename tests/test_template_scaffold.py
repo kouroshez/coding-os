@@ -149,12 +149,15 @@ class TestBaseScaffold:
         assert (wf / "thinking_os-final-edition.md").exists(), \
             "thinking_os-final-edition.md should be copied from core/docs/"
 
-    def test_creates_tasks_index(self, initialized: Path) -> None:
-        tasks = initialized / "docs" / "tasks.md"
-        assert tasks.exists()
-        # New scaffold has front-matter header
-        content = tasks.read_text()
-        assert content.startswith("<!-- domain:")
+    def test_no_tasks_md_index(self, initialized: Path) -> None:
+        # The legacy `docs/tasks.md` flat index was retired in favor of
+        # `cos board` + per-task detail files under `docs/tasks/`. See
+        # docs/governance/docs-system.md § Task File Rules.
+        tasks_md = initialized / "docs" / "tasks.md"
+        assert not tasks_md.exists(), \
+            "docs/tasks.md is retired — use `cos board` + docs/tasks/TASK-*.md"
+        tasks_dir = initialized / "docs" / "tasks"
+        assert tasks_dir.is_dir(), "docs/tasks/ dir must exist for per-task files"
 
     def test_creates_questions(self, initialized: Path) -> None:
         questions = initialized / "docs" / "questions.md"
@@ -348,10 +351,10 @@ class TestFoundationMap:
     ) -> None:
         _init_project(runner, project_dir)
         fm = (project_dir / "docs" / "foundation-map.md").read_text()
+        # REF:TASKS was retired alongside docs/tasks.md — use `cos board`.
         for ref in (
             "REF:AGENTS",
             "REF:DOCS-INDEX",
-            "REF:TASKS",
             "REF:AGENT-WORKFLOW",
             "REF:DOCS-SYSTEM",
         ):
