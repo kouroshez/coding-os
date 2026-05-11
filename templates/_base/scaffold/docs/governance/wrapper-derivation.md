@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-10 -->
 # Wrapper Derivation Policy
 
 Purpose: Define how editor- and tool-specific wrapper files (`.claude/`, `.codex/`, `.cursor/`) stay thin, derived, and subordinate to canonical SSOT docs.

@@ -97,12 +97,21 @@ done
 
 # Check 4: REF code validation (only when foundation-map.md exists and we're linting >1 file)
 if [ -f "$DOCS_DIR/foundation-map.md" ] && [ ${#TARGETS[@]} -gt 1 ]; then
+  # Resolve foundation-map's absolute path so we can skip it from being
+  # scanned against itself — its own REF definitions otherwise get
+  # flagged as "unknown usages" by the loop below.
+  fm_abs=$(cd "$(dirname "$DOCS_DIR/foundation-map.md")" && pwd)/foundation-map.md
   known_refs=$(grep -oE '`REF:[A-Z0-9_-]+`' "$DOCS_DIR/foundation-map.md" | sort -u)
   for file in "${TARGETS[@]}"; do
     [ -f "$file" ] || continue
+    # Skip foundation-map.md itself — its body contains every REF code by
+    # definition. Compare absolute paths so `./docs/foundation-map.md` and
+    # `docs/foundation-map.md` both match.
+    file_abs=$(cd "$(dirname "$file")" && pwd)/$(basename "$file")
+    [ "$file_abs" = "$fm_abs" ] && continue
     used_refs=$(grep -oE '`REF:[A-Z0-9_-]+`' "$file" 2>/dev/null | sort -u || true)
     for ref in $used_refs; do
-      if ! echo "$known_refs" | grep -qx "$ref"; then
+      if ! printf '%s\n' "$known_refs" | grep -Fqx "$ref"; then
         rel="${file#./}"
         [ "$QUIET" -eq 0 ] && warn "$rel: unknown REF code $ref (not in foundation-map.md)"
         WARNINGS=$((WARNINGS + 1))

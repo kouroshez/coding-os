@@ -12,7 +12,6 @@ Read next: The target doc referenced by the shortcode you need.
 
 - `REF:AGENTS` → `../AGENTS.md`
 - `REF:DOCS-INDEX` → `./00-index.md`
-- `REF:TASKS` → `./tasks.md`
 - `REF:CHANGES` → `../changes.log`
 - `REF:ROADMAP` → `./roadmap.md`
 - `REF:QUESTIONS` → `./questions.md`

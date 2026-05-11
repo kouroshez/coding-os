@@ -160,6 +160,11 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-graph-os.sh",
             "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/nudge-docs-first.sh",
+            "timeout": 1000
           }
         ]
       }

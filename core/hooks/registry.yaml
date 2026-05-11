@@ -819,3 +819,23 @@ hooks:
     events:
       - event: UserPromptSubmit
         matcher: ""
+
+  - id: nudge-docs-first
+    script: nudge-docs-first.sh
+    description: |
+      UserPromptSubmit nudge — docs-first SSOT discovery. Pattern-matches
+      the prompt for code-edit intent (refactor, rename, fix, add,
+      implement, change function/endpoint/handler/...; bilingual EN +
+      Persian) AND no .doc-anchor populated AND task-mode not in
+      query/chore/adhoc → emits a one-line additional-context block
+      pointing to cos_doc_search / cos_doc_header and the procedure in
+      docs/governance/docs-first-protocol.md. Closes the gap where
+      enforce-doc-anchor.sh fires only on Write/Edit, but user intent
+      already signals "code coming" at prompt time. Debounced per session
+      via .docs-first-nudged marker.
+    category: cognition
+    phase: O
+    timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""

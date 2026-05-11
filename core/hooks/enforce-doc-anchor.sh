@@ -108,20 +108,33 @@ ANCHOR_FILE="$COS_AGENT_DIR/.doc-anchor"
 ANCHOR_MAX_AGE=28800  # 8h — same ownership horizon as task-current.
 
 if [[ ! -f "$ANCHOR_FILE" ]]; then
-  echo "BLOCKED: No doc anchor recorded for this task." >&2
-  echo "  Rule: code changes must trace to a spec / playbook / ADR." >&2
+  echo "BLOCKED: No doc anchor recorded for this session." >&2
+  echo "  Rule 0 (docs-first) + Rule 19 (docs are the contract):" >&2
+  echo "  docs are SSOT — code must trace to a spec / playbook / ADR." >&2
+  echo "  Full procedure: docs/governance/docs-first-protocol.md" >&2
+  echo "" >&2
   echo "  File attempted: $FILE_PATH" >&2
   echo "" >&2
-  echo "  Three ways to repair:" >&2
-  echo "  1. Populate the task file's \"Source of Truth\" or \"Read First\"" >&2
-  echo "     section with real doc paths, then re-run \`make task-start TASK=N\`." >&2
-  echo "  2. If this is a trivial fix (typo, docstring), record CLEAR 1:" >&2
-  echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking_os-gate\" \"CLEAR 1\"" >&2
-  echo "  3. If genuinely exploratory, set an exploratory task name:" >&2
-  echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
+  echo "  Repair (in order — try the cheapest first):" >&2
+  echo "  1. LOCATE the spec — pick one:" >&2
+  echo "       cos_doc_search \"<topic of your change>\"" >&2
+  echo "       cos_doc_headers_by(domain=\"<DOMAIN>\", ssot=\"true\")" >&2
+  echo "       cos_graph_context \"doc:file:docs/...\"" >&2
+  echo "  2. READ it (cos_doc_header first → full read only if relevant)." >&2
+  echo "  3. ANCHOR — populate the task's \"Read First\" section with the doc" >&2
+  echo "     paths you read, then run: cos task-start TASK=N" >&2
+  echo "     (or make task-start TASK=N) — this refreshes \$COS_AGENT_DIR/.doc-anchor." >&2
+  echo "  4. If NO matching doc exists → WRITE THE DOC FIRST" >&2
+  echo "     (templates/doc-cheat-sheet.md picks the layer), commit it as a" >&2
+  echo "     separate change, then return for the code." >&2
   echo "" >&2
-  echo "  For a one-shot bypass (use sparingly):" >&2
-  echo "    touch $COS_AGENT_DIR/.doc-anchor-override" >&2
+  echo "  Bypass paths (use sparingly — logged):" >&2
+  echo "  • trivial fix (typo, docstring):" >&2
+  echo "      bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking_os-gate\" \"CLEAR 1\"" >&2
+  echo "  • genuinely exploratory / throwaway code:" >&2
+  echo "      bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
+  echo "  • one-shot manual override (consumed on use):" >&2
+  echo "      touch $COS_AGENT_DIR/.doc-anchor-override" >&2
   exit 2
 fi
 
