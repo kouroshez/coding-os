@@ -1591,6 +1591,21 @@ except ImportError as _graph_cli_exc:  # pragma: no cover — defensive
 
 
 # ---------------------------------------------------------------------------
+# DB lifecycle — `cos db-stats`, `cos db-reset`. Spec: docs/playbooks/db-reset.md.
+# ---------------------------------------------------------------------------
+try:
+    from cli import db_reset as _db_reset  # noqa: WPS433
+
+    _db_reset.register(cli)
+except ImportError as _db_reset_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug(
+        "db_reset CLI unavailable: %s", _db_reset_exc
+    )
+
+
+# ---------------------------------------------------------------------------
 # S4 — unified web server CLI (`cos web`).
 # ---------------------------------------------------------------------------
 try:
