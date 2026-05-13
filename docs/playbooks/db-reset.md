@@ -61,10 +61,6 @@ Backups land at `.coding-os/backups/reset-<YYYYMMDD-HHMMSS>/`. Restore is `cp -r
 
 A freshly reset DB is, by design, almost empty until the agent does real work.
 
-## Hub panel (future, not shipped)
-
-A `/api/db/stats` (read) and `/api/db/reset` (POST, requires `confirm=true` body) pair on the Hub would mirror this CLI. Out of scope for the first iteration — the CLI is the canonical entry point.
-
 ## Verification matrix
 
 After a `--confirm` run, check:

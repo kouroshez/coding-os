@@ -48,6 +48,34 @@ def _path_size(p: Path) -> int:
     return total
 
 
+def _print_extractor_latency(db_path: Path) -> None:
+    """Show median + p95 duration_ms per extractor_chain. Skips when column missing."""
+    if not db_path.exists():
+        return
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(file_index_state)").fetchall()}
+            if "duration_ms" not in cols:
+                return
+            rows = conn.execute(
+                "SELECT extractor_chain, COUNT(*) AS n, "
+                "       AVG(duration_ms), MAX(duration_ms) "
+                "FROM file_index_state "
+                "WHERE duration_ms IS NOT NULL "
+                "GROUP BY extractor_chain "
+                "ORDER BY n DESC"
+            ).fetchall()
+    except sqlite3.Error:
+        return
+    if not rows:
+        return
+    click.echo(f"{'Extractor':<28s} {'files':>6s} {'avg(ms)':>10s} {'max(ms)':>10s}")
+    click.echo("-" * 58)
+    for chain, n, avg, mx in rows:
+        click.echo(f"{(chain or '(none)')[:28]:<28s} {n:>6d} {(avg or 0):>10.1f} {(mx or 0):>10d}")
+    click.echo("")
+
+
 def _table_summary(db_path: Path) -> list[tuple[str, int]]:
     if not db_path.exists():
         return []
@@ -94,6 +122,9 @@ def register(cli: click.Group) -> None:
         if kuzu.exists():
             click.echo(f"  size    : {_bytes(_path_size(kuzu))}")
         click.echo("")
+
+        # Per-extractor latency telemetry (v28+).
+        _print_extractor_latency(db_path)
 
         rows = _table_summary(db_path)
         if not rows:

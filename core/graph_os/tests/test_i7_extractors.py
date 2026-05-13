@@ -13,7 +13,7 @@ import textwrap
 
 import pytest
 
-from graph_os.extractors import code_shell, code_yaml, contracts
+from graph_os.extractors import code_json, code_shell, code_toml, code_yaml, contracts
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +87,20 @@ class TestShellExtractor:
         # source emits imports; we skip a duplicate `calls` edge to the same.
         assert len(imports) == 1
         assert calls == []
+
+    def test_function_inside_heredoc_not_matched(self):
+        # Tree-sitter-bash classifies heredoc bodies as raw text — function
+        # definitions inside must not become graph nodes.
+        src = (
+            "real_func() { echo real; }\n"
+            "cat <<EOF\n"
+            "fake_inside_heredoc() { echo nope; }\n"
+            "EOF\n"
+        )
+        r = code_shell.extract("core/hooks/x.sh", src)
+        names = {n.label for n in r.nodes if n.kind == "code:function"}
+        assert "real_func" in names
+        assert "fake_inside_heredoc" not in names
 
 
 # ---------------------------------------------------------------------------
@@ -354,3 +368,106 @@ class TestContractsGeneric:
         r = contracts.extract("core/thinking_os/server.py", src)
         tools = [n for n in r.nodes if n.kind == "cos:mcp_tool"]
         assert len(tools) == 2
+
+
+# ---------------------------------------------------------------------------
+# JSON extractor
+# ---------------------------------------------------------------------------
+
+
+class TestJsonExtractor:
+    def test_package_json_deps_and_scripts(self):
+        src = """{
+  \"name\": \"web\",
+  \"dependencies\": {\"react\": \"^18\", \"next\": \"^14\"},
+  \"devDependencies\": {\"vitest\": \"^1\"},
+  \"scripts\": {\"build\": \"next build\", \"dev\": \"next dev\"}
+}"""
+        r = code_json.extract("apps/web/package.json", src)
+        assert any(n.uid == "npm:package:web" for n in r.nodes)
+        dep_targets = {e.target_uid for e in r.edges if e.edge_type == "imports"}
+        assert "npm:package:react" in dep_targets
+        assert "npm:package:next" in dep_targets
+        assert "npm:package:vitest" in dep_targets
+        script_labels = {n.label for n in r.nodes if n.kind == "tool"}
+        assert {"npm:build", "npm:dev"} <= script_labels
+        assert len(r.parse_errors) == 0
+
+    def test_tsconfig_extends_and_paths(self):
+        src = """{
+  // line comment OK
+  \"extends\": \"./base.json\",
+  \"compilerOptions\": {\n    \"paths\": { \"@app/*\": [\"src/*\"] }
+  },
+}"""
+        r = code_json.extract("apps/web/tsconfig.json", src)
+        assert any("base.json" in e.target_uid for e in r.edges if e.edge_type == "imports")
+        assert any(n.label == "@app/*" for n in r.nodes if n.kind == "contract")
+        assert len(r.parse_errors) == 0
+
+    def test_mcp_json_servers(self):
+        src = """{ "mcpServers": { "coding-os": { "command": "cos" }, "other": {} } }"""
+        r = code_json.extract(".mcp.json", src)
+        srv_uids = {n.uid for n in r.nodes if n.uid.startswith("mcp:server:")}
+        assert srv_uids == {"mcp:server:coding-os", "mcp:server:other"}
+
+    def test_settings_json_hook_events(self):
+        src = """{ "hooks": { "PreToolUse": [], "SessionStart": [] } }"""
+        r = code_json.extract(".claude/settings.json", src)
+        events = {n.label for n in r.nodes if n.kind == "event"}
+        assert events == {"PreToolUse", "SessionStart"}
+
+    def test_malformed_json_falls_back_to_file_node(self):
+        r = code_json.extract("broken.json", "{not json}")
+        assert any(p.kind == "json_decode" for p in r.parse_errors)
+        assert any(n.uid == "code:file:broken.json" for n in r.nodes)
+
+
+# ---------------------------------------------------------------------------
+# TOML extractor
+# ---------------------------------------------------------------------------
+
+
+class TestTomlExtractor:
+    def test_pyproject_project_and_deps(self):
+        src = """[project]
+name = "coding-os"
+dependencies = ["click>=8.0", "pyyaml", "anthropic[bedrock]"]
+
+[project.scripts]
+cos = "cli.main:cli"
+"""
+        r = code_toml.extract("pyproject.toml", src)
+        assert any(n.uid == "pypi:package:coding-os" for n in r.nodes)
+        dep_targets = {e.target_uid for e in r.edges if e.edge_type == "imports"}
+        assert "pypi:package:click" in dep_targets
+        assert "pypi:package:pyyaml" in dep_targets
+        assert "pypi:package:anthropic" in dep_targets
+        assert any(n.label == "cos" for n in r.nodes if n.kind == "tool")
+        assert len(r.parse_errors) == 0
+
+    def test_cargo_package_and_deps(self):
+        src = """[package]
+name = "agent"
+version = "0.1"
+
+[dependencies]
+tokio = "1"
+serde = { version = "1", features = ["derive"] }
+
+[workspace]
+members = ["crates/core", "crates/util"]
+"""
+        r = code_toml.extract("Cargo.toml", src)
+        assert any(n.uid == "crates:package:agent" for n in r.nodes)
+        dep_targets = {e.target_uid for e in r.edges if e.edge_type == "imports"}
+        assert "crates:package:tokio" in dep_targets
+        assert "crates:package:serde" in dep_targets
+        workspace_targets = {e.target_uid for e in r.edges if e.target_uid.startswith("folder:crates")}
+        assert "folder:crates/core" in workspace_targets
+        assert "folder:crates/util" in workspace_targets
+
+    def test_malformed_toml_falls_back(self):
+        r = code_toml.extract("broken.toml", "this is not [valid")
+        assert any(p.kind == "toml_decode" for p in r.parse_errors)
+        assert any(n.uid == "code:file:broken.toml" for n in r.nodes)

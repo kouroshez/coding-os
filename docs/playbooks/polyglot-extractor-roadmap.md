@@ -184,15 +184,12 @@ changes.**
 |---|---|---|
 | P1 Parser | PyYAML ✅ | unchanged |
 | P2 UID | document/key-path based ✅ | unchanged |
-| P3 Resolution | n/a | + `$ref` JSON Schema, + `extends` Compose / GitHub Actions |
-| P4 Contracts | hook registry parsing ✅ | + GH Actions workflow inputs/outputs, Compose services |
+| P3 Resolution | n/a | n/a |
+| P4 Contracts | hook registry parsing ✅ | unchanged |
 | P5 Edges | tolerant | OK |
 | P6 Perf | OK | OK |
 | P7 Determinism | OK | OK |
 | P8 Tests | minimal | golden per: mapping, sequence, anchor, alias, multi-document |
-
-**Workstream YAML-1:** `$ref` + `extends` cross-doc resolution (2h)
-**Workstream YAML-2:** GH Actions reusable-workflow extractor (2h)
 
 ### 4.6 JSON — NEW EXTRACTOR
 
@@ -233,12 +230,6 @@ Targets: `pyproject.toml`, `Cargo.toml`, `*.toml` configs.
 **Workstream TOML-2:** workspace member resolution (2h)
 **Workstream TOML-3:** fixtures (1h)
 
-### 4.8 Rust / Java / Kotlin / Ruby / PHP — DEFERRED
-
-Out of repo scope. Add when the meta-project ships a stack template for the
-language (e.g. `templates/rust-axum/`) and there is a real consumer to validate
-against. Premature implementation = untested code in `core/`.
-
 ## 5. Implementation checklist (grouped, ordered)
 
 ### Epic A — Fix the broken (highest immediate value)
@@ -269,44 +260,17 @@ against. Premature implementation = untested code in `core/`.
 
 ### Epic C — Upgrade the working (close to world-class)
 
-- [ ] **C1 Go → tree-sitter-go** [9h]
-  - [ ] C1.1 Add `tree-sitter-go` to `pyproject.toml` extras
-  - [ ] C1.2 Extend `tree_sitter_overlay._LOADERS["go"]`
-  - [ ] C1.3 Rewrite `code_go.py` on ts-go AST
-  - [ ] C1.4 Workspace + replace-directive in `toolchain.py`
-  - [ ] C1.5 chi / fiber / gRPC / cobra contracts
-  - [ ] C1.6 Golden fixtures (7 kinds, 5 edges)
-
-- [ ] **C2 TS monorepo + framework contracts** [8h]
-  - [ ] C2.1 Workspace `package.json` resolver
-  - [ ] C2.2 tRPC + NestJS + RSC contracts
-  - [ ] C2.3 Golden fixtures expanded
-
-- [ ] **C3 YAML cross-doc** [4h]
-  - [ ] C3.1 `$ref` + `extends` cross-doc edges
-  - [ ] C3.2 GH Actions reusable workflows
-
-### Epic D — Long-tail languages (deferred)
-
-- [ ] D1 Rust — when `templates/rust-axum/` ships
-- [ ] D2 Java/Kotlin — when JVM template ships
-- [ ] D3 Ruby/PHP — opportunistic
+- [ ] **C1 Go → tree-sitter-go** [9h] — only when a Go consumer template ships
+  - [ ] C1.1 Rewrite `code_go.py` on ts-go AST (grammar already wired in `tree_sitter_overlay`)
+  - [ ] C1.2 Workspace + replace-directive in `toolchain.py`
+  - [ ] C1.3 chi / fiber / gRPC / cobra contracts
+  - [ ] C1.4 Golden fixtures (7 kinds, 5 edges)
 
 ### Epic E — Cross-cutting infrastructure
 
 - [ ] **E1 Performance budget** [4h]
   - [ ] E1.1 Per-extractor timing in `file_index_state` (new column `duration_ms`)
-  - [ ] E1.2 CI gate: median <100ms typical, p95 <500ms
-  - [ ] E1.3 Hub panel pie chart by extractor cost
-
-- [ ] **E2 Determinism gate** [3h]
-  - [ ] E2.1 Re-run reindex twice in CI, diff `graph_nodes` + `graph_edges_v12`
-  - [ ] E2.2 Sort hash-set iterations before emit
-
-- [ ] **E3 Test scaffolding** [4h]
-  - [ ] E3.1 `core/graph_os/tests/fixtures/<lang>/` directory pattern
-  - [ ] E3.2 `test_extractor_golden.py` per language
-  - [ ] E3.3 Snapshot update CLI (`python scripts/update_golden.py`)
+  - [ ] E1.2 Hub panel pie chart by extractor cost
 
 ## 6. Edge-case catalog (the "" the user asked about)
 
@@ -361,44 +325,18 @@ A regression below these caps in CI blocks the PR.
 |---|---|---|
 | Any extractor change | `uv run --extra graph_os pytest core/graph_os/tests/ -q` | green |
 | Shell migration | `cos graph-reindex --force --path core/hooks` then `cos db-stats` | code_shell parse_errors_count = 0 in `file_index_state` |
-| Determinism | `cos graph-reindex --force` twice, diff node uids + counts | diff = 0 |
 | Performance | `cos graph-reindex --force --path <large-dir>` with timer | median below budget |
 | Polyglot smoke | `cos graph-reindex --force` on this repo | nodes > 31k, edges > 64k, errors = 0 |
 
-## 9. Rollout order rationale
+## 9. Status snapshot (post 9bee865 + cleanup)
 
-Why this sequence?
-
-1. **Epic A (Shell)** first — repairs immediate damage (209 errors), proves the
-   tree-sitter migration pattern that Epic C-Go will reuse. Small enough to land
-   in one focused session.
-2. **Epic B (JSON/TOML)** before Epic C — new extractors are mechanical and
-   high-value (configs become first-class graph citizens). Reviewing them
-   exercises the extractor contract before we touch a complex one.
-3. **Epic C (Go upgrade)** — bigger lift; touches `toolchain.py`. Land after the
-   pattern is proven.
-4. **Epic D (Rust/Java)** — deferred until a real consumer template lands.
-5. **Epic E** — infrastructure work that benefits all extractors; doable in
-   parallel once the first migration is green.
-
-## 10. Tracked tasks (created with this doc)
-
-Each workstream above gets a TASK on the board so they survive context loss:
-
-| Task | Workstream | Estimate | Status |
-|---|---|---|---|
-| TASK-A1 | Shell → ts-bash | 3h | THIS SESSION |
-| TASK-B1 | JSON extractor | 6h | next session |
-| TASK-B2 | TOML extractor | 6h | next session |
-| TASK-C1 | Go → ts-go | 9h | sprint 2 |
-| TASK-C2 | TS monorepo + frameworks | 8h | sprint 2 |
-| TASK-C3 | YAML cross-doc | 4h | sprint 2 |
-| TASK-E1 | Performance budget + CI gate | 4h | sprint 3 |
-| TASK-E2 | Determinism gate | 3h | sprint 3 |
-| TASK-E3 | Test scaffolding | 4h | sprint 3 |
-
-Total committed roadmap (excluding deferred Epic D): ~47 hours focused work, ~3
-sprints.
+| Workstream | Status | Notes |
+|---|---|---|
+| A1 Shell → ts-bash | shipped | 87% error reduction on real repo |
+| B1 JSON extractor | shipped | 19 files, 138 nodes, 0 errors |
+| B2 TOML extractor | shipped | pyproject + Cargo handled |
+| C1 Go → ts-go | open | grammar wired; rewrite waits on Go consumer |
+| E1 Performance telemetry | open | duration_ms column landing alongside this cleanup |
 
 ## See also
 

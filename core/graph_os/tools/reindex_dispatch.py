@@ -193,6 +193,7 @@ def dispatch(
             # connection isn't covered). Retry a few times with
             # exponential backoff so the dispatcher doesn't drop
             # writes the application would otherwise lose.
+            graph_started = time.monotonic()
             for attempt in range(3):
                 try:
                     graph_result = _reindex_graph(
@@ -209,6 +210,7 @@ def dispatch(
                     if not _is_retryable_lock_error(exc):
                         break
                     time.sleep(0.05 * (2 ** attempt))
+            graph_duration_ms = int((time.monotonic() - graph_started) * 1000)
             if last_error is not None:
                 logger.debug(
                     "graph reindex failed for %s after retries: %s",
@@ -220,6 +222,7 @@ def dispatch(
                 }
             elif graph_result is not None:
                 graph_result["chain"] = graph_chain[0]
+                graph_result["duration_ms"] = graph_duration_ms
                 result["layers"]["graph"] = graph_result
                 if content_hash is not None:
                     _record_state_safe(
@@ -235,6 +238,7 @@ def dispatch(
                         project_root=project_root,
                         db_path=db_path,
                         advance_hash=graph_result.get("status") == "ok",
+                        duration_ms=graph_duration_ms,
                     )
 
             if last_error is not None and content_hash is not None:
@@ -364,6 +368,7 @@ def _record_state_safe(
     project_root: Path,
     db_path: str | None,
     advance_hash: bool,
+    duration_ms: int | None = None,
 ) -> None:
     """Upsert file_index_state; on failure keep previous hash (retry on next call).
 
@@ -391,8 +396,9 @@ def _record_state_safe(
         conn.execute(
             "INSERT OR REPLACE INTO file_index_state "
             "(file_path, content_hash, extractor_chain, nodes_written, "
-            " edges_written, parse_errors_count, last_indexed_at, last_error) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            " edges_written, parse_errors_count, last_indexed_at, last_error, "
+            " duration_ms) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 rel_path,
                 effective_hash,
@@ -402,6 +408,7 @@ def _record_state_safe(
                 int(parse_errors_count),
                 int(time.time()),
                 last_error,
+                int(duration_ms) if duration_ms is not None else None,
             ),
         )
         conn.commit()

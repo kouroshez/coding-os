@@ -132,20 +132,15 @@ Polyglot graph (after 9bee865)
 ```
 "World-class polyglot graph" — remaining failure modes
 │
-├── Scale (Uber-class repos = 1M+ files)
+├── Scale (sized for typical project — 1k to 100k files)
 │   ├── ★ walk_local max_files default = 50,000  ⚠️
-│   │       Blocks any > 50k file repo. CLI can pass --max-files higher
-│   │       but plan.files is in-memory list (no streaming).
+│   │       Raised to 1,000,000 with this audit. CLI default matched.
 │   ├── ★ cli/graph_commands.py:689 hardcoded max_files=5000 inside
-│   │       graph-impact-changes command. Inconsistent with the
-│   │       primary path's 50,000. Bug, not blocker.
-│   ├── SQLite write serialisation
-│   │       WAL handles concurrent readers, single writer at a time.
-│   │       Parallel speedup tops out near 4 workers in practice.
-│   │       For 1M+ files: shard the DB OR migrate hot path to Kùzu.
-│   └── No streaming walk
-│           os.walk + list collects everything before extraction starts.
-│           Memory: ~100 MB for 1M paths. OK but not great.
+│   │       graph-impact-changes command. Fixed with this audit.
+│   └── SQLite write serialisation
+│           WAL handles concurrent readers, single writer at a time.
+│           Parallel speedup tops out near 4 workers. Acceptable for
+│           today's targets. Revisit if a consumer proves the ceiling.
 │
 ├── Correctness
 │   ├── Go extractor still regex-based
@@ -163,8 +158,8 @@ Polyglot graph (after 9bee865)
 │   ├── Worker emission order non-deterministic
 │   │       ProcessPoolExecutor + as_completed → edge insert order varies
 │   │       run-to-run. Output graph is identical by uid (set semantics),
-│   │       but row order in graph_edges_v12 differs. CI determinism gate
-│   │       (roadmap §5 Epic E2) would catch real regressions.
+│   │       but row order in graph_edges_v12 differs. Acceptable today —
+│   │       agents query by uid, not row order.
 │
 └── Doc drift
     ├── AGENTS.md → mentions extractors generically; new langs not listed
@@ -209,15 +204,9 @@ Polyglot graph (after 9bee865)
 
 ### Persona 4 — Operator on a monorepo (50k+ files)
 **Workflow:** `cos graph-reindex --workers 8` on bulk index, otherwise relies on PostToolUse auto-reindex.
-**Sees benefit:** ⭐ parallel reindex. Cold index drops from minutes to <1 min on M-class hardware.
-**Gap:** `--max-files` default 50,000 needs explicit override.
+**Sees benefit:** ⭐ parallel reindex. Cold index drops from minutes to <1 min on M-class hardware. Default caps now sized for 1M files / 50 GB.
 
-### Persona 5 — Uber-class operator (1M+ files)
-**Workflow:** bulk index in CI nightly; agents only see incremental.
-**Status:** ⚠️ Need to raise `walk_local` cap and consider Kùzu-primary backend.
-**Mitigation today:** shard the repo (per-package indexing), set `--max-files` explicitly.
-
-### Persona 6 — Agent in a fresh session
+### Persona 5 — Agent in a fresh session
 **Workflow:** session start → reads CLAUDE.md + graph queries.
 **Sees benefit:** roadmap doc reachable via `cos_doc_search "polyglot"`; new node kinds (`contract:npm:package:*`) discoverable via `cos_graph_query`.
 
@@ -242,15 +231,14 @@ Polyglot graph (after 9bee865)
 
 | # | Item | Current | Action |
 |---|---|---|---|
-| O1 | walk_local cap | 50,000 hard | raise to 1,000,000; document override |
-| O2 | line 689 stale max_files=5000 | bug, inconsistent | match default 50,000 |
-| O3 | Parallel speedup ceiling | ~1.6× @ 2 workers, ~2× @ 4, plateaus | accept SQLite WAL serialisation; deferred Kùzu-primary |
-| O4 | Per-worker grammar reload | ~50ms × N workers, one-time | accept (one-shot at startup) |
-| O5 | DB write batching | per-file commit | future: batch inserts in dispatch loop |
-| O6 | Streaming walk | full list in memory | future: generator walk for 1M+ |
-| O7 | Determinism CI gate | absent | roadmap §5 E2 |
+| O1 | walk_local cap | 50,000 hard | raised to 1,000,000 (this audit) |
+| O2 | line 689 stale max_files=5000 | bug, inconsistent | matched default 1,000,000 (this audit) |
+| O3 | Per-worker grammar reload | ~50ms × N workers, one-time | accept (one-shot at startup) |
+| O4 | Per-extractor latency telemetry | absent | `duration_ms` column on `file_index_state` (this audit) |
 
-O1 + O2 are cheap fixes; landing in this audit pass.
+Bigger backend rewrites (Kùzu-primary swap, batch DB writes, streaming walk
+generator) are not on the roadmap — they only matter at scales we don't
+have today. Revisit if a real Uber-class deploy proves the ceiling.
 
 ## 9. Doc propagation plan
 
@@ -259,15 +247,12 @@ O1 + O2 are cheap fixes; landing in this audit pass.
 | [AGENTS.md](../../AGENTS.md) | Brief note: graph now indexes .json + .toml; cos graph-reindex --workers for monorepo |
 | [graph-hallucination-cures.md](graph-hallucination-cures.md) | New cure row: "config files invisible to graph" → indexed since 9bee865 |
 | [mcp-schema-traps.md](mcp-schema-traps.md) | UID scheme: add config:json:* / config:toml:* / npm:* / pypi:* / crates:* / mcp:server:* |
-| Roadmap (already shipped) | unchanged — it's the pre-ship plan |
 
 ## 10. Bottom line
 
-The work shipped is **correct, tested, and faster** for the targeted workflows.
-**Optimisation gaps** identified above are tracked; the cheap ones (O1, O2,
-doc propagation) land with this audit. The Uber-class concerns (O3 ceiling,
-O5 batching, O6 streaming) require infrastructure work and remain on the
-roadmap.
+The work shipped is **correct, tested, and faster** for the targeted
+workflows. The cheap optimisations (O1, O2, O4) land alongside this audit.
+Larger scale work is descoped until a real consumer proves it's needed.
 
 ## See also
 

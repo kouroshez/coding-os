@@ -1296,6 +1296,17 @@ def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v28_file_index_duration(conn: sqlite3.Connection) -> None:
+    """Migration v28 — per-extractor timing on file_index_state."""
+    if not _table_exists(conn, "file_index_state"):
+        logger.info("Migration v28 skipped: file_index_state not present yet")
+        return
+    if not _column_exists_table(conn, "file_index_state", "duration_ms"):
+        conn.execute("ALTER TABLE file_index_state ADD COLUMN duration_ms INTEGER")
+    conn.commit()
+    logger.info("Migration v28 applied: file_index_state gained duration_ms")
+
+
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     row = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
@@ -1580,6 +1591,8 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     # model (claude-opus-4-7 / claude-sonnet-4-6), checkpoints_jsonb (T9.2).
     (27, "Phase Q.deep v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
      _migrate_v27_dispatch_sdk_columns),
+    (28, "Polyglot v28: file_index_state.duration_ms for per-extractor latency telemetry",
+     _migrate_v28_file_index_duration),
 ]
 
 
