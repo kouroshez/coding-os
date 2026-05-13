@@ -56,6 +56,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | 15 | "Show me the surrounding context before I edit." | Read 1 file at a time, lose the connections | `cos_graph_context(uid, depth=1)` | One subgraph vs. Read of N neighbours |
 | 16 | "Sketch this subsystem." | Mermaid by hand drifts from reality | `cos_graph_export(format="mermaid", root_uid=...)` | Always-fresh diagram, copy-pasteable |
 | 17 | "Is the graph itself healthy / why are answers stale?" | Backend selection / extractor breakage hides | `cos_graph_doctor()` — orphans, dangling edges, duplicates | One health snapshot vs. SQL spelunking |
+| 18 | "Where does this npm/pypi/crates dep come from?" | Config files (package.json / pyproject.toml / Cargo.toml / tsconfig.json / mcp.json / settings.json) were invisible to the graph before 9bee865 — agents had to read each file by hand | `cos_graph_query` now finds `npm:package:<n>`, `pypi:package:<n>`, `crates:package:<n>`, `mcp:server:<n>` directly; `cos_graph_references(uid)` traces back to the declaring config file | One graph hop vs. multi-file Read + manual JSON/TOML parse |
 
 ## Tool by intent
 

@@ -111,7 +111,19 @@ code:module:<dotted>                      core.thinking_os.server
 doc:file:<repo-relative-path>             docs/engineering/mcp-schema-traps.md
 doc:heading:<path>#<slug>:<level>         docs/engineering/mcp-schema-traps.md#uid-scheme:2
 folder:<repo-relative-path>               core/thinking_os/tools
+config:json:<path>#<json-pointer>         core/web/ui/tsconfig.json#/compilerOptions/paths/@app/*
+config:toml:<path>#<dotted-key>           pyproject.toml#/project/scripts/cos
+npm:package:<name>                        npm:package:react
+pypi:package:<name>                       pypi:package:click
+crates:package:<name>                     crates:package:tokio
+mcp:server:<name>                         mcp:server:coding-os
+cos:hook:<name>                           cos:hook:nudge-thinking-os
 ```
+
+The `config:*`, `npm:*`, `pypi:*`, `crates:*`, `mcp:*` kinds landed with the
+polyglot extractor upgrade (commit 9bee865) — agents querying for package
+dependencies or MCP server registrations can now hit those nodes directly
+rather than reading the source JSON/TOML.
 
 **Which tools auto-resolve raw paths:**
 - `cos_graph_context` (`uid_or_name`) — YES, full fuzzy fallback

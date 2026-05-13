@@ -45,10 +45,13 @@ def walk_local(
     alias: str | None = None,
     include: Iterable[str] = DEFAULT_INCLUDE,
     exclude: Iterable[str] = DEFAULT_EXCLUDE,
-    max_files: int = 50_000,
-    max_size_bytes: int = 500 * 1024 * 1024,
+    max_files: int = 1_000_000,
+    max_size_bytes: int = 50 * 1024 * 1024 * 1024,
 ) -> IngestPlan:
     """Walk a local folder → IngestPlan with guard rails.
+
+    Defaults sized for monorepo-scale repos (1M files, 50 GB). Callers
+    that want stricter caps should pass them explicitly.
 
     RAISES:       IngestError on caps exceeded.
     """

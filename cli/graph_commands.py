@@ -312,7 +312,7 @@ def register(cli: click.Group) -> None:
     @cli.command(name="graph-reindex")
     @click.option("--path", default=None, help="Directory to reindex (default: repo root).")
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
-    @click.option("--max-files", default=5000, type=int)
+    @click.option("--max-files", default=1_000_000, type=int, help="Cap on files walked (default 1M for monorepo-scale).")
     @click.option(
         "--workers", "-j",
         default=1, type=int,
@@ -686,7 +686,7 @@ def register(cli: click.Group) -> None:
         backend, _ = _open_backend()
         if path:
             target = Path(path).expanduser().resolve()
-            plan = walk_local(target, max_files=5000)
+            plan = walk_local(target)
             for file_path in plan.files:
                 dispatch(file_path, project_root=target, include_docs=True)
 

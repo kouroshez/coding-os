@@ -141,6 +141,8 @@ Routing decisions, freshness contract, contracts audit, and the rename workflow:
 
 The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
 
+**Polyglot extractor coverage (post-9bee865):** the graph now indexes `.py` `.ts` `.tsx` `.go` `.sh` `.yaml` `.yml` `.md` `.json` `.toml` — JSON and TOML configs (package.json deps, tsconfig paths, mcp.json servers, pyproject deps, Cargo workspaces) are first-class nodes. Shell extractor runs on tree-sitter-bash (no more false-positive function matches inside heredocs/comments). For monorepo-scale repos, `cos graph-reindex --workers N` parallelises across processes. Roadmap + edge-case catalog: [docs/playbooks/polyglot-extractor-roadmap.md](docs/playbooks/polyglot-extractor-roadmap.md) · post-ship audit: [docs/engineering/polyglot-extractor-audit-2026-05-12.md](docs/engineering/polyglot-extractor-audit-2026-05-12.md).
+
 ## Key Files
 
 | What | Where |
