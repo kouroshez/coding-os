@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Brain, KanbanSquare, LayoutDashboard, Network, Search, Settings } from 'lucide-react';
+import { Activity, Brain, HeartPulse, KanbanSquare, LayoutDashboard, Network, Search, Settings, Users } from 'lucide-react';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
@@ -28,8 +28,24 @@ const NAV = [
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'search', label: 'Search', Icon: Search, end: true },
   { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
+  { feature: 'observability', label: 'Observability', Icon: Activity, end: true },
+  { feature: 'sessions', label: 'Sessions', Icon: Users, end: true },
+  { feature: 'doctor', label: 'Doctor', Icon: HeartPulse, end: true },
   { feature: 'settings', label: 'Settings', Icon: Settings, end: true },
 ] as const;
+
+/**
+ * Features that ALWAYS link to the global /<feature> URL regardless
+ * of current project scope.  Only Settings qualifies today — its
+ * data is hub-wide (paths, budget caps, trace rotation) and has no
+ * per-project meaning.
+ *
+ * Doctor / Sessions / Observability all expose hub-wide data BUT
+ * their URLs follow project scope (linkFor) so users keep their
+ * project context across nav.  Both /<feature> and /p/:slug/<feature>
+ * routes render the same components.
+ */
+const HUB_LEVEL_FEATURES = new Set(['settings']);
 
 const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(?:\/|$)/;
 
@@ -72,7 +88,7 @@ export default function AppShell({
           {NAV.map(({ feature, label, Icon, end }) => (
             <NavLink
               key={feature}
-              to={feature === 'settings' ? '/settings' : linkFor(feature)}
+              to={HUB_LEVEL_FEATURES.has(feature) ? `/${feature}` : linkFor(feature)}
               end={end}
               className={({ isActive }) =>
                 [

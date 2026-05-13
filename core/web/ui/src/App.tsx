@@ -21,11 +21,21 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<HubHome />} />
           {/*
-            Project-scoped features REQUIRE a /p/<slug>/ prefix. The
-            slug-less routes below redirect to the Hub home (project
-            picker) so users must explicitly select a project before
-            opening any feature panel. Settings is global and stays
-            unguarded.
+            Hub-level features — always reachable without a project
+            slug.  Their data is global to the hub itself (server
+            health, agent presence across all projects, hook event
+            stream, hub config).  Per-project deep-links to the same
+            pages are still available under /p/<slug>/ for convenience.
+          */}
+          <Route path="/doctor" element={<DoctorPage />} />
+          <Route path="/sessions" element={<SessionsPage />} />
+          <Route path="/observability" element={<ObservabilityPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          {/*
+            Project-scoped features REQUIRE a /p/<slug>/ prefix.  The
+            slug-less variants redirect to the Hub home (project
+            picker) so users explicitly select a project before
+            opening any project-specific panel.
           */}
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/board" element={<Navigate to="/" replace />} />
@@ -34,12 +44,8 @@ export default function App() {
           <Route path="/cognition" element={<Navigate to="/" replace />} />
           <Route path="/cognition/:sessionId" element={<Navigate to="/" replace />} />
           <Route path="/search" element={<Navigate to="/" replace />} />
-          <Route path="/observability" element={<Navigate to="/" replace />} />
-          <Route path="/sessions" element={<Navigate to="/" replace />} />
-          <Route path="/doctor" element={<Navigate to="/" replace />} />
           {/* Legacy redirect kept for old bookmarks pointing to /roles. */}
           <Route path="/roles" element={<Navigate to="/" replace />} />
-          <Route path="/settings" element={<SettingsPage />} />
           {/*
             Per-project deep links.  The backend middleware rewrites
             /api/p/<slug>/... → /api/... and scopes the project for the
