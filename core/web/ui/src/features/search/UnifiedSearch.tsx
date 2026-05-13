@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 import { useGraphStore } from '@/store/graph-store';
@@ -97,8 +97,14 @@ export default function UnifiedSearch() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const setSelectedNode = useGraphStore((s) => s.setSelectedNode);
   const setRoot = useGraphStore((s) => s.setRoot);
+  // Feature panels live under /p/<slug>/<feature>. Honour the current
+  // slug when navigating from search results so we never bounce back to
+  // the Hub project picker.
+  const slugMatch = /^\/p\/([^/]+)/.exec(location.pathname);
+  const slugPrefix = slugMatch ? `/p/${slugMatch[1]}` : '';
 
   // Global "/" shortcut to focus the input. Skip when the user is
   // typing in another field so the slash key still works in inputs.
@@ -164,10 +170,10 @@ export default function UnifiedSearch() {
   const openGraph = (uid: string) => {
     setRoot(uid);
     setSelectedNode(uid);
-    navigate(`/graph/${encodeURIComponent(uid)}`);
+    navigate(`${slugPrefix}/graph/${encodeURIComponent(uid)}`);
   };
   const openTask = (taskId: string) => {
-    navigate(`/board?task=${encodeURIComponent(taskId)}`);
+    navigate(`${slugPrefix}/board?task=${encodeURIComponent(taskId)}`);
   };
 
   return (

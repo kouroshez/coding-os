@@ -9,6 +9,9 @@ import SearchPage from './pages/SearchPage';
 import HubHome from './pages/HubHome';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
+import ObservabilityPage from './pages/ObservabilityPage';
+import SessionsPage from './pages/SessionsPage';
+import DoctorPage from './pages/DoctorPage';
 
 export default function App() {
   return (
@@ -17,19 +20,25 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<HubHome />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/board" element={<CosBoardPage />} />
-          <Route path="/graph" element={<GraphPage />} />
-          <Route path="/graph/:rootUid" element={<GraphPage />} />
-          <Route path="/cognition" element={<CognitionPage />} />
-          <Route path="/cognition/:sessionId" element={<CognitionPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          {/* Legacy top-level routes — fold into Cognition tabs.  Old
-              bookmarks + LiveStatus quick-links land here and the URL
-              is normalised silently so the new tab layout is the only
-              surface area. */}
-          <Route path="/observability" element={<Navigate to="/cognition?view=live" replace />} />
-          <Route path="/roles" element={<Navigate to="/cognition?view=roles" replace />} />
+          {/*
+            Project-scoped features REQUIRE a /p/<slug>/ prefix. The
+            slug-less routes below redirect to the Hub home (project
+            picker) so users must explicitly select a project before
+            opening any feature panel. Settings is global and stays
+            unguarded.
+          */}
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="/board" element={<Navigate to="/" replace />} />
+          <Route path="/graph" element={<Navigate to="/" replace />} />
+          <Route path="/graph/:rootUid" element={<Navigate to="/" replace />} />
+          <Route path="/cognition" element={<Navigate to="/" replace />} />
+          <Route path="/cognition/:sessionId" element={<Navigate to="/" replace />} />
+          <Route path="/search" element={<Navigate to="/" replace />} />
+          <Route path="/observability" element={<Navigate to="/" replace />} />
+          <Route path="/sessions" element={<Navigate to="/" replace />} />
+          <Route path="/doctor" element={<Navigate to="/" replace />} />
+          {/* Legacy redirect kept for old bookmarks pointing to /roles. */}
+          <Route path="/roles" element={<Navigate to="/" replace />} />
           <Route path="/settings" element={<SettingsPage />} />
           {/*
             Per-project deep links.  The backend middleware rewrites
@@ -47,6 +56,9 @@ export default function App() {
           <Route path="/p/:slug/search" element={<SearchPage />} />
           <Route path="/p/:slug/cognition" element={<CognitionPage />} />
           <Route path="/p/:slug/cognition/:sessionId" element={<CognitionPage />} />
+          <Route path="/p/:slug/observability" element={<ObservabilityPage />} />
+          <Route path="/p/:slug/sessions" element={<SessionsPage />} />
+          <Route path="/p/:slug/doctor" element={<DoctorPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
