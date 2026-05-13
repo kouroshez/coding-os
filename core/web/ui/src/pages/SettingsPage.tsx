@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPatch } from '@/lib/api-client';
 
@@ -180,20 +181,19 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-auto p-8 cos-scroll">
-      <header className="mb-6">
-        <h1
-          className="text-2xl font-semibold text-[var(--accent)]"
-          style={{ fontFamily: "'Permanent Marker', cursive" }}
-        >
-          Settings
-        </h1>
-        <p className="mt-1 text-xs text-[var(--cos-muted)]">
-          Hub-level configuration. Values stored in{' '}
-          <code>.coding-os/hub-settings.json</code>. Env vars take precedence
-          when set.
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        eyebrow={<StatusPill label="settings · hub config" dotColor="bg-violet-400" />}
+        title="Settings"
+        subtitle={
+          <>
+            Hub-level configuration. Values stored in{' '}
+            <code className="rounded bg-[var(--cos-panel)] px-1 py-0.5 text-[11px]">
+              .coding-os/hub-settings.json
+            </code>. Env vars take precedence when set.
+          </>
+        }
+      />
 
       {saveNote && (
         <div className="mb-4 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
@@ -335,6 +335,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

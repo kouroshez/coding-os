@@ -99,29 +99,35 @@ export default function CognitionPage() {
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-1 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-1.5">
-      {VIEW_ORDER.map((v) => {
-        const { Icon, label } = VIEW_LABELS[v];
-        const active = view === v;
-        return (
-          <button
-            key={v}
-            type="button"
-            onClick={() => onChange(v)}
-            aria-pressed={active}
-            className={[
-              'flex items-center gap-1 rounded px-3 py-1 text-xs font-semibold transition-colors',
-              active
-                ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]'
-                : 'text-[var(--cos-muted)] hover:bg-[var(--cos-grain)] hover:text-[var(--cos-text)]',
-            ].join(' ')}
-          >
-            <Icon size={13} aria-hidden />
-            {label}
-          </button>
-        );
-      })}
-      <span className="ml-auto text-[10px] text-[var(--cos-muted)]">{VIEW_LABELS[view].hint}</span>
+    <div className="flex shrink-0 items-center gap-2 border-b border-[var(--cos-border)] bg-[var(--cos-bg)] px-4 py-2">
+      <span className="mr-2 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--cos-muted)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 shadow-[0_0_8px] shadow-fuchsia-400/60" />
+        cognition
+      </span>
+      <div className="flex flex-wrap gap-1 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 p-0.5 backdrop-blur">
+        {VIEW_ORDER.map((v) => {
+          const { Icon, label } = VIEW_LABELS[v];
+          const active = view === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange(v)}
+              aria-pressed={active}
+              className={[
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all',
+                active
+                  ? 'bg-[var(--accent)] text-[var(--cos-bg)] shadow shadow-[var(--accent)]/30'
+                  : 'text-[var(--cos-muted)] hover:bg-[var(--cos-panel)] hover:text-[var(--cos-text)]',
+              ].join(' ')}
+            >
+              <Icon size={13} aria-hidden />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <span className="ml-auto text-[10px] italic text-[var(--cos-muted)]">{VIEW_LABELS[view].hint}</span>
     </div>
   );
 }
