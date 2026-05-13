@@ -34,14 +34,15 @@ class TestShellExtractor:
         imports = [e for e in r.edges if e.edge_type == "imports"]
         assert any("cos-env.sh" in e.target_uid for e in imports)
 
-    def test_source_dynamic_path_logged(self):
+    def test_dirname_self_resolves_to_script_dir(self):
+        # The very common `$(dirname "$0")/X` idiom resolves to a concrete
+        # uid relative to the script's own directory (code_shell@v2).
         r = code_shell.extract(
             "core/hooks/x.sh",
             'source "$(dirname "$0")/cos-env.sh"\n',
         )
-        # Dynamic — no literal edge, but a `dynamic` parse_error must
-        # be surfaced so operators can audit missing coverage.
-        assert any(p.kind == "dynamic" or p.kind == "dynamic_shell" for p in r.parse_errors)
+        imports = [e for e in r.edges if e.edge_type == "imports"]
+        assert any("cos-env.sh" in e.target_uid for e in imports)
 
     def test_dot_include_edge(self):
         r = code_shell.extract("core/hooks/x.sh", '. ./utils.sh\n')

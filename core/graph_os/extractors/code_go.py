@@ -1,7 +1,9 @@
-"""graph_os — Go source file extractor (Wave 1 A3).
+"""graph_os — Go source file extractor.
 
-DEPENDS:  stdlib regex only — no go AST library to keep the dep
-          surface tight.
+Regex-based today; tree-sitter-go grammar is available and wired into
+``tree_sitter_overlay._LOADERS["go"]`` but the AST-driven rewrite is
+deferred per docs/playbooks/polyglot-extractor-roadmap.md §4.3 (Epic C1)
+until a real Go consumer template ships and we have golden fixtures.
 """
 
 from __future__ import annotations
@@ -16,6 +18,16 @@ from .md_links import (
     ExtractionResult,
     _normalize_path,
 )
+
+try:
+    from .. import tree_sitter_overlay as _ts_overlay
+    _GO_TS_AVAILABLE = (
+        _ts_overlay.is_available()
+        and _ts_overlay._load_language("go") is not None
+    )
+except ImportError:
+    _ts_overlay = None  # type: ignore[assignment]
+    _GO_TS_AVAILABLE = False
 
 logger = logging.getLogger("graph_os.extractors.code_go")
 EXTRACTOR_ID = "code_go@v1"

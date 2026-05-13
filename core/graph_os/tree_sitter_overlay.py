@@ -94,12 +94,19 @@ def _load_yaml() -> Any:
     return m.language()
 
 
+def _load_go() -> Any:
+    import tree_sitter_go as m  # noqa: WPS433
+
+    return m.language()
+
+
 _LOADERS: dict[str, Callable[[], Any]] = {
     "python": _load_python,
     "typescript": _load_typescript,
     "tsx": _load_tsx,
     "bash": _load_bash,
     "yaml": _load_yaml,
+    "go": _load_go,
 }
 
 

@@ -35,7 +35,7 @@ class IngestPlan:
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_INCLUDE = ("*.py", "*.ts", "*.tsx", "*.md", "*.sh", "*.yaml", "*.yml", "*.go")
+DEFAULT_INCLUDE = ("*.py", "*.ts", "*.tsx", "*.md", "*.sh", "*.yaml", "*.yml", "*.go", "*.json", "*.toml")
 DEFAULT_EXCLUDE = (".git", "node_modules", ".venv", "__pycache__", "dist", "build", ".build", ".coding-os", ".claude", ".codex", ".cursor", ".agents", ".pytest_cache", ".mypy_cache", ".ruff_cache")
 
 

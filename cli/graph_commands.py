@@ -80,6 +80,32 @@ def _open_backend():
 
 
 # ---------------------------------------------------------------------------
+# Parallel reindex worker — must be module-level so ProcessPoolExecutor
+# can pickle it. Each worker re-imports graph_os.tools.reindex_dispatch
+# inside its own process; init_db() inside dispatch() opens a fresh
+# SQLite WAL connection. The dispatcher's busy-retry loop handles
+# concurrent writers without the CLI having to coordinate.
+# ---------------------------------------------------------------------------
+
+
+def _parallel_dispatch(
+    file_path: str,
+    project_root: str,
+    include_docs: bool,
+    force: bool,
+) -> dict:
+    _bootstrap_paths()
+    from graph_os.tools.reindex_dispatch import dispatch  # type: ignore
+
+    return dispatch(
+        file_path,
+        project_root=project_root,
+        include_docs=include_docs,
+        force=force,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Query / context / impact / etc.
 # ---------------------------------------------------------------------------
 
@@ -288,6 +314,13 @@ def register(cli: click.Group) -> None:
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
     @click.option("--max-files", default=5000, type=int)
     @click.option(
+        "--workers", "-j",
+        default=1, type=int,
+        help="Parallel worker processes (default 1 = sequential). For "
+        "large monorepos, set to CPU count (e.g. -j 8). SQLite WAL + "
+        "the dispatcher's lock-retry loop handle concurrent writes.",
+    )
+    @click.option(
         "--force", "-f",
         is_flag=True,
         help="V1: bypass the file_index_state cache; reindex even "
@@ -319,7 +352,7 @@ def register(cli: click.Group) -> None:
             "Sets COS_EXTRACTOR_PREFERENCE for downstream extractors."
         ),
     )
-    def graph_reindex(path, no_docs, max_files, force, status, rebuild_kinds, extractor):
+    def graph_reindex(path, no_docs, max_files, workers, force, status, rebuild_kinds, extractor):
         """Walk a directory and rebuild the graph via the dispatcher."""
         _bootstrap_paths()
         # TASK-122: publish the chosen ladder via env so every spawned
@@ -385,26 +418,59 @@ def register(cli: click.Group) -> None:
         )
         processed = skipped = errors = 0
         started = _time.monotonic()
-        for file_path in plan.files:
-            try:
-                report = dispatch(
-                    file_path,
-                    project_root=target,
-                    include_docs=not no_docs,
-                    force=force,
-                )
-                cache = report.get("cache")
-                if cache == "hit":
-                    skipped += 1
-                    click.echo(f"[graph-reindex]   · cache-hit {report['path']}")
-                elif report.get("status") == "ok":
-                    processed += 1
-                else:
-                    # skipped-no-layer etc. still counts as non-error
-                    processed += 1
-            except Exception as exc:  # noqa: BLE001
-                errors += 1
-                click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
+
+        def _record(report: dict) -> None:
+            nonlocal processed, skipped
+            cache = report.get("cache")
+            if cache == "hit":
+                skipped += 1
+            else:
+                processed += 1
+
+        if workers and workers > 1:
+            # ProcessPoolExecutor parallelism for monorepo-scale walks. Each
+            # worker opens its own SQLite connection via init_db() inside
+            # dispatch(); WAL mode + the dispatcher's busy-retry loop handle
+            # concurrent writers.
+            from concurrent.futures import ProcessPoolExecutor, as_completed
+
+            click.echo(f"[graph-reindex] parallel workers={workers}")
+            futures = {}
+            with ProcessPoolExecutor(max_workers=workers) as pool:
+                for file_path in plan.files:
+                    fut = pool.submit(
+                        _parallel_dispatch,
+                        str(file_path),
+                        str(target),
+                        not no_docs,
+                        force,
+                    )
+                    futures[fut] = file_path
+                for fut in as_completed(futures):
+                    file_path = futures[fut]
+                    try:
+                        report = fut.result()
+                        _record(report)
+                    except Exception as exc:  # noqa: BLE001
+                        errors += 1
+                        click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
+        else:
+            for file_path in plan.files:
+                try:
+                    report = dispatch(
+                        file_path,
+                        project_root=target,
+                        include_docs=not no_docs,
+                        force=force,
+                    )
+                    if report.get("cache") == "hit":
+                        skipped += 1
+                        click.echo(f"[graph-reindex]   · cache-hit {report['path']}")
+                    else:
+                        processed += 1
+                except Exception as exc:  # noqa: BLE001
+                    errors += 1
+                    click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
         duration = _time.monotonic() - started
         click.echo(
             f"[graph-reindex] processed={processed} skipped={skipped} "

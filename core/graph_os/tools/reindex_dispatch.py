@@ -24,6 +24,8 @@ _EXT_MAP = {
     ".yaml":("yaml",    ["code_yaml"]),
     ".yml": ("yaml",    ["code_yaml"]),
     ".go":  ("go",      ["code_go", "contracts"]),
+    ".json":("json",    ["code_json"]),
+    ".toml":("toml",    ["code_toml"]),
 }
 
 # Sentinel chain key stored on file_index_state for docs-only rows
@@ -470,8 +472,10 @@ def _reindex_graph(
     from graph_os.backends.sqlite_backend import SqliteBackend
     from graph_os.extractors import (  # type: ignore
         code_go,
+        code_json,
         code_python,
         code_shell,
+        code_toml,
         code_ts,
         code_yaml,
         contracts,
@@ -481,9 +485,11 @@ def _reindex_graph(
 
     extractor_map = {
         "code_go": code_go.extract,
+        "code_json": code_json.extract,
         "code_python": code_python.extract,
         "code_ts": code_ts.extract,
         "code_shell": code_shell.extract,
+        "code_toml": code_toml.extract,
         "code_yaml": code_yaml.extract,
         "contracts": contracts.extract,
         "md_links": md_links.extract,

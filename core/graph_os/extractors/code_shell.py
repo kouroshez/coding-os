@@ -1,6 +1,13 @@
-"""graph_os — shell script extractor (I.7).
+"""graph_os — shell script extractor.
 
-DEPENDS:  stdlib regex only.
+Tree-sitter-bash primary parser. Falls back to regex when tree-sitter is
+unavailable so the extractor keeps producing nodes/edges on lean installs.
+
+Migrated from regex-only per docs/playbooks/polyglot-extractor-roadmap.md
+(Epic A1). Same UIDs + edge types as before so the migration is a drop-in;
+the wins are (a) no false positives from comments/heredocs/strings and
+(b) parse_errors_count tied to real tree-sitter ERROR nodes, not the
+spurious "dynamic content present" hint that flagged 96% of shell files.
 """
 
 from __future__ import annotations
@@ -20,8 +27,23 @@ from .md_links import (
 )
 
 logger = logging.getLogger("graph_os.extractors.code_shell")
-EXTRACTOR_ID = "code_shell@v1"
+EXTRACTOR_ID = "code_shell@v2"
 
+# ---------------------------------------------------------------------------
+# Tree-sitter parse path
+# ---------------------------------------------------------------------------
+
+try:
+    from .. import tree_sitter_overlay as _ts_overlay
+    _TS_AVAILABLE = _ts_overlay.is_available()
+except ImportError:
+    _ts_overlay = None  # type: ignore[assignment]
+    _TS_AVAILABLE = False
+
+
+# ---------------------------------------------------------------------------
+# Regex fallback (only used when tree-sitter unavailable)
+# ---------------------------------------------------------------------------
 
 _COMMENT_RE = re.compile(r"(?<!\\)#[^\n]*")
 _SOURCE_RE = re.compile(
@@ -44,7 +66,11 @@ _FUNCTION_DEF_RE = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
-_DYNAMIC_HINT_RE = re.compile(r"\$\(|\$\{|`|\beval\b")
+
+
+# ---------------------------------------------------------------------------
+# UID helpers
+# ---------------------------------------------------------------------------
 
 
 def file_uid(path: str) -> str:
@@ -55,13 +81,23 @@ def module_uid(path: str) -> str:
     return f"code:module:{_normalize_path(path)}"
 
 
+_DIRNAME_SELF_RE = re.compile(r"""^\$\(dirname\s+["']?\$(?:0|BASH_SOURCE\[0\])["']?\)/?""")
+
+
 def _resolve_script_target(origin: str, target: str) -> str:
     """Resolve a `source`/`./script.sh` target to a repo-rooted uid."""
     target = target.strip().strip("'\"")
     if not target:
         return ""
-    if target.startswith("$"):
-        return ""  # dynamic
+    # Common idiom: `$(dirname "$0")/helper.sh` and friends. The substitution
+    # resolves to the directory of the running script, which is exactly the
+    # origin file's parent directory. Rewrite to a relative path so the
+    # standard resolver can take over.
+    stripped = _DIRNAME_SELF_RE.sub("", target)
+    if stripped != target:
+        target = stripped
+    if target.startswith("$") or target.startswith("`"):
+        return ""  # still dynamic after rewrite
     if target.startswith("/"):
         return f"code:file:{_normalize_path(target.lstrip('/'))}"
     origin_dir = PurePosixPath(_normalize_path(origin)).parent
@@ -76,6 +112,234 @@ def _resolve_script_target(origin: str, target: str) -> str:
             continue
         parts.append(part)
     return f"code:file:{'/'.join(parts)}"
+
+
+# ---------------------------------------------------------------------------
+# Tree-sitter walker
+# ---------------------------------------------------------------------------
+
+
+def _emit_function(name: str, line: int, path: str, normalised: str, result: ExtractionResult, mod_uid: str) -> None:
+    fn_uid = f"code:function:{_normalize_path(path)}::{name}"
+    result.nodes.append(
+        GraphNode(
+            uid=fn_uid,
+            kind="code:function",
+            label=name,
+            file_path=normalised,
+            start_line=line,
+            signature=f"{name}() {{ ... }}",
+            lang="sh",
+            metadata={"extractor": EXTRACTOR_ID},
+        )
+    )
+    result.edges.append(
+        GraphEdge(
+            source_uid=mod_uid,
+            target_uid=fn_uid,
+            edge_type="contains",
+            extractor=EXTRACTOR_ID,
+            confidence=1.0,
+        )
+    )
+    result.edges.append(
+        GraphEdge(
+            source_uid=file_uid(path),
+            target_uid=fn_uid,
+            edge_type="contains",
+            extractor=EXTRACTOR_ID,
+            confidence=1.0,
+        )
+    )
+
+
+def _emit_source_edge(
+    raw_target: str,
+    line: int,
+    path: str,
+    normalised: str,
+    result: ExtractionResult,
+    mod_uid: str,
+) -> None:
+    resolved = _resolve_script_target(path, raw_target)
+    if not resolved:
+        result.parse_errors.append(
+            ParseError(
+                kind="dynamic",
+                detail=f"dynamic source path: {raw_target}",
+                line=line,
+            )
+        )
+        return
+    result.edges.append(
+        GraphEdge(
+            source_uid=mod_uid,
+            target_uid=resolved,
+            edge_type="imports",
+            extractor=EXTRACTOR_ID,
+            confidence=0.9,
+            source_span=f"{normalised}:{line}",
+            evidence=(EvidenceSignal("shell_source", 0.9),),
+        )
+    )
+
+
+def _emit_call_edge(
+    raw_target: str,
+    line: int,
+    path: str,
+    normalised: str,
+    result: ExtractionResult,
+    mod_uid: str,
+) -> None:
+    if raw_target.endswith(PurePosixPath(normalised).name) and "/" not in raw_target:
+        return
+    resolved = _resolve_script_target(path, raw_target)
+    if not resolved:
+        return
+    already = any(
+        e.source_uid == mod_uid and e.target_uid == resolved and e.edge_type == "imports"
+        for e in result.edges
+    )
+    if already:
+        return
+    result.edges.append(
+        GraphEdge(
+            source_uid=mod_uid,
+            target_uid=resolved,
+            edge_type="calls",
+            extractor=EXTRACTOR_ID,
+            confidence=0.7,
+            source_span=f"{normalised}:{line}",
+            evidence=(EvidenceSignal("shell_call_script", 0.7),),
+        )
+    )
+
+
+def _emit_log_hook_edge(
+    hook_name: str,
+    line: int,
+    normalised: str,
+    result: ExtractionResult,
+    mod_uid: str,
+) -> None:
+    result.edges.append(
+        GraphEdge(
+            source_uid=mod_uid,
+            target_uid=f"cos:hook:{hook_name}",
+            edge_type="handles_tool",
+            extractor=EXTRACTOR_ID,
+            confidence=0.95,
+            source_span=f"{normalised}:{line}",
+            evidence=(EvidenceSignal("cos_log_hook_call", 0.95),),
+        )
+    )
+
+
+def _walk_ts(
+    root,
+    content_bytes: bytes,
+    path: str,
+    normalised: str,
+    mod_uid: str,
+    result: ExtractionResult,
+) -> int:
+    """Walk the tree-sitter-bash AST. Returns ERROR-node count."""
+    assert _ts_overlay is not None  # _TS_AVAILABLE gate guards caller
+    err_count = 0
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        ntype = node.type
+        if ntype == "ERROR":
+            err_count += 1
+            stack.extend(reversed(list(node.children)))
+            continue
+        if ntype == "function_definition":
+            # First named child is the function name (word/concatenation).
+            name = ""
+            for child in node.children:
+                if child.type in ("word", "concatenation"):
+                    name = _ts_overlay.node_text(child, content_bytes).strip()
+                    break
+            if name:
+                line = node.start_point[0] + 1
+                _emit_function(name, line, path, normalised, result, mod_uid)
+            stack.extend(reversed(list(node.children)))
+            continue
+        if ntype == "command":
+            # Children: command_name then optional args.
+            cmd_name = ""
+            args: list[tuple[str, int]] = []
+            for i, child in enumerate(node.children):
+                txt = _ts_overlay.node_text(child, content_bytes)
+                if i == 0 and child.type == "command_name":
+                    cmd_name = txt.strip()
+                else:
+                    args.append((txt.strip(), child.start_point[0] + 1))
+            line = node.start_point[0] + 1
+            if cmd_name in ("source", "."):
+                if args:
+                    _emit_source_edge(args[0][0], line, path, normalised, result, mod_uid)
+            elif cmd_name == "cos_log_hook":
+                if args:
+                    hook = args[0][0]
+                    if re.fullmatch(r"[A-Za-z0-9_-]+", hook):
+                        _emit_log_hook_edge(hook, line, normalised, result, mod_uid)
+            elif cmd_name in ("bash", "sh"):
+                # `bash script.sh` invocation pattern.
+                for txt, l in args:
+                    if txt.endswith(".sh"):
+                        _emit_call_edge(txt, l, path, normalised, result, mod_uid)
+                        break
+            else:
+                # Direct `./script.sh` or `script.sh` invocation.
+                if cmd_name.endswith(".sh"):
+                    _emit_call_edge(cmd_name, line, path, normalised, result, mod_uid)
+            stack.extend(reversed(list(node.children)))
+            continue
+        stack.extend(reversed(list(node.children)))
+    return err_count
+
+
+# ---------------------------------------------------------------------------
+# Regex fallback (only when tree-sitter is unavailable)
+# ---------------------------------------------------------------------------
+
+
+def _walk_regex(
+    content: str,
+    path: str,
+    normalised: str,
+    mod_uid: str,
+    result: ExtractionResult,
+) -> None:
+    stripped = _COMMENT_RE.sub("", content)
+
+    for match in _SOURCE_RE.finditer(stripped):
+        raw_target = match.group("path")
+        line = stripped[: match.start()].count("\n") + 1
+        _emit_source_edge(raw_target, line, path, normalised, result, mod_uid)
+
+    for match in _CALL_SCRIPT_RE.finditer(stripped):
+        raw_target = match.group("path")
+        line = stripped[: match.start()].count("\n") + 1
+        _emit_call_edge(raw_target, line, path, normalised, result, mod_uid)
+
+    for match in _FUNCTION_DEF_RE.finditer(stripped):
+        name = match.group("name")
+        line = stripped[: match.start()].count("\n") + 1
+        _emit_function(name, line, path, normalised, result, mod_uid)
+
+    for match in _COS_LOG_HOOK_RE.finditer(stripped):
+        hook_name = match.group("name")
+        line = stripped[: match.start()].count("\n") + 1
+        _emit_log_hook_edge(hook_name, line, normalised, result, mod_uid)
+
+
+# ---------------------------------------------------------------------------
+# Public entry
+# ---------------------------------------------------------------------------
 
 
 def extract(path: str, content: str) -> ExtractionResult:
@@ -114,123 +378,30 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
     )
 
-    stripped = _COMMENT_RE.sub("", content)
-
-    for match in _SOURCE_RE.finditer(stripped):
-        raw_target = match.group("path")
-        line = stripped[: match.start()].count("\n") + 1
-        resolved = _resolve_script_target(path, raw_target)
-        if not resolved:
-            result.parse_errors.append(
-                ParseError(
-                    kind="dynamic",
-                    detail=f"dynamic source path: {raw_target}",
-                    line=line,
+    used_tree_sitter = False
+    if _TS_AVAILABLE and _ts_overlay is not None:
+        parsed = _ts_overlay.parse("bash", content)
+        if parsed is not None:
+            used_tree_sitter = True
+            err_count = _walk_ts(
+                parsed.root,
+                content.encode("utf-8"),
+                path,
+                normalised,
+                mod.uid,
+                result,
+            )
+            if err_count:
+                result.parse_errors.append(
+                    ParseError(
+                        kind="tree_sitter_error",
+                        detail=f"tree-sitter recorded {err_count} ERROR node(s)",
+                    )
                 )
-            )
-            continue
-        result.edges.append(
-            GraphEdge(
-                source_uid=mod.uid,
-                target_uid=resolved,
-                edge_type="imports",
-                extractor=EXTRACTOR_ID,
-                confidence=0.9,
-                source_span=f"{normalised}:{line}",
-                evidence=(EvidenceSignal("shell_source", 0.9),),
-            )
-        )
 
-    for match in _CALL_SCRIPT_RE.finditer(stripped):
-        raw_target = match.group("path")
-        # Skip if this is the `source` path we already captured.
-        line = stripped[: match.start()].count("\n") + 1
-        # Avoid matching on the file itself.
-        if raw_target.endswith(PurePosixPath(normalised).name) and "/" not in raw_target:
-            continue
-        resolved = _resolve_script_target(path, raw_target)
-        if not resolved:
-            continue
-        # If we already emitted a `source` edge to this target, skip.
-        already = any(
-            e.source_uid == mod.uid and e.target_uid == resolved and e.edge_type == "imports"
-            for e in result.edges
-        )
-        if already:
-            continue
-        result.edges.append(
-            GraphEdge(
-                source_uid=mod.uid,
-                target_uid=resolved,
-                edge_type="calls",
-                extractor=EXTRACTOR_ID,
-                confidence=0.7,
-                source_span=f"{normalised}:{line}",
-                evidence=(EvidenceSignal("shell_call_script", 0.7),),
-            )
-        )
+    if not used_tree_sitter:
+        _walk_regex(content, path, normalised, mod.uid, result)
 
-    for match in _FUNCTION_DEF_RE.finditer(stripped):
-        name = match.group("name")
-        line = stripped[: match.start()].count("\n") + 1
-        fn_uid = f"code:function:{_normalize_path(path)}::{name}"
-        result.nodes.append(
-            GraphNode(
-                uid=fn_uid,
-                kind="code:function",
-                label=name,
-                file_path=normalised,
-                start_line=line,
-                signature=f"{name}() {{ ... }}",
-                lang="sh",
-                metadata={"extractor": EXTRACTOR_ID},
-            )
-        )
-        result.edges.append(
-            GraphEdge(
-                source_uid=mod.uid,
-                target_uid=fn_uid,
-                edge_type="contains",
-                extractor=EXTRACTOR_ID,
-                confidence=1.0,
-            )
-        )
-        # S3: File→Function direct edge for the tree-view spine.
-        result.edges.append(
-            GraphEdge(
-                source_uid=file_uid(path),
-                target_uid=fn_uid,
-                edge_type="contains",
-                extractor=EXTRACTOR_ID,
-                confidence=1.0,
-            )
-        )
-
-    for match in _COS_LOG_HOOK_RE.finditer(stripped):
-        hook_name = match.group("name")
-        line = stripped[: match.start()].count("\n") + 1
-        result.edges.append(
-            GraphEdge(
-                source_uid=mod.uid,
-                target_uid=f"cos:hook:{hook_name}",
-                edge_type="handles_tool",
-                extractor=EXTRACTOR_ID,
-                confidence=0.95,
-                source_span=f"{normalised}:{line}",
-                evidence=(EvidenceSignal("cos_log_hook_call", 0.95),),
-            )
-        )
-
-    if _DYNAMIC_HINT_RE.search(stripped):
-        result.parse_errors.append(
-            ParseError(
-                kind="dynamic_shell",
-                detail="script uses subshells / variable paths / eval — "
-                "edges may be incomplete",
-            )
-        )
-
-    # S3: Folder→...→File spine.
     emit_contains_spine(
         file_path=path,
         file_uid_=file_uid(path),

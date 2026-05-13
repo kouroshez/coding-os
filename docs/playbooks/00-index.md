@@ -19,11 +19,13 @@ Read next: any of the entries below.
 - [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-05-08
 - [Playbook — Authoring a `cos_*` MCP Tool](mcp-tool-authoring.md) — `ssot:true` · updated 2026-05-08
 
-### Playbooks (1)
+### Playbooks (2)
 
 - [DB Reset Playbook — Wipe & Rebuild coding-os Data](db-reset.md) — `ssot:true` · updated 2026-05-12
+- [Polyglot Extractor Roadmap — Python-Grade Coverage for Every Language](polyglot-extractor-roadmap.md) — `ssot:true` · updated 2026-05-12
 
 <!-- END auto-index -->
+
 
 
 
