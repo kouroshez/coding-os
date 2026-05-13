@@ -576,6 +576,9 @@ def _scan_nest(content: str) -> list[ContractMatch]:
     return hits
 
 
+_FIBER_CTX_FALSE_POS = {"c", "ctx"}  # *fiber.Ctx; .Get reads headers, not a route.
+
+
 def _scan_fiber(content: str) -> list[ContractMatch]:
     if "gofiber" not in content and "fiber.App" not in content and "fiber.New" not in content:
         return []
@@ -584,6 +587,8 @@ def _scan_fiber(content: str) -> list[ContractMatch]:
     for match in _FIBER_GROUP_RE.finditer(content):
         groups.append(match.group("path"))
     for match in _FIBER_ROUTE_RE.finditer(content):
+        if match.group("app").lower() in _FIBER_CTX_FALSE_POS:
+            continue
         path = match.group("path")
         if groups:
             path = _join_paths(groups[-1], path)

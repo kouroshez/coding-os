@@ -289,6 +289,12 @@ def _emit_type_relation(
     if not target_label or target_label in _GO_BUILTIN_TYPES:
         return
     bare = target_label.split("[", 1)[0]
+    bare = bare.lstrip("*").lstrip("[]").strip()
+    if not bare or bare in _GO_BUILTIN_TYPES or _is_generic_type_param(bare):
+        return
+    # Skip slice/array/map/chan/func/interface{}/struct{} type expressions.
+    if bare.startswith(("[", "(", "{", "<-")) or bare in {"chan", "<-chan"}:
+        return
     if "." in bare:
         target = f"code:external:{bare}"
     else:
@@ -310,7 +316,13 @@ _GO_BUILTIN_TYPES = {
     "bool", "byte", "complex64", "complex128", "error", "float32", "float64",
     "int", "int8", "int16", "int32", "int64", "rune", "string", "uint",
     "uint8", "uint16", "uint32", "uint64", "uintptr", "any", "comparable",
+    "map", "chan", "interface", "struct", "func",
 }
+
+
+def _is_generic_type_param(label: str) -> bool:
+    """A single capital letter (T, K, V) is most likely a generic param, not a type."""
+    return len(label) == 1 and label.isupper()
 
 
 def _walk_type_text(node: Any, content_bytes: bytes) -> str:
