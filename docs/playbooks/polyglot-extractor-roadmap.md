@@ -260,11 +260,17 @@ Targets: `pyproject.toml`, `Cargo.toml`, `*.toml` configs.
 
 ### Epic C — Upgrade the working (close to world-class)
 
-- [ ] **C1 Go → tree-sitter-go** [9h] — only when a Go consumer template ships
-  - [ ] C1.1 Rewrite `code_go.py` on ts-go AST (grammar already wired in `tree_sitter_overlay`)
-  - [ ] C1.2 Workspace + replace-directive in `toolchain.py`
-  - [ ] C1.3 chi / fiber / gRPC / cobra contracts
-  - [ ] C1.4 Golden fixtures (7 kinds, 5 edges)
+- [x] **C1 Go → tree-sitter-go** [shipped]
+  - [x] C1.1 Rewrite `code_go.py` on ts-go AST — full coverage including
+        function/method/struct/interface/alias/generics/const/var/init/
+        test funcs (TestXxx/BenchmarkXxx/ExampleXxx/FuzzXxx/TestMain) +
+        build tags + dot/blank/aliased imports.
+  - [x] C1.3 Contracts: gin / echo / chi / fiber / gorilla / net/http
+        (Go 1.22+) / gRPC RegisterXxxServer / cobra / urfave/cli.
+  - [x] C1.4 Golden fixtures: TestGoExtractor (12 cases) +
+        TestContractsGoFrameworks (7 cases) in tests/test_i7_extractors.py.
+  - [ ] C1.2 Workspace + replace-directive in `toolchain.py` — open
+        until a real Go workspace consumer arrives.
 
 ### Epic E — Cross-cutting infrastructure
 
@@ -335,7 +341,7 @@ A regression below these caps in CI blocks the PR.
 | A1 Shell → ts-bash | shipped | 87% error reduction on real repo |
 | B1 JSON extractor | shipped | 19 files, 138 nodes, 0 errors |
 | B2 TOML extractor | shipped | pyproject + Cargo handled |
-| C1 Go → ts-go | open | grammar wired; rewrite waits on Go consumer |
+| C1 Go → ts-go | shipped | full AST + 9 frameworks of contracts; toolchain workspace open |
 | E1 Performance telemetry | open | duration_ms column landing alongside this cleanup |
 
 ## See also

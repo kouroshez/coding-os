@@ -13,7 +13,7 @@ import textwrap
 
 import pytest
 
-from graph_os.extractors import code_json, code_shell, code_toml, code_yaml, contracts
+from graph_os.extractors import code_go, code_json, code_shell, code_toml, code_yaml, contracts
 
 
 # ---------------------------------------------------------------------------
@@ -331,6 +331,8 @@ class TestContractsGoFiber:
     def test_group_prefix(self):
         src = textwrap.dedent(
             """
+            import "github.com/gofiber/fiber/v2"
+            app := fiber.New()
             v1 := app.Group("/v1")
             app.Get("/users", listUsers)
             """
@@ -471,3 +473,224 @@ members = ["crates/core", "crates/util"]
         r = code_toml.extract("broken.toml", "this is not [valid")
         assert any(p.kind == "toml_decode" for p in r.parse_errors)
         assert any(n.uid == "code:file:broken.toml" for n in r.nodes)
+
+
+# ---------------------------------------------------------------------------
+# Go extractor
+# ---------------------------------------------------------------------------
+
+
+class TestGoExtractor:
+    def test_package_and_file_nodes(self):
+        r = code_go.extract("server/handler.go", "package server\n")
+        kinds = {n.kind for n in r.nodes}
+        assert "code:file" in kinds
+        assert "code:module" in kinds
+        assert "code:package" in kinds
+        pkg_nodes = [n for n in r.nodes if n.kind == "code:package"]
+        assert pkg_nodes[0].label == "server"
+
+    def test_function_node(self):
+        r = code_go.extract("server/handler.go", "package server\nfunc Hello() string { return \"\" }\n")
+        funcs = [n for n in r.nodes if n.kind == "code:function"]
+        assert any(n.label == "Hello" for n in funcs)
+
+    def test_method_node_with_pointer_receiver(self):
+        r = code_go.extract(
+            "server/handler.go",
+            "package server\ntype S struct{}\nfunc (s *S) Do() {}\n",
+        )
+        methods = [n for n in r.nodes if n.kind == "code:method"]
+        assert any(n.label == "S.Do" for n in methods)
+
+    def test_method_receiver_uid_strips_generics(self):
+        r = code_go.extract(
+            "p/x.go",
+            "package p\ntype Container[T any] struct{}\nfunc (c *Container[T]) Add(item T) {}\n",
+        )
+        methods = [n for n in r.nodes if n.kind == "code:method"]
+        assert any(n.label == "Container.Add" for n in methods)
+
+    def test_struct_field_and_embedded_edges(self):
+        r = code_go.extract(
+            "p/x.go",
+            """package p
+type Reader interface{}
+type Inner struct{}
+type Server struct {
+    Reader
+    Conn Inner
+}
+""",
+        )
+        embedded = [e for e in r.edges if e.edge_type == "inherits_from"]
+        fields = [e for e in r.edges if e.edge_type == "field_of_type"]
+        # Embedded `Reader` (anonymous field) → inherits_from edge.
+        assert any("Reader" in e.target_uid for e in embedded)
+        # Named field `Conn Inner` → field_of_type edge to Inner (non-builtin).
+        assert any("Inner" in e.target_uid for e in fields)
+
+    def test_interface_embedding_edge(self):
+        r = code_go.extract(
+            "p/x.go",
+            "package p\nimport \"io\"\ntype RC interface { io.Reader; io.Closer }\n",
+        )
+        inh = [e for e in r.edges if e.edge_type == "inherits_from"]
+        labels = [e.target_uid for e in inh]
+        assert any("io.Reader" in s for s in labels)
+        assert any("io.Closer" in s for s in labels)
+
+    def test_imports_dot_blank_alias(self):
+        r = code_go.extract(
+            "p/x.go",
+            """package p
+import (
+    "fmt"
+    _ "net/http/pprof"
+    . "strings"
+    pb "example.com/api"
+)
+""",
+        )
+        ext = {n.label: (n.metadata or {}) for n in r.nodes if n.kind == "code:external"}
+        assert "fmt" in ext
+        assert ext["net/http/pprof"].get("blank_import") is True
+        assert ext["strings"].get("dot_import") is True
+        assert ext["example.com/api"].get("alias") == "pb"
+
+    def test_const_and_var_nodes(self):
+        r = code_go.extract(
+            "p/x.go",
+            "package p\nconst Version = \"1\"\nvar DefaultPort = 8080\n",
+        )
+        vars_ = [n for n in r.nodes if n.kind == "code:variable"]
+        names = {n.label: (n.metadata or {}).get("go_kind") for n in vars_}
+        assert names.get("Version") == "const"
+        assert names.get("DefaultPort") == "var"
+
+    def test_init_function_flag(self):
+        r = code_go.extract("p/x.go", "package p\nfunc init() {}\n")
+        init_funcs = [n for n in r.nodes if n.kind == "code:function" and n.label == "init"]
+        assert init_funcs
+        assert (init_funcs[0].metadata or {}).get("init") is True
+
+    def test_test_kind_metadata(self):
+        r = code_go.extract(
+            "p/x_test.go",
+            """package p
+import "testing"
+func TestFoo(t *testing.T) {}
+func BenchmarkBar(b *testing.B) {}
+func ExampleBaz() {}
+func FuzzQux(f *testing.F) {}
+func TestMain(m *testing.M) {}
+""",
+        )
+        kinds = {n.label: (n.metadata or {}).get("test_kind")
+                 for n in r.nodes if n.kind == "code:function"}
+        assert kinds["TestFoo"] == "test"
+        assert kinds["BenchmarkBar"] == "benchmark"
+        assert kinds["ExampleBaz"] == "example"
+        assert kinds["FuzzQux"] == "fuzz"
+        assert kinds["TestMain"] == "test_main"
+
+    def test_build_tag_edge(self):
+        r = code_go.extract("p/x.go", "//go:build linux && !cgo\n\npackage p\n")
+        deco = [e for e in r.edges if e.edge_type == "is_decorated_by"]
+        assert deco
+        assert any("linux && !cgo" in e.target_uid for e in deco)
+
+    def test_generic_function_marked(self):
+        r = code_go.extract(
+            "p/x.go",
+            "package p\nfunc Map[T any, U any](xs []T, f func(T) U) []U { return nil }\n",
+        )
+        funcs = [n for n in r.nodes if n.kind == "code:function" and n.label == "Map"]
+        assert funcs
+        assert (funcs[0].metadata or {}).get("generic") is True
+
+
+# ---------------------------------------------------------------------------
+# Go contracts (gin/echo/chi/gorilla/cobra/grpc/net_http)
+# ---------------------------------------------------------------------------
+
+
+class TestContractsGoFrameworks:
+    def test_gin(self):
+        r = contracts.extract("backend/server.go", """package main
+import "github.com/gin-gonic/gin"
+func main() {
+  r := gin.Default()
+  r.GET("/health", h)
+  v1 := r.Group("/v1")
+  v1.POST("/items", h2)
+}""")
+        routes = [n for n in r.nodes if n.kind == "cos:route"]
+        labels = {n.label for n in routes}
+        assert "GET /health" in labels or "GET /v1/health" in labels
+        assert "POST /v1/items" in labels
+
+    def test_chi(self):
+        r = contracts.extract("backend/server.go", """package main
+import "github.com/go-chi/chi/v5"
+func main() {
+  r := chi.NewRouter()
+  r.Get("/users", h)
+}""")
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert "GET /users" in labels
+
+    def test_echo(self):
+        r = contracts.extract("backend/server.go", """package main
+import "github.com/labstack/echo/v4"
+func main() { e := echo.New(); e.GET("/", h) }""")
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert "GET /" in labels
+
+    def test_gorilla(self):
+        r = contracts.extract("backend/server.go", """package main
+import "github.com/gorilla/mux"
+func main() {
+  r := mux.NewRouter()
+  r.HandleFunc("/api/{id}", h).Methods("GET", "POST")
+}""")
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert "GET /api/{id}" in labels
+        assert "POST /api/{id}" in labels
+
+    def test_net_http_go122(self):
+        r = contracts.extract("backend/server.go", """package main
+import "net/http"
+func main() {
+  http.HandleFunc("GET /status", statusH)
+  http.HandleFunc("POST /webhook", hookH)
+}""")
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert "GET /status" in labels
+        assert "POST /webhook" in labels
+
+    def test_grpc_register(self):
+        r = contracts.extract("backend/server.go", """package main
+import (
+  "google.golang.org/grpc"
+  pb "example.com/api/proto"
+)
+func main() {
+  s := grpc.NewServer()
+  pb.RegisterUserServer(s, &userSrv{})
+}""")
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert any("User" in l for l in labels)
+
+    def test_cobra_command(self):
+        r = contracts.extract("cmd/root.go", """package cmd
+import "github.com/spf13/cobra"
+var rootCmd = &cobra.Command{
+  Use: "myapp",
+  Short: "tool",
+}
+var serveCmd = &cobra.Command{ Use: "serve" }
+""")
+        labels = {n.label for n in r.nodes if n.kind == "cos:cli_command"}
+        assert "cobra:myapp" in labels
+        assert "cobra:serve" in labels
