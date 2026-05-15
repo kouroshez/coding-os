@@ -236,12 +236,14 @@ hub-status: ## Show Hub daemon status + registered projects
 
 # ── Verification (override in project Makefile) ─────────────────────
 
+ifndef COS_META_REPO
 .PHONY: verify
 verify: ## Run verification for a domain (DOMAIN=backend|frontend|docs|full)
 	@echo "No verification targets defined. Add your own in the project Makefile."
 	@echo "Example:"
 	@echo "  verify:"
 	@echo "    make lint && make test"
+endif
 
 # ── Phase M fast smoke (safe-test) ─────────────────────────────────
 
@@ -262,6 +264,7 @@ safe-test: ## Fast smoke for thinking_os + graph_os + Phase M (≤30s, no networ
 
 COS_CRON_HOUR ?= 3
 
+ifndef COS_META_REPO
 .PHONY: cron-install
 cron-install: ## Install nightly launchd job (macOS) — daily decay + learn
 	cos cron install --hour $(COS_CRON_HOUR)
@@ -277,6 +280,7 @@ cron-run: ## Run nightly maintenance now (dry-run safe to test)
 .PHONY: cron-status
 cron-status: ## Show last nightly run summary + plist status
 	cos cron status
+endif
 
 # ── Knowledge Graph (graph_os) ──────────────────────────────────────
 

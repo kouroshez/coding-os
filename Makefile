@@ -11,6 +11,7 @@ export COS_DB_PATH ?= $(COS_STATE_DIR)/coding-os.db
 export COS_BRAIN_DIR ?= $(COS_ROOT)/src/core/thinking_os
 
 # ── Include base targets ────────────────────────────────────────────
+COS_META_REPO := 1
 include src/templates/_base/Makefile.base
 
 # ── Project-Specific Overrides ──────────────────────────────────────
@@ -164,10 +165,10 @@ dogfood-full: ## Re-render every adapter discovered under src/adapters/ — re-l
 	  found=$$((found + 1)); \
 	done; \
 	if [ "$$found" -eq 0 ]; then \
-	  echo "  WARN: no adapters with install.sh discovered under src/adapters/" >&2; \
+	  echo "  ❌ WARN: no adapters with install.sh discovered under src/adapters/" >&2; \
 	  exit 1; \
 	fi; \
-	echo "  Reload your agent runtime to pick up the new config ($$found adapter(s) installed)."
+	echo "  ✅ Reload your agent runtime to pick up the new config ($$found adapter(s) installed)."
 
 .PHONY: sync
 sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into every adapter discovered under src/adapters/. Data-driven (Rule 11) — handles new adapters automatically.

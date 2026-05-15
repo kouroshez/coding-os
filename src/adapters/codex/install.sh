@@ -20,7 +20,7 @@ shopt -s nullglob
 CODING_OS_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PROJECT_ROOT="${PWD}"
 
-echo "Installing coding-os Codex adapter..."
+echo "⚙️  Installing coding-os Codex adapter..."
 
 # 1-8. Common install steps (shared with claude / cursor).
 bash "${CODING_OS_ROOT}/src/core/scripts/install-adapter.sh" \
@@ -73,7 +73,7 @@ else
 fi
 
 echo ""
-echo "Codex adapter installed successfully."
+echo "✅ Codex adapter installed."
 echo "  Hooks config: .codex/hooks.json (generated)"
 echo "  SSOT:         AGENTS.md at project root (read by Codex)"
 echo "  Hooks flag:   ${HOOKS_STATUS}"

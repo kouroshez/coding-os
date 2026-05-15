@@ -1,11 +1,13 @@
 """cos doctor checks for board_os (Phase L.9).
 
-Four checks C24–C27 (C20–C23 are owned by graph_os doctor):
-  C24 — WIP state is within cap (or flagged warning if active violation).
-  C25 — No stale `in_progress` tasks.
+Four checks C50–C53 (renamed from C24–C27 to eliminate ID collision with
+graph_os checks C24–C27 — both groups used the same IDs, confusing agent
+output parsers that reference checks by ID):
+  C50 — WIP state is within cap (or flagged warning if active violation).
+  C51 — No stale `in_progress` tasks.
           Stale = (no Work Log append > 3 days) OR (elapsed > 2× appetite).
-  C26 — Frontmatter schema valid on every `docs/tasks/*.md`.
-  C27 — `docs/tasks.md` index (if present) in sync with frontmatter.
+  C52 — Frontmatter schema valid on every `docs/tasks/*.md`.
+  C53 — `docs/tasks.md` index (if present) in sync with frontmatter.
 """
 
 from __future__ import annotations
@@ -57,7 +59,7 @@ def _check_c24_wip(report, conn: sqlite3.Connection, project: Path) -> None:
         from board_os.workflow import check_wip
     except ImportError as exc:
         report.checks.append(
-            _CR("C24", "board_wip", SEV_WARN, f"board_os not importable: {exc}")
+            _CR("C50", "board_wip", SEV_WARN, f"board_os not importable: {exc}")
         )
         return
 
@@ -65,13 +67,13 @@ def _check_c24_wip(report, conn: sqlite3.Connection, project: Path) -> None:
         cfg = load_config(project)
     except FileNotFoundError:
         report.checks.append(
-            _CR("C24", "board_wip", SEV_WARN,
+            _CR("C50", "board_wip", SEV_WARN,
                 "scrumban-config.yaml missing — run `cos board-config --init`")
         )
         return
     except Exception as exc:  # noqa: BLE001
         report.checks.append(
-            _CR("C24", "board_wip", SEV_WARN, f"config parse: {exc}")
+            _CR("C50", "board_wip", SEV_WARN, f"config parse: {exc}")
         )
         return
 
@@ -81,14 +83,14 @@ def _check_c24_wip(report, conn: sqlite3.Connection, project: Path) -> None:
         for col in state.violations:
             parts.append(f"{col} {state.counts[col]}/{state.caps[col]}")
         report.checks.append(
-            _CR("C24", "board_wip", SEV_WARN,
+            _CR("C50", "board_wip", SEV_WARN,
                 f"WIP cap exceeded: {', '.join(parts)}",
                 {"counts": state.counts, "caps": state.caps,
                  "violations": list(state.violations)})
         )
     else:
         report.checks.append(
-            _CR("C24", "board_wip", SEV_PASS,
+            _CR("C50", "board_wip", SEV_PASS,
                 f"WIP within caps (in_progress {state.counts.get('in_progress',0)}/"
                 f"{state.caps.get('in_progress')}, testing "
                 f"{state.counts.get('testing',0)}/{state.caps.get('testing')}, "
@@ -106,7 +108,7 @@ def _check_c25_stale_in_progress(report, conn: sqlite3.Connection) -> None:
     ).fetchall()
     if not rows:
         report.checks.append(
-            _CR("C25", "board_stale", SEV_PASS, "no in_progress tasks")
+            _CR("C51", "board_stale", SEV_PASS, "no in_progress tasks")
         )
         return
 
@@ -154,13 +156,13 @@ def _check_c25_stale_in_progress(report, conn: sqlite3.Connection) -> None:
             f"{s['task_id']} ({', '.join(s['reasons'])})" for s in stale  # type: ignore[arg-type]
         )
         report.checks.append(
-            _CR("C25", "board_stale", SEV_WARN,
+            _CR("C51", "board_stale", SEV_WARN,
                 f"{len(stale)} stale in_progress task(s): {summary}",
                 {"stale": stale})
         )
     else:
         report.checks.append(
-            _CR("C25", "board_stale", SEV_PASS,
+            _CR("C51", "board_stale", SEV_PASS,
                 f"all {len(rows)} in_progress task(s) have recent activity")
         )
 
@@ -172,7 +174,7 @@ def _check_c26_frontmatter(report, project: Path) -> None:
         from board_os.parser import parse_task
     except ImportError as exc:
         report.checks.append(
-            _CR("C26", "board_frontmatter", SEV_WARN,
+            _CR("C52", "board_frontmatter", SEV_WARN,
                 f"board_os parser unavailable: {exc}")
         )
         return
@@ -180,7 +182,7 @@ def _check_c26_frontmatter(report, project: Path) -> None:
     tasks_dir = project / "docs" / "tasks"
     if not tasks_dir.exists():
         report.checks.append(
-            _CR("C26", "board_frontmatter", SEV_PASS,
+            _CR("C52", "board_frontmatter", SEV_PASS,
                 "no docs/tasks/ directory (empty board)")
         )
         return
@@ -200,21 +202,21 @@ def _check_c26_frontmatter(report, project: Path) -> None:
 
     if broken:
         report.checks.append(
-            _CR("C26", "board_frontmatter", SEV_FAIL,
+            _CR("C52", "board_frontmatter", SEV_FAIL,
                 f"{len(broken)}/{total} task(s) unparseable",
                 {"broken": broken})
         )
         return
     if legacy:
         report.checks.append(
-            _CR("C26", "board_frontmatter", SEV_WARN,
+            _CR("C52", "board_frontmatter", SEV_WARN,
                 f"{len(legacy)}/{total} task(s) still in legacy 12-section format "
                 f"— run `cos task-migrate`",
                 {"legacy_count": len(legacy)})
         )
         return
     report.checks.append(
-        _CR("C26", "board_frontmatter", SEV_PASS,
+        _CR("C52", "board_frontmatter", SEV_PASS,
             f"all {total} task file(s) parse as lean frontmatter")
     )
 
@@ -226,7 +228,7 @@ def _check_c27_index_in_sync(report, project: Path) -> None:
     tasks_dir = project / "docs" / "tasks"
     if not index.exists() or not tasks_dir.exists():
         report.checks.append(
-            _CR("C27", "board_index_sync", SEV_PASS,
+            _CR("C53", "board_index_sync", SEV_PASS,
                 "no legacy docs/tasks.md index to audit")
         )
         return
@@ -243,7 +245,7 @@ def _check_c27_index_in_sync(report, project: Path) -> None:
 
     if missing_from_index or orphan_in_index:
         report.checks.append(
-            _CR("C27", "board_index_sync", SEV_WARN,
+            _CR("C53", "board_index_sync", SEV_WARN,
                 f"drift — {len(missing_from_index)} file(s) not in index, "
                 f"{len(orphan_in_index)} index entry(ies) without files",
                 {"missing_from_index": sorted(missing_from_index),
@@ -251,7 +253,7 @@ def _check_c27_index_in_sync(report, project: Path) -> None:
         )
     else:
         report.checks.append(
-            _CR("C27", "board_index_sync", SEV_PASS,
+            _CR("C53", "board_index_sync", SEV_PASS,
                 f"index and filesystem agree on {len(file_ids)} task(s)")
         )
 
@@ -262,8 +264,8 @@ def run_board_checks(report, project: Path, state_dir: Path) -> None:
     conn = _open_conn(state_dir)
     if conn is None:
         report.checks.append(
-            _CR("C24", "board_wip", SEV_WARN,
-                "board DB not reachable — skipping C24-C27")
+            _CR("C50", "board_wip", SEV_WARN,
+                "board DB not reachable — skipping C50-C53")
         )
         return
 

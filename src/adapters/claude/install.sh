@@ -19,7 +19,7 @@ shopt -s nullglob
 CODING_OS_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PROJECT_ROOT="${PWD}"
 
-echo "Installing coding-os Claude adapter..."
+echo "⚙️  Installing coding-os Claude adapter..."
 echo "  Project: $PROJECT_ROOT"
 echo "  coding-os: $CODING_OS_ROOT"
 
@@ -68,7 +68,7 @@ if [[ ! -f "$LOCAL_TARGET" && -f "$LOCAL_TEMPLATE" ]]; then
 fi
 
 echo ""
-echo "Claude adapter installed successfully."
+echo "✅ Claude adapter installed."
 echo "  Settings: .claude/settings.json (generated)"
 echo "  Perms:    .claude/settings.local.json (copied)"
 echo "  MCP:      .mcp.json (updated)"

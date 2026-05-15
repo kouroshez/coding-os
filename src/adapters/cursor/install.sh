@@ -10,7 +10,7 @@ shopt -s nullglob
 CODING_OS_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PROJECT_ROOT="${PWD}"
 
-echo "Installing coding-os Cursor adapter..."
+echo "⚙️  Installing coding-os Cursor adapter..."
 echo "  Project: $PROJECT_ROOT"
 echo "  coding-os: $CODING_OS_ROOT"
 
@@ -59,6 +59,6 @@ with open(mcp_path, 'w') as f:
 " 2>/dev/null || echo "  WARN: Could not update .cursor/mcp.json automatically"
 
 echo ""
-echo "Cursor adapter installed successfully."
+echo "✅ Cursor adapter installed."
 echo "  Hooks:    .cursor/hooks.json (generated)"
 echo "  MCP:      .cursor/mcp.json (updated)"

@@ -1,4 +1,4 @@
-"""Extended doctor checks (C32-C39) — covers gaps surfaced after the src-layout migration.
+"""Extended doctor checks (C32-C53) — covers gaps surfaced after the src-layout migration.
 
 Each check follows the existing pattern: takes (project, report), appends a
 CheckResult to report.checks. Wired into run_doctor() at the tail.
@@ -52,11 +52,14 @@ def _check_optional_extras_installed(project: Path, report: DoctorReport) -> Non
                 {"extra": extra_name, "module": module_name, "feature": feature_description}
             )
     if missing:
+        import sys
+        _in_tool = "uv" in sys.executable and "tools" in sys.executable
+        fix_cmd = "uv tool install --editable . --all-extras" if _in_tool else "uv sync --all-extras"
         report.checks.append(
             CheckResult(
                 "C32", "optional_extras_installed", SEV_WARN,
                 f"{len(missing)} optional extra(s) not installed — features unavailable",
-                {"missing": missing, "fix": "uv sync --all-extras"},
+                {"missing": missing, "fix": fix_cmd},
             )
         )
     else:
@@ -721,12 +724,242 @@ def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) ->
 
 
 # ---------------------------------------------------------------------------
+# C45 — agent_identity_file
+# .coding-os/.agent written by install-adapter.sh; cos-env.sh reads it as
+# the authoritative COS_AGENT value.  If missing, all hooks default to
+# wrong paths and presence signals are lost.
+# ---------------------------------------------------------------------------
+
+
+def _check_agent_identity_file(project: Path, report: DoctorReport) -> None:
+    """C45 — .coding-os/.agent exists and contains a non-empty agent name."""
+    agent_file = project / ".coding-os" / ".agent"
+    if not agent_file.exists():
+        report.checks.append(
+            CheckResult(
+                "C45", "agent_identity_file", SEV_WARN,
+                ".coding-os/.agent missing — run: cos install",
+            )
+        )
+        return
+    agent_name = agent_file.read_text(encoding="utf-8").strip()
+    if not agent_name:
+        report.checks.append(
+            CheckResult(
+                "C45", "agent_identity_file", SEV_WARN,
+                ".coding-os/.agent empty — run: cos install",
+            )
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "C45", "agent_identity_file", SEV_PASS,
+            f"agent identity: {agent_name}",
+            {"agent": agent_name},
+        )
+    )
+
+
+# ---------------------------------------------------------------------------
+# C46 — adapter_dir_symlinks_healthy
+# install-adapter.sh sweeps stale symlinks on every re-run, but if the
+# meta-repo moves after install, rules/ + commands/ + skills/ links silently
+# break.  Doctor surfaces this so `cos install` is the clear fix.
+# ---------------------------------------------------------------------------
+
+
+def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> None:
+    """C46 — rules/, commands/, skills/ in the agent dir have no broken symlinks."""
+    agent_file = project / ".coding-os" / ".agent"
+    if not agent_file.exists():
+        report.checks.append(
+            CheckResult("C46", "adapter_dir_symlinks_healthy", SEV_PASS, "no .agent (skip)")
+        )
+        return
+    agent_name = agent_file.read_text(encoding="utf-8").strip()
+    agent_dir = project / f".{agent_name}"
+    if not agent_dir.is_dir():
+        report.checks.append(
+            CheckResult("C46", "adapter_dir_symlinks_healthy", SEV_PASS, f".{agent_name}/ missing (skip)")
+        )
+        return
+
+    broken: list[str] = []
+    for subdir_name in ("rules", "commands"):
+        subdir = agent_dir / subdir_name
+        if not subdir.is_dir():
+            continue
+        for entry in subdir.iterdir():
+            if entry.is_symlink() and not entry.exists():
+                broken.append(f"{subdir_name}/{entry.name}")
+
+    skills_dir = agent_dir / "skills"
+    if skills_dir.is_dir():
+        for skill_md in skills_dir.glob("*/SKILL.md"):
+            if skill_md.is_symlink() and not skill_md.exists():
+                broken.append(f"skills/{skill_md.parent.name}/SKILL.md")
+
+    if broken:
+        report.checks.append(
+            CheckResult(
+                "C46", "adapter_dir_symlinks_healthy", SEV_WARN,
+                f"{len(broken)} broken symlink(s) in adapter dirs — run: cos install",
+                {"broken": broken[:10]},
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult(
+                "C46", "adapter_dir_symlinks_healthy", SEV_PASS,
+                f".{agent_name}/rules · commands · skills — all symlinks healthy",
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
+# C47 — consumer_project_hook_symlinks
+# Registered consumer projects have live symlinks into the meta-repo's
+# src/core/hooks/.  If the meta-repo moves, those symlinks silently break.
+# C39 only checks that the project path exists; C47 checks the symlinks
+# inside it.  Fix: `cos sync-doctor --repair`.
+# ---------------------------------------------------------------------------
+
+
+def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -> None:
+    """C47 — registered consumer projects have no broken hook symlinks."""
+    registry_path = Path.home() / ".coding-os" / "registry.json"
+    if not registry_path.exists():
+        report.checks.append(
+            CheckResult("C47", "consumer_project_hook_symlinks", SEV_PASS, "no hub registry (skip)")
+        )
+        return
+
+    try:
+        registry_data = json.loads(registry_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        report.checks.append(
+            CheckResult(
+                "C47", "consumer_project_hook_symlinks", SEV_WARN,
+                f"registry.json unreadable: {exc}",
+            )
+        )
+        return
+
+    consumer_projects = [
+        entry for entry in (registry_data.get("projects") or [])
+        if Path(entry.get("path", "")).resolve() != project.resolve()
+        and Path(entry.get("path", "")).exists()
+    ]
+
+    broken_by_slug: dict[str, list[str]] = {}
+    for entry in consumer_projects:
+        consumer_path = Path(entry["path"])
+        agent_file = consumer_path / ".coding-os" / ".agent"
+        if not agent_file.exists():
+            continue
+        agent_name = agent_file.read_text(encoding="utf-8").strip()
+        hooks_dir = consumer_path / f".{agent_name}" / "hooks"
+        if not hooks_dir.is_dir():
+            continue
+        broken = [
+            hook.name
+            for hook in hooks_dir.glob("*.sh")
+            if hook.is_symlink() and not hook.exists()
+        ]
+        if broken:
+            slug = entry.get("slug") or consumer_path.name
+            broken_by_slug[slug] = broken
+
+    if broken_by_slug:
+        summary = "; ".join(
+            f"{slug}: {len(hooks)} broken"
+            for slug, hooks in broken_by_slug.items()
+        )
+        report.checks.append(
+            CheckResult(
+                "C47", "consumer_project_hook_symlinks", SEV_WARN,
+                f"broken hook symlinks in {len(broken_by_slug)} project(s): {summary}"
+                " — run: cos sync-doctor --repair",
+                {"broken_by_slug": {k: v[:5] for k, v in broken_by_slug.items()}},
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult(
+                "C47", "consumer_project_hook_symlinks", SEV_PASS,
+                f"all {len(consumer_projects)} consumer project(s) hook symlinks healthy",
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
+# C48 — hooks_source_cos_env
+# Rule 3: every hook script must source cos-env.sh so it gets COS_AGENT_DIR,
+# COS_STATE_DIR, and cos_log_hook.  Helper scripts (cos-env.sh itself, state
+# r/w utils, test runners) are exempt — only scripts registered in
+# registry.yaml are checked.
+# ---------------------------------------------------------------------------
+
+
+def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
+    """C48 — every registered hook script sources cos-env.sh (Rule 3)."""
+    registry_path = project / "src" / "core" / "hooks" / "registry.yaml"
+    hooks_dir = project / "src" / "core" / "hooks"
+    if not registry_path.exists() or not hooks_dir.is_dir():
+        report.checks.append(
+            CheckResult("C48", "hooks_source_cos_env", SEV_PASS, "no hooks registry (skip)")
+        )
+        return
+
+    try:
+        registry = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        report.checks.append(
+            CheckResult("C48", "hooks_source_cos_env", SEV_WARN, f"registry.yaml unreadable: {exc}")
+        )
+        return
+
+    violations: list[str] = []
+    for entry in registry.get("hooks", []):
+        if not isinstance(entry, dict):
+            continue
+        script_name = entry.get("script") or f"{entry.get('id', '')}.sh"
+        script_path = hooks_dir / script_name
+        if not script_path.exists():
+            continue
+        try:
+            content = script_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if "cos-env.sh" not in content:
+            violations.append(script_name)
+
+    if violations:
+        report.checks.append(
+            CheckResult(
+                "C48", "hooks_source_cos_env", SEV_WARN,
+                f"{len(violations)} hook(s) missing `source cos-env.sh` (Rule 3): "
+                + ", ".join(violations[:5])
+                + (f" (+{len(violations) - 5} more)" if len(violations) > 5 else ""),
+                {"violations": violations},
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult(
+                "C48", "hooks_source_cos_env", SEV_PASS,
+                "all registered hook scripts source cos-env.sh (Rule 3 compliant)",
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
 # Entry point — called from cli.doctor.run_doctor()
 # ---------------------------------------------------------------------------
 
 
 def run_extra_checks(project: Path, report: DoctorReport) -> None:
-    """Run C32-C44. Each appends one CheckResult; failures never raise."""
+    """Run C32-C48. Each appends one CheckResult; failures never raise."""
     for check_function in (
         _check_optional_extras_installed,
         _check_all_installed_adapters_healthy,
@@ -741,6 +974,10 @@ def run_extra_checks(project: Path, report: DoctorReport) -> None:
         _check_mcp_envelope_contract_sample,
         _check_cli_binary_health,
         _check_scaffold_boundary_yamls_valid,
+        _check_agent_identity_file,
+        _check_adapter_dir_symlinks_healthy,
+        _check_consumer_project_hook_symlinks,
+        _check_hooks_source_cos_env,
     ):
         try:
             check_function(project, report)

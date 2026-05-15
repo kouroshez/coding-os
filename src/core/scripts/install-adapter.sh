@@ -153,7 +153,7 @@ if [[ -f "$MANIFEST" && -x "$LINKER" ]]; then
   fi
   if [[ -n "$STACKS" ]]; then
     bash "$LINKER" "${PROJECT_ROOT}/${AGENT_DIR}/skills" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
-    echo "  Re-linked stack skills: $STACKS"
+    echo "  ✅ Re-linked stack skills: $STACKS"
   fi
 fi
 
@@ -189,4 +189,4 @@ fi
 # Done — adapter-specific finalization (settings.json / hooks.json /
 # mcp config / agent-spawn registries) is the caller's responsibility.
 # ---------------------------------------------------------------------------
-echo "  ${ADAPTER_LABEL}: hooks/rules/skills/commands linked under ${AGENT_DIR}/"
+echo "  ✅ ${ADAPTER_LABEL}: hooks/rules/skills/commands linked under ${AGENT_DIR}/"

@@ -396,6 +396,20 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         hook_files = [
             h for h in sorted(hooks_dir.glob("*.sh")) if h.name not in sourced
         ]
+        broken_symlinks = [
+            h.name for h in hook_files if h.is_symlink() and not h.exists()
+        ]
+        if broken_symlinks:
+            report.checks.append(
+                CheckResult(
+                    "C7", check_name, SEV_FAIL,
+                    f"broken hook symlinks: {', '.join(broken_symlinks[:5])}"
+                    + (f" (+{len(broken_symlinks) - 5} more)" if len(broken_symlinks) > 5 else "")
+                    + " — run: cos install",
+                    {"broken_symlinks": broken_symlinks},
+                )
+            )
+            return
         non_exec = [h.name for h in hook_files if not (h.stat().st_mode & 0o111)]
         if non_exec:
             report.checks.append(
@@ -1723,13 +1737,15 @@ def _format_text(report: DoctorReport, *, strict: bool) -> str:
     )
     lines = [header]
     for c in report.checks:
-        badge = {"PASS": "[PASS]", "WARN": "[WARN]", "FAIL": "[FAIL]"}[c.severity]
+        badge = {"PASS": "✅", "WARN": "⚠️ ", "FAIL": "❌"}[c.severity]
         lines.append(f"{badge} {c.id} {c.name:24s} {c.message}")
     s = report.summary()
     lines.append("-" * 60)
+    exit_code = report.exit_code(strict=strict)
+    status_icon = "✅" if exit_code == 0 else "❌"
     lines.append(
-        f"Summary: {s['pass']} PASS, {s['warn']} WARN, {s['fail']} FAIL "
-        f"(exit={report.exit_code(strict=strict)})"
+        f"{status_icon} Summary: {s['pass']} PASS, {s['warn']} WARN, {s['fail']} FAIL "
+        f"(exit={exit_code})"
     )
     return "\n".join(lines)
 

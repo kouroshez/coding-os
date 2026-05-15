@@ -148,7 +148,7 @@ def add_check_c18(report: "DoctorReport", state_dir: Path) -> None:
         report.checks.append(
             CheckResult(
                 "C19", "graph_backend_probe", SEV_WARN,
-                f"backend probe stale (age={age}s)",
+                f"backend probe stale (age={age}s) — run: cos graph-reindex",
                 probe,
             )
         )
