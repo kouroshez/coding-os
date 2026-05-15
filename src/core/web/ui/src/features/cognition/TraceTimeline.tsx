@@ -236,11 +236,18 @@ function SessionOnlyView({
           </dl>
         )}
         <p className="mt-4 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3 text-[11px] text-[var(--cos-muted)]">
-          cognition trace events are written to{' '}
-          <code>.coding-os/{agent ?? '&lt;agent&gt;'}/traces/{sessionId}.jsonl</code> by
-          MCP cognition tools (<code>cos_analyze_task</code>, <code>cos_compose_chain</code>,{' '}
-          <code>cos_supervise_record_output</code>, <code>cos_backtrack_log</code>).
-          this session hasn't fired one yet — hooks alone don't seed the trace.
+          this tab is scoped to <strong>cognition events</strong> only — they are
+          written to <code>.coding-os/{agent ?? '&lt;agent&gt;'}/traces/{sessionId}.jsonl</code>{' '}
+          by four MCP tools: <code>cos_analyze_task</code>,{' '}
+          <code>cos_compose_chain</code>, <code>cos_supervise_record_output</code>,{' '}
+          <code>cos_backtrack_log</code>.
+          {' '}an empty list is <strong>normal</strong> for retrieval-only or pure
+          edit sessions — file edits, board ops, and graph queries do not seed
+          cognition traces by design.
+          {' '}for general agent activity see{' '}
+          <code>cos hooks-log --follow</code>, the activity log{' '}
+          <code>.coding-os/.cos.log</code>, or the upcoming{' '}
+          <strong>Logs</strong> tab.
         </p>
       </div>
     </div>
