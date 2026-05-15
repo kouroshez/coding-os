@@ -55,22 +55,17 @@ _SCHEMA_VERSION_MIN = 7
 
 
 def _setup_logging(verbose: bool = False) -> None:
+    from core.logging_os import setup as _logging_os_setup
+
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG if verbose else logging.INFO)
+    _logging_os_setup(level="debug" if verbose else "info")
 
     fmt = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s")
-
     fh = logging.handlers.RotatingFileHandler(
         _LOG_FILE, maxBytes=100_000, backupCount=10
     )
     fh.setFormatter(fmt)
-    root.addHandler(fh)
-
-    sh = logging.StreamHandler(sys.stderr)
-    sh.setFormatter(fmt)
-    sh.setLevel(logging.DEBUG if verbose else logging.WARNING)
-    root.addHandler(sh)
+    logging.getLogger().addHandler(fh)
 
 
 logger = logging.getLogger("codingos.scheduled.nightly")

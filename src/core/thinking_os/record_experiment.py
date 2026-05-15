@@ -21,10 +21,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from database import DEFAULT_DB_PATH, get_connection
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+from core.logging_os import setup as _logging_os_setup
+
+_logging_os_setup(level="info")
 logger = logging.getLogger("thinking_os.experiment")
 
 

@@ -62,11 +62,9 @@ def _compute_session_duration(conn, session_id: str) -> int | None:
     delta = datetime.now(timezone.utc) - start_dt
     return max(0, int(delta.total_seconds() // 60))
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    stream=sys.stderr,
-)
+from core.logging_os import setup as _logging_os_setup
+
+_logging_os_setup(level="info")
 logger = logging.getLogger("thinking_os.session_summary")
 
 

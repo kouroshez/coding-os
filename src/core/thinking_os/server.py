@@ -24,25 +24,21 @@ from database import get_db_stats, init_db
 from tools._shared import fail, ok, safe_tool
 
 # ---------------------------------------------------------------------------
-# Logging
+# Logging — central via core.logging_os; .mcp.log retained as MCP-specific sink.
 # ---------------------------------------------------------------------------
-_LOG_FORMAT = "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
-logging.basicConfig(
-    level=logging.INFO,
-    format=_LOG_FORMAT,
-    stream=sys.stderr,  # MCP stdio uses stdout for protocol — logs go to stderr
-)
+from core.logging_os import setup as _logging_os_setup
+
+_logging_os_setup(level="info")
 logger = logging.getLogger("thinking_os")
 
-# Mirror to .coding-os/.mcp.log so `cos tail` can show MCP activity.
-# Fail-open: if the path is unwritable, MCP boot must continue.
+_LOG_FORMAT = "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
 try:
     _state_dir = Path(os.environ.get("COS_STATE_DIR") or ".coding-os")
     _state_dir.mkdir(parents=True, exist_ok=True)
     _file_handler = logging.FileHandler(_state_dir / ".mcp.log", mode="a", encoding="utf-8")
     _file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
     logging.getLogger().addHandler(_file_handler)
-except OSError as _exc:  # noqa: BLE001 — boot must not fail on log mirror
+except OSError as _exc:
     logger.debug("mcp log file mirror unavailable: %s", _exc)
 
 # ---------------------------------------------------------------------------

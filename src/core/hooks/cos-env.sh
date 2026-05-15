@@ -422,24 +422,10 @@ cos_one_shot_override() {
     } 2>/dev/null || true
   }
 
-  # 1. Unified registry — preferred path. Use python (already a hard dep) for safe JSON ops.
-  if [[ -f "$reg" ]] && command -v python3 >/dev/null 2>&1; then
-    if python3 - "$reg" "$key" >/dev/null 2>&1 <<'PY'
-import json, sys
-from pathlib import Path
-p = Path(sys.argv[1])
-key = sys.argv[2]
-try:
-    data = json.loads(p.read_text())
-except Exception:
-    sys.exit(1)
-if not isinstance(data, dict) or key not in data:
-    sys.exit(1)
-del data[key]
-p.write_text(json.dumps(data, indent=2) + "\n")
-sys.exit(0)
-PY
-    then
+  local consume_helper
+  consume_helper="$(dirname "${BASH_SOURCE[0]}")/_helpers/consume_override.py"
+  if [[ -f "$reg" ]] && command -v python3 >/dev/null 2>&1 && [[ -f "$consume_helper" ]]; then
+    if python3 "$consume_helper" "$reg" "$key" >/dev/null 2>&1; then
       _audit "registry"
       return 0
     fi
@@ -460,6 +446,124 @@ PY
   fi
 
   return 1
+}
+
+# ---------------------------------------------------------------------------
+# cos_say <level> <scope> <msg> [k=v ...] — shell parity for logging_os.
+#
+# Schema mirrors src/core/logging_os/ (docs/engineering/logging_os.md).
+# Three renders auto-detected from env + isatty(stderr); fans out to stderr,
+# $COS_LOG_FILE (always short text), and ${COS_LOG_FILE}.jsonl (always json).
+# Fail-open: never aborts the parent hook on logging failure.
+# ---------------------------------------------------------------------------
+cos_say() {
+  local level scope msg
+  level="${1:-info}"
+  scope="${2:-shell.unknown}"
+  msg="${3:-}"
+  shift 3 2>/dev/null || true
+  level="$(echo "$level" | tr '[:lower:]' '[:upper:]')"
+  local level_value=20
+  case "$level" in
+    DEBUG) level_value=10 ;;
+    INFO)  level_value=20 ;;
+    OK)    level_value=21 ;;
+    WARN)  level_value=30 ;;
+    ERROR) level_value=40 ;;
+    FATAL) level_value=50 ;;
+    *) level="INFO"; level_value=20 ;;
+  esac
+
+  local floor_name floor_value=20
+  floor_name="$(echo "${COS_LOG_LEVEL:-info}" | tr '[:lower:]' '[:upper:]')"
+  case "$floor_name" in
+    DEBUG) floor_value=10 ;;
+    INFO)  floor_value=20 ;;
+    OK)    floor_value=21 ;;
+    WARN)  floor_value=30 ;;
+    ERROR) floor_value=40 ;;
+    FATAL) floor_value=50 ;;
+  esac
+  if [[ "$level_value" -lt "$floor_value" ]]; then
+    return 0
+  fi
+
+  local kv=""
+  if [[ $# -gt 0 ]]; then
+    kv="$*"
+  fi
+
+  local mode
+  if [[ "${COS_LOG_JSON:-}" == "1" ]]; then
+    mode="json"
+  elif [[ "${COS_LOG_FORCE_PRETTY:-}" == "1" ]]; then
+    mode="pretty"
+  elif [[ -n "${NO_COLOR:-}" ]]; then
+    mode="short"
+  elif [[ -t 2 ]]; then
+    mode="pretty"
+  else
+    mode="short"
+  fi
+
+  local ts_iso ts_short
+  ts_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "")"
+  ts_short="$(date -u +%H:%M:%S 2>/dev/null || echo "")"
+
+  local emoji="" color="" reset=""
+  case "$level" in
+    DEBUG) emoji="🔍 "; color=$'\e[90m' ;;
+    INFO)  emoji="ℹ️  "; color=$'\e[36m' ;;
+    OK)    emoji="✅"; color=$'\e[32m' ;;
+    WARN)  emoji="⚠️  "; color=$'\e[33m' ;;
+    ERROR) emoji="❌"; color=$'\e[31m' ;;
+    FATAL) emoji="💀"; color=$'\e[1;31m' ;;
+  esac
+  reset=$'\e[0m'
+
+  local level_padded
+  level_padded="$(printf '%-5s' "$level")"
+  local short_line="${ts_short} ${level_padded} ${scope} ${msg}"
+  [[ -n "$kv" ]] && short_line="${short_line} ${kv}"
+
+  local helper
+  helper="$(dirname "${BASH_SOURCE[0]}")/_helpers/cos_say_json.py"
+  local json_line=""
+  if command -v python3 >/dev/null 2>&1 && [[ -f "$helper" ]]; then
+    json_line="$(python3 "$helper" "$ts_iso" "$level" "$scope" "$msg" "$kv" 2>/dev/null || true)"
+  fi
+
+  local stderr_line
+  case "$mode" in
+    pretty)
+      local pad
+      pad="$(printf '%-20s' "$scope")"
+      stderr_line="${emoji}  ${ts_short}  ${color}${level_padded}${reset}  ${pad}  ${msg}"
+      [[ -n "$kv" ]] && stderr_line="${stderr_line}  ${kv}"
+      ;;
+    json)
+      stderr_line="${json_line:-$short_line}"
+      ;;
+    *)
+      stderr_line="$short_line"
+      ;;
+  esac
+
+  printf '%s\n' "$stderr_line" >&2 2>/dev/null || true
+
+  local log_file="${COS_LOG_FILE:-${COS_STATE_DIR}/.cos.log}"
+  {
+    mkdir -p "$(dirname "$log_file")" 2>/dev/null
+    printf '%s\n' "$short_line" >> "$log_file"
+  } 2>/dev/null || true
+
+  if [[ -n "$json_line" ]]; then
+    {
+      printf '%s\n' "$json_line" >> "${log_file}.jsonl"
+    } 2>/dev/null || true
+  fi
+
+  return 0
 }
 
 cos_sanity_check() {

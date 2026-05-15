@@ -26,10 +26,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from database import DEFAULT_DB_PATH, get_connection, get_schema_version
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+from core.logging_os import setup as _logging_os_setup
+
+_logging_os_setup(level="info")
 logger = logging.getLogger("thinking_os.decay")
 
 CONFIDENCE_FLOOR = 0.1
