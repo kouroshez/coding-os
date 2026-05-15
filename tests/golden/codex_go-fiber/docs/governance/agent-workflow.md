@@ -78,7 +78,7 @@ Task and infrastructure scripts use standardized prefixes:
 
 ## Escalation Rules
 
-- Log contradictions and missing truth in `docs/questions.md`.
+- Log contradictions and missing truth in `docs/_meta/questions.md`.
 - Stop when product intent is not derivable from SSOT — never invent schema names, route shapes, or copy.
 - RETRY_LIMIT — second identical failure with no new evidence → `make task-block`.
 

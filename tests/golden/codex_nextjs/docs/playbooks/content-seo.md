@@ -4,7 +4,7 @@
 Purpose: Execute copy, metadata, and AI/SEO tasks with canonical message contracts and route-aware constraints.
 Read when: The task edits content specs, metadata, sitemap, robots, `llms.txt`, structured data, or AI-discovery files.
 Skip when: The task is purely backend domain logic or infrastructure.
-Read next: Exact content spec, `docs/PRD/04-information-architecture.md`, and `docs/architecture/10-blog-content-i18n.md`
+Read next: Exact content spec, `docs/prd/04-information-architecture.md`, and `docs/architecture/10-blog-content-i18n.md`
 
 > Nav: [Docs Index](../00-index.md) | [Content Specs Index](../pages-content-spec/00-index.md)
 

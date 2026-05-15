@@ -19,12 +19,12 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DOCTOR_CONFIG = REPO_ROOT / "core" / "doctor-config.yaml"
+DOCTOR_CONFIG = REPO_ROOT / "src" / "core" / "doctor-config.yaml"
 
 
 @pytest.mark.slow
 def test_expected_tables_match_live_db() -> None:
-    sys.path.insert(0, str(REPO_ROOT / "core" / "thinking_os"))
+    sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "thinking_os"))
     from database import MIGRATIONS, init_db  # type: ignore
 
     live_version = max(m[0] for m in MIGRATIONS)

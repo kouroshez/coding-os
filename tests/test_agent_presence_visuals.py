@@ -9,9 +9,9 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 # Backend source: the board.py enum.  We extract these from the union
 # in the AgentPresence type declaration in types.ts so the test fails
 # loudly if someone introduces a new state on one side only.
-_TYPES_TS = _REPO_ROOT / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "types.ts"
-_VISUALS_TS = _REPO_ROOT / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "agentPresenceVisuals.ts"
-_BOARD_PY = _REPO_ROOT / "core" / "web" / "routes" / "board.py"
+_TYPES_TS = _REPO_ROOT / "src" / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "types.ts"
+_VISUALS_TS = _REPO_ROOT / "src" / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "agentPresenceVisuals.ts"
+_BOARD_PY = _REPO_ROOT / "src" / "core" / "web" / "routes" / "board.py"
 
 
 def _extract_ts_union(path: Path) -> set[str]:

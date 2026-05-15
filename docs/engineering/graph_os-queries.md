@@ -76,7 +76,7 @@ that mentions a graph has a specific `cos_graph_*` call behind it:
 
 ## Skills
 
-- `graph-explorer` — the canonical entry skill (`core/skills/graph-explorer/SKILL.md`).
+- `graph-explorer` — the canonical entry skill (`src/core/skills/graph-explorer/SKILL.md`).
 - `codebase-explorer` — pairs with graph-explorer; codebase-explorer is
   better for conceptual reading, graph-explorer is better for
   symbol-precise lookups.

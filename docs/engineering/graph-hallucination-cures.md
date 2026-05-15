@@ -7,7 +7,7 @@
 > R: Routing decisions, post-mortem analysis, deciding when graph_os is
 >    cheaper than read+grep.
 > S: Designing new graph extractors. See `docs/engineering/graph_os-queries.md`.
-> N: [graph_os-queries.md](graph_os-queries.md), [graph-use-cases.md](graph-use-cases.md), [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+> N: [graph_os-queries.md](graph_os-queries.md), [graph-use-cases.md](graph-use-cases.md), [src/core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -38,7 +38,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 
 | # | Hallucination / blind-spot | Why it happens | Cure | Token win |
 |---|---|---|---|---|
-| 0 | "I'll pass a raw path to cos_graph_impact and expect results." | Tool accepts a `uid` parameter; raw paths like `core/foo.py` are NOT auto-resolved in most graph tools. | `cos_graph_resolve(q)` → get canonical uid → call target tool | One resolve (~100 tok) vs. repeated empty-result retries |
+| 0 | "I'll pass a raw path to cos_graph_impact and expect results." | Tool accepts a `uid` parameter; raw paths like `src/core/foo.py` are NOT auto-resolved in most graph tools. | `cos_graph_resolve(q)` → get canonical uid → call target tool | One resolve (~100 tok) vs. repeated empty-result retries |
 | 1 | "I'll grep for callers and hope the variants match." | Identifier appears as `foo`, `foo()`, `"foo"`, `foo_bar`, … | `cos_graph_references(uid)` | One call vs. 4 grep variants × Read of each hit |
 | 2 | "Renaming this will only affect this file." | Doc refs, test fixtures, string literals, error messages stay invisible to grep | `cos_graph_rename_plan(uid, new_name)` | Pre-classified rename targets vs. iterative grep cycles |
 | 3 | "I think this function is unused." | False — used reflectively, via decorator, or via dynamic dispatch | `cos_graph_references(uid)` returning `count=0` is the **only** authoritative dead-code signal | Avoids deleting load-bearing code (catastrophic miss) |
@@ -135,4 +135,4 @@ role's allowed tool list pins specific graph tools:
 | reviewer | `cos_graph_references`, `cos_graph_trace` |
 | security_auditor | `cos_graph_contracts`, `cos_graph_references` |
 
-Source of truth: `core/thinking_os/roles/*.yaml`.
+Source of truth: `src/core/thinking_os/roles/*.yaml`.

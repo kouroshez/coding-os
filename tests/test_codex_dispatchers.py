@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-HOOKS_DIR = REPO_ROOT / "adapters" / "codex" / "hooks"
+HOOKS_DIR = REPO_ROOT / "src" / "adapters" / "codex" / "hooks"
 
 PRETOOL = HOOKS_DIR / "codex-pretool-dispatch.sh"
 SESSIONSTART = HOOKS_DIR / "codex-sessionstart-dispatch.sh"

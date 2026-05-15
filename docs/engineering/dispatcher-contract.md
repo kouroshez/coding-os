@@ -29,7 +29,7 @@ need to know which runtime it is talking to.
 
 ## Contract Surface
 
-Defined in [core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py).
+Defined in [src/core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py).
 
 ### IO models
 
@@ -79,18 +79,18 @@ class AgentDispatcher(Protocol):
 
 ```
 ┌──────────────────────────────────────────┐
-│ core/thinking_os/dispatcher.py           │   agent-agnostic
+│ src/core/thinking_os/dispatcher.py           │   agent-agnostic
 │   • DispatchRequest / DispatchResult     │
 │   • AgentDispatcher Protocol             │
 │   • get_dispatcher() factory             │
-│ core/thinking_os/dispatcher_helpers.py   │
+│ src/core/thinking_os/dispatcher_helpers.py   │
 │   • load_agent_prompt()                  │
 │   • extract_json_block()                 │
 └─────────────────┬────────────────────────┘
                   │ importlib (path-based; no static link)
    ┌──────────────┼──────────────┬────────────┐
    ▼              ▼              ▼            ▼
-adapters/     adapters/      adapters/   core/thinking_os/
+src/adapters/     adapters/      adapters/   src/core/thinking_os/
 claude/       codex/         cursor/     dispatchers/
 sdk_dispatcher.py                        default.py
    │              │              │            │
@@ -105,7 +105,7 @@ re-implement what each SDK does (more code, more surface to break) or
 abstract over differences that do not exist as a real abstraction (in-proc
 async generator vs. subprocess vs. nothing). Hexagonal here gives us:
 
-- `core/` agent-agnostic (Rule 1)
+- `src/core/` agent-agnostic (Rule 1)
 - adapters self-contained (Principle P8)
 - new agents add a folder, not a switch statement
 
@@ -113,12 +113,12 @@ async generator vs. subprocess vs. nothing). Hexagonal here gives us:
 
 1. If `COS_FORCE_DEFAULT_DISPATCHER=1` → `DefaultDispatcher`. Tests use this.
 2. Detect agent from `COS_AGENT` env, then `COS_AGENT_DIR` folder name.
-3. Try to load `adapters/<agent>/sdk_dispatcher.py::build_dispatcher()`.
+3. Try to load `src/adapters/<agent>/sdk_dispatcher.py::build_dispatcher()`.
 4. Call `available()`; if `False`, fall through to `DefaultDispatcher`.
 5. `DefaultDispatcher.available()` is always `True` — last-resort path.
 
-The loader is `importlib.util.spec_from_file_location` so `core/` never has
-a static import on `adapters/`.
+The loader is `importlib.util.spec_from_file_location` so `src/core/` never has
+a static import on `src/adapters/`.
 
 ## Parity rules
 
@@ -135,18 +135,18 @@ Every adapter dispatcher MUST:
 
 ## Adding a new adapter dispatcher
 
-1. Create `adapters/<agent>/sdk_dispatcher.py`.
+1. Create `src/adapters/<agent>/sdk_dispatcher.py`.
 2. Import the contract + helpers from `thinking_os.*`.
 3. Implement a class with `name`, `available()`, and `async dispatch()`.
 4. Add `build_dispatcher() -> YourDispatcher`.
 5. Add a parity test in `tests/test_adapter_parity.py`.
-6. Update `adapters/<agent>/adapter.yaml` if presence/hook capabilities
-   change. No edits to `core/` are needed.
+6. Update `src/adapters/<agent>/adapter.yaml` if presence/hook capabilities
+   change. No edits to `src/core/` are needed.
 
 ## Tests
 
 | File                                              | What it covers                          |
 |---------------------------------------------------|-----------------------------------------|
-| `core/thinking_os/tests/test_dispatcher.py`       | Protocol shape, factory, default path   |
+| `src/core/thinking_os/tests/test_dispatcher.py`       | Protocol shape, factory, default path   |
 | `tests/test_codex_dispatchers.py`                 | Codex subprocess path                   |
 | `tests/test_adapter_parity.py`                    | Hook + dispatcher parity across agents  |

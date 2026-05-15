@@ -1,8 +1,8 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-06 -->
 # Scheduled Jobs
 
-Purpose: Canonical contract for the nightly maintenance pipeline — `core/scheduled/nightly.py` — and the optional CRON B agent (Claude Code `CronCreate`).
-Read when: Editing `core/scheduled/`, `core/web/routes/scheduled.py`, or `Makefile` cron targets.
+Purpose: Canonical contract for the nightly maintenance pipeline — `src/core/scheduled/nightly.py` — and the optional CRON B agent (Claude Code `CronCreate`).
+Read when: Editing `src/core/scheduled/`, `src/core/web/routes/scheduled.py`, or `Makefile` cron targets.
 Skip when: Investigating a one-off backfill that doesn't go through the scheduled pipeline.
 Read next: [hooks-reference.md](hooks-reference.md), [hub-architecture.md](hub-architecture.md)
 
@@ -23,23 +23,23 @@ Two jobs fix this:
 
 ## CRON A — nightly.py
 
-Entry point: `core/scheduled/nightly.py`
+Entry point: `src/core/scheduled/nightly.py`
 
 Install: `make cron-install` → writes plist to `~/Library/LaunchAgents/`, loads via `launchctl`.
 
 ### Tasks (ordered, per project)
 
-1. **decay** — `run_decay(db_path)` from `core/thinking_os/decay.py`
+1. **decay** — `run_decay(db_path)` from `src/core/thinking_os/decay.py`
    - Gate: `.last-decay` marker < 7 days → skip (session_enrich already ran)
    - Flock: `fcntl.flock` on marker → prevents double-decay race with session_enrich
    - Output: `{patterns_decayed, patterns_archived, skipped}`
 
-2. **learn_extract** — `learn_extract(conn)` from `core/thinking_os/tools/learning.py`
+2. **learn_extract** — `learn_extract(conn)` from `src/core/thinking_os/tools/learning.py`
    - Gate: `< 3` task_outcomes → skip; 0 new outcomes since `.last-extract` → skip
    - Idempotent: upsert on `(pattern, domain)` key, `max(confidence)`
    - Output: `{extracted: N, upserted, skipped}`
 
-3. **routing_recalc** — `recalculate_weights(conn)` from `core/thinking_os/tools/routing.py`
+3. **routing_recalc** — `recalculate_weights(conn)` from `src/core/thinking_os/tools/routing.py`
    - Gate: `routing_drift()` returns no drift → skip
    - Drift defined as: new outcomes added since `outcomes_at_recalc`
    - Output: `{weights_updated: N, skipped}`
@@ -148,5 +148,5 @@ make cron-run          # run once now (dry-run safe with DRY_RUN=1)
 make cron-b-setup      # print CronCreate invocation for user to approve
 ```
 
-Plist source: `core/scheduled/launchd/com.codingos.nightly.plist.template`.
+Plist source: `src/core/scheduled/launchd/com.codingos.nightly.plist.template`.
 Installed to: `~/Library/LaunchAgents/com.codingos.nightly.plist`.

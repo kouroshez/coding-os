@@ -85,7 +85,7 @@ class TestSkipMode:
         )
         assert result.exit_code == 0
         assert "Skipped" in result.output
-        prd_dir = project / "docs" / "PRD"
+        prd_dir = project / "docs" / "prd"
         # Only 00-index.md from scaffold
         assert [p.name for p in prd_dir.iterdir()] == ["00-index.md"]
 
@@ -100,7 +100,7 @@ class TestInteractiveMode:
             input="my vision\nkpi1,kpi2\nartisan\nsearch,checkout\n",
         )
         assert result.exit_code == 0, result.output
-        prd = project / "docs" / "PRD"
+        prd = project / "docs" / "prd"
         for name in (
             "01-snapshot-vision.md",
             "02-goals-kpis.md",
@@ -120,7 +120,7 @@ class TestInteractiveMode:
             ["setup", "--mode", "interactive", "-d", str(project)],
             input="vision1\n\n\n\n",
         )
-        vision_path = project / "docs" / "PRD" / "01-snapshot-vision.md"
+        vision_path = project / "docs" / "prd" / "01-snapshot-vision.md"
         original = vision_path.read_text()
         # Second run with different answers → should skip
         runner.invoke(
@@ -152,7 +152,7 @@ class TestImportPrdMode:
              "--yes", "-d", str(project)],
         )
         assert result.exit_code == 0, result.output
-        prd = project / "docs" / "PRD"
+        prd = project / "docs" / "prd"
         assert (prd / "01-snapshot-vision.md").exists()
         assert (prd / "02-goals-kpis.md").exists()
         assert (prd / "03-users-jobs.md").exists()
@@ -168,7 +168,7 @@ class TestImportPrdMode:
             ["setup", "--mode", "import-prd", "--source", str(source),
              "--yes", "-d", str(project)],
         )
-        vision = (project / "docs/PRD/01-snapshot-vision.md").read_text()
+        vision = (project / "docs/prd/01-snapshot-vision.md").read_text()
         assert "## Vision" in vision
         assert "A marketplace." in vision
 

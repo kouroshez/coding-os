@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-28 -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-13 -->
 # Critical Rules — Full Text
 
 Purpose: Canonical expansion of every numbered rule listed in `AGENTS.md` § Critical Rules. AGENTS.md keeps the 1-line summary; this file is the rationale + enforcement reference.
@@ -13,7 +13,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 ## Conventions
 
 - Every rule below uses the same 4-row structure: **Rule** · **Why** · **How (enforcement)** · **Where**.
-- “Hook” means a script under `core/hooks/` registered in `core/hooks/registry.yaml`; the renderer surfaces it in each adapter.
+- “Hook” means a script under `src/core/hooks/` registered in `src/core/hooks/registry.yaml`; the renderer surfaces it in each adapter.
 - Rule numbers are stable — never reorder, only append.
 
 ---
@@ -23,20 +23,20 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **Rule:** Every code `Write`/`Edit` must trace to a doc path recorded in `$COS_AGENT_DIR/.doc-anchor`.
 - **Why:** Code without a documented spec is technical debt the moment it merges. The anchor forces an answer to “which doc does this code implement?”.
 - **How:** Hook `enforce-doc-anchor.sh` (PreToolUse Write|Edit) blocks code writes when `.doc-anchor` is empty or stale.
-- **Where:** [core/hooks/enforce-doc-anchor.sh](../../../../core/hooks/enforce-doc-anchor.sh)
+- **Where:** [src/core/hooks/enforce-doc-anchor.sh](../../../../core/hooks/enforce-doc-anchor.sh)
 
 ## Rule 1 — Never hardcode `.claude/` in `core/`
 
 - **Rule:** Use `$COS_AGENT_DIR` (per-agent), `$COS_STATE_DIR` (shared), `$COS_DB_PATH`. Session-id at `$COS_AGENT_DIR/session-id`. Sid string format: `ses-{agent}-YYYYMMDD-…`.
 - **Why:** `.claude/` is one of N adapter dirs (`.codex/`, `.cursor/`, …). Hardcoding breaks adapter parity (P2).
-- **How:** Hook `block-bad-patterns.sh` greps `core/**` for `.claude/`. Adapter resolves env at session start via `core/hooks/cos-env.sh`.
-- **Where:** [core/hooks/cos-env.sh](../../../../core/hooks/cos-env.sh)
+- **How:** Hook `block-bad-patterns.sh` greps `src/core/**` for `.claude/`. Adapter resolves env at session start via `src/core/hooks/cos-env.sh`.
+- **Where:** [src/core/hooks/cos-env.sh](../../../../core/hooks/cos-env.sh)
 
 ## Rule 2 — MCP tool names use `cos_*` prefix
 
 - **Rule:** Every public MCP tool exposed by thinking_os/graph_os/board_os is named `cos_<verb>_<noun>` (e.g. `cos_doc_search`, `cos_task_create`).
 - **Why:** Single namespace; consumer projects can grep one prefix; MCP clients can filter.
-- **How:** Tests in `core/thinking_os/tests/test_tool_naming.py` reject non-prefixed exports.
+- **How:** Tests in `src/core/thinking_os/tests/test_tool_naming.py` reject non-prefixed exports.
 - **Where:** [docs/governance/mcp-tool-inventory.md](mcp-tool-inventory.md)
 
 ## Rule 3 — Hooks source `cos-env.sh`
@@ -44,63 +44,63 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **Rule:** Every hook starts with `source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true`.
 - **Why:** Resolves `$COS_*` env vars once. Removes per-hook env discovery code.
 - **How:** Hook `verify-hook-shape.sh` rejects new hooks missing the source line.
-- **Where:** [core/hooks/cos-env.sh](../../../../core/hooks/cos-env.sh)
+- **Where:** [src/core/hooks/cos-env.sh](../../../../core/hooks/cos-env.sh)
 
 ## Rule 4 — Scripts search config chain
 
 - **Rule:** Lookup order is `$COS_STATE_DIR/domain-config.json` → `infrastructure/scripts/domain-config.json`.
 - **Why:** Per-project state wins; repo defaults fall back. Same file shape in both locations.
-- **How:** Helper `core/hooks/find-config.sh` encodes the chain. Scripts call it; never reinvent the lookup.
-- **Where:** [core/hooks/find-config.sh](../../../../core/hooks/find-config.sh)
+- **How:** Helper `src/core/hooks/find-config.sh` encodes the chain. Scripts call it; never reinvent the lookup.
+- **Where:** [src/core/hooks/find-config.sh](../../../../core/hooks/find-config.sh)
 
 ## Rule 5 — Path resolution: `.resolve()` before `.relative_to()`
 
 - **Rule:** On macOS `/tmp` symlinks to `/private/tmp`; relative-path math without `.resolve()` raises `ValueError`.
 - **Why:** Subtle CI breakage; tests pass on Linux, fail on macOS.
 - **How:** Pylint custom rule `cos-path-resolve` flags `Path(...).relative_to(...)` without preceding `.resolve()`.
-- **Where:** [core/thinking_os/utils/paths.py](../../../../core/thinking_os/utils/paths.py)
+- **Where:** [src/core/thinking_os/utils/paths.py](../../../../core/thinking_os/utils/paths.py)
 
 ## Rule 6 — Fire-and-forget needs explicit exception handling
 
 - **Rule:** Background work uses an `_<name>_safe()` wrapper with `except Exception as exc: logger.debug("…", exc_info=exc)`. Bare `except: pass` is rejected.
 - **Why:** Silent swallows hide bugs; `logger.debug` keeps the stack trace recoverable without spamming.
 - **How:** Hook `block-bad-patterns.sh` rejects bare `except` in any `_safe()` helper.
-- **Where:** [core/thinking_os/tools/_shared.py](../../../../core/thinking_os/tools/_shared.py)
+- **Where:** [src/core/thinking_os/tools/_shared.py](../../../../core/thinking_os/tools/_shared.py)
 
 ## Rule 7 — Governance edits require explicit task name
 
-- **Rule:** Edits to `AGENTS.md`, `.coding-os/`, `core/rules/`, `core/hooks/` require the active task to mention `docs-update` or `governance` in title or labels.
+- **Rule:** Edits to `AGENTS.md`, `.coding-os/`, `src/core/rules/`, `src/core/hooks/` require the active task to mention `docs-update` or `governance` in title or labels.
 - **Why:** Governance drift is the most expensive drift to undo; every change must be auditable to a task.
 - **How:** Hook `block-protected-files.sh` reads the active TASK title/labels and refuses unauthorized edits.
-- **Where:** [core/hooks/block-protected-files.sh](../../../../core/hooks/block-protected-files.sh)
+- **Where:** [src/core/hooks/block-protected-files.sh](../../../../core/hooks/block-protected-files.sh)
 
 ## Rule 8 — Multi-step verification = Python, never bash heredoc inside `$(...)` with `uv run`
 
 - **Rule:** Write a `.py` file and call `subprocess.run([...], timeout=N)`. Do not pipe a heredoc into `uv run python -`.
 - **Why:** Bash 5.3.9 + `uv run` + heredoc = silent deadlock. Documented incident: hook-startup hang, 2026-03.
 - **How:** Hook `block-uv-heredoc.sh` rejects the pattern at PreToolUse Bash.
-- **Where:** [scripts/verify_phase_c_e2e.py](../../../../scripts/verify_phase_c_e2e.py)
+- **Where:** [src/scripts/verify_phase_c_e2e.py](../../../../scripts/verify_phase_c_e2e.py)
 
 ## Rule 9 — Schema migrations are append-only
 
 - **Rule:** New tables → migration `vN+1`. Never edit a past migration’s body.
 - **Why:** Migrations run once per consumer DB; editing the past silently diverges schemas.
-- **How:** Hook `block-migration-conflict.sh` rejects duplicate version numbers in `core/thinking_os/database.py`.
-- **Where:** [core/thinking_os/database.py](../../../../core/thinking_os/database.py)
+- **How:** Hook `block-migration-conflict.sh` rejects duplicate version numbers in `src/core/thinking_os/database.py`.
+- **Where:** [src/core/thinking_os/database.py](../../../../core/thinking_os/database.py)
 
 ## Rule 10 — Regenerate derived artifacts
 
 - **Rule:** Edit source, then run `make regen-rules` + `make manifest-regen` + `make regen-adapter-templates`. Never hand-edit derived files.
-- **Why:** `core/scaffold_manifest.json`, `core/rules/dimension-registry.md`, `core/rules/skill-enforcement.md`, `adapters/{claude,codex}/*.template.*`, `tests/golden/**` are generated.
+- **Why:** `src/core/scaffold_manifest.json`, `src/core/rules/dimension-registry.md`, `src/core/rules/skill-enforcement.md`, `adapters/{claude,codex}/*.template.*`, `tests/golden/**` are generated.
 - **How:** Hook `regen-reminder.sh` (PostToolUse Write|Edit on source files) prints the regen command. `warn-template-drift.sh` flags hand-edits to derived files.
 - **Where:** [Makefile](../../../../Makefile)
 
-## Rule 11 — No hardcoded stack/adapter literals in `cli/*.py`
+## Rule 11 — No hardcoded stack/adapter literals in `src/cli/*.py`
 
-- **Rule:** No quoted `"django"` / `"claude"` strings in CLI code. Read from `templates/<stack>/stack.yaml` / `adapters/<agent>/adapter.yaml`.
+- **Rule:** No quoted `"django"` / `"claude"` strings in CLI code. Read from `src/templates/<stack>/stack.yaml` / `src/adapters/<agent>/adapter.yaml`.
 - **Why:** Adding a new stack/adapter must be a yaml change, never a code change.
-- **How:** Hook `block-hardcoded-literals.sh` greps `cli/*.py`. Test `tests/test_no_hardcoded_stacks.py` enforces in CI.
-- **Where:** [cli/main.py](../../../../cli/main.py)
+- **How:** Hook `block-hardcoded-literals.sh` greps `src/cli/*.py`. Test `tests/test_no_hardcoded_stacks.py` enforces in CI.
+- **Where:** [src/cli/main.py](../../../../cli/main.py)
 
 ## Rule 12 — Comments by exception, not by default
 
@@ -121,42 +121,42 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **How:** No automated enforcement (was never in any active hook). Code
   review rejects new PURPOSE/INPUT/OUTPUT blocks; `block-bad-patterns.sh`
   already blocks bare `except: pass`-style noise.
-- **Where:** [core/skills/clean-code/SKILL.md](../../../../core/skills/clean-code/SKILL.md) §Self-Documenting
+- **Where:** [src/core/skills/clean-code/SKILL.md](../../../../core/skills/clean-code/SKILL.md) §Self-Documenting
 
 ## Rule 13 — MCP tool response envelope
 
 - **Rule:** Every `cos_*` tool returns via `ok(data)` / `fail(category, message)`. Wrapped in `@safe_tool`. Categories: `transient | validation | permission | not_found | unavailable | internal`.
 - **Why:** Single-shape envelope means clients can parse without per-tool branching; categories drive retry vs. abort.
-- **How:** Test `core/thinking_os/tests/test_envelope.py` rejects non-conforming returns.
-- **Where:** [core/thinking_os/tools/_shared.py](../../../../core/thinking_os/tools/_shared.py) · contract: [docs/engineering/mcp-error-envelope.md](../engineering/mcp-error-envelope.md)
+- **How:** Test `src/core/thinking_os/tests/test_envelope.py` rejects non-conforming returns.
+- **Where:** [src/core/thinking_os/tools/_shared.py](../../../../core/thinking_os/tools/_shared.py) · contract: [docs/engineering/mcp-error-envelope.md](../engineering/mcp-error-envelope.md)
 
 ## Rule 14 — Tasks are pointers, not specs
 
-- **Rule:** `docs/tasks/TASK-NNN-slug.md` MUST NOT inline content already in `docs/**` / `core/rules/**` / `AGENTS.md`. Four orthogonal axes: `swimlane` · `kind` (8-value enum) · `epic` · `labels` (never kind values).
+- **Rule:** `docs/tasks/TASK-NNN-slug.md` MUST NOT inline content already in `docs/**` / `src/core/rules/**` / `AGENTS.md`. Four orthogonal axes: `swimlane` · `kind` (8-value enum) · `epic` · `labels` (never kind values).
 - **Why:** Tasks rot; canonical docs are reviewed. Inlining causes silent divergence.
 - **How:** Hook `lint-task.sh` warns >1.5k tokens, blocks >3k. `cos task-validate` rejects label values that collide with kind enum.
-- **Where:** [core/board_os/parser.py](../../../../core/board_os/parser.py)
+- **Where:** [src/core/board_os/parser.py](../../../../core/board_os/parser.py)
 
 ## Rule 15 — Role chain composed for COMPLICATED+ tasks
 
 - **Rule:** Call `cos_compose_chain(signals)`; result written to `.coding-os/<agent>/.roles` + `.role`. Roles ARE the 11 formulas, addressed by semantic id: `researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer`.
 - **Why:** Hard problems need a sequenced chain of formulas. Composing once at task start avoids mid-task formula thrash.
-- **How:** Routing yaml at `core/thinking_os/roles/`, prompts at `core/thinking_os/agents/`. Source spec citation `Formula 1..11` retained only in `formulas-en.md`.
-- **Where:** [core/thinking_os/roles/](../../../../core/thinking_os/roles/) · [core/thinking_os/agents/](../../../../core/thinking_os/agents/)
+- **How:** Routing yaml at `src/core/thinking_os/roles/`, prompts at `src/core/thinking_os/agents/`. Source spec citation `Formula 1..11` retained only in `formulas-en.md`.
+- **Where:** [src/core/thinking_os/roles/](../../../../core/thinking_os/roles/) · [src/core/thinking_os/agents/](../../../../core/thinking_os/agents/)
 
 ## Rule 16 — Formula dispatch produces typed EvidenceBundle
 
 - **Rule:** Every formula records via `cos_supervise_record_output(formula_id, output_json)` matching the formula’s `output_schema` Pydantic model.
 - **Why:** Without a typed output, multi-formula chains can’t verify hand-off correctness; supervisor can’t replay.
 - **How:** `cos_supervise` validates the JSON against the formula schema before storing.
-- **Where:** [core/thinking_os/dispatchers/](../../../../core/thinking_os/dispatchers/)
+- **Where:** [src/core/thinking_os/dispatchers/](../../../../core/thinking_os/dispatchers/)
 
 ## Rule 17 — Situational Paths override role chain
 
 - **Rule:** When `.coding-os/<agent>/.situation` is set, the situational path wins over the composed role chain. Six situations: `incident-response · onboarding · scope-change · external-integration · design-review · existing-project-takeover`.
 - **Why:** “Production is on fire” needs a different sequence than a feature build, even if the dimensions look similar.
 - **How:** Dispatcher reads `.situation` before `.roles`.
-- **Where:** [core/thinking_os/situations/](../../../../core/thinking_os/situations/)
+- **Where:** [src/core/thinking_os/situations/](../../../../core/thinking_os/situations/)
 
 ## Rule 18 — Task reconciliation is mandatory before implementation
 
@@ -170,21 +170,28 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **Rule:** If the doc says “registration takes username, password, name”, do NOT add a `birthdate` field because it “feels needed”. Edit the doc first, then the code.
 - **Why:** Code-first changes silently extend the contract; consumers read the doc, not the diff.
 - **How:** Pair: Rule 0 anchors new code TO a doc going IN; `enforce-doc-sync.sh` (PostToolUse Write|Edit|MultiEdit) surfaces docs that drifted going OUT — three signals: (a) symbol removed/renamed + doc still mentions it, (b) signature changed (param-count diff), (c) doc mtime older than code AND mentions a current symbol. Collaborates with thinking_os FTS5 index for accurate doc lookup + graph_os `cos_graph_references` for impact context. WARN class — agent must act.
-- **Where:** [core/hooks/enforce-doc-sync.sh](../../../../core/hooks/enforce-doc-sync.sh)
+- **Where:** [src/core/hooks/enforce-doc-sync.sh](../../../../core/hooks/enforce-doc-sync.sh)
 
 ## Rule 20 — Test discipline: matrix command only, never broad sweep mid-task
 
 - **Rule:** `pytest tests/ -q` runs 743 integration tests (~6 min). Match changed files → matrix command (15s–90s) per [test-discipline.md](../../../../core/rules/test-discipline.md). Full sweep is permitted **only** pre-merge/release, cross-cutting refactor touching ≥3 matrix rows, or when the user explicitly asks. Single-test debug: `pytest path::TestClass::test_name -v` before re-running the file.
 - **Why:** Six minutes per change × N iterations = the user waits and productivity dies.
-- **How:** Convention + Rule. SSOT is `core/rules/test-discipline.md`; AGENTS.md § Verification Matrix mirrors it.
-- **Where:** [core/rules/test-discipline.md](../../../../core/rules/test-discipline.md)
+- **How:** Convention + Rule. SSOT is `src/core/rules/test-discipline.md`; AGENTS.md § Verification Matrix mirrors it.
+- **Where:** [src/core/rules/test-discipline.md](../../../../core/rules/test-discipline.md)
 
 ## Rule 21 — Never use `isolation: "worktree"` in this repo
 
 - **Rule:** Subagent dispatch is allowed **only** for read-only research / inventory / verification (Agent tool without `isolation`). Write work runs single-agent on the main working tree. Never pass `isolation: "worktree"` to the Agent tool.
 - **Why:** Past worktree runs left orphaned `.claude/worktrees/<slug>/` plus locked `worktree-*` branches with broken `.git` links — required manual `find .git/worktrees/...` cleanup and deadlocked sessions.
-- **How:** Convention. The `worktree-orchestration` skill has been removed from `core/skills/` and `templates/_base/base.yaml`. Reviewers reject re-introduction.
+- **How:** Convention. The `worktree-orchestration` skill has been removed from `src/core/skills/` and `src/templates/_base/base.yaml`. Reviewers reject re-introduction.
 - **Where:** [AGENTS.md](../../AGENTS.md) § Critical Rules
+
+## Rule 22 — Anti-overengineering
+
+- **Rule:** Solve the problem in front of you with the smallest correct change. Reuse what exists, do not speculate, do not duplicate. Five sub-rules: (1) **Reuse-First** — search graph / docs / grep before writing anything; (2) **No-Speculation** — build only what the current task requires, no "might need it later"; (3) **Diff-Minimal** — smallest correct change, bug-fix-only commits, no ride-along refactors; (4) **No-Premature-Abstraction (Rule of Three)** — extract only when three divergent call sites need it; (5) **Defer-by-Default** — ask "what can I remove?" at task close. Applies to **every artifact** — code, docs, hooks, skills, templates, tests, CLI, configs.
+- **Why:** Every line written is paid for forever. Over-engineering grows surface area, hides intent, slows review, and trains the next agent that bloat is the house pattern. In an enterprise codebase the cumulative cost dominates any single addition.
+- **How:** Convention — automated detection is too false-positive-prone (numeric thresholds, abstraction counts, file additions). Enforcement is the reality-check matrix in the rule body, code review, and `cos_search` observations that surface prior incidents. Tactical instances (no abbreviations, no magic numbers, no positional booleans, nesting ≤ 2) are enforced through the `clean-code` skill.
+- **Where:** [src/core/rules/anti-overengineering.md](../../core/rules/anti-overengineering.md). Cross-links: [api-contract-discipline.md](../../core/rules/api-contract-discipline.md), [test-discipline.md](../../core/rules/test-discipline.md), [clean-code skill](../../core/skills/clean-code/SKILL.md).
 
 ---
 
@@ -214,3 +221,4 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 19 | Docs are contract | enforce-doc-sync.sh |
 | 20 | Test discipline | (none — convention) |
 | 21 | No worktree isolation | (none — convention) |
+| 22 | Anti-overengineering | (none — convention; clean-code skill for tactical) |

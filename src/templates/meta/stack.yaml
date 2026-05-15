@@ -1,0 +1,112 @@
+version: 1
+id: meta
+label: "Coding OS Meta-Project (DNA)"
+category: library
+primary_skill: graph-explorer
+# Stack-scoped skills declared by src/templates/meta/skills/. The auto-linker
+# (src/core/scripts/link-stack-skills.sh) symlinks these into every adapter's
+# skills dir when this stack is in .coding-os.yaml::templates. Universal
+# skills (clean-code, search, codebase-explorer, etc) come from
+# src/core/skills/ and are linked unconditionally — they aren't repeated here.
+skills: [graph-explorer, meta-engineering, python-meta-server, react-vite-hub, claude-sdk-integration, thinking_os, clean-code, codebase-explorer, search, mcp-tool-authoring, hook-authoring, graph-os-authoring, task-driver, testing-strategy, observability, deployment-cicd, incident-response, llm-patterns, agent-memory]
+
+# Substitutions injected into AGENTS.md / CLAUDE.md when the meta stack
+# is installed. Library-category stacks may omit verify keys; meta keeps
+# them aligned with the live verification matrix in AGENTS.md.
+substitutions:
+  STACK: "Meta (Python + Shell + Markdown)"
+  DOMAIN_ROUTES: "Meta-project edit → `docs/architecture/meta-project.md` § Layer routing"
+  SKILL_ROUTES: "src/core/**/*.py, src/cli/**/*.py, src/adapters/**/*.py → `graph-explorer` + `clean-code` + `thinking_os`"
+  ENGINEERING_RULE_ROUTING: |-
+    src/core/thinking_os/** → `docs/engineering/mcp-error-envelope.md`, `docs/engineering/graph_os-queries.md`
+    src/core/graph_os/**     → `docs/engineering/graph_os-queries.md`, `docs/engineering/graph-hallucination-cures.md`
+    src/core/hooks/**        → `docs/engineering/hook-authoring.md` (when present), `src/core/hooks/registry.yaml`
+    src/cli/**               → `docs/engineering/cli-architecture.md` (when present)
+    src/adapters/**          → `docs/adapters/<id>.md`
+    src/templates/**         → `docs/architecture/meta-project.md` § Templates
+  TOOL_ROUTING_IMPL: "`make verify`, `make verify-hooks`, `make test-mcp`, `make regen-rules`, `make regen-adapter-templates`, `make dogfood-full`"
+  VERIFY_BACKEND_GLOB: "(meta — uses Verification Matrix in AGENTS.md)"
+  VERIFY_BACKEND_SUITES: "matrix-targeted only (never full sweep mid-task)"
+  VERIFY_BACKEND: "see AGENTS.md § Verification Matrix"
+  QUICK_ROUTING: |-
+    - Meta-project change (core/, cli/, adapters/, templates/) → `docs/architecture/meta-project.md`
+    - Graph-aware structural query → `Skill graph-explorer` + relevant `cos_graph_*`
+    - COMPLICATED+ task → `Skill thinking_os` + `cos_compose_chain`
+  STACK_REF_CODES: |-
+    - `REF:META-PROJECT`           → `./architecture/meta-project.md`
+    - `REF:GRAPH-QUERIES`          → `./engineering/graph_os-queries.md`
+    - `REF:GRAPH-HALLUCINATIONS`   → `./engineering/graph-hallucination-cures.md`
+    - `REF:MCP-ENVELOPE`           → `./engineering/mcp-error-envelope.md`
+    - `REF:HOOK-REGISTRY`          → `../core/hooks/registry.yaml`
+
+ref_codes:
+  - {code: "REF:META-PROJECT",         path: "./architecture/meta-project.md",         desc: "Meta-project layered architecture"}
+  - {code: "REF:GRAPH-QUERIES",        path: "./engineering/graph_os-queries.md",      desc: "Graph query routing"}
+  - {code: "REF:GRAPH-HALLUCINATIONS", path: "./engineering/graph-hallucination-cures.md", desc: "Graph hallucination cures"}
+  - {code: "REF:MCP-ENVELOPE",         path: "./engineering/mcp-error-envelope.md",    desc: "MCP error envelope contract"}
+
+routing_entries:
+  - "Meta-project change (core/, cli/, adapters/, templates/) → [Meta-Project Architecture](./architecture/meta-project.md)"
+  - "Structural code question (callers, blast radius, rename) → `Skill graph-explorer` + `cos_graph_*`"
+  - "COMPLICATED+ task → `Skill thinking_os` + `cos_compose_chain`"
+
+# Rule glob is the same shape django uses — fnmatch-style. The agent
+# editor matches against repo-relative paths.
+rules:
+  - {file: rules/meta-engineering.md, globs: ["src/core/**/*.py", "src/cli/**/*.py", "src/adapters/**/*.py", "src/core/hooks/*.sh", "src/core/hooks/_helpers/*.py", "src/core/scripts/*.sh"]}
+  - {file: rules/mcp-tool-author.md,  globs: ["src/core/thinking_os/tools/*.py", "src/core/graph_os/tools/*.py", "src/core/board_os/mcp_tools.py", "src/core/web/routes/*.py"]}
+  - {file: rules/hook-author.md,      globs: ["src/core/hooks/*.sh", "src/core/hooks/_helpers/*.py", "src/core/hooks/registry.yaml"]}
+  - {file: rules/graph-first.md,      globs: ["src/core/**/*.py", "src/cli/**/*.py", "src/adapters/**/*.py", "src/templates/**/stack.yaml", "src/core/hooks/registry.yaml"]}
+
+# Dimensions feed src/core/rules/dimension-registry.md. They are the
+# Classify-phase Read List for an agent editing meta-repo files.
+dimensions:
+  - {name: "MCP tool authoring (cos_*)",          read_files: ["docs/playbooks/mcp-tool-authoring.md", "docs/engineering/mcp-error-envelope.md", "docs/governance/mcp-tool-inventory.md"]}
+  - {name: "Graph extractor / backend",           read_files: ["docs/engineering/graph_os-queries.md", "docs/engineering/graph-hallucination-cures.md"]}
+  - {name: "Hook authoring (src/core/hooks/)",        read_files: ["docs/playbooks/hook-authoring.md", "src/core/hooks/registry.yaml", "docs/engineering/hooks-reference.md"]}
+  - {name: "Adapter authoring (src/adapters/<id>/)",  read_files: ["docs/playbooks/adapter-authoring.md", "docs/adapters/claude-sdk.md", "docs/engineering/adapter-parity.md"]}
+  - {name: "Template / stack authoring (src/templates/<id>/)", read_files: ["docs/playbooks/template-authoring.md", "docs/architecture/meta-project.md", "src/core/schemas/stack.schema.json"]}
+  - {name: "CLI command authoring (cli/)",        read_files: ["docs/architecture/meta-project.md"]}
+  - {name: "Hub / web routes (src/core/web/)",        read_files: ["docs/engineering/hub-architecture.md"]}
+  - {name: "Board / Scrumban (src/core/board_os/)",   read_files: ["docs/governance/task-lifecycle.md"]}
+  - {name: "Cognition / formula composer",        read_files: ["docs/adapters/claude-sdk.md", "docs/governance/critical-rules.md"]}
+  - {name: "Rule SSOT regen",                     read_files: ["docs/architecture/meta-project.md"]}
+  - {name: "Security review (overlay)",           read_files: ["docs/playbooks/security-review.md", "src/core/rules/api-contract-discipline.md"]}
+
+# Auto-load skills for meta-repo file globs. Each row picks the
+# narrowest skill that knows the conventions of that surface — the
+# secondary list adds cross-cutting skills (clean-code, thinking_os).
+skill_enforcement:
+  # MCP server / tools / cognition / dispatcher
+  - {globs: ["src/core/thinking_os/**/*.py"], primary: python-meta-server, secondary: [graph-explorer, clean-code, thinking_os, mcp-tool-authoring, llm-patterns, observability, agent-memory]}
+  # Memory + learning tool modules (cos_observation_record / cos_search / cos_learn_*)
+  - {globs: ["src/core/thinking_os/tools/memory.py", "src/core/thinking_os/tools/learning.py", "src/core/thinking_os/tools/retrieve.py"], primary: agent-memory, secondary: [python-meta-server, mcp-tool-authoring, clean-code]}
+  # Specific MCP tool modules (authoring contract)
+  - {globs: ["src/core/thinking_os/tools/*.py", "src/core/graph_os/tools/*.py", "src/core/board_os/mcp_tools.py", "src/core/web/routes/*.py"], primary: mcp-tool-authoring, secondary: [python-meta-server, graph-explorer, clean-code]}
+  # Knowledge graph + extractors
+  - {globs: ["src/core/graph_os/**/*.py"],    primary: graph-os-authoring, secondary: [python-meta-server, graph-explorer, clean-code]}
+  # Board engine
+  - {globs: ["src/core/board_os/**/*.py"],    primary: python-meta-server, secondary: [graph-explorer, clean-code, task-driver]}
+  # CLI factory
+  - {globs: ["src/cli/**/*.py"],              primary: python-meta-server, secondary: [graph-explorer, clean-code, testing-strategy]}
+  # FastAPI Hub backbone
+  - {globs: ["src/core/web/**/*.py"],         primary: python-meta-server, secondary: [graph-explorer, clean-code, api-design, observability]}
+  # React + Vite Hub UI
+  - {globs: ["src/core/web/ui/**/*.{ts,tsx}"], primary: react-vite-hub,    secondary: [clean-code, frontend-fundamentals, a11y, state-management]}
+  # Claude SDK adapter
+  - {globs: ["src/adapters/claude/**/*.py"],  primary: claude-sdk-integration, secondary: [graph-explorer, clean-code, llm-patterns, observability]}
+  # Other adapters (codex / cursor / future)
+  - {globs: ["src/adapters/codex/**/*.py", "src/adapters/cursor/**/*.py"], primary: graph-explorer, secondary: [clean-code, thinking_os]}
+  # Hook scripts + helpers
+  - {globs: ["src/core/hooks/*.sh"],          primary: hook-authoring, secondary: [meta-engineering, clean-code, thinking_os]}
+  - {globs: ["src/core/hooks/_helpers/*.py"], primary: hook-authoring, secondary: [meta-engineering, clean-code, thinking_os]}
+  # Authoring infrastructure
+  - {globs: ["src/templates/**/stack.yaml"],  primary: meta-engineering, secondary: [thinking_os, clean-code]}
+  - {globs: ["src/core/hooks/registry.yaml"], primary: hook-authoring, secondary: [meta-engineering, thinking_os, clean-code]}
+  # Task lifecycle (universal — Scrumban governance)
+  - {globs: ["docs/tasks/TASK-*.md"],     primary: task-driver, secondary: [thinking_os]}
+  # Deployment / CI assets
+  - {globs: [".github/workflows/*.yml", "Dockerfile", "docker-compose*.yml"], primary: deployment-cicd, secondary: [clean-code, observability]}
+
+# No Makefile targets — meta-stack inherits the root Makefile.
+makefile_targets: []

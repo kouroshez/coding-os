@@ -23,7 +23,7 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 ### Read Only If Relevant
 
 - `docs/governance/task-lifecycle.md` — only if task system or status flow is affected
-- `docs/workflow-docs/workflow-guide.md` — only if Core Loop, playbooks, or scripts change
+- `docs/workflow/workflow-guide.md` — only if Core Loop, playbooks, or scripts change
 - `docs/governance/wrapper-derivation.md` — only if wrapper files or thin-wrapper policy is affected
 - `docs/engineering/formatting-rules.md` — only if markdown formatting conventions change
 - `docs/engineering/anti-ambiguity.md` — only if requirement language or specificity rules change

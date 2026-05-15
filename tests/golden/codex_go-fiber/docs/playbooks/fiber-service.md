@@ -2,7 +2,7 @@
 # Fiber Service Playbook
 
 Purpose: End-to-end workflow for adding or changing a Fiber HTTP endpoint.
-Read when: Starting any task that touches `backend/internal/handlers/**` or adds a new route group.
+Read when: Starting any task that touches `src/backend/internal/handlers/**` or adds a new route group.
 Skip when: Task is infra-only, test-only, or doesn't touch HTTP surface.
 Read next: `docs/engineering/fiber-rules.md`, `docs/api-contracts/error-format.md`
 
@@ -13,9 +13,9 @@ Read next: `docs/engineering/fiber-rules.md`, `docs/api-contracts/error-format.m
 1. `docs/playbooks/fiber-service.md` — this playbook
 2. `docs/engineering/fiber-rules.md` — rules
 3. `docs/api-contracts/error-format.md` — error envelope
-4. `backend/internal/handlers/<existing-similar>.go` — closest existing handler
-5. `backend/internal/services/<existing-similar>.go` — its service
-6. `backend/cmd/api/main.go` — where the route is registered
+4. `src/backend/internal/handlers/<existing-similar>.go` — closest existing handler
+5. `src/backend/internal/services/<existing-similar>.go` — its service
+6. `src/backend/cmd/api/main.go` — where the route is registered
 
 Do not read more than these. If something's missing, grep for it.
 

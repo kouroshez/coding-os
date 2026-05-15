@@ -94,7 +94,7 @@ Auth middleware and token refresh: see `frontend-rendering-rules.md` § 4.1.
 
 ## 8) E2E Testing (Playwright)
 
-E2E tests live in `frontend/e2e/` and are split into two layers:
+E2E tests live in `src/frontend/e2e/` and are split into two layers:
 
 ### Test Pyramid
 

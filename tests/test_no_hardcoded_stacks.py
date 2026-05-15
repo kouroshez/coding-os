@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CLI_DIR = REPO_ROOT / "cli"
+CLI_DIR = REPO_ROOT / "src" / "cli"
 
 # Stack/adapter names discovered from the registries — this is the set
 # that must NOT appear as bare literals in cli/*.py.
@@ -67,5 +67,5 @@ def test_no_hardcoded_stack_names(cli_file: Path) -> None:
         f"{cli_file.name} contains hardcoded stack/adapter literals:\n"
         + "\n".join(f"  line {i}: {token!r} → {line}" for i, token, line in violations)
         + "\n\nMove the metadata to templates/<stack>/stack.yaml or "
-        "adapters/<agent>/adapter.yaml and read it via the registry."
+        "src/adapters/<agent>/adapter.yaml and read it via the registry."
     )

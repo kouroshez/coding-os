@@ -471,7 +471,7 @@ class TestHooksDir:
     def test_prints_hooks_path(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["hooks-dir"])
         assert result.exit_code == 0
-        assert "core/hooks" in result.output
+        assert "src/core/hooks" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -557,10 +557,10 @@ class TestRefuseSelfInit:
     def test_refuses_coding_os_repo(self, tmp_path: Path) -> None:
         """A directory containing core/thinking_os/server.py AND cli/main.py
         is the coding-os repo itself — init should sys.exit(1)."""
-        (tmp_path / "core" / "thinking_os").mkdir(parents=True)
-        (tmp_path / "core" / "thinking_os" / "server.py").write_text("# fake")
-        (tmp_path / "cli").mkdir()
-        (tmp_path / "cli" / "main.py").write_text("# fake")
+        (tmp_path / "src" / "core" / "thinking_os").mkdir(parents=True)
+        (tmp_path / "src" / "core" / "thinking_os" / "server.py").write_text("# fake")
+        (tmp_path / "src" / "cli").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "src" / "cli" / "main.py").write_text("# fake")
 
         with pytest.raises(SystemExit) as exc_info:
             _refuse_coding_os_self_init(tmp_path)
@@ -577,18 +577,18 @@ class TestRefuseSelfInit:
         """A project that happens to have cli/main.py but NOT
         core/thinking_os/server.py is fine — only both together trigger
         the refuse."""
-        (tmp_path / "cli").mkdir()
-        (tmp_path / "cli" / "main.py").write_text("# user's own cli")
+        (tmp_path / "src" / "cli").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "src" / "cli" / "main.py").write_text("# user's own cli")
         _refuse_coding_os_self_init(tmp_path)
 
     def test_init_refuses_self_init_end_to_end(
         self, runner: CliRunner, tmp_path: Path
     ) -> None:
         """Full CLI invocation with a simulated coding-os repo should fail."""
-        (tmp_path / "core" / "thinking_os").mkdir(parents=True)
-        (tmp_path / "core" / "thinking_os" / "server.py").write_text("# fake")
-        (tmp_path / "cli").mkdir()
-        (tmp_path / "cli" / "main.py").write_text("# fake")
+        (tmp_path / "src" / "core" / "thinking_os").mkdir(parents=True)
+        (tmp_path / "src" / "core" / "thinking_os" / "server.py").write_text("# fake")
+        (tmp_path / "src" / "cli").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "src" / "cli" / "main.py").write_text("# fake")
 
         result = runner.invoke(
             cli, ["init", "--agent", "claude", "-d", str(tmp_path), "--force"]
@@ -597,4 +597,4 @@ class TestRefuseSelfInit:
         assert "Refusing to init inside the coding-os repo" in result.output
         # And the fake source files must still exist — self-init check must
         # have fired BEFORE the --force wipe.
-        assert (tmp_path / "core" / "thinking_os" / "server.py").exists()
+        assert (tmp_path / "src" / "core" / "thinking_os" / "server.py").exists()

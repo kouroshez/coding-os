@@ -104,14 +104,14 @@ See [graph-hallucination-cures.md](graph-hallucination-cures.md) Rule #0 for ful
 Short form:
 
 ```
-code:file:<repo-relative-path>            core/thinking_os/server.py
-code:function:<path>::<name>              core/thinking_os/server.py::cos_metric_record
-code:class:<path>::<name>                 core/thinking_os/cognition.py::SupervisorState
+code:file:<repo-relative-path>            src/core/thinking_os/server.py
+code:function:<path>::<name>              src/core/thinking_os/server.py::cos_metric_record
+code:class:<path>::<name>                 src/core/thinking_os/cognition.py::SupervisorState
 code:module:<dotted>                      core.thinking_os.server
 doc:file:<repo-relative-path>             docs/engineering/mcp-schema-traps.md
 doc:heading:<path>#<slug>:<level>         docs/engineering/mcp-schema-traps.md#uid-scheme:2
-folder:<repo-relative-path>               core/thinking_os/tools
-config:json:<path>#<json-pointer>         core/web/ui/tsconfig.json#/compilerOptions/paths/@app/*
+folder:<repo-relative-path>               src/core/thinking_os/tools
+config:json:<path>#<json-pointer>         src/core/web/ui/tsconfig.json#/compilerOptions/paths/@app/*
 config:toml:<path>#<dotted-key>           pyproject.toml#/project/scripts/cos
 npm:package:<name>                        npm:package:react
 pypi:package:<name>                       pypi:package:click
@@ -133,8 +133,8 @@ rather than reading the source JSON/TOML.
 **Safe pattern: always resolve first.**
 
 ```
-cos_graph_resolve("core/thinking_os/server.py")
-→ returns: [{"uid": "code:file:core/thinking_os/server.py", ...}]
+cos_graph_resolve("src/core/thinking_os/server.py")
+→ returns: [{"uid": "code:file:src/core/thinking_os/server.py", ...}]
 → pass uid to cos_graph_impact / cos_graph_references
 ```
 

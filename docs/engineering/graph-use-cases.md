@@ -6,7 +6,7 @@
 >    layer can. Pairs with the hallucination-cure matrix.
 > R: Daily reference for agents and developers deciding "graph or grep?".
 > S: Internals of any single tool — see [graph_os-queries.md](graph_os-queries.md).
-> N: [graph-hallucination-cures.md](graph-hallucination-cures.md), [graph_os-queries.md](graph_os-queries.md), [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+> N: [graph-hallucination-cures.md](graph-hallucination-cures.md), [graph_os-queries.md](graph_os-queries.md), [src/core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -44,8 +44,8 @@ The first call you should make when you don't know the canonical uid.
 | "Find the User model" | `cos_graph_query("User", kinds=["class"])` | grep `class User` (catches subclasses, decorated names) |
 | "Anything called *config*" | `cos_graph_query("config", limit=20)` | grep noise from comments, strings |
 | "MCP tools matching *graph*" | `cos_graph_query("graph", kinds=["mcp_tool"])` | manual scan of `@mcp.tool(name=...)` |
-| "Hooks matching *enforce*" | `cos_graph_query("enforce", kinds=["hook"])` | scan `core/hooks/` |
-| Resolve a path → uid | `cos_graph_query("adapters/claude/sdk_dispatcher.py")` | (auto-fallback in 1 call) |
+| "Hooks matching *enforce*" | `cos_graph_query("enforce", kinds=["hook"])` | scan `src/core/hooks/` |
+| Resolve a path → uid | `cos_graph_query("src/adapters/claude/sdk_dispatcher.py")` | (auto-fallback in 1 call) |
 
 **TIP:** prefer SHORT terms or paths. Long natural-language queries
 ("functions classes entry points") return weak matches because the
@@ -59,8 +59,8 @@ so you get a single-item hit instead of empty results.
 
 Get the canonical uid for a label / path / partial uid. The graph_query
 fallback covers this — pass any of:
-- `"sdk_dispatcher.py"` → `code:file:adapters/claude/sdk_dispatcher.py`
-- `"adapters/claude/sdk_dispatcher.py"` → same
+- `"sdk_dispatcher.py"` → `code:file:src/adapters/claude/sdk_dispatcher.py`
+- `"src/adapters/claude/sdk_dispatcher.py"` → same
 - `"ClaudeSDKDispatcher.dispatch"` → `code:method:...::ClaudeSDKDispatcher.dispatch`
 
 ---
@@ -330,7 +330,7 @@ Prompt with structural words
     ↓
 nudge-graph-os.sh (UserPromptSubmit) → inline tool recommendation
     ↓
-Skill graph-explorer (auto-load on core/**/*.py via skill-enforcement)
+Skill graph-explorer (auto-load on src/core/**/*.py via skill-enforcement)
     ↓
 Agent calls cos_graph_*
     ↓

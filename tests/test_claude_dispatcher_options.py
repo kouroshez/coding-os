@@ -110,7 +110,7 @@ def test_dispatcher_import_failure_path() -> None:
         import importlib.util, importlib.machinery
         spec = importlib.util.spec_from_file_location(
             "_test_dispatcher",
-            "adapters/claude/sdk_dispatcher.py",
+            "src/adapters/claude/sdk_dispatcher.py",
         )
         if spec is None:
             pytest.skip("sdk_dispatcher.py not found from test cwd")

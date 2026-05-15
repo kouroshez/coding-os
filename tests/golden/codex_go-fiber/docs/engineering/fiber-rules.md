@@ -2,7 +2,7 @@
 # Fiber Engineering Rules
 
 Purpose: Canonical rules for Fiber v2 backend code in this project.
-Read when: Writing or reviewing any Go file under `backend/`.
+Read when: Writing or reviewing any Go file under `src/backend/`.
 Skip when: Task is frontend-only or infra-only (no Fiber code).
 Read next: `docs/playbooks/fiber-service.md`, `docs/api-contracts/error-format.md`
 
@@ -72,7 +72,7 @@ Business logic never lives in middleware. Middleware handles only: panic recover
 ## Project Layout
 
 ```
-backend/
+src/backend/
 ├── cmd/api/main.go                    # app.Listen + shutdown
 ├── internal/
 │   ├── handlers/<domain>.go           # Fiber handlers

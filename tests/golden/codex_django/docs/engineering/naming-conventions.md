@@ -10,28 +10,28 @@ Read next: `../architecture/03-project-structure.md` or the relevant engineering
 
 ## Monorepo Anchors
 
-- `frontend/` → Next.js application
-- `backend/` → Django application
-- `shared/` → shared contracts/constants
+- `src/frontend/` → Next.js application
+- `src/backend/` → Django application
+- `src/shared/` → shared contracts/constants
 - `docs/` → SSOT docs
 - `infrastructure/` → deploy, nginx, and operational scripts
 
 ## Frontend Placement
 
-- Routes live in `frontend/app/`
-- Shared UI primitives live in `frontend/components/ui/`
-- Shared page sections live in `frontend/components/sections/`
-- Feature-specific composite components live in domain folders such as `frontend/components/admin/`
-- Message files live in `frontend/messages/`
-- Route metadata and AI-discovery files follow Next.js conventions or `frontend/public/` where appropriate
+- Routes live in `src/frontend/app/`
+- Shared UI primitives live in `src/frontend/components/ui/`
+- Shared page sections live in `src/frontend/components/sections/`
+- Feature-specific composite components live in domain folders such as `src/frontend/components/admin/`
+- Message files live in `src/frontend/messages/`
+- Route metadata and AI-discovery files follow Next.js conventions or `src/frontend/public/` where appropriate
 
 ## Backend Placement
 
-- Django apps live in `backend/apps/`
-- App-local business logic lives in `backend/apps/<domain>/services/`
-- App-local tests live in `backend/apps/<domain>/tests/`
-- Cross-app integration tests live in `backend/tests/`
-- Settings live in `backend/config/settings/`
+- Django apps live in `src/backend/apps/`
+- App-local business logic lives in `src/backend/apps/<domain>/services/`
+- App-local tests live in `src/backend/apps/<domain>/tests/`
+- Cross-app integration tests live in `src/backend/tests/`
+- Settings live in `src/backend/config/settings/`
 
 ## Naming Rules
 

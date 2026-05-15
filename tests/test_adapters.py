@@ -17,11 +17,11 @@ from pathlib import Path
 import pytest
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent
-ADAPTERS_DIR = CODING_OS_ROOT / "adapters"
-CORE_HOOKS_DIR = CODING_OS_ROOT / "core" / "hooks"
-CORE_RULES_DIR = CODING_OS_ROOT / "core" / "rules"
-CORE_SKILLS_DIR = CODING_OS_ROOT / "core" / "skills"
-LINK_STACK_SKILLS = CODING_OS_ROOT / "core" / "scripts" / "link-stack-skills.sh"
+ADAPTERS_DIR = CODING_OS_ROOT / "src" / "adapters"
+CORE_HOOKS_DIR = CODING_OS_ROOT / "src" / "core" / "hooks"
+CORE_RULES_DIR = CODING_OS_ROOT / "src" / "core" / "rules"
+CORE_SKILLS_DIR = CODING_OS_ROOT / "src" / "core" / "skills"
+LINK_STACK_SKILLS = CODING_OS_ROOT / "src" / "core" / "scripts" / "link-stack-skills.sh"
 
 
 def run_adapter_install(adapter: str, project_dir: Path) -> subprocess.CompletedProcess:
@@ -369,7 +369,7 @@ class TestCodexAdapter:
         run_adapter_install("codex", project)
         codex_cmds = project / ".codex" / "commands"
         assert codex_cmds.is_dir()
-        commands_source = CODING_OS_ROOT / "core" / "commands"
+        commands_source = CODING_OS_ROOT / "src" / "core" / "commands"
         if not commands_source.is_dir():
             return  # core has no commands — nothing to mirror
         source_cmds = {p.name for p in commands_source.glob("*.md")}

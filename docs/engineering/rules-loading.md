@@ -1,15 +1,15 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-18 -->
-# Rules Loading — How `core/rules/*.md` Actually Become Active
+# Rules Loading — How `src/core/rules/*.md` Actually Become Active
 
-Purpose: Explicit, honest answer to "when is a rule file actually loaded, and by whom?" — because the files in `core/rules/` have Cursor-style frontmatter (`globs`, `alwaysApply`) that *looks* like auto-loading but neither Claude Code nor Codex consume that frontmatter.
+Purpose: Explicit, honest answer to "when is a rule file actually loaded, and by whom?" — because the files in `src/core/rules/` have Cursor-style frontmatter (`globs`, `alwaysApply`) that *looks* like auto-loading but neither Claude Code nor Codex consume that frontmatter.
 
-Read when: Adding a new `core/rules/*.md` file · wondering why a rule didn't seem to apply · deciding whether to rely on rule frontmatter or on explicit AGENTS.md references.
+Read when: Adding a new `src/core/rules/*.md` file · wondering why a rule didn't seem to apply · deciding whether to rely on rule frontmatter or on explicit AGENTS.md references.
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
 ## TL;DR
 
-> **Neither Claude Code nor Codex auto-load `core/rules/*.md` based on the frontmatter in those files.** Rules become effective because `AGENTS.md` explicitly instructs the agent to read them. The frontmatter is Cursor-compatible (for future use), but on today's runtimes it's decorative.
+> **Neither Claude Code nor Codex auto-load `src/core/rules/*.md` based on the frontmatter in those files.** Rules become effective because `AGENTS.md` explicitly instructs the agent to read them. The frontmatter is Cursor-compatible (for future use), but on today's runtimes it's decorative.
 
 ## The frontmatter you may see
 
@@ -45,36 +45,36 @@ Auto-loaded at session start:
 - `AGENTS.md` at project root.
 - Codex config layers: project `.codex/config.toml` overrides, then `~/.codex/config.toml` user defaults.
 
-**Not auto-loaded:** `.codex/rules/*.md`. The `adapters/codex/install.sh` itself notes (lines 55–58):
+**Not auto-loaded:** `.codex/rules/*.md`. The `src/adapters/codex/install.sh` itself notes (lines 55–58):
 
 > "Codex CLI's Starlark sandbox scanner expects `.rules` files; `.md` files in this dir are ignored by that scanner and serve only as agent-readable content."
 
-## So how do `core/rules/*.md` take effect?
+## So how do `src/core/rules/*.md` take effect?
 
 Through explicit reference in **AGENTS.md**, which both runtimes DO load automatically.
 
 The relevant lines in this repo's [AGENTS.md](../../AGENTS.md):
 
 ```
-Always-active (no retrieval, full-read): AGENTS.md, CLAUDE.md, playbooks, core/rules/, current task detail.
+Always-active (no retrieval, full-read): AGENTS.md, CLAUDE.md, playbooks, src/core/rules/, current task detail.
 ```
 
 and:
 
 ```
 - Behavioral rule / protocol (how to classify, how to verify, how to route)
-  → NEVER retrieve; the rule is already in context as core/rules/*.md.
+  → NEVER retrieve; the rule is already in context as src/core/rules/*.md.
   If you think you need to retrieve it, re-read the rule file instead.
 ```
 
-This tells the agent, on every session, to full-read every file in `core/rules/` as part of orientation. The agent's compliance is the load mechanism — not the runtime.
+This tells the agent, on every session, to full-read every file in `src/core/rules/` as part of orientation. The agent's compliance is the load mechanism — not the runtime.
 
 ## Why this design is defensible
 
 1. **Symmetric across runtimes.** If we relied on `@import` in CLAUDE.md (Claude only), Codex users would silently miss the rule. The AGENTS-reference approach works identically on both.
 2. **Token-economical.** Rules are loaded once, not re-injected per file edit as Cursor does.
 3. **Future-compatible.** The Cursor frontmatter is preserved. Day we ship a Cursor adapter, those rules already work.
-4. **Hook-compatible.** Hooks like `enforce-skill.sh` and `block-protected-files.sh` have their own embedded logic — they do NOT parse `core/rules/*.md`. So the rule files are purely for agent context, not for runtime enforcement. This separation is why the system still works when a rule is rephrased but the hook logic is unchanged.
+4. **Hook-compatible.** Hooks like `enforce-skill.sh` and `block-protected-files.sh` have their own embedded logic — they do NOT parse `src/core/rules/*.md`. So the rule files are purely for agent context, not for runtime enforcement. This separation is why the system still works when a rule is rephrased but the hook logic is unchanged.
 
 ## What happens if we DID want auto-loading
 
@@ -85,8 +85,8 @@ Three options, each with a trade-off:
 Inside `AGENTS.md` add:
 
 ```
-@core/rules/thinking_os.md
-@core/rules/memory.md
+@src/core/rules/thinking_os.md
+@src/core/rules/memory.md
 ```
 
 **Pro:** Claude Code injects the content automatically.
@@ -94,14 +94,14 @@ Inside `AGENTS.md` add:
 
 ### Option B — SessionStart hook that prints rule bodies
 
-A hook that on `SessionStart` reads `core/rules/*.md` and echoes them to stderr so the content lands in the agent's context.
+A hook that on `SessionStart` reads `src/core/rules/*.md` and echoes them to stderr so the content lands in the agent's context.
 
 **Pro:** Works on both runtimes (both support SessionStart).
 **Con:** Burns context tokens every session for content the agent can also just fetch with `Read`. For a large rule corpus, that's a cost per session that grows with rule count.
 
 ### Option C — Status quo (what we do today)
 
-AGENTS.md contains the reference. Agents full-read `core/rules/` on orientation. A hook (`check-agents-md-refs.sh`) warns if AGENTS.md references paths that don't exist.
+AGENTS.md contains the reference. Agents full-read `src/core/rules/` on orientation. A hook (`check-agents-md-refs.sh`) warns if AGENTS.md references paths that don't exist.
 
 **Pro:** Zero runtime cost until needed. Works identically on both runtimes.
 **Con:** Relies on agent self-discipline (prompt-level, not programmatic).
@@ -110,7 +110,7 @@ AGENTS.md contains the reference. Agents full-read `core/rules/` on orientation.
 
 ## Adding a new rule
 
-1. Add `core/rules/<name>.md` with YAML frontmatter + body.
+1. Add `src/core/rules/<name>.md` with YAML frontmatter + body.
 2. Reference it from `AGENTS.md` (either in Navigation Cheatsheet, Modularity Map, or inline in the Critical Rules section).
 3. Run `make sync` — `install.sh` for each adapter re-creates the symlink in `.claude/rules/` and `.codex/rules/`.
 4. `check-agents-md-refs.sh` will warn if the reference is missing.
@@ -129,8 +129,8 @@ Diagnostic order:
 
 ## References
 
-- [core/rules/thinking_os.md](../../core/rules/thinking_os.md) — example always-active rule
-- [core/rules/skill-enforcement.md](../../core/rules/skill-enforcement.md) — generated from `templates/*/stack.yaml`
+- [src/core/rules/thinking_os.md](../../core/rules/thinking_os.md) — example always-active rule
+- [src/core/rules/skill-enforcement.md](../../core/rules/skill-enforcement.md) — generated from `src/templates/*/stack.yaml`
 - [AGENTS.md](../../AGENTS.md) — where rules are referenced
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — `check-agents-md-refs.sh` + `block-protected-files.sh`
 - [docs/engineering/adapter-parity.md](adapter-parity.md) — confirms both adapters symlink the same rule files

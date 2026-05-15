@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-HOOK_DIR = REPO_ROOT / "core" / "hooks"
+HOOK_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 
 def _run_hook(hook_name: str, tool_input: dict, env: dict | None = None) -> subprocess.CompletedProcess:
@@ -83,15 +83,15 @@ class TestEnforceAntiAmbiguity:
 
 class TestHookRegistryPhaseM:
     def test_enforce_anti_ambiguity_in_registry(self):
-        registry = REPO_ROOT / "core" / "hooks" / "registry.yaml"
+        registry = REPO_ROOT / "src" / "core" / "hooks" / "registry.yaml"
         assert "enforce-anti-ambiguity" in registry.read_text()
 
     def test_track_backtrack_in_registry(self):
-        registry = REPO_ROOT / "core" / "hooks" / "registry.yaml"
+        registry = REPO_ROOT / "src" / "core" / "hooks" / "registry.yaml"
         assert "track-backtrack" in registry.read_text()
 
     def test_both_hooks_have_phase_m(self):
-        registry = REPO_ROOT / "core" / "hooks" / "registry.yaml"
+        registry = REPO_ROOT / "src" / "core" / "hooks" / "registry.yaml"
         content = registry.read_text()
         # Both hooks must declare phase: M
         assert content.count("phase: M") >= 2

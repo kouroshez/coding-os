@@ -56,9 +56,9 @@ web = [
 # Other adapters (codex, cursor, ...) fall back to the default DB-only dispatcher.
 # Install with: uv sync --extra claude-sdk
 claude-sdk = [
-    # 2026-05-04: pin floor to 0.1.73 (latest); cap below 0.2 — major bump
+    # 2026-05-14: pin floor to 0.1.81 (latest); cap below 0.2 — major bump
     # would change SDK shape and invalidate dispatcher assumptions.
-    "claude-agent-sdk>=0.1.73,<0.2.0",
+    "claude-agent-sdk>=0.1.81,<0.2.0",
     "anyio>=4.0.0",
 ]
 
@@ -66,6 +66,11 @@ claude-sdk = [
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"
 cos-nightly = "scheduled.nightly:main"
+
+# All packages live under src/ (Python src-layout — meta-repo P5 dogfood).
+# `cli`, `thinking_os`, etc. are still importable at top level via
+# [tool.setuptools.package-dir] mapping below — code never says
+# `from src.cli...` (that'd leak the source tree shape into imports).
 
 [dependency-groups]
 dev = [
@@ -79,12 +84,32 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-# v0.2: editable install. cli lives at repo root; the three OS subsystems
-# (thinking_os, graph_os, board_os) and web live under core/. Listed
-# explicitly so `from thinking_os.database import X` works after `uv sync`
-# without sys.path hacks.
+# Src-layout: all importable code lives under src/. The three OS subsystems
+# (thinking_os, graph_os, board_os) plus web and scheduled live under
+# src/core/. Listed explicitly so `from thinking_os.database import X` works
+# after `uv sync` without sys.path hacks. `core` and `adapters` are also
+# importable as packages because some legacy modules use `from core.X` /
+# `from adapters.X` — keep those working until callers migrate.
 packages = [
     "cli",
+    "core",
+    "core.board_os",
+    "core.commands",
+    "core.graph_os",
+    "core.graph_os.backends",
+    "core.graph_os.bench",
+    "core.graph_os.extractors",
+    "core.graph_os.groups",
+    "core.graph_os.ingest",
+    "core.graph_os.tools",
+    "core.graph_os.viewer",
+    "core.hooks",
+    "core.scheduled",
+    "core.thinking_os",
+    "core.thinking_os.dispatchers",
+    "core.thinking_os.tools",
+    "core.web",
+    "core.web.routes",
     "thinking_os",
     "thinking_os.tools",
     "thinking_os.dispatchers",
@@ -99,17 +124,23 @@ packages = [
     "web",
     "web.routes",
     "scheduled",
+    "adapters",
+    "adapters.claude",
+    "adapters.codex",
 ]
 
 [tool.setuptools.package-dir]
-"thinking_os" = "core/thinking_os"
-"graph_os" = "core/graph_os"
-"board_os" = "core/board_os"
-"web" = "core/web"
-"scheduled" = "core/scheduled"
+"cli" = "src/cli"
+"core" = "src/core"
+"adapters" = "src/adapters"
+"thinking_os" = "src/core/thinking_os"
+"graph_os" = "src/core/graph_os"
+"board_os" = "src/core/board_os"
+"web" = "src/core/web"
+"scheduled" = "src/core/scheduled"
 
 [tool.pytest.ini_options]
-testpaths = ["core/thinking_os/tests", "core/graph_os/tests", "tests"]
+testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "tests"]
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
     "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",

@@ -2,7 +2,7 @@
 # Claude Adapter Rollback Guide
 
 > P: Procedure for reverting a Claude-adapter upgrade in a consumer project if the new bundle breaks production.
-> R: Post-deploy regression in `adapters/claude/` — agent boot failures, dispatcher errors, hook misfires after `cos update`.
+> R: Post-deploy regression in `src/adapters/claude/` — agent boot failures, dispatcher errors, hook misfires after `cos update`.
 > S: Investigating a known-good adapter — see `claude-sdk.md` instead.
 > N: [claude-migration-2026-05.md](claude-migration-2026-05.md), [claude-sdk.md](claude-sdk.md)
 
@@ -66,9 +66,9 @@ sqlite3 .coding-os/coding-os.db < backup.sql
 If the `_detect_agent_session_default()` resolver causes issues:
 
 1. `COS_AGENT_SESSION_ID=""` — forces NULL attribution (old H-badge behavior).
-2. Or revert `core/thinking_os/server.py` to the pre-T18.1 state:
+2. Or revert `src/core/thinking_os/server.py` to the pre-T18.1 state:
    ```bash
-   git show HEAD~1:core/thinking_os/server.py > server.py
+   git show HEAD~1:src/core/thinking_os/server.py > server.py
    # Then restart the MCP server / Claude
    ```
 

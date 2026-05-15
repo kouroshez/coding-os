@@ -10,10 +10,11 @@ Read next: The relevant playbook or domain doc below.
 
 - [AGENTS](../AGENTS.md)
 - [Active Tasks](./tasks.md)
-- [Questions Log](./questions.md)
+- [Questions Log](./_meta/questions.md)
 - [Change Log](../changes.log)
-- [Foundation Map](./foundation-map.md)
-- [Roadmap](./roadmap.md)
+- [Foundation Map](./_meta/foundation-map.md)
+- [Roadmap](./_meta/roadmap.md)
+- [Feature Tree](./_meta/feature-dependency-tree.md)
 
 ## Governance
 
@@ -24,11 +25,11 @@ Read next: The relevant playbook or domain doc below.
 - [Decision Records](./governance/decision-records.md)
 - [Wrapper Derivation](./governance/wrapper-derivation.md)
 - [MCP Tool Inventory](./governance/mcp-tool-inventory.md)
-- [Workflow Guide](./workflow-docs/workflow-guide.md)
+- [Workflow Guide](./workflow/workflow-guide.md)
 
 ## Product and Content
 
-- [PRD Index](./PRD/00-index.md)
+- [PRD Index](./prd/00-index.md)
 <!-- Add when nextjs/web template installed: - [Content Specs Index](./pages-content-spec/00-index.md) -->
 
 ## API Contracts
@@ -41,6 +42,7 @@ Read next: The relevant playbook or domain doc below.
 - [Architecture Index](./architecture/00-index.md)
 - [ADR Index](./architecture/adr/00-index.md)
 - [Ops Index](./ops/00-index.md)
+- [Insights](./insights/00-index.md)
 <!-- Add when stack-specific design system installed: - [Design Index](./design/00-index.md) -->
 
 ## Quick Routing

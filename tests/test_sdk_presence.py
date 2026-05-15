@@ -21,12 +21,12 @@ def _load_dispatcher_module():
     """
     spec = importlib.util.spec_from_file_location(
         "coding_os_sdk_dispatcher_under_test",
-        _REPO_ROOT / "adapters" / "claude" / "sdk_dispatcher.py",
+        _REPO_ROOT / "src" / "adapters" / "claude" / "sdk_dispatcher.py",
     )
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     # Ensure thinking_os is importable (module does this too, belt-and-braces).
-    tos = _REPO_ROOT / "core" / "thinking_os"
+    tos = _REPO_ROOT / "src" / "core" / "thinking_os"
     if str(tos) not in sys.path:
         sys.path.insert(0, str(tos))
     spec.loader.exec_module(mod)

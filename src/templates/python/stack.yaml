@@ -1,0 +1,52 @@
+version: 1
+id: python
+label: "Python library / CLI / MCP server"
+category: library
+primary_skill: null
+skills: []
+
+# Generic Python stack — for libraries, CLI tools, MCP servers, and the
+# coding-os meta-repo itself. No stack-specific skill files; the always-on
+# core skills (clean-code, thinking_os, codebase-explorer, worktree-orchestration)
+# from base.yaml cover Python authoring.
+#
+# When this stack is selected for the coding-os meta-repo, the canonical
+# rules live in CLAUDE.md (rules 0–23). For consumer projects using this
+# stack, see docs/governance/critical-rules.md as the entry point.
+
+substitutions:
+  DOMAIN_ROUTES: "Python module / CLI / MCP tool → see project CLAUDE.md / AGENTS.md critical rules"
+  SKILL_ROUTES: "Python → `clean-code` (generic) + `thinking_os` (kernel)"
+  ENGINEERING_RULE_ROUTING: "Python → AGENTS.md critical rules + `docs/governance/`"
+  TOOL_ROUTING_IMPL: "`pytest` (lint/format opt-in: ruff/mypy not enforced by default)"
+  QUICK_ROUTING: |-
+    - Python module / package task → see AGENTS.md critical rules
+    - MCP tool / CLI command task → see AGENTS.md critical rules
+    - Test / fixture task → `tests/` + `pytest`
+  STACK_REF_CODES: ""
+
+# No ref_codes — this stack is intentionally minimal. The meta-repo uses
+# CLAUDE.md as SSOT; consumer libraries can add refs in their own AGENTS.md.
+ref_codes: []
+
+routing_entries:
+  - "Python module / CLI / MCP tool task → see AGENTS.md critical rules"
+
+# No stack-specific rules. CLAUDE.md (or consumer AGENTS.md) carries them.
+rules: []
+
+# No dimension entries here. The meta-repo's CLAUDE.md rules 0–23 enumerate
+# the actual editing surfaces (MCP tool, hook script, CLI command, adapter,
+# extractor, FastAPI route, React SPA, migration, governance doc). Consumer
+# Python libraries add their own dimensions if they grow beyond a script.
+dimensions: []
+
+# No skill_enforcement globs. Generic clean-code applies to all Python via
+# the global skill list in base.yaml. Stack-specific globs would either
+# duplicate that or conflict with consumer project layouts.
+skill_enforcement: []
+
+# No stack-specific Makefile targets. The meta-repo's Makefile already
+# defines `make verify`, `make verify-hooks`, etc. Consumer Python libraries
+# can add targets if they need them.
+makefile_targets: []

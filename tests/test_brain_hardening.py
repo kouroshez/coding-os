@@ -25,8 +25,8 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
-BRAIN = REPO / "core" / "thinking_os"
-HOOKS = REPO / "core" / "hooks"
+BRAIN = REPO / "src" / "core" / "thinking_os"
+HOOKS = REPO / "src" / "core" / "hooks"
 
 
 def _seed_db(tmp: Path) -> Path:
@@ -98,13 +98,13 @@ def test_cos_env_exports_model_from_file(tmp_path: Path) -> None:
 
 
 def test_brain_decay_cli_registered() -> None:
-    src = (REPO / "cli" / "main.py").read_text()
+    src = (REPO / "src" / "cli" / "main.py").read_text()
     assert "brain_decay_cmd" in src
     assert "brain_gc_cmd" in src
 
 
 def test_brain_commands_module_has_decay_and_gc() -> None:
-    src = (REPO / "cli" / "brain_commands.py").read_text()
+    src = (REPO / "src" / "cli" / "brain_commands.py").read_text()
     assert "def brain_decay(" in src
     assert "def brain_gc(" in src
 
@@ -211,7 +211,7 @@ def test_impact_boosts_core_kernel_paths() -> None:
     sys.path.insert(0, str(BRAIN))
     from impact import calculate_impact  # type: ignore
     low = calculate_impact(file_path="docs/notes.md")
-    high = calculate_impact(file_path="core/thinking_os/server.py")
+    high = calculate_impact(file_path="src/core/thinking_os/server.py")
     assert high > low, (high, low)
 
 

@@ -11,6 +11,6 @@ code_extensions:
 - js
 - jsx
 verify:
-  backend: cd backend && go vet ./... && go test ./...
+  backend: cd src/backend && go vet ./... && go test ./...
   docs: make docs-lint
 protected_files: []

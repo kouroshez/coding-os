@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-MANIFEST_PATH = REPO_ROOT / "core" / "scaffold_manifest.json"
+MANIFEST_PATH = REPO_ROOT / "src" / "core" / "scaffold_manifest.json"
 
 
 @pytest.mark.slow
@@ -48,7 +48,7 @@ def test_committed_manifest_matches_current_templates() -> None:
 
 def test_manifest_file_exists_and_parses() -> None:
     """Cheap smoke test that always runs (non-slow)."""
-    assert MANIFEST_PATH.exists(), "core/scaffold_manifest.json missing"
+    assert MANIFEST_PATH.exists(), "src/core/scaffold_manifest.json missing"
     data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     assert data.get("version") == 1
     assert "sections" in data

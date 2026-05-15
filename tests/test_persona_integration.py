@@ -264,7 +264,7 @@ class TestPersonaUpgrade:
 
 class TestPersonaTemplateBlock:
     def test_new_task_file_blocked(self, tmp_path: Path) -> None:
-        hook = REPO_ROOT / "core" / "hooks" / "enforce-template.sh"
+        hook = REPO_ROOT / "src" / "core" / "hooks" / "enforce-template.sh"
         target = tmp_path / "docs" / "tasks" / "TASK-999-bogus.md"
         r = subprocess.run(
             ["bash", str(hook)],
@@ -288,7 +288,7 @@ class TestPersonaTemplateBlock:
 # ============================================================
 
 import sys as _sys
-_THINKING_OS = Path(__file__).resolve().parent.parent / "core" / "thinking_os"
+_THINKING_OS = Path(__file__).resolve().parent.parent / "src" / "core" / "thinking_os"
 if str(_THINKING_OS) not in _sys.path:
     _sys.path.insert(0, str(_THINKING_OS))
 

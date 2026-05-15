@@ -20,9 +20,9 @@ import pytest
 import yaml
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent
-CLAUDE_TEMPLATE = CODING_OS_ROOT / "adapters" / "claude" / "settings.template.json"
-CODEX_TEMPLATE = CODING_OS_ROOT / "adapters" / "codex" / "hooks.template.json"
-CODEX_ADAPTER = CODING_OS_ROOT / "adapters" / "codex" / "adapter.yaml"
+CLAUDE_TEMPLATE = CODING_OS_ROOT / "src" / "adapters" / "claude" / "settings.template.json"
+CODEX_TEMPLATE = CODING_OS_ROOT / "src" / "adapters" / "codex" / "hooks.template.json"
+CODEX_ADAPTER = CODING_OS_ROOT / "src" / "adapters" / "codex" / "adapter.yaml"
 
 # Events Codex supports. Any hook Claude registers under one of these
 # events with a Bash-compatible matcher must also appear in Codex.
@@ -108,8 +108,8 @@ def test_no_codex_phantom_hooks() -> None:
     """Every hook file Codex references must exist in core/hooks/ or adapters/codex/hooks/."""
     with CODEX_TEMPLATE.open() as f:
         codex = json.load(f)
-    known_hooks = {p.name for p in (CODING_OS_ROOT / "core" / "hooks").glob("*.sh")}
-    known_hooks |= {p.name for p in (CODING_OS_ROOT / "adapters" / "codex" / "hooks").glob("*.sh")}
+    known_hooks = {p.name for p in (CODING_OS_ROOT / "src" / "core" / "hooks").glob("*.sh")}
+    known_hooks |= {p.name for p in (CODING_OS_ROOT / "src" / "adapters" / "codex" / "hooks").glob("*.sh")}
     codex_map = _collect_hooks_by_event_matcher(codex)
 
     phantom: list[str] = []

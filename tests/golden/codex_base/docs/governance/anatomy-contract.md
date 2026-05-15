@@ -1,10 +1,10 @@
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-29 -->
 # Stack Anatomy Contract
 
-> P: Defines the canonical shape of `templates/<stack>/skills/<skill>/references/anatomy.md` so every stack and every agent (claude · codex · cursor) emits the same file structure, naming, and entity recipes.
+> P: Defines the canonical shape of `src/templates/<stack>/skills/<skill>/references/anatomy.md` so every stack and every agent (claude · codex · cursor) emits the same file structure, naming, and entity recipes.
 > R: Authoring or auditing a stack's anatomy file; resolving disagreement between agents about where a new file belongs.
 > S: Reading code — the actual conventions are in the per-stack `anatomy.md`, not here.
-> N: [docs-system.md](docs-system.md), [scaffold-boundary-contract.md](scaffold-boundary-contract.md), [doc-cheat-sheet.md](templates/doc-cheat-sheet.md)
+> N: [docs-system.md](docs-system.md), [scaffold-boundary-contract.md](scaffold-boundary-contract.md), [doc-cheat-sheet.md](src/templates/doc-cheat-sheet.md)
 
 > Nav: [Governance Index](./00-index.md)
 
@@ -28,10 +28,10 @@ Hard cap: **2000 tokens** per anatomy.md. If a stack's anatomy is bigger, split 
 ## File location
 
 ```
-templates/<stack>/skills/<primary_skill>/references/anatomy.md
+src/templates/<stack>/skills/<primary_skill>/references/anatomy.md
 ```
 
-Anatomy lives next to its skill, not in `templates/<stack>/scaffold/docs/`. Reason: `cos init` copies scaffold ONCE; references load lazily forever.
+Anatomy lives next to its skill, not in `src/templates/<stack>/scaffold/docs/`. Reason: `cos init` copies scaffold ONCE; references load lazily forever.
 
 ## Required frontmatter
 
@@ -61,7 +61,7 @@ The contract test (`tests/test_anatomy_contract.py`) rejects any anatomy missing
 ONE line that links to the machine-readable SSOT — no table, no duplicated fields:
 
 ```markdown
-SSOT: [`templates/<stack>/scaffold-boundary.yaml`](../../../scaffold-boundary.yaml).
+SSOT: [`src/templates/<stack>/scaffold-boundary.yaml`](../../../scaffold-boundary.yaml).
 ```
 
 Rationale: duplication of `roots` / `imports_from` / `forbids_writing_in` in prose creates drift. The yaml is the only canonical source; humans read it directly via the link.
@@ -81,7 +81,7 @@ One H3 per entity type the stack supports. Each H3 carries:
 - **Trigger:** the user request that invokes this recipe.
 - **Files emitted:** numbered list of paths (use `<name>` for the parameter).
 - **Steps:** numbered, terse — each step ≤1 line.
-- **Optional generator script:** `scripts/<name>.py` if the stack ships one.
+- **Optional generator script:** `src/scripts/<name>.py` if the stack ships one.
 
 Common entity types (use these names verbatim when applicable):
 
@@ -136,7 +136,7 @@ Agents (claude, codex, cursor) read the same `anatomy.md` and produce the same s
 1. Open `anatomy.md` for the stack.
 2. Append H3 under § 3 in alphabetical order (rule: keep `Add a new test` last).
 3. Run `make docs-lint` (frontmatter + nav check).
-4. If you ship a generator, drop the script under `templates/<stack>/skills/<skill>/scripts/<name>.py`.
+4. If you ship a generator, drop the script under `src/templates/<stack>/skills/<skill>/scripts/<name>.py`.
 5. Reference the script from the recipe's "Optional generator script" line.
 
 ## When a stack legitimately can't satisfy the schema

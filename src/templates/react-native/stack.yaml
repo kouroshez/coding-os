@@ -1,0 +1,56 @@
+version: 1
+id: react-native
+label: "React Native + Expo + TypeScript"
+category: mobile
+primary_skill: react-native-mobile
+skills: [react-native-mobile, react-native-patterns]
+
+# These substitution keys are joined across stacks by the aggregator via
+# _derive_substitutions (joined on " | "). VERIFY_MOBILE_* override the
+# "(none)" defaults from base.yaml.
+substitutions:
+  DOMAIN_ROUTES: "Mobile→`docs/playbooks/mobile-app.md`"
+  SKILL_ROUTES: "Mobile→`react-native-mobile`"
+  ENGINEERING_RULE_ROUTING: "Mobile→`docs/engineering/mobile-rules.md`, Offline→`docs/engineering/offline-first.md`, a11y→`docs/engineering/accessibility-checklist.md`"
+  TOOL_ROUTING_IMPL: "`lint-mobile`, `test-mobile`, `build-mobile`"
+  VERIFY_MOBILE_GLOB: "`src/mobile/`"
+  VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
+  VERIFY_MOBILE: "`cd src/mobile && npm run lint && npm test`"
+  QUICK_ROUTING: |-
+    - Mobile screen / component task → [Mobile App Playbook](./playbooks/mobile-app.md)
+    - Native module / bridge work → [Mobile App Playbook](./playbooks/mobile-app.md)
+    - Offline / sync feature → [Mobile App Playbook](./playbooks/mobile-app.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-MOBILE` → `./playbooks/mobile-app.md`
+    - `REF:MOBILE-RULES` → `./engineering/mobile-rules.md`
+    - `REF:OFFLINE-FIRST` → `./engineering/offline-first.md`
+    - `REF:A11Y` → `./engineering/accessibility-checklist.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-MOBILE", path: "./playbooks/mobile-app.md",            desc: "Mobile app playbook"}
+  - {code: "REF:MOBILE-RULES",    path: "./engineering/mobile-rules.md",        desc: "Mobile engineering rules"}
+  - {code: "REF:OFFLINE-FIRST",   path: "./engineering/offline-first.md",       desc: "Offline-first patterns"}
+  - {code: "REF:A11Y",            path: "./engineering/accessibility-checklist.md", desc: "Accessibility checklist"}
+
+routing_entries:
+  - "Mobile screen / component task → [Mobile App Playbook](./playbooks/mobile-app.md)"
+  - "Offline / sync feature → [Mobile App Playbook](./playbooks/mobile-app.md)"
+
+rules:
+  - {file: rules/mobile.md, globs: ["src/mobile/**/*.{ts,tsx}"]}
+
+dimensions:
+  - {name: "RN screen",         read_files: ["docs/playbooks/mobile-app.md", "docs/engineering/mobile-rules.md"]}
+  - {name: "RN component",      read_files: ["docs/engineering/mobile-rules.md"]}
+  - {name: "Offline / sync",    read_files: ["docs/engineering/offline-first.md", "docs/playbooks/mobile-app.md"]}
+  - {name: "Native bridge",     read_files: ["docs/playbooks/mobile-app.md"]}
+  - {name: "Accessibility",     read_files: ["docs/engineering/accessibility-checklist.md"]}
+
+skill_enforcement:
+  - {globs: ["src/mobile/**/*.{ts,tsx}"], primary: react-native-mobile, secondary: [clean-code, frontend-fundamentals, mobile-fundamentals, a11y]}
+  - {globs: ["src/mobile/**/components/**/*.{ts,tsx}", "src/mobile/**/screens/**/*.{ts,tsx}"], primary: react-native-patterns, secondary: [clean-code, react-native-mobile, state-management, performance]}
+
+makefile_targets:
+  - {name: lint-mobile,  cmd: "cd src/mobile && npm run lint"}
+  - {name: test-mobile,  cmd: "cd src/mobile && npm test"}
+  - {name: build-mobile, cmd: "cd src/mobile && npm run build"}

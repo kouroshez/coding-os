@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = REPO_ROOT / "scripts" / "regen_doc_index.py"
+SCRIPT = REPO_ROOT / "src" / "scripts" / "regen_doc_index.py"
 
 
 def _load_module():

@@ -1,8 +1,8 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-18 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-13 -->
 # MCP Error Envelope — `cos_*` Tool Response Contract
 
 Purpose: Canonical response shape for every `cos_*` MCP tool exposed by
-[core/thinking_os/server.py](../../core/thinking_os/server.py). The envelope
+[src/core/thinking_os/server.py](../../core/thinking_os/server.py). The envelope
 gives consuming agents enough structure to decide whether to retry, escalate,
 or surface an error to the user — without parsing prose.
 
@@ -72,7 +72,7 @@ If the default is wrong for a specific call, pass `retryable=` explicitly to
 ### Helpers
 
 ```python
-# core/thinking_os/tools/_shared.py
+# src/core/thinking_os/tools/_shared.py
 from tools._shared import ok, fail, safe_tool
 ```
 
@@ -121,8 +121,8 @@ assert payload["error"]["retryable"] is False
 ## Migration status
 
 The envelope is the contract for **all** `cos_*` tools registered in
-[core/thinking_os/server.py](../../core/thinking_os/server.py). Internal helper
-functions under `core/thinking_os/tools/*.py` still return plain Python values
+[src/core/thinking_os/server.py](../../core/thinking_os/server.py). Internal helper
+functions under `src/core/thinking_os/tools/*.py` still return plain Python values
 (dicts/lists) — the envelope is applied only at the MCP boundary so unit tests
 for helpers stay simple.
 
@@ -134,3 +134,24 @@ for helpers stay simple.
   end-user display themselves.
 - **Not** a replacement for `logger.exception()` — log and envelope are
   complementary (log for humans, envelope for agents).
+
+## OpenAPI / typed-client mirror
+
+The HTTP wrappers in `src/core/web/routes/**` translate the MCP envelope to the
+matching HTTP shape via `_envelope.unwrap()` ([src/core/web/_envelope.py](../../core/web/_envelope.py)). For OpenAPI codegen the same module exposes Pydantic mirrors so generated clients (e.g. `openapi-typescript`) get typed error bodies instead of `unknown`:
+
+```python
+from web._envelope import ErrorBody, ErrorEnvelope, ENVELOPE_ERROR_RESPONSES
+
+router = APIRouter(prefix="/api/graph", tags=["graph"],
+                   responses=ENVELOPE_ERROR_RESPONSES)
+```
+
+`ENVELOPE_ERROR_RESPONSES` declares `400 / 404 / 500 / 503` with `ErrorEnvelope` as the response model — applied at router-level so every route inherits without per-route boilerplate. Routers that currently expose typed errors:
+
+| Router | Status |
+|---|---|
+| `routes/board.py`, `routes/graph.py`, `routes/cognition.py`, `routes/hooks.py`, `routes/observability.py`, `routes/search.py` | ✓ documented |
+| `routes/sessions.py`, `routes/presence.py`, `routes/scheduled.py`, `routes/settings.py`, `routes/hub.py`, `routes/roles.py`, `routes/stream.py` | not yet wired — defaults to FastAPI generic |
+
+When adding a router that uses `_envelope.unwrap()`, wire `responses=ENVELOPE_ERROR_RESPONSES` to keep the typed contract complete. Regenerate `src/core/web/ui/src/lib/api-types.ts` via `npm run gen-api` (with the hub running on `:9188`) after the change.

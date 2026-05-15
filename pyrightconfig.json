@@ -3,16 +3,16 @@
   "venvPath": ".",
   "venv": ".venv",
   "extraPaths": [
-    "core",
-    "core/thinking_os",
-    "core/graph_os",
-    "core/board_os",
-    "core/web"
+    "src/core",
+    "src/core/thinking_os",
+    "src/core/graph_os",
+    "src/core/board_os",
+    "src/core/web"
   ],
   "include": [
-    "cli",
-    "core",
-    "adapters",
+    "src/cli",
+    "src/core",
+    "src/adapters",
     "scripts",
     "tests"
   ],

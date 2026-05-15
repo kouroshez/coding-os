@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_live_registry_has_claude_and_codex() -> None:
-    adapters = load_adapter_registry(REPO_ROOT / "adapters")
+    adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     assert "claude" in adapters
     assert "codex" in adapters
     # Both adapters now expose a rules directory (Phase G symmetry — Codex
@@ -24,7 +24,7 @@ def test_live_registry_has_claude_and_codex() -> None:
 
 
 def test_claude_declares_settings_and_hooks() -> None:
-    adapters = load_adapter_registry(REPO_ROOT / "adapters")
+    adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     claude = adapters["claude"]
     assert claude.settings_file == ".claude/settings.json"
     assert claude.hooks_dir == ".claude/hooks"
@@ -34,7 +34,7 @@ def test_claude_declares_settings_and_hooks() -> None:
 def test_codex_declares_symmetric_dirs() -> None:
     # Post-Phase G: Codex declares the same structural dirs as Claude.
     # Content source (core/) is shared; only the loading mechanism differs.
-    adapters = load_adapter_registry(REPO_ROOT / "adapters")
+    adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     codex = adapters["codex"]
     assert codex.rules_dir == ".codex/rules"
     assert codex.hooks_dir == ".codex/hooks"
@@ -118,5 +118,5 @@ def test_adapter_schema_rejects_wrong_id_pattern(tmp_path: Path) -> None:
 
 def test_adapter_schema_accepts_live_adapters() -> None:
     """Sanity: claude + codex must both pass schema validation."""
-    adapters = load_adapter_registry(REPO_ROOT / "adapters")
+    adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     assert "claude" in adapters and "codex" in adapters

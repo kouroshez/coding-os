@@ -2,7 +2,7 @@
 # Codex Adapter
 
 Purpose: Reference for the Codex (OpenAI) adapter — hook capabilities, dispatcher, gate behaviour, MCP responsibilities.
-Read when: editing `adapters/codex/`, debugging a Codex session, adding a new hook that needs Codex parity.
+Read when: editing `src/adapters/codex/`, debugging a Codex session, adding a new hook that needs Codex parity.
 Skip when: Claude/Cursor-specific issues.
 
 > Nav: [AGENTS.md](../../AGENTS.md) › [adapters](.) › **codex**
@@ -12,11 +12,11 @@ Skip when: Claude/Cursor-specific issues.
 
 ## Dispatcher
 
-`adapters/codex/sdk_dispatcher.py` ships a **subprocess-based** dispatcher that wraps the
+`src/adapters/codex/sdk_dispatcher.py` ships a **subprocess-based** dispatcher that wraps the
 `codex` CLI binary:
 
 ```python
-# adapters/codex/sdk_dispatcher.py
+# src/adapters/codex/sdk_dispatcher.py
 class CodexSDKDispatcher:
     name = "codex-sdk"
 
@@ -28,7 +28,7 @@ class CodexSDKDispatcher:
         ...
 ```
 
-`core/thinking_os/dispatcher.get_dispatcher("codex")` loads it via the generic
+`src/core/thinking_os/dispatcher.get_dispatcher("codex")` loads it via the generic
 `_try_load_adapter_dispatcher("codex")` loader — no core code is coupled to the
 Codex binary. If `codex` is absent from `PATH`, the loader returns `None` and
 `get_dispatcher` falls back to the default inline dispatcher.
@@ -62,7 +62,7 @@ always includes system body + context + input slice + prompt.
 the `openai-agents` Python SDK. This keeps the dependency surface minimal and stays
 compatible with the `codex` CLI's stable CLI surface. If OpenAI releases a first-party
 Python SDK with a stable async API, mirror the Claude pattern:
-`adapters/codex/sdk_dispatcher.py` is the only file that needs updating.
+`src/adapters/codex/sdk_dispatcher.py` is the only file that needs updating.
 
 ---
 
@@ -141,7 +141,7 @@ if not result["data"]["allowed"]:
 
 ## Adding a New Codex Gate
 
-When Codex expands its hook surface, update `adapters/codex/adapter.yaml::hook_capabilities`
+When Codex expands its hook surface, update `src/adapters/codex/adapter.yaml::hook_capabilities`
 and re-run `make regen-adapter-templates`. No other code changes are needed —
 the template renderer automatically enables hooks whose `{event, matcher}` pair
 appears in the capability list.
@@ -152,6 +152,6 @@ appears in the capability list.
 
 - [docs/adapters/claude-sdk.md](claude-sdk.md) — Claude SDK reference implementation
 - [AGENTS.md §P8](../../AGENTS.md) — Adapter-SDK autonomy principle
-- [core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py) — generic adapter dispatcher loader
-- [adapters/codex/sdk_dispatcher.py](../../adapters/codex/sdk_dispatcher.py) — Codex subprocess dispatcher
+- [src/core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py) — generic adapter dispatcher loader
+- [src/adapters/codex/sdk_dispatcher.py](../../adapters/codex/sdk_dispatcher.py) — Codex subprocess dispatcher
 - [docs/engineering/board-thinking-os-coupling.md](../engineering/board-thinking-os-coupling.md) — WIP + task coupling

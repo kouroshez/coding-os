@@ -19,7 +19,7 @@ Read next: `../architecture/04a-auth-security.md` for auth architecture details.
 ```bash
 make rotate-secret-key
 # or with custom .env path:
-bash infrastructure/scripts/rotate-secrets.sh --env-file backend/.env
+bash infrastructure/scripts/rotate-secrets.sh --env-file src/backend/.env
 ```
 
 The script:

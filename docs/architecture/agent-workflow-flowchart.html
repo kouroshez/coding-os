@@ -315,7 +315,7 @@
            ══════════════════════════════════════════════════════════════════ -->
       <div class="node-wrapper"><div class="node theme-cyan" id="n-user" data-role="entry" data-phase="0" style="border-radius:999px;text-align:center;padding:16px 36px;">
         <div class="n-head">User Input / Prompt</div>
-        <div class="n-desc">AGENTS.md + CLAUDE.md + core/rules/*.md auto-loaded (~2k tokens)</div>
+        <div class="n-desc">AGENTS.md + CLAUDE.md + src/core/rules/*.md auto-loaded (~2k tokens)</div>
       </div></div>
 
       <div class="node-wrapper"><div class="node action theme-blue" id="n-sinit" data-role="session" data-phase="init">
@@ -409,7 +409,7 @@
         <div class="n-content">
           <div class="n-head">Role Router</div>
           <div class="n-cmd">cos_route_roles(signals, complexity)</div>
-          <div class="n-desc"><strong>11 Roles = 11 Formulas.</strong> One file per F1..F11 under <code>core/thinking_os/roles/</code>.</div>
+          <div class="n-desc"><strong>11 Roles = 11 Formulas.</strong> One file per F1..F11 under <code>src/core/thinking_os/roles/</code>.</div>
           <div class="role-row">
             <span class="role-chip role-F1">F1 Research</span>
             <span class="role-chip role-F2">F2 Analyst</span>
@@ -607,10 +607,10 @@
           <div class="n-cmd">make verify · make safe-test · uv run pytest</div>
           <div class="n-desc"><strong>Verification matrix</strong> by changed files (from AGENTS.md):</div>
           <ul style="padding-left:18px;font-size:12px;color:var(--text-2);">
-            <li><code>core/thinking_os/*</code> → pytest + MCP self-test</li>
-            <li><code>core/graph_os/*</code> → parity + extractor tests</li>
-            <li><code>core/board_os/*</code> → parser + sync + viewer tests</li>
-            <li><code>core/hooks/*.sh</code> → <code>make verify-hooks</code></li>
+            <li><code>src/core/thinking_os/*</code> → pytest + MCP self-test</li>
+            <li><code>src/core/graph_os/*</code> → parity + extractor tests</li>
+            <li><code>src/core/board_os/*</code> → parser + sync + viewer tests</li>
+            <li><code>src/core/hooks/*.sh</code> → <code>make verify-hooks</code></li>
             <li><code>docs/**</code> → <code>make docs-lint</code> + staleness</li>
           </ul>
           <div class="n-badge" style="background:var(--green-dim);color:var(--green);">F8 + F6 parallel dispatch supported</div>
@@ -769,9 +769,9 @@
     <div class="card" data-section="phase-n-status">
       <h3><i style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);">&#10004;</i> Role-Based Routing — Shipped</h3>
       <ul>
-        <li>✅ <strong>Cognitive roles</strong> replace job-title personas — 11 YAML files under <code>core/thinking_os/roles/F{1..11}_*.yaml</code></li>
-        <li>✅ <strong>Task Analyzer</strong> — <code>core/thinking_os/task_analyzer.py</code>, &lt;500ms budget, flock'd cache</li>
-        <li>✅ <strong>Formula Composer</strong> — <code>core/thinking_os/formula_composer.py</code>, strategy: situation &gt; preset &gt; composer &gt; fallback</li>
+        <li>✅ <strong>Cognitive roles</strong> replace job-title personas — 11 YAML files under <code>src/core/thinking_os/roles/F{1..11}_*.yaml</code></li>
+        <li>✅ <strong>Task Analyzer</strong> — <code>src/core/thinking_os/task_analyzer.py</code>, &lt;500ms budget, flock'd cache</li>
+        <li>✅ <strong>Formula Composer</strong> — <code>src/core/thinking_os/formula_composer.py</code>, strategy: situation &gt; preset &gt; composer &gt; fallback</li>
         <li>✅ <strong>Presets registry</strong> — 12 curated chains with SHA256 versioning (N.5-C)</li>
         <li>✅ <strong>3 new MCP tools</strong>: <code>cos_analyze_task</code>, <code>cos_compose_chain</code>, <code>cos_role_info</code></li>
         <li>✅ <strong>Discovery auto-trigger hook</strong>: <code>track-discovery.sh</code> (PostToolUse, 5-min cooldown)</li>
@@ -813,7 +813,7 @@
         <li><span>P4</span> Diff-first — preserve unrelated content</li>
         <li><span>P5</span> Dogfood — coding-os uses itself</li>
         <li><span>P6</span> Log-everything via make commands</li>
-        <li><span>P7</span> No-guessing — log unknowns to <code>docs/questions.md</code></li>
+        <li><span>P7</span> No-guessing — log unknowns to <code>docs/_meta/questions.md</code></li>
       </ul>
     </div>
 
@@ -883,11 +883,11 @@
     "N": "shipped-role-based-routing"
   },
   "routing_primitives": {
-    "analyzer": "core/thinking_os/task_analyzer.py",
-    "composer": "core/thinking_os/formula_composer.py",
-    "roles_dir": "core/thinking_os/roles/",
-    "presets_file": "core/thinking_os/presets/registry.yaml",
-    "situations_file": "core/thinking_os/situations/registry.yaml",
+    "analyzer": "src/core/thinking_os/task_analyzer.py",
+    "composer": "src/core/thinking_os/formula_composer.py",
+    "roles_dir": "src/core/thinking_os/roles/",
+    "presets_file": "src/core/thinking_os/presets/registry.yaml",
+    "situations_file": "src/core/thinking_os/situations/registry.yaml",
     "strategy_priority": ["situation_override", "preset_match", "composer_fallback", "hard_fallback"]
   }
 }

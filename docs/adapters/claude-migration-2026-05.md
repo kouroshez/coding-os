@@ -2,7 +2,7 @@
 # Claude Adapter Migration Guide — 2026-05
 
 > P: Migration steps for consumer projects pulling the May 2026 Claude-adapter bundle (SDK floor bump, dispatcher hardening, hook permissions).
-> R: Updating an existing consumer project's `adapters/claude/` install after a `cos update`.
+> R: Updating an existing consumer project's `src/adapters/claude/` install after a `cos update`.
 > S: Fresh installs — `install.sh` already renders the new template.
 > N: [claude-sdk.md](claude-sdk.md), [claude-rollback.md](claude-rollback.md)
 
@@ -39,8 +39,8 @@ None. All changes are additive. The dispatcher falls back to the
 | Area | Change | Action required |
 |---|---|---|
 | **DB schema** | Migration v23: 6 nullable columns on `formula_dispatches` | `cos sync-all` applies automatically |
-| **`.claude/agents/`** | Symlinks deleted from scaffold | `cos sync-all` cleans up; or run `adapters/claude/install.sh` |
-| **Role frontmatter** | `structured_output: true` on implementer/reviewer/debugger/refactorer | No action (roles shipped in `core/`) |
+| **`.claude/agents/`** | Symlinks deleted from scaffold | `cos sync-all` cleans up; or run `src/adapters/claude/install.sh` |
+| **Role frontmatter** | `structured_output: true` on implementer/reviewer/debugger/refactorer | No action (roles shipped in `src/core/`) |
 | **Role frontmatter** | `long_context: true` on researcher | No action |
 | **Role frontmatter** | `enable_file_checkpointing: true` on implementer/refactorer | No action |
 
@@ -64,7 +64,7 @@ uv run pytest tests/test_claude_dispatcher_options.py -v
 uv run pytest tests/test_skill_frontmatter.py -v
 
 # 4. AGENT STREAM session id resolved
-python scripts/probe_agent_session_resolver.py
+python src/scripts/probe_agent_session_resolver.py
 
 # 5. Hub cost endpoint (hub must be running)
 curl -s http://127.0.0.1:9188/api/cognition/cost | python -m json.tool

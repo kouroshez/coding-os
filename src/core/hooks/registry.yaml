@@ -1,0 +1,841 @@
+# Hook Registry — SSOT for hook registration metadata.
+#
+# Each hook is declared ONCE here. src/cli/hook_renderer.py reads this file
+# and produces adapter-specific settings files:
+#   src/adapters/claude/settings.template.json  (rendered)
+#   src/adapters/codex/hooks.template.json      (rendered)
+#
+# Adding a hook:
+#   1. Drop the script in src/core/hooks/<name>.sh
+#   2. Append an entry here (fields below)
+#   3. Run: make regen-adapter-templates
+#   4. Run: make dogfood-full  (re-install adapters in this repo)
+#
+# Hook fields:
+#   id            — logical name (= script basename without .sh)
+#   script        — filename in src/core/hooks/
+#   description   — one-line purpose (shown in `cos hooks-list`)
+#   category      — safety | enforcement | observability | reminder | meta
+#   phase         — development phase when added (0 | E | F | G | ...)
+#   timeout       — ms; omit if none
+#   events        — list of {event, matcher, status_message}
+#
+# Event/matcher pairs are filtered against each adapter's declared
+# capabilities in src/adapters/<agent>/adapter.yaml::capabilities. A pair
+# the adapter cannot fire is skipped in that adapter's output.
+
+version: 1
+
+hooks:
+  # ── safety ─────────────────────────────────────────────────────────
+  - id: block-secrets
+    script: block-secrets.sh
+    description: Scans command and file content for credentials (AWS keys, tokens, .env leaks).
+    category: safety
+    phase: "0"
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🔒 Scanning command for credentials..."
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔒 Scanning file content for credentials..."
+
+  - id: block-dangerous-commands
+    script: block-dangerous-commands.sh
+    description: Blocks destructive commands (rm -rf, force-push, reset --hard) without confirmation.
+    category: safety
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🛡️ Checking command safety (rm, force-push, reset)..."
+
+  - id: block-uv-heredoc
+    script: block-uv-heredoc.sh
+    description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).
+    category: safety
+    phase: E
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "⚠️ Inspecting uv-run heredoc pattern (rule #9)..."
+
+  - id: block-bad-patterns
+    script: block-bad-patterns.sh
+    description: "Rejects bare `except: pass`, mock-where-real-needed, and other anti-patterns."
+    category: safety
+    phase: "0"
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚫 Checking for anti-patterns (bare except: pass, …)..."
+
+  - id: block-protected-files
+    script: block-protected-files.sh
+    description: Blocks edits to governance-protected files unless the active task is a governance task.
+    category: safety
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔐 Checking protected governance files..."
+
+  - id: block-migration-conflict
+    script: block-migration-conflict.sh
+    description: Detects duplicate migration version numbers in db.py (Rule #10 — append-only migrations).
+    category: safety
+    phase: E
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🗃️ Checking migration version conflicts (rule #10)..."
+
+  - id: block-hardcoded-literals
+    script: block-hardcoded-literals.sh
+    description: Rejects hardcoded stack/adapter name literals in cli/*.py (Rule #12 — data-driven CLI).
+    category: safety
+    phase: E
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🎯 Scanning cli/*.py for hardcoded literals (rule #12)..."
+
+  # ── enforcement ────────────────────────────────────────────────────
+  - id: enforce-verify
+    script: enforce-verify.sh
+    description: Blocks `task-done` commands unless the required verification suite has recorded a recent pass.
+    category: enforcement
+    phase: "0"
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "✅ Verifying suites before task-done..."
+
+  - id: enforce-template
+    script: enforce-template.sh
+    description: Requires structured task / ADR / PRD / insight documents to follow the template.
+    category: enforcement
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "📋 Checking doc templates (task / ADR / PRD / insight)..."
+
+  - id: thinking_os-gate
+    script: thinking_os-gate.sh
+    description: Requires a recorded Complexity Gate classification before code writes.
+    category: enforcement
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🧠 Verifying Complexity Gate recorded..."
+
+  - id: enforce-scaffold-boundary
+    script: enforce-scaffold-boundary.sh
+    description: TASK-163 — block Write/Edit when target path violates an installed stack's `forbids_writing_in`. Reads aggregated $COS_STATE_DIR/scaffold-boundary.yaml; fail-open when missing.
+    category: enforcement
+    phase: O
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚧 Checking scaffold-boundary (multi-stack subtree isolation)..."
+
+  - id: enforce-task-start
+    script: enforce-task-start.sh
+    description: Requires an active task marker so every edit is traceable.
+    category: enforcement
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "📌 Verifying active task..."
+
+  - id: enforce-doc-anchor
+    script: enforce-doc-anchor.sh
+    description: Blocks code writes without a recorded doc anchor (Rule #0 — docs-first principle).
+    category: enforcement
+    phase: E
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "📎 Verifying doc anchor (docs-first principle)..."
+
+  - id: enforce-memory-check
+    script: enforce-memory-check.sh
+    description: Requires a cos_search memory check before code writes on COMPLICATED/COMPLEX tasks.
+    category: enforcement
+    phase: F
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔎 Verifying Memory Check (cos_search) recorded..."
+
+  - id: enforce-skill
+    script: enforce-skill.sh
+    description: Requires a domain skill to be invoked before editing stack-scoped code files.
+    category: enforcement
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🛠️ Verifying domain skill invoked..."
+
+  - id: enforce-zoom
+    script: enforce-zoom.sh
+    description: Requires a Plan checkpoint for COMPLICATED/COMPLEX tasks before code writes.
+    category: enforcement
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔍 Verifying Plan checkpoint for COMPLICATED+..."
+
+  - id: enforce-doc-sync
+    script: enforce-doc-sync.sh
+    description: |
+      PostToolUse Write|Edit|MultiEdit — code → doc staleness scanner.
+      Closes the docs-first loop in the OTHER direction. Three signals:
+      (1) public symbol removed/renamed + doc still mentions it,
+      (2) signature changed (param count diff) on a kept symbol — catches
+      the "agent invented a non-spec'd field" case, (3) doc mtime older
+      than code AND mentions a current symbol (soft).
+      Collaborates with thinking_os FTS5 doc index (better than path-mirror
+      heuristic) + graph_os reference count when backend is up. WARN class,
+      never blocks. Helper: _helpers/doc_sync_check.py.
+    category: enforcement
+    phase: "0"
+    timeout: 2000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit|MultiEdit
+        status_message: "📚 Scanning related docs for drift..."
+
+  # ── observability ──────────────────────────────────────────────────
+  - id: capture-observation
+    script: capture-observation.sh
+    description: Fire-and-forget observation recording to thinking_os memory (PostToolUse Write|Edit|MultiEdit).
+    category: observability
+    phase: "0"
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit|MultiEdit
+        status_message: "🧠 Recording observation + embedding to memory..."
+
+  - id: auto-reindex-docs
+    script: auto-reindex-docs.sh
+    description: Phase H + Phase I freshness — incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph_os extractor; fire-and-forget.
+    category: retrieval
+    phase: H
+    timeout: 2000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness..."
+
+  - id: auto-reindex-shell-ops
+    script: auto-reindex-shell-ops.sh
+    description: Catch bulk file ops (mv/cp/rm/git checkout/git restore) the Write/Edit hook misses; debounced full reindex in background so the graph stays fresh after a rename or branch switch.
+    category: retrieval
+    phase: I
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "🔁 Bulk shell op detected — scheduling graph reindex..."
+
+  - id: auto-regen-doc-index
+    script: auto-regen-doc-index.sh
+    description: TASK-161 freshness — regenerate the affected docs/<dir>/00-index.md from frontmatter on every Write/Edit of a docs/**/*.md file. Debounced (5s/dir), fire-and-forget; failures land in $COS_STATE_DIR/.regen-doc-index-errors.log.
+    category: retrieval
+    phase: O
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter..."
+
+  - id: auto-prune-deleted-files
+    script: auto-prune-deleted-files.sh
+    description: PostToolUse Bash — when the agent runs rm/git rm/mv on a code or markdown file, prune graph_nodes (cascade to edges + evidence), document_chunks, file_index_state, and the `<file>.INDEX.md` sidecar. Counterpart to auto-reindex-docs.sh; closes the deleted-file zombie-row gap.
+    category: retrieval
+    phase: O
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "🧹 Pruning graph + docs RAG state for deleted files..."
+
+  # ── graph_os enforcement (Phase I.14) ──────────────────────────────
+  - id: enforce-graph-first-read
+    script: enforce-graph-first-read.sh
+    description: |
+      Phase I.15 — PreToolUse Read on a load-bearing meta-repo file
+      WARNS (or BLOCKS in strict) when the agent reaches for Read before
+      any cos_graph_* tool has been called this session. Reuses the same
+      enforce_context_on glob list from .coding-os/rag-config.yaml. Silent
+      if the per-file .graph-context-<sha> marker exists. Toggle via
+      COS_ENFORCE_GRAPH_FIRST=off|1|strict.
+    category: enforcement
+    phase: I
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Read
+        status_message: "🧭 Checking graph-first discipline before Read..."
+
+  - id: enforce-graph-context
+    script: enforce-graph-context.sh
+    description: Phase I — warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
+    category: enforcement
+    phase: I
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🧭 Verifying graph-context marker for load-bearing file..."
+
+  - id: enforce-rename-plan
+    script: enforce-rename-plan.sh
+    description: Phase I — warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
+    category: enforcement
+    phase: I
+    timeout: 1500
+    events:
+      - event: PreToolUse
+        matcher: Edit
+        status_message: "✏️  Verifying rename-plan marker..."
+
+  - id: verify-rename-callers
+    script: verify-rename-callers.sh
+    description: PostToolUse Edit — when an Edit looks like an identifier rename, greps the repo for unreplaced callers and warns. Closes the gap left by enforce-rename-plan (which verifies plan-existence, not site-completeness). Always non-blocking.
+    category: enforcement
+    phase: O
+    timeout: 2000
+    events:
+      - event: PostToolUse
+        matcher: Edit
+        status_message: "🔁 Checking for unreplaced rename callers..."
+
+  - id: search-enforce-inventory
+    script: search-enforce-inventory.sh
+    description: PreToolUse Bash — when a bulk replace (sed -i, xargs sed, python replace) is about to run, extracts the OLD pattern, stores it in session state, and emits the inventory grep command for the agent to run. Does NOT run grep itself (full-repo grep exceeds PreToolUse timeout on large codebases). Companion PostToolUse hook (search-verify-remaining) runs bounded verify grep after replace. Always non-blocking.
+    category: enforcement
+    phase: O
+    timeout: 3000
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🔎 Running search inventory before bulk replace..."
+
+  - id: search-verify-remaining
+    script: search-verify-remaining.sh
+    description: PostToolUse Bash — after a bulk replace, reads session state from search-enforce-inventory and re-runs verify grep. Reports remaining match count vs ground truth. Warns if > 0 remain with file list. Closes the "declared done but 20 remain" gap for Bash-based replace operations. Always non-blocking.
+    category: enforcement
+    phase: O
+    timeout: 3000
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "✅ Verifying 0 matches remain after replace..."
+
+  # ── board_os Scrumban (Phase L.4) ──────────────────────────────────
+  - id: validate-task-frontmatter
+    script: validate-task-frontmatter.sh
+    description: Phase L — validates lean frontmatter (swimlane/kind/epic/labels/status/priority/appetite) on task MD writes. Blocks malformed YAML or enum violations.
+    category: safety
+    phase: L
+    timeout: 3000
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🧾 Validating task frontmatter..."
+
+  - id: enforce-wip-limit
+    script: enforce-wip-limit.sh
+    description: Phase L — enforces WIP caps from scrumban-config.yaml when a task transitions to in_progress/emergency. Bypass via COS_WIP_OVERRIDE=1.
+    category: safety
+    phase: L
+    timeout: 2000
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚦 Checking WIP limit before status change..."
+
+  - id: capture-work-log
+    script: capture-work-log.sh
+    description: Phase L — appends one-line Work Log entry to the active task on code Write/Edit. Fire-and-forget; flock-serialized for multi-agent safety.
+    category: observability
+    phase: L
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit|MultiEdit
+        status_message: "📝 Appending Work Log entry..."
+
+  - id: auto-task-sync
+    script: auto-task-sync.sh
+    description: Phase L — re-syncs single task file into DB cache on Write/Edit. Fire-and-forget; keeps the board fresh within one hook latency.
+    category: retrieval
+    phase: L
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "♻️ Re-syncing task to DB..."
+
+  - id: check-mcp-extras
+    script: check-mcp-extras.sh
+    description: SessionStart — verifies global cos binary has required Python extras (graph_os, board_os, rag). If missing, MCP crashes silently and all cos_* tools fail. Emits loud warning with exact fix command before agent uses any MCP tools. Fast (<200ms, no server start). Always non-blocking.
+    category: safety
+    phase: "0"
+    timeout: 2000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🔌 Checking MCP extras health..."
+
+  - id: remind-daily
+    script: remind-daily.sh
+    description: Phase L — on SessionStart, nags if `cos daily` hasn't run in >24h. Non-blocking banner; ADHD-friendly (no shame).
+    category: observability
+    phase: L
+    timeout: 1000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🗓️  Checking daily check-in recency..."
+      - event: SessionStart
+        matcher: resume
+        status_message: "🗓️  Checking daily check-in recency..."
+
+  - id: ensure-hub-up
+    script: ensure-hub-up.sh
+    description: SessionStart — if .coding-os.yaml has hub.enabled (default true), probe http://127.0.0.1:9188 and start `cos hub` in the background when down.
+    category: observability
+    phase: "0"
+    timeout: 2000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🛰️  Ensuring Coding OS Hub is up..."
+
+  - id: lint-task
+    script: lint-task.sh
+    description: Phase L.9 — Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.
+    category: safety
+    phase: L
+    timeout: 1000
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📏 Lint task (Rule 15)..."
+
+  - id: check-doc-size
+    script: check-doc-size.sh
+    description: Soft size budget per `layer:` (index/playbook/spec/policy/reference/adr/task). Warn-only — complements lint-task with non-task layers.
+    category: reminder
+    phase: O
+    timeout: 800
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📐 Checking doc size budget..."
+
+  - id: enforce-task-body
+    script: enforce-task-body.sh
+    description: Phase L.10 — DoR/DoD validator. Blocks transitions to in_progress/complete when task body fails the kind's rules. SSOT in src/core/board_os/transition-gates.yaml.
+    category: enforcement
+    phase: L
+    timeout: 4000
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚦 Validating transition gates (DoR/DoD)..."
+
+  - id: verify-changed-file
+    script: verify-changed-file.sh
+    description: Analyzes changed file + cross-module impact after each write.
+    category: observability
+    phase: "0"
+    timeout: 1500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📊 Analyzing changed file + cross-module impact..."
+
+  - id: track-skill
+    script: track-skill.sh
+    description: Tracks which skills have been invoked this session.
+    category: observability
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Skill
+        status_message: "🛠️ Tracking skill invocation..."
+
+  - id: session-context
+    script: session-context.sh
+    description: Loads session context + memory digest on session start / compact / resume.
+    category: observability
+    phase: "0"
+    timeout: 3000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🚀 Loading session context + memory digest..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🔄 Recovering workflow context + memory digest..."
+      - event: UserPromptSubmit
+        matcher: ""
+        status_message: "🔄 Checking workflow state..."
+
+  - id: session-end
+    script: session-end.sh
+    description: |
+      Stop hook — fires at end-of-turn (NOT end-of-conversation). Claude Code
+      emits `Stop` after each agent turn, so the same session_id persists
+      across many `session-end` invocations. The hook writes per-turn
+      summary + memory enrichment; idempotent UPSERT on session_summaries.
+      "session" in the hook name refers to the agent loop session-id, which
+      is rotated only on a fresh `SessionStart startup` (see
+      session-context.sh for rotation logic).
+    category: observability
+    phase: "0"
+    timeout: 5000
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "📝 Writing turn summary + enrichment to memory..."
+
+  - id: agent-presence
+    script: agent-presence.sh
+    description: 'Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don''t appear offline between tool calls. Consolidated from 8→5 events (board UI uses kill -0 PID check for fine-grained liveness, no per-tool ping needed). Updated 2026-05-04 — also fires on SubagentStart/SubagentStop/PostToolUseFailure so parent-session activity stays accurate while sub-agents work.'
+    category: observability
+    phase: "0"
+    timeout: 800
+    events:
+      - event: SessionStart
+        matcher: startup
+      - event: SessionStart
+        matcher: compact|resume
+      - event: UserPromptSubmit
+        matcher: ""
+      - event: PostToolUse
+        matcher: Write|Edit
+      - event: PostToolUseFailure
+        matcher: ""
+      - event: SubagentStart
+        matcher: ""
+      - event: SubagentStop
+        matcher: ""
+      - event: Stop
+        matcher: ""
+
+  - id: warn-mcp-down
+    script: warn-mcp-down.sh
+    description: Probes thinking_os MCP liveness at session start; loud banner if unreachable. Capped at 2s probe (perl alarm 2 + 500ms slack).
+    category: observability
+    phase: F
+    timeout: 2500
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🩺 Probing MCP coding-os liveness..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🩺 Probing MCP coding-os liveness..."
+
+  - id: auto-brain-decay
+    script: auto-brain-decay.sh
+    description: Phase G.G1 — SessionStart runs Ebbinghaus confidence decay on learned_patterns once per 24 h. Fire-and-forget, bounded at 10s; debounces via $COS_STATE_DIR/.last-decay.
+    category: observability
+    phase: G
+    timeout: 2000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "📉 Debounced pattern-decay sweep..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "📉 Debounced pattern-decay sweep..."
+
+  - id: warn-graph-empty
+    script: warn-graph-empty.sh
+    description: Phase I.10 — SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
+    category: observability
+    phase: I
+    timeout: 1500
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🕸️  Checking graph_os index state..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🕸️  Checking graph_os index state..."
+
+  - id: check-capture-worked
+    script: check-capture-worked.sh
+    description: Session-end recap — warns if zero observations captured despite code edits.
+    category: observability
+    phase: F
+    timeout: 1500
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "📊 Session recap: verifying observations captured..."
+
+  # ── reminder ───────────────────────────────────────────────────────
+  - id: regen-reminder
+    script: regen-reminder.sh
+    description: Reminds to regenerate derived artifacts when their sources change.
+    category: reminder
+    phase: E
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🔄 Checking if derived artifacts need regeneration..."
+
+  - id: test-first-reminder
+    script: test-first-reminder.sh
+    description: Points at the companion test file after a code edit (or suggests one if absent).
+    category: reminder
+    phase: E
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🧪 Checking for companion test file..."
+
+  - id: doc-sync-reminder
+    script: doc-sync-reminder.sh
+    description: Lists companion docs to keep in sync when code changes.
+    category: reminder
+    phase: "0"
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📘 Listing companion docs to keep in sync..."
+
+  - id: remind-learn-validate
+    script: remind-learn-validate.sh
+    description: Surfaces cos_learn_validate reminder after task-done so the agent feeds back.
+    category: reminder
+    phase: F
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "💡 Checking if learn-validate reminder is due..."
+
+  # ── meta (coding-os meta-project specific, Phase G) ────────────────
+  - id: check-agents-md-size
+    script: check-agents-md-size.sh
+    description: Warns when AGENTS.md approaches Codex's 32 KiB read cap.
+    category: meta
+    phase: G
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "📏 Checking AGENTS.md size (Codex 32 KiB cap)..."
+
+  - id: check-agents-md-refs
+    script: check-agents-md-refs.sh
+    description: Flags AGENTS.md references to src/core/rules or src/core/skills that no longer exist.
+    category: meta
+    phase: G
+    timeout: 800
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🔗 Checking AGENTS.md path references are alive..."
+
+  - id: remind-dogfood
+    script: remind-dogfood.sh
+    description: Reminds to run `make dogfood-full` after edits to core/ or adapters/.
+    category: meta
+    phase: G
+    timeout: 500
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "🧬 Checking if meta-project dogfood refresh is needed..."
+
+  - id: warn-template-drift
+    script: warn-template-drift.sh
+    description: Transitional — warns if adapter template JSON is edited directly instead of registry.yaml. Delete when registry.yaml is the only write path.
+    category: meta
+    phase: G
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "⚠️ Adapter template edits — use registry.yaml..."
+
+
+  # ── cognition (Phase M — formula-agent supervisor) ───────────────────
+  - id: enforce-anti-ambiguity
+    script: enforce-anti-ambiguity.sh
+    description: Blocks code writes at EXECUTE phase when Anti-Ambiguity gate has failures. Bypassed for CLEAR 1.
+    category: cognition
+    phase: M
+    timeout: 500
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🔍 Anti-Ambiguity gate check..."
+
+  - id: track-backtrack
+    script: track-backtrack.sh
+    description: Non-blocking advisor that fires when cos_backtrack_log records ≥3 backtracks per session.
+    category: cognition
+    phase: M
+    timeout: 800
+    events:
+      - event: PostToolUse
+        matcher: mcp__coding-os__cos_backtrack_log
+        status_message: "↩️ Backtrack counter updated..."
+
+  - id: track-discovery
+    script: track-discovery.sh
+    description: |
+      Phase N — Discovery Protocol auto-trigger. Scans Write/Edit/TodoWrite
+      output for discovery signal phrases (new actor, missing dependency,
+      undocumented behavior, etc.). On ≥2 matches, emits a non-blocking
+      reminder to call cos_discovery with impact assessment + decision.
+      Reminder cooldown: 5 minutes per session to avoid spam.
+      Spec: formulas-en.md §Navigation Protocol §4 (Discovery Protocol).
+    category: cognition
+    phase: N
+    timeout: 800
+    events:
+      - event: PostToolUse
+        matcher: "Write|Edit|TodoWrite"
+        status_message: "🔍 Scanning for discoveries..."
+
+  - id: capture-tool-failure
+    script: capture-tool-failure.sh
+    description: |
+      Phase EVO — Capture meaningful tool failures (especially hook-blocked
+      events) to the observations table so they feed failure_pattern_query
+      and learn_extract. Only captures blocked events and repeated failures —
+      transient Bash errors are skipped to avoid noise. This closes the
+      "experience capture" gap: previously the system only learned from
+      completed outcomes, not from what failed mid-execution.
+    category: observability
+    phase: EVO
+    timeout: 500
+    events:
+      - event: PostToolUseFailure
+        matcher: ""
+
+  - id: auto-trace-rotate
+    script: auto-trace-rotate.sh
+    description: |
+      Stop hook — rotate trace JSONL. gzip files older than
+      COS_TRACE_GZIP_AGE_DAYS (default 3). Delete (gz or jsonl) older than
+      COS_TRACE_DELETE_AGE_DAYS (default 30). Bounded, fire-and-forget.
+      Closes the unbounded growth gap on .coding-os/<agent>/traces/*.jsonl.
+    category: observability
+    phase: O
+    timeout: 3000
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "🧹 Rotating old trace files..."
+
+  - id: nudge-thinking-os
+    script: nudge-thinking-os.sh
+    description: |
+      UserPromptSubmit nudge — heuristic Complexity Gate + Rule 18 task reconciliation.
+      Counts signal words (design, architect, debug, investigate, refactor,
+      best way, optimize, etc.) plus length. For COMPLICATED+ emits a
+      stdout additional-context block mandating: (1) cos_task_board check per
+      Rule 18, (2) Complexity Gate recording, (3) thinking_os skill load,
+      (4) cos_compose_chain call. Debounced once per session via
+      .zoom-prompt-suggested marker; skipped if .thinking_os-gate already exists.
+    category: cognition
+    phase: O
+    timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
+  - id: classify-task-mode
+    script: classify-task-mode.sh
+    description: |
+      UserPromptSubmit — classify the prompt into a persona-aware
+      task-mode and write the verdict to $COS_AGENT_DIR/.task-mode.
+      Modes: formal | propose-formal | query | chore | adhoc |
+      gov-required. Downstream enforcement hooks read the marker so a
+      Q&A turn does not pay the same cost as a multi-file refactor —
+      Rule 18 ("task reconciliation mandatory") is honored without
+      forcing a TASK-NNN onto every analytical question.  Decision
+      matrix lives in docs/engineering/task-mode-matrix.md.
+    category: cognition
+    phase: O
+    timeout: 800
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
+  - id: nudge-graph-os
+    script: nudge-graph-os.sh
+    description: |
+      UserPromptSubmit nudge — graph_os discovery. Pattern-matches the prompt
+      against 13 structural-question patterns (callers, rename, blast radius,
+      contracts, trace, similar, communities, context, detect-changes,
+      entrypoints, doctor, export, path) — bilingual (EN + Persian) — and
+      emits a one-line additional-context block recommending the exact
+      cos_graph_* tool to call before Read/grep. Closes the dogfood gap
+      where the agent never reaches the graph layer. Debounced per session
+      via .graph-nudge-suggested marker.
+    category: cognition
+    phase: I
+    timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
+  - id: nudge-docs-first
+    script: nudge-docs-first.sh
+    description: |
+      UserPromptSubmit nudge — docs-first SSOT discovery. Pattern-matches
+      the prompt for code-edit intent (refactor, rename, fix, add,
+      implement, change function/endpoint/handler/...; bilingual EN +
+      Persian) AND no .doc-anchor populated AND task-mode not in
+      query/chore/adhoc → emits a one-line additional-context block
+      pointing to cos_doc_search / cos_doc_header and the procedure in
+      docs/governance/docs-first-protocol.md. Closes the gap where
+      enforce-doc-anchor.sh fires only on Write/Edit, but user intent
+      already signals "code coming" at prompt time. Debounced per session
+      via .docs-first-nudged marker.
+    category: cognition
+    phase: O
+    timeout: 1000
+    events:
+      - event: UserPromptSubmit
+        matcher: ""

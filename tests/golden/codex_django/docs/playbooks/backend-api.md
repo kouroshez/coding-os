@@ -53,14 +53,14 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 
 ### Read Only If Relevant
 
-- `docs/PRD/12-schema-erd.md` — only if models/columns are touched
-- `docs/PRD/08-functional-requirements.md` — only if business logic involved
+- `docs/prd/12-schema-erd.md` — only if models/columns are touched
+- `docs/prd/08-functional-requirements.md` — only if business logic involved
 - `docs/playbooks/security-review.md` — only if the change is security-sensitive
 - `docs/pages-content-spec/{page}.md` — only if the API serves a specific frontend page
 
 ## Execution Rules
 
-- Business logic lives in `backend/apps/*/services/`.
+- Business logic lives in `src/backend/apps/*/services/`.
 - Schema names come from `PRD/12-schema-erd.md`; never invent model or field names.
 - Monetary values stay in integer cents.
 - Webhooks and payment truth come from provider webhooks, not client callbacks.
@@ -105,8 +105,8 @@ Agent creates migration files; user runs `make migrate`. For safety rules, multi
 
 Design docs are read-once blueprints. After implementation, code is the living truth:
 
-- Table schema → `models.py` (not `docs/PRD/12a`, `12b`)
-- Indexes → `models.py Meta.indexes` (not `docs/PRD/12c`)
+- Table schema → `models.py` (not `docs/prd/12a`, `12b`)
+- Indexes → `models.py Meta.indexes` (not `docs/prd/12c`)
 - API endpoints → `drf-spectacular` at `/api/v1/schema/` (not `docs/api-contracts/`)
 - Business logic → `services.py` (not `docs/architecture/`)
 

@@ -3,7 +3,7 @@
 
 Purpose: Design exploration for collapsing N PreToolUse Write/Edit hooks into one batched super-hook.
 Read when: Considering hook performance refactors.
-Skip when: Looking for the live registry — see core/hooks/registry.yaml.
+Skip when: Looking for the live registry — see src/core/hooks/registry.yaml.
 Read next: [registry.yaml](../../core/hooks/registry.yaml)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
@@ -46,14 +46,14 @@ events; would not benefit from being merged into Write|Edit-only batch).
    `cos_read_stdin_bounded 2`, sources `cos-env.sh` once, extracts
    `TOOL`, `FILE_PATH`, `CONTENT`, `OLD_STRING` once via a single `jq -c`.
 2. Sources individual checker functions from
-   `core/hooks/_checkers/<name>.sh`. Each checker is a function (`_check_<name>`)
+   `src/core/hooks/_checkers/<name>.sh`. Each checker is a function (`_check_<name>`)
    that consumes the already-parsed payload via env vars (`COS_HOOK_TOOL`,
    `COS_HOOK_FILE_PATH`, `COS_HOOK_CONTENT`, `COS_HOOK_OLD_STRING`) and
    exits the **outer hook** with 2 if it wants to block.
 3. Refactor each existing hook into:
-   - A thin shim at `core/hooks/<name>.sh` that still works standalone
+   - A thin shim at `src/core/hooks/<name>.sh` that still works standalone
      (back-compat for direct invocation, tests, ad-hoc debugging).
-   - The function body extracted to `core/hooks/_checkers/<name>.sh` for
+   - The function body extracted to `src/core/hooks/_checkers/<name>.sh` for
      reuse from the super-hook.
 
 ## Migration Plan (8h budget)
@@ -82,7 +82,7 @@ events; would not benefit from being merged into Write|Edit-only batch).
   bugs (`local` vs global, `set -e` propagation, `exit` vs `return`).
   Mitigation: parity test with byte-identical stderr.
 - **Test surface**: The 18 hooks have ~30 small ad-hoc test scripts
-  scattered through `core/hooks/test-hooks.sh`. All must be re-pointed
+  scattered through `src/core/hooks/test-hooks.sh`. All must be re-pointed
   at the super-hook to keep coverage.
 - **Shared `set -euo pipefail`**: One checker's `pipefail` failure
   could now kill the whole super-hook. Each `_check_*` function must

@@ -16,7 +16,7 @@ Dependency graph from MCP tool call down to sub-session result.
 cos_dispatch_formula_run (MCP tool, server.py)
   └─ cognition.py::_build_dispatch_request()
        └─ dispatcher.py::get_dispatcher()          ← factory
-            ├─ ClaudeSDKDispatcher (available)     ← adapters/claude/sdk_dispatcher.py
+            ├─ ClaudeSDKDispatcher (available)     ← src/adapters/claude/sdk_dispatcher.py
             │    └─ claude_agent_sdk.query()
             │         └─ Claude Code sub-process
             │              ├─ .claude/hooks/*.sh   ← filesystem hooks (core + adapter-private)
@@ -59,12 +59,12 @@ flowchart TD
 
 | Layer | File | Contract |
 |---|---|---|
-| MCP tool | `core/thinking_os/tools/cognition.py` | Accepts `formula_id`, `session_id`, `task_marker`; returns `ok(…)` / `fail(…)` envelope |
-| Dispatch protocol | `core/thinking_os/dispatcher.py` | `DispatchRequest` → `DispatchResult`; adapter-agnostic; no Claude imports |
-| Claude adapter | `adapters/claude/sdk_dispatcher.py` | Translates `DispatchRequest` → `ClaudeAgentOptions`; maps SDK subtypes to `status` |
+| MCP tool | `src/core/thinking_os/tools/cognition.py` | Accepts `formula_id`, `session_id`, `task_marker`; returns `ok(…)` / `fail(…)` envelope |
+| Dispatch protocol | `src/core/thinking_os/dispatcher.py` | `DispatchRequest` → `DispatchResult`; adapter-agnostic; no Claude imports |
+| Claude adapter | `src/adapters/claude/sdk_dispatcher.py` | Translates `DispatchRequest` → `ClaudeAgentOptions`; maps SDK subtypes to `status` |
 | SDK | `claude_agent_sdk` ≥ 0.1.73 | `query(prompt, options)` yields `AssistantMessage` / `ResultMessage` / `UserMessage` |
 | Persistence | `cognition.py::_persist_dispatch_output` | Merges JSON → EvidenceBundle; INSERTs v23 telemetry columns |
-| Hooks | `core/hooks/registry.yaml` | SSOT; `adapter_scope:` field limits Claude-only entries |
+| Hooks | `src/core/hooks/registry.yaml` | SSOT; `adapter_scope:` field limits Claude-only entries |
 
 ## Role frontmatter → ClaudeAgentOptions mapping
 

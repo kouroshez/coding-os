@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-HOOKS_DIR = Path(__file__).resolve().parent.parent / "core" / "hooks"
+HOOKS_DIR = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks"
 
 
 def run_hook(
@@ -531,7 +531,7 @@ class TestBlockProtectedFilesGovernanceEscape:
 
 class TestHookScriptPaths:
     REPO_ROOT = Path(__file__).resolve().parent.parent
-    CORE_MODULE = REPO_ROOT / "core" / "thinking_os"
+    CORE_MODULE = REPO_ROOT / "src" / "core" / "thinking_os"
 
     def _must_exist(self, *candidates: Path) -> Path:
         for c in candidates:
@@ -561,7 +561,7 @@ class TestHookScriptPaths:
         hook_src = (HOOKS_DIR / hook_name).read_text()
         assert target in hook_src, f"{hook_name} no longer references {target}"
         assert (self.CORE_MODULE / target).exists(), (
-            f"core/thinking_os/{target} missing — hook {hook_name} will silently "
+            f"src/core/thinking_os/{target} missing — hook {hook_name} will silently "
             "no-op"
         )
 

@@ -3,15 +3,15 @@
 
 # Override COS paths for self-development
 COS_ROOT := $(shell pwd)
-COS_SCRIPTS := $(COS_ROOT)/core/scripts
-COS_HOOKS := $(COS_ROOT)/core/hooks
+COS_SCRIPTS := $(COS_ROOT)/src/core/scripts
+COS_HOOKS := $(COS_ROOT)/src/core/hooks
 
 export COS_STATE_DIR ?= .coding-os
 export COS_DB_PATH ?= $(COS_STATE_DIR)/coding-os.db
-export COS_BRAIN_DIR ?= $(COS_ROOT)/core/thinking_os
+export COS_BRAIN_DIR ?= $(COS_ROOT)/src/core/thinking_os
 
 # ── Include base targets ────────────────────────────────────────────
-include templates/_base/Makefile.base
+include src/templates/_base/Makefile.base
 
 # ── Project-Specific Overrides ──────────────────────────────────────
 # Note: verify is overridden from base to add MCP test
@@ -19,14 +19,14 @@ include templates/_base/Makefile.base
 .PHONY: test-mcp
 test-mcp: ## Run MCP server self-test
 	@mkdir -p /tmp/cos-test
-	@cd core/thinking_os && COS_DB_PATH=/tmp/cos-test/test.db uv run python server.py --test 2>&1 | grep -E "PASS|FAIL"
+	@cd src/core/thinking_os && COS_DB_PATH=/tmp/cos-test/test.db uv run python server.py --test 2>&1 | grep -E "PASS|FAIL"
 	@rm -f /tmp/cos-test/test.db /tmp/cos-test/test.db-shm /tmp/cos-test/test.db-wal
 	@rmdir /tmp/cos-test 2>/dev/null || true
 
 .PHONY: test-install-claude test-install
 test-install-claude: ## Claude-specific install smoke test (deeper than verify-install: checks generated files). Renamed from `test-install` to make adapter scope explicit.
 	@mkdir -p /tmp/cos-install-test
-	@cd /tmp/cos-install-test && bash $(COS_ROOT)/adapters/claude/install.sh 2>&1
+	@cd /tmp/cos-install-test && bash $(COS_ROOT)/src/adapters/claude/install.sh 2>&1
 	@echo "Checking generated files..."
 	@ls /tmp/cos-install-test/.claude/settings.json > /dev/null && echo "  OK: settings.json"
 	@ls /tmp/cos-install-test/.claude/hooks/thinking_os-gate.sh > /dev/null && echo "  OK: hooks symlinked"
@@ -42,9 +42,9 @@ test-cli: ## Test CLI health command
 	@uv run python -m cli.main health --project-dir .
 
 .PHONY: verify-install
-verify-install: ## Sandbox-test every adapters/*/install.sh with hard 15s timeout (catches bash 5.3.9 heredoc deadlocks BEFORE `make sync` does). Data-driven (Rule 11) — auto-detects new adapters via adapters/<id>/adapter.yaml.
+verify-install: ## Sandbox-test every src/adapters/*/install.sh with hard 15s timeout (catches bash 5.3.9 heredoc deadlocks BEFORE `make sync` does). Data-driven (Rule 11) — auto-detects new adapters via src/adapters/<id>/adapter.yaml.
 	@found=0; \
-	for adapter_yml in adapters/*/adapter.yaml; do \
+	for adapter_yml in src/adapters/*/adapter.yaml; do \
 	  [ -f "$$adapter_yml" ] || continue; \
 	  adapter_dir=$$(dirname "$$adapter_yml"); \
 	  adapter=$$(basename "$$adapter_dir"); \
@@ -54,8 +54,8 @@ verify-install: ## Sandbox-test every adapters/*/install.sh with hard 15s timeou
 	  fi; \
 	  found=$$((found + 1)); \
 	  TEST=$$(mktemp -d); \
-	  printf "  testing adapters/%s/install.sh ... " "$$adapter"; \
-	  ( cd "$$TEST" && bash $(COS_ROOT)/adapters/$$adapter/install.sh ) > "$$TEST/install.log" 2>&1 & \
+	  printf "  testing src/adapters/%s/install.sh ... " "$$adapter"; \
+	  ( cd "$$TEST" && bash $(COS_ROOT)/src/adapters/$$adapter/install.sh ) > "$$TEST/install.log" 2>&1 & \
 	  BPID=$$!; W=0; \
 	  while kill -0 $$BPID 2>/dev/null && [ $$W -lt 15 ]; do sleep 1; W=$$((W+1)); done; \
 	  if kill -0 $$BPID 2>/dev/null; then \
@@ -68,7 +68,7 @@ verify-install: ## Sandbox-test every adapters/*/install.sh with hard 15s timeou
 	  rm -rf "$$TEST"; \
 	done; \
 	if [ "$$found" -eq 0 ]; then \
-	  echo "  WARN: no adapters with install.sh discovered under adapters/" >&2; \
+	  echo "  WARN: no adapters with install.sh discovered under src/adapters/" >&2; \
 	  exit 1; \
 	fi
 
@@ -81,8 +81,8 @@ verify: verify-hooks verify-install test-mcp ## Run all verification checks
 verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + branding tests (~30s)
 	@echo "Running Claude-only verification subset..."
 	@uv run --extra rag pytest \
-	    core/thinking_os/tests/test_dispatcher.py \
-	    core/thinking_os/tests/test_db.py \
+	    src/core/thinking_os/tests/test_dispatcher.py \
+	    src/core/thinking_os/tests/test_db.py \
 	    tests/test_claude_dispatcher_options.py \
 	    tests/test_skill_frontmatter.py \
 	    tests/test_branding.py \
@@ -94,13 +94,13 @@ verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + brandi
 
 .PHONY: eval-operational eval-sandboxes eval-clean
 eval-operational: ## Full operational evaluation — scaffolds sandboxes, runs all checks, writes .build/
-	@uv run python scripts/operational_eval.py all
+	@uv run python src/scripts/operational_eval.py all
 
 eval-sandboxes: ## Rebuild only the .build/sandboxes/ (fast, no verify steps)
-	@uv run python scripts/operational_eval.py sandboxes
+	@uv run python src/scripts/operational_eval.py sandboxes
 
 eval-clean: ## Remove .build/ entirely
-	@uv run python scripts/operational_eval.py clean
+	@uv run python src/scripts/operational_eval.py clean
 
 .PHONY: debug-init debug-init-codex debug-doctor debug-inspect debug-clean manifest-regen
 debug-init: ## cos init into .build/debug/the-script-output (Claude + nextjs)
@@ -120,15 +120,15 @@ debug-inspect: ## List files + show key configs for the debug project
 debug-clean: ## Remove only .build/debug/
 	@rm -rf .build/debug
 
-manifest-regen: ## Regenerate core/scaffold_manifest.json from fresh sandboxes
-	@uv run python scripts/generate_manifest.py
+manifest-regen: ## Regenerate src/core/scaffold_manifest.json from fresh sandboxes
+	@uv run python src/scripts/generate_manifest.py
 
 .PHONY: regen-rules regen-doctor-schema
-regen-rules: ## Regenerate core/rules/{dimension-registry,skill-enforcement}.md from stack yaml
-	@uv run python scripts/regen_rules.py
+regen-rules: ## Regenerate src/core/rules/{dimension-registry,skill-enforcement}.md from stack yaml
+	@uv run python src/scripts/regen_rules.py
 
-regen-doctor-schema: ## Regenerate core/doctor-config.yaml::schema from live db.py
-	@uv run python scripts/regen_doctor_schema.py
+regen-doctor-schema: ## Regenerate src/core/doctor-config.yaml::schema from live db.py
+	@uv run python src/scripts/regen_doctor_schema.py
 
 .PHONY: logs-trim
 logs-trim: ## Trim .coding-os/.hooks.log to last 200 lines (manual override of the opportunistic truncator)
@@ -144,16 +144,16 @@ logs-trim: ## Trim .coding-os/.hooks.log to last 200 lines (manual override of t
 
 .PHONY: dogfood-claude dogfood
 dogfood-claude: ## Re-render only the Claude adapter (.claude/ + .mcp.json). Fast Claude-only iteration; for all-adapter sync use `make sync` or `make dogfood-full`.
-	@bash adapters/claude/install.sh
+	@bash src/adapters/claude/install.sh
 	@echo "  Reload Claude Code to pick up the new config."
 
 # Backward-compat alias — old `make dogfood` still works.
 dogfood: dogfood-claude
 
 .PHONY: dogfood-full
-dogfood-full: ## Re-render every adapter discovered under adapters/ — re-links core + stack skills. Data-driven (Rule 11) — auto-detects new adapters via adapters/<id>/adapter.yaml.
+dogfood-full: ## Re-render every adapter discovered under src/adapters/ — re-links core + stack skills. Data-driven (Rule 11) — auto-detects new adapters via src/adapters/<id>/adapter.yaml.
 	@found=0; \
-	for adapter_yml in adapters/*/adapter.yaml; do \
+	for adapter_yml in src/adapters/*/adapter.yaml; do \
 	  [ -f "$$adapter_yml" ] || continue; \
 	  adapter_dir=$$(dirname "$$adapter_yml"); \
 	  if [ ! -f "$$adapter_dir/install.sh" ]; then \
@@ -164,27 +164,27 @@ dogfood-full: ## Re-render every adapter discovered under adapters/ — re-links
 	  found=$$((found + 1)); \
 	done; \
 	if [ "$$found" -eq 0 ]; then \
-	  echo "  WARN: no adapters with install.sh discovered under adapters/" >&2; \
+	  echo "  WARN: no adapters with install.sh discovered under src/adapters/" >&2; \
 	  exit 1; \
 	fi; \
 	echo "  Reload your agent runtime to pick up the new config ($$found adapter(s) installed)."
 
 .PHONY: sync
-sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into every adapter discovered under adapters/. Data-driven (Rule 11) — handles new adapters automatically.
+sync: regen-adapter-templates dogfood-full ## One-shot: regen templates + re-link hooks/skills into every adapter discovered under src/adapters/. Data-driven (Rule 11) — handles new adapters automatically.
 	@echo ""
 	@echo "  ✅ Adapter sync complete."
 	@echo ""
-	@adapter_ids=$$(for d in adapters/*/adapter.yaml; do [ -f "$$d" ] && basename $$(dirname "$$d"); done | tr '\n' ',' | sed 's/,$$//; s/,/, /g'); \
-	wrapper_dirs=$$(for d in adapters/*/adapter.yaml; do [ -f "$$d" ] && printf ".%s/ " "$$(basename $$(dirname "$$d"))"; done); \
+	@adapter_ids=$$(for d in src/adapters/*/adapter.yaml; do [ -f "$$d" ] && basename $$(dirname "$$d"); done | tr '\n' ',' | sed 's/,$$//; s/,/, /g'); \
+	wrapper_dirs=$$(for d in src/adapters/*/adapter.yaml; do [ -f "$$d" ] && printf ".%s/ " "$$(basename $$(dirname "$$d"))"; done); \
 	echo "  Adapters synced: $$adapter_ids"; \
 	echo ""; \
 	echo "  What just happened:"; \
-	echo "    1. core/hooks/registry.yaml     → adapters/*/[settings|hooks].template.json"; \
-	echo "    2. core/hooks/*.sh              → $$wrapper_dirs(hooks/, symlinks)"; \
-	echo "    3. core/rules/*.md              → $$wrapper_dirs(rules/, symlinks)"; \
-	echo "    4. core/skills/*/               → $$wrapper_dirs(skills/, symlinks)"; \
-	echo "    5. templates/<stack>/skills/*/  → $$wrapper_dirs(skills/, stack overlay per installed-manifest.json)"; \
-	echo "    6. core/commands/*.md           → $$wrapper_dirs(commands/, symlinks)"
+	echo "    1. src/core/hooks/registry.yaml     → src/adapters/*/[settings|hooks].template.json"; \
+	echo "    2. src/core/hooks/*.sh              → $$wrapper_dirs(hooks/, symlinks)"; \
+	echo "    3. src/core/rules/*.md              → $$wrapper_dirs(rules/, symlinks)"; \
+	echo "    4. src/core/skills/*/               → $$wrapper_dirs(skills/, symlinks)"; \
+	echo "    5. src/templates/<stack>/skills/*/  → $$wrapper_dirs(skills/, stack overlay per installed-manifest.json)"; \
+	echo "    6. src/core/commands/*.md           → $$wrapper_dirs(commands/, symlinks)"
 	@echo ""
 	@echo "  Reload your agent runtime to read the refreshed configs."
 
@@ -193,50 +193,50 @@ codex-mcp: ## Re-register coding-os MCP in ~/.codex/config.toml (install.sh alre
 	@uv run python -m cli.main codex-mcp-install
 
 .PHONY: regen-adapter-templates
-regen-adapter-templates: ## Regenerate adapters/*/[settings|hooks].template.json from core/hooks/registry.yaml
+regen-adapter-templates: ## Regenerate src/adapters/*/[settings|hooks].template.json from src/core/hooks/registry.yaml
 	@uv run python -m cli.hook_renderer
 
 .PHONY: audit
 audit: ## Run stale reference audit
 	@echo "=== Stale Reference Audit ==="
 	@echo -n "nako_ in code: " && grep -rn "nako_" --include="*.py" --include="*.sh" --include="*.json" 2>/dev/null | grep -v __pycache__ | grep -v .venv | grep -v .git | wc -l | tr -d ' '
-	@echo -n ".claude/ in hooks (non-legit): " && grep -rn '\.claude/' core/hooks/ | grep -vE 'cos-env|legacy|fallback|pattern|skip|\.claude/\*|adapter|\.claude/settings|\.claude/skills|\.claude/hooks/test\.sh|\.claude/rules' | wc -l | tr -d ' '
+	@echo -n ".claude/ in hooks (non-legit): " && grep -rn '\.claude/' src/core/hooks/ | grep -vE 'cos-env|legacy|fallback|pattern|skip|\.claude/\*|adapter|\.claude/settings|\.claude/skills|\.claude/hooks/test\.sh|\.claude/rules' | wc -l | tr -d ' '
 
 .PHONY: cos-decay
 cos-decay: ## Run confidence decay on learned patterns
-	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py
+	@cd src/core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py
 
 .PHONY: cos-decay-dry
 cos-decay-dry: ## Preview confidence decay (no changes)
-	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py --dry-run
+	@cd src/core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python decay.py --dry-run
 
 .PHONY: cos-stats
 cos-stats: ## Show thinking_os DB statistics
-	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from db import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
+	@cd src/core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from db import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
 
 .PHONY: cos-compress
 cos-compress: ## Compress old observations in DB
-	@cd core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python compress.py
+	@cd src/core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python compress.py
 
 .PHONY: stats
 stats: ## Show project statistics
 	@echo "=== coding-os Stats ==="
 	@echo -n "Total files: " && find . -type f ! -path "*__pycache__*" ! -path "*.pyc" ! -path "*/.venv/*" ! -path "*/.git/*" ! -name ".DS_Store" | wc -l | tr -d ' '
-	@echo -n "Core hooks: " && ls core/hooks/*.sh | wc -l | tr -d ' '
-	@echo -n "Core scripts: " && ls core/scripts/*.sh | wc -l | tr -d ' '
-	@echo -n "Core skills: " && ls core/skills/*/SKILL.md | wc -l | tr -d ' '
+	@echo -n "Core hooks: " && ls src/core/hooks/*.sh | wc -l | tr -d ' '
+	@echo -n "Core scripts: " && ls src/core/scripts/*.sh | wc -l | tr -d ' '
+	@echo -n "Core skills: " && ls src/core/skills/*/SKILL.md | wc -l | tr -d ' '
 	@echo -n "Templates: " && find templates -type f | wc -l | tr -d ' '
 
 .PHONY: docs-index-regen
 docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (TASK-157+161)
-	@python3 scripts/regen_doc_index.py docs --all
+	@python3 src/scripts/regen_doc_index.py docs --all
 
 .PHONY: docs-index-regen-dry
 docs-index-regen-dry: ## Preview docs-index-regen output without writing
-	@python3 scripts/regen_doc_index.py docs --all --dry-run
+	@python3 src/scripts/regen_doc_index.py docs --all --dry-run
 
 # ── Scheduled Jobs (CRON A + B) ─────────────────────────────────────
-_PLIST_SRC  := $(COS_ROOT)/core/scheduled/launchd/com.codingos.nightly.plist.template
+_PLIST_SRC  := $(COS_ROOT)/src/core/scheduled/launchd/com.codingos.nightly.plist.template
 _PLIST_DEST := $(HOME)/Library/LaunchAgents/com.codingos.nightly.plist
 _UV         := $(shell which uv)
 # Override: COS_CRON_HOUR=22 make cron-install
@@ -267,11 +267,11 @@ cron-uninstall: ## Unload + remove nightly launchd job
 
 .PHONY: cron-run
 cron-run: ## Run nightly maintenance right now (all projects)
-	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/core/scheduled/nightly.py $(ARGS)
+	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/src/core/scheduled/nightly.py $(ARGS)
 
 .PHONY: cron-dry
 cron-dry: ## Simulate nightly run without writing (ARGS passthrough)
-	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/core/scheduled/nightly.py --dry-run --verbose
+	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/src/core/scheduled/nightly.py --dry-run --verbose
 
 .PHONY: cron-status
 cron-status: ## Show last nightly run summary
@@ -283,7 +283,7 @@ cron-status: ## Show last nightly run summary
 
 .PHONY: cron-reset
 cron-reset: ## Reset consecutive_failures counter for all projects
-	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/core/scheduled/nightly.py --reset-failures --dry-run
+	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/src/core/scheduled/nightly.py --reset-failures --dry-run
 
 .PHONY: cron-b-setup
 cron-b-setup: ## Print CronCreate invocation for CRON B (weekly narrative agent)
@@ -301,9 +301,9 @@ ui-dev: ## Vite dev server with HMR → http://127.0.0.1:5173 (proxies /api to h
 	@echo "Starting Vite dev server — edits hot-reload without rebuild."
 	@echo "  Dev URL:  http://127.0.0.1:5173"
 	@echo "  API:      proxied to http://127.0.0.1:9188 (make sure hub is up: cos hub start)"
-	@cd core/web/ui && npm run dev
+	@cd src/core/web/ui && npm run dev
 
 .PHONY: ui-build
 ui-build: ## Production rebuild of the SPA — hub at :9188 serves the new bundle
-	@cd core/web/ui && npm run build
-	@echo "  SPA rebuilt → core/web/ui/dist/  (hub picks up automatically; hard-refresh browser)"
+	@cd src/core/web/ui && npm run build
+	@echo "  SPA rebuilt → src/core/web/ui/dist/  (hub picks up automatically; hard-refresh browser)"

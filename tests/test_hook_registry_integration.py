@@ -9,10 +9,10 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-REGISTRY = REPO_ROOT / "core" / "hooks" / "registry.yaml"
-HOOKS_DIR = REPO_ROOT / "core" / "hooks"
-CLAUDE_TEMPLATE = REPO_ROOT / "adapters" / "claude" / "settings.template.json"
-CURSOR_TEMPLATE = REPO_ROOT / "adapters" / "cursor" / "hooks.cursor.template.json"
+REGISTRY = REPO_ROOT / "src" / "core" / "hooks" / "registry.yaml"
+HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
+CLAUDE_TEMPLATE = REPO_ROOT / "src" / "adapters" / "claude" / "settings.template.json"
+CURSOR_TEMPLATE = REPO_ROOT / "src" / "adapters" / "cursor" / "hooks.cursor.template.json"
 
 
 def _load_registry() -> list[dict]:
@@ -36,7 +36,7 @@ def _flatten_claude_template(data: dict) -> set[tuple[str, str, str]]:
 def _cursor_dispatcher_chains() -> dict[str, list[str]]:
     """Return {dispatcher_basename: [delegate_basename, …]} for cursor."""
     chains: dict[str, list[str]] = {}
-    cursor_hooks = REPO_ROOT / "adapters" / "cursor" / "hooks"
+    cursor_hooks = REPO_ROOT / "src" / "adapters" / "cursor" / "hooks"
     for script in cursor_hooks.glob("*.sh"):
         text = script.read_text(encoding="utf-8")
         delegates = []
@@ -72,7 +72,7 @@ def test_every_registry_script_exists_on_disk() -> None:
 
 def _claude_capabilities() -> dict[str, set[str]]:
     """Read claude adapter.yaml::hook_capabilities → {event: {matchers}}."""
-    adapter = REPO_ROOT / "adapters" / "claude" / "adapter.yaml"
+    adapter = REPO_ROOT / "src" / "adapters" / "claude" / "adapter.yaml"
     data = yaml.safe_load(adapter.read_text(encoding="utf-8"))
     raw = data.get("hook_capabilities") or {}
     return {ev: set(spec.get("matchers") or []) for ev, spec in raw.items()}
@@ -202,7 +202,7 @@ def test_enforce_scaffold_boundary_blocks_forbidden_subtree(tmp_path: Path) -> N
         encoding="utf-8",
     )
     rc, _, stderr = _run_hook(
-        REPO_ROOT / "core" / "hooks" / "enforce-scaffold-boundary.sh",
+        REPO_ROOT / "src" / "core" / "hooks" / "enforce-scaffold-boundary.sh",
         {"tool_name": "Write", "tool_input": {"file_path": "mobile/foo.swift"}},
         env={
             "COS_STATE_DIR": str(tmp_path),
@@ -230,7 +230,7 @@ def test_enforce_scaffold_boundary_allows_owned_path(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     rc, _, stderr = _run_hook(
-        REPO_ROOT / "core" / "hooks" / "enforce-scaffold-boundary.sh",
+        REPO_ROOT / "src" / "core" / "hooks" / "enforce-scaffold-boundary.sh",
         {"tool_name": "Write", "tool_input": {"file_path": "frontend/foo.tsx"}},
         env={
             "COS_STATE_DIR": str(tmp_path),
@@ -242,7 +242,7 @@ def test_enforce_scaffold_boundary_allows_owned_path(tmp_path: Path) -> None:
 
 def test_enforce_scaffold_boundary_no_policy_means_no_enforcement(tmp_path: Path) -> None:
     rc, _, stderr = _run_hook(
-        REPO_ROOT / "core" / "hooks" / "enforce-scaffold-boundary.sh",
+        REPO_ROOT / "src" / "core" / "hooks" / "enforce-scaffold-boundary.sh",
         {"tool_name": "Write", "tool_input": {"file_path": "mobile/foo.swift"}},
         env={
             "COS_STATE_DIR": str(tmp_path),  # boundary file absent
@@ -254,7 +254,7 @@ def test_enforce_scaffold_boundary_no_policy_means_no_enforcement(tmp_path: Path
 
 def test_auto_regen_doc_index_dispatches_for_docs_md(tmp_path: Path) -> None:
     rc, _, _ = _run_hook(
-        REPO_ROOT / "core" / "hooks" / "auto-regen-doc-index.sh",
+        REPO_ROOT / "src" / "core" / "hooks" / "auto-regen-doc-index.sh",
         {"tool_name": "Edit", "tool_input": {"file_path": "docs/governance/critical-rules.md"}},
         env={
             "COS_STATE_DIR": str(tmp_path),
@@ -266,8 +266,8 @@ def test_auto_regen_doc_index_dispatches_for_docs_md(tmp_path: Path) -> None:
 
 def test_auto_regen_doc_index_skips_non_md(tmp_path: Path) -> None:
     rc, _, _ = _run_hook(
-        REPO_ROOT / "core" / "hooks" / "auto-regen-doc-index.sh",
-        {"tool_name": "Edit", "tool_input": {"file_path": "core/thinking_os/database.py"}},
+        REPO_ROOT / "src" / "core" / "hooks" / "auto-regen-doc-index.sh",
+        {"tool_name": "Edit", "tool_input": {"file_path": "src/core/thinking_os/database.py"}},
         env={
             "COS_STATE_DIR": str(tmp_path),
             "COS_PROJECT_ROOT": str(REPO_ROOT),

@@ -23,7 +23,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-HOOKS_DIR = REPO_ROOT / "core" / "hooks"
+HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 WARN_MCP_DOWN = HOOKS_DIR / "warn-mcp-down.sh"
 CHECK_CAPTURE_WORKED = HOOKS_DIR / "check-capture-worked.sh"
@@ -356,7 +356,7 @@ class TestEnforceMemoryCheck:
         state = self._setup(tmp_path)
         env = self._env(state)
         p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "cli" / "main.py"),
+            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
             "content": "x",
         }}
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
@@ -368,7 +368,7 @@ class TestEnforceMemoryCheck:
         (state / "claude" / ".memory-check").write_text("ses-claude-mc cos_search:auth\n")
         env = self._env(state)
         p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "cli" / "main.py"),
+            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
             "content": "x",
         }}
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
@@ -379,7 +379,7 @@ class TestEnforceMemoryCheck:
         (state / "claude" / ".thinking_os-gate").write_text("ses-claude-mc CLEAR 1\n")
         env = self._env(state)
         p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "cli" / "main.py"),
+            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
             "content": "x",
         }}
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
@@ -390,7 +390,7 @@ class TestEnforceMemoryCheck:
         (state / "claude" / ".task-current").write_text("ses-claude-mc exploratory-refactor\n")
         env = self._env(state)
         p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "cli" / "main.py"),
+            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
             "content": "x",
         }}
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
@@ -422,7 +422,7 @@ class TestEnforceMemoryCheck:
         override_file.write_text("")
         env = self._env(state)
         p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "cli" / "main.py"),
+            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
             "content": "x",
         }}
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)

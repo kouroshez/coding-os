@@ -1,17 +1,17 @@
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-08 -->
 # Task Lifecycle Policy
 
-> P: Canonical lifecycle for creating, executing, and closing tasks under the Scrumban model (`core/board_os/`).
+> P: Canonical lifecycle for creating, executing, and closing tasks under the Scrumban model (`src/core/board_os/`).
 > R: Creating a task, transitioning status, or aligning task scripts and templates.
 > S: Reading existing task content unrelated to lifecycle change.
-> N: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.md), [templates/task-detail.md](templates/task-detail.md)
+> N: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.md), [src/templates/task-detail.md](src/templates/task-detail.md)
 
 > Nav: [Governance Index](./00-index.md) | [Docs Index](../00-index.md)
 
 ## SSOT and Mirrors
 
 - `docs/tasks/TASK-###-slug.md` — **canonical detail file**. One per active or completed task. File frontmatter and body are the source of truth.
-- `core/board_os/db.py` (table `tasks`) — **derived mirror**. Mtime-incremental sync from the detail files; never edited by hand.
+- `src/core/board_os/db.py` (table `tasks`) — **derived mirror**. Mtime-incremental sync from the detail files; never edited by hand.
 - `cos board` / `cos board --web` — **live view** rendered from the DB.
 
 There is no flat `docs/tasks.md` index. Status is read from frontmatter, not from a top-level checkbox file.
@@ -26,7 +26,7 @@ Transitions go through `cos task-*` (or the equivalent MCP tool). The CLI writes
 
 For any task that is `in_progress`, `testing`, `blocked`, or `complete`:
 
-- A primary detail file at `docs/tasks/TASK-###-slug.md` authored from `templates/task-detail.md`.
+- A primary detail file at `docs/tasks/TASK-###-slug.md` authored from `src/templates/task-detail.md`.
 - A non-empty Work Log section once execution starts (transition gates check this).
 - An Outcome line at the top, plus Read First, Acceptance (Given/When/Then), and Rollback sections.
 - Optional companion reference docs only when the primary file would exceed the size cap (warn ≥1.5 k tokens, block ≥3 k — Rule 14).
@@ -44,7 +44,7 @@ Backlog entries that are not yet started may live in `cos board` (icebox swimlan
 
 ## Primary Task File Contract
 
-Required sections in this order (template lives at `templates/task-detail.md`):
+Required sections in this order (template lives at `src/templates/task-detail.md`):
 
 - `## Outcome` — single sentence describing the externally visible result.
 - `## Read First` — annotated list of files and refs the executor should load before editing.
@@ -91,7 +91,7 @@ Optional sections:
 
 ## Migration from `make task-*` to `cos task-*`
 
-The legacy `make task-*` targets (defined in `templates/_base/Makefile.base`) remain as thin aliases for back-compat with consumer projects that have not yet adopted the `cos` CLI. They shell out to the same `cli/board_commands.py` code path as the `cos` CLI, so behavior is identical.
+The legacy `make task-*` targets (defined in `src/templates/_base/Makefile.base`) remain as thin aliases for back-compat with consumer projects that have not yet adopted the `cos` CLI. They shell out to the same `src/cli/board_commands.py` code path as the `cos` CLI, so behavior is identical.
 
 | Legacy | Preferred | Notes |
 |---|---|---|

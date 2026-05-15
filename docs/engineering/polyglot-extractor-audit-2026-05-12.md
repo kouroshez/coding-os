@@ -38,7 +38,7 @@ Incremental reindex (cache hit): **1.27 s (1213 of 1241 hit)**.
                                   │ plan.files
                                   ▼
                     ┌───────────────────────────────┐
-                    │ cli/graph_commands.py         │
+                    │ src/cli/graph_commands.py         │
                     │ graph-reindex [-j N]          │ NEW: parallel path
                     └─────────────┬─────────────────┘
                                   │
@@ -135,7 +135,7 @@ Polyglot graph (after 9bee865)
 ├── Scale (sized for typical project — 1k to 100k files)
 │   ├── ★ walk_local max_files default = 50,000  ⚠️
 │   │       Raised to 1,000,000 with this audit. CLI default matched.
-│   ├── ★ cli/graph_commands.py:689 hardcoded max_files=5000 inside
+│   ├── ★ src/cli/graph_commands.py:689 hardcoded max_files=5000 inside
 │   │       graph-impact-changes command. Fixed with this audit.
 │   └── SQLite write serialisation
 │           WAL handles concurrent readers, single writer at a time.
@@ -199,7 +199,7 @@ Polyglot graph (after 9bee865)
 **Sees benefit:** ⭐ JSON extractor now surfaces npm deps, ts path aliases, package scripts. `cos_graph_query "react"` resolves to a package node.
 
 ### Persona 3 — Hook author (shell-heavy)
-**Workflow:** edits `core/hooks/*.sh`.
+**Workflow:** edits `src/core/hooks/*.sh`.
 **Sees benefit:** ⭐⭐ shell extractor 87% fewer noise errors; `source $(dirname "$0")/X` resolves; function nodes no longer match inside heredocs/comments.
 
 ### Persona 4 — Operator on a monorepo (50k+ files)

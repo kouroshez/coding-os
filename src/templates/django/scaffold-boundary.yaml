@@ -1,0 +1,25 @@
+# Scaffold boundary for the django stack.
+# Schema: docs/governance/scaffold-boundary-contract.md
+
+version: 1
+stack: django
+
+roots:
+  - src/backend/
+
+file_patterns:
+  - "src/backend/**/*.py"
+
+imports_from:
+  - src/shared/
+  - src/shared/types/
+  - src/shared/contracts/
+
+forbids_writing_in:
+  - src/frontend/
+  - src/mobile/
+  - src/ai-service/
+
+notes:
+  - "Apps under src/backend/<app>/ — services own writes, selectors own reads."
+  - "Migrations append-only; data migrations require forwards + reverse."

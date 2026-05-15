@@ -1,7 +1,7 @@
 <!-- domain:ALL | layer:policy | ssot:true | updated:2026-03-16 -->
 # Internationalization Policy
 
-Purpose: Locale support, message-key naming, ICU format rules, and frontend/backend i18n contracts.
+Purpose: Locale support, message-key naming, ICU format rules, and src/frontend/backend i18n contracts.
 Read when: Adding translatable strings, setting up new locales, or reviewing i18n contracts.
 Skip when: Working within existing locale without adding new message keys.
 Read next: `architecture/10-blog-content-i18n.md` for content backend, `copywriting-standard.md` for tone.
@@ -36,7 +36,7 @@ Examples: `home.hero.title` → "Welcome to NakoDigital" | `errors.not-found.hea
 
 ## Message Files
 
-Location: `frontend/messages/{locale}.json` — nested JSON matching dot-separated keys.
+Location: `src/frontend/messages/{locale}.json` — nested JSON matching dot-separated keys.
 
 Example: `{ "home": { "hero": { "title": "Welcome to NakoDigital", "cta": "Start browsing" } }, "checkout": { "summary": { "total": "Total", "item-count": "{count, plural, one {# item} other {# items}}" } } }`
 
@@ -55,7 +55,7 @@ Required: `en.json` must have all keys. Other locales may be incomplete — `nex
 
 ## Frontend Setup
 
-- Library: `next-intl` (App Router) | Config: `frontend/next-intl.config.ts`
+- Library: `next-intl` (App Router) | Config: `src/frontend/next-intl.config.ts`
 - URL structure: `/[locale]/page` (e.g., `/en/home`, `/es/checkout`)
 - Locale detection: `Accept-Language` header → fallback `en`
 - Usage: `const t = useTranslations(); return <h1>{t('home.hero.title')}</h1>;`
@@ -95,5 +95,5 @@ Required: `en.json` must have all keys. Other locales may be incomplete — `nex
 ## Validation
 
 - Missing keys → compare key depth between `en.json` and target locale
-- Hardcoded text → `rg '">` in `frontend/components/`
-- Key format → `rg '\.[a-z]+\.[a-z]+\.' frontend/` to validate
+- Hardcoded text → `rg '">` in `src/frontend/components/`
+- Key format → `rg '\.[a-z]+\.[a-z]+\.' src/frontend/` to validate

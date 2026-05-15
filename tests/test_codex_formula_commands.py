@@ -14,8 +14,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CODEX_COMMANDS = REPO_ROOT / "adapters" / "codex" / "commands"
-AGENTS_DIR = REPO_ROOT / "core" / "thinking_os" / "agents"
+CODEX_COMMANDS = REPO_ROOT / "src" / "adapters" / "codex" / "commands"
+AGENTS_DIR = REPO_ROOT / "src" / "core" / "thinking_os" / "agents"
 
 # Canonical Formula <N> → semantic role mapping. Source: AGENTS.md Rule 15
 # and core/thinking_os/agents/README.md.

@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-_THINKING_OS = Path(__file__).resolve().parent.parent / "core" / "thinking_os"
+_THINKING_OS = Path(__file__).resolve().parent.parent / "src" / "core" / "thinking_os"
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 

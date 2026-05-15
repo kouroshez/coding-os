@@ -72,9 +72,9 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | Changed files | Required suites | Make commands |
 |---|---|---|
 | (none) | (none) | `make verify` |
-| `frontend/` | lint-frontend | `cd frontend && npm run lint` |
+| `src/frontend/` | lint-frontend | `cd src/frontend && npm run lint` |
 | `docs/` | docs-lint | `make docs-lint` |
-| `.coding-os/hooks/` or `core/hooks/` | verify-hooks | `make verify-hooks` |
+| `.coding-os/hooks/` or `src/core/hooks/` | verify-hooks | `make verify-hooks` |
 
 Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `make task-done` is **BLOCKED** if any required suite is missing or stale.
 
@@ -112,7 +112,7 @@ Order of preference when two layers look equally plausible: **Memory → Docs �
 
 ## Skills
 
-`thinking_os`, `clean-code`, `codebase-explorer`, `nextjs-react`, `frontend-design`. Config: `$COS_STATE_DIR/settings.json`.
+`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `nextjs-react`, `frontend-design`. Config: `$COS_STATE_DIR/settings.json`.
 
 ## Context Discipline
 
@@ -128,7 +128,7 @@ Triggers: 15+ reads or 10+ writes, degraded recall, user ends session, compactio
 
 ## SSOT Map
 
-See `docs/foundation-map.md` for all REF shortcodes and SSOT locations.
+See `docs/_meta/foundation-map.md` for all REF shortcodes and SSOT locations.
 
 ## Task Logging
 

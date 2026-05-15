@@ -34,7 +34,7 @@ def test_list_agent_manifest_rows_includes_known_adapters():
 
 
 def test_hub_glyph_from_yaml(tmp_path, monkeypatch):
-    adapters = tmp_path / "adapters"
+    adapters = tmp_path / "src" / "adapters"
     (adapters / "zeta").mkdir(parents=True)
     manifest = {
         "version": 1,

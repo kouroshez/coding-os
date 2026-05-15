@@ -23,13 +23,13 @@ The new event family — `pre-tool-use`, `post-tool-use`, `session-start`, `user
 
 ## Why coding-os cared
 
-`core/hooks/agent-presence.sh` writes `.coding-os/codex/sessions/<sid>.json` on every Codex lifecycle event. The Hub's `_presence_state(agent)` in `core/web/routes/board.py` reads those files and decides ACTIVE / PRESENT / OFFLINE. With the GUI never firing hooks, the JSON files stay frozen at the last `codex exec` invocation (often hours ago) and the Hub UI shows Codex OFFLINE during active GUI chats — even though the user is typing into Codex on this exact project.
+`src/core/hooks/agent-presence.sh` writes `.coding-os/codex/sessions/<sid>.json` on every Codex lifecycle event. The Hub's `_presence_state(agent)` in `src/core/web/routes/board.py` reads those files and decides ACTIVE / PRESENT / OFFLINE. With the GUI never firing hooks, the JSON files stay frozen at the last `codex exec` invocation (often hours ago) and the Hub UI shows Codex OFFLINE during active GUI chats — even though the user is typing into Codex on this exact project.
 
 ## The fallback
 
 Codex DOES persist a per-turn `~/.codex/sessions/YYYY/MM/DD/rollout-<turn-id>.jsonl`. The first JSON line carries a `cwd` (or `workdir`) field with the absolute project path, and the file's mtime tracks the latest activity in that turn.
 
-`_codex_rollout_recent_for(project_root, window_s)` in `core/web/routes/board.py:88-167` walks at most the last few `YYYY/MM/DD` shards, sorts candidates by mtime descending, short-circuits on the first match within the window. Returns True iff any rollout file's first-line cwd resolves to the same path as the project root and its mtime is within the window.
+`_codex_rollout_recent_for(project_root, window_s)` in `src/core/web/routes/board.py:88-167` walks at most the last few `YYYY/MM/DD` shards, sorts candidates by mtime descending, short-circuits on the first match within the window. Returns True iff any rollout file's first-line cwd resolves to the same path as the project root and its mtime is within the window.
 
 `_presence_state` calls this fallback **only** when the normal hook-based ladder yields OFFLINE for `agent="codex"`, and only promotes to PRESENT (never ACTIVE — rollouts give us no sub-30 s heartbeat). The behavior diff is therefore strictly additive: any agent that does fire hooks correctly is unaffected.
 

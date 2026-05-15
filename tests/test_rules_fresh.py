@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DIMENSION_REGISTRY = REPO_ROOT / "core" / "rules" / "dimension-registry.md"
-SKILL_ENFORCEMENT = REPO_ROOT / "core" / "rules" / "skill-enforcement.md"
+DIMENSION_REGISTRY = REPO_ROOT / "src" / "core" / "rules" / "dimension-registry.md"
+SKILL_ENFORCEMENT = REPO_ROOT / "src" / "core" / "rules" / "skill-enforcement.md"
 
 
 def _rendered():
@@ -32,7 +32,7 @@ def test_dimension_registry_is_fresh() -> None:
     fresh_dim, _ = _rendered()
     committed = DIMENSION_REGISTRY.read_text(encoding="utf-8")
     assert committed == fresh_dim, (
-        "core/rules/dimension-registry.md is stale — run `make regen-rules`"
+        "src/core/rules/dimension-registry.md is stale — run `make regen-rules`"
     )
 
 
@@ -41,7 +41,7 @@ def test_skill_enforcement_is_fresh() -> None:
     _, fresh_enf = _rendered()
     committed = SKILL_ENFORCEMENT.read_text(encoding="utf-8")
     assert committed == fresh_enf, (
-        "core/rules/skill-enforcement.md is stale — run `make regen-rules`"
+        "src/core/rules/skill-enforcement.md is stale — run `make regen-rules`"
     )
 
 

@@ -7,7 +7,7 @@ Read when: a `Write` call on a markdown file is blocked · adding a new structur
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-**Hook source:** [core/hooks/enforce-template.sh](../../core/hooks/enforce-template.sh)
+**Hook source:** [src/core/hooks/enforce-template.sh](../../core/hooks/enforce-template.sh)
 
 ## Design principle
 
@@ -17,10 +17,10 @@ Hard enforcement ONLY for SSOT documents — artifacts that feed the cognitive l
 
 | Class | Path pattern | Required bootstrap | Template source |
 |---|---|---|---|
-| **Task** | `docs/tasks/TASK-*.md` | `make task-create NUM=<N> TITLE="..."` | [task-detail.md](../../templates/_base/scaffold/docs/governance/templates/task-detail.md) |
-| **ADR** | `docs/architecture/adr/ADR-*.md` | copy from `docs/governance/templates/adr-template.md` | project-local template |
-| **PRD** | `docs/PRD/NN-*.md` | `cos setup --mode interactive` (4-Q wizard) or `--mode import-prd` | PRD classifier |
-| **Breakthrough** | `docs/breakthroughs/*.md` | `cos_learn_narrative` MCP tool | written by tool |
+| **Task** | `docs/tasks/TASK-*.md` | `make task-create NUM=<N> TITLE="..."` | [task-detail.md](../../templates/_base/scaffold/docs/governance/_templates/task-detail.md) |
+| **ADR** | `docs/architecture/adr/ADR-*.md` | copy from `docs/governance/_templates/adr-template.md` | project-local template |
+| **PRD** | `docs/prd/NN-*.md` | `cos setup --mode interactive` (4-Q wizard) or `--mode import-prd` | PRD classifier |
+| **Breakthrough** | `docs/insights/*.md` | `cos_learn_narrative` MCP tool | written by tool |
 
 Other markdown paths (playbooks, engineering rules, runbooks, questions.md, session checkpoints, top-level BLOG, README) are **not** enforced.
 
@@ -56,11 +56,11 @@ The hook `rm -f`s the marker after the first Write, so subsequent writes re-enfo
 
 Example: runbooks under `docs/runbooks/*.md` should follow a template.
 
-1. **Create the template:** `docs/governance/templates/runbook-template.md` with required H2 sections.
+1. **Create the template:** `docs/governance/_templates/runbook-template.md` with required H2 sections.
 2. **Add a branch** to `enforce-template.sh` following the ADR pattern:
     ```bash
     if [[ "$FILE_PATH" == *docs/runbooks/*.md ]]; then
-      TEMPLATE="docs/governance/templates/runbook-template.md"
+      TEMPLATE="docs/governance/_templates/runbook-template.md"
       if [[ -f "$TEMPLATE" ]]; then
         echo "BLOCKED: use the runbook template." >&2
         echo "  Template: $TEMPLATE" >&2

@@ -20,22 +20,24 @@ MODEL_PATTERN = re.compile(
     r"\bclaude-(?:opus|sonnet|haiku)-[0-9]+(?:-[0-9]+)?\b"
 )
 ALLOWED_MODEL_PATHS: set[str] = {
-    "adapters/claude/sdk_dispatcher.py",       # _OPUS_47_MODEL_IDS gate
-    "adapters/claude/adapter.yaml",            # adapter manifest
-    "core/thinking_os/dispatcher.py",          # docstring example only
-    "core/thinking_os/database.py",                  # migration docstring example
-    "core/thinking_os/compress.py",            # COS_COMPRESS_MODEL env default
-    "core/thinking_os/agents/researcher.md",   # role frontmatter
-    "core/thinking_os/agents/implementer.md",
-    "core/thinking_os/agents/reviewer.md",
-    "core/thinking_os/agents/debugger.md",
-    "core/thinking_os/agents/refactorer.md",
-    "core/thinking_os/agents/analyst.md",
-    "core/thinking_os/agents/architect.md",
-    "core/thinking_os/agents/security_auditor.md",
-    "core/thinking_os/agents/observer.md",
-    "core/thinking_os/agents/deployer.md",
-    "core/thinking_os/agents/documenter.md",
+    "src/adapters/claude/sdk_dispatcher.py",       # _OPUS_47_MODEL_IDS gate
+    "src/adapters/claude/adapter.yaml",            # adapter manifest
+    "src/core/thinking_os/dispatcher.py",          # docstring example only
+    "src/core/thinking_os/database.py",                  # migration docstring example
+    "src/core/thinking_os/compress.py",            # COS_COMPRESS_MODEL env default
+    "src/core/thinking_os/agents/researcher.md",   # role frontmatter
+    "src/core/thinking_os/agents/implementer.md",
+    "src/core/thinking_os/agents/reviewer.md",
+    "src/core/thinking_os/agents/debugger.md",
+    "src/core/thinking_os/agents/refactorer.md",
+    "src/core/thinking_os/agents/analyst.md",
+    "src/core/thinking_os/agents/architect.md",
+    "src/core/thinking_os/agents/security_auditor.md",
+    "src/core/thinking_os/agents/observer.md",
+    "src/core/thinking_os/agents/deployer.md",
+    "src/core/thinking_os/agents/documenter.md",
+    "src/core/skills/llm-patterns/SKILL.md",          # model-selection guide doc (cross-cutting skill)
+    "src/templates/meta/skills/claude-sdk-integration/SKILL.md",  # SDK-integration skill: documented model defaults
 }
 
 

@@ -37,6 +37,6 @@ Each architecture doc follows the standard header:
 ## Authoring Rules
 
 - Architecture docs describe **what is** (current state) and **why** (rationale).
-- Aspirational architecture goes in `../roadmap.md` or a new ADR with `Status: Proposed`.
+- Aspirational architecture goes in `../_meta/roadmap.md` or a new ADR with `Status: Proposed`.
 - When code diverges from architecture docs, update the docs in the same PR that changes the code.
 - For new domains, follow the Extension Protocol in `../governance/docs-system.md`.

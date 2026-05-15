@@ -1,0 +1,67 @@
+version: 1
+id: nextjs
+label: "Next.js + React + TypeScript"
+category: frontend
+primary_skill: nextjs-react
+skills: [nextjs-react, frontend-design]
+
+# These substitution keys are joined across stacks by the aggregator.
+# VERIFY_FRONTEND_* override the "(none)" defaults from base.yaml.
+substitutions:
+  DOMAIN_ROUTES: "Frontend→`docs/playbooks/frontend-ui.md`, Content→`docs/playbooks/content-seo.md`"
+  SKILL_ROUTES: "Frontend→`nextjs-react`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-checklist.md`, Format→`docs/engineering/formatting-rules.md`"
+  TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
+  VERIFY_FRONTEND_GLOB: "`src/frontend/`"
+  VERIFY_FRONTEND_SUITES: "lint-frontend"
+  VERIFY_FRONTEND: "`cd src/frontend && npm run lint`"
+  QUICK_ROUTING: |-
+    - UI / component task → [Frontend UI Playbook](./playbooks/frontend-ui.md)
+    - Content / SEO / metadata task → [Content & SEO Playbook](./playbooks/content-seo.md)
+    - Docs / workflow / AGENTS task → [Docs Governance Playbook](./playbooks/docs-governance.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-FRONTEND` → `./playbooks/frontend-ui.md`
+    - `REF:PLAYBOOK-CONTENT` → `./playbooks/content-seo.md`
+    - `REF:PLAYBOOK-DOCS-GOV` → `./playbooks/docs-governance.md`
+    - `REF:FRONTEND-RULES` → `./engineering/frontend-rules.md`
+    - `REF:FRONTEND-RENDER` → `./engineering/frontend-rendering-rules.md`
+    - `REF:I18N-POLICY` → `./engineering/i18n-policy.md`
+    - `REF:COPYWRITING` → `./engineering/copywriting-standard.md`
+    - `REF:A11Y` → `./engineering/accessibility-checklist.md`
+    - `REF:DESIGN-INDEX` → `./design/00-index.md`
+    - `REF:CONTENT-INDEX` → `./pages-content-spec/00-index.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-FRONTEND", path: "./playbooks/frontend-ui.md",            desc: "Frontend UI playbook"}
+  - {code: "REF:PLAYBOOK-CONTENT",  path: "./playbooks/content-seo.md",            desc: "Content & SEO playbook"}
+  - {code: "REF:PLAYBOOK-DOCS-GOV", path: "./playbooks/docs-governance.md",        desc: "Docs governance playbook"}
+  - {code: "REF:FRONTEND-RULES",    path: "./engineering/frontend-rules.md",       desc: "Frontend rules"}
+  - {code: "REF:FRONTEND-RENDER",   path: "./engineering/frontend-rendering-rules.md", desc: "Frontend rendering rules"}
+  - {code: "REF:I18N-POLICY",       path: "./engineering/i18n-policy.md",          desc: "i18n policy"}
+  - {code: "REF:COPYWRITING",       path: "./engineering/copywriting-standard.md", desc: "Copywriting standard"}
+  - {code: "REF:A11Y",              path: "./engineering/accessibility-checklist.md", desc: "Accessibility checklist"}
+  - {code: "REF:DESIGN-INDEX",      path: "./design/00-index.md",                  desc: "Design index"}
+  - {code: "REF:CONTENT-INDEX",     path: "./pages-content-spec/00-index.md",      desc: "Content spec index"}
+
+routing_entries:
+  - "UI / component task → [Frontend UI Playbook](./playbooks/frontend-ui.md)"
+  - "Content / SEO / metadata task → [Content & SEO Playbook](./playbooks/content-seo.md)"
+  - "Docs / workflow / AGENTS task → [Docs Governance Playbook](./playbooks/docs-governance.md)"
+
+rules:
+  - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,tsx,css}"]}
+
+dimensions:
+  - {name: "React component",   read_files: ["docs/engineering/frontend-rules.md", "docs/playbooks/frontend-ui.md"]}
+  - {name: "Page / route",      read_files: ["docs/engineering/frontend-rendering-rules.md", "docs/playbooks/frontend-ui.md"]}
+  - {name: "Content / SEO",     read_files: ["docs/playbooks/content-seo.md", "docs/engineering/copywriting-standard.md"]}
+  - {name: "i18n",              read_files: ["docs/engineering/i18n-policy.md"]}
+  - {name: "Accessibility",     read_files: ["docs/engineering/accessibility-checklist.md"]}
+
+skill_enforcement:
+  - {globs: ["src/frontend/**/*.{ts,tsx}"], primary: nextjs-react, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy]}
+  - {globs: ["src/frontend/**/components/**/*.{ts,tsx}", "src/frontend/**/app/**/page.tsx", "src/frontend/**/app/**/layout.tsx"], primary: nextjs-react, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y]}
+  - {globs: ["src/frontend/**/store/**/*.ts", "src/frontend/**/stores/**/*.ts", "src/frontend/**/hooks/use*.ts"], primary: nextjs-react, secondary: [state-management, clean-code, frontend-fundamentals]}
+
+makefile_targets:
+  - {name: lint-frontend, cmd: "cd src/frontend && npm run lint"}

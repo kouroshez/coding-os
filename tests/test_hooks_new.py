@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-HOOKS_DIR = REPO_ROOT / "core" / "hooks"
+HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 ENFORCE_TEMPLATE = HOOKS_DIR / "enforce-template.sh"
 DOC_SYNC_REMINDER = HOOKS_DIR / "doc-sync-reminder.sh"
 ENFORCE_DOC_SYNC = HOOKS_DIR / "enforce-doc-sync.sh"
@@ -90,7 +90,7 @@ class TestEnforceTemplate:
         assert "ADR" in result.stderr or "Status" in result.stderr
 
     def test_new_adr_blocked_with_template(self, tmp_path: Path) -> None:
-        template_dir = tmp_path / "docs" / "governance" / "templates"
+        template_dir = tmp_path / "docs" / "governance" / "src" / "templates"
         template_dir.mkdir(parents=True)
         (template_dir / "adr-template.md").write_text("## Status\n")
         target = tmp_path / "docs" / "architecture" / "adr" / "ADR-008-new.md"
@@ -196,7 +196,7 @@ class TestDocSyncReminder:
         # enforce-doc-sync.sh absorbed companion-doc hints from doc-sync-reminder.sh.
         # Output goes to stderr; file must exist for the hook to proceed past the
         # `[[ ! -f FILE_PATH ]]` early-exit guard.
-        target = tmp_path / "cli" / "main.py"
+        target = tmp_path / "src" / "cli" / "main.py"
         target.parent.mkdir(parents=True)
         target.write_text("# test\n")
         result = _invoke(ENFORCE_DOC_SYNC, {
@@ -208,7 +208,7 @@ class TestDocSyncReminder:
         assert "features.md" in result.stderr
 
     def test_server_py_prints_mcp_docs(self, tmp_path: Path) -> None:
-        target = tmp_path / "core" / "thinking_os" / "server.py"
+        target = tmp_path / "src" / "core" / "thinking_os" / "server.py"
         target.parent.mkdir(parents=True)
         target.write_text("# test\n")
         result = _invoke(ENFORCE_DOC_SYNC, {
@@ -219,7 +219,7 @@ class TestDocSyncReminder:
         assert "MCP" in result.stderr or "architecture.md" in result.stderr
 
     def test_hook_script_prints_hook_docs(self, tmp_path: Path) -> None:
-        target = tmp_path / "core" / "hooks" / "new-hook.sh"
+        target = tmp_path / "src" / "core" / "hooks" / "new-hook.sh"
         target.parent.mkdir(parents=True)
         target.write_text("#!/bin/bash\n")
         result = _invoke(ENFORCE_DOC_SYNC, {
@@ -237,9 +237,9 @@ class TestDocSyncReminder:
         doc_map = state / "doc-map.yaml"
         doc_map.write_text(
             "# project override\n"
-            "cli/main.py=>docs/custom-extra.md\n"
+            "src/cli/main.py=>docs/custom-extra.md\n"
         )
-        target = tmp_path / "cli" / "main.py"
+        target = tmp_path / "src" / "cli" / "main.py"
         env = os.environ.copy()
         env["COS_STATE_DIR"] = str(state)
         result = subprocess.run(

@@ -16,7 +16,7 @@ Read when: Codex behavior differs from Claude · evaluating whether a new hook w
 
 ## Parity matrix (as of 2026-04-18)
 
-The renderer at [cli/hook_renderer.py](../../cli/hook_renderer.py) reads [core/hooks/registry.yaml](../../core/hooks/registry.yaml) and **filters every (event, matcher) pair** against each adapter's capabilities declared in [adapters/<id>/adapter.yaml](../../adapters/claude/adapter.yaml). A pair the runtime cannot trigger is skipped silently.
+The renderer at [src/cli/hook_renderer.py](../../cli/hook_renderer.py) reads [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) and **filters every (event, matcher) pair** against each adapter's capabilities declared in [src/adapters/<id>/adapter.yaml](../../adapters/claude/adapter.yaml). A pair the runtime cannot trigger is skipped silently.
 
 Run the live audit yourself:
 
@@ -25,7 +25,7 @@ uv run python - <<'PY'
 import json, yaml
 from pathlib import Path
 REPO = Path(".")
-reg = yaml.safe_load((REPO/"core/hooks/registry.yaml").read_text())
+reg = yaml.safe_load((REPO/"src/core/hooks/registry.yaml").read_text())
 claude = json.loads((REPO/".claude/settings.json").read_text())["hooks"]
 codex  = json.loads((REPO/".codex/hooks.json").read_text()).get("hooks", {})
 # …same comparison logic as docs/engineering/adapter-parity.md
@@ -97,7 +97,7 @@ As of **April 18, 2026**, the Codex docs also require the feature flag below for
 codex_hooks = true
 ```
 
-`adapters/codex/install.sh` now enables that flag idempotently in the project's `.codex/config.toml` so Codex hooks and MCP stay repo-scoped by default.
+`src/adapters/codex/install.sh` now enables that flag idempotently in the project's `.codex/config.toml` so Codex hooks and MCP stay repo-scoped by default.
 
 Claude's runtime additionally emits:
 
@@ -118,12 +118,12 @@ NOTE: Codex PreToolUse/PostToolUse only support the Bash tool.
 
 | Change (this session) | Scope | Claude gets | Codex gets |
 |---|---|---|---|
-| `cos_log_hook` now emits `agent=X session=Y task=Z` | `core/hooks/cos-env.sh` | ✓ (all wired hooks) | ✓ (all wired hooks) |
-| `COS_AGENT` env detection + `.coding-os/.agent` marker | `core/hooks/cos-env.sh` + both `install.sh` | ✓ | ✓ |
-| `cos hooks-log --agent/--session/--task/--hook` filters | `cli/main.py` | ✓ (CLI is shared) | ✓ |
-| `core/skills/backend-fundamentals/SKILL.md` | skill → adapter symlink | ✓ | ✓ (after `make sync`) |
-| `core/skills/frontend-fundamentals/SKILL.md` | skill → adapter symlink | ✓ | ✓ (after `make sync`) |
-| `depends_on` frontmatter on stack skills | `templates/<stack>/skills/*/SKILL.md` | ✓ | ✓ (after `make sync`) |
+| `cos_log_hook` now emits `agent=X session=Y task=Z` | `src/core/hooks/cos-env.sh` | ✓ (all wired hooks) | ✓ (all wired hooks) |
+| `COS_AGENT` env detection + `.coding-os/.agent` marker | `src/core/hooks/cos-env.sh` + both `install.sh` | ✓ | ✓ |
+| `cos hooks-log --agent/--session/--task/--hook` filters | `src/cli/main.py` | ✓ (CLI is shared) | ✓ |
+| `src/core/skills/backend-fundamentals/SKILL.md` | skill → adapter symlink | ✓ | ✓ (after `make sync`) |
+| `src/core/skills/frontend-fundamentals/SKILL.md` | skill → adapter symlink | ✓ | ✓ (after `make sync`) |
+| `depends_on` frontmatter on stack skills | `src/templates/<stack>/skills/*/SKILL.md` | ✓ | ✓ (after `make sync`) |
 | New hook: `doc-sync-reminder.sh` (enhanced) | PostToolUse Write\|Edit | ✓ | ✗ by design — no Write/Edit on Codex |
 | New docs (`docs/engineering/*.md`) | `docs/` tree | N/A — docs are single-project assets, not adapter-specific | N/A |
 | `cos-env.sh` task format improvement (TASK-### extraction) | shared logger | ✓ | ✓ |
@@ -139,29 +139,29 @@ make sync
 ```
 
 Does three things in order:
-1. `make regen-adapter-templates` → re-renders `adapters/claude/settings.template.json` + `adapters/codex/hooks.template.json` from `core/hooks/registry.yaml` (filtered by each adapter's capabilities).
-2. `bash adapters/claude/install.sh` → symlinks latest `core/{hooks,rules,skills,commands}/` + links stack skills from `installed-manifest.json` + regenerates `.claude/settings.json` from the template.
-3. `bash adapters/codex/install.sh` → same for `.codex/`.
+1. `make regen-adapter-templates` → re-renders `src/adapters/claude/settings.template.json` + `src/adapters/codex/hooks.template.json` from `src/core/hooks/registry.yaml` (filtered by each adapter's capabilities).
+2. `bash src/adapters/claude/install.sh` → symlinks latest `src/core/{hooks,rules,skills,commands}/` + links stack skills from `installed-manifest.json` + regenerates `.claude/settings.json` from the template.
+3. `bash src/adapters/codex/install.sh` → same for `.codex/`.
 
-**Rule:** after any edit in `core/**`, `templates/<stack>/skills/**`, or `adapters/*/adapter.yaml`, run `make sync`. Then reload your agent runtime (Claude Code or Codex CLI) to pick up the refreshed config.
+**Rule:** after any edit in `src/core/**`, `src/templates/<stack>/skills/**`, or `src/adapters/*/adapter.yaml`, run `make sync`. Then reload your agent runtime (Claude Code or Codex CLI) to pick up the refreshed config.
 
-The `remind-dogfood.sh` hook fires on edits inside `core/**` to remind you, but **only for Claude** (Codex has no Write/Edit event — you need to remember on Codex).
+The `remind-dogfood.sh` hook fires on edits inside `src/core/**` to remind you, but **only for Claude** (Codex has no Write/Edit event — you need to remember on Codex).
 
 ## FAQ
 
 **Q: Can I see exactly which hooks fire for my agent right now?**
 A: `cos hooks-list --agent claude` or `cos hooks-list --agent codex` — reads the registry + capability matrix and prints what's wired.
 
-**Q: I added a new `.sh` hook in `core/hooks/` but it doesn't fire on Codex.**
+**Q: I added a new `.sh` hook in `src/core/hooks/` but it doesn't fire on Codex.**
 A: Check its event/matcher in `registry.yaml`. If it uses `Write|Edit`, it's claude-only by Codex design.
 
 **Q: Why is `enforce-skill.sh` the "loud" hook?**
 A: Because it's the one that BLOCKS the agent most often on Claude. On Codex, it's silently skipped — Codex users don't see the block, so they must self-discipline.
 
 **Q: Skills aren't appearing in `.codex/skills/` but are in `.claude/skills/`.**
-A: Until 2026-04-18, `adapters/codex/install.sh` only symlinked `core/skills/`, not `templates/<stack>/skills/`. Fixed as of this session — both `install.sh` files now call `link-stack-skills.sh` based on `installed-manifest.json`.
+A: Until 2026-04-18, `src/adapters/codex/install.sh` only symlinked `src/core/skills/`, not `src/templates/<stack>/skills/`. Fixed as of this session — both `install.sh` files now call `link-stack-skills.sh` based on `installed-manifest.json`.
 
-**Q: I made a change in `core/` — what should I rerun?**
+**Q: I made a change in `src/core/` — what should I rerun?**
 A: `make sync`. One command, both adapters, all assets.
 
 **Q: My Codex hooks work from repo root but fail from a subdirectory.**
@@ -169,21 +169,21 @@ A: That was caused by relative commands in `.codex/hooks.json`. The installer no
 
 ## `adapter.yaml::presence` — Hub board contract
 
-Optional block on each adapter manifest (validated by [core/schemas/adapter.schema.json](../../core/schemas/adapter.schema.json)):
+Optional block on each adapter manifest (validated by [src/core/schemas/adapter.schema.json](../../core/schemas/adapter.schema.json)):
 
-- **`signal`:** today only `hook_timestamps` — session JSON is updated by [core/hooks/agent-presence.sh](../../core/hooks/agent-presence.sh) on lifecycle hooks.
+- **`signal`:** today only `hook_timestamps` — session JSON is updated by [src/core/hooks/agent-presence.sh](../../core/hooks/agent-presence.sh) on lifecycle hooks.
 - **`presence_events`:** documentation list of which events refresh presence for this runtime (mirrors `hook_capabilities` + dispatchers; not interpreted by Python logic beyond the Hub manifest reader).
-- **`hub_glyph` / `hub_color`:** pill metadata for `GET /api/board/list` → `agent_manifest` ([core/board_os/hub_adapter_manifest.py](../../core/board_os/hub_adapter_manifest.py)).
+- **`hub_glyph` / `hub_color`:** pill metadata for `GET /api/board/list` → `agent_manifest` ([src/core/board_os/hub_adapter_manifest.py](../../core/board_os/hub_adapter_manifest.py)).
 
 ## Claude adapter — curriculum alignment + Agent SDK (P8)
 
-- **Anthropic “Certified Architect — Foundations” instructor guide** (internal copy: [instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md](../code-os-core-docs/instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md)) frames Domain 1 orchestration, **Task 1.5** (hooks for deterministic enforcement vs prompt-only), MCP (Domain 2), and session lifecycle (**Task 1.7**). Use it as a **design checklist** when extending `adapters/claude/` hooks or documentation — not as exam content copied into `core/`.
-- **Official Claude Agent SDK:** any programmatic SDK usage stays under `adapters/claude/` (e.g. [sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py)). **Rule P8** in `AGENTS.md` — never import an adapter SDK from `core/**`; the kernel exposes MCP tools (`cos_*`) and hook contracts only.
+- **Anthropic “Certified Architect — Foundations” instructor guide** (internal copy: [instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md](../code-os-core-docs/instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md)) frames Domain 1 orchestration, **Task 1.5** (hooks for deterministic enforcement vs prompt-only), MCP (Domain 2), and session lifecycle (**Task 1.7**). Use it as a **design checklist** when extending `src/adapters/claude/` hooks or documentation — not as exam content copied into `src/core/`.
+- **Official Claude Agent SDK:** any programmatic SDK usage stays under `src/adapters/claude/` (e.g. [sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py)). **Rule P8** in `AGENTS.md` — never import an adapter SDK from `src/core/**`; the kernel exposes MCP tools (`cos_*`) and hook contracts only.
 
 ## References
 
-- [core/hooks/registry.yaml](../../core/hooks/registry.yaml) — SSOT for hook registrations
-- [adapters/claude/adapter.yaml](../../adapters/claude/adapter.yaml) + [adapters/codex/adapter.yaml](../../adapters/codex/adapter.yaml) — capability declarations
-- [cli/hook_renderer.py](../../cli/hook_renderer.py) — the filter
+- [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) — SSOT for hook registrations
+- [src/adapters/claude/adapter.yaml](../../adapters/claude/adapter.yaml) + [src/adapters/codex/adapter.yaml](../../adapters/codex/adapter.yaml) — capability declarations
+- [src/cli/hook_renderer.py](../../cli/hook_renderer.py) — the filter
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — per-hook catalog
 - Codex CLI hook spec: <https://developers.openai.com/codex/hooks>

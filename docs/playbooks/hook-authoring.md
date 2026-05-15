@@ -1,5 +1,5 @@
-<!-- domain:META | layer:playbook | ssot:true | updated:2026-05-08 -->
-# Playbook — Authoring a Hook in `core/hooks/`
+<!-- domain:META | layer:playbook | ssot:true | updated:2026-05-13 -->
+# Playbook — Authoring a Hook in `src/core/hooks/`
 
 > P: Step-by-step guide for adding, renaming, or removing a hook in the meta-repo's hook regime.
 > R: Adding a PreToolUse / PostToolUse / SessionStart / Stop / UserPromptSubmit hook, or extending an existing one with a new event/matcher.
@@ -10,27 +10,32 @@
 
 ## When to use this playbook
 
-Any time you create, rename, or restructure a hook script under `core/hooks/`, register a new entry in `core/hooks/registry.yaml`, or modify the helper modules under `core/hooks/_helpers/`.
+Any time you create, rename, or restructure a hook script under `src/core/hooks/`, register a new entry in `src/core/hooks/registry.yaml`, or modify the helper modules under `src/core/hooks/_helpers/`.
 
 ## The model
 
 A hook is a single script that runs synchronously between the agent and the kernel. The hook regime in this repo has four invariants:
 
-1. **`registry.yaml` is the SSOT.** Every hook entry lists its script, category, phase, timeout, and the `(event, matcher)` pairs it fires on. Adapter templates are GENERATED from this file via `make regen-adapter-templates` — never hand-edit `adapters/*/settings.template.json`.
+1. **`registry.yaml` is the SSOT.** Every hook entry lists its script, category, phase, timeout, and the `(event, matcher)` pairs it fires on. Adapter templates are GENERATED from this file via `make regen-adapter-templates` — never hand-edit `src/adapters/*/settings.template.json`.
 2. **Hooks source `cos-env.sh`.** That helper resolves `$COS_AGENT_DIR`, `$COS_STATE_DIR`, and `$COS_DB_PATH` consistently across Claude / Codex / Cursor and exposes `cos_log_hook` for structured logging.
 3. **Block vs warn is explicit.** A `BLOCK` hook prints to stderr and exits non-zero — the agent's tool call is rejected. A `warn` hook prints to stderr and exits zero — the agent sees the message but proceeds. Mixing the two breaks the contract.
-4. **Adapter capabilities clip the registry.** Codex doesn't fire `Write|Edit` matchers; Cursor doesn't fire `Skill`. The renderer filters every `(event, matcher)` against `adapters/<id>/adapter.yaml::hook_capabilities`. A registry entry with no capable adapter is fine — it's documented intent — but it shouldn't claim coverage it can't deliver.
+4. **Adapter capabilities clip the registry.** Codex doesn't fire `Write|Edit` matchers; Cursor doesn't fire `Skill`. The renderer filters every `(event, matcher)` against `src/adapters/<id>/adapter.yaml::hook_capabilities`. A registry entry with no capable adapter is fine — it's documented intent — but it shouldn't claim coverage it can't deliver.
 
 ## Steps
 
 1. **Decide block vs warn.** Block when the action would corrupt state or violate a hard rule. Warn when the action is suspect but recoverable. If unsure, start with warn and promote later if the misuse rate justifies it.
-2. **Write the script.** Bash for fast / shell-glue work, Python via `core/hooks/_helpers/` for anything with logic, JSON parsing, or DB reads.
+2. **Write the script.** Bash for fast / shell-glue work, Python via `src/core/hooks/_helpers/` for anything with logic, JSON parsing, or DB reads.
 3. **Use the safe pattern.** Source `cos-env.sh`. Read stdin via `read -r INPUT`. Parse with `jq` or Python — never with `awk` on the JSON envelope. Avoid heredocs in the script body — see [bash-heredoc-deadlock.md](../engineering/bash-heredoc-deadlock.md) for the upstream bash 5.3.9 deadlock that bit us.
-4. **Log via `cos_log_hook`.** Format: `cos_log_hook <hook-id> <verb> "key=value key=value"`. The verbs `fire`, `block`, `skip`, `dispatched`, `error` are recognized by the hook log viewer.
+4. **Log via `cos_log_hook`.** Format: `cos_log_hook <hook-id> <verb> "key=value key=value"`. Canonical verb vocabulary (use these instead of the raw event name like `PreToolUse`):
+   - Lifecycle: `entry` (hook started — emit only when the hook is actually going to do work, not before the first guard), `dispatched` (async work kicked off), `spawned` (subprocess started).
+   - Outcome: `fire` (main path executed), `ok` / `pass` / `allowed` (passed clean), `block` (refused write/exec), `warn` (non-blocking warning), `advisory` (gentle nudge), `reminder` (info nudge).
+   - Skip reasons: `skip` (debounced / sanity / missing-dep), `disabled` (env-var off), `debounced`, plus domain-specific tokens like `non-rename`, `no-strings`, `unchanged`.
+   The UI palette in [HookStream.tsx](../../core/web/ui/src/features/observability/HookStream.tsx) colors `fire` / `block` / `warn` / `skip` / `pass` / `stale-gate` specifically; everything else renders neutral gray.
+   **Deferred-entry pattern (signal-to-noise):** if the hook bails on >90% of invocations (typical for `Bash` matchers that only care about specific commands), defer the `entry` log until after the first guard passes. Examples in the wild: [auto-reindex-shell-ops.sh](../../core/hooks/auto-reindex-shell-ops.sh), [search-verify-remaining.sh](../../core/hooks/search-verify-remaining.sh), [enforce-graph-context.sh](../../core/hooks/enforce-graph-context.sh).
 5. **Register in `registry.yaml`.** One row per hook, with description, category, phase, timeout, and the `events:` list. Each event entry pairs an `event` (PreToolUse / PostToolUse / SessionStart / UserPromptSubmit / Stop) with a `matcher` (Bash, Write|Edit, Skill, startup, compact|resume, etc.) and an optional `status_message`.
-6. **Regenerate adapter templates.** `make regen-adapter-templates`. Verify the diff in `adapters/claude/settings.template.json` (and codex / cursor) matches your intent.
+6. **Regenerate adapter templates.** `make regen-adapter-templates`. Verify the diff in `src/adapters/claude/settings.template.json` (and codex / cursor) matches your intent.
 7. **Add a test if behavior is non-trivial.** `tests/test_hook_<name>.py` or extend `tests/test_hook_registry_integration.py`.
-8. **Verify shell syntax.** `make verify-hooks` runs `bash -n` on every script under `core/hooks/`.
+8. **Verify shell syntax.** `make verify-hooks` runs `bash -n` on every script under `src/core/hooks/`.
 
 ## Acceptance
 
@@ -42,11 +47,11 @@ A hook is a single script that runs synchronously between the agent and the kern
 
 ## Rollback
 
-Hook changes propagate to consumer projects via live symlinks. To roll back: revert the commit and run `cos sync-all` in any consumer that pulled the change. The rendered `adapters/<id>/settings.template.json` is regenerated; consumer-side overrides in `<project>/.claude/settings.json` are not touched.
+Hook changes propagate to consumer projects via live symlinks. To roll back: revert the commit and run `cos sync-all` in any consumer that pulled the change. The rendered `src/adapters/<id>/settings.template.json` is regenerated; consumer-side overrides in `<project>/.claude/settings.json` are not touched.
 
 ## Anti-patterns
 
-- Editing `adapters/*/settings.template.json` by hand. The next `make regen-adapter-templates` will overwrite it.
+- Editing `src/adapters/*/settings.template.json` by hand. The next `make regen-adapter-templates` will overwrite it.
 - A block hook with a verbose multi-line error message. Agents truncate; one terse line plus a doc link is the right shape.
 - Calling `cos_log_hook` with unstructured prose ("hook ran"). Always use `key=value` so the log viewer can filter.
 - A hook that reads a DB row inside a loop. Pre-fetch outside, or call a single `cos_*` tool that does the work server-side.

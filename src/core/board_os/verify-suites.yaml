@@ -1,0 +1,75 @@
+# Verify Suites — data-driven mapping from changed paths → required test commands.
+#
+# SSOT for the AGENTS.md verification matrix. Replaces the hardcoded
+# customer-specific paths (frontend/app/*/checkout/*, backend/, etc.)
+# that used to live in src/core/hooks/enforce-verify.sh.
+#
+# Schema:
+#   suites: name → { paths: [glob], command: str, max_age_seconds: int? }
+#   project_overrides: optional consumer-specific extensions loaded from
+#     `${COS_PROJECT_ROOT}/.coding-os/verify-suites.yaml` if present, deep-merged.
+#
+# Phase L.10 / TASK-100. See docs/phase-l10-plan.md.
+
+version: 1
+
+suites:
+  test-thinking_os:
+    paths:
+      - "src/core/thinking_os/**/*.py"
+    command: "uv run --extra rag pytest src/core/thinking_os/tests/ -q"
+
+  test-board_os:
+    paths:
+      - "src/core/board_os/**/*.py"
+    command: "uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q"
+
+  test-graph_os:
+    paths:
+      - "src/core/graph_os/**/*.py"
+    command: "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"
+
+  verify-hooks:
+    paths:
+      - "src/core/hooks/*.sh"
+      - "src/core/scripts/*.sh"
+      - "src/core/hooks/registry.yaml"
+    command: "make verify-hooks"
+
+  test-cli:
+    paths:
+      - "cli/*.py"
+    command: "uv run pytest tests/test_cli.py -q"
+
+  test-adapters:
+    paths:
+      - "adapters/**"
+    command: "uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"
+
+  test-template-scaffold:
+    paths:
+      - "templates/**/scaffold/**"
+    command: "uv run pytest tests/test_template_scaffold.py -q"
+
+  docs-lint:
+    paths:
+      - "docs/**/*.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+    command: "make docs-lint"
+
+  # Optional consumer-side suites (no paths in meta-repo; consumer
+  # project's verify-suites.yaml typically reuses the suite name and
+  # specifies its own paths/command).
+  test-backend:
+    paths:
+      - "backend/**"
+    command: "make test-backend"
+  test-frontend:
+    paths:
+      - "frontend/**"
+    command: "make test-frontend"
+
+# How long a recorded PASS counts as fresh.
+defaults:
+  max_age_seconds: 1800

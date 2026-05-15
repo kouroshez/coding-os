@@ -1,7 +1,7 @@
 <!-- domain:CORE | layer:playbooks | ssot:true | updated:2026-05-12 -->
 # Polyglot Extractor Roadmap — Python-Grade Coverage for Every Language
 
-> P: Bring every language extractor in `core/graph_os/extractors/` to the same
+> P: Bring every language extractor in `src/core/graph_os/extractors/` to the same
 > world-class fidelity as `code_python.py` — accurate parsing, stable UIDs,
 > toolchain-aware import resolution, edge-case tolerance, sub-100ms typical
 > file. Single source of truth for the rollout plan.
@@ -27,7 +27,7 @@ A world-class extractor for language L exhibits ALL of:
 | P5 Edge tolerance | Partial parses never crash. `parse_errors_count` + `last_error` recorded. Recovery: skip the broken span, keep emitting from the rest. |
 | P6 Performance | < 100 ms median per typical file (≤ 1k LOC). Content-hash cache short-circuits unchanged files. |
 | P7 Determinism | Two runs on the same file → byte-identical (uid, kind, edge_type, source_span) output. No hash-set iteration order leaks. |
-| P8 Test fidelity | At least one golden test per node-kind + one per edge-type. Edge-case fixtures versioned in `core/graph_os/tests/fixtures/<lang>/`. |
+| P8 Test fidelity | At least one golden test per node-kind + one per edge-type. Edge-case fixtures versioned in `src/core/graph_os/tests/fixtures/<lang>/`. |
 
 `code_python.py` is the reference implementation. Anything that doesn't match it is "not world-class".
 
@@ -168,14 +168,14 @@ changes.**
 | P1 Parser | **regex** | **tree-sitter-bash** (grammar already installed) |
 | P2 UID | partial — function names by regex | from ts-bash AST: `code:function:<path>::<name>` |
 | P3 Resolution | n/a | + `source` / `.` includes → file edges |
-| P4 Contracts | n/a | + hook event metadata when path matches `core/hooks/*.sh` |
+| P4 Contracts | n/a | + hook event metadata when path matches `src/core/hooks/*.sh` |
 | P5 Edges | brittle — 209 errors in 110 files in this repo (96%) | parse errors → 0 on well-formed scripts |
 | P6 Perf | fast | maintained |
 | P7 Determinism | OK | OK |
 | P8 Tests | minimal | golden per: function, alias, source-include, here-doc literal |
 
 **Workstream SH-1:** rewrite `code_shell.py` on ts-bash (3h) ← MVP
-**Workstream SH-2:** hook-event metadata extractor for `core/hooks/*.sh` (1h)
+**Workstream SH-2:** hook-event metadata extractor for `src/core/hooks/*.sh` (1h)
 **Workstream SH-3:** golden fixtures (1h)
 
 ### 4.5 YAML
@@ -205,7 +205,7 @@ Currently invisible to graph. Targets: `settings.json`, `mcp.json`, `tsconfig.js
 | P5 Edges | malformed → 0 nodes, error logged |
 | P6 Perf | trivially fast |
 | P7 Determinism | dict order = insertion order from json module |
-| P8 Tests | golden per: package.json scripts/deps, tsconfig paths, mcp.json server, settings.json hooks |
+| P8 Tests | golden per: package.json src/scripts/deps, tsconfig paths, mcp.json server, settings.json hooks |
 
 **Workstream JSON-1:** new `code_json.py` + `_EXT_MAP[".json"]` (3h)
 **Workstream JSON-2:** path-aware emitters for package.json vs tsconfig vs mcp.json (3h)
@@ -238,7 +238,7 @@ Targets: `pyproject.toml`, `Cargo.toml`, `*.toml` configs.
   - [ ] A1.1 Rewrite `code_shell.py` against ts-bash AST queries
   - [ ] A1.2 Emit function + alias + source-include nodes
   - [ ] A1.3 Wire `tree_sitter_overlay._LOADERS["bash"]` if not already
-  - [ ] A1.4 Hook-event metadata when path matches `core/hooks/*.sh`
+  - [ ] A1.4 Hook-event metadata when path matches `src/core/hooks/*.sh`
   - [ ] A1.5 Golden fixtures: 6 scripts spanning all node kinds
   - [ ] A1.6 Verify on real repo: 209 errors → 0 errors expected
 
@@ -249,7 +249,7 @@ Targets: `pyproject.toml`, `Cargo.toml`, `*.toml` configs.
   - [ ] B1.2 Path-aware: package.json / tsconfig.json / mcp.json / settings.json / generic
   - [ ] B1.3 Wire `_EXT_MAP[".json"] = ("json", ["code_json"])`
   - [ ] B1.4 Golden fixtures (5 file types)
-  - [ ] B1.5 Verify: scripts/deps/paths/servers extracted, reindex run clean
+  - [ ] B1.5 Verify: src/scripts/deps/paths/servers extracted, reindex run clean
 
 - [ ] **B2 TOML extractor** [6h]
   - [ ] B2.1 New `code_toml.py`
@@ -329,8 +329,8 @@ A regression below these caps in CI blocks the PR.
 
 | Workstream | Command | Expected |
 |---|---|---|
-| Any extractor change | `uv run --extra graph_os pytest core/graph_os/tests/ -q` | green |
-| Shell migration | `cos graph-reindex --force --path core/hooks` then `cos db-stats` | code_shell parse_errors_count = 0 in `file_index_state` |
+| Any extractor change | `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` | green |
+| Shell migration | `cos graph-reindex --force --path src/core/hooks` then `cos db-stats` | code_shell parse_errors_count = 0 in `file_index_state` |
 | Performance | `cos graph-reindex --force --path <large-dir>` with timer | median below budget |
 | Polyglot smoke | `cos graph-reindex --force` on this repo | nodes > 31k, edges > 64k, errors = 0 |
 
@@ -349,4 +349,4 @@ A regression below these caps in CI blocks the PR.
 - [docs/engineering/graph-hallucination-cures.md](../engineering/graph-hallucination-cures.md)
 - [docs/engineering/graph_os-queries.md](../engineering/graph_os-queries.md)
 - [docs/playbooks/db-reset.md](db-reset.md)
-- [core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+- [src/core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)

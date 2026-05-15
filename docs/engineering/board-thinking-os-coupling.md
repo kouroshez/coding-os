@@ -20,11 +20,11 @@ that keep the two subsystems decoupled at the right abstraction layers.
 
 | Point | File | Nature |
 |---|---|---|
-| MCP registration | `core/thinking_os/server.py` | `register_board_tools(mcp, conn)` wires board_os tools onto the same MCP server instance |
-| Shared connection | `core/thinking_os/server.py` | Passes the `sqlite3.Connection` from `db.init_db()` into board_os tools |
-| Envelope helpers | `core/board_os/mcp_tools.py` | Imports `ok`, `fail`, `safe_tool` from `thinking_os.tools._shared` (installed package, no sys.path injection) |
-| Agent detection | `core/board_os/_agent_runtime.py` | Reads `adapters/<agent>/adapter.yaml::runtime_env_markers` via `cli.adapter_registry` |
-| Task doc FTS | `core/board_os/parser.py` | Uses `from thinking_os import task_parser` (installed package); bare `import task_parser` fallback for script invocation |
+| MCP registration | `src/core/thinking_os/server.py` | `register_board_tools(mcp, conn)` wires board_os tools onto the same MCP server instance |
+| Shared connection | `src/core/thinking_os/server.py` | Passes the `sqlite3.Connection` from `db.init_db()` into board_os tools |
+| Envelope helpers | `src/core/board_os/mcp_tools.py` | Imports `ok`, `fail`, `safe_tool` from `thinking_os.tools._shared` (installed package, no sys.path injection) |
+| Agent detection | `src/core/board_os/_agent_runtime.py` | Reads `src/adapters/<agent>/adapter.yaml::runtime_env_markers` via `cli.adapter_registry` |
+| Task doc FTS | `src/core/board_os/parser.py` | Uses `from thinking_os import task_parser` (installed package); bare `import task_parser` fallback for script invocation |
 
 ---
 
@@ -42,16 +42,16 @@ that keep the two subsystems decoupled at the right abstraction layers.
    version ≥ current thinking_os migration count. Never edit past migrations.
 
 4. **Envelope contract (Rule 14).** All board_os MCP tools MUST use `ok(data)` / `fail(category, msg)`
-   from `core/thinking_os/tools/_shared.py`. Never return raw dicts.
+   from `src/core/thinking_os/tools/_shared.py`. Never return raw dicts.
 
-5. **agent-detection SSOT.** `core/board_os/_agent_runtime.py::detect_agent()` is the single
+5. **agent-detection SSOT.** `src/core/board_os/_agent_runtime.py::detect_agent()` is the single
    source of truth. The MCP tool `_agent_label()` must delegate to it, not re-implement.
 
 ---
 
 ## Adding a new board_os MCP tool
 
-1. Add the function to `core/board_os/mcp_tools.py`.
+1. Add the function to `src/core/board_os/mcp_tools.py`.
 2. Decorate with `@safe_tool` (imported from `_shared`).
 3. Register via `register_board_tools` — no new `@mcp.tool()` decorators outside this function.
 4. Follow the `PURPOSE / INPUT / OUTPUT / DEPENDENCIES / NOTES` docstring convention (Rule 12).
@@ -67,7 +67,7 @@ thinking_os tables:
   document_chunks, document_chunks_fts,
   roles, personas, formulas,
   graph_nodes, graph_edges_v12, graph_evidence_v12
-  (all managed by core/thinking_os/database.py migrations)
+  (all managed by src/core/thinking_os/database.py migrations)
 
 board_os tables:
   board_tasks, work_log
@@ -80,10 +80,10 @@ board_os tables:
 
 ```bash
 # board_os unit tests (use the same in-memory db as thinking_os tests)
-uv run --extra rag --with aiohttp --with pytest-asyncio pytest core/board_os/tests/ -q
+uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q
 
 # Verify MCP server boots with both subsystems registered
-python core/thinking_os/server.py --test
+python src/core/thinking_os/server.py --test
 ```
 
 ---

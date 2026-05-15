@@ -72,13 +72,13 @@ class TestBaseScaffold:
         assert (initialized / "docs" / "00-index.md").exists()
 
     def test_creates_foundation_map(self, initialized: Path) -> None:
-        assert (initialized / "docs" / "foundation-map.md").exists()
+        assert (initialized / "docs" / "_meta" / "foundation-map.md").exists()
 
     def test_creates_roadmap(self, initialized: Path) -> None:
-        assert (initialized / "docs" / "roadmap.md").exists()
+        assert (initialized / "docs" / "_meta" / "roadmap.md").exists()
 
     def test_creates_feature_dependency_tree(self, initialized: Path) -> None:
-        assert (initialized / "docs" / "feature-dependency-tree.md").exists()
+        assert (initialized / "docs" / "_meta" / "feature-dependency-tree.md").exists()
 
     def test_creates_governance_files(self, initialized: Path) -> None:
         gov = initialized / "docs" / "governance"
@@ -95,7 +95,7 @@ class TestBaseScaffold:
             assert (gov / required).exists(), f"missing {required}"
 
     def test_creates_governance_templates(self, initialized: Path) -> None:
-        templates = initialized / "docs" / "governance" / "templates"
+        templates = initialized / "docs" / "governance" / "_templates"
         assert (templates / "task-detail.md").exists()
         assert (templates / "task-list.md").exists()
 
@@ -107,7 +107,7 @@ class TestBaseScaffold:
         body layout (Outcome + Read First + Acceptance + Work Log +
         optional Rollback).
         """
-        content = (initialized / "docs" / "governance" / "templates" / "task-detail.md").read_text()
+        content = (initialized / "docs" / "governance" / "_templates" / "task-detail.md").read_text()
         for section in (
             "## Read First",
             "## Acceptance",
@@ -120,14 +120,14 @@ class TestBaseScaffold:
     def test_task_detail_has_lean_frontmatter_axes(self, initialized: Path) -> None:
         """Phase L: the four categorization axes (swimlane/kind/epic/labels)
         must appear in the frontmatter of the scaffolded template."""
-        content = (initialized / "docs" / "governance" / "templates" / "task-detail.md").read_text()
+        content = (initialized / "docs" / "governance" / "_templates" / "task-detail.md").read_text()
         for axis in ("swimlane:", "kind:", "epic:", "labels:"):
             assert axis in content, f"lean template missing axis {axis!r}"
         # All tasks start in icebox
         assert "status: icebox" in content
 
     def test_creates_prd_index(self, initialized: Path) -> None:
-        assert (initialized / "docs" / "PRD" / "00-index.md").exists()
+        assert (initialized / "docs" / "prd" / "00-index.md").exists()
 
     def test_creates_architecture_index(self, initialized: Path) -> None:
         assert (initialized / "docs" / "architecture" / "00-index.md").exists()
@@ -144,7 +144,7 @@ class TestBaseScaffold:
         assert (initialized / "docs" / "ops" / "00-index.md").exists()
 
     def test_creates_workflow_docs(self, initialized: Path) -> None:
-        wf = initialized / "docs" / "workflow-docs"
+        wf = initialized / "docs" / "workflow"
         assert (wf / "workflow-guide.md").exists()
         assert (wf / "thinking_os-final-edition.md").exists(), \
             "thinking_os-final-edition.md should be copied from core/docs/"
@@ -160,7 +160,7 @@ class TestBaseScaffold:
         assert tasks_dir.is_dir(), "docs/tasks/ dir must exist for per-task files"
 
     def test_creates_questions(self, initialized: Path) -> None:
-        questions = initialized / "docs" / "questions.md"
+        questions = initialized / "docs" / "_meta" / "questions.md"
         assert questions.exists()
         # New scaffold has front-matter header
         assert questions.read_text().startswith("<!-- domain:")
@@ -350,7 +350,7 @@ class TestFoundationMap:
         self, runner: CliRunner, project_dir: Path
     ) -> None:
         _init_project(runner, project_dir)
-        fm = (project_dir / "docs" / "foundation-map.md").read_text()
+        fm = (project_dir / "docs" / "_meta" / "foundation-map.md").read_text()
         # REF:TASKS was retired alongside docs/tasks.md — use `cos board`.
         for ref in (
             "REF:AGENTS",

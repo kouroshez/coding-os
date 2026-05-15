@@ -29,7 +29,7 @@ inherits the same persona model.
 | #  | Mode             | Trigger (priority order, first match wins)                                                       | What it represents                                              |
 |----|------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
 | 1  | `formal`         | `.task-current` already names a `TASK-NNN` for this session                                      | Picked-from-board work: full lifecycle                          |
-| 2  | `gov-required`   | Prompt mentions `governance` / `critical-rules` / `core/rules/` / `registry.yaml` / `agents.md`  | Touching governance without an active gov task                  |
+| 2  | `gov-required`   | Prompt mentions `governance` / `critical-rules` / `src/core/rules/` / `registry.yaml` / `agents.md`  | Touching governance without an active gov task                  |
 | 3  | `propose-formal` | Verbs: `implement\|build\|fix\|add\|ship\|refactor\|migrate\|optimi[sz]e\|deploy\|hotfix` (+FA)  | Implementation request: nudge user to create a task             |
 | 4  | `query`          | Verbs: `what is\|why\|explain\|analy[sz]e\|look at\|review\|show\|list\|describe` (+FA)          | Read-only Q&A: enforcement skipped                              |
 | 5  | `adhoc`          | Verbs: `explore\|investigate\|trace\|map\|audit\|deep dive` (+FA)                                | Exploratory dive: warn-only enforcement                         |
@@ -77,12 +77,12 @@ Safety hooks (`block-secrets`, `block-dangerous-commands`,
 ## Acceptance (G/W/T)
 
 - **Given** UserPromptSubmit fires with prompt `"explain the doctor flow"`
-- **When** the agent attempts `Edit cli/doctor.py`
+- **When** the agent attempts `Edit src/cli/doctor.py`
 - **Then** `.task-mode` reads `query`; `enforce-task-start` / `enforce-skill`
   / `enforce-zoom` / `enforce-memory-check` exit 0; the safety hooks still
   fire.
 
-- **Given** UserPromptSubmit fires with `"refactor cli/doctor.py to use
+- **Given** UserPromptSubmit fires with `"refactor src/cli/doctor.py to use
   pathlib"`
 - **When** the agent calls `cos task-create` then `cos task-start TASK-NNN`
 - **Then** `.task-mode` is `propose-formal` initially, then `enforce-task-start`
@@ -106,5 +106,5 @@ the pre-mode baseline.
 ## See also
 
 - [docs/governance/critical-rules.md](../governance/critical-rules.md) — Rule 18 (task reconciliation), Rule 7 (governance gating).
-- [core/hooks/registry.yaml](../../core/hooks/registry.yaml) — `classify-task-mode` registration.
-- [core/board_os/_agent_runtime.py](../../core/board_os/_agent_runtime.py) — `resolve_agent_session` (G1, attribution resolver) shares the same "stay adapter-agnostic" contract.
+- [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) — `classify-task-mode` registration.
+- [src/core/board_os/_agent_runtime.py](../../core/board_os/_agent_runtime.py) — `resolve_agent_session` (G1, attribution resolver) shares the same "stay adapter-agnostic" contract.

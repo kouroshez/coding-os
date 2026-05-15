@@ -1,0 +1,58 @@
+version: 1
+id: base
+label: "Coding OS Base"
+
+# Default substitutions. These are overridden when stacks are installed:
+#  - STACK / DOMAIN_ROUTES / SKILL_ROUTES / ENGINEERING_RULE_ROUTING /
+#    TOOL_ROUTING_IMPL come from `_derive_substitutions` in the aggregator
+#    (joined from each installed stack).
+#  - VERIFY_BACKEND_* and VERIFY_FRONTEND_* are supplied by stacks that
+#    declare them (e.g. django stack sets VERIFY_BACKEND_GLOB). When no
+#    such stack is present, the "(none)" values below are used.
+#  - PROJECT_NAME is resolved from ${auto:project_name}.
+#  - DATE is resolved from ${auto:today}.
+substitutions:
+  PROJECT_NAME: "${auto:project_name}"
+  PROJECT_DESCRIPTION: "A software project managed by coding-os"
+  DATE: "${auto:today}"
+  DOMAIN: "ALL"
+  STACK: "Polyglot"
+  DOMAIN_ROUTES: "Any code change → `docs/governance/agent-workflow.md` § Domain Classification"
+  SKILL_ROUTES: "Any code → `clean-code`"
+  ENGINEERING_RULE_ROUTING: "(no engineering rules installed — add via `coding-os add-template`)"
+  VERIFY_BACKEND_GLOB: "(none)"
+  VERIFY_BACKEND_SUITES: "(none)"
+  VERIFY_BACKEND: "`make verify`"
+  VERIFY_FRONTEND_GLOB: "(none)"
+  VERIFY_FRONTEND_SUITES: "(none)"
+  VERIFY_FRONTEND: "(none)"
+  VERIFY_DOCS_GLOB: "`docs/`"
+  VERIFY_DOCS_SUITES: "docs-lint"
+  VERIFY_DOCS: "`make docs-lint`"
+  VERIFY_HOOKS_GLOB: "`.coding-os/hooks/` or `src/core/hooks/`"
+  TOOL_ROUTING_IMPL: "(no stack-specific tools installed)"
+  SSOT_MAP: "See `docs/_meta/foundation-map.md` for all REF shortcodes and SSOT locations."
+  QUICK_ROUTING: "- See `docs/governance/agent-workflow.md` for routing without playbooks"
+  STACK_REF_CODES: ""
+
+skills: [thinking_os, clean-code, codebase-explorer, graph-explorer, search, task-driver, testing-strategy, observability, incident-response]
+
+# AGENTS.md section registry — order determines rendered position.
+# Each entry references a fragment file relative to `src/templates/_base/`.
+agents_md_sections:
+  - {id: header,               order: 10, template: "fragments/header.md.tmpl"}
+  - {id: identity,             order: 20, template: "fragments/identity.md.tmpl"}
+  - {id: principles,           order: 30, template: "fragments/principles.md.tmpl"}
+  - {id: core-loop,            order: 40, template: "fragments/core-loop.md.tmpl"}
+  - {id: verification-matrix,  order: 50, template: "fragments/verification-matrix.md.tmpl"}
+  - {id: engineering-routing,  order: 60, template: "fragments/engineering-routing.md.tmpl"}
+  - {id: tool-routing,         order: 70, template: "fragments/tool-routing.md.tmpl"}
+  - {id: retrieval-routing,    order: 75, template: "fragments/retrieval-routing.md.tmpl"}
+  - {id: skills,               order: 80, template: "fragments/skills.md.tmpl"}
+  - {id: context-discipline,   order: 90, template: "fragments/context-discipline.md.tmpl"}
+  - {id: stop-conditions,      order: 100, template: "fragments/stop-conditions.md.tmpl"}
+  - {id: session-handoff,      order: 110, template: "fragments/session-handoff.md.tmpl"}
+  - {id: ssot-map,             order: 120, template: "fragments/ssot-map.md.tmpl"}
+  - {id: task-logging,         order: 130, template: "fragments/task-logging.md.tmpl"}
+  - {id: task-authoring,       order: 135, template: "fragments/task-authoring.md.tmpl"}
+  - {id: subagent-dispatch,    order: 140, template: "fragments/subagent-dispatch.md.tmpl"}

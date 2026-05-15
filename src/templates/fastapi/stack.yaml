@@ -1,0 +1,43 @@
+version: 1
+id: fastapi
+label: "FastAPI + Pydantic + PostgreSQL"
+category: backend
+primary_skill: python-fastapi
+skills: [python-fastapi]
+
+substitutions:
+  DOMAIN_ROUTES: "Backend→`docs/playbooks/fastapi-service.md`"
+  SKILL_ROUTES: "Backend→`python-fastapi`"
+  ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/fastapi-rules.md`"
+  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  VERIFY_BACKEND_GLOB: "`src/backend/`"
+  VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
+  VERIFY_BACKEND: "`cd src/backend && ruff check . && pytest -q`"
+  QUICK_ROUTING: |-
+    - Backend / API task → [FastAPI Service Playbook](./playbooks/fastapi-service.md)
+  STACK_REF_CODES: |-
+    - `REF:PLAYBOOK-FASTAPI` → `./playbooks/fastapi-service.md`
+    - `REF:FASTAPI-RULES` → `./engineering/fastapi-rules.md`
+
+ref_codes:
+  - {code: "REF:PLAYBOOK-FASTAPI", path: "./playbooks/fastapi-service.md", desc: "FastAPI service playbook"}
+  - {code: "REF:FASTAPI-RULES",    path: "./engineering/fastapi-rules.md",  desc: "FastAPI engineering rules"}
+
+routing_entries:
+  - "Backend / API task → [FastAPI Service Playbook](./docs/playbooks/fastapi-service.md)"
+
+rules:
+  - {file: rules/backend.md, globs: ["src/backend/**/*.py"]}
+
+makefile_targets:
+  - {name: lint-backend, cmd: "cd src/backend && ruff check ."}
+  - {name: test-backend, cmd: "cd src/backend && pytest -q"}
+
+dimensions:
+  - {name: "API endpoint",   read_files: ["docs/playbooks/fastapi-service.md", "docs/engineering/fastapi-rules.md"]}
+  - {name: "Pydantic model", read_files: ["docs/engineering/fastapi-rules.md"]}
+
+skill_enforcement:
+  - {globs: ["src/backend/**/*.py"], primary: python-fastapi, secondary: [clean-code, api-design, backend-fundamentals, hexagonal-architecture, auth-patterns, security-web, testing-strategy, observability]}
+  - {globs: ["src/backend/**/models.py", "src/backend/**/db/**/*.py", "src/backend/**/migrations/**/*.py"], primary: python-fastapi, secondary: [clean-code, db-design, backend-fundamentals]}
+  - {globs: ["src/backend/**/auth*.py", "src/backend/**/security.py"], primary: python-fastapi, secondary: [auth-patterns, security-web, clean-code]}

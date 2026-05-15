@@ -10,15 +10,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Files that MUST NOT contain "Claude Code" in user-visible strings.
 GUARDED_GLOBS: list[str] = [
-    "core/web/ui/src/**/*.ts",
-    "core/web/ui/src/**/*.tsx",
-    "cli/**/*.py",
+    "src/core/web/ui/src/**/*.ts",
+    "src/core/web/ui/src/**/*.tsx",
+    "src/cli/**/*.py",
 ]
 
 # Files where "Claude Code" is intentional and descriptive (Anthropic's
 # product reference, NOT coding-os branding). Skip these from the scan.
 ALLOWED_PATHS: set[str] = {
-    "cli/doctor.py",  # describes Claude Code CLI version checks
+    "src/cli/doctor.py",  # describes Claude Code CLI version checks
 }
 
 FORBIDDEN_TOKENS: tuple[str, ...] = (

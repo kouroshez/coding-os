@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-TEMPLATES = REPO_ROOT / "templates"
+TEMPLATES = REPO_ROOT / "src" / "templates"
 
 REQUIRED_H2_ORDER = [
     "## 1. Boundary",

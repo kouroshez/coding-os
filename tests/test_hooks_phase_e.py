@@ -23,7 +23,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-HOOKS_DIR = REPO_ROOT / "core" / "hooks"
+HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 BLOCK_UV_HEREDOC = HOOKS_DIR / "block-uv-heredoc.sh"
 BLOCK_MIGRATION_CONFLICT = HOOKS_DIR / "block-migration-conflict.sh"
@@ -199,7 +199,7 @@ class TestBlockHardcodedLiterals:
         r = _invoke(BLOCK_HARDCODED_LITERALS, {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "cli/main.py",
+                "file_path": "src/cli/main.py",
                 "old_string": "x",
                 "new_string": 'if stack == "django":\n    pass',
             },
@@ -210,7 +210,7 @@ class TestBlockHardcodedLiterals:
         r = _invoke(BLOCK_HARDCODED_LITERALS, {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "cli/update.py",
+                "file_path": "src/cli/update.py",
                 "old_string": "x",
                 "new_string": 'if agent == "claude":',
             },
@@ -221,7 +221,7 @@ class TestBlockHardcodedLiterals:
         r = _invoke(BLOCK_HARDCODED_LITERALS, {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "cli/main.py",
+                "file_path": "src/cli/main.py",
                 "old_string": "x",
                 "new_string": '# fallback to "claude" if none',
             },
@@ -232,7 +232,7 @@ class TestBlockHardcodedLiterals:
         r = _invoke(BLOCK_HARDCODED_LITERALS, {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "core/thinking_os/foo.py",
+                "file_path": "src/core/thinking_os/foo.py",
                 "old_string": "x",
                 "new_string": 'x = "django"',
             },
@@ -244,7 +244,7 @@ class TestBlockHardcodedLiterals:
         r = _invoke(BLOCK_HARDCODED_LITERALS, {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "cli/main.py",
+                "file_path": "src/cli/main.py",
                 "old_string": "x",
                 "new_string": 'skill = "claude-code-guide"',
             },
@@ -314,7 +314,7 @@ class TestEnforceDocAnchor:
         agent_dir.mkdir()
         (agent_dir / "session-id").write_text("ses-claude-1\n")
         (agent_dir / ".doc-anchor").write_text(
-            "ses-claude-1 task:X\ndocs/PRD/01-vision.md § 3\n"
+            "ses-claude-1 task:X\ndocs/prd/01-vision.md § 3\n"
         )
         r = _invoke(
             ENFORCE_DOC_ANCHOR,
@@ -339,7 +339,7 @@ class TestEnforceDocAnchor:
         state.mkdir()
         (state / "session-id").write_text("ses-current\n")
         (state / ".doc-anchor").write_text(
-            "ses-old task:X\ndocs/PRD/01-vision.md § 3\n"
+            "ses-old task:X\ndocs/prd/01-vision.md § 3\n"
         )
         r = _invoke(
             ENFORCE_DOC_ANCHOR,
@@ -364,7 +364,7 @@ class TestEnforceDocAnchor:
         agent_dir = state / "claude"
         agent_dir.mkdir()
         anchor = agent_dir / ".doc-anchor"
-        anchor.write_text("docs/PRD/01-vision.md § 3\n")
+        anchor.write_text("docs/prd/01-vision.md § 3\n")
         old = 946684800  # 2000-01-01T00:00:00Z
         os.utime(anchor, (old, old))
         r = _invoke(
@@ -395,7 +395,7 @@ class TestEnforceDocAnchor:
             {
                 "tool_name": "Edit",
                 "tool_input": {
-                    "file_path": "/x/docs/PRD.md",
+                    "file_path": "/x/docs/prd.md",
                     "old_string": "a",
                     "new_string": "b",
                 },

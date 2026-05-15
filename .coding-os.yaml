@@ -7,8 +7,6 @@ version: '1.0'
 # this repo emits but does NOT itself use.
 agents:
   - claude
-  - codex
-  - cursor
 
 templates:
   - meta

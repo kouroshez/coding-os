@@ -32,7 +32,7 @@ def _write_stack(base: Path, stack_id: str, extra: str = "") -> Path:
 # ---------- live repo ----------
 
 def test_load_live_registry_has_django_and_nextjs() -> None:
-    result = load_stack_registry(REPO_ROOT / "templates")
+    result = load_stack_registry(REPO_ROOT / "src" / "templates")
     assert "django" in result
     assert "nextjs" in result
     assert result["django"].category == "backend"
@@ -40,7 +40,7 @@ def test_load_live_registry_has_django_and_nextjs() -> None:
 
 
 def test_load_live_base_profile() -> None:
-    base = load_base_profile(REPO_ROOT / "templates" / "_base")
+    base = load_base_profile(REPO_ROOT / "src" / "templates" / "_base")
     assert base.id == "base"
     assert len(base.agents_md_sections) >= 10
     assert "PROJECT_NAME" in base.substitutions
@@ -186,7 +186,7 @@ def test_schema_rejects_bad_ref_code_format(tmp_path: Path) -> None:
 
 def test_schema_accepts_live_stacks() -> None:
     """Sanity: the 4 production stacks must all pass schema validation."""
-    result = load_stack_registry(REPO_ROOT / "templates")
+    result = load_stack_registry(REPO_ROOT / "src" / "templates")
     assert not result.warnings, (
         f"live stacks should all pass schema validation; warnings: {result.warnings}"
     )

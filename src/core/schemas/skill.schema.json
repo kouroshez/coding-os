@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coding-os.dev/schemas/skill.schema.json",
+  "title": "Coding-OS Skill Frontmatter",
+  "description": "YAML frontmatter contract for core/skills/<name>/SKILL.md and templates/<stack>/skills/<name>/SKILL.md. Validated by cli/skill_registry.py at load time.",
+  "type": "object",
+  "required": ["name", "description", "tier", "domain"],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "lowercase identifier (kebab-case preferred, snake_case tolerated) — must equal the parent directory name."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 30,
+      "description": "One paragraph (or scalar) describing when to invoke this skill. Triggers Claude's auto-load heuristic — keywords matter."
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "methodology",
+        "workflow",
+        "exploration",
+        "quality",
+        "layer",
+        "cross-cutting",
+        "stack"
+      ],
+      "description": "Abstraction level. methodology=cognitive patterns; workflow=task/repo lifecycle; exploration=read-only investigation; quality=generic code quality; layer=per-architectural-layer patterns; cross-cutting=concerns spanning layers; stack=framework-specific."
+    },
+    "domain": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "universal",
+          "backend",
+          "frontend",
+          "mobile",
+          "data",
+          "security",
+          "architecture",
+          "performance",
+          "infra",
+          "governance"
+        ]
+      },
+      "description": "Problem area(s) the skill addresses. Use 'universal' alone when the skill applies to all code; otherwise list specific domains."
+    },
+    "globs": {
+      "type": "string",
+      "description": "Optional glob pattern. When set, the skill should auto-load on Write/Edit of matching paths (enforce-skill.sh hook)."
+    },
+    "context": {
+      "type": "string",
+      "enum": ["fork", "extend"],
+      "description": "How the skill prompt is composed. 'fork' = replace; 'extend' = append. Defaults to 'fork'."
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Other skills (by name) that must be loaded before this one."
+    },
+    "phase": {
+      "type": "string",
+      "description": "Development phase tag (matches hook registry)."
+    },
+    "license": {"type": "string"},
+    "metadata": {"type": "object"},
+    "allowed-tools": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

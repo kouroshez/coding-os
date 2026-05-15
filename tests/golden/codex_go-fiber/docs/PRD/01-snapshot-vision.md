@@ -52,5 +52,5 @@ prevents scope creep down the line.
 
 - Update `updated:` in the header whenever you change vision or non-goals.
 - When the elevator pitch changes, follow the cascade: re-check `02-goals-kpis.md`, `03-users-jobs.md`, `08-functional-requirements.md`.
-- Long open questions go to `../questions.md`, not inline.
+- Long open questions go to `../_meta/questions.md`, not inline.
 - Decisions with long-term impact go to `../architecture/adr/`, not here.

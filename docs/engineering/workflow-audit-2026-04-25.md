@@ -52,10 +52,10 @@ V1 was accurate **for a single-agent / single-subprocess world** as of late Apri
 | Metric | V1 | Now (2026-05-09) | Δ |
 |---|---|---|---|
 | MCP tools | 42 | **79** | +37 (graph + cognition + audit-trail + scrumban tools landed since V1) |
-| Hooks on disk (`core/hooks/*.sh`) | 45 | **70** | +25 |
+| Hooks on disk (`src/core/hooks/*.sh`) | 45 | **70** | +25 |
 | `SessionStart:startup` hooks | 2 | **8** | +6 (including `cleanup-stale-mcp`) |
 | `PreToolUse:Write\|Edit` hooks | ~5 | **19** | +14 |
-| Hook helper scripts | 0 | **2** Python helpers in `core/hooks/_helpers/` | new dir |
+| Hook helper scripts | 0 | **2** Python helpers in `src/core/hooks/_helpers/` | new dir |
 | Adapter dispatcher shims | not shown | **11** dispatch scripts in cursor + codex | hidden layer |
 | MCP entrypoints | 1 (`cos server-start`) | **2** (`cos-mcp-start` preferred) | new fast-path |
 
@@ -66,7 +66,7 @@ V1 was accurate **for a single-agent / single-subprocess world** as of late Apri
 **Reality:** 8 hooks fire on `SessionStart:startup`:
 1. `remind-daily` — nudge `cos daily` if stale
 2. `ensure-hub-up` — start the Hub on :9188 if down (Scrumban addition)
-3. `cleanup-stale-mcp` — kill orphan `core/thinking_os/server.py` siblings (added 2026-04-25 this session)
+3. `cleanup-stale-mcp` — kill orphan `src/core/thinking_os/server.py` siblings (added 2026-04-25 this session)
 4. `session-context` — renamed from `session-context-recovery`; rotates session-id, clears volatile state
 5. `agent-presence` — write presence JSON for Hub UI
 6. `warn-mcp-down` — probe MCP liveness
@@ -83,15 +83,15 @@ The `compact|resume` matcher fires 5 of these (skip ensure-hub-up + cleanup-stal
 
 ### V1 Phase 5 — Task Analyzer
 **V1 says:** `cos_analyze_task` reads prompt + cos_search + cos_graph_impact + cos_doc_search → `TaskSignals`.
-**Reality:** Matches. `core/thinking_os/task_analyzer.py` produces `TaskSignals` with caching by `task_marker`. Handles partial source failures via `source_errors`.
+**Reality:** Matches. `src/core/thinking_os/task_analyzer.py` produces `TaskSignals` with caching by `task_marker`. Handles partial source failures via `source_errors`.
 
 ### V1 Phase 6 — Role Router
 **V1 says:** preset-lookup → composer-fallback → situational-override.
-**Reality:** Matches. `core/thinking_os/presets/registry.yaml` and `situations/registry.yaml` both ship with their entries. Order in code: `situation_override > preset_match > composer_fallback > hard_fallback` (same as V1 fact sheet).
+**Reality:** Matches. `src/core/thinking_os/presets/registry.yaml` and `situations/registry.yaml` both ship with their entries. Order in code: `situation_override > preset_match > composer_fallback > hard_fallback` (same as V1 fact sheet).
 
 ### V1 Phase 7 — Supervisor Loop
 **V1 says:** states `IDLE → CLASSIFYING → ROUTING → DISPATCHING → AWAITING_AGENT → INTEGRATING → DONE`, with backtracks tracked as transitions not states.
-**Reality:** Implemented in `core/thinking_os/cognition.py` against a pydantic `SupervisorState` from `cognition_schemas.py`. Matches V1.
+**Reality:** Implemented in `src/core/thinking_os/cognition.py` against a pydantic `SupervisorState` from `cognition_schemas.py`. Matches V1.
 
 ### V1 Phase 8 — Anti-Ambiguity
 **V1 says:** 7 criteria (observable, measurable, testable, scoped, owned, reversible, user-value), blocking.
@@ -99,7 +99,7 @@ The `compact|resume` matcher fires 5 of these (skip ensure-hub-up + cleanup-stal
 
 ### V1 Phase 9 — Traceability
 **V1 says:** triggers on phase-boundary and session-end.
-**Reality:** `cos_traceability` MCP tool exists. Trace files at `.coding-os/<agent>/traces/<session_id>.jsonl` written by `core/thinking_os/tracing.py`. Trace replay at `docs/cognition-trace-replay.html`. Matches.
+**Reality:** `cos_traceability` MCP tool exists. Trace files at `.coding-os/<agent>/traces/<session_id>.jsonl` written by `src/core/thinking_os/tracing.py`. Trace replay at `docs/cognition-trace-replay.html`. Matches.
 
 ### V1 Phase 10 — Implement (F5)
 **V1 says:** pre-hooks `enforce-doc-anchor`, `enforce-skill`, `enforce-task-start`, `enforce-template`, `enforce-rename-plan`, `block-*`.
@@ -129,7 +129,7 @@ V1 was drawn before these existed; today's agent will not find them on the chart
 - Without sweep, Codex/Cursor pool MCP children that never close → SQLite WAL contention → auxiliary subprocess timeouts.
 - Reference: [docs/engineering/mcp-fast-path-entry.md](mcp-fast-path-entry.md).
 
-### 4.2 Hook helper layer (`core/hooks/_helpers/`)
+### 4.2 Hook helper layer (`src/core/hooks/_helpers/`)
 - New convention: hot-path Python that used to live inside `python3 - <<HEREDOC` is now in `_helpers/<name>.py`, invoked as a normal subprocess.
 - Required because Homebrew bash 5.3.9 sporadically deadlocks `cmd - <<HEREDOC` in `heredoc_write` before fork — high-frequency hooks (agent-presence) accumulated zombies.
 - Symlink-aware path resolution (readlink-walk at top of `agent-presence.sh`) finds `_helpers/` from the symlinked install dir.
@@ -152,7 +152,7 @@ V1 was drawn before these existed; today's agent will not find them on the chart
 
 ### 4.6 Codex.app GUI hook gap
 - `codex-cli` 0.124 / 0.125 GUI (Codex.app + Antigravity extension's `codex app-server`) **silently ignores `.codex/hooks.json`**. Only the deprecated `notify=[...]` field is consulted, logged as `hook_name=legacy_notify`.
-- Hub presence falls back to scanning `~/.codex/sessions/**/rollout-*.jsonl` for files whose first-line `cwd` matches the project (`_codex_rollout_recent_for` in `core/web/routes/board.py`).
+- Hub presence falls back to scanning `~/.codex/sessions/**/rollout-*.jsonl` for files whose first-line `cwd` matches the project (`_codex_rollout_recent_for` in `src/core/web/routes/board.py`).
 - See **§5 Persona 2** below for the security implication.
 - Reference: [docs/engineering/codex-presence-fallback.md](codex-presence-fallback.md).
 
@@ -160,7 +160,7 @@ V1 was drawn before these existed; today's agent will not find them on the chart
 - Already covered in §4.2. Worth flagging as its own dimension because the discipline (no `python3 - <<HEREDOC`) is now enforced in `block-bad-patterns.sh` and applies to every future hook author.
 
 ### 4.8 Adapter capability filtering
-- `adapters/<agent>/adapter.yaml::hook_capabilities` declares which `{event, matcher}` pairs each runtime can actually fire. The renderer skips registry entries whose pair is missing.
+- `src/adapters/<agent>/adapter.yaml::hook_capabilities` declares which `{event, matcher}` pairs each runtime can actually fire. The renderer skips registry entries whose pair is missing.
 - Today's coverage:
   - **Claude:** 58 of 62 hook-events fire (full)
   - **Cursor:** 59 of 62 hook-events fire
@@ -221,7 +221,7 @@ Codex CLI is a fine path for batch tasks. Not a fine path for code-editing tasks
 | Workflow gates | ❌ none |
 | Hub presence | ✅ shown as `human` (special pseudo-agent in `agent_manifest`) |
 
-**V1 doesn't acknowledge this persona at all.** A human editing `docs/tasks/TASK-NNN.md` directly bypasses `validate-task-frontmatter`, `enforce-wip-limit`, `lint-task`. A human editing `core/hooks/<x>.sh` bypasses `block-bad-patterns`. The Hub doesn't know to flag manual edits.
+**V1 doesn't acknowledge this persona at all.** A human editing `docs/tasks/TASK-NNN.md` directly bypasses `validate-task-frontmatter`, `enforce-wip-limit`, `lint-task`. A human editing `src/core/hooks/<x>.sh` bypasses `block-bad-patterns`. The Hub doesn't know to flag manual edits.
 
 ### Persona 6 — Sub-agent (F-formula spawned via SDK)
 | Aspect | Status |
@@ -231,7 +231,7 @@ Codex CLI is a fine path for batch tasks. Not a fine path for code-editing tasks
 | Hooks fire | ✅ Claude: inherits via `setting_sources=["project"]` · Codex: inherits via `.codex/hooks.json` (CLI fires correctly even when GUI doesn't) |
 | Cost cap | ✅ Claude: `max_budget_usd` per formula frontmatter · Codex: per-formula `model` honored, no native budget cap (use `--config token_limit`) |
 | Risk | ⚠️ recursive MCP boots stack — F1→F2→F3 chain = 3 extra `cos-mcp-start` invocations |
-| Symmetry rule | Rule 22 — both `adapters/claude/sdk_dispatcher.py` and `adapters/codex/sdk_dispatcher.py` ship; the factory loads whichever matches `COS_AGENT`. Cursor has no programmatic SDK upstream → falls back to the `default` DB-only dispatcher. |
+| Symmetry rule | Rule 22 — both `src/adapters/claude/sdk_dispatcher.py` and `src/adapters/codex/sdk_dispatcher.py` ship; the factory loads whichever matches `COS_AGENT`. Cursor has no programmatic SDK upstream → falls back to the `default` DB-only dispatcher. |
 
 ## 6. Critical gaps (ranked by harm × likelihood)
 
@@ -246,12 +246,12 @@ Codex CLI is a fine path for batch tasks. Not a fine path for code-editing tasks
 
 ### P1 — Cursor/Codex dispatcher delegate-list drift  *(SHIPPED)*
 **Symptom:** new hooks added to `registry.yaml` don't reach Cursor/Codex unless someone remembers to also append the script name in `cursor-sessionstart-dispatch.sh` / `codex-sessionstart-dispatch.sh`. We hit this in this session with `cleanup-stale-mcp.sh`.
-**Status:** Closed. `scripts/verify_dispatchers.py` (matcher-aware, hybrid-aware drift detector) added and wired into `make verify-dispatchers` + `make verify`. Initial run revealed 8 missing hooks across the cursor/codex SessionStart + Write|Edit dispatchers; all added, plus 4 double-coverage entries removed (capture-observation, capture-work-log, track-discovery, enforce-rename-plan were registered both inline AND in the dispatcher → fired twice per Edit). All 10 (adapter, event, matcher) cells now report aligned. The user's preference is to keep dispatcher delegate lists hardcoded (not auto-generated), so the detector is the long-term guard.
+**Status:** Closed. `src/scripts/verify_dispatchers.py` (matcher-aware, hybrid-aware drift detector) added and wired into `make verify-dispatchers` + `make verify`. Initial run revealed 8 missing hooks across the cursor/codex SessionStart + Write|Edit dispatchers; all added, plus 4 double-coverage entries removed (capture-observation, capture-work-log, track-discovery, enforce-rename-plan were registered both inline AND in the dispatcher → fired twice per Edit). All 10 (adapter, event, matcher) cells now report aligned. The user's preference is to keep dispatcher delegate lists hardcoded (not auto-generated), so the detector is the long-term guard.
 
 ### P2 — V1 flowchart is structurally outdated
 **Symptom:** new agents reading `docs/agent-workflow-flowchart-V1.html` get a wrong mental model — wrong hook counts, missing MCP entry, missing Hub UI, missing per-persona reality.
 **Mitigation options:**
-- A. **Regenerate as V2** from `registry.yaml` + `roles/` + `situations/` + `presets/` (script: `cli/render_workflow.py`). Living diagram.
+- A. **Regenerate as V2** from `registry.yaml` + `roles/` + `situations/` + `presets/` (script: `src/cli/render_workflow.py`). Living diagram.
 - B. **Mark V1 deprecated** with a banner pointing at this audit + the per-domain engineering docs.
 - C. **Delete V1**; `cos cognition trace` + Hub UI become canonical.
 **Recommendation:** B now (one-line edit), A as an audit-trail follow-up task.
@@ -301,6 +301,6 @@ Sub-agent SDK        ✅           n/a           n/a          n/a       n/a
 - [bash-heredoc-deadlock.md](bash-heredoc-deadlock.md) — the deadlock + safe forms
 - [codex-presence-fallback.md](codex-presence-fallback.md) — Codex GUI gap
 - This audit — for the per-phase / per-persona picture
-- `core/hooks/registry.yaml` — SSOT for hook registration
+- `src/core/hooks/registry.yaml` — SSOT for hook registration
 
 V1 flowchart is **historical**, not current.

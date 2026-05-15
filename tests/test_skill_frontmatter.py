@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SKILL_GLOB = "core/skills/*/SKILL.md"
+SKILL_GLOB = "src/core/skills/*/SKILL.md"
 DESC_LIMIT = 1024
 LISTING_LIMIT = 1536
 FIRST_PERSON_PATTERNS = [
@@ -29,7 +29,7 @@ def _parse_frontmatter(text: str) -> dict[str, object]:
 
 
 def _skill_paths() -> list[Path]:
-    return sorted((REPO_ROOT / "core" / "skills").glob("*/SKILL.md"))
+    return sorted((REPO_ROOT / "src" / "core" / "skills").glob("*/SKILL.md"))
 
 
 @pytest.mark.parametrize("path", _skill_paths(), ids=lambda p: p.parent.name)

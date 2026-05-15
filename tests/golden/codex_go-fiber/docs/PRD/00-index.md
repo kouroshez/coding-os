@@ -39,5 +39,5 @@ Followed by H1, then the four-line opening block (Purpose / Read when / Skip whe
 
 - Each section is the SSOT for its topic. Other docs link here, not the other way around.
 - When implementation deviates from PRD, update PRD first, then code.
-- Open product questions go in `../questions.md`, not inline.
+- Open product questions go in `../_meta/questions.md`, not inline.
 - Decisions with long-term impact go in `../architecture/adr/`, not in PRD.
