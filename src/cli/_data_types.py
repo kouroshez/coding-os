@@ -157,7 +157,7 @@ class McpLaunchConfigPath:
 
 @dataclass(frozen=True)
 class McpLaunchSpec:
-    """Data-driven C15 (MCP launch) metadata from adapter.yaml::mcp_launch."""
+    """Data-driven mcp.actually_launches metadata from adapter.yaml::mcp_launch."""
     loader: str                                         # "claude_json" | "codex_toml"
     config_paths: tuple[McpLaunchConfigPath, ...]
 

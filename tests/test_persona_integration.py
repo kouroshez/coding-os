@@ -137,9 +137,9 @@ class TestPersonaFullStack:
         r = _run_cos("doctor", "-d", str(project))
         # Every check should PASS on a freshly-scaffolded project.
         assert r.returncode == 0, f"doctor FAIL:\n{r.stdout}"
-        assert "C15" in r.stdout and "PASS" in r.stdout
-        assert "C14" in r.stdout and "PASS" in r.stdout
-        assert "C13" in r.stdout and "PASS" in r.stdout
+        assert "mcp.actually_launches" in r.stdout and "PASS" in r.stdout
+        assert "mcp.portable" in r.stdout and "PASS" in r.stdout
+        assert "stack.skills_linked" in r.stdout and "PASS" in r.stdout
 
 
 # ============================================================

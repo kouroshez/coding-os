@@ -114,10 +114,17 @@ SEV_FAIL = "FAIL"
 @dataclass
 class CheckResult:
     id: str
-    name: str
     severity: str
     message: str
     details: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def category(self) -> str:
+        return self.id.split(".", 1)[0] if "." in self.id else self.id
+
+    @property
+    def name(self) -> str:
+        return self.id.split(".", 1)[1] if "." in self.id else ""
 
 
 @dataclass
@@ -148,8 +155,7 @@ def _check_config(project: Path, report: DoctorReport) -> dict[str, Any] | None:
     if not config_path.exists():
         report.checks.append(
             CheckResult(
-                "C1",
-                "config_file",
+                "config.file_present",
                 SEV_FAIL,
                 f"{CONFIG_FILE} not found — run `cos init --agent <claude|codex>`",
                 {"path": str(config_path)},
@@ -161,8 +167,7 @@ def _check_config(project: Path, report: DoctorReport) -> dict[str, Any] | None:
     except yaml.YAMLError as exc:
         report.checks.append(
             CheckResult(
-                "C1",
-                "config_file",
+                "config.file_present",
                 SEV_FAIL,
                 f"{CONFIG_FILE} is not valid YAML: {exc}",
                 {"path": str(config_path)},
@@ -170,7 +175,7 @@ def _check_config(project: Path, report: DoctorReport) -> dict[str, Any] | None:
         )
         return None
     report.checks.append(
-        CheckResult("C1", "config_file", SEV_PASS, "valid", {"keys": sorted(data.keys())})
+        CheckResult("config.file_present", SEV_PASS, "valid", {"keys": sorted(data.keys())})
     )
     report.agent = (data.get("agents") or [None])[0]
     report.templates = list(data.get("templates") or [])
@@ -183,14 +188,14 @@ def _check_state_dir(project: Path, config: dict[str, Any], report: DoctorReport
     if not state.is_dir():
         report.checks.append(
             CheckResult(
-                "C2", "state_dir", SEV_FAIL, "state directory missing",
+                "state.directory_present", SEV_FAIL, "state directory missing",
                 {"path": str(state)},
             )
         )
     else:
         report.checks.append(
             CheckResult(
-                "C2", "state_dir", SEV_PASS, "present",
+                "state.directory_present", SEV_PASS, "present",
                 {"path": str(state)},
             )
         )
@@ -203,7 +208,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     if not db_path.exists():
         report.checks.append(
             CheckResult(
-                "C3", "database_open", SEV_FAIL, "coding-os.db not found",
+                "database.openable", SEV_FAIL, "coding-os.db not found",
                 {"path": str(db_path)},
             )
         )
@@ -213,13 +218,13 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "C3", "database_open", SEV_FAIL, f"cannot open DB: {exc}",
+                "database.openable", SEV_FAIL, f"cannot open DB: {exc}",
                 {"path": str(db_path)},
             )
         )
         return None
     report.checks.append(
-        CheckResult("C3", "database_open", SEV_PASS, "opened", {"path": str(db_path)})
+        CheckResult("database.openable", SEV_PASS, "opened", {"path": str(db_path)})
     )
 
     try:
@@ -229,7 +234,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "C4", "schema_version", SEV_FAIL,
+                "database.schema_current", SEV_FAIL,
                 f"schema_version query failed: {exc}",
             )
         )
@@ -240,7 +245,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     elif version < EXPECTED_SCHEMA_VERSION:
         report.checks.append(
             CheckResult(
-                "C4", "schema_version", SEV_FAIL,
+                "database.schema_current", SEV_FAIL,
                 f"schema version {version} < expected {EXPECTED_SCHEMA_VERSION}",
                 {"actual": version, "expected": EXPECTED_SCHEMA_VERSION},
             )
@@ -248,7 +253,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     elif version > EXPECTED_SCHEMA_VERSION:
         report.checks.append(
             CheckResult(
-                "C4", "schema_version", SEV_WARN,
+                "database.schema_current", SEV_WARN,
                 f"schema version {version} newer than expected {EXPECTED_SCHEMA_VERSION}",
                 {"actual": version, "expected": EXPECTED_SCHEMA_VERSION},
             )
@@ -256,7 +261,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     else:
         report.checks.append(
             CheckResult(
-                "C4", "schema_version", SEV_PASS, f"v{version}",
+                "database.schema_current", SEV_PASS, f"v{version}",
                 {"actual": version},
             )
         )
@@ -266,7 +271,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
         actual = {row[0] for row in cur.fetchall()}
     except sqlite3.Error as exc:
         report.checks.append(
-            CheckResult("C5", "core_tables", SEV_FAIL, f"table list failed: {exc}")
+            CheckResult("database.tables_present", SEV_FAIL, f"table list failed: {exc}")
         )
         return conn
 
@@ -274,7 +279,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     if missing:
         report.checks.append(
             CheckResult(
-                "C5", "core_tables", SEV_FAIL,
+                "database.tables_present", SEV_FAIL,
                 f"missing tables: {', '.join(missing)}",
                 {"missing": missing, "found": sorted(actual)},
             )
@@ -282,7 +287,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     else:
         report.checks.append(
             CheckResult(
-                "C5", "core_tables", SEV_PASS,
+                "database.tables_present", SEV_PASS,
                 f"all {len(EXPECTED_TABLES)} core tables present",
                 {"count": len(actual)},
             )
@@ -301,7 +306,7 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "C6", "scaffold_roots", SEV_FAIL,
+                "scaffold.roots_present", SEV_FAIL,
                 f"missing: {', '.join(missing)}",
                 {"missing": missing},
             )
@@ -309,7 +314,7 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C6", "scaffold_roots", SEV_PASS,
+                "scaffold.roots_present", SEV_PASS,
                 "AGENTS.md, Makefile, docs/ all present",
             )
         )
@@ -328,7 +333,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
     """
     if agent is None:
         report.checks.append(
-            CheckResult("C7", "adapter", SEV_FAIL, "agent not set in config")
+            CheckResult("adapter.configured", SEV_FAIL, "agent not set in config")
         )
         return
 
@@ -339,7 +344,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
     except Exception as exc:  # noqa: BLE001 — registry errors shouldn't crash doctor
         report.checks.append(
             CheckResult(
-                "C7", "adapter", SEV_WARN,
+                "adapter.configured", SEV_WARN,
                 f"could not load adapter registry: {exc}",
             )
         )
@@ -348,14 +353,13 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
     if agent not in adapters:
         report.checks.append(
             CheckResult(
-                "C7", "adapter", SEV_WARN,
+                "adapter.configured", SEV_WARN,
                 f"no adapter manifest for agent '{agent}'",
             )
         )
         return
 
     profile = adapters[agent]
-    check_name = f"{agent}_adapter"
 
     # 1. Validate declared settings file (if any) is parseable JSON.
     if profile.settings_file and profile.supports_settings_json:
@@ -363,7 +367,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if not settings_path.exists():
             report.checks.append(
                 CheckResult(
-                    "C7", check_name, SEV_FAIL,
+                    "adapter.configured", SEV_FAIL,
                     f"{profile.settings_file} not found",
                     {"path": str(settings_path)},
                 )
@@ -374,7 +378,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         except json.JSONDecodeError as exc:
             report.checks.append(
                 CheckResult(
-                    "C7", check_name, SEV_FAIL,
+                    "adapter.configured", SEV_FAIL,
                     f"{profile.settings_file} invalid JSON: {exc}",
                 )
             )
@@ -387,7 +391,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if not hooks_dir.is_dir():
             report.checks.append(
                 CheckResult(
-                    "C7", check_name, SEV_FAIL,
+                    "adapter.configured", SEV_FAIL,
                     f"{profile.hooks_dir} not found",
                 )
             )
@@ -402,7 +406,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if broken_symlinks:
             report.checks.append(
                 CheckResult(
-                    "C7", check_name, SEV_FAIL,
+                    "adapter.configured", SEV_FAIL,
                     f"broken hook symlinks: {', '.join(broken_symlinks[:5])}"
                     + (f" (+{len(broken_symlinks) - 5} more)" if len(broken_symlinks) > 5 else "")
                     + " — run: cos install",
@@ -414,7 +418,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if non_exec:
             report.checks.append(
                 CheckResult(
-                    "C7", check_name, SEV_FAIL,
+                    "adapter.configured", SEV_FAIL,
                     f"hooks not executable: {', '.join(non_exec)}",
                     {"non_executable": non_exec},
                 )
@@ -429,7 +433,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         msg = f"{profile.settings_file or 'manifest'} valid"
     report.checks.append(
         CheckResult(
-            "C7", check_name, SEV_PASS, msg,
+            "adapter.configured", SEV_PASS, msg,
             {"hook_count": hook_count},
         )
     )
@@ -502,7 +506,7 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
     if offenders:
         report.checks.append(
             CheckResult(
-                "C9", "placeholders_resolved", SEV_FAIL,
+                "scaffold.placeholders_resolved", SEV_FAIL,
                 f"{len(offenders)} file(s) contain unresolved placeholders",
                 {"offenders": offenders[:20]},
             )
@@ -510,7 +514,7 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C9", "placeholders_resolved", SEV_PASS,
+                "scaffold.placeholders_resolved", SEV_PASS,
                 "no unresolved placeholders in scaffold files",
             )
         )
@@ -543,7 +547,7 @@ def _check_manifest(
         # validation for arbitrary combinations is out of scope for C8.
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_PASS,
+                "scaffold.manifest_fresh", SEV_PASS,
                 "multi-stack project — manifest diff not applicable",
                 {"agent": report.agent, "templates": report.templates},
             )
@@ -558,7 +562,7 @@ def _check_manifest(
     ).is_dir():
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_PASS,
+                "scaffold.manifest_fresh", SEV_PASS,
                 "meta-repo factory — manifest diff not applicable",
                 {"agent": report.agent, "templates": report.templates},
             )
@@ -567,7 +571,7 @@ def _check_manifest(
     if not manifest_path.exists():
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_WARN,
+                "scaffold.manifest_fresh", SEV_WARN,
                 f"manifest file not found at {manifest_path}",
             )
         )
@@ -577,7 +581,7 @@ def _check_manifest(
     except json.JSONDecodeError as exc:
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_WARN,
+                "scaffold.manifest_fresh", SEV_WARN,
                 f"manifest file invalid JSON: {exc}",
             )
         )
@@ -587,7 +591,7 @@ def _check_manifest(
     if not section:
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_WARN,
+                "scaffold.manifest_fresh", SEV_WARN,
                 f"manifest has no section '{section_id}'",
             )
         )
@@ -611,7 +615,7 @@ def _check_manifest(
     if missing:
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_FAIL,
+                "scaffold.manifest_fresh", SEV_FAIL,
                 f"{len(missing)} expected file(s) missing",
                 {
                     "section": section_id,
@@ -623,7 +627,7 @@ def _check_manifest(
     elif extras:
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_WARN,
+                "scaffold.manifest_fresh", SEV_WARN,
                 f"{len(extras)} extra file(s) not in manifest",
                 {
                     "section": section_id,
@@ -635,7 +639,7 @@ def _check_manifest(
     else:
         report.checks.append(
             CheckResult(
-                "C8", "manifest_diff", SEV_PASS,
+                "scaffold.manifest_fresh", SEV_PASS,
                 f"all {len(expected)} expected files present",
                 {"section": section_id, "count": len(expected)},
             )
@@ -647,7 +651,7 @@ def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
     if not MCP_SERVER_PATH.exists():
         report.checks.append(
             CheckResult(
-                "C10", "mcp_selftest", SEV_WARN,
+                "mcp.self_test_passes", SEV_WARN,
                 "MCP server.py not found in coding-os core",
             )
         )
@@ -666,22 +670,22 @@ def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
         )
     except subprocess.TimeoutExpired:
         report.checks.append(
-            CheckResult("C10", "mcp_selftest", SEV_FAIL, "self-test timed out (30s)")
+            CheckResult("mcp.self_test_passes", SEV_FAIL, "self-test timed out (30s)")
         )
         return
     except OSError as exc:
         report.checks.append(
-            CheckResult("C10", "mcp_selftest", SEV_FAIL, f"cannot run: {exc}")
+            CheckResult("mcp.self_test_passes", SEV_FAIL, f"cannot run: {exc}")
         )
         return
     if proc.returncode == 0:
         report.checks.append(
-            CheckResult("C10", "mcp_selftest", SEV_PASS, "self-test passed")
+            CheckResult("mcp.self_test_passes", SEV_PASS, "self-test passed")
         )
     else:
         report.checks.append(
             CheckResult(
-                "C10", "mcp_selftest", SEV_FAIL,
+                "mcp.self_test_passes", SEV_FAIL,
                 f"self-test exit {proc.returncode}",
                 {"stderr": (proc.stderr or "")[-500:]},
             )
@@ -771,7 +775,7 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     except Exception as exc:  # noqa: BLE001 — doctor must not crash
         report.checks.append(
             CheckResult(
-                "C11", "stack_registry", SEV_WARN,
+                "stack.registry_valid", SEV_WARN,
                 f"could not load stack registry: {exc}",
             )
         )
@@ -781,7 +785,7 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "C11", "stack_registry", SEV_FAIL,
+                "stack.registry_valid", SEV_FAIL,
                 f"stacks in config not found in templates/: {', '.join(missing)}",
                 {"missing": missing},
             )
@@ -789,14 +793,14 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     elif not report.templates:
         report.checks.append(
             CheckResult(
-                "C11", "stack_registry", SEV_PASS,
+                "stack.registry_valid", SEV_PASS,
                 "no stacks installed (base-only project)",
             )
         )
     else:
         report.checks.append(
             CheckResult(
-                "C11", "stack_registry", SEV_PASS,
+                "stack.registry_valid", SEV_PASS,
                 f"all {len(report.templates)} installed stack(s) present in registry",
                 {"installed": report.templates},
             )
@@ -810,7 +814,7 @@ def _check_category_balance(report: DoctorReport) -> None:
     if len(report.templates) < 2:
         report.checks.append(
             CheckResult(
-                "C12", "category_balance", SEV_PASS,
+                "stack.category_balance", SEV_PASS,
                 "single-stack or base-only project",
             )
         )
@@ -822,7 +826,7 @@ def _check_category_balance(report: DoctorReport) -> None:
     except Exception:  # noqa: BLE001
         report.checks.append(
             CheckResult(
-                "C12", "category_balance", SEV_PASS,
+                "stack.category_balance", SEV_PASS,
                 "registry unavailable, skipping",
             )
         )
@@ -841,7 +845,7 @@ def _check_category_balance(report: DoctorReport) -> None:
         )
         report.checks.append(
             CheckResult(
-                "C12", "category_balance", SEV_WARN,
+                "stack.category_balance", SEV_WARN,
                 f"multiple stacks in same category ({details}) — last stack wins on conflicts",
                 {"duplicates": duplicates},
             )
@@ -849,7 +853,7 @@ def _check_category_balance(report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C12", "category_balance", SEV_PASS,
+                "stack.category_balance", SEV_PASS,
                 f"{len(report.templates)} stacks in {len(categories)} distinct categories",
             )
         )
@@ -865,12 +869,12 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     """
     if not report.templates:
         report.checks.append(
-            CheckResult("C13", "stack_skills_linked", SEV_PASS, "no stacks installed")
+            CheckResult("stack.skills_linked", SEV_PASS, "no stacks installed")
         )
         return
     if not report.agent:
         report.checks.append(
-            CheckResult("C13", "stack_skills_linked", SEV_PASS, "no agent configured")
+            CheckResult("stack.skills_linked", SEV_PASS, "no agent configured")
         )
         return
     try:
@@ -879,7 +883,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     except Exception as exc:  # noqa: BLE001
         report.checks.append(
             CheckResult(
-                "C13", "stack_skills_linked", SEV_WARN,
+                "stack.skills_linked", SEV_WARN,
                 f"could not load adapter registry: {exc}",
             )
         )
@@ -888,7 +892,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     if profile is None or not profile.skills_dir:
         report.checks.append(
             CheckResult(
-                "C13", "stack_skills_linked", SEV_PASS,
+                "stack.skills_linked", SEV_PASS,
                 f"adapter '{report.agent}' has no skills_dir — skipped",
             )
         )
@@ -907,7 +911,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     if not expected:
         report.checks.append(
             CheckResult(
-                "C13", "stack_skills_linked", SEV_PASS,
+                "stack.skills_linked", SEV_PASS,
                 "no stack skills to link",
             )
         )
@@ -922,7 +926,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "C13", "stack_skills_linked", SEV_FAIL,
+                "stack.skills_linked", SEV_FAIL,
                 f"missing stack skill links: {', '.join(missing)} "
                 f"— run `cos update` to repair",
                 {"missing": missing},
@@ -931,7 +935,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C13", "stack_skills_linked", SEV_PASS,
+                "stack.skills_linked", SEV_PASS,
                 f"all {len(expected)} stack skill(s) linked",
             )
         )
@@ -948,7 +952,7 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     mcp_path = project / ".mcp.json"
     if not mcp_path.exists():
         report.checks.append(
-            CheckResult("C14", "mcp_portable", SEV_PASS, "no .mcp.json (skip)")
+            CheckResult("mcp.portable", SEV_PASS, "no .mcp.json (skip)")
         )
         return
     try:
@@ -956,14 +960,14 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
         data = _json.loads(mcp_path.read_text(encoding="utf-8"))
     except Exception as exc:  # noqa: BLE001
         report.checks.append(
-            CheckResult("C14", "mcp_portable", SEV_FAIL, f"invalid JSON: {exc}")
+            CheckResult("mcp.portable", SEV_FAIL, f"invalid JSON: {exc}")
         )
         return
     entry = (data.get("mcpServers") or {}).get("coding-os")
     if entry is None:
         report.checks.append(
             CheckResult(
-                "C14", "mcp_portable", SEV_PASS,
+                "mcp.portable", SEV_PASS,
                 "no coding-os MCP entry (skip)",
             )
         )
@@ -972,7 +976,7 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     if command == "cos":
         report.checks.append(
             CheckResult(
-                "C14", "mcp_portable", SEV_PASS,
+                "mcp.portable", SEV_PASS,
                 "uses `cos server-start` wrapper (portable)",
             )
         )
@@ -984,7 +988,7 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     if has_abs_cos_path:
         report.checks.append(
             CheckResult(
-                "C14", "mcp_portable", SEV_WARN,
+                "mcp.portable", SEV_WARN,
                 "hardcoded absolute path — runs fine locally but won't "
                 "survive coding-os relocation. Install `cos` on PATH and "
                 "re-run the adapter install to switch to the wrapper.",
@@ -993,7 +997,7 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C14", "mcp_portable", SEV_PASS,
+                "mcp.portable", SEV_PASS,
                 f"unknown command form '{command}' — assumed portable",
             )
         )
@@ -1099,7 +1103,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     )
     if load_error:
         report.checks.append(
-            CheckResult("C15", "mcp_actually_launches", SEV_FAIL, load_error)
+            CheckResult("mcp.actually_launches", SEV_FAIL, load_error)
         )
         return
     if source_path is None:
@@ -1124,7 +1128,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
             )
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_FAIL,
+                "mcp.actually_launches", SEV_FAIL,
                 "coding-os MCP config missing — neither .mcp.json nor "
                 ".codex/config.toml defines coding-os. " + repair,
             )
@@ -1133,7 +1137,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if command is None:
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_PASS,
+                "mcp.actually_launches", SEV_PASS,
                 f"no coding-os MCP entry in {source_path} (skip)",
             )
         )
@@ -1151,7 +1155,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if not command:
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_FAIL,
+                "mcp.actually_launches", SEV_FAIL,
                 f"no command specified in {source_path}",
             )
         )
@@ -1171,7 +1175,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     except FileNotFoundError:
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_FAIL,
+                "mcp.actually_launches", SEV_FAIL,
                 f"command not found on PATH: {command!r}. "
                 f"Install via `uv tool install --editable <coding-os>`.",
             )
@@ -1180,7 +1184,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     except subprocess.TimeoutExpired:
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_PASS,
+                "mcp.actually_launches", SEV_PASS,
                 "launched (exceeded 20s → server is running, no crash)",
             )
         )
@@ -1188,7 +1192,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     except OSError as exc:
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_FAIL,
+                "mcp.actually_launches", SEV_FAIL,
                 f"OS error launching: {exc}",
             )
         )
@@ -1198,7 +1202,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if '"jsonrpc"' in (proc.stdout or "") and '"result"' in (proc.stdout or ""):
         report.checks.append(
             CheckResult(
-                "C15", "mcp_actually_launches", SEV_PASS,
+                "mcp.actually_launches", SEV_PASS,
                 "initialize handshake succeeded (server ready)",
             )
         )
@@ -1223,7 +1227,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
 
     report.checks.append(
         CheckResult(
-            "C15", "mcp_actually_launches", SEV_FAIL, msg,
+            "mcp.actually_launches", SEV_FAIL, msg,
             {"stderr_tail": (proc.stderr or "")[-500:]},
         )
     )
@@ -1241,14 +1245,14 @@ def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
     if agents_md.exists():
         report.checks.append(
             CheckResult(
-                "C16", "agents_md_present", SEV_PASS, "present",
+                "docs.agents_md_present", SEV_PASS, "present",
                 {"path": str(agents_md.relative_to(project))},
             )
         )
         return
     report.checks.append(
         CheckResult(
-            "C16", "agents_md_present", SEV_FAIL,
+            "docs.agents_md_present", SEV_FAIL,
             "missing — run 'cos update' or 'cos add-adapter <agent>' to backfill",
             {"expected": "AGENTS.md"},
         )
@@ -1267,7 +1271,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
 
     thinking_os = project / "src" / "core" / "thinking_os"
     if not thinking_os.is_dir():
-        report.checks.append(CheckResult("C28", "cognition_registries", SEV_PASS, "no thinking_os/ (skip)"))
+        report.checks.append(CheckResult("cognition.registries_present", SEV_PASS, "no thinking_os/ (skip)"))
         return
 
     issues: list[str] = []
@@ -1353,16 +1357,16 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
 
     if issues:
         report.checks.append(CheckResult(
-            "C28", "cognition_registries", SEV_FAIL, "; ".join(issues), {"issues": issues, "warnings": warnings},
+            "cognition.registries_present", SEV_FAIL, "; ".join(issues), {"issues": issues, "warnings": warnings},
         ))
     elif warnings:
         report.checks.append(CheckResult(
-            "C28", "cognition_registries", SEV_WARN,
+            "cognition.registries_present", SEV_WARN,
             f"Phase N OK (11 roles, 12+ presets, 6 situations, 11 agents); {'; '.join(warnings)}",
         ))
     else:
         report.checks.append(CheckResult(
-            "C28", "cognition_registries", SEV_PASS,
+            "cognition.registries_present", SEV_PASS,
             "Phase N: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
         ))
 
@@ -1379,7 +1383,7 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
 
     if not registry_path.exists() or not hooks_dir.is_dir():
         report.checks.append(CheckResult(
-            "C29", "hook_coverage", SEV_PASS, "no registry.yaml (skip)",
+            "hook.coverage", SEV_PASS, "no registry.yaml (skip)",
         ))
         return
 
@@ -1388,14 +1392,14 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
         registry = _yaml.safe_load(registry_path.read_text()) or {}
     except Exception as exc:  # noqa: BLE001 — broken YAML reported as FAIL
         report.checks.append(CheckResult(
-            "C29", "hook_coverage", SEV_FAIL, f"registry.yaml invalid YAML: {exc}",
+            "hook.coverage", SEV_FAIL, f"registry.yaml invalid YAML: {exc}",
         ))
         return
 
     hooks = registry.get("hooks", []) if isinstance(registry, dict) else []
     if not isinstance(hooks, list) or not hooks:
         report.checks.append(CheckResult(
-            "C29", "hook_coverage", SEV_FAIL, "registry.yaml has no hooks list",
+            "hook.coverage", SEV_FAIL, "registry.yaml has no hooks list",
         ))
         return
 
@@ -1509,21 +1513,21 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
 
     if missing_scripts:
         report.checks.append(CheckResult(
-            "C29", "hook_coverage", SEV_FAIL,
+            "hook.coverage", SEV_FAIL,
             f"{len(missing_scripts)} hook(s) missing script: " + "; ".join(missing_scripts[:5]),
             detail,
         ))
         return
     if non_executable:
         report.checks.append(CheckResult(
-            "C29", "hook_coverage", SEV_WARN,
+            "hook.coverage", SEV_WARN,
             f"{len(non_executable)} script(s) not executable: " + "; ".join(non_executable[:5]),
             detail,
         ))
         return
     if orphan_pairs and adapter_caps:
         report.checks.append(CheckResult(
-            "C29", "hook_coverage", SEV_WARN,
+            "hook.coverage", SEV_WARN,
             f"{len(orphan_pairs)} event/matcher pair(s) renderable for ZERO adapter — "
             f"may be intentional (e.g. SubagentStart Codex-incompatible). First: "
             + "; ".join(orphan_pairs[:5]),
@@ -1531,7 +1535,7 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
         ))
         return
     report.checks.append(CheckResult(
-        "C29", "hook_coverage", SEV_PASS,
+        "hook.coverage", SEV_PASS,
         f"{total_hooks} hooks · {total_pairs} pairs · {len(adapter_caps)} adapter(s) scanned — all renderable",
         detail,
     ))
@@ -1548,7 +1552,7 @@ def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
     sessions_root = project / ".coding-os"
     if not sessions_root.is_dir():
         report.checks.append(CheckResult(
-            "C31", "presence_zombies", SEV_PASS, "no .coding-os/ (skip)",
+            "presence.no_zombies", SEV_PASS, "no .coding-os/ (skip)",
         ))
         return
 
@@ -1607,21 +1611,21 @@ def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
     total_zombies = sum(zombies.values())
     if total_zombies == 0:
         report.checks.append(CheckResult(
-            "C31", "presence_zombies", SEV_PASS,
+            "presence.no_zombies", SEV_PASS,
             f"0 zombies across {total_files} session file(s)",
             detail,
         ))
         return
     if total_zombies > 20:
         report.checks.append(CheckResult(
-            "C31", "presence_zombies", SEV_WARN,
+            "presence.no_zombies", SEV_WARN,
             f"{total_zombies} zombie session file(s) — run `cos hooks-list` "
             "or trigger any agent tool call to fire presence_gc.py",
             detail,
         ))
         return
     report.checks.append(CheckResult(
-        "C31", "presence_zombies", SEV_PASS,
+        "presence.no_zombies", SEV_PASS,
         f"{total_zombies} zombie file(s) (<20 threshold) — GC will reap on next tick",
         detail,
     ))
@@ -1640,7 +1644,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
     if is_macos:
         if not plist_dest.exists():
             report.checks.append(CheckResult(
-                "C30", "scheduled_cron", SEV_WARN,
+                "scheduled.cron_configured", SEV_WARN,
                 "nightly cron not installed — run `cos cron install`",
                 {"plist": str(plist_dest)},
             ))
@@ -1652,7 +1656,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
             )
             if r.returncode != 0:
                 report.checks.append(CheckResult(
-                    "C30", "scheduled_cron", SEV_WARN,
+                    "scheduled.cron_configured", SEV_WARN,
                     "plist present but not loaded — run `cos cron install`",
                     {"plist": str(plist_dest)},
                 ))
@@ -1664,7 +1668,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
     if not last_run_path.exists():
         prefix = "plist installed + loaded" if (is_macos and plist_ok) else "cron configured"
         report.checks.append(CheckResult(
-            "C30", "scheduled_cron", SEV_PASS,
+            "scheduled.cron_configured", SEV_PASS,
             f"{prefix}, no run yet — run `cos cron run` to test",
         ))
         return
@@ -1673,7 +1677,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
         data = json.loads(last_run_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
         report.checks.append(CheckResult(
-            "C30", "scheduled_cron", SEV_WARN,
+            "scheduled.cron_configured", SEV_WARN,
             f"cannot read last_run.json: {exc}",
             {"path": str(last_run_path)},
         ))
@@ -1682,7 +1686,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
     disabled = data.get("disabled_reason")
     if disabled:
         report.checks.append(CheckResult(
-            "C30", "scheduled_cron", SEV_FAIL,
+            "scheduled.cron_configured", SEV_FAIL,
             f"auto-disabled: {disabled} — run `cos cron run --reset-failures`",
             {"disabled_reason": disabled, "last_error": data.get("last_error")},
         ))
@@ -1691,7 +1695,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
     failures = int(data.get("consecutive_failures") or 0)
     if failures >= 3:
         report.checks.append(CheckResult(
-            "C30", "scheduled_cron", SEV_FAIL,
+            "scheduled.cron_configured", SEV_FAIL,
             f"{failures} consecutive failures — run `cos cron run --reset-failures`",
             {"consecutive_failures": failures, "last_error": data.get("last_error")},
         ))
@@ -1707,7 +1711,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
             age_days = (now - run_dt).total_seconds() / 86400
             if age_days > 2:
                 report.checks.append(CheckResult(
-                    "C30", "scheduled_cron", SEV_WARN,
+                    "scheduled.cron_configured", SEV_WARN,
                     f"last run {age_days:.1f}d ago — is launchd running?",
                     {"run_at": run_at, "age_days": round(age_days, 1)},
                 ))
@@ -1723,7 +1727,7 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
     if run_at:
         parts.append(f"last={run_at[:10]}")
     report.checks.append(CheckResult(
-        "C30", "scheduled_cron", SEV_PASS,
+        "scheduled.cron_configured", SEV_PASS,
         ", ".join(parts) if parts else "healthy",
         {"consecutive_failures": failures, "run_at": run_at or None},
     ))
@@ -1736,9 +1740,16 @@ def _format_text(report: DoctorReport, *, strict: bool) -> str:
         + "=" * 60
     )
     lines = [header]
-    for c in report.checks:
+    ordered_checks = sorted(report.checks, key=lambda c: (c.category, c.name))
+    current_category: str | None = None
+    for c in ordered_checks:
+        if c.category != current_category:
+            current_category = c.category
+            lines.append("")
+            lines.append(f"── {c.category} ──")
         badge = {"PASS": "✅", "WARN": "⚠️ ", "FAIL": "❌"}[c.severity]
-        lines.append(f"{badge} {c.id} {c.name:24s} {c.message}")
+        lines.append(f"  {badge} {c.id:42s} {c.message}")
+    lines.append("")
     s = report.summary()
     lines.append("-" * 60)
     exit_code = report.exit_code(strict=strict)
@@ -1755,7 +1766,10 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
         "project_dir": report.project_dir,
         "agent": report.agent,
         "templates": report.templates,
-        "checks": [asdict(c) for c in report.checks],
+        "checks": [
+            {**asdict(c), "category": c.category, "name": c.name}
+            for c in report.checks
+        ],
         "summary": {**report.summary(), "exit_code": report.exit_code(strict=strict)},
     }
     return json.dumps(payload, indent=2)

@@ -549,7 +549,7 @@ class TestDoctorC15Regression:
         from cli.doctor import _check_mcp_actually_launches, DoctorReport
         report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
         _check_mcp_actually_launches(project, report)
-        return next((c for c in report.checks if c.id == "C15"), None)
+        return next((c for c in report.checks if c.id == "mcp.actually_launches"), None)
 
     def test_missing_mcp_json_is_fail(self, tmp_path: Path) -> None:
         project = self._make_project(tmp_path, None)
@@ -612,7 +612,7 @@ class TestDoctorC15Regression:
 
         report = DoctorReport(project_dir=str(project), agent="codex", templates=[])
         _check_mcp_actually_launches(project, report)
-        check = next((c for c in report.checks if c.id == "C15"), None)
+        check = next((c for c in report.checks if c.id == "mcp.actually_launches"), None)
         assert check is not None
         assert check.severity == "FAIL"
         assert "no command specified" in check.message

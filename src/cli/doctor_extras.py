@@ -57,7 +57,7 @@ def _check_optional_extras_installed(project: Path, report: DoctorReport) -> Non
         fix_cmd = "uv tool install --editable . --all-extras" if _in_tool else "uv sync --all-extras"
         report.checks.append(
             CheckResult(
-                "C32", "optional_extras_installed", SEV_WARN,
+                "runtime.optional_extras_installed", SEV_WARN,
                 f"{len(missing)} optional extra(s) not installed — features unavailable",
                 {"missing": missing, "fix": fix_cmd},
             )
@@ -65,7 +65,7 @@ def _check_optional_extras_installed(project: Path, report: DoctorReport) -> Non
     else:
         report.checks.append(
             CheckResult(
-                "C32", "optional_extras_installed", SEV_PASS,
+                "runtime.optional_extras_installed", SEV_PASS,
                 f"all {len(OPTIONAL_EXTRA_IMPORTS)} optional extras importable",
             )
         )
@@ -83,20 +83,20 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
     config_path = project / ".coding-os.yaml"
     if not config_path.exists():
         report.checks.append(
-            CheckResult("C33", "all_installed_adapters_healthy", SEV_WARN,
+            CheckResult("adapter.all_installed_healthy", SEV_WARN,
                         "no .coding-os.yaml — adapter list unknown"))
         return
     try:
         config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
         report.checks.append(
-            CheckResult("C33", "all_installed_adapters_healthy", SEV_FAIL,
+            CheckResult("adapter.all_installed_healthy", SEV_FAIL,
                         f"config parse error: {exc}"))
         return
     agents = config.get("agents") or []
     if not agents:
         report.checks.append(
-            CheckResult("C33", "all_installed_adapters_healthy", SEV_PASS,
+            CheckResult("adapter.all_installed_healthy", SEV_PASS,
                         "no adapters installed"))
         return
 
@@ -136,7 +136,7 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
     if unhealthy:
         report.checks.append(
             CheckResult(
-                "C33", "all_installed_adapters_healthy", SEV_FAIL,
+                "adapter.all_installed_healthy", SEV_FAIL,
                 f"{len(unhealthy)}/{len(agents)} adapter(s) unhealthy",
                 {"unhealthy": unhealthy, "fix": "cos sync-doctor --repair"},
             )
@@ -144,7 +144,7 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
     else:
         report.checks.append(
             CheckResult(
-                "C33", "all_installed_adapters_healthy", SEV_PASS,
+                "adapter.all_installed_healthy", SEV_PASS,
                 f"all {healthy_count} adapter(s) healthy",
                 {"agents": list(agents)},
             )
@@ -167,7 +167,7 @@ def _check_hub_http_responds(project: Path, report: DoctorReport) -> None:
     except urllib.error.URLError as exc:
         report.checks.append(
             CheckResult(
-                "C34", "hub_http_responds", SEV_PASS,
+                "hub.http_responsive", SEV_PASS,
                 f"hub not running (skip): {exc.reason if hasattr(exc, 'reason') else exc}",
             )
         )
@@ -175,7 +175,7 @@ def _check_hub_http_responds(project: Path, report: DoctorReport) -> None:
     except (OSError, ValueError) as exc:
         report.checks.append(
             CheckResult(
-                "C34", "hub_http_responds", SEV_PASS,
+                "hub.http_responsive", SEV_PASS,
                 f"hub not reachable (skip): {exc}",
             )
         )
@@ -183,11 +183,11 @@ def _check_hub_http_responds(project: Path, report: DoctorReport) -> None:
 
     if status_code == 200:
         report.checks.append(
-            CheckResult("C34", "hub_http_responds", SEV_PASS,
+            CheckResult("hub.http_responsive", SEV_PASS,
                         f"GET {HUB_DEFAULT_URL} returned 200"))
     else:
         report.checks.append(
-            CheckResult("C34", "hub_http_responds", SEV_FAIL,
+            CheckResult("hub.http_responsive", SEV_FAIL,
                         f"GET {HUB_DEFAULT_URL} returned {status_code} (expected 200)",
                         {"fix": "cos hub stop && cos hub start"}))
 
@@ -224,14 +224,14 @@ def _check_markdown_link_integrity(project: Path, report: DoctorReport) -> None:
     if broken_links:
         report.checks.append(
             CheckResult(
-                "C35", "markdown_link_integrity", SEV_FAIL,
+                "docs.markdown_link_integrity", SEV_FAIL,
                 f"{len(broken_links)} broken markdown link(s) in AGENTS.md/README.md",
                 {"broken": broken_links[:10], "checked": checked_count},
             )
         )
     else:
         report.checks.append(
-            CheckResult("C35", "markdown_link_integrity", SEV_PASS,
+            CheckResult("docs.markdown_link_integrity", SEV_PASS,
                         f"all {checked_count} markdown link(s) resolve"))
 
 
@@ -261,7 +261,7 @@ def _check_graph_uid_consistency(project: Path, report: DoctorReport) -> None:
     db_path = project / ".coding-os" / "coding-os.db"
     if not db_path.exists():
         report.checks.append(
-            CheckResult("C36", "graph_uid_consistency", SEV_PASS,
+            CheckResult("graph.uid_consistency", SEV_PASS,
                         "no DB (skip)"))
         return
     try:
@@ -270,7 +270,7 @@ def _check_graph_uid_consistency(project: Path, report: DoctorReport) -> None:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='graph_nodes'")
             if cursor.fetchone() is None:
                 report.checks.append(
-                    CheckResult("C36", "graph_uid_consistency", SEV_PASS,
+                    CheckResult("graph.uid_consistency", SEV_PASS,
                                 "graph_nodes table absent (skip)"))
                 return
             stale_count = 0
@@ -282,21 +282,21 @@ def _check_graph_uid_consistency(project: Path, report: DoctorReport) -> None:
                 stale_count += cursor.fetchone()[0]
     except sqlite3.Error as exc:
         report.checks.append(
-            CheckResult("C36", "graph_uid_consistency", SEV_WARN,
+            CheckResult("graph.uid_consistency", SEV_WARN,
                         f"DB query failed: {exc}"))
         return
 
     if stale_count > 0:
         report.checks.append(
             CheckResult(
-                "C36", "graph_uid_consistency", SEV_FAIL,
+                "graph.uid_consistency", SEV_FAIL,
                 f"{stale_count} graph node(s) with legacy pre-src-migration prefix",
                 {"fix": "cos graph-reindex --force then `cos doctor` again"},
             )
         )
     else:
         report.checks.append(
-            CheckResult("C36", "graph_uid_consistency", SEV_PASS,
+            CheckResult("graph.uid_consistency", SEV_PASS,
                         "no stale legacy-prefix UIDs"))
 
 
@@ -345,14 +345,14 @@ def _check_regen_artifact_freshness(project: Path, report: DoctorReport) -> None
     if stale_artifacts:
         report.checks.append(
             CheckResult(
-                "C37", "regen_artifact_freshness", SEV_WARN,
+                "scaffold.regen_artifacts_fresh", SEV_WARN,
                 f"{len(stale_artifacts)} derived artifact(s) older than source",
                 {"stale": stale_artifacts},
             )
         )
     else:
         report.checks.append(
-            CheckResult("C37", "regen_artifact_freshness", SEV_PASS,
+            CheckResult("scaffold.regen_artifacts_fresh", SEV_PASS,
                         "all derived artifacts fresh"))
 
 
@@ -387,12 +387,12 @@ def _check_board_config_yamls_valid(project: Path, report: DoctorReport) -> None
 
     if parse_errors:
         report.checks.append(
-            CheckResult("C38", "board_config_yamls_valid", SEV_FAIL,
+            CheckResult("board.config_yamls_valid", SEV_FAIL,
                         f"{len(parse_errors)} board config(s) failed to parse",
                         {"errors": parse_errors}))
     else:
         report.checks.append(
-            CheckResult("C38", "board_config_yamls_valid", SEV_PASS,
+            CheckResult("board.config_yamls_valid", SEV_PASS,
                         f"all {parsed_count} board config(s) parse cleanly"))
 
 
@@ -408,14 +408,14 @@ def _check_registered_project_paths_exist(project: Path, report: DoctorReport) -
     registry_path = Path.home() / ".coding-os" / "registry.json"
     if not registry_path.exists():
         report.checks.append(
-            CheckResult("C39", "registered_project_paths_exist", SEV_PASS,
+            CheckResult("hub.project_paths_exist", SEV_PASS,
                         "no hub registry yet (skip)"))
         return
     try:
         registry_data = json.loads(registry_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
         report.checks.append(
-            CheckResult("C39", "registered_project_paths_exist", SEV_FAIL,
+            CheckResult("hub.project_paths_exist", SEV_FAIL,
                         f"registry.json unreadable: {exc}"))
         return
 
@@ -432,7 +432,7 @@ def _check_registered_project_paths_exist(project: Path, report: DoctorReport) -
     if missing_paths:
         report.checks.append(
             CheckResult(
-                "C39", "registered_project_paths_exist", SEV_WARN,
+                "hub.project_paths_exist", SEV_WARN,
                 f"{len(missing_paths)} registered project path(s) missing on disk",
                 {"missing": missing_paths},
             )
@@ -440,7 +440,7 @@ def _check_registered_project_paths_exist(project: Path, report: DoctorReport) -
     else:
         report.checks.append(
             CheckResult(
-                "C39", "registered_project_paths_exist", SEV_PASS,
+                "hub.project_paths_exist", SEV_PASS,
                 f"all {len(registered_projects)} registered project path(s) exist",
             )
         )
@@ -486,7 +486,7 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
     if findings:
         report.checks.append(
             CheckResult(
-                "C40", "runtime_state_within_budget", SEV_WARN,
+                "state.size_within_budget", SEV_WARN,
                 f"{len(findings)} runtime file(s) exceed budget",
                 {"findings": findings},
             )
@@ -494,7 +494,7 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
     else:
         report.checks.append(
             CheckResult(
-                "C40", "runtime_state_within_budget", SEV_PASS,
+                "state.size_within_budget", SEV_PASS,
                 "runtime DB + WAL within budget",
             )
         )
@@ -526,7 +526,7 @@ def _check_dispatcher_modules_importable(_project: Path, report: DoctorReport) -
     if import_failures:
         report.checks.append(
             CheckResult(
-                "C41", "dispatcher_modules_importable", SEV_FAIL,
+                "mcp.dispatcher_modules_importable", SEV_FAIL,
                 f"{len(import_failures)} dispatcher module(s) failed to import",
                 {"failures": import_failures},
             )
@@ -534,7 +534,7 @@ def _check_dispatcher_modules_importable(_project: Path, report: DoctorReport) -
     else:
         report.checks.append(
             CheckResult(
-                "C41", "dispatcher_modules_importable", SEV_PASS,
+                "mcp.dispatcher_modules_importable", SEV_PASS,
                 f"all {len(COGNITION_DISPATCHER_MODULES)} dispatcher modules importable",
             )
         )
@@ -582,7 +582,7 @@ def _check_mcp_envelope_contract_sample(_project: Path, report: DoctorReport) ->
     if contract_failures:
         report.checks.append(
             CheckResult(
-                "C42", "mcp_envelope_contract_sample", SEV_FAIL,
+                "mcp.envelope_contract_sample", SEV_FAIL,
                 f"{len(contract_failures)} envelope contract violation(s)",
                 {"failures": contract_failures},
             )
@@ -590,7 +590,7 @@ def _check_mcp_envelope_contract_sample(_project: Path, report: DoctorReport) ->
     else:
         report.checks.append(
             CheckResult(
-                "C42", "mcp_envelope_contract_sample", SEV_PASS,
+                "mcp.envelope_contract_sample", SEV_PASS,
                 f"sampled {sampled} tool module(s); envelope helpers exposed",
             )
         )
@@ -612,7 +612,7 @@ def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:
     if cos_binary_path is None:
         report.checks.append(
             CheckResult(
-                "C43", "cli_binary_health", SEV_WARN,
+                "runtime.cli_binary_health", SEV_WARN,
                 "no `cos` binary on PATH (consider `uv tool install --editable .`)",
             )
         )
@@ -629,7 +629,7 @@ def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:
     except (OSError, subprocess.TimeoutExpired) as exc:
         report.checks.append(
             CheckResult(
-                "C43", "cli_binary_health", SEV_FAIL,
+                "runtime.cli_binary_health", SEV_FAIL,
                 f"`cos --version` failed: {exc}",
                 {"binary": cos_binary_path,
                  "fix": "uv tool install --editable . --force"},
@@ -640,7 +640,7 @@ def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:
     if completed_process.returncode != 0 or "ModuleNotFoundError" in (completed_process.stderr or ""):
         report.checks.append(
             CheckResult(
-                "C43", "cli_binary_health", SEV_FAIL,
+                "runtime.cli_binary_health", SEV_FAIL,
                 "`cos` binary fails to import its package (stale shim)",
                 {"binary": cos_binary_path,
                  "stderr_tail": (completed_process.stderr or "")[-300:],
@@ -650,7 +650,7 @@ def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C43", "cli_binary_health", SEV_PASS,
+                "runtime.cli_binary_health", SEV_PASS,
                 f"`cos --version` works ({completed_process.stdout.strip()})",
                 {"binary": cos_binary_path},
             )
@@ -674,7 +674,7 @@ def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) ->
     if not templates_dir.is_dir():
         report.checks.append(
             CheckResult(
-                "C44", "scaffold_boundary_yamls_valid", SEV_PASS,
+                "scaffold.boundary_yamls_valid", SEV_PASS,
                 "no templates/ dir (skip)",
             )
         )
@@ -709,7 +709,7 @@ def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) ->
     if boundary_problems:
         report.checks.append(
             CheckResult(
-                "C44", "scaffold_boundary_yamls_valid", SEV_FAIL,
+                "scaffold.boundary_yamls_valid", SEV_FAIL,
                 f"{len(boundary_problems)} boundary problem(s) across {boundary_count} stack(s)",
                 {"problems": boundary_problems},
             )
@@ -717,7 +717,7 @@ def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) ->
     else:
         report.checks.append(
             CheckResult(
-                "C44", "scaffold_boundary_yamls_valid", SEV_PASS,
+                "scaffold.boundary_yamls_valid", SEV_PASS,
                 f"all {boundary_count} scaffold-boundary.yaml valid",
             )
         )
@@ -737,7 +737,7 @@ def _check_agent_identity_file(project: Path, report: DoctorReport) -> None:
     if not agent_file.exists():
         report.checks.append(
             CheckResult(
-                "C45", "agent_identity_file", SEV_WARN,
+                "adapter.identity_file_present", SEV_WARN,
                 ".coding-os/.agent missing — run: cos install",
             )
         )
@@ -746,14 +746,14 @@ def _check_agent_identity_file(project: Path, report: DoctorReport) -> None:
     if not agent_name:
         report.checks.append(
             CheckResult(
-                "C45", "agent_identity_file", SEV_WARN,
+                "adapter.identity_file_present", SEV_WARN,
                 ".coding-os/.agent empty — run: cos install",
             )
         )
         return
     report.checks.append(
         CheckResult(
-            "C45", "agent_identity_file", SEV_PASS,
+            "adapter.identity_file_present", SEV_PASS,
             f"agent identity: {agent_name}",
             {"agent": agent_name},
         )
@@ -773,14 +773,14 @@ def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> 
     agent_file = project / ".coding-os" / ".agent"
     if not agent_file.exists():
         report.checks.append(
-            CheckResult("C46", "adapter_dir_symlinks_healthy", SEV_PASS, "no .agent (skip)")
+            CheckResult("adapter.symlinks_healthy", SEV_PASS, "no .agent (skip)")
         )
         return
     agent_name = agent_file.read_text(encoding="utf-8").strip()
     agent_dir = project / f".{agent_name}"
     if not agent_dir.is_dir():
         report.checks.append(
-            CheckResult("C46", "adapter_dir_symlinks_healthy", SEV_PASS, f".{agent_name}/ missing (skip)")
+            CheckResult("adapter.symlinks_healthy", SEV_PASS, f".{agent_name}/ missing (skip)")
         )
         return
 
@@ -802,7 +802,7 @@ def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> 
     if broken:
         report.checks.append(
             CheckResult(
-                "C46", "adapter_dir_symlinks_healthy", SEV_WARN,
+                "adapter.symlinks_healthy", SEV_WARN,
                 f"{len(broken)} broken symlink(s) in adapter dirs — run: cos install",
                 {"broken": broken[:10]},
             )
@@ -810,7 +810,7 @@ def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> 
     else:
         report.checks.append(
             CheckResult(
-                "C46", "adapter_dir_symlinks_healthy", SEV_PASS,
+                "adapter.symlinks_healthy", SEV_PASS,
                 f".{agent_name}/rules · commands · skills — all symlinks healthy",
             )
         )
@@ -830,7 +830,7 @@ def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -
     registry_path = Path.home() / ".coding-os" / "registry.json"
     if not registry_path.exists():
         report.checks.append(
-            CheckResult("C47", "consumer_project_hook_symlinks", SEV_PASS, "no hub registry (skip)")
+            CheckResult("hub.consumer_hook_symlinks_healthy", SEV_PASS, "no hub registry (skip)")
         )
         return
 
@@ -839,7 +839,7 @@ def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -
     except (json.JSONDecodeError, OSError) as exc:
         report.checks.append(
             CheckResult(
-                "C47", "consumer_project_hook_symlinks", SEV_WARN,
+                "hub.consumer_hook_symlinks_healthy", SEV_WARN,
                 f"registry.json unreadable: {exc}",
             )
         )
@@ -877,7 +877,7 @@ def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -
         )
         report.checks.append(
             CheckResult(
-                "C47", "consumer_project_hook_symlinks", SEV_WARN,
+                "hub.consumer_hook_symlinks_healthy", SEV_WARN,
                 f"broken hook symlinks in {len(broken_by_slug)} project(s): {summary}"
                 " — run: cos sync-doctor --repair",
                 {"broken_by_slug": {k: v[:5] for k, v in broken_by_slug.items()}},
@@ -886,7 +886,7 @@ def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -
     else:
         report.checks.append(
             CheckResult(
-                "C47", "consumer_project_hook_symlinks", SEV_PASS,
+                "hub.consumer_hook_symlinks_healthy", SEV_PASS,
                 f"all {len(consumer_projects)} consumer project(s) hook symlinks healthy",
             )
         )
@@ -907,7 +907,7 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
     hooks_dir = project / "src" / "core" / "hooks"
     if not registry_path.exists() or not hooks_dir.is_dir():
         report.checks.append(
-            CheckResult("C48", "hooks_source_cos_env", SEV_PASS, "no hooks registry (skip)")
+            CheckResult("hook.cos_env_sourced", SEV_PASS, "no hooks registry (skip)")
         )
         return
 
@@ -915,7 +915,7 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
         registry = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
         report.checks.append(
-            CheckResult("C48", "hooks_source_cos_env", SEV_WARN, f"registry.yaml unreadable: {exc}")
+            CheckResult("hook.cos_env_sourced", SEV_WARN, f"registry.yaml unreadable: {exc}")
         )
         return
 
@@ -937,7 +937,7 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
     if violations:
         report.checks.append(
             CheckResult(
-                "C48", "hooks_source_cos_env", SEV_WARN,
+                "hook.cos_env_sourced", SEV_WARN,
                 f"{len(violations)} hook(s) missing `source cos-env.sh` (Rule 3): "
                 + ", ".join(violations[:5])
                 + (f" (+{len(violations) - 5} more)" if len(violations) > 5 else ""),
@@ -947,7 +947,7 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "C48", "hooks_source_cos_env", SEV_PASS,
+                "hook.cos_env_sourced", SEV_PASS,
                 "all registered hook scripts source cos-env.sh (Rule 3 compliant)",
             )
         )

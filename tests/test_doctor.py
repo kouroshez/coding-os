@@ -56,15 +56,15 @@ def _severity_map(report: DoctorReport) -> dict[str, str]:
 def test_doctor_missing_config_fails(tmp_path: Path) -> None:
     report = run_doctor(tmp_path)
     sevs = _severity_map(report)
-    assert sevs["C1"] == SEV_FAIL
+    assert sevs["config.file_present"] == SEV_FAIL
     # Fatal: downstream checks should not run
-    assert "C2" not in sevs
+    assert "state.directory_present" not in sevs
 
 
 def test_doctor_invalid_yaml_fails(tmp_path: Path) -> None:
     (tmp_path / ".coding-os.yaml").write_text("::: not yaml ::: [")
     report = run_doctor(tmp_path)
-    assert _severity_map(report)["C1"] == SEV_FAIL
+    assert _severity_map(report)["config.file_present"] == SEV_FAIL
 
 
 # ---------- Fresh scaffold → all PASS ----------
@@ -76,7 +76,7 @@ def test_doctor_fresh_scaffold_all_pass(tmp_path: Path, agent: str) -> None:
     report = run_doctor(target)
 
     sevs = _severity_map(report)
-    for check_id in ("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10"):
+    for check_id in ("config.file_present", "state.directory_present", "database.openable", "database.schema_current", "database.tables_present", "scaffold.roots_present", "adapter.configured", "scaffold.manifest_fresh", "scaffold.placeholders_resolved", "mcp.self_test_passes"):
         assert sevs.get(check_id) == SEV_PASS, (
             f"{check_id} not PASS for agent={agent}: "
             f"{[c for c in report.checks if c.id == check_id]}"
@@ -89,7 +89,7 @@ def test_doctor_base_template_pass(tmp_path: Path, agent: str) -> None:
     _cos_init(target, agent=agent, template=None)
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C8"] == SEV_PASS
+    assert sevs["scaffold.manifest_fresh"] == SEV_PASS
 
 
 # ---------- C8: drift detection ----------
@@ -101,8 +101,8 @@ def test_doctor_missing_file_fails_c8(tmp_path: Path) -> None:
     (target / "AGENTS.md").unlink()
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C6"] == SEV_FAIL  # scaffold root missing
-    assert sevs["C8"] == SEV_FAIL  # manifest diff missing
+    assert sevs["scaffold.roots_present"] == SEV_FAIL  # scaffold root missing
+    assert sevs["scaffold.manifest_fresh"] == SEV_FAIL  # manifest diff missing
 
 
 def test_doctor_extra_file_warns_c8(tmp_path: Path) -> None:
@@ -111,7 +111,7 @@ def test_doctor_extra_file_warns_c8(tmp_path: Path) -> None:
     (target / "docs" / "custom-user-file.md").write_text("added by user")
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C8"] == SEV_WARN
+    assert sevs["scaffold.manifest_fresh"] == SEV_WARN
 
 
 # ---------- C9: placeholder detection ----------
@@ -124,7 +124,7 @@ def test_doctor_unresolved_placeholder_fails(tmp_path: Path) -> None:
     agents_md.write_text(agents_md.read_text() + "\n{{leaked_placeholder}}\n")
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C9"] == SEV_FAIL
+    assert sevs["scaffold.placeholders_resolved"] == SEV_FAIL
 
 
 def test_check_placeholders_clean_project(tmp_path: Path) -> None:
@@ -174,7 +174,7 @@ def test_doctor_c11_base_only_passes(tmp_path: Path) -> None:
     _cos_init(target, agent="claude", template=None)
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C11"] == SEV_PASS
+    assert sevs["stack.registry_valid"] == SEV_PASS
 
 
 def test_doctor_c11_known_stack_passes(tmp_path: Path) -> None:
@@ -182,7 +182,7 @@ def test_doctor_c11_known_stack_passes(tmp_path: Path) -> None:
     _cos_init(target, agent="claude", template="django")
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C11"] == SEV_PASS
+    assert sevs["stack.registry_valid"] == SEV_PASS
 
 
 def test_doctor_c11_unknown_stack_fails(tmp_path: Path) -> None:
@@ -196,7 +196,7 @@ def test_doctor_c11_unknown_stack_fails(tmp_path: Path) -> None:
     cfg_path.write_text(_yaml.dump(cfg))
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C11"] == SEV_FAIL
+    assert sevs["stack.registry_valid"] == SEV_FAIL
 
 
 # ---------- C12: category balance ----------
@@ -206,7 +206,7 @@ def test_doctor_c12_single_stack_passes(tmp_path: Path) -> None:
     _cos_init(target, agent="claude", template="django")
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C12"] == SEV_PASS
+    assert sevs["stack.category_balance"] == SEV_PASS
 
 
 def test_doctor_c12_multi_backend_warns(tmp_path: Path) -> None:
@@ -220,7 +220,7 @@ def test_doctor_c12_multi_backend_warns(tmp_path: Path) -> None:
     cfg_path.write_text(_yaml.dump(cfg))
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C12"] == SEV_WARN
+    assert sevs["stack.category_balance"] == SEV_WARN
 
 
 def test_doctor_c12_backend_plus_frontend_passes(tmp_path: Path) -> None:
@@ -233,7 +233,7 @@ def test_doctor_c12_backend_plus_frontend_passes(tmp_path: Path) -> None:
     cfg_path.write_text(_yaml.dump(cfg))
     report = run_doctor(target)
     sevs = _severity_map(report)
-    assert sevs["C12"] == SEV_PASS
+    assert sevs["stack.category_balance"] == SEV_PASS
 
 
 def test_doctor_strict_mode_exits_nonzero_on_warn(tmp_path: Path) -> None:

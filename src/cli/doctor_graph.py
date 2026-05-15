@@ -70,7 +70,7 @@ def add_check_c16(report: "DoctorReport", conn: sqlite3.Connection | None) -> No
     if age is None:
         report.checks.append(
             CheckResult(
-                "C17", "graph_freshness", SEV_WARN,
+                "graph.freshness", SEV_WARN,
                 "graph_nodes is empty — run `cos graph-reindex`",
             )
         )
@@ -78,7 +78,7 @@ def add_check_c16(report: "DoctorReport", conn: sqlite3.Connection | None) -> No
     if age > FRESHNESS_SECONDS:
         report.checks.append(
             CheckResult(
-                "C17", "graph_freshness", SEV_WARN,
+                "graph.freshness", SEV_WARN,
                 f"graph index is stale: {age}s > {FRESHNESS_SECONDS}s",
                 {"age_seconds": age, "threshold": FRESHNESS_SECONDS},
             )
@@ -86,7 +86,7 @@ def add_check_c16(report: "DoctorReport", conn: sqlite3.Connection | None) -> No
         return
     report.checks.append(
         CheckResult(
-            "C17", "graph_freshness", SEV_PASS,
+            "graph.freshness", SEV_PASS,
             f"graph index fresh ({age}s old)",
             {"age_seconds": age},
         )
@@ -114,7 +114,7 @@ def add_check_c17(report: "DoctorReport", state_dir: Path) -> None:
     if rate > PARSE_ERROR_RATE_LIMIT:
         report.checks.append(
             CheckResult(
-                "C18", "graph_parse_error_rate", SEV_WARN,
+                "graph.parse_error_rate", SEV_WARN,
                 f"parse error rate {rate:.1%} > {PARSE_ERROR_RATE_LIMIT:.1%}",
                 {"rate": rate, "errors": errors, "total": total},
             )
@@ -122,7 +122,7 @@ def add_check_c17(report: "DoctorReport", state_dir: Path) -> None:
         return
     report.checks.append(
         CheckResult(
-            "C18", "graph_parse_error_rate", SEV_PASS,
+            "graph.parse_error_rate", SEV_PASS,
             f"parse error rate {rate:.1%}",
             {"rate": rate, "errors": errors, "total": total},
         )
@@ -137,7 +137,7 @@ def add_check_c18(report: "DoctorReport", state_dir: Path) -> None:
     if not probe:
         report.checks.append(
             CheckResult(
-                "C19", "graph_backend_probe", SEV_WARN,
+                "graph.backend_responsive", SEV_WARN,
                 "no backend probe yet — run any `cos graph-*` command once",
             )
         )
@@ -147,7 +147,7 @@ def add_check_c18(report: "DoctorReport", state_dir: Path) -> None:
     if age is None or age > 6 * 3600:
         report.checks.append(
             CheckResult(
-                "C19", "graph_backend_probe", SEV_WARN,
+                "graph.backend_responsive", SEV_WARN,
                 f"backend probe stale (age={age}s) — run: cos graph-reindex",
                 probe,
             )
@@ -155,7 +155,7 @@ def add_check_c18(report: "DoctorReport", state_dir: Path) -> None:
         return
     report.checks.append(
         CheckResult(
-            "C19", "graph_backend_probe", SEV_PASS,
+            "graph.backend_responsive", SEV_PASS,
             f"backend {probe.get('backend', '?')} ok ({age}s ago)",
             probe,
         )
@@ -169,7 +169,7 @@ def add_check_c19(report: "DoctorReport") -> None:
     groups_root = Path.home() / ".coding-os" / "groups"
     if not groups_root.exists():
         report.checks.append(
-            CheckResult("C20", "graph_groups", SEV_PASS, "no groups configured")
+            CheckResult("graph.groups_configured", SEV_PASS, "no groups configured")
         )
         return
     missing: list[str] = []
@@ -192,7 +192,7 @@ def add_check_c19(report: "DoctorReport") -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "C20", "graph_groups", SEV_WARN,
+                "graph.groups_configured", SEV_WARN,
                 f"group members missing on disk: {', '.join(missing[:5])}"
                 + ("..." if len(missing) > 5 else ""),
                 {"missing": missing, "healthy": healthy_count},
@@ -201,7 +201,7 @@ def add_check_c19(report: "DoctorReport") -> None:
         return
     report.checks.append(
         CheckResult(
-            "C20", "graph_groups", SEV_PASS,
+            "graph.groups_configured", SEV_PASS,
             f"{healthy_count} group(s) healthy",
             {"healthy": healthy_count},
         )
@@ -216,7 +216,7 @@ def add_check_c20(report: "DoctorReport", state_dir: Path) -> None:
     if not checkpoint.exists():
         report.checks.append(
             CheckResult(
-                "C21", "embedding_migration", SEV_PASS,
+                "graph.embedding_migration", SEV_PASS,
                 "no migration in progress",
             )
         )
@@ -227,7 +227,7 @@ def add_check_c20(report: "DoctorReport", state_dir: Path) -> None:
         logger.debug("embedding checkpoint unreadable: %s", exc)
         report.checks.append(
             CheckResult(
-                "C21", "embedding_migration", SEV_WARN,
+                "graph.embedding_migration", SEV_WARN,
                 "migration checkpoint unreadable",
             )
         )
@@ -237,7 +237,7 @@ def add_check_c20(report: "DoctorReport", state_dir: Path) -> None:
     if total == 0 or done >= total:
         report.checks.append(
             CheckResult(
-                "C21", "embedding_migration", SEV_PASS,
+                "graph.embedding_migration", SEV_PASS,
                 f"migration complete ({done}/{total or done})",
                 data,
             )
@@ -247,7 +247,7 @@ def add_check_c20(report: "DoctorReport", state_dir: Path) -> None:
     eta = data.get("eta_seconds")
     report.checks.append(
         CheckResult(
-            "C21", "embedding_migration", SEV_WARN,
+            "graph.embedding_migration", SEV_WARN,
             f"migration in progress: {done}/{total} ({pct:.1f}%; ETA {eta}s)",
             data,
         )
@@ -273,7 +273,7 @@ def add_check_c21(
         logger.debug("embeddings.embedding_dim absent (pre-v12): %s", exc)
         report.checks.append(
             CheckResult(
-                "C22", "embedding_dim_distribution", SEV_PASS,
+                "graph.embedding_dimensions", SEV_PASS,
                 "embedding_dim column absent (pre-v12 DB)",
             )
         )
@@ -282,7 +282,7 @@ def add_check_c21(
     if not distribution:
         report.checks.append(
             CheckResult(
-                "C22", "embedding_dim_distribution", SEV_PASS, "no embeddings yet"
+                "graph.embedding_dimensions", SEV_PASS, "no embeddings yet"
             )
         )
         return
@@ -290,7 +290,7 @@ def add_check_c21(
         dim, count = next(iter(distribution.items()))
         report.checks.append(
             CheckResult(
-                "C22", "embedding_dim_distribution", SEV_PASS,
+                "graph.embedding_dimensions", SEV_PASS,
                 f"all {count} rows at dim={dim}",
                 {"distribution": distribution},
             )
@@ -307,7 +307,7 @@ def add_check_c21(
             logger.debug("checkpoint split detection failed: %s", exc)
     report.checks.append(
         CheckResult(
-            "C22", "embedding_dim_distribution", SEV_WARN,
+            "graph.embedding_dimensions", SEV_WARN,
             f"mixed dims: {distribution}"
             + (f" (split for ~{split_for_days:.1f}d)" if split_for_days else ""),
             {"distribution": distribution, "split_days": split_for_days},
@@ -322,7 +322,7 @@ def add_check_c22(report: "DoctorReport", state_dir: Path) -> None:
     log = state_dir / ".graph-cascade-overflow.log"
     if not log.exists():
         report.checks.append(
-            CheckResult("C23", "graph_cascade_overflow", SEV_PASS, "no overflow records")
+            CheckResult("graph.cascade_overflow", SEV_PASS, "no overflow records")
         )
         return
     cutoff = time.time() - 86400
@@ -344,7 +344,7 @@ def add_check_c22(report: "DoctorReport", state_dir: Path) -> None:
     if count >= CASCADE_OVERFLOW_LIMIT:
         report.checks.append(
             CheckResult(
-                "C23", "graph_cascade_overflow", SEV_WARN,
+                "graph.cascade_overflow", SEV_WARN,
                 f"{count} overflows in 24h (limit {CASCADE_OVERFLOW_LIMIT})",
                 {"count": count},
             )
@@ -352,7 +352,7 @@ def add_check_c22(report: "DoctorReport", state_dir: Path) -> None:
         return
     report.checks.append(
         CheckResult(
-            "C23", "graph_cascade_overflow", SEV_PASS,
+            "graph.cascade_overflow", SEV_PASS,
             f"{count} overflows in 24h",
             {"count": count},
         )
@@ -369,7 +369,7 @@ def add_check_c24_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
     if not kuzu_dir.exists():
         report.checks.append(
             CheckResult(
-                "C24", "graph_kuzu_state", SEV_PASS,
+                "graph.kuzu_state", SEV_PASS,
                 "kuzu not in use (sqlite only)",
                 {"present": False},
             )
@@ -380,7 +380,7 @@ def add_check_c24_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
     if size == 0:
         report.checks.append(
             CheckResult(
-                "C24", "graph_kuzu_state", SEV_WARN,
+                "graph.kuzu_state", SEV_WARN,
                 "kuzu directory exists but is empty — auto backend "
                 "falls back to SQLite. Consider `rm -rf "
                 f"{kuzu_dir}` or wire a kuzu reindexer.",
@@ -390,7 +390,7 @@ def add_check_c24_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
         return
     report.checks.append(
         CheckResult(
-            "C24", "graph_kuzu_state", SEV_PASS,
+            "graph.kuzu_state", SEV_PASS,
             f"kuzu populated ({size} bytes)",
             {"present": True, "data_bytes": size},
         )
@@ -408,7 +408,7 @@ def add_check_c25_evidence_table(
     if conn is None:
         report.checks.append(
             CheckResult(
-                "C25", "graph_evidence_table", SEV_WARN,
+                "graph.evidence_table", SEV_WARN,
                 "no graph DB connection — skipped",
             )
         )
@@ -421,7 +421,7 @@ def add_check_c25_evidence_table(
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "C25", "graph_evidence_table", SEV_FAIL,
+                "graph.evidence_table", SEV_FAIL,
                 f"check failed: {exc}",
             )
         )
@@ -429,14 +429,14 @@ def add_check_c25_evidence_table(
     if row is None:
         report.checks.append(
             CheckResult(
-                "C25", "graph_evidence_table", SEV_FAIL,
+                "graph.evidence_table", SEV_FAIL,
                 "graph_evidence_v12 missing — run init_db",
             )
         )
         return
     report.checks.append(
         CheckResult(
-            "C25", "graph_evidence_table", SEV_PASS,
+            "graph.evidence_table", SEV_PASS,
             "graph_evidence_v12 present",
         )
     )
@@ -452,7 +452,7 @@ def add_check_c26_orphan_symbols(
     if conn is None:
         report.checks.append(
             CheckResult(
-                "C26", "graph_orphan_symbols", SEV_WARN,
+                "graph.orphan_symbols", SEV_WARN,
                 "no graph DB connection — skipped",
             )
         )
@@ -478,7 +478,7 @@ def add_check_c26_orphan_symbols(
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "C26", "graph_orphan_symbols", SEV_WARN,
+                "graph.orphan_symbols", SEV_WARN,
                 f"check failed: {exc}",
             )
         )
@@ -487,13 +487,13 @@ def add_check_c26_orphan_symbols(
     detail = {"orphans": orphans, "total": total, "rate": round(rate, 4)}
     if total == 0:
         report.checks.append(
-            CheckResult("C26", "graph_orphan_symbols", SEV_PASS,
+            CheckResult("graph.orphan_symbols", SEV_PASS,
                         "no symbols indexed yet", detail))
         return
     if rate > 0.05:
         report.checks.append(
             CheckResult(
-                "C26", "graph_orphan_symbols", SEV_WARN,
+                "graph.orphan_symbols", SEV_WARN,
                 f"{orphans}/{total} ({rate:.1%}) symbols are orphans",
                 detail,
             )
@@ -501,7 +501,7 @@ def add_check_c26_orphan_symbols(
         return
     report.checks.append(
         CheckResult(
-            "C26", "graph_orphan_symbols", SEV_PASS,
+            "graph.orphan_symbols", SEV_PASS,
             f"{orphans}/{total} ({rate:.1%}) orphans — within budget",
             detail,
         )
@@ -519,7 +519,7 @@ def add_check_c27_legacy_kinds(
     if conn is None:
         report.checks.append(
             CheckResult(
-                "C27", "graph_legacy_kinds", SEV_WARN,
+                "graph.legacy_kinds", SEV_WARN,
                 "no graph DB connection — skipped",
             )
         )
@@ -533,7 +533,7 @@ def add_check_c27_legacy_kinds(
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "C27", "graph_legacy_kinds", SEV_WARN,
+                "graph.legacy_kinds", SEV_WARN,
                 f"check failed: {exc}",
             )
         )
@@ -541,7 +541,7 @@ def add_check_c27_legacy_kinds(
     if bad > 0:
         report.checks.append(
             CheckResult(
-                "C27", "graph_legacy_kinds", SEV_WARN,
+                "graph.legacy_kinds", SEV_WARN,
                 f"{bad} nodes carry legacy colon-prefixed kinds — "
                 "run `cos graph-reindex --rebuild-kinds`",
                 {"count": bad},
@@ -550,7 +550,7 @@ def add_check_c27_legacy_kinds(
         return
     report.checks.append(
         CheckResult(
-            "C27", "graph_legacy_kinds", SEV_PASS,
+            "graph.legacy_kinds", SEV_PASS,
             "all kinds canonical",
         )
     )

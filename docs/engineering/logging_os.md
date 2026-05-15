@@ -32,7 +32,7 @@ Every log event is the same dict, regardless of producer language:
 ### `pretty` — human TTY
 
 ```
-ℹ️   22:51:09  INFO   cli.doctor          C12 verify-changed-file passed
+ℹ️   22:51:09  INFO   cli.doctor          stack.category_balance check passed
 ✅  22:51:10  OK     cli.doctor          all 38 checks green
 ⚠️   22:51:11  WARN   hook.enforce_skill  graph-explorer not loaded  file=src/core/x.py
 ❌  22:51:12  ERROR  thinking_os.server  db migration v23 failed     code=DUPCOL
@@ -49,7 +49,7 @@ Every log event is the same dict, regardless of producer language:
 ### `short` — agent / pipe / file
 
 ```
-22:51:09 INFO  cli.doctor C12 verify-changed-file passed
+22:51:09 INFO  cli.doctor stack.category_balance check passed
 22:51:10 OK    cli.doctor all 38 checks green
 22:51:11 WARN  hook.enforce_skill graph-explorer not loaded file=src/core/x.py
 22:51:12 ERROR thinking_os.server db migration v23 failed code=DUPCOL
