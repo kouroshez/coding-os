@@ -99,6 +99,7 @@ def create_app() -> FastAPI:
     from web.routes.health import router as health_router
     from web.routes.hooks import router as hooks_router
     from web.routes.hub import router as hub_router
+    from web.routes.logs import router as logs_router
     from web.routes.metrics import router as metrics_router
     from web.routes.observability import router as observability_router
     from web.routes.presence import router as presence_router
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     app.include_router(board_router)
     app.include_router(cognition_router)
     app.include_router(hooks_router)
+    app.include_router(logs_router)
     app.include_router(observability_router)
     app.include_router(presence_router)
     app.include_router(roles_router)
