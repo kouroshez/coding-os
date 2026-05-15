@@ -2,18 +2,18 @@
 
 Checks (fail-fast ordering):
 
-    C1  .coding-os.yaml exists and parses
-    C2  state dir exists
-    C3  coding-os.db opens
-    C4  schema_version == 6
-    C5  core tables present
-    C6  scaffold roots exist (AGENTS.md, Makefile, docs/)
-    C7  adapter-specific (Claude settings.json + hook executability, or
+    config.file_present  .coding-os.yaml exists and parses
+    state.directory_present  state dir exists
+    database.openable  coding-os.db opens
+    database.schema_current  schema_version == 6
+    database.tables_present  core tables present
+    scaffold.roots_present  scaffold roots exist (AGENTS.md, Makefile, docs/)
+    adapter.configured  adapter-specific (Claude settings.json + hook executability, or
         Codex hooks.json)
-    C9  no unresolved {{placeholder}} in scaffold text files
-    C30 nightly cron: plist installed, loaded, no failures, recent run
+    scaffold.placeholders_resolved  no unresolved {{placeholder}} in scaffold text files
+    scheduled.cron_configured nightly cron: plist installed, loaded, no failures, recent run
 
-C8 (manifest hash diff) and C10 (MCP self-test) are wired in Phase 2.
+scaffold.manifest_fresh (manifest hash diff) and mcp.self_test_passes (MCP self-test) are wired in Phase 2.
 
 Severity semantics (plan D9):
     PASS  — expected state
@@ -133,6 +133,8 @@ class DoctorReport:
     agent: str | None
     templates: list[str]
     checks: list[CheckResult] = field(default_factory=list)
+    suppressed: int = 0
+    suppressed_globs: list[str] = field(default_factory=list)
 
     def summary(self) -> dict[str, int]:
         pass_n = sum(1 for c in self.checks if c.severity == SEV_PASS)
@@ -150,7 +152,7 @@ class DoctorReport:
 
 
 def _check_config(project: Path, report: DoctorReport) -> dict[str, Any] | None:
-    """C1 — .coding-os.yaml exists and parses. Fatal if missing."""
+    """config.file_present — .coding-os.yaml exists and parses. Fatal if missing."""
     config_path = project / CONFIG_FILE
     if not config_path.exists():
         report.checks.append(
@@ -183,7 +185,7 @@ def _check_config(project: Path, report: DoctorReport) -> dict[str, Any] | None:
 
 
 def _check_state_dir(project: Path, config: dict[str, Any], report: DoctorReport) -> Path:
-    """C2 — state dir exists."""
+    """state.directory_present — state dir exists."""
     state = project / config.get("state_dir", STATE_DIR_DEFAULT)
     if not state.is_dir():
         report.checks.append(
@@ -203,7 +205,7 @@ def _check_state_dir(project: Path, config: dict[str, Any], report: DoctorReport
 
 
 def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | None:
-    """C3 + C4 + C5 — DB opens, schema version 6, all 11 tables present."""
+    """database.openable + database.schema_current + database.tables_present — DB opens, schema version 6, all 11 tables present."""
     db_path = state / "coding-os.db"
     if not db_path.exists():
         report.checks.append(
@@ -296,7 +298,7 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
 
 
 def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
-    """C6 — AGENTS.md, Makefile, docs/ exist at project root."""
+    """scaffold.roots_present — AGENTS.md, Makefile, docs/ exist at project root."""
     required = {
         "AGENTS.md": project / "AGENTS.md",
         "Makefile": project / "Makefile",
@@ -321,7 +323,7 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
 
 
 def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> None:
-    """C7 — adapter-specific files, driven entirely by src/adapters/<id>/adapter.yaml.
+    """adapter.configured — adapter-specific files, driven entirely by src/adapters/<id>/adapter.yaml.
 
     Previously had hardcoded if/elif branches for claude + codex. Now we
     load the adapter profile and:
@@ -440,7 +442,7 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
 
 
 def _check_placeholders(project: Path, report: DoctorReport) -> None:
-    """C9 — no unresolved {{placeholder}} in scaffold text files.
+    """scaffold.placeholders_resolved — no unresolved {{placeholder}} in scaffold text files.
 
     Scan roots come from src/core/doctor-config.yaml::placeholder_scan.root_paths,
     plus every adapter's declared rules_dir, hooks_dir, and skills_dir (from
@@ -536,7 +538,7 @@ def _check_manifest(
     report: DoctorReport,
     manifest_path: Path,
 ) -> None:
-    """C8 — compare project's file set against the section manifest.
+    """scaffold.manifest_fresh — compare project's file set against the section manifest.
 
     Missing expected paths → FAIL. Extras → WARN (user may have added files).
     """
@@ -544,7 +546,7 @@ def _check_manifest(
     if section_id is None:
         # Multi-stack projects have no precomputed section (manifest only
         # tracks single-stack combos). This is expected — file-by-file
-        # validation for arbitrary combinations is out of scope for C8.
+        # validation for arbitrary combinations is out of scope for scaffold.manifest_fresh.
         report.checks.append(
             CheckResult(
                 "scaffold.manifest_fresh", SEV_PASS,
@@ -554,7 +556,7 @@ def _check_manifest(
         )
         return
     # Meta-repo detection — if this project IS the coding-os source tree
-    # (src/cli/main.py + src/templates/_base/ both present), skip C8.
+    # (src/cli/main.py + src/templates/_base/ both present), skip scaffold.manifest_fresh.
     # Meta-repo is the FACTORY, not a consumer of itself — comparing it
     # against a fresh `cos init -t meta` sandbox produces false missing.
     if (project / "src" / "cli" / "main.py").exists() and (
@@ -647,7 +649,7 @@ def _check_manifest(
 
 
 def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
-    """C10 — run thinking_os MCP server self-test against the project DB."""
+    """mcp.self_test_passes — run thinking_os MCP server self-test against the project DB."""
     if not MCP_SERVER_PATH.exists():
         report.checks.append(
             CheckResult(
@@ -692,7 +694,49 @@ def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
         )
 
 
-def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorReport:
+def _ignore_globs_from_config(config: dict[str, Any]) -> list[str]:
+    raw = (config.get("doctor") or {}).get("ignore") or []
+    return [str(item) for item in raw if isinstance(item, (str, bytes))]
+
+
+def _explain_check(check_id: str) -> str:
+    doc_path = CODING_OS_ROOT / "docs" / "playbooks" / "doctor-checks.md"
+    if not doc_path.exists():
+        return f"doctor-checks reference not found at {doc_path}"
+    text = doc_path.read_text(encoding="utf-8")
+    marker = f"### {check_id}"
+    start = text.find(marker)
+    if start < 0:
+        return (
+            f"no entry for '{check_id}' in {doc_path.name}.\n"
+            f"run `cos doctor --format json` to list every available ID."
+        )
+    end = text.find("\n### ", start + len(marker))
+    if end < 0:
+        end = text.find("\n---", start + len(marker))
+    if end < 0:
+        end = len(text)
+    return text[start:end].rstrip() + f"\n\n— source: {doc_path}"
+
+
+def _suppress_checks(report: DoctorReport, ignore_globs: list[str]) -> int:
+    if not ignore_globs:
+        return 0
+    import fnmatch as _fnmatch
+    before = len(report.checks)
+    report.checks = [
+        c for c in report.checks
+        if not any(_fnmatch.fnmatch(c.id, pat) for pat in ignore_globs)
+    ]
+    return before - len(report.checks)
+
+
+def run_doctor(
+    project: Path,
+    *,
+    manifest_path: Path | None = None,
+    extra_ignores: list[str] | None = None,
+) -> DoctorReport:
     """Run all implemented doctor checks and return a report."""
     report = DoctorReport(
         project_dir=str(project), agent=None, templates=[]
@@ -730,7 +774,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     _check_agents_md_present(project, report)
     _check_cognition_registries(project, report)
     _check_hook_coverage(project, report)
-    # Phase I.14 — graph_os health (C16-C22).
+    # Phase I.14 — graph_os health checks.
     try:
         from cli.doctor_graph import run_graph_checks  # noqa: WPS433
         run_graph_checks(report, state, graph_conn)
@@ -744,7 +788,7 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
             except Exception as exc:  # noqa: BLE001
                 logger = logging.getLogger("coding_os.doctor")
                 logger.debug("graph_conn close suppressed: %s", exc)
-    # Phase L.9 — board_os health (C20-C23).
+    # Phase L.9 — board_os health checks.
     try:
         from cli.doctor_board import run_board_checks  # noqa: WPS433
         run_board_checks(report, project, state)
@@ -759,11 +803,18 @@ def run_doctor(project: Path, *, manifest_path: Path | None = None) -> DoctorRep
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
         logger.debug("doctor_extras unavailable: %s", exc)
+    ignore_globs = _ignore_globs_from_config(config)
+    if extra_ignores:
+        ignore_globs.extend(extra_ignores)
+    suppressed = _suppress_checks(report, ignore_globs)
+    if suppressed > 0:
+        report.suppressed = suppressed
+        report.suppressed_globs = ignore_globs
     return report
 
 
 def _check_stack_registry_consistency(report: DoctorReport) -> None:
-    """C11 — every stack declared in .coding-os.yaml::templates exists in the registry.
+    """stack.registry_valid — every stack declared in .coding-os.yaml::templates exists in the registry.
 
     If a stack was installed and later removed from the coding-os distribution,
     the project config still lists it — FAIL so the user knows to either add
@@ -808,7 +859,7 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
 
 
 def _check_category_balance(report: DoctorReport) -> None:
-    """C12 — informational WARN when two or more stacks of the same category
+    """stack.category_balance — informational WARN when two or more stacks of the same category
     are installed (e.g. two backend stacks). The project will work, but the
     later stack wins on conflicting substitution keys — the user should know."""
     if len(report.templates) < 2:
@@ -860,7 +911,7 @@ def _check_category_balance(report: DoctorReport) -> None:
 
 
 def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
-    """C13 — every installed stack's skills are symlinked into the agent's skills dir.
+    """stack.skills_linked — every installed stack's skills are symlinked into the agent's skills dir.
 
     Detects the B1 regression where `.claude/skills/python-django/SKILL.md`
     was missing even though `--template django` was declared. We consult the
@@ -942,7 +993,7 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
 
 
 def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
-    """C14 — .mcp.json coding-os entry uses the `cos server-start` wrapper.
+    """mcp.portable — .mcp.json coding-os entry uses the `cos server-start` wrapper.
 
     The wrapper form lets the project survive coding-os relocations and
     upgrades: the `cos` binary on PATH resolves the server location, no
@@ -1089,11 +1140,11 @@ def _load_coding_os_mcp_launch(
 
 
 def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
-    """C15 — simulate the exact MCP launch path the active agent config uses.
+    """mcp.actually_launches — simulate the exact MCP launch path the active agent config uses.
 
-    C10 runs `server.py --test` with an explicit COS_DB_PATH env — that
+    mcp.self_test_passes runs `server.py --test` with an explicit COS_DB_PATH env — that
     verifies the server code works but bypasses the agent launch config
-    entirely. C15 closes that gap: it reads coding-os MCP launch config
+    entirely. mcp.actually_launches closes that gap: it reads coding-os MCP launch config
     from Claude or Codex, runs the declared command with the project
     root as cwd, feeds a real `initialize` handshake, and expects a
     valid JSON-RPC response.
@@ -1234,7 +1285,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
 
 
 def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
-    """C16 — AGENTS.md at the project root is the canonical instruction file.
+    """docs.agents_md_present — AGENTS.md at the project root is the canonical instruction file.
 
     Read by both Claude (via AGENTS.md convention) and Codex. `cos init`
     generates it; pre-v0.2.0 projects or partial installs may be missing it.
@@ -1260,7 +1311,7 @@ def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
 
 
 def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
-    """C28 — Cognition registries valid (Phase N).
+    """cognition.registries_present — Cognition registries valid (Phase N).
 
       - roles/F{1..11}_*.yaml all exist with id + activation + prompt_prefix
       - presets/registry.yaml parses and has ≥8 curated presets
@@ -1372,7 +1423,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
 
 
 def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
-    """C29 — every hook script in registry.yaml has an executable on disk
+    """hook.coverage — every hook script in registry.yaml has an executable on disk
     AND each declared event/matcher pair is renderable for at least one
     adapter that lists the matching capability. Closes drift between
     registry.yaml (SSOT) and the rendered adapter templates.
@@ -1542,7 +1593,7 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
 
 
 def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
-    """C31 — flag presence files where ended_at is null AND PID is dead AND
+    """presence.no_zombies — flag presence files where ended_at is null AND PID is dead AND
     age >1h.  These are crashed sessions that the lazy GC could not reap
     on its own (Codex+Cursor lack Stop/SessionEnd matchers as of 2026-04).
     Warns at >20 zombies so the live-agents board can't accumulate noise.
@@ -1632,7 +1683,7 @@ def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
 
 
 def _check_scheduled(project: Path, report: DoctorReport) -> None:
-    """C30 — nightly cron: plist installed + loaded, no failures, run < 2d ago."""
+    """scheduled.cron_configured — nightly cron: plist installed + loaded, no failures, run < 2d ago."""
     import datetime as _datetime
     import platform as _platform
 
@@ -1758,6 +1809,11 @@ def _format_text(report: DoctorReport, *, strict: bool) -> str:
         f"{status_icon} Summary: {s['pass']} PASS, {s['warn']} WARN, {s['fail']} FAIL "
         f"(exit={exit_code})"
     )
+    if report.suppressed:
+        lines.append(
+            f"   suppressed: {report.suppressed} check(s) via "
+            f"{', '.join(report.suppressed_globs)}"
+        )
     return "\n".join(lines)
 
 
@@ -1902,7 +1958,25 @@ def _probe_otel() -> None:
 @click.option("--manifest", default=None, help="Override manifest file path")
 @click.option("--otel", is_flag=True, default=False, help="Probe OTEL exporter config and exit")
 @click.option("--claude-sdk", "claude_sdk", is_flag=True, default=False, help="Print Claude SDK + CLI compat report and exit")
-def doctor(project_dir: str, output_format: str, strict: bool, manifest: str | None, otel: bool, claude_sdk: bool) -> None:
+@click.option(
+    "--ignore", "ignore_globs", multiple=True,
+    help="Skip checks whose dotted ID matches this fnmatch glob (e.g. 'graph.*'). "
+         "Repeatable. Merged with .coding-os.yaml::doctor.ignore.",
+)
+@click.option(
+    "--explain", "explain_id", default=None,
+    help="Print the docs/playbooks/doctor-checks.md section for the given check ID and exit.",
+)
+def doctor(
+    project_dir: str,
+    output_format: str,
+    strict: bool,
+    manifest: str | None,
+    otel: bool,
+    claude_sdk: bool,
+    ignore_globs: tuple[str, ...],
+    explain_id: str | None,
+) -> None:
     """Deep health check: scaffold, DB schema, adapter, manifest, MCP."""
     if otel:
         _probe_otel()
@@ -1910,9 +1984,16 @@ def doctor(project_dir: str, output_format: str, strict: bool, manifest: str | N
     if claude_sdk:
         _probe_claude_sdk()
         return
+    if explain_id:
+        click.echo(_explain_check(explain_id))
+        return
     project = Path(project_dir).resolve()
     manifest_path = Path(manifest).resolve() if manifest else None
-    report = run_doctor(project, manifest_path=manifest_path)
+    report = run_doctor(
+        project,
+        manifest_path=manifest_path,
+        extra_ignores=list(ignore_globs) if ignore_globs else None,
+    )
     if output_format == "json":
         click.echo(_format_json(report, strict=strict))
     else:
