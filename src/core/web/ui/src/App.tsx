@@ -10,6 +10,7 @@ import HubHome from './pages/HubHome';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
 import ObservabilityPage from './pages/ObservabilityPage';
+import LogsPage from './pages/LogsPage';
 import SessionsPage from './pages/SessionsPage';
 import DoctorPage from './pages/DoctorPage';
 
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/doctor" element={<DoctorPage />} />
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="/observability" element={<ObservabilityPage />} />
+          <Route path="/logs" element={<LogsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           {/*
             Project-scoped features REQUIRE a /p/<slug>/ prefix.  The
@@ -63,6 +65,7 @@ export default function App() {
           <Route path="/p/:slug/cognition" element={<CognitionPage />} />
           <Route path="/p/:slug/cognition/:sessionId" element={<CognitionPage />} />
           <Route path="/p/:slug/observability" element={<ObservabilityPage />} />
+          <Route path="/p/:slug/logs" element={<LogsPage />} />
           <Route path="/p/:slug/sessions" element={<SessionsPage />} />
           <Route path="/p/:slug/doctor" element={<DoctorPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
