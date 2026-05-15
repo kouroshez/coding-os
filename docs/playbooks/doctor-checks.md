@@ -274,7 +274,7 @@ Every `scaffold-boundary.yaml` under `src/templates/*/scaffold/` parses and refe
 **Fix**: `make manifest-regen`.
 
 ### scaffold.placeholders_resolved
-No scaffold file contains unresolved `{{PLACEHOLDER}}` tokens after `cos init`.
+No scaffold file contains unresolved double-brace template tokens (the substitution syntax used by `cos init`) after rendering.
 **Fails** with the list of offenders and their unresolved tokens.
 **Fix**: re-run `cos init` (placeholder substitution happens there), or hand-edit the offender.
 
@@ -332,9 +332,9 @@ Every skill referenced by a stack template renders into the consumer's `<adapter
 
 ---
 
-## Suppression (future)
+## Suppression
 
-Glob-based suppression in `.coding-os.yaml` is planned for a follow-up:
+Glob-based suppression in `.coding-os.yaml`:
 
 ```yaml
 doctor:
@@ -343,7 +343,23 @@ doctor:
     - hook.cos_env_sourced
 ```
 
-Until then, run `cos doctor` and read the report directly.
+Or one-shot via CLI (repeatable, merged with config):
+
+```bash
+cos doctor --ignore 'graph.*' --ignore 'hook.coverage'
+```
+
+Suppressed checks are listed in the summary footer: `suppressed: N check(s) via <glob>, ...`.
+
+## Explain
+
+To open this reference inline for a specific check:
+
+```bash
+cos doctor --explain hook.cos_env_sourced
+```
+
+Prints the matching section and exits 0. Unknown IDs return a hint listing the JSON command that enumerates every valid ID.
 
 ## See also
 

@@ -18,7 +18,7 @@ placeholder_scan:
   - docs
   - .coding-os.yaml
   skip_paths:
-  - docs/governance/templates
+  - docs/governance/_templates
 schema:
   expected_version: 28
   expected_tables:
