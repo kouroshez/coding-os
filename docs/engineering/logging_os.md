@@ -204,14 +204,23 @@ Dotted snake, mirrors repo path:
 
 ## What does NOT belong here
 
-| Concern | Where it lives |
-|---|---|
-| MCP tool error envelope (`ok`/`fail`) | `src/core/thinking_os/tools/_shared.py` (Rule 13) |
-| Hook activity log (`cos_log_hook`) | `src/core/hooks/cos-env.sh` (kept — separate concern: hook telemetry) |
-| Cognition trace JSONL | `src/core/thinking_os/tracing.py` |
-| Per-task work log (`cos work-log-append`) | `src/core/board_os/` |
+| Concern | Where it lives | Hub UI consumer |
+|---|---|---|
+| MCP tool error envelope (`ok`/`fail`) | `src/core/thinking_os/tools/_shared.py` (Rule 13) | — (wire only) |
+| Hook activity log (`cos_log_hook`) | `src/core/hooks/cos-env.sh` → `.coding-os/.hooks.log` | Observability tab → Hook stream |
+| Cognition trace JSONL | `src/core/thinking_os/tracing.py` → `.coding-os/<agent>/traces/<session>.jsonl` | Cognition tab |
+| Per-task work log (`cos work-log-append`) | `src/core/board_os/` | Board tab |
+| Multi-line UX banners in hooks (e.g. warn-mcp-down repair instructions) | hook scripts (plain `echo` to stderr) | rendered live to terminal |
 
 These each have different consumers and lifetimes. logging_os is for **operational narration** by humans / agents / dashboards.
+
+## Hub UI consumer
+
+- `/api/logs/recent` — tail of `.cos.log.jsonl`; query params: `level` (debug..fatal floor), `scope` (fnmatch glob), `search` (substring on msg), `since` (relative duration: 30s, 10m, 1h, 2d), `limit` (1..2000).
+- `/api/logs/stream` — SSE; emits one `log` event per new line plus periodic `heartbeat`; supports the same `level` / `scope` / `search` filters.
+- React route `/logs` (global) and `/p/:slug/logs` (project-scoped) — filter bar + table + live tail toggle.
+
+The Logs tab is for application narration (Python `logger.X(...)` records routed through the bridge, plus direct `cos_log` / `cos_say` calls). For hook fire activity use the Observability tab; for cognitive routing decisions use the Cognition tab.
 
 ## Stdlib logging bridge
 
