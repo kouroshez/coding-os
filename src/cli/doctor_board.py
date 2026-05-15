@@ -1,13 +1,10 @@
 """cos doctor checks for board_os (Phase L.9).
 
-Four checks C50–C53 (renamed from C24–C27 to eliminate ID collision with
-graph_os checks C24–C27 — both groups used the same IDs, confusing agent
-output parsers that reference checks by ID):
-  C50 — WIP state is within cap (or flagged warning if active violation).
-  C51 — No stale `in_progress` tasks.
-          Stale = (no Work Log append > 3 days) OR (elapsed > 2× appetite).
-  C52 — Frontmatter schema valid on every `docs/tasks/*.md`.
-  C53 — `docs/tasks.md` index (if present) in sync with frontmatter.
+  board.wip_within_caps      WIP state within cap (or flagged warning on active violation)
+  board.no_stale_tasks       no stale `in_progress` tasks
+                             (stale = no Work Log append > 3 days OR elapsed > 2× appetite)
+  board.frontmatter_valid    frontmatter schema valid on every `docs/tasks/*.md`
+  board.index_synced         `docs/tasks.md` index (if present) in sync with frontmatter
 """
 
 from __future__ import annotations
@@ -51,7 +48,7 @@ def _open_conn(state_dir: Path) -> sqlite3.Connection | None:
         return None
 
 
-def _check_c24_wip(report, conn: sqlite3.Connection, project: Path) -> None:
+def _check_wip_within_caps(report, conn: sqlite3.Connection, project: Path) -> None:
     from cli.doctor import CheckResult as _CR
 
     try:
@@ -99,7 +96,7 @@ def _check_c24_wip(report, conn: sqlite3.Connection, project: Path) -> None:
         )
 
 
-def _check_c25_stale_in_progress(report, conn: sqlite3.Connection) -> None:
+def _check_no_stale_tasks(report, conn: sqlite3.Connection) -> None:
     from cli.doctor import CheckResult as _CR
 
     rows = conn.execute(
@@ -167,7 +164,7 @@ def _check_c25_stale_in_progress(report, conn: sqlite3.Connection) -> None:
         )
 
 
-def _check_c26_frontmatter(report, project: Path) -> None:
+def _check_frontmatter_valid(report, project: Path) -> None:
     from cli.doctor import CheckResult as _CR
 
     try:
@@ -221,7 +218,7 @@ def _check_c26_frontmatter(report, project: Path) -> None:
     )
 
 
-def _check_c27_index_in_sync(report, project: Path) -> None:
+def _check_index_synced(report, project: Path) -> None:
     from cli.doctor import CheckResult as _CR
 
     index = project / "docs" / "tasks.md"
@@ -265,15 +262,15 @@ def run_board_checks(report, project: Path, state_dir: Path) -> None:
     if conn is None:
         report.checks.append(
             _CR("board.wip_within_caps", SEV_WARN,
-                "board DB not reachable — skipping C50-C53")
+                "board DB not reachable — skipping board.wip_within_caps-board.index_synced")
         )
         return
 
     try:
-        _check_c24_wip(report, conn, project)
-        _check_c25_stale_in_progress(report, conn)
-        _check_c26_frontmatter(report, project)
-        _check_c27_index_in_sync(report, project)
+        _check_wip_within_caps(report, conn, project)
+        _check_no_stale_tasks(report, conn)
+        _check_frontmatter_valid(report, project)
+        _check_index_synced(report, project)
     finally:
         conn.close()
 

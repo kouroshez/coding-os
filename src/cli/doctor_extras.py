@@ -1,7 +1,9 @@
-"""Extended doctor checks (C32-C53) — covers gaps surfaced after the src-layout migration.
+"""Extended doctor checks — covers gaps surfaced after the src-layout migration.
 
-Each check follows the existing pattern: takes (project, report), appends a
-CheckResult to report.checks. Wired into run_doctor() at the tail.
+Adds checks across runtime, adapter, hub, scaffold, docs, graph, board, and
+state categories. Each check follows the existing pattern: takes (project,
+report), appends a CheckResult to report.checks. Wired into run_doctor()
+at the tail.
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ logger = logging.getLogger("coding_os.doctor.extras")
 
 
 # ---------------------------------------------------------------------------
-# C32 — optional_extras_installed
+# runtime.optional_extras_installed — optional_extras_installed
 # ---------------------------------------------------------------------------
 
 OPTIONAL_EXTRA_IMPORTS: dict[str, tuple[str, str]] = {
@@ -42,7 +44,7 @@ OPTIONAL_EXTRA_IMPORTS: dict[str, tuple[str, str]] = {
 
 
 def _check_optional_extras_installed(project: Path, report: DoctorReport) -> None:
-    """C32 — every extra whose feature is active is importable."""
+    """runtime.optional_extras_installed — every extra whose feature is active is importable."""
     missing: list[dict[str, str]] = []
     for extra_name, (module_name, feature_description) in OPTIONAL_EXTRA_IMPORTS.items():
         try:
@@ -72,14 +74,14 @@ def _check_optional_extras_installed(project: Path, report: DoctorReport) -> Non
 
 
 # ---------------------------------------------------------------------------
-# C33 — all_installed_adapters_healthy
-# Parallel to C7 (claude-only) — loops over every adapter declared in
+# adapter.all_installed_healthy — all_installed_adapters_healthy
+# Parallel to adapter.configured (claude-only) — loops over every adapter declared in
 # .coding-os.yaml::agents.
 # ---------------------------------------------------------------------------
 
 
 def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -> None:
-    """C33 — each adapter listed in .coding-os.yaml has live hooks, rules, skills, commands."""
+    """adapter.all_installed_healthy — each adapter listed in .coding-os.yaml has live hooks, rules, skills, commands."""
     config_path = project / ".coding-os.yaml"
     if not config_path.exists():
         report.checks.append(
@@ -152,7 +154,7 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
 
 
 # ---------------------------------------------------------------------------
-# C34 — hub_http_responds
+# hub.http_responsive — hub_http_responds
 # ---------------------------------------------------------------------------
 
 HUB_DEFAULT_URL = "http://127.0.0.1:9188/"
@@ -160,7 +162,7 @@ HUB_TIMEOUT_SECONDS = 2.0
 
 
 def _check_hub_http_responds(project: Path, report: DoctorReport) -> None:
-    """C34 — when hub is running on :9188, GET / returns 200."""
+    """hub.http_responsive — when hub is running on :9188, GET / returns 200."""
     try:
         with urllib.request.urlopen(HUB_DEFAULT_URL, timeout=HUB_TIMEOUT_SECONDS) as response:
             status_code = response.status
@@ -193,14 +195,14 @@ def _check_hub_http_responds(project: Path, report: DoctorReport) -> None:
 
 
 # ---------------------------------------------------------------------------
-# C35 — markdown_link_integrity (AGENTS.md + README.md)
+# docs.markdown_link_integrity — markdown_link_integrity (AGENTS.md + README.md)
 # ---------------------------------------------------------------------------
 
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\((?!https?://)([^)#]+\.md)")
 
 
 def _check_markdown_link_integrity(project: Path, report: DoctorReport) -> None:
-    """C35 — markdown links to .md files in AGENTS.md + README.md resolve to existing files."""
+    """docs.markdown_link_integrity — markdown links to .md files in AGENTS.md + README.md resolve to existing files."""
     target_files = [project / "AGENTS.md", project / "README.md"]
     broken_links: list[dict[str, str]] = []
     checked_count = 0
@@ -236,7 +238,7 @@ def _check_markdown_link_integrity(project: Path, report: DoctorReport) -> None:
 
 
 # ---------------------------------------------------------------------------
-# C36 — graph_uid_consistency
+# graph.uid_consistency — graph_uid_consistency
 # Catches stale legacy path prefixes (e.g. `core/` instead of `src/core/`)
 # left behind after a directory rename. Re-index alone does not delete old
 # UIDs, so this surfaces drift the prune step missed.
@@ -257,7 +259,7 @@ LEGACY_PATH_PREFIXES_AFTER_SRC_MIGRATION = (
 
 
 def _check_graph_uid_consistency(project: Path, report: DoctorReport) -> None:
-    """C36 — graph_nodes UIDs do not contain pre-src-migration path prefixes."""
+    """graph.uid_consistency — graph_nodes UIDs do not contain pre-src-migration path prefixes."""
     db_path = project / ".coding-os" / "coding-os.db"
     if not db_path.exists():
         report.checks.append(
@@ -301,7 +303,7 @@ def _check_graph_uid_consistency(project: Path, report: DoctorReport) -> None:
 
 
 # ---------------------------------------------------------------------------
-# C37 — regen_artifact_freshness
+# scaffold.regen_artifacts_fresh — regen_artifact_freshness
 # Derived artifacts (dimension-registry, skill-enforcement, manifest, adapter
 # templates) must not be older than their source stack.yaml files. Drift here
 # means `make regen-*` was skipped after a stack edit.
@@ -324,7 +326,7 @@ REGEN_ARTIFACT_DEPENDENCIES: dict[str, dict[str, Any]] = {
 
 
 def _check_regen_artifact_freshness(project: Path, report: DoctorReport) -> None:
-    """C37 — derived artifacts are not older than their source files."""
+    """scaffold.regen_artifacts_fresh — derived artifacts are not older than their source files."""
     stale_artifacts: list[dict[str, Any]] = []
     for artifact_relative_path, spec in REGEN_ARTIFACT_DEPENDENCIES.items():
         artifact_path = project / artifact_relative_path
@@ -357,7 +359,7 @@ def _check_regen_artifact_freshness(project: Path, report: DoctorReport) -> None
 
 
 # ---------------------------------------------------------------------------
-# C38 — board_config_yamls_valid
+# board.config_yamls_valid — board_config_yamls_valid
 # transition-gates.yaml + verify-suites.yaml must parse cleanly. Malformed
 # board config causes cos task-move / cos verify to fail silently.
 # ---------------------------------------------------------------------------
@@ -369,7 +371,7 @@ BOARD_CONFIG_RELATIVE_PATHS = (
 
 
 def _check_board_config_yamls_valid(project: Path, report: DoctorReport) -> None:
-    """C38 — transition-gates.yaml + verify-suites.yaml parse as YAML."""
+    """board.config_yamls_valid — transition-gates.yaml + verify-suites.yaml parse as YAML."""
     parse_errors: list[dict[str, str]] = []
     parsed_count = 0
     for config_relative_path in BOARD_CONFIG_RELATIVE_PATHS:
@@ -397,14 +399,14 @@ def _check_board_config_yamls_valid(project: Path, report: DoctorReport) -> None
 
 
 # ---------------------------------------------------------------------------
-# C39 — registered_project_paths_exist
+# hub.project_paths_exist — registered_project_paths_exist
 # Hub registry stale entries (deleted dirs) bloat sync-doctor output and
 # block clean automation. This check just flags them.
 # ---------------------------------------------------------------------------
 
 
 def _check_registered_project_paths_exist(project: Path, report: DoctorReport) -> None:
-    """C39 — every entry in ~/.coding-os/registry.json points to an existing dir."""
+    """hub.project_paths_exist — every entry in ~/.coding-os/registry.json points to an existing dir."""
     registry_path = Path.home() / ".coding-os" / "registry.json"
     if not registry_path.exists():
         report.checks.append(
@@ -447,7 +449,7 @@ def _check_registered_project_paths_exist(project: Path, report: DoctorReport) -
 
 
 # ---------------------------------------------------------------------------
-# C40 — runtime_state_within_budget
+# state.size_within_budget — runtime_state_within_budget
 # Catches runaway DB / WAL growth that silently degrades MCP latency.
 # ---------------------------------------------------------------------------
 
@@ -458,7 +460,7 @@ WRITE_AHEAD_LOG_BUDGET_MEGABYTES = 50
 
 
 def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> None:
-    """C40 — coding-os.db and its WAL stay within size budgets."""
+    """state.size_within_budget — coding-os.db and its WAL stay within size budgets."""
     database_path = project / DATABASE_FILE_RELATIVE_PATH
     write_ahead_log_path = project / WRITE_AHEAD_LOG_RELATIVE_PATH
     findings: list[dict[str, Any]] = []
@@ -501,7 +503,7 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
 
 
 # ---------------------------------------------------------------------------
-# C41 — dispatcher_modules_importable
+# mcp.dispatcher_modules_importable — dispatcher_modules_importable
 # Cognition pipeline modules must import — if any breaks, role chains fail
 # silently with `claude_agent_sdk not installed` (which is misleading).
 # ---------------------------------------------------------------------------
@@ -513,7 +515,7 @@ COGNITION_DISPATCHER_MODULES = (
 
 
 def _check_dispatcher_modules_importable(_project: Path, report: DoctorReport) -> None:
-    """C41 — every cognition dispatcher module imports without error."""
+    """mcp.dispatcher_modules_importable — every cognition dispatcher module imports without error."""
     import_failures: list[dict[str, str]] = []
     for module_name in COGNITION_DISPATCHER_MODULES:
         try:
@@ -541,7 +543,7 @@ def _check_dispatcher_modules_importable(_project: Path, report: DoctorReport) -
 
 
 # ---------------------------------------------------------------------------
-# C42 — mcp_envelope_contract_sample
+# mcp.envelope_contract_sample — mcp_envelope_contract_sample
 # Sample a few cos_* tools, verify each returns the {ok, data} or
 # {ok: false, error} envelope. Drift here silently breaks agent retrieval.
 # ---------------------------------------------------------------------------
@@ -554,7 +556,7 @@ ENVELOPE_SAMPLE_TOOLS = (
 
 
 def _check_mcp_envelope_contract_sample(_project: Path, report: DoctorReport) -> None:
-    """C42 — sample MCP tool modules import and expose `ok`/`fail` envelope helpers."""
+    """mcp.envelope_contract_sample — sample MCP tool modules import and expose `ok`/`fail` envelope helpers."""
     contract_failures: list[dict[str, str]] = []
     sampled = 0
     for module_name in ENVELOPE_SAMPLE_TOOLS:
@@ -597,7 +599,7 @@ def _check_mcp_envelope_contract_sample(_project: Path, report: DoctorReport) ->
 
 
 # ---------------------------------------------------------------------------
-# C43 — cli_binary_health
+# runtime.cli_binary_health — cli_binary_health
 # Detects stale globally-installed `cos` shim after editable-install changes.
 # A user running `cos` from a stale path gets `ModuleNotFoundError: cli`,
 # which is exactly the failure mode caught after the src-layout migration.
@@ -607,7 +609,7 @@ import shutil
 
 
 def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:
-    """C43 — global `cos` binary points to a working editable install."""
+    """runtime.cli_binary_health — global `cos` binary points to a working editable install."""
     cos_binary_path = shutil.which("cos")
     if cos_binary_path is None:
         report.checks.append(
@@ -658,7 +660,7 @@ def _check_cli_binary_health(_project: Path, report: DoctorReport) -> None:
 
 
 # ---------------------------------------------------------------------------
-# C44 — scaffold_boundary_yamls_valid
+# scaffold.boundary_yamls_valid — scaffold_boundary_yamls_valid
 # Every stack ships scaffold-boundary.yaml. Aggregator at `cos init` rejects
 # malformed entries, but doctor never gates them — broken boundary slips
 # through until first multi-stack install.
@@ -669,7 +671,7 @@ REQUIRED_BOUNDARY_KEYS = ("version", "stack", "roots", "file_patterns",
 
 
 def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) -> None:
-    """C44 — every templates/<stack>/scaffold-boundary.yaml parses + has required keys."""
+    """scaffold.boundary_yamls_valid — every templates/<stack>/scaffold-boundary.yaml parses + has required keys."""
     templates_dir = project / "src" / "templates"
     if not templates_dir.is_dir():
         report.checks.append(
@@ -724,7 +726,7 @@ def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) ->
 
 
 # ---------------------------------------------------------------------------
-# C45 — agent_identity_file
+# adapter.identity_file_present — agent_identity_file
 # .coding-os/.agent written by install-adapter.sh; cos-env.sh reads it as
 # the authoritative COS_AGENT value.  If missing, all hooks default to
 # wrong paths and presence signals are lost.
@@ -732,7 +734,7 @@ def _check_scaffold_boundary_yamls_valid(project: Path, report: DoctorReport) ->
 
 
 def _check_agent_identity_file(project: Path, report: DoctorReport) -> None:
-    """C45 — .coding-os/.agent exists and contains a non-empty agent name."""
+    """adapter.identity_file_present — .coding-os/.agent exists and contains a non-empty agent name."""
     agent_file = project / ".coding-os" / ".agent"
     if not agent_file.exists():
         report.checks.append(
@@ -761,7 +763,7 @@ def _check_agent_identity_file(project: Path, report: DoctorReport) -> None:
 
 
 # ---------------------------------------------------------------------------
-# C46 — adapter_dir_symlinks_healthy
+# adapter.symlinks_healthy — adapter_dir_symlinks_healthy
 # install-adapter.sh sweeps stale symlinks on every re-run, but if the
 # meta-repo moves after install, rules/ + commands/ + skills/ links silently
 # break.  Doctor surfaces this so `cos install` is the clear fix.
@@ -769,7 +771,7 @@ def _check_agent_identity_file(project: Path, report: DoctorReport) -> None:
 
 
 def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> None:
-    """C46 — rules/, commands/, skills/ in the agent dir have no broken symlinks."""
+    """adapter.symlinks_healthy — rules/, commands/, skills/ in the agent dir have no broken symlinks."""
     agent_file = project / ".coding-os" / ".agent"
     if not agent_file.exists():
         report.checks.append(
@@ -817,16 +819,16 @@ def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> 
 
 
 # ---------------------------------------------------------------------------
-# C47 — consumer_project_hook_symlinks
+# hub.consumer_hook_symlinks_healthy — consumer_project_hook_symlinks
 # Registered consumer projects have live symlinks into the meta-repo's
 # src/core/hooks/.  If the meta-repo moves, those symlinks silently break.
-# C39 only checks that the project path exists; C47 checks the symlinks
+# hub.project_paths_exist only checks that the project path exists; hub.consumer_hook_symlinks_healthy checks the symlinks
 # inside it.  Fix: `cos sync-doctor --repair`.
 # ---------------------------------------------------------------------------
 
 
 def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -> None:
-    """C47 — registered consumer projects have no broken hook symlinks."""
+    """hub.consumer_hook_symlinks_healthy — registered consumer projects have no broken hook symlinks."""
     registry_path = Path.home() / ".coding-os" / "registry.json"
     if not registry_path.exists():
         report.checks.append(
@@ -893,7 +895,7 @@ def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -
 
 
 # ---------------------------------------------------------------------------
-# C48 — hooks_source_cos_env
+# hook.cos_env_sourced — hooks_source_cos_env
 # Rule 3: every hook script must source cos-env.sh so it gets COS_AGENT_DIR,
 # COS_STATE_DIR, and cos_log_hook.  Helper scripts (cos-env.sh itself, state
 # r/w utils, test runners) are exempt — only scripts registered in
@@ -902,7 +904,7 @@ def _check_consumer_project_hook_symlinks(project: Path, report: DoctorReport) -
 
 
 def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
-    """C48 — every registered hook script sources cos-env.sh (Rule 3)."""
+    """hook.cos_env_sourced — every registered hook script sources cos-env.sh (Rule 3)."""
     registry_path = project / "src" / "core" / "hooks" / "registry.yaml"
     hooks_dir = project / "src" / "core" / "hooks"
     if not registry_path.exists() or not hooks_dir.is_dir():
@@ -959,7 +961,7 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
 
 
 def run_extra_checks(project: Path, report: DoctorReport) -> None:
-    """Run C32-C48. Each appends one CheckResult; failures never raise."""
+    """Run runtime.optional_extras_installed-hook.cos_env_sourced. Each appends one CheckResult; failures never raise."""
     for check_function in (
         _check_optional_extras_installed,
         _check_all_installed_adapters_healthy,
@@ -985,7 +987,8 @@ def run_extra_checks(project: Path, report: DoctorReport) -> None:
             logger.debug("extra check %s raised: %s", check_function.__name__, exc)
             report.checks.append(
                 CheckResult(
-                    "Cxx", check_function.__name__.lstrip("_"), SEV_WARN,
-                    f"check raised unexpectedly: {exc}",
+                    "doctor.check_failed", SEV_WARN,
+                    f"{check_function.__name__.lstrip('_')} raised unexpectedly: {exc}",
+                    {"check_function": check_function.__name__},
                 )
             )

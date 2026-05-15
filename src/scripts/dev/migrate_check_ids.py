@@ -67,6 +67,9 @@ CHECK_CALL = re.compile(
 # Standalone "C\d+" literal in tests + comments — only rewritten in test files.
 ID_LITERAL = re.compile(r'"(C\d+)"')
 
+# Bare C-id reference in docstrings / comments (word-boundary, no surrounding quotes).
+BARE_REF = re.compile(r'\bC(\d+)\b')
+
 
 def rewrite(text: str, path: Path) -> tuple[str, int]:
     replacements = 0
@@ -84,7 +87,7 @@ def rewrite(text: str, path: Path) -> tuple[str, int]:
     return CHECK_CALL.sub(sub, text), replacements
 
 
-def rewrite_literals(text: str, path: Path) -> tuple[str, int]:
+def rewrite_literals(text: str) -> tuple[str, int]:
     replacements = 0
 
     def sub(match: re.Match) -> str:
@@ -97,6 +100,21 @@ def rewrite_literals(text: str, path: Path) -> tuple[str, int]:
         return f'"{new_id}"'
 
     return ID_LITERAL.sub(sub, text), replacements
+
+
+def rewrite_bare_refs(text: str) -> tuple[str, int]:
+    replacements = 0
+
+    def sub(match: re.Match) -> str:
+        nonlocal replacements
+        old_id = f"C{match.group(1)}"
+        new_id = ID_MAP.get(old_id)
+        if new_id is None:
+            return match.group(0)
+        replacements += 1
+        return new_id
+
+    return BARE_REF.sub(sub, text), replacements
 
 
 def main() -> int:
@@ -129,12 +147,20 @@ def main() -> int:
             print(f"missing: {path}", file=sys.stderr)
             continue
         original = path.read_text(encoding="utf-8")
-        rewritten, count = rewrite_literals(original, path)
+        rewritten, count = rewrite_literals(original)
         if count == 0:
             print(f"  {path}: no test literals matched")
             continue
         path.write_text(rewritten, encoding="utf-8")
         print(f"  {path}: {count} literals rewritten")
+        total += count
+    for path in targets:
+        original = path.read_text(encoding="utf-8")
+        rewritten, count = rewrite_bare_refs(original)
+        if count == 0:
+            continue
+        path.write_text(rewritten, encoding="utf-8")
+        print(f"  {path}: {count} bare refs rewritten")
         total += count
     print(f"total replacements: {total}")
     return 0

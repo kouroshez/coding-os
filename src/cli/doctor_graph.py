@@ -1,14 +1,18 @@
 """graph_os doctor checks (Phase I.14).
 
-Implements C16-C22 (plan §18.3 / §19 I.14):
+Implements the graph-category checks (plan §18.3 / §19 I.14):
 
-  C16 — graph index freshness           < 3600 s old
-  C17 — parse error rate                < 5 %
-  C18 — graph backend reachable
-  C19 — group manifests healthy (all members resolvable)
-  C20 — embedding migration status      (BGE-M3 progress)
-  C21 — embedding dim distribution       (no split > 7 days)
-  C22 — cascade overflow count           < 10 per 24 h
+  graph.freshness                graph index freshness   < 3600 s old
+  graph.parse_error_rate         parse error rate        < 5 %
+  graph.backend_responsive       graph backend reachable
+  graph.groups_configured        group manifests healthy (all members resolvable)
+  graph.embedding_migration      embedding migration status (BGE-M3 progress)
+  graph.embedding_dimensions     embedding dim distribution (no split > 7 days)
+  graph.cascade_overflow         cascade overflow count  < 10 per 24 h
+  graph.kuzu_state               kuzu directory state
+  graph.evidence_table           graph_evidence_v12 table present
+  graph.orphan_symbols           orphan symbols within budget
+  graph.legacy_kinds             pre-v16 colon-prefixed kinds cleaned
 
 Callable from src/cli/doctor.py::run_doctor so the existing `cos doctor`
 CLI picks everything up — no new command.
@@ -62,8 +66,8 @@ def _graph_last_index_seconds(conn: sqlite3.Connection | None) -> int | None:
     return int(time.time()) - int(row[0])
 
 
-def add_check_c16(report: "DoctorReport", conn: sqlite3.Connection | None) -> None:
-    """C16 — graph freshness."""
+def add_check_freshness(report: "DoctorReport", conn: sqlite3.Connection | None) -> None:
+    """docs.agents_md_present — graph freshness."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     age = _graph_last_index_seconds(conn)
@@ -93,8 +97,8 @@ def add_check_c16(report: "DoctorReport", conn: sqlite3.Connection | None) -> No
     )
 
 
-def add_check_c17(report: "DoctorReport", state_dir: Path) -> None:
-    """C17 — parse error rate on the last auto-reindex log."""
+def add_check_parse_error_rate(report: "DoctorReport", state_dir: Path) -> None:
+    """graph.freshness — parse error rate on the last auto-reindex log."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     log_path = state_dir / ".reindex-errors.log"
@@ -129,8 +133,8 @@ def add_check_c17(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
-def add_check_c18(report: "DoctorReport", state_dir: Path) -> None:
-    """C18 — graph backend reachable."""
+def add_check_backend_responsive(report: "DoctorReport", state_dir: Path) -> None:
+    """graph.parse_error_rate — graph backend reachable."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     probe = _read_backend_probe(state_dir)
@@ -162,8 +166,8 @@ def add_check_c18(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
-def add_check_c19(report: "DoctorReport") -> None:
-    """C19 — group manifests healthy."""
+def add_check_groups_configured(report: "DoctorReport") -> None:
+    """graph.backend_responsive — group manifests healthy."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     groups_root = Path.home() / ".coding-os" / "groups"
@@ -208,8 +212,8 @@ def add_check_c19(report: "DoctorReport") -> None:
     )
 
 
-def add_check_c20(report: "DoctorReport", state_dir: Path) -> None:
-    """C20 — embedding migration status."""
+def add_check_embedding_migration(report: "DoctorReport", state_dir: Path) -> None:
+    """graph.groups_configured — embedding migration status."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     checkpoint = state_dir / ".embedding-migration.json"
@@ -254,12 +258,12 @@ def add_check_c20(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
-def add_check_c21(
+def add_check_embedding_dimensions(
     report: "DoctorReport",
     conn: sqlite3.Connection | None,
     state_dir: Path,
 ) -> None:
-    """C21 — embedding dim distribution."""
+    """graph.embedding_migration — embedding dim distribution."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     if conn is None:
@@ -315,8 +319,8 @@ def add_check_c21(
     )
 
 
-def add_check_c22(report: "DoctorReport", state_dir: Path) -> None:
-    """C22 — cascade overflow count in the last 24h."""
+def add_check_cascade_overflow(report: "DoctorReport", state_dir: Path) -> None:
+    """graph.embedding_dimensions — cascade overflow count in the last 24h."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
     log = state_dir / ".graph-cascade-overflow.log"
@@ -359,7 +363,7 @@ def add_check_c22(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
-def add_check_c24_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
+def add_check_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
     """Surface the kuzu-backend state so users aren't surprised by the
     auto-fallback. Three states: missing (kuzu not in use), populated,
     or empty (auto falls back to SQLite — fine but worth knowing)."""
@@ -397,10 +401,10 @@ def add_check_c24_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
-def add_check_c25_evidence_table(
+def add_check_evidence_table(
     report: "DoctorReport", conn: sqlite3.Connection | None
 ) -> None:
-    """C25: graph_evidence_v12 table is required by sqlite_backend's
+    """graph.evidence_table: graph_evidence_v12 table is required by sqlite_backend's
     schema verifier; without it the backend constructor raises and
     every cos_graph_* tool returns `unavailable`."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN, SEV_FAIL
@@ -442,10 +446,10 @@ def add_check_c25_evidence_table(
     )
 
 
-def add_check_c26_orphan_symbols(
+def add_check_orphan_symbols(
     report: "DoctorReport", conn: sqlite3.Connection | None
 ) -> None:
-    """C26: count code symbols with no contains-parent. Warn when the
+    """graph.orphan_symbols: count code symbols with no contains-parent. Warn when the
     ratio crosses 5 % so the orphan rate doesn't silently regress."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
 
@@ -508,10 +512,10 @@ def add_check_c26_orphan_symbols(
     )
 
 
-def add_check_c27_legacy_kinds(
+def add_check_legacy_kinds(
     report: "DoctorReport", conn: sqlite3.Connection | None
 ) -> None:
-    """C27: every stored kind should be a canonical NodeKind short
+    """graph.legacy_kinds: every stored kind should be a canonical NodeKind short
     form. Legacy colon-prefixed kinds (`code:function`, `doc:heading`)
     indicate the storage-time normalizer is bypassed somewhere."""
     from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
@@ -561,18 +565,18 @@ def run_graph_checks(
     state_dir: Path,
     conn: sqlite3.Connection | None,
 ) -> None:
-    """Run C16-C27. Called from src/cli/doctor.py::run_doctor."""
-    add_check_c16(report, conn)
-    add_check_c17(report, state_dir)
-    add_check_c18(report, state_dir)
-    add_check_c19(report)
-    add_check_c20(report, state_dir)
-    add_check_c21(report, conn, state_dir)
-    add_check_c22(report, state_dir)
-    add_check_c24_kuzu_state(report, state_dir)
-    add_check_c25_evidence_table(report, conn)
-    add_check_c26_orphan_symbols(report, conn)
-    add_check_c27_legacy_kinds(report, conn)
+    """Run docs.agents_md_present-graph.legacy_kinds. Called from src/cli/doctor.py::run_doctor."""
+    add_check_freshness(report, conn)
+    add_check_parse_error_rate(report, state_dir)
+    add_check_backend_responsive(report, state_dir)
+    add_check_groups_configured(report)
+    add_check_embedding_migration(report, state_dir)
+    add_check_embedding_dimensions(report, conn, state_dir)
+    add_check_cascade_overflow(report, state_dir)
+    add_check_kuzu_state(report, state_dir)
+    add_check_evidence_table(report, conn)
+    add_check_orphan_symbols(report, conn)
+    add_check_legacy_kinds(report, conn)
 
 
 __all__ = ["run_graph_checks"]
