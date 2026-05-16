@@ -95,6 +95,7 @@ packages = [
     "core",
     "core.board_os",
     "core.commands",
+    "core.logging_os",
     "core.graph_os",
     "core.graph_os.backends",
     "core.graph_os.bench",
@@ -140,7 +141,7 @@ packages = [
 "scheduled" = "src/core/scheduled"
 
 [tool.pytest.ini_options]
-testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "src/core/logging_os/tests", "tests"]
+testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "src/core/board_os/tests", "src/core/logging_os/tests", "tests"]
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
     "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",
