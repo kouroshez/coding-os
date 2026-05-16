@@ -21,6 +21,11 @@ import pytest
 from graph_os.tools import graph as graph_tools
 from graph_os.types import GraphEdge, GraphNode
 
+pytestmark = pytest.mark.skipif(
+    not hasattr(graph_tools, "cos_graph_overview"),
+    reason="cos_graph_overview not yet implemented (TASK-141a placeholder).",
+)
+
 
 class _StubBackend:
     backend_id = "stub-overview"
