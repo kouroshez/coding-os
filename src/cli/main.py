@@ -652,8 +652,19 @@ def _bootstrap_hub_dir_if_first_run() -> None:
         _logging.getLogger("cli.main").debug("hub-dir bootstrap skipped: %s", exc)
 
 
+from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
+
+def _resolve_cli_version() -> str:
+    try:
+        return _pkg_version("coding-os")
+    except _PackageNotFoundError:
+        return "unknown"
+
+
 @click.group()
-@click.version_option(version="0.2.0", prog_name="coding-os")
+@click.version_option(version=_resolve_cli_version(), prog_name="coding-os")
 def cli() -> None:
     """Coding OS — Agent-agnostic cognitive operating system for AI coding agents."""
     _bootstrap_hub_dir_if_first_run()
