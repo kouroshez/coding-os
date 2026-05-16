@@ -44,7 +44,7 @@ def test_default_dispatcher_satisfies_protocol():
 def test_dispatch_request_roundtrip():
     req = DispatchRequest(
         formula_id="implementer",
-        agent_file="core/thinking_os/agents/implementer.md",
+        agent_file="src/core/thinking_os/agents/implementer.md",
         prompt="implement feature X",
         input_slice={"task_description": "add-dispatcher"},
         persona_id=None,
@@ -62,7 +62,7 @@ def test_default_dispatcher_returns_skipped():
     d = DefaultDispatcher()
     req = DispatchRequest(
         formula_id="analyst",
-        agent_file="core/thinking_os/agents/analyst.md",
+        agent_file="src/core/thinking_os/agents/analyst.md",
         prompt="decompose the task",
     )
     result = asyncio.run(d.dispatch(req))

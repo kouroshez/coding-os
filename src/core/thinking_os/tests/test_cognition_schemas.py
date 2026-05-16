@@ -118,7 +118,7 @@ class TestSupervisorState:
 
 class TestNextAction:
     def test_dispatch_action(self):
-        action = NextAction(action="dispatch", formula="analyst", agent_file="core/thinking_os/agents/analyst.md")
+        action = NextAction(action="dispatch", formula="analyst", agent_file="src/core/thinking_os/agents/analyst.md")
         assert action.action == "dispatch"
         assert action.formula == "analyst"
 

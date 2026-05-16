@@ -314,7 +314,7 @@ def register_cos_dispatch_formula(mcp, db_path):  # noqa: ARG001 — reserved fo
         if not meta:
             return fail("not_found", f"No agent file for formula {formula_id}")
 
-        agent_file = f"core/thinking_os/agents/{meta['_file']}"
+        agent_file = f"src/core/thinking_os/agents/{meta['_file']}"
         agent_path = Path(__file__).resolve().parent.parent / "agents" / meta["_file"]
         prompt_text = agent_path.read_text() if agent_path.exists() else ""
 
@@ -1041,7 +1041,7 @@ def _build_dispatch_request(
     cog = _cog()
     agents = cog.load_agent_registry()
     meta = agents.get(formula_id) or {}
-    agent_file_rel = f"core/thinking_os/agents/{meta.get('_file', f'{formula_id}.md')}"
+    agent_file_rel = f"src/core/thinking_os/agents/{meta.get('_file', f'{formula_id}.md')}"
     agent_path = Path(__file__).resolve().parent.parent / "agents" / meta.get("_file", "")
     prompt_text = agent_path.read_text() if agent_path.exists() else ""
 
@@ -1069,7 +1069,7 @@ def register_cos_dispatch_formula_run(mcp, db_path):
             "EXPLICIT, OPT-IN sub-agent spawn for one role. Costs ~5k tokens "
             "per call (system prompt + input slice + completion) and rebuilds "
             "context inside the sub-agent. PREFER lazy-loading: read "
-            "core/thinking_os/agents/<role>.md inline and produce the output "
+            "src/core/thinking_os/agents/<role>.md inline and produce the output "
             "schema yourself — same accuracy, far fewer tokens, no context "
             "rebuild penalty. Use this tool only when (a) the role's work is "
             "long-running and would dominate the main loop, or (b) you "

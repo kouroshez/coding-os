@@ -230,7 +230,7 @@ def _next_dispatch(
         action="dispatch",
         formula=formula_id,
         input_slice=slice_data,
-        agent_file=f"core/thinking_os/agents/{agent_file}",
+        agent_file=f"src/core/thinking_os/agents/{agent_file}",
         reason=f"Next in chain: {formula_id}",
     )
 
