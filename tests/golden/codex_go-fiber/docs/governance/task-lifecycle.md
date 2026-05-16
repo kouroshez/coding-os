@@ -4,7 +4,7 @@
 > P: Canonical lifecycle for creating, executing, and closing tasks under the Scrumban model (`src/core/board_os/`).
 > R: Creating a task, transitioning status, or aligning task scripts and templates.
 > S: Reading existing task content unrelated to lifecycle change.
-> N: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.md), [src/templates/task-detail.md](src/templates/task-detail.md)
+> N: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.md), [_templates/task-detail.md](_templates/task-detail.md)
 
 > Nav: [Governance Index](./00-index.md) | [Docs Index](../00-index.md)
 

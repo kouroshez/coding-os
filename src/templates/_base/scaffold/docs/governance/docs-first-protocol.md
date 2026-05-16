@@ -53,7 +53,7 @@ If nothing matches → go to **2b**.
 
 ### 2b. No doc? Write doc first.
 
-Open [`src/templates/doc-cheat-sheet.md`](src/templates/doc-cheat-sheet.md), pick the layer (adr · playbook · spec · policy · runbook · reference), create the file, commit it as a separate change BEFORE the code change. Rationale: a code change that needs a NEW spec is by definition not "trivial" — splitting them keeps blame + review clean.
+Open [`_templates/doc-cheat-sheet.md`](_templates/doc-cheat-sheet.md), pick the layer (adr · playbook · spec · policy · runbook · reference), create the file, commit it as a separate change BEFORE the code change. Rationale: a code change that needs a NEW spec is by definition not "trivial" — splitting them keeps blame + review clean.
 
 Anti-pattern: writing code "first to see what shape it takes" then back-filling the spec. Use a `*spike*` or `*exploratory*` task marker if you genuinely need this path; the hook then exempts you, but the code is throwaway by contract.
 
