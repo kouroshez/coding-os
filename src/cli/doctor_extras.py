@@ -102,15 +102,10 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
                         "no adapters installed"))
         return
 
-    adapter_state_dir = {
-        "claude": ".claude",
-        "codex": ".codex",
-        "cursor": ".cursor",
-    }
     unhealthy: list[dict[str, Any]] = []
     healthy_count = 0
     for agent_name in agents:
-        agent_dir_name = adapter_state_dir.get(agent_name, f".{agent_name}")
+        agent_dir_name = f".{agent_name}"
         agent_dir = project / agent_dir_name
         if not agent_dir.is_dir():
             unhealthy.append({"agent": agent_name, "issue": f"missing {agent_dir_name}/ dir"})

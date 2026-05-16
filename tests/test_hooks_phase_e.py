@@ -123,7 +123,7 @@ class TestBlockUvHeredoc:
 class TestBlockMigrationConflict:
     @pytest.fixture
     def db_py(self, tmp_path: Path) -> Path:
-        path = tmp_path / "db.py"
+        path = tmp_path / "database.py"
         path.write_text(
             "MIGRATIONS = []\n"
             "MIGRATIONS.append((1, 'a', _m1))\n"

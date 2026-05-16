@@ -22,7 +22,13 @@ STATE_DIR = ".coding-os"
 DB_FILE = "coding-os.db"
 KUZU_DIR = "graph_os.kuzu"
 KUZU_BAK_DIR = "graph_os.kuzu.empty-bak"
-AGENT_DIRS = ("claude", "codex", "cursor", "amb", "bt")
+
+
+def _agent_dirs() -> tuple[str, ...]:
+    from cli.adapter_registry import load_adapter_registry
+    coding_os_root = Path(__file__).resolve().parent.parent.parent
+    adapters_dir = coding_os_root / "src" / "adapters"
+    return tuple(load_adapter_registry(adapters_dir).keys())
 
 
 def _bytes(n: int) -> str:
@@ -166,7 +172,7 @@ def register(cli: click.Group) -> None:
         if kuzu.exists():
             targets.append(("Kuzu graph", kuzu, _path_size(kuzu)))
         if wipe_sessions:
-            for agent in AGENT_DIRS:
+            for agent in _agent_dirs():
                 ad = state / agent
                 if ad.exists():
                     targets.append((f"agent state ({agent})", ad, _path_size(ad)))

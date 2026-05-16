@@ -1537,8 +1537,16 @@ def session_state(project_dir: str) -> None:
     """Show current session gate, task, and skill state."""
     import time
 
+    from cli.board_commands import _detect_agent_runtime
+
     project = Path(project_dir).resolve()
-    agent = os.environ.get("COS_AGENT") or "claude"
+    agent = os.environ.get("COS_AGENT") or _detect_agent_runtime()
+    if not agent:
+        adapters = sorted(load_adapter_registry(ADAPTERS_DIR).keys())
+        if not adapters:
+            click.echo("No adapters registered under src/adapters/.", err=True)
+            sys.exit(1)
+        agent = adapters[0]
     agent_dir = project / ".coding-os" / agent
 
     if not agent_dir.exists():

@@ -90,7 +90,7 @@ class TestEnforceTemplate:
         assert "ADR" in result.stderr or "Status" in result.stderr
 
     def test_new_adr_blocked_with_template(self, tmp_path: Path) -> None:
-        template_dir = tmp_path / "docs" / "governance" / "src" / "templates"
+        template_dir = tmp_path / "docs" / "governance" / "_templates"
         template_dir.mkdir(parents=True)
         (template_dir / "adr-template.md").write_text("## Status\n")
         target = tmp_path / "docs" / "architecture" / "adr" / "ADR-008-new.md"
@@ -102,7 +102,7 @@ class TestEnforceTemplate:
         assert "ADR template" in result.stderr
 
     def test_new_prd_file_is_blocked(self, tmp_path: Path) -> None:
-        target = tmp_path / "docs" / "PRD" / "01-snapshot-vision.md"
+        target = tmp_path / "docs" / "prd" / "01-snapshot-vision.md"
         result = _invoke(ENFORCE_TEMPLATE, {
             "tool_name": "Write",
             "tool_input": {"file_path": str(target)},
@@ -111,7 +111,7 @@ class TestEnforceTemplate:
         assert "cos setup" in result.stderr
 
     def test_new_breakthrough_file_is_blocked(self, tmp_path: Path) -> None:
-        target = tmp_path / "docs" / "breakthroughs" / "TASK-042-insight.md"
+        target = tmp_path / "docs" / "insights" / "TASK-042-insight.md"
         result = _invoke(ENFORCE_TEMPLATE, {
             "tool_name": "Write",
             "tool_input": {"file_path": str(target)},
@@ -120,7 +120,7 @@ class TestEnforceTemplate:
         assert "cos_learn_narrative" in result.stderr
 
     def test_breakthrough_index_is_allowed(self, tmp_path: Path) -> None:
-        target = tmp_path / "docs" / "breakthroughs" / "00-index.md"
+        target = tmp_path / "docs" / "insights" / "00-index.md"
         result = _invoke(ENFORCE_TEMPLATE, {
             "tool_name": "Write",
             "tool_input": {"file_path": str(target)},
