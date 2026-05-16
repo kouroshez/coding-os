@@ -16,6 +16,17 @@ import pytest
 from graph_os.extractors import code_go, code_json, code_shell, code_toml, code_yaml, contracts
 
 
+def _go_ts_available() -> bool:
+    """True when tree-sitter-go grammar is importable — the AST-driven Go
+    extractor (embedded fields, generics, const/var metadata) needs it.
+    """
+    try:
+        import tree_sitter_go  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Shell extractor
 # ---------------------------------------------------------------------------
@@ -511,6 +522,10 @@ class TestGoExtractor:
         methods = [n for n in r.nodes if n.kind == "code:method"]
         assert any(n.label == "Container.Add" for n in methods)
 
+    @pytest.mark.skipif(
+        not _go_ts_available(),
+        reason="tree-sitter-go grammar not installed (AST-driven Go extractor needed for embedded edges).",
+    )
     def test_struct_field_and_embedded_edges(self):
         r = code_go.extract(
             "p/x.go",
@@ -530,6 +545,10 @@ type Server struct {
         # Named field `Conn Inner` → field_of_type edge to Inner (non-builtin).
         assert any("Inner" in e.target_uid for e in fields)
 
+    @pytest.mark.skipif(
+        not _go_ts_available(),
+        reason="tree-sitter-go grammar not installed (AST-driven Go extractor needed for interface embedding).",
+    )
     def test_interface_embedding_edge(self):
         r = code_go.extract(
             "p/x.go",
@@ -558,6 +577,10 @@ import (
         assert ext["strings"].get("dot_import") is True
         assert ext["example.com/api"].get("alias") == "pb"
 
+    @pytest.mark.skipif(
+        not _go_ts_available(),
+        reason="tree-sitter-go grammar not installed (AST-driven const/var metadata).",
+    )
     def test_const_and_var_nodes(self):
         r = code_go.extract(
             "p/x.go",
@@ -600,6 +623,10 @@ func TestMain(m *testing.M) {}
         assert deco
         assert any("linux && !cgo" in e.target_uid for e in deco)
 
+    @pytest.mark.skipif(
+        not _go_ts_available(),
+        reason="tree-sitter-go grammar not installed (AST-driven generic metadata).",
+    )
     def test_generic_function_marked(self):
         r = code_go.extract(
             "p/x.go",

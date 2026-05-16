@@ -197,8 +197,11 @@ class TestFieldTypes:
         # under the current Python extractor's resolver.  What matters is
         # the source_uid stub format and edge_type.
         sources = {e.source_uid for e in edges}
-        assert "code:class:core/foo.py::Foo.name" in sources
-        assert "code:class:core/foo.py::Foo.count" in sources
+        # Field source-uids carry the `code:variable:` prefix per
+        # code_python._FieldVisitor (line 859) — fields are treated as
+        # qualified variable nodes, not as code:class.
+        assert "code:variable:core/foo.py::Foo.name" in sources
+        assert "code:variable:core/foo.py::Foo.count" in sources
         # Builtin confidence from the new helper.
         assert all(e.confidence == pytest.approx(0.7) for e in edges)
 
