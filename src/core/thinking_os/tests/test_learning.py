@@ -696,7 +696,7 @@ class TestLearnNarrativeEmbedding:
 
 
 # ---------------------------------------------------------------------------
-# Filing-back: markdown artifact in docs/breakthroughs/
+# Filing-back: markdown artifact in docs/insights/
 # ---------------------------------------------------------------------------
 
 from tools.learning import (  # noqa: E402
@@ -780,7 +780,7 @@ class TestFormatNarrativeMarkdown:
 
 
 class TestFileBackNarrative:
-    def test_writes_markdown_under_docs_breakthroughs(
+    def test_writes_markdown_under_docs_insights(
         self, project_conn: sqlite3.Connection, tmp_path: Path
     ) -> None:
         result = _file_back_narrative_safe(
@@ -795,7 +795,7 @@ class TestFileBackNarrative:
         )
         assert result is not None
         assert result.exists()
-        target_dir = tmp_path / "docs" / "breakthroughs"
+        target_dir = tmp_path / "docs" / "insights"
         assert result.parent.resolve() == target_dir.resolve()
         content = result.read_text(encoding="utf-8")
         assert "TASK-700" in content
@@ -856,7 +856,7 @@ class TestFileBackNarrative:
         assert result.get("filed_path")
         filed = Path(result["filed_path"])
         assert filed.exists()
-        assert filed.parent.resolve() == (tmp_path / "docs" / "breakthroughs").resolve()
+        assert filed.parent.resolve() == (tmp_path / "docs" / "insights").resolve()
 
     def test_learn_narrative_no_filed_path_without_project_layout(
         self, conn: sqlite3.Connection
