@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-HOOKS_DIR = REPO_ROOT / "core" / "hooks"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 
 def _run_hook(name: str, *, stdin: str, env: dict[str, str], cwd: Path) -> subprocess.CompletedProcess:
@@ -127,7 +127,7 @@ class TestEnforceRenamePlan:
 
 class TestSkillPresent:
     def test_graph_explorer_skill_file(self):
-        path = REPO_ROOT / "core" / "skills" / "graph-explorer" / "SKILL.md"
+        path = REPO_ROOT / "src" / "core" / "skills" / "graph-explorer" / "SKILL.md"
         assert path.exists()
         text = path.read_text(encoding="utf-8")
         assert "cos_graph_context" in text

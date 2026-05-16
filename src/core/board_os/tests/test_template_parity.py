@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 MASTER = REPO_ROOT / "src" / "templates" / "_base" / "task-detail.template.md"
 SCAFFOLD = (
     REPO_ROOT
@@ -22,7 +22,7 @@ SCAFFOLD = (
     / "scaffold"
     / "docs"
     / "governance"
-    / "src" / "templates"
+    / "_templates"
     / "task-detail.md"
 )
 

@@ -10,7 +10,7 @@ import yaml
 from core.board_os.config import parse_config
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 TEMPLATES = REPO_ROOT / "src" / "templates"
 META = REPO_ROOT / ".coding-os" / "scrumban-config.yaml"
 
