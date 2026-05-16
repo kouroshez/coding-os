@@ -90,7 +90,7 @@ SESSION = "ses-claude-audit-smoke"
 
 GRAPH_FILE = "src/core/graph_os/tools/graph.py"
 GRAPH_UID  = f"code:file:{GRAPH_FILE}"
-FUNC_UID   = "code:function:core/graph_os/tools/graph.py::_resolve_uid"
+FUNC_UID   = "code:function:src/core/graph_os/tools/graph.py::_resolve_uid"
 
 
 # ── tests ────────────────────────────────────────────────────────────────────

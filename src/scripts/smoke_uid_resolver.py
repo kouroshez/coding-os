@@ -139,7 +139,7 @@ def main() -> int:
     # Scenario 9: trace from a known function uid.
     # ------------------------------------------------------------------
     func_uid = (
-        "code:function:core/graph_os/tools/graph.py::_resolve_uid"
+        "code:function:src/core/graph_os/tools/graph.py::_resolve_uid"
     )
     res9 = _call(g.cos_graph_trace, func_uid, max_steps=5)
     _check("trace(known function uid) → ok", res9.get("ok") is True)

@@ -25,15 +25,15 @@ from pathlib import Path
 from typing import Any, Callable
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "core"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "core"))
 
 # Real fixture uids from this repo's live graph (29K+ nodes).
 FIXTURE_FILE = "src/core/thinking_os/server.py"
 FIXTURE_FUNC_UID = (
-    "code:function:core/thinking_os/server.py::thinking_os_health"
+    "code:function:src/core/thinking_os/server.py::thinking_os_health"
 )
-FIXTURE_FILE_UID = "code:file:core/thinking_os/server.py"
-FIXTURE_TARGET_UID = "code:file:core/graph_os/tools/graph.py"
+FIXTURE_FILE_UID = "code:file:src/core/thinking_os/server.py"
+FIXTURE_TARGET_UID = "code:file:src/core/graph_os/tools/graph.py"
 FIXTURE_LABEL_QUERY = "thinking_os_health"
 
 
