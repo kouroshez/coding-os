@@ -6,8 +6,8 @@ Checks database health, hook integrity, gate state, and learning pipeline status
 Outputs both human-readable summary and JSON for programmatic consumption.
 
 Usage:
-    python3 core/thinking_os/health_check.py          # human-readable
-    python3 core/thinking_os/health_check.py --json    # JSON output
+    python3 src/core/thinking_os/health_check.py          # human-readable
+    python3 src/core/thinking_os/health_check.py --json    # JSON output
 """
 
 from __future__ import annotations
@@ -25,11 +25,11 @@ from database import DEFAULT_DB_PATH, get_connection, get_db_stats, get_schema_v
 
 # ── Constants ────────────────────────────────────────────────────
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
-# Hooks live in core/ (the SSOT). Adapter install scripts symlink them
+# Hooks live in src/core/ (the SSOT). Adapter install scripts symlink them
 # into .claude/hooks/ or .codex/hooks/ — but health checks read from source.
-HOOKS_DIR = PROJECT_ROOT / "core" / "hooks"
+HOOKS_DIR = PROJECT_ROOT / "src" / "core" / "hooks"
 
 # Shared state root (per Rule 1 / P2): COS_STATE_DIR overrides; default .coding-os/.
 STATE_DIR = Path(os.environ.get("COS_STATE_DIR", str(PROJECT_ROOT / ".coding-os")))
@@ -321,12 +321,12 @@ def check_learning_pipeline() -> dict:
         if not script_path.exists():
             result["issues"].append(f"Missing component: {script} ({description})")
 
-    # Check if task-done wiring exists. Modern path: cli/board_commands.py
+    # Check if task-done wiring exists. Modern path: src/cli/board_commands.py
     # calls record_outcome via _record_brain_outcome_safe. Legacy path:
-    # core/scripts/task-done.sh or infrastructure/scripts/task-done.sh.
+    # src/core/scripts/task-done.sh or infrastructure/scripts/task-done.sh.
     task_done_candidates = [
-        PROJECT_ROOT / "cli" / "board_commands.py",
-        *PROJECT_ROOT.glob("core/scripts/task-done*"),
+        PROJECT_ROOT / "src" / "cli" / "board_commands.py",
+        *PROJECT_ROOT.glob("src/core/scripts/task-done*"),
         *PROJECT_ROOT.glob("infrastructure/scripts/task-done*"),
     ]
     found_outcome_call = False
