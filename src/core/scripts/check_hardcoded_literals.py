@@ -18,7 +18,7 @@ import re
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 CONTEXTUAL_ALLOW_RE = [
     re.compile(r"^\s*#"),
@@ -39,7 +39,7 @@ def discover_literals() -> set[str]:
     """Read IDs from stack.yaml + adapter.yaml so the guard stays data-driven."""
     result: set[str] = set()
     templates_dir = REPO_ROOT / "src" / "templates"
-    adapters_dir = REPO_ROOT / "adapters"
+    adapters_dir = REPO_ROOT / "src" / "adapters"
     try:
         import yaml  # type: ignore
     except ImportError:
