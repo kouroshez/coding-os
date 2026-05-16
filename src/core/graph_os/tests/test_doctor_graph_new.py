@@ -1,4 +1,4 @@
-"""graph.kuzu_state / graph.evidence_table / graph.orphan_symbols / graph.legacy_kinds doctor checks."""
+"""Doctor checks: graph.kuzu_state, graph.evidence_table, graph.orphan_symbols, graph.legacy_kinds."""
 from __future__ import annotations
 
 import sqlite3
@@ -29,7 +29,7 @@ def _new_report() -> DoctorReport:
 def test_c24_passes_when_kuzu_dir_missing(tmp_path: Path):
     report = _new_report()
     add_check_kuzu_state(report, tmp_path)
-    [c] = [c for c in report.checks if c.id == "C24"]
+    [c] = [c for c in report.checks if c.id == "graph.kuzu_state"]
     assert c.severity == "PASS"
 
 
@@ -39,7 +39,7 @@ def test_c24_warns_when_kuzu_dir_empty(tmp_path: Path):
     (kuzu / "data.kz").write_bytes(b"")
     report = _new_report()
     add_check_kuzu_state(report, tmp_path)
-    [c] = [c for c in report.checks if c.id == "C24"]
+    [c] = [c for c in report.checks if c.id == "graph.kuzu_state"]
     assert c.severity == "WARN"
 
 
@@ -49,14 +49,14 @@ def test_c24_passes_when_kuzu_populated(tmp_path: Path):
     (kuzu / "data.kz").write_bytes(b"x" * 100)
     report = _new_report()
     add_check_kuzu_state(report, tmp_path)
-    [c] = [c for c in report.checks if c.id == "C24"]
+    [c] = [c for c in report.checks if c.id == "graph.kuzu_state"]
     assert c.severity == "PASS"
 
 
 def test_c25_passes_with_migrated_db():
     report = _new_report()
     add_check_evidence_table(report, _migrated_conn())
-    [c] = [c for c in report.checks if c.id == "C25"]
+    [c] = [c for c in report.checks if c.id == "graph.evidence_table"]
     assert c.severity == "PASS"
 
 
@@ -64,7 +64,7 @@ def test_c25_fails_when_table_missing():
     conn = sqlite3.connect(":memory:")
     report = _new_report()
     add_check_evidence_table(report, conn)
-    [c] = [c for c in report.checks if c.id == "C25"]
+    [c] = [c for c in report.checks if c.id == "graph.evidence_table"]
     assert c.severity == "FAIL"
 
 
@@ -72,7 +72,7 @@ def test_c26_passes_with_no_symbols():
     conn = _migrated_conn()
     report = _new_report()
     add_check_orphan_symbols(report, conn)
-    [c] = [c for c in report.checks if c.id == "C26"]
+    [c] = [c for c in report.checks if c.id == "graph.orphan_symbols"]
     assert c.severity == "PASS"
 
 
@@ -80,7 +80,7 @@ def test_c27_passes_when_kinds_canonical():
     conn = _migrated_conn()
     report = _new_report()
     add_check_legacy_kinds(report, conn)
-    [c] = [c for c in report.checks if c.id == "C27"]
+    [c] = [c for c in report.checks if c.id == "graph.legacy_kinds"]
     assert c.severity == "PASS"
 
 
@@ -96,5 +96,5 @@ def test_c27_warns_when_legacy_kind_present():
     conn.commit()
     report = _new_report()
     add_check_legacy_kinds(report, conn)
-    [c] = [c for c in report.checks if c.id == "C27"]
+    [c] = [c for c in report.checks if c.id == "graph.legacy_kinds"]
     assert c.severity == "WARN"
