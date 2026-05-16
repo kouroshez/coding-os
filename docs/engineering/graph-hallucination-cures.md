@@ -7,7 +7,7 @@
 > R: Routing decisions, post-mortem analysis, deciding when graph_os is
 >    cheaper than read+grep.
 > S: Designing new graph extractors. See `docs/engineering/graph_os-queries.md`.
-> N: [graph_os-queries.md](graph_os-queries.md), [graph-use-cases.md](graph-use-cases.md), [src/core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+> N: [graph_os-queries.md](graph_os-queries.md), [graph-use-cases.md](graph-use-cases.md), [src/core/skills/graph-explorer/SKILL.md](../../src/core/skills/graph-explorer/SKILL.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 

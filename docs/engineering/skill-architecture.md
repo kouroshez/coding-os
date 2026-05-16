@@ -55,7 +55,7 @@ allowed-tools:
 ---
 ```
 
-When [enforce-skill.sh](../../core/hooks/enforce-skill.sh) matches a file to `python-django`, the agent loads `python-django` AND transitively loads every `depends_on` entry. The resulting context is: universal code quality (clean-code) + cross-stack backend patterns (backend-fundamentals) + Django specifics (python-django). No duplication at source; one skill per task at load time.
+When [enforce-skill.sh](../../src/core/hooks/enforce-skill.sh) matches a file to `python-django`, the agent loads `python-django` AND transitively loads every `depends_on` entry. The resulting context is: universal code quality (clean-code) + cross-stack backend patterns (backend-fundamentals) + Django specifics (python-django). No duplication at source; one skill per task at load time.
 
 **Why this beats install-time concatenation:** install-time composition (pre-concatenating `backend-fundamentals` into `python-django`) would save one skill-load round-trip but breaks skill independence. If the agent is reviewing a non-Django backend project and needs `backend-fundamentals` alone, it can still load it standalone.
 
@@ -90,7 +90,7 @@ Runtime composition via `depends_on` gives the same DRYness with zero regen step
 
 ## Interaction with `enforce-skill.sh`
 
-The hook reads [src/core/rules/skill-enforcement.md](../../core/rules/skill-enforcement.md) — a table mapping file globs to primary + secondary skills. That table is **generated** from `src/templates/*/stack.yaml` by `make regen-rules`. Today the table lists:
+The hook reads [src/core/rules/skill-enforcement.md](../../src/core/rules/skill-enforcement.md) — a table mapping file globs to primary + secondary skills. That table is **generated** from `src/templates/*/stack.yaml` by `make regen-rules`. Today the table lists:
 
 | Globs | Primary | Secondary |
 |---|---|---|
@@ -100,7 +100,7 @@ The hook reads [src/core/rules/skill-enforcement.md](../../core/rules/skill-enfo
 | `src/backend/**/*.go` | `go-fiber` | `clean-code` |
 | `src/frontend/**/*.{ts,tsx}` | `nextjs-react` | `clean-code`, `frontend-design` |
 
-Once `backend-fundamentals` and `frontend-fundamentals` ship, the `stack.yaml` files should declare them as additional secondaries (or the stack skills declare `depends_on:` and the hook resolves transitively). This keeps [skill-enforcement.md](../../core/rules/skill-enforcement.md) readable while the full dependency graph is computed by the hook.
+Once `backend-fundamentals` and `frontend-fundamentals` ship, the `stack.yaml` files should declare them as additional secondaries (or the stack skills declare `depends_on:` and the hook resolves transitively). This keeps [skill-enforcement.md](../../src/core/rules/skill-enforcement.md) readable while the full dependency graph is computed by the hook.
 
 ## Path-scoped rules (distinct from skills)
 
@@ -115,8 +115,8 @@ A skill is invoked on demand (`Skill skill: "python-django"`); a **rule** loads 
 
 ## References
 
-- [src/core/rules/skill-enforcement.md](../../core/rules/skill-enforcement.md) — generated globs → skills table
-- [src/core/hooks/enforce-skill.sh](../../core/hooks/enforce-skill.sh) — the gating hook
-- [src/core/docs/agent-workflow.md](../../core/docs/agent-workflow.md) § Hook & Skill Enforcement
+- [src/core/rules/skill-enforcement.md](../../src/core/rules/skill-enforcement.md) — generated globs → skills table
+- [src/core/hooks/enforce-skill.sh](../../src/core/hooks/enforce-skill.sh) — the gating hook
+- [src/core/docs/agent-workflow.md](../../src/core/docs/agent-workflow.md) § Hook & Skill Enforcement
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — all hooks catalog
 - Claude Certified Architect Foundations → Task Statement 3.2 and 3.3

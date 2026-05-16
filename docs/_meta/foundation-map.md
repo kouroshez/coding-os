@@ -6,7 +6,7 @@
 > S: Direct relative links are clearer than a shortcode; one-off references; deep links to a heading anchor.
 > N: `./00-index.md`, `./governance/docs-system.md`, `./governance/docs-first-protocol.md`
 
-> Nav: [Docs Index](./00-index.md)
+> Nav: [Docs Index](../00-index.md)
 
 <!--
   Format contract — DO NOT BREAK:

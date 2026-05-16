@@ -129,8 +129,8 @@ Diagnostic order:
 
 ## References
 
-- [src/core/rules/thinking_os.md](../../core/rules/thinking_os.md) — example always-active rule
-- [src/core/rules/skill-enforcement.md](../../core/rules/skill-enforcement.md) — generated from `src/templates/*/stack.yaml`
+- [src/core/rules/thinking_os.md](../../src/core/rules/thinking_os.md) — example always-active rule
+- [src/core/rules/skill-enforcement.md](../../src/core/rules/skill-enforcement.md) — generated from `src/templates/*/stack.yaml`
 - [AGENTS.md](../../AGENTS.md) — where rules are referenced
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — `check-agents-md-refs.sh` + `block-protected-files.sh`
 - [docs/engineering/adapter-parity.md](adapter-parity.md) — confirms both adapters symlink the same rule files

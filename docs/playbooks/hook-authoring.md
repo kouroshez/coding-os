@@ -4,7 +4,7 @@
 > P: Step-by-step guide for adding, renaming, or removing a hook in the meta-repo's hook regime.
 > R: Adding a PreToolUse / PostToolUse / SessionStart / Stop / UserPromptSubmit hook, or extending an existing one with a new event/matcher.
 > S: Configuring a hook in a single consumer project — that is a settings.json change, not a hook authoring task.
-> N: [registry.yaml](../../core/hooks/registry.yaml), [hooks-reference.md](../engineering/hooks-reference.md), [adapter-parity.md](../engineering/adapter-parity.md), [bash-heredoc-deadlock.md](../engineering/bash-heredoc-deadlock.md)
+> N: [registry.yaml](../../src/core/hooks/registry.yaml), [hooks-reference.md](../engineering/hooks-reference.md), [adapter-parity.md](../engineering/adapter-parity.md), [bash-heredoc-deadlock.md](../engineering/bash-heredoc-deadlock.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -30,8 +30,8 @@ A hook is a single script that runs synchronously between the agent and the kern
    - Lifecycle: `entry` (hook started — emit only when the hook is actually going to do work, not before the first guard), `dispatched` (async work kicked off), `spawned` (subprocess started).
    - Outcome: `fire` (main path executed), `ok` / `pass` / `allowed` (passed clean), `block` (refused write/exec), `warn` (non-blocking warning), `advisory` (gentle nudge), `reminder` (info nudge).
    - Skip reasons: `skip` (debounced / sanity / missing-dep), `disabled` (env-var off), `debounced`, plus domain-specific tokens like `non-rename`, `no-strings`, `unchanged`.
-   The UI palette in [HookStream.tsx](../../core/web/ui/src/features/observability/HookStream.tsx) colors `fire` / `block` / `warn` / `skip` / `pass` / `stale-gate` specifically; everything else renders neutral gray.
-   **Deferred-entry pattern (signal-to-noise):** if the hook bails on >90% of invocations (typical for `Bash` matchers that only care about specific commands), defer the `entry` log until after the first guard passes. Examples in the wild: [auto-reindex-shell-ops.sh](../../core/hooks/auto-reindex-shell-ops.sh), [search-verify-remaining.sh](../../core/hooks/search-verify-remaining.sh), [enforce-graph-context.sh](../../core/hooks/enforce-graph-context.sh).
+   The UI palette in [HookStream.tsx](../../src/core/web/ui/src/features/observability/HookStream.tsx) colors `fire` / `block` / `warn` / `skip` / `pass` / `stale-gate` specifically; everything else renders neutral gray.
+   **Deferred-entry pattern (signal-to-noise):** if the hook bails on >90% of invocations (typical for `Bash` matchers that only care about specific commands), defer the `entry` log until after the first guard passes. Examples in the wild: [auto-reindex-shell-ops.sh](../../src/core/hooks/auto-reindex-shell-ops.sh), [search-verify-remaining.sh](../../src/core/hooks/search-verify-remaining.sh), [enforce-graph-context.sh](../../src/core/hooks/enforce-graph-context.sh).
 5. **Register in `registry.yaml`.** One row per hook, with description, category, phase, timeout, and the `events:` list. Each event entry pairs an `event` (PreToolUse / PostToolUse / SessionStart / UserPromptSubmit / Stop) with a `matcher` (Bash, Write|Edit, Skill, startup, compact|resume, etc.) and an optional `status_message`.
 6. **Regenerate adapter templates.** `make regen-adapter-templates`. Verify the diff in `src/adapters/claude/settings.template.json` (and codex / cursor) matches your intent.
 7. **Add a test if behavior is non-trivial.** `tests/test_hook_<name>.py` or extend `tests/test_hook_registry_integration.py`.

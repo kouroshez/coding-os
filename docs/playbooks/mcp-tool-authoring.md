@@ -20,7 +20,7 @@ Every `cos_*` tool returns `ok(data)` or `fail(category, message)`. Internally e
 
 1. **Decide the surface.** A `cos_*` tool is read-only or mutating but never both. Read-only tools live under `tools/<domain>.py`. Mutating tools that touch the DB go through a workflow module (`src/core/board_os/workflow.py` is the model).
 2. **Pick the file.** `src/core/thinking_os/tools/` for cognitive tools, `src/core/graph_os/tools/` for graph queries, `src/core/board_os/mcp_tools.py` for board ops. Don't open a new file unless the existing one passes 800 lines.
-3. **Write the signature.** Use Pydantic models for any non-trivial input. Field names must mirror what the agent will read back — see [api-contract-discipline.md](../../core/rules/api-contract-discipline.md).
+3. **Write the signature.** Use Pydantic models for any non-trivial input. Field names must mirror what the agent will read back — see [api-contract-discipline.md](../../src/core/rules/api-contract-discipline.md).
 4. **One-line docstring.** FastMCP exposes the docstring as the tool description. One actionable sentence — what the tool does and the canonical envelope key it returns. No multi-paragraph blocks.
 5. **Wrap with `@safe_tool`.** Always. Never rely on the framework's default error path.
 6. **Write the unit test.** `src/core/<domain>/tests/test_<module>.py`. Test the success envelope, the failure envelope, and at least one Pydantic validation error.

@@ -16,7 +16,7 @@ Read when: Codex behavior differs from Claude · evaluating whether a new hook w
 
 ## Parity matrix (as of 2026-04-18)
 
-The renderer at [src/cli/hook_renderer.py](../../cli/hook_renderer.py) reads [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) and **filters every (event, matcher) pair** against each adapter's capabilities declared in [src/adapters/<id>/adapter.yaml](../../adapters/claude/adapter.yaml). A pair the runtime cannot trigger is skipped silently.
+The renderer at [src/cli/hook_renderer.py](../../src/cli/hook_renderer.py) reads [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) and **filters every (event, matcher) pair** against each adapter's capabilities declared in [src/adapters/<id>/adapter.yaml](../../src/adapters/claude/adapter.yaml). A pair the runtime cannot trigger is skipped silently.
 
 Run the live audit yourself:
 
@@ -169,21 +169,21 @@ A: That was caused by relative commands in `.codex/hooks.json`. The installer no
 
 ## `adapter.yaml::presence` — Hub board contract
 
-Optional block on each adapter manifest (validated by [src/core/schemas/adapter.schema.json](../../core/schemas/adapter.schema.json)):
+Optional block on each adapter manifest (validated by [src/core/schemas/adapter.schema.json](../../src/core/schemas/adapter.schema.json)):
 
-- **`signal`:** today only `hook_timestamps` — session JSON is updated by [src/core/hooks/agent-presence.sh](../../core/hooks/agent-presence.sh) on lifecycle hooks.
+- **`signal`:** today only `hook_timestamps` — session JSON is updated by [src/core/hooks/agent-presence.sh](../../src/core/hooks/agent-presence.sh) on lifecycle hooks.
 - **`presence_events`:** documentation list of which events refresh presence for this runtime (mirrors `hook_capabilities` + dispatchers; not interpreted by Python logic beyond the Hub manifest reader).
-- **`hub_glyph` / `hub_color`:** pill metadata for `GET /api/board/list` → `agent_manifest` ([src/core/board_os/hub_adapter_manifest.py](../../core/board_os/hub_adapter_manifest.py)).
+- **`hub_glyph` / `hub_color`:** pill metadata for `GET /api/board/list` → `agent_manifest` ([src/core/board_os/hub_adapter_manifest.py](../../src/core/board_os/hub_adapter_manifest.py)).
 
 ## Claude adapter — curriculum alignment + Agent SDK (P8)
 
 - **Anthropic “Certified Architect — Foundations” instructor guide** (internal copy: [instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md](../code-os-core-docs/instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md)) frames Domain 1 orchestration, **Task 1.5** (hooks for deterministic enforcement vs prompt-only), MCP (Domain 2), and session lifecycle (**Task 1.7**). Use it as a **design checklist** when extending `src/adapters/claude/` hooks or documentation — not as exam content copied into `src/core/`.
-- **Official Claude Agent SDK:** any programmatic SDK usage stays under `src/adapters/claude/` (e.g. [sdk_dispatcher.py](../../adapters/claude/sdk_dispatcher.py)). **Rule P8** in `AGENTS.md` — never import an adapter SDK from `src/core/**`; the kernel exposes MCP tools (`cos_*`) and hook contracts only.
+- **Official Claude Agent SDK:** any programmatic SDK usage stays under `src/adapters/claude/` (e.g. [sdk_dispatcher.py](../../src/adapters/claude/sdk_dispatcher.py)). **Rule P8** in `AGENTS.md` — never import an adapter SDK from `src/core/**`; the kernel exposes MCP tools (`cos_*`) and hook contracts only.
 
 ## References
 
-- [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) — SSOT for hook registrations
-- [src/adapters/claude/adapter.yaml](../../adapters/claude/adapter.yaml) + [src/adapters/codex/adapter.yaml](../../adapters/codex/adapter.yaml) — capability declarations
-- [src/cli/hook_renderer.py](../../cli/hook_renderer.py) — the filter
+- [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) — SSOT for hook registrations
+- [src/adapters/claude/adapter.yaml](../../src/adapters/claude/adapter.yaml) + [src/adapters/codex/adapter.yaml](../../src/adapters/codex/adapter.yaml) — capability declarations
+- [src/cli/hook_renderer.py](../../src/cli/hook_renderer.py) — the filter
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — per-hook catalog
 - Codex CLI hook spec: <https://developers.openai.com/codex/hooks>

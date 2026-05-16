@@ -349,4 +349,4 @@ A regression below these caps in CI blocks the PR.
 - [docs/engineering/graph-hallucination-cures.md](../engineering/graph-hallucination-cures.md)
 - [docs/engineering/graph_os-queries.md](../engineering/graph_os-queries.md)
 - [docs/playbooks/db-reset.md](db-reset.md)
-- [src/core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+- [src/core/skills/graph-explorer/SKILL.md](../../src/core/skills/graph-explorer/SKILL.md)

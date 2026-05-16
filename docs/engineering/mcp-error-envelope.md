@@ -2,7 +2,7 @@
 # MCP Error Envelope — `cos_*` Tool Response Contract
 
 Purpose: Canonical response shape for every `cos_*` MCP tool exposed by
-[src/core/thinking_os/server.py](../../core/thinking_os/server.py). The envelope
+[src/core/thinking_os/server.py](../../src/core/thinking_os/server.py). The envelope
 gives consuming agents enough structure to decide whether to retry, escalate,
 or surface an error to the user — without parsing prose.
 
@@ -121,7 +121,7 @@ assert payload["error"]["retryable"] is False
 ## Migration status
 
 The envelope is the contract for **all** `cos_*` tools registered in
-[src/core/thinking_os/server.py](../../core/thinking_os/server.py). Internal helper
+[src/core/thinking_os/server.py](../../src/core/thinking_os/server.py). Internal helper
 functions under `src/core/thinking_os/tools/*.py` still return plain Python values
 (dicts/lists) — the envelope is applied only at the MCP boundary so unit tests
 for helpers stay simple.
@@ -138,7 +138,7 @@ for helpers stay simple.
 ## OpenAPI / typed-client mirror
 
 The HTTP wrappers in `src/core/web/routes/**` translate the MCP envelope to the
-matching HTTP shape via `_envelope.unwrap()` ([src/core/web/_envelope.py](../../core/web/_envelope.py)). For OpenAPI codegen the same module exposes Pydantic mirrors so generated clients (e.g. `openapi-typescript`) get typed error bodies instead of `unknown`:
+matching HTTP shape via `_envelope.unwrap()` ([src/core/web/_envelope.py](../../src/core/web/_envelope.py)). For OpenAPI codegen the same module exposes Pydantic mirrors so generated clients (e.g. `openapi-typescript`) get typed error bodies instead of `unknown`:
 
 ```python
 from web._envelope import ErrorBody, ErrorEnvelope, ENVELOPE_ERROR_RESPONSES

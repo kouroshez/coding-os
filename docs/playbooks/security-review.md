@@ -4,7 +4,7 @@
 > P: OWASP-aligned per-change checklist applied as an overlay regardless of the primary domain (backend, frontend, infra, mobile).
 > R: Any change that touches authentication, authorization, secrets, input handling, file IO, network calls, or data persistence.
 > S: Pure cosmetic changes (CSS, copy, dead code removal) that do not affect any of the surfaces above.
-> N: [api-contract-discipline.md](../../core/rules/api-contract-discipline.md), [mcp-error-envelope.md](../engineering/mcp-error-envelope.md), [security-review-template.md](../governance/templates/security-review-template.md)
+> N: [api-contract-discipline.md](../../src/core/rules/api-contract-discipline.md), [mcp-error-envelope.md](../engineering/mcp-error-envelope.md), [security-review-template.md](../governance/_templates/security-review-template.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 

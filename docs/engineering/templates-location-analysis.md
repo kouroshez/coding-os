@@ -18,7 +18,7 @@ Consumer projects created by `cos init` receive a copy of every template under `
 - Free to customize per-project
 - Synced on `cos update` **unless** the consumer modified them (collision detection via `installed-manifest.json`)
 
-The four enforced markdown classes ([enforce-template.sh](../../core/hooks/enforce-template.sh)) reach into these files via relative paths.
+The four enforced markdown classes ([enforce-template.sh](../../src/core/hooks/enforce-template.sh)) reach into these files via relative paths.
 
 ## The three candidate architectures
 
@@ -98,7 +98,7 @@ coding-os is closer to Nx / Rails engines than to Rails itself — because we sh
 
 ### Enforcement-hook complexity
 
-[enforce-template.sh](../../core/hooks/enforce-template.sh) reads file paths today:
+[enforce-template.sh](../../src/core/hooks/enforce-template.sh) reads file paths today:
 
 ```bash
 TEMPLATE="$DOCS_ROOT/governance/_templates/adr-template.md"

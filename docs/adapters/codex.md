@@ -152,6 +152,6 @@ appears in the capability list.
 
 - [docs/adapters/claude-sdk.md](claude-sdk.md) — Claude SDK reference implementation
 - [AGENTS.md §P8](../../AGENTS.md) — Adapter-SDK autonomy principle
-- [src/core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py) — generic adapter dispatcher loader
-- [src/adapters/codex/sdk_dispatcher.py](../../adapters/codex/sdk_dispatcher.py) — Codex subprocess dispatcher
+- [src/core/thinking_os/dispatcher.py](../../src/core/thinking_os/dispatcher.py) — generic adapter dispatcher loader
+- [src/adapters/codex/sdk_dispatcher.py](../../src/adapters/codex/sdk_dispatcher.py) — Codex subprocess dispatcher
 - [docs/engineering/board-thinking-os-coupling.md](../engineering/board-thinking-os-coupling.md) — WIP + task coupling

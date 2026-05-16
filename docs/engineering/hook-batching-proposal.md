@@ -4,7 +4,7 @@
 Purpose: Design exploration for collapsing N PreToolUse Write/Edit hooks into one batched super-hook.
 Read when: Considering hook performance refactors.
 Skip when: Looking for the live registry — see src/core/hooks/registry.yaml.
-Read next: [registry.yaml](../../core/hooks/registry.yaml)
+Read next: [registry.yaml](../../src/core/hooks/registry.yaml)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -103,7 +103,7 @@ gold-standard parity tests is a footgun. Splitting this off lets us:
 ## Related work
 
 - [hooks-reference.md](hooks-reference.md) — current hook catalogue.
-- [registry.yaml](../../core/hooks/registry.yaml) — SSOT for hook
+- [registry.yaml](../../src/core/hooks/registry.yaml) — SSOT for hook
   registration that drives adapter template generation.
 - [state-files.md](state-files.md) — session-state taxonomy referenced
   by every gate hook.

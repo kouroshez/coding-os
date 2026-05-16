@@ -7,7 +7,7 @@ Read when: a `Write` call on a markdown file is blocked · adding a new structur
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-**Hook source:** [src/core/hooks/enforce-template.sh](../../core/hooks/enforce-template.sh)
+**Hook source:** [src/core/hooks/enforce-template.sh](../../src/core/hooks/enforce-template.sh)
 
 ## Design principle
 
@@ -17,7 +17,7 @@ Hard enforcement ONLY for SSOT documents — artifacts that feed the cognitive l
 
 | Class | Path pattern | Required bootstrap | Template source |
 |---|---|---|---|
-| **Task** | `docs/tasks/TASK-*.md` | `make task-create NUM=<N> TITLE="..."` | [task-detail.md](../../templates/_base/scaffold/docs/governance/_templates/task-detail.md) |
+| **Task** | `docs/tasks/TASK-*.md` | `make task-create NUM=<N> TITLE="..."` | [task-detail.md](../../src/templates/_base/scaffold/docs/governance/_templates/task-detail.md) |
 | **ADR** | `docs/architecture/adr/ADR-*.md` | copy from `docs/governance/_templates/adr-template.md` | project-local template |
 | **PRD** | `docs/prd/NN-*.md` | `cos setup --mode interactive` (4-Q wizard) or `--mode import-prd` | PRD classifier |
 | **Breakthrough** | `docs/insights/*.md` | `cos_learn_narrative` MCP tool | written by tool |

@@ -6,7 +6,7 @@ Read when: Investigating why a task is blocked, or clearing up resolved question
 Skip when: You're not handling a blocked task.
 Read next: The blocked task file referenced in each question.
 
-> Nav: [Docs Index](./00-index.md)
+> Nav: [Docs Index](../00-index.md)
 
 <!-- Blocker questions are logged here automatically by `make task-block`.
      Format: each question is `Q-NNN: <question>` followed by context lines.

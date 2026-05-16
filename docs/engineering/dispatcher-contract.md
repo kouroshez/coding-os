@@ -29,7 +29,7 @@ need to know which runtime it is talking to.
 
 ## Contract Surface
 
-Defined in [src/core/thinking_os/dispatcher.py](../../core/thinking_os/dispatcher.py).
+Defined in [src/core/thinking_os/dispatcher.py](../../src/core/thinking_os/dispatcher.py).
 
 ### IO models
 

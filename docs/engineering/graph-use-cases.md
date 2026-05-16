@@ -6,7 +6,7 @@
 >    layer can. Pairs with the hallucination-cure matrix.
 > R: Daily reference for agents and developers deciding "graph or grep?".
 > S: Internals of any single tool — see [graph_os-queries.md](graph_os-queries.md).
-> N: [graph-hallucination-cures.md](graph-hallucination-cures.md), [graph_os-queries.md](graph_os-queries.md), [src/core/skills/graph-explorer/SKILL.md](../../core/skills/graph-explorer/SKILL.md)
+> N: [graph-hallucination-cures.md](graph-hallucination-cures.md), [graph_os-queries.md](graph_os-queries.md), [src/core/skills/graph-explorer/SKILL.md](../../src/core/skills/graph-explorer/SKILL.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 

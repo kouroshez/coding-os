@@ -106,5 +106,5 @@ the pre-mode baseline.
 ## See also
 
 - [docs/governance/critical-rules.md](../governance/critical-rules.md) — Rule 18 (task reconciliation), Rule 7 (governance gating).
-- [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) — `classify-task-mode` registration.
-- [src/core/board_os/_agent_runtime.py](../../core/board_os/_agent_runtime.py) — `resolve_agent_session` (G1, attribution resolver) shares the same "stay adapter-agnostic" contract.
+- [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) — `classify-task-mode` registration.
+- [src/core/board_os/_agent_runtime.py](../../src/core/board_os/_agent_runtime.py) — `resolve_agent_session` (G1, attribution resolver) shares the same "stay adapter-agnostic" contract.

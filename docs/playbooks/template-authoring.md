@@ -4,7 +4,7 @@
 > P: Procedure for adding a new stack under `src/templates/<id>/` (e.g. a new framework like django / nextjs / go-fiber) or extending an existing one.
 > R: Adding a stack the meta-repo doesn't yet support, or evolving an existing stack's scaffold / skills / dimensions.
 > S: Modifying a single project's `<project>/templates/`-derived files — that's a consumer-side concern.
-> N: [meta-project.md](../architecture/meta-project.md), [scaffold-boundary-contract.md](../governance/scaffold-boundary-contract.md), [anatomy-contract.md](../governance/anatomy-contract.md), [stack.schema.json](../../core/schemas/stack.schema.json)
+> N: [meta-project.md](../architecture/meta-project.md), [scaffold-boundary-contract.md](../governance/scaffold-boundary-contract.md), [anatomy-contract.md](../governance/anatomy-contract.md), [stack.schema.json](../../src/core/schemas/stack.schema.json)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -21,7 +21,7 @@ Three contracts every stack template must satisfy:
 ## Steps to add a new stack
 
 1. **Pick the id.** Lowercase, kebab-case, no version suffix. `nextjs`, `go-fiber`, `react-native`. Match the framework's most-used display name.
-2. **Author `stack.yaml`.** Required fields per [stack.schema.json](../../core/schemas/stack.schema.json): `version`, `id`, `label`, `category`, `primary_skill`, `skills`, `substitutions`, `rules`, `dimensions`, `skill_enforcement`. Validate with `python -m jsonschema -i src/templates/<id>/stack.yaml src/core/schemas/stack.schema.json`.
+2. **Author `stack.yaml`.** Required fields per [stack.schema.json](../../src/core/schemas/stack.schema.json): `version`, `id`, `label`, `category`, `primary_skill`, `skills`, `substitutions`, `rules`, `dimensions`, `skill_enforcement`. Validate with `python -m jsonschema -i src/templates/<id>/stack.yaml src/core/schemas/stack.schema.json`.
 3. **Author `scaffold-boundary.yaml`.** Lists `roots` (where this stack writes), `imports_from` (other roots it may read), `forbids_writing_in` (out-of-bounds paths). Used by the boundary linter.
 4. **Author `scaffold/`.** Files written into the consumer at init time — base-level config, skeleton entry points, README sections specific to the stack. Keep this minimal — anything that must stay in sync forever belongs in `src/core/` or in a skill, not in scaffold.
 5. **Author the primary skill.** `skills/<primary_skill>/SKILL.md` plus `references/anatomy.md`. Anatomy must satisfy the [anatomy-contract.md](../governance/anatomy-contract.md) shape — boundary, layout map, entity recipes, conventions.

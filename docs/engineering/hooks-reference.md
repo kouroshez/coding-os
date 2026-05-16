@@ -7,7 +7,7 @@ Read when: onboarding to hook authoring · deciding which hook governs a specifi
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-**SSOT for registration:** [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml). Adapter template files are GENERATED from it by `make regen-adapter-templates`. Never hand-edit `src/adapters/*/settings.template.json` or `src/adapters/*/hooks.template.json` — the `warn-template-drift.sh` hook catches drift.
+**SSOT for registration:** [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml). Adapter template files are GENERATED from it by `make regen-adapter-templates`. Never hand-edit `src/adapters/*/settings.template.json` or `src/adapters/*/hooks.template.json` — the `warn-template-drift.sh` hook catches drift.
 
 ## Effect classes — what the agent sees
 
@@ -21,7 +21,7 @@ Every hook falls into one of three classes by effect:
 
 ## Per-line log format
 
-Every hook calls `cos_log_hook` from [src/core/hooks/cos-env.sh](../../core/hooks/cos-env.sh) which writes lines of the form:
+Every hook calls `cos_log_hook` from [src/core/hooks/cos-env.sh](../../src/core/hooks/cos-env.sh) which writes lines of the form:
 
 ```
 [ISO-8601] [hook-name] [action] agent=X session=Y task=Z detail...
@@ -107,8 +107,8 @@ Codex receives the same hooks via the `codex-userpromptsubmit-dispatch.sh` dispa
 
 ## Adding a new hook
 
-1. Write the script: `src/core/hooks/<new-name>.sh`. Source [cos-env.sh](../../core/hooks/cos-env.sh) and call `cos_log_hook <new-name> <action> <detail>`.
-2. Register in [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) with fields: `id`, `script`, `description`, `category`, `phase`, `events[]`.
+1. Write the script: `src/core/hooks/<new-name>.sh`. Source [cos-env.sh](../../src/core/hooks/cos-env.sh) and call `cos_log_hook <new-name> <action> <detail>`.
+2. Register in [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) with fields: `id`, `script`, `description`, `category`, `phase`, `events[]`.
 3. `make regen-adapter-templates` — regenerates both adapter JSON files.
 4. `make dogfood` — re-installs adapters in this repo (symlinks are already live, but settings JSON needs refresh).
 5. `make verify-hooks` — syntax-check all hooks.
@@ -129,8 +129,8 @@ By design. Silent hooks are for *telemetry*, not *control*. Surfacing every `cap
 
 ## References
 
-- [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) — SSOT registration
-- [src/core/hooks/cos-env.sh](../../core/hooks/cos-env.sh) — logging helper + agent detection
-- [src/core/docs/agent-workflow.md](../../core/docs/agent-workflow.md) — when hooks fire in the Core Loop
+- [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) — SSOT registration
+- [src/core/hooks/cos-env.sh](../../src/core/hooks/cos-env.sh) — logging helper + agent detection
+- [src/core/docs/agent-workflow.md](../../src/core/docs/agent-workflow.md) — when hooks fire in the Core Loop
 - [docs/engineering/template-enforcement.md](template-enforcement.md) — enforce-template.sh detail
 - [docs/engineering/skill-architecture.md](skill-architecture.md) — enforce-skill.sh detail

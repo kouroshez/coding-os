@@ -12,8 +12,7 @@
 
 - [AGENTS](../AGENTS.md) — protocol entry point (re-read every session)
 - [Repo README](../README.md)
-- [Change Log](../changes.log)
-- [Open Questions](questions.md)
+- [Open Questions](_meta/questions.md)
 
 ## Governance (policy + lifecycle)
 
@@ -34,7 +33,7 @@
 
 - [Architecture Index](architecture/00-index.md)
 - [Meta-Project Architecture](architecture/meta-project.md)
-- [Adapters Index](src/adapters/00-index.md)
+- [Adapters Index](adapters/00-index.md)
 
 ## Engineering (SSOT references for hooks, MCP, graph, hub)
 
@@ -53,8 +52,8 @@
 
 ### Reference (2)
 
-- [Open Questions](questions.md) — `ssot:true` · updated 2026-04-07
-- [Foundation Map (`REF:*` Shortcodes)](foundation-map.md) — `ssot:true` · updated 2026-05-10
+- [Open Questions](_meta/questions.md) — `ssot:true` · updated 2026-04-07
+- [Foundation Map (`REF:*` Shortcodes)](_meta/foundation-map.md) — `ssot:true` · updated 2026-05-10
 
 <!-- END auto-index -->
 

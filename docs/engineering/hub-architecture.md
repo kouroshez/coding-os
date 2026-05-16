@@ -71,7 +71,7 @@ Contract:
 
 `Doctor` is intentionally **global**, like `Settings` — backend health is per-uvicorn, not per-project. Every other nav item is project-scoped via the `/p/<slug>/` middleware rewrite.
 
-Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../core/web/ui/src/lib/prometheus-parse.ts).
+Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../src/core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../src/core/web/ui/src/lib/prometheus-parse.ts).
 
 ## Ports
 
