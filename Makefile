@@ -226,7 +226,7 @@ stats: ## Show project statistics
 	@echo -n "Core hooks: " && ls src/core/hooks/*.sh | wc -l | tr -d ' '
 	@echo -n "Core scripts: " && ls src/core/scripts/*.sh | wc -l | tr -d ' '
 	@echo -n "Core skills: " && ls src/core/skills/*/SKILL.md | wc -l | tr -d ' '
-	@echo -n "Templates: " && find templates -type f | wc -l | tr -d ' '
+	@echo -n "Templates: " && find src/templates -type f | wc -l | tr -d ' '
 
 .PHONY: docs-index-regen
 docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (TASK-157+161)

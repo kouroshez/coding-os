@@ -38,7 +38,7 @@
 - `REF:MCP-INVENTORY` → `./governance/mcp-tool-inventory.md`
 - `REF:DECISIONS` → `./governance/decision-records.md`
 - `REF:RISK-REG` → `./governance/risk-register.md`
-- `REF:DOC-CHEAT` → `./governance/templates/doc-cheat-sheet.md`
+- `REF:DOC-CHEAT` → `./governance/_templates/doc-cheat-sheet.md`
 - `REF:GDPR` → `./governance/gdpr-compliance.md`
 
 ## Architecture

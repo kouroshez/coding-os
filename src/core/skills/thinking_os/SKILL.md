@@ -14,7 +14,7 @@ last_reviewed: "2026-05-11"
 
 ## Purpose
 
-Complement the always-active Kernel rule (`.claude/rules/thinking_os.md`) with the complete Zoom cycle, Process Manager, and 10 Thinking Tools. Load this skill when the Complexity Gate returns COMPLICATED or COMPLEX. Source of truth: `docs/workflow/thinking_os-final-edition.md`.
+Complement the always-active Kernel rule (`.claude/rules/thinking_os.md`) with the complete Zoom cycle, Process Manager, and 10 Thinking Tools. Load this skill when the Complexity Gate returns COMPLICATED or COMPLEX. Source of truth: consumer projects read `docs/workflow/thinking_os-final-edition.md` (copied by `cos init`); the meta-repo canonical lives at `src/core/docs/thinking_os-final-edition.md`.
 
 ---
 
