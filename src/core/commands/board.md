@@ -5,7 +5,7 @@ Steps:
 2. Group cards by `swimlane` then by `status` (`backlog | in_progress | testing | blocked | complete`).
 3. Render the table below. Cap displayed cards per cell at 5 — link to `cos_task_search` for more.
 4. Surface WIP cap violations at the top (red flag).
-5. Surface tasks that have been in `in_progress` > 3 days at the bottom (stale alert per [task-driver](core/skills/task-driver/SKILL.md) escalation ladder).
+5. Surface tasks that have been in `in_progress` > 3 days at the bottom (stale alert per [task-driver](../skills/task-driver/SKILL.md) escalation ladder).
 
 Template:
 ```markdown

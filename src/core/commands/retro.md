@@ -27,4 +27,4 @@ Template:
 - [ ] {action} — @owner — due YYYY-MM-DD
 ```
 
-No-blame rule (per [incident-response](core/skills/incident-response/SKILL.md)): describe the failing system, never the person.
+No-blame rule (per [incident-response](../skills/incident-response/SKILL.md)): describe the failing system, never the person.

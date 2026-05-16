@@ -1,6 +1,6 @@
 Record the Complexity Gate (Cynefin × dimensions) for the current task before any code edit.
 
-The Complexity Gate is mandatory per [Rule 7](docs/governance/critical-rules.md) and [core/rules/thinking_os.md](core/rules/thinking_os.md). It tells future hooks + reviewers what cognitive depth this task warrants. Skip → `enforce-skill.sh` may block edits on COMPLICATED+ paths.
+The Complexity Gate is mandatory per [Rule 7](../../docs/governance/critical-rules.md) and [core/rules/thinking_os.md](../rules/thinking_os.md). It tells future hooks + reviewers what cognitive depth this task warrants. Skip → `enforce-skill.sh` may block edits on COMPLICATED+ paths.
 
 Steps:
 1. If `$ARGUMENTS` is provided in the form `Q1 Q2` (e.g. `COMPLICATED 3`), use it directly. Otherwise infer from the conversation:

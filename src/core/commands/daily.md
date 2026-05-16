@@ -28,4 +28,4 @@ Template:
 
 If `cos_task_daily` returns empty (no tasks ever created), explain that the board is empty and offer to create a task via `cos_task_create`.
 
-ADHD-friendly default: silent on broken streaks (per [task-driver](core/skills/task-driver/SKILL.md) "Daily streak ≠ shame"). Only surface if the user asks.
+ADHD-friendly default: silent on broken streaks (per [task-driver](../skills/task-driver/SKILL.md) "Daily streak ≠ shame"). Only surface if the user asks.
