@@ -26,7 +26,7 @@ def test_default_yaml_loads_cleanly() -> None:
 def test_match_suites_resolves_core_hooks_changes() -> None:
     cfg = load_verify_suites()
     suites = match_suites(
-        ["core/hooks/enforce-verify.sh", "core/hooks/registry.yaml"], cfg,
+        ["src/core/hooks/enforce-verify.sh", "src/core/hooks/registry.yaml"], cfg,
     )
     assert "verify-hooks" in suites
 
@@ -34,7 +34,7 @@ def test_match_suites_resolves_core_hooks_changes() -> None:
 def test_match_suites_resolves_board_os_changes() -> None:
     cfg = load_verify_suites()
     suites = match_suites(
-        ["core/board_os/transition_gates.py"], cfg,
+        ["src/core/board_os/transition_gates.py"], cfg,
     )
     assert "test-board_os" in suites
 
@@ -47,13 +47,13 @@ def test_match_suites_resolves_docs_changes() -> None:
 
 def test_match_suites_resolves_cli_changes() -> None:
     cfg = load_verify_suites()
-    suites = match_suites(["cli/board_commands.py"], cfg)
+    suites = match_suites(["src/cli/board_commands.py"], cfg)
     assert "test-cli" in suites
 
 
 def test_match_suites_resolves_adapters_changes() -> None:
     cfg = load_verify_suites()
-    suites = match_suites(["adapters/claude/install.sh"], cfg)
+    suites = match_suites(["src/adapters/claude/install.sh"], cfg)
     assert "test-adapters" in suites
 
 
@@ -72,9 +72,9 @@ def test_match_suites_returns_each_suite_at_most_once() -> None:
     cfg = load_verify_suites()
     suites = match_suites(
         [
-            "core/hooks/a.sh",
-            "core/hooks/b.sh",
-            "core/hooks/c.sh",
+            "src/core/hooks/a.sh",
+            "src/core/hooks/b.sh",
+            "src/core/hooks/c.sh",
         ],
         cfg,
     )

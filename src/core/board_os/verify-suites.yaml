@@ -38,17 +38,17 @@ suites:
 
   test-cli:
     paths:
-      - "cli/*.py"
+      - "src/cli/*.py"
     command: "uv run pytest tests/test_cli.py -q"
 
   test-adapters:
     paths:
-      - "adapters/**"
+      - "src/adapters/**"
     command: "uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"
 
   test-template-scaffold:
     paths:
-      - "templates/**/scaffold/**"
+      - "src/templates/**/scaffold/**"
     command: "uv run pytest tests/test_template_scaffold.py -q"
 
   docs-lint:
