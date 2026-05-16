@@ -27,7 +27,7 @@ _THINKING_OS = _HERE.parent / "thinking_os"
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
-from _state import (  # noqa: E402
+from scheduled._state import (  # noqa: E402
     days_since_marker,
     now_iso,
     read_registry,
@@ -36,7 +36,7 @@ from _state import (  # noqa: E402
     touch_marker,
     write_state,
 )
-from _activity import (  # noqa: E402
+from scheduled._activity import (  # noqa: E402
     observations_since_marker,
     outcomes_since_marker,
 )
