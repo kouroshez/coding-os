@@ -8,12 +8,14 @@ node was hit and in which order.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 import uuid
 from pathlib import Path
 from typing import Any
 
+_logger = logging.getLogger(__name__)
 _MAX_FILE_BYTES = 5 * 1024 * 1024   # 5 MB → rotate
 _TRACE_SUBDIR = "traces"
 
@@ -61,8 +63,8 @@ FLOWCHART_NODES: dict[str, str] = {
 def _trace_dir(agent_dir: Path | None = None) -> Path:
     """Resolve trace dir generically (Rule 1 — agent-agnostic).
 
-    Resolution order: explicit arg → $COS_AGENT_DIR → $COS_AGENT
-    → fallback "claude" for back-compat with bare invocations.
+    Resolution order: explicit arg → $COS_AGENT_DIR →
+    $COS_STATE_DIR/$COS_AGENT → fallback ".coding-os/claude".
     """
     if agent_dir is None:
         import os as _os
@@ -71,7 +73,9 @@ def _trace_dir(agent_dir: Path | None = None) -> Path:
             agent_dir = Path(explicit)
         else:
             agent = _os.environ.get("COS_AGENT") or "claude"
-            agent_dir = Path(".coding-os") / agent
+            state = _os.environ.get("COS_STATE_DIR")
+            base = Path(state) if state else Path(".coding-os")
+            agent_dir = base / agent
     d = agent_dir / _TRACE_SUBDIR
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -87,8 +91,8 @@ def _rotate_if_large(path: Path) -> None:
         if path.exists() and path.stat().st_size >= _MAX_FILE_BYTES:
             ts = time.strftime("%Y%m%dT%H%M%S", time.gmtime())
             path.rename(path.with_suffix(f".{ts}.jsonl"))
-    except OSError:
-        pass
+    except OSError as exc:
+        _logger.debug("trace rotate skipped: %s", exc)
 
 
 def emit(
@@ -137,8 +141,8 @@ def _append_locked(path: Path, line: str) -> None:
             finally:
                 try:
                     fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    _logger.debug("trace flock release: %s", exc)
     except ImportError:
         # Windows — fall back to best-effort append
         with open(path, "a", encoding="utf-8") as fh:
