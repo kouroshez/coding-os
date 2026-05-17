@@ -112,6 +112,26 @@ NOTE: Codex PreToolUse/PostToolUse only support the Bash tool.
       hardcoded-literals) is Claude-only until Codex adds those events.
 ```
 
+### Intent enforcement layer (TASK-004) — Claude / Cursor only
+
+The 8 hooks introduced by the intent enforcement layer (TASK-004 phase P
+— intent-primer, detect-exhaustive-intent, enforce-audit-artifact,
+inject-resume-prompt, verify-completion-claim, prevent-premature-done,
+enforce-count-grounding, enforce-subagent-delegation) all rely on at
+least one Codex-incapable matcher: `SessionStart compact|resume`,
+`PreToolUse Write|Edit`, or `Stop` with rich envelopes.  The renderer
+emits **0/8** for the Codex adapter and **10/10 matcher pairs for
+Claude** (full coverage); Cursor renders the single SessionStart
+event-only entry it supports.
+
+Codex CLI users therefore receive **no intent-enforcement coverage**
+under exhaustive-scope prompts — the agent sees no SessionStart prime,
+no detect-exhaustive-intent classifier, no Stop guardian.  The
+contract is enforced live only on Claude / Cursor sessions.  When
+OpenAI ships `Write|Edit` matchers (and a richer Stop envelope), update
+`src/adapters/codex/adapter.yaml::hook_capabilities` and re-run
+`make regen-adapter-templates`; no other code changes are needed.
+
 **Implication for Codex users:** the deterministic "agent cannot write without skill X" guarantee that Claude gets via `enforce-skill.sh` is not enforceable. Agents using Codex must rely on prompt-level discipline + the rule files shipped in `.codex/rules/`. What we can enforce reliably on Codex today is the Bash path plus session-start / stop observability.
 
 ## What this session changed for each adapter
