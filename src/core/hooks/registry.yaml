@@ -863,3 +863,25 @@ hooks:
       - event: SessionStart
         matcher: compact|resume
         status_message: "🎯 Re-priming intent-interpretation vocabulary..."
+
+  - id: detect-exhaustive-intent
+    script: detect-exhaustive-intent.sh
+    description: |
+      UserPromptSubmit — Layer 2 of the 3-layer intent architecture.
+      Delegates to _helpers/extract_intent.py (mirror of
+      docs/engineering/intent-vocabulary.md) to parse the prompt for
+      exhaustive scope vocabulary (FA + EN) co-occurring with a scope
+      verb within a 20-token window. Writes parsed intent to
+      $COS_AGENT_DIR/.intent.json (predicates, matched_exhaustive,
+      matched_scope, token_count). When exhaustive=true, injects a
+      one-line additionalContext block placing the agent in
+      evidence-required mode. Silent for non-exhaustive prompts.
+      Downstream readers of .intent.json (no re-parsing): completion
+      guardian, count-grounding hook, subagent-delegation hook,
+      audit-artifact enforcement, auto-reviewer spawn.
+    category: cognition
+    phase: P
+    timeout: 1200
+    events:
+      - event: UserPromptSubmit
+        matcher: ""

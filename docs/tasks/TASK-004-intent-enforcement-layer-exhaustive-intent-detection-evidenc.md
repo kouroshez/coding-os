@@ -80,3 +80,5 @@ references: []
 
 ## Work Log
 - 2026-05-17 [claude]: G10 done: docs/engineering/intent-vocabulary.md created. Canonical FA+EN exhaustive vocab table + scope verbs + 6 predic
+- 2026-05-17 [claude]: G0 done: SessionStart intent-primer.sh hook + registry entry (cognition/phase P) + regenerated Claude settings template.
+- 2026-05-17 [claude]: G1 done: detect-exhaustive-intent.sh + _helpers/extract_intent.py — 20-token sliding window co-occurrence (exhaustive ve
