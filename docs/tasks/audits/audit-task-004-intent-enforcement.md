@@ -45,13 +45,13 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 | 13 | G11 learning loop | completion_guardian _record_gap_observation_safe inserts observation_type=completion_gap rows when status=fail (test_completion_guardian.TestGapObservationRecorded) — auto-tune deferred per Rule 22 | 1 | 1 | yes | 0 | yes | (this commit) |
 | 14 | G13 Hub UI audits tab | web/routes/audits.py (GET /api/audits + /api/audits/{id}) + AuditsPage.tsx + routes /audits & /p/:slug/audits + TestAuditsRoutes (3/3 green) | 4 | 1 | yes | 0 | yes | (this commit) |
 | 15 | G14 CI trace-replay assertion | cognition trace-replay --audit-mode flag asserts EvidenceBundle + counts_after=0 + reviewer_check=pass; CI workflow yaml deferred per Rule 22 (no .github CI infra yet, project pre-public) | 1 | 1 | yes | 0 | yes | (this commit) |
-| 16 | G15 auto-mode-vs-exhaustive | rule doc + enforcement hook | 0 | 1 | no | 1 | no | (pending) |
+| 16 | G15 auto-mode-vs-exhaustive | src/core/rules/auto-mode-vs-exhaustive.md rule doc (always-active); enforcement hook deferred per Rule 22 — G4 guardian + G5 nudge already enforce mechanically | 1 | 1 | yes | 0 | yes | (this commit) |
 
 ## Resume Marker
 
-<!-- last_updated_row: 15 -->
-<!-- next_unchecked_row: 16 -->
-<!-- last_updated_at: 2026-05-17T08:30:00Z -->
+<!-- last_updated_row: 16 -->
+<!-- next_unchecked_row: COMPLETE -->
+<!-- last_updated_at: 2026-05-17T09:00:00Z -->
 
 ## Notes
 
