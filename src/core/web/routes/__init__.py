@@ -1,5 +1,6 @@
 """core.web.routes — route module registry."""
 
+from .audits import router as audits_router
 from .board import router as board_router
 from .cognition import router as cognition_router
 from .graph import router as graph_router
@@ -11,6 +12,7 @@ from .search import router as search_router
 from .stream import router as stream_router
 
 __all__ = [
+    "audits_router",
     "graph_router",
     "board_router",
     "cognition_router",

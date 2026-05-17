@@ -364,3 +364,33 @@ class TestEnvelopeShape:
             assert "meta" in body
         finally:
             _graph_route._tools = original_tools
+
+
+# ---------------------------------------------------------------------------
+# /api/audits (TASK-004 G13)
+# ---------------------------------------------------------------------------
+
+class TestAuditsRoutes:
+    def test_audits_list_returns_envelope(self, client):
+        """GET /api/audits returns the {ok, data:{audits, count}, meta} envelope."""
+        resp = client.get("/api/audits")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body.get("ok") is True
+        assert "data" in body
+        assert "audits" in body["data"]
+        assert "count" in body["data"]
+        assert body["meta"]["layer"] == "audits"
+
+    def test_audits_list_status_filter(self, client):
+        """status=in_progress filter narrows the audit list."""
+        resp = client.get("/api/audits", params={"status": "in_progress"})
+        assert resp.status_code == 200
+        body = resp.json()
+        for audit in body["data"]["audits"]:
+            assert audit.get("status") == "in_progress"
+
+    def test_audits_get_unknown_returns_404(self, client):
+        """GET /api/audits/<missing> returns 404."""
+        resp = client.get("/api/audits/does-not-exist-xyz")
+        assert resp.status_code == 404

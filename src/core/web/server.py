@@ -93,6 +93,7 @@ def create_app() -> FastAPI:
     # ------------------------------------------------------------------
     # Route registration
     # ------------------------------------------------------------------
+    from web.routes.audits import router as audits_router
     from web.routes.board import router as board_router
     from web.routes.cognition import router as cognition_router
     from web.routes.graph import router as graph_router
@@ -126,6 +127,7 @@ def create_app() -> FastAPI:
     app.include_router(stream_router)
     app.include_router(hub_router)
     app.include_router(scheduled_router)
+    app.include_router(audits_router)
 
     # ------------------------------------------------------------------
     # Static SPA / fallback

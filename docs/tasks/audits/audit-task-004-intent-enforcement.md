@@ -43,15 +43,15 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 | 11 | G8 subagent delegation | enforce-subagent-delegation.sh (warn-default, ≥5 categories threshold, COS_ENFORCE_SUBAGENT_DELEGATION=strict to block) | 1 | 1 | yes | 0 | yes | (this commit) |
 | 12 | G9 task-class verification matrix | rules/test-discipline.md extended with audit_exhaustive/migration_exhaustive/refactor_exhaustive rows; hook deferred per Rule 22 — guardian G4 already enforces equivalent | 1 | 1 | yes | 0 | yes | (this commit) |
 | 13 | G11 learning loop | completion_guardian _record_gap_observation_safe inserts observation_type=completion_gap rows when status=fail (test_completion_guardian.TestGapObservationRecorded) — auto-tune deferred per Rule 22 | 1 | 1 | yes | 0 | yes | (this commit) |
-| 14 | G13 Hub UI audits tab | FastAPI route + React component | 0 | 1 | no | 1 | no | (pending) |
+| 14 | G13 Hub UI audits tab | web/routes/audits.py (GET /api/audits + /api/audits/{id}) + AuditsPage.tsx + routes /audits & /p/:slug/audits + TestAuditsRoutes (3/3 green) | 4 | 1 | yes | 0 | yes | (this commit) |
 | 15 | G14 CI trace-replay assertion | cognition trace-replay extension + workflow | 0 | 1 | no | 1 | no | (pending) |
 | 16 | G15 auto-mode-vs-exhaustive | rule doc + enforcement hook | 0 | 1 | no | 1 | no | (pending) |
 
 ## Resume Marker
 
-<!-- last_updated_row: 13 -->
-<!-- next_unchecked_row: 14 -->
-<!-- last_updated_at: 2026-05-17T07:30:00Z -->
+<!-- last_updated_row: 14 -->
+<!-- next_unchecked_row: 15 -->
+<!-- last_updated_at: 2026-05-17T08:00:00Z -->
 
 ## Notes
 

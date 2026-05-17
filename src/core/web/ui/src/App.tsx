@@ -13,6 +13,7 @@ import ObservabilityPage from './pages/ObservabilityPage';
 import LogsPage from './pages/LogsPage';
 import SessionsPage from './pages/SessionsPage';
 import DoctorPage from './pages/DoctorPage';
+import AuditsPage from './pages/AuditsPage';
 
 export default function App() {
   return (
@@ -68,6 +69,8 @@ export default function App() {
           <Route path="/p/:slug/logs" element={<LogsPage />} />
           <Route path="/p/:slug/sessions" element={<SessionsPage />} />
           <Route path="/p/:slug/doctor" element={<DoctorPage />} />
+          <Route path="/p/:slug/audits" element={<AuditsPage />} />
+          <Route path="/audits" element={<AuditsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
