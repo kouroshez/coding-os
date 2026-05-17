@@ -5,13 +5,13 @@ swimlane: core
 kind: feature
 epic: null
 labels: [intent, enforcement, governance, completion-discipline, epic]
-status: in_progress
+status: complete
 priority: P1
 appetite: "5d"
 created: 2026-05-17
 started: 2026-05-16
-completed: null
-agent_session: ses-claude-20260516-191012-948f
+completed: 2026-05-17
+agent_session: ses-claude-20260516-203423-ef1d
 depends_on: []
 blocked_by: []
 references: []
@@ -95,3 +95,4 @@ references: []
 - 2026-05-17 [claude]: G13 done: src/core/web/routes/audits.py (GET /api/audits + /api/audits/{audit_id}, frontmatter parsing, row counting) +
 - 2026-05-17 [claude]: G14 done: `cos cognition trace-replay --audit-mode <session_id>` extended — when intent.json shows exhaustive, asserts E
 - 2026-05-17 [claude]: G15 done: src/core/rules/auto-mode-vs-exhaustive.md — always-active rule resolving the tension between auto-mode (reward
+- 2026-05-17 [claude]: CLOSING: ExhaustiveEvidence submitted (counts_after all 0, reviewer_check=pass, confidence=1.0). Reviewer subagent spot-

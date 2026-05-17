@@ -34,6 +34,15 @@ if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then
     exit 0
 fi
 
+# Audit artifacts (docs/tasks/audits/audit-*.md) are NOT task cards —
+# they are per-prompt evidence records under exhaustive intent and use
+# the audit-checklist template's frontmatter schema (audit_id, task_id,
+# matched_exhaustive, predicates, status, ...). Skip the task-frontmatter
+# validator for them.
+case "$file_path" in
+  *docs/tasks/audits/*) exit 0 ;;
+esac
+
 # Skip if file doesn't exist yet (Write creating new) — we need the
 # candidate content. The hook protocol passes `content` in tool_input.
 # bash 5.3.9 deadlocks `python3 - <<HEREDOC`; helper file is the safe form.
