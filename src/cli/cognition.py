@@ -282,7 +282,18 @@ def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | 
 
 @cognition_group.command("trace-replay")
 @click.argument("session_id")
-def cognition_trace_replay(session_id: str) -> None:
+@click.option(
+    "--audit-mode",
+    is_flag=True,
+    default=False,
+    help=(
+        "TASK-004 G14: assert exhaustive-intent obligations on the trace — "
+        "EvidenceBundle exists, exhaustive_evidence.counts_after all zero, "
+        "reviewer_check=pass. Exits 1 if intent was exhaustive but evidence "
+        "incomplete. Use in CI to catch premature 'done' retrospectively."
+    ),
+)
+def cognition_trace_replay(session_id: str, audit_mode: bool) -> None:
     """
     Phase N — Assert a trace covers the canonical flowchart path.
 
@@ -311,6 +322,64 @@ def cognition_trace_replay(session_id: str) -> None:
         click.echo(f"[replay] present kinds: {sorted(present_kinds)}")
         raise SystemExit(1)
     click.echo(f"[replay] PASS — {len(events)} events, kinds covered")
+
+    if audit_mode:
+        _assert_exhaustive_evidence(session_id)
+
+
+def _assert_exhaustive_evidence(session_id: str) -> None:
+    """G14 — exhaustive-intent retrospective assertions."""
+    import json
+    import os
+    import sys
+    from pathlib import Path as _Path
+
+    state = os.environ.get("COS_STATE_DIR") or ".coding-os"
+    agent = os.environ.get("COS_AGENT") or "claude"
+    agent_dir = _Path(state) / agent
+
+    intent_path = agent_dir / ".intent.json"
+    if not intent_path.exists():
+        click.echo("[replay/audit] SKIP — no intent.json recorded for session")
+        return
+    try:
+        intent = json.loads(intent_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        click.echo(f"[replay/audit] SKIP — intent unreadable: {exc}")
+        return
+    if not intent.get("exhaustive"):
+        click.echo("[replay/audit] SKIP — intent was not exhaustive")
+        return
+
+    bundle_path = agent_dir / f"evidence_bundle_{session_id}.json"
+    if not bundle_path.exists():
+        click.echo("[replay/audit] FAIL — no EvidenceBundle for exhaustive session")
+        raise SystemExit(1)
+    try:
+        bundle = json.loads(bundle_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        click.echo(f"[replay/audit] FAIL — bundle unreadable: {exc}")
+        raise SystemExit(1) from None
+
+    ee = bundle.get("exhaustive_evidence")
+    if not ee:
+        click.echo("[replay/audit] FAIL — bundle has no exhaustive_evidence slot")
+        raise SystemExit(1)
+
+    residuals = {
+        cat: count for cat, count in (ee.get("counts_after") or {}).items() if count > 0
+    }
+    if residuals:
+        click.echo(f"[replay/audit] FAIL — counts_after non-zero: {residuals}")
+        raise SystemExit(1)
+
+    if ee.get("reviewer_check") != "pass":
+        click.echo(
+            f"[replay/audit] FAIL — reviewer_check={ee.get('reviewer_check')!r} (need 'pass')"
+        )
+        raise SystemExit(1)
+
+    click.echo("[replay/audit] PASS — exhaustive obligations satisfied")
 
 
 COGNITION_COMMANDS = [cognition_group]
