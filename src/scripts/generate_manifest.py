@@ -70,6 +70,7 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
         "--name", target.name,
         "--no-git",
         "--force",
+        "--no-register",
     ]
     for t in templates:
         cmd.extend(["--template", t])

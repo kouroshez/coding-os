@@ -799,6 +799,7 @@ def _refuse_coding_os_self_init(project: Path) -> None:
 @click.option("--yes", "-y", is_flag=True, default=False, help="Non-interactive: use defaults for anything not passed via flags. Required in CI / non-TTY.")
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", help="Output format.")
 @click.option("--today", "today_override", default=None, help="ISO-8601 date to use for {{DATE}} substitutions (default: today). Deterministic fixture for golden tests.")
+@click.option("--no-register", is_flag=True, default=False, help="Skip writing this project to the global ~/.coding-os/registry.json. Used by sandbox fixtures (manifest-regen, golden tests) so disposable temp dirs don't pollute the hub registry.")
 def init(
     agent: str | None,
     template: tuple[str, ...],
@@ -810,6 +811,7 @@ def init(
     yes: bool,
     output_format: str,
     today_override: str | None,
+    no_register: bool,
 ) -> None:
     """Initialize coding-os in a project.
 
@@ -905,7 +907,7 @@ def init(
             click.echo("  Note: target existed and was wiped (--force)")
 
     with _stdout_redirect:
-        _run_scaffold_phase(agents, template, project, today=today_override)
+        _run_scaffold_phase(agents, template, project, today=today_override, no_register=no_register)
 
     git_result = maybe_git_init(target, enabled=git)
     files_created = sum(1 for _ in project.rglob("*") if _.is_file())
@@ -977,11 +979,16 @@ def _run_scaffold_phase(
     project: Path,
     *,
     today: str | None = None,
+    no_register: bool = False,
 ) -> None:
     """Original scaffolding body — extracted so it can be redirected in JSON mode.
 
     `today` is an optional ISO-8601 override for {{DATE}} substitution
     in scaffolded files (used by golden parity tests for determinism).
+
+    `no_register` skips the global registry write (step 12). Sandbox
+    fixtures (manifest-regen, golden parity tests) pass it so disposable
+    temp dirs don't pollute ~/.coding-os/registry.json.
     """
 
     # 1. Create state directory
@@ -1110,14 +1117,20 @@ def _run_scaffold_phase(
 
     # 12. Register project in the global ~/.coding-os/registry.json so the
     # Hub web UI (`cos hub`) can enumerate it and serve its sqlite DB.
-    try:
-        from cli.registry import add_project as _registry_add_project
+    # Skipped when --no-register passed (sandbox fixtures use disposable
+    # temp dirs — registering them creates stale entries doctor then warns
+    # about in hub.project_paths_exist).
+    if no_register:
+        click.echo("  Skipped hub registry write (--no-register)")
+    else:
+        try:
+            from cli.registry import add_project as _registry_add_project
 
-        entry = _registry_add_project(project)
-        click.echo(f"  Registered in hub registry: {entry.slug}")
-    except Exception as exc:  # noqa: BLE001
-        # Registry is non-fatal — a failed write should not break init.
-        click.echo(f"  WARN: could not register project in hub registry: {exc}", err=True)
+            entry = _registry_add_project(project)
+            click.echo(f"  Registered in hub registry: {entry.slug}")
+        except Exception as exc:  # noqa: BLE001
+            # Registry is non-fatal — a failed write should not break init.
+            click.echo(f"  WARN: could not register project in hub registry: {exc}", err=True)
 
 
 def _initial_doc_index(project: Path, state: Path) -> None:

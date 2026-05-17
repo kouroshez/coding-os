@@ -36,6 +36,7 @@ def _cos_init(target: Path, agent: str = "claude", template: str | None = None) 
         "--name", target.name,
         "--no-git",
         "--force",
+        "--no-register",
     ]
     if template:
         cmd.extend(["--template", template])

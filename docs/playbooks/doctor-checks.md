@@ -203,9 +203,9 @@ Hub on port 9188 responds to a health probe.
 **Fix**: `cos hub start` (or `cos hub status` to diagnose).
 
 ### hub.project_paths_exist
-Every registered project path in `~/.coding-os/projects.json` resolves to an existing directory.
+Every registered project path in `~/.coding-os/registry.json` resolves to an existing directory.
 **Warns** when an entry points at a missing path.
-**Fix**: `cos hub project remove <slug>` for stale entries.
+**Fix**: `cos registry gc` to prune all stale entries (or `cos registry remove <slug>` for a single entry).
 
 ---
 

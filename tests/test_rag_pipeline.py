@@ -41,6 +41,7 @@ def _init_project(target: Path, *, agent: str = "claude") -> None:
             "--project-dir", str(target.parent),
             "--name", target.name,
             "--no-git",
+            "--no-register",
             "--today", FROZEN_DATE,
         ],
         cwd=str(REPO_ROOT),
