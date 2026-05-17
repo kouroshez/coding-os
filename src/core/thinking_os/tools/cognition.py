@@ -233,19 +233,32 @@ def register_cos_supervise_record_output(mcp, db_path):
         latency_ms: int = 0,
     ) -> str:
         bundle = _load_bundle(session_id, task_marker, persona_id)
+        schemas_mod = _schemas()
 
-        # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
-        field, cls = _resolve_role_persistence(formula_id)
-        if field and cls and status == "ok":
+        # Special path: exhaustive intent evidence (TASK-004 G3). Validated
+        # by the completion guardian (Stop hook) against the predicate set
+        # in $COS_AGENT_DIR/.intent.json. Not a role — has its own field.
+        if formula_id == "exhaustive_evidence" and status == "ok":
             try:
-                parsed = cls.model_validate_json(output_json)
-                setattr(bundle, field, parsed)
+                parsed_ee = schemas_mod.ExhaustiveEvidence.model_validate_json(output_json)
+                bundle.exhaustive_evidence = parsed_ee
             except Exception as exc:
-                logger.warning("Failed to parse %s output: %s", formula_id, exc)
+                logger.warning("Failed to parse exhaustive evidence: %s", exc)
                 bundle.degraded_formulas.append(formula_id)
                 status = "fail"
-        elif status == "timeout":
-            bundle.degraded_formulas.append(formula_id)
+        else:
+            # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
+            field, cls = _resolve_role_persistence(formula_id)
+            if field and cls and status == "ok":
+                try:
+                    parsed = cls.model_validate_json(output_json)
+                    setattr(bundle, field, parsed)
+                except Exception as exc:
+                    logger.warning("Failed to parse %s output: %s", formula_id, exc)
+                    bundle.degraded_formulas.append(formula_id)
+                    status = "fail"
+            elif status == "timeout":
+                bundle.degraded_formulas.append(formula_id)
 
         _save_bundle(session_id, bundle)
 

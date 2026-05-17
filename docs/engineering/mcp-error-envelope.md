@@ -126,6 +126,48 @@ functions under `src/core/thinking_os/tools/*.py` still return plain Python valu
 (dicts/lists) — the envelope is applied only at the MCP boundary so unit tests
 for helpers stay simple.
 
+## EvidenceBundle + ExhaustiveEvidence (TASK-004 G3)
+
+The `cos_supervise_record_output` tool persists per-formula-agent outputs
+into a session-scoped `EvidenceBundle` (`cognition_schemas.EvidenceBundle`)
+serialized as JSON under `$COS_AGENT_DIR/evidence_bundle_<session>.json`.
+The bundle has one slot per role (researcher, analyst, …) plus a separate
+`exhaustive_evidence: ExhaustiveEvidence | None` slot used by the
+completion guardian (Stop hook) when the user's prompt matched an
+exhaustive-scope intent (`docs/engineering/intent-vocabulary.md`).
+
+Shape of `ExhaustiveEvidence`:
+
+```python
+class ExhaustiveEvidence(BaseModel):
+    categories_declared: list[str]           # categories agent committed to cover
+    categories_covered: list[str]            # categories the agent did cover
+    counts_before: dict[str, int]            # grep count per category before fix
+    counts_after: dict[str, int]             # grep count per category after fix
+    files_searched: list[str]
+    tests_run: list[str]
+    gaps_remaining: list[str]
+    confidence: float
+    reviewer_check: Literal["pending","pass","fail"]
+    audit_artifact_path: str | None
+```
+
+Submit via:
+
+```
+cos_supervise_record_output(
+    session_id, task_marker, persona_id,
+    formula_id="exhaustive_evidence",
+    output_json='{"categories_declared":[...], ...}',
+)
+```
+
+`cognition_schemas.validate_exhaustive_evidence(evidence, intent_predicates)`
+evaluates the 6 predicates from intent-vocabulary.md and returns a list
+of gap reasons; empty list = predicates satisfied. The Stop hook
+`verify-completion-claim.sh` (G4) refuses a "done" claim while this
+returns a non-empty list.
+
 ## Non-goals
 
 - **Not** a general-purpose error type. Python exceptions inside helpers are

@@ -303,6 +303,95 @@ class Discovery(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# ExhaustiveEvidence — mandatory for tasks where intent.exhaustive=true
+# ---------------------------------------------------------------------------
+#
+# Captures the audit-shaped evidence record required by the completion
+# guardian when the user's prompt triggered the intent detector with
+# exhaustive scope. The 6 predicates from intent-vocabulary.md
+# (coverage_100, iterate_until_zero_residual, all_categories_evidence,
+# exhaustive_grep, per_item_evidence, strict_zero_residual) are
+# evaluated against the fields below by validate_exhaustive_evidence().
+
+class ExhaustiveEvidence(BaseModel):
+    categories_declared: list[str] = Field(default_factory=list)
+    categories_covered: list[str] = Field(default_factory=list)
+    counts_before: dict[str, int] = Field(default_factory=dict)
+    counts_after: dict[str, int] = Field(default_factory=dict)
+    files_searched: list[str] = Field(default_factory=list)
+    tests_run: list[str] = Field(default_factory=list)
+    gaps_remaining: list[str] = Field(default_factory=list)
+    confidence: float = 0.0
+    reviewer_check: Literal["pending", "pass", "fail"] = "pending"
+    audit_artifact_path: str | None = None
+
+
+def validate_exhaustive_evidence(
+    evidence: ExhaustiveEvidence | None,
+    intent_predicates: list[str],
+) -> list[str]:
+    """Return the list of gap reasons; empty list = predicates satisfied.
+
+    Used by the completion guardian (Stop hook) to decide whether a
+    "done" claim has the evidence to back it up. Empty intent_predicates
+    short-circuits to no gaps — non-exhaustive tasks have no obligation
+    to populate this bundle.
+    """
+    if not intent_predicates:
+        return []
+    if evidence is None:
+        return ["no_exhaustive_evidence_submitted"]
+
+    gaps: list[str] = []
+    declared = set(evidence.categories_declared)
+    covered = set(evidence.categories_covered)
+
+    if "coverage_100" in intent_predicates:
+        missing = declared - covered
+        if not declared:
+            gaps.append("coverage_100: no categories declared")
+        elif missing:
+            gaps.append(f"coverage_100: missing categories {sorted(missing)}")
+
+    if (
+        "iterate_until_zero_residual" in intent_predicates
+        or "strict_zero_residual" in intent_predicates
+    ):
+        residuals = {
+            cat: count for cat, count in evidence.counts_after.items() if count > 0
+        }
+        if residuals:
+            gaps.append(f"strict_zero_residual: residual hits {residuals}")
+        for cat in declared:
+            if cat not in evidence.counts_after:
+                gaps.append(f"strict_zero_residual: no counts_after for {cat}")
+
+    if "all_categories_evidence" in intent_predicates:
+        if not covered:
+            gaps.append("all_categories_evidence: no categories covered")
+        for cat in covered:
+            if cat not in evidence.counts_before:
+                gaps.append(f"all_categories_evidence: no counts_before for {cat}")
+
+    if "exhaustive_grep" in intent_predicates and not evidence.files_searched:
+        gaps.append("exhaustive_grep: files_searched is empty")
+
+    if "per_item_evidence" in intent_predicates:
+        if not covered:
+            gaps.append("per_item_evidence: no categories covered")
+
+    if evidence.gaps_remaining:
+        gaps.append(f"self_reported_gaps: {evidence.gaps_remaining}")
+
+    if evidence.reviewer_check == "fail":
+        gaps.append("reviewer_check: failed")
+    elif evidence.reviewer_check == "pending":
+        gaps.append("reviewer_check: pending — auto-reviewer not yet run")
+
+    return gaps
+
+
+# ---------------------------------------------------------------------------
 # EvidenceBundle — immutable accumulator per session
 # ---------------------------------------------------------------------------
 
@@ -325,6 +414,7 @@ class EvidenceBundle(BaseModel):
     backtracks: list[BacktrackEvent] = Field(default_factory=list)
     discoveries: list[Discovery] = Field(default_factory=list)
     degraded_formulas: list[str] = Field(default_factory=list)
+    exhaustive_evidence: ExhaustiveEvidence | None = None
 
 
 # ---------------------------------------------------------------------------
