@@ -885,3 +885,43 @@ hooks:
     events:
       - event: UserPromptSubmit
         matcher: ""
+
+  - id: enforce-audit-artifact
+    script: enforce-audit-artifact.sh
+    description: |
+      PreToolUse Edit|Write — blocks code/doc edits when exhaustive
+      intent is active but no docs/tasks/audits/audit-*.md artifact
+      with status:in_progress exists yet. Compaction-resilient state:
+      chat-only findings evaporate after the next context compaction,
+      so the audit artifact is the canonical evidence record that the
+      completion guardian and auto-reviewer consult. Self-edit
+      allow-list (audits dir, intent.json, .coding-os/, /tmp) so the
+      hook never blocks the agent from writing the very artifact it
+      asks for. One-shot override key: audit-artifact.
+    category: enforcement
+    phase: P
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: "Write|Edit"
+        status_message: "🗒️  Checking audit artifact present (exhaustive intent)..."
+
+  - id: inject-resume-prompt
+    script: inject-resume-prompt.sh
+    description: |
+      SessionStart — scan docs/tasks/audits/ for files with frontmatter
+      status:in_progress and inject a one-line additionalContext block
+      listing them with their unchecked-row counts so a compacted /
+      resumed session resumes from the audit artifact rather than
+      re-deriving scope from lost chat. Closes the "context compacted,
+      audit forgotten" failure mode. Always exits 0.
+    category: cognition
+    phase: P
+    timeout: 1000
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "📋 Scanning for active audits to resume..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "📋 Re-surfacing active audits after compaction..."

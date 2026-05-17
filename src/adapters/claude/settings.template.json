@@ -152,6 +152,12 @@
             "command": "{{HOOKS_DIR}}/enforce-anti-ambiguity.sh",
             "statusMessage": "🔍 Anti-Ambiguity gate check...",
             "timeout": 500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-audit-artifact.sh",
+            "statusMessage": "🗒️  Checking audit artifact present (exhaustive intent)...",
+            "timeout": 800
           }
         ]
       },
@@ -409,6 +415,12 @@
             "command": "{{HOOKS_DIR}}/intent-primer.sh",
             "statusMessage": "🎯 Priming intent-interpretation vocabulary...",
             "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/inject-resume-prompt.sh",
+            "statusMessage": "📋 Scanning for active audits to resume...",
+            "timeout": 1000
           }
         ]
       },
@@ -459,6 +471,12 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/intent-primer.sh",
             "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/inject-resume-prompt.sh",
+            "statusMessage": "📋 Re-surfacing active audits after compaction...",
             "timeout": 1000
           }
         ]
