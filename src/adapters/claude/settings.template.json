@@ -403,6 +403,12 @@
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 1500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/intent-primer.sh",
+            "statusMessage": "🎯 Priming intent-interpretation vocabulary...",
+            "timeout": 1000
           }
         ]
       },
@@ -448,6 +454,12 @@
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 1500
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/intent-primer.sh",
+            "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
+            "timeout": 1000
           }
         ]
       }
