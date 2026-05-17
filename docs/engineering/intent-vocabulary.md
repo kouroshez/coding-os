@@ -34,12 +34,12 @@ Each predicate is a **measurable** condition the agent must satisfy. No predicat
 
 | Predicate ID | Meaning | Evidence required |
 |---|---|---|
-| `coverage=100%` | Every category declared at start has been covered | `categories_declared ⊆ categories_covered` in EvidenceBundle |
-| `iterate-until-zero-residual` | Loop fix → re-grep → repeat until 0 hits remain | `counts_after == 0` for every category |
-| `all-categories-evidence` | Every category has a non-empty evidence row | each row in `audit-<slug>.md` has `Files scanned`, `Hits before`, `Verified=yes` |
-| `exhaustive-grep` | Search ran across the full repo, not a subset | `files_searched` non-empty and includes repo-wide pattern |
-| `per-item-evidence` | Each item independently verified, not batch-asserted | per-item row in audit table with own `Verified` cell |
-| `strict-zero-residual` | After fix, an independent re-grep finds zero hits | reviewer subagent re-grep returns 0 |
+| `coverage_100` | Every category declared at start has been covered | `categories_declared ⊆ categories_covered` in EvidenceBundle |
+| `iterate_until_zero_residual` | Loop fix → re-grep → repeat until 0 hits remain | `counts_after == 0` for every category |
+| `all_categories_evidence` | Every category has a non-empty evidence row | each row in `audit-<slug>.md` has `Files scanned`, `Hits before`, `Verified=yes` |
+| `exhaustive_grep` | Search ran across the full repo, not a subset | `files_searched` non-empty and includes repo-wide pattern |
+| `per_item_evidence` | Each item independently verified, not batch-asserted | per-item row in audit table with own `Verified` cell |
+| `strict_zero_residual` | After fix, an independent re-grep finds zero hits | reviewer subagent re-grep returns 0 |
 
 ## Exhaustive verbs — Persian (FA)
 
@@ -47,44 +47,44 @@ These words signal the user wants **every** instance addressed, not a representa
 
 | Verb / phrase | Predicate(s) | Notes |
 |---|---|---|
-| همه (hame) | `coverage=100%` + `iterate-until-zero-residual` | "all" — strongest single-word marker |
-| همگی (hamegi) | `coverage=100%` | "all of them" |
-| تک به تک (tak be tak) | `per-item-evidence` | "one by one" — implies independent verification |
-| تا اخر (ta akhar) | `iterate-until-zero-residual` | "until end" — temporal exhaustion |
-| تا دونه آخر (ta doone akhar) | `iterate-until-zero-residual` + `strict-zero-residual` | "to the last one" — extremely strong |
-| هر چی (har chi) | `exhaustive-grep` | "every single" — search-side exhaustion |
-| هر چیزی (har chizi) | `exhaustive-grep` | "anything / everything" |
-| همه جا (hame ja) | `exhaustive-grep` | "everywhere" — spatial exhaustion |
-| کامل (kamel) | `all-categories-evidence` | "complete" — coverage-side exhaustion |
-| کاملا (kamelan) | `all-categories-evidence` + `strict-zero-residual` | "completely" |
-| صد در صد (sad dar sad) | `strict-zero-residual` | "100%" — explicit numeric |
-| هیچی نپره (hichi naparre) | `strict-zero-residual` | "nothing slips through" |
-| هیچی جا نمونه (hichi ja namune) | `strict-zero-residual` | "nothing left behind" |
-| بدون استثنا (bedoon-e estesna) | `strict-zero-residual` | "without exception" |
-| تمام (tamam) | `coverage=100%` | "all / entire" |
-| تمامی (tamami) | `coverage=100%` | "the entirety of" |
+| همه (hame) | `coverage_100` + `iterate_until_zero_residual` | "all" — strongest single-word marker |
+| همگی (hamegi) | `coverage_100` | "all of them" |
+| تک به تک (tak be tak) | `per_item_evidence` | "one by one" — implies independent verification |
+| تا اخر (ta akhar) | `iterate_until_zero_residual` | "until end" — temporal exhaustion |
+| تا دونه آخر (ta doone akhar) | `iterate_until_zero_residual` + `strict_zero_residual` | "to the last one" — extremely strong |
+| هر چی (har chi) | `exhaustive_grep` | "every single" — search-side exhaustion |
+| هر چیزی (har chizi) | `exhaustive_grep` | "anything / everything" |
+| همه جا (hame ja) | `exhaustive_grep` | "everywhere" — spatial exhaustion |
+| کامل (kamel) | `all_categories_evidence` | "complete" — coverage-side exhaustion |
+| کاملا (kamelan) | `all_categories_evidence` + `strict_zero_residual` | "completely" |
+| صد در صد (sad dar sad) | `strict_zero_residual` | "100%" — explicit numeric |
+| هیچی نپره (hichi naparre) | `strict_zero_residual` | "nothing slips through" |
+| هیچی جا نمونه (hichi ja namune) | `strict_zero_residual` | "nothing left behind" |
+| بدون استثنا (bedoon-e estesna) | `strict_zero_residual` | "without exception" |
+| تمام (tamam) | `coverage_100` | "all / entire" |
+| تمامی (tamami) | `coverage_100` | "the entirety of" |
 
 ## Exhaustive verbs — English (EN)
 
 | Verb / phrase | Predicate(s) | Notes |
 |---|---|---|
-| all | `coverage=100%` + `iterate-until-zero-residual` | strongest single-word marker |
-| every | `exhaustive-grep` + `per-item-evidence` | per-instance scope |
-| everything | `exhaustive-grep` | object-side exhaustion |
-| everywhere | `exhaustive-grep` | spatial exhaustion |
-| every single | `per-item-evidence` + `strict-zero-residual` | per-item + strict |
-| completely | `all-categories-evidence` + `strict-zero-residual` | coverage + strict |
-| comprehensive / comprehensively | `coverage=100%` + `all-categories-evidence` | coverage scope |
-| exhaustive / exhaustively | `coverage=100%` + `iterate-until-zero-residual` | by definition |
-| thorough / thoroughly | `all-categories-evidence` | depth marker |
-| deep audit / deep review | `all-categories-evidence` + `per-item-evidence` | depth + per-item |
-| until done | `iterate-until-zero-residual` | temporal loop |
-| no exceptions | `strict-zero-residual` | hard zero |
-| none missed | `strict-zero-residual` | hard zero |
-| 100% | `strict-zero-residual` | explicit numeric |
-| down to the last one | `iterate-until-zero-residual` + `strict-zero-residual` | strongest natural phrase |
-| each and every | `per-item-evidence` | per-item emphasis |
-| top to bottom | `coverage=100%` + `all-categories-evidence` | spatial coverage |
+| all | `coverage_100` + `iterate_until_zero_residual` | strongest single-word marker |
+| every | `exhaustive_grep` + `per_item_evidence` | per-instance scope |
+| everything | `exhaustive_grep` | object-side exhaustion |
+| everywhere | `exhaustive_grep` | spatial exhaustion |
+| every single | `per_item_evidence` + `strict_zero_residual` | per-item + strict |
+| completely | `all_categories_evidence` + `strict_zero_residual` | coverage + strict |
+| comprehensive / comprehensively | `coverage_100` + `all_categories_evidence` | coverage scope |
+| exhaustive / exhaustively | `coverage_100` + `iterate_until_zero_residual` | by definition |
+| thorough / thoroughly | `all_categories_evidence` | depth marker |
+| deep audit / deep review | `all_categories_evidence` + `per_item_evidence` | depth + per-item |
+| until done | `iterate_until_zero_residual` | temporal loop |
+| no exceptions | `strict_zero_residual` | hard zero |
+| none missed | `strict_zero_residual` | hard zero |
+| 100% | `strict_zero_residual` | explicit numeric |
+| down to the last one | `iterate_until_zero_residual` + `strict_zero_residual` | strongest natural phrase |
+| each and every | `per_item_evidence` | per-item emphasis |
+| top to bottom | `coverage_100` + `all_categories_evidence` | spatial coverage |
 
 ## Scope verbs
 
