@@ -577,16 +577,93 @@ def cos_task_move(
     if not result.ok:
         return fail(result.error_category or "internal", result.error or "transition failed")
 
-    return ok(
-        {
-            "task_id": result.task_id,
-            "previous_status": result.previous_status,
-            "new_status": result.new_status,
-            "warnings": list(result.warnings),
-            "wip": result.wip_state,
+    data: dict = {
+        "task_id": result.task_id,
+        "previous_status": result.previous_status,
+        "new_status": result.new_status,
+        "warnings": list(result.warnings),
+        "wip": result.wip_state,
+    }
+    if result.new_status == "complete":
+        hint = _reviewer_hint_if_required(task_id)
+        if hint is not None:
+            data["reviewer_check_required"] = True
+            data["reviewer_hint"] = hint
+
+    return ok(data, meta={"layer": "tasks", "source": "board_os.cos_task_move"})
+
+
+def _reviewer_hint_if_required(task_id: str) -> dict | None:
+    """Build a reviewer-subagent hint when the agent should auto-spawn one.
+
+    Returns None when the conditions for an auto-reviewer don't hold —
+    no exhaustive intent in the active prompt, or no active audit
+    artifact bound to this task. When all conditions hold, returns a
+    dict the main agent passes to Agent(subagent_type="Explore", ...).
+    """
+    intent = _read_intent_safe()
+    if not intent or not intent.get("exhaustive"):
+        return None
+
+    audit_path = _active_audit_for_task(task_id)
+    if audit_path is None:
+        return None
+
+    predicates = intent.get("predicates") or []
+    template_path = "docs/_meta/reviewer-subagent-prompt.md"
+    return {
+        "subagent_type": "Explore",
+        "description": f"Independent reviewer for {task_id} audit",
+        "prompt_template": template_path,
+        "substitutions": {
+            "TASK_ID": task_id,
+            "AUDIT_FILE": str(audit_path),
+            "PREDICATES": predicates,
         },
-        meta={"layer": "tasks", "source": "board_os.cos_task_move"},
-    )
+        "expected_output_schema": "ExhaustiveEvidence.reviewer_check",
+        "post_action": (
+            "Submit reviewer findings via cos_supervise_record_output "
+            "(formula_id='exhaustive_evidence') with reviewer_check set "
+            "to 'pass' or 'fail'."
+        ),
+    }
+
+
+def _read_intent_safe() -> dict | None:
+    base = os.environ.get("COS_AGENT_DIR")
+    if not base:
+        state = os.environ.get("COS_STATE_DIR") or ".coding-os"
+        agent = os.environ.get("COS_AGENT") or "claude"
+        base = str(Path(state) / agent)
+    intent_path = Path(base) / ".intent.json"
+    if not intent_path.exists():
+        return None
+    try:
+        return json.loads(intent_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.debug("intent read failed: %s", exc)
+        return None
+
+
+def _active_audit_for_task(task_id: str) -> Path | None:
+    """First active audit-*.md whose frontmatter task_id matches."""
+    repo = _project_root()
+    audit_dir = repo / "docs" / "tasks" / "audits"
+    if not audit_dir.is_dir():
+        return None
+    pattern = re.compile(r"^task_id:\s*([\w-]+)", re.MULTILINE)
+    status_re = re.compile(r"^status:\s*in_progress\b", re.MULTILINE)
+    for path in sorted(audit_dir.glob("audit-*.md")):
+        try:
+            text = path.read_text()
+        except OSError:
+            continue
+        if not status_re.search(text):
+            continue
+        m = pattern.search(text)
+        if m and m.group(1) == task_id:
+            return path.relative_to(repo)
+    return None
 
 
 # ---------- cos_task_reposition ----------
