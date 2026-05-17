@@ -21,6 +21,24 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 cos_log_hook intent-primer fire
 
+# Clear stale intent.json + per-session debounce markers on every
+# SessionStart.  Intent is per-prompt, not per-session — without this,
+# a previous session's exhaustive=true leaks into the new session and
+# the Stop guardian fires on a stale predicate set the agent cannot
+# satisfy (the EvidenceBundle is keyed on the new session id which
+# never received the prior predicates).
+#
+# Detected during TASK-004 self-review when the guardian blocked Stop
+# after session rotation with "no EvidenceBundle for predicates
+# ['coverage_100']" — the predicates were from a prompt the agent
+# never saw in the new session.
+if [[ -n "${COS_AGENT_DIR:-}" ]]; then
+  rm -f "${COS_AGENT_DIR}/.intent.json" 2>/dev/null || true
+  rm -f "${COS_AGENT_DIR}/.premature-done-nudged" 2>/dev/null || true
+  rm -f "${COS_AGENT_DIR}/.count-grounding-nudged" 2>/dev/null || true
+  rm -f "${COS_AGENT_DIR}/.subagent-delegation-nudged" 2>/dev/null || true
+fi
+
 CONTEXT=$(cat <<'CARD'
 [Intent Layer] Agent reads natural-language scope vocabulary at every prompt.
 
