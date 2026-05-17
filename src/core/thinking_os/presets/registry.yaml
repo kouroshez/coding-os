@@ -112,6 +112,20 @@ presets:
     chain: [researcher]
     score: 8
 
+  - id: audit-exhaustive
+    rationale: "Audit-shape task with exhaustive intent (TASK-004 G2). Inventory categories (researcher), enumerate evidence plan (analyst), per-category sweep + fix (implementer), independent re-verify (reviewer), capture artifact (documenter). The chain mirrors the audit-checklist-template structure so every role contributes one column to the evidence table. Reviewer phase is mandatory — the auto-reviewer hint (G6) on cos_task_move complete spawns an Explore subagent that posts back ExhaustiveEvidence.reviewer_check=pass before the completion guardian (G4) will allow Stop."
+    match:
+      action: audit
+      novelty_gte: 0.0
+    chain: [researcher, analyst, implementer, reviewer, documenter]
+    chain_notes:
+      researcher: "inventory every category the exhaustive vocabulary implies — do not stop at the obvious ones"
+      analyst: "per category produce {pattern, files_to_scan, expected_count_before, expected_count_after}"
+      implementer: "per category fix-then-re-grep loop until count_after=0; record both numbers in audit table"
+      reviewer: "independent re-grep on top-3 categories by count_before; mismatch → ABORT"
+      documenter: "fill audit-<slug>.md frontmatter + Closing Checklist; submit ExhaustiveEvidence"
+    score: 11
+
 # Config reference — effective threshold is read from .coding-os/config.yaml
 # at router load time. Each ComposedChain records the threshold used so
 # observability can tune per-team.

@@ -39,7 +39,7 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 | 7 | G5 anti-completion-bias | prevent-premature-done.sh (per-session debounced nudge — defer expected_tool_counts.py per Rule 22 until proven needed) | 1 | 1 | yes | 0 | yes | (this commit) |
 | 8 | G6 auto-reviewer | cos_task_move reviewer_hint + reviewer-subagent-prompt.md template + test_reviewer_hint.py (6 cases) | 3 | 1 | yes | 0 | yes | (this commit) |
 | 9 | G7 count-grounding | enforce-count-grounding.sh (warn-default, COS_ENFORCE_COUNT_GROUNDING=strict to block) | 1 | 1 | yes | 0 | yes | (this commit) |
-| 10 | G2 audit_exhaustive formula | roles/presets/registry.yaml chain | 0 | 1 | no | 1 | no | (pending) |
+| 10 | G2 audit_exhaustive formula | presets/registry.yaml chain (researcher → analyst → implementer → reviewer → documenter, score=11, chain_notes per role) | 1 | 1 | yes | 0 | yes | (this commit) |
 | 11 | G8 subagent delegation | enforce-subagent-delegation.sh | 0 | 1 | no | 1 | no | (pending) |
 | 12 | G9 task-class verification matrix | rules/test-discipline.md extension + hook | 0 | 1 | no | 1 | no | (pending) |
 | 13 | G11 learning loop | observation_record + metric + auto-tune | 0 | 1 | no | 1 | no | (pending) |
@@ -49,9 +49,9 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 
 ## Resume Marker
 
-<!-- last_updated_row: 9 -->
-<!-- next_unchecked_row: 10 -->
-<!-- last_updated_at: 2026-05-17T05:30:00Z -->
+<!-- last_updated_row: 10 -->
+<!-- next_unchecked_row: 11 -->
+<!-- last_updated_at: 2026-05-17T06:00:00Z -->
 
 ## Notes
 
