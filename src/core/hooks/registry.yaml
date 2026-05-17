@@ -987,3 +987,22 @@ hooks:
       - event: PreToolUse
         matcher: "Write|Edit"
         status_message: "🔢 Checking grep-count grounding (exhaustive intent)..."
+
+  - id: enforce-subagent-delegation
+    script: enforce-subagent-delegation.sh
+    description: |
+      PreToolUse Edit|Write — subagent-delegation nudge for large
+      audits.  Active only when intent.exhaustive=true AND the active
+      audit declares ≥5 categories AND no Agent / Task tool call has
+      appeared in this session's hooks log.  WARN (default) or BLOCK
+      (COS_ENFORCE_SUBAGENT_DELEGATION=strict) — reminder to delegate
+      per-category sweep work to read-only Explore subagents so the
+      main session preserves context for synthesis.  Audits under 5
+      categories skip the gate — delegation is overkill at that scale.
+    category: enforcement
+    phase: P
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: "Write|Edit"
+        status_message: "🧑‍🤝‍🧑 Checking subagent delegation for large audit..."

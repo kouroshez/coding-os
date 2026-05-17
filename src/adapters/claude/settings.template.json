@@ -164,6 +164,12 @@
             "command": "{{HOOKS_DIR}}/enforce-count-grounding.sh",
             "statusMessage": "🔢 Checking grep-count grounding (exhaustive intent)...",
             "timeout": 800
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-subagent-delegation.sh",
+            "statusMessage": "🧑‍🤝‍🧑 Checking subagent delegation for large audit...",
+            "timeout": 800
           }
         ]
       },
