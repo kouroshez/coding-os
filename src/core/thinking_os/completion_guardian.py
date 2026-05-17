@@ -188,6 +188,51 @@ def guard_completion(
     return result
 
 
+def _record_gap_observation_safe(session_id: str, result: GuardResult) -> None:
+    """Append a completion_gap observation row so the learning loop (G11)
+    can surface recurring premature-done patterns across sessions.
+
+    Fire-and-forget: never propagates a DB error to the hook flow.
+    """
+    db_path = os.environ.get("COS_DB_PATH")
+    if not db_path:
+        state = os.environ.get("COS_STATE_DIR") or ".coding-os"
+        db_path = str(Path(state) / "coding-os.db")
+    if not Path(db_path).exists():
+        return
+    try:
+        import sqlite3
+        title = f"completion_gap: {len(result.gaps)} gap(s)"
+        narrative = " | ".join(result.gaps[:10])
+        facts = json.dumps(
+            {
+                "audits_checked": result.audits_checked,
+                "has_evidence_bundle": result.has_evidence_bundle,
+                "gap_count": len(result.gaps),
+            },
+            ensure_ascii=False,
+        )
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "INSERT INTO observations "
+                "(session_id, tool_name, observation_type, memory_type, "
+                "impact_score, title, narrative, facts) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    session_id or "unknown",
+                    "completion_guardian",
+                    "completion_gap",
+                    "error",
+                    0.8,
+                    title,
+                    narrative,
+                    facts,
+                ),
+            )
+    except Exception as exc:
+        sys.stderr.write(f"guardian: observation insert failed: {exc}\n")
+
+
 def main(argv: list[str]) -> int:
     session_id = ""
     try:
@@ -201,6 +246,10 @@ def main(argv: list[str]) -> int:
         session_id = os.environ.get("CLAUDE_SESSION_ID", "")
 
     result = guard_completion(session_id=session_id)
+
+    if result.status == "fail":
+        _record_gap_observation_safe(session_id, result)
+
     json.dump(result.to_dict(), sys.stdout, ensure_ascii=False)
     sys.stdout.write("\n")
     return 0 if result.status == "pass" else 1

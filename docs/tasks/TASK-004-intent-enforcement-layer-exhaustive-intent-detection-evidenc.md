@@ -91,3 +91,4 @@ references: []
 - 2026-05-17 [claude]: G2 done: audit-exhaustive preset in src/core/thinking_os/presets/registry.yaml — match{action:audit}, chain[researcher→a
 - 2026-05-17 [claude]: G8 done: enforce-subagent-delegation.sh — PreToolUse Edit|Write. Active only when intent.exhaustive=true AND audit ≥5 ca
 - 2026-05-17 [claude]: G9 done: rules/test-discipline.md extended with per-task-class verification matrix (audit_exhaustive / migration_exhaust
+- 2026-05-17 [claude]: G11 done: completion_guardian._record_gap_observation_safe writes observation_type=completion_gap memory_type=error rows

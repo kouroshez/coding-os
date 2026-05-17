@@ -154,3 +154,43 @@ class TestMissingEvidenceBundle:
         result = guard_completion(session_id="missing-session", repo_root=repo)
         assert result.status == "fail"
         assert any("no EvidenceBundle" in g for g in result.gaps)
+
+
+class TestGapObservationRecorded:
+    def test_failure_inserts_observation_row(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        # Set up an in-process SQLite DB with the observations schema.
+        import sqlite3
+        db_path = repo / ".coding-os" / "coding-os.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE observations ("
+                " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                " session_id TEXT, tool_name TEXT, observation_type TEXT,"
+                " memory_type TEXT, impact_score REAL, title TEXT,"
+                " narrative TEXT, facts TEXT,"
+                " created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+            )
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+
+        _write_intent(agent_dir, {"exhaustive": True, "predicates": ["coverage_100"]})
+        _write_audit(repo, "slug-fail", "in_progress", unchecked_rows=2)
+
+        # Drive main() to trigger the gap-observation insert path.
+        from completion_guardian import _record_gap_observation_safe, guard_completion
+        result = guard_completion(session_id="ses-1", repo_root=repo)
+        assert result.status == "fail"
+        _record_gap_observation_safe("ses-1", result)
+
+        with sqlite3.connect(db_path) as conn:
+            rows = conn.execute(
+                "SELECT observation_type, memory_type, title, session_id "
+                "FROM observations"
+            ).fetchall()
+        assert len(rows) == 1
+        obs_type, mem_type, title, sess = rows[0]
+        assert obs_type == "completion_gap"
+        assert mem_type == "error"
+        assert "completion_gap" in title
+        assert sess == "ses-1"
