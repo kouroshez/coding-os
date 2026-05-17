@@ -41,7 +41,7 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 | 9 | G7 count-grounding | enforce-count-grounding.sh (warn-default, COS_ENFORCE_COUNT_GROUNDING=strict to block) | 1 | 1 | yes | 0 | yes | (this commit) |
 | 10 | G2 audit_exhaustive formula | presets/registry.yaml chain (researcher → analyst → implementer → reviewer → documenter, score=11, chain_notes per role) | 1 | 1 | yes | 0 | yes | (this commit) |
 | 11 | G8 subagent delegation | enforce-subagent-delegation.sh (warn-default, ≥5 categories threshold, COS_ENFORCE_SUBAGENT_DELEGATION=strict to block) | 1 | 1 | yes | 0 | yes | (this commit) |
-| 12 | G9 task-class verification matrix | rules/test-discipline.md extension + hook | 0 | 1 | no | 1 | no | (pending) |
+| 12 | G9 task-class verification matrix | rules/test-discipline.md extended with audit_exhaustive/migration_exhaustive/refactor_exhaustive rows; hook deferred per Rule 22 — guardian G4 already enforces equivalent | 1 | 1 | yes | 0 | yes | (this commit) |
 | 13 | G11 learning loop | observation_record + metric + auto-tune | 0 | 1 | no | 1 | no | (pending) |
 | 14 | G13 Hub UI audits tab | FastAPI route + React component | 0 | 1 | no | 1 | no | (pending) |
 | 15 | G14 CI trace-replay assertion | cognition trace-replay extension + workflow | 0 | 1 | no | 1 | no | (pending) |
@@ -49,9 +49,9 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 
 ## Resume Marker
 
-<!-- last_updated_row: 11 -->
-<!-- next_unchecked_row: 12 -->
-<!-- last_updated_at: 2026-05-17T06:30:00Z -->
+<!-- last_updated_row: 12 -->
+<!-- next_unchecked_row: 13 -->
+<!-- last_updated_at: 2026-05-17T07:00:00Z -->
 
 ## Notes
 
