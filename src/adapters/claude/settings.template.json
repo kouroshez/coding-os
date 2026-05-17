@@ -557,6 +557,12 @@
             "command": "{{HOOKS_DIR}}/verify-completion-claim.sh",
             "statusMessage": "🔒 Verifying completion evidence (exhaustive intent)...",
             "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/prevent-premature-done.sh",
+            "statusMessage": "🧐 Checking for silent category exclusions...",
+            "timeout": 1000
           }
         ]
       }

@@ -947,3 +947,22 @@ hooks:
       - event: Stop
         matcher: ""
         status_message: "🔒 Verifying completion evidence (exhaustive intent)..."
+
+  - id: prevent-premature-done
+    script: prevent-premature-done.sh
+    description: |
+      Stop hook — anti-completion-bias nudge.  Complementary to G4
+      verify-completion-claim (which catches KNOWN gaps via unchecked
+      rows + EvidenceBundle predicates); this nudge catches SILENT
+      exclusions — categories the agent never added to the audit list
+      in the first place.  Fires ONCE per session via marker file when
+      intent.exhaustive=true AND at least one active audit exists.
+      Injects a Stop-event additionalContext asking the agent to name
+      3 categories it deliberately excluded and justify each.
+    category: cognition
+    phase: P
+    timeout: 1000
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "🧐 Checking for silent category exclusions..."
