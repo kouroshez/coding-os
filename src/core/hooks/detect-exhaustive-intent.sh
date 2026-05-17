@@ -29,9 +29,6 @@ fi
 
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || echo "")
 LEN=${#PROMPT}
-if [[ "$LEN" -lt 5 ]]; then
-  exit 0
-fi
 
 HELPER="$(dirname "$0")/_helpers/extract_intent.py"
 if [[ ! -f "$HELPER" ]]; then
@@ -39,9 +36,19 @@ if [[ ! -f "$HELPER" ]]; then
   exit 0
 fi
 
+# Always invoke helper — even for short / empty prompts — so intent.json
+# is OVERWRITTEN every UserPromptSubmit.  Without this, stale
+# exhaustive=true from an earlier prompt persists into later turns where
+# the user moved on to a non-exhaustive ask, and the Stop guardian
+# fires on ghost predicates the current bundle cannot satisfy.
 INTENT_JSON=$(printf '%s' "$INPUT" | python3 "$HELPER" 2>/dev/null || echo "")
 if [[ -z "$INTENT_JSON" ]]; then
   cos_log_hook detect-exhaustive-intent skip "reason=helper_empty"
+  exit 0
+fi
+
+if [[ "$LEN" -lt 5 ]]; then
+  cos_log_hook detect-exhaustive-intent ok "short_prompt len=${LEN} intent_reset"
   exit 0
 fi
 

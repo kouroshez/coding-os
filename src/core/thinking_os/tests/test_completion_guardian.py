@@ -156,6 +156,67 @@ class TestMissingEvidenceBundle:
         assert any("no EvidenceBundle" in g for g in result.gaps)
 
 
+class TestSessionMismatchGuard:
+    def test_intent_with_different_session_id_is_ignored(self, env) -> None:
+        repo, agent_dir = env
+        # Stale intent stamped with prior session id.
+        _write_intent(
+            agent_dir,
+            {
+                "exhaustive": True,
+                "predicates": ["coverage_100"],
+                "session_id": "ses-old-001",
+            },
+        )
+        _write_audit(repo, "slug-stale", "in_progress", unchecked_rows=3)
+        # Guardian invoked for a DIFFERENT session.
+        result = guard_completion(session_id="ses-new-002", repo_root=repo)
+        assert result.status == "pass", result.gaps
+        assert result.intent_exhaustive is False
+        assert result.gaps == []
+
+    def test_intent_with_matching_session_id_still_enforces(self, env) -> None:
+        repo, agent_dir = env
+        _write_intent(
+            agent_dir,
+            {
+                "exhaustive": True,
+                "predicates": ["coverage_100"],
+                "session_id": "ses-match-001",
+            },
+        )
+        _write_audit(repo, "slug-match", "in_progress", unchecked_rows=2)
+        result = guard_completion(session_id="ses-match-001", repo_root=repo)
+        assert result.status == "fail"
+        assert any("2 unchecked" in g for g in result.gaps)
+
+    def test_intent_without_session_id_still_enforces_back_compat(self, env) -> None:
+        """Old intent.json without session_id field — no rejection."""
+        repo, agent_dir = env
+        _write_intent(
+            agent_dir,
+            {"exhaustive": True, "predicates": ["coverage_100"]},
+        )
+        _write_audit(repo, "slug-legacy", "in_progress", unchecked_rows=1)
+        result = guard_completion(session_id="ses-any-id", repo_root=repo)
+        assert result.status == "fail"
+
+    def test_guardian_called_without_session_id_does_not_reject(self, env) -> None:
+        """When session_id arg is empty, skip the mismatch check entirely."""
+        repo, agent_dir = env
+        _write_intent(
+            agent_dir,
+            {
+                "exhaustive": True,
+                "predicates": ["coverage_100"],
+                "session_id": "ses-foo",
+            },
+        )
+        _write_audit(repo, "slug-empty", "in_progress", unchecked_rows=1)
+        result = guard_completion(session_id="", repo_root=repo)
+        assert result.status == "fail"
+
+
 class TestGapObservationRecorded:
     def test_failure_inserts_observation_row(self, env, monkeypatch) -> None:
         repo, agent_dir = env

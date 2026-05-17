@@ -163,6 +163,13 @@ def guard_completion(
     repo = repo_root or Path.cwd()
 
     intent = _load_intent(agent_dir)
+    # Reject session-mismatched intent: if intent.json was written under a
+    # different session id than the one the Stop hook is running under, the
+    # predicates belong to a prompt the current session never saw and the
+    # bundle (keyed by session_id) cannot satisfy them. Treat as no intent.
+    if intent and session_id and intent.get("session_id"):
+        if intent.get("session_id") != session_id:
+            intent = None
     intent_exhaustive = bool(intent and intent.get("exhaustive"))
 
     bundle = None

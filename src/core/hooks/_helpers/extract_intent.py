@@ -123,6 +123,20 @@ def _scan_scope(tokens: list[str], vocab: set[str]) -> dict[str, list[int]]:
     return found
 
 
+def _current_session_id() -> str:
+    sid_path = os.environ.get("COS_SESSION_FILE")
+    if not sid_path:
+        base = os.environ.get("COS_AGENT_DIR")
+        if base:
+            sid_path = str(Path(base) / "session-id")
+    if not sid_path:
+        return ""
+    try:
+        return Path(sid_path).read_text().strip()[:64]
+    except OSError:
+        return ""
+
+
 def extract_intent(prompt: str) -> dict[str, Any]:
     if not prompt or not prompt.strip():
         return _empty_result(prompt)
@@ -166,6 +180,7 @@ def extract_intent(prompt: str) -> dict[str, Any]:
         "prompt_length": len(prompt),
         "token_count": len(tokens),
         "detected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "session_id": _current_session_id(),
     }
 
 
@@ -178,6 +193,7 @@ def _empty_result(prompt: str) -> dict[str, Any]:
         "prompt_length": len(prompt or ""),
         "token_count": 0,
         "detected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "session_id": _current_session_id(),
     }
 
 
