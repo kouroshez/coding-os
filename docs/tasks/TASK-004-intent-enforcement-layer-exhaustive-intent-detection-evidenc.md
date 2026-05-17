@@ -84,3 +84,4 @@ references: []
 - 2026-05-17 [claude]: G1 done: detect-exhaustive-intent.sh + _helpers/extract_intent.py — 20-token sliding window co-occurrence (exhaustive ve
 - 2026-05-17 [claude]: G12 done: docs/_meta/audit-checklist-template.md + enforce-audit-artifact.sh (PreToolUse Edit|Write, blocks when exhaust
 - 2026-05-17 [claude]: G3 done: ExhaustiveEvidence Pydantic model (10 fields: categories_declared/covered, counts_before/after, files_searched,
+- 2026-05-17 [claude]: G4 done: completion_guardian.py (audit-row count + EvidenceBundle predicate validation, dataclass GuardResult) + verify-

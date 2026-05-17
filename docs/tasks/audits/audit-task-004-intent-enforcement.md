@@ -35,7 +35,7 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 | 3 | G1 per-prompt detector | detect-exhaustive-intent.sh + extract_intent.py + test_intent_classifier.py | 3 | 1 | yes | 0 | yes | 170efe0 |
 | 4 | G12 audit artifact + enforcement | template + enforce-audit-artifact.sh + inject-resume-prompt.sh | 3 | 1 | yes | 0 | yes | 26432e9 |
 | 5 | G3 EvidenceBundle schema | ExhaustiveEvidence + validate_exhaustive_evidence + cos_supervise_record_output extension | 4 | 1 | yes | 0 | yes | (this commit) |
-| 6 | G4 completion_guardian | completion_guardian.py + verify-completion-claim.sh | 0 | 1 | no | 1 | no | (pending) |
+| 6 | G4 completion_guardian | completion_guardian.py + verify-completion-claim.sh + test_completion_guardian.py | 3 | 1 | yes | 0 | yes | (this commit) |
 | 7 | G5 anti-completion-bias | prevent-premature-done.sh + expected_tool_counts.py | 0 | 1 | no | 1 | no | (pending) |
 | 8 | G6 auto-reviewer | reviewer spawn on cos_task_move --to done | 0 | 1 | no | 1 | no | (pending) |
 | 9 | G7 count-grounding | enforce-count-grounding.sh | 0 | 1 | no | 1 | no | (pending) |
@@ -49,9 +49,9 @@ Each group = one category. `Hits before` = group not yet implemented (=1). `Hits
 
 ## Resume Marker
 
-<!-- last_updated_row: 5 -->
-<!-- next_unchecked_row: 6 -->
-<!-- last_updated_at: 2026-05-17T03:30:00Z -->
+<!-- last_updated_row: 6 -->
+<!-- next_unchecked_row: 7 -->
+<!-- last_updated_at: 2026-05-17T04:00:00Z -->
 
 ## Notes
 

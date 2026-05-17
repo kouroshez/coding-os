@@ -551,6 +551,12 @@
             "command": "{{HOOKS_DIR}}/auto-trace-rotate.sh",
             "statusMessage": "🧹 Rotating old trace files...",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/verify-completion-claim.sh",
+            "statusMessage": "🔒 Verifying completion evidence (exhaustive intent)...",
+            "timeout": 2000
           }
         ]
       }
