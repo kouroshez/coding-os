@@ -29,7 +29,11 @@ def _audits_dir() -> Path:
     try:
         from web._project_context import current_project_root  # type: ignore
         root = current_project_root()
-    except Exception:
+    except Exception as exc:
+        # Fire-and-forget per Rule 6: log to stderr so debug isn't
+        # blind, then fall back to cwd. Hub usually provides
+        # project_context, but standalone test / CLI invocation may not.
+        sys.stderr.write(f"audits: project_context fallback to cwd: {exc}\n")
         root = Path.cwd()
     return Path(root) / "docs" / "tasks" / "audits"
 
