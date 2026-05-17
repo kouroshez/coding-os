@@ -158,6 +158,12 @@
             "command": "{{HOOKS_DIR}}/enforce-audit-artifact.sh",
             "statusMessage": "🗒️  Checking audit artifact present (exhaustive intent)...",
             "timeout": 800
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/enforce-count-grounding.sh",
+            "statusMessage": "🔢 Checking grep-count grounding (exhaustive intent)...",
+            "timeout": 800
           }
         ]
       },

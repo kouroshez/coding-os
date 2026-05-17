@@ -87,3 +87,4 @@ references: []
 - 2026-05-17 [claude]: G4 done: completion_guardian.py (audit-row count + EvidenceBundle predicate validation, dataclass GuardResult) + verify-
 - 2026-05-17 [claude]: G5 done: prevent-premature-done.sh Stop hook — per-session debounced nudge asking agent to name 3 deliberately-excluded
 - 2026-05-17 [claude]: G6 done: cos_task_move extended with reviewer_hint payload — when to=complete + intent.exhaustive=true + active audit-*.
+- 2026-05-17 [claude]: G7 done: enforce-count-grounding.sh — PreToolUse Edit|Write nudge for grep-before/grep-after discipline. Skip conditions

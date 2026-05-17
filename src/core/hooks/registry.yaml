@@ -966,3 +966,24 @@ hooks:
       - event: Stop
         matcher: ""
         status_message: "🧐 Checking for silent category exclusions..."
+
+  - id: enforce-count-grounding
+    script: enforce-count-grounding.sh
+    description: |
+      PreToolUse Edit|Write — count-grounding nudge for exhaustive
+      intent. When intent.exhaustive=true and the agent is about to
+      edit a file under src/, warn ONCE per session that grep-before /
+      grep-after discipline is required (record both counts in the
+      audit table Hits before / Hits after columns).  Default: WARN
+      mode (exit 0 with stderr).  Strict mode
+      (COS_ENFORCE_COUNT_GROUNDING=strict): BLOCK when no `grep` call
+      is visible in the session's turn-activity log.  Self-edit
+      allow-list matches enforce-audit-artifact (audits dir, _meta,
+      .coding-os/, /tmp/, anything outside src/).
+    category: enforcement
+    phase: P
+    timeout: 800
+    events:
+      - event: PreToolUse
+        matcher: "Write|Edit"
+        status_message: "🔢 Checking grep-count grounding (exhaustive intent)..."
