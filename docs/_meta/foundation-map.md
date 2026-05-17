@@ -55,7 +55,7 @@
 - `REF:GRAPH-CURES` → `./engineering/graph-hallucination-cures.md`
 - `REF:GRAPH-USES` → `./engineering/graph-use-cases.md`
 - `REF:HOOKS-REF` → `./engineering/hooks-reference.md`
-- `REF:HOOK-REGISTRY` → `../core/hooks/registry.yaml`
+- `REF:HOOK-REGISTRY` → `../src/core/hooks/registry.yaml`
 - `REF:ADAPTER-PARITY` → `./engineering/adapter-parity.md`
 - `REF:HUB-ARCH` → `./engineering/hub-architecture.md`
 - `REF:STATE-FILES` → `./engineering/state-files.md`
@@ -104,5 +104,5 @@
 ## See also
 
 - `./governance/docs-system.md` — Navigation Rules, when to use REF vs. relative link.
-- `../core/scripts/ref-resolve.sh` — CLI resolver for `REF:*` → path (`make ref REF=DOC-FIRST`).
-- `../core/scripts/docs-lint.sh` — REF validation pass (Check 4 fires when foundation-map exists).
+- `../src/core/scripts/ref-resolve.sh` — CLI resolver for `REF:*` → path (`make ref REF=DOC-FIRST`).
+- `../src/core/scripts/docs-lint.sh` — REF validation pass (Check 4 fires when foundation-map exists).

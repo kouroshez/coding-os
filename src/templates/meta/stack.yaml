@@ -37,7 +37,7 @@ substitutions:
     - `REF:GRAPH-QUERIES`          → `./engineering/graph_os-queries.md`
     - `REF:GRAPH-HALLUCINATIONS`   → `./engineering/graph-hallucination-cures.md`
     - `REF:MCP-ENVELOPE`           → `./engineering/mcp-error-envelope.md`
-    - `REF:HOOK-REGISTRY`          → `../core/hooks/registry.yaml`
+    - `REF:HOOK-REGISTRY`          → `../src/core/hooks/registry.yaml`
 
 ref_codes:
   - {code: "REF:META-PROJECT",         path: "./architecture/meta-project.md",         desc: "Meta-project layered architecture"}

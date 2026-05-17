@@ -213,7 +213,7 @@ cos-decay-dry: ## Preview confidence decay (no changes)
 
 .PHONY: cos-stats
 cos-stats: ## Show thinking_os DB statistics
-	@cd src/core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from db import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
+	@cd src/core/thinking_os && COS_DB_PATH=$(COS_DB_PATH) uv run python -c "from database import init_db, get_db_stats; import json; c=init_db('$(COS_DB_PATH)'); print(json.dumps(get_db_stats(c), indent=2)); c.close()"
 
 .PHONY: cos-compress
 cos-compress: ## Compress old observations in DB

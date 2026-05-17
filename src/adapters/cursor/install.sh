@@ -51,7 +51,7 @@ if cos_bin:
 else:
     data['mcpServers']['coding-os'] = {
         'command': 'uv',
-        'args': ['run', '--directory', f'{cos_root}/core/thinking_os', 'python', 'server.py'],
+        'args': ['run', '--directory', f'{cos_root}/src/core/thinking_os', 'python', 'server.py'],
         'cwd': '\${workspaceFolder}'
     }
 with open(mcp_path, 'w') as f:

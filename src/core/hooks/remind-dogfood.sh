@@ -33,7 +33,7 @@ esac
 DIR=$(dirname "$FILE_PATH")
 PROJECT_ROOT=""
 while [[ "$DIR" != "/" && "$DIR" != "." ]]; do
-  if [[ -d "${DIR}/templates/_base" && -d "${DIR}/adapters/claude" && -d "${DIR}/adapters/codex" ]]; then
+  if [[ -d "${DIR}/src/templates/_base" && -d "${DIR}/src/adapters/claude" && -d "${DIR}/src/adapters/codex" ]]; then
     PROJECT_ROOT="$DIR"
     break
   fi

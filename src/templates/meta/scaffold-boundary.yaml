@@ -13,10 +13,10 @@ stack: meta
 # meta-stack's responsibility — graph-explorer + clean-code + thinking_os
 # auto-load via skill_enforcement in stack.yaml.
 roots:
-  - core/
-  - cli/
-  - adapters/
-  - templates/
+  - src/core/
+  - src/cli/
+  - src/adapters/
+  - src/templates/
 
 # Concrete file globs that constitute meta-repo authoring surface.
 file_patterns:
@@ -34,8 +34,8 @@ file_patterns:
 
 # Module imports the meta-stack may rely on.
 imports_from:
-  - core/
-  - cli/
+  - src/core/
+  - src/cli/
 
 # Paths the meta-stack must NEVER write into. These belong to runtime
 # state or to other (consumer-shaped) overlays.

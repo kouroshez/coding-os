@@ -6,8 +6,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-HOOKS_DIR="${REPO_ROOT}/core/hooks"
+HOOKS_DIR="${REPO_ROOT}/src/core/hooks"
 
+if [[ ! -d "$HOOKS_DIR" && -d "${REPO_ROOT}/core/hooks" ]]; then
+  HOOKS_DIR="${REPO_ROOT}/core/hooks"
+fi
 if [[ -d "${REPO_ROOT}/.claude/hooks" ]]; then
   HOOKS_DIR="${REPO_ROOT}/.claude/hooks"
 fi

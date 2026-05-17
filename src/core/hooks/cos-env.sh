@@ -593,7 +593,9 @@ cos_sanity_check() {
           || fail="tasks_dir_missing"
         ;;
       board_os)
-        [[ -d "${CLAUDE_PROJECT_DIR:-.}/core/board_os" ]] \
+        [[ -d "${CLAUDE_PROJECT_DIR:-.}/src/core/board_os" ]] \
+          || [[ -d "${CLAUDE_PROJECT_DIR:-.}/core/board_os" ]] \
+          || [[ -d "./src/core/board_os" ]] \
           || [[ -d "./core/board_os" ]] \
           || fail="board_os_missing"
         ;;
