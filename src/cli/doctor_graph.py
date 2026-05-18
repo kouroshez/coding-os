@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("coding_os.doctor.graph")
 
-FRESHNESS_SECONDS = 3600
+FRESHNESS_SECONDS = 86400  # 24h — dev workflow doesn't reindex hourly; nightly cron + on-edit auto-reindex keep it fresh
 PARSE_ERROR_RATE_LIMIT = 0.05
 CASCADE_OVERFLOW_LIMIT = 10
 
@@ -148,7 +148,7 @@ def add_check_backend_responsive(report: "DoctorReport", state_dir: Path) -> Non
         return
     last_ok = probe.get("last_ok_at")
     age = int(time.time()) - int(last_ok) if last_ok else None
-    if age is None or age > 6 * 3600:
+    if age is None or age > FRESHNESS_SECONDS:
         report.checks.append(
             CheckResult(
                 "graph.backend_responsive", SEV_WARN,
