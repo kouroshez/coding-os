@@ -9,7 +9,6 @@ Implements the graph-category checks (plan §18.3 / §19 I.14):
   graph.embedding_migration      embedding migration status (BGE-M3 progress)
   graph.embedding_dimensions     embedding dim distribution (no split > 7 days)
   graph.cascade_overflow         cascade overflow count  < 10 per 24 h
-  graph.kuzu_state               kuzu directory state
   graph.evidence_table           graph_evidence_v12 table present
   graph.orphan_symbols           orphan symbols within budget
   graph.legacy_kinds             pre-v16 colon-prefixed kinds cleaned
@@ -363,44 +362,6 @@ def add_check_cascade_overflow(report: "DoctorReport", state_dir: Path) -> None:
     )
 
 
-def add_check_kuzu_state(report: "DoctorReport", state_dir: Path) -> None:
-    """Surface the kuzu-backend state so users aren't surprised by the
-    auto-fallback. Three states: missing (kuzu not in use), populated,
-    or empty (auto falls back to SQLite — fine but worth knowing)."""
-    from cli.doctor import CheckResult, SEV_PASS, SEV_WARN
-
-    kuzu_dir = state_dir / "graph_os.kuzu"
-    if not kuzu_dir.exists():
-        report.checks.append(
-            CheckResult(
-                "graph.kuzu_state", SEV_PASS,
-                "kuzu not in use (sqlite only)",
-                {"present": False},
-            )
-        )
-        return
-    data_file = kuzu_dir / "data.kz"
-    size = data_file.stat().st_size if data_file.exists() else 0
-    if size == 0:
-        report.checks.append(
-            CheckResult(
-                "graph.kuzu_state", SEV_WARN,
-                "kuzu directory exists but is empty — auto backend "
-                "falls back to SQLite. Consider `rm -rf "
-                f"{kuzu_dir}` or wire a kuzu reindexer.",
-                {"present": True, "data_bytes": 0},
-            )
-        )
-        return
-    report.checks.append(
-        CheckResult(
-            "graph.kuzu_state", SEV_PASS,
-            f"kuzu populated ({size} bytes)",
-            {"present": True, "data_bytes": size},
-        )
-    )
-
-
 def add_check_evidence_table(
     report: "DoctorReport", conn: sqlite3.Connection | None
 ) -> None:
@@ -573,7 +534,6 @@ def run_graph_checks(
     add_check_embedding_migration(report, state_dir)
     add_check_embedding_dimensions(report, conn, state_dir)
     add_check_cascade_overflow(report, state_dir)
-    add_check_kuzu_state(report, state_dir)
     add_check_evidence_table(report, conn)
     add_check_orphan_symbols(report, conn)
     add_check_legacy_kinds(report, conn)

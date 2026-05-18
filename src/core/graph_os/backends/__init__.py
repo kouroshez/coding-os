@@ -1,10 +1,13 @@
 """graph_os storage backends.
 
-Two implementations ship in I.0:
-  - SqliteBackend — fallback, always available, reuses thinking_os DB.
-  - KuzuBackend   — primary, optional extra (pip install kuzu).
+One implementation ships today:
+  - SqliteBackend — primary store; embedded, zero-deps, reuses the
+                    thinking_os DB. p99 < 30 ms on 5-hop traversal at
+                    1M nodes with PRAGMA tuning + ANALYZE (benchmark
+                    2026-05-18).
 
-Both honour the GraphBackend Protocol (../backend.py) and the Section
-12.6 parity contract — they return identical results for the I.0
-parity matrix.
+KuzuBackend was retired in commit 2026-05-18 after the same benchmark
+showed SQLite was well within budget for every realistic consumer
+scale. If a future workload exceeds 10M nodes, restore from git
+history (path: src/core/graph_os/backends/kuzu_backend.py).
 """

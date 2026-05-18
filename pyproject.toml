@@ -22,8 +22,11 @@ rag = [
 ]
 
 # graph_os — Phase I knowledge graph subsystem.
-# Pinned deliberately (plan P-I-11): grammar / Kùzu upgrades change AST
-# shape and invalidate the graph, so upgrades are their own slice.
+# Pinned deliberately (plan P-I-11): grammar upgrades change AST shape
+# and invalidate the graph, so upgrades are their own slice.
+# Backend: SQLite only. Kuzu was removed 2026-05-18 after benchmark
+# (10K-1M nodes) showed SQLite with PRAGMA tuning + ANALYZE delivers
+# p99 < 30 ms for 5-hop traversal on 1M nodes — well inside the budget.
 # Install with: uv sync --extra graph_os
 graph_os = [
     "sentence-transformers>=2.7.0",
@@ -33,7 +36,6 @@ graph_os = [
     "tree-sitter-typescript>=0.21.0,<0.24.0",
     "tree-sitter-bash>=0.21.0,<0.24.0",
     "tree-sitter-yaml>=0.6.1,<0.8.0",
-    "kuzu>=0.7.1,<0.11.0",
 ]
 
 # board_os — Phase L Scrumban web viewer (cos board --web).

@@ -1,14 +1,16 @@
-"""Doctor checks: graph.kuzu_state, graph.evidence_table, graph.orphan_symbols, graph.legacy_kinds."""
+"""Doctor checks: graph.evidence_table, graph.orphan_symbols, graph.legacy_kinds.
+
+Kuzu state checks retired 2026-05-18 together with the Kuzu backend
+(see commit removing src/core/graph_os/backends/kuzu_backend.py).
+"""
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
 
 import pytest
 
 from cli.doctor import DoctorReport
 from cli.doctor_graph import (
-    add_check_kuzu_state,
     add_check_evidence_table,
     add_check_orphan_symbols,
     add_check_legacy_kinds,
@@ -24,33 +26,6 @@ def _migrated_conn() -> sqlite3.Connection:
 
 def _new_report() -> DoctorReport:
     return DoctorReport(project_dir=".", agent="claude", templates=[])
-
-
-def test_c24_passes_when_kuzu_dir_missing(tmp_path: Path):
-    report = _new_report()
-    add_check_kuzu_state(report, tmp_path)
-    [c] = [c for c in report.checks if c.id == "graph.kuzu_state"]
-    assert c.severity == "PASS"
-
-
-def test_c24_warns_when_kuzu_dir_empty(tmp_path: Path):
-    kuzu = tmp_path / "graph_os.kuzu"
-    kuzu.mkdir()
-    (kuzu / "data.kz").write_bytes(b"")
-    report = _new_report()
-    add_check_kuzu_state(report, tmp_path)
-    [c] = [c for c in report.checks if c.id == "graph.kuzu_state"]
-    assert c.severity == "WARN"
-
-
-def test_c24_passes_when_kuzu_populated(tmp_path: Path):
-    kuzu = tmp_path / "graph_os.kuzu"
-    kuzu.mkdir()
-    (kuzu / "data.kz").write_bytes(b"x" * 100)
-    report = _new_report()
-    add_check_kuzu_state(report, tmp_path)
-    [c] = [c for c in report.checks if c.id == "graph.kuzu_state"]
-    assert c.severity == "PASS"
 
 
 def test_c25_passes_with_migrated_db():
