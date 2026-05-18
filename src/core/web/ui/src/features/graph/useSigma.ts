@@ -32,7 +32,11 @@ interface UseSigmaReturn {
   isLayoutRunning: boolean;
 }
 
-const FA2_ITERATIONS = 200;
+// Barnes-Hut turns FA2 from O(n²) to O(n log n) per iteration, so we
+// can keep iteration count high without blocking the main thread for
+// >1s on 500-node graphs. Without it, 200 iterations × 600 nodes ≈
+// 72M ops and the canvas freezes for 10-30s (TASK perf-graph).
+const FA2_ITERATIONS = 100;
 const NOVERLAP_SETTINGS = {
   maxIterations: 30,
   ratio: 1.1,
@@ -255,7 +259,15 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
           incoming as any,
           {
             iterations: FA2_ITERATIONS,
-            settings: { ...inferred, slowDown: 5, scalingRatio: 15, gravity: 0.4, edgeWeightInfluence: 1 },
+            settings: {
+              ...inferred,
+              barnesHutOptimize: true,    // O(n log n) — critical for >200 nodes
+              barnesHutTheta: 0.5,        // accuracy/speed tradeoff; 0.5 is library default
+              slowDown: 5,
+              scalingRatio: 15,
+              gravity: 0.4,
+              edgeWeightInfluence: 1,
+            },
           },
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

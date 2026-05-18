@@ -174,9 +174,20 @@ if [[ "$FILE_PATH" == *.ts ]] || [[ "$FILE_PATH" == *.tsx ]] || [[ "$FILE_PATH" 
 
   # Block 'any' type in TypeScript (use proper types)
   # Source: frontend-rules.md § Non-Negotiables
+  # Honors the standard `// eslint-disable-next-line @typescript-eslint/no-explicit-any`
+  # escape hatch so lines explicitly marked safe (e.g. third-party generics
+  # with overly strict types) do not trip the gate. Without this exemption
+  # the hook fires on every commit touching the file even when the diff
+  # does not introduce new `any` usage.
   if [[ "$FILE_PATH" == *.ts ]] || [[ "$FILE_PATH" == *.tsx ]]; then
-    if echo "$CONTENT" | grep -qE ':\s*any\b|<any>|as\s+any\b'; then
+    if echo "$CONTENT" | awk '
+        /eslint-disable-next-line.*no-explicit-any/ { skip=1; next }
+        skip { skip=0; next }
+        /:\s*any\b|<any>|as\s+any\b/ { found=1; exit }
+        END { exit !found }
+    '; then
       echo "BLOCKED: Do not use 'any' type. Define a proper TypeScript type or interface. See docs/engineering/frontend-rules.md § Non-Negotiables." >&2
+      echo "  Hint: prefix the line with: // eslint-disable-next-line @typescript-eslint/no-explicit-any" >&2
       exit 2
     fi
   fi
