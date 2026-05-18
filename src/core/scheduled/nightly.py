@@ -52,6 +52,7 @@ _MIN_OUTCOMES = 3
 _CRON_B_OBS_THRESHOLD = 10
 _MAX_CONSECUTIVE_FAILURES = 3
 _SCHEMA_VERSION_MIN = 7
+_GRAPH_REINDEX_THRESHOLD_S = 86400  # 24h — match doctor_graph.FRESHNESS_SECONDS
 
 
 def _setup_logging(verbose: bool = False) -> None:
@@ -327,6 +328,18 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         logger.error("[%s] routing_recalc raised: %s", slug, exc)
         errors += 1
 
+    # Task 4: graph_reindex_if_stale
+    try:
+        t = _run_graph_reindex_if_stale(project_root, dry_run=dry_run)
+        run["tasks"]["graph_reindex"] = t
+        logger.info("[%s] graph_reindex → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:  # noqa: BLE001
+        run["tasks"]["graph_reindex"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] graph_reindex raised: %s", slug, exc)
+        errors += 1
+
     # Failure tracking
     if errors > 0:
         consecutive_failures += 1
@@ -347,6 +360,69 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     write_state(project_root, run)
     logger.info("[%s] done (errors=%d)", slug, errors)
     return run
+
+
+# ---------------------------------------------------------------------------
+# Task: graph_reindex_if_stale
+# ---------------------------------------------------------------------------
+
+def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
+    """Trigger a full graph reindex when the backend probe is older than 24h.
+
+    The PostToolUse auto-reindex hook keeps the graph fresh on every Edit /
+    Write, but a project that hasn't been touched for >24h drifts out of
+    freshness silently. Nightly fills that gap so `cos doctor` keeps
+    `graph.freshness` PASS without manual intervention.
+    """
+    import time as _t
+
+    probe = project_root / ".coding-os" / ".graph-backend.json"
+    if not probe.exists():
+        return {"status": "skipped", "reason": "no_probe_yet"}
+    try:
+        data = json.loads(probe.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"status": "skipped", "reason": f"probe_unreadable: {exc}"}
+
+    last_ok = data.get("last_ok_at")
+    if not isinstance(last_ok, int):
+        return {"status": "skipped", "reason": "probe_missing_last_ok_at"}
+    age = int(_t.time()) - last_ok
+    if age < _GRAPH_REINDEX_THRESHOLD_S:
+        return {
+            "status": "skipped",
+            "reason": f"fresh ({age}s < {_GRAPH_REINDEX_THRESHOLD_S}s)",
+            "age_seconds": age,
+        }
+
+    if dry_run:
+        return {"status": "dry_run", "would_reindex": True, "age_seconds": age}
+
+    import subprocess  # noqa: PLC0415 — keep import local; not used elsewhere
+
+    try:
+        completed = subprocess.run(
+            ["cos", "graph-reindex"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        return {"status": "error", "error": str(exc)}
+
+    if completed.returncode != 0:
+        return {
+            "status": "error",
+            "error": f"cos graph-reindex rc={completed.returncode}",
+            "stderr_tail": completed.stderr[-500:],
+        }
+    summary_line = ""
+    for line in reversed(completed.stdout.splitlines()):
+        if "processed=" in line:
+            summary_line = line.strip()
+            break
+    return {"status": "ok", "summary": summary_line or "completed", "age_seconds": age}
 
 
 # ---------------------------------------------------------------------------
