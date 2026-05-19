@@ -312,3 +312,74 @@ class TestNightlyMain:
         nightly.main(["--reset-failures", "--dry-run"])
         state = read_state(project_root)
         assert state.get("consecutive_failures", 0) == 0
+
+
+# ---------------------------------------------------------------------------
+# graph_reindex_if_stale (Task 4 — added 2026-05-18)
+# ---------------------------------------------------------------------------
+
+
+class TestGraphReindexIfStale:
+    """Probe-driven nightly reindex covers the gap when no edits fired the
+    PostToolUse auto-reindex hook for >24h."""
+
+    def _write_probe(self, project_root: Path, last_ok_at: int) -> Path:
+        state = project_root / ".coding-os"
+        state.mkdir(parents=True, exist_ok=True)
+        probe = state / ".graph-backend.json"
+        probe.write_text(json.dumps({"backend": "sqlite", "last_ok_at": last_ok_at}))
+        return probe
+
+    def test_skips_when_probe_missing(self, tmp_path: Path) -> None:
+        import nightly
+        result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
+        assert result == {"status": "skipped", "reason": "no_probe_yet"}
+
+    def test_skips_when_probe_fresh(self, tmp_path: Path) -> None:
+        import time as _t
+        import nightly
+        self._write_probe(tmp_path, int(_t.time()) - 60)  # 60s old
+        result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
+        assert result["status"] == "skipped"
+        assert "fresh" in result["reason"]
+
+    def test_dry_run_when_probe_stale(self, tmp_path: Path) -> None:
+        import time as _t
+        import nightly
+        self._write_probe(tmp_path, int(_t.time()) - 200_000)  # >24h
+        result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=True)
+        assert result["status"] == "dry_run"
+        assert result["would_reindex"] is True
+        assert result["age_seconds"] >= 200_000
+
+    def test_invokes_subprocess_when_stale(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import time as _t
+        import nightly
+
+        self._write_probe(tmp_path, int(_t.time()) - 200_000)
+
+        captured: dict = {}
+
+        class _FakeCompleted:
+            returncode = 0
+            stdout = "[graph-reindex] processed=42 skipped=0 errors=0 duration=1.5s\n"
+            stderr = ""
+
+        def _fake_run(cmd, **kwargs):  # noqa: ANN001 — match subprocess.run signature loosely
+            captured["cmd"] = cmd
+            captured["cwd"] = kwargs.get("cwd")
+            return _FakeCompleted()
+
+        # Patch subprocess inside the function's local import scope by
+        # replacing it on the imported subprocess module reference.
+        import subprocess
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+
+        result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
+        assert result["status"] == "ok"
+        assert "processed=42" in result["summary"]
+        assert captured["cmd"][0] == sys.executable
+        assert captured["cmd"][1:4] == ["-m", "cli.main", "graph-reindex"]
+        assert captured["cwd"] == str(tmp_path)

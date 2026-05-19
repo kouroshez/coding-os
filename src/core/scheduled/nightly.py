@@ -400,9 +400,12 @@ def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
 
     import subprocess  # noqa: PLC0415 — keep import local; not used elsewhere
 
+    # Invoke via `sys.executable -m cli.main graph-reindex` so launchd's
+    # stripped PATH (typically /usr/bin:/bin) cannot lose the binary —
+    # the interpreter we are already running with always resolves.
     try:
         completed = subprocess.run(
-            ["cos", "graph-reindex"],
+            [sys.executable, "-m", "cli.main", "graph-reindex"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
