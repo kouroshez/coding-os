@@ -102,6 +102,10 @@ class GraphBackend(Protocol):
 
 _BACKEND_CHOICES = ("auto", "sqlite")
 
+# Per-process gate so the "kuzu→sqlite coercion" log fires once, not on
+# every request a Hub-style long-running process makes.
+_KUZU_COERCE_LOGGED: bool = False
+
 
 def _resolve_backend_choice(explicit: str | None) -> str:
     """Pick a backend identifier from explicit arg > env > default=auto.
@@ -116,7 +120,12 @@ def _resolve_backend_choice(explicit: str | None) -> str:
         or "auto"
     ).strip().lower()
     if chosen == "kuzu":
-        logger.info("backend='kuzu' is retired; coercing to 'sqlite'.")
+        # Log once per process — long-running Hub callers shouldn't
+        # produce a line per request after the first.
+        global _KUZU_COERCE_LOGGED
+        if not _KUZU_COERCE_LOGGED:
+            logger.info("backend='kuzu' is retired; coercing to 'sqlite'.")
+            _KUZU_COERCE_LOGGED = True
         chosen = "sqlite"
     if chosen not in _BACKEND_CHOICES:
         raise ValueError(
@@ -138,8 +147,19 @@ def get_backend(
     one release so callers using the old signature don't break.
     """
     # Tolerate the retired `kuzu_path` kwarg so older callers don't crash
-    # while we sweep call sites.
-    extra.pop("kuzu_path", None)
+    # while we sweep call sites — but emit a DeprecationWarning so the
+    # caller is told to drop it before the next release removes the
+    # tolerance entirely.
+    if "kuzu_path" in extra:
+        import warnings  # noqa: PLC0415 — only needed on the deprecation path
+        warnings.warn(
+            "get_backend(kuzu_path=…) is retired (Kuzu backend removed "
+            "2026-05-18); the argument is ignored and will become a "
+            "TypeError in the next release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        extra.pop("kuzu_path", None)
 
     choice = _resolve_backend_choice(backend)
     # Only the default-path case is safe to cache. Tests + explicit
