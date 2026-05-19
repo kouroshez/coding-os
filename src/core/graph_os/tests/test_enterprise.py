@@ -113,12 +113,12 @@ class TestBackendProbe:
         assert "last_ok_at" in payload
 
     def test_idempotent_overwrite(self, tmp_path):
-        write_backend_probe(tmp_path, backend="sqlite")
+        write_backend_probe(tmp_path, backend="sqlite", sqlite_schema_version=1)
         time.sleep(0.01)
-        path = write_backend_probe(tmp_path, backend="kuzu", kuzu_version="0.10.1")
+        path = write_backend_probe(tmp_path, backend="sqlite", sqlite_schema_version=2)
         payload = json.loads(path.read_text(encoding="utf-8"))
-        assert payload["backend"] == "kuzu"
-        assert payload["kuzu_version"] == "0.10.1"
+        assert payload["backend"] == "sqlite"
+        assert payload["sqlite_schema_version"] == 2
 
 
 class TestBackendProbeIntegration:

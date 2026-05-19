@@ -167,16 +167,20 @@ def write_backend_probe(
     state_dir: str | Path,
     *,
     backend: str,
-    kuzu_version: str | None = None,
     sqlite_schema_version: int | None = None,
+    **legacy: object,
 ) -> Path:
-    """Record the last-known-good backend state for doctor C19."""
+    """Record the last-known-good backend state for the doctor freshness check.
+
+    The retired ``kuzu_version`` kwarg is silently absorbed via ``**legacy``
+    so pinned callers don't break — the next release will tighten the
+    signature.
+    """
     target_dir = Path(state_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
     path = target_dir / ".graph-backend.json"
     payload = {
         "backend": backend,
-        "kuzu_version": kuzu_version,
         "sqlite_schema_version": sqlite_schema_version,
         "last_ok_at": int(time.time()),
     }

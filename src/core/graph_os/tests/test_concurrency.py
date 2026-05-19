@@ -1,6 +1,6 @@
 """graph_os S1 B1 — concurrency smoke test.
 
-DEPENDS:      graph_os.backends.{sqlite,kuzu}_backend, threading.
+DEPENDS:      graph_os.backends.sqlite_backend, threading.
 """
 
 from __future__ import annotations
@@ -9,8 +9,6 @@ import sqlite3
 import threading
 from pathlib import Path
 from typing import Any
-
-import pytest
 
 from graph_os.types import GraphEdge, GraphNode
 
@@ -120,18 +118,3 @@ def test_sqlite_backend_concurrency(tmp_path: Path) -> None:
         backend.close()
 
 
-# ---------------------------------------------------------------------------
-# Kuzu — skipped when not installed.
-# ---------------------------------------------------------------------------
-
-
-def test_kuzu_backend_concurrency(tmp_path: Path) -> None:
-    pytest.importorskip("kuzu")
-    from graph_os.backends.kuzu_backend import KuzuBackend
-
-    db_path = tmp_path / "graph_os-concurrency.kuzu"
-    backend = KuzuBackend(path=str(db_path))
-    try:
-        _exercise_backend(backend)
-    finally:
-        backend.close()

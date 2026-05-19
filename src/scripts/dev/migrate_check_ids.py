@@ -28,7 +28,7 @@ ID_MAP: dict[str, str] = {
     "C21": "graph.embedding_migration",
     "C22": "graph.embedding_dimensions",
     "C23": "graph.cascade_overflow",
-    "C24": "graph.kuzu_state",
+    # C24 graph.kuzu_state — retired 2026-05-18 with the Kuzu backend.
     "C25": "graph.evidence_table",
     "C26": "graph.orphan_symbols",
     "C27": "graph.legacy_kinds",

@@ -1,25 +1,20 @@
 """Tests for the get_backend factory and BackendUnavailable handling.
 
-Ship gate: factory must honour the fail-loud contract (Section 12.5
-of the plan). Explicit kuzu request when kuzu is missing => raise;
-auto request falls back silently but sets backend_id correctly.
+Ship gate: factory honors the fail-loud contract (rejects unknown
+backends, coerces the retired ``kuzu`` choice, accepts env override,
+and emits a DeprecationWarning on the retired ``kuzu_path`` kwarg).
+
+Kuzu backend was retired 2026-05-18 — there's no kuzu_backend.py to
+import any more.
 """
 
 from __future__ import annotations
 
-import importlib
+import warnings
 
 import pytest
 
-from graph_os.backend import BackendUnavailable, get_backend
-
-
-def _kuzu_available() -> bool:
-    try:
-        importlib.import_module("kuzu")
-        return True
-    except ImportError:
-        return False
+from graph_os.backend import get_backend
 
 
 def test_factory_rejects_unknown_choice():
@@ -35,11 +30,8 @@ def test_factory_sqlite_always_available(migrated_conn):
         backend.close()
 
 
-def test_factory_auto_falls_back_to_sqlite_when_kuzu_absent(
-    migrated_conn, monkeypatch
-):
-    if _kuzu_available():
-        pytest.skip("kuzu installed — auto would prefer it")
+def test_factory_auto_uses_sqlite(migrated_conn):
+    """`auto` is the default and now always resolves to SQLite."""
     backend = get_backend(backend="auto", sqlite_conn=migrated_conn)
     try:
         assert backend.backend_id == "sqlite"
@@ -47,11 +39,13 @@ def test_factory_auto_falls_back_to_sqlite_when_kuzu_absent(
         backend.close()
 
 
-def test_factory_kuzu_explicit_raises_when_missing():
-    if _kuzu_available():
-        pytest.skip("kuzu installed — explicit request succeeds")
-    with pytest.raises(BackendUnavailable):
-        get_backend(backend="kuzu")
+def test_factory_legacy_kuzu_choice_coerced(migrated_conn):
+    """Pinned configs that still pass backend='kuzu' get SQLite silently."""
+    backend = get_backend(backend="kuzu", sqlite_conn=migrated_conn)
+    try:
+        assert backend.backend_id == "sqlite"
+    finally:
+        backend.close()
 
 
 def test_factory_env_variable_picks_backend(migrated_conn, monkeypatch):
@@ -59,5 +53,20 @@ def test_factory_env_variable_picks_backend(migrated_conn, monkeypatch):
     backend = get_backend(sqlite_conn=migrated_conn)
     try:
         assert backend.backend_id == "sqlite"
+    finally:
+        backend.close()
+
+
+def test_factory_kuzu_path_kwarg_warns_and_ignored(migrated_conn):
+    """Old callers passing kuzu_path= get a DeprecationWarning, not a crash."""
+    with warnings.catch_warnings(record=True) as captured:
+        warnings.simplefilter("always")
+        backend = get_backend(sqlite_conn=migrated_conn, kuzu_path="/ignored")
+    try:
+        assert backend.backend_id == "sqlite"
+        assert any(
+            issubclass(w.category, DeprecationWarning) and "kuzu_path" in str(w.message)
+            for w in captured
+        )
     finally:
         backend.close()
