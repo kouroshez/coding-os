@@ -43,7 +43,7 @@ A world-class extractor for language L exhibits ALL of:
                 ▼           ▼              ▼            ▼
         ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐
         │ Extractors │  │ Overlay  │  │ Toolchain│  │ Backend      │
-        │  per lang  │  │ layer    │  │ context  │  │ (sqlite/kuzu)│
+        │  per lang  │  │ layer    │  │ context  │  │ (sqlite)     │
         └─────┬──────┘  └────┬─────┘  └────┬─────┘  └──────────────┘
               │              │             │
               ├── code_python.py ◄─── tree_sitter_overlay (py grammar)
@@ -103,7 +103,7 @@ World-class polyglot graph
 ├── Infrastructure
 │   ├── reindex_dispatch ............... GOOD — chain map, cache, idempotent
 │   ├── file_index_state cache ......... GOOD — content_hash short-circuit
-│   ├── backend (sqlite/kuzu) .......... GOOD — abstracted, swappable
+│   ├── backend (sqlite) ............... GOOD — single store; Kuzu retired 2026-05-18 after benchmark showed SQLite p99 < 30 ms on 5-hop @ 1M nodes
 │   └── auto-reindex-docs hook ......... GOOD — fires PostToolUse:Write|Edit
 │
 └── Quality bars

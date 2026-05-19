@@ -13,7 +13,7 @@
 | Artifact | Path | What it holds |
 |---|---|---|
 | SQLite main DB | `.coding-os/coding-os.db` | observations, learned_patterns, tasks index, graph_nodes/edges, retrievals, embeddings, metrics, audit |
-| Kùzu graph store | `.coding-os/graph_os.kuzu/` | secondary native-graph backend (mostly small; primary lives in SQLite) |
+| Legacy Kùzu directory | `.coding-os/graph_os.kuzu/` | retired 2026-05-18; `cos db-reset` still removes the dir if a consumer has one left over |
 | Agent session state | `.coding-os/<agent>/` | gates, traces, markers (one dir per agent: claude/codex/cursor) |
 | Task SSOT (opt-in) | `docs/tasks/TASK-*.md` | Scrumban task files — disk is the source of truth, DB is a derived index |
 

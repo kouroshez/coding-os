@@ -3,8 +3,6 @@
 
 # Override COS paths for self-development
 COS_ROOT := $(shell pwd)
-COS_SCRIPTS := $(COS_ROOT)/src/core/scripts
-COS_HOOKS := $(COS_ROOT)/src/core/hooks
 
 export COS_STATE_DIR ?= .coding-os
 export COS_DB_PATH ?= $(COS_STATE_DIR)/coding-os.db
@@ -13,6 +11,14 @@ export COS_BRAIN_DIR ?= $(COS_ROOT)/src/core/thinking_os
 # ── Include base targets ────────────────────────────────────────────
 COS_META_REPO := 1
 include src/templates/_base/Makefile.base
+
+# Re-pin meta-repo paths AFTER the include — Makefile.base assigns
+# $(COS_ROOT)/core/{scripts,hooks} which only resolves correctly under
+# a consumer layout (where COS_ROOT is already meta_repo/src). In the
+# meta-repo itself COS_ROOT is the project root, so we need the src/
+# prefix explicitly.
+COS_SCRIPTS := $(COS_ROOT)/src/core/scripts
+COS_HOOKS := $(COS_ROOT)/src/core/hooks
 
 # ── Project-Specific Overrides ──────────────────────────────────────
 # Note: verify is overridden from base to add MCP test

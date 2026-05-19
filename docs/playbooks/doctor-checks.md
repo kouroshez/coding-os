@@ -115,7 +115,7 @@ Every relative markdown link under `docs/` and the root README resolves to an ex
 ## graph
 
 ### graph.backend_responsive
-The active graph backend (kuzu or sqlite) responds to a probe query.
+The graph backend (SQLite) responds to a probe query.
 **Warns** when the backend is offline or slow.
 **Fix**: restart MCP, or run `cos graph-reindex` if the index is corrupted.
 
@@ -148,11 +148,6 @@ Most-recent graph index is younger than the configured staleness threshold (defa
 If groups are declared in config, every named group is a valid graph slice.
 **Passes** when no groups are configured.
 **Fix**: edit `.coding-os/rag-config.yaml::graph.groups`.
-
-### graph.kuzu_state
-Kuzu backend directory is either absent (sqlite-only mode) or fully initialised.
-**Warns** on a half-built kuzu dir.
-**Fix**: `rm -rf .coding-os/graph_os.kuzu` and let auto-fallback handle it, or run the kuzu reindexer.
 
 ### graph.legacy_kinds
 No graph node uses pre-v16 colon-prefixed `kind` literals.

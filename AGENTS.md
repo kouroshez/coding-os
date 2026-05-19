@@ -151,7 +151,7 @@ The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineeri
 | MCP server entry | [src/core/thinking_os/server.py](src/core/thinking_os/server.py) |
 | DB + migrations | [src/core/thinking_os/database.py](src/core/thinking_os/database.py) |
 | MCP tools | [src/core/thinking_os/tools/](src/core/thinking_os/tools/) (memory, metrics, learning, routing, docs, tasks, retrieve, cognition) |
-| graph_os | [src/core/graph_os/](src/core/graph_os/) — backends/{kuzu,sqlite}_backend.py |
+| graph_os | [src/core/graph_os/](src/core/graph_os/) — backends/sqlite_backend.py |
 | board_os | [src/core/board_os/](src/core/board_os/) — config, parser, sync, workflow, mcp_tools |
 | Web backbone (S4) | [src/core/web/](src/core/web/) — FastAPI on port 9188, `/api/{graph,board,cognition,search}` + `/api/stream/events` SSE |
 | React SPA (S5) | [src/core/web/ui/](src/core/web/ui/) — Vite + React 18 + Sigma.js, served at http://127.0.0.1:9188 |
