@@ -864,6 +864,25 @@ hooks:
         matcher: compact|resume
         status_message: "🎯 Re-priming intent-interpretation vocabulary..."
 
+  - id: session-skill-primer
+    script: session-skill-primer.sh
+    description: |
+      SessionStart prime card — emits a compact additionalContext block
+      at fresh-startup listing the skills that enforce-skill.sh
+      (PreToolUse Write/Edit) will BLOCK without. Reads SSOT:
+      $COS_STATE_DIR/installed-manifest.json::templates → active stacks;
+      src/templates/<stack>/stack.yaml → primary_skill + skill_enforcement
+      table. Closes the gap where the agent only discovers required
+      skills reactively after the first block. Per-session debounced via
+      $COS_AGENT_DIR/.session-skill-primer-fired. Always exits 0.
+    category: cognition
+    phase: P
+    timeout: 1500
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "🧠 Priming required-skill card..."
+
   - id: detect-exhaustive-intent
     script: detect-exhaustive-intent.sh
     description: |

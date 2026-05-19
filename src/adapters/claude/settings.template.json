@@ -430,6 +430,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/session-skill-primer.sh",
+            "statusMessage": "🧠 Priming required-skill card...",
+            "timeout": 1500
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/inject-resume-prompt.sh",
             "statusMessage": "📋 Scanning for active audits to resume...",
             "timeout": 1000
