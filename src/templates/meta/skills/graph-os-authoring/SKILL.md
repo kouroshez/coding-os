@@ -1,6 +1,6 @@
 ---
 name: graph-os-authoring
-description: Author the graph_os knowledge-graph internals — extractors, backends, indexers, queries. Use when adding a new node/edge type, writing a new extractor (Python AST, doc-headings, etc.), implementing a new backend (Kuzu, SQLite, future Neo4j), or modifying the reindex dispatcher. Enforces idempotency on uid, append-only file_index_state, backend-agnostic tool layer, confidence-scoring discipline. Pairs with graph-explorer (which queries the graph this skill builds), python-meta-server, and mcp-tool-authoring (for `cos_graph_*` tools).
+description: Author the graph_os knowledge-graph internals — extractors, backends, indexers, queries. Use when adding a new node/edge type, writing a new extractor (Python AST, doc-headings, etc.), evolving the SQLite backend, or modifying the reindex dispatcher. Enforces idempotency on uid, append-only file_index_state, backend-agnostic tool layer, confidence-scoring discipline. Pairs with graph-explorer (which queries the graph this skill builds), python-meta-server, and mcp-tool-authoring (for `cos_graph_*` tools).
 last_reviewed: "2026-05-11"
 ---
 
@@ -9,7 +9,7 @@ last_reviewed: "2026-05-11"
 Purpose: The graph is the third retrieval layer. Authoring it correctly — idempotent extraction, backend-neutral query layer, honest confidence scores — is what makes `cos_graph_*` tools faster + more accurate than grep. Getting any one of those wrong corrupts the graph silently, and the agent starts trusting hallucinations.
 
 Read when: editing files matching:
-- `src/core/graph_os/backends/*.py` — Kuzu / SQLite / future-backend implementations.
+- `src/core/graph_os/backends/*.py` — SQLite (single backend today; Kuzu retired 2026-05-18 after benchmark showed SQLite p99 < 30 ms on 5-hop @ 1M nodes).
 - `src/core/graph_os/extractors/*.py` — Python AST / doc / config extractors.
 - `src/core/graph_os/tools/*.py` — the `cos_graph_*` MCP tools (also see [mcp-tool-authoring](../mcp-tool-authoring/SKILL.md)).
 - `src/core/graph_os/tools/reindex_dispatch.py` — incremental reindex orchestration.
@@ -95,7 +95,7 @@ The tool layer (`src/core/graph_os/tools/*.py`) MUST NOT leak SQL or Cypher into
 from core.graph_os.backends import get_backend
 
 async def query_references(uid: str) -> list[GraphEdge]:
-    backend = get_backend()  # returns KuzuBackend, SQLiteBackend, etc.
+    backend = get_backend()  # returns SqliteBackend today; abstraction kept so a future store can plug in.
     return await backend.find_references(uid)
 ```
 
@@ -110,7 +110,7 @@ class GraphBackend(Protocol):
     # ...
 ```
 
-Swapping Kuzu ↔ SQLite must require zero changes to the tool layer. Adding Neo4j later = new backend file only.
+Adding a future backend later = new backend file only, zero changes to the tool layer.
 
 ### 5. Reindex is incremental + short-circuited
 
@@ -196,16 +196,17 @@ def inner():
 
 ## Backend — the Decision Tree
 
-`graph_os` ships two backends:
+`graph_os` ships a single backend:
 
-- **Kuzu** (default, embedded graph DB) — fastest for graph walks (depth > 1). Used in production.
-- **SQLite** (fallback, embedded relational) — works when Kuzu is unavailable; slower for deep walks. Used in CI and constrained environments.
+- **SQLite** — embedded relational, FTS5 + JSON1, p99 < 30 ms on 5-hop traversal at 1M nodes with PRAGMA tuning + ANALYZE (benchmark 2026-05-18).
 
-When adding a backend:
+The Kuzu backend was retired the same day after the benchmark showed SQLite was well inside budget for every realistic consumer scale. The abstraction (`GraphBackend` Protocol) is kept so a future graph-native store can plug in if a real workload exceeds SQLite's headroom.
+
+When adding a future backend:
 
 1. Implement the `GraphBackend` Protocol.
 2. Register it in `src/core/graph_os/backends/__init__.py`.
-3. Add parity tests under `src/core/graph_os/tests/test_backends/test_parity.py` — same queries → same results (within confidence-tier tolerance).
+3. Add parity tests against SQLite — same queries → same results (within confidence-tier tolerance).
 4. Document the backend's strengths / weaknesses in [docs/engineering/graph_os-queries.md](../../../docs/engineering/graph_os-queries.md).
 
 **Hard rule:** the backend choice is a deployment concern, never visible to the agent or tool layer. `cos_graph_references` returns identical envelope shape regardless of which backend answered.
@@ -217,7 +218,6 @@ When adding a backend:
 | PostToolUse hook (single file written) | `dispatch(path)` — extract that file only |
 | Doc indexer (markdown changed) | Same — incremental |
 | Bulk migration / `git checkout` | `cos graph-reindex --force` — re-extract everything because content hashes are now misleading |
-| Backend swap | `cos graph-reindex --force --backend kuzu` |
 
 The PostToolUse path is fire-and-forget: it can't block the agent. Failures log + alert but the user's edit completes regardless.
 
@@ -226,8 +226,8 @@ The PostToolUse path is fire-and-forget: it can't block the agent. Failures log 
 `cos_graph_*` tools are MCP tools — also see [mcp-tool-authoring](../mcp-tool-authoring/SKILL.md). Graph-specific contracts on top of the universal MCP contract:
 
 - **Every response carries `data.meta.layer="graph"`** so agents know which retrieval layer answered.
-- **`data.meta.backend`** tells which backend answered (`kuzu`, `sqlite`, ...).
-- **`data.meta.backend_fallback=true`** when Kuzu was unavailable and SQLite answered. Tools that need depth > 2 should re-check after fallback flag.
+- **`data.meta.backend`** tells which backend answered (`sqlite` today).
+- **`data.meta.backend_fallback=true`** when the primary backend was unavailable and an alternate answered (no alternate today — flag reserved for a future graph-native plug-in).
 - **Empty result is valid** — fresh repo, unindexed file. Don't return `fail`; return `ok({results: []})`.
 
 ## Anti-patterns (reject in review)

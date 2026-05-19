@@ -65,7 +65,7 @@ is the most common meta-repo bug. If unsure, default to **lower** layer
 - Verify: `uv run --extra rag pytest src/core/thinking_os/tests/ -q && python src/core/thinking_os/server.py --test`.
 
 ### `src/core/graph_os/**`
-- Backends (`kuzu`, `sqlite`) interchangeable — never leak SQL/Cypher into the tool layer.
+- Tool layer stays backend-agnostic — never leak raw SQL into the `cos_graph_*` callers. Single backend today (SQLite); the abstraction stays so a future store can plug in.
 - Extractors idempotent on `uid`, short-circuit via `file_index_state` content hash.
 - Verify: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q`.
 

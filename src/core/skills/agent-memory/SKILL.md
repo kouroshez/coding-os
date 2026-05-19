@@ -55,7 +55,7 @@ cos_observation_record(
 | `pattern` | Reusable approach to a recurring problem | "Expand-contract pattern for adding NOT NULL column" |
 | `workflow` | Sequence of steps, not a one-off insight | "Verify migration safety: write → backfill → switch → drop" |
 | `error` | Bug → root cause → fix | "Cookie SameSite=None requires Secure=true (FastAPI default leaks)" |
-| `decision` | Trade-off chosen + reason | "Kuzu over Neo4j for embedded graph: deployment cost beats query depth" |
+| `decision` | Trade-off chosen + reason | "SQLite + PRAGMA tuning over a second graph store: p99 < 30 ms on 5-hop @ 1M nodes makes the abstraction overhead unjustified" |
 | `discovery` | Surprising fact about the system | "FastMCP doesn't accept `list[str]` args across all runtimes; use CSV" |
 
 ### 3. Confidence calibration (the lever that decides ranking)
@@ -82,7 +82,7 @@ Use after a non-trivial task completes to harvest patterns automatically:
 cos_learn_extract(
     task_id="TASK-042",
     work_log_summary="<one paragraph of what was done>",
-    decisions_made_csv="chose kuzu over neo4j; backfill before NOT NULL",
+    decisions_made_csv="chose sqlite + PRAGMA tuning over a second graph store; backfill before NOT NULL",
 )
 ```
 

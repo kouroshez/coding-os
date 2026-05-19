@@ -98,10 +98,10 @@ Tests `tests/test_no_hardcoded_anthropic.py` + `tests/test_no_hardcoded_stacks.p
 
 ```python
 try:
-    from kuzu import Database
-    _HAS_KUZU = True
+    import sentence_transformers
+    _HAS_EMBEDDINGS = True
 except ImportError:
-    _HAS_KUZU = False
+    _HAS_EMBEDDINGS = False
 ```
 
 ### Telemetry without blocking

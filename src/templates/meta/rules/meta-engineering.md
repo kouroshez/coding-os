@@ -35,7 +35,7 @@ enforces on consumer projects must also enforce on itself.
 - Verification: `uv run --extra rag pytest src/core/thinking_os/tests/ -q` + `python src/core/thinking_os/server.py --test`.
 
 ### `src/core/graph_os/**`
-- Backends (`kuzu`, `sqlite`) must remain interchangeable — never leak SQL/Cypher into tool layer.
+- Tool layer stays backend-agnostic — never leak raw SQL into the `cos_graph_*` callers. Single backend today (SQLite); the abstraction stays so a future store can plug in.
 - Extractors are idempotent on `uid` and short-circuit via `file_index_state` content hash.
 - Verification: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q`.
 
