@@ -8,6 +8,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -82,6 +83,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Gzip every response over 500 bytes — /api/graph/export payloads are
+    # 200-300 KB JSON and compress to ~10-20% (5-10x faster transfer on
+    # any network slower than localhost). minimum_size=500 skips tiny
+    # health responses where the gzip header overhead is net negative.
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
     # Per-request project scope — lets a single uvicorn serve every
     # registered coding-os project under /api/p/<slug>/...  (Hub mode).
