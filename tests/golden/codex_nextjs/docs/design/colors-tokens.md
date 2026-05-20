@@ -45,7 +45,7 @@ darkMode: 'class', // NOT 'media'
 > This enables Tailwind's opacity modifier: `bg-brand-1/50` -> `rgba(67, 118, 248, 0.5)`
 
 > [!WARNING]
-> **Shadcn vs NakoDigital Colors**: Shadcn uses `--background` (white). NakoDigital uses `--bg` (#F6F7F7).
+> **Shadcn vs ExampleApp Colors**: Shadcn uses `--background` (white). ExampleApp uses `--bg` (#F6F7F7).
 > **Resolution**: Override Shadcn's `--background` to match `--bg` in globals.css.
 
 ### 2.1 Brand Colors (Vibrant Gradient)
