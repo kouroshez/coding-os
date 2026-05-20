@@ -15,7 +15,7 @@ Read next: Colors (colors-tokens.md), typography (typography-spacing.md), or mot
 
 ### Visual Excellence Standard
 
-NakoDigital's design must feel **premium, modern, and conversion-focused**.
+ExampleApp's design must feel **premium, modern, and conversion-focused**.
 
 > [!TIP]
 > Think like an experienced graphic designer with knowledge of:
@@ -54,9 +54,9 @@ NakoDigital's design must feel **premium, modern, and conversion-focused**.
 
 ## 2. Site Branding
 
-- **Site Name**: `NakoDigital` (not "Nako" or "nako")
-- **Logo Text**: "NakoDigital" or "Nako Digital" (with space for readability)
-- **Domain**: nakodigital.com
+- **Site Name**: `ExampleApp` (not "Example" or "example")
+- **Logo Text**: "ExampleApp" or "Example App" (with space for readability)
+- **Domain**: example.com
 
 ---
 

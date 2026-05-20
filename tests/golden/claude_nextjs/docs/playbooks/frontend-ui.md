@@ -45,7 +45,7 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 - If task involves error states or API integration: also read `frontend-rules.md` § Error Handling
 - If task involves testing: also read `frontend-rules.md` § Edge Case Testing
 - Keep server/client boundaries explicit. Use client components only for real interaction.
-- Treat `/admin/*` as frontend application routes and `/nako-manage/` as Django admin only.
+- Treat `/admin/*` as frontend application routes and `/back-office/` as Django admin only.
 - For SEO files, follow Next.js metadata conventions: `app/sitemap.ts`, `app/robots.ts`, and root AI-discovery files in `public/` or app metadata handlers as appropriate.
 
 ## Verification

@@ -30,7 +30,7 @@ Format: `<page>.<section>.<key>` — all lowercase, dot-separated, no camelCase 
 - Section groups by UI region: `home.hero.*`, `checkout.payment.*`
 - Key names the specific element: `checkout.payment.card-label`, `shared.nav.home`
 
-Examples: `home.hero.title` → "Welcome to NakoDigital" | `errors.not-found.heading` → "Page not found"
+Examples: `home.hero.title` → "Welcome to ExampleApp" | `errors.not-found.heading` → "Page not found"
 
 ---
 
@@ -38,7 +38,7 @@ Examples: `home.hero.title` → "Welcome to NakoDigital" | `errors.not-found.hea
 
 Location: `src/frontend/messages/{locale}.json` — nested JSON matching dot-separated keys.
 
-Example: `{ "home": { "hero": { "title": "Welcome to NakoDigital", "cta": "Start browsing" } }, "checkout": { "summary": { "total": "Total", "item-count": "{count, plural, one {# item} other {# items}}" } } }`
+Example: `{ "home": { "hero": { "title": "Welcome to ExampleApp", "cta": "Start browsing" } }, "checkout": { "summary": { "total": "Total", "item-count": "{count, plural, one {# item} other {# items}}" } } }`
 
 Required: `en.json` must have all keys. Other locales may be incomplete — `next-intl` falls back to English.
 
