@@ -1,0 +1,191 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allow manual re-runs without a push.
+  workflow_dispatch:
+
+# Cancel superseded runs for the same ref to keep CI minutes sane.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Default to restrictive permissions; jobs that need more bump explicitly.
+permissions:
+  contents: read
+
+jobs:
+  # ============================================================
+  # Lint — fast Python + frontend gate. Runs once, always.
+  # ============================================================
+  lint:
+    name: Lint (ruff + mypy + eslint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+      - name: Install Python deps
+        run: uv sync --extra rag
+      - name: ruff check
+        run: uv run ruff check src/ tests/
+      - name: ruff format --check
+        run: uv run ruff format --check src/ tests/
+      - name: mypy (core)
+        run: uv run mypy src/core/thinking_os src/core/board_os src/core/graph_os || true
+        # mypy is informational-only for the first stable release;
+        # promote to required after the baseline noise is cleared.
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: src/core/web/ui/package-lock.json
+      - name: Install frontend deps
+        working-directory: src/core/web/ui
+        run: npm ci
+      - name: TypeScript typecheck
+        working-directory: src/core/web/ui
+        run: npm run typecheck
+      - name: ESLint
+        working-directory: src/core/web/ui
+        run: npm run lint --if-present
+
+  # ============================================================
+  # Test (Python) — matrix across 3.10 / 3.11 / 3.12 × OS.
+  # ============================================================
+  test-python:
+    name: pytest (${{ matrix.os }} · py${{ matrix.python }})
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+      - name: Install deps
+        run: uv sync --extra rag --extra graph_os
+      - name: Install bash 5 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install bash
+      - name: Subsystem — thinking_os
+        run: uv run --extra rag pytest src/core/thinking_os/tests/ -q
+      - name: Subsystem — graph_os
+        run: uv run --extra graph_os pytest src/core/graph_os/tests/ -q
+      - name: Subsystem — board_os
+        run: uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q
+      - name: Cross-cutting tests (selected; skip slow scaffold tests)
+        run: uv run pytest tests/ -q -m 'not slow'
+
+  # ============================================================
+  # Hook syntax — bash -n + shellcheck on every src/core/hooks/*.sh
+  # ============================================================
+  test-hooks:
+    name: shellcheck + bash -n
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: bash -n on every hook
+        run: |
+          fail=0
+          for f in src/core/hooks/*.sh src/core/scripts/*.sh; do
+            bash -n "$f" || fail=1
+          done
+          exit $fail
+      - name: shellcheck (warning level)
+        run: shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh || true
+
+  # ============================================================
+  # Frontend tests (vitest + build).
+  # ============================================================
+  test-frontend:
+    name: vitest + build
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: src/core/web/ui/package-lock.json
+      - name: Install
+        working-directory: src/core/web/ui
+        run: npm ci
+      - name: Test
+        working-directory: src/core/web/ui
+        run: npm test -- --run
+      - name: Build
+        working-directory: src/core/web/ui
+        run: npm run build
+
+  # ============================================================
+  # Docs lint — markdown structure + link integrity.
+  # ============================================================
+  docs-lint:
+    name: docs-lint
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv sync
+      - name: docs-lint
+        run: make docs-lint || true
+        # Informational-only for first stable release.
+
+  # ============================================================
+  # Required-checks gate — every job above must succeed.
+  # Branch protection should require this single check.
+  # ============================================================
+  ci-pass:
+    name: CI Pass
+    if: always()
+    needs: [lint, test-python, test-hooks, test-frontend, docs-lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all required jobs succeeded
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]] \
+             || [[ "${{ needs.test-python.result }}" != "success" ]] \
+             || [[ "${{ needs.test-hooks.result }}" != "success" ]] \
+             || [[ "${{ needs.test-frontend.result }}" != "success" ]] \
+             || [[ "${{ needs.docs-lint.result }}" != "success" ]]; then
+            echo "One or more required jobs failed."
+            exit 1
+          fi
+          echo "All required jobs passed."
