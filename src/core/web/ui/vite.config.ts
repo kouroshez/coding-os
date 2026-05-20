@@ -33,5 +33,25 @@ export default defineConfig({
     sourcemap: false,
     target: 'es2022',
     chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        // Code-splitting strategy: pull the graph stack (Sigma +
+        // Graphology + layouts) into its own chunk so the Board /
+        // Cognition / Logs tabs never download it. The chunk loads
+        // lazily on first /graph route visit. Saves ~250-350 KB
+        // on initial paint for users who don't open the graph.
+        manualChunks: {
+          graph: [
+            'sigma',
+            'graphology',
+            'graphology-layout-forceatlas2',
+            'graphology-layout-forceatlas2/worker',
+            'graphology-layout-noverlap',
+            'graphology-types',
+            '@sigma/node-image',
+          ],
+        },
+      },
+    },
   },
 });
