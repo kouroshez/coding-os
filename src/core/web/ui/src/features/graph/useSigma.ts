@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Sigma from 'sigma';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
+import FA2LayoutSupervisor from 'graphology-layout-forceatlas2/worker';
 import noverlap from 'graphology-layout-noverlap';
 import type { SigmaEdgeAttrs, SigmaNodeAttrs } from './graph-adapter';
 import { applyDagreLayout } from './dagre-layout';
@@ -14,9 +15,10 @@ export type LayoutMode = 'force' | 'dagre';
 //   const { containerRef, setGraph } = useSigma({ onNodeClick: setSelected });
 //   useEffect(() => setGraph(buildGraph(payload)), [payload]);
 //
-// Layout: synchronous ForceAtlas2 for up to 200 iterations, then a
-// light noverlap pass. Worker-based layout is a V2 optimization per
-// slice spec.
+// Layout: ForceAtlas2 runs in a Web Worker (FA2LayoutSupervisor) so the
+// main thread stays free for user interaction (click, pan, zoom) while
+// the layout converges. Wall-clock bounded so we always finish in
+// O(seconds). Noverlap is a fast sync polish pass after the worker stops.
 
 interface UseSigmaOptions {
   onNodeClick?: (uid: string) => void;
@@ -32,17 +34,29 @@ interface UseSigmaReturn {
   isLayoutRunning: boolean;
 }
 
-// Barnes-Hut turns FA2 from O(n²) to O(n log n) per iteration, so we
-// can keep iteration count high without blocking the main thread for
-// >1s on 500-node graphs. Without it, 200 iterations × 600 nodes ≈
-// 72M ops and the canvas freezes for 10-30s (TASK perf-graph).
-const FA2_ITERATIONS = 100;
+// Wall-clock budget for the FA2 worker. Scales with node count so a
+// small graph converges fast and a big one gets enough cycles, but
+// never blocks the user past ~3 s of waiting for "layout settled".
+// The worker runs off main thread so this never freezes the UI —
+// the budget caps how long the layout keeps adjusting, not how long
+// the user has to wait to interact.
+const FA2_BUDGET_MIN_MS = 800;
+const FA2_BUDGET_MAX_MS = 3000;
+const FA2_BUDGET_PER_NODE_MS = 1.2; // measured empirically on Barnes-Hut
+
 const NOVERLAP_SETTINGS = {
   maxIterations: 30,
   ratio: 1.1,
   margin: 6,
   expansion: 1.05,
 };
+
+function _fa2Budget(nodeCount: number): number {
+  return Math.max(
+    FA2_BUDGET_MIN_MS,
+    Math.min(FA2_BUDGET_MAX_MS, Math.round(nodeCount * FA2_BUDGET_PER_NODE_MS)),
+  );
+}
 
 export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,6 +65,9 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sigmaRef = useRef<any>(null);
   const graphRef = useRef<Graph<SigmaNodeAttrs, SigmaEdgeAttrs> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supervisorRef = useRef<any>(null);
+  const layoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isLayoutRunning, setLayoutRunning] = useState(false);
 
   useEffect(() => {
@@ -220,6 +237,21 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     });
 
     return () => {
+      // Tear down the worker FIRST so it doesn't try to mutate a
+      // graph whose Sigma render has already been killed.
+      if (layoutTimerRef.current) {
+        clearTimeout(layoutTimerRef.current);
+        layoutTimerRef.current = null;
+      }
+      if (supervisorRef.current) {
+        try {
+          supervisorRef.current.stop();
+          supervisorRef.current.kill();
+        } catch {
+          // supervisor may already be dead; ignore
+        }
+        supervisorRef.current = null;
+      }
       sigma.kill();
       sigmaRef.current = null;
       graphRef.current = null;
@@ -244,41 +276,85 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         return;
       }
 
-      setLayoutRunning(true);
-      const layout: LayoutMode = options.layout ?? 'force';
-      if (layout === 'dagre') {
-        // TASK-141 P5: top-down hierarchical layout for the
-        // Containment view. Skip force-atlas + noverlap so we don't
-        // wrestle the carefully ranked tree back into a hairball.
-        applyDagreLayout(incoming);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const inferred = forceAtlas2.inferSettings(incoming as any);
-        forceAtlas2.assign(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          incoming as any,
-          {
-            iterations: FA2_ITERATIONS,
-            settings: {
-              ...inferred,
-              barnesHutOptimize: true,    // O(n log n) — critical for >200 nodes
-              barnesHutTheta: 0.5,        // accuracy/speed tradeoff; 0.5 is library default
-              slowDown: 5,
-              scalingRatio: 15,
-              gravity: 0.4,
-              edgeWeightInfluence: 1,
-            },
-          },
-        );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        noverlap.assign(incoming as any, NOVERLAP_SETTINGS);
+      // Kill any prior worker — a fresh setGraph means the previous
+      // layout result is now obsolete. Without this the supervisor
+      // would keep writing positions into a graph instance Sigma
+      // has already swapped out.
+      if (layoutTimerRef.current) {
+        clearTimeout(layoutTimerRef.current);
+        layoutTimerRef.current = null;
+      }
+      if (supervisorRef.current) {
+        try {
+          supervisorRef.current.stop();
+          supervisorRef.current.kill();
+        } catch {
+          // supervisor may already be dead; ignore
+        }
+        supervisorRef.current = null;
       }
 
+      setLayoutRunning(true);
+      const layout: LayoutMode = options.layout ?? 'force';
+
+      if (layout === 'dagre') {
+        // TASK-141 P5: top-down hierarchical layout for the
+        // Containment view. Skip force-atlas so we don't wrestle the
+        // carefully ranked tree back into a hairball.
+        applyDagreLayout(incoming);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sigma.setGraph(incoming as any);
+        graphRef.current = incoming;
+        sigma.getCamera().animatedReset({ duration: 400 });
+        setLayoutRunning(false);
+        return;
+      }
+
+      // Force layout: hand off to the worker. We attach the graph to
+      // Sigma immediately so the user sees nodes (in initial positions)
+      // while the worker iterates; subsequent worker writes update
+      // positions in place and Sigma re-renders each frame.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inferred = forceAtlas2.inferSettings(incoming as any);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sigma.setGraph(incoming as any);
       graphRef.current = incoming;
       sigma.getCamera().animatedReset({ duration: 400 });
-      setLayoutRunning(false);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supervisor = new FA2LayoutSupervisor(incoming as any, {
+        settings: {
+          ...inferred,
+          barnesHutOptimize: true,
+          barnesHutTheta: 0.5,
+          slowDown: 5,
+          scalingRatio: 15,
+          gravity: 0.4,
+          edgeWeightInfluence: 1,
+        },
+      });
+      supervisorRef.current = supervisor;
+      supervisor.start();
+
+      const budgetMs = _fa2Budget(incoming.order);
+      layoutTimerRef.current = setTimeout(() => {
+        try {
+          supervisor.stop();
+          // Fast sync polish so labels don't overlap once the worker
+          // has done the heavy spatialising. Noverlap is O(n) per
+          // iteration with maxIterations=30 — sub-100ms even on 5K
+          // nodes, so running it on the main thread is fine.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          noverlap.assign(incoming as any, NOVERLAP_SETTINGS);
+          supervisor.kill();
+        } catch {
+          // supervisor may already be dead; ignore
+        }
+        if (supervisorRef.current === supervisor) supervisorRef.current = null;
+        layoutTimerRef.current = null;
+        setLayoutRunning(false);
+        sigma.refresh();
+      }, budgetMs);
     },
     [],
   );
