@@ -1,12 +1,101 @@
 # coding-os
 
-[![version](https://img.shields.io/badge/version-0.2.0-blue)](./docs/architecture/meta-project.md) [![tests](https://img.shields.io/badge/tests-passing-green)](./tests/) [![cli](https://img.shields.io/badge/cli-cos-informational)](./docs/architecture/meta-project.md)
+[![version](https://img.shields.io/badge/version-0.3.0-blue)](./CHANGELOG.md)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+[![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](./pyproject.toml)
+[![tests](https://img.shields.io/badge/tests-1195%20passing-green)](./tests/)
+[![cli](https://img.shields.io/badge/cli-cos-informational)](./docs/architecture/meta-project.md)
 
-Agent-agnostic cognitive operating system for AI coding agents.
+> **Agent-agnostic cognitive operating system for AI coding agents.**
+> Teaches AI agents *how to think* (thinking_os) and *how to code*
+> (workflow, hooks, skills, rules) — packaged so the same kernel
+> serves Claude Code, OpenAI Codex, and Cursor without rewriting.
 
-Teaches AI agents **how to think** (thinking_os) and **how to code** (workflow, hooks, skills, rules).
+---
 
-→ For the canonical system description read **[docs/architecture/meta-project.md](./docs/architecture/meta-project.md)**.
+## 60-second quickstart
+
+```bash
+# 1. Install
+git clone https://github.com/kouroshebra/coding-os.git
+cd coding-os
+uv tool install --editable .          # installs the `cos` CLI globally
+
+# 2. Verify
+cos --version                          # → cos 0.3.0
+cos doctor                             # 14-point health check
+
+# 3. Spawn a new project, scaffolded with one agent + one stack
+cos init --agent claude --template django --name my-shop --yes
+cd my-shop
+
+# 4. Boot the multi-project Web Hub (graph + board + cognition + search)
+cos hub start                          # → http://127.0.0.1:9188
+```
+
+Open `http://127.0.0.1:9188` in your browser. You will see the
+knowledge graph of `my-shop`, the Scrumban board, the cognition
+trace timeline, and unified search across all retrieval layers.
+
+For Codex or Cursor, swap `--agent claude` for `--agent codex` or
+`--agent cursor` — everything else is identical.
+
+---
+
+## What it is
+
+`coding-os` is a three-layer composition (DNA → mRNA → phenotype):
+
+```
+src/core/  ──►  src/adapters/<agent>/  ──►  src/templates/<stack>/  ──►  consumer project
+(DNA)         (mRNA)                       (phenotype)                 (organism)
+```
+
+| Layer            | What it owns                                                       |
+| ---------------- | ------------------------------------------------------------------ |
+| `src/core/`      | MCP server, hooks (62), rules, skills — **agent-agnostic, stack-agnostic** |
+| `src/adapters/`  | Per-agent translation: `.claude/`, `.codex/`, `.cursor/` rendering |
+| `src/templates/` | Per-stack overlays: Django, Next.js, FastAPI, Go, Go+Fiber, React Native, Python, Meta |
+| `src/cli/`       | The `cos` factory CLI that composes the three layers               |
+
+Adding a new stack or a new agent is a pure YAML + Markdown change.
+No Python edits required.
+
+## What it does
+
+1. **Complexity Gate** — classifies problems before acting (Cynefin:
+   CLEAR / COMPLICATED / COMPLEX / CHAOTIC / CONFUSION).
+2. **Cognitive Cycle** — CLASSIFY → ORIENT → PLAN → EXECUTE → VERIFY.
+   The kernel rule (`src/core/rules/thinking_os.md`) is always
+   active; the deep skill loads only when the gate returns COMPLICATED
+   or COMPLEX.
+3. **Self-learning memory** — SQLite-backed observations, metrics,
+   and learned patterns across sessions (`cos_search`, `cos_learn_*`).
+4. **Hook enforcement** — 62 hooks gate writes, edits, prompts,
+   sessions, and stops. Adapter parity matrix in `docs/engineering/`.
+5. **Four-layer retrieval** — agent memory (`cos_search`) · doc RAG
+   (`cos_doc_search`) · task graph (`cos_task_*`) · knowledge graph
+   (`cos_graph_*`).
+6. **Intent enforcement** — when the user uses exhaustive vocabulary
+   (FA + EN:  / all / completely / until done), the Stop hook
+   refuses premature "done" until an evidence bundle is recorded.
+7. **Upgrade path** — `cos update` keeps every consumer project in
+   sync with `coding-os` without touching user content.
+
+## Web Hub (`http://127.0.0.1:9188`)
+
+A singleton FastAPI + Vite/React SPA that serves every registered
+project via `/api/p/<slug>/*`:
+
+- **Graph** — Sigma.js canvas with three views (Overview, Tree,
+  Code) + smart export + dagre layout.
+- **Board** — Scrumban (kind × swimlane × epic) with WIP enforcement.
+- **Cognition** — JSONL trace timeline + replay with audit-mode
+  guardrails.
+- **Search** — unified across memory, docs, tasks, graph.
+
+`cos hub start` boots the hub. `cos hub status` reports health.
+Source: `src/core/web/`. UI: `src/core/web/ui/` (`npm run dev`).
 
 ## Architecture
 
@@ -15,214 +104,166 @@ coding-os/
 ├── src/                # All importable code (Python src-layout)
 │   ├── cli/              # Factory entrypoint (`cos` command)
 │   ├── core/             # Agent-agnostic brain (DNA)
-│   │   ├── thinking_os/    # MCP server (self-learning, memory, metrics)
-│   │   ├── graph_os/       # Knowledge graph subsystem
+│   │   ├── thinking_os/    # MCP server: memory, learning, metrics, cognition
+│   │   ├── graph_os/       # Polyglot knowledge graph (SQLite backend)
 │   │   ├── board_os/       # Scrumban task system
 │   │   ├── web/            # Hub UI + FastAPI backbone
-│   │   ├── hooks/          # Universal hook scripts
-│   │   ├── rules/          # Universal rules (dimension-registry + skill-enforcement generated)
+│   │   ├── hooks/          # 62 hook scripts (SSOT: registry.yaml)
+│   │   ├── rules/          # Always-active rules + auto-generated artifacts
 │   │   ├── skills/         # Universal skills
-│   │   └── scripts/        # Kernel-internal scripts (install-adapter.sh, link-stack-skills.sh)
+│   │   └── scripts/        # Kernel-internal regen tooling
 │   ├── adapters/         # Per-agent translation (mRNA, adapter.yaml manifests)
-│   │   ├── claude/         # Claude Code adapter
-│   │   ├── codex/          # OpenAI Codex adapter
-│   │   └── cursor/         # Cursor IDE adapter
-│   ├── templates/        # Per-stack data (phenotype, each stack = one stack.yaml)
-│   │   ├── _base/          # Generic project base + fragments/
+│   │   ├── claude/         # Claude Code adapter (58/62 hooks fire)
+│   │   ├── codex/          # OpenAI Codex CLI adapter (21/62 — Bash-only)
+│   │   └── cursor/         # Cursor IDE adapter (59/62 hooks fire)
+│   ├── templates/        # Per-stack scaffolds (phenotype, stack.yaml-driven)
+│   │   ├── _base/          # Generic base + fragments/
 │   │   ├── django/         # Django + DRF + PostgreSQL
-│   │   ├── nextjs/         # Next.js + React + TypeScript
-│   │   ├── fastapi/        # FastAPI + Pydantic
-│   │   ├── go/             # Go stdlib + chi
-│   │   ├── go-fiber/       # Go + Fiber (gofiber/fiber v2)
+│   │   ├── nextjs/         # Next.js + React + TypeScript + Tailwind
+│   │   ├── fastapi/        # FastAPI + Pydantic + SQLAlchemy
+│   │   ├── go/             # Go stdlib + chi router
+│   │   ├── go-fiber/       # Go + Fiber v2
 │   │   ├── react-native/   # React Native + Expo
 │   │   ├── python/         # Python library / CLI / MCP server
-│   │   └── meta/           # Meta-stack (coding-os contributors)
+│   │   └── meta/           # Meta-stack (for coding-os contributors)
 │   └── scripts/          # Maintenance + regen tooling
-├── tests/              # Test suite (Python convention: root, not shipped in wheel)
-├── docs/               # Meta-repo development docs
-└── .coding-os/         # Runtime state (gitignored)
+├── tests/              # 743 cross-cutting tests
+├── docs/               # Governance, engineering, playbooks, architecture
+└── .coding-os/         # Per-project runtime state (gitignored)
 ```
 
-**Zero-hardcoding contract**: adding a new stack or a new agent is a pure
-YAML + Markdown change. No Python edits required. See *Adding a new stack*
-below.
+## Command index (22 commands)
 
-## Install
-
-```bash
-# One-time, globally (editable mode)
-uv tool install --editable ~/coding-os
-cos --version                # coding-os, version 0.2.0
+```
+Project lifecycle    init · setup · add-adapter · add-stack · update · eject · eject-file
+Diagnostics          doctor · health · list-stacks · list-adapters · hooks-dir · hooks-log
+Brain                docs-index · task-sync · reindex · server-start
+Hub                  hub start · hub status · hub stop
+Board                board · task-show · task-create · task-start · task-move · task-done · daily · retro · wip
+Cognition            cognition trace · cognition trace-replay · cognition trace-summary
+Graph                graph-reindex · graph-viz · graph-doctor
 ```
 
-## Quick Start
+Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
 
-```bash
-# 1a. Interactive — no flags, prompts for everything
-cos init
+## MCP tools (79 tools, all `cos_*` prefix, all `ok / fail` envelope)
 
-# 1b. Flag-based — reproducible, CI-friendly
-cos init --agent claude,codex --template django --template nextjs --name my-shop --yes
+| Family       | Examples                                                          |
+| ------------ | ----------------------------------------------------------------- |
+| Health       | `cos_health`                                                      |
+| Memory       | `cos_search` · `cos_timeline` · `cos_details` · `cos_promote`     |
+| Learning     | `cos_learn_extract` · `cos_learn_suggest` · `cos_learn_validate`  |
+| Metrics      | `cos_metric_record` · `cos_metric_query` · `cos_metric_trend`     |
+| Routing      | `cos_route_model` · `cos_route_skill`                             |
+| Docs         | `cos_doc_search` · `cos_doc_header` · `cos_doc_headers_by`        |
+| Tasks        | `cos_task_search` · `cos_task_board` · `cos_task_move` (+ 13 more) |
+| Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` (+ 12 more) |
+| Cognition    | `cos_analyze_task` · `cos_compose_chain` · `cos_supervise` · `cos_backtrack_log` |
+| Retrieval    | `cos_retrieve` (auto-router across all layers)                    |
 
-cd my-shop
+Per-tool docs + envelope spec: [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md).
 
-# 2. Bootstrap docs (PRD) — three modes: interactive / import-prd / skip
-cos setup                                # prompts for mode
-cos setup --mode import-prd --source ~/my-vision.md --yes
+The MCP server is launched by `.mcp.json` → `cos server-start`.
 
-# 3. Deep health check (14 checks)
-cos doctor
-cos doctor --format json --strict
+## Supported agents
 
-# 4. After pulling a new coding-os version, sync every project
-cos update --dry-run         # see what will change
-cos update                   # apply
+| Agent           | Hook coverage | Skills              | MCP server | Notes                          |
+| --------------- | ------------- | ------------------- | ---------- | ------------------------------ |
+| Claude Code     | 58/62 ✅       | Native Skill tool   | ✅          | Most complete enforcement.     |
+| Cursor (Agent)  | 59/62 ✅       | Via instructions    | ✅          | Tied with Claude Code.         |
+| Codex CLI       | 21/62 ⚠️       | Via instructions    | ✅          | Bash-only PreToolUse matcher.  |
+| Codex GUI       | 0/62 ❌        | Via instructions    | ✅          | `.codex/hooks.json` ignored upstream — do NOT use for protected work. |
 
-# 5. Grow the project
-cos add-stack fastapi        # add a second backend stack
-cos add-adapter codex        # add an agent later
-
-# 6. Fine-grained customization
-cos eject-file docs/workflow/workflow-guide.md   # one file → real copy
-cos eject                                              # all symlinks → real copies
-```
-
-## Command Index (16 commands)
-
-**Project lifecycle**: `init` · `setup` · `add-adapter` · `add-stack` · `update` · `eject` · `eject-file`
-**Diagnostics**: `doctor` · `health` · `list-stacks` · `list-adapters` · `hooks-dir`
-**Brain**: `docs-index` · `task-sync` · `reindex` · `server-start`
-
-Full catalogue with flows and use-case guide: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
-
-## What It Does
-
-1. **Complexity Gate** — Classifies problems before acting (Cynefin: CLEAR/COMPLICATED/COMPLEX/CHAOTIC)
-2. **Cognitive Cycle** — CLASSIFY → ORIENT → PLAN → EXECUTE → VERIFY
-3. **Self-Learning** — SQLite v6 DB tracks patterns, metrics, outcomes, and breakthroughs across sessions
-4. **Hook Enforcement** — 9 pre-tool-use gates block unsafe code changes (secrets, missing gates, missing skill, stale verify)
-5. **Three-Layer Retrieval** — agent memory (`cos_search`) · doc RAG (`cos_doc_search`) · task graph (`cos_task_*`)
-6. **Upgrade Path** — `cos update` keeps every project in sync with coding-os without touching user content
-
-## Supported Agents
-
-| Agent | Hook Enforcement | Skills | MCP Server |
-|-------|-----------------|--------|------------|
-| Claude Code | Full (PreToolUse Write/Edit) | Native Skill tool | Yes |
-| Codex | Partial (PreToolUse Bash only) | Via instructions.md | Yes |
-
-## MCP Tools (21 tools, `cos_*` prefix)
-
-- **Health**: `cos_health`
-- **Memory**: `cos_search` · `cos_timeline` · `cos_details` · `cos_promote`
-- **Metrics**: `cos_metric_record` / `query` / `trend`
-- **Learning**: `cos_learn_extract` / `suggest` / `validate` / `feedback` / `narrative`
-- **Routing**: `cos_route_model` · `cos_route_skill`
-- **Graph**: `cos_graph`
-- **Docs RAG** (Phase B): `cos_doc_search`
-- **Task Registry** (Phase C): `cos_task_search` · `cos_task_dependencies` · `cos_task_dependents` · `cos_task_by_filter`
-
-The server is started automatically via `.mcp.json` → `cos server-start`.
+Audit + reasoning: [docs/engineering/workflow-audit-2026-04-25.md](./docs/engineering/workflow-audit-2026-04-25.md).
 
 ## Configuration
 
-`.coding-os.yaml` at project root:
+`.coding-os.yaml` at every project root:
 
 ```yaml
 version: "1.0"
 agents: [claude, codex]
-templates: []
+templates: [django, nextjs]
 state_dir: .coding-os
 code_extensions: [py, ts, tsx]
 verify:
   backend: "make lint-backend && make test-backend"
-  frontend: "cd frontend && npm run lint"
+  frontend: "cd src/frontend && npm run lint && npm test"
 protected_files:
   - "*/migrations/*.py"
 ```
 
 ## Adding a new stack (zero Python changes)
 
-A stack is a directory under `src/templates/<id>/` containing a `stack.yaml`
-manifest plus any skills, rules, playbooks, and scaffold docs it contributes.
-The CLI auto-discovers stacks — no code edits are needed.
+Create `src/templates/<id>/stack.yaml` plus any skills, rules,
+playbooks, and scaffold docs. The CLI auto-discovers stacks.
 
-**Minimum viable stack**:
+Minimum viable stack:
 
 ```
 src/templates/myrails/
 ├── stack.yaml                                    # REQUIRED
 ├── skills/ruby-rails/SKILL.md                    # primary skill
-├── rules/backend.md                              # path-scoped rules (YAML frontmatter)
+├── rules/backend.md                              # path-scoped rules
 └── scaffold/docs/
     ├── playbooks/rails-service.md
     └── engineering/rails-rules.md
 ```
 
-**`stack.yaml` schema** (see `src/templates/fastapi/stack.yaml` for the full example):
+`stack.yaml` schema example: `src/templates/fastapi/stack.yaml`.
 
-```yaml
-version: 1
-id: myrails
-label: "Ruby on Rails"
-category: backend
-primary_skill: ruby-rails
-skills: [ruby-rails]
-
-substitutions:
-  DOMAIN_ROUTES: "Backend→`docs/playbooks/rails-service.md`"
-  SKILL_ROUTES: "Backend→`ruby-rails`"
-  VERIFY_BACKEND: "`bundle exec rake test`"
-  # …
-
-rules:
-  - {file: rules/backend.md, globs: ["app/**/*.rb"]}
-
-dimensions:
-  - {name: "ActiveRecord model", read_files: ["docs/engineering/rails-rules.md"]}
-
-skill_enforcement:
-  - {globs: ["app/**/*.rb"], primary: ruby-rails, secondary: [clean-code]}
-
-makefile_targets:
-  - {name: test-backend, cmd: "bundle exec rake test"}
-```
-
-After creating the directory, run:
+After creating the directory:
 
 ```bash
 cos list-stacks                       # myrails now appears
 make manifest-regen                   # update src/core/scaffold_manifest.json
-make regen-rules                      # update src/core/rules/{dimension-registry,skill-enforcement}.md
-cos init --agent claude,codex --template myrails --name proof
-cos doctor -d proof                   # 12 checks, all green
+make regen-rules                      # update auto-generated rule artifacts
+cos init --agent claude --template myrails --name proof
+cos doctor -d proof                   # health check
 ```
 
 The same pattern works for new **adapters** — create
-`src/adapters/<id>/adapter.yaml` + an `install.sh`, and `cos list-adapters`
+`src/adapters/<id>/adapter.yaml` + `install.sh`, and `cos list-adapters`
 picks it up.
 
-## Development commands
+## Project structure (for contributors)
 
 ```bash
-make eval-operational         # full end-to-end evaluation in .build/
-make debug-init               # named debug sandbox under .build/debug/
-make debug-doctor             # run doctor on the debug sandbox
-make manifest-regen           # refresh src/core/scaffold_manifest.json
-make regen-rules              # refresh auto-generated rule docs
-make regen-doctor-schema      # refresh expected_tables snapshot in doctor-config.yaml
+make verify-hooks         # shellcheck + bash -n on every hook
+make verify               # matrix-targeted tests for what changed
+make test-mcp             # MCP self-test (cold start)
+make docs-lint            # markdown structure + link integrity
+make cos-health           # cross-project health summary
+make manifest-regen       # refresh src/core/scaffold_manifest.json
+make regen-rules          # refresh dimension-registry + skill-enforcement
 ```
+
+CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 
 ## Documentation
 
-| Doc | What's in it |
-|---|---|
-| [AGENTS.md](./AGENTS.md) | **Agent entry point** — Core Loop, Critical Rules, Verification Matrix, Tool Routing |
-| [docs/architecture/meta-project.md](./docs/architecture/meta-project.md) | Hexagonal design, DNA/mRNA/phenotype layers, propagation matrix |
-| [docs/governance/critical-rules.md](./docs/governance/critical-rules.md) | 22 critical rules with rationale + repair steps |
-| [docs/governance/docs-system.md](./docs/governance/docs-system.md) | Doc taxonomy, naming, header contract |
-| [docs/governance/agent-workflow.md](./docs/governance/agent-workflow.md) | Domain routing, task protocol, memory contract |
-| [docs/workflow/workflow-guide.md](./docs/workflow/workflow-guide.md) | Daily workflow quick-start |
-| [docs/playbooks/](./docs/playbooks/) | Hook authoring · Adapter authoring · Template authoring · MCP tool authoring |
-| [docs/engineering/](./docs/engineering/) | graph_os queries · hook reference · template enforcement |
-| [docs/adapters/](./docs/adapters/) | Claude SDK · Codex CLI · Cursor IDE integration |
+| Doc                                                                                 | What's in it                                                |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [AGENTS.md](./AGENTS.md)                                                            | **Agent entry point** — Core Loop, Critical Rules, Verification Matrix |
+| [docs/architecture/meta-project.md](./docs/architecture/meta-project.md)            | Hexagonal design, DNA/mRNA/phenotype, propagation matrix    |
+| [docs/governance/critical-rules.md](./docs/governance/critical-rules.md)            | 22 critical rules with rationale + repair steps             |
+| [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md)    | Per-tool spec + envelope contract                           |
+| [docs/governance/agent-workflow.md](./docs/governance/agent-workflow.md)            | Domain routing, task protocol, memory contract              |
+| [docs/engineering/intent-vocabulary.md](./docs/engineering/intent-vocabulary.md)    | Exhaustive-intent predicates (FA + EN)                      |
+| [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)      | When to query the graph vs grep                             |
+| [docs/engineering/hub-architecture.md](./docs/engineering/hub-architecture.md)      | Hub: FastAPI ↔ React SPA contract                           |
+| [docs/playbooks/](./docs/playbooks/)                                                | Hook authoring · adapter authoring · template authoring · MCP tool authoring |
+| [docs/adapters/](./docs/adapters/)                                                  | Claude SDK · Codex CLI · Cursor IDE integration             |
+| [CONTRIBUTING.md](./CONTRIBUTING.md)                                                | Setup, contribution loop, PR checklist                      |
+| [SECURITY.md](./SECURITY.md)                                                        | Vulnerability disclosure policy                             |
+| [CHANGELOG.md](./CHANGELOG.md)                                                      | Release notes                                               |
+
+## License
+
+Apache License 2.0 — see [LICENSE](./LICENSE). Copyright 2026
+Kourosh Ebrahimzadeh and coding-os contributors.
+
+Pre-public development history is archived locally under
+`archive/full-history` and the tag `archive/pre-public-2026-05-20`
+for auditability; it is not part of the public history that begins
+with the 0.3.0 release.
