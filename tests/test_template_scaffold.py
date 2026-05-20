@@ -1,7 +1,7 @@
 """
 Tests for Phase A — Template Completion.
 
-Verifies that `coding-os init` produces a complete NakoDigital-style scaffold
+Verifies that `coding-os init` produces a complete production-grade scaffold
 with governance, playbooks, engineering rules, foundation map, and resolved
 AGENTS.md placeholders.
 
@@ -102,7 +102,7 @@ class TestBaseScaffold:
     def test_task_detail_template_has_required_sections(self, initialized: Path) -> None:
         """Verify the Phase L lean Scrumban template is in place.
 
-        Replaces the pre-Phase-L 12-section NakoDigital-style template.
+        Replaces the pre-Phase-L 12-section legacy template.
         See docs/phase-l-scrumban-task-system-plan.md §6.2 for the lean
         body layout (Outcome + Read First + Acceptance + Work Log +
         optional Rollback).

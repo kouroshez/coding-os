@@ -16,9 +16,7 @@ from typing import Optional
 # Path noise: segments that are never meaningful concepts
 _PATH_NOISE = {
     # OS / user paths
-    "users", "home", "ciro", "files", "project",
-    # Project root
-    "nakodigital", "nako", "digital",
+    "users", "home", "files", "project",
     # Generic structure
     "apps", "src", "components", "utils", "lib", "tests", "test",
     "init", "__init__", "py", "ts", "tsx", "js", "md", "json", "sh",

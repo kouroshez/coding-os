@@ -10,7 +10,7 @@ Coverage:
   - Requirements numbered-list parsing
   - Dependencies extraction (dedupe, order, partial-match safety)
   - content_hash determinism
-  - End-to-end parse of the real NakoDigital TASK-199 fixture
+  - End-to-end parse of a representative TASK-199 fixture
   - Edge cases: missing sections, minimal task, non-task markdown
 """
 
@@ -33,9 +33,9 @@ from task_parser import (
 )
 
 
-# Real TASK-199 content from NakoDigital, used as an end-to-end fixture.
+# Representative TASK-199 content used as an end-to-end fixture.
 # Kept as a constant so the test doesn't depend on an external file.
-NAKO_TASK_199 = """\
+TASK_199_FIXTURE = """\
 <!-- domain:BACKEND | layer:task | ssot:true | updated:2026-03-29 -->
 # TASK-199: [BACKEND] Commission model
 
@@ -260,7 +260,7 @@ class TestContentHash:
 class TestParseTaskFileRealFixture:
     @pytest.fixture
     def parsed(self) -> ParsedTask:
-        result = parse_task_file(NAKO_TASK_199)
+        result = parse_task_file(TASK_199_FIXTURE)
         assert result is not None, "TASK-199 fixture should parse successfully"
         return result
 

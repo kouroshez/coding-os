@@ -7,18 +7,20 @@ inside `$(...)` command substitution. Every subprocess call here has an
 explicit timeout so the script can NEVER stall the user indefinitely.
 
 What it verifies (in order, fail-fast):
-    1. Preconditions (NakoDigital path, uv installed)
+    1. Preconditions (external task corpus path, uv installed)
     2. coding-os init creates a fresh project
-    3. Real NakoDigital tasks copy in
-    4. task_sync first run (240 new, 0 errors)
-    5. task_sync second run (240 skipped, incremental works)
+    3. External tasks copy in
+    4. task_sync first run (N new, 0 errors)
+    5. task_sync second run (N skipped, incremental works)
     6. Python query: filter, deps, dependents, semantic, substring safety
     7. MCP server registers all 4 cos_task_* tools (introspection only,
        not stdio JSON-RPC — that's covered by pytest)
 
 Run:
-    python3 scripts/verify_phase_c_e2e.py
-    NAKO_PATH=/path/to/nako python3 scripts/verify_phase_c_e2e.py
+    COS_CORPUS_PATH=/path/to/external-project python3 scripts/verify_phase_c_e2e.py
+
+Requires: the COS_CORPUS_PATH directory must contain `docs/tasks/TASK-*.md`
+and a `docs/tasks.md` index. Use any project with a Scrumban-style task corpus.
 
 Exit: 0 on success, non-zero on any failure.
 """
@@ -36,7 +38,16 @@ from pathlib import Path
 # ---- Configuration ---------------------------------------------------------
 
 COS_ROOT = Path(__file__).resolve().parent.parent.parent
-NAKO_PATH = Path(os.environ.get("NAKO_PATH", str(Path.home() / "Files/Project/NakoDigital")))
+_CORPUS_ENV = os.environ.get("COS_CORPUS_PATH")
+if not _CORPUS_ENV:
+    print(
+        "FAIL: COS_CORPUS_PATH environment variable is required.\n"
+        "      Set it to a directory containing docs/tasks/TASK-*.md and docs/tasks.md.\n"
+        "      Example: COS_CORPUS_PATH=/path/to/your-project python3 scripts/verify_phase_c_e2e.py",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+CORPUS_PATH = Path(_CORPUS_ENV).resolve()
 
 # Per-step timeouts (seconds). Generous but bounded — no step is allowed
 # to hang indefinitely.
@@ -109,18 +120,18 @@ def run(cmd: list[str], *, timeout: int, env: dict[str, str] | None = None,
 # ---- Step implementations --------------------------------------------------
 
 def precheck() -> int:
-    section(f"Phase C E2E verification — NAKO={NAKO_PATH}")
-    if not NAKO_PATH.exists():
-        fail(f"NakoDigital path not found: {NAKO_PATH}")
-    tasks_src = NAKO_PATH / "docs" / "tasks"
+    section(f"Phase C E2E verification — COS_CORPUS_PATH={CORPUS_PATH}")
+    if not CORPUS_PATH.exists():
+        fail(f"corpus path not found: {CORPUS_PATH}")
+    tasks_src = CORPUS_PATH / "docs" / "tasks"
     if not tasks_src.is_dir():
-        fail(f"NakoDigital tasks dir not found: {tasks_src}")
+        fail(f"corpus tasks dir not found: {tasks_src}")
     task_count = len(list(tasks_src.glob("TASK-*.md")))
     if task_count < 1:
         fail(f"No TASK-*.md files in {tasks_src}")
     if shutil.which("uv") is None:
         fail("`uv` not on PATH")
-    ok(f"NakoDigital corpus: {task_count} tasks")
+    ok(f"external corpus: {task_count} tasks")
     return task_count
 
 
@@ -139,16 +150,16 @@ def init_project() -> Path:
 
 
 def copy_tasks(project: Path) -> int:
-    section("2. copy real NakoDigital task corpus")
+    section("2. copy external task corpus")
     tasks_dir = project / "docs" / "tasks"
     tasks_dir.mkdir(parents=True, exist_ok=True)
-    src = NAKO_PATH / "docs" / "tasks"
+    src = CORPUS_PATH / "docs" / "tasks"
     copied = 0
     for src_file in src.glob("TASK-*.md"):
         shutil.copy2(src_file, tasks_dir / src_file.name)
         copied += 1
     # Copy the index too
-    shutil.copy2(NAKO_PATH / "docs" / "tasks.md", project / "docs" / "tasks.md")
+    shutil.copy2(CORPUS_PATH / "docs" / "tasks.md", project / "docs" / "tasks.md")
     ok(f"copied {copied} task files + tasks.md")
     return copied
 
