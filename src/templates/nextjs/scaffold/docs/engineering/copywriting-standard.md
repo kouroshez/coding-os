@@ -2,7 +2,7 @@
 
 # Copywriting Standard
 
-Purpose: Define the quality bar, tone rules, and review rubric for all user-facing copy across NakoDigital.
+Purpose: Define the quality bar, tone rules, and review rubric for all user-facing copy across ExampleApp.
 Read when: Writing or reviewing marketing copy, product descriptions, docs copy, UI text, legal language, or CTAs.
 Skip when: Working on code, infra, or backend-only tasks with no user-facing strings.
 Read next: `../pages-content-spec/00-index.md`, `../../STYLE_GUIDE.md`
@@ -39,7 +39,7 @@ A score of 9 means one minor flaw that doesn't block understanding or action.
 
 ## Brand Voice & Tone
 
-**NakoDigital is: premium but accessible, expert but friendly, modern but trustworthy.**
+**ExampleApp is: premium but accessible, expert but friendly, modern but trustworthy.**
 
 - **Premium** → polished, confident, quality-first. No typos, no filler, no bargain-bin energy.
 - **Accessible** → no gatekeeping language or jargon. A high schooler should understand pricing and value props.
@@ -74,7 +74,7 @@ Tone depends on context — keep it consistent within a page or section:
 
 - Bad: "This template helps you. It has lots of features." → Good: "Save 8 hours on your next project. 40+ pre-built blocks, customizable themes, and Figma source files. Get started in under 5 minutes."
 - Bad: "Invalid email. Error." → Good: "That email is already linked to an account. Log in, or try a different email."
-- Bad: "The best AI templates platform. We help creators achieve amazing things." → Good: "Design faster. 10,000+ creators save 12 hours per project with NakoDigital templates. Explore free — no credit card required."
+- Bad: "The best AI templates platform. We help creators achieve amazing things." → Good: "Design faster. 10,000+ creators save 12 hours per project with ExampleApp templates. Explore free — no credit card required."
 
 ---
 

@@ -38,7 +38,7 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 
 - Content specs define meaning, constraints, and message namespaces.
 - Locale message files define the rendered strings; do not hardcode UI copy in components.
-- Use the exact route identity from the content spec and distinguish frontend `/admin/*` routes from Django `/nako-manage/`.
+- Use the exact route identity from the content spec and distinguish frontend `/admin/*` routes from Django `/back-office/`.
 - For technical SEO in Next.js, align with `app/sitemap.ts` and `app/robots.ts`.
 - For AI discovery, keep `llms.txt` concise and link out to canonical human-readable docs.
 

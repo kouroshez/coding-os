@@ -1,7 +1,7 @@
 <!-- domain:ALL | layer:policy | ssot:true | updated:2026-03-13 -->
 # Naming Conventions & Project Structure
 
-Purpose: Canonical naming and placement policy for the actual NakoDigital monorepo.
+Purpose: Canonical naming and placement policy for the actual ExampleApp monorepo.
 Read when: Deciding where files belong, how they should be named, or how route/API names should look.
 Skip when: The task already targets an existing file and no placement/naming decision is needed.
 Read next: `../architecture/03-project-structure.md` or the relevant engineering rules file.
@@ -50,7 +50,7 @@ Read next: `../architecture/03-project-structure.md` or the relevant engineering
 ## Route Naming
 
 - Frontend admin application routes use `/admin/*`
-- Django admin stays at `/nako-manage/`
+- Django admin stays at `/back-office/`
 - Public product routes use slugs, not IDs, where the route contract already defines slugs
 
 ## Task and Doc Naming
