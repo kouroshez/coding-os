@@ -27,7 +27,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-rename-plan.sh",
             "statusMessage": "✏️  Verifying rename-plan marker...",
-            "timeout": 1500
+            "timeout": 10
           }
         ]
       }
@@ -40,19 +40,19 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-doc-sync.sh",
             "statusMessage": "📚 Scanning related docs for drift...",
-            "timeout": 2000
+            "timeout": 30
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/capture-observation.sh",
             "statusMessage": "🧠 Recording observation + embedding to memory...",
-            "timeout": 1000
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
-            "timeout": 1500
+            "timeout": 10
           }
         ]
       },
@@ -82,7 +82,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/verify-rename-callers.sh",
             "statusMessage": "🔁 Checking for unreplaced rename callers...",
-            "timeout": 2000
+            "timeout": 30
           }
         ]
       },
@@ -93,7 +93,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/track-skill.sh",
             "statusMessage": "🛠️ Tracking skill invocation...",
-            "timeout": 500
+            "timeout": 5
           }
         ]
       }
@@ -116,7 +116,7 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/remind-daily.sh",
             "statusMessage": "🗓️  Checking daily check-in recency...",
-            "timeout": 1000
+            "timeout": 10
           }
         ]
       },
@@ -139,37 +139,37 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
             "statusMessage": "🔄 Checking workflow state...",
-            "timeout": 3000
+            "timeout": 30
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 800
+            "timeout": 5
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-thinking-os.sh",
-            "timeout": 1000
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/classify-task-mode.sh",
-            "timeout": 800
+            "timeout": 5
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-graph-os.sh",
-            "timeout": 1000
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-docs-first.sh",
-            "timeout": 1000
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/detect-exhaustive-intent.sh",
-            "timeout": 1200
+            "timeout": 10
           }
         ]
       }

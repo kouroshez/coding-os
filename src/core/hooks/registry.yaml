@@ -17,7 +17,12 @@
 #   description   — one-line purpose (shown in `cos hooks-list`)
 #   category      — safety | enforcement | observability | reminder | meta
 #   phase         — development phase when added (0 | E | F | G | ...)
-#   timeout       — ms; omit if none
+#   timeout       — SECONDS (Claude Code / Codex contract); omit if none.
+#                   Verified empirically 2026-05-19 against
+#                   `Slow PreToolUse hooks: 1500057ms` log line that
+#                   matched timeout=1500 exactly. Keep values <= 30 so
+#                   a single hung hook can't stall the agent for
+#                   minutes (or the 60s subprocess-init ceiling fires).
 #   events        — list of {event, matcher, status_message}
 #
 # Event/matcher pairs are filtered against each adapter's declared
@@ -33,7 +38,7 @@ hooks:
     description: Scans command and file content for credentials (AWS keys, tokens, .env leaks).
     category: safety
     phase: "0"
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Bash
@@ -47,7 +52,7 @@ hooks:
     description: Blocks destructive commands (rm -rf, force-push, reset --hard) without confirmation.
     category: safety
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Bash
@@ -58,7 +63,7 @@ hooks:
     description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).
     category: safety
     phase: E
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Bash
@@ -69,7 +74,7 @@ hooks:
     description: "Rejects bare `except: pass`, mock-where-real-needed, and other anti-patterns."
     category: safety
     phase: "0"
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -80,7 +85,7 @@ hooks:
     description: Blocks edits to governance-protected files unless the active task is a governance task.
     category: safety
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -91,7 +96,7 @@ hooks:
     description: Detects duplicate migration version numbers in db.py (Rule #10 — append-only migrations).
     category: safety
     phase: E
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -102,7 +107,7 @@ hooks:
     description: Rejects hardcoded stack/adapter name literals in cli/*.py (Rule #12 — data-driven CLI).
     category: safety
     phase: E
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -114,7 +119,7 @@ hooks:
     description: Blocks `task-done` commands unless the required verification suite has recorded a recent pass.
     category: enforcement
     phase: "0"
-    timeout: 1500
+    timeout: 10
     events:
       - event: PreToolUse
         matcher: Bash
@@ -125,7 +130,7 @@ hooks:
     description: Requires structured task / ADR / PRD / insight documents to follow the template.
     category: enforcement
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -136,7 +141,7 @@ hooks:
     description: Requires a recorded Complexity Gate classification before code writes.
     category: enforcement
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -147,7 +152,7 @@ hooks:
     description: TASK-163 — block Write/Edit when target path violates an installed stack's `forbids_writing_in`. Reads aggregated $COS_STATE_DIR/scaffold-boundary.yaml; fail-open when missing.
     category: enforcement
     phase: O
-    timeout: 1500
+    timeout: 10
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -158,7 +163,7 @@ hooks:
     description: Requires an active task marker so every edit is traceable.
     category: enforcement
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -169,7 +174,7 @@ hooks:
     description: Blocks code writes without a recorded doc anchor (Rule #0 — docs-first principle).
     category: enforcement
     phase: E
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -180,7 +185,7 @@ hooks:
     description: Requires a cos_search memory check before code writes on COMPLICATED/COMPLEX tasks.
     category: enforcement
     phase: F
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -191,7 +196,7 @@ hooks:
     description: Requires a domain skill to be invoked before editing stack-scoped code files.
     category: enforcement
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -202,7 +207,7 @@ hooks:
     description: Requires a Plan checkpoint for COMPLICATED/COMPLEX tasks before code writes.
     category: enforcement
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -222,7 +227,7 @@ hooks:
       never blocks. Helper: _helpers/doc_sync_check.py.
     category: enforcement
     phase: "0"
-    timeout: 2000
+    timeout: 30
     events:
       - event: PostToolUse
         matcher: Write|Edit|MultiEdit
@@ -234,7 +239,7 @@ hooks:
     description: Fire-and-forget observation recording to thinking_os memory (PostToolUse Write|Edit|MultiEdit).
     category: observability
     phase: "0"
-    timeout: 1000
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Write|Edit|MultiEdit
@@ -245,7 +250,7 @@ hooks:
     description: Phase H + Phase I freshness — incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph_os extractor; fire-and-forget.
     category: retrieval
     phase: H
-    timeout: 2000
+    timeout: 30
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -256,7 +261,7 @@ hooks:
     description: Catch bulk file ops (mv/cp/rm/git checkout/git restore) the Write/Edit hook misses; debounced full reindex in background so the graph stays fresh after a rename or branch switch.
     category: retrieval
     phase: I
-    timeout: 1500
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Bash
@@ -267,7 +272,7 @@ hooks:
     description: TASK-161 freshness — regenerate the affected docs/<dir>/00-index.md from frontmatter on every Write/Edit of a docs/**/*.md file. Debounced (5s/dir), fire-and-forget; failures land in $COS_STATE_DIR/.regen-doc-index-errors.log.
     category: retrieval
     phase: O
-    timeout: 1500
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -278,7 +283,7 @@ hooks:
     description: PostToolUse Bash — when the agent runs rm/git rm/mv on a code or markdown file, prune graph_nodes (cascade to edges + evidence), document_chunks, file_index_state, and the `<file>.INDEX.md` sidecar. Counterpart to auto-reindex-docs.sh; closes the deleted-file zombie-row gap.
     category: retrieval
     phase: O
-    timeout: 1500
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Bash
@@ -296,7 +301,7 @@ hooks:
       COS_ENFORCE_GRAPH_FIRST=off|1|strict.
     category: enforcement
     phase: I
-    timeout: 1500
+    timeout: 10
     events:
       - event: PreToolUse
         matcher: Read
@@ -307,7 +312,7 @@ hooks:
     description: Phase I — warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
     category: enforcement
     phase: I
-    timeout: 1500
+    timeout: 10
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -318,7 +323,7 @@ hooks:
     description: Phase I — warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
     category: enforcement
     phase: I
-    timeout: 1500
+    timeout: 10
     events:
       - event: PreToolUse
         matcher: Edit
@@ -329,7 +334,7 @@ hooks:
     description: PostToolUse Edit — when an Edit looks like an identifier rename, greps the repo for unreplaced callers and warns. Closes the gap left by enforce-rename-plan (which verifies plan-existence, not site-completeness). Always non-blocking.
     category: enforcement
     phase: O
-    timeout: 2000
+    timeout: 30
     events:
       - event: PostToolUse
         matcher: Edit
@@ -340,7 +345,7 @@ hooks:
     description: PreToolUse Bash — when a bulk replace (sed -i, xargs sed, python replace) is about to run, extracts the OLD pattern, stores it in session state, and emits the inventory grep command for the agent to run. Does NOT run grep itself (full-repo grep exceeds PreToolUse timeout on large codebases). Companion PostToolUse hook (search-verify-remaining) runs bounded verify grep after replace. Always non-blocking.
     category: enforcement
     phase: O
-    timeout: 3000
+    timeout: 30
     events:
       - event: PreToolUse
         matcher: Bash
@@ -351,7 +356,7 @@ hooks:
     description: PostToolUse Bash — after a bulk replace, reads session state from search-enforce-inventory and re-runs verify grep. Reports remaining match count vs ground truth. Warns if > 0 remain with file list. Closes the "declared done but 20 remain" gap for Bash-based replace operations. Always non-blocking.
     category: enforcement
     phase: O
-    timeout: 3000
+    timeout: 30
     events:
       - event: PostToolUse
         matcher: Bash
@@ -363,7 +368,7 @@ hooks:
     description: Phase L — validates lean frontmatter (swimlane/kind/epic/labels/status/priority/appetite) on task MD writes. Blocks malformed YAML or enum violations.
     category: safety
     phase: L
-    timeout: 3000
+    timeout: 30
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -374,7 +379,7 @@ hooks:
     description: Phase L — enforces WIP caps from scrumban-config.yaml when a task transitions to in_progress/emergency. Bypass via COS_WIP_OVERRIDE=1.
     category: safety
     phase: L
-    timeout: 2000
+    timeout: 30
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -385,7 +390,7 @@ hooks:
     description: Phase L — appends one-line Work Log entry to the active task on code Write/Edit. Fire-and-forget; flock-serialized for multi-agent safety.
     category: observability
     phase: L
-    timeout: 1500
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Write|Edit|MultiEdit
@@ -396,7 +401,7 @@ hooks:
     description: Phase L — re-syncs single task file into DB cache on Write/Edit. Fire-and-forget; keeps the board fresh within one hook latency.
     category: retrieval
     phase: L
-    timeout: 1000
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -407,7 +412,7 @@ hooks:
     description: SessionStart — verifies global cos binary has required Python extras (graph_os, board_os, rag). If missing, MCP crashes silently and all cos_* tools fail. Emits loud warning with exact fix command before agent uses any MCP tools. Fast (<200ms, no server start). Always non-blocking.
     category: safety
     phase: "0"
-    timeout: 2000
+    timeout: 30
     events:
       - event: SessionStart
         matcher: startup
@@ -418,7 +423,7 @@ hooks:
     description: Phase L — on SessionStart, nags if `cos daily` hasn't run in >24h. Non-blocking banner; ADHD-friendly (no shame).
     category: observability
     phase: L
-    timeout: 1000
+    timeout: 10
     events:
       - event: SessionStart
         matcher: startup
@@ -432,7 +437,7 @@ hooks:
     description: SessionStart — if .coding-os.yaml has hub.enabled (default true), probe http://127.0.0.1:9188 and start `cos hub` in the background when down.
     category: observability
     phase: "0"
-    timeout: 2000
+    timeout: 30
     events:
       - event: SessionStart
         matcher: startup
@@ -443,7 +448,7 @@ hooks:
     description: Phase L.9 — Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.
     category: safety
     phase: L
-    timeout: 1000
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -454,7 +459,7 @@ hooks:
     description: Soft size budget per `layer:` (index/playbook/spec/policy/reference/adr/task). Warn-only — complements lint-task with non-task layers.
     category: reminder
     phase: O
-    timeout: 800
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -465,7 +470,7 @@ hooks:
     description: Phase L.10 — DoR/DoD validator. Blocks transitions to in_progress/complete when task body fails the kind's rules. SSOT in src/core/board_os/transition-gates.yaml.
     category: enforcement
     phase: L
-    timeout: 4000
+    timeout: 30
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -476,7 +481,7 @@ hooks:
     description: Analyzes changed file + cross-module impact after each write.
     category: observability
     phase: "0"
-    timeout: 1500
+    timeout: 10
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -487,7 +492,7 @@ hooks:
     description: Tracks which skills have been invoked this session.
     category: observability
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Skill
@@ -498,7 +503,7 @@ hooks:
     description: Loads session context + memory digest on session start / compact / resume.
     category: observability
     phase: "0"
-    timeout: 3000
+    timeout: 30
     events:
       - event: SessionStart
         matcher: startup
@@ -522,7 +527,7 @@ hooks:
       session-context.sh for rotation logic).
     category: observability
     phase: "0"
-    timeout: 5000
+    timeout: 30
     events:
       - event: Stop
         matcher: ""
@@ -533,7 +538,7 @@ hooks:
     description: 'Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don''t appear offline between tool calls. Consolidated from 8→5 events (board UI uses kill -0 PID check for fine-grained liveness, no per-tool ping needed). Updated 2026-05-04 — also fires on SubagentStart/SubagentStop/PostToolUseFailure so parent-session activity stays accurate while sub-agents work.'
     category: observability
     phase: "0"
-    timeout: 800
+    timeout: 5
     events:
       - event: SessionStart
         matcher: startup
@@ -557,7 +562,7 @@ hooks:
     description: Probes thinking_os MCP liveness at session start; loud banner if unreachable. Capped at 2s probe (perl alarm 2 + 500ms slack).
     category: observability
     phase: F
-    timeout: 2500
+    timeout: 30
     events:
       - event: SessionStart
         matcher: startup
@@ -571,7 +576,7 @@ hooks:
     description: Phase G.G1 — SessionStart runs Ebbinghaus confidence decay on learned_patterns once per 24 h. Fire-and-forget, bounded at 10s; debounces via $COS_STATE_DIR/.last-decay.
     category: observability
     phase: G
-    timeout: 2000
+    timeout: 30
     events:
       - event: SessionStart
         matcher: startup
@@ -585,7 +590,7 @@ hooks:
     description: Phase I.10 — SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
     category: observability
     phase: I
-    timeout: 1500
+    timeout: 10
     events:
       - event: SessionStart
         matcher: startup
@@ -599,7 +604,7 @@ hooks:
     description: Session-end recap — warns if zero observations captured despite code edits.
     category: observability
     phase: F
-    timeout: 1500
+    timeout: 10
     events:
       - event: Stop
         matcher: ""
@@ -611,7 +616,7 @@ hooks:
     description: Reminds to regenerate derived artifacts when their sources change.
     category: reminder
     phase: E
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -622,7 +627,7 @@ hooks:
     description: Points at the companion test file after a code edit (or suggests one if absent).
     category: reminder
     phase: E
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -633,7 +638,7 @@ hooks:
     description: Lists companion docs to keep in sync when code changes.
     category: reminder
     phase: "0"
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -644,7 +649,7 @@ hooks:
     description: Surfaces cos_learn_validate reminder after task-done so the agent feeds back.
     category: reminder
     phase: F
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Bash
@@ -656,7 +661,7 @@ hooks:
     description: Warns when AGENTS.md approaches Codex's 32 KiB read cap.
     category: meta
     phase: G
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -667,7 +672,7 @@ hooks:
     description: Flags AGENTS.md references to src/core/rules or src/core/skills that no longer exist.
     category: meta
     phase: G
-    timeout: 800
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -678,7 +683,7 @@ hooks:
     description: Reminds to run `make dogfood-full` after edits to core/ or adapters/.
     category: meta
     phase: G
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: Write|Edit
@@ -689,7 +694,7 @@ hooks:
     description: Transitional — warns if adapter template JSON is edited directly instead of registry.yaml. Delete when registry.yaml is the only write path.
     category: meta
     phase: G
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -702,7 +707,7 @@ hooks:
     description: Blocks code writes at EXECUTE phase when Anti-Ambiguity gate has failures. Bypassed for CLEAR 1.
     category: cognition
     phase: M
-    timeout: 500
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: Write|Edit
@@ -713,7 +718,7 @@ hooks:
     description: Non-blocking advisor that fires when cos_backtrack_log records ≥3 backtracks per session.
     category: cognition
     phase: M
-    timeout: 800
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: mcp__coding-os__cos_backtrack_log
@@ -730,7 +735,7 @@ hooks:
       Spec: formulas-en.md §Navigation Protocol §4 (Discovery Protocol).
     category: cognition
     phase: N
-    timeout: 800
+    timeout: 5
     events:
       - event: PostToolUse
         matcher: "Write|Edit|TodoWrite"
@@ -747,7 +752,7 @@ hooks:
       completed outcomes, not from what failed mid-execution.
     category: observability
     phase: EVO
-    timeout: 500
+    timeout: 5
     events:
       - event: PostToolUseFailure
         matcher: ""
@@ -761,7 +766,7 @@ hooks:
       Closes the unbounded growth gap on .coding-os/<agent>/traces/*.jsonl.
     category: observability
     phase: O
-    timeout: 3000
+    timeout: 30
     events:
       - event: Stop
         matcher: ""
@@ -779,7 +784,7 @@ hooks:
       .zoom-prompt-suggested marker; skipped if .thinking_os-gate already exists.
     category: cognition
     phase: O
-    timeout: 1000
+    timeout: 10
     events:
       - event: UserPromptSubmit
         matcher: ""
@@ -797,7 +802,7 @@ hooks:
       matrix lives in docs/engineering/task-mode-matrix.md.
     category: cognition
     phase: O
-    timeout: 800
+    timeout: 5
     events:
       - event: UserPromptSubmit
         matcher: ""
@@ -815,7 +820,7 @@ hooks:
       via .graph-nudge-suggested marker.
     category: cognition
     phase: I
-    timeout: 1000
+    timeout: 10
     events:
       - event: UserPromptSubmit
         matcher: ""
@@ -835,7 +840,7 @@ hooks:
       via .docs-first-nudged marker.
     category: cognition
     phase: O
-    timeout: 1000
+    timeout: 10
     events:
       - event: UserPromptSubmit
         matcher: ""
@@ -855,7 +860,7 @@ hooks:
       docs/engineering/intent-vocabulary.md. Always exits 0.
     category: cognition
     phase: P
-    timeout: 1000
+    timeout: 10
     events:
       - event: SessionStart
         matcher: startup
@@ -877,7 +882,7 @@ hooks:
       $COS_AGENT_DIR/.session-skill-primer-fired. Always exits 0.
     category: cognition
     phase: P
-    timeout: 1500
+    timeout: 10
     events:
       - event: SessionStart
         matcher: startup
@@ -900,7 +905,7 @@ hooks:
       audit-artifact enforcement, auto-reviewer spawn.
     category: cognition
     phase: P
-    timeout: 1200
+    timeout: 10
     events:
       - event: UserPromptSubmit
         matcher: ""
@@ -919,7 +924,7 @@ hooks:
       asks for. One-shot override key: audit-artifact.
     category: enforcement
     phase: P
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: "Write|Edit"
@@ -936,7 +941,7 @@ hooks:
       audit forgotten" failure mode. Always exits 0.
     category: cognition
     phase: P
-    timeout: 1000
+    timeout: 10
     events:
       - event: SessionStart
         matcher: startup
@@ -961,7 +966,7 @@ hooks:
       the guardian off the critical path for ordinary turns.
     category: enforcement
     phase: P
-    timeout: 2000
+    timeout: 30
     events:
       - event: Stop
         matcher: ""
@@ -980,7 +985,7 @@ hooks:
       3 categories it deliberately excluded and justify each.
     category: cognition
     phase: P
-    timeout: 1000
+    timeout: 10
     events:
       - event: Stop
         matcher: ""
@@ -1001,7 +1006,7 @@ hooks:
       .coding-os/, /tmp/, anything outside src/).
     category: enforcement
     phase: P
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: "Write|Edit"
@@ -1020,7 +1025,7 @@ hooks:
       categories skip the gate — delegation is overkill at that scale.
     category: enforcement
     phase: P
-    timeout: 800
+    timeout: 5
     events:
       - event: PreToolUse
         matcher: "Write|Edit"
