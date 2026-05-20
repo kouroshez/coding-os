@@ -38,7 +38,9 @@ def _make_config(in_progress: int = 1, testing: int = 3, emergency: int = 2):
     return ScrumbanConfig(
         swimlanes=(Swimlane(id="core", label="Core", color="#3b82f6"),),
         wip_limits=WipLimits(
-            in_progress=in_progress, testing=testing, emergency=emergency,
+            in_progress=in_progress,
+            testing=testing,
+            emergency=emergency,
         ),
     )
 
@@ -56,9 +58,16 @@ def _insert_task(
         "mtime, swimlane, kind, priority, appetite, labels_json, dependencies) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)",
         (
-            task_id, f"test {task_id}", status,
-            f"docs/tasks/{task_id}.md", "abc", int(time.time()),
-            swimlane, "chore", "P2", "1h",
+            task_id,
+            f"test {task_id}",
+            status,
+            f"docs/tasks/{task_id}.md",
+            "abc",
+            int(time.time()),
+            swimlane,
+            "chore",
+            "P2",
+            "1h",
             json.dumps(depends_on or []),
         ),
     )
@@ -99,7 +108,9 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 def test_transition_valid(conn: sqlite3.Connection, from_status, to_status):
     _insert_task(conn, "TASK-001", status=from_status)
     result = transition(
-        conn, "TASK-001", to_status,
+        conn,
+        "TASK-001",
+        to_status,
         config=_make_config(in_progress=10, testing=10, emergency=10),
     )
     assert result.ok, result.error
@@ -116,7 +127,9 @@ def test_force_bypasses_invalid_transition(conn: sqlite3.Connection):
     assert "invalid transition" in (normal.error or "")
 
     forced = transition(
-        conn, "TASK-F1", "testing",
+        conn,
+        "TASK-F1",
+        "testing",
         force=True,
         config=_make_config(in_progress=10, testing=10, emergency=10),
     )
@@ -131,13 +144,18 @@ def test_force_bypasses_wip_cap(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-F2", status="icebox")
     _insert_task(conn, "TASK-F3", status="in_progress")  # already at cap=1
     blocked = transition(
-        conn, "TASK-F2", "in_progress", config=_make_config(in_progress=1),
+        conn,
+        "TASK-F2",
+        "in_progress",
+        config=_make_config(in_progress=1),
     )
     assert blocked.ok is False
     assert "WIP cap" in (blocked.error or "")
 
     forced = transition(
-        conn, "TASK-F2", "in_progress",
+        conn,
+        "TASK-F2",
+        "in_progress",
         force=True,
         config=_make_config(in_progress=1),
     )
@@ -153,15 +171,13 @@ def test_force_bypasses_wip_cap(conn: sqlite3.Connection):
     [
         # "ready" column no longer exists; rejections target real invalid
         # edges under the new state machine.
-        ("icebox", "testing"),           # must pass through in_progress
-        ("icebox", "complete"),          # no skipping the work
-        ("archive", "in_progress"),      # archive → only {icebox, complete}
-        ("complete", "in_progress"),     # complete only exits to archive
+        ("icebox", "testing"),  # must pass through in_progress
+        ("icebox", "complete"),  # no skipping the work
+        ("archive", "in_progress"),  # archive → only {icebox, complete}
+        ("complete", "in_progress"),  # complete only exits to archive
     ],
 )
-def test_transition_rejects_invalid(
-    conn: sqlite3.Connection, from_status, to_status
-):
+def test_transition_rejects_invalid(conn: sqlite3.Connection, from_status, to_status):
     _insert_task(conn, "TASK-002", status=from_status)
     result = transition(conn, "TASK-002", to_status)
     assert result.ok is False
@@ -195,7 +211,10 @@ def test_transition_no_op_same_status(conn: sqlite3.Connection):
 def test_transition_optimistic_concurrency_detects_drift(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-005", status="icebox")
     result = transition(
-        conn, "TASK-005", "in_progress", expected_from="in_progress",
+        conn,
+        "TASK-005",
+        "in_progress",
+        expected_from="in_progress",
         config=_make_config(in_progress=10),
     )
     assert result.ok is False
@@ -205,7 +224,10 @@ def test_transition_optimistic_concurrency_detects_drift(conn: sqlite3.Connectio
 def test_transition_optimistic_concurrency_accepts_match(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-006", status="icebox")
     result = transition(
-        conn, "TASK-006", "in_progress", expected_from="icebox",
+        conn,
+        "TASK-006",
+        "in_progress",
+        expected_from="icebox",
         config=_make_config(in_progress=10),
     )
     assert result.ok is True
@@ -235,7 +257,11 @@ def test_wip_bypass_flag_overrides_cap(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-014", status="icebox")
     config = _make_config(in_progress=1)
     result = transition(
-        conn, "TASK-014", "in_progress", config=config, bypass_wip=True,
+        conn,
+        "TASK-014",
+        "in_progress",
+        config=config,
+        bypass_wip=True,
     )
     assert result.ok is True
 
@@ -287,12 +313,12 @@ def test_transition_updates_md_frontmatter(tmp_path: Path, conn: sqlite3.Connect
     md.write_text(
         "---\n"
         "id: TASK-099\n"
-        "title: \"integration\"\n"
+        'title: "integration"\n'
         "swimlane: core\n"
         "kind: chore\n"
         "status: icebox\n"
         "priority: P2\n"
-        "appetite: \"30m\"\n"
+        'appetite: "30m"\n'
         "---\n\n"
         "# TASK-099: integration\n\n"
         "**Outcome (one sentence):** frontmatter round-trips.\n\n"
@@ -305,8 +331,11 @@ def test_transition_updates_md_frontmatter(tmp_path: Path, conn: sqlite3.Connect
     sync_all(conn, project_root=tmp_path)
 
     result = transition(
-        conn, "TASK-099", "in_progress",
-        config=_make_config(in_progress=5), agent_session="ses-claude-test",
+        conn,
+        "TASK-099",
+        "in_progress",
+        config=_make_config(in_progress=5),
+        agent_session="ses-claude-test",
         file_path=md,
     )
     assert result.ok, result.error
@@ -318,21 +347,20 @@ def test_transition_updates_md_frontmatter(tmp_path: Path, conn: sqlite3.Connect
 
 
 def test_transition_complete_sets_completed_at(
-    tmp_path: Path, conn: sqlite3.Connection,
+    tmp_path: Path,
+    conn: sqlite3.Connection,
 ):
     (tmp_path / "docs" / "tasks").mkdir(parents=True)
     md = tmp_path / "docs" / "tasks" / "TASK-100-complete.md"
     md.write_text(
-        "---\nid: TASK-100\ntitle: \"c\"\nswimlane: core\nkind: chore\n"
-        "status: testing\npriority: P2\nappetite: \"30m\"\n---\n\n# TASK-100: c\n",
+        '---\nid: TASK-100\ntitle: "c"\nswimlane: core\nkind: chore\n'
+        'status: testing\npriority: P2\nappetite: "30m"\n---\n\n# TASK-100: c\n',
         encoding="utf-8",
     )
     sync_all(conn, project_root=tmp_path)
     result = transition(conn, "TASK-100", "complete")
     assert result.ok, result.error
-    row = conn.execute(
-        "SELECT completed_at FROM tasks WHERE task_id = 'TASK-100'"
-    ).fetchone()
+    row = conn.execute("SELECT completed_at FROM tasks WHERE task_id = 'TASK-100'").fetchone()
     assert row[0] is not None
 
 
@@ -340,8 +368,8 @@ def test_patch_task_frontmatter_scalars_swimlane(tmp_path: Path):
     (tmp_path / "docs" / "tasks").mkdir(parents=True)
     md = tmp_path / "docs" / "tasks" / "TASK-101-swim.md"
     md.write_text(
-        "---\nid: TASK-101\ntitle: \"s\"\nswimlane: core\nkind: chore\n"
-        "status: icebox\npriority: P2\nappetite: \"1d\"\n---\n\n# TASK-101: s\n",
+        '---\nid: TASK-101\ntitle: "s"\nswimlane: core\nkind: chore\n'
+        'status: icebox\npriority: P2\nappetite: "1d"\n---\n\n# TASK-101: s\n',
         encoding="utf-8",
     )
     patch_task_frontmatter_scalars(md, {"swimlane": "docs"})

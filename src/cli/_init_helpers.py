@@ -111,7 +111,7 @@ def resolve_init_target(
     debug: bool,
     force: bool,
     cwd: Path,
-    pre_wipe_hook: "object | None" = None,
+    pre_wipe_hook: object | None = None,
 ) -> InitTarget:
     """Compute the final target directory for `cos init`.
 
@@ -158,8 +158,7 @@ def resolve_init_target(
     try:
         if target.is_symlink():
             raise InitError(
-                f"target {target} is a symlink; refusing to scaffold into "
-                "symlinked paths",
+                f"target {target} is a symlink; refusing to scaffold into symlinked paths",
                 exit_code=InitExit.TARGET_STATE,
             )
         if target.exists():
@@ -214,13 +213,9 @@ def maybe_git_init(target: InitTarget, *, enabled: bool) -> GitInitResult:
     if not enabled:
         return GitInitResult(ran=False, skipped_reason="--no-git flag", error=None)
     if target.nested_in_git:
-        return GitInitResult(
-            ran=False, skipped_reason="nested in existing git repo", error=None
-        )
+        return GitInitResult(ran=False, skipped_reason="nested in existing git repo", error=None)
     if (target.path / ".git").exists():
-        return GitInitResult(
-            ran=False, skipped_reason="already a git repo", error=None
-        )
+        return GitInitResult(ran=False, skipped_reason="already a git repo", error=None)
     try:
         proc = subprocess.run(
             ["git", "init", "-q"],
@@ -241,7 +236,7 @@ def maybe_git_init(target: InitTarget, *, enabled: bool) -> GitInitResult:
     return GitInitResult(ran=True, skipped_reason=None, error=None)
 
 
-def ensure_agents_md(project: Path, world: "AggregatedWorld") -> bool:
+def ensure_agents_md(project: Path, world: AggregatedWorld) -> bool:
     """Generate AGENTS.md from fragments if missing. Idempotent.
 
     Returns True if the file was just created, False if it already existed.

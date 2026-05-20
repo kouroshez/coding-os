@@ -17,15 +17,15 @@ from typing import Any
 logger = logging.getLogger("graph_os.reindex_dispatch")
 
 _EXT_MAP = {
-    ".py":  ("python",  ["code_python", "contracts"]),
-    ".ts":  ("ts",      ["code_ts", "contracts"]),
-    ".tsx": ("tsx",     ["code_ts", "contracts"]),
-    ".sh":  ("shell",   ["code_shell"]),
-    ".yaml":("yaml",    ["code_yaml"]),
-    ".yml": ("yaml",    ["code_yaml"]),
-    ".go":  ("go",      ["code_go", "contracts"]),
-    ".json":("json",    ["code_json"]),
-    ".toml":("toml",    ["code_toml"]),
+    ".py": ("python", ["code_python", "contracts"]),
+    ".ts": ("ts", ["code_ts", "contracts"]),
+    ".tsx": ("tsx", ["code_ts", "contracts"]),
+    ".sh": ("shell", ["code_shell"]),
+    ".yaml": ("yaml", ["code_yaml"]),
+    ".yml": ("yaml", ["code_yaml"]),
+    ".go": ("go", ["code_go", "contracts"]),
+    ".json": ("json", ["code_json"]),
+    ".toml": ("toml", ["code_toml"]),
 }
 
 # Sentinel chain key stored on file_index_state for docs-only rows
@@ -117,9 +117,7 @@ def dispatch(
 
     content_hash: str | None = None
     if file_content is not None:
-        content_hash = hashlib.sha256(
-            file_content.encode("utf-8", errors="replace")
-        ).hexdigest()
+        content_hash = hashlib.sha256(file_content.encode("utf-8", errors="replace")).hexdigest()
 
     cache_hits: dict[str, dict[str, Any]] = {}
     if content_hash is not None and not force:
@@ -139,9 +137,7 @@ def dispatch(
             result["layers"]["docs"] = cache_hits["docs"]
         else:
             try:
-                docs_layer = _reindex_docs(
-                    file_path, project_root=project_root, db_path=db_path
-                )
+                docs_layer = _reindex_docs(file_path, project_root=project_root, db_path=db_path)
                 result["layers"]["docs"] = docs_layer
                 if content_hash is not None:
                     _record_state_safe(
@@ -158,7 +154,7 @@ def dispatch(
                         db_path=db_path,
                         advance_hash=docs_layer.get("status") in {"ok", "unscoped"},
                     )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("docs reindex failed for %s: %s", rel, exc)
                 result["layers"]["docs"] = {"status": "error", "reason": str(exc)}
                 if content_hash is not None:
@@ -205,16 +201,17 @@ def dispatch(
                     )
                     last_error = None
                     break
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     last_error = exc
                     if not _is_retryable_lock_error(exc):
                         break
-                    time.sleep(0.05 * (2 ** attempt))
+                    time.sleep(0.05 * (2**attempt))
             graph_duration_ms = int((time.monotonic() - graph_started) * 1000)
             if last_error is not None:
                 logger.debug(
                     "graph reindex failed for %s after retries: %s",
-                    rel, last_error,
+                    rel,
+                    last_error,
                 )
                 result["layers"]["graph"] = {
                     "status": "error",
@@ -231,9 +228,7 @@ def dispatch(
                         chain_key=",".join(graph_chain[1]),
                         nodes_written=int(graph_result.get("nodes_written") or 0),
                         edges_written=int(graph_result.get("edges_written") or 0),
-                        parse_errors_count=len(
-                            graph_result.get("parse_errors") or []
-                        ),
+                        parse_errors_count=len(graph_result.get("parse_errors") or []),
                         last_error=None,
                         project_root=project_root,
                         db_path=db_path,
@@ -304,7 +299,7 @@ def _lookup_cache(
     hits: dict[str, dict[str, Any]] = {}
     try:
         conn = _open_conn(project_root=project_root, db_path=db_path)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("cache lookup: conn open failed: %s", exc)
         return hits
     try:
@@ -346,12 +341,12 @@ def _lookup_cache(
                     "cache": "hit",
                     "last_indexed_at": int(row[1]),
                 }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("cache lookup failed: %s", exc)
     finally:
         try:
             conn.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
     return hits
 
@@ -378,7 +373,7 @@ def _record_state_safe(
     """
     try:
         conn = _open_conn(project_root=project_root, db_path=db_path)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("state record: conn open failed: %s", exc)
         return
     try:
@@ -412,12 +407,12 @@ def _record_state_safe(
             ),
         )
         conn.commit()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("state record failed for %s: %s", rel_path, exc)
     finally:
         try:
             conn.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
 
@@ -431,10 +426,9 @@ def _open_conn(*, project_root: Path, db_path: str | None):
 def _has_state_table(conn) -> bool:
     try:
         row = conn.execute(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name='file_index_state'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='file_index_state'"
         ).fetchone()
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
     return row is not None
 
@@ -475,7 +469,6 @@ def _reindex_graph(
     db_path: str | None,
     project_root: Path,
 ) -> dict[str, Any]:
-    from thinking_os.database import init_db, resolve_db_path  # type: ignore
     from graph_os.backends.sqlite_backend import SqliteBackend
     from graph_os.extractors import (  # type: ignore
         code_go,
@@ -489,6 +482,7 @@ def _reindex_graph(
         md_links,
         task_deps,
     )
+    from thinking_os.database import init_db, resolve_db_path  # type: ignore
 
     extractor_map = {
         "code_go": code_go.extract,
@@ -528,7 +522,7 @@ def _reindex_graph(
                 nodes_pruned = backend.delete_nodes_for_file(
                     rel_path, extractors=chain_extractor_ids
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("prune-before-reindex skipped for %s: %s", rel_path, exc)
 
         for extractor_name in chain:
@@ -537,8 +531,7 @@ def _reindex_graph(
                 continue
             result = extractor(rel_path, file_content)
             parse_errors.extend(
-                {"kind": p.kind, "detail": p.detail, "line": p.line}
-                for p in result.parse_errors
+                {"kind": p.kind, "detail": p.detail, "line": p.line} for p in result.parse_errors
             )
             n, e = backend.bulk_upsert(result.nodes, result.edges)
             nodes_written += n
@@ -546,7 +539,7 @@ def _reindex_graph(
 
         try:
             backend.link_external_stubs(file_path=rel_path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:
         conn.close()
@@ -583,10 +576,10 @@ def _main() -> int:
         print(json.dumps(report, indent=2, default=str))
     else:
         layers = report.get("layers", {})
-        layer_summary = ", ".join(
-            f"{name}={info.get('status', 'unknown')}"
-            for name, info in layers.items()
-        ) or "no-op"
+        layer_summary = (
+            ", ".join(f"{name}={info.get('status', 'unknown')}" for name, info in layers.items())
+            or "no-op"
+        )
         print(
             f"[reindex] {report.get('status', 'ok')}: {report['path']} "
             f"({layer_summary}) cache={report.get('cache')} "

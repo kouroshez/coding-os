@@ -18,7 +18,9 @@ class ErrorBody(BaseModel):
         description="Error class: validation | permission | not_found | transient | unavailable | internal.",
     )
     message: str = Field(..., description="Human-readable explanation.")
-    retryable: bool = Field(False, description="True when the caller may safely retry after a short delay.")
+    retryable: bool = Field(
+        False, description="True when the caller may safely retry after a short delay."
+    )
 
 
 class ErrorEnvelope(BaseModel):

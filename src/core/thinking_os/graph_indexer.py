@@ -8,10 +8,10 @@ import json
 import logging
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Sequence
-
+from typing import Any
 
 _CORE_DIR = Path(__file__).resolve().parent.parent
 if str(_CORE_DIR) not in sys.path:
@@ -29,8 +29,8 @@ def _extractor_suffixes() -> tuple[str, ...]:
 
 def _load_graph_os():
     """Late import so tests can monkey-patch sys.path before import."""
-    from graph_os.backends.sqlite_backend import SqliteBackend  # noqa: PLC0415
-    from graph_os.extractors import (  # noqa: PLC0415
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.extractors import (
         code_python,
         code_shell,
         code_ts,
@@ -39,7 +39,7 @@ def _load_graph_os():
         md_links,
         task_deps,
     )
-    from graph_os.ingest import walk_local  # noqa: PLC0415
+    from graph_os.ingest import walk_local
 
     return {
         "SqliteBackend": SqliteBackend,
@@ -110,7 +110,7 @@ def _is_unchanged(backend: Any, rel_path: str, content_hash: str) -> bool:
             "AND content_hash IS NOT NULL LIMIT 1",
             (rel_path,),
         ).fetchone()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("path-match hash probe failed: %s", exc)
         return False
     return bool(row and row[0] == content_hash)
@@ -194,11 +194,10 @@ def index_single_file(
             n, e = backend.bulk_upsert(result.nodes, result.edges)
             nodes_total += n
             edges_total += e
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             report.files_errored = 1
             report.errors.append(
-                f"extract {rel_path} via {extractor.__module__}: "
-                f"{type(exc).__name__}: {exc}"
+                f"extract {rel_path} via {extractor.__module__}: {type(exc).__name__}: {exc}"
             )
     if report.files_errored == 0:
         report.files_indexed = 1
@@ -236,7 +235,7 @@ def index_project(
         if progress is not None:
             try:
                 progress(report.files_seen, len(plan.files))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("progress callback raised: %s", exc)
 
         rel = _safe_relpath(file_path, project_root)
@@ -272,11 +271,10 @@ def index_project(
                 report.nodes_upserted += n
                 report.edges_upserted += e
                 indexed_this_file = True
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 report.files_errored += 1
                 report.errors.append(
-                    f"extract {rel} via {extractor.__module__}: "
-                    f"{type(exc).__name__}: {exc}"
+                    f"extract {rel} via {extractor.__module__}: {type(exc).__name__}: {exc}"
                 )
         if indexed_this_file:
             report.files_indexed += 1
@@ -293,7 +291,7 @@ def index_project(
 def open_backend(db_path: str | Path) -> Any:
     """Open the configured GraphBackend against `db_path`. SQLite-first."""
     reg = _load_graph_os()
-    from database import init_db  # type: ignore  # noqa: PLC0415
+    from database import init_db  # type: ignore
 
     db_p = Path(db_path)
     db_p.parent.mkdir(parents=True, exist_ok=True)
@@ -333,6 +331,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             progress = None
             if not args.quiet:
+
                 def _progress(seen: int, total: int) -> None:
                     if seen % 50 == 0 or seen == total:
                         print(
@@ -353,7 +352,7 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         try:
             backend.close()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("backend close suppressed: %s", exc)
 
 

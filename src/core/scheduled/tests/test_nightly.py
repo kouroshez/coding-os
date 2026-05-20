@@ -26,10 +26,10 @@ from _state import (
     write_state,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def db(tmp_path: Path) -> sqlite3.Connection:
@@ -111,6 +111,7 @@ def project_root(tmp_path: Path, db: Path) -> Path:
 # _state tests
 # ---------------------------------------------------------------------------
 
+
 class TestWriteReadState:
     def test_roundtrip(self, project_root: Path) -> None:
         data = {"run_at": "2026-05-06T03:00:00Z", "tasks": {"decay": {"status": "ok"}}}
@@ -143,6 +144,7 @@ class TestDaysSinceMarker:
         # Backdate mtime by 8 days
         old_time = (datetime.now(timezone.utc) - timedelta(days=8)).timestamp()
         import os
+
         os.utime(m, (old_time, old_time))
         age = days_since_marker(m)
         assert age is not None
@@ -161,10 +163,14 @@ class TestReadRegistry:
 
     def test_reads_registry_json(self, tmp_path: Path) -> None:
         reg = tmp_path / "registry.json"
-        reg.write_text(json.dumps({
-            "version": 1,
-            "projects": [{"slug": "proj-a", "path": "/tmp/proj-a"}],
-        }))
+        reg.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "projects": [{"slug": "proj-a", "path": "/tmp/proj-a"}],
+                }
+            )
+        )
         projects = read_registry(hub_state_dir=tmp_path)
         assert projects[0]["slug"] == "proj-a"
 
@@ -172,6 +178,7 @@ class TestReadRegistry:
 # ---------------------------------------------------------------------------
 # _activity tests
 # ---------------------------------------------------------------------------
+
 
 class TestActivitySince:
     def test_empty_db_returns_zero(self, db: Path) -> None:
@@ -206,9 +213,7 @@ class TestActivitySince:
 class TestOutcomesSinceMarker:
     def test_no_marker_counts_all(self, db: Path, tmp_path: Path) -> None:
         with sqlite3.connect(str(db)) as conn:
-            conn.execute(
-                "INSERT INTO task_outcomes (task_id, outcome) VALUES ('T1', 'success')"
-            )
+            conn.execute("INSERT INTO task_outcomes (task_id, outcome) VALUES ('T1', 'success')")
             conn.commit()
         count = outcomes_since_marker(db, tmp_path / "missing-marker")
         assert count == 1
@@ -218,14 +223,14 @@ class TestOutcomesSinceMarker:
         touch_marker(marker)
 
         with sqlite3.connect(str(db)) as conn:
-            conn.execute(
-                "INSERT INTO task_outcomes (task_id, outcome) VALUES ('T1', 'success')"
-            )
+            conn.execute("INSERT INTO task_outcomes (task_id, outcome) VALUES ('T1', 'success')")
             conn.commit()
 
         # Outcomes inserted AFTER marker was touched → should count 0
         # (timing-sensitive; backdate marker by 1 second to be safe)
-        import os, time
+        import os
+        import time
+
         past = time.time() - 2
         os.utime(marker, (past, past))
 
@@ -237,9 +242,11 @@ class TestOutcomesSinceMarker:
 # nightly.py integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestNightlyRunProject:
     def test_skips_when_db_missing(self, tmp_path: Path) -> None:
         from nightly import run_project
+
         result = run_project({"slug": "x", "path": str(tmp_path)}, dry_run=True)
         assert result["tasks"]["all"]["status"] == "skipped"
         assert "db_not_found" in result["tasks"]["all"]["reason"]
@@ -253,12 +260,14 @@ class TestNightlyRunProject:
                 INSERT INTO schema_migrations VALUES (3);
             """)
         from nightly import run_project
+
         result = run_project({"slug": "x", "path": str(tmp_path)}, dry_run=True)
         assert result["tasks"]["all"]["status"] == "skipped"
         assert "schema_version" in result["tasks"]["all"]["reason"]
 
     def test_dry_run_does_not_write(self, project_root: Path, db: Path) -> None:
         from nightly import run_project
+
         run_project({"slug": "test", "path": str(project_root)}, dry_run=True)
         # decay marker must NOT have been written in dry_run
         marker = project_root / ".coding-os" / ".last-decay"
@@ -268,22 +277,29 @@ class TestNightlyRunProject:
         marker = project_root / ".coding-os" / ".last-decay"
         touch_marker(marker)
         from nightly import run_project
+
         result = run_project({"slug": "test", "path": str(project_root)}, dry_run=False)
         assert result["tasks"]["decay"]["status"] == "skipped"
 
     def test_disabled_after_max_failures(self, project_root: Path, db: Path) -> None:
         from nightly import _MAX_CONSECUTIVE_FAILURES
-        write_state(project_root, {
-            "consecutive_failures": _MAX_CONSECUTIVE_FAILURES,
-            "last_error": "some error",
-        })
+
+        write_state(
+            project_root,
+            {
+                "consecutive_failures": _MAX_CONSECUTIVE_FAILURES,
+                "last_error": "some error",
+            },
+        )
         from nightly import run_project
+
         result = run_project({"slug": "test", "path": str(project_root)}, dry_run=False)
         assert result["tasks"]["all"]["status"] == "skipped"
         assert "disabled" in result["tasks"]["all"]["reason"]
 
     def test_state_written_after_run(self, project_root: Path, db: Path) -> None:
         from nightly import run_project
+
         run_project({"slug": "test", "path": str(project_root)}, dry_run=True)
         state = read_state(project_root)
         assert "run_at" in state
@@ -291,8 +307,11 @@ class TestNightlyRunProject:
 
 
 class TestNightlyMain:
-    def test_dry_run_exits_zero(self, project_root: Path, db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_dry_run_exits_zero(
+        self, project_root: Path, db: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import nightly
+
         monkeypatch.setattr(
             nightly,
             "read_registry",
@@ -301,9 +320,12 @@ class TestNightlyMain:
         rc = nightly.main(["--dry-run"])
         assert rc == 0
 
-    def test_reset_failures(self, project_root: Path, db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_reset_failures(
+        self, project_root: Path, db: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         write_state(project_root, {"consecutive_failures": 5})
         import nightly
+
         monkeypatch.setattr(
             nightly,
             "read_registry",
@@ -332,12 +354,15 @@ class TestGraphReindexIfStale:
 
     def test_skips_when_probe_missing(self, tmp_path: Path) -> None:
         import nightly
+
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
         assert result == {"status": "skipped", "reason": "no_probe_yet"}
 
     def test_skips_when_probe_fresh(self, tmp_path: Path) -> None:
         import time as _t
+
         import nightly
+
         self._write_probe(tmp_path, int(_t.time()) - 60)  # 60s old
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)
         assert result["status"] == "skipped"
@@ -345,7 +370,9 @@ class TestGraphReindexIfStale:
 
     def test_dry_run_when_probe_stale(self, tmp_path: Path) -> None:
         import time as _t
+
         import nightly
+
         self._write_probe(tmp_path, int(_t.time()) - 200_000)  # >24h
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=True)
         assert result["status"] == "dry_run"
@@ -356,6 +383,7 @@ class TestGraphReindexIfStale:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         import time as _t
+
         import nightly
 
         self._write_probe(tmp_path, int(_t.time()) - 200_000)
@@ -367,7 +395,7 @@ class TestGraphReindexIfStale:
             stdout = "[graph-reindex] processed=42 skipped=0 errors=0 duration=1.5s\n"
             stderr = ""
 
-        def _fake_run(cmd, **kwargs):  # noqa: ANN001 — match subprocess.run signature loosely
+        def _fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
             captured["cwd"] = kwargs.get("cwd")
             return _FakeCompleted()
@@ -375,6 +403,7 @@ class TestGraphReindexIfStale:
         # Patch subprocess inside the function's local import scope by
         # replacing it on the imported subprocess module reference.
         import subprocess
+
         monkeypatch.setattr(subprocess, "run", _fake_run)
 
         result = nightly._run_graph_reindex_if_stale(tmp_path, dry_run=False)

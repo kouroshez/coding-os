@@ -3,6 +3,7 @@
 before editing adapters/claude/sdk_dispatcher.py. Source-of-truth doc:
 docs/adapters/claude-sdk.md.
 """
+
 from __future__ import annotations
 
 import dataclasses

@@ -14,12 +14,12 @@ _THINKING_OS = Path(__file__).resolve().parent.parent
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
-from database import init_db, has_formula_dispatches_table, has_backtrack_events_table
-
+from database import has_backtrack_events_table, has_formula_dispatches_table, init_db
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def db_conn(tmp_path):
@@ -40,6 +40,7 @@ def db_path(tmp_path):
 
 class _FakeMcp:
     """Minimal FastMCP stand-in: captures registered tool functions by name."""
+
     def __init__(self):
         self._tools: dict = {}
 
@@ -47,6 +48,7 @@ class _FakeMcp:
         def decorator(fn):
             self._tools[name or fn.__name__] = fn
             return fn
+
         return decorator
 
     def call(self, name: str, **kwargs) -> dict:
@@ -58,6 +60,7 @@ class _FakeMcp:
 def mcp_tools(db_path):
     """Register all cognition tools on a fake MCP and return the helper."""
     from tools.cognition import register_all
+
     fake = _FakeMcp()
     register_all(fake, db_path)
     return fake
@@ -66,6 +69,7 @@ def mcp_tools(db_path):
 # ---------------------------------------------------------------------------
 # DB migration v14 tests
 # ---------------------------------------------------------------------------
+
 
 class TestV14Migration:
     def test_formula_dispatches_exists(self, db_conn):
@@ -88,9 +92,8 @@ class TestV14Migration:
 
     def test_indices_exist(self, db_conn):
         names = {
-            r[0] for r in db_conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='index'"
-            ).fetchall()
+            r[0]
+            for r in db_conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
         }
         assert "idx_backtrack_session" in names
         assert "idx_dispatches_session" in names
@@ -99,6 +102,7 @@ class TestV14Migration:
 # ---------------------------------------------------------------------------
 # cos_supervise
 # ---------------------------------------------------------------------------
+
 
 class TestCosSupervise:
     def test_idle_returns_classify(self, mcp_tools):
@@ -140,6 +144,7 @@ class TestCosSupervise:
 # cos_backtrack_log
 # ---------------------------------------------------------------------------
 
+
 class TestCosBacktrackLog:
     def test_records_backtrack(self, mcp_tools, db_path):
         result = mcp_tools.call(
@@ -168,6 +173,7 @@ class TestCosBacktrackLog:
 # cos_ambiguity_check
 # ---------------------------------------------------------------------------
 
+
 class TestCosAmbiguityCheck:
     def test_empty_bundle_passes(self, mcp_tools):
         result = mcp_tools.call(
@@ -180,9 +186,10 @@ class TestCosAmbiguityCheck:
         assert result["data"]["passed"] is True
 
     def test_f2_missing_actors_fails(self, mcp_tools, db_path):
-        from cognition_schemas import EvidenceBundle, AnalystOutput
         import json
         from pathlib import Path
+
+        from cognition_schemas import AnalystOutput, EvidenceBundle
 
         # Write a bundle with missing actors to disk
         bundle = EvidenceBundle(task_marker="feat-amb", persona_id="senior-backend")
@@ -205,6 +212,7 @@ class TestCosAmbiguityCheck:
 # ---------------------------------------------------------------------------
 # cos_situation_detect
 # ---------------------------------------------------------------------------
+
 
 class TestCosSituationDetect:
     def test_detects_incident_response(self, mcp_tools):

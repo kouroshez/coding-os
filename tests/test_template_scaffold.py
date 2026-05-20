@@ -107,7 +107,9 @@ class TestBaseScaffold:
         body layout (Outcome + Read First + Acceptance + Work Log +
         optional Rollback).
         """
-        content = (initialized / "docs" / "governance" / "_templates" / "task-detail.md").read_text()
+        content = (
+            initialized / "docs" / "governance" / "_templates" / "task-detail.md"
+        ).read_text()
         for section in (
             "## Read First",
             "## Acceptance",
@@ -120,7 +122,9 @@ class TestBaseScaffold:
     def test_task_detail_has_lean_frontmatter_axes(self, initialized: Path) -> None:
         """Phase L: the four categorization axes (swimlane/kind/epic/labels)
         must appear in the frontmatter of the scaffolded template."""
-        content = (initialized / "docs" / "governance" / "_templates" / "task-detail.md").read_text()
+        content = (
+            initialized / "docs" / "governance" / "_templates" / "task-detail.md"
+        ).read_text()
         for axis in ("swimlane:", "kind:", "epic:", "labels:"):
             assert axis in content, f"lean template missing axis {axis!r}"
         # All tasks start in icebox
@@ -146,16 +150,18 @@ class TestBaseScaffold:
     def test_creates_workflow_docs(self, initialized: Path) -> None:
         wf = initialized / "docs" / "workflow"
         assert (wf / "workflow-guide.md").exists()
-        assert (wf / "thinking_os-final-edition.md").exists(), \
+        assert (wf / "thinking_os-final-edition.md").exists(), (
             "thinking_os-final-edition.md should be copied from core/docs/"
+        )
 
     def test_no_tasks_md_index(self, initialized: Path) -> None:
         # The legacy `docs/tasks.md` flat index was retired in favor of
         # `cos board` + per-task detail files under `docs/tasks/`. See
         # docs/governance/docs-system.md § Task File Rules.
         tasks_md = initialized / "docs" / "tasks.md"
-        assert not tasks_md.exists(), \
+        assert not tasks_md.exists(), (
             "docs/tasks.md is retired — use `cos board` + docs/tasks/TASK-*.md"
+        )
         tasks_dir = initialized / "docs" / "tasks"
         assert tasks_dir.is_dir(), "docs/tasks/ dir must exist for per-task files"
 
@@ -333,9 +339,7 @@ class TestMultiTemplate:
         assert "python-django" in agents_md
         assert "nextjs-react" in agents_md
 
-    def test_no_unresolved_placeholders_in_multi_template(
-        self, fullstack_project: Path
-    ) -> None:
+    def test_no_unresolved_placeholders_in_multi_template(self, fullstack_project: Path) -> None:
         agents_md = (fullstack_project / "AGENTS.md").read_text()
         assert "{{" not in agents_md
 

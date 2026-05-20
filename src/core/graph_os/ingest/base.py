@@ -5,9 +5,9 @@ from __future__ import annotations
 import fnmatch
 import logging
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 logger = logging.getLogger("graph_os.ingest.base")
 
@@ -35,8 +35,35 @@ class IngestPlan:
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_INCLUDE = ("*.py", "*.ts", "*.tsx", "*.md", "*.sh", "*.yaml", "*.yml", "*.go", "*.json", "*.toml")
-DEFAULT_EXCLUDE = (".git", "node_modules", ".venv", "__pycache__", "dist", "build", ".build", ".coding-os", ".claude", ".codex", ".cursor", ".agents", ".pytest_cache", ".mypy_cache", ".ruff_cache")
+DEFAULT_INCLUDE = (
+    "*.py",
+    "*.ts",
+    "*.tsx",
+    "*.md",
+    "*.sh",
+    "*.yaml",
+    "*.yml",
+    "*.go",
+    "*.json",
+    "*.toml",
+)
+DEFAULT_EXCLUDE = (
+    ".git",
+    "node_modules",
+    ".venv",
+    "__pycache__",
+    "dist",
+    "build",
+    ".build",
+    ".coding-os",
+    ".claude",
+    ".codex",
+    ".cursor",
+    ".agents",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+)
 
 
 def walk_local(
@@ -76,14 +103,10 @@ def walk_local(
                 continue
             total_bytes += size
             if total_bytes > max_size_bytes:
-                raise IngestError(
-                    f"ingest aborted: total size exceeds {max_size_bytes} bytes"
-                )
+                raise IngestError(f"ingest aborted: total size exceeds {max_size_bytes} bytes")
             collected.append(full)
             if len(collected) > max_files:
-                raise IngestError(
-                    f"ingest aborted: file count exceeds {max_files}"
-                )
+                raise IngestError(f"ingest aborted: file count exceeds {max_files}")
 
     return IngestPlan(
         alias=alias or root_path.name,
@@ -95,9 +118,9 @@ def walk_local(
 
 
 __all__ = [
+    "DEFAULT_EXCLUDE",
+    "DEFAULT_INCLUDE",
     "IngestError",
     "IngestPlan",
     "walk_local",
-    "DEFAULT_INCLUDE",
-    "DEFAULT_EXCLUDE",
 ]

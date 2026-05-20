@@ -55,6 +55,7 @@ def _read_gate_file() -> tuple[str, int]:
 def _detect_domain(task_id: str, msg: str) -> str:
     """Infer domain from task content."""
     import re
+
     text = f"{task_id} {msg}"
     # Use word boundaries to avoid false positives (e.g. "bUIld" matching "UI")
     if re.search(r"\b(BACKEND|Django|DRF|API|models?\.py)\b", text, re.IGNORECASE):
@@ -122,8 +123,8 @@ def record_outcome(
 
         # Append to outcome_history (append-only transition log)
         is_breakthrough = (
-            1 if previous_outcome in ("rework", "partial", "blocked")
-            and outcome == "success"
+            1
+            if previous_outcome in ("rework", "partial", "blocked") and outcome == "success"
             else 0
         )
         try:
@@ -144,10 +145,14 @@ def record_outcome(
             result["previous_outcome"] = previous_outcome
             logger.info(
                 "BREAKTHROUGH detected for %s: %s → %s",
-                task_id, previous_outcome, outcome,
+                task_id,
+                previous_outcome,
+                outcome,
             )
         else:
-            logger.info("Recorded outcome for %s: %s (%s, %s)", task_id, outcome, domain, complexity)
+            logger.info(
+                "Recorded outcome for %s: %s (%s, %s)", task_id, outcome, domain, complexity
+            )
 
         return result
     finally:

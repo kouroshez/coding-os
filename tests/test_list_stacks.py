@@ -51,7 +51,13 @@ def test_list_adapters_json_shape() -> None:
     assert {"claude", "codex"}.issubset(ids)
     for adapter in payload["adapters"]:
         assert {
-            "id", "label", "settings_file", "hooks_dir", "rules_dir",
-            "skills_dir", "supports_rules", "supports_settings_json",
+            "id",
+            "label",
+            "settings_file",
+            "hooks_dir",
+            "rules_dir",
+            "skills_dir",
+            "supports_rules",
+            "supports_settings_json",
             "sourced_hooks",
         }.issubset(adapter)

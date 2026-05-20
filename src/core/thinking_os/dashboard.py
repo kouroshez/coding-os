@@ -97,7 +97,7 @@ def generate_dashboard(db_path: str | Path | None = None) -> str:
         total_patterns = stats["tables"]["learned_patterns"] or 0
         for label, condition in buckets:
             count = conn.execute(
-                f"SELECT COUNT(*) FROM learned_patterns WHERE {condition}"  # noqa: S608 — conditions are hardcoded
+                f"SELECT COUNT(*) FROM learned_patterns WHERE {condition}"
             ).fetchone()[0]
             bar = _bar(count, max(total_patterns, 1))
             lines.append(f"  {label:20s} {bar} {count}")
@@ -117,7 +117,9 @@ def generate_dashboard(db_path: str | Path | None = None) -> str:
                 d = dict(row)
                 rate = d["wins"] / d["total"] if d["total"] > 0 else 0
                 bar = _bar(int(rate * 100), 100, 15)
-                lines.append(f"  {d['model'] or 'unknown':12s} {bar} {rate:5.0%} ({d['wins']}/{d['total']})")
+                lines.append(
+                    f"  {d['model'] or 'unknown':12s} {bar} {rate:5.0%} ({d['wins']}/{d['total']})"
+                )
         else:
             lines.append("  (no data)")
         lines.append("")

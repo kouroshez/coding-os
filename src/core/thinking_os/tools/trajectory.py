@@ -11,15 +11,17 @@ from typing import Any, Optional
 logger = logging.getLogger("coding_os.tools.trajectory")
 
 # Valid root_cause values for failure anatomy (enforced at application level)
-VALID_ROOT_CAUSES = frozenset({
-    "wrong_model",
-    "scope_too_large",
-    "missing_context",
-    "tool_failure",
-    "spec_ambiguity",
-    "env_mismatch",
-    "other",
-})
+VALID_ROOT_CAUSES = frozenset(
+    {
+        "wrong_model",
+        "scope_too_large",
+        "missing_context",
+        "tool_failure",
+        "spec_ambiguity",
+        "env_mismatch",
+        "other",
+    }
+)
 
 
 def _now_iso() -> str:
@@ -37,34 +39,36 @@ def _table_ready(conn: sqlite3.Connection) -> bool:
 # trajectory_snapshot — write
 # ---------------------------------------------------------------------------
 
+
 def trajectory_snapshot(
     conn: sqlite3.Connection,
     *,
     session_id: str,
     phase: str = "",
     current_focus: str = "",
-    architectural_decisions: Optional[list] = None,
-    anti_patterns_discovered: Optional[list] = None,
-    open_questions: Optional[list] = None,
+    architectural_decisions: list | None = None,
+    anti_patterns_discovered: list | None = None,
+    open_questions: list | None = None,
     next_logical_step: str = "",
     confidence: float = 0.7,
 ) -> dict:
     """Persist a project trajectory snapshot for the current session."""
     if not _table_ready(conn):
-        return {"status": "skipped", "reason": "project_trajectory table not found (run migration v24)"}
+        return {
+            "status": "skipped",
+            "reason": "project_trajectory table not found (run migration v24)",
+        }
 
     if not session_id:
         return {"status": "error", "reason": "session_id required"}
 
     confidence = max(0.0, min(1.0, float(confidence)))
 
-    ad_json  = json.dumps(architectural_decisions or [])
+    ad_json = json.dumps(architectural_decisions or [])
     apd_json = json.dumps(anti_patterns_discovered or [])
-    oq_json  = json.dumps(open_questions or [])
+    oq_json = json.dumps(open_questions or [])
 
-    prev = conn.execute(
-        "SELECT id FROM project_trajectory ORDER BY id DESC LIMIT 1"
-    ).fetchone()
+    prev = conn.execute("SELECT id FROM project_trajectory ORDER BY id DESC LIMIT 1").fetchone()
     supersedes_id = prev[0] if prev else None
 
     cur = conn.execute(
@@ -96,6 +100,7 @@ def trajectory_snapshot(
 # trajectory_read — read
 # ---------------------------------------------------------------------------
 
+
 def trajectory_read(
     conn: sqlite3.Connection,
     *,
@@ -103,8 +108,11 @@ def trajectory_read(
 ) -> dict:
     """Return the most recent project trajectory snapshot(s)."""
     if not _table_ready(conn):
-        return {"snapshots": [], "count": 0,
-                "note": "project_trajectory table not found (run migration v24)"}
+        return {
+            "snapshots": [],
+            "count": 0,
+            "note": "project_trajectory table not found (run migration v24)",
+        }
 
     limit = max(1, min(20, int(limit)))
 
@@ -135,6 +143,7 @@ def trajectory_read(
 # ---------------------------------------------------------------------------
 # trajectory_digest_line — compact line for digest.md (≤ 300 chars)
 # ---------------------------------------------------------------------------
+
 
 def trajectory_digest_line(conn: sqlite3.Connection) -> str:
     """Return a compact single-paragraph trajectory summary for digest.md."""

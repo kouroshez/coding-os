@@ -67,6 +67,7 @@ class TestInteractivePrompts:
         )
         assert result.exit_code == 0, result.output
         import yaml
+
         cfg = yaml.safe_load((project / ".coding-os.yaml").read_text())
         assert "django" in cfg["templates"]
 
@@ -83,6 +84,7 @@ class TestInteractivePrompts:
         )
         assert result.exit_code == 0, result.output
         import yaml
+
         cfg = yaml.safe_load((project / ".coding-os.yaml").read_text())
         assert set(cfg["templates"]) == {"django", "nextjs"}
 
@@ -97,6 +99,7 @@ class TestInteractivePrompts:
         )
         assert result.exit_code == 0, result.output
         import yaml
+
         cfg = yaml.safe_load((project / ".coding-os.yaml").read_text())
         assert cfg["templates"] == []
 
@@ -161,5 +164,6 @@ class TestInitRerunTriggersSync:
 
 def test_valid_agents_resolves() -> None:
     from cli.main import VALID_AGENTS
+
     assert "claude" in VALID_AGENTS
     assert "codex" in VALID_AGENTS

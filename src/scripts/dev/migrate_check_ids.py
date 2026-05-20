@@ -68,7 +68,7 @@ CHECK_CALL = re.compile(
 ID_LITERAL = re.compile(r'"(C\d+)"')
 
 # Bare C-id reference in docstrings / comments (word-boundary, no surrounding quotes).
-BARE_REF = re.compile(r'\bC(\d+)\b')
+BARE_REF = re.compile(r"\bC(\d+)\b")
 
 
 def rewrite(text: str, path: Path) -> tuple[str, int]:

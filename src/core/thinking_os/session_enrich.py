@@ -64,8 +64,7 @@ def main() -> None:
                 domain_counts["other"] = domain_counts.get("other", 0) + 1
 
         completed = ", ".join(
-            f"{c} {d} files"
-            for d, c in sorted(domain_counts.items(), key=lambda x: -x[1])
+            f"{c} {d} files" for d, c in sorted(domain_counts.items(), key=lambda x: -x[1])
         )
         if not completed:
             completed = None
@@ -80,8 +79,7 @@ def main() -> None:
             ).fetchall()
             if edge_rows:
                 pairs = [
-                    f"{Path(r['source']).name} <-> {Path(r['target']).name}"
-                    for r in edge_rows
+                    f"{Path(r['source']).name} <-> {Path(r['target']).name}" for r in edge_rows
                 ]
                 learned = "Co-edited: " + "; ".join(pairs)
         except Exception:
@@ -133,9 +131,7 @@ def main() -> None:
         duration_ms = 0
         sid_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/session-id")
         if sid_path.exists():
-            age_sec = (
-                datetime.now(tz=timezone.utc).timestamp() - sid_path.stat().st_mtime
-            )
+            age_sec = datetime.now(tz=timezone.utc).timestamp() - sid_path.stat().st_mtime
             duration_ms = int(age_sec * 1000)
 
         conn.execute(
@@ -192,8 +188,7 @@ def main() -> None:
             run_decay = True
         else:
             age_days = (
-                datetime.now(tz=timezone.utc).timestamp()
-                - decay_marker.stat().st_mtime
+                datetime.now(tz=timezone.utc).timestamp() - decay_marker.stat().st_mtime
             ) / 86400
             if age_days > 7:
                 run_decay = True

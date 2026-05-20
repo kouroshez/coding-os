@@ -84,9 +84,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     try:
         import yaml
     except ImportError:
-        result.parse_errors.append(
-            ParseError(kind="dep_missing", detail="pyyaml unavailable")
-        )
+        result.parse_errors.append(ParseError(kind="dep_missing", detail="pyyaml unavailable"))
         emit_contains_spine(
             file_path=path,
             file_uid_=file_node.uid,
@@ -98,7 +96,7 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     try:
         data = yaml.safe_load(content)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         result.parse_errors.append(ParseError(kind="yaml_parse_error", detail=str(exc)))
         emit_contains_spine(
             file_path=path,
@@ -123,7 +121,9 @@ def extract(path: str, content: str) -> ExtractionResult:
         _walk(data, normalised=normalised, parent_uid=module.uid, result=result, prefix="")
     elif isinstance(data, list):
         for i, item in enumerate(data):
-            _walk(item, normalised=normalised, parent_uid=module.uid, result=result, prefix=f"[{i}]")
+            _walk(
+                item, normalised=normalised, parent_uid=module.uid, result=result, prefix=f"[{i}]"
+            )
 
     # S3: Folder→...→File spine.
     emit_contains_spine(

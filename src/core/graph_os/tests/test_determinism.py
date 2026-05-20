@@ -9,8 +9,8 @@ metadata JSON is serialised with unsorted keys) shows up here.
 
 from __future__ import annotations
 
-from graph_os.types import EvidenceSignal, GraphEdge, GraphNode
 from graph_os.backends.sqlite_backend import SqliteBackend
+from graph_os.types import EvidenceSignal, GraphEdge, GraphNode
 
 
 def _deterministic_corpus():

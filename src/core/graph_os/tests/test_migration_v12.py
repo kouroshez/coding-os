@@ -112,9 +112,7 @@ def test_v12_foreign_key_cascade_removes_edges(migrated_conn):
         """,
         (src, dst),
     )
-    edge_id = migrated_conn.execute(
-        "SELECT id FROM graph_edges_v12"
-    ).fetchone()[0]
+    edge_id = migrated_conn.execute("SELECT id FROM graph_edges_v12").fetchone()[0]
     migrated_conn.execute(
         """
         INSERT INTO graph_evidence_v12

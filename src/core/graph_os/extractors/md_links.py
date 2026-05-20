@@ -20,9 +20,7 @@ EXTRACTOR_ID = "md_links@v1"
 
 # Match `[text](target)` — target may contain nested parens via the
 # balanced pattern below. Stops at unescaped `)`.
-_INLINE_LINK_RE = re.compile(
-    r"\[(?P<text>[^\]]*)\]\((?P<target>[^)\s]+(?:\s+\"[^\"]*\")?)\)"
-)
+_INLINE_LINK_RE = re.compile(r"\[(?P<text>[^\]]*)\]\((?P<target>[^)\s]+(?:\s+\"[^\"]*\")?)\)")
 # `[[wikilink]]` or `[[wikilink|alias]]`.
 _WIKI_LINK_RE = re.compile(r"\[\[(?P<target>[^\]|]+)(?:\|[^\]]+)?\]\]")
 # ATX-style heading: `##  Title`. Setext headings are rare in this repo so
@@ -75,7 +73,7 @@ def _split_read_targets(raw: str) -> list[str]:
 def _emit_read_next_targets(
     path: str,
     raw_value: str,
-    result: "ExtractionResult",
+    result: ExtractionResult,
     *,
     source: str,
 ) -> None:
@@ -97,9 +95,7 @@ def _emit_read_next_targets(
         )
 
 
-def _extract_opening_block_reads(
-    path: str, content: str, result: "ExtractionResult"
-) -> None:
+def _extract_opening_block_reads(path: str, content: str, result: ExtractionResult) -> None:
     """Parse opening-block ``Read next:`` (long) and ``> N:`` (short)."""
     seen_targets: set[str] = set()
     for match in _OPENING_READ_NEXT_RE.finditer(content):
@@ -179,11 +175,7 @@ def _normalize_path(path: str) -> str:
 
 def _classify_governance_path(normalised: str) -> tuple[str | None, str | None]:
     parts = normalised.split("/")
-    if (
-        len(parts) >= 4
-        and parts[-1] == "SKILL.md"
-        and "skills" in parts
-    ):
+    if len(parts) >= 4 and parts[-1] == "SKILL.md" and "skills" in parts:
         skills_idx = parts.index("skills")
         if skills_idx + 1 < len(parts) - 1:
             return ("cos:skill", parts[skills_idx + 1])
@@ -311,11 +303,9 @@ def extract(
         _promote_stubs(result)
 
         return result
-    except Exception as exc:  # noqa: BLE001 — extractor must never crash pipeline
+    except Exception as exc:
         logger.debug("md_links.extract(%s) fatal error: %s", path, exc)
-        result.parse_errors.append(
-            ParseError(kind="fatal", detail=str(exc))
-        )
+        result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
         return result
 
 
@@ -422,7 +412,7 @@ def _promote_stubs(result: ExtractionResult) -> None:
 
 def _stub_for_uid(uid: str) -> GraphNode:
     if uid.startswith("folder:"):
-        path = uid[len("folder:"):]
+        path = uid[len("folder:") :]
         label = PurePosixPath(path).name if path not in ("", ".") else "."
         return GraphNode(
             uid=uid,
@@ -432,7 +422,7 @@ def _stub_for_uid(uid: str) -> GraphNode:
             metadata={"stub": True, "extractor": EXTRACTOR_ID},
         )
     if uid.startswith("doc:file:"):
-        rest = uid[len("doc:file:"):]
+        rest = uid[len("doc:file:") :]
         path, _, anchor = rest.partition("#")
         label = PurePosixPath(path).name if path else anchor
         return GraphNode(
@@ -455,7 +445,7 @@ def _stub_for_uid(uid: str) -> GraphNode:
         return GraphNode(
             uid=uid,
             kind="doc:external",
-            label=uid[len("doc:external:"):],
+            label=uid[len("doc:external:") :],
             metadata={"stub": True, "extractor": EXTRACTOR_ID},
         )
     # Infer kind from any standard `<kind>:<sub>:...` prefix so cross-
@@ -676,7 +666,7 @@ def _extract_links(
         if "#" in resolved and resolved.startswith("doc:file:"):
             base_path, anchor = resolved.split("#", 1)
             target_file = base_path  # keep doc:file prefix
-            target_heading = f"doc:heading:{base_path[len('doc:file:'):]}#{anchor}"
+            target_heading = f"doc:heading:{base_path[len('doc:file:') :]}#{anchor}"
             result.edges.append(
                 GraphEdge(
                     source_uid=file_uid(path),
@@ -735,11 +725,11 @@ __all__ = [
     "EXTRACTOR_ID",
     "ExtractionResult",
     "ParseError",
+    "emit_contains_spine",
     "extract",
     "file_uid",
     "folder_uid",
-    "emit_contains_spine",
-    "heading_uid",
     "frontmatter_key_uid",
+    "heading_uid",
     "slugify",
 ]

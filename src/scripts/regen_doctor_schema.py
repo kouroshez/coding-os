@@ -34,11 +34,8 @@ def _introspect() -> tuple[int, list[str]]:
         conn = sqlite3.connect(db_path)
         tables = sorted(
             row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
-            if not row[0].startswith("observations_fts")
-            and not row[0].startswith("sqlite_")
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            if not row[0].startswith("observations_fts") and not row[0].startswith("sqlite_")
         )
         conn.close()
     finally:

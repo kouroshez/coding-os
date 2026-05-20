@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from cognition_schemas import (
     AmbiguityCriterion,
     EvidenceBundle,
@@ -74,6 +73,7 @@ def load_agent_registry() -> dict[str, dict[str, Any]]:
 
 _INTENSITY_ORDER = ("light", "standard", "full")
 
+
 def _intensity_gte(a: str, b: str) -> bool:
     return _INTENSITY_ORDER.index(a) >= _INTENSITY_ORDER.index(b)
 
@@ -101,6 +101,7 @@ def _intensity_steps(formula_id: str, intensity: str) -> list[int]:
 # ---------------------------------------------------------------------------
 # Situation helpers
 # ---------------------------------------------------------------------------
+
 
 def _situation_dispatch_chain(situation_id: str) -> list[str]:
     """Return ordered formula IDs for a situation (non-formula actions skipped)."""
@@ -158,6 +159,7 @@ def input_hash(slice_data: dict[str, Any]) -> str:
 # Supervisor state machine
 # ---------------------------------------------------------------------------
 
+
 def advance(
     state: SupervisorState,
     bundle: EvidenceBundle,
@@ -210,10 +212,7 @@ def _next_dispatch(
 
     # Check for parallelisable formulas (security_auditor layers)
     parallel = meta.get("parallel_siblings", [])
-    parallel_available = [
-        f for f in parallel
-        if f not in state.dispatched and f in remaining
-    ]
+    parallel_available = [f for f in parallel if f not in state.dispatched and f in remaining]
     if parallel_available:
         all_parallel = [formula_id] + parallel_available
         state.phase = "AWAITING_AGENT"
@@ -264,6 +263,7 @@ def _build_queue(state: SupervisorState) -> list[str]:
 # ---------------------------------------------------------------------------
 # Backtrack helper
 # ---------------------------------------------------------------------------
+
 
 def apply_backtrack(
     state: SupervisorState,
@@ -374,47 +374,75 @@ _CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], .
     "analyst": {
         AmbiguityCriterion.SCOPED: (("scope_in", "scope_in is empty in Analyst output"),),
         AmbiguityCriterion.OWNED: (("actors", "No actors defined in Analyst output"),),
-        AmbiguityCriterion.OBSERVABLE: (("success_metrics", "No success_metrics in Analyst output"),),
+        AmbiguityCriterion.OBSERVABLE: (
+            ("success_metrics", "No success_metrics in Analyst output"),
+        ),
         AmbiguityCriterion.TESTABLE: (("scenarios", "No scenarios defined in Analyst output"),),
     },
     "architect": {
-        AmbiguityCriterion.SCOPED: (("selected_style", "selected_style empty in Architect output"),),
-        AmbiguityCriterion.MEASURABLE: (("nfr_targets", "No NFR targets recorded in Architect output"),),
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("adrs", "No ADRs recorded in Architect output"),),
+        AmbiguityCriterion.SCOPED: (
+            ("selected_style", "selected_style empty in Architect output"),
+        ),
+        AmbiguityCriterion.MEASURABLE: (
+            ("nfr_targets", "No NFR targets recorded in Architect output"),
+        ),
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (
+            ("adrs", "No ADRs recorded in Architect output"),
+        ),
     },
     "documenter": {
         AmbiguityCriterion.OBSERVABLE: (
             ("docs_created", "No docs_created in Documenter output"),
             ("docs_updated", "No docs_updated in Documenter output"),
         ),
-        AmbiguityCriterion.SCOPED: (("changelog_entry", "changelog_entry empty in Documenter output"),),
+        AmbiguityCriterion.SCOPED: (
+            ("changelog_entry", "changelog_entry empty in Documenter output"),
+        ),
     },
     "implementer": {
         AmbiguityCriterion.TESTABLE: (
             ("files_created", "No files_created in Implementer output"),
             ("files_modified", "No files_modified in Implementer output"),
         ),
-        AmbiguityCriterion.SCOPED: (("implementation_notes", "implementation_notes empty in Implementer output"),),
-        AmbiguityCriterion.OWNED: (("open_items", "open_items unset (None) in Implementer output"),),
+        AmbiguityCriterion.SCOPED: (
+            ("implementation_notes", "implementation_notes empty in Implementer output"),
+        ),
+        AmbiguityCriterion.OWNED: (
+            ("open_items", "open_items unset (None) in Implementer output"),
+        ),
     },
     "reviewer": {
-        AmbiguityCriterion.MEASURABLE: (("coverage_summary", "No coverage_summary in Reviewer output"),),
+        AmbiguityCriterion.MEASURABLE: (
+            ("coverage_summary", "No coverage_summary in Reviewer output"),
+        ),
         AmbiguityCriterion.TESTABLE: (("test_cases", "No test_cases in Reviewer output"),),
     },
     "debugger": {
         AmbiguityCriterion.OBSERVABLE: (("root_cause", "root_cause empty in Debugger output"),),
-        AmbiguityCriterion.TESTABLE: (("regression_tests_added", "No regression tests in Debugger output"),),
+        AmbiguityCriterion.TESTABLE: (
+            ("regression_tests_added", "No regression tests in Debugger output"),
+        ),
         AmbiguityCriterion.SCOPED: (("fix_applied", "fix_applied empty in Debugger output"),),
     },
     "security_auditor": {
-        AmbiguityCriterion.OBSERVABLE: (("findings", "No security findings in SecurityAuditor output"),),
-        AmbiguityCriterion.SCOPED: (("auth_coverage", "auth_coverage empty in SecurityAuditor output"),),
-        AmbiguityCriterion.OWNED: (("secrets_audit", "secrets_audit empty in SecurityAuditor output"),),
+        AmbiguityCriterion.OBSERVABLE: (
+            ("findings", "No security findings in SecurityAuditor output"),
+        ),
+        AmbiguityCriterion.SCOPED: (
+            ("auth_coverage", "auth_coverage empty in SecurityAuditor output"),
+        ),
+        AmbiguityCriterion.OWNED: (
+            ("secrets_audit", "secrets_audit empty in SecurityAuditor output"),
+        ),
     },
     "deployer": {
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (("rollback_steps", "No rollback_steps in Deployer output"),),
+        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (
+            ("rollback_steps", "No rollback_steps in Deployer output"),
+        ),
         AmbiguityCriterion.TESTABLE: (("deploy_steps", "No deploy_steps in Deployer output"),),
-        AmbiguityCriterion.OBSERVABLE: (("release_notes", "release_notes empty in Deployer output"),),
+        AmbiguityCriterion.OBSERVABLE: (
+            ("release_notes", "release_notes empty in Deployer output"),
+        ),
     },
     "observer": {
         AmbiguityCriterion.MEASURABLE: (("slo_targets", "No SLO targets in Observer output"),),
@@ -425,7 +453,9 @@ _CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], .
     },
     "refactorer": {
         AmbiguityCriterion.SCOPED: (("items", "No refactor items in Refactorer output"),),
-        AmbiguityCriterion.MEASURABLE: (("debt_score_after", "debt_score_after unset in Refactorer output"),),
+        AmbiguityCriterion.MEASURABLE: (
+            ("debt_score_after", "debt_score_after unset in Refactorer output"),
+        ),
         AmbiguityCriterion.TESTABLE: (("files_changed", "No files_changed in Refactorer output"),),
     },
 }
@@ -470,10 +500,12 @@ def ambiguity_check(bundle: EvidenceBundle) -> list[dict[str, str]]:
                 continue
             passed, detail = _criterion_satisfied(output_dict, field_specs)
             if not passed:
-                violations.append({
-                    "formula": formula_id,
-                    "criterion": criterion.value,
-                    "detail": detail,
-                })
+                violations.append(
+                    {
+                        "formula": formula_id,
+                        "criterion": criterion.value,
+                        "detail": detail,
+                    }
+                )
 
     return violations

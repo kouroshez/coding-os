@@ -10,7 +10,7 @@ from pathlib import Path
 THINKING_OS = Path(__file__).resolve().parent.parent.parent / "core" / "thinking_os"
 sys.path.insert(0, str(THINKING_OS))
 
-from tools.docs import list_doc_headers, parse_doc_header  # noqa: E402
+from tools.docs import list_doc_headers, parse_doc_header
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 GOVERNANCE = ROOT / "docs" / "governance"
@@ -34,20 +34,24 @@ def main() -> None:
     _check(bool(ob.get("purpose")), "opening_block.purpose populated")
     _check(bool(ob.get("read_when")), "opening_block.read_when populated")
     _check(bool(ob.get("read_next")), "opening_block.read_next populated")
-    _check(header["header_token_estimate"] < 300,
-           f"header_token_estimate < 300 (got {header['header_token_estimate']})")
+    _check(
+        header["header_token_estimate"] < 300,
+        f"header_token_estimate < 300 (got {header['header_token_estimate']})",
+    )
 
     # Bulk scan with filter.
     rows = list_doc_headers(GOVERNANCE, domain="DOCS", limit=20)
     _check(len(rows) >= 3, f"list_doc_headers found ≥3 DOCS rows (got {len(rows)})")
     titles = [r["title"] for r in rows]
-    _check("Critical Rules — Full Text" in titles,
-           f"Critical Rules surfaced (titles={titles[:3]}…)")
+    _check(
+        "Critical Rules — Full Text" in titles, f"Critical Rules surfaced (titles={titles[:3]}…)"
+    )
 
     # Filter by layer.
     policies = list_doc_headers(GOVERNANCE, domain="DOCS", layer="policy", limit=20)
-    _check(len(policies) >= 1,
-           f"list_doc_headers(domain=DOCS, layer=policy) ≥1 (got {len(policies)})")
+    _check(
+        len(policies) >= 1, f"list_doc_headers(domain=DOCS, layer=policy) ≥1 (got {len(policies)})"
+    )
 
     # Negative — non-existent layer.
     none = list_doc_headers(GOVERNANCE, domain="DOCS", layer="not-a-layer")
@@ -55,8 +59,13 @@ def main() -> None:
 
     # Compact JSON dump for visual inspection.
     print("\nSample header:")
-    print(json.dumps({k: header[k] for k in ("title", "frontmatter", "opening_block")},
-                     indent=2, ensure_ascii=False))
+    print(
+        json.dumps(
+            {k: header[k] for k in ("title", "frontmatter", "opening_block")},
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":

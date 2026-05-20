@@ -21,7 +21,9 @@ from fastapi import APIRouter, Depends, Query
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
 
-router = APIRouter(prefix="/api/observability", tags=["observability"], responses=ENVELOPE_ERROR_RESPONSES)
+router = APIRouter(
+    prefix="/api/observability", tags=["observability"], responses=ENVELOPE_ERROR_RESPONSES
+)
 
 _HOOK_RE = re.compile(
     r"^\[(?P<iso>[^\]]+)\]\s+\[(?P<hook>[^\]]+)\]\s+\[(?P<action>[^\]]+)\]"
@@ -61,7 +63,12 @@ def _friendly_session_label(session_id: str, agent: str, started_at: float | int
     if len(parts) >= 5 and parts[0] == "ses":
         maybe_date = parts[2]
         maybe_time = parts[3]
-        if len(maybe_date) == 8 and len(maybe_time) == 6 and maybe_date.isdigit() and maybe_time.isdigit():
+        if (
+            len(maybe_date) == 8
+            and len(maybe_time) == 6
+            and maybe_date.isdigit()
+            and maybe_time.isdigit()
+        ):
             return f"{agent} {maybe_date[0:4]}-{maybe_date[4:6]}-{maybe_date[6:8]} {maybe_time[0:2]}:{maybe_time[2:4]}"
     ts_fmt = _fmt_ts(started_at)
     return f"{agent} {ts_fmt}" if ts_fmt else session_id
@@ -71,7 +78,9 @@ def _is_active_session(row: dict[str, Any]) -> bool:
     if row.get("ended_at"):
         return False
     now = time.time()
-    last_activity = row.get("last_tool_at") or row.get("last_prompt_at") or row.get("started_at") or 0
+    last_activity = (
+        row.get("last_tool_at") or row.get("last_prompt_at") or row.get("started_at") or 0
+    )
     last_stop = row.get("last_stop_at") or 0
     try:
         return float(last_activity) >= float(last_stop) and (now - float(last_activity)) <= 120.0
@@ -187,6 +196,7 @@ def _parse_iso_ts(value: str | None) -> float | None:
         return None
     try:
         import calendar
+
         return float(calendar.timegm(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ")))
     except Exception:
         return None
@@ -279,7 +289,9 @@ def _read_cognition_events(state: Path, session_id: str | None, limit: int) -> l
                     "session_id": sid,
                     "agent": str(payload.get("agent") or agent),
                     "summary": kind.replace("_", " "),
-                    "data": payload.get("data") if isinstance(payload.get("data"), dict) else payload,
+                    "data": payload.get("data")
+                    if isinstance(payload.get("data"), dict)
+                    else payload,
                 }
             )
     events.sort(key=lambda e: float(e.get("ts") or 0.0), reverse=True)

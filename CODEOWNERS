@@ -1,0 +1,49 @@
+# CODEOWNERS — automatic PR review assignment
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+#
+# Order matters: later rules override earlier ones.
+# Each line is `pattern @owner(s)`. Owners receive review requests
+# automatically on any PR touching the matching files.
+
+# Default owner — everything not matched below
+*                                @kouroshebra
+
+# ---- Core kernel (agent-agnostic) ----
+/src/core/thinking_os/           @kouroshebra
+/src/core/graph_os/              @kouroshebra
+/src/core/board_os/              @kouroshebra
+/src/core/web/                   @kouroshebra
+/src/core/hooks/                 @kouroshebra
+/src/core/rules/                 @kouroshebra
+/src/core/skills/                @kouroshebra
+
+# ---- Hub UI (React + TypeScript) ----
+/src/core/web/ui/                @kouroshebra
+
+# ---- Adapters ----
+/src/adapters/claude/            @kouroshebra
+/src/adapters/codex/             @kouroshebra
+/src/adapters/cursor/            @kouroshebra
+
+# ---- Templates (per-stack scaffolds) ----
+/src/templates/                  @kouroshebra
+
+# ---- CLI ----
+/src/cli/                        @kouroshebra
+
+# ---- CI / build / release ----
+/.github/                        @kouroshebra
+/pyproject.toml                  @kouroshebra
+/Makefile                        @kouroshebra
+/.pre-commit-config.yaml         @kouroshebra
+
+# ---- Governance docs (highest care) ----
+/docs/governance/                @kouroshebra
+/docs/architecture/              @kouroshebra
+/AGENTS.md                       @kouroshebra
+/CLAUDE.md                       @kouroshebra
+/LICENSE                         @kouroshebra
+/SECURITY.md                     @kouroshebra
+/CHANGELOG.md                    @kouroshebra
+/CONTRIBUTING.md                 @kouroshebra
+/CODE_OF_CONDUCT.md              @kouroshebra

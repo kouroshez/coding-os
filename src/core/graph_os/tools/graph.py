@@ -12,9 +12,10 @@ import re
 import sys
 import threading
 from collections import deque
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any
 
 from ..backend import BackendUnavailable, GraphBackend, get_backend
 from ..types import GraphEdge, GraphNode
@@ -30,6 +31,7 @@ logger = logging.getLogger("graph_os.tools.graph")
 def _envelope_module():
     try:
         from tools import _shared  # type: ignore
+
         return _shared
     except ImportError:
         here = Path(__file__).resolve()
@@ -37,6 +39,7 @@ def _envelope_module():
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))
         from tools import _shared  # type: ignore
+
         return _shared
 
 
@@ -61,7 +64,8 @@ def _touch_session_marker() -> None:
             state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
             agent = os.environ.get("COS_AGENT") or "claude"
             agent_dir = f"{state_dir}/{agent}"
-        from pathlib import Path as _Path  # noqa: PLC0415
+        from pathlib import Path as _Path
+
         path = _Path(agent_dir)
         path.mkdir(parents=True, exist_ok=True)
         (path / ".graph-call-seen").touch(exist_ok=True)
@@ -99,10 +103,12 @@ def _telemetry_path() -> str | None:
     state_dir = os.environ.get("COS_STATE_DIR")
     if not state_dir:
         # Fall back to repo-rooted .coding-os when env unset.
-        from pathlib import Path as _Path  # noqa: PLC0415
+        from pathlib import Path as _Path
+
         state_dir = str(_Path.cwd() / ".coding-os")
     try:
-        from pathlib import Path as _Path  # noqa: PLC0415
+        from pathlib import Path as _Path
+
         path = _Path(state_dir)
         path.mkdir(parents=True, exist_ok=True)
         full = str(path / ".graph-telemetry.jsonl")
@@ -142,8 +148,9 @@ def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
         path = _telemetry_path()
         if path is None:
             return
-        import json as _json  # noqa: PLC0415
-        import time as _time  # noqa: PLC0415
+        import json as _json
+        import time as _time
+
         row = {
             "ts": int(_time.time()),
             "ok": ok,
@@ -153,7 +160,7 @@ def _emit_telemetry(*, meta: dict[str, Any], ok: bool) -> None:
         _rotate_telemetry_atomically(path)
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(line)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("telemetry emit suppressed: %s", exc)
 
 
@@ -176,8 +183,9 @@ def _current_db_key() -> str:
     """Resolve the SQLite DB path for the current project scope."""
     try:
         from thinking_os.database import resolve_db_path  # type: ignore
+
         return str(resolve_db_path())
-    except Exception:  # noqa: BLE001 — fall back to a stable default key
+    except Exception:
         return "__default__"
 
 
@@ -207,7 +215,7 @@ def _backend(*, backend: str | None = None) -> GraphBackend:
             if existing is not None:
                 try:
                     existing.close()
-                except Exception as exc:  # noqa: BLE001 — swap must not raise
+                except Exception as exc:
                     logger.debug("previous backend close suppressed: %s", exc)
             new_backend = get_backend(backend=backend)
             _BACKEND_SINGLETONS[key] = new_backend
@@ -222,13 +230,13 @@ def reset_backend() -> None:
         if _BACKEND_SINGLETON is not None:
             try:
                 _BACKEND_SINGLETON.close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("legacy backend close suppressed: %s", exc)
             _BACKEND_SINGLETON = None
         for bk in list(_BACKEND_SINGLETONS.values()):
             try:
                 bk.close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("reset_backend close suppressed: %s", exc)
         _BACKEND_SINGLETONS.clear()
 
@@ -266,9 +274,7 @@ def _looks_prefixed(raw: str) -> bool:
     return ":" in head
 
 
-def _resolve_uid(
-    backend: GraphBackend, raw_uid: str
-) -> tuple[GraphNode | None, list[str]]:
+def _resolve_uid(backend: GraphBackend, raw_uid: str) -> tuple[GraphNode | None, list[str]]:
     """Look up a node uid, with path-prefix fallback for raw paths.
 
     Returns ``(node, tried)`` where ``tried`` is the ordered list of uid
@@ -301,10 +307,7 @@ def _fail_uid_not_found(
     """Helpful 'not_found' envelope including the candidates tried."""
     if len(tried) > 1:
         suggestions = ", ".join(repr(c) for c in tried[1:])
-        msg = (
-            f"no node with {label} {raw_uid!r} (also tried {suggestions}). "
-            f"{_UID_FORMAT_HINT}"
-        )
+        msg = f"no node with {label} {raw_uid!r} (also tried {suggestions}). {_UID_FORMAT_HINT}"
     else:
         msg = f"no node with {label} {raw_uid!r}. {_UID_FORMAT_HINT}"
     return _fail("not_found", msg)
@@ -340,9 +343,7 @@ class NodeSummary:
         return out
 
     @classmethod
-    def from_node(
-        cls, node: GraphNode, *, degree: int | None = None
-    ) -> "NodeSummary":
+    def from_node(cls, node: GraphNode, *, degree: int | None = None) -> NodeSummary:
         return cls(
             uid=node.uid,
             kind=node.kind,
@@ -353,9 +354,7 @@ class NodeSummary:
         )
 
 
-def _degree_map_for(
-    backend: GraphBackend, uids: Sequence[str]
-) -> dict[str, int]:
+def _degree_map_for(backend: GraphBackend, uids: Sequence[str]) -> dict[str, int]:
     """Server-side degree count for a node set.
 
     Cheaper than the client recomputing on every render: one query per
@@ -380,7 +379,7 @@ def _degree_map_for(
             """,
             tuple(uids),
         ).fetchall()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("degree query suppressed: %s", exc)
         return {}
     return {row[0]: int(row[1]) for row in rows}
@@ -479,9 +478,7 @@ def _walk_bfs(
             if identity in seen_edge_ids:
                 continue
             seen_edge_ids.add(identity)
-            next_uid = (
-                edge.target_uid if edge.source_uid == uid else edge.source_uid
-            )
+            next_uid = edge.target_uid if edge.source_uid == uid else edge.source_uid
             # B2: only append when the neighbour is new — stops the edge
             # duplication that happened when the same node was reached
             # via multiple edges from different frontiers.
@@ -551,9 +548,7 @@ def _contains_ancestors(
     return nodes, edges
 
 
-def _bulk_nodes(
-    backend: GraphBackend, uids: Sequence[str]
-) -> dict[str, GraphNode]:
+def _bulk_nodes(backend: GraphBackend, uids: Sequence[str]) -> dict[str, GraphNode]:
     """B6: prefer backend.get_nodes_bulk; fall back to per-uid for legacy."""
     bulk = getattr(backend, "get_nodes_bulk", None)
     if callable(bulk):
@@ -586,16 +581,16 @@ def cos_graph_query(
     DEPENDS:      GraphBackend.
     """
     if (not q or not q.strip()) and not kinds:
-        return _fail("validation", "query must be a non-empty string (or provide kinds for kind-only browse)")
+        return _fail(
+            "validation", "query must be a non-empty string (or provide kinds for kind-only browse)"
+        )
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
 
     kinds_filter = tuple(kinds) if kinds else None
-    nodes = _lexical_search(
-        be, q=q, kinds=kinds_filter, limit=limit, max_hops=max_hops
-    )
+    nodes = _lexical_search(be, q=q, kinds=kinds_filter, limit=limit, max_hops=max_hops)
 
     # Fallback — when lexical hybrid returns nothing AND the query
     # *looks* like a path or uid, try _resolve_uid so agents who pass
@@ -614,9 +609,7 @@ def cos_graph_query(
         )
         if looks_pathlike:
             resolved, _tried = _resolve_uid(be, candidate)
-            if resolved is not None and (
-                kinds_filter is None or resolved.kind in kinds_filter
-            ):
+            if resolved is not None and (kinds_filter is None or resolved.kind in kinds_filter):
                 nodes = [resolved]
 
     results = [
@@ -631,9 +624,7 @@ def cos_graph_query(
     if include_spine:
         for result_dict, node in zip(results, nodes):
             ancestors, _ = _contains_ancestors(be, leaf_uid=node.uid)
-            result_dict["spine"] = [
-                NodeSummary.from_node(a).to_dict() for a in ancestors
-            ]
+            result_dict["spine"] = [NodeSummary.from_node(a).to_dict() for a in ancestors]
     # B22: cap meta.query to 500 chars with ellipsis suffix so the
     # envelope stays bounded regardless of how long the query string is.
     _MAX_QUERY_META = 500
@@ -650,10 +641,8 @@ def cos_graph_query(
 
         all_communities, _membership = comm_mod.compute_communities(be)
         relevant_uids = {n.uid for n in nodes}
-        processes = comm_mod.communities_to_processes(
-            all_communities, relevant_uids=relevant_uids
-        )
-    except Exception as exc:  # noqa: BLE001
+        processes = comm_mod.communities_to_processes(all_communities, relevant_uids=relevant_uids)
+    except Exception as exc:
         logger.debug("community grouping suppressed: %s", exc)
         processes = []
 
@@ -799,9 +788,7 @@ def cos_graph_impact(
     if root is None:
         return _fail_uid_not_found(uid, tried_uids)
 
-    walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(
-        direction, "in"
-    )
+    walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(direction, "in")
     nodes, edges = _walk_bfs(
         be,
         root_uid=root.uid,
@@ -1059,16 +1046,13 @@ def cos_graph_similar(
     embed_scores: dict[str, float] = {}
     try:
         from thinking_os.embeddings import (  # type: ignore
-            embed_text,
             cosine_similarity,
+            embed_text,
             is_available,
         )
+
         if is_available():
-            ref_text = (
-                f"{root.label or ''} "
-                f"{root.signature or ''} "
-                f"{root.doc_blob or ''}"
-            ).strip()
+            ref_text = (f"{root.label or ''} {root.signature or ''} {root.doc_blob or ''}").strip()
             ref_vec = embed_text(ref_text)
             if ref_vec:
                 cand_texts = [
@@ -1076,9 +1060,7 @@ def cos_graph_similar(
                     for n in candidates
                 ]
                 # batch encode candidate side, then cosine in one shot
-                cand_vecs: list[bytes | None] = [
-                    embed_text(t) for t in cand_texts
-                ]
+                cand_vecs: list[bytes | None] = [embed_text(t) for t in cand_texts]
                 valid = [v for v in cand_vecs if v]
                 if valid:
                     sims = cosine_similarity(ref_vec, valid)
@@ -1089,7 +1071,7 @@ def cos_graph_similar(
                     scorer_name = "bge-m3+difflib-blend"
     except ImportError as exc:
         logger.debug("embeddings module unavailable: %s", exc)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("embedding similarity skipped: %s", exc)
 
     scored = []
@@ -1214,7 +1196,8 @@ def cos_graph_path(
     chain.reverse()
     return _ok(
         {
-            "path": [source_uid] + [e.target_uid if e.source_uid == source_uid else e.source_uid for e in chain],
+            "path": [source_uid]
+            + [e.target_uid if e.source_uid == source_uid else e.source_uid for e in chain],
             "edges": [_edge_to_dict(e) for e in chain],
             "hops": len(chain),
             "truncated": truncated,
@@ -1250,19 +1233,21 @@ _CONTAINS_EDGES: tuple[str, ...] = ("contains",)
 # Noise nodes that pollute the graph viewer when shown.  They're real
 # graph data (extracted by md_links / frontmatter parsers) but they're
 # not navigation targets — they belong in the docs RAG, not the canvas.
-_DEFAULT_NOISE_KINDS: frozenset[str] = frozenset({
-    # Pure metadata that's already shown in the docs RAG / contains tree —
-    # surfacing it on the graph canvas just creates visual noise.
-    "doc:frontmatter_key",
-    "doc_frontmatter",
-    "doc:heading",
-    "doc_heading",
-    # Unresolved external identifiers (typing.*, builtins, dynamic
-    # method accesses) — they're stub nodes synthesised to satisfy
-    # FK constraints, not navigation targets. Hidden by default; pass
-    # `exclude_kinds=""` to show them when you really need to.
-    "identifier",
-})
+_DEFAULT_NOISE_KINDS: frozenset[str] = frozenset(
+    {
+        # Pure metadata that's already shown in the docs RAG / contains tree —
+        # surfacing it on the graph canvas just creates visual noise.
+        "doc:frontmatter_key",
+        "doc_frontmatter",
+        "doc:heading",
+        "doc_heading",
+        # Unresolved external identifiers (typing.*, builtins, dynamic
+        # method accesses) — they're stub nodes synthesised to satisfy
+        # FK constraints, not navigation targets. Hidden by default; pass
+        # `exclude_kinds=""` to show them when you really need to.
+        "identifier",
+    }
+)
 
 
 # Diversified blend recipe for the auto mode (TASK-141).  Pulling the
@@ -1321,11 +1306,7 @@ def cos_graph_export(
             f"mode must be one of auto/containment/dependencies/processes (got {mode!r})",
         )
 
-    excluded = (
-        _DEFAULT_NOISE_KINDS
-        if exclude_kinds is None
-        else frozenset(exclude_kinds)
-    )
+    excluded = _DEFAULT_NOISE_KINDS if exclude_kinds is None else frozenset(exclude_kinds)
 
     if root_uid is not None:
         nodes, edges = _walk_bfs(
@@ -1352,11 +1333,7 @@ def cos_graph_export(
     if excluded:
         nodes = [n for n in nodes if (n.kind or "") not in excluded]
         kept_uids = {n.uid for n in nodes}
-        edges = [
-            e
-            for e in edges
-            if e.source_uid in kept_uids and e.target_uid in kept_uids
-        ]
+        edges = [e for e in edges if e.source_uid in kept_uids and e.target_uid in kept_uids]
 
     # S3: when include_spine is set, extend the subgraph with the
     # CONTAINS-ancestor chain of the root (or the deepest file node
@@ -1386,8 +1363,7 @@ def cos_graph_export(
         payload: dict[str, Any] = {
             "format": "json",
             "nodes": [
-                NodeSummary.from_node(n, degree=degree_map.get(n.uid)).to_dict()
-                for n in nodes
+                NodeSummary.from_node(n, degree=degree_map.get(n.uid)).to_dict() for n in nodes
             ],
             "edges": [_edge_to_dict(e) for e in edges],
         }
@@ -1435,9 +1411,7 @@ def _export_blend(
         for _, types in _AUTO_BLEND_BUCKETS:
             if types == _CONTAINS_EDGES:
                 continue
-            edges.extend(
-                be.list_edges(edge_types=types, limit=per_bucket)
-            )
+            edges.extend(be.list_edges(edge_types=types, limit=per_bucket))
         edges = edges[:max_nodes]
     else:  # mode == "auto"
         # Equal-share quota across every bucket, then trim to budget.
@@ -1445,9 +1419,7 @@ def _export_blend(
         per_bucket = max(1, max_nodes // len(_AUTO_BLEND_BUCKETS))
         edges = []
         for _, types in _AUTO_BLEND_BUCKETS:
-            edges.extend(
-                be.list_edges(edge_types=types, limit=per_bucket)
-            )
+            edges.extend(be.list_edges(edge_types=types, limit=per_bucket))
         edges = edges[:max_nodes]
 
     node_uids: set[str] = set()
@@ -1463,13 +1435,10 @@ def _export_blend(
     # Only kicks in when contains is genuinely in scope — `dependencies`
     # mode promises no contains edges, so we leave its result alone.
     contains_in_scope = (
-        (edge_types is not None and any(t == "contains" for t in edge_types))
-        or mode in ("auto", "containment")
-    )
+        edge_types is not None and any(t == "contains" for t in edge_types)
+    ) or mode in ("auto", "containment")
     if node_uids and contains_in_scope:
-        existing_pairs = {
-            (e.source_uid, e.target_uid, e.edge_type) for e in edges
-        }
+        existing_pairs = {(e.source_uid, e.target_uid, e.edge_type) for e in edges}
         nodes_by_uid = {n.uid: n for n in nodes}
         for uid in list(node_uids):
             ancestors, spine_edges = _contains_ancestors(be, leaf_uid=uid)
@@ -1574,11 +1543,15 @@ def cos_graph_rename_plan(
 
     call_sites = [
         _edge_to_dict(e)
-        for e in be.list_edges(target_uid=uid, edge_types=("calls", "accesses_field", "imports"), limit=500)
+        for e in be.list_edges(
+            target_uid=uid, edge_types=("calls", "accesses_field", "imports"), limit=500
+        )
     ]
     doc_refs = [
         _edge_to_dict(e)
-        for e in be.list_edges(target_uid=uid, edge_types=("links_to", "cites_heading", "references_doc"), limit=500)
+        for e in be.list_edges(
+            target_uid=uid, edge_types=("links_to", "cites_heading", "references_doc"), limit=500
+        )
     ]
     test_refs = [
         _edge_to_dict(e)
@@ -1674,11 +1647,11 @@ def _read_node_content(node: GraphNode, *, cap: int = 2000) -> dict[str, Any] | 
             return None
         lines = src.read_text(encoding="utf-8", errors="replace").splitlines()
         start = max(0, (node.start_line or 1) - 1)  # 1-indexed → 0-indexed
-        end = (node.end_line or node.start_line or len(lines))
+        end = node.end_line or node.start_line or len(lines)
         snippet = "\n".join(lines[start:end])
         truncated = len(snippet) > cap
         return {"content": snippet[:cap], "truncated": truncated}
-    except Exception as exc:  # noqa: BLE001 — skip safely on any IO error
+    except Exception as exc:
         logger.debug("_read_node_content skipped for %s: %s", node.uid, exc)
         return None
 
@@ -1752,7 +1725,7 @@ def _lexical_search(
                     """,
                     tuple(params),
                 ).fetchall()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("lexical sql search suppressed: %s", exc)
         row_to_node = getattr(backend, "_row_to_node", None)
         for row in rows:
@@ -1787,7 +1760,7 @@ def _lexical_search(
         candidates = list(seen.values())
 
     degree_map = _degree_map_for(backend, [n.uid for n in candidates])
-    from math import log2  # noqa: PLC0415
+    from math import log2
 
     def score(n: GraphNode) -> float:
         label = (n.label or "").lower()
@@ -1821,9 +1794,7 @@ def _to_mermaid(nodes: Iterable[GraphNode], edges: Iterable[GraphEdge]) -> str:
     for n in nodes:
         lines.append(f'  {_safe_id(n.uid)}["{_escape(n.label or n.uid)}"]')
     for e in edges:
-        lines.append(
-            f"  {_safe_id(e.source_uid)} -->|{e.edge_type}| {_safe_id(e.target_uid)}"
-        )
+        lines.append(f"  {_safe_id(e.source_uid)} -->|{e.edge_type}| {_safe_id(e.target_uid)}")
     return "\n".join(lines)
 
 
@@ -1833,8 +1804,7 @@ def _to_dot(nodes: Iterable[GraphNode], edges: Iterable[GraphEdge]) -> str:
         lines.append(f'  "{_safe_id(n.uid)}" [label="{_escape(n.label or n.uid)}"]')
     for e in edges:
         lines.append(
-            f'  "{_safe_id(e.source_uid)}" -> "{_safe_id(e.target_uid)}" '
-            f'[label="{e.edge_type}"]'
+            f'  "{_safe_id(e.source_uid)}" -> "{_safe_id(e.target_uid)}" [label="{e.edge_type}"]'
         )
     lines.append("}")
     return "\n".join(lines)
@@ -1845,7 +1815,7 @@ def _safe_id(uid: str) -> str:
 
 
 def _escape(text: str) -> str:
-    return text.replace("\"", "'")
+    return text.replace('"', "'")
 
 
 def cos_graph_entrypoints(
@@ -1911,9 +1881,7 @@ def cos_graph_communities(
 
     from .. import communities as comm_mod
 
-    all_communities, _membership = comm_mod.compute_communities(
-        be, min_size=int(min_size)
-    )
+    all_communities, _membership = comm_mod.compute_communities(be, min_size=int(min_size))
     rows = comm_mod.communities_to_processes(all_communities, relevant_uids=None)
     return _ok(
         {"processes": rows[:top]},
@@ -1975,7 +1943,7 @@ def cos_graph_centrality(
                 """,
                 tuple(params),
             ).fetchall()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("centrality SQL suppressed: %s", exc)
             in_deg_rows = []
             out_deg_rows = []
@@ -1988,14 +1956,16 @@ def cos_graph_centrality(
             out_cnt = out_map.get(uid, 0)
             in_cnt = int(in_cnt)
             score = (in_cnt + out_cnt) / norm
-            rows_out.append({
-                "uid": uid,
-                "kind": nkind,
-                "label": label,
-                "in_degree": in_cnt,
-                "out_degree": out_cnt,
-                "centrality_score": round(score, 6),
-            })
+            rows_out.append(
+                {
+                    "uid": uid,
+                    "kind": nkind,
+                    "label": label,
+                    "in_degree": in_cnt,
+                    "out_degree": out_cnt,
+                    "centrality_score": round(score, 6),
+                }
+            )
     else:
         # Fallback: scan edges
         in_deg: dict[str, int] = {}
@@ -2025,14 +1995,16 @@ def cos_graph_centrality(
             ic = in_deg.get(u, 0)
             oc = out_deg.get(u, 0)
             meta_entry = uid_meta.get(u, ("", u))
-            rows_out.append({
-                "uid": u,
-                "kind": meta_entry[0],
-                "label": meta_entry[1],
-                "in_degree": ic,
-                "out_degree": oc,
-                "centrality_score": round((ic + oc) / norm, 6),
-            })
+            rows_out.append(
+                {
+                    "uid": u,
+                    "kind": meta_entry[0],
+                    "label": meta_entry[1],
+                    "in_degree": ic,
+                    "out_degree": oc,
+                    "centrality_score": round((ic + oc) / norm, 6),
+                }
+            )
 
     if metric == "betweenness" and sqlite_conn is not None:
         _BETWEENNESS_CAP = 300
@@ -2056,7 +2028,7 @@ def cos_graph_centrality(
             bt_map = {all_uids_list[i]: v for i, v in enumerate(betweenness)}
             for r in rows_out:
                 r["centrality_score"] = round(bt_map.get(r["uid"], 0.0), 6)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("betweenness computation suppressed: %s", exc)
 
     rows_out.sort(key=lambda r: r["centrality_score"], reverse=True)
@@ -2081,7 +2053,8 @@ def _betweenness_centrality(adj: dict[int, list[int]], n: int) -> list[float]:
         sigma[s] = 1
         dist = [-1] * n
         dist[s] = 0
-        from collections import deque as _deque  # noqa: PLC0415
+        from collections import deque as _deque
+
         q: _deque[int] = _deque([s])
         while q:
             v = q.popleft()
@@ -2132,7 +2105,7 @@ def cos_graph_ranking(
 
     if sqlite_conn is not None:
         try:
-            kind_filter = ("WHERE kind = ?" if kind else "")
+            kind_filter = "WHERE kind = ?" if kind else ""
             params_n: list[Any] = ([kind] if kind else []) + [_NODE_CAP]
             uid_rows = sqlite_conn.execute(
                 f"SELECT id, uid, kind, label, file_path, start_line "
@@ -2145,7 +2118,7 @@ def cos_graph_ranking(
                 "SELECT source_id, target_id FROM graph_edges_v12 LIMIT ?",
                 (_NODE_CAP * 20,),
             ).fetchall()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("ranking SQL suppressed: %s", exc)
             uid_rows = []
             edge_rows = []
@@ -2192,7 +2165,12 @@ def cos_graph_ranking(
                 node = be.get_node(u)
                 if node and node.kind == kind:
                     keep.add(nid)
-                    int_to_meta[nid] = (node.kind or "", node.label or "", node.file_path, node.start_line)
+                    int_to_meta[nid] = (
+                        node.kind or "",
+                        node.label or "",
+                        node.file_path,
+                        node.start_line,
+                    )
             node_ids = [n for n in node_ids if n in keep]
             N = len(node_ids)
 
@@ -2213,7 +2191,7 @@ def cos_graph_ranking(
             personalized = {k: v / total_p for k, v in personalized.items()}
 
     # Power iteration
-    rank: dict[int, float] = {nid: 1.0 / N for nid in node_ids}
+    rank: dict[int, float] = dict.fromkeys(node_ids, 1.0 / N)
     dangling = {nid for nid in node_ids if not out_links.get(nid)}
     for _ in range(iterations):
         dangling_sum = sum(rank[nid] for nid in dangling) / N
@@ -2240,14 +2218,16 @@ def cos_graph_ranking(
             label = node.label or uid if node else uid
             fpath = node.file_path if node else None
             sline = node.start_line if node else None
-        results.append({
-            "uid": uid,
-            "kind": nkind,
-            "label": label,
-            "rank_score": round(score, 8),
-            "file_path": fpath,
-            "start_line": sline,
-        })
+        results.append(
+            {
+                "uid": uid,
+                "kind": nkind,
+                "label": label,
+                "rank_score": round(score, 8),
+                "file_path": fpath,
+                "start_line": sline,
+            }
+        )
 
     return _ok(
         {"nodes": results},
@@ -2280,12 +2260,8 @@ def cos_graph_doctor(
 
     if sqlite_conn is not None:
         try:
-            node_count = sqlite_conn.execute(
-                "SELECT COUNT(*) FROM graph_nodes"
-            ).fetchone()[0]
-            edge_count = sqlite_conn.execute(
-                "SELECT COUNT(*) FROM graph_edges_v12"
-            ).fetchone()[0]
+            node_count = sqlite_conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0]
+            edge_count = sqlite_conn.execute("SELECT COUNT(*) FROM graph_edges_v12").fetchone()[0]
             stats["node_count"] = node_count
             stats["edge_count"] = edge_count
 
@@ -2308,12 +2284,16 @@ def cos_graph_doctor(
                 """
             ).fetchone()[0]
             if dangling_src_count:
-                issues.append({
-                    "category": "dangling_source",
-                    "count": dangling_src_count,
-                    "sample": [{"edge_id": r[0], "source_uid": r[1], "target_uid": r[2]}
-                               for r in dangling_src_rows[:5]],
-                })
+                issues.append(
+                    {
+                        "category": "dangling_source",
+                        "count": dangling_src_count,
+                        "sample": [
+                            {"edge_id": r[0], "source_uid": r[1], "target_uid": r[2]}
+                            for r in dangling_src_rows[:5]
+                        ],
+                    }
+                )
                 if fix:
                     ids_to_del = [r[0] for r in dangling_src_rows]
                     if ids_to_del:
@@ -2344,12 +2324,16 @@ def cos_graph_doctor(
                     LIMIT 5
                     """
                 ).fetchall()
-                issues.append({
-                    "category": "dangling_target",
-                    "count": dangling_tgt_count,
-                    "sample": [{"edge_id": r[0], "source_uid": r[1], "target_uid": r[2]}
-                               for r in dangling_tgt_rows],
-                })
+                issues.append(
+                    {
+                        "category": "dangling_target",
+                        "count": dangling_tgt_count,
+                        "sample": [
+                            {"edge_id": r[0], "source_uid": r[1], "target_uid": r[2]}
+                            for r in dangling_tgt_rows
+                        ],
+                    }
+                )
                 if fix:
                     all_dangling_tgt = sqlite_conn.execute(
                         """
@@ -2394,15 +2378,22 @@ def cos_graph_doctor(
                     LIMIT 5
                     """
                 ).fetchall()
-                issues.append({
-                    "category": "duplicate_edges",
-                    "count": dup_count,
-                    "sample": [
-                        {"source_uid": r[0], "target_uid": r[1],
-                         "edge_type": r[2], "extractor": r[3], "count": r[4]}
-                        for r in dup_sample
-                    ],
-                })
+                issues.append(
+                    {
+                        "category": "duplicate_edges",
+                        "count": dup_count,
+                        "sample": [
+                            {
+                                "source_uid": r[0],
+                                "target_uid": r[1],
+                                "edge_type": r[2],
+                                "extractor": r[3],
+                                "count": r[4],
+                            }
+                            for r in dup_sample
+                        ],
+                    }
+                )
 
             # 4. Orphaned nodes (nodes with zero edges in either direction)
             orphan_count = sqlite_conn.execute(
@@ -2425,12 +2416,15 @@ def cos_graph_doctor(
                     LIMIT 5
                     """
                 ).fetchall()
-                issues.append({
-                    "category": "orphaned_nodes",
-                    "count": orphan_count,
-                    "sample": [{"uid": r[0], "kind": r[1], "label": r[2]}
-                               for r in orphan_sample],
-                })
+                issues.append(
+                    {
+                        "category": "orphaned_nodes",
+                        "count": orphan_count,
+                        "sample": [
+                            {"uid": r[0], "kind": r[1], "label": r[2]} for r in orphan_sample
+                        ],
+                    }
+                )
 
             # 5. Self-loop edges (source_id == target_id — extractor bugs)
             self_loop_count = sqlite_conn.execute(
@@ -2444,17 +2438,19 @@ def cos_graph_doctor(
                     WHERE e.source_id = e.target_id LIMIT 5
                     """
                 ).fetchall()
-                issues.append({
-                    "category": "self_loops",
-                    "count": self_loop_count,
-                    "sample": [{"uid": r[0], "edge_type": r[1]} for r in sl_sample],
-                })
+                issues.append(
+                    {
+                        "category": "self_loops",
+                        "count": self_loop_count,
+                        "sample": [{"uid": r[0], "edge_type": r[1]} for r in sl_sample],
+                    }
+                )
 
             stats["issue_count"] = len(issues)
             if fix:
                 stats["fixed_edge_count"] = fixed_count
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("doctor SQL suppressed: %s", exc)
             return _ok(
                 {"healthy": None, "issues": [], "stats": {}, "error": str(exc)},
@@ -2561,7 +2557,7 @@ def cos_graph_resolve(
                             break
                     if candidates and not strategy:
                         strategy = "fts5"
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("fts5 resolve suppressed: %s", exc)
 
     # Strategy 4 (fallback): plain lexical search — last resort.
@@ -2612,22 +2608,22 @@ def _fts5_safe_query(raw: str) -> str:
 
 
 __all__ = [
-    "cos_graph_query",
-    "cos_graph_resolve",
-    "cos_graph_context",
-    "cos_graph_impact",
-    "cos_graph_detect_changes",
-    "cos_graph_trace",
-    "cos_graph_similar",
-    "cos_graph_references",
-    "cos_graph_path",
-    "cos_graph_export",
-    "cos_graph_rename_plan",
-    "cos_graph_contracts",
-    "cos_graph_entrypoints",
-    "cos_graph_communities",
     "cos_graph_centrality",
-    "cos_graph_ranking",
+    "cos_graph_communities",
+    "cos_graph_context",
+    "cos_graph_contracts",
+    "cos_graph_detect_changes",
     "cos_graph_doctor",
+    "cos_graph_entrypoints",
+    "cos_graph_export",
+    "cos_graph_impact",
+    "cos_graph_path",
+    "cos_graph_query",
+    "cos_graph_ranking",
+    "cos_graph_references",
+    "cos_graph_rename_plan",
+    "cos_graph_resolve",
+    "cos_graph_similar",
+    "cos_graph_trace",
     "reset_backend",
 ]

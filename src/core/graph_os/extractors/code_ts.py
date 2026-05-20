@@ -46,8 +46,9 @@ def _tree_sitter_ts_active(lang_id: str) -> bool:
         from ..tree_sitter_overlay import _load_language
 
         return _load_language(lang_id) is not None
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
+
 
 # ---------------------------------------------------------------------------
 # Comment / string stripping — simple but enough for a scanner.
@@ -74,9 +75,7 @@ _IMPORT_RE = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
-_SIDE_EFFECT_IMPORT_RE = re.compile(
-    r"""^\s*import\s+['"](?P<module>[^'"]+)['"]""", re.MULTILINE
-)
+_SIDE_EFFECT_IMPORT_RE = re.compile(r"""^\s*import\s+['"](?P<module>[^'"]+)['"]""", re.MULTILINE)
 _EXPORT_FROM_RE = re.compile(
     r"""^\s*export\s+(?:\*|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
     re.MULTILINE,
@@ -184,7 +183,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     # metadata. Regex scan below continues unchanged so results stay
     # backwards-compatible when the grammar is absent.
     try:
-        from ..tree_sitter_overlay import parse as _ts_parse  # noqa: WPS433
+        from ..tree_sitter_overlay import parse as _ts_parse
 
         lang_id = "tsx" if path.endswith(".tsx") else "typescript"
         _ts_overlay = _ts_parse(lang_id, content)
@@ -209,7 +208,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     try:
         import_scan = _strip_comments(content)
         decl_scan = _strip_comments_and_strings(content)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
         emit_contains_spine(
             file_path=path,
@@ -320,9 +319,11 @@ def extract(path: str, content: str) -> ExtractionResult:
     # edges (ts extractor already wires Module→decl; add File→decl for
     # the SPA tree-view spine). Uniqueness is enforced by the backend.
     for name, decl_uid in local_names.items():
-        if decl_uid.startswith("code:class:") \
-                or decl_uid.startswith("code:function:") \
-                or decl_uid.startswith("code:interface:"):
+        if (
+            decl_uid.startswith("code:class:")
+            or decl_uid.startswith("code:function:")
+            or decl_uid.startswith("code:interface:")
+        ):
             result.edges.append(
                 GraphEdge(
                     source_uid=file_node.uid,
@@ -401,13 +402,9 @@ def _extract_imports(
     grammar-validated source.
     """
     eid = extractor_override or EXTRACTOR_ID
-    eid_signal_named = (
-        "tree_sitter_import" if extractor_override else "ts_import"
-    )
+    eid_signal_named = "tree_sitter_import" if extractor_override else "ts_import"
     eid_signal_side = (
-        "tree_sitter_import_side_effect"
-        if extractor_override
-        else "ts_import_side_effect"
+        "tree_sitter_import_side_effect" if extractor_override else "ts_import_side_effect"
     )
     imported_names: dict[str, str] = {}
 
@@ -418,9 +415,7 @@ def _extract_imports(
         target_mod_uid = _resolve_module_uid(path, module)
 
         for name in _parse_clause(clause):
-            imp_uid = (
-                f"code:import:{_normalize_path(path)}::{line}:{name}"
-            )
+            imp_uid = f"code:import:{_normalize_path(path)}::{line}:{name}"
             result.nodes.append(
                 GraphNode(
                     uid=imp_uid,
@@ -593,7 +588,7 @@ def _apply_ts_path(
         prefix, _, suffix = pattern.partition("*")
         if not specifier.startswith(prefix) or not specifier.endswith(suffix):
             return None
-        captured = specifier[len(prefix): len(specifier) - len(suffix) if suffix else None]
+        captured = specifier[len(prefix) : len(specifier) - len(suffix) if suffix else None]
         for repl in replacements:
             if "*" not in repl:
                 continue
@@ -756,9 +751,7 @@ def _extract_functions(
                 label=name,
                 file_path=path,
                 start_line=line,
-                signature=f"function {name}({match.group('generics') or ''})".replace(
-                    "()", "(…)"
-                ),
+                signature=f"function {name}({match.group('generics') or ''})".replace("()", "(…)"),
                 lang=lang,
                 metadata={"extractor": EXTRACTOR_ID},
             )
@@ -948,9 +941,7 @@ def _collect_preceding_decorators(content: str, idx: int) -> tuple[str, ...]:
     return tuple(decorators)
 
 
-def _format_class_signature(
-    *, name: str, parent: str | None, implements: str | None
-) -> str:
+def _format_class_signature(*, name: str, parent: str | None, implements: str | None) -> str:
     parts = [f"class {name}"]
     if parent:
         parts.append(f"extends {parent}")
@@ -983,10 +974,10 @@ def _split_implements(raw: str) -> list[str]:
 
 __all__ = [
     "EXTRACTOR_ID",
+    "class_uid",
     "extract",
     "file_uid",
-    "module_uid",
-    "class_uid",
-    "interface_uid",
     "function_uid",
+    "interface_uid",
+    "module_uid",
 ]

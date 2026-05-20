@@ -27,10 +27,11 @@ def today_iso() -> str:
     production callers of aggregate() to obtain wall-clock date."""
     return date.today().isoformat()
 
+
 from cli._data_types import (
     AdapterProfile,
-    AggregatedWorld,
     AgentsMdSection,
+    AggregatedWorld,
     BaseProfile,
     DimensionEntry,
     HookEntry,
@@ -78,7 +79,7 @@ def _merge_substitutions(
     """
     warnings: list[str] = []
     merged: dict[str, str] = dict(base)
-    origin: dict[str, str] = {k: "base" for k in base}
+    origin: dict[str, str] = dict.fromkeys(base, "base")
     for stack in stacks:
         for key, value in stack.substitutions.items():
             if key in merged and merged[key] != value:
@@ -146,21 +147,13 @@ def _derive_substitutions(
         "ENGINEERING_RULE_ROUTING",
         "TOOL_ROUTING_IMPL",
     ):
-        parts = [
-            s.substitutions[field_name]
-            for s in stacks
-            if field_name in s.substitutions
-        ]
+        parts = [s.substitutions[field_name] for s in stacks if field_name in s.substitutions]
         if parts:
             derived[field_name] = " | ".join(parts)
 
     # Join-on-newline keys (multi-line block joins)
     for field_name in ("QUICK_ROUTING", "STACK_REF_CODES"):
-        parts = [
-            s.substitutions[field_name]
-            for s in stacks
-            if field_name in s.substitutions
-        ]
+        parts = [s.substitutions[field_name] for s in stacks if field_name in s.substitutions]
         if parts:
             derived[field_name] = "\n".join(parts)
 
@@ -202,8 +195,7 @@ def _dedupe_ref_codes(
         if rc.code in by_code:
             if by_code[rc.code].path != rc.path:
                 warnings.append(
-                    f"ref_code conflict on '{rc.code}': "
-                    f"'{by_code[rc.code].path}' vs '{rc.path}'"
+                    f"ref_code conflict on '{rc.code}': '{by_code[rc.code].path}' vs '{rc.path}'"
                 )
             continue
         by_code[rc.code] = rc
@@ -221,8 +213,7 @@ def _dedupe_makefile_targets(
         if t.name in by_name:
             if by_name[t.name].cmd != t.cmd:
                 warnings.append(
-                    f"makefile target conflict on '{t.name}': "
-                    f"'{by_name[t.name].cmd}' vs '{t.cmd}'"
+                    f"makefile target conflict on '{t.name}': '{by_name[t.name].cmd}' vs '{t.cmd}'"
                 )
             continue
         by_name[t.name] = t
@@ -284,9 +275,7 @@ def _check_hook_conflicts(hooks: list[HookEntry]) -> None:
     for h in hooks:
         k = (h.event, h.command)
         if k in seen:
-            raise AggregationError(
-                f"duplicate hook: event={h.event} command={h.command}"
-            )
+            raise AggregationError(f"duplicate hook: event={h.event} command={h.command}")
         seen.add(k)
 
 
@@ -312,14 +301,11 @@ def aggregate(
     all_conflicts.extend(warn)
 
     # 2. verify rows
-    verify = _dedupe_verify(
-        list(base.verify) + [row for s in stacks for row in s.verify]
-    )
+    verify = _dedupe_verify(list(base.verify) + [row for s in stacks for row in s.verify])
 
     # 3. routing entries
     routing = _dedupe_strings(
-        list(base.routing_entries)
-        + [r for s in stacks for r in s.routing_entries]
+        list(base.routing_entries) + [r for s in stacks for r in s.routing_entries]
     )
 
     # 4. ref codes
@@ -330,20 +316,16 @@ def aggregate(
 
     # 5. makefile targets
     makefile_targets, warn = _dedupe_makefile_targets(
-        list(base.makefile_targets)
-        + [t for s in stacks for t in s.makefile_targets]
+        list(base.makefile_targets) + [t for s in stacks for t in s.makefile_targets]
     )
     all_conflicts.extend(warn)
 
     # 6. rules — concat, no dedupe
-    rules: tuple[RuleEntry, ...] = tuple(
-        list(base.rules) + [r for s in stacks for r in s.rules]
-    )
+    rules: tuple[RuleEntry, ...] = tuple(list(base.rules) + [r for s in stacks for r in s.rules])
 
     # 7. agents_md_sections
     sections = _sort_sections(
-        list(base.agents_md_sections)
-        + [sec for s in stacks for sec in s.agents_md_sections]
+        list(base.agents_md_sections) + [sec for s in stacks for sec in s.agents_md_sections]
     )
 
     # 8. skills
@@ -365,8 +347,7 @@ def aggregate(
 
     # 10. skill_enforcement
     skill_enforcement = _dedupe_skill_enforcement(
-        list(base.skill_enforcement)
-        + [se for s in stacks for se in s.skill_enforcement]
+        list(base.skill_enforcement) + [se for s in stacks for se in s.skill_enforcement]
     )
 
     # 11. hooks — concat; dup = error

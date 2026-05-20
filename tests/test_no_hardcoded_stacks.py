@@ -32,10 +32,10 @@ FORBIDDEN_LITERALS = {"django", "nextjs", "claude", "codex", "python-django", "n
 # comments referencing directory names, docstrings, URL paths).
 # We allow a literal if the line matches any of these patterns.
 CONTEXTUAL_ALLOW_RE = [
-    re.compile(r"^\s*#"),              # whole-line comment
-    re.compile(r'^\s*"""'),            # docstring marker line
-    re.compile(r"^\s*'"),              # also docstring
-    re.compile(r"^\s*\*"),             # markdown-in-docstring bullet
+    re.compile(r"^\s*#"),  # whole-line comment
+    re.compile(r'^\s*"""'),  # docstring marker line
+    re.compile(r"^\s*'"),  # also docstring
+    re.compile(r"^\s*\*"),  # markdown-in-docstring bullet
 ]
 
 

@@ -1,4 +1,5 @@
 """core.web.routes.hooks — /api/hooks/* HTTP wrappers (T19.4)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -8,8 +9,9 @@ import os
 import re
 import sys
 import time
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any, AsyncGenerator, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -33,13 +35,14 @@ _HOOK_LINE_RE = re.compile(
 
 def _hook_log_path() -> Path:
     from web._project_context import current_project_root  # type: ignore
+
     override = os.environ.get("COS_HOOK_LOG")
     if override:
         return Path(override).resolve()
     return current_project_root() / ".coding-os" / ".hooks.log"
 
 
-def _parse_hook_line(line: str) -> Optional[dict[str, Any]]:
+def _parse_hook_line(line: str) -> dict[str, Any] | None:
     m = _HOOK_LINE_RE.match(line.strip())
     if not m:
         return None
@@ -64,8 +67,10 @@ def _parse_hook_line(line: str) -> Optional[dict[str, Any]]:
 
 @router.get("/list")
 async def list_hooks(
-    adapter: Optional[str] = Query(None, description="Filter by adapter_scope (claude / codex / cursor)"),
-    event: Optional[str] = Query(None, description="Filter by event (PreToolUse / Stop / …)"),
+    adapter: str | None = Query(
+        None, description="Filter by adapter_scope (claude / codex / cursor)"
+    ),
+    event: str | None = Query(None, description="Filter by event (PreToolUse / Stop / …)"),
     _rl=Depends(make_rate_limit_dep("hooks.list")),
     _m=Depends(make_metrics_dep("hooks.list")),
 ):
@@ -73,11 +78,18 @@ async def list_hooks(
     try:
         from cli.hook_renderer import load_registry  # type: ignore[import]
     except ImportError as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "unavailable", "retryable": False,
-                      "message": f"hook_renderer not importable: {exc}"},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "unavailable",
+                        "retryable": False,
+                        "message": f"hook_renderer not importable: {exc}",
+                    },
+                }
+            )
+        )
 
     # Registry SSOT lives at <repo>/core/hooks/registry.yaml.  Path
     # derivation mirrors cli/hook_renderer.py::main() so the route stays
@@ -86,10 +98,14 @@ async def list_hooks(
     try:
         entries = load_registry(registry_path)
     except Exception as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "internal", "retryable": False, "message": str(exc)},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
+                }
+            )
+        )
 
     # HookEntry fields (cli/hook_renderer.py::HookEntry):
     #   id, script, description, category, phase, events: list[dict], timeout, adapter_scope
@@ -105,61 +121,81 @@ async def list_hooks(
         if not ev_list:
             if event:
                 continue
-            rows.append({
-                "name": h.id,
-                "event": None,
-                "matcher": None,
-                "category": h.category,
-                "phase": h.phase,
-                "adapter_scope": scope,
-                "script": h.script,
-                "description": getattr(h, "description", ""),
-            })
+            rows.append(
+                {
+                    "name": h.id,
+                    "event": None,
+                    "matcher": None,
+                    "category": h.category,
+                    "phase": h.phase,
+                    "adapter_scope": scope,
+                    "script": h.script,
+                    "description": getattr(h, "description", ""),
+                }
+            )
             continue
         for ev in ev_list:
             ev_name = ev.get("event") if isinstance(ev, dict) else None
             if event and ev_name != event:
                 continue
-            rows.append({
-                "name": h.id,
-                "event": ev_name,
-                "matcher": ev.get("matcher") if isinstance(ev, dict) else None,
-                "category": h.category,
-                "phase": h.phase,
-                "adapter_scope": scope,
-                "script": h.script,
-                "description": getattr(h, "description", ""),
-            })
+            rows.append(
+                {
+                    "name": h.id,
+                    "event": ev_name,
+                    "matcher": ev.get("matcher") if isinstance(ev, dict) else None,
+                    "category": h.category,
+                    "phase": h.phase,
+                    "adapter_scope": scope,
+                    "script": h.script,
+                    "description": getattr(h, "description", ""),
+                }
+            )
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {"hooks": rows, "count": len(rows), "meta": {"layer": "hooks"}},
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {"hooks": rows, "count": len(rows), "meta": {"layer": "hooks"}},
+            }
+        )
+    )
 
 
 @router.get("/recent")
 async def recent_hook_fires(
     limit: int = Query(50, ge=1, le=500),
-    session_id: Optional[str] = Query(None),
-    agent: Optional[str] = Query(None),
+    session_id: str | None = Query(None),
+    agent: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("hooks.recent")),
     _m=Depends(make_metrics_dep("hooks.recent")),
 ):
     """Tail .coding-os/.hooks.log and return parsed events (newest first)."""
     log = _hook_log_path()
     if not log.exists():
-        return unwrap(json.dumps({
-            "ok": True,
-            "data": {"events": [], "count": 0, "log_path": str(log),
-                     "meta": {"layer": "hooks"}},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": True,
+                    "data": {
+                        "events": [],
+                        "count": 0,
+                        "log_path": str(log),
+                        "meta": {"layer": "hooks"},
+                    },
+                }
+            )
+        )
     try:
         lines = log.read_text(encoding="utf-8", errors="ignore").splitlines()
     except OSError as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "unavailable", "retryable": True, "message": str(exc)},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {"category": "unavailable", "retryable": True, "message": str(exc)},
+                }
+            )
+        )
     parsed: list[dict[str, Any]] = []
     for line in reversed(lines):
         evt = _parse_hook_line(line)
@@ -172,22 +208,26 @@ async def recent_hook_fires(
         parsed.append(evt)
         if len(parsed) >= limit:
             break
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "events": parsed,
-            "count": len(parsed),
-            "log_path": str(log),
-            "log_size_bytes": log.stat().st_size,
-            "meta": {"layer": "hooks"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "events": parsed,
+                    "count": len(parsed),
+                    "log_path": str(log),
+                    "log_size_bytes": log.stat().st_size,
+                    "meta": {"layer": "hooks"},
+                },
+            }
+        )
+    )
 
 
 @router.get("/stream")
 async def stream_hooks(
-    session_id: Optional[str] = Query(None),
-    agent: Optional[str] = Query(None),
+    session_id: str | None = Query(None),
+    agent: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("hooks.stream")),
     _m=Depends(make_metrics_dep("hooks.stream")),
 ):
@@ -226,7 +266,7 @@ async def stream_hooks(
                 await asyncio.sleep(poll_secs)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("hook stream failed")
             yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n".encode()
 

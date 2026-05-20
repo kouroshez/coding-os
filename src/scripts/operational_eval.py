@@ -31,7 +31,7 @@ import shutil
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -74,8 +74,16 @@ def _now_ts() -> str:
 
 
 def _ensure_dirs() -> None:
-    for d in (BUILD_DIR, SANDBOX_DIR, LOG_DIR / "cli", LOG_DIR / "mcp",
-              LOG_DIR / "verify", LOG_DIR / "doctor", SNAPSHOT_DIR, REPORT_DIR):
+    for d in (
+        BUILD_DIR,
+        SANDBOX_DIR,
+        LOG_DIR / "cli",
+        LOG_DIR / "mcp",
+        LOG_DIR / "verify",
+        LOG_DIR / "doctor",
+        SNAPSHOT_DIR,
+        REPORT_DIR,
+    ):
         d.mkdir(parents=True, exist_ok=True)
 
 
@@ -191,8 +199,7 @@ def _step_init_sandbox(
     sandbox = SANDBOX_DIR / template
     _clean_sandbox(sandbox)
 
-    cmd = cos_cmd_prefix + ["init", "--agent", "claude",
-                            "--project-dir", str(sandbox)]
+    cmd = cos_cmd_prefix + ["init", "--agent", "claude", "--project-dir", str(sandbox)]
     if template != "base":
         cmd.extend(["--template", template])
 
@@ -206,7 +213,8 @@ def _step_init_sandbox(
     snapshot.db_sizes_kb[template] = _db_size_kb(sandbox)
 
     (REPORT_DIR / f"scaffold-{template}.txt").write_text(
-        _tree(sandbox, max_depth=3) + "\n", encoding="utf-8",
+        _tree(sandbox, max_depth=3) + "\n",
+        encoding="utf-8",
     )
     return sandbox
 
@@ -233,7 +241,11 @@ def _step_doctor(
 ) -> None:
     """Run `cos doctor --format json` against the sandbox."""
     cmd = cos_cmd_prefix + [
-        "doctor", "--project-dir", str(sandbox), "--format", "json",
+        "doctor",
+        "--project-dir",
+        str(sandbox),
+        "--format",
+        "json",
     ]
     log = LOG_DIR / "doctor" / f"{template}.log"
     env = os.environ.copy()
@@ -243,8 +255,7 @@ def _step_doctor(
 
 
 def _step_mcp_selftest(snapshot: Snapshot) -> None:
-    cmd = [sys.executable, str(REPO_ROOT / "core" / "thinking_os" / "server.py"),
-           "--test"]
+    cmd = [sys.executable, str(REPO_ROOT / "core" / "thinking_os" / "server.py"), "--test"]
     log = LOG_DIR / "mcp" / "selftest.log"
     result = _run(cmd, log, cwd=REPO_ROOT, timeout=60)
     snapshot.steps.append(result)
@@ -303,12 +314,10 @@ def _write_report(snapshot: Snapshot, snapshot_path: Path) -> Path:
     lines.append("")
     totals = snapshot.totals
     lines.append(
-        f"- Steps: **{totals.get('steps_passed', 0)}/"
-        f"{totals.get('steps_total', 0)} passed**"
+        f"- Steps: **{totals.get('steps_passed', 0)}/{totals.get('steps_total', 0)} passed**"
     )
     lines.append(
-        f"- Total scaffold files across sandboxes: "
-        f"**{totals.get('scaffold_files_total', 0)}**"
+        f"- Total scaffold files across sandboxes: **{totals.get('scaffold_files_total', 0)}**"
     )
     lines.append("")
     lines.append("## Per-Template Scaffold")
@@ -362,8 +371,9 @@ def cli() -> None:
 
 
 @cli.command("all")
-@click.option("--skip-verify", is_flag=True,
-              help="Skip long verify steps (pytest, make verify, phase-c).")
+@click.option(
+    "--skip-verify", is_flag=True, help="Skip long verify steps (pytest, make verify, phase-c)."
+)
 def run_all(skip_verify: bool) -> None:
     """Run the full evaluation end-to-end."""
     _ensure_dirs()

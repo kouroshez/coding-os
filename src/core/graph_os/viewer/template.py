@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import html
 import json
-from typing import Iterable
+from collections.abc import Iterable
 
 from ..types import GraphEdge, GraphNode
 
@@ -78,27 +78,23 @@ def render(
 
     return (
         "<!doctype html>\n"
-        "<html lang=\"en\">\n"
+        '<html lang="en">\n'
         "<head>\n"
-        "  <meta charset=\"utf-8\">\n"
-        f"  <meta http-equiv=\"Content-Security-Policy\" content=\"{csp}\">\n"
+        '  <meta charset="utf-8">\n'
+        f'  <meta http-equiv="Content-Security-Policy" content="{csp}">\n'
         f"  <title>{html.escape(title)}</title>\n"
-        f"  <style nonce=\"{nonce}\">{_STYLE}</style>\n"
+        f'  <style nonce="{nonce}">{_STYLE}</style>\n'
         "</head>\n"
         "<body>\n"
         "  <main>\n"
         f"    <header><strong>{html.escape(title)}</strong>"
-        f" <span class=\"badge\">nodes: {len(node_list)}</span>"
-        f" <span class=\"badge\">edges: {len(edge_list)}</span></header>\n"
-        "    <div id=\"canvas\" role=\"img\" aria-label=\"graph canvas\"></div>\n"
-        "    <aside aria-label=\"accessible graph listing\">\n"
-        + a11y_html
-        + "    </aside>\n"
-        "  </main>\n"
-        + scripts
-        + "\n"
-        f"  <script type=\"application/json\" id=\"graph-data\">{payload_json}</script>\n"
-        f"  <script nonce=\"{nonce}\">{_BOOTSTRAP_JS}</script>\n"
+        f' <span class="badge">nodes: {len(node_list)}</span>'
+        f' <span class="badge">edges: {len(edge_list)}</span></header>\n'
+        '    <div id="canvas" role="img" aria-label="graph canvas"></div>\n'
+        '    <aside aria-label="accessible graph listing">\n' + a11y_html + "    </aside>\n"
+        "  </main>\n" + scripts + "\n"
+        f'  <script type="application/json" id="graph-data">{payload_json}</script>\n'
+        f'  <script nonce="{nonce}">{_BOOTSTRAP_JS}</script>\n'
         "</body>\n"
         "</html>\n"
     )
@@ -170,7 +166,7 @@ def _render_a11y(nodes: list[GraphNode], edges: list[GraphEdge]) -> str:
     for node in nodes:
         outgoing = [e for e in edges if e.source_uid == node.uid]
         lines = [
-            f"<li><details><summary><span class=\"node-kind\">{html.escape(node.kind)}</span> "
+            f'<li><details><summary><span class="node-kind">{html.escape(node.kind)}</span> '
             f"— {html.escape(node.label or node.uid)}</summary>"
         ]
         if outgoing:
@@ -179,15 +175,15 @@ def _render_a11y(nodes: list[GraphNode], edges: list[GraphEdge]) -> str:
                 target = by_uid.get(e.target_uid)
                 target_label = target.label if target and target.label else e.target_uid
                 lines.append(
-                    f"<li><span class=\"edge-type\">{html.escape(e.edge_type)}</span>"
+                    f'<li><span class="edge-type">{html.escape(e.edge_type)}</span>'
                     f" → {html.escape(target_label)}</li>"
                 )
             lines.append("</ul>")
         else:
-            lines.append("<div class=\"badge\">no outgoing edges</div>")
+            lines.append('<div class="badge">no outgoing edges</div>')
         lines.append("</details></li>")
         items.append("".join(lines))
-    return "<ul class=\"a11y\">" + "".join(items) + "</ul>"
+    return '<ul class="a11y">' + "".join(items) + "</ul>"
 
 
 __all__ = ["render"]

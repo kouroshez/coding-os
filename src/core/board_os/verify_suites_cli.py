@@ -115,8 +115,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         file=sys.stderr,
     )
     print(
-        "  Override (audited): COS_VERIFY_OVERRIDE=1 "
-        "COS_OVERRIDE_REASON='...≥15 chars'",
+        "  Override (audited): COS_VERIFY_OVERRIDE=1 COS_OVERRIDE_REASON='...≥15 chars'",
         file=sys.stderr,
     )
     return 2
@@ -131,9 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     p_check = sub.add_parser("check", help="Read changed paths from stdin and enforce.")
     p_check.add_argument(
         "--verify-file",
-        default=os.path.join(
-            os.environ.get("COS_STATE_DIR", ".coding-os"), ".last-verify.json"
-        ),
+        default=os.path.join(os.environ.get("COS_STATE_DIR", ".coding-os"), ".last-verify.json"),
     )
     p_check.add_argument("--verbose", action="store_true")
     p_check.set_defaults(fn=cmd_check)

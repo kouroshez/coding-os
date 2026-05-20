@@ -21,7 +21,6 @@ from core.board_os.transition_gates_validator import (
     validate_transition,
 )
 
-
 # ────────────────────────────────────────────────────────────────────
 # Fixtures — task-body samples
 # ────────────────────────────────────────────────────────────────────
@@ -106,9 +105,9 @@ def test_dor_block_on_placeholder_body(kind: str) -> None:
     assert result.blocked, f"kind={kind} placeholder body must BLOCK"
     # At least one DOR_*_PLACEHOLDER or _MISSING code should be present.
     codes = [m.code for m in result.messages]
-    assert any(
-        c.endswith("_PLACEHOLDER") or c.endswith("_MISSING") for c in codes
-    ), f"kind={kind} expected placeholder/missing code; got {codes}"
+    assert any(c.endswith("_PLACEHOLDER") or c.endswith("_MISSING") for c in codes), (
+        f"kind={kind} expected placeholder/missing code; got {codes}"
+    )
 
 
 @pytest.mark.parametrize("kind", KINDS)
@@ -122,14 +121,9 @@ def test_dor_block_on_short_outcome(kind: str) -> None:
 def test_dor_chore_does_not_require_acceptance() -> None:
     """Chore kind is relaxed — Outcome only."""
     config = load_gates_config()
-    body = (
-        "**Outcome (one sentence):** Bump dependency X to v2.3.4 for the "
-        "audit notice.\n"
-    )
+    body = "**Outcome (one sentence):** Bump dependency X to v2.3.4 for the audit notice.\n"
     result = evaluate_dor("chore", body, config)
-    assert result.verdict is Verdict.PASS, [
-        (m.code, m.message) for m in result.messages
-    ]
+    assert result.verdict is Verdict.PASS, [(m.code, m.message) for m in result.messages]
 
 
 def test_dor_spike_does_not_require_read_first() -> None:
@@ -250,7 +244,10 @@ def test_dod_chore_skips_work_log_warning() -> None:
 def test_override_rejected_without_reason() -> None:
     config = load_gates_config()
     result, request = evaluate_override(
-        "dor", reason=None, actor="claude", config=config,
+        "dor",
+        reason=None,
+        actor="claude",
+        config=config,
     )
     assert result.blocked
     assert request is None
@@ -260,7 +257,10 @@ def test_override_rejected_without_reason() -> None:
 def test_override_rejected_with_too_short_reason() -> None:
     config = load_gates_config()
     result, request = evaluate_override(
-        "dor", reason="oops", actor="claude", config=config,
+        "dor",
+        reason="oops",
+        actor="claude",
+        config=config,
     )
     assert result.blocked
     assert request is None
@@ -351,9 +351,7 @@ def test_validate_transition_override_without_reason_still_blocks() -> None:
 
 def test_validate_transition_override_with_valid_reason_downgrades_to_warn() -> None:
     config = load_gates_config()
-    valid_reason = (
-        "Hotfix for incident INC-9999; will fill DoR in follow-up TASK-201."
-    )
+    valid_reason = "Hotfix for incident INC-9999; will fill DoR in follow-up TASK-201."
     with _env(COS_DOR_OVERRIDE="1"):
         result = validate_transition(
             task_id="TASK-XXX",

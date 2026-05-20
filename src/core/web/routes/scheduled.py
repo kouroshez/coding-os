@@ -64,15 +64,17 @@ async def scheduled_status():
     for proj in read_registry():
         root = Path(proj.get("path", ""))
         state = read_state(root)
-        projects_data.append({
-            "slug": proj.get("slug"),
-            "path": proj.get("path"),
-            "last_run_at": state.get("run_at"),
-            "tasks": state.get("tasks", {}),
-            "consecutive_failures": state.get("consecutive_failures", 0),
-            "disabled_reason": state.get("disabled_reason"),
-            "last_error": state.get("last_error"),
-        })
+        projects_data.append(
+            {
+                "slug": proj.get("slug"),
+                "path": proj.get("path"),
+                "last_run_at": state.get("run_at"),
+                "tasks": state.get("tasks", {}),
+                "consecutive_failures": state.get("consecutive_failures", 0),
+                "disabled_reason": state.get("disabled_reason"),
+                "last_error": state.get("last_error"),
+            }
+        )
 
     global_summary: dict = {}
     if _GLOBAL_SUMMARY.exists():

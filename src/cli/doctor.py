@@ -32,7 +32,7 @@ import re
 import sqlite3
 import subprocess
 import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -82,9 +82,7 @@ STATE_DIR_DEFAULT = ".coding-os"
 
 _schema_cfg = _DOCTOR_CFG.get("schema") or {}
 EXPECTED_SCHEMA_VERSION: int = int(_schema_cfg.get("expected_version", 6))
-EXPECTED_TABLES: frozenset[str] = frozenset(
-    _schema_cfg.get("expected_tables") or ()
-)
+EXPECTED_TABLES: frozenset[str] = frozenset(_schema_cfg.get("expected_tables") or ())
 
 # Note: `sourced_hooks` is per-adapter (src/adapters/<id>/adapter.yaml) and is
 # read by _check_adapter directly from the AdapterProfile. There is no
@@ -95,9 +93,7 @@ PLACEHOLDER_RE = re.compile(r"\{\{[a-zA-Z_][a-zA-Z0-9_.]*\}\}")
 PLACEHOLDER_SCAN_EXTENSIONS: frozenset[str] = frozenset(
     _scan_cfg.get("extensions") or (".md", ".json", ".yaml", ".yml", ".sh", ".py", ".toml", ".txt")
 )
-PLACEHOLDER_SCAN_NAMES: frozenset[str] = frozenset(
-    _scan_cfg.get("file_names") or ("Makefile",)
-)
+PLACEHOLDER_SCAN_NAMES: frozenset[str] = frozenset(_scan_cfg.get("file_names") or ("Makefile",))
 PLACEHOLDER_MAX_BYTES: int = int(_scan_cfg.get("max_bytes") or 262144)
 PLACEHOLDER_SCAN_ROOTS: tuple[str, ...] = tuple(
     _scan_cfg.get("root_paths") or ("AGENTS.md", "Makefile", "docs", ".coding-os.yaml")
@@ -190,14 +186,18 @@ def _check_state_dir(project: Path, config: dict[str, Any], report: DoctorReport
     if not state.is_dir():
         report.checks.append(
             CheckResult(
-                "state.directory_present", SEV_FAIL, "state directory missing",
+                "state.directory_present",
+                SEV_FAIL,
+                "state directory missing",
                 {"path": str(state)},
             )
         )
     else:
         report.checks.append(
             CheckResult(
-                "state.directory_present", SEV_PASS, "present",
+                "state.directory_present",
+                SEV_PASS,
+                "present",
                 {"path": str(state)},
             )
         )
@@ -210,7 +210,9 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     if not db_path.exists():
         report.checks.append(
             CheckResult(
-                "database.openable", SEV_FAIL, "coding-os.db not found",
+                "database.openable",
+                SEV_FAIL,
+                "coding-os.db not found",
                 {"path": str(db_path)},
             )
         )
@@ -220,7 +222,9 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "database.openable", SEV_FAIL, f"cannot open DB: {exc}",
+                "database.openable",
+                SEV_FAIL,
+                f"cannot open DB: {exc}",
                 {"path": str(db_path)},
             )
         )
@@ -236,7 +240,8 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     except sqlite3.Error as exc:
         report.checks.append(
             CheckResult(
-                "database.schema_current", SEV_FAIL,
+                "database.schema_current",
+                SEV_FAIL,
                 f"schema_version query failed: {exc}",
             )
         )
@@ -247,7 +252,8 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     elif version < EXPECTED_SCHEMA_VERSION:
         report.checks.append(
             CheckResult(
-                "database.schema_current", SEV_FAIL,
+                "database.schema_current",
+                SEV_FAIL,
                 f"schema version {version} < expected {EXPECTED_SCHEMA_VERSION}",
                 {"actual": version, "expected": EXPECTED_SCHEMA_VERSION},
             )
@@ -255,7 +261,8 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     elif version > EXPECTED_SCHEMA_VERSION:
         report.checks.append(
             CheckResult(
-                "database.schema_current", SEV_WARN,
+                "database.schema_current",
+                SEV_WARN,
                 f"schema version {version} newer than expected {EXPECTED_SCHEMA_VERSION}",
                 {"actual": version, "expected": EXPECTED_SCHEMA_VERSION},
             )
@@ -263,7 +270,9 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     else:
         report.checks.append(
             CheckResult(
-                "database.schema_current", SEV_PASS, f"v{version}",
+                "database.schema_current",
+                SEV_PASS,
+                f"v{version}",
                 {"actual": version},
             )
         )
@@ -281,7 +290,8 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     if missing:
         report.checks.append(
             CheckResult(
-                "database.tables_present", SEV_FAIL,
+                "database.tables_present",
+                SEV_FAIL,
                 f"missing tables: {', '.join(missing)}",
                 {"missing": missing, "found": sorted(actual)},
             )
@@ -289,7 +299,8 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
     else:
         report.checks.append(
             CheckResult(
-                "database.tables_present", SEV_PASS,
+                "database.tables_present",
+                SEV_PASS,
                 f"all {len(EXPECTED_TABLES)} core tables present",
                 {"count": len(actual)},
             )
@@ -308,7 +319,8 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "scaffold.roots_present", SEV_FAIL,
+                "scaffold.roots_present",
+                SEV_FAIL,
                 f"missing: {', '.join(missing)}",
                 {"missing": missing},
             )
@@ -316,7 +328,8 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "scaffold.roots_present", SEV_PASS,
+                "scaffold.roots_present",
+                SEV_PASS,
                 "AGENTS.md, Makefile, docs/ all present",
             )
         )
@@ -334,19 +347,19 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
     `src/adapters/<id>/adapter.yaml` and `install.sh`.
     """
     if agent is None:
-        report.checks.append(
-            CheckResult("adapter.configured", SEV_FAIL, "agent not set in config")
-        )
+        report.checks.append(CheckResult("adapter.configured", SEV_FAIL, "agent not set in config"))
         return
 
     try:
         # Late import to keep doctor usable even if adapter_registry has issues
         from cli.adapter_registry import load_adapter_registry
+
         adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
-    except Exception as exc:  # noqa: BLE001 — registry errors shouldn't crash doctor
+    except Exception as exc:
         report.checks.append(
             CheckResult(
-                "adapter.configured", SEV_WARN,
+                "adapter.configured",
+                SEV_WARN,
                 f"could not load adapter registry: {exc}",
             )
         )
@@ -355,7 +368,8 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
     if agent not in adapters:
         report.checks.append(
             CheckResult(
-                "adapter.configured", SEV_WARN,
+                "adapter.configured",
+                SEV_WARN,
                 f"no adapter manifest for agent '{agent}'",
             )
         )
@@ -369,7 +383,8 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if not settings_path.exists():
             report.checks.append(
                 CheckResult(
-                    "adapter.configured", SEV_FAIL,
+                    "adapter.configured",
+                    SEV_FAIL,
                     f"{profile.settings_file} not found",
                     {"path": str(settings_path)},
                 )
@@ -380,7 +395,8 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         except json.JSONDecodeError as exc:
             report.checks.append(
                 CheckResult(
-                    "adapter.configured", SEV_FAIL,
+                    "adapter.configured",
+                    SEV_FAIL,
                     f"{profile.settings_file} invalid JSON: {exc}",
                 )
             )
@@ -393,22 +409,20 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if not hooks_dir.is_dir():
             report.checks.append(
                 CheckResult(
-                    "adapter.configured", SEV_FAIL,
+                    "adapter.configured",
+                    SEV_FAIL,
                     f"{profile.hooks_dir} not found",
                 )
             )
             return
         sourced = set(profile.sourced_hooks)
-        hook_files = [
-            h for h in sorted(hooks_dir.glob("*.sh")) if h.name not in sourced
-        ]
-        broken_symlinks = [
-            h.name for h in hook_files if h.is_symlink() and not h.exists()
-        ]
+        hook_files = [h for h in sorted(hooks_dir.glob("*.sh")) if h.name not in sourced]
+        broken_symlinks = [h.name for h in hook_files if h.is_symlink() and not h.exists()]
         if broken_symlinks:
             report.checks.append(
                 CheckResult(
-                    "adapter.configured", SEV_FAIL,
+                    "adapter.configured",
+                    SEV_FAIL,
                     f"broken hook symlinks: {', '.join(broken_symlinks[:5])}"
                     + (f" (+{len(broken_symlinks) - 5} more)" if len(broken_symlinks) > 5 else "")
                     + " — run: cos install",
@@ -420,7 +434,8 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         if non_exec:
             report.checks.append(
                 CheckResult(
-                    "adapter.configured", SEV_FAIL,
+                    "adapter.configured",
+                    SEV_FAIL,
                     f"hooks not executable: {', '.join(non_exec)}",
                     {"non_executable": non_exec},
                 )
@@ -435,7 +450,9 @@ def _check_adapter(project: Path, agent: str | None, report: DoctorReport) -> No
         msg = f"{profile.settings_file or 'manifest'} valid"
     report.checks.append(
         CheckResult(
-            "adapter.configured", SEV_PASS, msg,
+            "adapter.configured",
+            SEV_PASS,
+            msg,
             {"hook_count": hook_count},
         )
     )
@@ -455,8 +472,9 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
     # .claude/rules/ or .codex/instructions/ are caught.
     try:
         from cli.adapter_registry import load_adapter_registry
+
         adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("adapter registry skipped for placeholder scan: %s", exc)
         adapters = {}
     for profile in adapters.values():
@@ -508,7 +526,8 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
     if offenders:
         report.checks.append(
             CheckResult(
-                "scaffold.placeholders_resolved", SEV_FAIL,
+                "scaffold.placeholders_resolved",
+                SEV_FAIL,
                 f"{len(offenders)} file(s) contain unresolved placeholders",
                 {"offenders": offenders[:20]},
             )
@@ -516,7 +535,8 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "scaffold.placeholders_resolved", SEV_PASS,
+                "scaffold.placeholders_resolved",
+                SEV_PASS,
                 "no unresolved placeholders in scaffold files",
             )
         )
@@ -549,7 +569,8 @@ def _check_manifest(
         # validation for arbitrary combinations is out of scope for scaffold.manifest_fresh.
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_PASS,
+                "scaffold.manifest_fresh",
+                SEV_PASS,
                 "multi-stack project — manifest diff not applicable",
                 {"agent": report.agent, "templates": report.templates},
             )
@@ -564,7 +585,8 @@ def _check_manifest(
     ).is_dir():
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_PASS,
+                "scaffold.manifest_fresh",
+                SEV_PASS,
                 "meta-repo factory — manifest diff not applicable",
                 {"agent": report.agent, "templates": report.templates},
             )
@@ -573,7 +595,8 @@ def _check_manifest(
     if not manifest_path.exists():
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_WARN,
+                "scaffold.manifest_fresh",
+                SEV_WARN,
                 f"manifest file not found at {manifest_path}",
             )
         )
@@ -583,7 +606,8 @@ def _check_manifest(
     except json.JSONDecodeError as exc:
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_WARN,
+                "scaffold.manifest_fresh",
+                SEV_WARN,
                 f"manifest file invalid JSON: {exc}",
             )
         )
@@ -593,7 +617,8 @@ def _check_manifest(
     if not section:
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_WARN,
+                "scaffold.manifest_fresh",
+                SEV_WARN,
                 f"manifest has no section '{section_id}'",
             )
         )
@@ -617,7 +642,8 @@ def _check_manifest(
     if missing:
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_FAIL,
+                "scaffold.manifest_fresh",
+                SEV_FAIL,
                 f"{len(missing)} expected file(s) missing",
                 {
                     "section": section_id,
@@ -629,7 +655,8 @@ def _check_manifest(
     elif extras:
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_WARN,
+                "scaffold.manifest_fresh",
+                SEV_WARN,
                 f"{len(extras)} extra file(s) not in manifest",
                 {
                     "section": section_id,
@@ -641,7 +668,8 @@ def _check_manifest(
     else:
         report.checks.append(
             CheckResult(
-                "scaffold.manifest_fresh", SEV_PASS,
+                "scaffold.manifest_fresh",
+                SEV_PASS,
                 f"all {len(expected)} expected files present",
                 {"section": section_id, "count": len(expected)},
             )
@@ -653,7 +681,8 @@ def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
     if not MCP_SERVER_PATH.exists():
         report.checks.append(
             CheckResult(
-                "mcp.self_test_passes", SEV_WARN,
+                "mcp.self_test_passes",
+                SEV_WARN,
                 "MCP server.py not found in coding-os core",
             )
         )
@@ -676,18 +705,15 @@ def _check_mcp_selftest(project: Path, report: DoctorReport) -> None:
         )
         return
     except OSError as exc:
-        report.checks.append(
-            CheckResult("mcp.self_test_passes", SEV_FAIL, f"cannot run: {exc}")
-        )
+        report.checks.append(CheckResult("mcp.self_test_passes", SEV_FAIL, f"cannot run: {exc}"))
         return
     if proc.returncode == 0:
-        report.checks.append(
-            CheckResult("mcp.self_test_passes", SEV_PASS, "self-test passed")
-        )
+        report.checks.append(CheckResult("mcp.self_test_passes", SEV_PASS, "self-test passed"))
     else:
         report.checks.append(
             CheckResult(
-                "mcp.self_test_passes", SEV_FAIL,
+                "mcp.self_test_passes",
+                SEV_FAIL,
                 f"self-test exit {proc.returncode}",
                 {"stderr": (proc.stderr or "")[-500:]},
             )
@@ -723,10 +749,10 @@ def _suppress_checks(report: DoctorReport, ignore_globs: list[str]) -> int:
     if not ignore_globs:
         return 0
     import fnmatch as _fnmatch
+
     before = len(report.checks)
     report.checks = [
-        c for c in report.checks
-        if not any(_fnmatch.fnmatch(c.id, pat) for pat in ignore_globs)
+        c for c in report.checks if not any(_fnmatch.fnmatch(c.id, pat) for pat in ignore_globs)
     ]
     return before - len(report.checks)
 
@@ -738,9 +764,7 @@ def run_doctor(
     extra_ignores: list[str] | None = None,
 ) -> DoctorReport:
     """Run all implemented doctor checks and return a report."""
-    report = DoctorReport(
-        project_dir=str(project), agent=None, templates=[]
-    )
+    report = DoctorReport(project_dir=str(project), agent=None, templates=[])
     config = _check_config(project, report)
     if config is None:
         return report
@@ -755,10 +779,11 @@ def run_doctor(
         # the first handle's contextlib.closing is not disturbed.
         try:
             import sqlite3 as _sqlite3
+
             db_file = state / "coding-os.db"
             if db_file.exists():
                 graph_conn = _sqlite3.connect(str(db_file))
-        except Exception as exc:  # noqa: BLE001 — doctor must not crash
+        except Exception as exc:
             logger = logging.getLogger("coding_os.doctor")
             logger.debug("graph doctor connection failed: %s", exc)
     _check_scaffold_roots(project, report)
@@ -776,7 +801,8 @@ def run_doctor(
     _check_hook_coverage(project, report)
     # Phase I.14 — graph_os health checks.
     try:
-        from cli.doctor_graph import run_graph_checks  # noqa: WPS433
+        from cli.doctor_graph import run_graph_checks
+
         run_graph_checks(report, state, graph_conn)
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
@@ -785,12 +811,13 @@ def run_doctor(
         if graph_conn is not None:
             try:
                 graph_conn.close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger = logging.getLogger("coding_os.doctor")
                 logger.debug("graph_conn close suppressed: %s", exc)
     # Phase L.9 — board_os health checks.
     try:
-        from cli.doctor_board import run_board_checks  # noqa: WPS433
+        from cli.doctor_board import run_board_checks
+
         run_board_checks(report, project, state)
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
@@ -799,6 +826,7 @@ def run_doctor(
     _check_presence_zombies(project, report)
     try:
         from cli.doctor_extras import run_extra_checks
+
         run_extra_checks(project, report)
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
@@ -822,11 +850,13 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     """
     try:
         from cli.stack_registry import load_stack_registry
+
         registry = load_stack_registry(CODING_OS_ROOT / "src" / "templates")
-    except Exception as exc:  # noqa: BLE001 — doctor must not crash
+    except Exception as exc:
         report.checks.append(
             CheckResult(
-                "stack.registry_valid", SEV_WARN,
+                "stack.registry_valid",
+                SEV_WARN,
                 f"could not load stack registry: {exc}",
             )
         )
@@ -836,7 +866,8 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "stack.registry_valid", SEV_FAIL,
+                "stack.registry_valid",
+                SEV_FAIL,
                 f"stacks in config not found in templates/: {', '.join(missing)}",
                 {"missing": missing},
             )
@@ -844,14 +875,16 @@ def _check_stack_registry_consistency(report: DoctorReport) -> None:
     elif not report.templates:
         report.checks.append(
             CheckResult(
-                "stack.registry_valid", SEV_PASS,
+                "stack.registry_valid",
+                SEV_PASS,
                 "no stacks installed (base-only project)",
             )
         )
     else:
         report.checks.append(
             CheckResult(
-                "stack.registry_valid", SEV_PASS,
+                "stack.registry_valid",
+                SEV_PASS,
                 f"all {len(report.templates)} installed stack(s) present in registry",
                 {"installed": report.templates},
             )
@@ -865,7 +898,8 @@ def _check_category_balance(report: DoctorReport) -> None:
     if len(report.templates) < 2:
         report.checks.append(
             CheckResult(
-                "stack.category_balance", SEV_PASS,
+                "stack.category_balance",
+                SEV_PASS,
                 "single-stack or base-only project",
             )
         )
@@ -873,11 +907,13 @@ def _check_category_balance(report: DoctorReport) -> None:
 
     try:
         from cli.stack_registry import load_stack_registry
+
         registry = load_stack_registry(CODING_OS_ROOT / "src" / "templates")
-    except Exception:  # noqa: BLE001
+    except Exception:
         report.checks.append(
             CheckResult(
-                "stack.category_balance", SEV_PASS,
+                "stack.category_balance",
+                SEV_PASS,
                 "registry unavailable, skipping",
             )
         )
@@ -891,12 +927,11 @@ def _check_category_balance(report: DoctorReport) -> None:
 
     duplicates = {c: ids for c, ids in categories.items() if len(ids) >= 2}
     if duplicates:
-        details = ", ".join(
-            f"{cat}: {', '.join(ids)}" for cat, ids in duplicates.items()
-        )
+        details = ", ".join(f"{cat}: {', '.join(ids)}" for cat, ids in duplicates.items())
         report.checks.append(
             CheckResult(
-                "stack.category_balance", SEV_WARN,
+                "stack.category_balance",
+                SEV_WARN,
                 f"multiple stacks in same category ({details}) — last stack wins on conflicts",
                 {"duplicates": duplicates},
             )
@@ -904,7 +939,8 @@ def _check_category_balance(report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "stack.category_balance", SEV_PASS,
+                "stack.category_balance",
+                SEV_PASS,
                 f"{len(report.templates)} stacks in {len(categories)} distinct categories",
             )
         )
@@ -919,22 +955,20 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     the src/templates/<stack>/skills/ source of truth.
     """
     if not report.templates:
-        report.checks.append(
-            CheckResult("stack.skills_linked", SEV_PASS, "no stacks installed")
-        )
+        report.checks.append(CheckResult("stack.skills_linked", SEV_PASS, "no stacks installed"))
         return
     if not report.agent:
-        report.checks.append(
-            CheckResult("stack.skills_linked", SEV_PASS, "no agent configured")
-        )
+        report.checks.append(CheckResult("stack.skills_linked", SEV_PASS, "no agent configured"))
         return
     try:
         from cli.adapter_registry import load_adapter_registry
+
         adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         report.checks.append(
             CheckResult(
-                "stack.skills_linked", SEV_WARN,
+                "stack.skills_linked",
+                SEV_WARN,
                 f"could not load adapter registry: {exc}",
             )
         )
@@ -943,7 +977,8 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     if profile is None or not profile.skills_dir:
         report.checks.append(
             CheckResult(
-                "stack.skills_linked", SEV_PASS,
+                "stack.skills_linked",
+                SEV_PASS,
                 f"adapter '{report.agent}' has no skills_dir — skipped",
             )
         )
@@ -962,7 +997,8 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     if not expected:
         report.checks.append(
             CheckResult(
-                "stack.skills_linked", SEV_PASS,
+                "stack.skills_linked",
+                SEV_PASS,
                 "no stack skills to link",
             )
         )
@@ -977,16 +1013,17 @@ def _check_stack_skills_linked(project: Path, report: DoctorReport) -> None:
     if missing:
         report.checks.append(
             CheckResult(
-                "stack.skills_linked", SEV_FAIL,
-                f"missing stack skill links: {', '.join(missing)} "
-                f"— run `cos update` to repair",
+                "stack.skills_linked",
+                SEV_FAIL,
+                f"missing stack skill links: {', '.join(missing)} — run `cos update` to repair",
                 {"missing": missing},
             )
         )
     else:
         report.checks.append(
             CheckResult(
-                "stack.skills_linked", SEV_PASS,
+                "stack.skills_linked",
+                SEV_PASS,
                 f"all {len(expected)} stack skill(s) linked",
             )
         )
@@ -1002,23 +1039,21 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     """
     mcp_path = project / ".mcp.json"
     if not mcp_path.exists():
-        report.checks.append(
-            CheckResult("mcp.portable", SEV_PASS, "no .mcp.json (skip)")
-        )
+        report.checks.append(CheckResult("mcp.portable", SEV_PASS, "no .mcp.json (skip)"))
         return
     try:
         import json as _json
+
         data = _json.loads(mcp_path.read_text(encoding="utf-8"))
-    except Exception as exc:  # noqa: BLE001
-        report.checks.append(
-            CheckResult("mcp.portable", SEV_FAIL, f"invalid JSON: {exc}")
-        )
+    except Exception as exc:
+        report.checks.append(CheckResult("mcp.portable", SEV_FAIL, f"invalid JSON: {exc}"))
         return
     entry = (data.get("mcpServers") or {}).get("coding-os")
     if entry is None:
         report.checks.append(
             CheckResult(
-                "mcp.portable", SEV_PASS,
+                "mcp.portable",
+                SEV_PASS,
                 "no coding-os MCP entry (skip)",
             )
         )
@@ -1027,19 +1062,19 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     if command == "cos":
         report.checks.append(
             CheckResult(
-                "mcp.portable", SEV_PASS,
+                "mcp.portable",
+                SEV_PASS,
                 "uses `cos server-start` wrapper (portable)",
             )
         )
         return
     args = entry.get("args") or []
-    has_abs_cos_path = any(
-        isinstance(a, str) and "/core/thinking_os" in a for a in args
-    )
+    has_abs_cos_path = any(isinstance(a, str) and "/core/thinking_os" in a for a in args)
     if has_abs_cos_path:
         report.checks.append(
             CheckResult(
-                "mcp.portable", SEV_WARN,
+                "mcp.portable",
+                SEV_WARN,
                 "hardcoded absolute path — runs fine locally but won't "
                 "survive coding-os relocation. Install `cos` on PATH and "
                 "re-run the adapter install to switch to the wrapper.",
@@ -1048,7 +1083,8 @@ def _check_mcp_portable(project: Path, report: DoctorReport) -> None:
     else:
         report.checks.append(
             CheckResult(
-                "mcp.portable", SEV_PASS,
+                "mcp.portable",
+                SEV_PASS,
                 f"unknown command form '{command}' — assumed portable",
             )
         )
@@ -1060,13 +1096,16 @@ def _load_coding_os_mcp_launch(
 ) -> tuple[str | None, list[str], dict[str, str], str | None, str | None]:
     """Return the coding-os MCP launch config from Claude or Codex sources."""
 
-    def _load_claude_json(path: Path) -> tuple[str | None, list[str], dict[str, str], str | None, str | None] | None:
+    def _load_claude_json(
+        path: Path,
+    ) -> tuple[str | None, list[str], dict[str, str], str | None, str | None] | None:
         if not path.exists():
             return None
         try:
             import json as _json
+
             data = _json.loads(path.read_text(encoding="utf-8"))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return None, [], {}, str(path), f"invalid JSON: {exc}"
         entry = (data.get("mcpServers") or {}).get("coding-os")
         if entry is None:
@@ -1093,11 +1132,17 @@ def _load_coding_os_mcp_launch(
         env: dict[str, str] = {}
         env_match = re.search(r"(?ms)^[ \t]*env[ \t]*=[ \t]*\{(.*?)\}[ \t]*$", body)
         if env_match:
-            for key, value in re.findall(r'"((?:[^"\\]|\\.)*)"[ \t]*=[ \t]*"((?:[^"\\]|\\.)*)"', env_match.group(1)):
-                env[bytes(key, "utf-8").decode("unicode_escape")] = bytes(value, "utf-8").decode("unicode_escape")
+            for key, value in re.findall(
+                r'"((?:[^"\\]|\\.)*)"[ \t]*=[ \t]*"((?:[^"\\]|\\.)*)"', env_match.group(1)
+            ):
+                env[bytes(key, "utf-8").decode("unicode_escape")] = bytes(value, "utf-8").decode(
+                    "unicode_escape"
+                )
         return cmd_match.group(1), args, env
 
-    def _load_codex(path: Path) -> tuple[str | None, list[str], dict[str, str], str | None, str | None] | None:
+    def _load_codex(
+        path: Path,
+    ) -> tuple[str | None, list[str], dict[str, str], str | None, str | None] | None:
         loaded = _load_codex_toml(path)
         if loaded is None:
             return None
@@ -1108,6 +1153,7 @@ def _load_coding_os_mcp_launch(
     # mcp_launch.loader and config_paths in adapter.yaml so no agent id
     # is hardcoded here (Rule 12 / tests/test_no_hardcoded_stacks).
     from cli.adapter_registry import load_adapter_registry
+
     adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
 
     loader_fns = {
@@ -1153,9 +1199,7 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
         project, report.agent
     )
     if load_error:
-        report.checks.append(
-            CheckResult("mcp.actually_launches", SEV_FAIL, load_error)
-        )
+        report.checks.append(CheckResult("mcp.actually_launches", SEV_FAIL, load_error))
         return
     if source_path is None:
         # Data-driven (Rule 11): list every adapter that ships an
@@ -1179,7 +1223,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
             )
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_FAIL,
+                "mcp.actually_launches",
+                SEV_FAIL,
                 "coding-os MCP config missing — neither .mcp.json nor "
                 ".codex/config.toml defines coding-os. " + repair,
             )
@@ -1188,7 +1233,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if command is None:
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_PASS,
+                "mcp.actually_launches",
+                SEV_PASS,
                 f"no coding-os MCP entry in {source_path} (skip)",
             )
         )
@@ -1206,7 +1252,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if not command:
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_FAIL,
+                "mcp.actually_launches",
+                SEV_FAIL,
                 f"no command specified in {source_path}",
             )
         )
@@ -1226,7 +1273,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     except FileNotFoundError:
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_FAIL,
+                "mcp.actually_launches",
+                SEV_FAIL,
                 f"command not found on PATH: {command!r}. "
                 f"Install via `uv tool install --editable <coding-os>`.",
             )
@@ -1235,7 +1283,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     except subprocess.TimeoutExpired:
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_PASS,
+                "mcp.actually_launches",
+                SEV_PASS,
                 "launched (exceeded 20s → server is running, no crash)",
             )
         )
@@ -1243,7 +1292,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     except OSError as exc:
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_FAIL,
+                "mcp.actually_launches",
+                SEV_FAIL,
                 f"OS error launching: {exc}",
             )
         )
@@ -1253,7 +1303,8 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
     if '"jsonrpc"' in (proc.stdout or "") and '"result"' in (proc.stdout or ""):
         report.checks.append(
             CheckResult(
-                "mcp.actually_launches", SEV_PASS,
+                "mcp.actually_launches",
+                SEV_PASS,
                 "initialize handshake succeeded (server ready)",
             )
         )
@@ -1271,14 +1322,13 @@ def _check_mcp_actually_launches(project: Path, report: DoctorReport) -> None:
         msg = "server crashed: missing Python dependency — rerun `uv sync`."
     else:
         tail = combined.strip().splitlines()[-3:]
-        msg = (
-            f"launch failed (exit {proc.returncode}). Last output: "
-            + " | ".join(tail)[-200:]
-        )
+        msg = f"launch failed (exit {proc.returncode}). Last output: " + " | ".join(tail)[-200:]
 
     report.checks.append(
         CheckResult(
-            "mcp.actually_launches", SEV_FAIL, msg,
+            "mcp.actually_launches",
+            SEV_FAIL,
+            msg,
             {"stderr_tail": (proc.stderr or "")[-500:]},
         )
     )
@@ -1296,14 +1346,17 @@ def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
     if agents_md.exists():
         report.checks.append(
             CheckResult(
-                "docs.agents_md_present", SEV_PASS, "present",
+                "docs.agents_md_present",
+                SEV_PASS,
+                "present",
                 {"path": str(agents_md.relative_to(project))},
             )
         )
         return
     report.checks.append(
         CheckResult(
-            "docs.agents_md_present", SEV_FAIL,
+            "docs.agents_md_present",
+            SEV_FAIL,
             "missing — run 'cos update' or 'cos add-adapter <agent>' to backfill",
             {"expected": "AGENTS.md"},
         )
@@ -1313,24 +1366,35 @@ def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
 def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
     """cognition.registries_present — Cognition registries valid (Phase N).
 
-      - roles/F{1..11}_*.yaml all exist with id + activation + prompt_prefix
-      - presets/registry.yaml parses and has ≥8 curated presets
-      - situations/registry.yaml parses and has ≥6 situations
-      - agents/F{1..11}_*.md all exist with valid YAML frontmatter
+    - roles/F{1..11}_*.yaml all exist with id + activation + prompt_prefix
+    - presets/registry.yaml parses and has ≥8 curated presets
+    - situations/registry.yaml parses and has ≥6 situations
+    - agents/F{1..11}_*.md all exist with valid YAML frontmatter
     """
     import re as _re
 
     thinking_os = project / "src" / "core" / "thinking_os"
     if not thinking_os.is_dir():
-        report.checks.append(CheckResult("cognition.registries_present", SEV_PASS, "no thinking_os/ (skip)"))
+        report.checks.append(
+            CheckResult("cognition.registries_present", SEV_PASS, "no thinking_os/ (skip)")
+        )
         return
 
     issues: list[str] = []
     warnings: list[str] = []
 
     _EXPECTED_ROLES = [
-        "researcher", "analyst", "architect", "documenter", "implementer",
-        "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
+        "researcher",
+        "analyst",
+        "architect",
+        "documenter",
+        "implementer",
+        "reviewer",
+        "debugger",
+        "security_auditor",
+        "deployer",
+        "observer",
+        "refactorer",
     ]
 
     # Phase N — Role registry (primary, semantic names)
@@ -1345,10 +1409,16 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
                 continue
             try:
                 import yaml as _yaml
+
                 data = _yaml.safe_load(yaml_file.read_text()) or {}
                 if data.get("id") != role:
                     issues.append(f"{yaml_file.name}: id mismatch (expected {role})")
-                for required in ("activation", "prompt_prefix", "criteria_required", "intensity_steps"):
+                for required in (
+                    "activation",
+                    "prompt_prefix",
+                    "criteria_required",
+                    "intensity_steps",
+                ):
                     if required not in data:
                         issues.append(f"{yaml_file.name}: missing '{required}'")
             except Exception as exc:
@@ -1361,6 +1431,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
     else:
         try:
             import yaml as _yaml
+
             data = _yaml.safe_load(preset_reg.read_text()) or {}
             presets = data.get("presets", []) if isinstance(data, dict) else []
             count = len(presets) if isinstance(presets, list) else 0
@@ -1382,6 +1453,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
     else:
         try:
             import yaml as _yaml
+
             data = _yaml.safe_load(situation_reg.read_text()) or {}
             situations = data.get("situations", []) if isinstance(data, dict) else []
             count = len(situations) if isinstance(situations, list) else 0
@@ -1407,19 +1479,30 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
                 issues.append(f"{agent_file.name}: missing or wrong 'id: {role}' in frontmatter")
 
     if issues:
-        report.checks.append(CheckResult(
-            "cognition.registries_present", SEV_FAIL, "; ".join(issues), {"issues": issues, "warnings": warnings},
-        ))
+        report.checks.append(
+            CheckResult(
+                "cognition.registries_present",
+                SEV_FAIL,
+                "; ".join(issues),
+                {"issues": issues, "warnings": warnings},
+            )
+        )
     elif warnings:
-        report.checks.append(CheckResult(
-            "cognition.registries_present", SEV_WARN,
-            f"Phase N OK (11 roles, 12+ presets, 6 situations, 11 agents); {'; '.join(warnings)}",
-        ))
+        report.checks.append(
+            CheckResult(
+                "cognition.registries_present",
+                SEV_WARN,
+                f"Phase N OK (11 roles, 12+ presets, 6 situations, 11 agents); {'; '.join(warnings)}",
+            )
+        )
     else:
-        report.checks.append(CheckResult(
-            "cognition.registries_present", SEV_PASS,
-            "Phase N: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
-        ))
+        report.checks.append(
+            CheckResult(
+                "cognition.registries_present",
+                SEV_PASS,
+                "Phase N: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
+            )
+        )
 
 
 def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
@@ -1433,35 +1516,49 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
     adapters_dir = project / "src" / "adapters"
 
     if not registry_path.exists() or not hooks_dir.is_dir():
-        report.checks.append(CheckResult(
-            "hook.coverage", SEV_PASS, "no registry.yaml (skip)",
-        ))
+        report.checks.append(
+            CheckResult(
+                "hook.coverage",
+                SEV_PASS,
+                "no registry.yaml (skip)",
+            )
+        )
         return
 
     try:
         import yaml as _yaml
+
         registry = _yaml.safe_load(registry_path.read_text()) or {}
-    except Exception as exc:  # noqa: BLE001 — broken YAML reported as FAIL
-        report.checks.append(CheckResult(
-            "hook.coverage", SEV_FAIL, f"registry.yaml invalid YAML: {exc}",
-        ))
+    except Exception as exc:
+        report.checks.append(
+            CheckResult(
+                "hook.coverage",
+                SEV_FAIL,
+                f"registry.yaml invalid YAML: {exc}",
+            )
+        )
         return
 
     hooks = registry.get("hooks", []) if isinstance(registry, dict) else []
     if not isinstance(hooks, list) or not hooks:
-        report.checks.append(CheckResult(
-            "hook.coverage", SEV_FAIL, "registry.yaml has no hooks list",
-        ))
+        report.checks.append(
+            CheckResult(
+                "hook.coverage",
+                SEV_FAIL,
+                "registry.yaml has no hooks list",
+            )
+        )
         return
 
     adapter_caps: list[tuple[str, dict[str, list[str]]]] = []
     if adapters_dir.is_dir():
         try:
             import yaml as _yaml
+
             for adapter_yaml in sorted(adapters_dir.glob("*/adapter.yaml")):
                 try:
                     data = _yaml.safe_load(adapter_yaml.read_text()) or {}
-                except Exception:  # noqa: BLE001 — adapter listed but unreadable
+                except Exception:
                     continue
                 raw = data.get("hook_capabilities") or data.get("capabilities") or {}
                 normalized: dict[str, list[str]] = {}
@@ -1489,7 +1586,7 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
                             normalized.setdefault(ev, []).extend(str(m) for m in matchers)
                 if normalized:
                     adapter_caps.append((adapter_yaml.parent.name, normalized))
-        except Exception as exc:  # noqa: BLE001 — adapter scan optional
+        except Exception as exc:
             logger = logging.getLogger("coding_os.doctor")
             logger.debug("adapter scan failed: %s", exc)
 
@@ -1563,33 +1660,45 @@ def _check_hook_coverage(project: Path, report: DoctorReport) -> None:
     }
 
     if missing_scripts:
-        report.checks.append(CheckResult(
-            "hook.coverage", SEV_FAIL,
-            f"{len(missing_scripts)} hook(s) missing script: " + "; ".join(missing_scripts[:5]),
-            detail,
-        ))
+        report.checks.append(
+            CheckResult(
+                "hook.coverage",
+                SEV_FAIL,
+                f"{len(missing_scripts)} hook(s) missing script: " + "; ".join(missing_scripts[:5]),
+                detail,
+            )
+        )
         return
     if non_executable:
-        report.checks.append(CheckResult(
-            "hook.coverage", SEV_WARN,
-            f"{len(non_executable)} script(s) not executable: " + "; ".join(non_executable[:5]),
-            detail,
-        ))
+        report.checks.append(
+            CheckResult(
+                "hook.coverage",
+                SEV_WARN,
+                f"{len(non_executable)} script(s) not executable: " + "; ".join(non_executable[:5]),
+                detail,
+            )
+        )
         return
     if orphan_pairs and adapter_caps:
-        report.checks.append(CheckResult(
-            "hook.coverage", SEV_WARN,
-            f"{len(orphan_pairs)} event/matcher pair(s) renderable for ZERO adapter — "
-            f"may be intentional (e.g. SubagentStart Codex-incompatible). First: "
-            + "; ".join(orphan_pairs[:5]),
-            detail,
-        ))
+        report.checks.append(
+            CheckResult(
+                "hook.coverage",
+                SEV_WARN,
+                f"{len(orphan_pairs)} event/matcher pair(s) renderable for ZERO adapter — "
+                f"may be intentional (e.g. SubagentStart Codex-incompatible). First: "
+                + "; ".join(orphan_pairs[:5]),
+                detail,
+            )
+        )
         return
-    report.checks.append(CheckResult(
-        "hook.coverage", SEV_PASS,
-        f"{total_hooks} hooks · {total_pairs} pairs · {len(adapter_caps)} adapter(s) scanned — all renderable",
-        detail,
-    ))
+    report.checks.append(
+        CheckResult(
+            "hook.coverage",
+            SEV_PASS,
+            f"{total_hooks} hooks · {total_pairs} pairs · {len(adapter_caps)} adapter(s) scanned — all renderable",
+            detail,
+        )
+    )
 
 
 def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
@@ -1602,9 +1711,13 @@ def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
 
     sessions_root = project / ".coding-os"
     if not sessions_root.is_dir():
-        report.checks.append(CheckResult(
-            "presence.no_zombies", SEV_PASS, "no .coding-os/ (skip)",
-        ))
+        report.checks.append(
+            CheckResult(
+                "presence.no_zombies",
+                SEV_PASS,
+                "no .coding-os/ (skip)",
+            )
+        )
         return
 
     threshold = 3600
@@ -1661,25 +1774,34 @@ def _check_presence_zombies(project: Path, report: DoctorReport) -> None:
     }
     total_zombies = sum(zombies.values())
     if total_zombies == 0:
-        report.checks.append(CheckResult(
-            "presence.no_zombies", SEV_PASS,
-            f"0 zombies across {total_files} session file(s)",
-            detail,
-        ))
+        report.checks.append(
+            CheckResult(
+                "presence.no_zombies",
+                SEV_PASS,
+                f"0 zombies across {total_files} session file(s)",
+                detail,
+            )
+        )
         return
     if total_zombies > 20:
-        report.checks.append(CheckResult(
-            "presence.no_zombies", SEV_WARN,
-            f"{total_zombies} zombie session file(s) — run `cos hooks-list` "
-            "or trigger any agent tool call to fire presence_gc.py",
-            detail,
-        ))
+        report.checks.append(
+            CheckResult(
+                "presence.no_zombies",
+                SEV_WARN,
+                f"{total_zombies} zombie session file(s) — run `cos hooks-list` "
+                "or trigger any agent tool call to fire presence_gc.py",
+                detail,
+            )
+        )
         return
-    report.checks.append(CheckResult(
-        "presence.no_zombies", SEV_PASS,
-        f"{total_zombies} zombie file(s) (<20 threshold) — GC will reap on next tick",
-        detail,
-    ))
+    report.checks.append(
+        CheckResult(
+            "presence.no_zombies",
+            SEV_PASS,
+            f"{total_zombies} zombie file(s) (<20 threshold) — GC will reap on next tick",
+            detail,
+        )
+    )
 
 
 def _check_scheduled(project: Path, report: DoctorReport) -> None:
@@ -1694,23 +1816,30 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
 
     if is_macos:
         if not plist_dest.exists():
-            report.checks.append(CheckResult(
-                "scheduled.cron_configured", SEV_WARN,
-                "nightly cron not installed — run `cos cron install`",
-                {"plist": str(plist_dest)},
-            ))
+            report.checks.append(
+                CheckResult(
+                    "scheduled.cron_configured",
+                    SEV_WARN,
+                    "nightly cron not installed — run `cos cron install`",
+                    {"plist": str(plist_dest)},
+                )
+            )
             return
         try:
             r = subprocess.run(
                 ["launchctl", "list", "com.codingos.nightly"],
-                capture_output=True, timeout=5,
+                capture_output=True,
+                timeout=5,
             )
             if r.returncode != 0:
-                report.checks.append(CheckResult(
-                    "scheduled.cron_configured", SEV_WARN,
-                    "plist present but not loaded — run `cos cron install`",
-                    {"plist": str(plist_dest)},
-                ))
+                report.checks.append(
+                    CheckResult(
+                        "scheduled.cron_configured",
+                        SEV_WARN,
+                        "plist present but not loaded — run `cos cron install`",
+                        {"plist": str(plist_dest)},
+                    )
+                )
                 return
         except OSError as exc:
             logger.debug("launchctl probe failed: %s", exc)
@@ -1718,54 +1847,67 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
 
     if not last_run_path.exists():
         prefix = "plist installed + loaded" if (is_macos and plist_ok) else "cron configured"
-        report.checks.append(CheckResult(
-            "scheduled.cron_configured", SEV_PASS,
-            f"{prefix}, no run yet — run `cos cron run` to test",
-        ))
+        report.checks.append(
+            CheckResult(
+                "scheduled.cron_configured",
+                SEV_PASS,
+                f"{prefix}, no run yet — run `cos cron run` to test",
+            )
+        )
         return
 
     try:
         data = json.loads(last_run_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
-        report.checks.append(CheckResult(
-            "scheduled.cron_configured", SEV_WARN,
-            f"cannot read last_run.json: {exc}",
-            {"path": str(last_run_path)},
-        ))
+        report.checks.append(
+            CheckResult(
+                "scheduled.cron_configured",
+                SEV_WARN,
+                f"cannot read last_run.json: {exc}",
+                {"path": str(last_run_path)},
+            )
+        )
         return
 
     disabled = data.get("disabled_reason")
     if disabled:
-        report.checks.append(CheckResult(
-            "scheduled.cron_configured", SEV_FAIL,
-            f"auto-disabled: {disabled} — run `cos cron run --reset-failures`",
-            {"disabled_reason": disabled, "last_error": data.get("last_error")},
-        ))
+        report.checks.append(
+            CheckResult(
+                "scheduled.cron_configured",
+                SEV_FAIL,
+                f"auto-disabled: {disabled} — run `cos cron run --reset-failures`",
+                {"disabled_reason": disabled, "last_error": data.get("last_error")},
+            )
+        )
         return
 
     failures = int(data.get("consecutive_failures") or 0)
     if failures >= 3:
-        report.checks.append(CheckResult(
-            "scheduled.cron_configured", SEV_FAIL,
-            f"{failures} consecutive failures — run `cos cron run --reset-failures`",
-            {"consecutive_failures": failures, "last_error": data.get("last_error")},
-        ))
+        report.checks.append(
+            CheckResult(
+                "scheduled.cron_configured",
+                SEV_FAIL,
+                f"{failures} consecutive failures — run `cos cron run --reset-failures`",
+                {"consecutive_failures": failures, "last_error": data.get("last_error")},
+            )
+        )
         return
 
     run_at = (data.get("run_at") or "")[:19]
     if run_at:
         try:
-            run_dt = _datetime.datetime.fromisoformat(run_at).replace(
-                tzinfo=_datetime.timezone.utc
-            )
+            run_dt = _datetime.datetime.fromisoformat(run_at).replace(tzinfo=_datetime.timezone.utc)
             now = _datetime.datetime.now(_datetime.timezone.utc)
             age_days = (now - run_dt).total_seconds() / 86400
             if age_days > 2:
-                report.checks.append(CheckResult(
-                    "scheduled.cron_configured", SEV_WARN,
-                    f"last run {age_days:.1f}d ago — is launchd running?",
-                    {"run_at": run_at, "age_days": round(age_days, 1)},
-                ))
+                report.checks.append(
+                    CheckResult(
+                        "scheduled.cron_configured",
+                        SEV_WARN,
+                        f"last run {age_days:.1f}d ago — is launchd running?",
+                        {"run_at": run_at, "age_days": round(age_days, 1)},
+                    )
+                )
                 return
         except (ValueError, TypeError) as exc:
             logger.debug("run_at parse failed: %s", exc)
@@ -1777,18 +1919,22 @@ def _check_scheduled(project: Path, report: DoctorReport) -> None:
         parts.append(f"failures={failures}")
     if run_at:
         parts.append(f"last={run_at[:10]}")
-    report.checks.append(CheckResult(
-        "scheduled.cron_configured", SEV_PASS,
-        ", ".join(parts) if parts else "healthy",
-        {"consecutive_failures": failures, "run_at": run_at or None},
-    ))
+    report.checks.append(
+        CheckResult(
+            "scheduled.cron_configured",
+            SEV_PASS,
+            ", ".join(parts) if parts else "healthy",
+            {"consecutive_failures": failures, "run_at": run_at or None},
+        )
+    )
 
 
 def _format_text(report: DoctorReport, *, strict: bool) -> str:
     header = (
         f"Coding OS Doctor — {report.project_dir}\n"
         f"Agent: {report.agent or '?'}    Templates: {', '.join(report.templates) or 'none'}\n"
-        + "=" * 60
+        + "="
+        * 60
     )
     lines = [header]
     ordered_checks = sorted(report.checks, key=lambda c: (c.category, c.name))
@@ -1811,8 +1957,7 @@ def _format_text(report: DoctorReport, *, strict: bool) -> str:
     )
     if report.suppressed:
         lines.append(
-            f"   suppressed: {report.suppressed} check(s) via "
-            f"{', '.join(report.suppressed_globs)}"
+            f"   suppressed: {report.suppressed} check(s) via {', '.join(report.suppressed_globs)}"
         )
     return "\n".join(lines)
 
@@ -1822,10 +1967,7 @@ def _format_json(report: DoctorReport, *, strict: bool) -> str:
         "project_dir": report.project_dir,
         "agent": report.agent,
         "templates": report.templates,
-        "checks": [
-            {**asdict(c), "category": c.category, "name": c.name}
-            for c in report.checks
-        ],
+        "checks": [{**asdict(c), "category": c.category, "name": c.name} for c in report.checks],
         "summary": {**report.summary(), "exit_code": report.exit_code(strict=strict)},
     }
     return json.dumps(payload, indent=2)
@@ -1869,7 +2011,7 @@ def _probe_claude_sdk() -> None:
         except importlib.metadata.PackageNotFoundError:
             click.echo(f"  [FAIL] {sdk_package} not installed (uv sync --extra rag)")
     else:
-        click.echo(f"  [SKIP] no sdk_package declared in adapter.yaml")
+        click.echo("  [SKIP] no sdk_package declared in adapter.yaml")
 
     cli_path = shutil.which(cli_binary)
     if cli_path:
@@ -1935,6 +2077,7 @@ def _probe_otel() -> None:
         click.echo(f"Probing endpoint: {endpoint}")
         try:
             from urllib.parse import urlparse as _up
+
             parsed = _up(endpoint)
             host = parsed.hostname or "localhost"
             port = parsed.port or (443 if parsed.scheme == "https" else 4317)
@@ -1949,7 +2092,8 @@ def _probe_otel() -> None:
 @click.command()
 @click.option("--project-dir", "-d", default=".", help="Project directory (default: cwd)")
 @click.option(
-    "--format", "output_format",
+    "--format",
+    "output_format",
     type=click.Choice(["text", "json"]),
     default="text",
     help="Output format",
@@ -1957,14 +2101,24 @@ def _probe_otel() -> None:
 @click.option("--strict", is_flag=True, default=False, help="Promote WARN to exit 1")
 @click.option("--manifest", default=None, help="Override manifest file path")
 @click.option("--otel", is_flag=True, default=False, help="Probe OTEL exporter config and exit")
-@click.option("--claude-sdk", "claude_sdk", is_flag=True, default=False, help="Print Claude SDK + CLI compat report and exit")
 @click.option(
-    "--ignore", "ignore_globs", multiple=True,
-    help="Skip checks whose dotted ID matches this fnmatch glob (e.g. 'graph.*'). "
-         "Repeatable. Merged with .coding-os.yaml::doctor.ignore.",
+    "--claude-sdk",
+    "claude_sdk",
+    is_flag=True,
+    default=False,
+    help="Print Claude SDK + CLI compat report and exit",
 )
 @click.option(
-    "--explain", "explain_id", default=None,
+    "--ignore",
+    "ignore_globs",
+    multiple=True,
+    help="Skip checks whose dotted ID matches this fnmatch glob (e.g. 'graph.*'). "
+    "Repeatable. Merged with .coding-os.yaml::doctor.ignore.",
+)
+@click.option(
+    "--explain",
+    "explain_id",
+    default=None,
     help="Print the docs/playbooks/doctor-checks.md section for the given check ID and exit.",
 )
 def doctor(

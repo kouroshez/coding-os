@@ -31,8 +31,16 @@ from formula_composer import (  # noqa: E402
 
 ROLES_DIR = _THINKING_OS / "roles"
 EXPECTED_ROLES = [
-    "researcher", "analyst", "architect", "documenter", "implementer",
-    "reviewer", "debugger", "security_auditor", "deployer", "observer",
+    "researcher",
+    "analyst",
+    "architect",
+    "documenter",
+    "implementer",
+    "reviewer",
+    "debugger",
+    "security_auditor",
+    "deployer",
+    "observer",
     "refactorer",
 ]
 
@@ -92,8 +100,12 @@ def test_preset_ids_unique():
 def test_situations_registry_present():
     sits = load_situations()
     expected = {
-        "incident-response", "onboarding", "scope-change",
-        "external-integration", "design-review", "existing-project-takeover",
+        "incident-response",
+        "onboarding",
+        "scope-change",
+        "external-integration",
+        "design-review",
+        "existing-project-takeover",
     }
     assert expected.issubset(set(sits.keys()))
 

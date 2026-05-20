@@ -1,4 +1,5 @@
 """Tests for cos_graph_centrality, cos_graph_ranking, cos_graph_doctor (Wave 1 A4)."""
+
 from __future__ import annotations
 
 import json
@@ -7,7 +8,6 @@ import pytest
 
 from graph_os.tools import graph
 from graph_os.types import GraphEdge, GraphNode
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -24,19 +24,73 @@ def seeded(migrated_conn, monkeypatch):
     monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
 
     nodes = [
-        GraphNode(uid="code:function:a.py::foo", kind="code:function", label="foo", file_path="a.py", start_line=1),
-        GraphNode(uid="code:function:a.py::bar", kind="code:function", label="bar", file_path="a.py", start_line=10),
-        GraphNode(uid="code:function:a.py::baz", kind="code:function", label="baz", file_path="a.py", start_line=20),
+        GraphNode(
+            uid="code:function:a.py::foo",
+            kind="code:function",
+            label="foo",
+            file_path="a.py",
+            start_line=1,
+        ),
+        GraphNode(
+            uid="code:function:a.py::bar",
+            kind="code:function",
+            label="bar",
+            file_path="a.py",
+            start_line=10,
+        ),
+        GraphNode(
+            uid="code:function:a.py::baz",
+            kind="code:function",
+            label="baz",
+            file_path="a.py",
+            start_line=20,
+        ),
         GraphNode(uid="code:file:a.py", kind="code:file", label="a.py", file_path="a.py"),
         # orphan — no edges
-        GraphNode(uid="code:function:b.py::orphan", kind="code:function", label="orphan", file_path="b.py", start_line=1),
+        GraphNode(
+            uid="code:function:b.py::orphan",
+            kind="code:function",
+            label="orphan",
+            file_path="b.py",
+            start_line=1,
+        ),
     ]
     edges = [
-        GraphEdge(source_uid="code:function:a.py::foo", target_uid="code:function:a.py::bar", edge_type="calls", extractor="test", confidence=0.9),
-        GraphEdge(source_uid="code:function:a.py::bar", target_uid="code:function:a.py::baz", edge_type="calls", extractor="test", confidence=0.8),
-        GraphEdge(source_uid="code:file:a.py", target_uid="code:function:a.py::foo", edge_type="contains", extractor="test", confidence=1.0),
-        GraphEdge(source_uid="code:file:a.py", target_uid="code:function:a.py::bar", edge_type="contains", extractor="test", confidence=1.0),
-        GraphEdge(source_uid="code:file:a.py", target_uid="code:function:a.py::baz", edge_type="contains", extractor="test", confidence=1.0),
+        GraphEdge(
+            source_uid="code:function:a.py::foo",
+            target_uid="code:function:a.py::bar",
+            edge_type="calls",
+            extractor="test",
+            confidence=0.9,
+        ),
+        GraphEdge(
+            source_uid="code:function:a.py::bar",
+            target_uid="code:function:a.py::baz",
+            edge_type="calls",
+            extractor="test",
+            confidence=0.8,
+        ),
+        GraphEdge(
+            source_uid="code:file:a.py",
+            target_uid="code:function:a.py::foo",
+            edge_type="contains",
+            extractor="test",
+            confidence=1.0,
+        ),
+        GraphEdge(
+            source_uid="code:file:a.py",
+            target_uid="code:function:a.py::bar",
+            edge_type="contains",
+            extractor="test",
+            confidence=1.0,
+        ),
+        GraphEdge(
+            source_uid="code:file:a.py",
+            target_uid="code:function:a.py::baz",
+            edge_type="contains",
+            extractor="test",
+            confidence=1.0,
+        ),
     ]
     backend.bulk_upsert(nodes, edges)
     yield backend
@@ -177,6 +231,7 @@ class TestDoctor:
     def test_healthy_graph_no_issues(self, migrated_conn, monkeypatch):
         """Clean graph (no nodes, no edges) = healthy."""
         from graph_os.backends.sqlite_backend import SqliteBackend
+
         backend = SqliteBackend(conn=migrated_conn)
         graph._BACKEND_SINGLETON = backend
         monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
@@ -210,6 +265,7 @@ class TestDoctor:
     def test_self_loop_detected(self, migrated_conn, monkeypatch):
         """Self-loop edge (source_id == target_id) should appear in issues."""
         from graph_os.backends.sqlite_backend import SqliteBackend
+
         backend = SqliteBackend(conn=migrated_conn)
         graph._BACKEND_SINGLETON = backend
         monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
@@ -245,9 +301,7 @@ class TestDoctor:
             "VALUES (?, 'code:function', ?, 'x.py', '{}', 0, 0)",
             (source_uid, source_label),
         )
-        src_id = conn.execute(
-            "SELECT id FROM graph_nodes WHERE uid=?", (source_uid,)
-        ).fetchone()[0]
+        src_id = conn.execute("SELECT id FROM graph_nodes WHERE uid=?", (source_uid,)).fetchone()[0]
         conn.execute(
             "INSERT INTO graph_edges_v12 (source_id, target_id, edge_type, extractor, "
             "confidence, created_at, updated_at) VALUES (?, 9999, 'calls', 'test', 0.9, 0, 0)",
@@ -258,6 +312,7 @@ class TestDoctor:
 
     def test_dangling_edge_detected(self, migrated_conn, monkeypatch):
         from graph_os.backends.sqlite_backend import SqliteBackend
+
         backend = SqliteBackend(conn=migrated_conn)
         graph._BACKEND_SINGLETON = backend
         monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
@@ -269,6 +324,7 @@ class TestDoctor:
 
     def test_fix_flag_clears_dangling(self, migrated_conn, monkeypatch):
         from graph_os.backends.sqlite_backend import SqliteBackend
+
         backend = SqliteBackend(conn=migrated_conn)
         graph._BACKEND_SINGLETON = backend
         monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
@@ -280,6 +336,7 @@ class TestDoctor:
     def test_healthy_true_when_no_issues(self, migrated_conn, monkeypatch):
         """Empty graph = no edges = no dangling, no dupes, no orphans either."""
         from graph_os.backends.sqlite_backend import SqliteBackend
+
         backend = SqliteBackend(conn=migrated_conn)
         graph._BACKEND_SINGLETON = backend
         monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)

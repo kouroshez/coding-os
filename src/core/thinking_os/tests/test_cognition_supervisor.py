@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from cognition import (
     advance,
     ambiguity_check,
@@ -15,18 +14,18 @@ from cognition import (
 )
 from cognition_schemas import (
     Actor,
-    EvidenceBundle,
-    ResearcherOutput,
     AnalystOutput,
     ArchitectOutput,
+    EvidenceBundle,
+    ResearcherOutput,
     Scenario,
     SupervisorState,
 )
 
-
 # ---------------------------------------------------------------------------
 # Registry loading tests
 # ---------------------------------------------------------------------------
+
 
 class TestRegistries:
     def test_situation_registry_loads(self):
@@ -41,7 +40,19 @@ class TestRegistries:
 
     def test_agent_registry_loads(self):
         reg = load_agent_registry()
-        for fid in ["researcher", "analyst", "architect", "documenter", "implementer", "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer"]:
+        for fid in [
+            "researcher",
+            "analyst",
+            "architect",
+            "documenter",
+            "implementer",
+            "reviewer",
+            "debugger",
+            "security_auditor",
+            "deployer",
+            "observer",
+            "refactorer",
+        ]:
             assert fid in reg, f"Missing agent file for {fid}"
 
     def test_agent_registry_has_11_formulas(self):
@@ -53,10 +64,12 @@ class TestRegistries:
 # Supervisor state machine tests
 # ---------------------------------------------------------------------------
 
+
 def _make_state(**kwargs) -> SupervisorState:
     defaults = dict(session_id="ses-test-1", task_marker="feat-auth", persona_id="senior-backend")
     defaults.update(kwargs)
     return SupervisorState(**defaults)
+
 
 def _make_bundle(**kwargs) -> EvidenceBundle:
     defaults = dict(task_marker="feat-auth", persona_id="senior-backend")
@@ -74,7 +87,9 @@ class TestSupervisorAdvance:
 
     def test_routing_builds_queue_and_dispatches(self):
         # Phase N: persona_id carries a composer-derived chain.
-        state = _make_state(phase="ROUTING", persona_id="chain:analyst,architect,implementer,reviewer")
+        state = _make_state(
+            phase="ROUTING", persona_id="chain:analyst,architect,implementer,reviewer"
+        )
         bundle = _make_bundle(persona_id="chain:analyst,architect,implementer,reviewer")
         action = advance(state, bundle)
         assert action.action == "dispatch"
@@ -144,6 +159,7 @@ class TestApplyBacktrack:
 # EvidenceBundle input slice tests
 # ---------------------------------------------------------------------------
 
+
 class TestBuildInputSlice:
     def test_f3_gets_f1_and_f2(self):
         bundle = _make_bundle()
@@ -174,12 +190,15 @@ class TestBuildInputSlice:
         b1.researcher = ResearcherOutput(summary="Research A")
         b2 = _make_bundle()
         b2.researcher = ResearcherOutput(summary="Research B")
-        assert input_hash(build_input_slice("analyst", b1)) != input_hash(build_input_slice("analyst", b2))
+        assert input_hash(build_input_slice("analyst", b1)) != input_hash(
+            build_input_slice("analyst", b2)
+        )
 
 
 # ---------------------------------------------------------------------------
 # Ambiguity gate tests
 # ---------------------------------------------------------------------------
+
 
 class TestAmbiguityCheck:
     def test_empty_bundle_no_violations(self):

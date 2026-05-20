@@ -21,7 +21,9 @@ from task_analyzer import analyze_task  # noqa: E402
 
 
 def test_create_backend_api():
-    sig = analyze_task("add pagination to /users API endpoint", complexity="COMPLICATED", dimensions=3)
+    sig = analyze_task(
+        "add pagination to /users API endpoint", complexity="COMPLICATED", dimensions=3
+    )
     assert sig.action == "create"
     assert "backend" in sig.domain
     assert sig.scope_size == "small"
@@ -31,7 +33,8 @@ def test_create_backend_api():
 def test_debug_incident():
     sig = analyze_task(
         "incident: production down, pager fired, fix the crash on /checkout",
-        complexity="CHAOTIC", dimensions=1,
+        complexity="CHAOTIC",
+        dimensions=1,
     )
     assert sig.action == "debug"
     assert sig.urgency == "incident"
@@ -41,7 +44,8 @@ def test_debug_incident():
 def test_research_spike():
     sig = analyze_task(
         "investigate alternatives to Redis for session storage, compare options",
-        complexity="COMPLEX", dimensions=4,
+        complexity="COMPLEX",
+        dimensions=4,
     )
     assert sig.action == "research"
     assert sig.scope_size == "medium"
@@ -50,7 +54,8 @@ def test_research_spike():
 def test_external_dependency_stripe():
     sig = analyze_task(
         "integrate Stripe webhook for subscription renewal, needs api key",
-        complexity="COMPLICATED", dimensions=3,
+        complexity="COMPLICATED",
+        dimensions=3,
     )
     assert sig.external_dependency is True
     assert "backend" in sig.domain
@@ -59,21 +64,25 @@ def test_external_dependency_stripe():
 def test_frontend_component():
     sig = analyze_task(
         "build a new React component for user profile page",
-        complexity="COMPLICATED", dimensions=2,
+        complexity="COMPLICATED",
+        dimensions=2,
     )
     assert sig.action == "create"
     assert "frontend" in sig.domain
 
 
 def test_has_unknowns_signal():
-    sig = analyze_task("not sure how to approach this, maybe use TBD", complexity="COMPLICATED", dimensions=2)
+    sig = analyze_task(
+        "not sure how to approach this, maybe use TBD", complexity="COMPLICATED", dimensions=2
+    )
     assert sig.has_unknowns is True
 
 
 def test_breaking_change_lexical():
     sig = analyze_task(
         "drop column email from users table, breaking change",
-        complexity="COMPLICATED", dimensions=3,
+        complexity="COMPLICATED",
+        dimensions=3,
     )
     assert sig.breaking_change is True
     assert "db" in sig.domain
@@ -116,6 +125,8 @@ def test_deploy_action_detected():
 
 
 def test_document_action_detected():
-    sig = analyze_task("write docs / ADR for the new auth flow", complexity="COMPLICATED", dimensions=2)
+    sig = analyze_task(
+        "write docs / ADR for the new auth flow", complexity="COMPLICATED", dimensions=2
+    )
     assert sig.action == "document"
     assert "docs" in sig.domain

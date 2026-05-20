@@ -17,7 +17,6 @@ from graph_os.types import GraphEdge, GraphNode
 from graph_os.viewer import build_view
 from graph_os.viewer.template import render
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -31,8 +30,18 @@ def simple_graph():
         GraphNode(uid="doc:file:r.md", kind="doc:file", label="r.md"),
     ]
     edges = [
-        GraphEdge(source_uid="code:function:a", target_uid="code:function:b", edge_type="calls", extractor="t"),
-        GraphEdge(source_uid="doc:file:r.md", target_uid="code:function:a", edge_type="links_to", extractor="t"),
+        GraphEdge(
+            source_uid="code:function:a",
+            target_uid="code:function:b",
+            edge_type="calls",
+            extractor="t",
+        ),
+        GraphEdge(
+            source_uid="doc:file:r.md",
+            target_uid="code:function:a",
+            edge_type="links_to",
+            extractor="t",
+        ),
     ]
     return nodes, edges
 
@@ -96,14 +105,15 @@ class TestTemplate:
     def test_a11y_list_emits_edges(self, simple_graph):
         nodes, edges = simple_graph
         html = render(nodes, edges, title="t", nonce="n")
-        assert "aria-label=\"accessible graph listing\"" in html
+        assert 'aria-label="accessible graph listing"' in html
         assert "calls" in html  # edge type reaches the fallback
 
 
 class TestNonceUniqueness:
     def test_two_builds_differ(self, simple_graph, tmp_path):
-        from graph_os.viewer.exporter import ViewerExporter
         from graph_os.backends.sqlite_backend import SqliteBackend
+        from graph_os.viewer.exporter import ViewerExporter
+
         # We only need a backend instance for the exporter — construct
         # a minimal one using the conftest fixture's pattern.
         pytest.skip("covered by test_build_view via tmp file")
@@ -133,9 +143,7 @@ class TestExporter:
                 continue
             assert re.search(r'nonce="[A-Za-z0-9_\-]+"', tag)
 
-    def test_unique_nonces_across_exports(
-        self, migrated_conn, simple_graph, tmp_path
-    ):
+    def test_unique_nonces_across_exports(self, migrated_conn, simple_graph, tmp_path):
         from graph_os.backends.sqlite_backend import SqliteBackend
 
         backend = SqliteBackend(conn=migrated_conn)
@@ -163,9 +171,7 @@ class TestExporter:
 
 
 def _csp_of(html: str) -> str:
-    match = re.search(
-        r"http-equiv=\"Content-Security-Policy\" content=\"([^\"]+)\"", html
-    )
+    match = re.search(r"http-equiv=\"Content-Security-Policy\" content=\"([^\"]+)\"", html)
     return match.group(1) if match else ""
 
 

@@ -26,58 +26,109 @@ _TAKEOVER_CACHE_TTL_S = 24 * 3600
 # ---------------------------------------------------------------------------
 
 _DOMAIN_KEYWORDS: dict[str, list[str]] = {
-    "backend":       ["api", "endpoint", "route", "server", "service", "handler", "controller"],
-    "frontend":      ["component", "page", "ui", "ux", "react", "next", "tailwind", "jsx", "tsx"],
-    "db":            ["schema", "migration", "table", "column", "sql", "postgres", "sqlite", "index"],
-    "infra":         ["docker", "compose", "kubernetes", "k8s", "terraform", "ansible", "ci/cd"],
-    "devops":        ["pipeline", "deploy", "release", "artifact", "rollout", "canary"],
-    "observability": ["log", "trace", "metric", "alert", "dashboard", "grafana", "prometheus", "sentry"],
-    "security":      ["auth", "security", "vulnerability", "csrf", "xss", "sql injection", "encrypt"],
-    "auth":          ["auth", "jwt", "oauth", "token", "login", "session", "password"],
-    "ai-ml":         ["model", "llm", "embedding", "prompt", "rag", "fine-tune"],
-    "docs":          ["docs", "documentation", "readme", "adr", "playbook"],
-    "mobile":        ["ios", "android", "react-native", "flutter", "mobile"],
+    "backend": ["api", "endpoint", "route", "server", "service", "handler", "controller"],
+    "frontend": ["component", "page", "ui", "ux", "react", "next", "tailwind", "jsx", "tsx"],
+    "db": ["schema", "migration", "table", "column", "sql", "postgres", "sqlite", "index"],
+    "infra": ["docker", "compose", "kubernetes", "k8s", "terraform", "ansible", "ci/cd"],
+    "devops": ["pipeline", "deploy", "release", "artifact", "rollout", "canary"],
+    "observability": [
+        "log",
+        "trace",
+        "metric",
+        "alert",
+        "dashboard",
+        "grafana",
+        "prometheus",
+        "sentry",
+    ],
+    "security": ["auth", "security", "vulnerability", "csrf", "xss", "sql injection", "encrypt"],
+    "auth": ["auth", "jwt", "oauth", "token", "login", "session", "password"],
+    "ai-ml": ["model", "llm", "embedding", "prompt", "rag", "fine-tune"],
+    "docs": ["docs", "documentation", "readme", "adr", "playbook"],
+    "mobile": ["ios", "android", "react-native", "flutter", "mobile"],
 }
 
 _ACTION_VERBS: dict[str, list[str]] = {
-    "create":   ["add", "build", "create", "implement", "introduce", "new", "scaffold", "integrate"],
-    "modify":   ["update", "modify", "change", "adjust", "extend", "tweak", "rename"],
-    "debug":    ["fix", "debug", "bug", "error", "broken", "failing", "crash", "regression"],
+    "create": ["add", "build", "create", "implement", "introduce", "new", "scaffold", "integrate"],
+    "modify": ["update", "modify", "change", "adjust", "extend", "tweak", "rename"],
+    "debug": ["fix", "debug", "bug", "error", "broken", "failing", "crash", "regression"],
     "research": ["research", "investigate", "explore", "evaluate", "compare", "spike", "prototype"],
-    "review":   ["code review", "pr review", "review the code", "inspect", "verify"],
-    "deploy":   ["deploy", "release", "ship", "rollout", "launch"],
+    "review": ["code review", "pr review", "review the code", "inspect", "verify"],
+    "deploy": ["deploy", "release", "ship", "rollout", "launch"],
     "refactor": ["refactor", "cleanup", "reorganize", "simplify", "consolidate"],
     "document": ["document", "describe", "write docs", "readme", "adr"],
-    "audit":    ["audit", "scan", "vet", "penetration", "security review"],
+    "audit": ["audit", "scan", "vet", "penetration", "security review"],
 }
 
 _EXTERNAL_DEP_TOKENS = [
-    "stripe", "twilio", "sendgrid", "oauth", "jwt", "kms", "sns", "sqs",
-    "auth0", "okta", "cognito", "firebase", "sentry", "datadog",
-    "openai", "anthropic", "google", "gcp", "aws", "azure",
-    "api key", "api token", "access token", "sdk",
+    "stripe",
+    "twilio",
+    "sendgrid",
+    "oauth",
+    "jwt",
+    "kms",
+    "sns",
+    "sqs",
+    "auth0",
+    "okta",
+    "cognito",
+    "firebase",
+    "sentry",
+    "datadog",
+    "openai",
+    "anthropic",
+    "google",
+    "gcp",
+    "aws",
+    "azure",
+    "api key",
+    "api token",
+    "access token",
+    "sdk",
 ]
 
 _INCIDENT_TOKENS = [
-    "incident", "pager", "paged", "asap", "production down", "prod down",
-    "s0", "s1", "severity 0", "severity 1", "outage", "on fire",
+    "incident",
+    "pager",
+    "paged",
+    "asap",
+    "production down",
+    "prod down",
+    "s0",
+    "s1",
+    "severity 0",
+    "severity 1",
+    "outage",
+    "on fire",
 ]
 
 _UNKNOWN_TOKENS = ["not sure", "maybe", "tbd", "todo", "unclear", "??", "probably", "might"]
 
 _BREAKING_TOKENS = [
-    "breaking change", "backwards incompatible", "schema change",
-    "remove column", "drop table", "rename endpoint", "deprecate",
+    "breaking change",
+    "backwards incompatible",
+    "schema change",
+    "remove column",
+    "drop table",
+    "rename endpoint",
+    "deprecate",
 ]
 
 _PROD_IMPACT_TOKENS = [
-    "production", "customer facing", "user facing", "live", "in prod",
-    "revenue", "payment", "billing",
+    "production",
+    "customer facing",
+    "user facing",
+    "live",
+    "in prod",
+    "revenue",
+    "payment",
+    "billing",
 ]
 
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def analyze_task(
     prompt: str,
@@ -130,7 +181,9 @@ def analyze_task(
     novelty = 0.0
     try:
         novelty = _extract_novelty(prompt, mcp_hooks)
-        evidence["novelty_source"] = "cos_search" if mcp_hooks and "cos_search" in mcp_hooks else "default"
+        evidence["novelty_source"] = (
+            "cos_search" if mcp_hooks and "cos_search" in mcp_hooks else "default"
+        )
     except Exception as exc:
         source_errors.append(f"novelty:{type(exc).__name__}")
 
@@ -180,6 +233,7 @@ def analyze_task(
 # ---------------------------------------------------------------------------
 # Per-signal extractors (private)
 # ---------------------------------------------------------------------------
+
 
 def _extract_action(lowered: str) -> str:
     best = ("unknown", 0)
@@ -338,6 +392,7 @@ def _source_paths(project_dir: Path) -> list[str]:
     if stack_yaml.exists():
         try:
             import yaml
+
             data = yaml.safe_load(stack_yaml.read_text()) or {}
             paths = data.get("source_paths")
             if isinstance(paths, list) and paths:
@@ -351,6 +406,7 @@ def _source_paths(project_dir: Path) -> list[str]:
 # ---------------------------------------------------------------------------
 # Cache helpers (flock-safe)
 # ---------------------------------------------------------------------------
+
 
 def _cache_path(agent_dir: Path | None, task_marker: str | None) -> Path | None:
     if agent_dir is None or task_marker is None:
@@ -388,6 +444,7 @@ def _flock_write(path: Path, content: str) -> None:
     """POSIX advisory-lock write. Falls back to plain write on Windows."""
     try:
         import fcntl
+
         lock_path = path.with_suffix(path.suffix + ".lock")
         with open(lock_path, "w") as lock_fd:
             fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)

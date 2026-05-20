@@ -7,15 +7,15 @@ Covers each section, empty DB, absent DB, and data-filled scenarios.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db
 from dashboard import generate_dashboard
+from database import init_db
 
 
 @pytest.fixture
@@ -35,9 +35,14 @@ def seeded_path(db_path: Path) -> Path:
             conn.execute(
                 "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, model) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (f"TASK-{i}", "feat", ["BACKEND", "FRONTEND"][i % 2],
-                 "CLEAR", ["success", "success", "rework"][i % 3],
-                 ["sonnet", "opus"][i % 2]),
+                (
+                    f"TASK-{i}",
+                    "feat",
+                    ["BACKEND", "FRONTEND"][i % 2],
+                    "CLEAR",
+                    ["success", "success", "rework"][i % 3],
+                    ["sonnet", "opus"][i % 2],
+                ),
             )
         # Patterns
         for i in range(8):

@@ -6,12 +6,12 @@ DEPENDS:  extractors, backend, stdlib time.
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 from ..backend import GraphBackend
-from ..extractors import code_python, md_links, contracts
+from ..extractors import code_python, contracts, md_links
 
 
 @dataclass
@@ -92,4 +92,4 @@ def _extractors_for(suffix: str):
     return ()
 
 
-__all__ = ["BenchResult", "run_benchmark", "assert_within_budget"]
+__all__ = ["BenchResult", "assert_within_budget", "run_benchmark"]

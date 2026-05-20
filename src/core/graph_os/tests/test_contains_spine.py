@@ -20,7 +20,6 @@ from graph_os.extractors import (
 )
 from graph_os.types import NodeKind, normalize_kind
 
-
 # ---------------------------------------------------------------------------
 # NodeKind / normalize_kind
 # ---------------------------------------------------------------------------
@@ -30,9 +29,22 @@ class TestNodeKindEnum:
     def test_core_members_present(self):
         # Task scope lists these as the minimum required vocabulary.
         required = {
-            "folder", "file", "class", "method", "function",
-            "variable", "import_", "route", "tool", "event", "task",
-            "doc_file", "doc_heading", "rule", "skill", "contract",
+            "folder",
+            "file",
+            "class",
+            "method",
+            "function",
+            "variable",
+            "import_",
+            "route",
+            "tool",
+            "event",
+            "task",
+            "doc_file",
+            "doc_heading",
+            "rule",
+            "skill",
+            "contract",
             "community",
         }
         values = {k.value for k in NodeKind}
@@ -80,11 +92,7 @@ class TestNodeKindEnum:
 
 
 def _contains_edges(result) -> list[tuple[str, str]]:
-    return [
-        (e.source_uid, e.target_uid)
-        for e in result.edges
-        if e.edge_type == "contains"
-    ]
+    return [(e.source_uid, e.target_uid) for e in result.edges if e.edge_type == "contains"]
 
 
 def _folder_nodes(result) -> list:
@@ -227,15 +235,11 @@ class TestConnectedSpineFixture:
         contains_children: dict[str, list[str]] = {}
         for e in edges:
             if e.edge_type == "contains":
-                contains_children.setdefault(e.source_uid, []).append(
-                    e.target_uid
-                )
+                contains_children.setdefault(e.source_uid, []).append(e.target_uid)
 
         # BFS from repo root; every leaf method must be reachable.
         root = "folder:."
-        assert root in contains_children or any(
-            root == n.uid for n in nodes
-        )
+        assert root in contains_children or any(root == n.uid for n in nodes)
         reachable: set[str] = {root}
         frontier = [root]
         while frontier:
@@ -271,9 +275,7 @@ class TestConnectedSpineFixture:
                 key = (e.source_uid, e.target_uid)
                 pairs[key] = pairs.get(key, 0) + 1
             dups = {k: v for k, v in pairs.items() if v > 1}
-            assert not dups, (
-                f"duplicate contains edges in single extract of {path}: {dups}"
-            )
+            assert not dups, f"duplicate contains edges in single extract of {path}: {dups}"
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +287,7 @@ class TestMigrationV16:
     def test_rewrites_legacy_kinds(self, tmp_path):
         """Insert legacy-kind rows into a throwaway DB then apply v16."""
         import sqlite3
+
         import database  # type: ignore
 
         db_path = str(tmp_path / "migration-v16.db")
@@ -320,9 +323,7 @@ class TestMigrationV16:
         conn.commit()
         database.run_migrations(conn)
 
-        rows = conn.execute(
-            "SELECT uid, kind FROM graph_nodes ORDER BY uid"
-        ).fetchall()
+        rows = conn.execute("SELECT uid, kind FROM graph_nodes ORDER BY uid").fetchall()
         kind_by_uid = {r[0]: r[1] for r in rows}
 
         assert kind_by_uid["code:function:foo::bar"] == "function"

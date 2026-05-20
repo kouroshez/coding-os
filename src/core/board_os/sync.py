@@ -37,12 +37,9 @@ def _iter_task_files(project_root: Path) -> list[Path]:
     return sorted(files)
 
 
-def _fetch_existing(
-    conn: sqlite3.Connection, task_id: str
-) -> dict[str, object] | None:
+def _fetch_existing(conn: sqlite3.Connection, task_id: str) -> dict[str, object] | None:
     row = conn.execute(
-        "SELECT task_id, status, mtime, content_hash "
-        "FROM tasks WHERE task_id = ?",
+        "SELECT task_id, status, mtime, content_hash FROM tasks WHERE task_id = ?",
         (task_id,),
     ).fetchone()
     if row is None:
@@ -142,6 +139,7 @@ def _iso_to_epoch(iso: str | None) -> int | None:
         return None
     try:
         from datetime import datetime, timezone
+
         return int(datetime.fromisoformat(iso).replace(tzinfo=timezone.utc).timestamp())
     except Exception:
         return None
@@ -173,7 +171,11 @@ def sync_one(
     old_status = existing["status"] if existing else None
 
     _upsert_task(
-        conn, parsed, file_path=rel_path, mtime=mtime, content_hash=content_hash,
+        conn,
+        parsed,
+        file_path=rel_path,
+        mtime=mtime,
+        content_hash=content_hash,
     )
 
     if old_status and old_status != parsed.status:
@@ -189,9 +191,7 @@ def sync_one(
     return parsed
 
 
-def sync_all(
-    conn: sqlite3.Connection, project_root: Path | None = None
-) -> dict[str, int]:
+def sync_all(conn: sqlite3.Connection, project_root: Path | None = None) -> dict[str, int]:
     """Full sync of docs/tasks/.  Returns counters for observability."""
     project_root = (project_root or Path.cwd()).resolve()
     files = _iter_task_files(project_root)

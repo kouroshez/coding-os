@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 
 import yaml
-
 from cognition_schemas import ComposedChain, RoleActivation, TaskSignals
 
 _HERE = Path(__file__).resolve().parent
@@ -19,8 +18,17 @@ _SITUATIONS_FILE = _HERE / "situations" / "registry.yaml"
 # `canonical_order: N` field. Sorted ascending; ties broken alphabetically.
 # Adding a new role requires only a frontmatter entry — no edit here.
 _CANONICAL_ORDER_FALLBACK: list[str] = [
-    "researcher", "analyst", "architect", "documenter", "implementer",
-    "reviewer", "debugger", "security_auditor", "deployer", "observer", "refactorer",
+    "researcher",
+    "analyst",
+    "architect",
+    "documenter",
+    "implementer",
+    "reviewer",
+    "debugger",
+    "security_auditor",
+    "deployer",
+    "observer",
+    "refactorer",
 ]
 
 
@@ -163,7 +171,7 @@ def load_situations() -> dict[str, dict]:
     if _SITUATIONS_FILE.exists():
         try:
             data = yaml.safe_load(_SITUATIONS_FILE.read_text()) or {}
-            for sit in (data.get("situations") or []):
+            for sit in data.get("situations") or []:
                 if "id" in sit:
                     situations[sit["id"]] = sit
         except Exception:
@@ -213,7 +221,8 @@ def compose_chain(
     activations = score_all_roles(signals)
     roles = load_roles()
     active = [
-        a for a in activations
+        a
+        for a in activations
         if a.score >= int((roles.get(a.role_id) or {}).get("activation", {}).get("min_score", 1))
     ]
     if active:
@@ -246,22 +255,26 @@ def score_all_roles(signals: TaskSignals) -> list[RoleActivation]:
         matched: list[str] = []
         skipped: list[str] = []
         score = 0
-        for trig in (activation.get("primary_triggers") or []):
+        for trig in activation.get("primary_triggers") or []:
             if _trigger_matches(trig, signals):
                 score += int(trig.get("weight", 1))
                 matched.append(_trigger_desc(trig))
-        for trig in (activation.get("secondary_triggers") or []):
+        for trig in activation.get("secondary_triggers") or []:
             if _trigger_matches(trig, signals):
                 score += int(trig.get("weight", 1))
                 matched.append(_trigger_desc(trig))
-        for trig in (activation.get("deactivators") or []):
+        for trig in activation.get("deactivators") or []:
             if _trigger_matches(trig, signals):
                 score -= int(trig.get("weight", 1))
                 skipped.append(_trigger_desc(trig))
-        out.append(RoleActivation(
-            role_id=rid, score=score,
-            matched_triggers=matched, skipped_deactivators=skipped,
-        ))
+        out.append(
+            RoleActivation(
+                role_id=rid,
+                score=score,
+                matched_triggers=matched,
+                skipped_deactivators=skipped,
+            )
+        )
     out.sort(key=lambda a: (-a.score, _CANONICAL_INDEX.get(a.role_id, 999)))
     return out
 
@@ -308,9 +321,7 @@ def _trigger_desc(trig: dict) -> str:
     return ":".join(parts)
 
 
-def _match_best_preset(
-    signals: TaskSignals, presets: list[dict], threshold: int
-) -> dict | None:
+def _match_best_preset(signals: TaskSignals, presets: list[dict], threshold: int) -> dict | None:
     candidates: list[tuple[int, dict]] = []
     for preset in presets:
         match = preset.get("match") or {}
@@ -382,7 +393,7 @@ def _order_canonical(role_ids: list[str]) -> list[str]:
 def _extract_situation_chain(sit: dict) -> list[str]:
     """Pull formula IDs from a situation's dispatch_chain."""
     chain: list[str] = []
-    for step in (sit.get("dispatch_chain") or []):
+    for step in sit.get("dispatch_chain") or []:
         if isinstance(step, dict) and "dispatch" in step:
             chain.append(str(step["dispatch"]))
     return chain

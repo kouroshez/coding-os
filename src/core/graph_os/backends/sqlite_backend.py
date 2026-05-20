@@ -12,8 +12,9 @@ import os
 import sqlite3
 import threading
 import time
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode, normalize_kind
 
@@ -29,10 +30,12 @@ def _import_db_module() -> Any:
     invocation without editable install).
     """
     try:
-        from thinking_os import database as _db  # type: ignore  # noqa: PLC0415
+        from thinking_os import database as _db  # type: ignore
+
         return _db
     except ImportError:
-        import database as _db  # type: ignore  # noqa: PLC0415
+        import database as _db  # type: ignore
+
         return _db
 
 
@@ -63,21 +66,18 @@ class SqliteBackend:
         else:
             try:
                 from thinking_os.database import resolve_db_path  # type: ignore
+
                 resolved = db_path or str(resolve_db_path())
             except ImportError:
                 # Standalone — fall back to env var + repo-relative default.
-                resolved = db_path or os.environ.get(
-                    "COS_DB_PATH", ".coding-os/coding-os.db"
-                )
+                resolved = db_path or os.environ.get("COS_DB_PATH", ".coding-os/coding-os.db")
             Path(resolved).parent.mkdir(parents=True, exist_ok=True)
             db = _import_db_module()
             # B1: own-connection path opens with check_same_thread=False so
             # multiple MCP threads can share this backend instance. WAL +
             # busy_timeout give us concurrent readers + a writer without
             # SQLITE_BUSY spam.
-            self._conn = sqlite3.connect(
-                resolved, timeout=10, check_same_thread=False
-            )
+            self._conn = sqlite3.connect(resolved, timeout=10, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             self._conn.execute("PRAGMA journal_mode = WAL")
             self._conn.execute("PRAGMA synchronous = NORMAL")
@@ -134,8 +134,7 @@ class SqliteBackend:
             kind_value = node.kind
         with self._write_lock:
             row = self._conn.execute(
-                "SELECT id, doc_blob, signature, metadata_json "
-                "FROM graph_nodes WHERE uid = ?",
+                "SELECT id, doc_blob, signature, metadata_json FROM graph_nodes WHERE uid = ?",
                 (node.uid,),
             ).fetchone()
             if row is None:
@@ -269,9 +268,7 @@ class SqliteBackend:
                             edge_id,
                         ),
                     )
-                    cursor.execute(
-                        "DELETE FROM graph_evidence_v12 WHERE edge_id=?", (edge_id,)
-                    )
+                    cursor.execute("DELETE FROM graph_evidence_v12 WHERE edge_id=?", (edge_id,))
 
                 for signal in edge.evidence:
                     cursor.execute(
@@ -314,9 +311,7 @@ class SqliteBackend:
     def delete_node(self, uid: str) -> bool:
         """Remove a node; FK CASCADE removes edges + evidence."""
         with self._write_lock:
-            cursor = self._conn.execute(
-                "DELETE FROM graph_nodes WHERE uid=?", (uid,)
-            )
+            cursor = self._conn.execute("DELETE FROM graph_nodes WHERE uid=?", (uid,))
             self._conn.commit()
             return cursor.rowcount > 0
 
@@ -368,13 +363,11 @@ class SqliteBackend:
 
             stubs_by_label: dict[str, list[tuple[int, str, str]]] = {}
             for stub_id, stub_uid in stub_rows:
-                rest = stub_uid[len("code:external:"):]
+                rest = stub_uid[len("code:external:") :]
                 module, _, name = rest.rpartition(":")
                 if not module or not name:
                     continue
-                stubs_by_label.setdefault(name, []).append(
-                    (int(stub_id), module, stub_uid)
-                )
+                stubs_by_label.setdefault(name, []).append((int(stub_id), module, stub_uid))
 
             if not stubs_by_label:
                 return 0
@@ -392,9 +385,7 @@ class SqliteBackend:
             ).fetchall()
             real_by_label: dict[str, list[tuple[int, str]]] = {}
             for real_id, real_label, real_file in real_rows:
-                real_by_label.setdefault(real_label, []).append(
-                    (int(real_id), real_file)
-                )
+                real_by_label.setdefault(real_label, []).append((int(real_id), real_file))
 
             rewrites = 0
             for label, candidate_stubs in stubs_by_label.items():
@@ -416,8 +407,7 @@ class SqliteBackend:
                     if matched_real_id is None:
                         continue
                     self._conn.execute(
-                        "UPDATE graph_edges_v12 SET target_id = ? "
-                        "WHERE target_id = ?",
+                        "UPDATE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
                         (matched_real_id, stub_id),
                     )
                     rewrites += 1
@@ -470,9 +460,7 @@ class SqliteBackend:
     def count_nodes(self, kind: str | None = None) -> int:
         with self._write_lock:
             if kind is None:
-                row = self._conn.execute(
-                    "SELECT COUNT(*) FROM graph_nodes"
-                ).fetchone()
+                row = self._conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()
             else:
                 # Accept legacy or canonical form; storage is canonical.
                 try:
@@ -487,9 +475,7 @@ class SqliteBackend:
     def count_edges(self, edge_type: str | None = None) -> int:
         with self._write_lock:
             if edge_type is None:
-                row = self._conn.execute(
-                    "SELECT COUNT(*) FROM graph_edges_v12"
-                ).fetchone()
+                row = self._conn.execute("SELECT COUNT(*) FROM graph_edges_v12").fetchone()
             else:
                 row = self._conn.execute(
                     "SELECT COUNT(*) FROM graph_edges_v12 WHERE edge_type=?",
@@ -516,14 +502,10 @@ class SqliteBackend:
         params: list[Any] = [float(confidence_min)]
 
         if source_uid is not None:
-            where_parts.append(
-                "e.source_id = (SELECT id FROM graph_nodes WHERE uid=?)"
-            )
+            where_parts.append("e.source_id = (SELECT id FROM graph_nodes WHERE uid=?)")
             params.append(source_uid)
         if target_uid is not None:
-            where_parts.append(
-                "e.target_id = (SELECT id FROM graph_nodes WHERE uid=?)"
-            )
+            where_parts.append("e.target_id = (SELECT id FROM graph_nodes WHERE uid=?)")
             params.append(target_uid)
         if edge_types:
             placeholders = ",".join("?" for _ in edge_types)
@@ -577,10 +559,7 @@ class SqliteBackend:
             if include_evidence:
                 ev_rows = evidence_by_edge.get(int(edge_row[0]), [])
                 evidence_tuple = tuple(
-                    EvidenceSignal(
-                        signal_name=r[1], weight=float(r[2]), note=r[3]
-                    )
-                    for r in ev_rows
+                    EvidenceSignal(signal_name=r[1], weight=float(r[2]), note=r[3]) for r in ev_rows
                 )
             edges.append(
                 GraphEdge(
@@ -632,13 +611,9 @@ class SqliteBackend:
     # -- Internal helpers --------------------------------------------------
 
     def _node_id_for_uid(self, uid: str) -> int:
-        row = self._conn.execute(
-            "SELECT id FROM graph_nodes WHERE uid=?", (uid,)
-        ).fetchone()
+        row = self._conn.execute("SELECT id FROM graph_nodes WHERE uid=?", (uid,)).fetchone()
         if row is None:
-            raise ValueError(
-                f"unknown uid {uid!r}: upsert the node before emitting edges"
-            )
+            raise ValueError(f"unknown uid {uid!r}: upsert the node before emitting edges")
         return int(row[0])
 
     @staticmethod

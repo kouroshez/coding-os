@@ -24,8 +24,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db  # noqa: E402
-from digest import (  # noqa: E402
+from database import init_db
+from digest import (
     _ACTIVE_MIN,
     _FADING_MAX,
     _FADING_MIN,
@@ -35,10 +35,10 @@ from digest import (  # noqa: E402
     render,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -72,6 +72,7 @@ def _seed_outcomes(conn: sqlite3.Connection, n_success: int, n_rework: int) -> N
 # ---------------------------------------------------------------------------
 # render() — pure function contract
 # ---------------------------------------------------------------------------
+
 
 class TestRenderShape:
     def test_empty_db_still_returns_valid_digest(
@@ -113,6 +114,7 @@ class TestRenderShape:
 # Belief / fading / breakthrough selection
 # ---------------------------------------------------------------------------
 
+
 class TestSectionSelection:
     def test_active_beliefs_filter_confidence(
         self, conn: sqlite3.Connection, fixed_now: datetime
@@ -132,12 +134,9 @@ class TestSectionSelection:
         assert "keep-me-also" in body
         assert "drop-me-low" not in body
 
-    def test_fading_window(
-        self, conn: sqlite3.Connection, fixed_now: datetime
-    ) -> None:
+    def test_fading_window(self, conn: sqlite3.Connection, fixed_now: datetime) -> None:
         conn.executemany(
-            "INSERT INTO learned_patterns "
-            "(pattern, confidence, times_validated) VALUES (?, ?, ?)",
+            "INSERT INTO learned_patterns (pattern, confidence, times_validated) VALUES (?, ?, ?)",
             [
                 ("fading-in-window", _FADING_MIN + 0.05, 2),
                 ("fading-never-validated", _FADING_MIN + 0.05, 0),
@@ -173,12 +172,9 @@ class TestSectionSelection:
         assert "TASK-RECENT" in body
         assert "TASK-OLD" not in body
 
-    def test_preferences_memory_types(
-        self, conn: sqlite3.Connection, fixed_now: datetime
-    ) -> None:
+    def test_preferences_memory_types(self, conn: sqlite3.Connection, fixed_now: datetime) -> None:
         conn.executemany(
-            "INSERT INTO learned_patterns "
-            "(pattern, memory_type, confidence) VALUES (?, ?, ?)",
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence) VALUES (?, ?, ?)",
             [
                 ("prefer-terse-responses", "decision", 0.7),
                 ("workflow-commit-often", "workflow", 0.6),
@@ -196,10 +192,9 @@ class TestSectionSelection:
 # Determinism
 # ---------------------------------------------------------------------------
 
+
 class TestDeterminism:
-    def test_same_state_same_output(
-        self, conn: sqlite3.Connection, fixed_now: datetime
-    ) -> None:
+    def test_same_state_same_output(self, conn: sqlite3.Connection, fixed_now: datetime) -> None:
         conn.execute(
             "INSERT INTO learned_patterns (pattern, confidence, impact_score, times_validated) "
             "VALUES (?, ?, ?, ?)",
@@ -214,6 +209,7 @@ class TestDeterminism:
 # ---------------------------------------------------------------------------
 # regenerate() — filesystem side
 # ---------------------------------------------------------------------------
+
 
 class TestRegenerate:
     def test_writes_to_expected_path(

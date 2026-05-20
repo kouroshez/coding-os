@@ -59,6 +59,7 @@ from .md_links import (
 
 try:
     from .. import tree_sitter_overlay as _ts_overlay
+
     _TS_AVAILABLE = _ts_overlay.is_available()
 except ImportError:
     _ts_overlay = None  # type: ignore[assignment]
@@ -184,7 +185,9 @@ def _classify_test_func(name: str, file_path: str) -> str | None:
     if name == "TestMain":
         return "test_main"
     for prefix, kind in _TEST_KIND_MAP.items():
-        if name.startswith(prefix) and (len(name) == len(prefix) or name[len(prefix)].isupper() or name[len(prefix)] == "_"):
+        if name.startswith(prefix) and (
+            len(name) == len(prefix) or name[len(prefix)].isupper() or name[len(prefix)] == "_"
+        ):
             return kind
     return None
 
@@ -210,7 +213,7 @@ def _find_child(node: Any, ntype: str) -> Any | None:
 def _find_field(node: Any, field_name: str) -> Any | None:
     try:
         return node.child_by_field_name(field_name)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 
@@ -313,10 +316,33 @@ def _emit_type_relation(
 
 
 _GO_BUILTIN_TYPES = {
-    "bool", "byte", "complex64", "complex128", "error", "float32", "float64",
-    "int", "int8", "int16", "int32", "int64", "rune", "string", "uint",
-    "uint8", "uint16", "uint32", "uint64", "uintptr", "any", "comparable",
-    "map", "chan", "interface", "struct", "func",
+    "bool",
+    "byte",
+    "complex64",
+    "complex128",
+    "error",
+    "float32",
+    "float64",
+    "int",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "rune",
+    "string",
+    "uint",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+    "uintptr",
+    "any",
+    "comparable",
+    "map",
+    "chan",
+    "interface",
+    "struct",
+    "func",
 }
 
 
@@ -366,8 +392,12 @@ def _walk_function_decl(
     if uid is None:
         return
     _emit_param_and_return_edges(
-        uid, params_node, result_node, content_bytes,
-        path=path, result=result,
+        uid,
+        params_node,
+        result_node,
+        content_bytes,
+        path=path,
+        result=result,
     )
     if test_kind:
         result.edges.append(
@@ -430,8 +460,12 @@ def _walk_method_decl(
             )
         )
     _emit_param_and_return_edges(
-        uid, params_node, result_node, content_bytes,
-        path=path, result=result,
+        uid,
+        params_node,
+        result_node,
+        content_bytes,
+        path=path,
+        result=result,
     )
 
 
@@ -655,11 +689,15 @@ def _walk_imports(
 ) -> None:
     for child in node.children:
         if child.type == "import_spec":
-            _emit_import_spec(child, content_bytes, module_uid_str, file_uid_str, result, seen_imports)
+            _emit_import_spec(
+                child, content_bytes, module_uid_str, file_uid_str, result, seen_imports
+            )
         elif child.type == "import_spec_list":
             for sub in child.children:
                 if sub.type == "import_spec":
-                    _emit_import_spec(sub, content_bytes, module_uid_str, file_uid_str, result, seen_imports)
+                    _emit_import_spec(
+                        sub, content_bytes, module_uid_str, file_uid_str, result, seen_imports
+                    )
 
 
 def _emit_import_spec(
@@ -709,10 +747,16 @@ def _emit_import_spec(
             extractor=EXTRACTOR_ID,
             confidence=0.95,
             evidence=(
-                EvidenceSignal("go_dot_import" if is_dot else
-                                "go_blank_import" if is_blank else
-                                "go_aliased_import" if alias else
-                                "go_import", 0.95),
+                EvidenceSignal(
+                    "go_dot_import"
+                    if is_dot
+                    else "go_blank_import"
+                    if is_blank
+                    else "go_aliased_import"
+                    if alias
+                    else "go_import",
+                    0.95,
+                ),
             ),
         )
     )
@@ -896,49 +940,69 @@ def _walk_ts(
                     break
         elif ntype == "function_declaration":
             _walk_function_decl(
-                node, content_bytes,
-                path=path, normalised=normalised,
+                node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
-                result=result, seen=seen_funcs,
+                result=result,
+                seen=seen_funcs,
             )
         elif ntype == "method_declaration":
             _walk_method_decl(
-                node, content_bytes,
-                path=path, normalised=normalised,
+                node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
-                result=result, seen=seen_funcs,
+                result=result,
+                seen=seen_funcs,
             )
         elif ntype == "type_declaration":
             _walk_type_decl(
-                node, content_bytes,
-                path=path, normalised=normalised,
+                node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
-                result=result, seen=seen_types,
+                result=result,
+                seen=seen_types,
             )
         elif ntype == "import_declaration":
             _walk_imports(
-                node, content_bytes,
+                node,
+                content_bytes,
                 module_uid_str=module_uid_str,
                 file_uid_str=file_uid_str,
-                result=result, seen_imports=seen_imports,
+                result=result,
+                seen_imports=seen_imports,
             )
         elif ntype == "var_declaration":
             _walk_var_const(
-                node, content_bytes,
-                path=path, normalised=normalised,
+                node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
-                result=result, seen=seen_vars, is_const=False,
+                result=result,
+                seen=seen_vars,
+                is_const=False,
             )
         elif ntype == "const_declaration":
             _walk_var_const(
-                node, content_bytes,
-                path=path, normalised=normalised,
+                node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
-                result=result, seen=seen_vars, is_const=True,
+                result=result,
+                seen=seen_vars,
+                is_const=True,
             )
         elif ntype == "composite_literal":
             _walk_composite_constructs(
-                node, content_bytes,
+                node,
+                content_bytes,
                 path=path,
                 module_uid_str=module_uid_str,
                 result=result,
@@ -1017,15 +1081,21 @@ def _walk_regex(
 
     for match in _IMPORT_SINGLE_RE.finditer(content):
         _emit_regex_import(
-            match.group("path"), match.group("alias") or "",
-            module_uid_str, result, seen_imports,
+            match.group("path"),
+            match.group("alias") or "",
+            module_uid_str,
+            result,
+            seen_imports,
         )
     for block in _IMPORT_BLOCK_RE.finditer(content):
         body = block.group("body") or ""
         for line_match in _IMPORT_LINE_RE.finditer(body):
             _emit_regex_import(
-                line_match.group("path"), line_match.group("alias") or "",
-                module_uid_str, result, seen_imports,
+                line_match.group("path"),
+                line_match.group("alias") or "",
+                module_uid_str,
+                result,
+                seen_imports,
             )
 
     _walk_calls_regex(content, module_uid_str=module_uid_str, result=result)
@@ -1097,23 +1167,29 @@ def extract(path: str, content: str) -> ExtractionResult:
         if parsed is not None:
             used_ts = True
             pkg_name, err_count = _walk_ts(
-                parsed.root, content.encode("utf-8"),
-                path=path, normalised=normalised,
+                parsed.root,
+                content.encode("utf-8"),
+                path=path,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
                 file_uid_str=file_uid_str,
                 result=result,
             )
             if err_count:
                 from .md_links import ParseError
+
                 result.parse_errors.append(
-                    ParseError(kind="tree_sitter_error",
-                               detail=f"tree-sitter recorded {err_count} ERROR node(s)")
+                    ParseError(
+                        kind="tree_sitter_error",
+                        detail=f"tree-sitter recorded {err_count} ERROR node(s)",
+                    )
                 )
 
     if not used_ts:
         pkg_name = _walk_regex(
             content,
-            path=path, normalised=normalised,
+            path=path,
+            normalised=normalised,
             module_uid_str=module_uid_str,
             file_uid_str=file_uid_str,
             result=result,
@@ -1195,13 +1271,13 @@ def extract(path: str, content: str) -> ExtractionResult:
 
 __all__ = [
     "EXTRACTOR_ID",
+    "class_uid",
     "extract",
     "file_uid",
-    "module_uid",
     "func_uid",
-    "method_uid",
-    "class_uid",
-    "variable_uid",
-    "package_uid",
     "import_uid",
+    "method_uid",
+    "module_uid",
+    "package_uid",
+    "variable_uid",
 ]

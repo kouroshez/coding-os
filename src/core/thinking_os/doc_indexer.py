@@ -29,8 +29,8 @@ import logging
 import re
 import sqlite3
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 logger = logging.getLogger("coding_os.doc_indexer")
 
@@ -58,6 +58,7 @@ _H3_RE = re.compile(r"^### (.+)$", re.MULTILINE)
 # Markdown chunking
 # ---------------------------------------------------------------------------
 
+
 def _parse_front_matter(content: str) -> dict[str, str]:
     """Extract `<!-- domain:X | layer:Y | ssot:Z | updated:DATE -->` keys."""
     match = _FRONT_MATTER_RE.search(content)
@@ -68,8 +69,10 @@ def _parse_front_matter(content: str) -> dict[str, str]:
         # cos_doc_search ranking.
         stripped = content.lstrip()
         if stripped and not stripped.startswith("<!--"):
-            logger.debug("doc_indexer: no parseable frontmatter (first line: %r)",
-                         stripped.splitlines()[0][:80] if stripped else "")
+            logger.debug(
+                "doc_indexer: no parseable frontmatter (first line: %r)",
+                stripped.splitlines()[0][:80] if stripped else "",
+            )
         return {}
     body = match.group(1)
     pairs: dict[str, str] = {}
@@ -207,9 +210,7 @@ def chunk_markdown(
 
         # If small enough, emit a single chunk
         if len(h2_body) <= max_chars:
-            chunks.append(
-                _build_chunk(chunk_idx, _build_heading_path(h1, h2), h2_body)
-            )
+            chunks.append(_build_chunk(chunk_idx, _build_heading_path(h1, h2), h2_body))
             chunk_idx += 1
             continue
 
@@ -224,9 +225,7 @@ def chunk_markdown(
                 # Empty H3 means leading content before first H3 — keep
                 # under the H2 heading path
                 heading_path = (
-                    _build_heading_path(h1, h2, h3)
-                    if h3
-                    else _build_heading_path(h1, h2)
+                    _build_heading_path(h1, h2, h3) if h3 else _build_heading_path(h1, h2)
                 )
                 if len(h3_body) <= max_chars:
                     chunks.append(_build_chunk(chunk_idx, heading_path, h3_body))
@@ -239,9 +238,7 @@ def chunk_markdown(
         else:
             # No H3 to split by — paragraph-window the H2 body
             for window in _window_text(h2_body, max_chars, overlap_chars):
-                chunks.append(
-                    _build_chunk(chunk_idx, _build_heading_path(h1, h2), window)
-                )
+                chunks.append(_build_chunk(chunk_idx, _build_heading_path(h1, h2), window))
                 chunk_idx += 1
 
     return chunks
@@ -320,6 +317,7 @@ def _take_tail(buffer: list[str], overlap: int) -> str:
 # ---------------------------------------------------------------------------
 # Config loader + source walker
 # ---------------------------------------------------------------------------
+
 
 def load_rag_config(config_path: Path) -> dict:
     """Load and validate the RAG indexer config.
@@ -425,6 +423,7 @@ def _is_excluded(file_path: Path, exclude_paths: set[Path]) -> bool:
 # ---------------------------------------------------------------------------
 # Indexer
 # ---------------------------------------------------------------------------
+
 
 def index_docs(
     conn: sqlite3.Connection,
@@ -614,54 +613,99 @@ def index_single_file(
     try:
         rel_path = str(abs_path.resolve().relative_to(project_root_resolved))
     except ValueError:
-        return {"status": "unscoped", "file": str(file_path),
-                "new_chunks": 0, "deleted_chunks": 0, "source_type": None}
+        return {
+            "status": "unscoped",
+            "file": str(file_path),
+            "new_chunks": 0,
+            "deleted_chunks": 0,
+            "source_type": None,
+        }
 
     # Missing on disk → treat as delete signal (cleanup ghost chunks).
     if not abs_path.exists():
-        existed = conn.execute(
-            "SELECT 1 FROM document_chunks WHERE source_path = ? LIMIT 1",
-            (rel_path,),
-        ).fetchone() is not None
+        existed = (
+            conn.execute(
+                "SELECT 1 FROM document_chunks WHERE source_path = ? LIMIT 1",
+                (rel_path,),
+            ).fetchone()
+            is not None
+        )
         if existed:
             _delete_chunks_for_path(conn, rel_path)
             conn.commit()
-            return {"status": "deleted", "file": rel_path,
-                    "new_chunks": 0, "deleted_chunks": 1, "source_type": None}
-        return {"status": "missing", "file": rel_path,
-                "new_chunks": 0, "deleted_chunks": 0, "source_type": None}
+            return {
+                "status": "deleted",
+                "file": rel_path,
+                "new_chunks": 0,
+                "deleted_chunks": 1,
+                "source_type": None,
+            }
+        return {
+            "status": "missing",
+            "file": rel_path,
+            "new_chunks": 0,
+            "deleted_chunks": 0,
+            "source_type": None,
+        }
 
     source_config = _match_source_config(
-        abs_path, config["sources"], project_root_resolved, config["exclude"],
+        abs_path,
+        config["sources"],
+        project_root_resolved,
+        config["exclude"],
     )
     if source_config is None:
-        return {"status": "unscoped", "file": rel_path,
-                "new_chunks": 0, "deleted_chunks": 0, "source_type": None}
+        return {
+            "status": "unscoped",
+            "file": rel_path,
+            "new_chunks": 0,
+            "deleted_chunks": 0,
+            "source_type": None,
+        }
 
     if abs_path.suffix != ".md":
-        return {"status": "unscoped", "file": rel_path,
-                "new_chunks": 0, "deleted_chunks": 0, "source_type": None}
+        return {
+            "status": "unscoped",
+            "file": rel_path,
+            "new_chunks": 0,
+            "deleted_chunks": 0,
+            "source_type": None,
+        }
 
     try:
         current_mtime = int(abs_path.stat().st_mtime)
     except OSError as exc:
         logger.debug("index_single_file stat failed for %s: %s", rel_path, exc)
-        return {"status": "error", "file": rel_path,
-                "new_chunks": 0, "deleted_chunks": 0, "source_type": None}
+        return {
+            "status": "error",
+            "file": rel_path,
+            "new_chunks": 0,
+            "deleted_chunks": 0,
+            "source_type": None,
+        }
 
     if not force:
         stored = _get_max_mtime(conn, rel_path)
         if stored is not None and stored >= current_mtime:
-            return {"status": "unchanged", "file": rel_path,
-                    "new_chunks": 0, "deleted_chunks": 0,
-                    "source_type": source_config.get("type", "doc")}
+            return {
+                "status": "unchanged",
+                "file": rel_path,
+                "new_chunks": 0,
+                "deleted_chunks": 0,
+                "source_type": source_config.get("type", "doc"),
+            }
 
     try:
         content = abs_path.read_text(encoding="utf-8")
     except OSError as exc:
         logger.debug("index_single_file read failed for %s: %s", rel_path, exc)
-        return {"status": "error", "file": rel_path,
-                "new_chunks": 0, "deleted_chunks": 0, "source_type": None}
+        return {
+            "status": "error",
+            "file": rel_path,
+            "new_chunks": 0,
+            "deleted_chunks": 0,
+            "source_type": None,
+        }
 
     max_chars = int(source_config.get("chunk_size", DEFAULT_MAX_CHARS))
     overlap = int(source_config.get("chunk_overlap", DEFAULT_OVERLAP_CHARS))
@@ -671,16 +715,21 @@ def index_single_file(
     existing_ids = [
         r[0]
         for r in conn.execute(
-            "SELECT id FROM document_chunks WHERE source_path = ?", (rel_path,),
+            "SELECT id FROM document_chunks WHERE source_path = ?",
+            (rel_path,),
         ).fetchall()
     ]
     _delete_chunks_for_path(conn, rel_path)
 
     if not chunks:
         conn.commit()
-        return {"status": "reindexed", "file": rel_path,
-                "new_chunks": 0, "deleted_chunks": len(existing_ids),
-                "source_type": source_config.get("type", "doc")}
+        return {
+            "status": "reindexed",
+            "file": rel_path,
+            "new_chunks": 0,
+            "deleted_chunks": len(existing_ids),
+            "source_type": source_config.get("type", "doc"),
+        }
 
     source_type = source_config.get("type", "doc")
     priority = float(source_config.get("priority", 0.5))
@@ -713,10 +762,13 @@ def index_single_file(
         _embed_chunk_safe(conn, chunk_db_id, chunk["heading_path"], chunk["content"])
 
     conn.commit()
-    return {"status": "reindexed", "file": rel_path,
-            "new_chunks": new_chunk_count,
-            "deleted_chunks": len(existing_ids),
-            "source_type": source_type}
+    return {
+        "status": "reindexed",
+        "file": rel_path,
+        "new_chunks": new_chunk_count,
+        "deleted_chunks": len(existing_ids),
+        "source_type": source_type,
+    }
 
 
 def _get_max_mtime(conn: sqlite3.Connection, source_path: str) -> int | None:
@@ -743,9 +795,7 @@ def _delete_chunks_for_path(conn: sqlite3.Connection, source_path: str) -> None:
         f"DELETE FROM embeddings WHERE source_table = 'document_chunks' AND source_id IN ({placeholders})",
         chunk_ids,
     )
-    conn.execute(
-        "DELETE FROM document_chunks WHERE source_path = ?", (source_path,)
-    )
+    conn.execute("DELETE FROM document_chunks WHERE source_path = ?", (source_path,))
 
 
 def _delete_orphaned_chunks(conn: sqlite3.Connection, seen_paths: set[str]) -> int:
@@ -791,6 +841,7 @@ def _embed_chunk_safe(
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 
 def _main() -> None:
     parser = argparse.ArgumentParser(description="Index docs/ for RAG retrieval")

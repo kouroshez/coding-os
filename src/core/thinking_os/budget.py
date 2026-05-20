@@ -27,6 +27,7 @@ ENV_VAR = "COS_DAILY_BUDGET_USD"
 def _read_hub_settings_cap() -> float | None:
     """Fall back to .coding-os/hub-settings.json when env var is absent."""
     import json
+
     state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
     path = Path(state_dir) / "hub-settings.json"
     if not path.exists():
@@ -38,7 +39,7 @@ def _read_hub_settings_cap() -> float | None:
             return None
         v = float(bc.get("cap_usd", 0))
         return v if v > 0 else None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("hub-settings budget read failed: %s", exc)
         return None
 

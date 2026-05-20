@@ -3,6 +3,7 @@
 Kuzu state checks retired 2026-05-18 together with the Kuzu backend
 (see commit removing src/core/graph_os/backends/kuzu_backend.py).
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -12,13 +13,14 @@ import pytest
 from cli.doctor import DoctorReport
 from cli.doctor_graph import (
     add_check_evidence_table,
-    add_check_orphan_symbols,
     add_check_legacy_kinds,
+    add_check_orphan_symbols,
 )
 
 
 def _migrated_conn() -> sqlite3.Connection:
     import database as thinking_os_db
+
     conn = sqlite3.connect(":memory:")
     thinking_os_db.run_migrations(conn)
     return conn

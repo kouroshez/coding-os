@@ -19,20 +19,20 @@ def _load_module():
     return module
 
 
-def _make_doc(path: Path, *, title: str, layer: str, domain: str = "DOCS",
-              updated: str = "2026-04-28", tokens: int | None = None) -> Path:
+def _make_doc(
+    path: Path,
+    *,
+    title: str,
+    layer: str,
+    domain: str = "DOCS",
+    updated: str = "2026-04-28",
+    tokens: int | None = None,
+) -> Path:
     parts = [f"domain:{domain}", f"layer:{layer}", "ssot:true", f"updated:{updated}"]
     if tokens is not None:
         parts.append(f"tokens:{tokens}")
     fm = " | ".join(parts)
-    body = (
-        f"<!-- {fm} -->\n"
-        f"# {title}\n\n"
-        "Purpose: x.\n"
-        "Read when: x.\n"
-        "Skip when: x.\n"
-        "Read next: x.\n"
-    )
+    body = f"<!-- {fm} -->\n# {title}\n\nPurpose: x.\nRead when: x.\nSkip when: x.\nRead next: x.\n"
     path.write_text(body, encoding="utf-8")
     return path
 

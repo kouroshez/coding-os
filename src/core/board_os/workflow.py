@@ -25,6 +25,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
 import yaml
 
 from board_os.config import STATUS_ENUM, ScrumbanConfig
@@ -110,9 +111,7 @@ class TransitionError(ValueError):
 def check_wip(conn: sqlite3.Connection, config: ScrumbanConfig) -> WipState:
     counts: dict[str, int] = {}
     for status in _WIP_COLUMN_MAP.values():
-        row = conn.execute(
-            "SELECT COUNT(*) FROM tasks WHERE status = ?", (status,)
-        ).fetchone()
+        row = conn.execute("SELECT COUNT(*) FROM tasks WHERE status = ?", (status,)).fetchone()
         counts[status] = int(row[0]) if row else 0
     caps = {
         "in_progress": config.wip_limits.in_progress,
@@ -148,6 +147,7 @@ def validate_dependencies_no_cycle(
                     parsed_deps = []
             else:
                 import re as _re
+
                 parsed_deps = _re.findall(r"TASK-\d+", text)
         deps_by_task[row[0]] = parsed_deps
     deps_by_task[task_id] = list(new_deps)
@@ -158,7 +158,7 @@ def validate_dependencies_no_cycle(
 
     def dfs(node: str) -> None:
         if node in stack:
-            cycle = stack[stack.index(node):] + [node]
+            cycle = stack[stack.index(node) :] + [node]
             cycles.append(" → ".join(cycle))
             return
         if node in visited:
@@ -225,8 +225,7 @@ def transition(
             previous_status=current_status,
             new_status=to_status,
             error=(
-                f"status changed under us: expected {expected_from!r}, "
-                f"current {current_status!r}"
+                f"status changed under us: expected {expected_from!r}, current {current_status!r}"
             ),
             error_category="transient",
         )
@@ -290,9 +289,7 @@ def transition(
     # ── Phase L.10 transition gates (DoR / DoD) ────────────────────
     # Validate the task body against the kind's rules. file_path=None
     # (DB-only mode used by tests/migrations) skips the body gate.
-    target_file_for_gate = (
-        file_path or (Path(current_file_path) if current_file_path else None)
-    )
+    target_file_for_gate = file_path or (Path(current_file_path) if current_file_path else None)
     gate_warnings: list[str] = []
     gate_override_reason: str | None = None
     gate_override_actor: str | None = None
@@ -345,10 +342,7 @@ def transition(
                         new_status=to_status,
                         error=(
                             "transition gate failed: "
-                            + "; ".join(
-                                f"[{m.code}] {m.message}"
-                                for m in gate_result.messages
-                            )
+                            + "; ".join(f"[{m.code}] {m.message}" for m in gate_result.messages)
                         ),
                         error_category="validation",
                         wip_state=wip_state,
@@ -359,21 +353,15 @@ def transition(
                     gate_warnings.append(f"[{m.code}] {m.message}")
                 if any("[OVERRIDDEN]" in m.message for m in gate_result.messages):
                     gate_override_reason = os.environ.get("COS_OVERRIDE_REASON")
-                    gate_override_actor = (
-                        os.environ.get("COS_AGENT") or agent_session
-                    )
+                    gate_override_actor = os.environ.get("COS_AGENT") or agent_session
         except GatesConfigError as exc:
             # Bad config — surface to retro reviewers but don't crash live work.
-            gate_warnings.append(
-                f"transition-gates config error (gate skipped): {exc}"
-            )
-        except Exception as exc:  # noqa: BLE001 — gate failures must not crash workflow
+            gate_warnings.append(f"transition-gates config error (gate skipped): {exc}")
+        except Exception as exc:
             gate_warnings.append(f"transition-gates internal error (skipped): {exc}")
 
     # MD file write (atomic).
-    target_file = (
-        file_path or (Path(current_file_path) if current_file_path else None)
-    )
+    target_file = file_path or (Path(current_file_path) if current_file_path else None)
     warnings: list[str] = []
     if forced_warning is not None:
         warnings.append(forced_warning)
@@ -410,9 +398,12 @@ def transition(
         "                    THEN NULL ELSE completed_at END "
         "WHERE task_id = ?",
         (
-            to_status, agent_session,
-            to_status, now_epoch,
-            to_status, now_epoch,
+            to_status,
+            agent_session,
+            to_status,
+            now_epoch,
+            to_status,
+            now_epoch,
             to_status,
             task_id,
         ),
@@ -433,9 +424,14 @@ def transition(
             " transitioned_at, override_reason, override_actor) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                task_id, current_status, to_status, agent_session,
-                reason, now_epoch,
-                gate_override_reason, gate_override_actor,
+                task_id,
+                current_status,
+                to_status,
+                agent_session,
+                reason,
+                now_epoch,
+                gate_override_reason,
+                gate_override_actor,
             ),
         )
     else:
@@ -487,6 +483,7 @@ def _patch_fm_field(fm_text: str, key: str, value: str) -> str:
     created before a field was added to the template).
     """
     import re as _re
+
     pattern = _re.compile(rf"^({_re.escape(key)}:)[ \t]*.*$", _re.MULTILINE)
     if pattern.search(fm_text):
         return pattern.sub(rf"\1 {value}", fm_text, count=1)
@@ -509,6 +506,7 @@ def _write_status_to_frontmatter(
 
     content = path.read_text(encoding="utf-8")
     import re as _re
+
     fm_re = _re.compile(r"^---\s*\n(.*?)\n---\s*\n", _re.DOTALL)
     m = fm_re.match(content)
     if not m:
@@ -533,10 +531,12 @@ def _write_status_to_frontmatter(
     if new_status == "complete" and not fm_parsed.get("completed"):
         fm_raw = _patch_fm_field(fm_raw, "completed", today)
 
-    new_content = f"---\n{fm_raw}\n---\n" + content[m.end():]
+    new_content = f"---\n{fm_raw}\n---\n" + content[m.end() :]
 
     tmp_fd, tmp_path = tempfile.mkstemp(
-        dir=str(path.parent), prefix=".task-", suffix=".tmp",
+        dir=str(path.parent),
+        prefix=".task-",
+        suffix=".tmp",
     )
     try:
         with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
@@ -553,6 +553,7 @@ def _write_status_to_frontmatter(
 def _format_yaml_scalar_token(value: str) -> str:
     """Format a scalar for YAML frontmatter (unquoted id vs JSON-quoted string)."""
     import re as _re
+
     if _re.match(r"^[a-z0-9][a-z0-9-]*$", value, _re.I):
         return value
     return json.dumps(value)
@@ -566,6 +567,7 @@ def patch_task_frontmatter_scalars(path: Path, updates: dict[str, str]) -> None:
 
     content = path.read_text(encoding="utf-8")
     import re as _re
+
     fm_re = _re.compile(r"^---\s*\n(.*?)\n---\s*\n", _re.DOTALL)
     m = fm_re.match(content)
     if not m:
@@ -583,10 +585,12 @@ def patch_task_frontmatter_scalars(path: Path, updates: dict[str, str]) -> None:
         token = _format_yaml_scalar_token(raw_val)
         fm_raw = _patch_fm_field(fm_raw, key, token)
 
-    new_content = f"---\n{fm_raw}\n---\n" + content[m.end():]
+    new_content = f"---\n{fm_raw}\n---\n" + content[m.end() :]
 
     tmp_fd, tmp_path = tempfile.mkstemp(
-        dir=str(path.parent), prefix=".task-", suffix=".tmp",
+        dir=str(path.parent),
+        prefix=".task-",
+        suffix=".tmp",
     )
     try:
         with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:

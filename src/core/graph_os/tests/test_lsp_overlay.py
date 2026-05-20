@@ -184,9 +184,7 @@ class TestCircuitBreaker:
 
     def test_open_breaker_short_circuits_resolves(self):
         clock = _FakeClock()
-        driver = FakeLspDriver(
-            resolver=lambda _f, _s: LspOverlayResult(status="timeout")
-        )
+        driver = FakeLspDriver(resolver=lambda _f, _s: LspOverlayResult(status="timeout"))
         overlay = _make_overlay(
             driver=driver, clock=clock, max_failures=2, degrade_cooldown_seconds=300
         )
@@ -200,9 +198,7 @@ class TestCircuitBreaker:
 
     def test_breaker_resets_after_cooldown(self):
         clock = _FakeClock()
-        driver = FakeLspDriver(
-            resolver=lambda _f, _s: LspOverlayResult(status="timeout")
-        )
+        driver = FakeLspDriver(resolver=lambda _f, _s: LspOverlayResult(status="timeout"))
         overlay = _make_overlay(
             driver=driver,
             clock=clock,
@@ -217,9 +213,7 @@ class TestCircuitBreaker:
 
     def test_old_failures_pruned(self):
         clock = _FakeClock()
-        driver = FakeLspDriver(
-            resolver=lambda _f, _s: LspOverlayResult(status="timeout")
-        )
+        driver = FakeLspDriver(resolver=lambda _f, _s: LspOverlayResult(status="timeout"))
         overlay = _make_overlay(
             driver=driver,
             clock=clock,
@@ -273,9 +267,7 @@ class TestBuildOverlay:
         assert overlay.enabled is False
 
     def test_fake_config_uses_fake_driver(self):
-        overlay = build_overlay(
-            "python", config={"fake": True, "latency": 0.001}
-        )
+        overlay = build_overlay("python", config={"fake": True, "latency": 0.001})
         assert overlay.enabled is True
         # Warm-start + lookup work without network.
         assert overlay.warm_start() is True

@@ -8,11 +8,11 @@ suggest (spaced repetition, domain filter), and validate (confidence formulas).
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
@@ -25,10 +25,10 @@ from tools.learning import (
     penalize_failure,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -64,6 +64,7 @@ def seeded_conn(conn: sqlite3.Connection) -> sqlite3.Connection:
 # Confidence formulas
 # ---------------------------------------------------------------------------
 
+
 class TestConfidenceFormulas:
     def test_boost_success_increases(self) -> None:
         assert boost_success(0.5) > 0.5
@@ -93,6 +94,7 @@ class TestConfidenceFormulas:
 # cos_learn_extract
 # ---------------------------------------------------------------------------
 
+
 class TestLearnExtract:
     def test_insufficient_data(self, conn: sqlite3.Connection) -> None:
         result = learn_extract(conn, min_occurrences=3)
@@ -104,7 +106,8 @@ class TestLearnExtract:
         assert result["status"] == "ok"
         # BACKEND has 3 reworks out of 5 = 60%
         backend_patterns = [
-            p for p in result["extracted"]
+            p
+            for p in result["extracted"]
             if "BACKEND" in p["pattern"] and "rework" in p["pattern"].lower()
         ]
         assert len(backend_patterns) >= 1
@@ -114,7 +117,8 @@ class TestLearnExtract:
         result = learn_extract(seeded_conn, min_occurrences=3)
         # FRONTEND only has 1 rework — shouldn't meet min_occurrences=3
         frontend_rework = [
-            p for p in result["extracted"]
+            p
+            for p in result["extracted"]
             if "FRONTEND" in p["pattern"] and "rework" in p["pattern"].lower()
         ]
         assert len(frontend_rework) == 0
@@ -140,6 +144,7 @@ class TestLearnExtract:
 # ---------------------------------------------------------------------------
 # cos_learn_suggest
 # ---------------------------------------------------------------------------
+
 
 class TestLearnSuggest:
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
@@ -191,6 +196,7 @@ class TestLearnSuggest:
 # ---------------------------------------------------------------------------
 # cos_learn_validate
 # ---------------------------------------------------------------------------
+
 
 class TestLearnValidate:
     def test_not_found(self, conn: sqlite3.Connection) -> None:
@@ -261,7 +267,9 @@ class TestLearnValidate:
         assert row[0] >= 0.1
 
     def test_temporal_proximity_bonus(
-        self, seeded_conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch,
+        self,
+        seeded_conn: sqlite3.Connection,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Temporal bonus still works when two validations come from different
         sessions — intra-session repeats are throttled by G.4."""
@@ -290,6 +298,7 @@ class TestLearnValidate:
 # ---------------------------------------------------------------------------
 # Phase G.4 — self-validation throttle
 # ---------------------------------------------------------------------------
+
 
 class TestLearnValidateThrottle:
     @pytest.fixture
@@ -392,8 +401,7 @@ class TestLearnValidateThrottle:
         """Locked trust_tier short-circuits with a validation error, NEVER
         reaches throttle/DB-trigger — agent gets a clean signal."""
         seeded_conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence, trust_tier) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO learned_patterns (pattern, confidence, trust_tier) VALUES (?, ?, ?)",
             ("locked rule", 0.8, "locked"),
         )
         seeded_conn.commit()
@@ -409,8 +417,7 @@ class TestLearnValidateThrottle:
         seeded_conn: sqlite3.Connection,
     ) -> None:
         seeded_conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence, trust_tier) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO learned_patterns (pattern, confidence, trust_tier) VALUES (?, ?, ?)",
             ("core rule", 0.9, "core"),
         )
         seeded_conn.commit()
@@ -425,6 +432,7 @@ class TestLearnValidateThrottle:
 # Phase G.6 — evidence-based defaults (learn_narrative + _upsert_pattern)
 # ---------------------------------------------------------------------------
 
+
 class TestG6EvidenceBasedDefaults:
     def test_learn_narrative_creates_volatile_agent_self(
         self, seeded_conn: sqlite3.Connection
@@ -433,6 +441,7 @@ class TestG6EvidenceBasedDefaults:
         Audit A7 — self-fabricated breakthroughs with high trust. G.6 drops
         those defaults to 0.3 / 0.5 and stamps provenance=agent_self."""
         from tools.learning import learn_narrative
+
         res = learn_narrative(
             seeded_conn,
             task_id="TASK-100",
@@ -459,8 +468,7 @@ class TestG6EvidenceBasedDefaults:
         assert result["status"] == "ok"
         # Fetch any extracted learned_patterns row with source=learn_extract
         rows = seeded_conn.execute(
-            "SELECT provenance, trust_tier FROM learned_patterns "
-            "WHERE source = 'learn_extract'"
+            "SELECT provenance, trust_tier FROM learned_patterns WHERE source = 'learn_extract'"
         ).fetchall()
         assert len(rows) >= 1
         for r in rows:
@@ -472,6 +480,7 @@ class TestG6EvidenceBasedDefaults:
         self, seeded_conn: sqlite3.Connection
     ) -> None:
         from tools.learning import _upsert_pattern
+
         res = _upsert_pattern(
             seeded_conn,
             pattern="user told us this directly",
@@ -493,6 +502,7 @@ class TestG6EvidenceBasedDefaults:
         self, seeded_conn: sqlite3.Connection
     ) -> None:
         from tools.learning import _upsert_pattern
+
         res = _upsert_pattern(
             seeded_conn,
             pattern="unknown source test",
@@ -512,6 +522,7 @@ class TestG6EvidenceBasedDefaults:
 # ---------------------------------------------------------------------------
 # Auto-feedback generation (TASK-147)
 # ---------------------------------------------------------------------------
+
 
 class TestFeedbackDrafts:
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
@@ -650,9 +661,7 @@ class TestPatternEmbeddingIntegration:
 
 class TestLearnNarrativeEmbedding:
     @REQUIRES_RAG
-    def test_narrative_embeds_outcome_history_and_pattern(
-        self, conn: sqlite3.Connection
-    ) -> None:
+    def test_narrative_embeds_outcome_history_and_pattern(self, conn: sqlite3.Connection) -> None:
         # Seed task_outcomes so the narrative path can find a domain
         conn.execute(
             "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome) "
@@ -682,9 +691,7 @@ class TestLearnNarrativeEmbedding:
         assert history_row is not None
         assert pattern_row is not None
 
-    def test_narrative_succeeds_without_rag(
-        self, conn: sqlite3.Connection, monkeypatch
-    ) -> None:
+    def test_narrative_succeeds_without_rag(self, conn: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         result = learn_narrative(
             conn,
@@ -741,9 +748,7 @@ class TestDeriveProjectRoot:
         assert root is not None
         assert root.resolve() == tmp_path.resolve()
 
-    def test_returns_none_for_non_coding_os_layout(
-        self, conn: sqlite3.Connection
-    ) -> None:
+    def test_returns_none_for_non_coding_os_layout(self, conn: sqlite3.Connection) -> None:
         # Default fixture DB sits at tmp_path/test.db (no .coding-os/)
         assert _derive_project_root(conn) is None
 
@@ -821,9 +826,7 @@ class TestFileBackNarrative:
         finally:
             c.close()
 
-    def test_skips_for_non_coding_os_layout(
-        self, conn: sqlite3.Connection
-    ) -> None:
+    def test_skips_for_non_coding_os_layout(self, conn: sqlite3.Connection) -> None:
         result = _file_back_narrative_safe(
             conn=conn,
             task_id="TASK-702",
@@ -868,9 +871,7 @@ class TestFileBackNarrative:
         )
         assert result.get("filed_path") is None
 
-    def test_narrative_overwrites_same_slug(
-        self, project_conn: sqlite3.Connection
-    ) -> None:
+    def test_narrative_overwrites_same_slug(self, project_conn: sqlite3.Connection) -> None:
         first = _file_back_narrative_safe(
             conn=project_conn,
             task_id="TASK-705",

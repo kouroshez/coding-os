@@ -42,12 +42,13 @@ DEFAULT_SKILLS = {
 # cos_route_model
 # ---------------------------------------------------------------------------
 
+
 def route_model(
     conn: sqlite3.Connection,
     *,
     complexity: str,
     dimensions: int = 1,
-    domain: Optional[str] = None,
+    domain: str | None = None,
 ) -> dict:
     """Recommend optimal model based on historical outcome data.
 
@@ -86,7 +87,7 @@ def route_model(
     where = " AND ".join(conditions)
 
     rows = conn.execute(
-        f"SELECT model, "  # noqa: S608
+        f"SELECT model, "
         "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS successes, "
         "COUNT(*) AS total "
         f"FROM task_outcomes WHERE {where} AND model IS NOT NULL "
@@ -100,8 +101,8 @@ def route_model(
             "recommended_model": fallback,
             "confidence": 0.0,
             "reason": f"Insufficient data for {complexity}"
-                      + (f" {domain}" if domain else "")
-                      + f" (need {MIN_SAMPLES_PER_BUCKET}+ per model)",
+            + (f" {domain}" if domain else "")
+            + f" (need {MIN_SAMPLES_PER_BUCKET}+ per model)",
             "fallback_model": fallback,
             "data_points": total,
         }
@@ -115,11 +116,13 @@ def route_model(
     for row in rows:
         d = dict(row)
         rate = d["successes"] / d["total"] if d["total"] > 0 else 0
-        model_stats.append({
-            "model": d["model"],
-            "success_rate": round(rate, 2),
-            "sample_size": d["total"],
-        })
+        model_stats.append(
+            {
+                "model": d["model"],
+                "success_rate": round(rate, 2),
+                "sample_size": d["total"],
+            }
+        )
         if rate > best_rate:
             best_rate = rate
             best_model = d["model"]
@@ -133,9 +136,7 @@ def route_model(
         "confidence": round(confidence, 2),
         "reason": (
             f"{best_model} has {best_rate:.0%} success rate for "
-            f"{complexity}"
-            + (f" {domain}" if domain else "")
-            + f" tasks (n={best_total})"
+            f"{complexity}" + (f" {domain}" if domain else "") + f" tasks (n={best_total})"
         ),
         "fallback_model": fallback,
         "data_points": total,
@@ -147,12 +148,13 @@ def route_model(
 # cos_route_skill
 # ---------------------------------------------------------------------------
 
+
 def route_skill(
     conn: sqlite3.Connection,
     *,
     domain: str,
-    task_type: Optional[str] = None,
-    complexity: Optional[str] = None,
+    task_type: str | None = None,
+    complexity: str | None = None,
 ) -> dict:
     """Recommend skills based on historical outcome data.
 
@@ -175,15 +177,19 @@ def route_skill(
     if total < COLD_START_THRESHOLD:
         return {
             "skills": [
-                {"name": s, "confidence": 0.0, "reason": "static_default"}
-                for s in static_skills
+                {"name": s, "confidence": 0.0, "reason": "static_default"} for s in static_skills
             ],
             "fallback_source": "skill-enforcement.md",
             "data_points": total,
         }
 
     # Query historically successful skills
-    conditions = ["domain = ?", "outcome = 'success'", "skills_used IS NOT NULL", "skills_used != ''"]
+    conditions = [
+        "domain = ?",
+        "outcome = 'success'",
+        "skills_used IS NOT NULL",
+        "skills_used != ''",
+    ]
     params: list = [domain]
     if task_type:
         conditions.append("type = ?")
@@ -194,7 +200,7 @@ def route_skill(
     where = " AND ".join(conditions)
 
     rows = conn.execute(
-        f"SELECT skills_used, COUNT(*) AS success_count "  # noqa: S608
+        f"SELECT skills_used, COUNT(*) AS success_count "
         f"FROM task_outcomes WHERE {where} "
         "GROUP BY skills_used "
         "ORDER BY success_count DESC LIMIT 10",
@@ -217,20 +223,24 @@ def route_skill(
             continue
         seen_names.add(skill_name)
         rate = d["success_count"] / total_domain if total_domain > 0 else 0
-        skills.append({
-            "name": skill_name,
-            "confidence": round(_data_confidence(total) * rate, 2),
-            "reason": f"data_driven ({d['success_count']} successes in {domain})",
-        })
+        skills.append(
+            {
+                "name": skill_name,
+                "confidence": round(_data_confidence(total) * rate, 2),
+                "reason": f"data_driven ({d['success_count']} successes in {domain})",
+            }
+        )
 
     # Add static defaults if not already present
     for s in static_skills:
         if s not in seen_names:
-            skills.append({
-                "name": s,
-                "confidence": 0.0,
-                "reason": "static_default",
-            })
+            skills.append(
+                {
+                    "name": s,
+                    "confidence": 0.0,
+                    "reason": "static_default",
+                }
+            )
 
     return {
         "skills": skills,
@@ -354,8 +364,16 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
             "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
             "ON CONFLICT(domain, complexity, model, skill) DO UPDATE SET "
             "success_rate = ?, sample_count = ?, last_updated = CURRENT_TIMESTAMP",
-            (d["domain"], d["complexity"], d["model"], d["skill"],
-             round(rate, 4), d["total"], round(rate, 4), d["total"]),
+            (
+                d["domain"],
+                d["complexity"],
+                d["model"],
+                d["skill"],
+                round(rate, 4),
+                d["total"],
+                round(rate, 4),
+                d["total"],
+            ),
         )
         count += 1
 
@@ -363,8 +381,7 @@ def recalculate_weights(conn: sqlite3.Connection) -> dict:
     total_outcomes = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
     try:
         conn.execute(
-            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, "
-            "outcomes_at_recalc = ?",
+            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, outcomes_at_recalc = ?",
             (total_outcomes,),
         )
     except sqlite3.OperationalError:
@@ -404,9 +421,7 @@ def routing_drift(conn: sqlite3.Connection) -> dict:
             last_recalc_at = row["recalc_at"]
     except sqlite3.OperationalError:
         # v26 columns not yet applied — use last_updated as proxy
-        row = conn.execute(
-            "SELECT MAX(last_updated) AS recalc_at FROM routing_weights"
-        ).fetchone()
+        row = conn.execute("SELECT MAX(last_updated) AS recalc_at FROM routing_weights").fetchone()
         if row:
             last_recalc_at = row["recalc_at"]
 
@@ -426,17 +441,24 @@ def routing_drift(conn: sqlite3.Connection) -> dict:
 # failure_pattern_query — aggregate structured failure anatomy
 # ---------------------------------------------------------------------------
 
-_VALID_ROOT_CAUSES = frozenset({
-    "wrong_model", "scope_too_large", "missing_context",
-    "tool_failure", "spec_ambiguity", "env_mismatch", "other",
-})
+_VALID_ROOT_CAUSES = frozenset(
+    {
+        "wrong_model",
+        "scope_too_large",
+        "missing_context",
+        "tool_failure",
+        "spec_ambiguity",
+        "env_mismatch",
+        "other",
+    }
+)
 
 
 def failure_pattern_query(
     conn: sqlite3.Connection,
     *,
-    root_cause: Optional[str] = None,
-    domain: Optional[str] = None,
+    root_cause: str | None = None,
+    domain: str | None = None,
     limit: int = 10,
 ) -> dict:
     """Aggregate structured failure anatomy from backtrack_events."""
@@ -444,8 +466,12 @@ def failure_pattern_query(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='backtrack_events'"
     ).fetchone()
     if not table_check:
-        return {"patterns": [], "total_structured": 0, "total_backtrack": 0,
-                "note": "backtrack_events table not found"}
+        return {
+            "patterns": [],
+            "total_structured": 0,
+            "total_backtrack": 0,
+            "note": "backtrack_events table not found",
+        }
 
     # Check if anatomy columns exist (v25)
     try:
@@ -454,13 +480,15 @@ def failure_pattern_query(
     except sqlite3.OperationalError:
         has_anatomy = False
 
-    total_backtrack = conn.execute(
-        "SELECT COUNT(*) FROM backtrack_events"
-    ).fetchone()[0]
+    total_backtrack = conn.execute("SELECT COUNT(*) FROM backtrack_events").fetchone()[0]
 
     if not has_anatomy:
-        return {"patterns": [], "total_structured": 0, "total_backtrack": total_backtrack,
-                "note": "failure anatomy columns not yet available (run migration v25)"}
+        return {
+            "patterns": [],
+            "total_structured": 0,
+            "total_backtrack": total_backtrack,
+            "note": "failure anatomy columns not yet available (run migration v25)",
+        }
 
     total_structured = conn.execute(
         "SELECT COUNT(*) FROM backtrack_events WHERE root_cause IS NOT NULL"
@@ -504,11 +532,13 @@ def failure_pattern_query(
             ex_params,
         ).fetchall()
         examples = [dict(r) for r in examples_rows]
-        patterns.append({
-            "root_cause": rc,
-            "count": agg["cnt"],
-            "examples": examples,
-        })
+        patterns.append(
+            {
+                "root_cause": rc,
+                "count": agg["cnt"],
+                "examples": examples,
+            }
+        )
 
     return {
         "patterns": patterns,

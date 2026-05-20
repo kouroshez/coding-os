@@ -5,6 +5,7 @@ Reads .turn-activity.log, counts by category, formats compact summary
 next turn starts clean. Called by core/hooks/session-context.sh on
 UserPromptSubmit. Bounded — silent on any error.
 """
+
 from __future__ import annotations
 
 import os

@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 
 try:
-    from board_os.parser import extract_frontmatter, is_lean_format
     from board_os.config import load_config
+    from board_os.parser import extract_frontmatter, is_lean_format
     from board_os.workflow import check_wip
 except ImportError:
     sys.exit(0)
@@ -22,7 +22,8 @@ if "new_string" in tool_input and "old_string" in tool_input:
     if p.exists():
         try:
             content = p.read_text(encoding="utf-8").replace(
-                tool_input["old_string"], tool_input["new_string"],
+                tool_input["old_string"],
+                tool_input["new_string"],
             )
         except Exception:
             pass
@@ -62,12 +63,15 @@ except (FileNotFoundError, Exception):
     sys.exit(0)
 
 import sqlite3
+
 try:
     from thinking_os.database import resolve_db_path  # type: ignore
+
     db_path = str(resolve_db_path(project_root))
 except ImportError:
     db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"),
+        "COS_DB_PATH",
+        str(project_root / ".coding-os" / "coding-os.db"),
     )
 if not Path(db_path).exists():
     sys.exit(0)

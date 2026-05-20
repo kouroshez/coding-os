@@ -1,4 +1,5 @@
 """Tests for /api/hub/registry/{add, remove, scan, gc} + /api/hub/suggest-roots."""
+
 from __future__ import annotations
 
 import shutil
@@ -163,10 +164,7 @@ class TestRegistryScan:
                 json={"root": str(hub_env["tmp"] / "ws"), "max_depth": 2},
             )
         hits = resp.json()["data"]["hits"]
-        assert any(
-            h["already_registered"] and Path(h["path"]) == proj.resolve()
-            for h in hits
-        )
+        assert any(h["already_registered"] and Path(h["path"]) == proj.resolve() for h in hits)
 
     def test_scan_skips_noise_directories(self, hub_env):
         root = hub_env["tmp"] / "mixed"
@@ -233,6 +231,7 @@ class TestRegistryGc:
 
         # Registry file now reflects the prune.
         import json
+
         reg_data = json.loads(hub_env["registry"].read_text())
         slugs_on_disk = {p["slug"] for p in reg_data["projects"]}
         assert "will-die" not in slugs_on_disk

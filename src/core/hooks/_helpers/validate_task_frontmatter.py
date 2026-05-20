@@ -5,12 +5,11 @@ import sys
 from pathlib import Path
 
 try:
-    from board_os.parser import is_lean_format, extract_frontmatter
-    from board_os.config import KIND_ENUM, STATUS_ENUM, PRIORITY_ENUM, APPETITE_RE, load_config
+    from board_os.config import APPETITE_RE, KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM, load_config
+    from board_os.parser import extract_frontmatter, is_lean_format
 except ImportError as exc:
     # Fail-soft: warn but don't block.
-    print(f"WARN validate-task-frontmatter: board_os import failed: {exc}",
-          file=sys.stderr)
+    print(f"WARN validate-task-frontmatter: board_os import failed: {exc}", file=sys.stderr)
     sys.exit(0)
 
 try:
@@ -56,8 +55,7 @@ if fm is None:
 expected_id_match = re.search(r"(TASK-\d+)", os.path.basename(file_path))
 if expected_id_match and fm.get("id") and fm["id"] != expected_id_match.group(1):
     errors.append(
-        f"frontmatter id {fm['id']!r} does not match filename id "
-        f"{expected_id_match.group(1)!r}"
+        f"frontmatter id {fm['id']!r} does not match filename id {expected_id_match.group(1)!r}"
     )
 
 # Enum checks
@@ -76,9 +74,7 @@ labels = fm.get("labels") or []
 if isinstance(labels, list):
     for lbl in labels:
         if isinstance(lbl, str) and lbl in KIND_ENUM:
-            errors.append(
-                f"label {lbl!r} collides with KIND_ENUM — move to `kind:` field"
-            )
+            errors.append(f"label {lbl!r} collides with KIND_ENUM — move to `kind:` field")
 
 # Swimlane exists in config
 project_root = Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())).resolve()
@@ -98,4 +94,3 @@ if errors:
     for err in errors:
         print(f"  - {err}", file=sys.stderr)
     sys.exit(2)
-

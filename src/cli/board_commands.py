@@ -40,7 +40,8 @@ def _project_root() -> Path:
 def _db_conn() -> sqlite3.Connection:
     root = _project_root()
     db_path = os.environ.get(
-        "COS_DB_PATH", str(root / ".coding-os" / "coding-os.db"),
+        "COS_DB_PATH",
+        str(root / ".coding-os" / "coding-os.db"),
     )
     if not Path(db_path).exists():
         click.echo(f"ERROR: DB not found at {db_path}. Run `cos setup` first.", err=True)
@@ -53,9 +54,11 @@ def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
     adapters_dir = Path(__file__).resolve().parent.parent.parent / "src" / "adapters"
     try:
         from cli.adapter_registry import load_adapter_registry
+
         reg = load_adapter_registry(adapters_dir)
-    except Exception as exc:  # noqa: BLE001 — detection never fatal
+    except Exception as exc:
         import logging as _logging
+
         _logging.getLogger("cli.board_commands").debug(
             "adapter registry unreachable, agent detection degrades to marker-only: %s",
             exc,
@@ -97,7 +100,7 @@ def _detect_agent_runtime() -> str | None:
     if marker.is_file():
         try:
             raw = marker.read_text(encoding="utf-8", errors="ignore").strip().lower()
-        except OSError:  # noqa: BLE001 — fallback to env-only detection
+        except OSError:
             raw = ""
         if raw and raw in known_ids:
             return raw
@@ -108,10 +111,7 @@ def _detect_agent_runtime() -> str | None:
     # strands this path.
     if os.environ.get("CLAUDE_PROJECT_DIR"):
         for aid in known_ids:
-            if any(
-                env_key.startswith("CLAUDE")
-                for env_key in markers_by_id.get(aid, ())
-            ):
+            if any(env_key.startswith("CLAUDE") for env_key in markers_by_id.get(aid, ())):
                 return aid
     return None
 
@@ -201,8 +201,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
         from web.server import run_server
     except ImportError as exc:
         click.echo(
-            f"ERROR: could not import core.web.server: {exc}\n"
-            "Install web extras: uv sync",
+            f"ERROR: could not import core.web.server: {exc}\nInstall web extras: uv sync",
             err=True,
         )
         sys.exit(1)
@@ -210,9 +209,15 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
 
 
 @click.command("board", help="Show Scrumban board (ASCII or --web)")
-@click.option("--web", is_flag=True, default=False, help="Open board in browser (redirects to unified SPA at /board)")
-@click.option("--port", type=int, default=9188,
-              help="Port for the unified web server when --web is used.")
+@click.option(
+    "--web",
+    is_flag=True,
+    default=False,
+    help="Open board in browser (redirects to unified SPA at /board)",
+)
+@click.option(
+    "--port", type=int, default=9188, help="Port for the unified web server when --web is used."
+)
 @click.option("--host", default="127.0.0.1")
 @click.option("--bind", default=None, help="Bind address (overrides --host)")
 @click.option("--swimlane", default=None)
@@ -222,6 +227,7 @@ def _launch_board_in_spa(*, host: str, port: int) -> None:
 @click.option("--format", type=click.Choice(["text", "json"]), default="text")
 def board_cmd(web, port, host, bind, swimlane, kind, epic, priority, format):
     from board_os import mcp_tools
+
     if web:
         _launch_board_in_spa(host=(bind or host), port=port)
         return
@@ -229,7 +235,9 @@ def board_cmd(web, port, host, bind, swimlane, kind, epic, priority, format):
     try:
         envelope = mcp_tools.cos_task_board(
             conn,
-            swimlane=swimlane, kind=kind, epic=epic,
+            swimlane=swimlane,
+            kind=kind,
+            epic=epic,
         )
     finally:
         conn.close()
@@ -281,19 +289,21 @@ def _render_board_ascii(envelope: str) -> None:
             click.echo(f"    [{status}]")
             for card in cards:
                 badge = {
-                    "bug": "🔴", "feature": "🟡", "chore": "🟢", "spike": "🔵",
-                    "docs": "🟣", "refactor": "🟦", "test": "🟧", "security": "🟠",
+                    "bug": "🔴",
+                    "feature": "🟡",
+                    "chore": "🟢",
+                    "spike": "🔵",
+                    "docs": "🟣",
+                    "refactor": "🟦",
+                    "test": "🟧",
+                    "security": "🟠",
                 }.get(card["kind"], "⚪")
                 # READY overlay: icebox cards carrying the "ready" label are
                 # pickup candidates (see board_os.config::READY_LABEL).  We
                 # surface this as a "✓READY" prefix so the CLI matches the
                 # green pill rendered by the web Board.
                 labels = card.get("labels") or []
-                ready_prefix = (
-                    " ✓READY "
-                    if status == "icebox" and "ready" in labels
-                    else ""
-                )
+                ready_prefix = " ✓READY " if status == "icebox" and "ready" in labels else ""
                 click.echo(
                     f"      {badge}{ready_prefix} {card['id']} [{card['priority']}] {card['title']}"
                 )
@@ -308,24 +318,29 @@ def _render_board_ascii(envelope: str) -> None:
 @click.command("task-create", help="Create a new Scrumban task (lean template).")
 @click.option("--title", required=True)
 @click.option("--swimlane", required=True)
-@click.option("--kind", required=True,
-              type=click.Choice(["feature", "bug", "chore", "spike", "docs",
-                                 "refactor", "test", "security"]))
+@click.option(
+    "--kind",
+    required=True,
+    type=click.Choice(["feature", "bug", "chore", "spike", "docs", "refactor", "test", "security"]),
+)
 @click.option("--priority", default="P2", type=click.Choice(["P0", "P1", "P2", "P3"]))
 @click.option("--appetite", default="1d")
 @click.option("--epic", default=None)
 @click.option("--labels", default="", help="Comma-separated free tags")
 @click.option("--outcome", default=None)
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
-def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels,
-                    outcome, depends_on):
+def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels, outcome, depends_on):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_create(
             conn,
-            title=title, swimlane=swimlane, kind=kind,
-            priority=priority, appetite=appetite,
+            title=title,
+            swimlane=swimlane,
+            kind=kind,
+            priority=priority,
+            appetite=appetite,
             epic=epic,
             labels=[l.strip() for l in labels.split(",") if l.strip()],
             outcome=outcome,
@@ -346,10 +361,11 @@ def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels,
     is_flag=True,
     default=False,
     help="Override WIP caps AND state-machine validation "
-         "(e.g. archive → in_progress after an accidental archive).",
+    "(e.g. archive → in_progress after an accidental archive).",
 )
 def task_move_cmd(task_id, to, reason, force):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
@@ -366,9 +382,9 @@ def task_move_cmd(task_id, to, reason, force):
     sys.exit(_print_envelope(envelope))
 
 
-def _simple_move(task_id: str, to: str, *, reason: str | None = None,
-                 force: bool = False):
+def _simple_move(task_id: str, to: str, *, reason: str | None = None, force: bool = False):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
@@ -413,14 +429,17 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     """
     try:
         from thinking_os.record_outcome import record_outcome
+
         row = conn.execute(
-            "SELECT kind, title FROM tasks WHERE task_id = ?", (task_id,),
+            "SELECT kind, title FROM tasks WHERE task_id = ?",
+            (task_id,),
         ).fetchone()
         kind = row[0] if row else "feature"
         msg = row[1] if row else ""
         task_type = _KIND_TO_OUTCOME_TYPE.get(kind, "feat")
         db_path = os.environ.get(
-            "COS_DB_PATH", str(_project_root() / ".coding-os" / "coding-os.db"),
+            "COS_DB_PATH",
+            str(_project_root() / ".coding-os" / "coding-os.db"),
         )
         record_outcome(
             task_id=task_id,
@@ -461,17 +480,16 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
             from thinking_os.tools.learning import learn_extract
+
             result = learn_extract(conn)
             extracted = result.get("extracted", [])
             if extracted:
                 click.echo(
-                    f"\n🧠 Learning: {len(extracted)} new pattern(s) from "
-                    f"{count} outcomes:",
+                    f"\n🧠 Learning: {len(extracted)} new pattern(s) from {count} outcomes:",
                 )
                 for p in extracted:
                     click.echo(
-                        f"   • {p.get('pattern')} "
-                        f"(confidence: {p.get('confidence', 0):.2f})",
+                        f"   • {p.get('pattern')} (confidence: {p.get('confidence', 0):.2f})",
                     )
     except Exception as exc:
         _brain_logger.debug("learn_extract trigger failed: %s", exc)
@@ -483,6 +501,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
             from thinking_os.tools.routing import recalculate_weights
+
             recalculate_weights(conn)
     except Exception as exc:
         _brain_logger.debug("recalculate_weights failed: %s", exc)
@@ -495,6 +514,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
             from thinking_os.tools.retrieve import learn_from_retrievals
+
             learn_from_retrievals(conn, lookback_days=14)
     except Exception as exc:
         _brain_logger.debug("learn_from_retrievals failed: %s", exc)
@@ -506,6 +526,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
             from thinking_os.memory_gc import gc_memory
+
             _db_path = os.environ.get(
                 "COS_DB_PATH",
                 str(_project_root() / ".coding-os" / "coding-os.db"),
@@ -519,6 +540,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
 @click.argument("task_id")
 def task_done_cmd(task_id):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_move(
@@ -569,10 +591,13 @@ def task_cancel_cmd(task_id, reason):
 @click.option("--max-candidates", default=3, type=int)
 def task_pick_cmd(swimlane, priority_min, max_candidates):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_pick(
-            conn, swimlane=swimlane, priority_min=priority_min,
+            conn,
+            swimlane=swimlane,
+            priority_min=priority_min,
             max_candidates=max_candidates,
         )
     finally:
@@ -584,7 +609,9 @@ def task_pick_cmd(swimlane, priority_min, max_candidates):
     cands = env["data"]["candidates"]
     click.echo("\n  Top candidates:")
     for i, c in enumerate(cands, 1):
-        click.echo(f"  {i}. {c['id']} [{c['priority']}] {c['title']}  ({c['swimlane']}/{c['kind']})")
+        click.echo(
+            f"  {i}. {c['id']} [{c['priority']}] {c['title']}  ({c['swimlane']}/{c['kind']})"
+        )
     click.echo()
 
 
@@ -592,6 +619,7 @@ def task_pick_cmd(swimlane, priority_min, max_candidates):
 @click.option("--since", default="24h")
 def daily_cmd(since):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_daily(conn, since=since)
@@ -600,9 +628,12 @@ def daily_cmd(since):
     # Touch daily marker for remind-daily.sh.
     # $COS_AGENT_DIR is agent-scoped (.coding-os/<agent>/); default to generic
     # .coding-os/ to avoid hardcoding a specific adapter here.
-    marker = Path(
-        os.environ.get("COS_AGENT_DIR", str(_project_root() / ".coding-os")),
-    ) / ".daily-last-run"
+    marker = (
+        Path(
+            os.environ.get("COS_AGENT_DIR", str(_project_root() / ".coding-os")),
+        )
+        / ".daily-last-run"
+    )
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text("", encoding="utf-8")
     sys.exit(_print_envelope(envelope))
@@ -612,6 +643,7 @@ def daily_cmd(since):
 @click.option("--since", default="7d")
 def retro_cmd(since):
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_retro(conn, since=since)
@@ -623,6 +655,7 @@ def retro_cmd(since):
 @click.command("wip", help="Current WIP counts vs. caps.")
 def wip_cmd():
     from board_os import mcp_tools
+
     conn = _db_conn()
     try:
         envelope = mcp_tools.cos_task_wip_check(conn)
@@ -655,6 +688,7 @@ def task_show_cmd(task_id):
                 tokens = content.split()
                 value = " ".join(tokens[1:]) if len(tokens) >= 2 else content
                 import re as _re
+
                 match = _re.search(r"TASK-\d+", value, _re.IGNORECASE)
                 if match:
                     task_id = match.group(0).upper()
@@ -678,7 +712,9 @@ def task_show_cmd(task_id):
         click.echo(f"ERROR: {task_id} not found", err=True)
         sys.exit(1)
     click.echo(f"  {row[0]}: {row[1]}")
-    click.echo(f"  status={row[2]} swimlane={row[3]} kind={row[4]} priority={row[5]} appetite={row[6]}")
+    click.echo(
+        f"  status={row[2]} swimlane={row[3]} kind={row[4]} priority={row[5]} appetite={row[6]}"
+    )
     click.echo(f"  file: {row[7]}")
     if row[7]:
         full_path = _project_root() / row[7]
@@ -732,6 +768,7 @@ def task_history_cmd(task_id):
         return
     click.echo(f"\n  Transitions for {task_id}:")
     import time
+
     for r in rows:
         ts = time.strftime("%Y-%m-%d %H:%M", time.localtime(r[4]))
         click.echo(f"  {ts}  {r[0]:>12} → {r[1]:<12}  {r[3] or ''}")
@@ -754,7 +791,8 @@ def task_history_cmd(task_id):
 )
 @click.argument("task_id", required=False)
 @click.option(
-    "--for", "for_status",
+    "--for",
+    "for_status",
     type=click.Choice(["in_progress", "complete"]),
     default="in_progress",
     help="Status to validate as the target. Default: in_progress (DoR check).",
@@ -776,6 +814,7 @@ def task_validate_cmd(task_id, for_status, as_json):
 
 def _task_validate_lint_all() -> None:
     from board_os.parser import parse_task
+
     root = _project_root()
     tasks_dir = root / "docs" / "tasks"
     if not tasks_dir.exists():
@@ -803,13 +842,16 @@ def _task_validate_lint_all() -> None:
 def _task_validate_preflight(task_id: str, for_status: str, as_json: bool) -> None:
     """Run the transition gate validator without applying any change."""
     import json as _json
+
     from board_os.parser import extract_frontmatter
     from board_os.transition_gates import GatesConfigError, load_gates_config
     from board_os.transition_gates_cli import (
-        _has_work_log_entries, _verify_state,
+        _has_work_log_entries,
+        _verify_state,
     )
     from board_os.transition_gates_validator import (
-        Verdict, validate_transition,
+        Verdict,
+        validate_transition,
     )
 
     conn = _db_conn()
@@ -869,8 +911,11 @@ def _task_validate_preflight(task_id: str, for_status: str, as_json: bool) -> No
         sev = msg.severity.value.upper()
         click.echo(f"    [{msg.code}] {sev}: {msg.message}")
     if result.verdict is Verdict.PASS:
-        click.echo(f"  Run: cos task-start {task_id}" if for_status == "in_progress"
-                   else f"  Run: cos task-done {task_id}")
+        click.echo(
+            f"  Run: cos task-start {task_id}"
+            if for_status == "in_progress"
+            else f"  Run: cos task-done {task_id}"
+        )
     sys.exit(0 if result.verdict is not Verdict.BLOCK else 2)
 
 
@@ -880,8 +925,7 @@ def _discover_stacks() -> list[str]:
     if not templates_dir.exists():
         return []
     return sorted(
-        p.name for p in templates_dir.iterdir()
-        if p.is_dir() and (p / "scaffold").exists()
+        p.name for p in templates_dir.iterdir() if p.is_dir() and (p / "scaffold").exists()
     )
 
 
@@ -892,7 +936,8 @@ def board_config_cmd(init, stack):
     valid_stacks = _discover_stacks() or ["_base"]
     if stack not in valid_stacks:
         click.echo(
-            f"ERROR: stack {stack!r} not in {valid_stacks}", err=True,
+            f"ERROR: stack {stack!r} not in {valid_stacks}",
+            err=True,
         )
         sys.exit(1)
     root = _project_root()
@@ -902,12 +947,22 @@ def board_config_cmd(init, stack):
             click.echo(f"ERROR: {config_path} already exists", err=True)
             sys.exit(1)
         source = (
-            _REPO_ROOT / "src" / "templates" / stack / "scaffold" / ".coding-os"
+            _REPO_ROOT
+            / "src"
+            / "templates"
+            / stack
+            / "scaffold"
+            / ".coding-os"
             / "scrumban-config.yaml"
         )
         if not source.exists():
             source = (
-                _REPO_ROOT / "src" / "templates" / "_base" / "scaffold" / ".coding-os"
+                _REPO_ROOT
+                / "src"
+                / "templates"
+                / "_base"
+                / "scaffold"
+                / ".coding-os"
                 / "scrumban-config.yaml"
             )
         config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -927,9 +982,19 @@ def board_config_cmd(init, stack):
 
 BOARD_COMMANDS = [
     board_cmd,
-    task_create_cmd, task_move_cmd,
-    task_start_cmd, task_done_cmd, task_block_cmd, task_cancel_cmd,
-    task_pick_cmd, daily_cmd, retro_cmd, wip_cmd,
-    task_show_cmd, task_log_cmd, task_history_cmd,
-    task_validate_cmd, board_config_cmd,
+    task_create_cmd,
+    task_move_cmd,
+    task_start_cmd,
+    task_done_cmd,
+    task_block_cmd,
+    task_cancel_cmd,
+    task_pick_cmd,
+    daily_cmd,
+    retro_cmd,
+    wip_cmd,
+    task_show_cmd,
+    task_log_cmd,
+    task_history_cmd,
+    task_validate_cmd,
+    board_config_cmd,
 ]

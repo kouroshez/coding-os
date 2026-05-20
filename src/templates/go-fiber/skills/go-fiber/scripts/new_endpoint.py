@@ -43,7 +43,7 @@ def main() -> int:
         ),
         pkg_dir / "service.go": (
             f"package {pkg_name}\n\n"
-            f"import \"context\"\n\n"
+            f'import "context"\n\n'
             f"type Service struct {{\n"
             f"    // TODO: repo deps\n"
             f"}}\n\n"
@@ -54,17 +54,17 @@ def main() -> int:
         ),
         pkg_dir / "handler.go": (
             f"package {pkg_name}\n\n"
-            f"import \"github.com/gofiber/fiber/v2\"\n\n"
+            f'import "github.com/gofiber/fiber/v2"\n\n'
             f"type Handler struct {{ Service *Service }}\n\n"
             f"func NewHandler(s *Service) *Handler {{ return &Handler{{Service: s}} }}\n\n"
             f"func (h *Handler) Create(c *fiber.Ctx) error {{\n"
             f"    var req {type_name}Request\n"
             f"    if err := c.BodyParser(&req); err != nil {{\n"
-            f"        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{{\"error\": err.Error()}})\n"
+            f'        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{{"error": err.Error()}})\n'
             f"    }}\n"
             f"    resp, err := h.Service.Create(c.UserContext(), req)\n"
             f"    if err != nil {{\n"
-            f"        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{{\"error\": err.Error()}})\n"
+            f'        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{{"error": err.Error()}})\n'
             f"    }}\n"
             f"    return c.Status(fiber.StatusCreated).JSON(resp)\n"
             f"}}\n"
@@ -72,21 +72,21 @@ def main() -> int:
         pkg_dir / "handler_test.go": (
             f"package {pkg_name}\n\n"
             f"import (\n"
-            f"    \"net/http/httptest\"\n"
-            f"    \"strings\"\n"
-            f"    \"testing\"\n\n"
-            f"    \"github.com/gofiber/fiber/v2\"\n"
+            f'    "net/http/httptest"\n'
+            f'    "strings"\n'
+            f'    "testing"\n\n'
+            f'    "github.com/gofiber/fiber/v2"\n'
             f")\n\n"
             f"func TestCreate_ReturnsCreated(t *testing.T) {{\n"
             f"    app := fiber.New()\n"
             f"    h := NewHandler(NewService())\n"
-            f"    app.Post(\"/{args.domain}/\", h.Create)\n"
-            f"    req := httptest.NewRequest(\"POST\", \"/{args.domain}/\", strings.NewReader(\"{{}}\"))\n"
-            f"    req.Header.Set(\"Content-Type\", \"application/json\")\n"
+            f'    app.Post("/{args.domain}/", h.Create)\n'
+            f'    req := httptest.NewRequest("POST", "/{args.domain}/", strings.NewReader("{{}}"))\n'
+            f'    req.Header.Set("Content-Type", "application/json")\n'
             f"    resp, err := app.Test(req)\n"
             f"    if err != nil {{ t.Fatal(err) }}\n"
             f"    if resp.StatusCode != fiber.StatusCreated {{\n"
-            f"        t.Fatalf(\"want 201, got %d\", resp.StatusCode)\n"
+            f'        t.Fatalf("want 201, got %d", resp.StatusCode)\n'
             f"    }}\n"
             f"}}\n"
         ),

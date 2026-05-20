@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from tools.docs import list_doc_headers, parse_doc_header
 
 
@@ -16,7 +15,10 @@ def _write(tmp_path: Path, name: str, body: str) -> Path:
 
 
 def test_parse_long_form_opening_block(tmp_path: Path) -> None:
-    target = _write(tmp_path, "long.md", """\
+    target = _write(
+        tmp_path,
+        "long.md",
+        """\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-28 -->
 # Long Form Example
 
@@ -26,7 +28,8 @@ Skip when: Inverse condition.
 Read next: [a.md](a.md), [b.md](b.md)
 
 > Nav: irrelevant
-""")
+""",
+    )
     header = parse_doc_header(target)
     assert header is not None
     assert header["title"] == "Long Form Example"
@@ -43,7 +46,10 @@ Read next: [a.md](a.md), [b.md](b.md)
 
 
 def test_parse_short_form_opening_block(tmp_path: Path) -> None:
-    target = _write(tmp_path, "short.md", """\
+    target = _write(
+        tmp_path,
+        "short.md",
+        """\
 <!-- domain:BACKEND | layer:playbook | ssot:ref | updated:2026-04-28 | tokens:900 -->
 # Short Form Example
 
@@ -51,7 +57,8 @@ def test_parse_short_form_opening_block(tmp_path: Path) -> None:
 > R: trigger.
 > S: do not.
 > N: ../foo.md
-""")
+""",
+    )
     header = parse_doc_header(target)
     assert header is not None
     assert header["frontmatter"]["domain"] == "BACKEND"
@@ -64,10 +71,14 @@ def test_parse_short_form_opening_block(tmp_path: Path) -> None:
 
 
 def test_parse_reads_list(tmp_path: Path) -> None:
-    target = _write(tmp_path, "with-reads.md", """\
+    target = _write(
+        tmp_path,
+        "with-reads.md",
+        """\
 <!-- domain:CORE | layer:reference | ssot:true | updated:2026-04-28 | reads:[a.md, b.md, c.md] -->
 # Reads Vector
-""")
+""",
+    )
     header = parse_doc_header(target)
     assert header is not None
     assert header["frontmatter"]["reads"] == ["a.md", "b.md", "c.md"]
@@ -87,7 +98,10 @@ def test_parse_missing_file(tmp_path: Path) -> None:
 
 
 def test_parse_long_form_wins_over_short(tmp_path: Path) -> None:
-    target = _write(tmp_path, "both.md", """\
+    target = _write(
+        tmp_path,
+        "both.md",
+        """\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-28 -->
 # Both Forms
 
@@ -98,7 +112,8 @@ Purpose: long purpose.
 Read when: long read-when.
 Skip when: long skip-when.
 Read next: long read-next.
-""")
+""",
+    )
     header = parse_doc_header(target)
     assert header is not None
     ob = header["opening_block"]
@@ -107,7 +122,10 @@ Read next: long read-next.
 
 
 def test_list_doc_headers_filters(tmp_path: Path) -> None:
-    _write(tmp_path, "p1.md", """\
+    _write(
+        tmp_path,
+        "p1.md",
+        """\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-28 -->
 # Policy 1
 
@@ -115,8 +133,12 @@ Purpose: x.
 Read when: x.
 Skip when: x.
 Read next: x.
-""")
-    _write(tmp_path, "p2.md", """\
+""",
+    )
+    _write(
+        tmp_path,
+        "p2.md",
+        """\
 <!-- domain:DOCS | layer:reference | ssot:ref | updated:2026-03-01 -->
 # Reference
 
@@ -124,8 +146,12 @@ Purpose: y.
 Read when: y.
 Skip when: y.
 Read next: y.
-""")
-    _write(tmp_path, "p3.md", """\
+""",
+    )
+    _write(
+        tmp_path,
+        "p3.md",
+        """\
 <!-- domain:BACKEND | layer:policy | ssot:true | updated:2026-04-28 -->
 # Backend Policy
 
@@ -133,7 +159,8 @@ Purpose: z.
 Read when: z.
 Skip when: z.
 Read next: z.
-""")
+""",
+    )
     # Domain filter.
     rows = list_doc_headers(tmp_path, domain="DOCS")
     assert len(rows) == 2
@@ -155,7 +182,10 @@ Read next: z.
 
 
 def test_list_doc_headers_skips_malformed(tmp_path: Path) -> None:
-    _write(tmp_path, "good.md", """\
+    _write(
+        tmp_path,
+        "good.md",
+        """\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-28 -->
 # Good
 
@@ -163,7 +193,8 @@ Purpose: x.
 Read when: x.
 Skip when: x.
 Read next: x.
-""")
+""",
+    )
     _write(tmp_path, "no-fm.md", "# Just title\n\nbody only\n")
     rows = list_doc_headers(tmp_path)
     titles = {r["title"] for r in rows}
@@ -173,7 +204,10 @@ Read next: x.
 
 def test_list_doc_headers_limit(tmp_path: Path) -> None:
     for i in range(5):
-        _write(tmp_path, f"file-{i}.md", f"""\
+        _write(
+            tmp_path,
+            f"file-{i}.md",
+            f"""\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-{20 + i:02d} -->
 # Doc {i}
 
@@ -181,13 +215,17 @@ Purpose: x.
 Read when: x.
 Skip when: x.
 Read next: x.
-""")
+""",
+        )
     rows = list_doc_headers(tmp_path, limit=3)
     assert len(rows) == 3
 
 
 def test_list_doc_headers_sort_priority_then_updated(tmp_path: Path) -> None:
-    _write(tmp_path, "low.md", """\
+    _write(
+        tmp_path,
+        "low.md",
+        """\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-28 | priority:0.1 -->
 # Low
 
@@ -195,8 +233,12 @@ Purpose: x.
 Read when: x.
 Skip when: x.
 Read next: x.
-""")
-    _write(tmp_path, "high.md", """\
+""",
+    )
+    _write(
+        tmp_path,
+        "high.md",
+        """\
 <!-- domain:DOCS | layer:policy | ssot:true | updated:2026-03-01 | priority:0.9 -->
 # High
 
@@ -204,7 +246,8 @@ Purpose: x.
 Read when: x.
 Skip when: x.
 Read next: x.
-""")
+""",
+    )
     rows = list_doc_headers(tmp_path)
     assert [r["title"] for r in rows] == ["High", "Low"]
 

@@ -6,9 +6,9 @@ DEPENDS:  stdlib + template.py + backend.
 from __future__ import annotations
 
 import secrets
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from ..backend import GraphBackend
 from ..types import GraphEdge, GraphNode
@@ -43,9 +43,7 @@ class ViewerExporter:
                 visit_limit=self.max_nodes,
             )
             return nodes, edges[: self.max_edges]
-        edges = self.backend.list_edges(
-            edge_types=edge_types, limit=self.max_edges
-        )
+        edges = self.backend.list_edges(edge_types=edge_types, limit=self.max_edges)
         uids: set[str] = set()
         for e in edges:
             uids.add(e.source_uid)
@@ -85,7 +83,9 @@ def build_view(
     bundled: bool = False,
 ) -> Path:
     exporter = ViewerExporter(
-        backend=backend, title=title, bundled=bundled,
+        backend=backend,
+        title=title,
+        bundled=bundled,
     )
     return exporter.export(out_path, root_uid=root_uid, edge_types=edge_types)
 

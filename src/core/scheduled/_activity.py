@@ -60,9 +60,7 @@ def activity_since(db_path: Path | str, *, days: float = 1.0) -> dict:
     except OSError as exc:
         logger.debug("activity_since os error for %s: %s", db_path, exc)
 
-    result["has_activity"] = (
-        result["obs_count"] > 0 or result["outcome_count"] > 0
-    )
+    result["has_activity"] = result["obs_count"] > 0 or result["outcome_count"] > 0
     return result
 
 
@@ -79,9 +77,7 @@ def outcomes_since_marker(db_path: Path | str, marker_path: Path | str) -> int:
             mtime = marker_path.stat().st_mtime
             # SQLite datetime('now') stores "YYYY-MM-DD HH:MM:SS" without tz;
             # use same format for the cutoff so string comparison is correct.
-            cutoff = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            cutoff = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         except OSError as exc:
             logger.debug("outcomes_since_marker marker read error: %s", exc)
 
@@ -111,9 +107,7 @@ def observations_since_marker(db_path: Path | str, marker_path: Path | str) -> i
     if marker_path.exists():
         try:
             mtime = marker_path.stat().st_mtime
-            cutoff = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            cutoff = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         except OSError as exc:
             logger.debug("observations_since_marker marker read error: %s", exc)
 

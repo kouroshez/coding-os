@@ -67,15 +67,20 @@ def _run_brain_module(
 
 @click.command("docs-index")
 @click.option(
-    "--project-dir", "-d", default=".",
+    "--project-dir",
+    "-d",
+    default=".",
     help="Project directory (default: current)",
 )
 @click.option(
-    "--config", default=None,
+    "--config",
+    default=None,
     help="Path to rag-config.yaml (default: <project>/.coding-os/rag-config.yaml)",
 )
 @click.option(
-    "--force", is_flag=True, default=False,
+    "--force",
+    is_flag=True,
+    default=False,
     help="Re-index every file regardless of mtime",
 )
 def docs_index(project_dir: str, config: str | None, force: bool) -> None:
@@ -90,9 +95,12 @@ def docs_index(project_dir: str, config: str | None, force: bool) -> None:
     db_path = project / ".coding-os" / "coding-os.db"
 
     args = [
-        "--config", str(cfg_path),
-        "--project-root", str(project),
-        "--db", str(db_path),
+        "--config",
+        str(cfg_path),
+        "--project-root",
+        str(project),
+        "--db",
+        str(db_path),
     ]
     if force:
         args.append("--force")
@@ -103,11 +111,15 @@ def docs_index(project_dir: str, config: str | None, force: bool) -> None:
 
 @click.command("task-sync")
 @click.option(
-    "--project-dir", "-d", default=".",
+    "--project-dir",
+    "-d",
+    default=".",
     help="Project directory (default: current)",
 )
 @click.option(
-    "--force", is_flag=True, default=False,
+    "--force",
+    is_flag=True,
+    default=False,
     help="Re-sync every task file regardless of mtime",
 )
 def task_sync(project_dir: str, force: bool) -> None:
@@ -116,8 +128,10 @@ def task_sync(project_dir: str, force: bool) -> None:
     db_path = project / ".coding-os" / "coding-os.db"
 
     args = [
-        "--project-root", str(project),
-        "--db", str(db_path),
+        "--project-root",
+        str(project),
+        "--db",
+        str(db_path),
     ]
     if force:
         args.append("--force")
@@ -128,7 +142,9 @@ def task_sync(project_dir: str, force: bool) -> None:
 
 @click.command("reindex")
 @click.option(
-    "--project-dir", "-d", default=".",
+    "--project-dir",
+    "-d",
+    default=".",
     help="Project directory (default: current)",
 )
 def reindex(project_dir: str) -> None:
@@ -146,23 +162,33 @@ def reindex(project_dir: str) -> None:
 
 @click.command("graph-reindex")
 @click.option(
-    "--project-dir", "-d", default=".",
+    "--project-dir",
+    "-d",
+    default=".",
     help="Project directory (default: current).",
 )
 @click.option(
-    "--force", is_flag=True, default=False,
+    "--force",
+    is_flag=True,
+    default=False,
     help="Re-extract every file regardless of content hash.",
 )
 @click.option(
-    "--file", "single_file", default=None,
+    "--file",
+    "single_file",
+    default=None,
     help="Reindex a single file (incremental; used by auto-reindex-graph.sh).",
 )
 @click.option(
-    "--max-files", type=int, default=50_000,
+    "--max-files",
+    type=int,
+    default=50_000,
     help="Safety cap on files walked.",
 )
 @click.option(
-    "--quiet", is_flag=True, default=False,
+    "--quiet",
+    is_flag=True,
+    default=False,
     help="Suppress progress lines.",
 )
 def graph_reindex(
@@ -186,9 +212,12 @@ def graph_reindex(
     db_path = project / ".coding-os" / "coding-os.db"
 
     args = [
-        "--project-root", str(project),
-        "--db", str(db_path),
-        "--max-files", str(max_files),
+        "--project-root",
+        str(project),
+        "--db",
+        str(db_path),
+        "--max-files",
+        str(max_files),
     ]
     if force:
         args.append("--force")
@@ -203,11 +232,15 @@ def graph_reindex(
 
 @click.command("brain-decay")
 @click.option(
-    "--project-dir", "-d", default=".",
+    "--project-dir",
+    "-d",
+    default=".",
     help="Project directory (default: current)",
 )
 @click.option(
-    "--dry-run", is_flag=True, default=False,
+    "--dry-run",
+    is_flag=True,
+    default=False,
     help="Compute decay stats without writing.",
 )
 def brain_decay(project_dir: str, dry_run: bool) -> None:
@@ -222,11 +255,15 @@ def brain_decay(project_dir: str, dry_run: bool) -> None:
 
 @click.command("brain-gc")
 @click.option(
-    "--project-dir", "-d", default=".",
+    "--project-dir",
+    "-d",
+    default=".",
     help="Project directory (default: current)",
 )
 @click.option(
-    "--dry-run", is_flag=True, default=False,
+    "--dry-run",
+    is_flag=True,
+    default=False,
     help="Report orphans without deleting.",
 )
 def brain_gc(project_dir: str, dry_run: bool) -> None:

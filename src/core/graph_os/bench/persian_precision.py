@@ -50,8 +50,7 @@ def _seed_fixture(conn: sqlite3.Connection, model_name: str) -> None:
 
     cursor = conn.cursor()
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS fixture ("
-        "id INTEGER PRIMARY KEY, uid TEXT UNIQUE, content TEXT)"
+        "CREATE TABLE IF NOT EXISTS fixture (id INTEGER PRIMARY KEY, uid TEXT UNIQUE, content TEXT)"
     )
     for uid, content in FIXTURE:
         cursor.execute(
@@ -61,9 +60,7 @@ def _seed_fixture(conn: sqlite3.Connection, model_name: str) -> None:
     conn.commit()
     rows = cursor.execute("SELECT id, content FROM fixture").fetchall()
     for row_id, content in rows:
-        embeddings.upsert_embedding(
-            conn, "fixture", int(row_id), content, model_name=model_name
-        )
+        embeddings.upsert_embedding(conn, "fixture", int(row_id), content, model_name=model_name)
 
 
 def _score(conn: sqlite3.Connection, model_name: str) -> dict:

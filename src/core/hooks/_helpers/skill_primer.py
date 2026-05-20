@@ -11,6 +11,7 @@ Source of truth:
 
 Fail-open: prints nothing on any parse error (hook always exits 0).
 """
+
 from __future__ import annotations
 
 import json
@@ -80,7 +81,9 @@ def _load_stack(cos_root: Path, stack_id: str) -> dict | None:
 
 def _format_card(stacks: list[tuple[str, dict]]) -> str:
     lines: list[str] = []
-    lines.append("[Skill Primer] PreToolUse Write/Edit BLOCKS without a matching domain skill loaded this session.")
+    lines.append(
+        "[Skill Primer] PreToolUse Write/Edit BLOCKS without a matching domain skill loaded this session."
+    )
     lines.append("")
     lines.append("Invoke required skills NOW via the Skill tool — do not wait for the block.")
     lines.append("")
@@ -121,7 +124,9 @@ def _format_card(stacks: list[tuple[str, dict]]) -> str:
         lines.append("  " + " · ".join(sorted(all_skills)))
         lines.append("")
 
-    lines.append('Minimal load before any code edit: Skill skill: "clean-code" (universal) + the primary matching the file you intend to edit.')
+    lines.append(
+        'Minimal load before any code edit: Skill skill: "clean-code" (universal) + the primary matching the file you intend to edit.'
+    )
     return "\n".join(lines).rstrip()
 
 

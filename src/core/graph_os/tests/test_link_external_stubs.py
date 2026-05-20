@@ -1,4 +1,5 @@
 """link_external_stubs: stub-edge rewriting to real cross-file targets."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -9,6 +10,7 @@ from graph_os.types import GraphEdge, GraphNode
 
 def _migrated_conn() -> sqlite3.Connection:
     import database as thinking_os_db
+
     conn = sqlite3.connect(":memory:")
     thinking_os_db.run_migrations(conn)
     return conn
@@ -36,15 +38,18 @@ def test_resolves_relative_import_to_real_symbol():
         label="normalize_kind",
         metadata={"stub": True, "extractor": "code_python@v1"},
     )
-    backend.bulk_upsert([real, caller_file, stub], [
-        GraphEdge(
-            source_uid=caller_file.uid,
-            target_uid=stub.uid,
-            edge_type="calls",
-            extractor="code_python@v1",
-            confidence=0.4,
-        )
-    ])
+    backend.bulk_upsert(
+        [real, caller_file, stub],
+        [
+            GraphEdge(
+                source_uid=caller_file.uid,
+                target_uid=stub.uid,
+                edge_type="calls",
+                extractor="code_python@v1",
+                confidence=0.4,
+            )
+        ],
+    )
 
     rewrites = backend.link_external_stubs()
     assert rewrites == 1
@@ -70,15 +75,18 @@ def test_skips_unresolvable_stubs():
         label="missing_fn",
         metadata={"stub": True, "extractor": "code_python@v1"},
     )
-    backend.bulk_upsert([src_file, stub], [
-        GraphEdge(
-            source_uid=src_file.uid,
-            target_uid=stub.uid,
-            edge_type="calls",
-            extractor="code_python@v1",
-            confidence=0.3,
-        )
-    ])
+    backend.bulk_upsert(
+        [src_file, stub],
+        [
+            GraphEdge(
+                source_uid=src_file.uid,
+                target_uid=stub.uid,
+                edge_type="calls",
+                extractor="code_python@v1",
+                confidence=0.3,
+            )
+        ],
+    )
 
     rewrites = backend.link_external_stubs()
     assert rewrites == 0
@@ -106,15 +114,18 @@ def test_label_with_special_chars_does_not_match_unrelated():
         label="foo",
         metadata={"stub": True, "extractor": "code_python@v1"},
     )
-    backend.bulk_upsert([other, src_file, stub], [
-        GraphEdge(
-            source_uid=src_file.uid,
-            target_uid=stub.uid,
-            edge_type="calls",
-            extractor="code_python@v1",
-            confidence=0.4,
-        )
-    ])
+    backend.bulk_upsert(
+        [other, src_file, stub],
+        [
+            GraphEdge(
+                source_uid=src_file.uid,
+                target_uid=stub.uid,
+                edge_type="calls",
+                extractor="code_python@v1",
+                confidence=0.4,
+            )
+        ],
+    )
 
     rewrites = backend.link_external_stubs()
     assert rewrites == 0

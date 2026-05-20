@@ -28,8 +28,8 @@ import pytest
 # Make `embeddings` and `db` importable from the package root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import embeddings  # noqa: E402
-from database import init_db  # noqa: E402
+import embeddings
+from database import init_db
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),
@@ -40,6 +40,7 @@ REQUIRES_RAG = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db(tmp_path: Path) -> sqlite3.Connection:
@@ -64,6 +65,7 @@ def _clear_lru_cache():
 # Availability detection
 # ---------------------------------------------------------------------------
 
+
 class TestAvailability:
     def test_is_available_returns_bool(self) -> None:
         result = embeddings.is_available()
@@ -85,6 +87,7 @@ class TestAvailability:
 # ---------------------------------------------------------------------------
 # embed_text / embed_texts
 # ---------------------------------------------------------------------------
+
 
 class TestEmbedText:
     @REQUIRES_RAG
@@ -146,6 +149,7 @@ class TestEmbedTexts:
 # cosine_similarity
 # ---------------------------------------------------------------------------
 
+
 class TestCosineSimilarity:
     @REQUIRES_RAG
     def test_identical_vectors_score_one(self) -> None:
@@ -193,6 +197,7 @@ class TestCosineSimilarity:
 # ---------------------------------------------------------------------------
 # upsert_embedding
 # ---------------------------------------------------------------------------
+
 
 class TestUpsertEmbedding:
     @REQUIRES_RAG
@@ -243,6 +248,7 @@ class TestUpsertEmbedding:
 # has_embeddings_data
 # ---------------------------------------------------------------------------
 
+
 class TestHasEmbeddingsData:
     def test_empty_db_returns_false(self, tmp_db: sqlite3.Connection) -> None:
         # Migration v5 creates the table but it has no rows initially
@@ -258,6 +264,7 @@ class TestHasEmbeddingsData:
 # search_similar
 # ---------------------------------------------------------------------------
 
+
 class TestSearchSimilar:
     @REQUIRES_RAG
     def test_finds_synonym(self, tmp_db: sqlite3.Connection) -> None:
@@ -267,13 +274,22 @@ class TestSearchSimilar:
         unrelated), so we lower the threshold and assert ranking, not score.
         """
         embeddings.upsert_embedding(
-            tmp_db, "learned_patterns", 1, "JWT token refresh failing in production",
+            tmp_db,
+            "learned_patterns",
+            1,
+            "JWT token refresh failing in production",
         )
         embeddings.upsert_embedding(
-            tmp_db, "learned_patterns", 2, "color palette tokens for dark mode",
+            tmp_db,
+            "learned_patterns",
+            2,
+            "color palette tokens for dark mode",
         )
         results = embeddings.search_similar(
-            tmp_db, "authentication problem", limit=5, threshold=0.05,
+            tmp_db,
+            "authentication problem",
+            limit=5,
+            threshold=0.05,
         )
         assert len(results) >= 1
         # Auth-related row must rank first
@@ -284,7 +300,9 @@ class TestSearchSimilar:
 
     @REQUIRES_RAG
     def test_threshold_filters_low_scores(self, tmp_db: sqlite3.Connection) -> None:
-        embeddings.upsert_embedding(tmp_db, "observations", 1, "completely unrelated topic about cooking")
+        embeddings.upsert_embedding(
+            tmp_db, "observations", 1, "completely unrelated topic about cooking"
+        )
         results = embeddings.search_similar(
             tmp_db,
             query="quantum physics",
@@ -322,6 +340,7 @@ class TestSearchSimilar:
 # reindex_all
 # ---------------------------------------------------------------------------
 
+
 class TestReindexAll:
     @REQUIRES_RAG
     def test_reindex_picks_up_existing_observations(self, tmp_db: sqlite3.Connection) -> None:
@@ -346,6 +365,7 @@ class TestReindexAll:
 # ---------------------------------------------------------------------------
 # Text hash helper
 # ---------------------------------------------------------------------------
+
 
 class TestTextHash:
     def test_hash_length_16(self) -> None:

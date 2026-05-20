@@ -90,7 +90,9 @@ def load_manifest(path: str | Path) -> GroupManifest:
 
 def save_manifest(manifest: GroupManifest, path: str | Path) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(json.dumps(manifest.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    Path(path).write_text(
+        json.dumps(manifest.to_dict(), indent=2, sort_keys=True), encoding="utf-8"
+    )
 
 
 def register_member(
@@ -125,7 +127,7 @@ def _match(path: str, pattern: str) -> bool:
         return path.startswith(prefix)
     if pattern.endswith("/*"):
         prefix = pattern[:-2]
-        return path.startswith(prefix) and "/" not in path[len(prefix) + 1:]
+        return path.startswith(prefix) and "/" not in path[len(prefix) + 1 :]
     return False
 
 
@@ -134,6 +136,6 @@ __all__ = [
     "GroupManifest",
     "GroupMember",
     "load_manifest",
-    "save_manifest",
     "register_member",
+    "save_manifest",
 ]

@@ -38,11 +38,11 @@ _MAX_PER_SOURCE = 2
 # because cosine similarity is weak on short literal tokens.
 _IDENTIFIER_RE = re.compile(
     r"("
-    r"[A-Za-z_][A-Za-z0-9_]*\(\)"     # function call syntax
-    r"|[a-z]+(?:_[a-z0-9]+)+"          # snake_case (2+ segments)
+    r"[A-Za-z_][A-Za-z0-9_]*\(\)"  # function call syntax
+    r"|[a-z]+(?:_[a-z0-9]+)+"  # snake_case (2+ segments)
     r"|[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)+"  # CamelCase (2+ segments)
-    r"|TASK-\d+"                       # task id
-    r"|`[^`]+`"                        # explicit backtick identifier
+    r"|TASK-\d+"  # task id
+    r"|`[^`]+`"  # explicit backtick identifier
     r"|[a-zA-Z_][a-zA-Z0-9_]*\.py|\.ts|\.tsx|\.md"  # file with known ext
     r")"
 )
@@ -89,9 +89,9 @@ _LAYER_HINTS: dict[str, str] = {
 # Recency hints — phrasing → days lookback. "Recent" is the loosest;
 # explicit quarter / month is tightest.
 _RECENCY_HINTS: list[tuple[re.Pattern, int]] = [
-    (re.compile(r"\bthis week\b|\btoday\b|\byesterday\b", re.I),    7),
-    (re.compile(r"\bthis month\b|\bthis sprint\b",        re.I),   30),
-    (re.compile(r"\bthis quarter\b|\bQ[1-4]\b",           re.I),   90),
+    (re.compile(r"\bthis week\b|\btoday\b|\byesterday\b", re.I), 7),
+    (re.compile(r"\bthis month\b|\bthis sprint\b", re.I), 30),
+    (re.compile(r"\bthis quarter\b|\bQ[1-4]\b", re.I), 90),
     (re.compile(r"\brecent\b|\blatest\b|\bcurrent\b|\bnow\b", re.I), 90),
 ]
 
@@ -142,16 +142,16 @@ def _suggest_filters_from_query(query: str) -> dict[str, Any]:
 # Swimlane → frontmatter domain. Coarse mapping; agent can override with
 # explicit domain=. Missing swimlanes leave domain unset.
 _SWIMLANE_DOMAIN: dict[str, str] = {
-    "core":    "CORE",
+    "core": "CORE",
     "backend": "BACKEND",
-    "be":      "BACKEND",
+    "be": "BACKEND",
     "frontend": "FRONTEND",
-    "fe":      "FRONTEND",
-    "ai":      "AI",
-    "ops":     "OPS",
-    "infra":   "OPS",
+    "fe": "FRONTEND",
+    "ai": "AI",
+    "ops": "OPS",
+    "infra": "OPS",
     "security": "SECURITY",
-    "docs":    "DOCS",
+    "docs": "DOCS",
 }
 
 
@@ -287,8 +287,11 @@ def doc_search(
     results: list[dict] = []
 
     md_kwargs = dict(
-        source_types=source_types, domain=applied_domain, layer=layer,
-        since_iso=since_iso, include_inactive=include_inactive,
+        source_types=source_types,
+        domain=applied_domain,
+        layer=layer,
+        since_iso=since_iso,
+        include_inactive=include_inactive,
     )
 
     if mode == "lexical":
@@ -323,14 +326,16 @@ def doc_search(
         return final
 
     applied = {
-        k: v for k, v in {
+        k: v
+        for k, v in {
             "source_types": source_types,
             "domain": applied_domain,
             "layer": layer,
             "since_iso": since_iso,
             "include_inactive": include_inactive or None,
             "auto_context": auto_context or None,
-        }.items() if v is not None
+        }.items()
+        if v is not None
     }
     meta = {
         "filter_hints": _suggest_filters_from_query(query),
@@ -387,8 +392,11 @@ def _semantic_search(
     )
     params: list[Any] = list(chunk_ids)
     md_clause, md_params = _build_metadata_filter(
-        source_types=source_types, domain=domain, layer=layer,
-        since_iso=since_iso, include_inactive=include_inactive,
+        source_types=source_types,
+        domain=domain,
+        layer=layer,
+        since_iso=since_iso,
+        include_inactive=include_inactive,
     )
     sql += md_clause
     params.extend(md_params)
@@ -405,19 +413,21 @@ def _semantic_search(
         cosine_score = score_by_id.get(chunk_id, 0.0)
         priority = row["priority"] if row["priority"] is not None else 0.5
         final_score = cosine_score * (0.85 + 0.3 * priority)
-        hydrated.append({
-            "id": chunk_id,
-            "source_path": row["source_path"],
-            "source_type": row["source_type"],
-            "heading_path": row["heading_path"],
-            "content": row["content"],
-            "score": final_score,
-            "cosine": cosine_score,
-            "priority": priority,
-            "mtime": row["mtime"],
-            "chunk_index": row["chunk_index"],
-            "retrieval_source": "semantic",
-        })
+        hydrated.append(
+            {
+                "id": chunk_id,
+                "source_path": row["source_path"],
+                "source_type": row["source_type"],
+                "heading_path": row["heading_path"],
+                "content": row["content"],
+                "score": final_score,
+                "cosine": cosine_score,
+                "priority": priority,
+                "mtime": row["mtime"],
+                "chunk_index": row["chunk_index"],
+                "retrieval_source": "semantic",
+            }
+        )
     hydrated.sort(key=lambda d: d["score"], reverse=True)
     return hydrated
 
@@ -443,8 +453,11 @@ def _lexical_search(
 
     overfetch = limit * _OVERFETCH_MULTIPLIER
     md_kwargs = dict(
-        source_types=source_types, domain=domain, layer=layer,
-        since_iso=since_iso, include_inactive=include_inactive,
+        source_types=source_types,
+        domain=domain,
+        layer=layer,
+        since_iso=since_iso,
+        include_inactive=include_inactive,
     )
 
     if has_document_chunks_fts(conn):
@@ -470,8 +483,11 @@ def _fts_hydrate(
 ) -> list[dict]:
     """FTS5 MATCH join back to document_chunks with priority boost."""
     md_clause, md_params = _build_metadata_filter(
-        source_types=source_types, domain=domain, layer=layer,
-        since_iso=since_iso, include_inactive=include_inactive,
+        source_types=source_types,
+        domain=domain,
+        layer=layer,
+        since_iso=since_iso,
+        include_inactive=include_inactive,
         table_alias="dc",
     )
     sql = (
@@ -479,9 +495,7 @@ def _fts_hydrate(
         "dc.heading_path, dc.content, dc.priority, dc.mtime, f.rank AS fts_rank "
         "FROM document_chunks_fts f "
         "JOIN document_chunks dc ON dc.id = f.rowid "
-        "WHERE document_chunks_fts MATCH ?"
-        + md_clause
-        + " ORDER BY f.rank LIMIT ?"
+        "WHERE document_chunks_fts MATCH ?" + md_clause + " ORDER BY f.rank LIMIT ?"
     )
     params: list[Any] = [query, *md_params, limit]
     rows = conn.execute(sql, params).fetchall()
@@ -493,19 +507,21 @@ def _fts_hydrate(
         lexical_score = 1.0 / (1.0 + raw_rank)
         priority = row["priority"] if row["priority"] is not None else 0.5
         final_score = lexical_score * (0.85 + 0.3 * priority)
-        hydrated.append({
-            "id": row["id"],
-            "source_path": row["source_path"],
-            "source_type": row["source_type"],
-            "heading_path": row["heading_path"],
-            "content": row["content"],
-            "score": final_score,
-            "cosine": 0.0,  # N/A on lexical path
-            "priority": priority,
-            "mtime": row["mtime"],
-            "chunk_index": row["chunk_index"],
-            "retrieval_source": "lexical",
-        })
+        hydrated.append(
+            {
+                "id": row["id"],
+                "source_path": row["source_path"],
+                "source_type": row["source_type"],
+                "heading_path": row["heading_path"],
+                "content": row["content"],
+                "score": final_score,
+                "cosine": 0.0,  # N/A on lexical path
+                "priority": priority,
+                "mtime": row["mtime"],
+                "chunk_index": row["chunk_index"],
+                "retrieval_source": "lexical",
+            }
+        )
     return hydrated
 
 
@@ -529,8 +545,11 @@ def _like_hydrate(
         "WHERE (content LIKE ? OR heading_path LIKE ?)"
     )
     md_clause, md_params = _build_metadata_filter(
-        source_types=source_types, domain=domain, layer=layer,
-        since_iso=since_iso, include_inactive=include_inactive,
+        source_types=source_types,
+        domain=domain,
+        layer=layer,
+        since_iso=since_iso,
+        include_inactive=include_inactive,
     )
     sql += md_clause
     params.extend(md_params)
@@ -586,7 +605,7 @@ _FRONTMATTER_RE = re.compile(r"^\s*<!--\s*(.+?)\s*-->", re.DOTALL)
 
 # Long-form opening block lines.
 _LONG_OPENING_RE = {
-    "purpose":   re.compile(r"^Purpose:\s*(.+?)\s*$", re.M),
+    "purpose": re.compile(r"^Purpose:\s*(.+?)\s*$", re.M),
     "read_when": re.compile(r"^Read when:\s*(.+?)\s*$", re.M),
     "skip_when": re.compile(r"^Skip when:\s*(.+?)\s*$", re.M),
     "read_next": re.compile(r"^Read next:\s*(.+?)\s*$", re.M),
@@ -595,7 +614,7 @@ _LONG_OPENING_RE = {
 # Short-form (TASK-158) — accept either form. Short form lives inside a
 # blockquote: `> P: …` / `> R: …` / `> S: …` / `> N: …`.
 _SHORT_OPENING_RE = {
-    "purpose":   re.compile(r"^>\s*P:\s*(.+?)\s*$", re.M),
+    "purpose": re.compile(r"^>\s*P:\s*(.+?)\s*$", re.M),
     "read_when": re.compile(r"^>\s*R:\s*(.+?)\s*$", re.M),
     "skip_when": re.compile(r"^>\s*S:\s*(.+?)\s*$", re.M),
     "read_next": re.compile(r"^>\s*N:\s*(.+?)\s*$", re.M),

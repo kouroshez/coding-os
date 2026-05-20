@@ -36,7 +36,8 @@ W_ACCESS = 0.15
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _days_since(dt_str: Optional[str]) -> float:
+
+def _days_since(dt_str: str | None) -> float:
     """Return days since a datetime string, or 999 if None."""
     if not dt_str:
         return 999.0
@@ -97,6 +98,7 @@ def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
 # Phase B: semantic augmentation helpers
 # ---------------------------------------------------------------------------
 
+
 def _blend_score(five_signal: float, semantic: float) -> float:
     """Combine the existing 5-signal score with a semantic similarity score.
 
@@ -115,7 +117,7 @@ def _augment_with_semantic(
     conn: sqlite3.Connection,
     query: str,
     candidates: list[dict],
-    memory_type: Optional[str],
+    memory_type: str | None,
     overfetch: int,
 ) -> bool:
     """Run an embedding similarity search and merge results into `candidates`.
@@ -158,9 +160,7 @@ def _augment_with_semantic(
         return False
 
     # Index existing candidates for O(1) merge by (table, id)
-    by_key: dict[tuple[str, int], dict] = {
-        (c["source_table"], c["id"]): c for c in candidates
-    }
+    by_key: dict[tuple[str, int], dict] = {(c["source_table"], c["id"]): c for c in candidates}
 
     for hit in semantic_hits:
         key = (hit["source_table"], hit["source_id"])
@@ -169,9 +169,7 @@ def _augment_with_semantic(
             continue
 
         # Semantic-only hit — hydrate the row and append as a new candidate.
-        new_candidate = _hydrate_row_for_semantic_hit(
-            conn, hit["source_table"], hit["source_id"]
-        )
+        new_candidate = _hydrate_row_for_semantic_hit(conn, hit["source_table"], hit["source_id"])
         if new_candidate is None:
             continue
         if memory_type and new_candidate.get("memory_type") != memory_type:
@@ -187,7 +185,7 @@ def _hydrate_row_for_semantic_hit(
     conn: sqlite3.Connection,
     source_table: str,
     source_id: int,
-) -> Optional[dict]:
+) -> dict | None:
     """Fetch a row from observations or learned_patterns and shape it like
     the candidate dicts produced by the FTS5/LIKE branches.
 
@@ -254,15 +252,16 @@ def _hydrate_row_for_semantic_hit(
 # thinking_os_search
 # ---------------------------------------------------------------------------
 
+
 def memory_search(
     conn: sqlite3.Connection,
     *,
     query: str,
     limit: int = 5,
-    memory_type: Optional[str] = None,
+    memory_type: str | None = None,
     use_fts5: bool = True,
     min_confidence: float = 0.0,
-    since_days: Optional[int] = None,
+    since_days: int | None = None,
 ) -> dict:
     """Search observations and learned_patterns with 5-signal ranking.
 
@@ -345,16 +344,18 @@ def memory_search(
             impact=row_dict.get("impact_score", 0.5) or 0.5,
             access_count=0,
         )
-        candidates.append({
-            "id": row_dict["id"],
-            "title": (row_dict.get("title") or "")[:60],
-            "confidence": 0.5,
-            "impact_score": row_dict.get("impact_score", 0.5),
-            "memory_type": row_dict.get("memory_type", "discovery"),
-            "source_table": "observations",
-            "score": score,
-            "semantic_score": 0.0,
-        })
+        candidates.append(
+            {
+                "id": row_dict["id"],
+                "title": (row_dict.get("title") or "")[:60],
+                "confidence": 0.5,
+                "impact_score": row_dict.get("impact_score", 0.5),
+                "memory_type": row_dict.get("memory_type", "discovery"),
+                "source_table": "observations",
+                "score": score,
+                "semantic_score": 0.0,
+            }
+        )
 
     # --- Search learned_patterns ---
     if use_fts5:
@@ -365,9 +366,7 @@ def memory_search(
         "access_count, created_at, concepts, domain "
         "FROM learned_patterns "
         "WHERE (pattern LIKE ? OR concepts LIKE ?) "
-        "AND confidence >= ?"
-        + since_clause
-        + " ORDER BY confidence DESC LIMIT ?",
+        "AND confidence >= ?" + since_clause + " ORDER BY confidence DESC LIMIT ?",
         (like_pattern, like_pattern, float(min_confidence), *since_param, limit * 3),
     ).fetchall()
 
@@ -383,16 +382,18 @@ def memory_search(
             impact=row_dict.get("impact_score", 0.5) or 0.5,
             access_count=row_dict.get("access_count", 0) or 0,
         )
-        candidates.append({
-            "id": row_dict["id"],
-            "title": (row_dict.get("pattern") or "")[:60],
-            "confidence": row_dict.get("confidence", 0.5),
-            "impact_score": row_dict.get("impact_score", 0.5),
-            "memory_type": row_dict.get("memory_type", "pattern"),
-            "source_table": "learned_patterns",
-            "score": score,
-            "semantic_score": 0.0,
-        })
+        candidates.append(
+            {
+                "id": row_dict["id"],
+                "title": (row_dict.get("pattern") or "")[:60],
+                "confidence": row_dict.get("confidence", 0.5),
+                "impact_score": row_dict.get("impact_score", 0.5),
+                "memory_type": row_dict.get("memory_type", "pattern"),
+                "source_table": "learned_patterns",
+                "score": score,
+                "semantic_score": 0.0,
+            }
+        )
 
     # --- Phase B: semantic augmentation via embeddings ---
     semantic_used = _augment_with_semantic(
@@ -423,6 +424,7 @@ def memory_search(
     if results and len(results) < limit:
         try:
             from graph import query_related as _graph_query
+
             # Extract file paths and concepts from top results
             seed_nodes: set[str] = set()
             for r in results[:3]:
@@ -435,14 +437,16 @@ def memory_search(
             for node in list(seed_nodes)[:2]:
                 graph_results = _graph_query(conn, node=node, max_hops=1, limit=3)
                 for gn in graph_results.get("nodes", []):
-                    results.append({
-                        "id": None,
-                        "title": f"[Related] {gn['node']}",
-                        "confidence": 0.3,
-                        "impact_score": 0.3,
-                        "memory_type": "graph_expansion",
-                        "source_table": "concept_graph",
-                    })
+                    results.append(
+                        {
+                            "id": None,
+                            "title": f"[Related] {gn['node']}",
+                            "confidence": 0.3,
+                            "impact_score": 0.3,
+                            "memory_type": "graph_expansion",
+                            "source_table": "concept_graph",
+                        }
+                    )
                     if len(results) >= limit:
                         break
         except Exception:
@@ -473,11 +477,12 @@ def memory_search(
 # thinking_os_timeline
 # ---------------------------------------------------------------------------
 
+
 def memory_timeline(
     conn: sqlite3.Connection,
     *,
     days: int = 30,
-    domain: Optional[str] = None,
+    domain: str | None = None,
     limit: int = 20,
 ) -> dict:
     """Return recent task outcomes and observations.
@@ -504,7 +509,7 @@ def memory_timeline(
     where = " AND ".join(conditions)
 
     outcome_rows = conn.execute(
-        f"SELECT task_id, type, domain, outcome, created_at "  # noqa: S608
+        f"SELECT task_id, type, domain, outcome, created_at "
         f"FROM task_outcomes WHERE {where} "
         "ORDER BY created_at DESC LIMIT ?",
         params + [limit],
@@ -512,13 +517,15 @@ def memory_timeline(
 
     for row in outcome_rows:
         r = dict(row)
-        entries.append({
-            "id": r["task_id"],
-            "title": f"{r['task_id']}: {r['type']} ({r['outcome']})",
-            "date": r["created_at"],
-            "outcome": r["outcome"],
-            "type": "task_outcome",
-        })
+        entries.append(
+            {
+                "id": r["task_id"],
+                "title": f"{r['task_id']}: {r['type']} ({r['outcome']})",
+                "date": r["created_at"],
+                "outcome": r["outcome"],
+                "type": "task_outcome",
+            }
+        )
 
     # Observations
     obs_conditions = ["created_at >= date('now', '-' || ? || ' days')"]
@@ -529,7 +536,7 @@ def memory_timeline(
     obs_where = " AND ".join(obs_conditions)
 
     obs_rows = conn.execute(
-        f"SELECT id, title, memory_type, created_at "  # noqa: S608
+        f"SELECT id, title, memory_type, created_at "
         f"FROM observations WHERE {obs_where} "
         "ORDER BY created_at DESC LIMIT ?",
         obs_params + [limit],
@@ -537,13 +544,15 @@ def memory_timeline(
 
     for row in obs_rows:
         r = dict(row)
-        entries.append({
-            "id": r["id"],
-            "title": (r.get("title") or "")[:40],
-            "date": r["created_at"],
-            "outcome": None,
-            "type": r.get("memory_type", "observation"),
-        })
+        entries.append(
+            {
+                "id": r["id"],
+                "title": (r.get("title") or "")[:40],
+                "date": r["created_at"],
+                "outcome": None,
+                "type": r.get("memory_type", "observation"),
+            }
+        )
 
     # Sort combined by date desc, truncate
     entries.sort(key=lambda x: x.get("date") or "", reverse=True)
@@ -553,6 +562,7 @@ def memory_timeline(
 # ---------------------------------------------------------------------------
 # thinking_os_details
 # ---------------------------------------------------------------------------
+
 
 def memory_details(
     conn: sqlite3.Connection,
@@ -578,9 +588,7 @@ def memory_details(
             "SELECT * FROM task_outcomes WHERE task_id = ?", (str(pattern_id),)
         ).fetchone()
     else:
-        row = conn.execute(
-            f"SELECT * FROM {source} WHERE id = ?", (pattern_id,)  # noqa: S608
-        ).fetchone()
+        row = conn.execute(f"SELECT * FROM {source} WHERE id = ?", (pattern_id,)).fetchone()
 
     if row is None:
         return {"error": f"Not found: {source} id={pattern_id}"}
@@ -601,6 +609,7 @@ def memory_details(
 # thinking_os_promote
 # ---------------------------------------------------------------------------
 
+
 def memory_promote(
     conn: sqlite3.Connection,
     *,
@@ -620,11 +629,11 @@ def memory_promote(
         Dict with status and file path.
     """
     if target not in VALID_PROMOTE_TARGETS:
-        return {"error": f"Invalid target '{target}'. Must be one of: {sorted(VALID_PROMOTE_TARGETS)}"}
+        return {
+            "error": f"Invalid target '{target}'. Must be one of: {sorted(VALID_PROMOTE_TARGETS)}"
+        }
 
-    row = conn.execute(
-        "SELECT * FROM learned_patterns WHERE id = ?", (pattern_id,)
-    ).fetchone()
+    row = conn.execute("SELECT * FROM learned_patterns WHERE id = ?", (pattern_id,)).fetchone()
 
     if row is None:
         return {"error": f"Pattern not found: id={pattern_id}"}
@@ -632,7 +641,9 @@ def memory_promote(
     pattern_data = dict(row)
 
     if pattern_data.get("confidence", 0) < 0.3:
-        return {"error": f"Pattern confidence too low ({pattern_data['confidence']:.2f}). Minimum 0.3 for promotion."}
+        return {
+            "error": f"Pattern confidence too low ({pattern_data['confidence']:.2f}). Minimum 0.3 for promotion."
+        }
 
     # Build file content
     slug = f"pattern_{pattern_id}"

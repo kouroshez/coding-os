@@ -86,9 +86,7 @@ class TestModeSelection:
 
 class TestTopologyParity:
     def _grouped(self, edges):
-        return sorted(
-            (e.source_uid, e.target_uid, e.edge_type) for e in edges
-        )
+        return sorted((e.source_uid, e.target_uid, e.edge_type) for e in edges)
 
     def test_named_imports_same_topology(self, monkeypatch):
         src = textwrap.dedent(
@@ -131,28 +129,16 @@ class TestSideEffectAndReExport:
 class TestEvidenceSignals:
     def test_tree_sitter_signal_named(self, force_tree_sitter):
         r = _extract('import { Foo } from "pkg";\n')
-        signals = [
-            s.signal_name
-            for e in _import_edges(r)
-            for s in e.evidence
-        ]
+        signals = [s.signal_name for e in _import_edges(r) for s in e.evidence]
         assert "tree_sitter_import" in signals
 
     def test_tree_sitter_signal_side_effect(self, force_tree_sitter):
         r = _extract('import "polyfill";\n')
-        signals = [
-            s.signal_name
-            for e in _import_edges(r)
-            for s in e.evidence
-        ]
+        signals = [s.signal_name for e in _import_edges(r) for s in e.evidence]
         assert "tree_sitter_import_side_effect" in signals
 
     def test_legacy_keeps_old_signals(self, force_legacy):
         r = _extract('import { Foo } from "pkg";\nimport "side";')
-        signals = [
-            s.signal_name
-            for e in _import_edges(r)
-            for s in e.evidence
-        ]
+        signals = [s.signal_name for e in _import_edges(r) for s in e.evidence]
         assert "ts_import" in signals
         assert "ts_import_side_effect" in signals

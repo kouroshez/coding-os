@@ -12,7 +12,6 @@ from typing import Any
 
 from graph_os.types import GraphEdge, GraphNode
 
-
 THREAD_COUNT = 4
 OPS_PER_THREAD = 100
 # Every thread seeds its own node set so upsert_node is always valid.
@@ -63,7 +62,7 @@ def _run_thread(
             else:  # op == 4 — count + list
                 backend.count_nodes()
                 backend.list_edges(limit=10)
-    except BaseException as exc:  # noqa: BLE001 — must capture
+    except BaseException as exc:
         errors.append(exc)
 
 
@@ -116,5 +115,3 @@ def test_sqlite_backend_concurrency(tmp_path: Path) -> None:
         _exercise_backend(backend)
     finally:
         backend.close()
-
-

@@ -3,24 +3,23 @@
 from __future__ import annotations
 
 import pytest
-
 from cognition_schemas import (
-    AmbiguityCriterion,
     Actor,
-    BacktrackEvent,
-    Discovery,
-    EvidenceBundle,
-    ResearcherOutput,
+    AmbiguityCriterion,
     AnalystInput,
     AnalystOutput,
     ArchitectOutput,
-    ImplementerOutput,
-    ReviewerOutput,
+    BacktrackEvent,
     DebuggerOutput,
-    SecurityAuditorOutput,
+    Discovery,
+    EvidenceBundle,
     GoalNode,
+    ImplementerOutput,
     NextAction,
+    ResearcherOutput,
+    ReviewerOutput,
     Scenario,
+    SecurityAuditorOutput,
     SupervisorState,
 )
 
@@ -28,8 +27,13 @@ from cognition_schemas import (
 class TestAmbiguityCriterion:
     def test_all_seven_criteria_exist(self):
         expected = {
-            "observable", "measurable", "testable", "scoped",
-            "owned", "reversible_or_justified", "connected_to_user_value",
+            "observable",
+            "measurable",
+            "testable",
+            "scoped",
+            "owned",
+            "reversible_or_justified",
+            "connected_to_user_value",
         }
         assert {c.value for c in AmbiguityCriterion} == expected
 
@@ -63,7 +67,9 @@ class TestF2Output:
         out = AnalystOutput(
             problem_statement="Add payment flow.",
             actors=[Actor(id="user", role="buyer", capabilities=["pay"])],
-            scenarios=[Scenario(id="S1", given="user has card", when="checkout", then="payment succeeds")],
+            scenarios=[
+                Scenario(id="S1", given="user has card", when="checkout", then="payment succeeds")
+            ],
         )
         assert len(out.actors) == 1
         assert len(out.scenarios) == 1
@@ -118,7 +124,11 @@ class TestSupervisorState:
 
 class TestNextAction:
     def test_dispatch_action(self):
-        action = NextAction(action="dispatch", formula="analyst", agent_file="src/core/thinking_os/agents/analyst.md")
+        action = NextAction(
+            action="dispatch",
+            formula="analyst",
+            agent_file="src/core/thinking_os/agents/analyst.md",
+        )
         assert action.action == "dispatch"
         assert action.formula == "analyst"
 

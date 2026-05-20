@@ -34,7 +34,12 @@ PRD_CLASSIFIER: dict[str, tuple[str, ...]] = {
     "01-snapshot-vision.md": ("vision", "elevator", "pitch", "overview", "snapshot"),
     "02-goals-kpis.md": ("goal", "kpi", "metric", "objective", "target", "success criteria"),
     "03-users-jobs.md": ("persona", "user", "audience", "customer", "jtbd", "jobs to be done"),
-    "04-information-architecture.md": ("information architecture", "page tree", "navigation", "sitemap"),
+    "04-information-architecture.md": (
+        "information architecture",
+        "page tree",
+        "navigation",
+        "sitemap",
+    ),
     "05-ux-conversion.md": ("ux", "conversion", "funnel", "user flow", "journey"),
     "06-product-pricing.md": ("pricing", "plan", "tier", "packaging", "revenue"),
     "07-policies-legal.md": ("legal", "policy", "terms", "compliance", "privacy", "gdpr"),
@@ -48,9 +53,7 @@ PRD_CLASSIFIER: dict[str, tuple[str, ...]] = {
 def _load_config(project: Path) -> dict:
     path = project / CONFIG_FILE
     if not path.exists():
-        raise click.ClickException(
-            f"Not a coding-os project ({CONFIG_FILE} missing in {project})"
-        )
+        raise click.ClickException(f"Not a coding-os project ({CONFIG_FILE} missing in {project})")
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
@@ -75,19 +78,27 @@ def _interactive_vision(project: Path) -> dict[str, str]:
     click.echo("\n=== Interactive PRD Setup ===")
     vision = click.prompt(
         "Project vision (one paragraph)",
-        type=str, default="", show_default=False,
+        type=str,
+        default="",
+        show_default=False,
     )
     goals = click.prompt(
         "Top 3 KPIs (comma-separated)",
-        type=str, default="", show_default=False,
+        type=str,
+        default="",
+        show_default=False,
     )
     persona = click.prompt(
         "Primary persona (who uses this?)",
-        type=str, default="", show_default=False,
+        type=str,
+        default="",
+        show_default=False,
     )
     features = click.prompt(
         "Core features (comma-separated, optional)",
-        type=str, default="", show_default=False,
+        type=str,
+        default="",
+        show_default=False,
     )
     return {
         "vision": vision,
@@ -230,9 +241,7 @@ def _classify_section(title: str) -> str:
     return "99-misc.md"
 
 
-def _build_prd_file_content(
-    date: str, target: str, grouped: list[tuple[str, str]]
-) -> str:
+def _build_prd_file_content(date: str, target: str, grouped: list[tuple[str, str]]) -> str:
     header_title = target.replace(".md", "").replace("-", " ").title()
     # Strip leading numeric prefix like "01 " for display title.
     pretty = re.sub(r"^\d+\s+", "", header_title)
@@ -241,9 +250,9 @@ def _build_prd_file_content(
         f"# {pretty}",
         "",
         f"Purpose: Imported from legacy PRD on {date}.",
-        f"Read when: Feature work in this area.",
+        "Read when: Feature work in this area.",
         f"Skip when: Task is not related to {pretty.lower()}.",
-        f"Read next: The next numbered PRD file.",
+        "Read next: The next numbered PRD file.",
         "",
         "> Nav: [PRD Index](./00-index.md)",
         "",

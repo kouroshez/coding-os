@@ -9,6 +9,7 @@ NOTES:   The generator is an infinite poll loop.  We patch asyncio.sleep
          so each sleep tick lets the test inject state and abort after
          a bounded number of iterations.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -24,7 +25,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from coding-os.db import init_db  # noqa: E402
+from thinking_os.database import init_db  # noqa: E402
 
 
 @pytest.fixture
@@ -43,8 +44,7 @@ def cos_project(tmp_path, monkeypatch):
     return project
 
 
-def _write_task_file(project: Path, task_id: str, status: str = "ready",
-                     extra: str = "") -> Path:
+def _write_task_file(project: Path, task_id: str, status: str = "ready", extra: str = "") -> Path:
     path = project / "docs" / "tasks" / f"{task_id}-slug.md"
     path.write_text(
         f"---\ntask_id: {task_id}\nstatus: {status}\n{extra}---\n\nbody\n",
@@ -110,7 +110,7 @@ async def _run_scenario(on_poll, max_polls: int = 5, want_events: int = 1) -> li
                         None,
                     )
                     if data_line:
-                        events.append(json.loads(data_line[len("data: "):]))
+                        events.append(json.loads(data_line[len("data: ") :]))
                 if len(events) >= want_events and polls[0] >= max_polls - 1:
                     break
         except asyncio.CancelledError:
@@ -129,7 +129,10 @@ def test_db_transition_emits_with_agent_attribution(cos_project):
         if poll_num == 1:
             # Insert between init (which snapshots MAX(id)) and first poll body.
             _insert_transition(
-                db, "TASK-001", "in_progress", "ses-claude-test",
+                db,
+                "TASK-001",
+                "in_progress",
+                "ses-claude-test",
                 ts=1_700_000_000,
             )
 
@@ -185,7 +188,11 @@ def test_db_event_suppresses_duplicate_file_event(cos_project):
             )
             os.utime(path, (now, now))
             _insert_transition(
-                db, "TASK-003", "in_progress", "ses-cursor-t", ts=now,
+                db,
+                "TASK-003",
+                "in_progress",
+                "ses-cursor-t",
+                ts=now,
             )
 
     events = asyncio.run(_run_scenario(on_poll, max_polls=5, want_events=2))

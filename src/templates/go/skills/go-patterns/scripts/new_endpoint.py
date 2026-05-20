@@ -46,7 +46,7 @@ def main() -> int:
         ),
         pkg_dir / "service.go": (
             f"package {pkg_name}\n\n"
-            f"import \"context\"\n\n"
+            f'import "context"\n\n'
             f"// Service holds business logic for {pkg_name}.\n"
             f"type Service struct {{\n"
             f"    // TODO: repo deps\n"
@@ -60,8 +60,8 @@ def main() -> int:
         pkg_dir / "handler.go": (
             f"package {pkg_name}\n\n"
             f"import (\n"
-            f"    \"encoding/json\"\n"
-            f"    \"net/http\"\n"
+            f'    "encoding/json"\n'
+            f'    "net/http"\n'
             f")\n\n"
             f"type Handler struct {{ Service *Service }}\n\n"
             f"func NewHandler(s *Service) *Handler {{ return &Handler{{Service: s}} }}\n\n"
@@ -76,7 +76,7 @@ def main() -> int:
             f"        http.Error(w, err.Error(), http.StatusInternalServerError)\n"
             f"        return\n"
             f"    }}\n"
-            f"    w.Header().Set(\"Content-Type\", \"application/json\")\n"
+            f'    w.Header().Set("Content-Type", "application/json")\n'
             f"    w.WriteHeader(http.StatusCreated)\n"
             f"    _ = json.NewEncoder(w).Encode(resp)\n"
             f"}}\n"
@@ -84,18 +84,18 @@ def main() -> int:
         pkg_dir / "handler_test.go": (
             f"package {pkg_name}\n\n"
             f"import (\n"
-            f"    \"net/http\"\n"
-            f"    \"net/http/httptest\"\n"
-            f"    \"strings\"\n"
-            f"    \"testing\"\n"
+            f'    "net/http"\n'
+            f'    "net/http/httptest"\n'
+            f'    "strings"\n'
+            f'    "testing"\n'
             f")\n\n"
             f"func TestCreate_ReturnsCreated(t *testing.T) {{\n"
             f"    h := NewHandler(NewService())\n"
-            f"    req := httptest.NewRequest(http.MethodPost, \"/{args.domain}/\", strings.NewReader(\"{{}}\"))\n"
+            f'    req := httptest.NewRequest(http.MethodPost, "/{args.domain}/", strings.NewReader("{{}}"))\n'
             f"    rr := httptest.NewRecorder()\n"
             f"    h.Create(rr, req)\n"
             f"    if rr.Code != http.StatusCreated {{\n"
-            f"        t.Fatalf(\"want 201, got %d\", rr.Code)\n"
+            f'        t.Fatalf("want 201, got %d", rr.Code)\n'
             f"    }}\n"
             f"}}\n"
         ),

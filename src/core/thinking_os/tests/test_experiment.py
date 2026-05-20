@@ -7,11 +7,11 @@ Covers DB write, skip-if-absent, empty hypothesis, and data integrity.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
@@ -48,9 +48,7 @@ class TestRecordExperiment:
         )
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM experiment_log WHERE task_id = 'TASK-101'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM experiment_log WHERE task_id = 'TASK-101'").fetchone()
         conn.close()
         assert row is not None
         assert row["hypothesis"] == "FTS5 faster than LIKE"
@@ -65,9 +63,7 @@ class TestRecordExperiment:
         assert result["status"] == "recorded"
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM experiment_log WHERE task_id = 'TASK-102'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM experiment_log WHERE task_id = 'TASK-102'").fetchone()
         conn.close()
         assert row["test_description"] is None
         assert row["outcome"] is None

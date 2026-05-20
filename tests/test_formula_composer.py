@@ -41,6 +41,7 @@ def _reset():
 
 # --- 1. Situation override --------------------------------------------------
 
+
 def test_situation_override_wins_over_preset():
     sig = TaskSignals(
         domain=["backend"],
@@ -68,6 +69,7 @@ def test_unknown_situation_falls_through():
 
 
 # --- 2. Preset match --------------------------------------------------------
+
 
 def test_preset_schema_migration():
     sig = TaskSignals(
@@ -123,6 +125,7 @@ def test_preset_threshold_too_high_falls_through():
 
 # --- 3. Composer fallback ---------------------------------------------------
 
+
 def test_composer_produces_chain_when_no_preset():
     sig = TaskSignals(
         action="refactor",
@@ -130,7 +133,7 @@ def test_composer_produces_chain_when_no_preset():
         scope_size="small",
         complexity="COMPLICATED",
     )
-    chain = compose_chain(sig, preset_min_score=14)   # force past presets
+    chain = compose_chain(sig, preset_min_score=14)  # force past presets
     assert chain.source in ("composer", "fallback")
     assert len(chain.chain) >= 1
 
@@ -147,8 +150,16 @@ def test_canonical_order_preserved():
     # (researcher → … → refactorer). Map name → ordinal, assert ordinals
     # are non-decreasing.
     canonical_order = [
-        "researcher", "analyst", "architect", "documenter", "implementer",
-        "reviewer", "debugger", "security_auditor", "deployer", "observer",
+        "researcher",
+        "analyst",
+        "architect",
+        "documenter",
+        "implementer",
+        "reviewer",
+        "debugger",
+        "security_auditor",
+        "deployer",
+        "observer",
         "refactorer",
     ]
     indices = [canonical_order.index(r) for r in chain.chain]
@@ -156,6 +167,7 @@ def test_canonical_order_preserved():
 
 
 # --- 4. Hard fallback -------------------------------------------------------
+
 
 def test_hard_fallback_never_empty():
     # A signal set that no preset matches + no roles score high enough
@@ -183,6 +195,7 @@ def test_hard_fallback_for_clear():
 
 
 # --- 5. Role scoring primitives --------------------------------------------
+
 
 def test_scoring_debug_incident():
     sig = TaskSignals(
@@ -228,10 +241,11 @@ def test_takeover_preset():
     chain = compose_chain(sig)
     assert chain.source == "preset"
     assert chain.preset_id == "legacy-takeover"
-    assert chain.chain[0] == "analyst"      # starts with analyst in reverse mode per formula spec
+    assert chain.chain[0] == "analyst"  # starts with analyst in reverse mode per formula spec
 
 
 # --- 6. Parallel roles metadata --------------------------------------------
+
 
 def test_security_audit_parallel():
     sig = TaskSignals(

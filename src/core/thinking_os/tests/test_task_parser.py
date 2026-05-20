@@ -32,7 +32,6 @@ from task_parser import (
     parse_task_file,
 )
 
-
 # Representative TASK-199 content used as an end-to-end fixture.
 # Kept as a constant so the test doesn't depend on an external file.
 TASK_199_FIXTURE = """\
@@ -121,6 +120,7 @@ Design and implement a flexible commission model that calculates the platform's 
 # extract_task_id_from_h1
 # ---------------------------------------------------------------------------
 
+
 class TestExtractH1:
     def test_extracts_task_id_domain_title(self) -> None:
         task_id, domain, title = extract_task_id_from_h1("TASK-199: [BACKEND] Commission model")
@@ -161,6 +161,7 @@ class TestExtractH1:
 # _strip_front_matter
 # ---------------------------------------------------------------------------
 
+
 class TestStripFrontMatter:
     def test_removes_comment_header(self) -> None:
         content = (
@@ -191,16 +192,14 @@ class TestStripFrontMatter:
 # extract_dependencies
 # ---------------------------------------------------------------------------
 
+
 class TestExtractDependencies:
     def test_single_dependency(self) -> None:
         text = "- TASK-195 — seller product CRUD"
         assert extract_dependencies(text) == ["TASK-195"]
 
     def test_multiple_dependencies(self) -> None:
-        text = (
-            "- TASK-195 — seller product CRUD\n"
-            "- TASK-200 — earnings tracking\n"
-        )
+        text = "- TASK-195 — seller product CRUD\n- TASK-200 — earnings tracking\n"
         assert extract_dependencies(text) == ["TASK-195", "TASK-200"]
 
     def test_dedupe_preserves_first_appearance_order(self) -> None:
@@ -242,6 +241,7 @@ class TestExtractDependencies:
 # _compute_content_hash
 # ---------------------------------------------------------------------------
 
+
 class TestContentHash:
     def test_hash_length_16(self) -> None:
         assert len(_compute_content_hash("anything")) == 16
@@ -256,6 +256,7 @@ class TestContentHash:
 # ---------------------------------------------------------------------------
 # parse_task_file — end-to-end on the real TASK-199 fixture
 # ---------------------------------------------------------------------------
+
 
 class TestParseTaskFileRealFixture:
     @pytest.fixture
@@ -321,6 +322,7 @@ class TestParseTaskFileRealFixture:
 # parse_task_file — edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestParseTaskFileEdgeCases:
     def test_empty_content_returns_none(self) -> None:
         assert parse_task_file("") is None
@@ -333,11 +335,7 @@ class TestParseTaskFileEdgeCases:
         assert parse_task_file("# Just a regular markdown file\n\nContent.") is None
 
     def test_minimal_task_only_goal(self) -> None:
-        content = (
-            "# TASK-042: Minimal\n\n"
-            "## Goal\n\n"
-            "Do something simple.\n"
-        )
+        content = "# TASK-042: Minimal\n\n## Goal\n\nDo something simple.\n"
         parsed = parse_task_file(content)
         assert parsed is not None
         assert parsed.task_id == "TASK-042"
@@ -348,11 +346,7 @@ class TestParseTaskFileEdgeCases:
         assert parsed.dependencies == []
 
     def test_missing_goal_returns_empty_goal_text(self) -> None:
-        content = (
-            "# TASK-007: No goal\n\n"
-            "## Verification\n\n"
-            "- Make sure it works.\n"
-        )
+        content = "# TASK-007: No goal\n\n## Verification\n\n- Make sure it works.\n"
         parsed = parse_task_file(content)
         assert parsed is not None
         assert parsed.goal_text == ""

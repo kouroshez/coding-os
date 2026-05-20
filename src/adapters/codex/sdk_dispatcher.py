@@ -26,7 +26,6 @@ def _codex_binary() -> str | None:
 
 
 class CodexSDKDispatcher:
-
     name = "codex-sdk"
     # Codex CLI flag for non-interactive JSON-output mode.
     # If the installed version does not support this flag the first dispatch
@@ -131,7 +130,9 @@ class CodexSDKDispatcher:
                 self._available = False
             logger.warning(
                 "codex exited %d for formula=%s: %s",
-                result.returncode, request.formula_id, stderr[:200],
+                result.returncode,
+                request.formula_id,
+                stderr[:200],
             )
             return DispatchResult(
                 formula_id=request.formula_id,

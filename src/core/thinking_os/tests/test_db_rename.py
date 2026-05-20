@@ -6,7 +6,6 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from database import (
     DB_FILENAME,
     DEFAULT_DB_PATH,

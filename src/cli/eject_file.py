@@ -40,9 +40,7 @@ def eject_file(rel_path: str, project_dir: str, force: bool) -> None:
     if target.is_symlink():
         real = target.resolve()
         if not real.exists():
-            raise click.ClickException(
-                f"Dangling symlink — target {real} no longer exists"
-            )
+            raise click.ClickException(f"Dangling symlink — target {real} no longer exists")
         content_source = real
     else:
         if not force:

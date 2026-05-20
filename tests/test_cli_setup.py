@@ -80,9 +80,7 @@ class TestSkipMode:
     def test_skip_writes_nothing(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         runner = CliRunner()
-        result = runner.invoke(
-            cos_cli, ["setup", "--mode", "skip", "-d", str(project)]
-        )
+        result = runner.invoke(cos_cli, ["setup", "--mode", "skip", "-d", str(project)])
         assert result.exit_code == 0
         assert "Skipped" in result.output
         prd_dir = project / "docs" / "prd"
@@ -148,8 +146,7 @@ class TestImportPrdMode:
         runner = CliRunner()
         result = runner.invoke(
             cos_cli,
-            ["setup", "--mode", "import-prd", "--source", str(source),
-             "--yes", "-d", str(project)],
+            ["setup", "--mode", "import-prd", "--source", str(source), "--yes", "-d", str(project)],
         )
         assert result.exit_code == 0, result.output
         prd = project / "docs" / "prd"
@@ -165,8 +162,7 @@ class TestImportPrdMode:
         runner = CliRunner()
         runner.invoke(
             cos_cli,
-            ["setup", "--mode", "import-prd", "--source", str(source),
-             "--yes", "-d", str(project)],
+            ["setup", "--mode", "import-prd", "--source", str(source), "--yes", "-d", str(project)],
         )
         vision = (project / "docs/prd/01-snapshot-vision.md").read_text()
         assert "## Vision" in vision
@@ -177,8 +173,16 @@ class TestImportPrdMode:
         runner = CliRunner()
         result = runner.invoke(
             cos_cli,
-            ["setup", "--mode", "import-prd", "--source", str(tmp_path / "nope.md"),
-             "--yes", "-d", str(project)],
+            [
+                "setup",
+                "--mode",
+                "import-prd",
+                "--source",
+                str(tmp_path / "nope.md"),
+                "--yes",
+                "-d",
+                str(project),
+            ],
         )
         assert result.exit_code != 0
         assert "not found" in result.output.lower()
@@ -190,8 +194,7 @@ class TestImportPrdMode:
         runner = CliRunner()
         result = runner.invoke(
             cos_cli,
-            ["setup", "--mode", "import-prd", "--source", str(source),
-             "--yes", "-d", str(project)],
+            ["setup", "--mode", "import-prd", "--source", str(source), "--yes", "-d", str(project)],
         )
         assert result.exit_code != 0
 
@@ -209,9 +212,7 @@ class TestSetupErrors:
     def test_yes_without_mode_errors(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         runner = CliRunner()
-        result = runner.invoke(
-            cos_cli, ["setup", "--yes", "-d", str(project)]
-        )
+        result = runner.invoke(cos_cli, ["setup", "--yes", "-d", str(project)])
         assert result.exit_code != 0
 
 

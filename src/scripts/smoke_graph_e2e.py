@@ -15,23 +15,23 @@ Output: docs/engineering/graph-tools-smoke-report.md (overwrite per run)
 Run: uv run python scripts/smoke_graph_e2e.py
 Exit: 0 if all PASS; 1 if any FAIL or envelope shape wrong.
 """
+
 from __future__ import annotations
 
 import json
 import os
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src" / "core"))
 
 # Real fixture uids from this repo's live graph (29K+ nodes).
 FIXTURE_FILE = "src/core/thinking_os/server.py"
-FIXTURE_FUNC_UID = (
-    "code:function:src/core/thinking_os/server.py::thinking_os_health"
-)
+FIXTURE_FUNC_UID = "code:function:src/core/thinking_os/server.py::thinking_os_health"
 FIXTURE_FILE_UID = "code:file:src/core/thinking_os/server.py"
 FIXTURE_TARGET_UID = "code:file:src/core/graph_os/tools/graph.py"
 FIXTURE_LABEL_QUERY = "thinking_os_health"
@@ -66,9 +66,22 @@ def _summarise(env: dict[str, Any]) -> str:
         return f"FAIL — {env.get('error', 'unknown')}"
     data = env.get("data") or {}
     bits: list[str] = []
-    for key in ("results", "neighbours", "neighbors", "callers", "edges", "nodes",
-                "affected", "communities", "candidates", "contracts", "path",
-                "diff", "rename_targets", "similar"):
+    for key in (
+        "results",
+        "neighbours",
+        "neighbors",
+        "callers",
+        "edges",
+        "nodes",
+        "affected",
+        "communities",
+        "candidates",
+        "contracts",
+        "path",
+        "diff",
+        "rename_targets",
+        "similar",
+    ):
         if isinstance(data.get(key), list):
             bits.append(f"{key}={len(data[key])}")
     if not bits:
@@ -86,7 +99,7 @@ def run_case(
     t0 = time.time()
     try:
         env = fn()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {
             "tool": name,
             "status": "ERROR",
@@ -129,124 +142,174 @@ def main() -> int:
     cases: list[dict[str, Any]] = []
 
     # ── A. DISCOVERY ─────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_query (label)",
-        lambda: g.cos_graph_query(FIXTURE_LABEL_QUERY, limit=3),
-    ))
-    cases.append(run_case(
-        "cos_graph_query (path-fallback)",
-        lambda: g.cos_graph_query(FIXTURE_FILE, limit=3),
-    ))
-    cases.append(run_case(
-        "cos_graph_query (kind filter)",
-        lambda: g.cos_graph_query("dispatcher", kinds=["class"], limit=5),
-    ))
-    cases.append(run_case(
-        "cos_graph_resolve (NL)",
-        lambda: g.cos_graph_resolve("the dispatcher function"),
-    ))
-    cases.append(run_case(
-        "cos_graph_resolve (path)",
-        lambda: g.cos_graph_resolve(FIXTURE_FILE),
-    ))
-    cases.append(run_case(
-        "cos_graph_resolve (qualname)",
-        lambda: g.cos_graph_resolve("ClaudeSDKDispatcher.dispatch"),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_query (label)",
+            lambda: g.cos_graph_query(FIXTURE_LABEL_QUERY, limit=3),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_query (path-fallback)",
+            lambda: g.cos_graph_query(FIXTURE_FILE, limit=3),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_query (kind filter)",
+            lambda: g.cos_graph_query("dispatcher", kinds=["class"], limit=5),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_resolve (NL)",
+            lambda: g.cos_graph_resolve("the dispatcher function"),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_resolve (path)",
+            lambda: g.cos_graph_resolve(FIXTURE_FILE),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_resolve (qualname)",
+            lambda: g.cos_graph_resolve("ClaudeSDKDispatcher.dispatch"),
+        )
+    )
 
     # ── B. LOCAL CONTEXT ─────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_context (path)",
-        lambda: g.cos_graph_context(FIXTURE_FILE, depth=1),
-    ))
-    cases.append(run_case(
-        "cos_graph_context (uid + spine)",
-        lambda: g.cos_graph_context(FIXTURE_FUNC_UID, depth=1, include_spine=True),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_context (path)",
+            lambda: g.cos_graph_context(FIXTURE_FILE, depth=1),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_context (uid + spine)",
+            lambda: g.cos_graph_context(FIXTURE_FUNC_UID, depth=1, include_spine=True),
+        )
+    )
 
     # ── C. RELATIONSHIPS ─────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_references",
-        lambda: g.cos_graph_references(FIXTURE_FUNC_UID),
-    ))
-    cases.append(run_case(
-        "cos_graph_path",
-        lambda: g.cos_graph_path(FIXTURE_FILE_UID, FIXTURE_TARGET_UID),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_references",
+            lambda: g.cos_graph_references(FIXTURE_FUNC_UID),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_path",
+            lambda: g.cos_graph_path(FIXTURE_FILE_UID, FIXTURE_TARGET_UID),
+        )
+    )
 
     # ── D. RISK ──────────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_impact (downstream)",
-        lambda: g.cos_graph_impact(FIXTURE_FUNC_UID, depth=2, direction="downstream"),
-    ))
-    cases.append(run_case(
-        "cos_graph_impact (upstream)",
-        lambda: g.cos_graph_impact(FIXTURE_FUNC_UID, depth=2, direction="upstream"),
-    ))
-    cases.append(run_case(
-        "cos_graph_rename_plan",
-        lambda: g.cos_graph_rename_plan(FIXTURE_FUNC_UID, "renamed_health_check"),
-    ))
-    cases.append(run_case(
-        "cos_graph_detect_changes",
-        lambda: g.cos_graph_detect_changes(files=[FIXTURE_FILE]),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_impact (downstream)",
+            lambda: g.cos_graph_impact(FIXTURE_FUNC_UID, depth=2, direction="downstream"),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_impact (upstream)",
+            lambda: g.cos_graph_impact(FIXTURE_FUNC_UID, depth=2, direction="upstream"),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_rename_plan",
+            lambda: g.cos_graph_rename_plan(FIXTURE_FUNC_UID, "renamed_health_check"),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_detect_changes",
+            lambda: g.cos_graph_detect_changes(files=[FIXTURE_FILE]),
+        )
+    )
 
     # ── E. EXECUTION ─────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_trace",
-        lambda: g.cos_graph_trace(FIXTURE_FUNC_UID, max_steps=20),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_trace",
+            lambda: g.cos_graph_trace(FIXTURE_FUNC_UID, max_steps=20),
+        )
+    )
 
     # ── F. SIMILARITY ────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_similar",
-        lambda: g.cos_graph_similar(FIXTURE_FUNC_UID, top_k=3),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_similar",
+            lambda: g.cos_graph_similar(FIXTURE_FUNC_UID, top_k=3),
+        )
+    )
 
     # ── G. SURFACE ───────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_contracts (mcp)",
-        lambda: g.cos_graph_contracts(kinds=["mcp"]),
-    ))
-    cases.append(run_case(
-        "cos_graph_contracts (http)",
-        lambda: g.cos_graph_contracts(kinds=["http"]),
-    ))
-    cases.append(run_case(
-        "cos_graph_entrypoints",
-        lambda: g.cos_graph_entrypoints(top=10),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_contracts (mcp)",
+            lambda: g.cos_graph_contracts(kinds=["mcp"]),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_contracts (http)",
+            lambda: g.cos_graph_contracts(kinds=["http"]),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_entrypoints",
+            lambda: g.cos_graph_entrypoints(top=10),
+        )
+    )
 
     # ── H. STRUCTURE ─────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_communities",
-        lambda: g.cos_graph_communities(top=10),
-    ))
-    cases.append(run_case(
-        "cos_graph_centrality (degree)",
-        lambda: g.cos_graph_centrality(metric="degree", top=10),
-    ))
-    cases.append(run_case(
-        "cos_graph_ranking",
-        lambda: g.cos_graph_ranking(query="dispatcher", top=10),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_communities",
+            lambda: g.cos_graph_communities(top=10),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_centrality (degree)",
+            lambda: g.cos_graph_centrality(metric="degree", top=10),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_ranking",
+            lambda: g.cos_graph_ranking(query="dispatcher", top=10),
+        )
+    )
 
     # ── I. ARTIFACTS ─────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_export (mermaid)",
-        lambda: g.cos_graph_export(format="mermaid", root_uid=FIXTURE_FILE_UID),
-    ))
-    cases.append(run_case(
-        "cos_graph_export (json)",
-        lambda: g.cos_graph_export(format="json", root_uid=FIXTURE_FILE_UID),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_export (mermaid)",
+            lambda: g.cos_graph_export(format="mermaid", root_uid=FIXTURE_FILE_UID),
+        )
+    )
+    cases.append(
+        run_case(
+            "cos_graph_export (json)",
+            lambda: g.cos_graph_export(format="json", root_uid=FIXTURE_FILE_UID),
+        )
+    )
 
     # ── J. HEALTH ────────────────────────────────────────────────────
-    cases.append(run_case(
-        "cos_graph_doctor",
-        lambda: g.cos_graph_doctor(),
-    ))
+    cases.append(
+        run_case(
+            "cos_graph_doctor",
+            lambda: g.cos_graph_doctor(),
+        )
+    )
 
     # ── Render report ────────────────────────────────────────────────
     pass_n = sum(1 for c in cases if c["status"] == "PASS")
@@ -255,13 +318,15 @@ def main() -> int:
     total_tokens = sum(c["tokens"] for c in cases)
     total_ms = sum(c["elapsed_ms"] for c in cases)
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"SMOKE RESULT: {pass_n}/{len(cases)} pass · {fail_n} fail · {err_n} error")
     print(f"Total time: {total_ms}ms · Total tokens: ~{total_tokens}")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
     for c in cases:
         glyph = {"PASS": "✓", "FAIL": "✗", "ERROR": "💥"}[c["status"]]
-        print(f"  {glyph} {c['tool']:<40} {c['elapsed_ms']:>5}ms  ~{c['tokens']:>5}tok  {c['summary'][:100]}")
+        print(
+            f"  {glyph} {c['tool']:<40} {c['elapsed_ms']:>5}ms  ~{c['tokens']:>5}tok  {c['summary'][:100]}"
+        )
 
     # Write markdown report
     report_path = REPO_ROOT / "docs" / "engineering" / "graph-tools-smoke-report.md"
@@ -269,7 +334,7 @@ def main() -> int:
         "<!-- domain:ALL | layer:engineering | ssot:false | updated:auto -->",
         "# Graph Tools — Smoke E2E Report",
         "",
-        f"> Auto-generated by `scripts/smoke_graph_e2e.py`. Run: `uv run python scripts/smoke_graph_e2e.py`.",
+        "> Auto-generated by `scripts/smoke_graph_e2e.py`. Run: `uv run python scripts/smoke_graph_e2e.py`.",
         f"> Last run: {time.strftime('%Y-%m-%d %H:%M:%S')} · {pass_n}/{len(cases)} pass · {total_ms}ms · ~{total_tokens} tok.",
         "",
         "## Per-tool result",
@@ -280,21 +345,25 @@ def main() -> int:
     for c in cases:
         glyph = {"PASS": "✅", "FAIL": "❌", "ERROR": "💥"}[c["status"]]
         summ = c["summary"].replace("|", "\\|")[:120]
-        lines.append(f"| `{c['tool']}` | {glyph} {c['status']} | {c['elapsed_ms']}ms | ~{c['tokens']} | {summ} |")
+        lines.append(
+            f"| `{c['tool']}` | {glyph} {c['status']} | {c['elapsed_ms']}ms | ~{c['tokens']} | {summ} |"
+        )
 
-    lines.extend([
-        "",
-        "## Token economics",
-        "",
-        f"- Total smoke envelope size: ~{total_tokens} tokens.",
-        f"- For comparison: reading the 5 source files involved (~{5 * 2000} tokens) costs **~{5 * 2000 // total_tokens if total_tokens else 0}× more** than running every tool above.",
-        "",
-        "## Coverage",
-        "",
-        f"- 13 MCP-registered tools: covered.",
-        f"- 3 internal-only tools (centrality, ranking, doctor): covered.",
-        f"- Total = 16 tool/argument combinations smoke-tested = {len(cases)} cases.",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Token economics",
+            "",
+            f"- Total smoke envelope size: ~{total_tokens} tokens.",
+            f"- For comparison: reading the 5 source files involved (~{5 * 2000} tokens) costs **~{5 * 2000 // total_tokens if total_tokens else 0}× more** than running every tool above.",
+            "",
+            "## Coverage",
+            "",
+            "- 13 MCP-registered tools: covered.",
+            "- 3 internal-only tools (centrality, ranking, doctor): covered.",
+            f"- Total = 16 tool/argument combinations smoke-tested = {len(cases)} cases.",
+        ]
+    )
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\nReport: {report_path}")
 

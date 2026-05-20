@@ -17,22 +17,30 @@ from typing import Any
 import yaml
 
 from board_os.config import (
-    APPETITE_RE, KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM,
+    APPETITE_RE,
+    KIND_ENUM,
+    PRIORITY_ENUM,
+    STATUS_ENUM,
 )
 
 logger = logging.getLogger("coding_os.board_os.parser")
 
 _FRONTMATTER_RE = re.compile(
-    r"^---\s*\n(?P<yaml>.*?)\n---\s*\n(?P<body>.*)$", re.DOTALL,
+    r"^---\s*\n(?P<yaml>.*?)\n---\s*\n(?P<body>.*)$",
+    re.DOTALL,
 )
 _H1_RE = re.compile(r"^#\s+(?P<task_id>TASK-\d+):\s*(?P<title>.+?)\s*$", re.MULTILINE)
 _H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _OUTCOME_RE = re.compile(
-    r"\*\*Outcome[^*]*\*\*\s*(?:<!--[^>]*-->\s*)?(.+?)(?:\n\n|\n##|\Z)", re.DOTALL,
+    r"\*\*Outcome[^*]*\*\*\s*(?:<!--[^>]*-->\s*)?(.+?)(?:\n\n|\n##|\Z)",
+    re.DOTALL,
 )
 
 _LEGACY_STATUS_MAP = {
-    "open": "ready", "wip": "in_progress", "done": "complete", "blocked": "blocked",
+    "open": "ready",
+    "wip": "in_progress",
+    "done": "complete",
+    "blocked": "blocked",
 }
 
 
@@ -227,9 +235,7 @@ def _parse_legacy_fallback(content: str, source_str: str | None) -> ParsedTask |
         return None
     raw_deps = getattr(result, "dependencies", "") or ""
     if isinstance(raw_deps, list):
-        deps = tuple(
-            str(d) for d in raw_deps if re.match(r"^TASK-\d+$", str(d))
-        )
+        deps = tuple(str(d) for d in raw_deps if re.match(r"^TASK-\d+$", str(d)))
     elif isinstance(raw_deps, str):
         deps = tuple(re.findall(r"TASK-\d+", raw_deps))
     else:

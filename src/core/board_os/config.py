@@ -63,13 +63,13 @@ PRIORITY_ENUM: tuple[str, ...] = ("P0", "P1", "P2", "P3")
 # Default colour palette per work-type.  Hex codes chosen for
 # deuteranopia/protanopia distinguishability (Okabe-Ito-adjacent).
 _DEFAULT_KIND_COLORS: dict[str, str] = {
-    "feature": "#eab308",   # yellow
-    "bug": "#dc2626",       # red
-    "chore": "#22c55e",     # green
-    "spike": "#3b82f6",     # blue
-    "docs": "#a855f7",      # purple
+    "feature": "#eab308",  # yellow
+    "bug": "#dc2626",  # red
+    "chore": "#22c55e",  # green
+    "spike": "#3b82f6",  # blue
+    "docs": "#a855f7",  # purple
     "refactor": "#14b8a6",  # teal
-    "test": "#f59e0b",      # amber
+    "test": "#f59e0b",  # amber
     "security": "#ea580c",  # orange
 }
 
@@ -145,7 +145,6 @@ class LabelFamily:
 
 @dataclass(frozen=True)
 class ScrumbanConfig:
-
     swimlanes: tuple[Swimlane, ...]
     wip_limits: WipLimits = field(default_factory=WipLimits)
     label_families: tuple[LabelFamily, ...] = field(default_factory=tuple)
@@ -168,16 +167,12 @@ class ScrumbanConfig:
 
 def _validate_id(value: Any, field_name: str, errors: list[str]) -> None:
     if not isinstance(value, str) or not _ID_RE.match(value):
-        errors.append(
-            f"{field_name}={value!r} must match {_ID_RE.pattern}"
-        )
+        errors.append(f"{field_name}={value!r} must match {_ID_RE.pattern}")
 
 
 def _validate_color(value: Any, field_name: str, errors: list[str]) -> None:
     if not isinstance(value, str) or not _HEX_RE.match(value):
-        errors.append(
-            f"{field_name}={value!r} must be a hex colour (#rgb or #rrggbb)"
-        )
+        errors.append(f"{field_name}={value!r} must be a hex colour (#rgb or #rrggbb)")
 
 
 def parse_config(data: dict[str, Any], source_path: Path | None = None) -> ScrumbanConfig:
@@ -302,7 +297,5 @@ def load_config(project_root: str | os.PathLike[str] | None = None) -> ScrumbanC
     with path.open("r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}
     if not isinstance(data, dict):
-        raise ConfigValidationError(
-            ["top-level YAML must be a mapping"], path=path
-        )
+        raise ConfigValidationError(["top-level YAML must be a mapping"], path=path)
     return parse_config(data, source_path=path)

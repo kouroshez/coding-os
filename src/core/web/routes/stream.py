@@ -10,8 +10,8 @@ import re
 import sqlite3
 import sys
 import time
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
@@ -66,7 +66,12 @@ def _latest_transition(conn: sqlite3.Connection, task_id: str) -> dict[str, obje
         (task_id,),
     ).fetchone()
     if not row:
-        return {"old_status": None, "new_status": None, "agent_session": None, "transitioned_at": None}
+        return {
+            "old_status": None,
+            "new_status": None,
+            "agent_session": None,
+            "transitioned_at": None,
+        }
     return {
         "old_status": row[0],
         "new_status": row[1],
@@ -82,10 +87,10 @@ def _read_task_meta(path: Path) -> dict[str, str | None]:
         m_status = re.search(r"^status:\s*(\S+)", content, re.MULTILINE)
         m_agent = re.search(r"^agent_session:\s*(\S+)", content, re.MULTILINE)
         return {
-            "status": m_status.group(1).strip('"\'') if m_status else None,
-            "agent_session": m_agent.group(1).strip('"\'') if m_agent else None,
+            "status": m_status.group(1).strip("\"'") if m_status else None,
+            "agent_session": m_agent.group(1).strip("\"'") if m_agent else None,
         }
-    except Exception:  # noqa: BLE001 — always return something
+    except Exception:
         return {"status": None, "agent_session": None}
 
 
@@ -105,8 +110,8 @@ def _snapshot_activity() -> dict[str, dict[str, int | str | None]]:
     import failure — agents lacking presence files are simply absent.
     """
     try:
-        from web.routes.board import _presence_files  # type: ignore
         from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+        from web.routes.board import _presence_files  # type: ignore
     except ImportError as exc:
         logger.debug("activity import failed: %s", exc)
         return {}
@@ -143,8 +148,8 @@ def _snapshot_presence() -> dict[str, str]:
     top-level import would create a cycle on cold reload.
     """
     try:
-        from web.routes.board import _presence_state  # type: ignore
         from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+        from web.routes.board import _presence_state  # type: ignore
     except ImportError as exc:
         logger.debug("presence import failed: %s", exc)
         return {}
@@ -155,7 +160,7 @@ def _snapshot_presence() -> dict[str, str]:
             continue
         try:
             snap[agent] = _presence_state(agent)
-        except Exception as exc:  # noqa: BLE001 — presence is UX, never fatal
+        except Exception as exc:
             logger.debug("presence snapshot failed for %s: %s", agent, exc)
     return snap
 
@@ -184,7 +189,9 @@ async def _event_generator() -> AsyncGenerator[str, None]:
         last_history_id = 0
         last_dispatch_id = 0
 
-    yield await _sse_event("connected", {"message": "SSE stream connected", "poll_ms": int(poll * 1000)})
+    yield await _sse_event(
+        "connected", {"message": "SSE stream connected", "poll_ms": int(poll * 1000)}
+    )
 
     while True:
         await asyncio.sleep(poll)
@@ -250,7 +257,7 @@ async def _event_generator() -> AsyncGenerator[str, None]:
         # the live-agents pill stays stale until the next task move.
         try:
             cur_presence = _snapshot_presence()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("presence snapshot raised: %s", exc)
             cur_presence = last_presence
         if cur_presence != last_presence:
@@ -277,7 +284,7 @@ async def _event_generator() -> AsyncGenerator[str, None]:
         # advanced <2 s, which collapses bursty tool chains.
         try:
             cur_activity = _snapshot_activity()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("activity snapshot raised: %s", exc)
             cur_activity = last_activity
         for agent, cur in cur_activity.items():
@@ -288,10 +295,12 @@ async def _event_generator() -> AsyncGenerator[str, None]:
             prev_ts = prev_ts_raw if isinstance(prev_ts_raw, int) else 0
             if cur_ts <= prev_ts:
                 continue
-            if prev is not None \
-                    and prev.get("kind") == cur.get("kind") \
-                    and prev.get("sid") == cur.get("sid") \
-                    and cur_ts - prev_ts < 2:
+            if (
+                prev is not None
+                and prev.get("kind") == cur.get("kind")
+                and prev.get("sid") == cur.get("sid")
+                and cur_ts - prev_ts < 2
+            ):
                 continue
             yield await _sse_event(
                 "agent-activity",

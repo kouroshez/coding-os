@@ -13,13 +13,13 @@ from .stream import router as stream_router
 
 __all__ = [
     "audits_router",
-    "graph_router",
     "board_router",
     "cognition_router",
+    "graph_router",
+    "health_router",
     "hooks_router",
     "logs_router",
+    "metrics_router",
     "search_router",
     "stream_router",
-    "health_router",
-    "metrics_router",
 ]

@@ -3,6 +3,7 @@
 Verifies that the shell hook + Python helper + config + DB all integrate
 correctly — this is the full path from hook invocation to exit code.
 """
+
 from __future__ import annotations
 
 import json
@@ -95,13 +96,15 @@ def _invoke_hook(
 ) -> subprocess.CompletedProcess:
     """Run enforce-wip-limit.sh with a Write payload transitioning task to in_progress."""
     db_path = tmp_path / ".coding-os" / "coding-os.db"
-    payload = json.dumps({
-        "tool_name": "Write",
-        "tool_input": {
-            "file_path": str(task_file),
-            "content": _IN_PROGRESS_CONTENT,
-        },
-    })
+    payload = json.dumps(
+        {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(task_file),
+                "content": _IN_PROGRESS_CONTENT,
+            },
+        }
+    )
     env = {
         **os.environ,
         "COS_PROJECT_ROOT": str(tmp_path),
@@ -173,13 +176,15 @@ def test_non_task_file_passes_through(tmp_path: Path):
     _make_db(tmp_path, in_progress_count=99)
     _make_config(tmp_path, wip_cap=1)
     # Use a non-task file path
-    payload = json.dumps({
-        "tool_name": "Write",
-        "tool_input": {
-            "file_path": str(tmp_path / "core" / "hooks" / "some_hook.sh"),
-            "content": "#!/usr/bin/env bash\nexit 0\n",
-        },
-    })
+    payload = json.dumps(
+        {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "core" / "hooks" / "some_hook.sh"),
+                "content": "#!/usr/bin/env bash\nexit 0\n",
+            },
+        }
+    )
     result = subprocess.run(
         ["bash", str(_HOOK)],
         input=payload,

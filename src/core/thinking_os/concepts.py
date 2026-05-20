@@ -12,18 +12,46 @@ import sqlite3
 from pathlib import PurePosixPath
 from typing import Optional
 
-
 # Path noise: segments that are never meaningful concepts
 _PATH_NOISE = {
     # OS / user paths
-    "users", "home", "files", "project",
+    "users",
+    "home",
+    "files",
+    "project",
     # Generic structure
-    "apps", "src", "components", "utils", "lib", "tests", "test",
-    "init", "__init__", "py", "ts", "tsx", "js", "md", "json", "sh",
-    "index", "main", "base", "core", "common", "shared", "app",
+    "apps",
+    "src",
+    "components",
+    "utils",
+    "lib",
+    "tests",
+    "test",
+    "init",
+    "__init__",
+    "py",
+    "ts",
+    "tsx",
+    "js",
+    "md",
+    "json",
+    "sh",
+    "index",
+    "main",
+    "base",
+    "core",
+    "common",
+    "shared",
+    "app",
     # Config paths
-    "claude", "hooks", "rules", "thinking", "config", "settings",
-    "github", "workflows",
+    "claude",
+    "hooks",
+    "rules",
+    "thinking",
+    "config",
+    "settings",
+    "github",
+    "workflows",
 }
 
 # Maps path keywords → semantic concepts
@@ -47,6 +75,7 @@ _COMPONENT_MAP = {
 def _project_relative(file_path: str) -> str:
     """Strip absolute prefix down to project-relative path."""
     from _agent_markers import agent_state_prefixes
+
     static_markers = ("backend/", "frontend/", ".coding-os/", "docs/", "infrastructure/", "core/")
     markers = static_markers + tuple(agent_state_prefixes())
     lower = file_path.lower()
@@ -94,6 +123,7 @@ def extract_concepts(
         concepts.add("docs")
     else:
         from _agent_markers import agent_state_prefixes
+
         infra_prefixes = (".coding-os/", "core/") + tuple(agent_state_prefixes())
         if rel_lower.startswith(infra_prefixes):
             concepts.add("infra")
@@ -181,17 +211,19 @@ def spread_activation(
         if len(overlap) < min_overlap:
             continue
 
-        spread_results.append({
-            "id": d["id"],
-            "title": (d["pattern"] or "")[:60],
-            "confidence": d["confidence"],
-            "impact_score": d.get("impact_score", 0.5),
-            "memory_type": d.get("memory_type", "pattern"),
-            "source_table": "learned_patterns",
-            "overlap_concepts": sorted(overlap),
-            "overlap_count": len(overlap),
-            "spread_weight": 0.5,
-        })
+        spread_results.append(
+            {
+                "id": d["id"],
+                "title": (d["pattern"] or "")[:60],
+                "confidence": d["confidence"],
+                "impact_score": d.get("impact_score", 0.5),
+                "memory_type": d.get("memory_type", "pattern"),
+                "source_table": "learned_patterns",
+                "overlap_concepts": sorted(overlap),
+                "overlap_count": len(overlap),
+                "spread_weight": 0.5,
+            }
+        )
 
     # Sort by overlap count * confidence, take top N
     spread_results.sort(

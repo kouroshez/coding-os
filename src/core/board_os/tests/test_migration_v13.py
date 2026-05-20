@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
+# Allow import from core/thinking_os/database.py without polluting the global path.
+import importlib.util
 import sqlite3
 from pathlib import Path
 
 import pytest
-
-
-# Allow import from core/thinking_os/database.py without polluting the global path.
-import importlib.util
 
 
 def _load_db_module():
@@ -38,10 +36,7 @@ def fresh_conn(tmp_path: Path) -> sqlite3.Connection:
 
 
 def test_v13_adds_all_new_tasks_columns(fresh_conn: sqlite3.Connection):
-    cols = {
-        row[1]
-        for row in fresh_conn.execute("PRAGMA table_info(tasks)").fetchall()
-    }
+    cols = {row[1] for row in fresh_conn.execute("PRAGMA table_info(tasks)").fetchall()}
     expected_new = {
         "swimlane",
         "kind",
@@ -65,9 +60,7 @@ def test_v13_creates_task_status_history_table(fresh_conn: sqlite3.Connection):
 def test_v13_status_history_schema(fresh_conn: sqlite3.Connection):
     cols = {
         row[1]: row[2]  # column name → type
-        for row in fresh_conn.execute(
-            "PRAGMA table_info(task_status_history)"
-        ).fetchall()
+        for row in fresh_conn.execute("PRAGMA table_info(task_status_history)").fetchall()
     }
     assert cols.get("task_id") == "TEXT"
     assert cols.get("old_status") == "TEXT"
@@ -131,11 +124,11 @@ def test_v13_does_not_drop_existing_tables(fresh_conn: sqlite3.Connection):
     }
     # Pre-v13 tables that MUST still exist
     pre_v13 = {
-        "observations",       # v1
-        "learned_patterns",   # v1
-        "tasks",              # v6
-        "graph_nodes",        # v12
-        "graph_edges_v12",    # v12
+        "observations",  # v1
+        "learned_patterns",  # v1
+        "tasks",  # v6
+        "graph_nodes",  # v12
+        "graph_edges_v12",  # v12
     }
     missing = pre_v13 - tables
     assert not missing, f"v13 dropped pre-existing tables: {missing}"
@@ -159,7 +152,7 @@ def test_v13_preserves_existing_tasks_rows(tmp_path: Path):
     assert row is not None
     assert row[0] == "TASK-001"
     assert row[1] == "Legacy task"
-    assert row[2] == "open"      # legacy status preserved
-    assert row[3] is None         # new column → NULL
-    assert row[4] is None         # new column → NULL
-    assert row[5] == "[]"         # default for labels_json
+    assert row[2] == "open"  # legacy status preserved
+    assert row[3] is None  # new column → NULL
+    assert row[4] is None  # new column → NULL
+    assert row[5] == "[]"  # default for labels_json

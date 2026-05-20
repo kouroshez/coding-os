@@ -16,6 +16,7 @@ OUTPUT:
     Empty stdout + exit 0 when manifest has no templates.
     Exit 1 + stderr message on parse error.
 """
+
 from __future__ import annotations
 
 import json

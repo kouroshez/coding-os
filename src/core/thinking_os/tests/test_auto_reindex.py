@@ -28,8 +28,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db  # noqa: E402
-from doc_indexer import _match_source_config, index_single_file, load_rag_config  # noqa: E402
+from database import init_db
+from doc_indexer import _match_source_config, index_single_file, load_rag_config
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _AUTO_REINDEX_HOOK = _REPO_ROOT / "core" / "hooks" / "auto-reindex-docs.sh"
@@ -83,21 +83,30 @@ def _write_doc(root: Path, rel: str, body: str) -> Path:
 # _match_source_config — scope classifier
 # ---------------------------------------------------------------------------
 
+
 class TestMatchSourceConfig:
     def test_scoped_prd_file_matches(self, project: Path) -> None:
         target = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## Scope\nBody.")
         config = load_rag_config(project / ".coding-os" / "rag-config.yaml")
         match = _match_source_config(
-            target, config["sources"], project, config["exclude"],
+            target,
+            config["sources"],
+            project,
+            config["exclude"],
         )
         assert match is not None
         assert match["type"] == "prd"
 
     def test_scoped_engineering_file_matches_with_priority(self, project: Path) -> None:
-        target = _write_doc(project, "docs/engineering/backend-rules.md", "# Rules\n\n## Decimal\nx")
+        target = _write_doc(
+            project, "docs/engineering/backend-rules.md", "# Rules\n\n## Decimal\nx"
+        )
         config = load_rag_config(project / ".coding-os" / "rag-config.yaml")
         match = _match_source_config(
-            target, config["sources"], project, config["exclude"],
+            target,
+            config["sources"],
+            project,
+            config["exclude"],
         )
         assert match is not None
         assert match["type"] == "engineering"
@@ -107,7 +116,10 @@ class TestMatchSourceConfig:
         target = _write_doc(project, "docs/playbooks/backend.md", "# Plays")
         config = load_rag_config(project / ".coding-os" / "rag-config.yaml")
         match = _match_source_config(
-            target, config["sources"], project, config["exclude"],
+            target,
+            config["sources"],
+            project,
+            config["exclude"],
         )
         assert match is None
 
@@ -116,7 +128,10 @@ class TestMatchSourceConfig:
         outside.write_text("# outside")
         config = load_rag_config(project / ".coding-os" / "rag-config.yaml")
         match = _match_source_config(
-            outside, config["sources"], project, config["exclude"],
+            outside,
+            config["sources"],
+            project,
+            config["exclude"],
         )
         assert match is None
 
@@ -124,7 +139,9 @@ class TestMatchSourceConfig:
         config = load_rag_config(project / ".coding-os" / "rag-config.yaml")
         match = _match_source_config(
             project / "docs" / "PRD" / "ghost.md",
-            config["sources"], project, config["exclude"],
+            config["sources"],
+            project,
+            config["exclude"],
         )
         assert match is None
 
@@ -133,11 +150,13 @@ class TestMatchSourceConfig:
 # index_single_file — lifecycle
 # ---------------------------------------------------------------------------
 
+
 class TestIndexSingleFile:
     def test_first_time_reindexed(self, project: Path, conn: sqlite3.Connection) -> None:
         f = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nfirst pass body.")
         result = index_single_file(
-            conn, f,
+            conn,
+            f,
             project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
@@ -154,25 +173,33 @@ class TestIndexSingleFile:
     def test_mtime_guard_short_circuits(self, project: Path, conn: sqlite3.Connection) -> None:
         f = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nbody.")
         r1 = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r1["status"] == "reindexed"
 
         # Second call with identical mtime → unchanged
         r2 = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r2["status"] == "unchanged"
         assert r2["new_chunks"] == 0
 
     def test_edit_reindexes_with_new_content(
-        self, project: Path, conn: sqlite3.Connection,
+        self,
+        project: Path,
+        conn: sqlite3.Connection,
     ) -> None:
         f = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nold body.")
         index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         # Write new content with a bumped mtime so the guard releases.
@@ -180,7 +207,9 @@ class TestIndexSingleFile:
         f.write_text("# Billing\n\n## V2\nrewritten body.")
 
         r = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r["status"] == "reindexed"
@@ -196,7 +225,9 @@ class TestIndexSingleFile:
     def test_unscoped_path_is_noop(self, project: Path, conn: sqlite3.Connection) -> None:
         f = _write_doc(project, "docs/playbooks/plays.md", "# plays")
         r = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r["status"] == "unscoped"
@@ -205,65 +236,95 @@ class TestIndexSingleFile:
     def test_non_markdown_is_unscoped(self, project: Path, conn: sqlite3.Connection) -> None:
         f = _write_doc(project, "docs/PRD/notes.txt", "not markdown")
         r = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r["status"] == "unscoped"
 
     def test_delete_removes_ghost_chunks(
-        self, project: Path, conn: sqlite3.Connection,
+        self,
+        project: Path,
+        conn: sqlite3.Connection,
     ) -> None:
         f = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nbody.")
         r1 = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         rel = r1["file"]
-        assert conn.execute(
-            "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?", (rel,),
-        ).fetchone()[0] > 0
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?",
+                (rel,),
+            ).fetchone()[0]
+            > 0
+        )
 
         f.unlink()
         r2 = index_single_file(
-            conn, rel, project_root=project,
+            conn,
+            rel,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r2["status"] == "deleted"
-        assert conn.execute(
-            "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?", (rel,),
-        ).fetchone()[0] == 0
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?",
+                (rel,),
+            ).fetchone()[0]
+            == 0
+        )
 
     def test_missing_untracked_file_is_missing(
-        self, project: Path, conn: sqlite3.Connection,
+        self,
+        project: Path,
+        conn: sqlite3.Connection,
     ) -> None:
         r = index_single_file(
-            conn, "docs/PRD/ghost.md", project_root=project,
+            conn,
+            "docs/PRD/ghost.md",
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r["status"] == "missing"
 
     def test_force_reindexes_even_when_mtime_same(
-        self, project: Path, conn: sqlite3.Connection,
+        self,
+        project: Path,
+        conn: sqlite3.Connection,
     ) -> None:
         f = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nbody.")
         r1 = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r1["status"] == "reindexed"
         r2 = index_single_file(
-            conn, f, project_root=project,
+            conn,
+            f,
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
             force=True,
         )
         assert r2["status"] == "reindexed"
 
     def test_relative_path_resolves(
-        self, project: Path, conn: sqlite3.Connection,
+        self,
+        project: Path,
+        conn: sqlite3.Connection,
     ) -> None:
         _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nbody.")
         r = index_single_file(
-            conn, "docs/PRD/billing.md", project_root=project,
+            conn,
+            "docs/PRD/billing.md",
+            project_root=project,
             config_path=project / ".coding-os" / "rag-config.yaml",
         )
         assert r["status"] == "reindexed"
@@ -273,6 +334,7 @@ class TestIndexSingleFile:
 # ---------------------------------------------------------------------------
 # Shell hook integration
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(
     not _AUTO_REINDEX_HOOK.exists(),
@@ -285,10 +347,12 @@ class TestAutoReindexHook:
         tool_name: str,
         file_path: str,
     ) -> subprocess.CompletedProcess:
-        payload = json.dumps({
-            "tool_name": tool_name,
-            "tool_input": {"file_path": file_path},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": tool_name,
+                "tool_input": {"file_path": file_path},
+            }
+        )
         env = {
             **os.environ,
             "COS_STATE_DIR": str(project / ".coding-os"),
@@ -300,7 +364,11 @@ class TestAutoReindexHook:
         }
         return subprocess.run(
             ["bash", str(_AUTO_REINDEX_HOOK)],
-            input=payload, env=env, capture_output=True, text=True, timeout=30,
+            input=payload,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
             cwd=str(project),
         )
 
@@ -325,10 +393,12 @@ class TestAutoReindexHook:
         (empty / "docs").mkdir()
         target = empty / "docs" / "x.md"
         target.write_text("# x")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": str(target)},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": str(target)},
+            }
+        )
         r = subprocess.run(
             ["bash", str(_AUTO_REINDEX_HOOK)],
             input=payload,
@@ -338,7 +408,9 @@ class TestAutoReindexHook:
                 "COS_PROJECT_ROOT": str(empty),
                 "PATH": os.environ.get("PATH", ""),
             },
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert r.returncode == 0
 
@@ -378,6 +450,7 @@ class TestAutoReindexHook:
 # ---------------------------------------------------------------------------
 # Cleanup sanity — stray workers shouldn't leak into subsequent tests
 # ---------------------------------------------------------------------------
+
 
 def test_session_cleanup(project: Path) -> None:
     # If any background indexers are still running, give them a moment to exit.

@@ -1,4 +1,5 @@
 """Unit tests for adapters.claude.sdk_dispatcher._presence_write."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -57,9 +58,14 @@ def test_write_start_creates_file_with_expected_schema(dispatcher_mod, project: 
     data = json.loads(path.read_text(encoding="utf-8"))
     # Schema parity with core/hooks/agent-presence.sh
     assert set(data.keys()) == {
-        "agent", "session_id", "pid",
-        "started_at", "last_prompt_at", "last_tool_at",
-        "last_stop_at", "ended_at",
+        "agent",
+        "session_id",
+        "pid",
+        "started_at",
+        "last_prompt_at",
+        "last_tool_at",
+        "last_stop_at",
+        "ended_at",
     }
     assert data["agent"] == "claude"
     assert data["session_id"] == sid

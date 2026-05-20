@@ -17,6 +17,7 @@ PURPOSE
     through the .mcp.json renderer so existing `cos server-start`
     invocations keep working.
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,7 +26,6 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-
 
 _STALE_SERVER_AGE_S = int(os.environ.get("COS_STALE_SERVER_AGE_S", "43200"))
 
@@ -121,7 +121,9 @@ def _sweep_stale_servers(db_path: str) -> None:
             os.kill(pid, 15)  # SIGTERM
         except (OSError, ProcessLookupError) as kill_exception:
             logging.getLogger("coding_os.mcp_start").debug(
-                "orphan kill skipped pid=%s: %s", pid, kill_exception,
+                "orphan kill skipped pid=%s: %s",
+                pid,
+                kill_exception,
             )
 
 

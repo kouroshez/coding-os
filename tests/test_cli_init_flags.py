@@ -24,8 +24,8 @@ from cli._init_helpers import (
     validate_name,
 )
 
-
 # ---------- validate_name ----------
+
 
 @pytest.mark.parametrize(
     "name",
@@ -47,10 +47,15 @@ def test_validate_name_rejects_invalid(name: str) -> None:
 
 # ---------- resolve_init_target: --debug ----------
 
+
 def test_debug_requires_cwd_inside_repo(tmp_path: Path) -> None:
     with pytest.raises(InitError) as exc_info:
         resolve_init_target(
-            name=None, project_dir=None, debug=True, force=False, cwd=tmp_path,
+            name=None,
+            project_dir=None,
+            debug=True,
+            force=False,
+            cwd=tmp_path,
         )
     assert exc_info.value.exit_code == InitExit.FLAG_CONFLICT
     assert "coding-os source repo" in str(exc_info.value)
@@ -70,7 +75,11 @@ def test_debug_with_project_dir_is_flag_conflict(tmp_path: Path) -> None:
 
 def test_debug_default_name_is_the_script_output() -> None:
     target = resolve_init_target(
-        name=None, project_dir=None, debug=True, force=True, cwd=CODING_OS_ROOT,
+        name=None,
+        project_dir=None,
+        debug=True,
+        force=True,
+        cwd=CODING_OS_ROOT,
     )
     try:
         assert target.path == DEBUG_DIR / DEFAULT_DEBUG_NAME
@@ -94,6 +103,7 @@ def test_debug_custom_name() -> None:
 
 
 # ---------- resolve_init_target: --name only ----------
+
 
 def test_name_creates_nested_dir_under_cwd(tmp_path: Path) -> None:
     target = resolve_init_target(
@@ -133,6 +143,7 @@ def test_name_invalid_regex_rejected(tmp_path: Path) -> None:
 
 
 # ---------- resolve_init_target: target state ----------
+
 
 def test_non_empty_target_without_force_errors(tmp_path: Path) -> None:
     existing = tmp_path / "exists"
@@ -216,6 +227,7 @@ def test_symlink_target_is_rejected(tmp_path: Path) -> None:
 
 # ---------- _is_nested_in_git ----------
 
+
 def test_is_nested_in_git_detects_ancestor(tmp_path: Path) -> None:
     (tmp_path / ".git").mkdir()
     child = tmp_path / "sub"
@@ -231,6 +243,7 @@ def test_is_nested_in_git_false_for_standalone(tmp_path: Path) -> None:
 
 # ---------- maybe_git_init ----------
 
+
 def test_git_init_runs_when_not_nested(tmp_path: Path) -> None:
     from cli._init_helpers import InitTarget
 
@@ -245,7 +258,10 @@ def test_git_init_skipped_when_nested() -> None:
 
     # Use coding-os repo itself — it's inside a git repo.
     target = InitTarget(
-        path=CODING_OS_ROOT, debug=False, forced_empty=False, nested_in_git=True,
+        path=CODING_OS_ROOT,
+        debug=False,
+        forced_empty=False,
+        nested_in_git=True,
     )
     result = maybe_git_init(target, enabled=True)
     assert result.ran is False

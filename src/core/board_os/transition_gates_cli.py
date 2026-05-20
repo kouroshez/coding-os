@@ -44,6 +44,7 @@ def _load_body_for_task(task_id: str, file_path: Path | None) -> tuple[str, str]
     # Fallback: query DB via canonical resolver.
     try:
         from thinking_os.database import resolve_db_path  # type: ignore
+
         db_path = str(resolve_db_path())
     except ImportError:
         db_path = os.environ.get("COS_DB_PATH") or ""
@@ -133,8 +134,7 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     if not body and not args.allow_empty:
         print(
-            "BLOCKED: no task body resolved (pass --task-file PATH or "
-            "--task-id TASK-NNN).",
+            "BLOCKED: no task body resolved (pass --task-file PATH or --task-id TASK-NNN).",
             file=sys.stderr,
         )
         return 2
@@ -176,7 +176,8 @@ def cmd_check_payload(args: argparse.Namespace) -> int:
         if path.exists():
             try:
                 content = path.read_text(encoding="utf-8").replace(
-                    tool_input["old_string"], tool_input["new_string"],
+                    tool_input["old_string"],
+                    tool_input["new_string"],
                 )
             except Exception:
                 content = path.read_text(encoding="utf-8")
@@ -218,8 +219,7 @@ def cmd_check_payload(args: argparse.Namespace) -> int:
     _emit_messages(result)
     if result.blocked:
         print(
-            f"  Override (with reason): "
-            f"COS_DOR_OVERRIDE=1 COS_OVERRIDE_REASON='...' (>= 15 chars)",
+            "  Override (with reason): COS_DOR_OVERRIDE=1 COS_OVERRIDE_REASON='...' (>= 15 chars)",
             file=sys.stderr,
         )
         return 2

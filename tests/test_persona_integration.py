@@ -60,10 +60,15 @@ class TestPersonaFreshInstall:
     def test_minimal_init_produces_valid_project(self, tmp_path: Path) -> None:
         project = tmp_path / "minimal"
         r = _run_cos(
-            "init", "--agent", "claude",
-            "--name", "minimal",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--name",
+            "minimal",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         assert r.returncode == 0, r.stderr
 
@@ -93,19 +98,31 @@ class TestPersonaFullStack:
     def test_django_nextjs_init_wires_all_skills(self, tmp_path: Path) -> None:
         project = tmp_path / "fullstack"
         r = _run_cos(
-            "init", "--agent", "claude",
-            "--template", "django", "--template", "nextjs",
-            "--name", "fullstack",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "django",
+            "--template",
+            "nextjs",
+            "--name",
+            "fullstack",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         assert r.returncode == 0, r.stderr
 
         # All stack skills symlinked into .claude/skills/.
         skills_dir = project / ".claude" / "skills"
         expected_skills = {
-            "thinking_os", "clean-code", "codebase-explorer",
-            "python-django", "nextjs-react", "frontend-design",
+            "thinking_os",
+            "clean-code",
+            "codebase-explorer",
+            "python-django",
+            "nextjs-react",
+            "frontend-design",
         }
         actual_skills = {p.name for p in skills_dir.iterdir() if p.is_dir()}
         missing = expected_skills - actual_skills
@@ -114,12 +131,18 @@ class TestPersonaFullStack:
         # All expected hooks symlinked (Phase F set).
         hooks_dir = project / ".claude" / "hooks"
         critical_hooks = {
-            "warn-mcp-down.sh", "check-capture-worked.sh",
-            "enforce-doc-anchor.sh", "enforce-memory-check.sh",
-            "block-migration-conflict.sh", "block-hardcoded-literals.sh",
-            "block-uv-heredoc.sh", "enforce-template.sh",
-            "regen-reminder.sh", "test-first-reminder.sh",
-            "doc-sync-reminder.sh", "remind-learn-validate.sh",
+            "warn-mcp-down.sh",
+            "check-capture-worked.sh",
+            "enforce-doc-anchor.sh",
+            "enforce-memory-check.sh",
+            "block-migration-conflict.sh",
+            "block-hardcoded-literals.sh",
+            "block-uv-heredoc.sh",
+            "enforce-template.sh",
+            "regen-reminder.sh",
+            "test-first-reminder.sh",
+            "doc-sync-reminder.sh",
+            "remind-learn-validate.sh",
         }
         actual_hooks = {p.name for p in hooks_dir.iterdir()}
         missing = critical_hooks - actual_hooks
@@ -128,11 +151,19 @@ class TestPersonaFullStack:
     def test_doctor_passes_on_fullstack(self, tmp_path: Path) -> None:
         project = tmp_path / "fullstack-doctor"
         _run_cos(
-            "init", "--agent", "claude",
-            "--template", "django", "--template", "nextjs",
-            "--name", "fullstack-doctor",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "django",
+            "--template",
+            "nextjs",
+            "--name",
+            "fullstack-doctor",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         r = _run_cos("doctor", "-d", str(project))
         # Every check should PASS on a freshly-scaffolded project.
@@ -151,11 +182,17 @@ class TestPersonaGoFiber:
     def test_go_fiber_init_wires_skill_and_scaffold(self, tmp_path: Path) -> None:
         project = tmp_path / "gofiber-app"
         r = _run_cos(
-            "init", "--agent", "claude",
-            "--template", "go-fiber",
-            "--name", "gofiber-app",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "go-fiber",
+            "--name",
+            "gofiber-app",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         assert r.returncode == 0, r.stderr
 
@@ -172,6 +209,7 @@ class TestPersonaGoFiber:
 
         # .coding-os.yaml lists go-fiber.
         import yaml as _yaml
+
         cfg = _yaml.safe_load((project / ".coding-os.yaml").read_text())
         assert "go-fiber" in cfg["templates"]
 
@@ -181,11 +219,17 @@ class TestPersonaGoFiber:
     def test_go_fiber_doctor_passes(self, tmp_path: Path) -> None:
         project = tmp_path / "gofiber-doctor"
         _run_cos(
-            "init", "--agent", "claude",
-            "--template", "go-fiber",
-            "--name", "gofiber-doctor",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "go-fiber",
+            "--name",
+            "gofiber-doctor",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         r = _run_cos("doctor", "-d", str(project))
         assert r.returncode == 0, f"go-fiber doctor FAIL:\n{r.stdout}"
@@ -200,11 +244,17 @@ class TestPersonaDualAgent:
     def test_add_codex_after_claude_init(self, tmp_path: Path) -> None:
         project = tmp_path / "dual"
         _run_cos(
-            "init", "--agent", "claude",
-            "--template", "django",
-            "--name", "dual",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "django",
+            "--name",
+            "dual",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         r = _run_cos("add-adapter", "codex", "-d", str(project))
         assert r.returncode == 0, r.stderr
@@ -226,11 +276,17 @@ class TestPersonaUpgrade:
     def test_update_on_fresh_project_reports_no_changes(self, tmp_path: Path) -> None:
         project = tmp_path / "upgrade"
         _run_cos(
-            "init", "--agent", "claude",
-            "--template", "go-fiber",
-            "--name", "upgrade",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "go-fiber",
+            "--name",
+            "upgrade",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         r = _run_cos("update", "--dry-run", "-d", str(project))
         assert r.returncode == 0, r.stderr
@@ -240,11 +296,17 @@ class TestPersonaUpgrade:
     def test_update_repairs_missing_symlink(self, tmp_path: Path) -> None:
         project = tmp_path / "repair"
         _run_cos(
-            "init", "--agent", "claude",
-            "--template", "django",
-            "--name", "repair",
-            "-d", str(tmp_path),
-            "--no-git", "--yes",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "django",
+            "--name",
+            "repair",
+            "-d",
+            str(tmp_path),
+            "--no-git",
+            "--yes",
         )
         # Simulate a user accidentally deleting a hook.
         victim = project / ".claude" / "hooks" / "block-secrets.sh"
@@ -268,11 +330,15 @@ class TestPersonaTemplateBlock:
         target = tmp_path / "docs" / "tasks" / "TASK-999-bogus.md"
         r = subprocess.run(
             ["bash", str(hook)],
-            input=json.dumps({
-                "tool_name": "Write",
-                "tool_input": {"file_path": str(target)},
-            }),
-            capture_output=True, text=True, timeout=5,
+            input=json.dumps(
+                {
+                    "tool_name": "Write",
+                    "tool_input": {"file_path": str(target)},
+                }
+            ),
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         assert r.returncode == 2
         assert "task-create" in r.stderr
@@ -288,6 +354,7 @@ class TestPersonaTemplateBlock:
 # ============================================================
 
 import sys as _sys
+
 _THINKING_OS = Path(__file__).resolve().parent.parent / "src" / "core" / "thinking_os"
 if str(_THINKING_OS) not in _sys.path:
     _sys.path.insert(0, str(_THINKING_OS))
@@ -300,24 +367,49 @@ class TestPhaseM_RoleChainDispatch:
 
     def test_supervisor_dispatches_for_role_chain(self) -> None:
         from cognition import advance
-        from cognition_schemas import SupervisorState, EvidenceBundle
-        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:analyst,architect",
-                                intensity="standard")
-        state = SupervisorState(session_id="ses-test-01", task_marker="schema-migration",
-                                phase="ROUTING", persona_id="chain:analyst,architect",
-                                intensity="standard", dispatched=[], pending=[])
+        from cognition_schemas import EvidenceBundle, SupervisorState
+
+        bundle = EvidenceBundle(
+            task_marker="schema-migration",
+            persona_id="chain:analyst,architect",
+            intensity="standard",
+        )
+        state = SupervisorState(
+            session_id="ses-test-01",
+            task_marker="schema-migration",
+            phase="ROUTING",
+            persona_id="chain:analyst,architect",
+            intensity="standard",
+            dispatched=[],
+            pending=[],
+        )
         action = advance(state, bundle)
         assert action.action in ("dispatch", "classify"), f"Unexpected action: {action}"
 
     def test_evidence_bundle_accumulates_across_dispatches(self) -> None:
-        from cognition_schemas import EvidenceBundle, AnalystOutput
-        bundle = EvidenceBundle(task_marker="schema-migration", persona_id="chain:analyst,architect",
-                                intensity="standard")
-        f2_out = AnalystOutput(problem_statement="Schema migration for commission model",
-                          scope_in=["commission_rate column"], scope_out=["reporting"],
-                          success_metrics=[], actors=[], goal_tree=None, scenarios=[],
-                          decision_table=None, data_model=None, state_machines=[],
-                          events=[], permissions=None, dependencies=None, unknowns=[])
+        from cognition_schemas import AnalystOutput, EvidenceBundle
+
+        bundle = EvidenceBundle(
+            task_marker="schema-migration",
+            persona_id="chain:analyst,architect",
+            intensity="standard",
+        )
+        f2_out = AnalystOutput(
+            problem_statement="Schema migration for commission model",
+            scope_in=["commission_rate column"],
+            scope_out=["reporting"],
+            success_metrics=[],
+            actors=[],
+            goal_tree=None,
+            scenarios=[],
+            decision_table=None,
+            data_model=None,
+            state_machines=[],
+            events=[],
+            permissions=None,
+            dependencies=None,
+            unknowns=[],
+        )
         bundle2 = bundle.model_copy(update={"analyst": f2_out})
         assert bundle2.analyst is not None
         assert bundle2.analyst.problem_statement == "Schema migration for commission model"
@@ -329,6 +421,7 @@ class TestPhaseM_SituationOverride:
 
     def test_incident_response_situation_exists(self) -> None:
         from cognition import load_situation_registry
+
         situations = load_situation_registry()  # dict keyed by situation id
         assert "incident-response" in situations, (
             f"incident-response not in registry: {list(situations.keys())}"
@@ -336,6 +429,7 @@ class TestPhaseM_SituationOverride:
 
     def test_situation_dispatch_chain_has_f7_and_f10(self) -> None:
         from cognition import load_situation_registry
+
         situations = load_situation_registry()
         chain = situations["incident-response"].get("dispatch_chain", [])
         formula_ids = {step["dispatch"] for step in chain if "dispatch" in step}
@@ -344,13 +438,21 @@ class TestPhaseM_SituationOverride:
 
     def test_supervisor_uses_situation_chain_when_set(self) -> None:
         from cognition import advance
-        from cognition_schemas import SupervisorState, EvidenceBundle
-        bundle = EvidenceBundle(task_marker="prod-down", persona_id="chain:debugger,observer",
-                                intensity="standard")
-        state = SupervisorState(session_id="ses-test-02", task_marker="prod-down",
-                                phase="ROUTING", persona_id="chain:debugger,observer",
-                                intensity="standard", dispatched=[], pending=[],
-                                situation_id="incident-response")
+        from cognition_schemas import EvidenceBundle, SupervisorState
+
+        bundle = EvidenceBundle(
+            task_marker="prod-down", persona_id="chain:debugger,observer", intensity="standard"
+        )
+        state = SupervisorState(
+            session_id="ses-test-02",
+            task_marker="prod-down",
+            phase="ROUTING",
+            persona_id="chain:debugger,observer",
+            intensity="standard",
+            dispatched=[],
+            pending=[],
+            situation_id="incident-response",
+        )
         action = advance(state, bundle)
         assert action.action in ("dispatch", "classify")
 
@@ -360,6 +462,7 @@ class TestPhaseM_TakeoverFlow:
 
     def test_takeover_situation_in_registry(self) -> None:
         from cognition import load_situation_registry
+
         situations = load_situation_registry()
         assert "existing-project-takeover" in situations, (
             f"takeover not in registry: {list(situations.keys())}"
@@ -367,6 +470,7 @@ class TestPhaseM_TakeoverFlow:
 
     def test_takeover_chain_starts_with_analyst(self) -> None:
         from cognition import load_situation_registry
+
         situations = load_situation_registry()
         chain = situations["existing-project-takeover"].get("dispatch_chain", [])
         first_dispatch = next((step for step in chain if "dispatch" in step), None)

@@ -1,10 +1,10 @@
 """Regression guard for the live `ClaudeAgentOptions` field surface."""
+
 from __future__ import annotations
 
 import dataclasses
 
 import pytest
-
 
 # Fields the Claude dispatcher reads or writes today (2026-05-05). New
 # fields the SDK adds are tolerated; missing fields are NOT.
@@ -64,9 +64,7 @@ def options_cls():
 def test_options_carries_required_fields(options_cls) -> None:
     fields = {f.name for f in dataclasses.fields(options_cls)}
     missing = REQUIRED_FIELDS - fields
-    assert not missing, (
-        f"ClaudeAgentOptions missing fields the dispatcher uses: {missing}"
-    )
+    assert not missing, f"ClaudeAgentOptions missing fields the dispatcher uses: {missing}"
 
 
 def test_permission_mode_literal_carries_required_values() -> None:
@@ -74,23 +72,18 @@ def test_permission_mode_literal_carries_required_values() -> None:
     # SDK declares Optional[Literal[...]] on ClaudeAgentOptions.
     # Walk dataclass fields and find the permission_mode annotation.
     field = next(
-        f for f in dataclasses.fields(sdk_types.ClaudeAgentOptions)
-        if f.name == "permission_mode"
+        f for f in dataclasses.fields(sdk_types.ClaudeAgentOptions) if f.name == "permission_mode"
     )
     annotation = repr(field.type)
     for mode in REQUIRED_PERMISSION_MODES:
         assert f"'{mode}'" in annotation, (
-            f"permission_mode literal missing required value {mode!r}; "
-            f"got: {annotation}"
+            f"permission_mode literal missing required value {mode!r}; got: {annotation}"
         )
 
 
 def test_hooks_dict_supports_required_events() -> None:
     sdk_types = pytest.importorskip("claude_agent_sdk.types")
-    field = next(
-        f for f in dataclasses.fields(sdk_types.ClaudeAgentOptions)
-        if f.name == "hooks"
-    )
+    field = next(f for f in dataclasses.fields(sdk_types.ClaudeAgentOptions) if f.name == "hooks")
     annotation = repr(field.type)
     for event in REQUIRED_HOOK_EVENTS:
         assert f"'{event}'" in annotation, (
@@ -106,8 +99,11 @@ def test_dispatcher_import_failure_path() -> None:
     sys.modules["claude_agent_sdk"] = None  # type: ignore[assignment]
     try:
         import importlib
+        import importlib.machinery
+
         # Force reimport so ClaudeSDKDispatcher re-runs __init__
-        import importlib.util, importlib.machinery
+        import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "_test_dispatcher",
             "src/adapters/claude/sdk_dispatcher.py",

@@ -20,7 +20,7 @@ def build_python_corpus(root: Path, *, count: int) -> list[Path]:
         body = (
             f"{imports}"
             f"def helper(x: int) -> int:\n"
-            f"    \"\"\"stable docstring for mod_{i:04d}.\"\"\"\n"
+            f'    """stable docstring for mod_{i:04d}."""\n'
             f"    return x + {i}\n\n"
             f"class Thing{i}:\n"
             f"    def run(self, n: int) -> int:\n"
@@ -53,4 +53,4 @@ def build_mixed_corpus(root: Path, *, size: int = 100) -> list[Path]:
     return paths
 
 
-__all__ = ["build_python_corpus", "build_mixed_corpus"]
+__all__ = ["build_mixed_corpus", "build_python_corpus"]

@@ -109,7 +109,9 @@ def test_no_codex_phantom_hooks() -> None:
     with CODEX_TEMPLATE.open() as f:
         codex = json.load(f)
     known_hooks = {p.name for p in (CODING_OS_ROOT / "src" / "core" / "hooks").glob("*.sh")}
-    known_hooks |= {p.name for p in (CODING_OS_ROOT / "src" / "adapters" / "codex" / "hooks").glob("*.sh")}
+    known_hooks |= {
+        p.name for p in (CODING_OS_ROOT / "src" / "adapters" / "codex" / "hooks").glob("*.sh")
+    }
     codex_map = _collect_hooks_by_event_matcher(codex)
 
     phantom: list[str] = []

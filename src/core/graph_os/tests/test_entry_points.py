@@ -1,4 +1,5 @@
 """Tests for graph_os.entry_points (TASK-081)."""
+
 from __future__ import annotations
 
 import pytest
@@ -24,8 +25,12 @@ class _StubBackend:
 
 def _node(uid, kind, label, file_path=None, signature=None, start_line=1):
     return GraphNode(
-        uid=uid, kind=kind, label=label, file_path=file_path,
-        start_line=start_line, signature=signature,
+        uid=uid,
+        kind=kind,
+        label=label,
+        file_path=file_path,
+        start_line=start_line,
+        signature=signature,
     )
 
 
@@ -84,7 +89,15 @@ def test_to_dict_shape():
     be = _StubBackend([_node("u:r2", "route", "POST /api/y", "core/web/routes/y.py")])
     eps = entry_points.discover(be, min_score=0.0, kind_filter="http")
     d = eps[0].to_dict()
-    assert set(d.keys()) == {"uid", "kind", "score", "label", "file_path", "start_line", "components"}
+    assert set(d.keys()) == {
+        "uid",
+        "kind",
+        "score",
+        "label",
+        "file_path",
+        "start_line",
+        "components",
+    }
     assert isinstance(d["components"], list)
 
 
@@ -99,9 +112,12 @@ def test_sort_stable_by_score_then_uid():
 def test_sample_nodes_failure_swallowed():
     class Broken:
         backend_id = "broken"
+
         def sample_nodes(self, kind, limit):
             raise RuntimeError("boom")
+
         def close(self):  # pragma: no cover
             pass
+
     eps = entry_points.discover(Broken(), min_score=0.0)
     assert eps == []

@@ -1,4 +1,5 @@
 """Tests for core.web._project_context — middleware + contextvar scope."""
+
 from __future__ import annotations
 
 import json
@@ -77,9 +78,7 @@ def test_scoped_prefix_picks_alpha(hub_app):
     assert resp.status_code == 200
     body = resp.json()
     assert body["project_root"] == str(projects["alpha"])
-    assert body["db_path"].endswith(
-        f"{projects['alpha'].name}/.coding-os/coding-os.db"
-    )
+    assert body["db_path"].endswith(f"{projects['alpha'].name}/.coding-os/coding-os.db")
 
 
 def test_scoped_prefix_picks_beta(hub_app):

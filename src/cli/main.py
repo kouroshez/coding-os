@@ -71,7 +71,7 @@ def _discover_valid_agents() -> list[str]:
     """
     try:
         return sorted(load_adapter_registry(ADAPTERS_DIR).keys())
-    except Exception:  # noqa: BLE001 — keep CLI bootable on misconfig
+    except Exception:
         return []
 
 
@@ -79,7 +79,7 @@ def _discover_valid_templates() -> list[str]:
     """Read stack ids from templates/*/stack.yaml at CLI startup."""
     try:
         return sorted(load_stack_registry(TEMPLATES_DIR).keys())
-    except Exception:  # noqa: BLE001
+    except Exception:
         return []
 
 
@@ -147,9 +147,7 @@ def _build_world(
     adapter_registry = _get_adapter_registry()
 
     if agent not in adapter_registry:
-        raise click.ClickException(
-            f"adapter '{agent}' not found in {ADAPTERS_DIR}"
-        )
+        raise click.ClickException(f"adapter '{agent}' not found in {ADAPTERS_DIR}")
     adapter_profile = adapter_registry[agent]
 
     stack_profiles = []
@@ -161,7 +159,10 @@ def _build_world(
         stack_profiles.append(stack_registry[t])
 
     return aggregate(
-        base, stack_profiles, adapter_profile, project.name,
+        base,
+        stack_profiles,
+        adapter_profile,
+        project.name,
         today=today or today_iso(),
     )
 
@@ -274,8 +275,7 @@ def _parse_agents(raw: str) -> list[str]:
     invalid = [t for t in tokens if t not in VALID_AGENTS]
     if invalid:
         raise click.ClickException(
-            f"unknown agent(s): {', '.join(invalid)} "
-            f"— available: {', '.join(VALID_AGENTS)}"
+            f"unknown agent(s): {', '.join(invalid)} — available: {', '.join(VALID_AGENTS)}"
         )
     # Deduplicate preserving order.
     seen: set[str] = set()
@@ -388,8 +388,7 @@ def _run_adapter_install(agent: str, project_dir: Path) -> None:
     registry = _get_adapter_registry()
     if agent not in registry:
         click.echo(
-            f"  ERROR: Unknown adapter '{agent}' — available: "
-            f"{sorted(registry.keys())}",
+            f"  ERROR: Unknown adapter '{agent}' — available: {sorted(registry.keys())}",
             err=True,
         )
         sys.exit(1)
@@ -612,7 +611,9 @@ def _aggregate_scaffold_boundaries(
         yaml.safe_dump(aggregated, sort_keys=False, default_flow_style=False),
         encoding="utf-8",
     )
-    click.echo(f"  Aggregated scaffold-boundary for {len(stacks_data)} stack(s) → {target.relative_to(project)}")
+    click.echo(
+        f"  Aggregated scaffold-boundary for {len(stacks_data)} stack(s) → {target.relative_to(project)}"
+    )
 
 
 def _copy_workflow_docs(project: Path) -> None:
@@ -634,6 +635,7 @@ def _copy_workflow_docs(project: Path) -> None:
 def _bootstrap_hub_dir_if_first_run() -> None:
     """Seed ~/.coding-os/ the very first time the CLI is invoked."""
     import os as _os
+
     override = _os.environ.get("COS_REGISTRY_PATH")
     hub_dir = Path(override).parent if override else Path.home() / ".coding-os"
     try:
@@ -649,11 +651,14 @@ def _bootstrap_hub_dir_if_first_run() -> None:
             )
     except OSError as exc:
         import logging as _logging
+
         _logging.getLogger("cli.main").debug("hub-dir bootstrap skipped: %s", exc)
 
 
-from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
-from importlib.metadata import version as _pkg_version
+from importlib.metadata import (
+    PackageNotFoundError as _PackageNotFoundError,
+    version as _pkg_version,
+)
 
 
 def _resolve_cli_version() -> str:
@@ -687,30 +692,31 @@ cli.add_command(tail_cmd)
 
 # Fast scope-aware verification: `cos verify --since-edit`.
 try:
-    from cli.verify_since_edit import verify_since_edit_cmd as _verify_cmd  # noqa: WPS433
+    from cli.verify_since_edit import verify_since_edit_cmd as _verify_cmd
 
     cli.add_command(_verify_cmd)
 except ImportError as _verify_exc:  # pragma: no cover — defensive
     import logging as _logging
 
-    _logging.getLogger("coding_os.cli").debug(
-        "verify CLI unavailable: %s", _verify_exc
-    )
+    _logging.getLogger("coding_os.cli").debug("verify CLI unavailable: %s", _verify_exc)
 
 # Phase O.1 — Hub propagation: push meta-repo edits to every registered
 # project via symlink re-link + DB migration.  Lives in src/cli/sync_all.py
 # so registry.py stays focused on the JSON CRUD.
 try:
     from cli.sync_all import sync_all_cmd, sync_doctor_cmd
+
     cli.add_command(sync_all_cmd)
     cli.add_command(sync_doctor_cmd)
-except ImportError as _e:  # noqa: BLE001 — optional if cli.main is imported early
+except ImportError as _e:
     import logging as _logging
+
     _logging.getLogger("cli.main").debug("sync_all unavailable: %s", _e)
 
 # Phase L.6 — board_os CLI surface (16 commands).
 try:
     from cli.board_commands import BOARD_COMMANDS
+
     for _bc in BOARD_COMMANDS:
         cli.add_command(_bc)
 except ImportError:
@@ -719,14 +725,17 @@ except ImportError:
 # Scheduled jobs (CRON A/B).
 try:
     from cli.cron_commands import cron_cmd
+
     cli.add_command(cron_cmd)
 except ImportError as _e:
     import logging as _logging
+
     _logging.getLogger("cli.main").debug("cron CLI unavailable: %s", _e)
 
 # Phase M — cognition CLI (formula dispatches, persona selections, backtracks).
 try:
     from cli.cognition import COGNITION_COMMANDS
+
     for _cc in COGNITION_COMMANDS:
         cli.add_command(_cc)
 except ImportError:
@@ -779,27 +788,78 @@ def _refuse_coding_os_self_init(project: Path) -> None:
             f"  Fix:\n"
             f"    cd /path/to/your/actual-project\n"
             f"    uv run --directory {project} python -m cli.main init \\\n"
-            f"      --agent claude --project-dir \"$(pwd)\"\n\n"
+            f'      --agent claude --project-dir "$(pwd)"\n\n'
             f"  Or use the alias:\n"
             f"    alias cos-init='uv run --directory {project} python -m cli.main init'\n"
-            f"    cos-init --agent claude --project-dir \"$(pwd)\"\n",
+            f'    cos-init --agent claude --project-dir "$(pwd)"\n',
             err=True,
         )
         sys.exit(1)
 
 
 @cli.command()
-@click.option("--agent", "-a", default=None, help="Agent adapter(s) to install, comma-separated (e.g. 'claude,codex'). Prompted if omitted (unless --yes).")
+@click.option(
+    "--agent",
+    "-a",
+    default=None,
+    help="Agent adapter(s) to install, comma-separated (e.g. 'claude,codex'). Prompted if omitted (unless --yes).",
+)
 @click.option("--template", "-t", multiple=True, help="Stack template(s) to apply")
-@click.option("--project-dir", "-d", default=None, help="Parent directory for the project (default: shell cwd). Mutually exclusive with --debug.")
-@click.option("--name", "-n", default=None, help="Create a new directory with this name inside --project-dir (or cwd). Validated: ^[a-z0-9][a-z0-9._-]{0,63}$")
-@click.option("--debug", is_flag=True, default=False, help="Scaffold into <coding-os>/.build/debug/<name>/ (or 'the-script-output'). Requires running inside the coding-os repo.")
-@click.option("--git/--no-git", default=True, help="Run `git init` in the new project (default: --git). Skipped silently if target is nested in an existing git repo.")
-@click.option("--force", is_flag=True, default=False, help="Overwrite target directory if it already exists and is non-empty.")
-@click.option("--yes", "-y", is_flag=True, default=False, help="Non-interactive: use defaults for anything not passed via flags. Required in CI / non-TTY.")
-@click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", help="Output format.")
-@click.option("--today", "today_override", default=None, help="ISO-8601 date to use for {{DATE}} substitutions (default: today). Deterministic fixture for golden tests.")
-@click.option("--no-register", is_flag=True, default=False, help="Skip writing this project to the global ~/.coding-os/registry.json. Used by sandbox fixtures (manifest-regen, golden tests) so disposable temp dirs don't pollute the hub registry.")
+@click.option(
+    "--project-dir",
+    "-d",
+    default=None,
+    help="Parent directory for the project (default: shell cwd). Mutually exclusive with --debug.",
+)
+@click.option(
+    "--name",
+    "-n",
+    default=None,
+    help="Create a new directory with this name inside --project-dir (or cwd). Validated: ^[a-z0-9][a-z0-9._-]{0,63}$",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    default=False,
+    help="Scaffold into <coding-os>/.build/debug/<name>/ (or 'the-script-output'). Requires running inside the coding-os repo.",
+)
+@click.option(
+    "--git/--no-git",
+    default=True,
+    help="Run `git init` in the new project (default: --git). Skipped silently if target is nested in an existing git repo.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite target directory if it already exists and is non-empty.",
+)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    default=False,
+    help="Non-interactive: use defaults for anything not passed via flags. Required in CI / non-TTY.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format.",
+)
+@click.option(
+    "--today",
+    "today_override",
+    default=None,
+    help="ISO-8601 date to use for {{DATE}} substitutions (default: today). Deterministic fixture for golden tests.",
+)
+@click.option(
+    "--no-register",
+    is_flag=True,
+    default=False,
+    help="Skip writing this project to the global ~/.coding-os/registry.json. Used by sandbox fixtures (manifest-regen, golden tests) so disposable temp dirs don't pollute the hub registry.",
+)
 def init(
     agent: str | None,
     template: tuple[str, ...],
@@ -907,7 +967,9 @@ def init(
             click.echo("  Note: target existed and was wiped (--force)")
 
     with _stdout_redirect:
-        _run_scaffold_phase(agents, template, project, today=today_override, no_register=no_register)
+        _run_scaffold_phase(
+            agents, template, project, today=today_override, no_register=no_register
+        )
 
     git_result = maybe_git_init(target, enabled=git)
     files_created = sum(1 for _ in project.rglob("*") if _.is_file())
@@ -968,6 +1030,7 @@ def init(
         )
 
     import platform as _platform
+
     if _platform.system() == "Darwin":
         click.echo("\nNightly maintenance (optional):")
         click.echo("  cos cron install  # launchd job — decay, learn, routing (daily 03:00)")
@@ -1128,7 +1191,7 @@ def _run_scaffold_phase(
 
             entry = _registry_add_project(project)
             click.echo(f"  Registered in hub registry: {entry.slug}")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             # Registry is non-fatal — a failed write should not break init.
             click.echo(f"  WARN: could not register project in hub registry: {exc}", err=True)
 
@@ -1163,7 +1226,10 @@ def _initial_doc_index(project: Path, state: Path) -> None:
         click.echo(result.stdout.rstrip())
     elif result.returncode != 0:
         # Non-fatal: missing yaml / embeddings extras shouldn't break init.
-        click.echo(f"  WARN: initial doc index skipped: {result.stderr.strip().splitlines()[-1] if result.stderr else 'unknown'}", err=True)
+        click.echo(
+            f"  WARN: initial doc index skipped: {result.stderr.strip().splitlines()[-1] if result.stderr else 'unknown'}",
+            err=True,
+        )
 
 
 @cli.command("add-adapter")
@@ -1241,21 +1307,13 @@ def codex_mcp_install(config_path: str | None, global_scope: bool, dry_run: bool
 
     has_cos = shutil.which("cos") is not None
     if has_cos:
-        snippet = (
-            "\n[mcp_servers.coding-os]\n"
-            'command = "cos"\n'
-            'args = ["server-start"]\n'
-        )
+        snippet = '\n[mcp_servers.coding-os]\ncommand = "cos"\nargs = ["server-start"]\n'
         command = "cos"
         args = ["server-start"]
     else:
         server_py = (CODING_OS_ROOT / "src" / "core" / "thinking_os" / "server.py").as_posix()
         python = sys.executable
-        snippet = (
-            "\n[mcp_servers.coding-os]\n"
-            f'command = "{python}"\n'
-            f'args = ["{server_py}"]\n'
-        )
+        snippet = f'\n[mcp_servers.coding-os]\ncommand = "{python}"\nargs = ["{server_py}"]\n'
         command = python
         args = [server_py]
 
@@ -1284,8 +1342,7 @@ def codex_mcp_install(config_path: str | None, global_scope: bool, dry_run: bool
     )
     if proc.returncode != 0:
         raise click.ClickException(
-            proc.stderr.strip()
-            or f"failed to configure coding-os MCP in {target}"
+            proc.stderr.strip() or f"failed to configure coding-os MCP in {target}"
         )
 
     status = (proc.stdout or "").strip()
@@ -1321,7 +1378,7 @@ def health(project_dir: str) -> None:
     if state.exists():
         click.echo(f"  State dir:  OK ({state.name}/)")
     else:
-        click.echo(f"  State dir:  MISSING")
+        click.echo("  State dir:  MISSING")
 
     # Database
     db_path = state / "coding-os.db"
@@ -1411,8 +1468,10 @@ def hooks_log(
 
     if not log_path.exists():
         click.echo(f"No hook activity yet ({log_path} does not exist).")
-        click.echo("Hint: hooks log on fire — if you expected events, check"
-                   " .claude/settings.json or .codex/hooks.json wiring.")
+        click.echo(
+            "Hint: hooks log on fire — if you expected events, check"
+            " .claude/settings.json or .codex/hooks.json wiring."
+        )
         return
 
     filters: list[str] = []
@@ -1432,9 +1491,7 @@ def hooks_log(
 
     if follow:
         tail_cmd = f"tail -f -n {tail_count} {shlex.quote(str(log_path))}"
-        grep_chain = " | ".join(
-            f"grep -F --line-buffered {shlex.quote(f)}" for f in filters
-        )
+        grep_chain = " | ".join(f"grep -F --line-buffered {shlex.quote(f)}" for f in filters)
         subprocess.run(["bash", "-c", f"{tail_cmd} | {grep_chain}"])
         return
 
@@ -1486,8 +1543,7 @@ def hooks_list(agent: str | None, category: str | None, phase: str | None) -> No
         click.echo(f"\n[{cat}]")
         for h in by_cat[cat]:
             events = ", ".join(
-                f"{e['event']}::{e.get('matcher', '')}".rstrip(":")
-                for e in h.events
+                f"{e['event']}::{e.get('matcher', '')}".rstrip(":") for e in h.events
             )
             click.echo(f"  {h.id:30s}  phase={h.phase!s:3s}  events=[{events}]")
             if h.description:
@@ -1612,54 +1668,48 @@ def session_state(project_dir: str) -> None:
 # Registration lives in src/cli/graph_commands.py so the main file stays lean.
 # ---------------------------------------------------------------------------
 try:
-    from cli import graph_commands as _graph_commands  # noqa: WPS433
+    from cli import graph_commands as _graph_commands
 
     _graph_commands.register(cli)
 except ImportError as _graph_cli_exc:  # pragma: no cover — defensive
     import logging as _logging
 
-    _logging.getLogger("coding_os.cli").debug(
-        "graph_os CLI unavailable: %s", _graph_cli_exc
-    )
+    _logging.getLogger("coding_os.cli").debug("graph_os CLI unavailable: %s", _graph_cli_exc)
 
 
 # ---------------------------------------------------------------------------
 # DB lifecycle — `cos db-stats`, `cos db-reset`. Spec: docs/playbooks/db-reset.md.
 # ---------------------------------------------------------------------------
 try:
-    from cli import db_reset as _db_reset  # noqa: WPS433
+    from cli import db_reset as _db_reset
 
     _db_reset.register(cli)
 except ImportError as _db_reset_exc:  # pragma: no cover — defensive
     import logging as _logging
 
-    _logging.getLogger("coding_os.cli").debug(
-        "db_reset CLI unavailable: %s", _db_reset_exc
-    )
+    _logging.getLogger("coding_os.cli").debug("db_reset CLI unavailable: %s", _db_reset_exc)
 
 
 # ---------------------------------------------------------------------------
 # S4 — unified web server CLI (`cos web`).
 # ---------------------------------------------------------------------------
 try:
-    from cli.web_commands import web_cmd as _web_cmd  # noqa: WPS433
+    from cli.web_commands import web_cmd as _web_cmd
 
     cli.add_command(_web_cmd)
 
-    from cli.registry import registry_cli as _registry_cli  # noqa: WPS433
+    from cli.registry import registry_cli as _registry_cli
 
     cli.add_command(_registry_cli)
 
-    from cli.hub_commands import hub_cli as _hub_cli, service_cli as _service_cli  # noqa: WPS433
+    from cli.hub_commands import hub_cli as _hub_cli, service_cli as _service_cli
 
     cli.add_command(_hub_cli)
     cli.add_command(_service_cli)
 except ImportError as _web_cli_exc:  # pragma: no cover — defensive
     import logging as _logging
 
-    _logging.getLogger("coding_os.cli").debug(
-        "web CLI unavailable: %s", _web_cli_exc
-    )
+    _logging.getLogger("coding_os.cli").debug("web CLI unavailable: %s", _web_cli_exc)
 
 
 if __name__ == "__main__":

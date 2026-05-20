@@ -21,7 +21,7 @@ class Level(IntEnum):
     FATAL = 50
 
     @classmethod
-    def from_name(cls, name: str) -> "Level":
+    def from_name(cls, name: str) -> Level:
         upper = name.upper()
         if upper not in cls.__members__:
             raise ValueError(f"unknown log level: {name}")
@@ -105,4 +105,5 @@ def setup(level: str | Level = "info", install_stdlib_bridge: bool = True) -> No
         os.environ["COS_LOG_LEVEL"] = level.lower()
     if install_stdlib_bridge:
         from .bridge import install_bridge
+
         install_bridge(resolved)

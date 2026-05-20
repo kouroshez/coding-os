@@ -1,4 +1,5 @@
 """Presence state machine: active / present / offline."""
+
 from __future__ import annotations
 
 import json
@@ -56,10 +57,12 @@ def test_recent_tool_returns_active(fake_project):
 def test_old_tool_but_alive_returns_present(fake_project):
     now = int(time.time())
     _write_presence(
-        fake_project, "claude", "ses-claude-2",
-        last_tool_at=now - 120,       # outside ACTIVE window
-        last_stop_at=now - 60,        # most recent "turn done"
-        last_prompt_at=now - 300,     # older than stop
+        fake_project,
+        "claude",
+        "ses-claude-2",
+        last_tool_at=now - 120,  # outside ACTIVE window
+        last_stop_at=now - 60,  # most recent "turn done"
+        last_prompt_at=now - 300,  # older than stop
     )
     assert board_routes._presence_state("claude") == "present"
 
@@ -73,9 +76,11 @@ def test_user_turn_in_flight_is_active(fake_project):
     """
     now = int(time.time())
     _write_presence(
-        fake_project, "claude", "ses-claude-3",
-        last_prompt_at=now - 10,      # fresh prompt within ACTIVE window
-        last_stop_at=now - 100,       # last stop was before that
+        fake_project,
+        "claude",
+        "ses-claude-3",
+        last_prompt_at=now - 10,  # fresh prompt within ACTIVE window
+        last_stop_at=now - 100,  # last stop was before that
         last_tool_at=now - 90,
     )
     assert board_routes._presence_state("claude") == "active"
@@ -88,8 +93,10 @@ def test_old_prompt_with_alive_pid_is_present(fake_project):
     30 s of activity."""
     now = int(time.time())
     _write_presence(
-        fake_project, "claude", "ses-claude-present-old-prompt",
-        last_prompt_at=now - 300,     # 5 min ago, past ACTIVE
+        fake_project,
+        "claude",
+        "ses-claude-present-old-prompt",
+        last_prompt_at=now - 300,  # 5 min ago, past ACTIVE
         last_stop_at=None,
         last_tool_at=now - 320,
     )
@@ -99,7 +106,9 @@ def test_old_prompt_with_alive_pid_is_present(fake_project):
 def test_ended_session_is_offline(fake_project):
     now = int(time.time())
     _write_presence(
-        fake_project, "claude", "ses-claude-4",
+        fake_project,
+        "claude",
+        "ses-claude-4",
         last_tool_at=now - 5,
         ended_at=now - 1,
     )
@@ -116,7 +125,9 @@ def test_dead_pid_with_stale_heartbeat_is_offline(fake_project):
     # Also bump started_at well past the PRESENT window so the
     # "session recently started" path can't save it either.
     _write_presence(
-        fake_project, "claude", "ses-claude-dead",
+        fake_project,
+        "claude",
+        "ses-claude-dead",
         pid=dead_pid,
         started_at=now - 7200,
         last_tool_at=now - 7200,
@@ -135,7 +146,9 @@ def test_dead_pid_with_recent_heartbeat_is_active(fake_project):
     now = int(time.time())
     dead_pid = 2**31 - 1
     _write_presence(
-        fake_project, "cursor", "ses-cursor-subproc-rotated",
+        fake_project,
+        "cursor",
+        "ses-cursor-subproc-rotated",
         pid=dead_pid,
         last_tool_at=now - 5,  # fresh heartbeat within ACTIVE window
     )
@@ -154,11 +167,13 @@ def test_dead_pid_with_heartbeat_past_active_is_offline(fake_project):
     now = int(time.time())
     dead_pid = 2**31 - 1
     _write_presence(
-        fake_project, "claude", "ses-claude-rate-limited",
+        fake_project,
+        "claude",
+        "ses-claude-rate-limited",
         pid=dead_pid,
-        last_tool_at=now - 2700,   # 45 min ago, past ACTIVE but inside PRESENT
+        last_tool_at=now - 2700,  # 45 min ago, past ACTIVE but inside PRESENT
         last_prompt_at=now - 2800,
-        last_stop_at=None,         # killed before stop
+        last_stop_at=None,  # killed before stop
     )
     assert board_routes._presence_state("claude") == "offline"
 
@@ -173,10 +188,12 @@ def test_dead_pid_killed_mid_turn_is_offline(fake_project):
     now = int(time.time())
     dead_pid = 2**31 - 1
     _write_presence(
-        fake_project, "claude", "ses-claude-killed-mid-turn",
+        fake_project,
+        "claude",
+        "ses-claude-killed-mid-turn",
         pid=dead_pid,
         last_prompt_at=now - 600,  # 10 min ago, past ACTIVE
-        last_stop_at=None,         # mid-turn
+        last_stop_at=None,  # mid-turn
         last_tool_at=now - 620,
     )
     assert board_routes._presence_state("claude") == "offline"
@@ -186,13 +203,17 @@ def test_multiple_sessions_pick_best(fake_project):
     """When one session is ACTIVE and another PRESENT, ACTIVE wins."""
     now = int(time.time())
     _write_presence(
-        fake_project, "codex", "ses-codex-idle",
+        fake_project,
+        "codex",
+        "ses-codex-idle",
         last_tool_at=now - 200,
         last_stop_at=now - 100,
         last_prompt_at=now - 300,
     )
     _write_presence(
-        fake_project, "codex", "ses-codex-active",
+        fake_project,
+        "codex",
+        "ses-codex-active",
         last_tool_at=now - 3,
     )
     assert board_routes._presence_state("codex") == "active"

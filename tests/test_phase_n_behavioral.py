@@ -31,9 +31,9 @@ _THINKING_OS = Path(__file__).resolve().parent.parent / "src" / "core" / "thinki
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
+import tracing  # noqa: E402
 from formula_composer import compose_chain, reset_registry_cache  # noqa: E402
 from task_analyzer import analyze_task  # noqa: E402
-import tracing  # noqa: E402
 
 
 @pytest.fixture
@@ -57,52 +57,86 @@ def _reset_registry():
     reset_registry_cache()
 
 
-def _drive_scenario(prompt: str, complexity: str, dimensions: int,
-                    situation: str | None, sid: str, adir: Path) -> dict:
+def _drive_scenario(
+    prompt: str, complexity: str, dimensions: int, situation: str | None, sid: str, adir: Path
+) -> dict:
     """Run the end-to-end cognition pipeline with tracing on a tmp agent_dir."""
     # 1. Emit the opening events the real system emits
     tracing.emit(sid, "session_init", {"test": True}, agent_dir=adir)
-    tracing.emit(sid, "gate_recorded",
-                 {"classification": complexity, "dimensions": dimensions},
-                 agent_dir=adir)
+    tracing.emit(
+        sid,
+        "gate_recorded",
+        {"classification": complexity, "dimensions": dimensions},
+        agent_dir=adir,
+    )
 
     # 2. Analyze
-    tracing.emit(sid, "analyze_start",
-                 {"prompt_len": len(prompt), "complexity": complexity},
-                 agent_dir=adir)
+    tracing.emit(
+        sid, "analyze_start", {"prompt_len": len(prompt), "complexity": complexity}, agent_dir=adir
+    )
     signals = analyze_task(prompt=prompt, complexity=complexity, dimensions=dimensions)
-    tracing.emit(sid, "analyze_done", {
-        "action": signals.action, "domain": signals.domain,
-        "scope_size": signals.scope_size, "urgency": signals.urgency,
-        "external_dependency": signals.external_dependency,
-        "breaking_change": signals.breaking_change,
-    }, agent_dir=adir)
+    tracing.emit(
+        sid,
+        "analyze_done",
+        {
+            "action": signals.action,
+            "domain": signals.domain,
+            "scope_size": signals.scope_size,
+            "urgency": signals.urgency,
+            "external_dependency": signals.external_dependency,
+            "breaking_change": signals.breaking_change,
+        },
+        agent_dir=adir,
+    )
 
     # 3. Compose
     chain = compose_chain(signals, situation_id=situation)
     if chain.source == "preset":
-        tracing.emit(sid, "preset_matched", {
-            "preset_id": chain.preset_id, "chain": chain.chain,
-            "preset_version": chain.preset_version,
-        }, agent_dir=adir)
+        tracing.emit(
+            sid,
+            "preset_matched",
+            {
+                "preset_id": chain.preset_id,
+                "chain": chain.chain,
+                "preset_version": chain.preset_version,
+            },
+            agent_dir=adir,
+        )
     elif chain.source == "situation":
-        tracing.emit(sid, "situation_override", {
-            "situation_id": chain.situation_id, "chain": chain.chain,
-        }, agent_dir=adir)
+        tracing.emit(
+            sid,
+            "situation_override",
+            {
+                "situation_id": chain.situation_id,
+                "chain": chain.chain,
+            },
+            agent_dir=adir,
+        )
     elif chain.source == "composer":
         tracing.emit(sid, "composer_fallback", {"chain": chain.chain}, agent_dir=adir)
     else:
         tracing.emit(sid, "hard_fallback", {"chain": chain.chain}, agent_dir=adir)
-    tracing.emit(sid, "compose_done", {
-        "chain": chain.chain, "source": chain.source, "preset_id": chain.preset_id,
-    }, agent_dir=adir)
+    tracing.emit(
+        sid,
+        "compose_done",
+        {
+            "chain": chain.chain,
+            "source": chain.source,
+            "preset_id": chain.preset_id,
+        },
+        agent_dir=adir,
+    )
 
     # 4. Simulate dispatch of each role in the chain
     for role_id in chain.chain:
         tracing.emit(sid, "role_dispatch", {"formula": role_id}, role=role_id, agent_dir=adir)
-        tracing.emit(sid, "role_output_recorded",
-                     {"formula_id": role_id, "status": "ok", "latency_ms": 50},
-                     role=role_id, agent_dir=adir)
+        tracing.emit(
+            sid,
+            "role_output_recorded",
+            {"formula_id": role_id, "status": "ok", "latency_ms": 50},
+            role=role_id,
+            agent_dir=adir,
+        )
 
     # 5. Close
     tracing.emit(sid, "ambiguity_check", {"violations": 0}, agent_dir=adir)
@@ -119,7 +153,12 @@ def _drive_scenario(prompt: str, complexity: str, dimensions: int,
 # ---------------------------------------------------------------------------
 
 _MANDATORY_NODES = [
-    "n-sinit", "n-gate", "n-analyzer", "n-router", "n-supervisor", "n-done",
+    "n-sinit",
+    "n-gate",
+    "n-analyzer",
+    "n-router",
+    "n-supervisor",
+    "n-done",
 ]
 
 
@@ -137,12 +176,16 @@ def _assert_canonical_path(summary: dict) -> None:
 # Scenarios
 # ---------------------------------------------------------------------------
 
+
 def test_trace_greenfield_backend_api(session_id):
     sid, adir = session_id
     r = _drive_scenario(
         "add a new /orders POST endpoint with pagination",
-        complexity="COMPLICATED", dimensions=4,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLICATED",
+        dimensions=4,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -156,10 +199,12 @@ def test_trace_greenfield_backend_api(session_id):
 def test_trace_incident_override_wins(session_id):
     sid, adir = session_id
     r = _drive_scenario(
-        "add a /orders endpoint to the backend",   # looks like a preset hit
-        complexity="COMPLICATED", dimensions=3,
-        situation="incident-response",             # but situation wins
-        sid=sid, adir=adir,
+        "add a /orders endpoint to the backend",  # looks like a preset hit
+        complexity="COMPLICATED",
+        dimensions=3,
+        situation="incident-response",  # but situation wins
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -175,8 +220,11 @@ def test_trace_schema_migration(session_id):
     sid, adir = session_id
     r = _drive_scenario(
         "drop column email from users table, breaking change",
-        complexity="COMPLICATED", dimensions=3,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLICATED",
+        dimensions=3,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -185,16 +233,29 @@ def test_trace_schema_migration(session_id):
     assert "security_auditor" in s["chain"]
     # Ordering preserved in trace: analyst before architect before security_auditor before implementer before reviewer
     role_order = [r for r in s["roles"] if r]
-    indices = {r: role_order.index(r) for r in ("analyst", "architect", "security_auditor", "implementer", "reviewer") if r in role_order}
-    assert indices["analyst"] < indices["architect"] < indices["security_auditor"] < indices["implementer"] < indices["reviewer"]
+    indices = {
+        r: role_order.index(r)
+        for r in ("analyst", "architect", "security_auditor", "implementer", "reviewer")
+        if r in role_order
+    }
+    assert (
+        indices["analyst"]
+        < indices["architect"]
+        < indices["security_auditor"]
+        < indices["implementer"]
+        < indices["reviewer"]
+    )
 
 
 def test_trace_external_integration_stripe(session_id):
     sid, adir = session_id
     r = _drive_scenario(
         "integrate Stripe webhook, needs api key setup",
-        complexity="COMPLICATED", dimensions=3,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLICATED",
+        dimensions=3,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -208,8 +269,11 @@ def test_trace_research_spike_short_chain(session_id):
     sid, adir = session_id
     r = _drive_scenario(
         "investigate alternatives to Redis, compare options",
-        complexity="COMPLEX", dimensions=4,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLEX",
+        dimensions=4,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -223,9 +287,11 @@ def test_trace_legacy_takeover_via_situation(session_id):
     sid, adir = session_id
     r = _drive_scenario(
         "get oriented in this inherited codebase, there are no docs",
-        complexity="COMPLEX", dimensions=5,
+        complexity="COMPLEX",
+        dimensions=5,
         situation="existing-project-takeover",
-        sid=sid, adir=adir,
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -238,8 +304,11 @@ def test_trace_docs_only_minimal_chain(session_id):
     sid, adir = session_id
     r = _drive_scenario(
         "document the new auth flow in docs, write an ADR",
-        complexity="COMPLICATED", dimensions=2,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLICATED",
+        dimensions=2,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     s = r["summary"]
     _assert_canonical_path(s)
@@ -251,13 +320,17 @@ def test_trace_docs_only_minimal_chain(session_id):
 # Replay semantics — raw event ordering
 # ---------------------------------------------------------------------------
 
+
 def test_event_ordering_respects_lifecycle(session_id):
     """Events must appear in the correct lifecycle order."""
     sid, adir = session_id
     r = _drive_scenario(
         "add pagination to /users endpoint",
-        complexity="COMPLICATED", dimensions=3,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLICATED",
+        dimensions=3,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     events = tracing.read_trace(sid, adir)
     kinds_seq = [e["kind"] for e in events]
@@ -275,9 +348,11 @@ def test_event_ordering_respects_lifecycle(session_id):
 # Concurrent multi-session isolation (enterprise guarantee)
 # ---------------------------------------------------------------------------
 
+
 def test_concurrent_sessions_isolated(tmp_path):
     """Two sessions run in parallel write to disjoint trace files."""
     import threading
+
     adir = tmp_path / ".coding-os" / "claude"
     adir.mkdir(parents=True, exist_ok=True)
     results: list = []
@@ -290,8 +365,10 @@ def test_concurrent_sessions_isolated(tmp_path):
 
     t1 = threading.Thread(target=run, args=("ses-A", "add /orders endpoint"))
     t2 = threading.Thread(target=run, args=("ses-B", "fix the checkout crash"))
-    t1.start(); t2.start()
-    t1.join();  t2.join()
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
 
     # Both traces exist, neither has the other's events
     evts_a = tracing.read_trace("ses-A", adir)
@@ -305,15 +382,29 @@ def test_concurrent_sessions_isolated(tmp_path):
 # Summary shape contract
 # ---------------------------------------------------------------------------
 
+
 def test_summary_has_expected_keys(session_id):
     sid, adir = session_id
     _drive_scenario(
         "build a React component for profile page",
-        complexity="COMPLICATED", dimensions=2,
-        situation=None, sid=sid, adir=adir,
+        complexity="COMPLICATED",
+        dimensions=2,
+        situation=None,
+        sid=sid,
+        adir=adir,
     )
     s = tracing.summarize(sid, adir)
-    for key in ("session_id", "events", "nodes", "roles", "kinds",
-                "preset", "situation", "chain", "violations",
-                "backtracks", "discoveries"):
+    for key in (
+        "session_id",
+        "events",
+        "nodes",
+        "roles",
+        "kinds",
+        "preset",
+        "situation",
+        "chain",
+        "violations",
+        "backtracks",
+        "discoveries",
+    ):
         assert key in s, f"summary missing key: {key}"

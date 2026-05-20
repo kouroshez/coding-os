@@ -34,31 +34,45 @@ def _run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPr
 
 
 def _init_base(target: Path) -> None:
-    result = _run_cli([
-        "init",
-        "--agent", "claude",
-        "--project-dir", str(target.parent),
-        "--name", target.name,
-        "--no-git",
-        "--today", FROZEN_DATE,
-    ])
+    result = _run_cli(
+        [
+            "init",
+            "--agent",
+            "claude",
+            "--project-dir",
+            str(target.parent),
+            "--name",
+            target.name,
+            "--no-git",
+            "--today",
+            FROZEN_DATE,
+        ]
+    )
     assert result.returncode == 0, f"init failed: {result.stderr}"
 
 
 def _init_with_stack(target: Path, stack: str) -> None:
-    result = _run_cli([
-        "init",
-        "--agent", "claude",
-        "--project-dir", str(target.parent),
-        "--name", target.name,
-        "--template", stack,
-        "--no-git",
-        "--today", FROZEN_DATE,
-    ])
+    result = _run_cli(
+        [
+            "init",
+            "--agent",
+            "claude",
+            "--project-dir",
+            str(target.parent),
+            "--name",
+            target.name,
+            "--template",
+            stack,
+            "--no-git",
+            "--today",
+            FROZEN_DATE,
+        ]
+    )
     assert result.returncode == 0, f"init failed: {result.stderr}"
 
 
 # ---------- happy path ----------
+
 
 def test_add_stack_django_to_base_project(tmp_path: Path) -> None:
     project = tmp_path / "proj"
@@ -95,9 +109,15 @@ def test_add_stack_no_regen_flag_leaves_agents_md_intact(tmp_path: Path) -> None
     _init_base(project)
     old_agents = (project / "AGENTS.md").read_text()
 
-    result = _run_cli([
-        "add-stack", "django", "-d", str(project), "--no-regen-agents-md",
-    ])
+    result = _run_cli(
+        [
+            "add-stack",
+            "django",
+            "-d",
+            str(project),
+            "--no-regen-agents-md",
+        ]
+    )
     assert result.returncode == 0
     assert (project / "AGENTS.md").read_text() == old_agents
     # No backup created
@@ -106,6 +126,7 @@ def test_add_stack_no_regen_flag_leaves_agents_md_intact(tmp_path: Path) -> None
 
 
 # ---------- idempotency ----------
+
 
 def test_add_stack_already_installed_is_noop(tmp_path: Path) -> None:
     project = tmp_path / "proj"
@@ -136,6 +157,7 @@ def test_add_stack_twice_is_idempotent(tmp_path: Path) -> None:
 
 # ---------- multi-stack ----------
 
+
 def test_add_multiple_stacks(tmp_path: Path) -> None:
     project = tmp_path / "proj"
     _init_base(project)
@@ -156,6 +178,7 @@ def test_add_multiple_stacks(tmp_path: Path) -> None:
 
 # ---------- errors ----------
 
+
 def test_add_stack_unknown_errors(tmp_path: Path) -> None:
     project = tmp_path / "proj"
     _init_base(project)
@@ -172,12 +195,11 @@ def test_add_stack_without_init_errors(tmp_path: Path) -> None:
 
 # ---------- JSON output ----------
 
+
 def test_add_stack_json_output(tmp_path: Path) -> None:
     project = tmp_path / "proj"
     _init_base(project)
-    result = _run_cli(
-        ["add-stack", "django", "-d", str(project), "--format", "json"]
-    )
+    result = _run_cli(["add-stack", "django", "-d", str(project), "--format", "json"])
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert payload["status"] == "ok"
@@ -189,6 +211,7 @@ def test_add_stack_json_output(tmp_path: Path) -> None:
 # ---------- doctor integration ----------
 
 # ---------- path-scoped rules ----------
+
 
 def test_add_stack_copies_rules_to_claude_rules_dir(tmp_path: Path) -> None:
     project = tmp_path / "proj"
@@ -207,12 +230,18 @@ def test_add_stack_copies_rules_to_codex(tmp_path: Path) -> None:
     so add-stack copies stack-scoped rule files there too."""
     project = tmp_path / "proj"
     # Init a codex project
-    result = _run_cli([
-        "init", "--agent", "codex",
-        "--project-dir", str(project.parent),
-        "--name", project.name,
-        "--no-git",
-    ])
+    result = _run_cli(
+        [
+            "init",
+            "--agent",
+            "codex",
+            "--project-dir",
+            str(project.parent),
+            "--name",
+            project.name,
+            "--no-git",
+        ]
+    )
     assert result.returncode == 0
     _run_cli(["add-stack", "django", "-d", str(project)])
 
@@ -243,7 +272,5 @@ def test_doctor_passes_on_multi_stack_project(tmp_path: Path) -> None:
     result = _run_cli(["doctor", "-d", str(project)])
     assert result.returncode == 0, f"doctor failed: {result.stdout}\n{result.stderr}"
     # No line should begin with [FAIL] — the "0 FAIL" summary string is ok.
-    fail_lines = [
-        line for line in result.stdout.splitlines() if line.startswith("[FAIL]")
-    ]
+    fail_lines = [line for line in result.stdout.splitlines() if line.startswith("[FAIL]")]
     assert not fail_lines, f"doctor reported failures: {fail_lines}"

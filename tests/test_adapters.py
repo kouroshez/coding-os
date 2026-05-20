@@ -335,7 +335,7 @@ class TestCodexAdapter:
         assert result.returncode == 0, result.stderr
         content = (project / ".codex" / "config.toml").read_text(encoding="utf-8")
         assert 'command = "uv"' not in content
-        assert 'server.py' in content
+        assert "server.py" in content
 
     def test_symlinks_rules_mirrors_claude(self, project: Path) -> None:
         # Symmetry: every core/rules/*.md must appear as a symlink under
@@ -380,14 +380,20 @@ class TestCodexAdapter:
         # all 11 are present. These mirror core/thinking_os/agents/<role>.md
         # and are exposed as /role-<slug> by Codex.
         expected_roles = {
-            "researcher", "analyst", "architect", "documenter", "implementer",
-            "reviewer", "debugger", "security_auditor", "deployer", "observer",
+            "researcher",
+            "analyst",
+            "architect",
+            "documenter",
+            "implementer",
+            "reviewer",
+            "debugger",
+            "security_auditor",
+            "deployer",
+            "observer",
             "refactorer",
         }
         for role in expected_roles:
-            assert f"role-{role}.md" in linked, (
-                f"role-{role}.md missing from codex commands"
-            )
+            assert f"role-{role}.md" in linked, f"role-{role}.md missing from codex commands"
 
     def test_idempotent_install(self, project: Path) -> None:
         run_adapter_install("codex", project)
@@ -454,9 +460,7 @@ class TestStackSkillLinking:
         (project / ".claude" / "skills").mkdir(parents=True)
         return project
 
-    def _run_linker(
-        self, project: Path, *stacks: str
-    ) -> subprocess.CompletedProcess:
+    def _run_linker(self, project: Path, *stacks: str) -> subprocess.CompletedProcess:
         agent_skills = str(project / ".claude" / "skills")
         return subprocess.run(
             [
@@ -518,6 +522,7 @@ class TestInitLinksStackSkills:
 
     def test_init_with_django_links_skill(self, tmp_path: Path) -> None:
         from click.testing import CliRunner
+
         from cli.main import cli as cos_cli
 
         project = tmp_path / "e2e"
@@ -527,9 +532,12 @@ class TestInitLinksStackSkills:
             cos_cli,
             [
                 "init",
-                "--agent", "claude",
-                "--template", "django",
-                "--project-dir", str(project),
+                "--agent",
+                "claude",
+                "--template",
+                "django",
+                "--project-dir",
+                str(project),
                 "--no-git",
             ],
         )
@@ -540,6 +548,7 @@ class TestInitLinksStackSkills:
 
     def test_init_with_nextjs_links_both(self, tmp_path: Path) -> None:
         from click.testing import CliRunner
+
         from cli.main import cli as cos_cli
 
         project = tmp_path / "e2e"
@@ -549,9 +558,12 @@ class TestInitLinksStackSkills:
             cos_cli,
             [
                 "init",
-                "--agent", "claude",
-                "--template", "nextjs",
-                "--project-dir", str(project),
+                "--agent",
+                "claude",
+                "--template",
+                "nextjs",
+                "--project-dir",
+                str(project),
                 "--no-git",
             ],
         )
@@ -566,6 +578,7 @@ class TestVerifyConfigPopulated:
     def test_django_populates_backend_verify(self, tmp_path: Path) -> None:
         import yaml
         from click.testing import CliRunner
+
         from cli.main import cli as cos_cli
 
         project = tmp_path / "e2e-verify"
@@ -575,9 +588,12 @@ class TestVerifyConfigPopulated:
             cos_cli,
             [
                 "init",
-                "--agent", "claude",
-                "--template", "django",
-                "--project-dir", str(project),
+                "--agent",
+                "claude",
+                "--template",
+                "django",
+                "--project-dir",
+                str(project),
                 "--no-git",
             ],
         )
@@ -591,9 +607,7 @@ class TestVerifyConfigPopulated:
 class TestMcpPortable:
     """`.mcp.json` uses `cos server-start` wrapper when cos is on PATH."""
 
-    def test_mcp_entry_uses_wrapper_when_cos_available(
-        self, tmp_path: Path
-    ) -> None:
+    def test_mcp_entry_uses_wrapper_when_cos_available(self, tmp_path: Path) -> None:
         """When `cos` is on PATH, entry should be the canonical fast-path
         entry. Per CLAUDE.md rule 20, ``cos-mcp-start`` is preferred —
         it skips cli.main's 380 ms subcommand-import tax that breaks
@@ -602,6 +616,7 @@ class TestMcpPortable:
         accepted (the renderer falls back when the fast-path binary
         isn't installed)."""
         import shutil as _shutil
+
         if _shutil.which("cos") is None:
             pytest.skip("cos not on PATH")
         project = tmp_path / "proj"

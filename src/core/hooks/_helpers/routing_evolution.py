@@ -1,4 +1,5 @@
 """Session startup helper — autonomous routing evolution check."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -30,16 +31,14 @@ def _recalculate(conn: sqlite3.Connection) -> int:
             "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
             "ON CONFLICT(domain, complexity, model, skill) DO UPDATE SET "
             "success_rate = ?, sample_count = ?, last_updated = CURRENT_TIMESTAMP",
-            (row[0], row[1], row[2], row[3],
-             round(rate, 4), row[5], round(rate, 4), row[5]),
+            (row[0], row[1], row[2], row[3], round(rate, 4), row[5], round(rate, 4), row[5]),
         )
         count += 1
 
     total_outcomes = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
     try:
         conn.execute(
-            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, "
-            "outcomes_at_recalc = ?",
+            "UPDATE routing_weights SET last_recalc_at = CURRENT_TIMESTAMP, outcomes_at_recalc = ?",
             (total_outcomes,),
         )
     except sqlite3.OperationalError:

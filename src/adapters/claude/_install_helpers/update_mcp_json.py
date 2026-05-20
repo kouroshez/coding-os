@@ -20,6 +20,7 @@ EXIT
     0 on success (or no-op when JSON would be unchanged).
     1 on bad existing JSON (caller logs WARN; install proceeds).
 """
+
 from __future__ import annotations
 
 import json
@@ -56,8 +57,11 @@ def main(argv: list[str]) -> int:
         data["mcpServers"]["coding-os"] = {
             "command": "uv",
             "args": [
-                "run", "--directory", f"{cos_root}/core/thinking_os",
-                "python", "server.py",
+                "run",
+                "--directory",
+                f"{cos_root}/core/thinking_os",
+                "python",
+                "server.py",
             ],
             "cwd": "${workspaceFolder}",
         }

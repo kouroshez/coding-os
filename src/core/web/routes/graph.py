@@ -23,6 +23,7 @@ def _tools():
     """Lazy import guard for graph_os tools."""
     try:
         from graph_os.tools import graph as _g  # type: ignore
+
         return _g
     except ImportError:
         return None
@@ -30,20 +31,23 @@ def _tools():
 
 def _unavailable():
     import json
-    return json.dumps({
-        "ok": False,
-        "error": {
-            "category": "unavailable",
-            "retryable": False,
-            "message": "graph_os package not importable; install graph_os extra",
-        },
-    })
+
+    return json.dumps(
+        {
+            "ok": False,
+            "error": {
+                "category": "unavailable",
+                "retryable": False,
+                "message": "graph_os package not importable; install graph_os extra",
+            },
+        }
+    )
 
 
 @router.get("/query")
 async def graph_query(
     q: str = Query(..., description="Natural-language query"),
-    kinds: Optional[str] = Query(None, description="Comma-separated node kinds"),
+    kinds: str | None = Query(None, description="Comma-separated node kinds"),
     limit: int = Query(10),
     max_hops: int = Query(2),
     confidence_min: float = Query(0.3),
@@ -106,13 +110,15 @@ async def graph_impact(
     g = _tools()
     if g is None:
         return unwrap(_unavailable())
-    result = g.cos_graph_impact(uid, direction=direction, depth=depth, confidence_min=confidence_min)
+    result = g.cos_graph_impact(
+        uid, direction=direction, depth=depth, confidence_min=confidence_min
+    )
     return unwrap(result)
 
 
 @router.get("/detect-changes")
 async def graph_detect_changes(
-    files: Optional[str] = Query(None, description="Comma-separated file paths"),
+    files: str | None = Query(None, description="Comma-separated file paths"),
     scope: str = Query("working"),
     analyze_downstream: bool = Query(True),
     _rl=Depends(make_rate_limit_dep("graph.detect_changes")),
@@ -123,7 +129,9 @@ async def graph_detect_changes(
     if g is None:
         return unwrap(_unavailable())
     files_list = [f.strip() for f in files.split(",") if f.strip()] if files else None
-    result = g.cos_graph_detect_changes(scope=scope, files=files_list, analyze_downstream=analyze_downstream)
+    result = g.cos_graph_detect_changes(
+        scope=scope, files=files_list, analyze_downstream=analyze_downstream
+    )
     return unwrap(result)
 
 
@@ -196,12 +204,12 @@ async def graph_path(
 @router.get("/export")
 async def graph_export(
     format: str = Query("json"),
-    root_uid: Optional[str] = Query(None),
-    edge_types: Optional[str] = Query(None),
+    root_uid: str | None = Query(None),
+    edge_types: str | None = Query(None),
     max_nodes: int = Query(500),
     include_spine: bool = Query(False),
     mode: str = Query("auto"),
-    exclude_kinds: Optional[str] = Query(None),
+    exclude_kinds: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("graph.export")),
     _m=Depends(make_metrics_dep("graph.export")),
 ):
@@ -219,7 +227,7 @@ async def graph_export(
     # exclude_kinds: None → built-in default; empty string → empty list
     # (caller wants no noise filter); csv → split.
     if exclude_kinds is None:
-        ek: Optional[list[str]] = None
+        ek: list[str] | None = None
     elif exclude_kinds == "":
         ek = []
     else:

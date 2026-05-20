@@ -19,6 +19,7 @@ fires only when the dogfood contract demands it.
 See docs/engineering/intent-vocabulary.md for the predicate spec and
 docs/_meta/audit-checklist-template.md for the artifact schema.
 """
+
 from __future__ import annotations
 
 import json
@@ -110,9 +111,7 @@ def _audit_gaps(audit_path: Path) -> list[str]:
     return [f"{audit_path.name}: {unchecked} unchecked category rows"]
 
 
-def _predicate_gaps(
-    intent: dict[str, Any] | None, bundle: dict[str, Any] | None
-) -> list[str]:
+def _predicate_gaps(intent: dict[str, Any] | None, bundle: dict[str, Any] | None) -> list[str]:
     if not intent:
         return []
     predicates = intent.get("predicates") or []
@@ -136,6 +135,7 @@ def _predicate_gaps(
 def _import_schemas():
     try:
         import cognition_schemas as schemas
+
         return schemas
     except ImportError as exc:
         sys.stderr.write(f"guardian: cognition_schemas direct import: {exc}\n")
@@ -144,6 +144,7 @@ def _import_schemas():
         sys.path.insert(0, str(here))
     try:
         import cognition_schemas as schemas
+
         return schemas
     except ImportError as exc:
         sys.stderr.write(f"guardian: cognition_schemas path-rescue import: {exc}\n")
@@ -209,6 +210,7 @@ def _record_gap_observation_safe(session_id: str, result: GuardResult) -> None:
         return
     try:
         import sqlite3
+
         title = f"completion_gap: {len(result.gaps)} gap(s)"
         narrative = " | ".join(result.gaps[:10])
         facts = json.dumps(

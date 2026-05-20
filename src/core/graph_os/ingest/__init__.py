@@ -4,16 +4,16 @@ All three paths funnel into `core/graph_os/ingest/base.py::IngestPlan`
 so the orchestrator can treat any source uniformly.
 """
 
-from .base import IngestPlan, IngestError, walk_local
-from .github import clone_github, GithubSize
-from .zip import extract_zip, ZipSize
+from .base import IngestError, IngestPlan, walk_local
+from .github import GithubSize, clone_github
+from .zip import ZipSize, extract_zip
 
 __all__ = [
-    "IngestPlan",
-    "IngestError",
-    "walk_local",
-    "clone_github",
     "GithubSize",
-    "extract_zip",
+    "IngestError",
+    "IngestPlan",
     "ZipSize",
+    "clone_github",
+    "extract_zip",
+    "walk_local",
 ]

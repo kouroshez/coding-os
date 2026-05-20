@@ -39,8 +39,8 @@ def _discover_sections() -> list[tuple[str, str, list[str]]]:
     """
     # Late imports so the script stays usable if cli imports break.
     sys.path.insert(0, str(REPO_ROOT))
-    from cli.adapter_registry import load_adapter_registry  # noqa: E402
-    from cli.stack_registry import load_stack_registry  # noqa: E402
+    from cli.adapter_registry import load_adapter_registry
+    from cli.stack_registry import load_stack_registry
 
     adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     stacks = load_stack_registry(REPO_ROOT / "src" / "templates")
@@ -59,15 +59,21 @@ SECTIONS: list[tuple[str, str, list[str]]] = _discover_sections()
 
 # Runtime state files — single source of truth lives in cli/doctor.py.
 sys.path.insert(0, str(REPO_ROOT))
-from cli.doctor import IGNORED_PREFIXES, RUNTIME_PATHS  # noqa: E402
+from cli.doctor import IGNORED_PREFIXES, RUNTIME_PATHS
 
 
 def _scaffold(agent: str, templates: list[str], target: Path) -> None:
     cmd = [
-        sys.executable, "-m", "cli.main", "init",
-        "--agent", agent,
-        "--project-dir", str(target.parent),
-        "--name", target.name,
+        sys.executable,
+        "-m",
+        "cli.main",
+        "init",
+        "--agent",
+        agent,
+        "--project-dir",
+        str(target.parent),
+        "--name",
+        target.name,
         "--no-git",
         "--force",
         "--no-register",
@@ -138,12 +144,12 @@ def build_manifest() -> dict:
 def main() -> int:
     manifest = build_manifest()
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST_PATH.write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-    )
+    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     total = sum(s["count"] for s in manifest["sections"].values())
-    print(f"[manifest] wrote {MANIFEST_PATH.relative_to(REPO_ROOT)} "
-          f"({len(manifest['sections'])} sections, {total} files)")
+    print(
+        f"[manifest] wrote {MANIFEST_PATH.relative_to(REPO_ROOT)} "
+        f"({len(manifest['sections'])} sections, {total} files)"
+    )
     return 0
 
 

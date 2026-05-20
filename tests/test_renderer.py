@@ -54,7 +54,8 @@ def _world(
 
 def _adapter(**overrides) -> AdapterProfile:
     defaults = dict(
-        id="claude", label="Claude",
+        id="claude",
+        label="Claude",
         settings_file=".claude/settings.json",
         hooks_dir=".claude/hooks",
         rules_dir=".claude/rules",
@@ -73,6 +74,7 @@ def _adapter(**overrides) -> AdapterProfile:
 
 # ---------- render_agents_md ----------
 
+
 def test_empty_sections_produces_trailing_newline() -> None:
     world = _world()
     assert render_agents_md(world) == "\n"
@@ -83,7 +85,10 @@ def test_static_fragment_is_rendered(tmp_path: Path) -> None:
     fragments.mkdir()
     (fragments / "hello.tmpl").write_text("hello world\n")
     section = AgentsMdSection(
-        id="hello", order=10, template="hello.tmpl", owner_dir=fragments,
+        id="hello",
+        order=10,
+        template="hello.tmpl",
+        owner_dir=fragments,
     )
     world = _world(sections=(section,))
     rendered = render_agents_md(world)
@@ -96,7 +101,10 @@ def test_substitution_interpolation(tmp_path: Path) -> None:
     fragments.mkdir()
     (fragments / "proj.tmpl").write_text("name: {{ substitutions.NAME }}\n")
     section = AgentsMdSection(
-        id="proj", order=10, template="proj.tmpl", owner_dir=fragments,
+        id="proj",
+        order=10,
+        template="proj.tmpl",
+        owner_dir=fragments,
     )
     world = _world(sections=(section,), substitutions={"NAME": "acme"})
     assert "name: acme" in render_agents_md(world)
@@ -107,7 +115,10 @@ def test_undefined_variable_raises_render_error(tmp_path: Path) -> None:
     fragments.mkdir()
     (fragments / "broken.tmpl").write_text("{{ substitutions.MISSING }}\n")
     section = AgentsMdSection(
-        id="broken", order=10, template="broken.tmpl", owner_dir=fragments,
+        id="broken",
+        order=10,
+        template="broken.tmpl",
+        owner_dir=fragments,
     )
     world = _world(sections=(section,), substitutions={})
     with pytest.raises(RenderError, match="failed to render"):
@@ -142,6 +153,7 @@ def test_section_order_is_honored(tmp_path: Path) -> None:
 
 # ---------- render_settings_json ----------
 
+
 def test_settings_json_empty_for_unsupported_adapter() -> None:
     world = _world()
     adapter = _adapter(supports_settings_json=False)
@@ -159,6 +171,7 @@ def test_settings_json_merges_default_with_hooks() -> None:
 
 # ---------- render_makefile_targets ----------
 
+
 def test_makefile_targets_empty_header() -> None:
     assert "No stack-contributed" in render_makefile_targets(_world())
 
@@ -174,6 +187,7 @@ def test_makefile_targets_rendered() -> None:
 
 
 # ---------- render_dimension_registry / skill_enforcement ----------
+
 
 def test_dimension_registry_empty() -> None:
     assert "No dimensions" in render_dimension_registry(_world())

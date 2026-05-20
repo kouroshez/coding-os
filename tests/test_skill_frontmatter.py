@@ -1,4 +1,5 @@
 """Pytest gate for SKILL.md frontmatter compliance with claude-agent-sdk."""
+
 from __future__ import annotations
 
 import re
@@ -65,6 +66,4 @@ def test_skill_frontmatter_valid(path: Path) -> None:
     )
 
     voice_hits = [p.pattern for p in FIRST_PERSON_PATTERNS if p.search(description)]
-    assert not voice_hits, (
-        f"{name}: first-person voice in description {voice_hits!r}: {path}"
-    )
+    assert not voice_hits, f"{name}: first-person voice in description {voice_hits!r}: {path}"

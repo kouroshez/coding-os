@@ -106,7 +106,10 @@ def compress_observations(db_path: str | Path | None = None, *, dry_run: bool = 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         logger.info("ANTHROPIC_API_KEY not set. Set it to enable compression.")
-        return {"status": "no_api_key", "message": "API key not configured. Set ANTHROPIC_API_KEY to enable compression."}
+        return {
+            "status": "no_api_key",
+            "message": "API key not configured. Set ANTHROPIC_API_KEY to enable compression.",
+        }
 
     conn = get_connection(path)
     try:

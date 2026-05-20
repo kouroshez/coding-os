@@ -38,16 +38,13 @@ def _write_audit(repo_root: Path, slug: str, status: str, unchecked_rows: int) -
     audit_dir = repo_root / "docs" / "tasks" / "audits"
     audit_dir.mkdir(parents=True, exist_ok=True)
     rows = "\n".join(
-        f"| {i+1} | c{i+1} | p | 1 | 1 | yes | 0 | no | x |"
-        for i in range(unchecked_rows)
+        f"| {i + 1} | c{i + 1} | p | 1 | 1 | yes | 0 | no | x |" for i in range(unchecked_rows)
     )
     text = (
         f"---\naudit_id: {slug}\ntask_id: TASK-X\nstatus: {status}\n---\n"
         "# audit\n\n## Categories\n\n"
         "| # | Category | Pattern | Files scanned | Hits before | Fixed | Hits after | Verified | Evidence |\n"
-        "|---|---|---|---|---|---|---|---|---|\n"
-        + rows
-        + "\n"
+        "|---|---|---|---|---|---|---|---|---|\n" + rows + "\n"
     )
     path = audit_dir / f"audit-{slug}.md"
     path.write_text(text)
@@ -91,9 +88,7 @@ class TestAuditRowGaps:
         assert any("3 unchecked" in gap for gap in result.gaps)
         assert any("predicates_unsatisfied" in gap for gap in result.gaps)
 
-    def test_exhaustive_with_completed_audit_no_evidence_fails_on_predicates(
-        self, env
-    ) -> None:
+    def test_exhaustive_with_completed_audit_no_evidence_fails_on_predicates(self, env) -> None:
         repo, agent_dir = env
         _write_intent(agent_dir, {"exhaustive": True, "predicates": ["coverage_100"]})
         _write_audit(repo, "slug-b", "in_progress", unchecked_rows=0)
@@ -222,6 +217,7 @@ class TestGapObservationRecorded:
         repo, agent_dir = env
         # Set up an in-process SQLite DB with the observations schema.
         import sqlite3
+
         db_path = repo / ".coding-os" / "coding-os.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(db_path) as conn:
@@ -240,14 +236,14 @@ class TestGapObservationRecorded:
 
         # Drive main() to trigger the gap-observation insert path.
         from completion_guardian import _record_gap_observation_safe, guard_completion
+
         result = guard_completion(session_id="ses-1", repo_root=repo)
         assert result.status == "fail"
         _record_gap_observation_safe("ses-1", result)
 
         with sqlite3.connect(db_path) as conn:
             rows = conn.execute(
-                "SELECT observation_type, memory_type, title, session_id "
-                "FROM observations"
+                "SELECT observation_type, memory_type, title, session_id FROM observations"
             ).fetchall()
         assert len(rows) == 1
         obs_type, mem_type, title, sess = rows[0]

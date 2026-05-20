@@ -14,9 +14,7 @@ sys.path.insert(0, str(_REPO_ROOT / "core" / "thinking_os"))
 
 
 def _resolve_db_path(project_root: Path) -> Path:
-    return Path(
-        os.environ.get("COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"))
-    )
+    return Path(os.environ.get("COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")))
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
@@ -41,18 +39,12 @@ def _prune_one(rel_path: str, *, db_path: Path) -> dict:
         # graph_os layer — cascades to graph_edges_v12 + graph_evidence_v12
         # via FK ON DELETE CASCADE (migration v12).
         if _table_exists(conn, "graph_nodes"):
-            cursor = conn.execute(
-                "DELETE FROM graph_nodes WHERE file_path=?", (rel_path,)
-            )
+            cursor = conn.execute("DELETE FROM graph_nodes WHERE file_path=?", (rel_path,))
             counts["graph_nodes"] = int(cursor.rowcount or 0)
         # docs RAG layer
-        counts["document_chunks"] = _delete_where(
-            conn, "document_chunks", "source_path", rel_path
-        )
+        counts["document_chunks"] = _delete_where(conn, "document_chunks", "source_path", rel_path)
         # reindex cache
-        counts["file_index_state"] = _delete_where(
-            conn, "file_index_state", "file_path", rel_path
-        )
+        counts["file_index_state"] = _delete_where(conn, "file_index_state", "file_path", rel_path)
         conn.commit()
     finally:
         conn.close()
@@ -72,10 +64,10 @@ def _to_rel(path: str, project_root: Path) -> str:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("paths", nargs="+", help="Files to prune")
-    parser.add_argument("--force", action="store_true",
-                        help="Skip the 'still exists?' guard (pre-emptive prune)")
-    parser.add_argument("--quiet", action="store_true",
-                        help="Suppress per-path OK/SKIP lines")
+    parser.add_argument(
+        "--force", action="store_true", help="Skip the 'still exists?' guard (pre-emptive prune)"
+    )
+    parser.add_argument("--quiet", action="store_true", help="Suppress per-path OK/SKIP lines")
     args = parser.parse_args(argv)
 
     project_root = Path(os.environ.get("COS_PROJECT_ROOT", str(_REPO_ROOT))).resolve()
@@ -87,7 +79,9 @@ def main(argv: list[str]) -> int:
     pruned = skipped = 0
     for raw in args.paths:
         rel = _to_rel(raw, project_root)
-        abs_path = (project_root / rel).resolve() if not Path(rel).is_absolute() else Path(rel).resolve()
+        abs_path = (
+            (project_root / rel).resolve() if not Path(rel).is_absolute() else Path(rel).resolve()
+        )
         if not args.force and abs_path.exists():
             if not args.quiet:
                 print(f"SKIP: {rel} (still exists — agent re-created)")

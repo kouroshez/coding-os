@@ -1,4 +1,5 @@
 """core.web.routes.logs — /api/logs/* readers for the cos.log.jsonl sink."""
+
 from __future__ import annotations
 
 import asyncio
@@ -8,8 +9,9 @@ import logging
 import os
 import re
 import time
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any, AsyncGenerator, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -41,7 +43,7 @@ def _jsonl_log_path() -> Path:
     return current_project_root() / ".coding-os" / ".cos.log.jsonl"
 
 
-def _parse_duration_seconds(raw: str) -> Optional[float]:
+def _parse_duration_seconds(raw: str) -> float | None:
     match = _DURATION_RE.match(raw)
     if not match:
         return None
@@ -64,9 +66,9 @@ def _event_passes(
     event: dict[str, Any],
     *,
     level_floor: int,
-    scope_pattern: Optional[str],
-    earliest_epoch: Optional[float],
-    search_lower: Optional[str],
+    scope_pattern: str | None,
+    earliest_epoch: float | None,
+    search_lower: str | None,
 ) -> bool:
     level = str(event.get("lvl", "INFO")).lower()
     if _LEVEL_FLOOR.get(level, 20) < level_floor:
@@ -116,16 +118,16 @@ def _read_tail_jsonl(path: Path, max_lines: int) -> list[dict[str, Any]]:
 async def recent_logs(
     limit: int = Query(200, ge=1, le=2000),
     level: str = Query("debug", description="floor — events at or above this level"),
-    scope: Optional[str] = Query(None, description="fnmatch glob, e.g. hook.* or core.thinking_os.*"),
-    since: Optional[str] = Query(None, description="relative duration: 30s, 10m, 1h, 2d"),
-    search: Optional[str] = Query(None, description="substring match on msg (case-insensitive)"),
+    scope: str | None = Query(None, description="fnmatch glob, e.g. hook.* or core.thinking_os.*"),
+    since: str | None = Query(None, description="relative duration: 30s, 10m, 1h, 2d"),
+    search: str | None = Query(None, description="substring match on msg (case-insensitive)"),
     _rl=Depends(make_rate_limit_dep("logs.recent")),
     _m=Depends(make_metrics_dep("logs.recent")),
 ):
     """Tail .cos.log.jsonl and return parsed events (newest last)."""
     path = _jsonl_log_path()
     level_floor = _LEVEL_FLOOR.get(level.lower(), 10)
-    earliest_epoch: Optional[float] = None
+    earliest_epoch: float | None = None
     if since:
         seconds = _parse_duration_seconds(since)
         if seconds is not None:
@@ -147,23 +149,27 @@ async def recent_logs(
     if len(filtered) > limit:
         filtered = filtered[-limit:]
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "events": filtered,
-            "count": len(filtered),
-            "log_path": str(path),
-            "log_size_bytes": path.stat().st_size if path.exists() else 0,
-            "meta": {"layer": "logs"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "events": filtered,
+                    "count": len(filtered),
+                    "log_path": str(path),
+                    "log_size_bytes": path.stat().st_size if path.exists() else 0,
+                    "meta": {"layer": "logs"},
+                },
+            }
+        )
+    )
 
 
 @router.get("/stream")
 async def stream_logs(
     level: str = Query("debug"),
-    scope: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    scope: str | None = Query(None),
+    search: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("logs.stream")),
     _m=Depends(make_metrics_dep("logs.stream")),
 ):

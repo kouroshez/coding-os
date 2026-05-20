@@ -13,7 +13,14 @@ from pathlib import Path
 import click
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
-_PLIST_SRC = CODING_OS_ROOT / "src" / "core" / "scheduled" / "launchd" / "com.codingos.nightly.plist.template"
+_PLIST_SRC = (
+    CODING_OS_ROOT
+    / "src"
+    / "core"
+    / "scheduled"
+    / "launchd"
+    / "com.codingos.nightly.plist.template"
+)
 _PLIST_DEST = Path.home() / "Library" / "LaunchAgents" / "com.codingos.nightly.plist"
 _GLOBAL_SUMMARY = Path.home() / ".coding-os" / "scheduled" / "last_summary.json"
 _NIGHTLY_SCRIPT = CODING_OS_ROOT / "src" / "core" / "scheduled" / "nightly.py"
@@ -36,7 +43,9 @@ def _cos_nightly_path() -> str:
 
 def _assert_macos() -> None:
     if platform.system() != "Darwin":
-        raise click.ClickException("cron-install uses launchd — macOS only. On Linux use: crontab -e")
+        raise click.ClickException(
+            "cron-install uses launchd — macOS only. On Linux use: crontab -e"
+        )
 
 
 def _render_plist(hour: int) -> str:
@@ -64,6 +73,7 @@ def _render_plist(hour: int) -> str:
     template = _PLIST_SRC.read_text()
     # Replace ProgramArguments block (template has uv-run style — override entirely)
     import re
+
     template = re.sub(
         r"<key>ProgramArguments</key>\s*<array>.*?</array>",
         f"<key>ProgramArguments</key>\n{program_args}",
@@ -71,8 +81,7 @@ def _render_plist(hour: int) -> str:
         flags=re.DOTALL,
     )
     return (
-        template
-        .replace("{{HOME}}", str(Path.home()))
+        template.replace("{{HOME}}", str(Path.home()))
         .replace("{{PATH}}", os.environ.get("PATH", ""))
         .replace("{{CRON_HOUR}}", str(hour))
         # {{CODING_OS_ROOT}} and {{UV_PATH}} no longer in body after substitution above
@@ -87,8 +96,9 @@ def cron_cmd() -> None:
 
 
 @cron_cmd.command("install")
-@click.option("--hour", default=3, show_default=True, metavar="0-23",
-              help="Hour of day to run (local time).")
+@click.option(
+    "--hour", default=3, show_default=True, metavar="0-23", help="Hour of day to run (local time)."
+)
 def cron_install(hour: int) -> None:
     """Install + load the nightly launchd job (macOS)."""
     _assert_macos()
@@ -104,7 +114,8 @@ def cron_install(hour: int) -> None:
 
     result = subprocess.run(
         ["launchctl", "load", "-w", str(_PLIST_DEST)],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise click.ClickException(f"launchctl load failed: {result.stderr.strip()}")
@@ -132,8 +143,7 @@ def cron_uninstall() -> None:
 
 @cron_cmd.command("run")
 @click.option("--dry-run", is_flag=True, help="Simulate without writing.")
-@click.option("--project", "slug", default=None, metavar="SLUG",
-              help="Run only this project slug.")
+@click.option("--project", "slug", default=None, metavar="SLUG", help="Run only this project slug.")
 @click.option("--verbose", "-v", is_flag=True)
 @click.option("--reset-failures", is_flag=True, help="Clear failure counter first.")
 def cron_run(dry_run: bool, slug: str | None, verbose: bool, reset_failures: bool) -> None:

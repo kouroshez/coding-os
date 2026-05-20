@@ -91,6 +91,7 @@ def bytes_to_dim(payload: bytes | None) -> int | None:
 # Availability detection — graceful degradation entry point
 # ---------------------------------------------------------------------------
 
+
 @functools.lru_cache(maxsize=1)
 def is_available() -> bool:
     """Return True iff sentence-transformers and numpy are importable.
@@ -105,6 +106,7 @@ def is_available() -> bool:
     try:
         import numpy  # noqa: F401
         import sentence_transformers  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -120,9 +122,10 @@ def _get_model_by_name(name: str) -> Any:
         return override
     try:
         from sentence_transformers import SentenceTransformer
+
         logger.info("Loading embedding model: %s", name)
         return SentenceTransformer(name)
-    except Exception as exc:  # noqa: BLE001 — tolerate corrupt downloads
+    except Exception as exc:
         logger.warning("Failed to load embedding model %s: %s", name, exc)
         return None
 
@@ -158,6 +161,7 @@ def _get_model() -> Any:
 # Embedding generation
 # ---------------------------------------------------------------------------
 
+
 def embed_text(text: str, model_name: str | None = None) -> bytes | None:
     """Embed a single text string with the active (or explicit) model."""
     if not text or not text.strip():
@@ -174,16 +178,15 @@ def embed_text(text: str, model_name: str | None = None) -> bytes | None:
         return None
     try:
         import numpy as np
+
         vector = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
         return np.asarray(vector, dtype=np.float32).tobytes()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("embed_text(%s) failed: %s", name, exc)
         return None
 
 
-def embed_texts(
-    texts: list[str], model_name: str | None = None
-) -> list[bytes | None]:
+def embed_texts(texts: list[str], model_name: str | None = None) -> list[bytes | None]:
     """Batch-embed with the active (or explicit) model."""
     if not texts:
         return []
@@ -197,6 +200,7 @@ def embed_texts(
         return [None] * len(texts)
     try:
         import numpy as np
+
         indices = [i for i, t in enumerate(texts) if t and t.strip()]
         valid_texts = [texts[i] for i in indices]
         if not valid_texts:
@@ -211,7 +215,7 @@ def embed_texts(
         for idx, vec in zip(indices, vectors):
             results[idx] = np.asarray(vec, dtype=np.float32).tobytes()
         return results
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("embed_texts(%s) failed: %s", name, exc)
         return [None] * len(texts)
 
@@ -219,6 +223,7 @@ def embed_texts(
 # ---------------------------------------------------------------------------
 # Similarity computation (numpy cosine on normalized vectors → just dot product)
 # ---------------------------------------------------------------------------
+
 
 def cosine_similarity(query_vec: bytes, candidate_vecs: list[bytes]) -> list[float]:
     """Compute cosine similarity — dim-aware (Phase I contract)."""
@@ -287,7 +292,7 @@ def cosine_similarity_with_meta(
             "total": len(candidate_vecs),
             "matched": len(valid_rows),
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("cosine_similarity_with_meta failed: %s", exc)
         return default
 
@@ -295,6 +300,7 @@ def cosine_similarity_with_meta(
 # ---------------------------------------------------------------------------
 # Text hashing — staleness detection
 # ---------------------------------------------------------------------------
+
 
 def _compute_text_hash(text: str) -> str:
     """Return the first 16 hex chars of SHA256(text).
@@ -308,6 +314,7 @@ def _compute_text_hash(text: str) -> str:
 # ---------------------------------------------------------------------------
 # DB helpers
 # ---------------------------------------------------------------------------
+
 
 def has_embeddings_data(conn: sqlite3.Connection) -> bool:
     """Return True if the embeddings table exists and contains at least one row."""
@@ -408,6 +415,7 @@ def _has_embedding_dim_column(conn: sqlite3.Connection) -> bool:
 # Search
 # ---------------------------------------------------------------------------
 
+
 def search_similar(
     conn: sqlite3.Connection,
     query: str,
@@ -480,6 +488,7 @@ def search_similar(
 # Reindex (bootstrap / model upgrade)
 # ---------------------------------------------------------------------------
 
+
 def reindex_all(conn: sqlite3.Connection) -> dict:
     """Re-embed every row in every supported source table.
 
@@ -499,14 +508,35 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
     report: dict[str, dict[str, int]] = {}
 
     handlers = [
-        ("observations", "SELECT id, title, narrative, concepts FROM observations",
-         lambda r: " ".join(filter(None, [r["title"], r["narrative"], r["concepts"]]))),
-        ("learned_patterns", "SELECT id, pattern, concepts FROM learned_patterns",
-         lambda r: " ".join(filter(None, [r["pattern"], r["concepts"]]))),
-        ("outcome_history", "SELECT id, narrative_key_insight, narrative_what_failed, narrative_what_worked FROM outcome_history",
-         lambda r: " ".join(filter(None, [r["narrative_key_insight"], r["narrative_what_failed"], r["narrative_what_worked"]]))),
-        ("document_chunks", "SELECT id, heading_path, content FROM document_chunks",
-         lambda r: " ".join(filter(None, [r["heading_path"], r["content"]]))),
+        (
+            "observations",
+            "SELECT id, title, narrative, concepts FROM observations",
+            lambda r: " ".join(filter(None, [r["title"], r["narrative"], r["concepts"]])),
+        ),
+        (
+            "learned_patterns",
+            "SELECT id, pattern, concepts FROM learned_patterns",
+            lambda r: " ".join(filter(None, [r["pattern"], r["concepts"]])),
+        ),
+        (
+            "outcome_history",
+            "SELECT id, narrative_key_insight, narrative_what_failed, narrative_what_worked FROM outcome_history",
+            lambda r: " ".join(
+                filter(
+                    None,
+                    [
+                        r["narrative_key_insight"],
+                        r["narrative_what_failed"],
+                        r["narrative_what_worked"],
+                    ],
+                )
+            ),
+        ),
+        (
+            "document_chunks",
+            "SELECT id, heading_path, content FROM document_chunks",
+            lambda r: " ".join(filter(None, [r["heading_path"], r["content"]])),
+        ),
     ]
 
     for table, query, text_builder in handlers:
@@ -539,21 +569,28 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
 # CLI entry point — `python -m embeddings --reindex`
 # ---------------------------------------------------------------------------
 
+
 def _main() -> None:
     import argparse
     import json
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description="Embeddings CLI for coding-os RAG")
-    parser.add_argument("--reindex", action="store_true", help="Re-embed all rows in supported tables")
-    parser.add_argument("--db", type=str, default=None, help="Override DB path (defaults to COS_DB_PATH)")
+    parser.add_argument(
+        "--reindex", action="store_true", help="Re-embed all rows in supported tables"
+    )
+    parser.add_argument(
+        "--db", type=str, default=None, help="Override DB path (defaults to COS_DB_PATH)"
+    )
     args = parser.parse_args()
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from database import init_db
 
     if not is_available():
-        print("ERROR: sentence-transformers not installed. Run: uv sync --extra rag", file=sys.stderr)
+        print(
+            "ERROR: sentence-transformers not installed. Run: uv sync --extra rag", file=sys.stderr
+        )
         sys.exit(1)
 
     conn = init_db(args.db)
@@ -562,8 +599,11 @@ def _main() -> None:
         print(json.dumps(result, indent=2))
     else:
         from database import get_db_stats
+
         stats = get_db_stats(conn)
-        print(json.dumps({"status": "ok", "embeddings_available": True, "db_stats": stats}, indent=2))
+        print(
+            json.dumps({"status": "ok", "embeddings_available": True, "db_stats": stats}, indent=2)
+        )
     conn.close()
 
 

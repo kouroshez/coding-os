@@ -46,7 +46,10 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 def _create(conn, kind: str) -> dict:
     env = json.loads(
         mcp_tools.cos_task_create(
-            conn, title=f"smoke {kind}", swimlane="core", kind=kind,
+            conn,
+            title=f"smoke {kind}",
+            swimlane="core",
+            kind=kind,
         )
     )
     assert env["ok"] is True
@@ -73,7 +76,8 @@ def test_next_steps_present_for_every_kind(project: Path, conn: sqlite3.Connecti
 
 
 def test_next_steps_chore_lists_only_outcome(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "chore")
     sections = [s["section"] for s in env["data"]["next_steps"]["required_for_in_progress"]]
@@ -81,7 +85,8 @@ def test_next_steps_chore_lists_only_outcome(
 
 
 def test_next_steps_bug_includes_repro_steps(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "bug")
     sections = [s["section"] for s in env["data"]["next_steps"]["required_for_in_progress"]]
@@ -90,7 +95,8 @@ def test_next_steps_bug_includes_repro_steps(
 
 
 def test_next_steps_security_includes_threat_model(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "security")
     sections = [s["section"] for s in env["data"]["next_steps"]["required_for_in_progress"]]
@@ -99,11 +105,13 @@ def test_next_steps_security_includes_threat_model(
 
 
 def test_next_steps_includes_min_chars_when_set(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "feature")
     outcome_spec = next(
-        s for s in env["data"]["next_steps"]["required_for_in_progress"]
+        s
+        for s in env["data"]["next_steps"]["required_for_in_progress"]
         if s["section"] == "Outcome"
     )
     assert outcome_spec["min_chars"] >= 20
@@ -116,7 +124,8 @@ def test_next_steps_includes_min_chars_when_set(
 
 
 def test_chore_body_omits_acceptance_and_read_first(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "chore")
     body = _body(project, env)
@@ -127,7 +136,8 @@ def test_chore_body_omits_acceptance_and_read_first(
 
 
 def test_bug_body_includes_repro_steps(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "bug")
     body = _body(project, env)
@@ -137,7 +147,8 @@ def test_bug_body_includes_repro_steps(
 
 
 def test_security_body_includes_threat_model(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "security")
     body = _body(project, env)
@@ -146,7 +157,8 @@ def test_security_body_includes_threat_model(
 
 
 def test_spike_body_only_outcome(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "spike")
     body = _body(project, env)
@@ -155,7 +167,8 @@ def test_spike_body_only_outcome(
 
 
 def test_feature_body_full_template(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = _create(conn, "feature")
     body = _body(project, env)
@@ -169,7 +182,8 @@ def test_feature_body_full_template(
 
 
 def test_outcome_placeholder_is_kind_flavoured(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env_bug = _create(conn, "bug")
     env_chore = _create(conn, "chore")
@@ -181,7 +195,8 @@ def test_outcome_placeholder_is_kind_flavoured(
 
 
 def test_explicit_outcome_overrides_placeholder(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     env = json.loads(
         mcp_tools.cos_task_create(

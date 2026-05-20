@@ -36,17 +36,24 @@ import yaml
 from core.board_os import mcp_tools
 from core.thinking_os import database as db
 
-
 PERSONAS = [
-    ("researcher",       "spike",     "Investigate whether kuzu can replace sqlite for graph layer."),
-    ("analyst",          "feature",   "Add OAuth login flow that issues 24-hour JWT tokens with refresh."),
-    ("architect",        "refactor",  "Extract retry logic into shared decorator with exponential backoff."),
-    ("documenter",       "docs",      "Document the Phase L.10 override-audit policy in docs/governance/."),
-    ("implementer",      "bug",       "Stop double-charging users on retry of failed payment webhook."),
-    ("debugger",         "bug",       "Cover the OAuth refresh-token edge case at integration level."),
-    ("deployer",         "chore",     "Bump dependency cryptography to v45 for security advisory."),
-    ("security_auditor", "security",  "Rotate all signing keys and tighten cookie SameSite policy."),
-    ("refactorer",       "refactor",  "Collapse three duplicate auth middleware shims into one composable unit."),
+    ("researcher", "spike", "Investigate whether kuzu can replace sqlite for graph layer."),
+    ("analyst", "feature", "Add OAuth login flow that issues 24-hour JWT tokens with refresh."),
+    (
+        "architect",
+        "refactor",
+        "Extract retry logic into shared decorator with exponential backoff.",
+    ),
+    ("documenter", "docs", "Document the Phase L.10 override-audit policy in docs/governance/."),
+    ("implementer", "bug", "Stop double-charging users on retry of failed payment webhook."),
+    ("debugger", "bug", "Cover the OAuth refresh-token edge case at integration level."),
+    ("deployer", "chore", "Bump dependency cryptography to v45 for security advisory."),
+    ("security_auditor", "security", "Rotate all signing keys and tighten cookie SameSite policy."),
+    (
+        "refactorer",
+        "refactor",
+        "Collapse three duplicate auth middleware shims into one composable unit.",
+    ),
 ]
 
 
@@ -83,6 +90,7 @@ def _fill_body_for_kind(file_path: Path, kind: str, outcome: str) -> None:
     body = file_path.read_text(encoding="utf-8")
     # Outcome
     import re
+
     body = re.sub(
         r"\*\*Outcome \(one sentence\):\*\*\s*\(fill in[^\n]*",
         f"**Outcome (one sentence):** {outcome}",
@@ -117,8 +125,7 @@ def _fill_body_for_kind(file_path: Path, kind: str, outcome: str) -> None:
     # security Threat Model
     if kind == "security":
         body = body.replace(
-            "## Threat Model\n"
-            "(fill in: attacker, asset, attack vector, mitigation)",
+            "## Threat Model\n(fill in: attacker, asset, attack vector, mitigation)",
             "## Threat Model\n"
             "Attacker: external; Asset: signing keys; Vector: leaked CI logs; "
             "Mitigation: rotation + scoped read-once secret store.",
@@ -133,7 +140,8 @@ def _validate(conn: sqlite3.Connection, project: Path, task_id: str, target: str
     from core.board_os.transition_gates_validator import validate_transition
 
     row = conn.execute(
-        "SELECT file_path, kind FROM tasks WHERE task_id = ?", (task_id,),
+        "SELECT file_path, kind FROM tasks WHERE task_id = ?",
+        (task_id,),
     ).fetchone()
     body = (project / row[0]).read_text(encoding="utf-8")
     fm = extract_frontmatter(body) or {}
@@ -154,15 +162,23 @@ def _validate(conn: sqlite3.Connection, project: Path, task_id: str, target: str
 # ────────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("persona,kind,outcome", PERSONAS, ids=lambda x: x if isinstance(x, str) else "")
+@pytest.mark.parametrize(
+    "persona,kind,outcome", PERSONAS, ids=lambda x: x if isinstance(x, str) else ""
+)
 def test_persona_can_create_task_with_kind_aware_next_steps(
-    project: Path, conn: sqlite3.Connection,
-    persona: str, kind: str, outcome: str,
+    project: Path,
+    conn: sqlite3.Connection,
+    persona: str,
+    kind: str,
+    outcome: str,
 ) -> None:
     """Every persona's typical kind produces a meaningful next_steps payload."""
     env = json.loads(
         mcp_tools.cos_task_create(
-            conn, title=f"{persona}: {outcome[:30]}", swimlane="core", kind=kind,
+            conn,
+            title=f"{persona}: {outcome[:30]}",
+            swimlane="core",
+            kind=kind,
         )
     )
     assert env["ok"] is True, f"{persona} create failed"
@@ -188,15 +204,23 @@ def test_persona_can_create_task_with_kind_aware_next_steps(
         assert "Read First" in sections, f"{persona}/{kind} missing Read First"
 
 
-@pytest.mark.parametrize("persona,kind,outcome", PERSONAS, ids=lambda x: x if isinstance(x, str) else "")
+@pytest.mark.parametrize(
+    "persona,kind,outcome", PERSONAS, ids=lambda x: x if isinstance(x, str) else ""
+)
 def test_persona_placeholder_blocks_then_filled_passes(
-    project: Path, conn: sqlite3.Connection,
-    persona: str, kind: str, outcome: str,
+    project: Path,
+    conn: sqlite3.Connection,
+    persona: str,
+    kind: str,
+    outcome: str,
 ) -> None:
     """Round-trip: placeholder → BLOCK; filled body → PASS."""
     env = json.loads(
         mcp_tools.cos_task_create(
-            conn, title=f"{persona} round-trip", swimlane="core", kind=kind,
+            conn,
+            title=f"{persona} round-trip",
+            swimlane="core",
+            kind=kind,
         )
     )
     task_id = env["data"]["task_id"]
@@ -218,17 +242,25 @@ def test_persona_placeholder_blocks_then_filled_passes(
     )
 
 
-@pytest.mark.parametrize("persona,kind,outcome", PERSONAS, ids=lambda x: x if isinstance(x, str) else "")
+@pytest.mark.parametrize(
+    "persona,kind,outcome", PERSONAS, ids=lambda x: x if isinstance(x, str) else ""
+)
 def test_persona_full_lifecycle_to_complete(
-    project: Path, conn: sqlite3.Connection,
-    persona: str, kind: str, outcome: str,
+    project: Path,
+    conn: sqlite3.Connection,
+    persona: str,
+    kind: str,
+    outcome: str,
 ) -> None:
     """Full lifecycle for each persona:
-       icebox → in_progress (DoR gate) → testing → complete (DoD gate).
+    icebox → in_progress (DoR gate) → testing → complete (DoD gate).
     """
     env = json.loads(
         mcp_tools.cos_task_create(
-            conn, title=f"{persona} lifecycle", swimlane="core", kind=kind,
+            conn,
+            title=f"{persona} lifecycle",
+            swimlane="core",
+            kind=kind,
         )
     )
     task_id = env["data"]["task_id"]
@@ -238,17 +270,19 @@ def test_persona_full_lifecycle_to_complete(
     # icebox → in_progress
     move_env = json.loads(
         mcp_tools.cos_task_move(
-            conn, task_id=task_id, to="in_progress",
+            conn,
+            task_id=task_id,
+            to="in_progress",
         )
     )
-    assert move_env["ok"] is True, (
-        f"{persona}/{kind} icebox→in_progress failed: {move_env}"
-    )
+    assert move_env["ok"] is True, f"{persona}/{kind} icebox→in_progress failed: {move_env}"
 
     # in_progress → testing (no body gate today, so unconditional)
     move_env = json.loads(
         mcp_tools.cos_task_move(
-            conn, task_id=task_id, to="testing",
+            conn,
+            task_id=task_id,
+            to="testing",
         )
     )
     assert move_env["ok"] is True
@@ -257,25 +291,24 @@ def test_persona_full_lifecycle_to_complete(
     # docs kind doesn't require verify, so it passes without recording one.
     # Other kinds require a recent verify — bypass for the test by force-DoD-only.
     if kind == "docs":
-        move_env = json.loads(
-            mcp_tools.cos_task_move(conn, task_id=task_id, to="complete")
-        )
+        move_env = json.loads(mcp_tools.cos_task_move(conn, task_id=task_id, to="complete"))
         assert move_env["ok"] is True, f"{persona}/docs complete failed: {move_env}"
     else:
         # Without verify, the gate must BLOCK.
-        move_env = json.loads(
-            mcp_tools.cos_task_move(conn, task_id=task_id, to="complete")
-        )
-        assert move_env["ok"] is False, (
-            f"{persona}/{kind} should BLOCK complete without verify"
-        )
-        assert "transition gate failed" in move_env["error"]["message"].lower() \
+        move_env = json.loads(mcp_tools.cos_task_move(conn, task_id=task_id, to="complete"))
+        assert move_env["ok"] is False, f"{persona}/{kind} should BLOCK complete without verify"
+        assert (
+            "transition gate failed" in move_env["error"]["message"].lower()
             or "DOD_VERIFY_MISSING" in move_env["error"]["message"]
+        )
         # Recording verify makes it pass — done via bypass_gates which lets
         # the workflow skip the gate entirely (test isolation).
         ok_env = json.loads(
             mcp_tools.cos_task_move(
-                conn, task_id=task_id, to="complete", bypass_gates=True,
+                conn,
+                task_id=task_id,
+                to="complete",
+                bypass_gates=True,
             )
         )
         assert ok_env["ok"] is True
@@ -287,14 +320,18 @@ def test_persona_full_lifecycle_to_complete(
 
 
 def test_f6_reviewer_can_preview_any_task_via_validate(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ) -> None:
     """F6 Reviewer's primary verb is preview — task-validate must work
     on any kind without modifying state."""
     for persona, kind, outcome in PERSONAS[:3]:  # sample
         env = json.loads(
             mcp_tools.cos_task_create(
-                conn, title=f"{persona} reviewer", swimlane="core", kind=kind,
+                conn,
+                title=f"{persona} reviewer",
+                swimlane="core",
+                kind=kind,
             )
         )
         task_id = env["data"]["task_id"]
@@ -303,25 +340,32 @@ def test_f6_reviewer_can_preview_any_task_via_validate(
         assert pre.blocked
         # Status must NOT have changed
         row = conn.execute(
-            "SELECT status FROM tasks WHERE task_id = ?", (task_id,),
+            "SELECT status FROM tasks WHERE task_id = ?",
+            (task_id,),
         ).fetchone()
         assert row[0] == "icebox", "preview must not change status"
 
 
 def test_f8_releaser_audit_trail_on_override(
-    project: Path, conn: sqlite3.Connection, monkeypatch,
+    project: Path,
+    conn: sqlite3.Connection,
+    monkeypatch,
 ) -> None:
     """F8 Releaser closes tasks. When a verify-skipped close is required,
     the override must land in task_status_history.override_reason."""
     env = json.loads(
         mcp_tools.cos_task_create(
-            conn, title="F8 releaser audit", swimlane="core", kind="feature",
+            conn,
+            title="F8 releaser audit",
+            swimlane="core",
+            kind="feature",
         )
     )
     task_id = env["data"]["task_id"]
     file_path = project / env["data"]["file_path"]
     _fill_body_for_kind(
-        file_path, "feature",
+        file_path,
+        "feature",
         "Ship the new feature flag rollout to canary fleet.",
     )
 
@@ -337,9 +381,7 @@ def test_f8_releaser_audit_trail_on_override(
     )
     monkeypatch.setenv("COS_AGENT", "claude")
 
-    move_env = json.loads(
-        mcp_tools.cos_task_move(conn, task_id=task_id, to="complete")
-    )
+    move_env = json.loads(mcp_tools.cos_task_move(conn, task_id=task_id, to="complete"))
     assert move_env["ok"] is True
 
     # Audit row must carry the override.

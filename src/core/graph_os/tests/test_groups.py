@@ -15,7 +15,6 @@ from graph_os.groups import (
 )
 from graph_os.groups.cross_repo import MemberInputs
 
-
 # ---------------------------------------------------------------------------
 # Manifest
 # ---------------------------------------------------------------------------
@@ -69,12 +68,8 @@ class TestManifest:
 class TestCrossRepo:
     def _manifest(self, *, owns_a=None, owns_b=None):
         base = GroupManifest(name="plat", members=[])
-        m = register_member(
-            base, alias="backend-a", path="/a", owned_routes=list(owns_a or [])
-        )
-        return register_member(
-            m, alias="backend-b", path="/b", owned_routes=list(owns_b or [])
-        )
+        m = register_member(base, alias="backend-a", path="/a", owned_routes=list(owns_a or []))
+        return register_member(m, alias="backend-b", path="/b", owned_routes=list(owns_b or []))
 
     def _inputs(self, *, a_routes=(), b_routes=(), front_fetches=()):
         return [
@@ -86,8 +81,12 @@ class TestCrossRepo:
     def test_ownership_declared_yields_095(self):
         manifest = self._manifest(owns_a=["/api/users"])
         inputs = self._inputs(
-            a_routes=[{"method": "get", "path": "/api/users", "handler_uid": "cos:route:GET:/api/users"}],
-            b_routes=[{"method": "get", "path": "/api/users", "handler_uid": "cos:route:GET:/api/users"}],
+            a_routes=[
+                {"method": "get", "path": "/api/users", "handler_uid": "cos:route:GET:/api/users"}
+            ],
+            b_routes=[
+                {"method": "get", "path": "/api/users", "handler_uid": "cos:route:GET:/api/users"}
+            ],
             front_fetches=[
                 {
                     "caller_uid": "code:function:front::listUsers",
@@ -117,9 +116,7 @@ class TestCrossRepo:
     def test_unresolved_fetch_recorded(self):
         manifest = self._manifest()
         inputs = self._inputs(
-            front_fetches=[
-                {"caller_uid": "c", "method": "get", "path": "/api/ghost"}
-            ],
+            front_fetches=[{"caller_uid": "c", "method": "get", "path": "/api/ghost"}],
         )
         report = infer_cross_repo_edges(manifest, inputs)
         assert "/api/ghost" in report.unresolved_fetches
@@ -141,9 +138,7 @@ class TestCrossRepo:
         manifest = self._manifest(owns_a=["/api/users"])
         inputs = self._inputs(
             a_routes=[{"method": "get", "path": "/api/users"}],
-            front_fetches=[
-                {"caller_uid": "c", "method": "get", "path": "/api/users"}
-            ],
+            front_fetches=[{"caller_uid": "c", "method": "get", "path": "/api/users"}],
         )
         report = infer_cross_repo_edges(manifest, inputs)
         signals = {s.signal_name for s in report.edges[0].evidence}

@@ -9,11 +9,11 @@ and routing weight recalculation.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
@@ -25,10 +25,10 @@ from tools.routing import (
     route_skill,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -57,8 +57,14 @@ def warm_conn(conn: sqlite3.Connection) -> sqlite3.Connection:
         # BACKEND COMPLICATED — opus does better
         *[("feat", "BACKEND", "COMPLICATED", "success", "opus", "python-django") for _ in range(9)],
         *[("feat", "BACKEND", "COMPLICATED", "rework", "opus", "python-django") for _ in range(1)],
-        *[("feat", "BACKEND", "COMPLICATED", "success", "sonnet", "python-django") for _ in range(4)],
-        *[("feat", "BACKEND", "COMPLICATED", "rework", "sonnet", "python-django") for _ in range(3)],
+        *[
+            ("feat", "BACKEND", "COMPLICATED", "success", "sonnet", "python-django")
+            for _ in range(4)
+        ],
+        *[
+            ("feat", "BACKEND", "COMPLICATED", "rework", "sonnet", "python-django")
+            for _ in range(3)
+        ],
         # FRONTEND CLEAR — sonnet does fine
         *[("feat", "FRONTEND", "CLEAR", "success", "sonnet", "nextjs-react") for _ in range(8)],
         *[("feat", "FRONTEND", "CLEAR", "rework", "sonnet", "nextjs-react") for _ in range(2)],
@@ -78,6 +84,7 @@ def warm_conn(conn: sqlite3.Connection) -> sqlite3.Connection:
 # ---------------------------------------------------------------------------
 # _data_confidence
 # ---------------------------------------------------------------------------
+
 
 class TestDataConfidence:
     def test_cold_start(self) -> None:
@@ -104,6 +111,7 @@ class TestDataConfidence:
 # ---------------------------------------------------------------------------
 # classify_query (J.1)
 # ---------------------------------------------------------------------------
+
 
 class TestClassifyQuery:
     def test_task_ref(self) -> None:
@@ -137,13 +145,17 @@ class TestClassifyQuery:
         assert result["shape"] == "mixed"
 
     def test_conceptual_long_query(self) -> None:
-        result = classify_query("explain the retrieval strategy across memory docs and tasks layers")
+        result = classify_query(
+            "explain the retrieval strategy across memory docs and tasks layers"
+        )
         assert result["shape"] == "conceptual"
         assert result["confidence"] >= 0.6
+
 
 # ---------------------------------------------------------------------------
 # cos_route_model
 # ---------------------------------------------------------------------------
+
 
 class TestRouteModel:
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
@@ -175,6 +187,7 @@ class TestRouteModel:
 
     def test_all_complexities_have_defaults(self) -> None:
         from tools.routing import DEFAULT_MODELS
+
         for comp in ["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"]:
             assert comp in DEFAULT_MODELS
 
@@ -191,6 +204,7 @@ class TestRouteModel:
 # ---------------------------------------------------------------------------
 # cos_route_skill
 # ---------------------------------------------------------------------------
+
 
 class TestRouteSkill:
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
@@ -234,6 +248,7 @@ class TestRouteSkill:
 # ---------------------------------------------------------------------------
 # Router weight tuning (TASK-148)
 # ---------------------------------------------------------------------------
+
 
 class TestRecalculateWeights:
     def test_empty_db(self, conn: sqlite3.Connection) -> None:

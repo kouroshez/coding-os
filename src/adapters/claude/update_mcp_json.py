@@ -18,6 +18,7 @@ OUTPUT:
     Writes the updated .mcp.json. Exits 0 on success, 1 on bad JSON in
     the existing file.
 """
+
 from __future__ import annotations
 
 import json
@@ -28,9 +29,7 @@ from pathlib import Path
 
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
-        sys.stderr.write(
-            f"usage: {argv[0]} <mcp_file_path> <coding_os_root>\n"
-        )
+        sys.stderr.write(f"usage: {argv[0]} <mcp_file_path> <coding_os_root>\n")
         return 2
 
     mcp_path = Path(argv[1])

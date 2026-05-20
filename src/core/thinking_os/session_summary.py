@@ -20,7 +20,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from database import DEFAULT_DB_PATH, get_connection
 
-
 _SESSION_ID_TIMESTAMP_RE = __import__("re").compile(
     r"ses-[A-Za-z0-9_-]+?-(?P<date>\d{8})-(?P<time>\d{6})(?:-[A-Za-z0-9]+)?$"
 )
@@ -28,15 +27,16 @@ _SESSION_ID_TIMESTAMP_RE = __import__("re").compile(
 
 def _compute_session_duration(conn, session_id: str) -> int | None:
     """Return whole minutes elapsed from session start → now, or None."""
-    from datetime import datetime, timezone
     import sqlite3 as _sq
+    from datetime import datetime, timezone
 
     m = _SESSION_ID_TIMESTAMP_RE.search(session_id or "")
     start_dt: datetime | None = None
     if m:
         try:
             start_dt = datetime.strptime(
-                f"{m['date']}{m['time']}", "%Y%m%d%H%M%S",
+                f"{m['date']}{m['time']}",
+                "%Y%m%d%H%M%S",
             ).replace(tzinfo=timezone.utc)
         except ValueError:
             start_dt = None
@@ -61,6 +61,7 @@ def _compute_session_duration(conn, session_id: str) -> int | None:
 
     delta = datetime.now(timezone.utc) - start_dt
     return max(0, int(delta.total_seconds() // 60))
+
 
 from core.logging_os import setup as _logging_os_setup
 
@@ -155,8 +156,15 @@ def build_session_summary(
                 "breakthrough_ids = ?, "
                 "duration_minutes = COALESCE(?, duration_minutes) "
                 "WHERE id = ?",
-                (task_id, previous_session_id, files_touched,
-                 obs_count, breakthrough_ids, duration_minutes, existing[0]),
+                (
+                    task_id,
+                    previous_session_id,
+                    files_touched,
+                    obs_count,
+                    breakthrough_ids,
+                    duration_minutes,
+                    existing[0],
+                ),
             )
         else:
             conn.execute(
@@ -164,14 +172,24 @@ def build_session_summary(
                 "(session_id, task_id, previous_session_id, files_touched, "
                 "observations_count, breakthrough_ids, duration_minutes) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (session_id, task_id, previous_session_id, files_touched,
-                 obs_count, breakthrough_ids, duration_minutes),
+                (
+                    session_id,
+                    task_id,
+                    previous_session_id,
+                    files_touched,
+                    obs_count,
+                    breakthrough_ids,
+                    duration_minutes,
+                ),
             )
 
         conn.commit()
         logger.info(
             "Session summary for %s: %d observations, %d files, breakthroughs: %s",
-            session_id, obs_count, len(file_rows), breakthrough_ids or "none",
+            session_id,
+            obs_count,
+            len(file_rows),
+            breakthrough_ids or "none",
         )
         return {
             "status": "recorded",

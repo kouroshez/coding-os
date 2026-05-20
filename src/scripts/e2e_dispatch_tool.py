@@ -34,15 +34,16 @@ TASK_MARKER = "e2e-dispatch-sdk-test"
 PERSONA_ID = "senior-backend"
 
 # Import after env setup
-from tools.cognition import (  # noqa: E402
+from tools.cognition import (
+    _load_bundle,
     register_cos_dispatch_formula_run,
     register_cos_dispatch_parallel_run,
-    _load_bundle,
 )
 
 
 class FakeMCP:
     """Minimal fake matching the @mcp.tool(name=…) decorator shape."""
+
     def __init__(self):
         self.tools = {}
 
@@ -50,6 +51,7 @@ class FakeMCP:
         def deco(fn):
             self.tools[name] = fn
             return fn
+
         return deco
 
 
@@ -110,9 +112,17 @@ def verify_bundle():
     bundle = _load_bundle(SESSION_ID, TASK_MARKER, PERSONA_ID)
     filled = []
     for attr in (
-        "researcher", "analyst", "architect", "documenter",
-        "implementer", "reviewer", "debugger", "security_auditor",
-        "deployer", "observer", "refactorer",
+        "researcher",
+        "analyst",
+        "architect",
+        "documenter",
+        "implementer",
+        "reviewer",
+        "debugger",
+        "security_auditor",
+        "deployer",
+        "observer",
+        "refactorer",
     ):
         if getattr(bundle, attr, None) is not None:
             filled.append(attr)
@@ -135,6 +145,7 @@ def verify_db_row(db_path):
 
 def main():
     from database import DEFAULT_DB_PATH
+
     db_path = str(DEFAULT_DB_PATH)
 
     mcp = FakeMCP()
@@ -149,8 +160,7 @@ def main():
 
     print("\n=== E2E Summary ===")
     single_ok = (
-        single["envelope"].get("ok") is True
-        and single["envelope"]["data"].get("status") == "ok"
+        single["envelope"].get("ok") is True and single["envelope"]["data"].get("status") == "ok"
     )
     parallel_ok = (
         parallel["envelope"].get("ok") is True

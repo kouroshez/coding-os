@@ -22,7 +22,9 @@ class DefaultDispatcher:
         logger.info(
             "default-dispatcher: formula=%s persona=%s intensity=%s "
             "(no SDK available — main agent must run inline)",
-            request.formula_id, request.persona_id, request.intensity,
+            request.formula_id,
+            request.persona_id,
+            request.intensity,
         )
         payload: dict[str, Any] = {
             "dispatch_hint": (

@@ -18,6 +18,7 @@ class TestFixtures:
         assert len(paths) == 5
         # Files are well-formed Python.
         import ast
+
         for p in paths:
             ast.parse(p.read_text(encoding="utf-8"))
 
@@ -64,6 +65,7 @@ class TestHarness:
 
     def test_result_serialisable(self, migrated_conn, tmp_path):
         import json
+
         from graph_os.backends.sqlite_backend import SqliteBackend
 
         backend = SqliteBackend(conn=migrated_conn)

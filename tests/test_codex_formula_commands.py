@@ -68,9 +68,7 @@ class TestCodexFormulaSymlinks:
         for n, role in FORMULA_TO_ROLE.items():
             link = CODEX_COMMANDS / f"formula-f{n}.md"
             content = link.read_text()
-            assert f"id: {role}" in content, (
-                f"formula-f{n}.md missing 'id: {role}' in frontmatter"
-            )
+            assert f"id: {role}" in content, f"formula-f{n}.md missing 'id: {role}' in frontmatter"
 
     def test_all_role_agent_files_exist(self):
         """Each canonical role has a corresponding agent file."""

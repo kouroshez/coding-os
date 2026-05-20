@@ -26,7 +26,6 @@ from graph_os.communities import (
 )
 from graph_os.types import GraphEdge, GraphNode
 
-
 # ---------------------------------------------------------------------------
 # Stub backend (mirrors the one used in test_entry_points.py)
 # ---------------------------------------------------------------------------
@@ -171,9 +170,7 @@ class TestComputeCommunities:
         assert all(c.member_count >= 4 for c in communities)
 
     def test_max_communities_cap(self, three_flow_backend):
-        communities, _ = compute_communities(
-            three_flow_backend, max_communities=1
-        )
+        communities, _ = compute_communities(three_flow_backend, max_communities=1)
         assert len(communities) == 1
 
     def test_stable_community_ids(self, three_flow_backend):
@@ -189,6 +186,7 @@ class TestComputeCommunities:
         # Every priority is log10(member_count+1) * (avg_entry_score + 0.1).
         # Without entry_score signals, avg=0 → priority = log10(N+1) * 0.1.
         import math
+
         for c in communities:
             expected = round(math.log10(c.member_count + 1) * 0.1, 4)
             assert c.priority == pytest.approx(expected, abs=1e-3)
@@ -279,7 +277,8 @@ class TestToolEnvelope:
         monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", three_flow_backend)
         monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: three_flow_backend)
         monkeypatch.setattr(
-            graph_tools, "_lexical_search",
+            graph_tools,
+            "_lexical_search",
             lambda be, *, q, kinds=None, limit=10, max_hops=2: [
                 three_flow_backend.get_node("code:function:auth/login.py::login")
             ],
@@ -312,6 +311,5 @@ class TestCache:
         second, _ = compute_communities(be)
         # Different signature → recomputation, possibly different shape.
         assert (
-            sum(c.member_count for c in first)
-            != sum(c.member_count for c in second)
+            sum(c.member_count for c in first) != sum(c.member_count for c in second)
         ) or first == second  # at minimum, no crash, no stale read

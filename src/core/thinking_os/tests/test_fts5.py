@@ -7,11 +7,11 @@ Tests migration v2, FTS5 triggers (INSERT/UPDATE/DELETE), graceful degradation.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import (
@@ -23,10 +23,10 @@ from database import (
     run_migrations,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def migrated_conn(tmp_path: Path) -> sqlite3.Connection:
@@ -39,6 +39,7 @@ def migrated_conn(tmp_path: Path) -> sqlite3.Connection:
 # ---------------------------------------------------------------------------
 # Migration v2
 # ---------------------------------------------------------------------------
+
 
 class TestMigrationV2:
     def test_schema_version_includes_fts5(self, migrated_conn: sqlite3.Connection) -> None:
@@ -78,13 +79,18 @@ class TestMigrationV2:
 # FTS5 INSERT trigger
 # ---------------------------------------------------------------------------
 
+
 class TestFTS5Insert:
     def test_insert_populates_fts(self, migrated_conn: sqlite3.Connection) -> None:
         if not has_fts5_table(migrated_conn):
             pytest.skip("FTS5 not available")
         migrated_conn.execute(
             "INSERT INTO observations (title, narrative, concepts) VALUES (?, ?, ?)",
-            ("Django migration fix", "Fixed missing migration for User model", '["django","migration"]'),
+            (
+                "Django migration fix",
+                "Fixed missing migration for User model",
+                '["django","migration"]',
+            ),
         )
         migrated_conn.commit()
 
@@ -98,7 +104,11 @@ class TestFTS5Insert:
             pytest.skip("FTS5 not available")
         migrated_conn.execute(
             "INSERT INTO observations (title, narrative, concepts) VALUES (?, ?, ?)",
-            ("Config change", "Updated PostgreSQL connection pooling settings", '["postgres","config"]'),
+            (
+                "Config change",
+                "Updated PostgreSQL connection pooling settings",
+                '["postgres","config"]',
+            ),
         )
         migrated_conn.commit()
 
@@ -155,6 +165,7 @@ class TestFTS5Insert:
 # FTS5 UPDATE trigger
 # ---------------------------------------------------------------------------
 
+
 class TestFTS5Update:
     def test_update_syncs_to_fts(self, migrated_conn: sqlite3.Connection) -> None:
         if not has_fts5_table(migrated_conn):
@@ -189,6 +200,7 @@ class TestFTS5Update:
 # FTS5 DELETE trigger
 # ---------------------------------------------------------------------------
 
+
 class TestFTS5Delete:
     def test_delete_removes_from_fts(self, migrated_conn: sqlite3.Connection) -> None:
         if not has_fts5_table(migrated_conn):
@@ -220,6 +232,7 @@ class TestFTS5Delete:
 # has_fts5_table helper
 # ---------------------------------------------------------------------------
 
+
 class TestHasFTS5Table:
     def test_returns_true_after_migration(self, migrated_conn: sqlite3.Connection) -> None:
         if not has_fts5(migrated_conn):
@@ -232,6 +245,7 @@ class TestHasFTS5Table:
         try:
             # Manually apply only v1
             from database import MIGRATIONS, _ensure_version_table
+
             _ensure_version_table(conn)
             version, description, sql = MIGRATIONS[0]
             conn.executescript(sql)
@@ -248,6 +262,7 @@ class TestHasFTS5Table:
 # ---------------------------------------------------------------------------
 # FTS5 ranking (basic)
 # ---------------------------------------------------------------------------
+
 
 class TestFTS5Ranking:
     def test_rank_function_available(self, migrated_conn: sqlite3.Connection) -> None:

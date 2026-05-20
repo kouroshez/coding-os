@@ -1,4 +1,5 @@
 """Tests for /api/hub/projects filtering + auto cwd entry."""
+
 from __future__ import annotations
 
 import os
@@ -81,6 +82,9 @@ def test_cwd_not_duplicated_when_already_registered(hub_fixture):
     with _client() as client:
         resp = client.get("/api/hub/projects")
     data = resp.json()
-    matching = [p for p in data["projects"]
-                if Path(p["path"]).resolve() == hub_fixture["cwd_project"].resolve()]
+    matching = [
+        p
+        for p in data["projects"]
+        if Path(p["path"]).resolve() == hub_fixture["cwd_project"].resolve()
+    ]
     assert len(matching) == 1

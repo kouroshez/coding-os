@@ -35,11 +35,9 @@ def test_expected_tables_match_live_db() -> None:
         init_db(db_path)
         conn = sqlite3.connect(db_path)
         live_tables = sorted(
-            row[0] for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
-            if not row[0].startswith("observations_fts")
-            and not row[0].startswith("sqlite_")
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            if not row[0].startswith("observations_fts") and not row[0].startswith("sqlite_")
         )
         conn.close()
     finally:

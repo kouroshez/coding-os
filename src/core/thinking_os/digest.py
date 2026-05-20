@@ -36,8 +36,10 @@ from typing import Optional
 try:
     from tools.trajectory import trajectory_digest_line as _trajectory_digest_line
 except ImportError:
+
     def _trajectory_digest_line(conn) -> str:  # type: ignore[misc]
-        return ""  # noqa: ARG001
+        return ""
+
 
 logger = logging.getLogger("coding_os.digest")
 
@@ -66,7 +68,7 @@ def regenerate(
     conn: sqlite3.Connection,
     *,
     project_root: Path,
-    now: Optional[datetime] = None,
+    now: datetime | None = None,
 ) -> dict:
     """Render the digest and write it to `.coding-os/digest.md`."""
     body = render(conn, now=now)
@@ -85,7 +87,7 @@ def regenerate(
 def render(
     conn: sqlite3.Connection,
     *,
-    now: Optional[datetime] = None,
+    now: datetime | None = None,
 ) -> str:
     """Build the digest markdown string and enforce the token budget."""
     now = now or datetime.now(timezone.utc)
@@ -112,9 +114,7 @@ def render(
     if beliefs:
         lines.append("## Active Beliefs (top patterns)")
         for p in beliefs:
-            lines.append(
-                f"- [{p['confidence']:.2f} · impact {p['impact']:.2f}] {p['text']}"
-            )
+            lines.append(f"- [{p['confidence']:.2f} · impact {p['impact']:.2f}] {p['text']}")
         lines.append("")
 
     if fading:
@@ -145,6 +145,7 @@ def render(
 # Collectors — each returns structured dicts the renderer formats
 # ---------------------------------------------------------------------------
 
+
 def _collect_identity(conn: sqlite3.Connection) -> str:
     """Summarise task_outcomes over the last 30 days into a single line."""
     try:
@@ -164,10 +165,7 @@ def _collect_identity(conn: sqlite3.Connection) -> str:
 
     top_domains = _top_domains(conn)
     domains_str = ", ".join(f"{d} ({c})" for d, c in top_domains) or "—"
-    return (
-        f"{n} tasks completed (last 30d). "
-        f"Success rate: {rate:.0%}. Top domains: {domains_str}."
-    )
+    return f"{n} tasks completed (last 30d). Success rate: {rate:.0%}. Top domains: {domains_str}."
 
 
 def _top_domains(conn: sqlite3.Connection, k: int = 3) -> list[tuple[str, int]]:

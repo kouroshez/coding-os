@@ -110,9 +110,7 @@ def _hook_to_settings_entry(hook: HookEntry) -> dict:
     }
 
 
-def render_settings_json(
-    world: AggregatedWorld, adapter: AdapterProfile
-) -> dict:
+def render_settings_json(world: AggregatedWorld, adapter: AdapterProfile) -> dict:
     """Deep-merge adapter defaults with aggregated hooks.
 
     Returns {} if the adapter doesn't support settings.json — the caller
@@ -129,9 +127,7 @@ def render_settings_json(
     result.setdefault("hooks", {})
     hooks_section = result["hooks"]
     if not isinstance(hooks_section, dict):
-        raise RenderError(
-            f"adapter {adapter.id} default_settings.hooks must be a mapping"
-        )
+        raise RenderError(f"adapter {adapter.id} default_settings.hooks must be a mapping")
 
     # Group aggregated hooks by event.
     by_event: dict[str, list[HookEntry]] = {}
@@ -141,9 +137,7 @@ def render_settings_json(
     for event, hook_list in by_event.items():
         hooks_section.setdefault(event, [])
         if not isinstance(hooks_section[event], list):
-            raise RenderError(
-                f"adapter {adapter.id} default_settings.hooks.{event} must be a list"
-            )
+            raise RenderError(f"adapter {adapter.id} default_settings.hooks.{event} must be a list")
         hooks_section[event].extend(_hook_to_settings_entry(h) for h in hook_list)
 
     return result
@@ -223,8 +217,6 @@ def render_skill_enforcement(world: AggregatedWorld) -> str:
     for se in world.skill_enforcement:
         globs_fmt = ", ".join(f"`{g}`" for g in se.globs)
         secondary_fmt = ", ".join(se.secondary) if se.secondary else "—"
-        lines.append(
-            f"| {globs_fmt} | `{se.primary}` | {secondary_fmt} | {se.stack_id} |"
-        )
+        lines.append(f"| {globs_fmt} | `{se.primary}` | {secondary_fmt} | {se.stack_id} |")
     lines.append("")
     return "\n".join(lines)

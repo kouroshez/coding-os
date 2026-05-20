@@ -38,12 +38,21 @@ class TestRealSkillRegistry:
         # Note: thinking_os uses snake_case (linter convention), all others
         # use kebab-case. Both forms are honored by skill.schema.json.
         expected = {
-            "api-design", "auth-patterns", "db-design", "mobile-fundamentals",
-            "state-management", "security-mobile",
-            "backend-fundamentals", "clean-code", "codebase-explorer",
-            "frontend-fundamentals", "graph-explorer",
-            "hexagonal-architecture", "task-driver",
-            "thinking_os", "worktree-orchestration",
+            "api-design",
+            "auth-patterns",
+            "db-design",
+            "mobile-fundamentals",
+            "state-management",
+            "security-mobile",
+            "backend-fundamentals",
+            "clean-code",
+            "codebase-explorer",
+            "frontend-fundamentals",
+            "graph-explorer",
+            "hexagonal-architecture",
+            "task-driver",
+            "thinking_os",
+            "worktree-orchestration",
         }
         assert set(reg.skills.keys()) == expected
 
@@ -70,41 +79,57 @@ class TestLoaderValidation:
         return d
 
     def test_missing_tier_is_warned_not_loaded(self, tmp_path: Path) -> None:
-        self._make_skill(tmp_path, "no-tier",
-                         "name: no-tier\ndescription: " + "x" * 35 + "\ndomain: [universal]")
+        self._make_skill(
+            tmp_path, "no-tier", "name: no-tier\ndescription: " + "x" * 35 + "\ndomain: [universal]"
+        )
         reg = load_skill_registry(tmp_path)
         assert "no-tier" not in reg.skills
         assert any("tier" in w for w in reg.warnings)
 
     def test_missing_domain_is_warned_not_loaded(self, tmp_path: Path) -> None:
-        self._make_skill(tmp_path, "no-domain",
-                         "name: no-domain\ndescription: " + "x" * 35 + "\ntier: methodology")
+        self._make_skill(
+            tmp_path,
+            "no-domain",
+            "name: no-domain\ndescription: " + "x" * 35 + "\ntier: methodology",
+        )
         reg = load_skill_registry(tmp_path)
         assert "no-domain" not in reg.skills
         assert any("domain" in w for w in reg.warnings)
 
     def test_bad_tier_is_warned(self, tmp_path: Path) -> None:
-        self._make_skill(tmp_path, "bad-tier",
-                         "name: bad-tier\ndescription: " + "x" * 35 + "\ntier: bogus\ndomain: [universal]")
+        self._make_skill(
+            tmp_path,
+            "bad-tier",
+            "name: bad-tier\ndescription: " + "x" * 35 + "\ntier: bogus\ndomain: [universal]",
+        )
         reg = load_skill_registry(tmp_path)
         assert "bad-tier" not in reg.skills
 
     def test_bad_domain_is_warned(self, tmp_path: Path) -> None:
-        self._make_skill(tmp_path, "bad-domain",
-                         "name: bad-domain\ndescription: " + "x" * 35 + "\ntier: layer\ndomain: [bogus-domain]")
+        self._make_skill(
+            tmp_path,
+            "bad-domain",
+            "name: bad-domain\ndescription: " + "x" * 35 + "\ntier: layer\ndomain: [bogus-domain]",
+        )
         reg = load_skill_registry(tmp_path)
         assert "bad-domain" not in reg.skills
 
     def test_name_mismatch_is_warned(self, tmp_path: Path) -> None:
-        self._make_skill(tmp_path, "real-dir-name",
-                         "name: different-name\ndescription: " + "x" * 35 + "\ntier: layer\ndomain: [backend]")
+        self._make_skill(
+            tmp_path,
+            "real-dir-name",
+            "name: different-name\ndescription: " + "x" * 35 + "\ntier: layer\ndomain: [backend]",
+        )
         reg = load_skill_registry(tmp_path)
         assert "different-name" not in reg.skills
         assert "real-dir-name" not in reg.skills
 
     def test_short_description_is_rejected(self, tmp_path: Path) -> None:
-        self._make_skill(tmp_path, "short-desc",
-                         "name: short-desc\ndescription: too short\ntier: layer\ndomain: [backend]")
+        self._make_skill(
+            tmp_path,
+            "short-desc",
+            "name: short-desc\ndescription: too short\ntier: layer\ndomain: [backend]",
+        )
         reg = load_skill_registry(tmp_path)
         assert "short-desc" not in reg.skills
 

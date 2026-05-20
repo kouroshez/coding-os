@@ -13,7 +13,6 @@ from pathlib import Path
 
 import click
 
-
 # ---------------------------------------------------------------------------
 # Matrix — keep in sync with AGENTS.md "Verification Matrix" + src/core/rules/
 # test-discipline.md. Glob → command. First match wins for a given file.
@@ -21,32 +20,29 @@ import click
 
 MATRIX_RULES: list[tuple[str, str]] = [
     # (glob-prefix, command)
-    ("src/core/thinking_os/database.py",
-        "uv run --extra rag pytest src/core/thinking_os/tests/test_db.py -q"),
-    ("src/core/thinking_os/",
-        "uv run --extra rag pytest src/core/thinking_os/tests/ -q"),
-    ("src/core/graph_os/",
-        "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"),
-    ("src/core/board_os/",
-        "uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q"),
-    ("src/core/hooks/",
-        "make verify-hooks"),
-    ("src/core/scripts/",
-        "make verify-hooks"),
-    ("src/adapters/",
-        "uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"),
-    ("src/cli/",
-        "uv run pytest tests/test_cli.py -q"),
-    ("src/templates/",
-        "uv run pytest tests/test_template_scaffold.py -q"),
-    ("docs/",
-        "make docs-lint"),
+    (
+        "src/core/thinking_os/database.py",
+        "uv run --extra rag pytest src/core/thinking_os/tests/test_db.py -q",
+    ),
+    ("src/core/thinking_os/", "uv run --extra rag pytest src/core/thinking_os/tests/ -q"),
+    ("src/core/graph_os/", "uv run --extra graph_os pytest src/core/graph_os/tests/ -q"),
+    (
+        "src/core/board_os/",
+        "uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q",
+    ),
+    ("src/core/hooks/", "make verify-hooks"),
+    ("src/core/scripts/", "make verify-hooks"),
+    ("src/adapters/", "uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"),
+    ("src/cli/", "uv run pytest tests/test_cli.py -q"),
+    ("src/templates/", "uv run pytest tests/test_template_scaffold.py -q"),
+    ("docs/", "make docs-lint"),
 ]
 
 
 # ---------------------------------------------------------------------------
 # IO contracts
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SuiteResult:
@@ -73,6 +69,7 @@ class RefIssue:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _git_diff_names(since: str, staged_only: bool) -> list[str]:
     """List changed files vs `since`. Includes staged + unstaged + untracked."""
@@ -220,23 +217,27 @@ def _scan_renames(since: str, repo_root: Path) -> list[RefIssue]:
         if grep.returncode != 0:
             continue
         callers = [
-            line.strip() for line in grep.stdout.splitlines()
+            line.strip()
+            for line in grep.stdout.splitlines()
             if line.strip() and not line.strip().endswith(".pyc")
         ]
         if not callers:
             continue
-        issues.append(RefIssue(
-            file=callers[0],
-            old_name=old,
-            new_name=new,
-            callers=callers,
-        ))
+        issues.append(
+            RefIssue(
+                file=callers[0],
+                old_name=old,
+                new_name=new,
+                callers=callers,
+            )
+        )
     return issues
 
 
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 @click.command("verify")
 @click.option(
@@ -317,10 +318,7 @@ def verify_since_edit_cmd(
     if not no_tests and suites:
         if parallel and len(suites) > 1:
             with ThreadPoolExecutor(max_workers=min(4, len(suites))) as pool:
-                futures = {
-                    pool.submit(_run_suite, cmd, fs, repo_root): cmd
-                    for cmd, fs in suites
-                }
+                futures = {pool.submit(_run_suite, cmd, fs, repo_root): cmd for cmd, fs in suites}
                 for fut in as_completed(futures):
                     results.append(fut.result())
         else:

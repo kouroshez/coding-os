@@ -29,12 +29,14 @@ def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
         # Lazy import — cli is not always on path (e.g. when called from
         # the MCP server). Detection must remain non-fatal.
         import sys
+
         cli_pkg = repo_root / "cli"
         if str(cli_pkg.parent) not in sys.path:
             sys.path.insert(0, str(cli_pkg.parent))
         from cli.adapter_registry import load_adapter_registry  # type: ignore
+
         reg = load_adapter_registry(adapters_dir)
-    except Exception as exc:  # noqa: BLE001 — detection is best-effort
+    except Exception as exc:
         logger.debug(
             "adapter registry unreachable, agent detection degrades to marker-only: %s",
             exc,
@@ -168,4 +170,4 @@ def reset_cache() -> None:
     _known_agent_ids.cache_clear()
 
 
-__all__ = ["detect_agent", "resolve_agent_session", "reset_cache"]
+__all__ = ["detect_agent", "reset_cache", "resolve_agent_session"]

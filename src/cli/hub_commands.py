@@ -1,4 +1,5 @@
 """cli.hub_commands — `cos hub` + `cos service` CLI."""
+
 from __future__ import annotations
 
 import json
@@ -88,8 +89,12 @@ def hub_cli() -> None:
 
 @hub_cli.command("start")
 @click.option("--port", type=int, default=DEFAULT_HUB_PORT, show_default=True)
-@click.option("--foreground", is_flag=True, default=False,
-              help="Block in the current terminal instead of daemonising.")
+@click.option(
+    "--foreground",
+    is_flag=True,
+    default=False,
+    help="Block in the current terminal instead of daemonising.",
+)
 def hub_start(port: int, foreground: bool) -> None:
     """Start the Hub uvicorn process (detached by default).
 
@@ -176,8 +181,9 @@ def hub_start(port: int, foreground: bool) -> None:
                 tail = []
             raise click.ClickException(
                 f"Hub child exited with rc={rc} before it could bind.\n"
-                f"  Logs: {log}\n  Last lines:\n    "
-                + "\n    ".join(tail) if tail else f"  Logs: {log}"
+                f"  Logs: {log}\n  Last lines:\n    " + "\n    ".join(tail)
+                if tail
+                else f"  Logs: {log}"
             )
         time.sleep(0.1)
 
@@ -248,31 +254,34 @@ def hub_status() -> None:
 
     try:
         from cli.registry import load_registry
+
         reg = load_registry()
-        alive = sum(
-            1 for p in reg.projects
-            if (Path(p.path) / ".coding-os").is_dir()
-        )
+        alive = sum(1 for p in reg.projects if (Path(p.path) / ".coding-os").is_dir())
         stale = len(reg.projects) - alive
-        click.echo(f"  Registered projects: {alive} alive"
-                   + (f" · {stale} stale (run `cos registry gc`)" if stale else ""))
-    except Exception as exc:  # noqa: BLE001
+        click.echo(
+            f"  Registered projects: {alive} alive"
+            + (f" · {stale} stale (run `cos registry gc`)" if stale else "")
+        )
+    except Exception as exc:
         click.echo(f"  Registry: unavailable ({exc})")
 
     # Quick symlink-health ping — cheap, doesn't walk every file.
     try:
-        from cli.sync_all import _each_registered_project, _dangling, _iter_symlinks
+        from cli.sync_all import _dangling, _each_registered_project, _iter_symlinks
+
         broken_projects: list[str] = []
         for entry, path in _each_registered_project():
             links = _iter_symlinks(path)
             if any(_dangling(link) for link in links):
                 broken_projects.append(entry.slug)
         if broken_projects:
-            click.echo(f"  ⚠ Symlink health: broken in {broken_projects!r} — "
-                       f"run `cos sync-doctor --repair`")
+            click.echo(
+                f"  ⚠ Symlink health: broken in {broken_projects!r} — "
+                f"run `cos sync-doctor --repair`"
+            )
         else:
             click.echo("  ✓ Symlink health: all project hooks reachable")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         click.echo(f"  Symlink check: skipped ({exc})")
 
     if pid is None:
@@ -287,7 +296,7 @@ def hub_logs(lines: int) -> None:
     if not log.exists():
         click.echo("(no hub log yet)")
         return
-    with open(log, "r", encoding="utf-8", errors="replace") as fh:
+    with open(log, encoding="utf-8", errors="replace") as fh:
         content = fh.readlines()
     for line in content[-lines:]:
         click.echo(line.rstrip())
@@ -371,16 +380,18 @@ def service_install(port: int) -> None:
         uid = os.getuid()
         subprocess.run(
             ["launchctl", "bootout", f"gui/{uid}/{SERVICE_NAME}"],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
         )
         result = subprocess.run(
             ["launchctl", "bootstrap", f"gui/{uid}", str(plist_path)],
-            check=False, capture_output=True, text=True,
+            check=False,
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
             click.echo(
-                f"WARN: launchctl bootstrap returned {result.returncode}: "
-                f"{result.stderr.strip()}",
+                f"WARN: launchctl bootstrap returned {result.returncode}: {result.stderr.strip()}",
                 err=True,
             )
         click.echo(f"Installed launchd service: {plist_path}")
@@ -406,7 +417,8 @@ def service_uninstall() -> None:
         uid = os.getuid()
         subprocess.run(
             ["launchctl", "bootout", f"gui/{uid}/{SERVICE_NAME}"],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
         )
         plist_path = _launchd_plist_path()
         if plist_path.exists():

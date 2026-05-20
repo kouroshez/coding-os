@@ -57,12 +57,12 @@ def record_quality_signal(
     conn: sqlite3.Connection,
     *,
     retrieval_id: int,
-    task_id: Optional[str],
+    task_id: str | None,
     layer: str,
-    query: Optional[str],
+    query: str | None,
     precision: float,
     signal_source: str,
-) -> Optional[int]:
+) -> int | None:
     """Insert a precision observation. Fire-and-forget — never raises."""
     if not _has_quality(conn):
         return None
@@ -147,12 +147,18 @@ def precision_summary(
     conn: sqlite3.Connection,
     *,
     lookback_days: int = 14,
-    layer: Optional[str] = None,
+    layer: str | None = None,
 ) -> dict:
     """Return mean precision + sample size for the lookback window."""
     if not _has_quality(conn):
-        return {"mean_precision": None, "samples": 0, "below_gate": False,
-                "layer": layer, "gate": PRECISION_GATE, "status": "pre_v11_no_op"}
+        return {
+            "mean_precision": None,
+            "samples": 0,
+            "below_gate": False,
+            "layer": layer,
+            "gate": PRECISION_GATE,
+            "status": "pre_v11_no_op",
+        }
 
     sql = (
         "SELECT AVG(precision) AS mean, COUNT(*) AS n "

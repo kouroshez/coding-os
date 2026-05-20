@@ -49,9 +49,7 @@ _TS_JSON_RE = re.compile(r'"ts"\s*:\s*"?([^",}]+)"?')
 # Python ``logging`` writes bare local time. Without this, the same
 # wall-clock event shows two different times in the unified tail and
 # the cross-source sort order breaks.
-_TS_BRACKET_RE = re.compile(
-    r'^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?'
-)
+_TS_BRACKET_RE = re.compile(r"^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?")
 
 _COLORS = {
     "hooks": "\033[36m",
@@ -112,6 +110,7 @@ def _discover(state_dir: Path) -> list[tuple[str, str, Path]]:
 def _utc_to_local_str(stamp: str) -> str:
     """Treat ``stamp`` (YYYY-MM-DD HH:MM:SS) as UTC, render in local zone."""
     import datetime as _dt
+
     parsed = _dt.datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S")
     aware_utc = parsed.replace(tzinfo=_dt.timezone.utc)
     return aware_utc.astimezone().strftime("%Y-%m-%d %H:%M:%S")
@@ -120,6 +119,7 @@ def _utc_to_local_str(stamp: str) -> str:
 def _try_parse_iso(iso: str) -> str:
     """Try every supported ISO shape; return raw 19-char prefix on failure."""
     import datetime as _dt
+
     try:
         if iso.endswith("Z"):
             return _utc_to_local_str(iso[:-1].replace("T", " "))
@@ -250,7 +250,7 @@ def _spawn_tail(
     path: Path,
     source: str,
     agent: str,
-    q: "queue.Queue[Line]",
+    q: queue.Queue[Line],
     stop: threading.Event,
     procs: list[subprocess.Popen],
 ) -> None:
@@ -269,14 +269,16 @@ def _spawn_tail(
             if stop.is_set():
                 break
             text = raw.rstrip("\n")
-            q.put(Line(
-                ts=_extract_ts(text),
-                source=source,
-                agent=agent,
-                file=str(path),
-                text=text,
-                level=_extract_level(text),
-            ))
+            q.put(
+                Line(
+                    ts=_extract_ts(text),
+                    source=source,
+                    agent=agent,
+                    file=str(path),
+                    text=text,
+                    level=_extract_level(text),
+                )
+            )
 
     threading.Thread(target=reader, daemon=True).start()
 
@@ -347,12 +349,16 @@ def run_tail(
 @click.option("--project-dir", "-d", default=".", help="Project directory")
 @click.option("-f", "--follow", is_flag=True, default=False, help="Follow live (tail -F)")
 @click.option("-n", "tail_count", default=50, help="Last N lines per source (snapshot mode)")
-@click.option("--source", "sources_csv", default="", help="Filter sources (csv): hooks,mcp,graph,trace,...")
+@click.option(
+    "--source", "sources_csv", default="", help="Filter sources (csv): hooks,mcp,graph,trace,..."
+)
 @click.option("--agent", "agents_csv", default="", help="Filter agents (csv): claude,codex,global")
 @click.option("--level", default="", help="Min level: DEBUG|INFO|WARN|ERROR")
 @click.option("--grep", default="", help="Substring filter")
 @click.option("--no-color", is_flag=True, default=False, help="Disable ANSI color")
-@click.option("--list-sources", is_flag=True, default=False, help="List discovered sources and exit")
+@click.option(
+    "--list-sources", is_flag=True, default=False, help="List discovered sources and exit"
+)
 def tail_cmd(
     project_dir: str,
     follow: bool,
@@ -390,13 +396,15 @@ def tail_cmd(
     sources = {s.strip() for s in sources_csv.split(",") if s.strip()}
     agents = {a.strip() for a in agents_csv.split(",") if a.strip()}
 
-    sys.exit(run_tail(
-        state_dir=state,
-        follow=follow,
-        tail_count=tail_count,
-        sources=sources,
-        agents=agents,
-        level=level,
-        grep=grep,
-        no_color=no_color,
-    ))
+    sys.exit(
+        run_tail(
+            state_dir=state,
+            follow=follow,
+            tail_count=tail_count,
+            sources=sources,
+            agents=agents,
+            level=level,
+            grep=grep,
+            no_color=no_color,
+        )
+    )

@@ -49,18 +49,18 @@ class TestExtractorMapping:
     @pytest.mark.parametrize(
         "extractor_id, expected",
         [
-            ("code_python@v1",     "ast"),
-            ("code_python_ts@v1",  "tree-sitter"),
-            ("code_ts@v1",         "regex"),
-            ("code_ts_ts@v1",      "tree-sitter"),
-            ("code_go@v1",         "regex"),
-            ("code_go_ts@v1",      "tree-sitter"),
-            ("code_shell@v1",      "regex"),
-            ("code_yaml@v1",       "parser"),
-            ("contracts@v1",       "regex"),
-            ("md_links@v1",        "parser"),
-            ("task_deps@v1",       "parser"),
-            ("lsp_overlay@v1",     "lsp"),
+            ("code_python@v1", "ast"),
+            ("code_python_ts@v1", "tree-sitter"),
+            ("code_ts@v1", "regex"),
+            ("code_ts_ts@v1", "tree-sitter"),
+            ("code_go@v1", "regex"),
+            ("code_go_ts@v1", "tree-sitter"),
+            ("code_shell@v1", "regex"),
+            ("code_yaml@v1", "parser"),
+            ("contracts@v1", "regex"),
+            ("md_links@v1", "parser"),
+            ("task_deps@v1", "parser"),
+            ("lsp_overlay@v1", "lsp"),
         ],
     )
     def test_known_ids(self, extractor_id: str, expected: str):
@@ -72,8 +72,7 @@ class TestExtractorMapping:
 
         for ext, prov in _EXTRACTOR_PROVENANCE.items():
             assert prov in PROVENANCE_VALUES, (
-                f"{ext!r} maps to {prov!r}, which is not in "
-                f"PROVENANCE_VALUES"
+                f"{ext!r} maps to {prov!r}, which is not in PROVENANCE_VALUES"
             )
 
 
@@ -132,8 +131,8 @@ class TestExtractorPreference:
         # Smoke: invoking the CLI with --extractor=tree-sitter should
         # set the env var; we test the publication contract by running
         # the underlying click command in isolation.
-        from click.testing import CliRunner
         import click
+        from click.testing import CliRunner
 
         # Re-create just enough of the CLI surface to exercise the
         # option-handling code path (the registered `cli` group can't
@@ -160,8 +159,8 @@ class TestExtractorPreference:
         assert os.environ["COS_EXTRACTOR_PREFERENCE"] == "legacy"
 
     def test_cli_flag_default_is_auto(self):
-        from click.testing import CliRunner
         import click
+        from click.testing import CliRunner
 
         @click.command()
         @click.option(
@@ -177,8 +176,8 @@ class TestExtractorPreference:
         assert r.output.strip() == "auto"
 
     def test_cli_flag_rejects_garbage(self):
-        from click.testing import CliRunner
         import click
+        from click.testing import CliRunner
 
         @click.command()
         @click.option(

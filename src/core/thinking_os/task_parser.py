@@ -61,9 +61,7 @@ _H3_RE = re.compile(r"^### (.+)$", re.MULTILINE)
 
 # H1 shape: "TASK-199: [BACKEND] Commission model"
 # Captures: (task_id_number, optional_domain_tag, title_text)
-_H1_TASK_RE = re.compile(
-    r"^TASK-(\d+):\s*(?:\[([A-Z0-9_-]+)\]\s*)?(.+?)\s*$"
-)
+_H1_TASK_RE = re.compile(r"^TASK-(\d+):\s*(?:\[([A-Z0-9_-]+)\]\s*)?(.+?)\s*$")
 
 # Bulleted list line: "- content"
 _BULLET_RE = re.compile(r"^-\s+(.+?)\s*$", re.MULTILINE)
@@ -83,11 +81,11 @@ class ParsedTask:
     the project-wide preference for immutable data (see coding-style rule).
     """
 
-    task_id: str                        # "TASK-199" (canonical, zero-padded to 3)
-    title: str                          # "Commission model" (without prefix + domain tag)
-    raw_title: str                      # "TASK-199: [BACKEND] Commission model"
-    domain: Optional[str]               # "BACKEND" (from [DOMAIN] tag)
-    goal_text: str                      # first paragraph of ## Goal
+    task_id: str  # "TASK-199" (canonical, zero-padded to 3)
+    title: str  # "Commission model" (without prefix + domain tag)
+    raw_title: str  # "TASK-199: [BACKEND] Commission model"
+    domain: str | None  # "BACKEND" (from [DOMAIN] tag)
+    goal_text: str  # first paragraph of ## Goal
     scope_in: list[str] = field(default_factory=list)
     scope_out: list[str] = field(default_factory=list)
     requirements: list[str] = field(default_factory=list)
@@ -99,14 +97,15 @@ class ParsedTask:
     verification: str = ""
     content_hash: str = ""
     # Phase M: optional cognitive routing fields from YAML frontmatter
-    intensity: Optional[str] = None   # light | standard | full
-    persona: Optional[str] = None     # e.g. senior-backend, tech-lead
-    situation: Optional[str] = None   # e.g. incident-response, onboarding
+    intensity: str | None = None  # light | standard | full
+    persona: str | None = None  # e.g. senior-backend, tech-lead
+    situation: str | None = None  # e.g. incident-response, onboarding
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_yaml_frontmatter(content: str) -> dict:
     """Extract Phase M cognitive routing fields from YAML frontmatter.
@@ -119,6 +118,7 @@ def _parse_yaml_frontmatter(content: str) -> dict:
         return {}
     try:
         import yaml  # optional dep; not required for legacy task parsing
+
         data = yaml.safe_load(m.group("yaml")) or {}
     except Exception:
         return {}
@@ -148,7 +148,7 @@ def _compute_content_hash(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
 
-def extract_task_id_from_h1(h1_text: str) -> tuple[Optional[str], Optional[str], str]:
+def extract_task_id_from_h1(h1_text: str) -> tuple[str | None, str | None, str]:
     """Parse the H1 text of a task file into (task_id, domain, title).
 
     Examples:
@@ -271,7 +271,8 @@ def _parse_scope(scope_section: str) -> tuple[list[str], list[str]]:
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def parse_task_file(content: str) -> Optional[ParsedTask]:
+
+def parse_task_file(content: str) -> ParsedTask | None:
     """Parse a task markdown file into a ParsedTask.
 
     Returns None if the file has no recognizable `# TASK-NNN: ...` H1,

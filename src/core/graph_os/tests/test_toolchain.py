@@ -64,9 +64,7 @@ class TestTsconfig:
 
     def test_baseurl_subdir(self, tmp_path: Path):
         (tmp_path / "src").mkdir()
-        (tmp_path / "tsconfig.json").write_text(
-            '{"compilerOptions": {"baseUrl": "src"}}'
-        )
+        (tmp_path / "tsconfig.json").write_text('{"compilerOptions": {"baseUrl": "src"}}')
         ctx = load_toolchain(tmp_path)
         assert ctx.ts_base_url == "src"
 
@@ -107,9 +105,7 @@ class TestTsconfig:
 
 class TestGoMod:
     def test_module_extracted(self, tmp_path: Path):
-        (tmp_path / "go.mod").write_text(
-            "module github.com/acme/myapp\n\ngo 1.22\n"
-        )
+        (tmp_path / "go.mod").write_text("module github.com/acme/myapp\n\ngo 1.22\n")
         ctx = load_toolchain(tmp_path)
         assert ctx.go_module == "github.com/acme/myapp"
 
@@ -198,9 +194,7 @@ class TestPyproject:
         assert ctx.python_packages["myapp"] == "src/myapp"
 
     def test_project_name_flat_layout(self, tmp_path: Path):
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\nname = "myapp"\n'
-        )
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "myapp"\n')
         (tmp_path / "myapp").mkdir()
         ctx = load_toolchain(tmp_path)
         assert ctx.python_packages["myapp"] == "myapp"
@@ -228,6 +222,7 @@ class TestCache:
         a = load_toolchain(tmp_path)
         # Advance mtime via overwrite + os.utime
         import os
+
         gomod.write_text("module b\n")
         os.utime(gomod, ns=(2_000_000_000_000_000_000, 2_000_000_000_000_000_000))
         b = load_toolchain(tmp_path)

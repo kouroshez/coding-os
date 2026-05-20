@@ -1,4 +1,5 @@
 """Tests for cli.registry — global coding-os project registry."""
+
 from __future__ import annotations
 
 import json

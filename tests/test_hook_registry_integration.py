@@ -85,8 +85,7 @@ def test_claude_template_renders_every_supported_registry_event() -> None:
     fire are intentionally skipped by the renderer (adapter-parity rule)."""
     template = json.loads(CLAUDE_TEMPLATE.read_text(encoding="utf-8"))
     rendered = _flatten_claude_template(template)
-    rendered_index = {(event, matcher, Path(cmd).name)
-                      for event, matcher, cmd in rendered}
+    rendered_index = {(event, matcher, Path(cmd).name) for event, matcher, cmd in rendered}
     capabilities = _claude_capabilities()
 
     missing: list[str] = []
@@ -103,8 +102,7 @@ def test_claude_template_renders_every_supported_registry_event() -> None:
             if (event, matcher, script) not in rendered_index:
                 missing.append(f"{entry.get('id')} {event}::{matcher} → {script}")
     assert not missing, (
-        "Supported registry events missing from rendered claude template: "
-        + ", ".join(missing)
+        "Supported registry events missing from rendered claude template: " + ", ".join(missing)
     )
 
 
@@ -162,7 +160,6 @@ def test_hook_ids_are_unique() -> None:
 # ---------------------------------------------------------------------------
 
 
-import json  # noqa: E402
 import subprocess  # noqa: E402
 import textwrap  # noqa: E402
 

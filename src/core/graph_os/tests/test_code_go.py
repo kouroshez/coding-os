@@ -1,8 +1,8 @@
 """Tests for graph_os.extractors.code_go (Wave 1 A3)."""
+
 from __future__ import annotations
 
 from graph_os.extractors import code_go
-
 
 _HELLO = """\
 package main
@@ -147,7 +147,7 @@ def test_extract_never_raises_on_garbage():
 
 def test_extract_skips_inline_func_keyword_in_string():
     # func keyword inside a non-anchored position must not produce a node.
-    src = '(((not go))) func Foo() {}'
+    src = "(((not go))) func Foo() {}"
     r = code_go.extract("inline.go", src)
     funcs = _by_kind(r, "code:function")
     assert not any(n.label == "Foo" for n in funcs)

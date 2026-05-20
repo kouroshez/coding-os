@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from fastapi import HTTPException, Request
 
@@ -18,11 +18,13 @@ if str(_CORE_DIR) not in sys.path:
 def _get_enterprise():
     """Lazy import to avoid circular deps at package load time."""
     from graph_os.enterprise import metrics, rate_limiter  # type: ignore
+
     return rate_limiter(), metrics()
 
 
 def make_rate_limit_dep(route_name: str) -> Callable:
     """Factory that returns a FastAPI dependency for a specific named route."""
+
     async def _dep(request: Request) -> None:
         limiter, _ = _get_enterprise()
         client_ip = request.client.host if request.client else "unknown"
@@ -39,6 +41,7 @@ def make_rate_limit_dep(route_name: str) -> Callable:
 
 def make_metrics_dep(route_name: str) -> Callable:
     """Factory that returns a FastAPI dependency for recording per-route metrics."""
+
     async def _dep(request: Request) -> None:
         _, prom = _get_enterprise()
         prom.inc_counter(f"cos_web_requests_total{{route={route_name!r}}}")

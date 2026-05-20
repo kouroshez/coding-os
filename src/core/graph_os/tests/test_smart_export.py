@@ -22,7 +22,6 @@ import pytest
 from graph_os.tools import graph as graph_tools
 from graph_os.types import GraphEdge, GraphNode
 
-
 # ---------------------------------------------------------------------------
 # Stub backend (compat with the StubBackend in test_communities.py)
 # ---------------------------------------------------------------------------
@@ -137,13 +136,19 @@ def mixed_backend():
         ),
         # Semantic edges that the legacy export missed.
         _edge(
-            "code:function:a.py::login", "code:function:a.py::verify", "calls",
+            "code:function:a.py::login",
+            "code:function:a.py::verify",
+            "calls",
         ),
         _edge(
-            "code:function:a.py::login", "code:function:a.py::issue_jwt", "calls",
+            "code:function:a.py::login",
+            "code:function:a.py::issue_jwt",
+            "calls",
         ),
         _edge(
-            "code:function:a.py::verify", "code:function:a.py::issue_jwt", "calls",
+            "code:function:a.py::verify",
+            "code:function:a.py::issue_jwt",
+            "calls",
         ),
     ]
     be = _StubBackend(nodes, edges)
@@ -154,9 +159,7 @@ def mixed_backend():
 def _bind_backend(mixed_backend, monkeypatch):
     """Pin the singleton so every cos_graph_export call hits the stub."""
     monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", mixed_backend)
-    monkeypatch.setattr(
-        graph_tools, "_backend", lambda backend=None: mixed_backend
-    )
+    monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: mixed_backend)
     yield
 
 
@@ -212,9 +215,7 @@ class TestAutoMode:
 
 class TestContainmentMode:
     def test_only_contains_edges(self):
-        res = _parse(
-            graph_tools.cos_graph_export(mode="containment", max_nodes=50)
-        )
+        res = _parse(graph_tools.cos_graph_export(mode="containment", max_nodes=50))
         assert res["ok"] is True
         edge_types = {e["edge_type"] for e in res["data"]["edges"]}
         assert edge_types <= {"contains"}
@@ -227,9 +228,7 @@ class TestContainmentMode:
 
 class TestDependenciesMode:
     def test_no_contains_edges(self):
-        res = _parse(
-            graph_tools.cos_graph_export(mode="dependencies", max_nodes=50)
-        )
+        res = _parse(graph_tools.cos_graph_export(mode="dependencies", max_nodes=50))
         assert res["ok"] is True
         edge_types = {e["edge_type"] for e in res["data"]["edges"]}
         assert "contains" not in edge_types
@@ -272,13 +271,12 @@ class TestProcessesMode:
             ),
         )
         monkeypatch.setattr(
-            comm_mod, "compute_communities",
+            comm_mod,
+            "compute_communities",
             lambda be, **kwargs: ([synthetic], {}),
         )
 
-        res = _parse(
-            graph_tools.cos_graph_export(mode="processes", max_nodes=20)
-        )
+        res = _parse(graph_tools.cos_graph_export(mode="processes", max_nodes=20))
         assert res["ok"] is True
         kinds = {n["kind"] for n in res["data"]["nodes"]}
         assert "community" in kinds
@@ -294,11 +292,7 @@ class TestProcessesMode:
 class TestExcludeKinds:
     def test_empty_list_disables_filter(self):
         # Pass `[]` to keep all kinds — frontmatter / heading visible.
-        res = _parse(
-            graph_tools.cos_graph_export(
-                mode="auto", max_nodes=50, exclude_kinds=[]
-            )
-        )
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=50, exclude_kinds=[]))
         kinds = {n["kind"] for n in res["data"]["nodes"]}
         assert "doc:frontmatter_key" in kinds or "doc:heading" in kinds
 

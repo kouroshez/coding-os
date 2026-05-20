@@ -1,4 +1,5 @@
 """PostToolUseFailure hook helper — capture meaningful tool failures to DB."""
+
 from __future__ import annotations
 
 import json
@@ -6,7 +7,6 @@ import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
 
 _BLOCKED_MARKER = "BLOCKED"  # cos hook block messages start with this
 _SKIP_TOOLS = frozenset({"Bash"})  # Bash failures are too noisy — skip by default
@@ -17,9 +17,12 @@ def _now_iso() -> str:
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
-    return conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
-    ).fetchone() is not None
+    return (
+        conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+        ).fetchone()
+        is not None
+    )
 
 
 def _is_hook_blocked(error: str) -> bool:
@@ -70,9 +73,10 @@ def capture(conn: sqlite3.Connection, session_id: str, payload: dict) -> str:
     narrative = error[:500]
 
     import hashlib
-    content_hash = hashlib.sha256(
-        f"{session_id}:{tool_name}:{error[:100]}".encode()
-    ).hexdigest()[:16]
+
+    content_hash = hashlib.sha256(f"{session_id}:{tool_name}:{error[:100]}".encode()).hexdigest()[
+        :16
+    ]
 
     if _dedup_check(conn, session_id, content_hash):
         return "deduped"

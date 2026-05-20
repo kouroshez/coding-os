@@ -38,7 +38,9 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 
 
 def gc_memory(
-    db_path: str | Path | None = None, *, dry_run: bool = False,
+    db_path: str | Path | None = None,
+    *,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     """Remove dangling embeddings + concept_graph edges + trash observations.
 
@@ -89,20 +91,20 @@ def gc_memory(
                 params.extend([f"{prefix}%", f"{prefix}%"])
             where = " OR ".join(globs * len(TRASH_PATH_PREFIXES))
             cur = conn.execute(
-                f"SELECT COUNT(*) FROM concept_graph WHERE {where}", params,
+                f"SELECT COUNT(*) FROM concept_graph WHERE {where}",
+                params,
             )
             n = cur.fetchone()[0]
             stats["orphan_concept_graph_edges"] = int(n)
             if n and not dry_run:
                 conn.execute(
-                    f"DELETE FROM concept_graph WHERE {where}", params,
+                    f"DELETE FROM concept_graph WHERE {where}",
+                    params,
                 )
 
         # ---- 3. Trash observations (captured during local experiments) ----
         if _table_exists(conn, "observations"):
-            like_terms = " OR ".join(
-                "files_modified LIKE ?" for _ in TRASH_PATH_PREFIXES
-            )
+            like_terms = " OR ".join("files_modified LIKE ?" for _ in TRASH_PATH_PREFIXES)
             like_params = [f"{p}%" for p in TRASH_PATH_PREFIXES]
             cur = conn.execute(
                 f"SELECT COUNT(*) FROM observations WHERE {like_terms}",
@@ -113,7 +115,8 @@ def gc_memory(
             if n and not dry_run:
                 # observations FTS + concept_graph triggers fire on DELETE.
                 conn.execute(
-                    f"DELETE FROM observations WHERE {like_terms}", like_params,
+                    f"DELETE FROM observations WHERE {like_terms}",
+                    like_params,
                 )
 
         if not dry_run:

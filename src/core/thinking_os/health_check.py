@@ -46,10 +46,7 @@ def _resolve_agent_dir() -> Path | None:
         return Path(explicit)
     if not STATE_DIR.exists():
         return None
-    candidates = [
-        p for p in STATE_DIR.iterdir()
-        if p.is_dir() and (p / ".session-id").exists()
-    ]
+    candidates = [p for p in STATE_DIR.iterdir() if p.is_dir() and (p / ".session-id").exists()]
     if not candidates:
         return None
     return max(candidates, key=lambda p: (p / ".session-id").stat().st_mtime)
@@ -134,7 +131,9 @@ def check_database() -> dict:
         result["stats"]["learning_tables_active"] = learning_active
         result["stats"]["learning_tables_total"] = len(LEARNING_TABLES)
         if learning_active == 0:
-            result["issues"].append("Self-learning pipeline not activated (0 learning tables have data)")
+            result["issues"].append(
+                "Self-learning pipeline not activated (0 learning tables have data)"
+            )
 
         # Session summaries null ratio
         row = conn.execute(
@@ -213,7 +212,9 @@ def check_hooks() -> dict:
             try:
                 subprocess.run(
                     ["bash", "-n", str(hook_path)],
-                    capture_output=True, timeout=5, check=True,
+                    capture_output=True,
+                    timeout=5,
+                    check=True,
                 )
                 hook_info["syntax_ok"] = True
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
@@ -245,7 +246,9 @@ def check_gates() -> dict:
     agent_dir = _resolve_agent_dir()
     if agent_dir is None:
         result["session_id"] = None
-        result["issues"].append("No agent dir (.coding-os/<agent>/) found — session tracking inactive")
+        result["issues"].append(
+            "No agent dir (.coding-os/<agent>/) found — session tracking inactive"
+        )
         return result
 
     # Session ID — agent-scoped (Rule 5)
@@ -266,7 +269,12 @@ def check_gates() -> dict:
 
     for name, filename in gate_files.items():
         gate_path = agent_dir / filename
-        gate_info: dict = {"exists": False, "value": None, "session_match": False, "age_minutes": None}
+        gate_info: dict = {
+            "exists": False,
+            "value": None,
+            "session_match": False,
+            "age_minutes": None,
+        }
 
         if gate_path.exists():
             gate_info["exists"] = True
@@ -277,8 +285,7 @@ def check_gates() -> dict:
                 file_session = parts[0]
                 gate_info["value"] = parts[1]
                 gate_info["session_match"] = (
-                    result.get("session_id") is not None
-                    and file_session == result["session_id"]
+                    result.get("session_id") is not None and file_session == result["session_id"]
                 )
 
             # Age
@@ -416,13 +423,17 @@ def print_human_readable(results: dict) -> None:
     print(f"── Database {status_icon.get(db['status'], '?')} ─────────────────────────────────")
     if db.get("stats"):
         s = db["stats"]
-        print(f"  Size: {s.get('db_size_mb', '?')} MB  |  Schema: v{s.get('schema_version', '?')}  |  FTS5: {s.get('fts5_available', '?')}")
+        print(
+            f"  Size: {s.get('db_size_mb', '?')} MB  |  Schema: v{s.get('schema_version', '?')}  |  FTS5: {s.get('fts5_available', '?')}"
+        )
         if "tables" in s:
             print("  Tables:")
             for table, count in s["tables"].items():
                 marker = "✅" if (count or 0) > 0 else "��"
                 print(f"    {marker} {table}: {count or 0}")
-        print(f"  Learning tables active: {s.get('learning_tables_active', 0)}/{s.get('learning_tables_total', 0)}")
+        print(
+            f"  Learning tables active: {s.get('learning_tables_active', 0)}/{s.get('learning_tables_total', 0)}"
+        )
         if "session_null_ratio_pct" in s:
             print(f"  Session null ratio: {s['session_null_ratio_pct']}%")
         if "observations_narrative_null_pct" in s:
@@ -432,20 +443,28 @@ def print_human_readable(results: dict) -> None:
     # Hooks
     hooks = results["hooks"]
     print(f"── Hooks {status_icon.get(hooks['status'], '?')} ────────────────────────────────────")
-    ok_count = sum(1 for h in hooks.get("hooks", {}).values() if h.get("exists") and h.get("syntax_ok"))
+    ok_count = sum(
+        1 for h in hooks.get("hooks", {}).values() if h.get("exists") and h.get("syntax_ok")
+    )
     total = len(hooks.get("hooks", {}))
-    print(f"  {ok_count}/{total} hooks OK  |  Test suite: {'✅' if hooks.get('test_suite_exists') else '❌'}")
+    print(
+        f"  {ok_count}/{total} hooks OK  |  Test suite: {'✅' if hooks.get('test_suite_exists') else '❌'}"
+    )
     print()
 
     # Gates
     gates = results["gates"]
-    print(f"── Gates {status_icon.get(gates['status'], '?')} ──────���─────────────────────────────")
+    print(
+        f"── Gates {status_icon.get(gates['status'], '?')} ──────���─────────────────────────────"
+    )
     print(f"  Session: {gates.get('session_id', 'none')}")
     for name, info in gates.get("gates", {}).items():
         if info["exists"]:
             match = "✅" if info.get("session_match") else "❌"
             stale = " (STALE)" if info.get("stale") else ""
-            print(f"  {name}: {info.get('value', '?')} [session:{match}] [{info.get('age_minutes', '?')}min]{stale}")
+            print(
+                f"  {name}: {info.get('value', '?')} [session:{match}] [{info.get('age_minutes', '?')}min]{stale}"
+            )
         else:
             print(f"  {name}: not set")
     print()

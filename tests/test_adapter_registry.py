@@ -87,6 +87,7 @@ def test_adapter_without_manifest_silently_skipped(tmp_path: Path) -> None:
 
 # ---------- JSON schema validation ----------
 
+
 def test_adapter_schema_rejects_unknown_field(tmp_path: Path) -> None:
     adapter_dir = tmp_path / "typo"
     adapter_dir.mkdir()

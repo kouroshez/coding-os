@@ -1,4 +1,5 @@
 """Unit tests for cli.board_commands runtime/session detection."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from cli import board_commands
-
 
 _ENV_KEYS = [
     "COS_AGENT",
@@ -101,7 +101,8 @@ def test_no_signals_returns_none(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 
 
 def test_agent_session_id_reads_matching_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _write_session(tmp_path, "claude", "ses-claude-20260424-abcdef")
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
@@ -110,7 +111,8 @@ def test_agent_session_id_reads_matching_file(
 
 
 def test_agent_session_id_env_override(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("COS_AGENT_SESSION_ID", "ses-explicit-override")
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
@@ -118,7 +120,8 @@ def test_agent_session_id_env_override(
 
 
 def test_agent_session_id_returns_none_when_no_runtime(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
     assert board_commands._agent_session_id() is None

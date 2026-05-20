@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import pytest
 
+from graph_os.backends.sqlite_backend import SqliteBackend
+
 # conftest pushes core/thinking_os + core onto sys.path.
-from graph_os.types import EvidenceSignal, GraphEdge, GraphNode  # noqa: E402
-from graph_os.backends.sqlite_backend import SqliteBackend  # noqa: E402
+from graph_os.types import EvidenceSignal, GraphEdge, GraphNode
 
 
 @pytest.fixture()

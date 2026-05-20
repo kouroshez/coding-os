@@ -34,7 +34,9 @@ def test_cognition_traces_lists_jsonl_sessions(client):
     (state / "claude" / "traces" / "ses-a.jsonl").write_text("{}", encoding="utf-8")
     (state / "claude" / "sessions").mkdir(parents=True, exist_ok=True)
     (state / "claude" / "sessions" / "ses-claude-20260425-111111-aaaa.json").write_text(
-        json.dumps({"agent": "claude", "session_id": "ses-claude-20260425-111111-aaaa", "started_at": 1}),
+        json.dumps(
+            {"agent": "claude", "session_id": "ses-claude-20260425-111111-aaaa", "started_at": 1}
+        ),
         encoding="utf-8",
     )
 
@@ -157,6 +159,7 @@ def test_cognition_traces_sorted_newest_first(client):
     old_file.chmod(0o644)
     new_file.chmod(0o644)
     import os
+
     os.utime(old_file, (old_ts, old_ts))
     os.utime(new_file, (new_ts, new_ts))
 

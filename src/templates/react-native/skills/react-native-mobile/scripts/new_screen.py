@@ -46,10 +46,10 @@ def main() -> int:
         f"  const loading = false;\n"
         f"  const error: Error | null = null;\n"
         f"  const data: unknown = null;\n\n"
-        f"  if (loading) return <ActivityIndicator accessibilityLabel=\"Loading\" />;\n"
-        f"  if (error) return <Text accessibilityRole=\"alert\">{{error.message}}</Text>;\n"
+        f'  if (loading) return <ActivityIndicator accessibilityLabel="Loading" />;\n'
+        f'  if (error) return <Text accessibilityRole="alert">{{error.message}}</Text>;\n'
         f"  if (!data) return <Text>Empty</Text>;\n"
-        f"  return <View testID=\"{args.name}\" />;\n"
+        f'  return <View testID="{args.name}" />;\n'
         f"}}\n",
         encoding="utf-8",
     )

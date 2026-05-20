@@ -96,7 +96,14 @@ def _detect_type(title: str) -> str:
 def _estimate_complexity(title: str) -> tuple[str, int]:
     """Estimate complexity from title. Returns (classification, dimensions)."""
     title_lower = title.lower()
-    complex_keywords = ["architecture", "system", "orchestration", "refactor", "migration", "security"]
+    complex_keywords = [
+        "architecture",
+        "system",
+        "orchestration",
+        "refactor",
+        "migration",
+        "security",
+    ]
     simple_keywords = ["fix", "patch", "rename", "typo", "lint", "format"]
 
     if any(k in title_lower for k in simple_keywords):
@@ -114,9 +121,7 @@ def bootstrap(dry_run: bool = False) -> dict:
     conn = get_connection(DEFAULT_DB_PATH)
     try:
         # Get existing task IDs to avoid duplicates
-        existing = {
-            r[0] for r in conn.execute("SELECT task_id FROM task_outcomes").fetchall()
-        }
+        existing = {r[0] for r in conn.execute("SELECT task_id FROM task_outcomes").fetchall()}
 
         text = TASKS_FILE.read_text()
         pattern = re.compile(r"^- \[x\] (TASK-\d+):\s*(.+)$", re.MULTILINE)
@@ -151,6 +156,7 @@ def bootstrap(dry_run: bool = False) -> dict:
         if not dry_run and inserted > 0:
             try:
                 from tools.learning import learn_extract
+
                 result = learn_extract(conn, min_occurrences=2)
                 extracted = result.get("extracted", [])
             except Exception as e:
@@ -174,18 +180,20 @@ def main() -> None:
         print("DRY RUN — no changes")
 
     result = bootstrap(dry_run=dry_run)
-    print(f"Bootstrap results:")
+    print("Bootstrap results:")
     for k, v in result.items():
         if k != "patterns":
             print(f"  {k}: {v}")
 
     if result.get("patterns"):
-        print(f"\nExtracted patterns:")
+        print("\nExtracted patterns:")
         for p in result["patterns"]:
             if "error" in p:
                 print(f"  ERROR: {p['error']}")
             else:
-                print(f"  [{p.get('action', '?')}] {p.get('pattern', '?')} (conf: {p.get('confidence', '?')})")
+                print(
+                    f"  [{p.get('action', '?')}] {p.get('pattern', '?')} (conf: {p.get('confidence', '?')})"
+                )
 
 
 if __name__ == "__main__":

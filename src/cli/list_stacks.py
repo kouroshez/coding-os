@@ -64,7 +64,8 @@ def _render_json(registry, warnings: tuple[str, ...]) -> str:
 
 @click.command("list-stacks")
 @click.option(
-    "--format", "output_format",
+    "--format",
+    "output_format",
     type=click.Choice(["text", "json"]),
     default="text",
     help="Output format",

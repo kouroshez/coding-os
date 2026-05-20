@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from core.board_os.parser import (
-    ParsedTask, extract_frontmatter, is_lean_format, parse_task,
+    ParsedTask,
+    extract_frontmatter,
+    is_lean_format,
+    parse_task,
 )
-
 
 LEAN_FIXTURE = """---
 id: TASK-199

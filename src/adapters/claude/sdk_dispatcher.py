@@ -96,8 +96,10 @@ def _resolve_output_schema(meta: dict[str, Any]) -> dict[str, Any] | None:
 # Dispatcher
 # ---------------------------------------------------------------------------
 
-def _presence_write(project_root: Path, agent: str, session_id: str,
-                    event: str, pid: int | None = None) -> None:
+
+def _presence_write(
+    project_root: Path, agent: str, session_id: str, event: str, pid: int | None = None
+) -> None:
     """Write a single presence event for an SDK-spawned sub-agent."""
     import json as _json
     import os as _os
@@ -150,6 +152,7 @@ class ClaudeSDKDispatcher:
         self._import_error: str | None = None
         try:
             import claude_agent_sdk  # noqa: F401
+
             self._sdk_ok = True
         except ImportError as exc:
             self._import_error = str(exc)
@@ -208,8 +211,7 @@ class ClaudeSDKDispatcher:
         # Other adapters that don't honor this key ignore it (Rule 1).
         role_skills = agent_meta.get("skills") if isinstance(agent_meta, dict) else None
         if role_skills is not None and (
-            not isinstance(role_skills, list)
-            or not all(isinstance(s, str) for s in role_skills)
+            not isinstance(role_skills, list) or not all(isinstance(s, str) for s in role_skills)
         ):
             role_skills = None
             logger.warning(
@@ -300,8 +302,12 @@ class ClaudeSDKDispatcher:
         logger.debug(
             "claude-sdk dispatch: formula=%s model=%s effort=%s "
             "structured=%s budget_usd=%s tools=%s",
-            request.formula_id, request.model, effort, bool(output_format),
-            request.max_budget_usd, allow_list,
+            request.formula_id,
+            request.model,
+            effort,
+            bool(output_format),
+            request.max_budget_usd,
+            allow_list,
         )
 
         # Pre-compute sub-session identity so programmatic hook closures
@@ -309,9 +315,7 @@ class ClaudeSDKDispatcher:
         # safety as the existing presence_write call (formula_id already
         # restricted to [A-Za-z0-9_-] by DispatchRequest validator).
         safe_formula = re.sub(r"[^A-Za-z0-9_-]", "_", request.formula_id) or "formula"
-        sub_session_id = (
-            f"ses-claude-sdk-{safe_formula}-{int(time.time())}-{os.getpid()}"
-        )
+        sub_session_id = f"ses-claude-sdk-{safe_formula}-{int(time.time())}-{os.getpid()}"
         project_root = Path(request.cwd) if request.cwd else Path(os.getcwd())
 
         # Per-dispatch state captured by programmatic hooks (T3.1, T3.2)
@@ -339,12 +343,14 @@ class ClaudeSDKDispatcher:
             _ctx: Any,
         ) -> dict[str, Any]:
             try:
-                tool_calls.append({
-                    "tool_use_id": tool_use_id,
-                    "tool_name": input_data.get("tool_name"),
-                    "tool_input": input_data.get("tool_input"),
-                })
-            except Exception as exc:  # noqa: BLE001 — hook MUST NOT raise
+                tool_calls.append(
+                    {
+                        "tool_use_id": tool_use_id,
+                        "tool_name": input_data.get("tool_name"),
+                        "tool_input": input_data.get("tool_input"),
+                    }
+                )
+            except Exception as exc:
                 logger.debug("PreToolUse hook capture failed: %s", exc)
             return {}
 
@@ -354,16 +360,19 @@ class ClaudeSDKDispatcher:
             _ctx: Any,
         ) -> dict[str, Any]:
             try:
-                tool_failures.append({
-                    "tool_use_id": tool_use_id,
-                    "tool_name": input_data.get("tool_name"),
-                    "tool_response": input_data.get("tool_response"),
-                })
+                tool_failures.append(
+                    {
+                        "tool_use_id": tool_use_id,
+                        "tool_name": input_data.get("tool_name"),
+                        "tool_response": input_data.get("tool_response"),
+                    }
+                )
                 logger.warning(
                     "claude-sdk dispatch tool failure: formula=%s tool=%s",
-                    request.formula_id, input_data.get("tool_name"),
+                    request.formula_id,
+                    input_data.get("tool_name"),
                 )
-            except Exception as exc:  # noqa: BLE001 — hook MUST NOT raise
+            except Exception as exc:
                 logger.debug("PostToolUseFailure hook capture failed: %s", exc)
             return {}
 
@@ -421,9 +430,7 @@ class ClaudeSDKDispatcher:
         # These events still fire in interactive sessions via registry.yaml.
         opts_kwargs["hooks"] = {
             "PreToolUse": [HookMatcher(matcher="", hooks=[_pre_tool_use])],
-            "PostToolUseFailure": [
-                HookMatcher(matcher="", hooks=[_post_tool_use_failure])
-            ],
+            "PostToolUseFailure": [HookMatcher(matcher="", hooks=[_post_tool_use_failure])],
         }
         options = ClaudeAgentOptions(**opts_kwargs)
 
@@ -442,7 +449,7 @@ class ClaudeSDKDispatcher:
                         uuid_val = getattr(msg, "uuid", None)
                         if uuid_val is not None:
                             checkpoint_uuids.append(str(uuid_val))
-                    except Exception as exc:  # noqa: BLE001
+                    except Exception as exc:
                         logger.debug("UUID capture failed: %s", exc)
                 elif isinstance(msg, AssistantMessage):
                     _presence_write(project_root, "claude", sub_session_id, "tool")
@@ -571,9 +578,7 @@ class ClaudeSDKDispatcher:
         if result_subtype:
             output_json.setdefault("_meta", {})["subtype"] = result_subtype
 
-        ok = bool(output_json) and any(
-            k != "_meta" for k in output_json.keys()
-        )
+        ok = bool(output_json) and any(k != "_meta" for k in output_json.keys())
         # T1.5: surface the retry-exhausted subtype in the error field so callers
         # can route to a retry-with-relaxed-prompt path. Status stays "ok" when
         # regex fallback recovered usable JSON — the output bundle is still
@@ -601,6 +606,7 @@ class ClaudeSDKDispatcher:
 # ---------------------------------------------------------------------------
 # Factory — imported by core/thinking_os/dispatcher.py via importlib
 # ---------------------------------------------------------------------------
+
 
 def build_dispatcher() -> ClaudeSDKDispatcher:
     """Entry point the factory looks for when loading this module."""

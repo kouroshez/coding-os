@@ -4,6 +4,7 @@ USAGE
     python3 graph_context_match.py <config_yaml_path> <file_path>
 Prints "yes" or "no" on stdout.
 """
+
 from __future__ import annotations
 
 import fnmatch
@@ -16,17 +17,17 @@ def main(argv: list[str]) -> int:
         return 0
     config_path, fp = argv[1], argv[2]
     try:
-        import yaml  # noqa: WPS433 — lazy
+        import yaml
     except ImportError:
         print("no")
         return 0
     try:
-        with open(config_path, "r", encoding="utf-8") as fh:
+        with open(config_path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
     except OSError:
         print("no")
         return 0
-    patterns = (((data.get("graph") or {}).get("enforce_context_on")) or [])
+    patterns = ((data.get("graph") or {}).get("enforce_context_on")) or []
     for pat in patterns:
         if fnmatch.fnmatchcase(fp, pat):
             print("yes")

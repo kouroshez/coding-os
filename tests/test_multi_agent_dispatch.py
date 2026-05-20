@@ -11,6 +11,7 @@ This test file is deliberately small: the goal is regression coverage for
 the cross-agent contract itself, not for each adapter's spawn path. Each
 adapter has its own focused tests (test_codex_dispatchers.py, etc.).
 """
+
 from __future__ import annotations
 
 import asyncio

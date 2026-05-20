@@ -8,15 +8,17 @@ from __future__ import annotations
 
 import json
 import sqlite3
+
+# Adjust path so we can import from parent
+import sys
 from pathlib import Path
 
 import pytest
 
-# Adjust path so we can import from parent
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import (
+    MIGRATIONS,
     PROTECTED_TRUST_TIERS,
     VALID_PROVENANCE,
     VALID_TRUST_TIERS,
@@ -33,13 +35,12 @@ from database import (
     is_pattern_protected,
     record_audit,
     run_migrations,
-    MIGRATIONS,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db_path(tmp_path: Path) -> Path:
@@ -67,6 +68,7 @@ def migrated_conn(tmp_db_path: Path) -> sqlite3.Connection:
 # WAL mode and PRAGMAs
 # ---------------------------------------------------------------------------
 
+
 class TestPragmas:
     def test_wal_mode_enabled(self, fresh_conn: sqlite3.Connection) -> None:
         mode = fresh_conn.execute("PRAGMA journal_mode").fetchone()[0]
@@ -88,6 +90,7 @@ class TestPragmas:
 # ---------------------------------------------------------------------------
 # Schema versioning
 # ---------------------------------------------------------------------------
+
 
 class TestSchemaVersioning:
     def test_fresh_db_version_is_zero(self, fresh_conn: sqlite3.Connection) -> None:
@@ -142,8 +145,7 @@ class TestTableCreation:
 
     def test_task_outcomes_columns(self, migrated_conn: sqlite3.Connection) -> None:
         cols = [
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(task_outcomes)").fetchall()
+            row[1] for row in migrated_conn.execute("PRAGMA table_info(task_outcomes)").fetchall()
         ]
         assert "task_id" in cols
         assert "outcome" in cols
@@ -152,8 +154,7 @@ class TestTableCreation:
 
     def test_observations_columns(self, migrated_conn: sqlite3.Connection) -> None:
         cols = [
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(observations)").fetchall()
+            row[1] for row in migrated_conn.execute("PRAGMA table_info(observations)").fetchall()
         ]
         assert "session_id" in cols
         assert "content_hash" in cols
@@ -177,6 +178,7 @@ class TestTableCreation:
 # Data insertion smoke test
 # ---------------------------------------------------------------------------
 
+
 class TestDataOperations:
     def test_insert_task_outcome(self, migrated_conn: sqlite3.Connection) -> None:
         migrated_conn.execute(
@@ -193,8 +195,7 @@ class TestDataOperations:
 
     def test_insert_observation(self, migrated_conn: sqlite3.Connection) -> None:
         migrated_conn.execute(
-            "INSERT INTO observations (session_id, tool_name, title, concepts) "
-            "VALUES (?, ?, ?, ?)",
+            "INSERT INTO observations (session_id, tool_name, title, concepts) VALUES (?, ?, ?, ?)",
             ("sess-001", "Read", "Read config file", '["config","settings"]'),
         )
         migrated_conn.commit()
@@ -207,8 +208,7 @@ class TestDataOperations:
 
     def test_insert_learned_pattern(self, migrated_conn: sqlite3.Connection) -> None:
         migrated_conn.execute(
-            "INSERT INTO learned_patterns (pattern, domain, confidence) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO learned_patterns (pattern, domain, confidence) VALUES (?, ?, ?)",
             ("Always use services layer for DB writes", "BACKEND", 0.6),
         )
         migrated_conn.commit()
@@ -222,6 +222,7 @@ class TestDataOperations:
 # ---------------------------------------------------------------------------
 # FTS5 detection
 # ---------------------------------------------------------------------------
+
 
 class TestFTS5Detection:
     def test_fts5_returns_bool(self, migrated_conn: sqlite3.Connection) -> None:
@@ -243,12 +244,19 @@ class TestFTS5Detection:
 # Stats helper
 # ---------------------------------------------------------------------------
 
+
 class TestDbStats:
     def test_stats_returns_all_tables(self, migrated_conn: sqlite3.Connection) -> None:
         stats = get_db_stats(migrated_conn)
         assert "tables" in stats
-        for table in ["task_outcomes", "agent_metrics", "learned_patterns",
-                       "experiment_log", "observations", "session_summaries"]:
+        for table in [
+            "task_outcomes",
+            "agent_metrics",
+            "learned_patterns",
+            "experiment_log",
+            "observations",
+            "session_summaries",
+        ]:
             assert table in stats["tables"]
             assert stats["tables"][table] == 0  # fresh DB
 
@@ -281,6 +289,7 @@ class TestDbStats:
 # init_db integration
 # ---------------------------------------------------------------------------
 
+
 class TestInitDb:
     def test_init_db_creates_file(self, tmp_db_path: Path) -> None:
         conn = init_db(tmp_db_path)
@@ -302,6 +311,7 @@ class TestInitDb:
 # Migration v5 — Phase B RAG (embeddings + document_chunks)
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationV5RAG:
     def test_embeddings_table_created(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
@@ -316,21 +326,33 @@ class TestMigrationV5RAG:
         assert row is not None
 
     def test_embeddings_columns(self, migrated_conn: sqlite3.Connection) -> None:
-        cols = [
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(embeddings)").fetchall()
-        ]
-        for required in ("id", "source_table", "source_id", "text_hash", "embedding", "model_name", "created_at"):
+        cols = [row[1] for row in migrated_conn.execute("PRAGMA table_info(embeddings)").fetchall()]
+        for required in (
+            "id",
+            "source_table",
+            "source_id",
+            "text_hash",
+            "embedding",
+            "model_name",
+            "created_at",
+        ):
             assert required in cols, f"embeddings missing column {required}"
 
     def test_document_chunks_columns(self, migrated_conn: sqlite3.Connection) -> None:
         cols = [
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(document_chunks)").fetchall()
+            row[1] for row in migrated_conn.execute("PRAGMA table_info(document_chunks)").fetchall()
         ]
         for required in (
-            "id", "source_path", "source_type", "chunk_index", "heading_path",
-            "content", "content_hash", "priority", "mtime", "created_at",
+            "id",
+            "source_path",
+            "source_type",
+            "chunk_index",
+            "heading_path",
+            "content",
+            "content_hash",
+            "priority",
+            "mtime",
+            "created_at",
         ):
             assert required in cols, f"document_chunks missing column {required}"
 
@@ -371,9 +393,7 @@ class TestMigrationV5RAG:
     ) -> None:
         assert has_embeddings_table(migrated_conn) is True
 
-    def test_has_embeddings_table_false_on_unmigrated(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
+    def test_has_embeddings_table_false_on_unmigrated(self, fresh_conn: sqlite3.Connection) -> None:
         assert has_embeddings_table(fresh_conn) is False
 
     def test_idx_embeddings_source_exists(self, migrated_conn: sqlite3.Connection) -> None:
@@ -399,6 +419,7 @@ class TestMigrationV5RAG:
 # Migration v6 — Phase C Task Store
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationV6Tasks:
     def test_tasks_table_created(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
@@ -407,15 +428,27 @@ class TestMigrationV6Tasks:
         assert row is not None
 
     def test_tasks_columns(self, migrated_conn: sqlite3.Connection) -> None:
-        cols = {
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(tasks)").fetchall()
-        }
+        cols = {row[1] for row in migrated_conn.execute("PRAGMA table_info(tasks)").fetchall()}
         expected = {
-            "task_id", "title", "domain", "status", "file_path", "content_hash",
-            "mtime", "goal_text", "scope_in", "scope_out", "requirements",
-            "dependencies", "source_of_truth", "read_first", "open_questions",
-            "rabbit_holes", "verification", "created_at", "updated_at",
+            "task_id",
+            "title",
+            "domain",
+            "status",
+            "file_path",
+            "content_hash",
+            "mtime",
+            "goal_text",
+            "scope_in",
+            "scope_out",
+            "requirements",
+            "dependencies",
+            "source_of_truth",
+            "read_first",
+            "open_questions",
+            "rabbit_holes",
+            "verification",
+            "created_at",
+            "updated_at",
         }
         missing = expected - cols
         assert not missing, f"tasks table missing columns: {missing}"
@@ -445,14 +478,10 @@ class TestMigrationV6Tasks:
         assert "idx_tasks_domain" in indexes
         assert "idx_tasks_file_path" in indexes
 
-    def test_has_tasks_table_true_after_migration(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_has_tasks_table_true_after_migration(self, migrated_conn: sqlite3.Connection) -> None:
         assert has_tasks_table(migrated_conn) is True
 
-    def test_has_tasks_table_false_on_unmigrated(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
+    def test_has_tasks_table_false_on_unmigrated(self, fresh_conn: sqlite3.Connection) -> None:
         assert has_tasks_table(fresh_conn) is False
 
     def test_v6_idempotent(self, fresh_conn: sqlite3.Connection) -> None:
@@ -473,6 +502,7 @@ class TestMigrationV6Tasks:
 # Migration v7 — Phase G.1 Brain Hardening (trust_tier, provenance, memory_audit)
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationV7BrainHardening:
     def test_schema_version_at_least_7(self, migrated_conn: sqlite3.Connection) -> None:
         assert get_schema_version(migrated_conn) >= 7
@@ -480,27 +510,20 @@ class TestMigrationV7BrainHardening:
     def test_learned_patterns_has_trust_tier(self, migrated_conn: sqlite3.Connection) -> None:
         cols = {
             row[1]
-            for row in migrated_conn.execute(
-                "PRAGMA table_info(learned_patterns)"
-            ).fetchall()
+            for row in migrated_conn.execute("PRAGMA table_info(learned_patterns)").fetchall()
         }
         assert "trust_tier" in cols
 
     def test_learned_patterns_has_provenance(self, migrated_conn: sqlite3.Connection) -> None:
         cols = {
             row[1]
-            for row in migrated_conn.execute(
-                "PRAGMA table_info(learned_patterns)"
-            ).fetchall()
+            for row in migrated_conn.execute("PRAGMA table_info(learned_patterns)").fetchall()
         }
         assert "provenance" in cols
 
     def test_observations_has_provenance(self, migrated_conn: sqlite3.Connection) -> None:
         cols = {
-            row[1]
-            for row in migrated_conn.execute(
-                "PRAGMA table_info(observations)"
-            ).fetchall()
+            row[1] for row in migrated_conn.execute("PRAGMA table_info(observations)").fetchall()
         }
         assert "provenance" in cols
 
@@ -515,14 +538,10 @@ class TestMigrationV7BrainHardening:
     ) -> None:
         assert has_memory_audit_table(migrated_conn) is True
 
-    def test_has_memory_audit_table_false_on_fresh(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
+    def test_has_memory_audit_table_false_on_fresh(self, fresh_conn: sqlite3.Connection) -> None:
         assert has_memory_audit_table(fresh_conn) is False
 
-    def test_default_trust_tier_is_volatile(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_default_trust_tier_is_volatile(self, migrated_conn: sqlite3.Connection) -> None:
         migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern) VALUES (?)",
             ("test pattern",),
@@ -533,9 +552,7 @@ class TestMigrationV7BrainHardening:
         ).fetchone()
         assert row[0] == "volatile"
 
-    def test_default_provenance_is_agent_self(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_default_provenance_is_agent_self(self, migrated_conn: sqlite3.Connection) -> None:
         migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern) VALUES (?)",
             ("pattern-prov",),
@@ -546,9 +563,7 @@ class TestMigrationV7BrainHardening:
         ).fetchone()
         assert row[0] == "agent_self"
 
-    def test_observations_default_provenance(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_observations_default_provenance(self, migrated_conn: sqlite3.Connection) -> None:
         migrated_conn.execute(
             "INSERT INTO observations (title, narrative) VALUES (?, ?)",
             ("t", "n"),
@@ -558,9 +573,7 @@ class TestMigrationV7BrainHardening:
         ).fetchone()
         assert row[0] == "agent_self"
 
-    def test_locked_pattern_update_blocked(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_locked_pattern_update_blocked(self, migrated_conn: sqlite3.Connection) -> None:
         """UPDATE on a locked pattern must raise via the protection trigger."""
         cursor = migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern, trust_tier) VALUES (?, ?)",
@@ -575,9 +588,7 @@ class TestMigrationV7BrainHardening:
                 (pattern_id,),
             )
 
-    def test_core_pattern_update_blocked(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_core_pattern_update_blocked(self, migrated_conn: sqlite3.Connection) -> None:
         cursor = migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern, trust_tier) VALUES (?, ?)",
             ("core-governance", "core"),
@@ -591,9 +602,7 @@ class TestMigrationV7BrainHardening:
                 (pattern_id,),
             )
 
-    def test_locked_pattern_delete_blocked(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_locked_pattern_delete_blocked(self, migrated_conn: sqlite3.Connection) -> None:
         cursor = migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern, trust_tier) VALUES (?, ?)",
             ("locked-del", "locked"),
@@ -602,13 +611,9 @@ class TestMigrationV7BrainHardening:
         migrated_conn.commit()
 
         with pytest.raises(sqlite3.IntegrityError):
-            migrated_conn.execute(
-                "DELETE FROM learned_patterns WHERE id = ?", (pattern_id,)
-            )
+            migrated_conn.execute("DELETE FROM learned_patterns WHERE id = ?", (pattern_id,))
 
-    def test_volatile_pattern_update_allowed(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_volatile_pattern_update_allowed(self, migrated_conn: sqlite3.Connection) -> None:
         """Baseline: volatile rows are mutable as before (no regression)."""
         cursor = migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern) VALUES (?)",
@@ -627,9 +632,7 @@ class TestMigrationV7BrainHardening:
         ).fetchone()
         assert abs(row[0] - 0.42) < 1e-6
 
-    def test_validated_pattern_update_allowed(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_validated_pattern_update_allowed(self, migrated_conn: sqlite3.Connection) -> None:
         """Only locked/core are protected — validated rows still mutable."""
         cursor = migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern, trust_tier) VALUES (?, ?)",
@@ -648,9 +651,7 @@ class TestMigrationV7BrainHardening:
         ).fetchone()
         assert abs(row[0] - 0.77) < 1e-6
 
-    def test_is_pattern_protected_true_for_locked(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_is_pattern_protected_true_for_locked(self, migrated_conn: sqlite3.Connection) -> None:
         cursor = migrated_conn.execute(
             "INSERT INTO learned_patterns (pattern, trust_tier) VALUES (?, ?)",
             ("p-locked", "locked"),
@@ -673,9 +674,7 @@ class TestMigrationV7BrainHardening:
     ) -> None:
         assert is_pattern_protected(migrated_conn, 9_999_999) is False
 
-    def test_is_pattern_protected_false_on_pre_v7(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
+    def test_is_pattern_protected_false_on_pre_v7(self, fresh_conn: sqlite3.Connection) -> None:
         """Pre-v7 DB has no trust_tier column — helper returns False, not error."""
         assert is_pattern_protected(fresh_conn, 1) is False
 
@@ -706,13 +705,9 @@ class TestMigrationV7BrainHardening:
         migrated_conn.commit()
 
         with pytest.raises(sqlite3.IntegrityError):
-            migrated_conn.execute(
-                "DELETE FROM memory_audit WHERE id = ?", (audit_id,)
-            )
+            migrated_conn.execute("DELETE FROM memory_audit WHERE id = ?", (audit_id,))
 
-    def test_record_audit_helper_inserts_row(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_record_audit_helper_inserts_row(self, migrated_conn: sqlite3.Connection) -> None:
         audit_id = record_audit(
             migrated_conn,
             actor="unit-test",
@@ -724,8 +719,7 @@ class TestMigrationV7BrainHardening:
         assert audit_id is not None and audit_id > 0
 
         row = migrated_conn.execute(
-            "SELECT actor, action, source_table, source_id, reason "
-            "FROM memory_audit WHERE id = ?",
+            "SELECT actor, action, source_table, source_id, reason FROM memory_audit WHERE id = ?",
             (audit_id,),
         ).fetchone()
         assert row["actor"] == "unit-test"
@@ -734,9 +728,7 @@ class TestMigrationV7BrainHardening:
         assert row["source_id"] == 42
         assert row["reason"] == "injection_pattern_matched:0"
 
-    def test_record_audit_returns_none_on_pre_v7(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
+    def test_record_audit_returns_none_on_pre_v7(self, fresh_conn: sqlite3.Connection) -> None:
         """record_audit must silently no-op on pre-v7 DBs — never raise."""
         result = record_audit(
             fresh_conn,
@@ -746,9 +738,7 @@ class TestMigrationV7BrainHardening:
         )
         assert result is None
 
-    def test_memory_audit_in_db_stats(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_memory_audit_in_db_stats(self, migrated_conn: sqlite3.Connection) -> None:
         stats = get_db_stats(migrated_conn)
         assert "memory_audit" in stats["tables"]
         assert stats["tables"]["memory_audit"] == 0
@@ -780,38 +770,34 @@ class TestMigrationV7BrainHardening:
 # Migration v8 — Phase G.4 Validation Throttle (pattern_validations)
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationV8ValidationThrottle:
     def test_schema_version_at_least_8(self, migrated_conn: sqlite3.Connection) -> None:
         assert get_schema_version(migrated_conn) >= 8
 
-    def test_pattern_validations_table_exists(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_pattern_validations_table_exists(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name='pattern_validations'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='pattern_validations'"
         ).fetchone()
         assert row is not None
 
-    def test_pattern_validations_columns(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_pattern_validations_columns(self, migrated_conn: sqlite3.Connection) -> None:
         cols = {
             row[1]
-            for row in migrated_conn.execute(
-                "PRAGMA table_info(pattern_validations)"
-            ).fetchall()
+            for row in migrated_conn.execute("PRAGMA table_info(pattern_validations)").fetchall()
         }
         expected = {
-            "id", "session_id", "pattern_id", "was_helpful",
-            "was_throttled", "created_at",
+            "id",
+            "session_id",
+            "pattern_id",
+            "was_helpful",
+            "was_throttled",
+            "created_at",
         }
         missing = expected - cols
         assert not missing, f"pattern_validations missing columns: {missing}"
 
-    def test_pattern_validations_indexes(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_pattern_validations_indexes(self, migrated_conn: sqlite3.Connection) -> None:
         indexes = {
             row[0]
             for row in migrated_conn.execute(
@@ -821,9 +807,7 @@ class TestMigrationV8ValidationThrottle:
         assert "idx_pattern_validations_session_pattern" in indexes
         assert "idx_pattern_validations_created" in indexes
 
-    def test_has_pattern_validations_table_true(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_has_pattern_validations_table_true(self, migrated_conn: sqlite3.Connection) -> None:
         assert has_pattern_validations_table(migrated_conn) is True
 
     def test_has_pattern_validations_table_false_on_fresh(
@@ -831,9 +815,7 @@ class TestMigrationV8ValidationThrottle:
     ) -> None:
         assert has_pattern_validations_table(fresh_conn) is False
 
-    def test_pattern_validations_in_db_stats(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_pattern_validations_in_db_stats(self, migrated_conn: sqlite3.Connection) -> None:
         stats = get_db_stats(migrated_conn)
         assert "pattern_validations" in stats["tables"]
         assert stats["tables"]["pattern_validations"] == 0
@@ -849,6 +831,7 @@ class TestMigrationV8ValidationThrottle:
 # Migration v9 — Phase G.7.3 FTS5 over document_chunks
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationV9DocsFTS:
     def test_schema_version_at_least_9(self, migrated_conn: sqlite3.Connection) -> None:
         assert get_schema_version(migrated_conn) >= 9
@@ -860,9 +843,7 @@ class TestMigrationV9DocsFTS:
             pytest.skip("FTS5 not available on this build")
         assert has_document_chunks_fts(migrated_conn) is True
 
-    def test_has_document_chunks_fts_false_on_fresh(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
+    def test_has_document_chunks_fts_false_on_fresh(self, fresh_conn: sqlite3.Connection) -> None:
         assert has_document_chunks_fts(fresh_conn) is False
 
     def test_fts_triggers_installed(self, migrated_conn: sqlite3.Connection) -> None:
@@ -878,17 +859,22 @@ class TestMigrationV9DocsFTS:
         assert "document_chunks_au" in triggers
         assert "document_chunks_ad" in triggers
 
-    def test_fts_insert_trigger_syncs_row(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
+    def test_fts_insert_trigger_syncs_row(self, migrated_conn: sqlite3.Connection) -> None:
         if not has_fts5(migrated_conn):
             pytest.skip("FTS5 not available on this build")
         migrated_conn.execute(
             "INSERT INTO document_chunks "
             "(source_path, source_type, chunk_index, heading_path, content, "
             "content_hash, mtime) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("docs/x.md", "engineering", 0, "X > Intro",
-             "upsert_embedding handles retries", "h", 1),
+            (
+                "docs/x.md",
+                "engineering",
+                0,
+                "X > Intro",
+                "upsert_embedding handles retries",
+                "h",
+                1,
+            ),
         )
         migrated_conn.commit()
 

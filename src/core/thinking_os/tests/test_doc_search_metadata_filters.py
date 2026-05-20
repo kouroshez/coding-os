@@ -12,7 +12,6 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from database import run_migrations  # type: ignore
 from doc_indexer import _parse_front_matter  # type: ignore
 from tools.audit import audit_log_record  # type: ignore
@@ -23,10 +22,10 @@ from tools.docs import (  # type: ignore
     doc_search,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixture — minimal in-memory DB with hand-seeded chunks (no embeddings).
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def seeded_conn():
@@ -36,18 +35,66 @@ def seeded_conn():
     rows = [
         # (path, source_type, idx, heading, content, hash, prio, mtime,
         #  domain, layer, ssot, updated_iso, is_active)
-        ("docs/a.md", "engineering", 0, "A > overview",
-         "audit log doc edit history", "h1", 0.5, 1000,
-         "OPS", "reference", "true", "2026-04-28", 1),
-        ("docs/b.md", "playbook", 0, "B > steps",
-         "audit log review playbook for governance", "h2", 0.5, 1000,
-         "OPS", "playbook", "true", "2026-01-15", 1),
-        ("docs/c.md", "engineering", 0, "C > legacy",
-         "audit log legacy spec older era", "h3", 0.5, 1000,
-         "BACKEND", "reference", "true", "2025-09-01", 1),
-        ("docs/d.md", "adr", 0, "D > superseded",
-         "audit log decision superseded by newer ADR", "h4", 0.5, 1000,
-         "OPS", "adr", "true", "2024-06-01", 0),  # already inactive
+        (
+            "docs/a.md",
+            "engineering",
+            0,
+            "A > overview",
+            "audit log doc edit history",
+            "h1",
+            0.5,
+            1000,
+            "OPS",
+            "reference",
+            "true",
+            "2026-04-28",
+            1,
+        ),
+        (
+            "docs/b.md",
+            "playbook",
+            0,
+            "B > steps",
+            "audit log review playbook for governance",
+            "h2",
+            0.5,
+            1000,
+            "OPS",
+            "playbook",
+            "true",
+            "2026-01-15",
+            1,
+        ),
+        (
+            "docs/c.md",
+            "engineering",
+            0,
+            "C > legacy",
+            "audit log legacy spec older era",
+            "h3",
+            0.5,
+            1000,
+            "BACKEND",
+            "reference",
+            "true",
+            "2025-09-01",
+            1,
+        ),
+        (
+            "docs/d.md",
+            "adr",
+            0,
+            "D > superseded",
+            "audit log decision superseded by newer ADR",
+            "h4",
+            0.5,
+            1000,
+            "OPS",
+            "adr",
+            "true",
+            "2024-06-01",
+            0,
+        ),  # already inactive
     ]
     for r in rows:
         conn.execute(
@@ -65,10 +112,14 @@ def seeded_conn():
 # _build_metadata_filter — pure unit
 # ---------------------------------------------------------------------------
 
+
 class TestMetadataFilter:
     def test_no_filter_returns_active_only(self):
         clause, params = _build_metadata_filter(
-            source_types=None, domain=None, layer=None, since_iso=None,
+            source_types=None,
+            domain=None,
+            layer=None,
+            since_iso=None,
             include_inactive=False,
         )
         assert "is_active" in clause
@@ -76,7 +127,10 @@ class TestMetadataFilter:
 
     def test_domain_only(self):
         clause, params = _build_metadata_filter(
-            source_types=None, domain="OPS", layer=None, since_iso=None,
+            source_types=None,
+            domain="OPS",
+            layer=None,
+            since_iso=None,
             include_inactive=False,
         )
         assert "domain = ?" in clause
@@ -84,8 +138,11 @@ class TestMetadataFilter:
 
     def test_combined_filters(self):
         clause, params = _build_metadata_filter(
-            source_types=["adr"], domain="OPS", layer="reference",
-            since_iso="2026-01-01", include_inactive=False,
+            source_types=["adr"],
+            domain="OPS",
+            layer="reference",
+            since_iso="2026-01-01",
+            include_inactive=False,
         )
         assert "source_type IN (?)" in clause
         assert "domain = ?" in clause
@@ -96,7 +153,10 @@ class TestMetadataFilter:
 
     def test_include_inactive_drops_active_clause(self):
         clause, params = _build_metadata_filter(
-            source_types=None, domain=None, layer=None, since_iso=None,
+            source_types=None,
+            domain=None,
+            layer=None,
+            since_iso=None,
             include_inactive=True,
         )
         assert clause == ""
@@ -104,8 +164,12 @@ class TestMetadataFilter:
 
     def test_table_alias(self):
         clause, params = _build_metadata_filter(
-            source_types=None, domain="OPS", layer=None, since_iso=None,
-            include_inactive=False, table_alias="dc",
+            source_types=None,
+            domain="OPS",
+            layer=None,
+            since_iso=None,
+            include_inactive=False,
+            table_alias="dc",
         )
         assert "dc.domain = ?" in clause
         assert "dc.is_active" in clause
@@ -114,6 +178,7 @@ class TestMetadataFilter:
 # ---------------------------------------------------------------------------
 # doc_search — staged pre-filter behavior
 # ---------------------------------------------------------------------------
+
 
 class TestDocSearchFilters:
     def test_default_hides_inactive(self, seeded_conn):
@@ -125,7 +190,10 @@ class TestDocSearchFilters:
 
     def test_include_inactive_surfaces_superseded(self, seeded_conn):
         results = doc_search(
-            seeded_conn, "audit log", limit=10, mode="lexical",
+            seeded_conn,
+            "audit log",
+            limit=10,
+            mode="lexical",
             include_inactive=True,
         )
         paths = {r["source_path"] for r in results}
@@ -133,7 +201,10 @@ class TestDocSearchFilters:
 
     def test_domain_pre_filter(self, seeded_conn):
         results = doc_search(
-            seeded_conn, "audit log", limit=10, mode="lexical",
+            seeded_conn,
+            "audit log",
+            limit=10,
+            mode="lexical",
             domain="BACKEND",
         )
         paths = {r["source_path"] for r in results}
@@ -141,7 +212,10 @@ class TestDocSearchFilters:
 
     def test_layer_pre_filter(self, seeded_conn):
         results = doc_search(
-            seeded_conn, "audit log", limit=10, mode="lexical",
+            seeded_conn,
+            "audit log",
+            limit=10,
+            mode="lexical",
             layer="playbook",
         )
         paths = {r["source_path"] for r in results}
@@ -150,7 +224,10 @@ class TestDocSearchFilters:
     def test_since_iso_drops_old_docs(self, seeded_conn):
         # 2026-04-01 cutoff drops b (2026-01-15) and c (2025-09-01).
         results = doc_search(
-            seeded_conn, "audit log", limit=10, mode="lexical",
+            seeded_conn,
+            "audit log",
+            limit=10,
+            mode="lexical",
             since_iso="2026-04-01",
         )
         paths = {r["source_path"] for r in results}
@@ -158,8 +235,12 @@ class TestDocSearchFilters:
 
     def test_combined_filters_intersect(self, seeded_conn):
         results = doc_search(
-            seeded_conn, "audit log", limit=10, mode="lexical",
-            domain="OPS", layer="reference",
+            seeded_conn,
+            "audit log",
+            limit=10,
+            mode="lexical",
+            domain="OPS",
+            layer="reference",
         )
         paths = {r["source_path"] for r in results}
         # a is OPS+reference+active; d is OPS+adr (excluded by layer);
@@ -171,6 +252,7 @@ class TestDocSearchFilters:
 # Audit → is_active flip
 # ---------------------------------------------------------------------------
 
+
 class TestAuditDeactivation:
     def test_delete_action_flips_is_active(self, seeded_conn):
         before = seeded_conn.execute(
@@ -180,7 +262,9 @@ class TestAuditDeactivation:
         assert before == 1
 
         out = audit_log_record(
-            seeded_conn, doc_path="docs/a.md", action="deleted",
+            seeded_conn,
+            doc_path="docs/a.md",
+            action="deleted",
             reason="superseded by Phase O",
         )
         assert out["chunks_deactivated"] == 1
@@ -193,14 +277,18 @@ class TestAuditDeactivation:
 
     def test_revert_action_flips_is_active(self, seeded_conn):
         out = audit_log_record(
-            seeded_conn, doc_path="docs/a.md", action="reverted",
+            seeded_conn,
+            doc_path="docs/a.md",
+            action="reverted",
             reason="rolled back to prior version",
         )
         assert out["chunks_deactivated"] == 1
 
     def test_update_action_does_not_flip(self, seeded_conn):
         out = audit_log_record(
-            seeded_conn, doc_path="docs/a.md", action="updated",
+            seeded_conn,
+            doc_path="docs/a.md",
+            action="updated",
             reason="minor tweak",
         )
         assert out["chunks_deactivated"] == 0
@@ -212,7 +300,9 @@ class TestAuditDeactivation:
 
     def test_deactivation_propagates_to_search(self, seeded_conn):
         audit_log_record(
-            seeded_conn, doc_path="docs/a.md", action="deleted",
+            seeded_conn,
+            doc_path="docs/a.md",
+            action="deleted",
             reason="test",
         )
         results = doc_search(seeded_conn, "audit log", limit=10, mode="lexical")
@@ -223,6 +313,7 @@ class TestAuditDeactivation:
 # ---------------------------------------------------------------------------
 # Frontmatter parser
 # ---------------------------------------------------------------------------
+
 
 class TestFrontmatterParser:
     def test_parses_required_fields(self):
@@ -254,6 +345,7 @@ class TestFrontmatterParser:
 # ---------------------------------------------------------------------------
 # Query-time hint extraction
 # ---------------------------------------------------------------------------
+
 
 class TestSuggestFiltersFromQuery:
     def test_empty_query_returns_empty(self):
@@ -293,6 +385,7 @@ class TestSuggestFiltersFromQuery:
 # Active-task context (env-var driven)
 # ---------------------------------------------------------------------------
 
+
 class TestActiveTaskContext:
     def test_no_env_returns_empty(self, monkeypatch):
         monkeypatch.delenv("COS_AGENT_DIR", raising=False)
@@ -318,10 +411,14 @@ class TestActiveTaskContext:
 # doc_search auto_context + return_meta integration
 # ---------------------------------------------------------------------------
 
+
 class TestAutoContextAndReturnMeta:
     def test_return_meta_shape(self, seeded_conn):
         results, meta = doc_search(
-            seeded_conn, "audit log", limit=5, mode="lexical",
+            seeded_conn,
+            "audit log",
+            limit=5,
+            mode="lexical",
             return_meta=True,
         )
         assert isinstance(results, list)
@@ -330,7 +427,9 @@ class TestAutoContextAndReturnMeta:
 
     def test_filter_hints_from_query(self, seeded_conn):
         _, meta = doc_search(
-            seeded_conn, "recent backend audit log", mode="lexical",
+            seeded_conn,
+            "recent backend audit log",
+            mode="lexical",
             return_meta=True,
         )
         assert meta["filter_hints"]["suggested_domain"] == "BACKEND"
@@ -340,8 +439,11 @@ class TestAutoContextAndReturnMeta:
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
         (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
         results, meta = doc_search(
-            seeded_conn, "audit log", mode="lexical",
-            auto_context=True, return_meta=True,
+            seeded_conn,
+            "audit log",
+            mode="lexical",
+            auto_context=True,
+            return_meta=True,
         )
         assert meta["applied"].get("domain") == "BACKEND"
 
@@ -349,8 +451,12 @@ class TestAutoContextAndReturnMeta:
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
         (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
         _, meta = doc_search(
-            seeded_conn, "audit log", mode="lexical",
-            domain="OPS", auto_context=True, return_meta=True,
+            seeded_conn,
+            "audit log",
+            mode="lexical",
+            domain="OPS",
+            auto_context=True,
+            return_meta=True,
         )
         # Explicit OPS wins over inferred BACKEND.
         assert meta["applied"]["domain"] == "OPS"
@@ -359,7 +465,10 @@ class TestAutoContextAndReturnMeta:
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
         (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
         _, meta = doc_search(
-            seeded_conn, "audit log", mode="lexical", return_meta=True,
+            seeded_conn,
+            "audit log",
+            mode="lexical",
+            return_meta=True,
         )
         # auto_context=True is now the default → swimlane derives domain.
         assert meta["applied"].get("domain") == "BACKEND"
@@ -368,8 +477,11 @@ class TestAutoContextAndReturnMeta:
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
         (tmp_path / ".swimlane").write_text("backend\n", encoding="utf-8")
         _, meta = doc_search(
-            seeded_conn, "audit log", mode="lexical",
-            auto_context=False, return_meta=True,
+            seeded_conn,
+            "audit log",
+            mode="lexical",
+            auto_context=False,
+            return_meta=True,
         )
         # Explicit auto_context=False → swimlane ignored.
         assert "domain" not in meta["applied"]

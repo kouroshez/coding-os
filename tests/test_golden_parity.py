@@ -53,22 +53,34 @@ IGNORED_PREFIXES = (".git/", "node_modules/", ".venv/", ".build/")
 
 def _scaffold(agent: str, templates: list[str], target: Path) -> None:
     cmd = [
-        sys.executable, "-m", "cli.main", "init",
-        "--agent", agent,
-        "--project-dir", str(target.parent),
-        "--name", target.name,
+        sys.executable,
+        "-m",
+        "cli.main",
+        "init",
+        "--agent",
+        agent,
+        "--project-dir",
+        str(target.parent),
+        "--name",
+        target.name,
         "--no-git",
         "--force",
         "--no-register",
-        "--today", FROZEN_DATE,
+        "--today",
+        FROZEN_DATE,
     ]
     for t in templates:
         cmd.extend(["--template", t])
     env = os.environ.copy()
     env["PYTHONPATH"] = str(REPO_ROOT)
     subprocess.run(
-        cmd, cwd=str(REPO_ROOT), env=env,
-        capture_output=True, text=True, timeout=180, check=True,
+        cmd,
+        cwd=str(REPO_ROOT),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=True,
     )
 
 
@@ -88,8 +100,7 @@ def _collect_tracked(root: Path) -> dict[str, Path]:
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("section_id,agent,templates", SECTIONS,
-                         ids=[s[0] for s in SECTIONS])
+@pytest.mark.parametrize("section_id,agent,templates", SECTIONS, ids=[s[0] for s in SECTIONS])
 def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Path) -> None:
     golden = GOLDEN_DIR / section_id
     if not golden.exists():
@@ -108,8 +119,7 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
     missing = sorted(set(expected) - set(actual))
     extra = sorted(set(actual) - set(expected))
     assert not missing, (
-        f"[{section_id}] missing files (in golden, not in fresh scaffold): "
-        f"{missing[:10]}"
+        f"[{section_id}] missing files (in golden, not in fresh scaffold): {missing[:10]}"
     )
     assert not extra, (
         f"[{section_id}] extra files (in fresh scaffold, not in golden): "
@@ -121,9 +131,7 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
     # bake absolute install paths into generated configs; normalise any
     # absolute path ending in /cos-golden-fixture/... to a sandbox-root
     # placeholder so capture-time vs test-time tmp dirs match.
-    anchor_re = re.compile(
-        rb"/[^\s\"'`]*?/" + re.escape(FIXTURE_NAME.encode()) + rb"/"
-    )
+    anchor_re = re.compile(rb"/[^\s\"'`]*?/" + re.escape(FIXTURE_NAME.encode()) + rb"/")
 
     def _normalise(path: Path) -> bytes:
         return anchor_re.sub(b"__SANDBOX__/", path.read_bytes())
@@ -132,7 +140,6 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
     for rel in sorted(expected):
         if _normalise(expected[rel]) != _normalise(actual[rel]):
             mismatches.append(rel)
-    assert not mismatches, (
-        f"[{section_id}] {len(mismatches)} file(s) drifted:\n  " +
-        "\n  ".join(mismatches[:15])
+    assert not mismatches, f"[{section_id}] {len(mismatches)} file(s) drifted:\n  " + "\n  ".join(
+        mismatches[:15]
     )

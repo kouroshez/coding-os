@@ -1,4 +1,5 @@
 """core.web.routes.settings — hub-level settings read/write."""
+
 from __future__ import annotations
 
 import json
@@ -29,7 +30,7 @@ def _load() -> dict:
     if path.exists():
         try:
             raw = json.loads(path.read_text())
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("hub-settings.json load error: %s", exc)
     merged: dict = {}
     for section, defaults in _DEFAULTS.items():

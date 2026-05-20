@@ -14,7 +14,7 @@ MAX_LIMIT = 200
 DEFAULT_LIMIT = 25
 
 
-def _content_hash(text: Optional[str]) -> Optional[str]:
+def _content_hash(text: str | None) -> str | None:
     """SHA-256 truncated to 16 hex chars — enough to detect drift,
     short enough to not bloat the row."""
     if text is None:
@@ -26,19 +26,20 @@ def _content_hash(text: Optional[str]) -> Optional[str]:
 # Recorder
 # ---------------------------------------------------------------------------
 
+
 def audit_log_record(
     conn: sqlite3.Connection,
     *,
     doc_path: str,
     action: str,
-    session_id: Optional[str] = None,
-    agent: Optional[str] = None,
-    old_frontmatter: Optional[str] = None,
-    new_frontmatter: Optional[str] = None,
-    old_content: Optional[str] = None,
-    new_content: Optional[str] = None,
-    reason: Optional[str] = None,
-    supersedes_id: Optional[int] = None,
+    session_id: str | None = None,
+    agent: str | None = None,
+    old_frontmatter: str | None = None,
+    new_frontmatter: str | None = None,
+    old_content: str | None = None,
+    new_content: str | None = None,
+    reason: str | None = None,
+    supersedes_id: int | None = None,
 ) -> dict:
     """Append a doc audit row.
 
@@ -61,9 +62,7 @@ def audit_log_record(
         Dict with `id` of the inserted row.
     """
     if action not in VALID_ACTIONS:
-        raise ValueError(
-            f"Invalid action '{action}'. Must be one of: {sorted(VALID_ACTIONS)}"
-        )
+        raise ValueError(f"Invalid action '{action}'. Must be one of: {sorted(VALID_ACTIONS)}")
     if not doc_path or not doc_path.strip():
         raise ValueError("doc_path is required")
 
@@ -115,15 +114,16 @@ def audit_log_record(
 # Query
 # ---------------------------------------------------------------------------
 
+
 def audit_log_query(
     conn: sqlite3.Connection,
     *,
-    doc_path: Optional[str] = None,
-    session_id: Optional[str] = None,
-    agent: Optional[str] = None,
-    action: Optional[str] = None,
+    doc_path: str | None = None,
+    session_id: str | None = None,
+    agent: str | None = None,
+    action: str | None = None,
     only_reverted: bool = False,
-    since_iso: Optional[str] = None,
+    since_iso: str | None = None,
     limit: int = DEFAULT_LIMIT,
 ) -> dict:
     """Query the doc audit trail.
@@ -142,9 +142,7 @@ def audit_log_query(
         Dict with `total`, `rows` (oldest→newest within page).
     """
     if action is not None and action not in VALID_ACTIONS:
-        raise ValueError(
-            f"Invalid action '{action}'. Must be one of: {sorted(VALID_ACTIONS)}"
-        )
+        raise ValueError(f"Invalid action '{action}'. Must be one of: {sorted(VALID_ACTIONS)}")
     limit = max(1, min(MAX_LIMIT, int(limit)))
 
     where: list[str] = []
@@ -167,19 +165,18 @@ def audit_log_query(
         params.append(since_iso)
     if only_reverted:
         where.append(
-            "id IN (SELECT supersedes_id FROM doc_audit_trail "
-            "WHERE supersedes_id IS NOT NULL)"
+            "id IN (SELECT supersedes_id FROM doc_audit_trail WHERE supersedes_id IS NOT NULL)"
         )
 
     where_sql = " AND ".join(where) if where else "1=1"
 
     total = conn.execute(
-        f"SELECT COUNT(*) FROM doc_audit_trail WHERE {where_sql}",  # noqa: S608
+        f"SELECT COUNT(*) FROM doc_audit_trail WHERE {where_sql}",
         params,
     ).fetchone()[0]
 
     rows = conn.execute(
-        f"SELECT id, doc_path, session_id, agent, action, "  # noqa: S608
+        f"SELECT id, doc_path, session_id, agent, action, "
         f"       old_frontmatter, new_frontmatter, "
         f"       old_content_hash, new_content_hash, "
         f"       reason, supersedes_id, created_at "
@@ -198,6 +195,7 @@ def audit_log_query(
 # ---------------------------------------------------------------------------
 # Per-doc timeline (convenience)
 # ---------------------------------------------------------------------------
+
 
 def audit_log_timeline(
     conn: sqlite3.Connection,

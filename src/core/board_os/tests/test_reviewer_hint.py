@@ -73,13 +73,7 @@ def _make_audit(
     audit_dir = repo_root / "docs" / "tasks" / "audits"
     audit_dir.mkdir(parents=True, exist_ok=True)
     p = audit_dir / f"audit-{slug}.md"
-    p.write_text(
-        f"---\n"
-        f"audit_id: {slug}\n"
-        f"task_id: {task_id}\n"
-        f"status: {status}\n"
-        f"---\n# audit\n"
-    )
+    p.write_text(f"---\naudit_id: {slug}\ntask_id: {task_id}\nstatus: {status}\n---\n# audit\n")
     return p
 
 
@@ -103,25 +97,19 @@ def _create_and_progress(conn: sqlite3.Connection) -> str:
     assert env["ok"], env
     tid = env["data"]["task_id"]
     json.loads(
-        mcp_tools.cos_task_move(
-            conn, task_id=tid, to="in_progress", force=True, bypass_gates=True
-        )
+        mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", force=True, bypass_gates=True)
     )
     return tid
 
 
 def _move_to_complete(conn: sqlite3.Connection, tid: str) -> dict:
     return json.loads(
-        mcp_tools.cos_task_move(
-            conn, task_id=tid, to="complete", force=True, bypass_gates=True
-        )
+        mcp_tools.cos_task_move(conn, task_id=tid, to="complete", force=True, bypass_gates=True)
     )
 
 
 class TestReviewerHintEmitted:
-    def test_hint_on_complete_with_exhaustive_intent_and_audit(
-        self, project, conn
-    ) -> None:
+    def test_hint_on_complete_with_exhaustive_intent_and_audit(self, project, conn) -> None:
         root, agent_dir = project
         tid = _create_and_progress(conn)
         _make_audit(root, task_id=tid)

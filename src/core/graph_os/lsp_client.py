@@ -13,9 +13,10 @@ import shutil
 import subprocess
 import threading
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 logger = logging.getLogger("graph_os.lsp_client")
 
@@ -57,7 +58,7 @@ class LspClient:
         if not shutil.which(self.command[0]):
             raise LspClientError(f"{self.command[0]} not on PATH")
         try:
-            self._process = subprocess.Popen(  # noqa: S603 — subprocess is the whole point
+            self._process = subprocess.Popen(
                 self.command,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
@@ -137,9 +138,7 @@ class LspClient:
             },
         )
 
-    def goto_definition(
-        self, file_path: Path, line: int, character: int
-    ) -> list[dict[str, Any]]:
+    def goto_definition(self, file_path: Path, line: int, character: int) -> list[dict[str, Any]]:
         """Ask the server where `file_path:line:character` is defined.
 
         Returns a (possibly empty) list of Location / LocationLink dicts.
@@ -178,18 +177,18 @@ class LspClient:
         inbox: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1)
         self._pending[request_id] = inbox
         try:
-            self._send({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "method": method,
-                "params": params,
-            })
+            self._send(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": method,
+                    "params": params,
+                }
+            )
             try:
                 response = inbox.get(timeout=timeout)
             except queue.Empty as exc:
-                raise LspClientError(
-                    f"timeout waiting for {method} response"
-                ) from exc
+                raise LspClientError(f"timeout waiting for {method} response") from exc
         finally:
             self._pending.pop(request_id, None)
         if "error" in response:

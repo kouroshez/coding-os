@@ -34,9 +34,10 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 logger = logging.getLogger("coding_os.background")
 
@@ -50,8 +51,8 @@ ENV_INTERVAL = "COS_BACKGROUND_INTERVAL"
 ENV_PROJECT_ROOT = "COS_PROJECT_ROOT"
 
 DEFAULT_INTERVAL_SECONDS = 300  # 5 min between passes
-_MIN_INTERVAL_SECONDS = 30       # prevent accidental hot-loop
-_MAX_INTERVAL_SECONDS = 3600     # sanity cap
+_MIN_INTERVAL_SECONDS = 30  # prevent accidental hot-loop
+_MAX_INTERVAL_SECONDS = 3600  # sanity cap
 _MAX_CONSECUTIVE_FAILURES = 3
 
 
@@ -88,6 +89,7 @@ def _project_root() -> Path:
 # State
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BackgroundStatus:
     """Snapshot of indexer health for cos_health.
@@ -95,21 +97,23 @@ class BackgroundStatus:
     NOTES: Field shape is stable — the MCP tool serializes this dict
     directly so any new field must preserve the existing keys.
     """
+
     enabled: bool
     running: bool
     iterations: int = 0
-    last_run_at: Optional[str] = None
-    last_duration_ms: Optional[int] = None
-    last_error: Optional[str] = None
+    last_run_at: str | None = None
+    last_duration_ms: int | None = None
+    last_error: str | None = None
     consecutive_failures: int = 0
-    disabled_reason: Optional[str] = None
-    next_run_in_seconds: Optional[int] = None
+    disabled_reason: str | None = None
+    next_run_in_seconds: int | None = None
     last_stats: dict = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
 # Indexer
 # ---------------------------------------------------------------------------
+
 
 class BackgroundIndexer:
     """Thread-managed periodic docs-index + task-sync runner.
@@ -123,9 +127,9 @@ class BackgroundIndexer:
         self,
         *,
         interval_seconds: int = DEFAULT_INTERVAL_SECONDS,
-        run_docs_index: Optional[Callable[[], dict]] = None,
-        run_task_sync: Optional[Callable[[], dict]] = None,
-        run_graph_index: Optional[Callable[[], dict]] = None,
+        run_docs_index: Callable[[], dict] | None = None,
+        run_task_sync: Callable[[], dict] | None = None,
+        run_graph_index: Callable[[], dict] | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.interval_seconds = max(
@@ -137,12 +141,12 @@ class BackgroundIndexer:
         self._run_graph_index = run_graph_index or _default_graph_index_runner
         self._clock = clock
 
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
 
         self._status = BackgroundStatus(enabled=True, running=False)
-        self._loop_start_monotonic: Optional[float] = None
+        self._loop_start_monotonic: float | None = None
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -155,7 +159,9 @@ class BackgroundIndexer:
             self._status.running = True
             self._status.disabled_reason = None
             self._thread = threading.Thread(
-                target=self._run, name="cos-bg-indexer", daemon=True,
+                target=self._run,
+                name="cos-bg-indexer",
+                daemon=True,
             )
             self._thread.start()
             return True
@@ -208,19 +214,19 @@ class BackgroundIndexer:
         """
         start = self._clock()
         iter_stats: dict = {}
-        err: Optional[str] = None
+        err: str | None = None
 
         try:
             docs_stats = self._run_docs_index()
             iter_stats["docs"] = docs_stats
-        except Exception as exc:  # noqa: BLE001 — isolate failures per step
+        except Exception as exc:
             logger.warning("background docs_index failed: %s", exc)
             err = f"docs_index: {type(exc).__name__}: {exc}"
 
         try:
             task_stats = self._run_task_sync()
             iter_stats["tasks"] = task_stats
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("background task_sync failed: %s", exc)
             err = f"{err + '; ' if err else ''}task_sync: {type(exc).__name__}: {exc}"
 
@@ -230,12 +236,13 @@ class BackgroundIndexer:
         try:
             graph_stats = self._run_graph_index()
             iter_stats["graph"] = graph_stats
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("background graph_index failed: %s", exc)
             err = f"{err + '; ' if err else ''}graph_index: {type(exc).__name__}: {exc}"
 
         duration_ms = int((self._clock() - start) * 1000)
         from datetime import datetime, timezone
+
         now_iso = datetime.now(timezone.utc).isoformat()
 
         with self._lock:
@@ -251,8 +258,7 @@ class BackgroundIndexer:
                 self._status.last_error = err
                 if self._status.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
                     self._status.disabled_reason = (
-                        f"disabled after {_MAX_CONSECUTIVE_FAILURES} consecutive "
-                        f"failures: {err}"
+                        f"disabled after {_MAX_CONSECUTIVE_FAILURES} consecutive failures: {err}"
                     )
                     self._stop_event.set()
 
@@ -275,6 +281,7 @@ class BackgroundIndexer:
 # Default runners (wrap the real indexer + task_sync with safe fallbacks)
 # ---------------------------------------------------------------------------
 
+
 def _default_docs_index_runner() -> dict:
     """Run doc_indexer.index_docs against the configured project root."""
     try:
@@ -291,7 +298,10 @@ def _default_docs_index_runner() -> dict:
     conn = init_db(os.environ.get("COS_DB_PATH"))
     try:
         stats = doc_indexer.index_docs(
-            conn, config_path=config_path, project_root=project_root, force=False,
+            conn,
+            config_path=config_path,
+            project_root=project_root,
+            force=False,
         )
         return {"status": "ok", "stats": stats}
     finally:
@@ -330,9 +340,7 @@ def _default_graph_index_runner() -> dict:
     if not project_root.exists():
         return {"status": "skipped", "reason": f"no project_root at {project_root}"}
 
-    db_path = os.environ.get(
-        "COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db")
-    )
+    db_path = os.environ.get("COS_DB_PATH", str(project_root / ".coding-os" / "coding-os.db"))
     max_files_raw = os.environ.get("COS_BACKGROUND_GRAPH_MAX_FILES", "")
     try:
         max_files = int(max_files_raw) if max_files_raw.strip() else 20_000
@@ -351,7 +359,7 @@ def _default_graph_index_runner() -> dict:
     finally:
         try:
             backend.close()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("graph backend close suppressed: %s", exc)
 
 
@@ -359,7 +367,7 @@ def _default_graph_index_runner() -> dict:
 # Singleton accessor (used by server.py on_startup)
 # ---------------------------------------------------------------------------
 
-_singleton: Optional[BackgroundIndexer] = None
+_singleton: BackgroundIndexer | None = None
 _singleton_lock = threading.Lock()
 
 
@@ -375,13 +383,18 @@ def get_indexer() -> BackgroundIndexer:
 def maybe_start_indexer() -> dict:
     """Start the indexer iff COS_BACKGROUND_INDEX=1. Return a status dict."""
     if not is_enabled():
-        return {"started": False,
-                "reason": f"{ENV_ENABLED} not set (opt-in)",
-                "status": BackgroundStatus(enabled=False, running=False).__dict__}
+        return {
+            "started": False,
+            "reason": f"{ENV_ENABLED} not set (opt-in)",
+            "status": BackgroundStatus(enabled=False, running=False).__dict__,
+        }
     indexer = get_indexer()
     started = indexer.start()
-    return {"started": started, "reason": "ok" if started else "already running",
-            "status": indexer.status()}
+    return {
+        "started": started,
+        "reason": "ok" if started else "already running",
+        "status": indexer.status(),
+    }
 
 
 def reset_singleton_for_tests() -> None:

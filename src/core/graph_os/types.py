@@ -5,10 +5,11 @@ DEPENDS:  stdlib only.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 
 
 class NodeKind(str, Enum):
@@ -44,7 +45,7 @@ class NodeKind(str, Enum):
     UNKNOWN = "unknown"
 
     @classmethod
-    def from_any(cls, value: object) -> "NodeKind":
+    def from_any(cls, value: object) -> NodeKind:
         """Coerce a legacy / new string to a canonical ``NodeKind``.
 
         Raises ``ValueError`` for empty / unrecognised inputs. Accepts
@@ -182,9 +183,7 @@ class GraphEdge:
 
     def __post_init__(self) -> None:
         if not (0.0 <= self.confidence <= 1.0):
-            raise ValueError(
-                f"edge confidence must lie in [0,1], got {self.confidence!r}"
-            )
+            raise ValueError(f"edge confidence must lie in [0,1], got {self.confidence!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -210,18 +209,18 @@ PROVENANCE_VALUES: tuple[str, ...] = (
 
 
 _EXTRACTOR_PROVENANCE: dict[str, str] = {
-    "code_python@v1":     "ast",
-    "code_python_ts@v1":  "tree-sitter",
-    "code_ts@v1":         "regex",
-    "code_ts_ts@v1":      "tree-sitter",
-    "code_go@v1":         "regex",
-    "code_go_ts@v1":      "tree-sitter",
-    "code_shell@v1":      "regex",
-    "code_yaml@v1":       "parser",
-    "contracts@v1":       "regex",
-    "md_links@v1":        "parser",
-    "task_deps@v1":       "parser",
-    "lsp_overlay@v1":     "lsp",
+    "code_python@v1": "ast",
+    "code_python_ts@v1": "tree-sitter",
+    "code_ts@v1": "regex",
+    "code_ts_ts@v1": "tree-sitter",
+    "code_go@v1": "regex",
+    "code_go_ts@v1": "tree-sitter",
+    "code_shell@v1": "regex",
+    "code_yaml@v1": "parser",
+    "contracts@v1": "regex",
+    "md_links@v1": "parser",
+    "task_deps@v1": "parser",
+    "lsp_overlay@v1": "lsp",
 }
 
 
@@ -233,11 +232,11 @@ def provenance_for(extractor: str | None) -> str:
 
 
 __all__ = [
-    "GraphNode",
-    "GraphEdge",
+    "PROVENANCE_VALUES",
     "EvidenceSignal",
+    "GraphEdge",
+    "GraphNode",
     "NodeKind",
     "normalize_kind",
-    "PROVENANCE_VALUES",
     "provenance_for",
 ]

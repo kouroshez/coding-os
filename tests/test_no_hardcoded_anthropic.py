@@ -1,4 +1,5 @@
 """Lint guard — no hardcoded Anthropic secrets / model IDs in source (T12.5)."""
+
 from __future__ import annotations
 
 import re
@@ -16,16 +17,14 @@ SECRET_PATTERN = re.compile(r"sk-ant-[a-zA-Z0-9_-]{8,}")
 
 # Hardcoded model ids — the kernel must not embed these inline. Allow-list
 # files where the inline reference is required for compatibility gating.
-MODEL_PATTERN = re.compile(
-    r"\bclaude-(?:opus|sonnet|haiku)-[0-9]+(?:-[0-9]+)?\b"
-)
+MODEL_PATTERN = re.compile(r"\bclaude-(?:opus|sonnet|haiku)-[0-9]+(?:-[0-9]+)?\b")
 ALLOWED_MODEL_PATHS: set[str] = {
-    "src/adapters/claude/sdk_dispatcher.py",       # _OPUS_47_MODEL_IDS gate
-    "src/adapters/claude/adapter.yaml",            # adapter manifest
-    "src/core/thinking_os/dispatcher.py",          # docstring example only
-    "src/core/thinking_os/database.py",                  # migration docstring example
-    "src/core/thinking_os/compress.py",            # COS_COMPRESS_MODEL env default
-    "src/core/thinking_os/agents/researcher.md",   # role frontmatter
+    "src/adapters/claude/sdk_dispatcher.py",  # _OPUS_47_MODEL_IDS gate
+    "src/adapters/claude/adapter.yaml",  # adapter manifest
+    "src/core/thinking_os/dispatcher.py",  # docstring example only
+    "src/core/thinking_os/database.py",  # migration docstring example
+    "src/core/thinking_os/compress.py",  # COS_COMPRESS_MODEL env default
+    "src/core/thinking_os/agents/researcher.md",  # role frontmatter
     "src/core/thinking_os/agents/implementer.md",
     "src/core/thinking_os/agents/reviewer.md",
     "src/core/thinking_os/agents/debugger.md",
@@ -36,7 +35,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "src/core/thinking_os/agents/observer.md",
     "src/core/thinking_os/agents/deployer.md",
     "src/core/thinking_os/agents/documenter.md",
-    "src/core/skills/llm-patterns/SKILL.md",          # model-selection guide doc (cross-cutting skill)
+    "src/core/skills/llm-patterns/SKILL.md",  # model-selection guide doc (cross-cutting skill)
     "src/templates/meta/skills/claude-sdk-integration/SKILL.md",  # SDK-integration skill: documented model defaults
 }
 
@@ -46,10 +45,7 @@ def _iter_source_files() -> list[Path]:
     for d in GUARDED_DIRS:
         for ext in ("*.py", "*.yaml", "*.md"):
             files.extend((REPO_ROOT / d).rglob(ext))
-    return [
-        f for f in files
-        if "__pycache__" not in f.parts and "node_modules" not in f.parts
-    ]
+    return [f for f in files if "__pycache__" not in f.parts and "node_modules" not in f.parts]
 
 
 @pytest.mark.parametrize(

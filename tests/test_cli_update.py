@@ -85,9 +85,7 @@ class TestUpdateRepairsDrift:
         skill.unlink()
 
         runner = CliRunner()
-        result = runner.invoke(
-            cos_cli, ["update", "--dry-run", "-d", str(project)]
-        )
+        result = runner.invoke(cos_cli, ["update", "--dry-run", "-d", str(project)])
         assert result.exit_code == 0
         assert "Added" in result.output or "skills" in result.output
         # Still missing after dry-run
@@ -130,6 +128,6 @@ class TestUpdateJsonOutput:
                 if depth == 0:
                     start_idx = i
                     break
-        payload = json.loads(text[start_idx:end_brace + 1])
+        payload = json.loads(text[start_idx : end_brace + 1])
         assert payload["dry_run"] is True
         assert "per_agent" in payload

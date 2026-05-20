@@ -29,6 +29,7 @@ def load_agent_prompt(agent_file: str) -> tuple[str, dict[str, Any]]:
         if len(parts) >= 3:
             try:
                 import yaml  # local import — pyaml is a soft dep here
+
                 meta = yaml.safe_load(parts[1]) or {}
             except ImportError:
                 meta = {}

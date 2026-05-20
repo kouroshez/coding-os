@@ -29,7 +29,7 @@ def _build_shard(shard_dir: Path, *, start: int, count: int) -> list[Path]:
         body = (
             f"# generated fixture {i}\n"
             f"def fn_{i:07d}(x: int) -> int:\n"
-            f"    \"\"\"deterministic body\"\"\"\n"
+            f'    """deterministic body"""\n'
             f"    return x + {i}\n\n"
             f"class Thing{i}:\n"
             f"    def run(self, n: int) -> int:\n"
@@ -64,6 +64,7 @@ def main() -> int:
     import tempfile
 
     from database import init_db  # type: ignore
+
     from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
     from graph_os.bench import run_benchmark  # type: ignore
 
@@ -105,9 +106,7 @@ def main() -> int:
     conn.close()
 
     if args.output:
-        Path(args.output).write_text(
-            json.dumps(report, indent=2, default=str), encoding="utf-8"
-        )
+        Path(args.output).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
     print(json.dumps(report, indent=2, default=str))
 
     if args.cleanup:

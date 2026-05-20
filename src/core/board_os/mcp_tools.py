@@ -29,7 +29,11 @@ from datetime import datetime
 from pathlib import Path
 
 from board_os.config import (
-    KIND_ENUM, PRIORITY_ENUM, STATUS_ENUM, APPETITE_RE, load_config,
+    APPETITE_RE,
+    KIND_ENUM,
+    PRIORITY_ENUM,
+    STATUS_ENUM,
+    load_config,
 )
 from board_os.parser import parse_task
 from board_os.sync import sync_one
@@ -39,7 +43,6 @@ from board_os.workflow import (
     transition,
     validate_dependencies_no_cycle,
 )
-
 from thinking_os.tools._shared import fail, ok, safe_tool
 
 logger = logging.getLogger("coding_os.board_os.mcp_tools")
@@ -92,10 +95,22 @@ def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
 def _render_lean_frontmatter(fields: dict) -> str:
     # Stable key order matches the template.
     order = [
-        "id", "title", "swimlane", "kind", "epic", "labels",
-        "status", "priority", "appetite",
-        "created", "started", "completed", "agent_session",
-        "depends_on", "blocked_by", "references",
+        "id",
+        "title",
+        "swimlane",
+        "kind",
+        "epic",
+        "labels",
+        "status",
+        "priority",
+        "appetite",
+        "created",
+        "started",
+        "completed",
+        "agent_session",
+        "depends_on",
+        "blocked_by",
+        "references",
     ]
     lines = ["---"]
     for key in order:
@@ -111,7 +126,9 @@ def _render_lean_frontmatter(fields: dict) -> str:
                 inner = ", ".join(str(v) for v in val)
                 lines.append(f"{key}: [{inner}]")
         elif isinstance(val, str):
-            lines.append(f'{key}: "{val}"' if " " in val or key in {"title", "appetite"} else f"{key}: {val}")
+            lines.append(
+                f'{key}: "{val}"' if " " in val or key in {"title", "appetite"} else f"{key}: {val}"
+            )
         else:
             lines.append(f"{key}: {val}")
     lines.append("---")
@@ -151,9 +168,7 @@ def _render_kind_aware_body(
 
     # Outcome is always rendered — it's the one universal anchor.
     outcome_line = outcome or _kind_outcome_placeholder(kind)
-    sections_to_render["Outcome"] = (
-        f"**Outcome (one sentence):** {outcome_line}"
-    )
+    sections_to_render["Outcome"] = f"**Outcome (one sentence):** {outcome_line}"
 
     if "Read First" in active_sections:
         sections_to_render["Read First"] = f"## Read First\n{read_first_block}"
@@ -169,8 +184,7 @@ def _render_kind_aware_body(
 
     if "Threat Model" in active_sections:
         sections_to_render["Threat Model"] = (
-            "## Threat Model\n"
-            "(fill in: attacker, asset, attack vector, mitigation)"
+            "## Threat Model\n(fill in: attacker, asset, attack vector, mitigation)"
         )
 
     if "Acceptance" in active_sections:
@@ -184,8 +198,7 @@ def _render_kind_aware_body(
     body_parts = [f"\n\n# {task_id}: {title}", ""]
     # Stable ordering: Outcome → Read First → Repro Steps → Threat Model →
     # Acceptance → Work Log. Mirrors the natural read order.
-    order = ["Outcome", "Read First", "Repro Steps", "Threat Model",
-             "Acceptance", "Work Log"]
+    order = ["Outcome", "Read First", "Repro Steps", "Threat Model", "Acceptance", "Work Log"]
     for name in order:
         if name in sections_to_render:
             body_parts.append(sections_to_render[name])
@@ -284,6 +297,7 @@ def _agent_label(agent_session: str | None) -> str:
     audit fix E2). The shell counterpart is core/hooks/cos-env.sh.
     """
     from ._agent_runtime import detect_agent
+
     return detect_agent(agent_session)
 
 
@@ -297,6 +311,7 @@ def _resolve_attribution(agent_session: str | None) -> str | None:
     ``core/hooks/session-context.sh``) so the fix is adapter-agnostic.
     """
     from ._agent_runtime import resolve_agent_session
+
     return resolve_agent_session(agent_session)
 
 
@@ -333,8 +348,7 @@ def cos_task_create(
     if config is not None and swimlane not in config.swimlane_ids:
         return fail(
             "validation",
-            f"swimlane {swimlane!r} not in config; valid: "
-            f"{sorted(config.swimlane_ids)}",
+            f"swimlane {swimlane!r} not in config; valid: {sorted(config.swimlane_ids)}",
         )
     if kind not in KIND_ENUM:
         return fail("validation", f"kind {kind!r} not in {sorted(KIND_ENUM)}")
@@ -410,6 +424,7 @@ def cos_task_create(
     # on disk + synced; history is an audit signal, not a gate.
     try:
         import time as _time
+
         # old_status uses '' (empty string) as the "nothing to transition
         # from" sentinel — the task_status_history.old_status column is
         # NOT NULL (migration v13 schema).  The stream renderer normalises
@@ -427,36 +442,40 @@ def cos_task_create(
         conn.commit()
     except sqlite3.Error as exc:
         import logging as _logging
+
         _logging.getLogger("coding_os.board_os").debug(
-            "create-history insert failed for %s: %s", task_id, exc,
+            "create-history insert failed for %s: %s",
+            task_id,
+            exc,
         )
         # Also persist the agent session onto the tasks row so the UI
         # can still attribute this task even without a history row.
         try:
             conn.execute(
-                "UPDATE tasks SET agent_session = COALESCE(?, agent_session) "
-                "WHERE task_id = ?",
+                "UPDATE tasks SET agent_session = COALESCE(?, agent_session) WHERE task_id = ?",
                 (agent_session, task_id),
             )
             conn.commit()
         except sqlite3.Error as exc2:
             _logging.getLogger("coding_os.board_os").debug(
-                "create-history agent_session fallback failed: %s", exc2,
+                "create-history agent_session fallback failed: %s",
+                exc2,
             )
     else:
         # History row landed; also stamp the tasks row so board_list can
         # render the creator badge without re-joining history.
         try:
             conn.execute(
-                "UPDATE tasks SET agent_session = COALESCE(?, agent_session) "
-                "WHERE task_id = ?",
+                "UPDATE tasks SET agent_session = COALESCE(?, agent_session) WHERE task_id = ?",
                 (agent_session, task_id),
             )
             conn.commit()
-        except sqlite3.Error as exc_stamp:  # noqa: BLE001 — history row suffices
+        except sqlite3.Error as exc_stamp:
             import logging as _logging
+
             _logging.getLogger("coding_os.board_os").debug(
-                "create stamp on tasks.agent_session failed: %s", exc_stamp,
+                "create stamp on tasks.agent_session failed: %s",
+                exc_stamp,
             )
 
     return ok(
@@ -556,7 +575,8 @@ def cos_task_move(
     config = _current_config()
 
     row = conn.execute(
-        "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,),
+        "SELECT file_path FROM tasks WHERE task_id = ?",
+        (task_id,),
     ).fetchone()
     file_path = None
     if row and row[0]:
@@ -565,7 +585,9 @@ def cos_task_move(
             file_path = candidate
 
     result = transition(
-        conn, task_id, to,
+        conn,
+        task_id,
+        to,
         reason=reason,
         agent_session=agent_session,
         bypass_wip=bypass_wip,
@@ -723,8 +745,7 @@ def cos_task_reposition(
         if swim_eff not in config.swimlane_ids:
             return fail(
                 "validation",
-                f"swimlane {swim_eff!r} not in config; valid: "
-                f"{sorted(config.swimlane_ids)}",
+                f"swimlane {swim_eff!r} not in config; valid: {sorted(config.swimlane_ids)}",
             )
 
     wants_status = to_eff is not None and to_eff != current_status
@@ -817,10 +838,7 @@ def cos_task_pick(
     # "ready" is no longer a column — candidates now live in icebox with
     # a 'ready' label, plus the emergency column.  LIKE on labels_json
     # is cheap (<200 chars) and avoids a JSON1 dependency.
-    clauses = [
-        "(status = 'emergency' OR "
-        "(status = 'icebox' AND labels_json LIKE '%\"ready\"%'))"
-    ]
+    clauses = ["(status = 'emergency' OR (status = 'icebox' AND labels_json LIKE '%\"ready\"%'))"]
     params: list = []
     if swimlane:
         clauses.append("swimlane = ?")
@@ -869,9 +887,7 @@ def cos_task_daily(
     in_progress = conn.execute(
         f"{_BOARD_SELECT} WHERE status = 'in_progress' ORDER BY priority"
     ).fetchall()
-    blocked = conn.execute(
-        f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority"
-    ).fetchall()
+    blocked = conn.execute(f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority").fetchall()
 
     config = _current_config()
     wip = None
@@ -980,7 +996,8 @@ def cos_work_log_append(
 ) -> str:
     """Append one line to a task's Work Log section in the MD file."""
     row = conn.execute(
-        "SELECT file_path FROM tasks WHERE task_id = ?", (task_id,),
+        "SELECT file_path FROM tasks WHERE task_id = ?",
+        (task_id,),
     ).fetchone()
     if row is None or not row[0]:
         return fail("not_found", f"task {task_id} has no file_path")

@@ -51,16 +51,19 @@ def _cognition_module():
         if str(tos_dir) not in sys.path:
             sys.path.insert(0, str(tos_dir))
         from tools import cognition as _cog  # type: ignore
+
         return _cog
     except ImportError:
         return None
 
 
 def _unavailable(msg: str = "cognition tools not available"):
-    return json.dumps({
-        "ok": False,
-        "error": {"category": "unavailable", "retryable": False, "message": msg},
-    })
+    return json.dumps(
+        {
+            "ok": False,
+            "error": {"category": "unavailable", "retryable": False, "message": msg},
+        }
+    )
 
 
 def _enrich_trace_row(row: dict) -> dict:
@@ -120,7 +123,7 @@ def _enrich_trace_row(row: dict) -> dict:
 
 @router.get("/traces")
 async def list_traces(
-    agent: Optional[str] = Query(None, description="Agent name (e.g. 'claude')"),
+    agent: str | None = Query(None, description="Agent name (e.g. 'claude')"),
     _rl=Depends(make_rate_limit_dep("cognition.traces")),
     _m=Depends(make_metrics_dep("cognition.traces")),
 ):
@@ -129,32 +132,45 @@ async def list_traces(
 
     state = _state_dir()
     if not state.exists():
-        return unwrap(json.dumps({
-            "ok": True,
-            "data": {
-                "sessions": [], "count": 0, "trace_count": 0, "session_count": 0,
-                "meta": {"layer": "cognition"},
-            },
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": True,
+                    "data": {
+                        "sessions": [],
+                        "count": 0,
+                        "trace_count": 0,
+                        "session_count": 0,
+                        "meta": {"layer": "cognition"},
+                    },
+                }
+            )
+        )
 
     rows = _scan_sessions(state, agent_filter=agent)
     enriched = [_enrich_trace_row(r) for r in rows]
     trace_count = sum(1 for r in enriched if r.get("has_trace"))
     session_count = sum(1 for r in enriched if r.get("source") in ("session-only", "trace+session"))
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "sessions": enriched,
-            "count": len(enriched),
-            "trace_count": trace_count,
-            "session_count": session_count,
-            "meta": {"layer": "cognition"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "sessions": enriched,
+                    "count": len(enriched),
+                    "trace_count": trace_count,
+                    "session_count": session_count,
+                    "meta": {"layer": "cognition"},
+                },
+            }
+        )
+    )
 
 
-def _find_trace_file(state: Path, session_id: str, agent: Optional[str]) -> tuple[Path | None, str | None]:
+def _find_trace_file(
+    state: Path, session_id: str, agent: str | None
+) -> tuple[Path | None, str | None]:
     """Locate a session's jsonl trace file across all (or one) agent dir."""
     if agent:
         candidate = state / agent / "traces" / f"{session_id}.jsonl"
@@ -170,7 +186,9 @@ def _find_trace_file(state: Path, session_id: str, agent: Optional[str]) -> tupl
     return (None, None)
 
 
-def _find_session_meta(state: Path, session_id: str, agent: Optional[str]) -> tuple[dict | None, str | None]:
+def _find_session_meta(
+    state: Path, session_id: str, agent: str | None
+) -> tuple[dict | None, str | None]:
     """Locate a session's .json metadata across all (or one) agent dir."""
     if agent:
         p = state / agent / "sessions" / f"{session_id}.json"
@@ -197,7 +215,7 @@ def _find_session_meta(state: Path, session_id: str, agent: Optional[str]) -> tu
 @router.get("/trace/{session_id}")
 async def get_trace(
     session_id: str,
-    agent: Optional[str] = Query(None),
+    agent: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("cognition.trace")),
     _m=Depends(make_metrics_dep("cognition.trace")),
 ):
@@ -226,24 +244,31 @@ async def get_trace(
         except OSError as exc:
             logger.debug("trace read failed %s: %s", target, exc)
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "session_id": session_id,
-            "agent": resolved_agent or meta_agent,
-            "events": events,
-            "count": len(events),
-            "session": session_meta,
-            "has_trace": target is not None,
-            "source": "trace+session" if target and session_meta else ("trace-only" if target else "session-only"),
-            "meta": {"layer": "cognition"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "session_id": session_id,
+                    "agent": resolved_agent or meta_agent,
+                    "events": events,
+                    "count": len(events),
+                    "session": session_meta,
+                    "has_trace": target is not None,
+                    "source": "trace+session"
+                    if target and session_meta
+                    else ("trace-only" if target else "session-only"),
+                    "meta": {"layer": "cognition"},
+                },
+            }
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
 # T2.4 / T19.1 — Dispatcher cost panel (Phase Q.deep)
 # ---------------------------------------------------------------------------
+
 
 def _db_path() -> str | None:
     """Resolve coding-os SQLite DB path via canonical helper.
@@ -254,17 +279,18 @@ def _db_path() -> str | None:
     try:
         from thinking_os.database import resolve_db_path  # type: ignore
         from web._project_context import current_project_root  # type: ignore[import]
+
         path = resolve_db_path(current_project_root())
         if path.exists():
             return str(path)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("project-root db path resolve failed: %s", exc)
     return None
 
 
 @router.get("/cost")
 async def dispatcher_cost_summary(
-    formula_id: Optional[str] = Query(None, description="Filter to one formula"),
+    formula_id: str | None = Query(None, description="Filter to one formula"),
     limit: int = Query(50, ge=1, le=500),
     _rl=Depends(make_rate_limit_dep("cognition.cost")),
     _m=Depends(make_metrics_dep("cognition.cost")),
@@ -272,11 +298,19 @@ async def dispatcher_cost_summary(
     """Aggregate dispatch cost rolled up by formula and day (T2.4)."""
     db = _db_path()
     if db is None:
-        return unwrap(json.dumps({
-            "ok": True,
-            "data": {"rows": [], "total_usd": 0.0, "count": 0,
-                     "meta": {"layer": "cognition"}},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": True,
+                    "data": {
+                        "rows": [],
+                        "total_usd": 0.0,
+                        "count": 0,
+                        "meta": {"layer": "cognition"},
+                    },
+                }
+            )
+        )
 
     try:
         params: list = []
@@ -299,36 +333,48 @@ async def dispatcher_cost_summary(
             rows = [dict(r) for r in conn.execute(query_sql, params).fetchall()]
             total_usd = sum(r["total_cost_usd"] or 0 for r in rows)
     except Exception as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "internal", "retryable": False, "message": str(exc)},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
+                }
+            )
+        )
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "rows": rows,
-            "total_usd": round(total_usd, 6),
-            "count": len(rows),
-            "meta": {"layer": "cognition"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "rows": rows,
+                    "total_usd": round(total_usd, 6),
+                    "count": len(rows),
+                    "meta": {"layer": "cognition"},
+                },
+            }
+        )
+    )
 
 
 @router.get("/dispatchers")
 async def list_dispatchers(
     limit: int = Query(100, ge=1, le=1000),
-    status: Optional[str] = Query(None),
+    status: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("cognition.dispatchers")),
     _m=Depends(make_metrics_dep("cognition.dispatchers")),
 ):
     """List recent formula dispatches with telemetry (T19.1)."""
     db = _db_path()
     if db is None:
-        return unwrap(json.dumps({
-            "ok": True,
-            "data": {"dispatches": [], "count": 0, "meta": {"layer": "cognition"}},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": True,
+                    "data": {"dispatches": [], "count": 0, "meta": {"layer": "cognition"}},
+                }
+            )
+        )
 
     try:
         params: list = []
@@ -339,23 +385,34 @@ async def list_dispatchers(
         params.append(limit)
         with sqlite3.connect(db) as conn:
             conn.row_factory = sqlite3.Row
-            rows = [dict(r) for r in conn.execute(
-                f"SELECT session_id, formula_id, ts, cost_usd, budget_usd, "
-                f"status, latency_ms "
-                f"FROM formula_dispatches {where} "
-                f"ORDER BY ts DESC LIMIT ?",
-                params,
-            ).fetchall()]
+            rows = [
+                dict(r)
+                for r in conn.execute(
+                    f"SELECT session_id, formula_id, ts, cost_usd, budget_usd, "
+                    f"status, latency_ms "
+                    f"FROM formula_dispatches {where} "
+                    f"ORDER BY ts DESC LIMIT ?",
+                    params,
+                ).fetchall()
+            ]
     except Exception as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "internal", "retryable": False, "message": str(exc)},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
+                }
+            )
+        )
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {"dispatches": rows, "count": len(rows), "meta": {"layer": "cognition"}},
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {"dispatches": rows, "count": len(rows), "meta": {"layer": "cognition"}},
+            }
+        )
+    )
 
 
 @router.get("/dispatchers/{session_id}/tools")
@@ -395,22 +452,26 @@ async def dispatcher_tools(
 
     tool_calls = _parse(row["tool_calls_jsonb"])
     failures = _parse(row["tool_failures_jsonb"])
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "session_id": session_id,
-            "tool_calls": tool_calls,
-            "failures": failures,
-            "count": len(tool_calls),
-            "meta": {"layer": "cognition"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "session_id": session_id,
+                    "tool_calls": tool_calls,
+                    "failures": failures,
+                    "count": len(tool_calls),
+                    "meta": {"layer": "cognition"},
+                },
+            }
+        )
+    )
 
 
 @router.get("/analyze")
 async def cognition_analyze(
     task_description: str = Query(...),
-    complexity_hint: Optional[str] = Query(None),
+    complexity_hint: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("cognition.analyze")),
     _m=Depends(make_metrics_dep("cognition.analyze")),
 ):
@@ -424,10 +485,14 @@ async def cognition_analyze(
             result = cog.analyze_task(task_description, complexity_hint=complexity_hint)
             return unwrap(result if isinstance(result, str) else json.dumps(result))
     except Exception as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "internal", "retryable": False, "message": str(exc)},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {"category": "internal", "retryable": False, "message": str(exc)},
+                }
+            )
+        )
     return unwrap(_unavailable("analyze_task not available in this cognition module version"))
 
 
@@ -435,10 +500,12 @@ async def cognition_analyze(
 # Chat surface — Claude Agent SDK transcript browser + resume (TASK-chat)
 # ---------------------------------------------------------------------------
 
+
 def _claude_sdk():
     """Lazy import the Claude Agent SDK; return None when missing."""
     try:
         import claude_agent_sdk  # type: ignore
+
         return claude_agent_sdk
     except ImportError as exc:
         logger.debug("claude_agent_sdk unavailable: %s", exc)
@@ -447,6 +514,7 @@ def _claude_sdk():
 
 def _project_cwd() -> str:
     from web._project_context import current_project_root
+
     return str(current_project_root())
 
 
@@ -479,7 +547,11 @@ def _coerce_block(block: Any) -> dict:
         out["name"] = block.get("name")
         inp = block.get("input")
         try:
-            out["input"] = inp if isinstance(inp, (dict, list, str, int, float, bool, type(None))) else str(inp)
+            out["input"] = (
+                inp
+                if isinstance(inp, (dict, list, str, int, float, bool, type(None)))
+                else str(inp)
+            )
         except Exception:
             out["input"] = str(inp)[:2000]
     elif btype == "tool_result":
@@ -494,7 +566,9 @@ def _coerce_block(block: Any) -> dict:
             out["content"] = str(content)[:4000] if content is not None else None
         out["is_error"] = bool(block.get("is_error"))
     elif btype == "image":
-        out["source_type"] = block.get("source", {}).get("type") if isinstance(block.get("source"), dict) else None
+        out["source_type"] = (
+            block.get("source", {}).get("type") if isinstance(block.get("source"), dict) else None
+        )
     else:
         # Catch-all: keep small primitive fields, drop binary noise.
         for k, v in block.items():
@@ -543,22 +617,34 @@ async def list_chats(
         return unwrap(_unavailable("claude_agent_sdk not installed"))
     try:
         sessions = sdk.list_sessions(directory=_project_cwd(), limit=limit)
-    except Exception as exc:  # noqa: BLE001 — surface as envelope
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "internal", "retryable": False, "message": f"list_sessions failed: {exc}"},
-        }))
+    except Exception as exc:
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "internal",
+                        "retryable": False,
+                        "message": f"list_sessions failed: {exc}",
+                    },
+                }
+            )
+        )
     rows = [_serialize_session_info(s) for s in sessions]
     rows.sort(key=lambda r: r.get("last_modified") or 0, reverse=True)
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "sessions": rows,
-            "count": len(rows),
-            "cwd": _project_cwd(),
-            "meta": {"layer": "cognition", "source": "claude_agent_sdk"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "sessions": rows,
+                    "count": len(rows),
+                    "cwd": _project_cwd(),
+                    "meta": {"layer": "cognition", "source": "claude_agent_sdk"},
+                },
+            }
+        )
+    )
 
 
 @router.get("/chat/{session_id}")
@@ -576,7 +662,7 @@ async def get_chat(
     cwd = _project_cwd()
     try:
         info = sdk.get_session_info(session_id, directory=cwd)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         info = None
         logger.debug("get_session_info(%s) failed: %s", session_id, exc)
     if info is None:
@@ -584,20 +670,32 @@ async def get_chat(
     try:
         messages = sdk.get_session_messages(session_id, directory=cwd, limit=limit, offset=offset)
     except Exception as exc:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "internal", "retryable": False, "message": f"get_session_messages failed: {exc}"},
-        }))
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "session": _serialize_session_info(info),
-            "messages": [_serialize_message(m) for m in messages],
-            "count": len(messages),
-            "offset": offset,
-            "meta": {"layer": "cognition", "source": "claude_agent_sdk"},
-        },
-    }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "internal",
+                        "retryable": False,
+                        "message": f"get_session_messages failed: {exc}",
+                    },
+                }
+            )
+        )
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "session": _serialize_session_info(info),
+                    "messages": [_serialize_message(m) for m in messages],
+                    "count": len(messages),
+                    "offset": offset,
+                    "meta": {"layer": "cognition", "source": "claude_agent_sdk"},
+                },
+            }
+        )
+    )
 
 
 def _safe_serialize(obj: Any) -> Any:
@@ -614,7 +712,7 @@ def _safe_serialize(obj: Any) -> Any:
 
 
 def _sse_chunk(event: str, payload: dict) -> bytes:
-    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n".encode()
 
 
 @router.post("/chat/{session_id}/send")
@@ -633,10 +731,18 @@ async def chat_send(
     """
     prompt = str(body.get("prompt") or "").strip()
     if not prompt:
-        return unwrap(json.dumps({
-            "ok": False,
-            "error": {"category": "validation", "retryable": False, "message": "prompt must be non-empty"},
-        }))
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "validation",
+                        "retryable": False,
+                        "message": "prompt must be non-empty",
+                    },
+                }
+            )
+        )
     sdk = _claude_sdk()
     if sdk is None:
         return unwrap(_unavailable("claude_agent_sdk not installed"))
@@ -652,7 +758,9 @@ async def chat_send(
     )
 
     async def event_gen():
-        yield _sse_chunk("started", {"session_id": session_id, "prompt": prompt[:200], "fork": fork})
+        yield _sse_chunk(
+            "started", {"session_id": session_id, "prompt": prompt[:200], "fork": fork}
+        )
         try:
             async for event in sdk.query(prompt=prompt, options=options):
                 kind = type(event).__name__.lower().replace("message", "")
@@ -661,7 +769,7 @@ async def chat_send(
                 yield _sse_chunk(kind, _safe_serialize(event))
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001 — surface in stream
+        except Exception as exc:
             logger.exception("chat resume stream failed")
             yield _sse_chunk("error", {"message": str(exc)})
         yield _sse_chunk("done", {"session_id": session_id})

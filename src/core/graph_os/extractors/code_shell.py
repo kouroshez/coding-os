@@ -35,6 +35,7 @@ EXTRACTOR_ID = "code_shell@v2"
 
 try:
     from .. import tree_sitter_overlay as _ts_overlay
+
     _TS_AVAILABLE = _ts_overlay.is_available()
 except ImportError:
     _ts_overlay = None  # type: ignore[assignment]
@@ -46,9 +47,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _COMMENT_RE = re.compile(r"(?<!\\)#[^\n]*")
-_SOURCE_RE = re.compile(
-    r"^\s*(?:source|\.)\s+(?P<path>[^\s;&|]+)", re.MULTILINE
-)
+_SOURCE_RE = re.compile(r"^\s*(?:source|\.)\s+(?P<path>[^\s;&|]+)", re.MULTILINE)
 _CALL_SCRIPT_RE = re.compile(
     r"""^\s*
         (?:bash\s+|sh\s+)?
@@ -119,7 +118,9 @@ def _resolve_script_target(origin: str, target: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _emit_function(name: str, line: int, path: str, normalised: str, result: ExtractionResult, mod_uid: str) -> None:
+def _emit_function(
+    name: str, line: int, path: str, normalised: str, result: ExtractionResult, mod_uid: str
+) -> None:
     fn_uid = f"code:function:{_normalize_path(path)}::{name}"
     result.nodes.append(
         GraphNode(

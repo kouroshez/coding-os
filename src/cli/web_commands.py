@@ -8,17 +8,24 @@ import click
 
 
 @click.command(name="web")
-@click.option("--port", default=9188, show_default=True, type=int,
-              help="TCP port to listen on. Default is 9188 "
-                   "(stable, user-facing URL; IANA-unassigned).")
-@click.option("--host", default="127.0.0.1", show_default=True,
-              help="Host/interface to bind.")
-@click.option("--reload", is_flag=True, default=False,
-              help="Enable auto-reload for development (watchfiles).")
-@click.option("--log-level", default="info", show_default=True,
-              type=click.Choice(["debug", "info", "warning", "error", "critical"],
-                                case_sensitive=False),
-              help="Uvicorn log level.")
+@click.option(
+    "--port",
+    default=9188,
+    show_default=True,
+    type=int,
+    help="TCP port to listen on. Default is 9188 (stable, user-facing URL; IANA-unassigned).",
+)
+@click.option("--host", default="127.0.0.1", show_default=True, help="Host/interface to bind.")
+@click.option(
+    "--reload", is_flag=True, default=False, help="Enable auto-reload for development (watchfiles)."
+)
+@click.option(
+    "--log-level",
+    default="info",
+    show_default=True,
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    help="Uvicorn log level.",
+)
 def web_cmd(port: int, host: str, reload: bool, log_level: str) -> None:
     """Start the Coding OS unified web server (S4 backbone)."""
     try:

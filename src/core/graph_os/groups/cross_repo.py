@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from ..types import EvidenceSignal, GraphEdge
 from .manifest import GroupManifest, GroupMember
@@ -20,7 +20,7 @@ class MemberInputs:
     """Normalised per-member contribution to the group."""
 
     alias: str
-    routes: list[dict] = field(default_factory=list)   # {method, path, handler_uid?}
+    routes: list[dict] = field(default_factory=list)  # {method, path, handler_uid?}
     mcp_tools: list[str] = field(default_factory=list)
     fetches: list[dict] = field(default_factory=list)  # {caller_uid, method, path}
 
@@ -63,9 +63,7 @@ def infer_cross_repo_edges(
             if owners:
                 # Explicit ownership → confidence 0.95 to declared target.
                 for owner_alias in owners:
-                    target = next(
-                        (r for alias, r in candidates if alias == owner_alias), None
-                    )
+                    target = next((r for alias, r in candidates if alias == owner_alias), None)
                     if target is None:
                         # Owner declared the route but extractor didn't pick it
                         # up (could be a dynamic route). Still emit a
@@ -102,9 +100,7 @@ def infer_cross_repo_edges(
                             or f"cos:route:{method.upper()}:{path}",
                             edge_type="calls_contract",
                             confidence=0.6,
-                            evidence=(
-                                EvidenceSignal("route_match_inferred", 0.6),
-                            ),
+                            evidence=(EvidenceSignal("route_match_inferred", 0.6),),
                         )
                     )
                     report.ambiguous_routes.append(path)

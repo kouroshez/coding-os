@@ -14,7 +14,7 @@ def main() -> int:
     rel_path = sys.argv[2]
 
     try:
-        import yaml  # noqa: WPS433 — runtime fail-open if missing
+        import yaml
     except ImportError:
         return 0
 

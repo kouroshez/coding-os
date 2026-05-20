@@ -5,30 +5,36 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
-
 from database import init_db
 from tools.retrieve import log_router_decision
-
 
 # Tables every migration should leave behind. Update when adding a new
 # migration. Order matters only for human readability here — the assertion
 # walks the set.
 _REQUIRED_TABLES = {
-    "observations", "embeddings", "agent_metrics",
+    "observations",
+    "embeddings",
+    "agent_metrics",
     "schema_version",
     # v7 brain hardening
     "memory_audit",
     # v10 retrievals
     "retrievals",
     # v11 outcomes
-    "task_outcomes", "outcome_history",
+    "task_outcomes",
+    "outcome_history",
     # v12 graph_os
-    "graph_nodes", "graph_edges_v12", "graph_evidence_v12",
+    "graph_nodes",
+    "graph_edges_v12",
+    "graph_evidence_v12",
     # v13 board_os
-    "tasks", "task_status_history",
+    "tasks",
+    "task_status_history",
     # v14 phase M
-    "backtrack_events", "persona_selections",
-    "ambiguity_violations", "formula_dispatches",
+    "backtrack_events",
+    "persona_selections",
+    "ambiguity_violations",
+    "formula_dispatches",
     # v17 reindex cache  ← THE BUG: was missing despite schema_version=v22
     "file_index_state",
     # v18 router telemetry
@@ -48,9 +54,7 @@ def fresh_db(tmp_path):
 
 
 def test_every_migration_leaves_its_table(fresh_db: sqlite3.Connection) -> None:
-    rows = fresh_db.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()
+    rows = fresh_db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     present = {r[0] for r in rows}
     missing = _REQUIRED_TABLES - present
     assert not missing, (
@@ -66,21 +70,18 @@ def test_schema_version_at_max(fresh_db: sqlite3.Connection) -> None:
 
 def test_router_log_writer_round_trip(fresh_db: sqlite3.Connection) -> None:
     """Zombie-table guard: retrieval_router_log gains rows from log_router_decision."""
-    n_before = fresh_db.execute(
-        "SELECT COUNT(*) FROM retrieval_router_log"
-    ).fetchone()[0]
+    n_before = fresh_db.execute("SELECT COUNT(*) FROM retrieval_router_log").fetchone()[0]
     rid = log_router_decision(
-        fresh_db, query="cos_search()", chosen_layer="memory",
+        fresh_db,
+        query="cos_search()",
+        chosen_layer="memory",
         bytes_returned=512,
     )
     assert rid is not None, "log_router_decision must return the inserted row id"
-    n_after = fresh_db.execute(
-        "SELECT COUNT(*) FROM retrieval_router_log"
-    ).fetchone()[0]
+    n_after = fresh_db.execute("SELECT COUNT(*) FROM retrieval_router_log").fetchone()[0]
     assert n_after == n_before + 1
     row = fresh_db.execute(
-        "SELECT query_shape, chosen_layer FROM retrieval_router_log "
-        "ORDER BY id DESC LIMIT 1"
+        "SELECT query_shape, chosen_layer FROM retrieval_router_log ORDER BY id DESC LIMIT 1"
     ).fetchone()
     assert row[0] == "identifier", f"expected shape=identifier, got {row[0]}"
     assert row[1] == "memory"
@@ -98,12 +99,9 @@ def test_router_log_classifies_query_shapes(fresh_db: sqlite3.Connection) -> Non
     for query, expected in cases:
         log_router_decision(fresh_db, query=query, chosen_layer="docs")
         row = fresh_db.execute(
-            "SELECT query_shape FROM retrieval_router_log "
-            "ORDER BY id DESC LIMIT 1"
+            "SELECT query_shape FROM retrieval_router_log ORDER BY id DESC LIMIT 1"
         ).fetchone()
-        assert row[0] == expected, (
-            f"query={query!r}: expected shape={expected}, got {row[0]}"
-        )
+        assert row[0] == expected, f"query={query!r}: expected shape={expected}, got {row[0]}"
 
 
 def test_persona_selections_schema_accepts_writer_payload(fresh_db: sqlite3.Connection) -> None:

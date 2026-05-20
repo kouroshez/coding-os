@@ -21,6 +21,7 @@ import yaml
 
 try:
     from jsonschema import Draft202012Validator, ValidationError as _JSValidationError
+
     _HAS_JSONSCHEMA = True
 except ImportError:  # pragma: no cover — dependency pinned in pyproject.toml
     _HAS_JSONSCHEMA = False
@@ -50,7 +51,7 @@ _STACK_SCHEMA_PATH = _SCHEMA_DIR / "stack.schema.json"
 
 
 @lru_cache(maxsize=1)
-def _stack_schema_validator() -> "Draft202012Validator | None":
+def _stack_schema_validator() -> Draft202012Validator | None:
     """Lazy-load the stack.yaml JSON schema validator.
 
     Returns None if jsonschema is not installed or the schema file is
@@ -97,6 +98,7 @@ class StackManifestError(ValueError):
 @dataclass(frozen=True)
 class StackLoadResult:
     """Result of loading a stack registry — separates success/warnings."""
+
     stacks: dict[str, StackProfile]
     warnings: tuple[str, ...]
 
@@ -121,18 +123,14 @@ class StackLoadResult:
 
 def _require(data: dict, key: str, manifest_path: Path) -> Any:
     if key not in data:
-        raise StackManifestError(
-            f"{manifest_path}: missing required key '{key}'"
-        )
+        raise StackManifestError(f"{manifest_path}: missing required key '{key}'")
     return data[key]
 
 
 def _require_item_key(item: dict, key: str, path: Path, context: str) -> Any:
     """Like _require but for nested dicts, includes context (field[idx])."""
     if key not in item:
-        raise StackManifestError(
-            f"{path}: {context} missing required key '{key}'"
-        )
+        raise StackManifestError(f"{path}: {context} missing required key '{key}'")
     return item[key]
 
 
@@ -153,11 +151,13 @@ def _parse_verify_rows(raw: Any, path: Path) -> tuple[VerifyRow, ...]:
     for i, item in enumerate(raw):
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: verify[{i}] must be a mapping")
-        rows.append(VerifyRow(
-            glob=str(item.get("glob", "")),
-            suites=str(item.get("suites", "")),
-            cmd=str(item.get("cmd", "")),
-        ))
+        rows.append(
+            VerifyRow(
+                glob=str(item.get("glob", "")),
+                suites=str(item.get("suites", "")),
+                cmd=str(item.get("cmd", "")),
+            )
+        )
     return tuple(rows)
 
 
@@ -170,11 +170,13 @@ def _parse_ref_codes(raw: Any, path: Path) -> tuple[RefCode, ...]:
     for i, item in enumerate(raw):
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: ref_codes[{i}] must be a mapping")
-        out.append(RefCode(
-            code=str(item.get("code", "")),
-            path=str(item.get("path", "")),
-            desc=str(item.get("desc", "")),
-        ))
+        out.append(
+            RefCode(
+                code=str(item.get("code", "")),
+                path=str(item.get("path", "")),
+                desc=str(item.get("desc", "")),
+            )
+        )
     return tuple(out)
 
 
@@ -188,11 +190,13 @@ def _parse_makefile_targets(raw: Any, path: Path) -> tuple[MakefileTarget, ...]:
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: makefile_targets[{i}] must be a mapping")
         ctx = f"makefile_targets[{i}]"
-        out.append(MakefileTarget(
-            name=str(_require_item_key(item, "name", path, ctx)),
-            cmd=str(_require_item_key(item, "cmd", path, ctx)),
-            help=str(item.get("help", "")),
-        ))
+        out.append(
+            MakefileTarget(
+                name=str(_require_item_key(item, "name", path, ctx)),
+                cmd=str(_require_item_key(item, "cmd", path, ctx)),
+                help=str(item.get("help", "")),
+            )
+        )
     return tuple(out)
 
 
@@ -206,12 +210,14 @@ def _parse_rules(raw: Any, path: Path) -> tuple[RuleEntry, ...]:
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: rules[{i}] must be a mapping")
         ctx = f"rules[{i}]"
-        out.append(RuleEntry(
-            file=str(_require_item_key(item, "file", path, ctx)),
-            globs=_as_tuple_of_str(item.get("globs"), path, f"{ctx}.globs"),
-            always_load=bool(item.get("always_load", False)),
-            priority=int(item.get("priority", 0)),
-        ))
+        out.append(
+            RuleEntry(
+                file=str(_require_item_key(item, "file", path, ctx)),
+                globs=_as_tuple_of_str(item.get("globs"), path, f"{ctx}.globs"),
+                always_load=bool(item.get("always_load", False)),
+                priority=int(item.get("priority", 0)),
+            )
+        )
     return tuple(out)
 
 
@@ -225,12 +231,14 @@ def _parse_dimensions(raw: Any, path: Path, stack_id: str) -> tuple[DimensionEnt
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: dimensions[{i}] must be a mapping")
         ctx = f"dimensions[{i}]"
-        out.append(DimensionEntry(
-            stack_id=stack_id,
-            name=str(_require_item_key(item, "name", path, ctx)),
-            read_files=_as_tuple_of_str(item.get("read_files"), path, f"{ctx}.read_files"),
-            depth=str(item.get("depth", "M")),
-        ))
+        out.append(
+            DimensionEntry(
+                stack_id=stack_id,
+                name=str(_require_item_key(item, "name", path, ctx)),
+                read_files=_as_tuple_of_str(item.get("read_files"), path, f"{ctx}.read_files"),
+                depth=str(item.get("depth", "M")),
+            )
+        )
     return tuple(out)
 
 
@@ -246,18 +254,18 @@ def _parse_skill_enforcement(
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: skill_enforcement[{i}] must be a mapping")
         ctx = f"skill_enforcement[{i}]"
-        out.append(SkillEnforcementEntry(
-            stack_id=stack_id,
-            globs=_as_tuple_of_str(item.get("globs"), path, f"{ctx}.globs"),
-            primary=str(_require_item_key(item, "primary", path, ctx)),
-            secondary=_as_tuple_of_str(item.get("secondary"), path, f"{ctx}.secondary"),
-        ))
+        out.append(
+            SkillEnforcementEntry(
+                stack_id=stack_id,
+                globs=_as_tuple_of_str(item.get("globs"), path, f"{ctx}.globs"),
+                primary=str(_require_item_key(item, "primary", path, ctx)),
+                secondary=_as_tuple_of_str(item.get("secondary"), path, f"{ctx}.secondary"),
+            )
+        )
     return tuple(out)
 
 
-def _parse_sections(
-    raw: Any, path: Path, owner_dir: Path
-) -> tuple[AgentsMdSection, ...]:
+def _parse_sections(raw: Any, path: Path, owner_dir: Path) -> tuple[AgentsMdSection, ...]:
     if raw is None:
         return ()
     if not isinstance(raw, list):
@@ -265,16 +273,16 @@ def _parse_sections(
     out = []
     for i, item in enumerate(raw):
         if not isinstance(item, dict):
-            raise StackManifestError(
-                f"{path}: agents_md_sections[{i}] must be a mapping"
-            )
+            raise StackManifestError(f"{path}: agents_md_sections[{i}] must be a mapping")
         ctx = f"agents_md_sections[{i}]"
-        out.append(AgentsMdSection(
-            id=str(_require_item_key(item, "id", path, ctx)),
-            order=int(_require_item_key(item, "order", path, ctx)),
-            template=str(_require_item_key(item, "template", path, ctx)),
-            owner_dir=owner_dir,
-        ))
+        out.append(
+            AgentsMdSection(
+                id=str(_require_item_key(item, "id", path, ctx)),
+                order=int(_require_item_key(item, "order", path, ctx)),
+                template=str(_require_item_key(item, "template", path, ctx)),
+                owner_dir=owner_dir,
+            )
+        )
     return tuple(out)
 
 
@@ -288,11 +296,13 @@ def _parse_hooks(raw: Any, path: Path) -> tuple[HookEntry, ...]:
         if not isinstance(item, dict):
             raise StackManifestError(f"{path}: hooks[{i}] must be a mapping")
         ctx = f"hooks[{i}]"
-        out.append(HookEntry(
-            event=str(_require_item_key(item, "event", path, ctx)),
-            matcher=str(item.get("matcher", "*")),
-            command=str(_require_item_key(item, "command", path, ctx)),
-        ))
+        out.append(
+            HookEntry(
+                event=str(_require_item_key(item, "event", path, ctx)),
+                matcher=str(item.get("matcher", "*")),
+                command=str(_require_item_key(item, "command", path, ctx)),
+            )
+        )
     return tuple(out)
 
 
@@ -330,9 +340,7 @@ def _build_stack(data: dict, manifest_path: Path) -> StackProfile:
         id=stack_id,
         label=str(_require(data, "label", manifest_path)),
         category=str(_require(data, "category", manifest_path)),
-        primary_skill=(
-            str(data["primary_skill"]) if data.get("primary_skill") else None
-        ),
+        primary_skill=(str(data["primary_skill"]) if data.get("primary_skill") else None),
         skills=_as_tuple_of_str(data.get("skills"), manifest_path, "skills"),
         substitutions=dict(data.get("substitutions") or {}),
         verify=_parse_verify_rows(data.get("verify"), manifest_path),
@@ -340,13 +348,9 @@ def _build_stack(data: dict, manifest_path: Path) -> StackProfile:
             data.get("routing_entries"), manifest_path, "routing_entries"
         ),
         ref_codes=_parse_ref_codes(data.get("ref_codes"), manifest_path),
-        makefile_targets=_parse_makefile_targets(
-            data.get("makefile_targets"), manifest_path
-        ),
+        makefile_targets=_parse_makefile_targets(data.get("makefile_targets"), manifest_path),
         rules=_parse_rules(data.get("rules"), manifest_path),
-        dimensions=_parse_dimensions(
-            data.get("dimensions"), manifest_path, stack_id
-        ),
+        dimensions=_parse_dimensions(data.get("dimensions"), manifest_path, stack_id),
         skill_enforcement=_parse_skill_enforcement(
             data.get("skill_enforcement"), manifest_path, stack_id
         ),
@@ -416,21 +420,13 @@ def load_base_profile(base_dir: Path) -> BaseProfile:
         skills=_as_tuple_of_str(data.get("skills"), manifest, "skills"),
         substitutions=dict(data.get("substitutions") or {}),
         verify=_parse_verify_rows(data.get("verify"), manifest),
-        routing_entries=_as_tuple_of_str(
-            data.get("routing_entries"), manifest, "routing_entries"
-        ),
+        routing_entries=_as_tuple_of_str(data.get("routing_entries"), manifest, "routing_entries"),
         ref_codes=_parse_ref_codes(data.get("ref_codes"), manifest),
-        makefile_targets=_parse_makefile_targets(
-            data.get("makefile_targets"), manifest
-        ),
+        makefile_targets=_parse_makefile_targets(data.get("makefile_targets"), manifest),
         rules=_parse_rules(data.get("rules"), manifest),
         dimensions=_parse_dimensions(data.get("dimensions"), manifest, "base"),
-        skill_enforcement=_parse_skill_enforcement(
-            data.get("skill_enforcement"), manifest, "base"
-        ),
-        agents_md_sections=_parse_sections(
-            data.get("agents_md_sections"), manifest, source_dir
-        ),
+        skill_enforcement=_parse_skill_enforcement(data.get("skill_enforcement"), manifest, "base"),
+        agents_md_sections=_parse_sections(data.get("agents_md_sections"), manifest, source_dir),
         hooks=_parse_hooks(data.get("hooks"), manifest),
         source_dir=source_dir,
     )

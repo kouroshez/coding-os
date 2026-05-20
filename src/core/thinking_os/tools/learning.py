@@ -33,6 +33,7 @@ def _read_session_id_for_validate() -> str:
     """Read active session id for throttle bookkeeping."""
     import os
     from pathlib import Path
+
     state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
     agent_dir_env = os.environ.get("COS_AGENT_DIR")
     if agent_dir_env:
@@ -104,6 +105,7 @@ def _log_validation(
 # Confidence formulas (brain-inspired)
 # ---------------------------------------------------------------------------
 
+
 def boost_success(conf: float) -> float:
     """LTP with diminishing returns — validated pattern gets stronger."""
     return min(0.95, conf + 0.1 * (1.0 - conf))
@@ -117,6 +119,7 @@ def penalize_failure(conf: float) -> float:
 # ---------------------------------------------------------------------------
 # cos_learn_extract
 # ---------------------------------------------------------------------------
+
 
 def learn_extract(
     conn: sqlite3.Connection,
@@ -197,8 +200,7 @@ def learn_extract(
         if d["outcome"] == "rework":
             confidence = min(0.9, d["count"] / 10.0)
             pattern_text = (
-                f"Skill '{d['skills_used']}' correlates with rework "
-                f"({d['count']} occurrences)"
+                f"Skill '{d['skills_used']}' correlates with rework ({d['count']} occurrences)"
             )
             extracted.append(
                 _upsert_pattern(
@@ -307,11 +309,11 @@ def _upsert_pattern(
     *,
     pattern: str,
     memory_type: str,
-    domain: Optional[str],
+    domain: str | None,
     source: str,
     confidence: float,
     concepts: str,
-    provenance: Optional[str] = None,
+    provenance: str | None = None,
 ) -> dict:
     """Insert a new pattern or update existing one's confidence.
 
@@ -329,7 +331,8 @@ def _upsert_pattern(
     from sanitizer import sanitize_write
 
     p_sr = sanitize_write(
-        "pattern", pattern,
+        "pattern",
+        pattern,
         actor="learning._upsert_pattern",
         source_table="learned_patterns",
         conn=conn,
@@ -368,7 +371,12 @@ def _upsert_pattern(
             (pattern, memory_type, domain, source, confidence, concepts, provenance),
         )
         pattern_id = cursor.lastrowid
-        result = {"id": pattern_id, "pattern": pattern, "confidence": confidence, "action": "created"}
+        result = {
+            "id": pattern_id,
+            "pattern": pattern,
+            "confidence": confidence,
+            "action": "created",
+        }
 
     # Phase B RAG: embed the pattern for semantic search.
     # Suppressed because embeddings are optional enrichment — the upsert
@@ -403,12 +411,13 @@ def _embed_pattern_safe(
 # cos_learn_suggest
 # ---------------------------------------------------------------------------
 
+
 def learn_suggest(
     conn: sqlite3.Connection,
     *,
-    domain: Optional[str] = None,
-    complexity: Optional[str] = None,
-    task_type: Optional[str] = None,
+    domain: str | None = None,
+    complexity: str | None = None,
+    task_type: str | None = None,
     limit: int = 5,
 ) -> dict:
     """Return relevant patterns for the current task context.
@@ -438,7 +447,7 @@ def learn_suggest(
     where = " AND ".join(conditions)
 
     active_rows = conn.execute(
-        f"SELECT id, pattern, memory_type, domain, confidence, impact_score, "  # noqa: S608
+        f"SELECT id, pattern, memory_type, domain, confidence, impact_score, "
         f"times_validated, times_violated "
         f"FROM learned_patterns WHERE {where} "
         "ORDER BY confidence DESC, impact_score DESC LIMIT ?",
@@ -447,14 +456,16 @@ def learn_suggest(
 
     for row in active_rows:
         d = dict(row)
-        suggestions.append({
-            "id": d["id"],
-            "pattern": d["pattern"],
-            "confidence": d["confidence"],
-            "impact_score": d.get("impact_score", 0.5),
-            "memory_type": d["memory_type"],
-            "reason": "active",
-        })
+        suggestions.append(
+            {
+                "id": d["id"],
+                "pattern": d["pattern"],
+                "confidence": d["confidence"],
+                "impact_score": d.get("impact_score", 0.5),
+                "memory_type": d["memory_type"],
+                "reason": "active",
+            }
+        )
 
     # --- Fading patterns (spaced repetition) ---
     fading_conditions = [
@@ -468,7 +479,7 @@ def learn_suggest(
     fading_where = " AND ".join(fading_conditions)
 
     fading_rows = conn.execute(
-        f"SELECT id, pattern, memory_type, domain, confidence, impact_score, "  # noqa: S608
+        f"SELECT id, pattern, memory_type, domain, confidence, impact_score, "
         f"times_validated, times_violated "
         f"FROM learned_patterns WHERE {fading_where} "
         "ORDER BY confidence ASC LIMIT 3",
@@ -477,14 +488,17 @@ def learn_suggest(
 
     for row in fading_rows:
         d = dict(row)
-        suggestions.insert(0, {  # fading patterns go first
-            "id": d["id"],
-            "pattern": d["pattern"],
-            "confidence": d["confidence"],
-            "impact_score": d.get("impact_score", 0.5),
-            "memory_type": d["memory_type"],
-            "reason": "fading",
-        })
+        suggestions.insert(
+            0,
+            {  # fading patterns go first
+                "id": d["id"],
+                "pattern": d["pattern"],
+                "confidence": d["confidence"],
+                "impact_score": d.get("impact_score", 0.5),
+                "memory_type": d["memory_type"],
+                "reason": "fading",
+            },
+        )
 
     # --- Breakthrough narratives (high-value lessons from past struggles) ---
     try:
@@ -496,7 +510,7 @@ def learn_suggest(
         bt_where = " AND ".join(bt_conditions)
 
         bt_rows = conn.execute(
-            f"SELECT oh.task_id, oh.narrative_key_insight, oh.narrative_what_failed, "  # noqa: S608
+            f"SELECT oh.task_id, oh.narrative_key_insight, oh.narrative_what_failed, "
             f"oh.previous_outcome, t.domain "
             f"FROM outcome_history oh "
             f"LEFT JOIN task_outcomes t ON oh.task_id = t.task_id "
@@ -512,14 +526,16 @@ def learn_suggest(
             label = f"[Breakthrough] {insight}"
             if failed:
                 label += f" (avoid: {failed[:60]})"
-            suggestions.append({
-                "id": None,
-                "pattern": label,
-                "confidence": 0.8,
-                "impact_score": 0.9,
-                "memory_type": "breakthrough",
-                "reason": f"breakthrough from {d['task_id']}",
-            })
+            suggestions.append(
+                {
+                    "id": None,
+                    "pattern": label,
+                    "confidence": 0.8,
+                    "impact_score": 0.9,
+                    "memory_type": "breakthrough",
+                    "reason": f"breakthrough from {d['task_id']}",
+                }
+            )
     except Exception:
         pass  # outcome_history may not exist on pre-v4 DBs
 
@@ -529,6 +545,7 @@ def learn_suggest(
 # ---------------------------------------------------------------------------
 # cos_learn_validate
 # ---------------------------------------------------------------------------
+
 
 def learn_validate(
     conn: sqlite3.Connection,
@@ -586,8 +603,13 @@ def learn_validate(
 
     # Always log the attempt (throttled or not) for audit + sycophancy
     # detection in later phases.
-    _log_validation(conn, session_id=session_id, pattern_id=pattern_id,
-                    was_helpful=was_helpful, was_throttled=throttled)
+    _log_validation(
+        conn,
+        session_id=session_id,
+        pattern_id=pattern_id,
+        was_helpful=was_helpful,
+        was_throttled=throttled,
+    )
 
     if throttled:
         # Return current state without confidence mutation
@@ -711,16 +733,18 @@ def generate_feedback_drafts(
             f"double-check the verification matrix before closing.\n"
         )
 
-        drafts.append({
-            "filename": filename,
-            "content": content,
-            "domain": domain,
-            "skill": skill,
-            "rework_count": d["rework_count"],
-            "total_count": d["total_count"],
-            "rework_rate": round(rework_rate, 2),
-            "evidence_tasks": d["rework_tasks"],
-        })
+        drafts.append(
+            {
+                "filename": filename,
+                "content": content,
+                "domain": domain,
+                "skill": skill,
+                "rework_count": d["rework_count"],
+                "total_count": d["total_count"],
+                "rework_rate": round(rework_rate, 2),
+                "evidence_tasks": d["rework_tasks"],
+            }
+        )
 
     return {"drafts": drafts, "count": len(drafts)}
 
@@ -728,6 +752,7 @@ def generate_feedback_drafts(
 # ---------------------------------------------------------------------------
 # Breakthrough narrative capture
 # ---------------------------------------------------------------------------
+
 
 def learn_narrative(
     conn: sqlite3.Connection,
@@ -771,7 +796,8 @@ def learn_narrative(
         ("what_worked", what_worked),
     ):
         _sr = sanitize_write(
-            _field, _value,
+            _field,
+            _value,
             actor="learn_narrative",
             source_table="outcome_history",
             conn=conn,
@@ -942,7 +968,7 @@ def _slugify(text: str, max_len: int = 50) -> str:
     return slug[:max_len].rstrip("-") or "untitled"
 
 
-def _derive_project_root(conn: sqlite3.Connection) -> Optional[Path]:
+def _derive_project_root(conn: sqlite3.Connection) -> Path | None:
     """Project root = parent of the .coding-os/ directory holding the DB.
 
     Returns None for in-memory DBs or DBs outside the expected
@@ -964,7 +990,7 @@ def _derive_project_root(conn: sqlite3.Connection) -> Optional[Path]:
 def _format_narrative_markdown(
     *,
     task_id: str,
-    domain: Optional[str],
+    domain: str | None,
     key_insight: str,
     what_failed: str,
     what_worked: str,
@@ -995,13 +1021,13 @@ def _file_back_narrative_safe(
     *,
     conn: sqlite3.Connection,
     task_id: str,
-    domain: Optional[str],
+    domain: str | None,
     key_insight: str,
     what_failed: str,
     what_worked: str,
     history_id: int,
     pattern_id: int,
-) -> Optional[Path]:
+) -> Path | None:
     """Write a markdown narrative to `<root>/docs/insights/`.
 
     Fire-and-forget: any failure is logged at debug level and swallowed.

@@ -48,9 +48,7 @@ class AddStackError(click.ClickException):
 def _load_project_config(project: Path) -> dict:
     config_path = project / CONFIG_FILE
     if not config_path.exists():
-        raise AddStackError(
-            f"{CONFIG_FILE} not found in {project} — run `cos init` first"
-        )
+        raise AddStackError(f"{CONFIG_FILE} not found in {project} — run `cos init` first")
     try:
         return yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
@@ -72,18 +70,18 @@ def _apply_stack_files(stack_profile, project: Path, agent: str) -> None:
     rules.
     """
     from cli.main import _apply_template  # late import to avoid cycle
+
     _apply_template(stack_profile.id, project, agent=agent)
 
 
-def _overlay_stack_scaffold(
-    stack_profile, project: Path, substitutions: dict[str, str]
-) -> int:
+def _overlay_stack_scaffold(stack_profile, project: Path, substitutions: dict[str, str]) -> int:
     """Copy src/templates/<stack>/scaffold/* into the project root.
 
     Idempotent: existing files are never overwritten. Markdown files have
     `{{KEY}}` placeholders resolved.
     """
     from cli.main import _overlay_scaffold  # late import
+
     # _overlay_scaffold expects a tuple of template names; we pass only the
     # new stack. It internally also overlays _base/scaffold, but since base
     # scaffold was already applied at init time and is idempotent, this is
@@ -103,17 +101,20 @@ def _backup_agents_md(project: Path) -> Path:
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / f"AGENTS.md.{ts}.bak"
     backup_path.write_text(
-        agents_md.read_text(encoding="utf-8"), encoding="utf-8",
+        agents_md.read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     return backup_path
 
 
 def _append_stack_history(config: dict, stack_id: str) -> None:
     history = config.setdefault("stack_history", [])
-    history.append({
-        "stack_id": stack_id,
-        "added_at": _dt.datetime.now().isoformat(timespec="seconds"),
-    })
+    history.append(
+        {
+            "stack_id": stack_id,
+            "added_at": _dt.datetime.now().isoformat(timespec="seconds"),
+        }
+    )
 
 
 def _build_summary(
@@ -163,7 +164,8 @@ def _print_text(summary: dict) -> None:
     help="Regenerate AGENTS.md to reflect the new stack (default: yes). A backup is created first.",
 )
 @click.option(
-    "--format", "output_format",
+    "--format",
+    "output_format",
     type=click.Choice(["text", "json"]),
     default="text",
     help="Output format",
@@ -181,9 +183,7 @@ def add_stack(
     # 1. Registry lookup
     stacks = load_stack_registry(TEMPLATES_DIR)
     if stack_id not in stacks:
-        raise AddStackError(
-            f"stack '{stack_id}' not found — available: {sorted(stacks.keys())}"
-        )
+        raise AddStackError(f"stack '{stack_id}' not found — available: {sorted(stacks.keys())}")
     stack_profile = stacks[stack_id]
 
     installed_templates = list(config.get("templates") or [])
@@ -230,7 +230,10 @@ def add_stack(
             continue
         stack_profiles.append(stacks[s])
     world: AggregatedWorld = aggregate(
-        base, stack_profiles, adapter_profile, project.name,
+        base,
+        stack_profiles,
+        adapter_profile,
+        project.name,
         today=today_iso(),
     )
 
@@ -243,14 +246,13 @@ def add_stack(
     )
     with _silencer:
         _apply_stack_files(stack_profile, project, agent)
-        files_copied = _overlay_stack_scaffold(
-            stack_profile, project, world.substitutions
-        )
+        files_copied = _overlay_stack_scaffold(stack_profile, project, world.substitutions)
         # Link the new stack's skills into the adapter's skills_dir.
         # `cos init` does this via _run_scaffold_phase step 5b; `cos add-stack`
         # bypasses that path so we must link here to keep the adapter's
         # Skill tool surface in sync with installed templates.
         from cli.main import _link_stack_skills  # late import to avoid cycle
+
         _link_stack_skills(agent, (stack_id,), project)
 
     # 3. Diff-safe AGENTS.md regeneration.

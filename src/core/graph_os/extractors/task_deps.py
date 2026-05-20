@@ -55,6 +55,7 @@ def _canonical_task_id(raw: str) -> str:
 def _import_task_parser():
     try:
         import task_parser  # type: ignore
+
         return task_parser
     except ImportError:
         here = Path(__file__).resolve()
@@ -62,6 +63,7 @@ def _import_task_parser():
         if thinking_os.exists() and str(thinking_os) not in sys.path:
             sys.path.insert(0, str(thinking_os))
         import task_parser  # type: ignore
+
         return task_parser
 
 
@@ -92,9 +94,7 @@ def extract(path: str, content: str) -> ExtractionResult:
                     metadata={"parse_error": "not_a_task", "extractor": EXTRACTOR_ID},
                 )
             )
-            result.parse_errors.append(
-                ParseError(kind="not_a_task", detail=normalised_path)
-            )
+            result.parse_errors.append(ParseError(kind="not_a_task", detail=normalised_path))
             # S3: spine still attaches so unknown task files show up
             # under their folder in the tree-view.
             emit_contains_spine(
@@ -204,7 +204,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         _promote_stubs(result)
         return result
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("task_deps.extract(%s) fatal: %s", path, exc)
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
         return result

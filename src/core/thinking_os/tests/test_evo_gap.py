@@ -4,6 +4,7 @@ Tests for Phase EVO II gap closure:
   Gap B — tool failure capture → observations → session aggregation
   Gap C — mid-session adaptation (suggested_action in cos_backtrack_log)
 """
+
 from __future__ import annotations
 
 import json
@@ -17,10 +18,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -42,6 +43,7 @@ def db_path(tmp_path: Path) -> Path:
 # Gap B1 — tool_failure_capture.py logic
 # ---------------------------------------------------------------------------
 
+
 class TestToolFailureCapture:
     """Unit tests for core/hooks/_helpers/tool_failure_capture.py."""
 
@@ -49,6 +51,7 @@ class TestToolFailureCapture:
         helpers = Path(__file__).resolve().parent.parent.parent / "hooks" / "_helpers"
         sys.path.insert(0, str(helpers))
         import tool_failure_capture
+
         return tool_failure_capture
 
     def test_capture_blocked_event_writes_hook_block(self, conn):
@@ -60,9 +63,7 @@ class TestToolFailureCapture:
         }
         status = mod.capture(conn, "sess-001", payload)
         assert status == "captured"
-        row = conn.execute(
-            "SELECT * FROM observations WHERE session_id='sess-001'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM observations WHERE session_id='sess-001'").fetchone()
         assert row is not None
         assert row["memory_type"] == "hook_block"
         assert row["observation_type"] == "tool_failure"
@@ -77,9 +78,7 @@ class TestToolFailureCapture:
         }
         status = mod.capture(conn, "sess-002", payload)
         assert status == "captured"
-        row = conn.execute(
-            "SELECT * FROM observations WHERE session_id='sess-002'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM observations WHERE session_id='sess-002'").fetchone()
         assert row["memory_type"] == "error"
         assert abs(row["impact_score"] - 0.3) < 0.01
 
@@ -102,9 +101,7 @@ class TestToolFailureCapture:
         }
         status = mod.capture(conn, "sess-004", payload)
         assert status == "captured"
-        row = conn.execute(
-            "SELECT * FROM observations WHERE session_id='sess-004'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM observations WHERE session_id='sess-004'").fetchone()
         assert row["memory_type"] == "hook_block"
 
     def test_capture_dedup_within_60s(self, conn):
@@ -133,6 +130,7 @@ class TestToolFailureCapture:
 # Gap B4 — session aggregation: ≥2 tool_failures → backtrack_event
 # ---------------------------------------------------------------------------
 
+
 class TestToolFailureAggregation:
     """Tests for _aggregate_tool_failures in trajectory_autosnap.py."""
 
@@ -140,18 +138,29 @@ class TestToolFailureAggregation:
         helpers = Path(__file__).resolve().parent.parent.parent / "hooks" / "_helpers"
         sys.path.insert(0, str(helpers))
         import trajectory_autosnap
+
         return trajectory_autosnap
 
     def _insert_observation(self, conn, session_id: str, obs_type: str = "tool_failure") -> None:
-        import hashlib, secrets
+        import hashlib
+        import secrets
+
         h = hashlib.sha256(secrets.token_bytes(8)).hexdigest()[:16]
         conn.execute(
             "INSERT INTO observations "
             "(session_id, tool_name, observation_type, memory_type, impact_score, "
             " title, narrative, content_hash, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-            (session_id, "Edit", obs_type, "hook_block", 0.6,
-             "Tool failure: Edit", "BLOCKED: bad pattern", h),
+            (
+                session_id,
+                "Edit",
+                obs_type,
+                "hook_block",
+                0.6,
+                "Tool failure: Edit",
+                "BLOCKED: bad pattern",
+                h,
+            ),
         )
         conn.commit()
 
@@ -206,6 +215,7 @@ class TestToolFailureAggregation:
 # Gap A — trajectory_autosnap derive_snapshot + write_snapshot
 # ---------------------------------------------------------------------------
 
+
 class TestAutosnap:
     """Tests for trajectory_autosnap.py derive_snapshot end-to-end."""
 
@@ -213,7 +223,9 @@ class TestAutosnap:
         helpers = Path(__file__).resolve().parent.parent.parent / "hooks" / "_helpers"
         sys.path.insert(0, str(helpers))
         import importlib
+
         import trajectory_autosnap
+
         importlib.reload(trajectory_autosnap)
         return trajectory_autosnap
 
@@ -278,16 +290,24 @@ class TestAutosnap:
     def test_write_snapshot_sets_supersedes_id(self, conn):
         mod = self._import_autosnap()
         snap_a = {
-            "session_id": "snap-chain-01", "phase": "alpha",
-            "current_focus": "implementation", "architectural_decisions": [],
-            "anti_patterns_discovered": [], "open_questions": [],
-            "next_logical_step": "", "confidence": 0.8,
+            "session_id": "snap-chain-01",
+            "phase": "alpha",
+            "current_focus": "implementation",
+            "architectural_decisions": [],
+            "anti_patterns_discovered": [],
+            "open_questions": [],
+            "next_logical_step": "",
+            "confidence": 0.8,
         }
         snap_b = {
-            "session_id": "snap-chain-02", "phase": "beta",
-            "current_focus": "review", "architectural_decisions": [],
-            "anti_patterns_discovered": [], "open_questions": [],
-            "next_logical_step": "", "confidence": 0.9,
+            "session_id": "snap-chain-02",
+            "phase": "beta",
+            "current_focus": "review",
+            "architectural_decisions": [],
+            "anti_patterns_discovered": [],
+            "open_questions": [],
+            "next_logical_step": "",
+            "confidence": 0.9,
         }
         id_a = mod.write_snapshot(conn, snap_a)
         id_b = mod.write_snapshot(conn, snap_b)
@@ -301,26 +321,34 @@ class TestAutosnap:
 # Gap C — mid-session adaptation in cos_backtrack_log
 # ---------------------------------------------------------------------------
 
+
 class TestMidSessionAdaptation:
     """Tests for suggested_action returned by cos_backtrack_log."""
 
     def _make_backtrack_tool(self, db_path: Path):
         from unittest.mock import MagicMock
+
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from tools.cognition import register_cos_backtrack_log
+
         mcp = MagicMock()
         captured = {}
+
         def tool_decorator(**kwargs):
             def inner(fn):
                 captured["fn"] = fn
                 return fn
+
             return inner
+
         mcp.tool = tool_decorator
         register_cos_backtrack_log(mcp, str(db_path))
         raw_fn = captured["fn"]
+
         # @safe_tool returns JSON string — wrap to return parsed dict
         def fn(**kwargs):
             return json.loads(raw_fn(**kwargs))
+
         return fn
 
     def test_backtrack_with_root_cause_returns_suggested_action(self, db_path):

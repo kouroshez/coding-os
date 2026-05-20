@@ -19,6 +19,7 @@ for _p in (_THINKING_OS_DIR, _GRAPH_OS_DIR.parent):
 # Edge types declared in the extractor
 # ---------------------------------------------------------------------------
 
+
 def _extractor_edge_types() -> set[str]:
     """Collect every edge_type value that contracts.py can emit.
 
@@ -65,6 +66,7 @@ def _extractor_edge_types() -> set[str]:
 # Edge types expected by cos_graph_contracts
 # ---------------------------------------------------------------------------
 
+
 def _tool_expected_edge_types() -> set[str]:
     """Return the edge_types that cos_graph_contracts queries against.
 
@@ -80,21 +82,21 @@ def _tool_expected_edge_types() -> set[str]:
     source = inspect.getsource(graph_tools.cos_graph_contracts)
     # Extract strings inside the for loop's tuple literal.
     import re
-    match = re.search(
-        r'for edge_type in \(([^)]+)\)', source
-    )
+
+    match = re.search(r"for edge_type in \(([^)]+)\)", source)
     if match is None:
         pytest.fail(
             "Could not locate 'for edge_type in (...)' loop in "
             "cos_graph_contracts — update this test if the structure changed."
         )
     raw = match.group(1)
-    return {s.strip().strip('"\'') for s in raw.split(",") if s.strip().strip('"\'')}
+    return {s.strip().strip("\"'") for s in raw.split(",") if s.strip().strip("\"'")}
 
 
 # ---------------------------------------------------------------------------
 # Test assertions
 # ---------------------------------------------------------------------------
+
 
 def test_extractor_edge_types_covered_by_tool():
     """Every edge_type emitted by contracts.py must appear in cos_graph_contracts loop."""

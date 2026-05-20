@@ -25,9 +25,7 @@ def main() -> int:
         default="BAAI/bge-m3",
         help="Target model for re-embedding.",
     )
-    parser.add_argument(
-        "--batch-size", type=int, default=256, help="Rows per batch."
-    )
+    parser.add_argument("--batch-size", type=int, default=256, help="Rows per batch.")
     parser.add_argument(
         "--checkpoint",
         type=str,
@@ -49,8 +47,8 @@ def main() -> int:
 
     thinking_os = Path(__file__).resolve().parent.parent.parent / "core" / "thinking_os"
     sys.path.insert(0, str(thinking_os))
-    from database import init_db  # type: ignore
     import migrator_embeddings  # type: ignore
+    from database import init_db  # type: ignore
 
     conn = init_db(args.db)
     try:

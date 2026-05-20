@@ -52,13 +52,14 @@ CORPUS_PATH = Path(_CORPUS_ENV).resolve()
 # Per-step timeouts (seconds). Generous but bounded — no step is allowed
 # to hang indefinitely.
 TIMEOUT_INIT = 60
-TIMEOUT_SYNC_FIRST = 180   # cold sync includes embedding model load
-TIMEOUT_SYNC_SECOND = 30   # incremental sync should be fast
-TIMEOUT_QUERY = 120        # includes one-time model load for semantic
+TIMEOUT_SYNC_FIRST = 180  # cold sync includes embedding model load
+TIMEOUT_SYNC_SECOND = 30  # incremental sync should be fast
+TIMEOUT_QUERY = 120  # includes one-time model load for semantic
 TIMEOUT_MCP_INTROSPECT = 60
 
 
 # ---- Output helpers --------------------------------------------------------
+
 
 def info(msg: str) -> None:
     print(f"  INFO: {msg}", flush=True)
@@ -68,7 +69,7 @@ def ok(msg: str) -> None:
     print(f"  OK: {msg}", flush=True)
 
 
-def fail(msg: str) -> "None":
+def fail(msg: str) -> None:
     print(f"FAIL: {msg}", file=sys.stderr, flush=True)
     sys.exit(1)
 
@@ -79,8 +80,10 @@ def section(title: str) -> None:
 
 # ---- Defensive subprocess runner -------------------------------------------
 
-def run(cmd: list[str], *, timeout: int, env: dict[str, str] | None = None,
-        cwd: str | None = None) -> subprocess.CompletedProcess:
+
+def run(
+    cmd: list[str], *, timeout: int, env: dict[str, str] | None = None, cwd: str | None = None
+) -> subprocess.CompletedProcess:
     """Run a subprocess with mandatory timeout. Never blocks indefinitely.
 
     Args:
@@ -119,6 +122,7 @@ def run(cmd: list[str], *, timeout: int, env: dict[str, str] | None = None,
 
 # ---- Step implementations --------------------------------------------------
 
+
 def precheck() -> int:
     section(f"Phase C E2E verification — COS_CORPUS_PATH={CORPUS_PATH}")
     if not CORPUS_PATH.exists():
@@ -140,9 +144,24 @@ def init_project() -> Path:
     project = Path(tempfile.mkdtemp(prefix="cos-phase-c-e2e-"))
     info(f"temp project: {project}")
     run(
-        ["uv", "run", "--directory", str(COS_ROOT), "python", "-m", "cli.main",
-         "init", "--agent", "claude", "--template", "django", "--template", "nextjs",
-         "--project-dir", str(project)],
+        [
+            "uv",
+            "run",
+            "--directory",
+            str(COS_ROOT),
+            "python",
+            "-m",
+            "cli.main",
+            "init",
+            "--agent",
+            "claude",
+            "--template",
+            "django",
+            "--template",
+            "nextjs",
+            "--project-dir",
+            str(project),
+        ],
         timeout=TIMEOUT_INIT,
     )
     ok("init succeeded")
@@ -167,10 +186,21 @@ def copy_tasks(project: Path) -> int:
 def sync_first_run(project: Path) -> dict:
     section("3. task_sync run 1 (cold)")
     result = run(
-        ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT),
-         "python", "-m", "core.thinking_os.task_sync",
-         "--project-root", str(project),
-         "--db", str(project / ".coding-os" / "coding-os.db")],
+        [
+            "uv",
+            "run",
+            "--extra",
+            "rag",
+            "--directory",
+            str(COS_ROOT),
+            "python",
+            "-m",
+            "core.thinking_os.task_sync",
+            "--project-root",
+            str(project),
+            "--db",
+            str(project / ".coding-os" / "coding-os.db"),
+        ],
         timeout=TIMEOUT_SYNC_FIRST,
     )
     # Parse the JSON line in the output
@@ -186,22 +216,28 @@ def sync_first_run(project: Path) -> dict:
 def sync_second_run(project: Path, expected_count: int) -> dict:
     section("4. task_sync run 2 (incremental, expect all skipped)")
     result = run(
-        ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT),
-         "python", "-m", "core.thinking_os.task_sync",
-         "--project-root", str(project),
-         "--db", str(project / ".coding-os" / "coding-os.db")],
+        [
+            "uv",
+            "run",
+            "--extra",
+            "rag",
+            "--directory",
+            str(COS_ROOT),
+            "python",
+            "-m",
+            "core.thinking_os.task_sync",
+            "--project-root",
+            str(project),
+            "--db",
+            str(project / ".coding-os" / "coding-os.db"),
+        ],
         timeout=TIMEOUT_SYNC_SECOND,
     )
     stats = _extract_json_stats(result.stdout)
     if stats["skipped"] != expected_count:
-        fail(
-            f"task_sync run 2 should skip {expected_count}, got skipped={stats['skipped']}"
-        )
+        fail(f"task_sync run 2 should skip {expected_count}, got skipped={stats['skipped']}")
     if stats["new"] != 0 or stats["updated"] != 0:
-        fail(
-            f"task_sync run 2 should be no-op, got new={stats['new']} "
-            f"updated={stats['updated']}"
-        )
+        fail(f"task_sync run 2 should be no-op, got new={stats['new']} updated={stats['updated']}")
     ok(f"skipped={stats['skipped']} (incremental works)")
     return stats
 
@@ -212,42 +248,41 @@ def python_queries(project: Path) -> None:
     # heredoc-inside-command-substitution fragility.
     query_script = project / "_e2e_query.py"
     query_script.write_text(
-        'import os, sys\n'
+        "import os, sys\n"
         'sys.path.insert(0, os.environ["COS_ROOT"] + "/core/thinking_os")\n'
-        'from database import init_db\n'
-        'from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search\n'
-        '\n'
+        "from database import init_db\n"
+        "from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search\n"
+        "\n"
         'conn = init_db(os.environ["TEST_DB"])\n'
         'total = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]\n'
         'print(f"TOTAL:{total}")\n'
-        '\n'
+        "\n"
         'results = task_by_filter(conn, status="open", domain="BACKEND", limit=3)\n'
         'print(f"FILTER_BACKEND_OPEN:{len(results)}")\n'
-        '\n'
+        "\n"
         'deps = task_dependencies(conn, "TASK-199")\n'
         'print(f"DEPS_TASK199:{len(deps)}")\n'
-        'if deps:\n'
-        '    print(f"DEPS_TASK199_FIRST:{deps[0][\'task_id\']}")\n'
-        '\n'
+        "if deps:\n"
+        "    print(f\"DEPS_TASK199_FIRST:{deps[0]['task_id']}\")\n"
+        "\n"
         'dependents = task_dependents(conn, "TASK-195")\n'
         'print(f"DEPENDENTS_TASK195:{len(dependents)}")\n'
-        '\n'
+        "\n"
         'fps = task_dependents(conn, "TASK-019")\n'
         'print(f"FALSE_POSITIVES_TASK019:{len(fps)}")\n'
-        '\n'
+        "\n"
         'semantic = task_search(conn, "payment splitting multi vendor revenue", limit=3)\n'
         'print(f"SEMANTIC_COUNT:{len(semantic)}")\n'
-        'if semantic:\n'
-        '    top = semantic[0]\n'
-        '    print(f"SEMANTIC_TOP:{top[\'task_id\']}|{top[\'title\']}")\n'
-        '\n'
-        'conn.close()\n',
+        "if semantic:\n"
+        "    top = semantic[0]\n"
+        "    print(f\"SEMANTIC_TOP:{top['task_id']}|{top['title']}\")\n"
+        "\n"
+        "conn.close()\n",
         encoding="utf-8",
     )
 
     result = run(
-        ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT),
-         "python", str(query_script)],
+        ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT), "python", str(query_script)],
         timeout=TIMEOUT_QUERY,
         env={
             "COS_ROOT": str(COS_ROOT),
@@ -263,7 +298,7 @@ def python_queries(project: Path) -> None:
 
     backend_open = int(metrics.get("FILTER_BACKEND_OPEN", "0"))
     if backend_open < 1:
-        fail(f"task_by_filter(BACKEND,open) returned 0 results")
+        fail("task_by_filter(BACKEND,open) returned 0 results")
     ok(f"task_by_filter(BACKEND,open): {backend_open}")
 
     deps_count = int(metrics.get("DEPS_TASK199", "0"))
@@ -282,10 +317,7 @@ def python_queries(project: Path) -> None:
 
     fps = int(metrics.get("FALSE_POSITIVES_TASK019", "999"))
     if fps != 0:
-        fail(
-            f"SUBSTRING SAFETY FAILURE: task_dependents(TASK-019) "
-            f"returned {fps} (expected 0)"
-        )
+        fail(f"SUBSTRING SAFETY FAILURE: task_dependents(TASK-019) returned {fps} (expected 0)")
     ok("substring safety: TASK-019 doesn't match TASK-195/196/199")
 
     sem = int(metrics.get("SEMANTIC_COUNT", "0"))
@@ -302,13 +334,13 @@ def mcp_introspect() -> None:
     # Avoid nested quotes inside f-strings (Python 3.10 doesn't support
     # them) by computing the missing-string outside the f-string.
     introspect_script.write_text(
-        'import asyncio, os, sys\n'
+        "import asyncio, os, sys\n"
         'sys.path.insert(0, os.environ["COS_ROOT"] + "/core/thinking_os")\n'
-        'import server\n'
-        'tools = asyncio.run(server.mcp.list_tools())\n'
-        'names = [t.name for t in tools]\n'
+        "import server\n"
+        "tools = asyncio.run(server.mcp.list_tools())\n"
+        "names = [t.name for t in tools]\n"
         'expected = ["cos_task_search", "cos_task_dependencies", "cos_task_dependents", "cos_task_by_filter"]\n'
-        'missing = [e for e in expected if e not in names]\n'
+        "missing = [e for e in expected if e not in names]\n"
         'missing_str = ",".join(missing) if missing else "NONE"\n'
         'print("TOOLS_TOTAL:" + str(len(names)))\n'
         'print("MISSING:" + missing_str)\n',
@@ -316,8 +348,16 @@ def mcp_introspect() -> None:
     )
     try:
         result = run(
-            ["uv", "run", "--extra", "rag", "--directory", str(COS_ROOT),
-             "python", str(introspect_script)],
+            [
+                "uv",
+                "run",
+                "--extra",
+                "rag",
+                "--directory",
+                str(COS_ROOT),
+                "python",
+                str(introspect_script),
+            ],
             timeout=TIMEOUT_MCP_INTROSPECT,
             env={"COS_ROOT": str(COS_ROOT)},
         )
@@ -336,6 +376,7 @@ def mcp_introspect() -> None:
 
 
 # ---- Output parsing helpers ------------------------------------------------
+
 
 def _extract_json_stats(stdout: str) -> dict:
     """Find and parse the JSON object from task_sync stdout."""
@@ -373,6 +414,7 @@ def _parse_kv_lines(stdout: str) -> dict[str, str]:
 
 
 # ---- Main ------------------------------------------------------------------
+
 
 def main() -> None:
     nako_count = precheck()

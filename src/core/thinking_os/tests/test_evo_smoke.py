@@ -16,6 +16,7 @@ Scenarios:
   S9: Session startup helpers — trajectory_startup.py + routing_evolution.py
   S10: MCP envelope compliance — all new tools return ok()/fail() shape
 """
+
 from __future__ import annotations
 
 import json
@@ -37,10 +38,10 @@ from tools.trajectory import (
     trajectory_snapshot,
 )
 
-
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def fresh_db(tmp_path: Path) -> sqlite3.Connection:
@@ -50,8 +51,15 @@ def fresh_db(tmp_path: Path) -> sqlite3.Connection:
     c.close()
 
 
-def _add_outcome(conn, task_id, domain="INFRA", complexity="CLEAR",
-                  outcome="success", model="sonnet", skills="bash-linux"):
+def _add_outcome(
+    conn,
+    task_id,
+    domain="INFRA",
+    complexity="CLEAR",
+    outcome="success",
+    model="sonnet",
+    skills="bash-linux",
+):
     conn.execute(
         "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, model, skills_used) "
         "VALUES (?, 'feat', ?, ?, ?, ?, ?)",
@@ -60,17 +68,33 @@ def _add_outcome(conn, task_id, domain="INFRA", complexity="CLEAR",
     conn.commit()
 
 
-def _add_backtrack(conn, session_id, from_formula, to_formula, reason,
-                    root_cause=None, hypothesis=None, failure_signal=None,
-                    corrective_action=None):
+def _add_backtrack(
+    conn,
+    session_id,
+    from_formula,
+    to_formula,
+    reason,
+    root_cause=None,
+    hypothesis=None,
+    failure_signal=None,
+    corrective_action=None,
+):
     try:
         conn.execute(
             "INSERT INTO backtrack_events "
             "(session_id, from_formula, to_formula, reason, ts, "
             " root_cause, hypothesis, failure_signal, corrective_action) "
             "VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)",
-            (session_id, from_formula, to_formula, reason,
-             root_cause, hypothesis, failure_signal, corrective_action),
+            (
+                session_id,
+                from_formula,
+                to_formula,
+                reason,
+                root_cause,
+                hypothesis,
+                failure_signal,
+                corrective_action,
+            ),
         )
     except sqlite3.OperationalError:
         conn.execute(
@@ -84,6 +108,7 @@ def _add_backtrack(conn, session_id, from_formula, to_formula, reason,
 # ---------------------------------------------------------------------------
 # S1: Fresh project — agent starts cold
 # ---------------------------------------------------------------------------
+
 
 class TestS1FreshProject:
     """Empty DB. Agent has no history, no trajectory, no patterns."""
@@ -116,6 +141,7 @@ class TestS1FreshProject:
 # S2: Researcher persona — discovers, logs trajectory
 # ---------------------------------------------------------------------------
 
+
 class TestS2ResearcherPersona:
     """Researcher completes investigation, logs trajectory with architectural decision."""
 
@@ -140,7 +166,9 @@ class TestS2ResearcherPersona:
         )
         assert result["status"] == "ok"
 
-    def test_researcher_trajectory_readable_next_session(self, fresh_db: sqlite3.Connection) -> None:
+    def test_researcher_trajectory_readable_next_session(
+        self, fresh_db: sqlite3.Connection
+    ) -> None:
         trajectory_snapshot(
             fresh_db,
             session_id="ses-claude-20260505-001",
@@ -156,6 +184,7 @@ class TestS2ResearcherPersona:
 
     def test_digest_shows_trajectory_to_agent(self, fresh_db: sqlite3.Connection) -> None:
         import digest
+
         trajectory_snapshot(
             fresh_db,
             session_id="ses-claude-001",
@@ -172,6 +201,7 @@ class TestS2ResearcherPersona:
 # ---------------------------------------------------------------------------
 # S3: Implementer persona — scope issue → structured backtrack
 # ---------------------------------------------------------------------------
+
 
 class TestS3ImplementerBacktrack:
     """Implementer tries to build formula dispatch, scope too large, backtracks."""
@@ -228,6 +258,7 @@ class TestS3ImplementerBacktrack:
 # S4: Debugger persona — multi-backtrack, anti-paralysis
 # ---------------------------------------------------------------------------
 
+
 class TestS4DebuggerMultiBacktrack:
     """Debugger gets stuck, backtracks 5 times, anti-paralysis fires."""
 
@@ -255,7 +286,9 @@ class TestS4DebuggerMultiBacktrack:
         assert rc_counts["missing_context"] == 1
         assert rc_counts["tool_failure"] == 1
 
-    def test_failure_patterns_extracted_by_learn_extract(self, fresh_db: sqlite3.Connection) -> None:
+    def test_failure_patterns_extracted_by_learn_extract(
+        self, fresh_db: sqlite3.Connection
+    ) -> None:
         # Seed enough task outcomes for learn_extract threshold
         for i in range(10):
             _add_outcome(fresh_db, f"TASK-debug-{i}", outcome="rework")
@@ -286,20 +319,27 @@ class TestS4DebuggerMultiBacktrack:
 # S5: Architect persona — cross-session trajectory chain
 # ---------------------------------------------------------------------------
 
+
 class TestS5ArchitectTrajectoryChain:
     """Architect updates trajectory across 3 sessions. Chain is navigable."""
 
     def test_trajectory_chain_links(self, fresh_db: sqlite3.Connection) -> None:
         r1 = trajectory_snapshot(
-            fresh_db, session_id="s1", phase="Phase A",
+            fresh_db,
+            session_id="s1",
+            phase="Phase A",
             current_focus="graph schema design",
         )
         r2 = trajectory_snapshot(
-            fresh_db, session_id="s2", phase="Phase B",
+            fresh_db,
+            session_id="s2",
+            phase="Phase B",
             current_focus="graph extraction pipeline",
         )
         r3 = trajectory_snapshot(
-            fresh_db, session_id="s3", phase="Phase C",
+            fresh_db,
+            session_id="s3",
+            phase="Phase C",
             current_focus="graph API layer",
             next_logical_step="wire up hub UI to graph",
         )
@@ -331,7 +371,8 @@ class TestS5ArchitectTrajectoryChain:
             {"decision": "fire-and-forget helpers", "rationale": "hook reliability"},
         ]
         trajectory_snapshot(
-            fresh_db, session_id="s1",
+            fresh_db,
+            session_id="s1",
             architectural_decisions=decisions,
         )
         snap = trajectory_read(fresh_db)["snapshots"][0]
@@ -342,6 +383,7 @@ class TestS5ArchitectTrajectoryChain:
 # ---------------------------------------------------------------------------
 # S6: Routing evolution — automatic weight refresh
 # ---------------------------------------------------------------------------
+
 
 class TestS6RoutingEvolution:
     """Simulate 20 task outcomes accumulating; verify drift → auto-recalc → no drift."""
@@ -383,13 +425,20 @@ class TestS6RoutingEvolution:
         db.close()
 
         # core/thinking_os/tests/ → core/hooks/_helpers/
-        helper = Path(__file__).resolve().parent.parent.parent / "hooks" / "_helpers" / "routing_evolution.py"
+        helper = (
+            Path(__file__).resolve().parent.parent.parent
+            / "hooks"
+            / "_helpers"
+            / "routing_evolution.py"
+        )
         if not helper.exists():
             pytest.skip("routing_evolution.py helper not found")
 
         result = subprocess.run(
             ["python3", str(helper), str(tmp_path / "evo_helper.db")],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         assert result.returncode == 0
         # With 20 outcomes at threshold 15 and no prior recalc, should print refresh
@@ -399,19 +448,28 @@ class TestS6RoutingEvolution:
         """trajectory_startup.py prints trajectory line when data exists."""
         db = init_db(tmp_path / "traj_helper.db")
         trajectory_snapshot(
-            db, session_id="s1",
-            phase="Phase EVO", current_focus="smoke testing",
+            db,
+            session_id="s1",
+            phase="Phase EVO",
+            current_focus="smoke testing",
             next_logical_step="ship the feature",
         )
         db.close()
 
-        helper = Path(__file__).resolve().parent.parent.parent / "hooks" / "_helpers" / "trajectory_startup.py"
+        helper = (
+            Path(__file__).resolve().parent.parent.parent
+            / "hooks"
+            / "_helpers"
+            / "trajectory_startup.py"
+        )
         if not helper.exists():
             pytest.skip("trajectory_startup.py helper not found")
 
         result = subprocess.run(
             ["python3", str(helper), str(tmp_path / "traj_helper.db")],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         assert result.returncode == 0
         assert "[Project Trajectory]" in result.stdout
@@ -422,6 +480,7 @@ class TestS6RoutingEvolution:
 # ---------------------------------------------------------------------------
 # S7: Full lifecycle — extract → suggest → validate feedback loop
 # ---------------------------------------------------------------------------
+
 
 class TestS7FullLearningLifecycle:
     """Simulate the full evolution loop across one realistic sprint."""
@@ -523,6 +582,7 @@ class TestS7FullLearningLifecycle:
 # S8: Multi-persona failure correlation
 # ---------------------------------------------------------------------------
 
+
 class TestS8MultiPersonaFailureCorrelation:
     """Multiple persona types, same root causes — learn_extract sees pattern."""
 
@@ -567,6 +627,7 @@ class TestS8MultiPersonaFailureCorrelation:
 # S9: MCP envelope compliance
 # ---------------------------------------------------------------------------
 
+
 class TestS9MCPEnvelopeCompliance:
     """All new MCP tools return valid ok()/fail() envelope shape."""
 
@@ -578,6 +639,7 @@ class TestS9MCPEnvelopeCompliance:
     def test_trajectory_snapshot_envelope(self, fresh_db: sqlite3.Connection) -> None:
         # Simulate server.py wrapper behavior (direct function call + ok() wrap)
         from tools._shared import ok
+
         result = trajectory_snapshot(fresh_db, session_id="s1", phase="P1")
         envelope = json.loads(ok(result))
         assert envelope["ok"] is True
@@ -585,6 +647,7 @@ class TestS9MCPEnvelopeCompliance:
 
     def test_trajectory_read_envelope(self, fresh_db: sqlite3.Connection) -> None:
         from tools._shared import ok
+
         result = trajectory_read(fresh_db)
         envelope = json.loads(ok(result))
         assert envelope["ok"] is True
@@ -592,6 +655,7 @@ class TestS9MCPEnvelopeCompliance:
 
     def test_failure_pattern_query_envelope(self, fresh_db: sqlite3.Connection) -> None:
         from tools._shared import ok
+
         result = failure_pattern_query(fresh_db)
         envelope = json.loads(ok(result))
         assert envelope["ok"] is True
@@ -599,6 +663,7 @@ class TestS9MCPEnvelopeCompliance:
 
     def test_routing_drift_envelope(self, fresh_db: sqlite3.Connection) -> None:
         from tools._shared import ok
+
         result = routing_drift(fresh_db)
         envelope = json.loads(ok(result))
         assert envelope["ok"] is True
@@ -618,6 +683,7 @@ class TestS9MCPEnvelopeCompliance:
 # S10: Digest budget across all EVO sections
 # ---------------------------------------------------------------------------
 
+
 class TestS10DigestBudget:
     """Verify digest stays within 2400-char budget under various EVO data loads."""
 
@@ -626,7 +692,8 @@ class TestS10DigestBudget:
 
         # Seed all sections
         trajectory_snapshot(
-            fresh_db, session_id="s1",
+            fresh_db,
+            session_id="s1",
             phase="Phase N.6 — SDK dispatch hardening (very long phase name to stress budget)",
             current_focus="Claude adapter deepening: formula dispatch cost tracking and budget capping",
             next_logical_step="Implement cos_dispatch_formula_run budget enforcement and cost rollup",
@@ -651,7 +718,8 @@ class TestS10DigestBudget:
         import digest
 
         trajectory_snapshot(
-            fresh_db, session_id="s1",
+            fresh_db,
+            session_id="s1",
             phase="A" * 200,  # intentionally long phase name
             current_focus="B" * 200,
             next_logical_step="C" * 200,

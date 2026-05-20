@@ -63,16 +63,18 @@ def _parse(envelope: str) -> dict:
 
 
 def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
-    env = _parse(mcp_tools.cos_task_create(
-        conn,
-        title="Wire L.3 tools",
-        swimlane="core",
-        kind="feature",
-        priority="P1",
-        appetite="2h",
-        labels=["mcp"],
-        outcome="MCP tools importable and registered.",
-    ))
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Wire L.3 tools",
+            swimlane="core",
+            kind="feature",
+            priority="P1",
+            appetite="2h",
+            labels=["mcp"],
+            outcome="MCP tools importable and registered.",
+        )
+    )
     assert env["ok"] is True
     data = env["data"]
     assert data["task_id"] == "TASK-001"
@@ -89,39 +91,66 @@ def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
 
 
 def test_create_task_rejects_unknown_swimlane(project: Path, conn: sqlite3.Connection):
-    env = _parse(mcp_tools.cos_task_create(
-        conn, title="x", swimlane="nonexistent", kind="feature",
-    ))
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="x",
+            swimlane="nonexistent",
+            kind="feature",
+        )
+    )
     assert env["ok"] is False
     assert env["error"]["category"] == "validation"
     assert "not in config" in env["error"]["message"]
 
 
 def test_create_task_rejects_bad_kind(project: Path, conn: sqlite3.Connection):
-    env = _parse(mcp_tools.cos_task_create(
-        conn, title="x", swimlane="core", kind="invalid",
-    ))
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="x",
+            swimlane="core",
+            kind="invalid",
+        )
+    )
     assert env["ok"] is False
     assert env["error"]["category"] == "validation"
 
 
 def test_create_task_rejects_label_colliding_with_kind(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ):
-    env = _parse(mcp_tools.cos_task_create(
-        conn, title="x", swimlane="core", kind="feature", labels=["bug"],
-    ))
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="x",
+            swimlane="core",
+            kind="feature",
+            labels=["bug"],
+        )
+    )
     assert env["ok"] is False
     assert "collides with KIND_ENUM" in env["error"]["message"]
 
 
 def test_create_task_auto_increments_id(project: Path, conn: sqlite3.Connection):
-    e1 = _parse(mcp_tools.cos_task_create(
-        conn, title="first", swimlane="core", kind="chore",
-    ))
-    e2 = _parse(mcp_tools.cos_task_create(
-        conn, title="second", swimlane="core", kind="chore",
-    ))
+    e1 = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="first",
+            swimlane="core",
+            kind="chore",
+        )
+    )
+    e2 = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="second",
+            swimlane="core",
+            kind="chore",
+        )
+    )
     assert e1["data"]["task_id"] == "TASK-001"
     assert e2["data"]["task_id"] == "TASK-002"
 
@@ -139,10 +168,16 @@ def test_board_empty(project: Path, conn: sqlite3.Connection):
 
 def test_board_with_tasks(project: Path, conn: sqlite3.Connection):
     mcp_tools.cos_task_create(
-        conn, title="one", swimlane="core", kind="feature",
+        conn,
+        title="one",
+        swimlane="core",
+        kind="feature",
     )
     mcp_tools.cos_task_create(
-        conn, title="two", swimlane="docs", kind="docs",
+        conn,
+        title="two",
+        swimlane="docs",
+        kind="docs",
     )
     env = _parse(mcp_tools.cos_task_board(conn))
     assert env["ok"] is True
@@ -153,10 +188,16 @@ def test_board_with_tasks(project: Path, conn: sqlite3.Connection):
 
 def test_board_filters_by_swimlane(project: Path, conn: sqlite3.Connection):
     mcp_tools.cos_task_create(
-        conn, title="a", swimlane="core", kind="feature",
+        conn,
+        title="a",
+        swimlane="core",
+        kind="feature",
     )
     mcp_tools.cos_task_create(
-        conn, title="b", swimlane="docs", kind="docs",
+        conn,
+        title="b",
+        swimlane="docs",
+        kind="docs",
     )
     env = _parse(mcp_tools.cos_task_board(conn, swimlane="core"))
     assert env["data"]["count"] == 1
@@ -167,28 +208,45 @@ def test_board_filters_by_swimlane(project: Path, conn: sqlite3.Connection):
 
 
 def test_move_happy_path(project: Path, conn: sqlite3.Connection):
-    _parse(mcp_tools.cos_task_create(
-        conn, title="move me", swimlane="core", kind="feature",
-    ))
+    _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="move me",
+            swimlane="core",
+            kind="feature",
+        )
+    )
     # icebox → in_progress (no dedicated "ready" column any more).
     # force=True bypasses Phase L.10 DoR body gate; this test exercises
     # transition mechanics, not body validation (covered by
     # test_transition_gates_validator.py).
-    env = _parse(mcp_tools.cos_task_move(
-        conn, task_id="TASK-001", to="in_progress", force=True,
-    ))
+    env = _parse(
+        mcp_tools.cos_task_move(
+            conn,
+            task_id="TASK-001",
+            to="in_progress",
+            force=True,
+        )
+    )
     assert env["ok"] is True
     assert env["data"]["previous_status"] == "icebox"
     assert env["data"]["new_status"] == "in_progress"
 
 
 def test_reposition_swimlane_only(project: Path, conn: sqlite3.Connection):
-    _parse(mcp_tools.cos_task_create(
-        conn, title="lane test", swimlane="core", kind="feature",
-    ))
+    _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="lane test",
+            swimlane="core",
+            kind="feature",
+        )
+    )
     env = _parse(
         mcp_tools.cos_task_reposition(
-            conn, task_id="TASK-001", swimlane="docs",
+            conn,
+            task_id="TASK-001",
+            swimlane="docs",
         )
     )
     assert env["ok"] is True
@@ -201,12 +259,20 @@ def test_reposition_swimlane_only(project: Path, conn: sqlite3.Connection):
 
 
 def test_reposition_status_and_swimlane(project: Path, conn: sqlite3.Connection):
-    _parse(mcp_tools.cos_task_create(
-        conn, title="both", swimlane="core", kind="chore",
-    ))
+    _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="both",
+            swimlane="core",
+            kind="chore",
+        )
+    )
     env = _parse(
         mcp_tools.cos_task_reposition(
-            conn, task_id="TASK-001", to="in_progress", swimlane="docs",
+            conn,
+            task_id="TASK-001",
+            to="in_progress",
+            swimlane="docs",
             force=True,  # bypass DoR — mechanics test
         )
     )
@@ -225,18 +291,29 @@ def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
     # cap=2 per fixture; make 2 in_progress then try 3rd.
     for i in range(3):
         mcp_tools.cos_task_create(
-            conn, title=f"t{i}", swimlane="core", kind="chore",
+            conn,
+            title=f"t{i}",
+            swimlane="core",
+            kind="chore",
         )
     # bypass_gates skips DoR body validation (chore default body has
     # placeholder Outcome) but keeps WIP enforcement active so the
     # third move legitimately hits the cap.
     for tid in ("TASK-001", "TASK-002"):
         mcp_tools.cos_task_move(
-            conn, task_id=tid, to="in_progress", bypass_gates=True,
+            conn,
+            task_id=tid,
+            to="in_progress",
+            bypass_gates=True,
         )
-    env = _parse(mcp_tools.cos_task_move(
-        conn, task_id="TASK-003", to="in_progress", bypass_gates=True,
-    ))
+    env = _parse(
+        mcp_tools.cos_task_move(
+            conn,
+            task_id="TASK-003",
+            to="in_progress",
+            bypass_gates=True,
+        )
+    )
     assert env["ok"] is False
     assert "WIP cap" in env["error"]["message"]
 
@@ -247,11 +324,19 @@ def test_move_wip_cap_rejection(project: Path, conn: sqlite3.Connection):
 def test_pick_returns_ready_tasks(project: Path, conn: sqlite3.Connection):
     """Candidates are icebox tasks carrying the 'ready' label (plus emergency)."""
     mcp_tools.cos_task_create(
-        conn, title="low", swimlane="core", kind="chore", priority="P3",
+        conn,
+        title="low",
+        swimlane="core",
+        kind="chore",
+        priority="P3",
         labels=["ready"],
     )
     mcp_tools.cos_task_create(
-        conn, title="high", swimlane="core", kind="feature", priority="P0",
+        conn,
+        title="high",
+        swimlane="core",
+        kind="feature",
+        priority="P0",
         labels=["ready"],
     )
 
@@ -278,13 +363,22 @@ def test_wip_check(project: Path, conn: sqlite3.Connection):
 
 
 def test_work_log_append(project: Path, conn: sqlite3.Connection):
-    _parse(mcp_tools.cos_task_create(
-        conn, title="log me", swimlane="core", kind="feature",
-    ))
-    env = _parse(mcp_tools.cos_work_log_append(
-        conn, task_id="TASK-001", summary="did a thing",
-        agent_session="ses-claude-xyz",
-    ))
+    _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="log me",
+            swimlane="core",
+            kind="feature",
+        )
+    )
+    env = _parse(
+        mcp_tools.cos_work_log_append(
+            conn,
+            task_id="TASK-001",
+            summary="did a thing",
+            agent_session="ses-claude-xyz",
+        )
+    )
     assert env["ok"] is True
 
     md_path = project / "docs" / "tasks" / "TASK-001-log-me.md"
@@ -294,15 +388,23 @@ def test_work_log_append(project: Path, conn: sqlite3.Connection):
 
 
 def test_work_log_truncates_long_summary(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ):
     mcp_tools.cos_task_create(
-        conn, title="trunc", swimlane="core", kind="chore",
+        conn,
+        title="trunc",
+        swimlane="core",
+        kind="chore",
     )
     long_summary = "x" * 500
-    env = _parse(mcp_tools.cos_work_log_append(
-        conn, task_id="TASK-001", summary=long_summary,
-    ))
+    env = _parse(
+        mcp_tools.cos_work_log_append(
+            conn,
+            task_id="TASK-001",
+            summary=long_summary,
+        )
+    )
     assert env["ok"] is True
     # Line should be ≤ 120 chars of summary
     line = env["data"]["line_appended"]
@@ -312,15 +414,25 @@ def test_work_log_truncates_long_summary(
 
 
 def test_work_log_uses_readable_agent_label_from_session(
-    project: Path, conn: sqlite3.Connection,
+    project: Path,
+    conn: sqlite3.Connection,
 ):
-    _parse(mcp_tools.cos_task_create(
-        conn, title="label", swimlane="core", kind="feature",
-    ))
-    env = _parse(mcp_tools.cos_work_log_append(
-        conn, task_id="TASK-001", summary="done",
-        agent_session="ses-cursor-20260423-abc",
-    ))
+    _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="label",
+            swimlane="core",
+            kind="feature",
+        )
+    )
+    env = _parse(
+        mcp_tools.cos_work_log_append(
+            conn,
+            task_id="TASK-001",
+            summary="done",
+            agent_session="ses-cursor-20260423-abc",
+        )
+    )
     assert env["ok"] is True
     assert "[cursor]" in env["data"]["line_appended"]
 
@@ -330,11 +442,17 @@ def test_work_log_uses_readable_agent_label_from_session(
 
 def test_daily_shape(project: Path, conn: sqlite3.Connection):
     mcp_tools.cos_task_create(
-        conn, title="a", swimlane="core", kind="chore",
+        conn,
+        title="a",
+        swimlane="core",
+        kind="chore",
     )
     mcp_tools.cos_task_move(conn, task_id="TASK-001", to="ready", force=True)
     mcp_tools.cos_task_move(
-        conn, task_id="TASK-001", to="in_progress", force=True,
+        conn,
+        task_id="TASK-001",
+        to="in_progress",
+        force=True,
     )
 
     env = _parse(mcp_tools.cos_task_daily(conn))

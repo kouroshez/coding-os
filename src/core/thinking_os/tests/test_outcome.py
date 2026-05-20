@@ -7,15 +7,15 @@ Covers DB write, skip-if-absent, outcome validation, upsert, and domain detectio
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
-from record_outcome import record_outcome, _detect_domain
+from record_outcome import _detect_domain, record_outcome
 
 
 @pytest.fixture
@@ -29,21 +29,25 @@ def db_path(tmp_path: Path) -> Path:
 class TestRecordOutcome:
     def test_records_to_db(self, db_path: Path) -> None:
         result = record_outcome(
-            task_id="TASK-100", task_type="feat", outcome="success",
-            msg="Test task", db_path=db_path,
+            task_id="TASK-100",
+            task_type="feat",
+            outcome="success",
+            msg="Test task",
+            db_path=db_path,
         )
         assert result["status"] == "recorded"
 
     def test_data_integrity(self, db_path: Path) -> None:
         record_outcome(
-            task_id="TASK-101", task_type="fix", outcome="rework",
-            msg="Backend fix", db_path=db_path,
+            task_id="TASK-101",
+            task_type="fix",
+            outcome="rework",
+            msg="Backend fix",
+            db_path=db_path,
         )
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM task_outcomes WHERE task_id = 'TASK-101'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM task_outcomes WHERE task_id = 'TASK-101'").fetchone()
         conn.close()
         assert row is not None
         assert row["outcome"] == "rework"
@@ -51,32 +55,38 @@ class TestRecordOutcome:
 
     def test_skip_if_db_absent(self, tmp_path: Path) -> None:
         result = record_outcome(
-            task_id="TASK-102", task_type="feat", outcome="success",
+            task_id="TASK-102",
+            task_type="feat",
+            outcome="success",
             db_path=tmp_path / "nonexistent.db",
         )
         assert result["status"] == "skipped"
 
     def test_invalid_outcome(self, db_path: Path) -> None:
         result = record_outcome(
-            task_id="TASK-103", task_type="feat", outcome="invalid",
+            task_id="TASK-103",
+            task_type="feat",
+            outcome="invalid",
             db_path=db_path,
         )
         assert result["status"] == "error"
 
     def test_upsert_updates_existing(self, db_path: Path) -> None:
         record_outcome(
-            task_id="TASK-104", task_type="feat", outcome="partial",
+            task_id="TASK-104",
+            task_type="feat",
+            outcome="partial",
             db_path=db_path,
         )
         record_outcome(
-            task_id="TASK-104", task_type="feat", outcome="success",
+            task_id="TASK-104",
+            task_type="feat",
+            outcome="success",
             db_path=db_path,
         )
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM task_outcomes WHERE task_id = 'TASK-104'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM task_outcomes WHERE task_id = 'TASK-104'").fetchone()
         conn.close()
         assert row["outcome"] == "success"
         # Should only have 1 row
@@ -90,7 +100,9 @@ class TestRecordOutcome:
     def test_all_valid_outcomes(self, db_path: Path) -> None:
         for outcome in ["success", "rework", "partial", "blocked"]:
             result = record_outcome(
-                task_id=f"TASK-{outcome}", task_type="feat", outcome=outcome,
+                task_id=f"TASK-{outcome}",
+                task_type="feat",
+                outcome=outcome,
                 db_path=db_path,
             )
             assert result["status"] == "recorded"

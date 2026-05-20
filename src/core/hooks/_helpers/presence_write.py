@@ -11,6 +11,7 @@ USAGE
 
 EVENT ∈ {start, prompt, tool, stop, end}. Other values fall through silently.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,8 @@ def main(argv: list[str]) -> int:
         return 0  # fail-open: presence is UX, not correctness
     path, agent, sid, pid_s, event, now_s = argv[1:]
     try:
-        pid = int(pid_s); now = int(now_s)
+        pid = int(pid_s)
+        now = int(now_s)
     except ValueError:
         return 0
 

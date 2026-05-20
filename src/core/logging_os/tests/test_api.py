@@ -49,9 +49,7 @@ def test_warn_emits_event_to_all_sinks(
     assert "something happened" in captured.err
 
 
-def test_level_floor_drops_lower_events(
-    temp_state: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_level_floor_drops_lower_events(temp_state: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COS_LOG_LEVEL", "warn")
     logging_os.info("cli.test", "muted")
     logging_os.warn("cli.test", "kept")
@@ -84,9 +82,7 @@ def test_fatal_exits_after_emit(temp_state: Path) -> None:
     assert "abort" in text_log
 
 
-def test_setup_changes_level_floor(
-    temp_state: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_setup_changes_level_floor(temp_state: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("COS_LOG_LEVEL", raising=False)
     logging_os.setup(level="error")
     logging_os.warn("cli.test", "muted")

@@ -62,9 +62,7 @@ class TestModeSelection:
         edges = _import_edges(r)
         assert any(provenance_for(e.extractor) == "ast" for e in edges)
         # No tree-sitter-tagged edges in default mode.
-        assert not any(
-            provenance_for(e.extractor) == "tree-sitter" for e in edges
-        )
+        assert not any(provenance_for(e.extractor) == "tree-sitter" for e in edges)
 
     def test_legacy_mode_uses_ast(self, force_legacy):
         r = _extract("import fmt\n")
@@ -74,6 +72,7 @@ class TestModeSelection:
     def test_tree_sitter_mode_when_grammar_available(self, force_tree_sitter):
         try:
             from graph_os.tree_sitter_overlay import _load_language
+
             if _load_language("python") is None:
                 pytest.skip("tree-sitter-python grammar not installed")
         except ImportError:
@@ -161,13 +160,9 @@ class TestParityWithAst:
     slightly) but the produced graph topology must be identical."""
 
     def _edges_grouped(self, edges):
-        return sorted(
-            (e.source_uid, e.target_uid, e.edge_type) for e in edges
-        )
+        return sorted((e.source_uid, e.target_uid, e.edge_type) for e in edges)
 
-    def test_topology_matches_for_simple_imports(
-        self, force_tree_sitter, monkeypatch
-    ):
+    def test_topology_matches_for_simple_imports(self, force_tree_sitter, monkeypatch):
         src = textwrap.dedent(
             """
             import os
@@ -179,8 +174,9 @@ class TestParityWithAst:
         monkeypatch.setenv("COS_EXTRACTOR_PREFERENCE", "legacy")
         ast_result = code_python.extract("foo.py", src)
 
-        assert self._edges_grouped(_import_edges(ts_result)) == \
-               self._edges_grouped(_import_edges(ast_result))
+        assert self._edges_grouped(_import_edges(ts_result)) == self._edges_grouped(
+            _import_edges(ast_result)
+        )
 
 
 class TestEvidenceTag:

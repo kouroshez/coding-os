@@ -67,8 +67,8 @@ def main() -> int:
         f"from fastapi import APIRouter, status\n\n"
         f"from ..schemas.{args.resource} import {pascal}In, {pascal}Out\n"
         f"from ..services.{args.resource} import create_{args.resource}\n\n"
-        f"router = APIRouter(prefix=\"/{args.resource}\", tags=[\"{args.resource}\"])\n\n\n"
-        f"@router.post(\"/\", response_model={pascal}Out, status_code=status.HTTP_201_CREATED)\n"
+        f'router = APIRouter(prefix="/{args.resource}", tags=["{args.resource}"])\n\n\n'
+        f'@router.post("/", response_model={pascal}Out, status_code=status.HTTP_201_CREATED)\n'
         f"async def create(payload: {pascal}In) -> {pascal}Out:\n"
         f"    return await create_{args.resource}(payload)\n",
         encoding="utf-8",
@@ -82,8 +82,8 @@ def main() -> int:
         f"    # Given: a valid payload\n"
         f"    payload = {{}}\n"
         f"    # When: POST /{args.resource}/\n"
-        f"    # async with AsyncClient(app=app, base_url=\"http://test\") as ac:\n"
-        f"    #     resp = await ac.post(\"/{args.resource}/\", json=payload)\n"
+        f'    # async with AsyncClient(app=app, base_url="http://test") as ac:\n'
+        f'    #     resp = await ac.post("/{args.resource}/", json=payload)\n'
         f"    # Then:\n"
         f"    # assert resp.status_code == 201\n"
         f"    assert payload == {{}}  # placeholder until app wiring\n",

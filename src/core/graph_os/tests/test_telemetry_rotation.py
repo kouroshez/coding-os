@@ -1,4 +1,5 @@
 """_rotate_telemetry_atomically: rotation under size cap, atomic rename."""
+
 from __future__ import annotations
 
 import os
@@ -40,5 +41,5 @@ def test_emit_telemetry_appends_one_line(tmp_path: Path, monkeypatch):
     assert log.exists()
     lines = log.read_text().splitlines()
     assert len(lines) == 1
-    assert "\"ok\": true" in lines[0]
-    assert "\"backend\": \"sqlite\"" in lines[0]
+    assert '"ok": true' in lines[0]
+    assert '"backend": "sqlite"' in lines[0]

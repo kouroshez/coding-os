@@ -12,12 +12,12 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 MASTER = REPO_ROOT / "src" / "templates" / "_base" / "task-detail.template.md"
 SCAFFOLD = (
     REPO_ROOT
-    / "src" / "templates"
+    / "src"
+    / "templates"
     / "_base"
     / "scaffold"
     / "docs"

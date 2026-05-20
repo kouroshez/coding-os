@@ -5,6 +5,7 @@ permission_mode='dontAsk', mcp__coding-os__* allow-list, role skills
 inheritance) actually flies through claude-agent-sdk 0.1.73 against the
 real Claude CLI. Source-of-truth doc: docs/adapters/claude-sdk.md §13.
 """
+
 from __future__ import annotations
 
 import asyncio

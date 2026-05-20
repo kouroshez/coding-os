@@ -28,6 +28,7 @@ router = APIRouter(prefix="/api/audits", tags=["audits"])
 def _audits_dir() -> Path:
     try:
         from web._project_context import current_project_root  # type: ignore
+
         root = current_project_root()
     except Exception as exc:
         # Fire-and-forget per Rule 6: log to stderr so debug isn't
@@ -70,9 +71,7 @@ def _parse_frontmatter(text: str) -> dict:
             continue
         if value.startswith("[") and value.endswith("]"):
             inner = value[1:-1]
-            out[key] = [
-                v.strip().strip('"').strip("'") for v in inner.split(",") if v.strip()
-            ]
+            out[key] = [v.strip().strip('"').strip("'") for v in inner.split(",") if v.strip()]
         else:
             out[key] = value.strip('"').strip("'")
     return out
@@ -107,7 +106,8 @@ def _scan_audits() -> list[dict]:
                 "rows_total": counts["total"],
                 "rows_unchecked": counts["unchecked"],
                 "path": str(path.relative_to(audit_dir.parents[2]))
-                if audit_dir.exists() else str(path),
+                if audit_dir.exists()
+                else str(path),
             }
         )
     return audits

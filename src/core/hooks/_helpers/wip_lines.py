@@ -4,6 +4,7 @@ List in-progress / testing tasks from thinking_os DB for the SessionStart banner
 USAGE
     python3 wip_lines.py <db_path>
 """
+
 from __future__ import annotations
 
 import sqlite3

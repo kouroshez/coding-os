@@ -20,6 +20,7 @@ for _p in (_CORE_DIR, _TOS_DIR):
 def build_scale_graph(*, node_count: int):
     """Produce `node_count` synthetic nodes + ~2x edges in SQLite backend."""
     from database import init_db  # type: ignore
+
     from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
     from graph_os.types import GraphEdge, GraphNode  # type: ignore
 
@@ -75,9 +76,7 @@ def main() -> int:
 
     from graph_os.viewer import build_view  # type: ignore
 
-    backend, db_path, ingest_ms, n_written, e_written = build_scale_graph(
-        node_count=args.nodes
-    )
+    backend, db_path, ingest_ms, n_written, e_written = build_scale_graph(node_count=args.nodes)
     out_path = Path(tempfile.NamedTemporaryFile(suffix=".html", delete=False).name)
     render_start = time.monotonic()
     build_view(
@@ -100,9 +99,7 @@ def main() -> int:
     }
     print(json.dumps(report, indent=2))
     if args.output:
-        Path(args.output).write_text(
-            json.dumps(report, indent=2), encoding="utf-8"
-        )
+        Path(args.output).write_text(json.dumps(report, indent=2), encoding="utf-8")
     if not args.keep_file:
         out_path.unlink(missing_ok=True)
     db_path.unlink(missing_ok=True)

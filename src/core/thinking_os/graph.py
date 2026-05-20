@@ -23,6 +23,7 @@ logger = logging.getLogger("thinking_os.graph")
 # Edge recording
 # ---------------------------------------------------------------------------
 
+
 def record_co_edit(
     conn: sqlite3.Connection,
     *,
@@ -106,7 +107,7 @@ def build_concept_links(
             continue
         # All pairs
         for i, c1 in enumerate(concepts):
-            for c2 in concepts[i + 1:]:
+            for c2 in concepts[i + 1 :]:
                 pair = tuple(sorted([str(c1).lower(), str(c2).lower()]))
                 pair_counts[pair] = pair_counts.get(pair, 0) + 1
 
@@ -134,6 +135,7 @@ def build_concept_links(
 # ---------------------------------------------------------------------------
 # Graph queries
 # ---------------------------------------------------------------------------
+
 
 def query_related(
     conn: sqlite3.Connection,
@@ -178,7 +180,7 @@ def query_related(
             params.extend(edge_types * 2)  # once for each half of UNION
 
         rows = conn.execute(
-            f"SELECT target AS neighbor, edge_type, weight FROM concept_graph "  # noqa: S608
+            f"SELECT target AS neighbor, edge_type, weight FROM concept_graph "
             f"WHERE source = ?{type_filter} "
             f"UNION "
             f"SELECT source AS neighbor, edge_type, weight FROM concept_graph "
@@ -193,18 +195,22 @@ def query_related(
                 continue
             visited.add(neighbor)
 
-            result_nodes.append({
-                "node": neighbor,
-                "edge_type": row["edge_type"],
-                "weight": row["weight"],
-                "depth": depth + 1,
-            })
-            result_edges.append({
-                "source": current,
-                "target": neighbor,
-                "edge_type": row["edge_type"],
-                "weight": row["weight"],
-            })
+            result_nodes.append(
+                {
+                    "node": neighbor,
+                    "edge_type": row["edge_type"],
+                    "weight": row["weight"],
+                    "depth": depth + 1,
+                }
+            )
+            result_edges.append(
+                {
+                    "source": current,
+                    "target": neighbor,
+                    "edge_type": row["edge_type"],
+                    "weight": row["weight"],
+                }
+            )
             queue.append((neighbor, depth + 1))
 
     return {

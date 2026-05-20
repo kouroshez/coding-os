@@ -1,4 +1,5 @@
 """Tests for cli.sync_all — cos sync-all + cos sync-doctor."""
+
 from __future__ import annotations
 
 import json
@@ -29,9 +30,7 @@ def registry_env(tmp_path, monkeypatch):
     def make_project(name: str, with_broken_link: bool = False) -> Path:
         p = tmp_path / name
         (p / ".coding-os").mkdir(parents=True)
-        (p / ".coding-os.yaml").write_text(
-            "agents: []\ntemplates: []\n", encoding="utf-8"
-        )
+        (p / ".coding-os.yaml").write_text("agents: []\ntemplates: []\n", encoding="utf-8")
         (p / ".claude" / "hooks").mkdir(parents=True)
         # A healthy symlink to a real file (any file works for the test).
         real = tmp_path / "good-target.sh"
@@ -43,6 +42,7 @@ def registry_env(tmp_path, monkeypatch):
         return p
 
     from cli.registry import add_project
+
     alive = make_project("alive")
     broken = make_project("with-broken", with_broken_link=True)
     add_project(alive)
@@ -106,9 +106,7 @@ def test_sync_all_dry_run_does_not_touch_registry(registry_env):
 
 
 def test_sync_doctor_json_output(registry_env):
-    result = CliRunner().invoke(
-        sync_doctor_cmd, ["--format", "json"]
-    )
+    result = CliRunner().invoke(sync_doctor_cmd, ["--format", "json"])
     # exit code = number of still-broken projects (1 = with-broken).
     assert result.exit_code == 1, result.output
     payload = json.loads(result.output)
@@ -126,9 +124,7 @@ def test_sync_doctor_healthy_projects_exit_zero(registry_env):
 
 
 def test_sync_doctor_slug_filter(registry_env):
-    result = CliRunner().invoke(
-        sync_doctor_cmd, ["--format", "json", "--slug", "alive"]
-    )
+    result = CliRunner().invoke(sync_doctor_cmd, ["--format", "json", "--slug", "alive"])
     payload = json.loads(result.output)
     assert [r["slug"] for r in payload] == ["alive"]
     assert result.exit_code == 0
@@ -138,9 +134,7 @@ def test_sync_doctor_repair_flag_runs_without_agents(registry_env):
     """When .coding-os.yaml has agents=[], --repair can't rewire links;
     the command must surface that state without crashing and still
     exit with the broken count."""
-    result = CliRunner().invoke(
-        sync_doctor_cmd, ["--repair", "--format", "json"]
-    )
+    result = CliRunner().invoke(sync_doctor_cmd, ["--repair", "--format", "json"])
     # Still 1 broken — repair with empty agents list is a no-op by design.
     assert result.exit_code == 1
     payload = json.loads(result.output)
@@ -154,6 +148,7 @@ def test_sync_doctor_skips_stale_project(registry_env):
     parse.  Click 8.3 keeps stdout + stderr separate via result.stdout /
     result.stderr (no mix_stderr kwarg any more)."""
     import shutil
+
     shutil.rmtree(registry_env["alive"] / ".coding-os")
     result = CliRunner().invoke(sync_doctor_cmd, ["--format", "json"])
     payload = json.loads(result.stdout)

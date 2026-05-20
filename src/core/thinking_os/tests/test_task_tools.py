@@ -19,10 +19,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import embeddings  # noqa: E402
-from database import init_db  # noqa: E402
-from task_sync import sync_tasks  # noqa: E402
-from tools.tasks import (  # noqa: E402
+import embeddings
+from database import init_db
+from task_sync import sync_tasks
+from tools.tasks import (
     task_by_filter,
     task_dependencies,
     task_dependents,
@@ -38,6 +38,7 @@ REQUIRES_RAG = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db(tmp_path: Path) -> sqlite3.Connection:
@@ -113,6 +114,7 @@ def seeded_db(tmp_db: sqlite3.Connection, tmp_path: Path) -> sqlite3.Connection:
 # task_by_filter
 # ---------------------------------------------------------------------------
 
+
 class TestTaskByFilter:
     def test_no_filter_returns_all(self, seeded_db: sqlite3.Connection) -> None:
         results = task_by_filter(seeded_db)
@@ -161,15 +163,14 @@ class TestTaskByFilter:
 # task_dependencies — upstream
 # ---------------------------------------------------------------------------
 
+
 class TestTaskDependencies:
     def test_returns_single_prerequisite(self, seeded_db: sqlite3.Connection) -> None:
         results = task_dependencies(seeded_db, "TASK-002")
         assert len(results) == 1
         assert results[0]["task_id"] == "TASK-001"
 
-    def test_returns_prerequisite_with_full_metadata(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_returns_prerequisite_with_full_metadata(self, seeded_db: sqlite3.Connection) -> None:
         results = task_dependencies(seeded_db, "TASK-199")
         assert len(results) == 1
         assert results[0]["title"] == "Seller product CRUD"
@@ -189,6 +190,7 @@ class TestTaskDependencies:
 # ---------------------------------------------------------------------------
 # task_dependents — downstream
 # ---------------------------------------------------------------------------
+
 
 class TestTaskDependents:
     def test_finds_direct_dependent(self, seeded_db: sqlite3.Connection) -> None:
@@ -214,9 +216,7 @@ class TestTaskDependents:
         # TASK-019 has no downstream dependents
         assert results == []
 
-    def test_dependents_of_task_with_descendant(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_dependents_of_task_with_descendant(self, seeded_db: sqlite3.Connection) -> None:
         """task_dependents is non-transitive — only direct dependents."""
         results = task_dependents(seeded_db, "TASK-195")
         ids = {r["task_id"] for r in results}
@@ -236,6 +236,7 @@ class TestTaskDependents:
 # task_search — semantic + LIKE fallback
 # ---------------------------------------------------------------------------
 
+
 class TestTaskSearchEdgeCases:
     def test_empty_query_returns_empty(self, seeded_db: sqlite3.Connection) -> None:
         assert task_search(seeded_db, "") == []
@@ -248,42 +249,32 @@ class TestTaskSearchEdgeCases:
 class TestTaskSearchLikeFallback:
     """Fallback path — runs even without rag extras."""
 
-    def test_like_matches_title_substring(
-        self, seeded_db: sqlite3.Connection, monkeypatch
-    ) -> None:
+    def test_like_matches_title_substring(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         # Force the LIKE fallback by patching is_available to False
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         results = task_search(seeded_db, "auth")
         ids = {r["task_id"] for r in results}
         assert "TASK-003" in ids
 
-    def test_like_matches_goal_text(
-        self, seeded_db: sqlite3.Connection, monkeypatch
-    ) -> None:
+    def test_like_matches_goal_text(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         results = task_search(seeded_db, "JWT")
         ids = {r["task_id"] for r in results}
         assert "TASK-003" in ids
 
-    def test_like_respects_status_filter(
-        self, seeded_db: sqlite3.Connection, monkeypatch
-    ) -> None:
+    def test_like_respects_status_filter(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         # "scaffold" matches TASK-002 which is status=wip
         results = task_search(seeded_db, "Django", status="done")
         # Django doesn't appear in done tasks
         assert results == []
 
-    def test_like_respects_domain_filter(
-        self, seeded_db: sqlite3.Connection, monkeypatch
-    ) -> None:
+    def test_like_respects_domain_filter(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         results = task_search(seeded_db, "Documentation", domain="DOCS")
         assert all(r["domain"] == "DOCS" for r in results)
 
-    def test_limit_respected(
-        self, seeded_db: sqlite3.Connection, monkeypatch
-    ) -> None:
+    def test_limit_respected(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         results = task_search(seeded_db, "task", limit=2)
         assert len(results) <= 2
@@ -293,9 +284,7 @@ class TestTaskSearchSemantic:
     """Semantic path — requires rag extras."""
 
     @REQUIRES_RAG
-    def test_semantic_finds_related_task(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_semantic_finds_related_task(self, seeded_db: sqlite3.Connection) -> None:
         """Query with no exact word overlap should still find the payment task."""
         results = task_search(seeded_db, "multi vendor marketplace revenue sharing")
         assert len(results) >= 1
@@ -304,23 +293,17 @@ class TestTaskSearchSemantic:
         assert "TASK-199" in ids or "TASK-195" in ids
 
     @REQUIRES_RAG
-    def test_semantic_honors_status_filter(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_semantic_honors_status_filter(self, seeded_db: sqlite3.Connection) -> None:
         results = task_search(seeded_db, "backend implementation", status="open")
         assert all(r["status"] == "open" for r in results)
 
     @REQUIRES_RAG
-    def test_semantic_honors_domain_filter(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_semantic_honors_domain_filter(self, seeded_db: sqlite3.Connection) -> None:
         results = task_search(seeded_db, "scaffold setup", domain="BACKEND")
         assert all(r["domain"] == "BACKEND" for r in results)
 
     @REQUIRES_RAG
-    def test_semantic_results_have_score(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_semantic_results_have_score(self, seeded_db: sqlite3.Connection) -> None:
         results = task_search(seeded_db, "authentication")
         assert len(results) >= 1
         for r in results:
@@ -328,9 +311,7 @@ class TestTaskSearchSemantic:
             assert isinstance(r["score"], (int, float))
 
     @REQUIRES_RAG
-    def test_semantic_results_sorted_by_score_desc(
-        self, seeded_db: sqlite3.Connection
-    ) -> None:
+    def test_semantic_results_sorted_by_score_desc(self, seeded_db: sqlite3.Connection) -> None:
         results = task_search(seeded_db, "backend authentication")
         if len(results) > 1:
             scores = [r["score"] for r in results]

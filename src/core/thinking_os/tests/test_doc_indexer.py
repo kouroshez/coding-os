@@ -23,18 +23,18 @@ import pytest
 # Make doc_indexer + db importable from the package root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import doc_indexer  # noqa: E402
-import embeddings  # noqa: E402
-from database import init_db  # noqa: E402
-from doc_indexer import (  # noqa: E402
+import doc_indexer
+import embeddings
+from database import init_db
+from doc_indexer import (
     DEFAULT_MAX_CHARS,
+    _build_heading_path,
+    _extract_h1,
+    _strip_front_matter,
     chunk_markdown,
     index_docs,
     load_rag_config,
     walk_sources,
-    _build_heading_path,
-    _strip_front_matter,
-    _extract_h1,
 )
 
 REQUIRES_RAG = pytest.mark.skipif(
@@ -46,6 +46,7 @@ REQUIRES_RAG = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db(tmp_path: Path) -> sqlite3.Connection:
@@ -150,6 +151,7 @@ exclude:
 # Front-matter / heading helpers
 # ---------------------------------------------------------------------------
 
+
 class TestHelpers:
     def test_strip_front_matter_removes_header(self) -> None:
         content = "<!-- domain:ALL | layer:spec | ssot:true | updated:2026-04-06 -->\n# Title\nbody"
@@ -179,6 +181,7 @@ class TestHelpers:
 # chunk_markdown
 # ---------------------------------------------------------------------------
 
+
 class TestChunkMarkdown:
     def test_empty_input_returns_empty(self) -> None:
         assert chunk_markdown("") == []
@@ -194,10 +197,7 @@ class TestChunkMarkdown:
 
     def test_multiple_h2_multiple_chunks(self) -> None:
         content = (
-            "# Doc\n\n"
-            "## Section A\nBody A.\n\n"
-            "## Section B\nBody B.\n\n"
-            "## Section C\nBody C.\n"
+            "# Doc\n\n## Section A\nBody A.\n\n## Section B\nBody B.\n\n## Section C\nBody C.\n"
         )
         chunks = chunk_markdown(content)
         assert len(chunks) == 3
@@ -265,6 +265,7 @@ class TestChunkMarkdown:
 # load_rag_config
 # ---------------------------------------------------------------------------
 
+
 class TestLoadRagConfig:
     def test_loads_valid_config(self, tmp_config: Path) -> None:
         config = load_rag_config(tmp_config)
@@ -288,6 +289,7 @@ class TestLoadRagConfig:
 # walk_sources
 # ---------------------------------------------------------------------------
 
+
 class TestWalkSources:
     def test_walks_all_md_files(self, tmp_project: Path, tmp_config: Path) -> None:
         config = load_rag_config(tmp_config)
@@ -304,17 +306,13 @@ class TestWalkSources:
         paths = {str(p[0].relative_to(tmp_project)) for p in files}
         assert not any("playbooks" in p for p in paths)
 
-    def test_local_exclude_blocks_subdir(
-        self, tmp_project: Path, tmp_config: Path
-    ) -> None:
+    def test_local_exclude_blocks_subdir(self, tmp_project: Path, tmp_config: Path) -> None:
         """architecture/ source has local exclude=adr/, so adr files
         come from the dedicated adr/ source — not the architecture one.
         Each ADR file should appear exactly once in the walk."""
         config = load_rag_config(tmp_config)
         files = walk_sources(config["sources"], tmp_project, config["exclude"])
-        adr_files = [
-            p for p, _ in files if "ADR-001-django.md" in str(p)
-        ]
+        adr_files = [p for p, _ in files if "ADR-001-django.md" in str(p)]
         assert len(adr_files) == 1
 
     def test_attaches_source_config(self, tmp_project: Path, tmp_config: Path) -> None:
@@ -329,6 +327,7 @@ class TestWalkSources:
 # ---------------------------------------------------------------------------
 # index_docs (end-to-end)
 # ---------------------------------------------------------------------------
+
 
 class TestIndexDocs:
     def test_first_run_indexes_files(
@@ -357,9 +356,7 @@ class TestIndexDocs:
         index_docs(tmp_db, tmp_config, tmp_project)
         types = {
             row[0]
-            for row in tmp_db.execute(
-                "SELECT DISTINCT source_type FROM document_chunks"
-            ).fetchall()
+            for row in tmp_db.execute("SELECT DISTINCT source_type FROM document_chunks").fetchall()
         }
         assert "prd" in types
         assert "architecture" in types
@@ -442,9 +439,7 @@ class TestIndexDocs:
         embedding_count = tmp_db.execute(
             "SELECT COUNT(*) FROM embeddings WHERE source_table = 'document_chunks'"
         ).fetchone()[0]
-        chunk_count = tmp_db.execute(
-            "SELECT COUNT(*) FROM document_chunks"
-        ).fetchone()[0]
+        chunk_count = tmp_db.execute("SELECT COUNT(*) FROM document_chunks").fetchone()[0]
         assert embedding_count == chunk_count
         assert embedding_count > 0
 
@@ -475,6 +470,7 @@ class TestIndexDocs:
 # ---------------------------------------------------------------------------
 # Regression: resolved vs unresolved path handling on macOS (/tmp symlink)
 # ---------------------------------------------------------------------------
+
 
 class TestPathResolutionRegression:
     """Regression guard for the bug caught during Phase B+C end-to-end
@@ -525,8 +521,6 @@ class TestPathResolutionRegression:
         assert stats["new_chunks"] >= 1
 
         # Verify stored source_path is relative (not absolute)
-        row = tmp_db.execute(
-            "SELECT source_path FROM document_chunks LIMIT 1"
-        ).fetchone()
+        row = tmp_db.execute("SELECT source_path FROM document_chunks LIMIT 1").fetchone()
         assert row is not None
         assert not row[0].startswith("/"), f"expected relative path, got {row[0]!r}"

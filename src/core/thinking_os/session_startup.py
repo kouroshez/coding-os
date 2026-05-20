@@ -30,9 +30,7 @@ def main() -> None:
 
         obs = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
         pats = conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0]
-        cost = conn.execute(
-            "SELECT COALESCE(SUM(cost_tokens), 0) FROM observations"
-        ).fetchone()[0]
+        cost = conn.execute("SELECT COALESCE(SUM(cost_tokens), 0) FROM observations").fetchone()[0]
 
         mem_tok = 700  # ~200 start + ~500 orient per task
         budget = 800_000  # 1M context × 80% usable

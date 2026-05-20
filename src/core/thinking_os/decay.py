@@ -38,6 +38,7 @@ CONFIDENCE_FLOOR = 0.1
 # Decay formulas
 # ---------------------------------------------------------------------------
 
+
 def effective_decay_rate(
     *,
     base_rate: float,
@@ -97,6 +98,7 @@ def decay_confidence(
 # ---------------------------------------------------------------------------
 # Batch decay runner
 # ---------------------------------------------------------------------------
+
 
 def _days_since(dt_str: str | None) -> float | None:
     """Return days since a datetime string, or None if null."""
@@ -208,6 +210,7 @@ def run_decay(db_path: str | Path | None = None, *, dry_run: bool = False) -> di
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     dry_run = "--dry-run" in sys.argv

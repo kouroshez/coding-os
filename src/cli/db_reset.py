@@ -26,6 +26,7 @@ KUZU_BAK_DIR = "graph_os.kuzu.empty-bak"
 
 def _agent_dirs() -> tuple[str, ...]:
     from cli.adapter_registry import load_adapter_registry
+
     coding_os_root = Path(__file__).resolve().parent.parent.parent
     adapters_dir = coding_os_root / "src" / "adapters"
     return tuple(load_adapter_registry(adapters_dir).keys())
@@ -146,11 +147,28 @@ def register(cli: click.Group) -> None:
 
     @cli.command("db-reset")
     @click.option("--project-dir", "-d", default=".", help="Project directory")
-    @click.option("--confirm", is_flag=True, default=False, help="Actually perform the reset (default is dry-run)")
-    @click.option("--wipe-sessions", is_flag=True, default=False, help="Also delete .coding-os/<agent>/ (gates, traces, markers)")
-    @click.option("--wipe-tasks", is_flag=True, default=False, help="Also delete docs/tasks/TASK-*.md (use with care — disk SSOT)")
+    @click.option(
+        "--confirm",
+        is_flag=True,
+        default=False,
+        help="Actually perform the reset (default is dry-run)",
+    )
+    @click.option(
+        "--wipe-sessions",
+        is_flag=True,
+        default=False,
+        help="Also delete .coding-os/<agent>/ (gates, traces, markers)",
+    )
+    @click.option(
+        "--wipe-tasks",
+        is_flag=True,
+        default=False,
+        help="Also delete docs/tasks/TASK-*.md (use with care — disk SSOT)",
+    )
     @click.option("--no-backup", is_flag=True, default=False, help="Skip backup (NOT recommended)")
-    @click.option("--no-reindex", is_flag=True, default=False, help="Do not run cos graph-reindex after reset")
+    @click.option(
+        "--no-reindex", is_flag=True, default=False, help="Do not run cos graph-reindex after reset"
+    )
     def db_reset(
         project_dir: str,
         confirm: bool,
@@ -189,7 +207,7 @@ def register(cli: click.Group) -> None:
         click.echo("Reset targets:")
         total = 0
         for label, p, size in targets:
-            click.echo(f"  {label:<24s} {str(p):<60s} {_bytes(size)}")
+            click.echo(f"  {label:<24s} {p!s:<60s} {_bytes(size)}")
             total += size
         click.echo(f"  {'TOTAL':<24s} {'':<60s} {_bytes(total)}")
         click.echo("")
@@ -266,4 +284,6 @@ def register(cli: click.Group) -> None:
             except FileNotFoundError:
                 click.echo("     `cos` not on PATH; run manually: cos graph-reindex", err=True)
         if not wipe_tasks:
-            click.echo("  3. Task files preserved on disk; task_sync re-indexes on next agent prompt.")
+            click.echo(
+                "  3. Task files preserved on disk; task_sync re-indexes on next agent prompt."
+            )

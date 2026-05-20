@@ -33,17 +33,19 @@ def _db_conn() -> sqlite3.Connection:
 
 
 def _unavailable(msg: str = "search tools unavailable") -> str:
-    return json.dumps({
-        "ok": False,
-        "error": {"category": "unavailable", "retryable": False, "message": msg},
-    })
+    return json.dumps(
+        {
+            "ok": False,
+            "error": {"category": "unavailable", "retryable": False, "message": msg},
+        }
+    )
 
 
 @router.get("/memory")
 async def memory_search(
     query: str = Query(..., description="Natural-language search query"),
     limit: int = Query(5),
-    memory_type: Optional[str] = Query(None),
+    memory_type: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("search.memory")),
     _m=Depends(make_metrics_dep("search.memory")),
 ):
@@ -71,25 +73,36 @@ async def memory_search(
             memory_type=memory_type or None,
             use_fts5=has_fts5_table(conn),
         )
-        rids = log_retrieval(conn, layer="memory", query=query,
-                             rows=(result.get("results") or []) if isinstance(result, dict) else [])
+        rids = log_retrieval(
+            conn,
+            layer="memory",
+            query=query,
+            rows=(result.get("results") or []) if isinstance(result, dict) else [],
+        )
         if isinstance(result, dict):
             result["retrieval_ids"] = rids
     finally:
         conn.close()
 
     import json as _json
-    return unwrap(_json.dumps({
-        "ok": True,
-        "data": {**(result if isinstance(result, dict) else {"results": result}),
-                 "meta": {"layer": "memory", "query": query}},
-    }))
+
+    return unwrap(
+        _json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    **(result if isinstance(result, dict) else {"results": result}),
+                    "meta": {"layer": "memory", "query": query},
+                },
+            }
+        )
+    )
 
 
 @router.get("/docs")
 async def doc_search(
     query: str = Query(..., description="Natural-language search query"),
-    source_types: Optional[str] = Query(None, description="Comma-separated source types"),
+    source_types: str | None = Query(None, description="Comma-separated source types"),
     limit: int = Query(5),
     mode: str = Query("auto"),
     _rl=Depends(make_rate_limit_dep("search.docs")),
@@ -114,22 +127,27 @@ async def doc_search(
         conn.close()
 
     import json as _json
-    return unwrap(_json.dumps({
-        "ok": True,
-        "data": {
-            "results": results,
-            "count": len(results),
-            "retrieval_ids": rids,
-            "meta": {"layer": "docs", "query": query, "mode": mode_clean},
-        },
-    }))
+
+    return unwrap(
+        _json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "results": results,
+                    "count": len(results),
+                    "retrieval_ids": rids,
+                    "meta": {"layer": "docs", "query": query, "mode": mode_clean},
+                },
+            }
+        )
+    )
 
 
 @router.get("/tasks")
 async def task_search(
     query: str = Query(..., description="Natural-language search query"),
-    status: Optional[str] = Query(None, description="open/wip/done/blocked"),
-    domain: Optional[str] = Query(None, description="BACKEND/FRONTEND/DOCS/INFRA/..."),
+    status: str | None = Query(None, description="open/wip/done/blocked"),
+    domain: str | None = Query(None, description="BACKEND/FRONTEND/DOCS/INFRA/..."),
     limit: int = Query(10),
     _rl=Depends(make_rate_limit_dep("search.tasks")),
     _m=Depends(make_metrics_dep("search.tasks")),
@@ -137,8 +155,8 @@ async def task_search(
     """Semantic + structured search over the Scrumban task store."""
     try:
         sys.path.insert(0, str(_TOS_DIR))
-        from tools.tasks import task_search as _task_search  # type: ignore
         from tools.retrieve import log_retrieval  # type: ignore
+        from tools.tasks import task_search as _task_search  # type: ignore
     except ImportError as exc:
         return unwrap(_unavailable(f"task search tools unavailable: {exc}"))
 
@@ -156,16 +174,21 @@ async def task_search(
         conn.close()
 
     import json as _json
-    return unwrap(_json.dumps({
-        "ok": True,
-        "data": {
-            "results": results,
-            "count": len(results),
-            "retrieval_ids": rids,
-            "meta": {
-                "layer": "tasks",
-                "query": query,
-                "filters_applied": {"status": status or None, "domain": domain or None},
-            },
-        },
-    }))
+
+    return unwrap(
+        _json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "results": results,
+                    "count": len(results),
+                    "retrieval_ids": rids,
+                    "meta": {
+                        "layer": "tasks",
+                        "query": query,
+                        "filters_applied": {"status": status or None, "domain": domain or None},
+                    },
+                },
+            }
+        )
+    )

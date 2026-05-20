@@ -53,7 +53,9 @@ def test_at_least_one_stack_ships_anatomy() -> None:
     assert files, "No stack anatomy files found — POC has not landed yet."
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_frontmatter(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     first_line = body.splitlines()[0] if body else ""
@@ -64,7 +66,9 @@ def test_anatomy_frontmatter(anatomy_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_short_form_opening_block(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     for prefix in OPENING_BLOCK_LINES:
@@ -75,7 +79,9 @@ def test_anatomy_short_form_opening_block(anatomy_path: Path) -> None:
         )
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_required_h2_order(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     found = [ln for ln in body.splitlines() if ln.startswith("## ")]
@@ -86,7 +92,9 @@ def test_anatomy_required_h2_order(anatomy_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_conventions_subsections(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     h3s = [ln for ln in body.splitlines() if ln.startswith("#### ")]
@@ -98,21 +106,25 @@ def test_anatomy_conventions_subsections(anatomy_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_boundary_section_links_yaml(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     # § 1 Boundary must contain a link to scaffold-boundary.yaml (SSOT) — no
     # duplicated field tables (over-fix per audit).
     boundary_idx = body.find("## 1. Boundary")
     next_h2_idx = body.find("\n## 2. ", boundary_idx)
-    section = body[boundary_idx:next_h2_idx if next_h2_idx > 0 else len(body)]
+    section = body[boundary_idx : next_h2_idx if next_h2_idx > 0 else len(body)]
     assert "scaffold-boundary.yaml" in section, (
         f"{anatomy_path.relative_to(REPO_ROOT)}: § 1 Boundary MUST link to "
         f"the stack's scaffold-boundary.yaml (SSOT, no duplicated tables)."
     )
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_token_budget(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     tokens = _approx_tokens(body)
@@ -122,7 +134,9 @@ def test_anatomy_token_budget(anatomy_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "anatomy_path", _stack_anatomy_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_anatomy_test_recipe_present(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
     assert "### Add a new test" in body, (
@@ -154,7 +168,9 @@ def test_at_least_one_stack_ships_boundary() -> None:
     assert files, "No stack scaffold-boundary.yaml files found — POC has not landed yet."
 
 
-@pytest.mark.parametrize("boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_boundary_required_keys(boundary_path: Path) -> None:
     data = yaml.safe_load(boundary_path.read_text(encoding="utf-8"))
     assert isinstance(data, dict), f"{boundary_path.name}: not a YAML mapping."
@@ -164,7 +180,9 @@ def test_boundary_required_keys(boundary_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_boundary_stack_field_matches_dir(boundary_path: Path) -> None:
     data = yaml.safe_load(boundary_path.read_text(encoding="utf-8"))
     expected_stack = boundary_path.parent.name
@@ -174,7 +192,9 @@ def test_boundary_stack_field_matches_dir(boundary_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_boundary_roots_have_trailing_slash(boundary_path: Path) -> None:
     data = yaml.safe_load(boundary_path.read_text(encoding="utf-8"))
     for root in data.get("roots") or []:
@@ -183,7 +203,9 @@ def test_boundary_roots_have_trailing_slash(boundary_path: Path) -> None:
         )
 
 
-@pytest.mark.parametrize("boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "boundary_path", _stack_boundary_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_boundary_version_is_one(boundary_path: Path) -> None:
     data = yaml.safe_load(boundary_path.read_text(encoding="utf-8"))
     assert data.get("version") == 1, (
@@ -252,6 +274,4 @@ def test_every_stack_with_anatomy_ships_boundary() -> None:
     anatomies = {a.parents[3].name for a in _stack_anatomy_files()}
     boundaries = {b.parent.name for b in _stack_boundary_files()}
     missing = anatomies - boundaries
-    assert not missing, (
-        f"Stacks ship anatomy.md but no scaffold-boundary.yaml: {sorted(missing)}"
-    )
+    assert not missing, f"Stacks ship anatomy.md but no scaffold-boundary.yaml: {sorted(missing)}"

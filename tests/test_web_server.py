@@ -36,6 +36,7 @@ def client():
 # /health
 # ---------------------------------------------------------------------------
 
+
 class TestHealth:
     def test_health_returns_200(self, client):
         """GET /health must return 200 with status field."""
@@ -56,6 +57,7 @@ class TestHealth:
 # ---------------------------------------------------------------------------
 # /metrics
 # ---------------------------------------------------------------------------
+
 
 class TestMetrics:
     def test_metrics_returns_200(self, client):
@@ -85,6 +87,7 @@ class TestMetrics:
 # CORS headers
 # ---------------------------------------------------------------------------
 
+
 class TestCORS:
     def test_cors_origin_header_present_for_vite(self, client):
         """CORS allow-origin header must be present for Vite dev origin."""
@@ -108,6 +111,7 @@ class TestCORS:
 # ---------------------------------------------------------------------------
 # /api/graph — graph routes
 # ---------------------------------------------------------------------------
+
 
 class TestGraphRoutes:
     def test_graph_query_no_graph_backend(self, client):
@@ -150,6 +154,7 @@ class TestGraphRoutes:
 # /api/board — board routes
 # ---------------------------------------------------------------------------
 
+
 class TestBoardRoutes:
     def test_board_list_returns_valid_shape(self, client):
         """GET /api/board/list should return data or error (no DB in test env)."""
@@ -188,6 +193,7 @@ class TestBoardRoutes:
 # /api/cognition — trace routes
 # ---------------------------------------------------------------------------
 
+
 class TestCognitionRoutes:
     def test_cognition_traces_returns_list(self, client):
         """GET /api/cognition/traces returns a list (possibly empty)."""
@@ -207,6 +213,7 @@ class TestCognitionRoutes:
 # ---------------------------------------------------------------------------
 # /api/search — search routes
 # ---------------------------------------------------------------------------
+
 
 class TestSearchRoutes:
     def test_search_docs_returns_valid_shape(self, client):
@@ -233,6 +240,7 @@ class TestSearchRoutes:
 # SSE endpoint
 # ---------------------------------------------------------------------------
 
+
 class TestSSEStream:
     """SSE tests monkeypatch _event_generator to a finite stub so TestClient
     doesn't block forever on the real infinite polling loop."""
@@ -242,8 +250,8 @@ class TestSSEStream:
         import web.routes.stream as _stream_mod
 
         async def _finite_gen():
-            yield "event: connected\ndata: {\"message\": \"test\"}\n\n"
-            yield "event: heartbeat\ndata: {\"ts\": 0}\n\n"
+            yield 'event: connected\ndata: {"message": "test"}\n\n'
+            yield 'event: heartbeat\ndata: {"ts": 0}\n\n'
 
         orig_gen = _stream_mod._event_generator
         _stream_mod._event_generator = _finite_gen
@@ -260,8 +268,8 @@ class TestSSEStream:
         import web.routes.stream as _stream_mod
 
         async def _finite_gen():
-            yield "event: connected\ndata: {\"message\": \"SSE stream connected\"}\n\n"
-            yield "event: heartbeat\ndata: {\"ts\": 0}\n\n"
+            yield 'event: connected\ndata: {"message": "SSE stream connected"}\n\n'
+            yield 'event: heartbeat\ndata: {"ts": 0}\n\n'
 
         orig_gen = _stream_mod._event_generator
         _stream_mod._event_generator = _finite_gen
@@ -289,15 +297,15 @@ class TestSSEStream:
 # Rate limit behavior
 # ---------------------------------------------------------------------------
 
+
 class TestRateLimit:
     def test_rate_limit_triggers_on_burst(self, client):
         """Firing N+1 rapid requests to a rate-limited endpoint should eventually 429."""
         # We need to exhaust the bucket (capacity=60 by default).
         # To avoid needing 60+ requests, patch the rate_limiter to a very low cap.
-        from web._deps import _get_enterprise
-
         # Directly override the enterprise rate limiter for this test.
         from graph_os.enterprise import RateLimiter  # type: ignore
+        from web._deps import _get_enterprise
 
         tiny_limiter = RateLimiter(capacity=2, rate_per_second=0.1)
 
@@ -305,10 +313,12 @@ class TestRateLimit:
 
         def _patched_enterprise():
             from graph_os.enterprise import metrics  # type: ignore
+
             return tiny_limiter, metrics()
 
         # Monkey-patch the module-level function.
         import web._deps as _deps_mod
+
         _deps_mod._get_enterprise = _patched_enterprise
 
         try:
@@ -328,6 +338,7 @@ class TestRateLimit:
 # Envelope shape
 # ---------------------------------------------------------------------------
 
+
 class TestEnvelopeShape:
     def test_health_not_wrapped_in_envelope(self, client):
         """/health returns direct JSON (not nested in {data, meta})."""
@@ -339,15 +350,18 @@ class TestEnvelopeShape:
     def test_graph_query_envelope_has_data_and_meta_on_200(self, client):
         """A successful API response has {data, meta} at body level."""
         # Use a mock that returns a valid ok() envelope.
-        ok_envelope = json.dumps({
-            "ok": True,
-            "data": {
-                "results": [],
-                "meta": {"layer": "graph", "query": "test"},
-            },
-        })
+        ok_envelope = json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "results": [],
+                    "meta": {"layer": "graph", "query": "test"},
+                },
+            }
+        )
 
         import web.routes.graph as _graph_route
+
         original_tools = _graph_route._tools
 
         def _mock_tools():
@@ -369,6 +383,7 @@ class TestEnvelopeShape:
 # ---------------------------------------------------------------------------
 # /api/audits (TASK-004 G13)
 # ---------------------------------------------------------------------------
+
 
 class TestAuditsRoutes:
     def test_audits_list_returns_envelope(self, client):

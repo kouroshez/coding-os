@@ -1,4 +1,5 @@
 """Session-end helper — auto-generate project trajectory snapshot."""
+
 from __future__ import annotations
 
 import json
@@ -6,30 +7,29 @@ import sqlite3
 import sys
 from datetime import datetime, timezone
 
-
 # Map formula_id prefixes to domain labels shown in trajectory focus line
 _FORMULA_DOMAIN: dict[str, str] = {
-    "researcher":       "research",
-    "analyst":          "analysis",
-    "architect":        "architecture",
-    "implementer":      "implementation",
-    "reviewer":         "review",
-    "debugger":         "debugging",
-    "refactorer":       "refactoring",
+    "researcher": "research",
+    "analyst": "analysis",
+    "architect": "architecture",
+    "implementer": "implementation",
+    "reviewer": "review",
+    "debugger": "debugging",
+    "refactorer": "refactoring",
     "security_auditor": "security",
-    "documenter":       "documentation",
-    "deployer":         "deployment",
-    "observer":         "observability",
+    "documenter": "documentation",
+    "deployer": "deployment",
+    "observer": "observability",
 }
 
 # Suggested next steps per root_cause — heuristic, data-driven
 _NEXT_STEP_HINTS: dict[str, str] = {
-    "scope_too_large":  "decompose remaining tasks before next session",
-    "missing_context":  "load relevant docs via cos_doc_search at session start",
-    "wrong_model":      "use cos_route_model before dispatching formulas",
-    "tool_failure":     "verify permissions and env vars before next session",
-    "spec_ambiguity":   "resolve open questions before implementing",
-    "env_mismatch":     "validate environment configuration at session start",
+    "scope_too_large": "decompose remaining tasks before next session",
+    "missing_context": "load relevant docs via cos_doc_search at session start",
+    "wrong_model": "use cos_route_model before dispatching formulas",
+    "tool_failure": "verify permissions and env vars before next session",
+    "spec_ambiguity": "resolve open questions before implementing",
+    "env_mismatch": "validate environment configuration at session start",
 }
 
 
@@ -38,17 +38,23 @@ def _now_iso() -> str:
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
-    return conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
-    ).fetchone() is not None
+    return (
+        conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+        ).fetchone()
+        is not None
+    )
 
 
 def _already_snapped(conn: sqlite3.Connection, session_id: str) -> bool:
     """Skip if we already wrote a snapshot for this session (idempotent)."""
-    return conn.execute(
-        "SELECT 1 FROM project_trajectory WHERE session_id=? LIMIT 1",
-        (session_id,),
-    ).fetchone() is not None
+    return (
+        conn.execute(
+            "SELECT 1 FROM project_trajectory WHERE session_id=? LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        is not None
+    )
 
 
 def _dominant_formula(conn: sqlite3.Connection, session_id: str) -> str:
@@ -99,8 +105,7 @@ def _aggregate_tool_failures(conn: sqlite3.Connection, session_id: str) -> None:
         return
 
     count = conn.execute(
-        "SELECT COUNT(*) FROM observations "
-        "WHERE session_id=? AND observation_type='tool_failure'",
+        "SELECT COUNT(*) FROM observations WHERE session_id=? AND observation_type='tool_failure'",
         (session_id,),
     ).fetchone()[0]
 
@@ -121,9 +126,12 @@ def _aggregate_tool_failures(conn: sqlite3.Connection, session_id: str) -> None:
             "(session_id, from_formula, to_formula, reason, ts, root_cause) "
             "VALUES (?, ?, ?, ?, ?, ?)",
             (
-                session_id, "", "",
+                session_id,
+                "",
+                "",
                 f"Auto-aggregated: {count} tool failures captured this session",
-                ts, "tool_failure",
+                ts,
+                "tool_failure",
             ),
         )
         conn.commit()
@@ -158,8 +166,7 @@ def _recent_domains(conn: sqlite3.Connection) -> list[str]:
     if not _table_exists(conn, "task_outcomes"):
         return []
     rows = conn.execute(
-        "SELECT DISTINCT domain FROM task_outcomes "
-        "ORDER BY rowid DESC LIMIT 5"
+        "SELECT DISTINCT domain FROM task_outcomes ORDER BY rowid DESC LIMIT 5"
     ).fetchall()
     return [r["domain"] for r in rows if r["domain"]]
 
@@ -189,8 +196,10 @@ def derive_snapshot(conn: sqlite3.Connection, session_id: str) -> dict | None:
     # anti_patterns: from root_causes this session
     anti_patterns: list = []
     if root_causes:
-        anti_patterns = [{"pattern": rc, "context": f"observed {bt_count} backtracks this session"}
-                         for rc in root_causes]
+        anti_patterns = [
+            {"pattern": rc, "context": f"observed {bt_count} backtracks this session"}
+            for rc in root_causes
+        ]
 
     # next_logical_step: hint from most impactful root_cause
     next_step = ""
@@ -216,9 +225,7 @@ def derive_snapshot(conn: sqlite3.Connection, session_id: str) -> dict | None:
 
 def write_snapshot(conn: sqlite3.Connection, snap: dict) -> int:
     """Write trajectory snapshot; return new row id."""
-    prev = conn.execute(
-        "SELECT id FROM project_trajectory ORDER BY id DESC LIMIT 1"
-    ).fetchone()
+    prev = conn.execute("SELECT id FROM project_trajectory ORDER BY id DESC LIMIT 1").fetchone()
     supersedes_id = prev[0] if prev else None
 
     cur = conn.execute(

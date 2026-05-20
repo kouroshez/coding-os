@@ -8,20 +8,20 @@ and empty DB handling.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
 from tools.metrics import metric_query, metric_record, metric_trend
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -61,19 +61,27 @@ def seeded_conn(conn: sqlite3.Connection) -> sqlite3.Connection:
 # cos_metric_record
 # ---------------------------------------------------------------------------
 
+
 class TestMetricRecord:
     def test_record_returns_id(self, conn: sqlite3.Connection) -> None:
         result = metric_record(
-            conn, task_id="TASK-200", agent_type="general",
-            model="sonnet", duration_ms=1000, outcome="success",
+            conn,
+            task_id="TASK-200",
+            agent_type="general",
+            model="sonnet",
+            duration_ms=1000,
+            outcome="success",
         )
         assert "id" in result
         assert result["status"] == "recorded"
 
     def test_record_inserts_row(self, conn: sqlite3.Connection) -> None:
         metric_record(
-            conn, task_id="TASK-201", agent_type="planner",
-            outcome="success", domain="BACKEND",
+            conn,
+            task_id="TASK-201",
+            agent_type="planner",
+            outcome="success",
+            domain="BACKEND",
         )
         row = conn.execute(
             "SELECT * FROM agent_metrics WHERE task_id = ?", ("TASK-201",)
@@ -84,15 +92,15 @@ class TestMetricRecord:
 
     def test_record_invalid_outcome(self, conn: sqlite3.Connection) -> None:
         result = metric_record(
-            conn, agent_type="general", outcome="invalid_outcome",
+            conn,
+            agent_type="general",
+            outcome="invalid_outcome",
         )
         assert "error" in result
 
     def test_record_optional_fields_null(self, conn: sqlite3.Connection) -> None:
         result = metric_record(conn, agent_type="general", outcome="success")
-        row = conn.execute(
-            "SELECT * FROM agent_metrics WHERE id = ?", (result["id"],)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM agent_metrics WHERE id = ?", (result["id"],)).fetchone()
         assert row["task_id"] is None
         assert row["model"] is None
         assert row["duration_ms"] is None
@@ -107,6 +115,7 @@ class TestMetricRecord:
 # ---------------------------------------------------------------------------
 # cos_metric_query
 # ---------------------------------------------------------------------------
+
 
 class TestMetricQuery:
     def test_empty_db_returns_empty(self, conn: sqlite3.Connection) -> None:
@@ -161,6 +170,7 @@ class TestMetricQuery:
 # ---------------------------------------------------------------------------
 # cos_metric_trend
 # ---------------------------------------------------------------------------
+
 
 class TestMetricTrend:
     def test_empty_db_returns_empty_trends(self, conn: sqlite3.Connection) -> None:

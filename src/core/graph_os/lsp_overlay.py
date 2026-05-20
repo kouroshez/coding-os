@@ -13,9 +13,10 @@ import shutil
 import subprocess  # noqa: F401 — kept for FakeLspDriver signature parity
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 logger = logging.getLogger("graph_os.lsp_overlay")
 
@@ -110,7 +111,10 @@ class _PyrightLspDriver:
             logger.debug("pyright-langserver not on PATH; LSP overlay stays disabled")
             return False
         try:
-            from .lsp_client import LspClient, LspClientError  # noqa: WPS433 — local to avoid cold-import on disabled path
+            from .lsp_client import (
+                LspClient,
+                LspClientError,
+            )
         except ImportError as exc:
             logger.debug("lsp_client import failed: %s", exc)
             return False
@@ -142,7 +146,7 @@ class _PyrightLspDriver:
         # passes the timeout down to goto_definition via the client
         # request_timeout set at warm-start time.
         _ = timeout
-        from .lsp_client import LspClientError  # noqa: WPS433
+        from .lsp_client import LspClientError
 
         if self._client is None:
             return LspOverlayResult(status="unavailable", note="warm_start not called")
@@ -184,14 +188,14 @@ class _PyrightLspDriver:
         if self._client is not None:
             try:
                 self._client.shutdown()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("pyright shutdown suppressed: %s", exc)
             finally:
                 self._client = None
                 self._opened_files.clear()
 
 
-def _locate_symbol(path: "Path", symbol: str) -> tuple[int, int]:
+def _locate_symbol(path: Path, symbol: str) -> tuple[int, int]:
     """Return (line, character) of the first `symbol` occurrence in `path`.
 
     A deliberately dumb scan: LSP hover/definition demands a position,
@@ -243,9 +247,7 @@ class FakeLspDriver:
             time.sleep(self.warm_start_latency)
         return self.warm_start_succeeds
 
-    def resolve(
-        self, *, file_path: str, symbol: str, timeout: float
-    ) -> LspOverlayResult:
+    def resolve(self, *, file_path: str, symbol: str, timeout: float) -> LspOverlayResult:
         self.resolve_calls += 1
         if self.latency > timeout:
             raise _ResolveTimeout(self.latency)
@@ -348,13 +350,11 @@ class LspOverlay:
             return hit
 
         try:
-            result = self._driver.resolve(
-                file_path=file_path, symbol=symbol, timeout=self._timeout
-            )
+            result = self._driver.resolve(file_path=file_path, symbol=symbol, timeout=self._timeout)
         except _ResolveTimeout as exc:
             self._record_failure()
             return LspOverlayResult(status="timeout", note=str(exc))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._record_failure()
             logger.debug("LSP resolve(%s::%s) failed: %s", file_path, symbol, exc)
             return LspOverlayResult(status="unavailable", note=str(exc))
@@ -434,10 +434,10 @@ def build_overlay(
 
 
 __all__ = [
-    "DEFAULT_TIMEOUT_SECONDS",
+    "DEFAULT_DEGRADE_COOLDOWN_SECONDS",
     "DEFAULT_FAILURE_WINDOW_SECONDS",
     "DEFAULT_MAX_FAILURES",
-    "DEFAULT_DEGRADE_COOLDOWN_SECONDS",
+    "DEFAULT_TIMEOUT_SECONDS",
     "DEFAULT_WARM_START_TIMEOUT_SECONDS",
     "FakeLspDriver",
     "LspDriver",

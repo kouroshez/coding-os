@@ -40,10 +40,13 @@ def _seed_jsonl(state, events):
 
 def test_recent_returns_all_when_no_filter(client):
     c, state = client
-    _seed_jsonl(state, [
-        {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "cli.a", "msg": "info"},
-        {"ts": "2026-05-15T12:00:01Z", "lvl": "WARN", "scope": "hook.b", "msg": "warn"},
-    ])
+    _seed_jsonl(
+        state,
+        [
+            {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "cli.a", "msg": "info"},
+            {"ts": "2026-05-15T12:00:01Z", "lvl": "WARN", "scope": "hook.b", "msg": "warn"},
+        ],
+    )
     resp = c.get("/api/logs/recent")
     assert resp.status_code == 200
     data = resp.json()["data"]
@@ -53,12 +56,15 @@ def test_recent_returns_all_when_no_filter(client):
 
 def test_recent_level_floor_drops_below(client):
     c, state = client
-    _seed_jsonl(state, [
-        {"ts": "2026-05-15T12:00:00Z", "lvl": "DEBUG", "scope": "x.y", "msg": "d"},
-        {"ts": "2026-05-15T12:00:01Z", "lvl": "INFO", "scope": "x.y", "msg": "i"},
-        {"ts": "2026-05-15T12:00:02Z", "lvl": "WARN", "scope": "x.y", "msg": "w"},
-        {"ts": "2026-05-15T12:00:03Z", "lvl": "ERROR", "scope": "x.y", "msg": "e"},
-    ])
+    _seed_jsonl(
+        state,
+        [
+            {"ts": "2026-05-15T12:00:00Z", "lvl": "DEBUG", "scope": "x.y", "msg": "d"},
+            {"ts": "2026-05-15T12:00:01Z", "lvl": "INFO", "scope": "x.y", "msg": "i"},
+            {"ts": "2026-05-15T12:00:02Z", "lvl": "WARN", "scope": "x.y", "msg": "w"},
+            {"ts": "2026-05-15T12:00:03Z", "lvl": "ERROR", "scope": "x.y", "msg": "e"},
+        ],
+    )
     resp = c.get("/api/logs/recent", params={"level": "warn"})
     data = resp.json()["data"]
     assert [evt["lvl"] for evt in data["events"]] == ["WARN", "ERROR"]
@@ -66,11 +72,14 @@ def test_recent_level_floor_drops_below(client):
 
 def test_recent_scope_glob_filter(client):
     c, state = client
-    _seed_jsonl(state, [
-        {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "hook.foo", "msg": "1"},
-        {"ts": "2026-05-15T12:00:01Z", "lvl": "INFO", "scope": "hook.bar", "msg": "2"},
-        {"ts": "2026-05-15T12:00:02Z", "lvl": "INFO", "scope": "cli.doctor", "msg": "3"},
-    ])
+    _seed_jsonl(
+        state,
+        [
+            {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "hook.foo", "msg": "1"},
+            {"ts": "2026-05-15T12:00:01Z", "lvl": "INFO", "scope": "hook.bar", "msg": "2"},
+            {"ts": "2026-05-15T12:00:02Z", "lvl": "INFO", "scope": "cli.doctor", "msg": "3"},
+        ],
+    )
     resp = c.get("/api/logs/recent", params={"scope": "hook.*"})
     data = resp.json()["data"]
     assert sorted(evt["scope"] for evt in data["events"]) == ["hook.bar", "hook.foo"]
@@ -78,10 +87,13 @@ def test_recent_scope_glob_filter(client):
 
 def test_recent_substring_search(client):
     c, state = client
-    _seed_jsonl(state, [
-        {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "x.y", "msg": "match-me here"},
-        {"ts": "2026-05-15T12:00:01Z", "lvl": "INFO", "scope": "x.y", "msg": "unrelated"},
-    ])
+    _seed_jsonl(
+        state,
+        [
+            {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "x.y", "msg": "match-me here"},
+            {"ts": "2026-05-15T12:00:01Z", "lvl": "INFO", "scope": "x.y", "msg": "unrelated"},
+        ],
+    )
     resp = c.get("/api/logs/recent", params={"search": "match-me"})
     data = resp.json()["data"]
     assert data["count"] == 1
@@ -90,10 +102,13 @@ def test_recent_substring_search(client):
 
 def test_recent_limit_keeps_newest_tail(client):
     c, state = client
-    _seed_jsonl(state, [
-        {"ts": f"2026-05-15T12:00:{i:02d}Z", "lvl": "INFO", "scope": "x.y", "msg": f"m{i}"}
-        for i in range(20)
-    ])
+    _seed_jsonl(
+        state,
+        [
+            {"ts": f"2026-05-15T12:00:{i:02d}Z", "lvl": "INFO", "scope": "x.y", "msg": f"m{i}"}
+            for i in range(20)
+        ],
+    )
     resp = c.get("/api/logs/recent", params={"limit": 5})
     data = resp.json()["data"]
     assert data["count"] == 5
@@ -111,9 +126,12 @@ def test_recent_missing_file_returns_empty(client):
 
 def test_recent_invalid_level_falls_back_to_debug(client):
     c, state = client
-    _seed_jsonl(state, [
-        {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "x.y", "msg": "kept"},
-    ])
+    _seed_jsonl(
+        state,
+        [
+            {"ts": "2026-05-15T12:00:00Z", "lvl": "INFO", "scope": "x.y", "msg": "kept"},
+        ],
+    )
     resp = c.get("/api/logs/recent", params={"level": "garbage"})
     assert resp.status_code == 200
     assert resp.json()["data"]["count"] == 1
@@ -124,7 +142,7 @@ def test_recent_corrupt_json_lines_skipped(client):
     path = state / ".cos.log.jsonl"
     path.write_text(
         '{"ts":"2026-05-15T12:00:00Z","lvl":"INFO","scope":"x.y","msg":"ok"}\n'
-        'not-valid-json\n'
+        "not-valid-json\n"
         '{"ts":"2026-05-15T12:00:01Z","lvl":"WARN","scope":"x.y","msg":"also-ok"}\n',
         encoding="utf-8",
     )

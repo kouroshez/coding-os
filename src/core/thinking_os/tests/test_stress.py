@@ -9,17 +9,17 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db, has_fts5_table, get_db_stats, get_schema_version
+from database import get_db_stats, get_schema_version, has_fts5_table, init_db
 from tools.learning import learn_extract, learn_suggest, learn_validate
-from tools.memory import memory_search, memory_timeline, memory_details, memory_promote
-from tools.metrics import metric_record, metric_query, metric_trend
+from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
+from tools.metrics import metric_query, metric_record, metric_trend
 from tools.routing import route_model, route_skill
 
 
@@ -33,6 +33,7 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 # ===========================================================================
 # Persona 1: New User — Empty DB, First Day
 # ===========================================================================
+
 
 class TestPersonaNewUser:
     """First-day user with completely empty DB."""
@@ -82,6 +83,7 @@ class TestPersonaNewUser:
 # Persona 2: Power User — Heavy Data Load
 # ===========================================================================
 
+
 class TestPersonaPowerUser:
     """User with 200+ tasks and lots of observations."""
 
@@ -96,7 +98,15 @@ class TestPersonaPowerUser:
             conn.execute(
                 "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, model, skills_used) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (f"TASK-{i}", "feat", domain, complexity, outcome, model, f"skill-{domain.lower()}"),
+                (
+                    f"TASK-{i}",
+                    "feat",
+                    domain,
+                    complexity,
+                    outcome,
+                    model,
+                    f"skill-{domain.lower()}",
+                ),
             )
 
         # Insert 500 observations
@@ -104,10 +114,15 @@ class TestPersonaPowerUser:
             conn.execute(
                 "INSERT INTO observations (session_id, tool_name, title, narrative, "
                 "memory_type, impact_score, concepts) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (f"sess-{i // 10}", "Read", f"Observation {i}",
-                 f"Narrative for observation {i} about {'Django' if i % 3 == 0 else 'React'}",
-                 "discovery", 0.5 + (i % 5) * 0.1,
-                 json.dumps(["obs", f"topic{i % 10}"])),
+                (
+                    f"sess-{i // 10}",
+                    "Read",
+                    f"Observation {i}",
+                    f"Narrative for observation {i} about {'Django' if i % 3 == 0 else 'React'}",
+                    "discovery",
+                    0.5 + (i % 5) * 0.1,
+                    json.dumps(["obs", f"topic{i % 10}"]),
+                ),
             )
 
         # Insert 50 learned patterns
@@ -116,9 +131,16 @@ class TestPersonaPowerUser:
             conn.execute(
                 "INSERT INTO learned_patterns (pattern, memory_type, domain, confidence, "
                 "impact_score, concepts, times_validated, access_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (f"Pattern {i}: {domain} best practice", "pattern", domain,
-                 0.3 + (i % 7) * 0.1, 0.5, json.dumps([domain.lower(), f"p{i}"]),
-                 i % 10, i % 15),
+                (
+                    f"Pattern {i}: {domain} best practice",
+                    "pattern",
+                    domain,
+                    0.3 + (i % 7) * 0.1,
+                    0.5,
+                    json.dumps([domain.lower(), f"p{i}"]),
+                    i % 10,
+                    i % 15,
+                ),
             )
 
         conn.commit()
@@ -155,9 +177,12 @@ class TestPersonaPowerUser:
 
     def test_metric_trend_200_tasks(self, heavy_conn):
         for i in range(200):
-            metric_record(heavy_conn, agent_type="general",
-                          outcome=["success", "rework"][i % 2],
-                          domain=["BACKEND", "FRONTEND"][i % 2])
+            metric_record(
+                heavy_conn,
+                agent_type="general",
+                outcome=["success", "rework"][i % 2],
+                domain=["BACKEND", "FRONTEND"][i % 2],
+            )
         result = metric_trend(heavy_conn, metric="success_rate", group_by="domain")
         assert len(result["trends"]) > 0
 
@@ -172,6 +197,7 @@ class TestPersonaPowerUser:
 # Persona 3: Security Tester — SQL Injection Attempts
 # ===========================================================================
 
+
 class TestPersonaSecurityTester:
     """Attempts SQL injection and malicious inputs."""
 
@@ -179,20 +205,23 @@ class TestPersonaSecurityTester:
         result = memory_search(conn, query="'; DROP TABLE observations; --")
         # Should not crash, DB should be intact
         assert "results" in result
-        tables = [r[0] for r in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()]
+        tables = [
+            r[0]
+            for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        ]
         assert "observations" in tables
 
     def test_metric_record_injection(self, conn):
         result = metric_record(
-            conn, agent_type="'; DROP TABLE agent_metrics; --",
+            conn,
+            agent_type="'; DROP TABLE agent_metrics; --",
             outcome="success",
         )
         assert result["status"] == "recorded"
-        tables = [r[0] for r in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()]
+        tables = [
+            r[0]
+            for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        ]
         assert "agent_metrics" in tables
 
     def test_search_with_null_bytes(self, conn):
@@ -220,6 +249,7 @@ class TestPersonaSecurityTester:
 # ===========================================================================
 # Persona 4: Edge Case Explorer — Boundary Values
 # ===========================================================================
+
 
 class TestPersonaEdgeCases:
     """Tests boundary values and unusual states."""
@@ -282,9 +312,7 @@ class TestPersonaEdgeCases:
         assert result["count"] == 0  # clamped to 1 but no results
 
     def test_observation_with_null_fields(self, conn):
-        conn.execute(
-            "INSERT INTO observations (title) VALUES (?)", ("Minimal",)
-        )
+        conn.execute("INSERT INTO observations (title) VALUES (?)", ("Minimal",))
         conn.commit()
         result = memory_timeline(conn, days=365)
         assert result["count"] >= 0  # should not crash
@@ -304,6 +332,7 @@ class TestPersonaEdgeCases:
 # Persona 5: Concurrent User — WAL Mode Validation
 # ===========================================================================
 
+
 class TestPersonaConcurrent:
     """Test WAL mode enables concurrent reads during writes."""
 
@@ -319,15 +348,11 @@ class TestPersonaConcurrent:
 
         try:
             # Write with conn1
-            conn1.execute(
-                "INSERT INTO observations (title) VALUES (?)", ("Write test",)
-            )
+            conn1.execute("INSERT INTO observations (title) VALUES (?)", ("Write test",))
             conn1.commit()
 
             # Read with conn2 should work (WAL allows concurrent read)
-            row = conn2.execute(
-                "SELECT COUNT(*) FROM observations"
-            ).fetchone()
+            row = conn2.execute("SELECT COUNT(*) FROM observations").fetchone()
             assert row[0] >= 1
         finally:
             conn1.close()
@@ -337,6 +362,7 @@ class TestPersonaConcurrent:
 # ===========================================================================
 # Persona 6: Data Integrity Checker
 # ===========================================================================
+
 
 class TestPersonaDataIntegrity:
     """Verify data integrity across operations."""
@@ -363,8 +389,7 @@ class TestPersonaDataIntegrity:
             conn.execute(
                 "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome) "
                 "VALUES (?, ?, ?, ?, ?)",
-                (f"TASK-{i}", "feat", "BACKEND",
-                 "CLEAR", "rework" if i < 6 else "success"),
+                (f"TASK-{i}", "feat", "BACKEND", "CLEAR", "rework" if i < 6 else "success"),
             )
         conn.commit()
 
@@ -380,10 +405,12 @@ class TestPersonaDataIntegrity:
 
     def test_metric_record_then_query_consistency(self, conn):
         """Record metrics, verify query returns them."""
-        metric_record(conn, task_id="TASK-50", agent_type="general",
-                       outcome="success", domain="BACKEND")
-        metric_record(conn, task_id="TASK-51", agent_type="general",
-                       outcome="rework", domain="BACKEND")
+        metric_record(
+            conn, task_id="TASK-50", agent_type="general", outcome="success", domain="BACKEND"
+        )
+        metric_record(
+            conn, task_id="TASK-51", agent_type="general", outcome="rework", domain="BACKEND"
+        )
 
         result = metric_query(conn, domain="BACKEND")
         assert result["total"] == 2
@@ -394,6 +421,7 @@ class TestPersonaDataIntegrity:
 # ===========================================================================
 # Persona 7: Migration Tester
 # ===========================================================================
+
 
 class TestPersonaMigration:
     """Test migration scenarios."""
@@ -414,9 +442,7 @@ class TestPersonaMigration:
         try:
             assert get_schema_version(conn2) >= 2
             # Data should persist
-            conn2.execute(
-                "INSERT INTO observations (title) VALUES (?)", ("Persist test",)
-            )
+            conn2.execute("INSERT INTO observations (title) VALUES (?)", ("Persist test",))
             conn2.commit()
         finally:
             conn2.close()
@@ -434,6 +460,7 @@ class TestPersonaMigration:
 # ===========================================================================
 # Persona 8: FTS5 Stress Tester
 # ===========================================================================
+
 
 class TestPersonaFTS5Stress:
     """Stress test FTS5 with various inputs."""
@@ -482,6 +509,7 @@ class TestPersonaFTS5Stress:
 # ===========================================================================
 # Persona 9: Confidence Decay Tester
 # ===========================================================================
+
 
 class TestPersonaConfidenceDecay:
     """Test confidence behavior over multiple operations."""
@@ -541,6 +569,7 @@ class TestPersonaConfidenceDecay:
 # ===========================================================================
 # Persona 10: Routing Edge Cases
 # ===========================================================================
+
 
 class TestPersonaRoutingEdges:
     """Test routing with unusual data distributions."""

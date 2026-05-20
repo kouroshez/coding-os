@@ -18,11 +18,12 @@ SKILL_ENFORCEMENT = REPO_ROOT / "src" / "core" / "rules" / "skill-enforcement.md
 
 def _rendered():
     sys.path.insert(0, str(REPO_ROOT))
-    from scripts.regen_rules import _build_world  # type: ignore
     from cli.renderer import (
         render_dimension_registry,
         render_skill_enforcement,
     )
+    from scripts.regen_rules import _build_world  # type: ignore
+
     world = _build_world()
     return render_dimension_registry(world), render_skill_enforcement(world)
 

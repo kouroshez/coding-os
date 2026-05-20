@@ -13,7 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 
-def _run_hook(name: str, *, stdin: str, env: dict[str, str], cwd: Path) -> subprocess.CompletedProcess:
+def _run_hook(
+    name: str, *, stdin: str, env: dict[str, str], cwd: Path
+) -> subprocess.CompletedProcess:
     hook = HOOKS_DIR / name
     assert hook.exists(), f"hook missing: {hook}"
     full_env = {**os.environ, **env}
@@ -32,8 +34,7 @@ class TestEnforceGraphContext:
         cfg_dir = tmp_path / ".coding-os"
         cfg_dir.mkdir(parents=True, exist_ok=True)
         (cfg_dir / "rag-config.yaml").write_text(
-            "graph:\n  enforce_context_on:\n"
-            + "".join(f"    - '{p}'\n" for p in patterns),
+            "graph:\n  enforce_context_on:\n" + "".join(f"    - '{p}'\n" for p in patterns),
             encoding="utf-8",
         )
 
@@ -93,9 +94,7 @@ class TestEnforceRenamePlan:
     def test_warn_when_rename_without_plan(self, tmp_path):
         result = _run_hook(
             "enforce-rename-plan.sh",
-            stdin=json.dumps(
-                {"tool_input": {"old_string": "foo", "new_string": "bar"}}
-            ),
+            stdin=json.dumps({"tool_input": {"old_string": "foo", "new_string": "bar"}}),
             env={"COS_ENFORCE_RENAME_PLAN": "1"},
             cwd=tmp_path,
         )
@@ -116,9 +115,7 @@ class TestEnforceRenamePlan:
     def test_strict_blocks_new_rename(self, tmp_path):
         result = _run_hook(
             "enforce-rename-plan.sh",
-            stdin=json.dumps(
-                {"tool_input": {"old_string": "foo", "new_string": "bar"}}
-            ),
+            stdin=json.dumps({"tool_input": {"old_string": "foo", "new_string": "bar"}}),
             env={"COS_ENFORCE_RENAME_PLAN": "strict"},
             cwd=tmp_path,
         )

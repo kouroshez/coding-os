@@ -10,9 +10,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
-DEFAULT_VERIFY_SUITES_YAML = (
-    Path(__file__).resolve().parent / "verify-suites.yaml"
-)
+DEFAULT_VERIFY_SUITES_YAML = Path(__file__).resolve().parent / "verify-suites.yaml"
 
 
 class SuiteRule(BaseModel):
@@ -37,9 +35,7 @@ def _load_one(path: Path) -> dict:
     try:
         return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise VerifySuitesError(
-            f"verify-suites: malformed YAML at {path}: {exc}"
-        ) from exc
+        raise VerifySuitesError(f"verify-suites: malformed YAML at {path}: {exc}") from exc
 
 
 def load_verify_suites(
@@ -71,9 +67,7 @@ def load_verify_suites(
     try:
         return VerifySuitesConfig.model_validate(merged)
     except Exception as exc:
-        raise VerifySuitesError(
-            f"verify-suites: schema violation: {exc}"
-        ) from exc
+        raise VerifySuitesError(f"verify-suites: schema violation: {exc}") from exc
 
 
 def match_suites(

@@ -36,13 +36,20 @@ def _init_project(target: Path, *, agent: str = "claude") -> None:
     env["PYTHONPATH"] = str(REPO_ROOT)
     proc = subprocess.run(
         [
-            sys.executable, "-m", "cli.main", "init",
-            "--agent", agent,
-            "--project-dir", str(target.parent),
-            "--name", target.name,
+            sys.executable,
+            "-m",
+            "cli.main",
+            "init",
+            "--agent",
+            agent,
+            "--project-dir",
+            str(target.parent),
+            "--name",
+            target.name,
             "--no-git",
             "--no-register",
-            "--today", FROZEN_DATE,
+            "--today",
+            FROZEN_DATE,
         ],
         cwd=str(REPO_ROOT),
         env=env,
@@ -72,8 +79,12 @@ def test_cos_docs_index_populates_chunks(tmp_path: Path) -> None:
     env["PYTHONPATH"] = str(REPO_ROOT)
     result = subprocess.run(
         [
-            sys.executable, "-m", "cli.main", "docs-index",
-            "--project-dir", str(project),
+            sys.executable,
+            "-m",
+            "cli.main",
+            "docs-index",
+            "--project-dir",
+            str(project),
         ],
         cwd=str(REPO_ROOT),
         env=env,
@@ -91,9 +102,7 @@ def test_cos_docs_index_populates_chunks(tmp_path: Path) -> None:
 
     conn = sqlite3.connect(str(db_path))
     try:
-        (chunk_count,) = conn.execute(
-            "SELECT COUNT(*) FROM document_chunks"
-        ).fetchone()
+        (chunk_count,) = conn.execute("SELECT COUNT(*) FROM document_chunks").fetchone()
     finally:
         conn.close()
 
@@ -112,17 +121,26 @@ def test_cos_docs_index_force_reindexes(tmp_path: Path) -> None:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(REPO_ROOT)
     base_cmd = [
-        sys.executable, "-m", "cli.main", "docs-index",
-        "--project-dir", str(project),
+        sys.executable,
+        "-m",
+        "cli.main",
+        "docs-index",
+        "--project-dir",
+        str(project),
     ]
 
-    first = subprocess.run(base_cmd, env=env, capture_output=True,
-                           text=True, timeout=300, check=False)
+    first = subprocess.run(
+        base_cmd, env=env, capture_output=True, text=True, timeout=300, check=False
+    )
     assert first.returncode == 0
 
     second = subprocess.run(
-        base_cmd + ["--force"], env=env, capture_output=True,
-        text=True, timeout=300, check=False,
+        base_cmd + ["--force"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
     )
     assert second.returncode == 0
     # Second run with --force should process files again (not skip).

@@ -3,6 +3,7 @@
 Per AGENTS.md Rule 12 (rewritten 2026-05-05).
 Usage: python scripts/dev/strip_purpose_blocks.py [--apply]
 """
+
 from __future__ import annotations
 
 import ast
@@ -96,7 +97,9 @@ def _process_file(path: Path) -> tuple[int, int, str]:
 
         if not new_text.strip():
             siblings = [s for s in body if s is not first]
-            if not siblings and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if not siblings and isinstance(
+                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
                 indent = " " * first.col_offset
                 edits.append((start_line, end_line, f"{indent}pass\n"))
             else:

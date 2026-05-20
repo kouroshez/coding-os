@@ -79,14 +79,31 @@ def _render_text(skills: list[SkillProfile], by: str) -> str:
     if by == "tier":
         for s in skills:
             groups.setdefault(s.tier, []).append(s)
-        order = ["methodology", "workflow", "exploration", "quality",
-                 "layer", "cross-cutting", "stack"]
+        order = [
+            "methodology",
+            "workflow",
+            "exploration",
+            "quality",
+            "layer",
+            "cross-cutting",
+            "stack",
+        ]
     else:  # domain
         for s in skills:
             for d in s.domain:
                 groups.setdefault(d, []).append(s)
-        order = ["universal", "backend", "frontend", "mobile", "data",
-                 "security", "architecture", "performance", "infra", "governance"]
+        order = [
+            "universal",
+            "backend",
+            "frontend",
+            "mobile",
+            "data",
+            "security",
+            "architecture",
+            "performance",
+            "infra",
+            "governance",
+        ]
 
     out_lines: list[str] = []
     for key in order:
@@ -128,18 +145,41 @@ def _render_json(skills: list[SkillProfile]) -> str:
 
 
 @click.command("skills-list")
-@click.option("--by", "by", type=click.Choice(["tier", "domain"]), default="tier",
-              help="Group output by facet (default: tier).")
-@click.option("--tier", "tier_filter", type=click.Choice(sorted(TIER_ENUM)), default=None,
-              help="Filter to skills of a single tier.")
-@click.option("--domain", "domain_filter", type=click.Choice(sorted(DOMAIN_ENUM)), default=None,
-              help="Filter to skills that list this domain.")
-@click.option("--include-stacks", is_flag=True, default=False,
-              help="Also load src/templates/<stack>/skills/ (default: core only).")
-@click.option("--format", "output_format", type=click.Choice(["text", "json"]),
-              default="text")
-def skills_list(by: str, tier_filter: str | None, domain_filter: str | None,
-                include_stacks: bool, output_format: str) -> None:
+@click.option(
+    "--by",
+    "by",
+    type=click.Choice(["tier", "domain"]),
+    default="tier",
+    help="Group output by facet (default: tier).",
+)
+@click.option(
+    "--tier",
+    "tier_filter",
+    type=click.Choice(sorted(TIER_ENUM)),
+    default=None,
+    help="Filter to skills of a single tier.",
+)
+@click.option(
+    "--domain",
+    "domain_filter",
+    type=click.Choice(sorted(DOMAIN_ENUM)),
+    default=None,
+    help="Filter to skills that list this domain.",
+)
+@click.option(
+    "--include-stacks",
+    is_flag=True,
+    default=False,
+    help="Also load src/templates/<stack>/skills/ (default: core only).",
+)
+@click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text")
+def skills_list(
+    by: str,
+    tier_filter: str | None,
+    domain_filter: str | None,
+    include_stacks: bool,
+    output_format: str,
+) -> None:
     """List all skills, grouped by tier (default) or domain.
 
     Reads SKILL.md frontmatter from src/core/skills/ (and optionally

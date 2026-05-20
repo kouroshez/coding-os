@@ -29,8 +29,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 logger = logging.getLogger("coding_os.tools._shared")
 
@@ -52,22 +53,25 @@ TOKEN_BUDGET_CHARS = 32_000
 
 # Layer names — enumerated so tests can pin the contract and agents can
 # filter (Three-Layer Retrieval in CLAUDE.md).
-VALID_LAYERS: frozenset[str] = frozenset({
-    "memory",
-    "docs",
-    "tasks",
-    "metrics",
-    "routing",
-    "graph",
-    "health",
-    "learning",
-    "audit",
-})
+VALID_LAYERS: frozenset[str] = frozenset(
+    {
+        "memory",
+        "docs",
+        "tasks",
+        "metrics",
+        "routing",
+        "graph",
+        "health",
+        "learning",
+        "audit",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
 # Success envelope
 # ---------------------------------------------------------------------------
+
 
 def ok(data: Any, *, meta: dict | None = None) -> str:
     """Wrap a successful tool result in the canonical envelope."""
@@ -81,8 +85,12 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     existing_meta = dict(data.get("meta") or {})
     if meta:
         existing_meta.update(meta)
-    for _diag in ("tokens_estimated", "truncated",
-                  "truncated_results_from", "truncated_results_to"):
+    for _diag in (
+        "tokens_estimated",
+        "truncated",
+        "truncated_results_from",
+        "truncated_results_to",
+    ):
         existing_meta.pop(_diag, None)
 
     # Strip `meta` from the data dict so we can re-attach with diagnostics
@@ -144,6 +152,7 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict]:
 # Error envelope
 # ---------------------------------------------------------------------------
 
+
 def fail(
     category: ErrorCategory,
     message: str,
@@ -204,7 +213,7 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
         except ImportError as exc:
             logger.exception("tool %s raised ImportError", fn.__name__)
             return fail("unavailable", str(exc) or "optional dependency missing", retryable=True)
-        except Exception as exc:  # noqa: BLE001 — last-resort envelope, never let tracebacks leak
+        except Exception as exc:
             logger.exception("tool %s raised unexpected %s", fn.__name__, type(exc).__name__)
             return fail("internal", f"{type(exc).__name__}: {exc}", retryable=False)
 

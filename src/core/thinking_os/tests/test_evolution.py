@@ -5,6 +5,7 @@ Tests for Phase EVO features:
   - autonomous routing evolution (DB migration v26 + routing staleness)
   - failure_pattern_query and routing_drift functions
 """
+
 from __future__ import annotations
 
 import json
@@ -20,10 +21,10 @@ from database import init_db
 from tools.routing import failure_pattern_query, recalculate_weights, routing_drift
 from tools.trajectory import trajectory_read, trajectory_snapshot
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -35,6 +36,7 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 # ---------------------------------------------------------------------------
 # 1. Project Trajectory — migration v24
 # ---------------------------------------------------------------------------
+
 
 class TestProjectTrajectory:
     def test_table_created(self, conn: sqlite3.Connection) -> None:
@@ -96,6 +98,7 @@ class TestProjectTrajectory:
 # 2. Failure Anatomy — migration v25
 # ---------------------------------------------------------------------------
 
+
 class TestFailureAnatomy:
     def test_backtrack_events_has_anatomy_columns(self, conn: sqlite3.Connection) -> None:
         cols = {row[1] for row in conn.execute("PRAGMA table_info(backtrack_events)").fetchall()}
@@ -108,9 +111,16 @@ class TestFailureAnatomy:
             "(session_id, from_formula, to_formula, reason, ts, "
             " hypothesis, failure_signal, root_cause, corrective_action) "
             "VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)",
-            ("s1", "implementer", "analyst", "wrong scope",
-             "scope would fit CLEAR", "rework rate spiked",
-             "scope_too_large", "decomposed into subtasks"),
+            (
+                "s1",
+                "implementer",
+                "analyst",
+                "wrong scope",
+                "scope would fit CLEAR",
+                "rework rate spiked",
+                "scope_too_large",
+                "decomposed into subtasks",
+            ),
         )
         conn.commit()
         row = conn.execute(
@@ -164,6 +174,7 @@ class TestFailureAnatomy:
 # 3. Routing Evolution — migration v26
 # ---------------------------------------------------------------------------
 
+
 class TestRoutingEvolution:
     def test_routing_weights_has_staleness_columns(self, conn: sqlite3.Connection) -> None:
         cols = {row[1] for row in conn.execute("PRAGMA table_info(routing_weights)").fetchall()}
@@ -215,14 +226,17 @@ class TestRoutingEvolution:
 # 4. Digest trajectory section
 # ---------------------------------------------------------------------------
 
+
 class TestDigestTrajectory:
     def test_trajectory_line_empty_when_no_data(self, conn: sqlite3.Connection) -> None:
         from tools.trajectory import trajectory_digest_line
+
         line = trajectory_digest_line(conn)
         assert line == ""
 
     def test_trajectory_line_populated(self, conn: sqlite3.Connection) -> None:
         from tools.trajectory import trajectory_digest_line
+
         trajectory_snapshot(
             conn,
             session_id="s1",
@@ -237,6 +251,7 @@ class TestDigestTrajectory:
 
     def test_digest_render_includes_trajectory(self, conn: sqlite3.Connection) -> None:
         import digest
+
         trajectory_snapshot(conn, session_id="s1", phase="Phase EVO", current_focus="tests")
         body = digest.render(conn)
         assert "## Trajectory" in body

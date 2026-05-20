@@ -19,10 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db(tmp_path: Path):
@@ -37,6 +37,7 @@ def tmp_db(tmp_path: Path):
 # Health tool
 # ---------------------------------------------------------------------------
 
+
 class TestHealthTool:
     """Assertions drill through the MCP envelope {ok, data} — see
     docs/engineering/mcp-error-envelope.md."""
@@ -44,6 +45,7 @@ class TestHealthTool:
     def test_health_returns_valid_envelope(self, tmp_db, monkeypatch) -> None:
         conn, _ = tmp_db
         import server
+
         monkeypatch.setattr(server, "_db_conn", conn)
         envelope = json.loads(server.thinking_os_health())
         assert envelope["ok"] is True
@@ -52,6 +54,7 @@ class TestHealthTool:
     def test_health_contains_required_fields(self, tmp_db, monkeypatch) -> None:
         conn, _ = tmp_db
         import server
+
         monkeypatch.setattr(server, "_db_conn", conn)
         data = json.loads(server.thinking_os_health())["data"]
         assert "schema_version" in data
@@ -62,6 +65,7 @@ class TestHealthTool:
     def test_health_schema_version(self, tmp_db, monkeypatch) -> None:
         conn, _ = tmp_db
         import server
+
         monkeypatch.setattr(server, "_db_conn", conn)
         data = json.loads(server.thinking_os_health())["data"]
         assert data["schema_version"] >= 1
@@ -69,11 +73,16 @@ class TestHealthTool:
     def test_health_all_tables_present(self, tmp_db, monkeypatch) -> None:
         conn, _ = tmp_db
         import server
+
         monkeypatch.setattr(server, "_db_conn", conn)
         data = json.loads(server.thinking_os_health())["data"]
         expected = [
-            "task_outcomes", "agent_metrics", "learned_patterns",
-            "experiment_log", "observations", "session_summaries",
+            "task_outcomes",
+            "agent_metrics",
+            "learned_patterns",
+            "experiment_log",
+            "observations",
+            "session_summaries",
         ]
         for table in expected:
             assert table in data["tables"], f"Missing table: {table}"
@@ -83,6 +92,7 @@ class TestHealthTool:
 # ---------------------------------------------------------------------------
 # Self-test via subprocess
 # ---------------------------------------------------------------------------
+
 
 class TestSelfTest:
     """Run server.py --test as a subprocess.
@@ -124,6 +134,7 @@ class TestSelfTest:
 # Schema integrity
 # ---------------------------------------------------------------------------
 
+
 class TestSchemaIntegrity:
     def test_task_outcomes_pk_is_task_id(self, tmp_db) -> None:
         conn, _ = tmp_db
@@ -139,9 +150,7 @@ class TestSchemaIntegrity:
 
     def test_observations_defaults(self, tmp_db) -> None:
         conn, _ = tmp_db
-        conn.execute(
-            "INSERT INTO observations (title) VALUES (?)", ("test",)
-        )
+        conn.execute("INSERT INTO observations (title) VALUES (?)", ("test",))
         conn.commit()
         row = conn.execute("SELECT * FROM observations WHERE title = 'test'").fetchone()
         assert row["memory_type"] == "discovery"

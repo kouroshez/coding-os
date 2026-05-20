@@ -1,4 +1,5 @@
 """core.web.routes.hub — global Hub registry endpoints."""
+
 from __future__ import annotations
 
 import logging
@@ -35,8 +36,9 @@ def _resolve_slug_from_registry(cwd: Path) -> str:
     """Match cli.registry._derive_slug so UI and API agree on spelling."""
     try:
         from cli.registry import _derive_slug  # type: ignore
+
         return _derive_slug(cwd)
-    except Exception as exc:  # noqa: BLE001 — UX-only; fall through
+    except Exception as exc:
         logger.debug("cli.registry._derive_slug unavailable: %s", exc)
         return cwd.name.lower().strip() or "project"
 
@@ -98,8 +100,9 @@ def hub_projects() -> dict:
     seen_paths: set[str] = set()
     try:
         from cli.registry import load_registry  # type: ignore
+
         reg = load_registry()
-    except Exception as exc:  # noqa: BLE001 — registry optional, fail-open
+    except Exception as exc:
         logger.debug("load_registry failed: %s", exc)
         reg = None
 
@@ -112,12 +115,14 @@ def hub_projects() -> dict:
             if resolved in seen_paths:
                 continue
             seen_paths.add(resolved)
-            projects.append({
-                "slug": p.slug,
-                "path": p.path,
-                "created_at": p.created_at,
-                "source": "registry",
-            })
+            projects.append(
+                {
+                    "slug": p.slug,
+                    "path": p.path,
+                    "created_at": p.created_at,
+                    "source": "registry",
+                }
+            )
 
     runtime = _derive_runtime_entry()
     if runtime is not None:
@@ -136,7 +141,7 @@ def hub_projects() -> dict:
 @router.post("/registry/add")
 def hub_registry_add(
     path: str = Body(..., embed=True),
-    slug: Optional[str] = Body(None, embed=True),
+    slug: str | None = Body(None, embed=True),
 ):
     """Register an existing `.coding-os/` directory with the Hub."""
     resolved, err = _validate_project_path(path)
@@ -147,7 +152,7 @@ def hub_registry_add(
 
     try:
         from cli.registry import add_project  # type: ignore
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _err(
             "unavailable",
             f"cli.registry unavailable: {exc}",
@@ -156,7 +161,7 @@ def hub_registry_add(
 
     try:
         entry = add_project(resolved, slug=(slug or "").strip() or None)
-    except Exception as exc:  # noqa: BLE001 — click.ClickException / ValueError / ...
+    except Exception as exc:
         return _err("validation", str(exc))
 
     return {
@@ -181,12 +186,12 @@ def hub_registry_remove(slug: str):
         return _err("validation", "slug is required")
     try:
         from cli.registry import remove_project  # type: ignore
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _err("unavailable", f"cli.registry unavailable: {exc}", status=503)
 
     try:
         removed = remove_project(slug.strip())
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _err("internal", str(exc), status=500)
 
     if removed is None:
@@ -227,25 +232,39 @@ def hub_registry_scan(
     limit = max(1, min(500, int(limit) if limit else 50))
 
     _SKIP_DIR_NAMES = {
-        ".git", ".hg", ".svn",
-        "node_modules", ".venv", "venv",
-        "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
-        ".tox", ".nox",
+        ".git",
+        ".hg",
+        ".svn",
+        "node_modules",
+        ".venv",
+        "venv",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".tox",
+        ".nox",
         ".coding-os",  # never recurse INTO a cos state dir
-        "dist", "build", ".next", ".turbo",
-        "Library", "Trash", ".Trash",
+        "dist",
+        "build",
+        ".next",
+        ".turbo",
+        "Library",
+        "Trash",
+        ".Trash",
     }
 
     # Snapshot registered paths for the "already_registered" annotation.
     registered_paths: set[str] = set()
     try:
         from cli.registry import load_registry  # type: ignore
+
         for p in load_registry().projects:
             try:
                 registered_paths.add(str(Path(p.path).resolve()))
             except (OSError, RuntimeError):
                 continue
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("scan: could not snapshot registry: %s", exc)
 
     hits: list[dict] = []
@@ -256,6 +275,7 @@ def hub_registry_scan(
     # BFS so shallow hits surface first (a consumer usually cares about
     # "~/code/my-app" before "~/code/my-app/backend/vendor/old/...").
     from collections import deque
+
     queue: deque[tuple[Path, int]] = deque([(root_path, 0)])
     while queue:
         if len(hits) >= limit:
@@ -269,11 +289,13 @@ def hub_registry_scan(
             continue
         if _looks_like_cos_project(current):
             resolved = str(current.resolve())
-            hits.append({
-                "path": resolved,
-                "slug": _resolve_slug_from_registry(current),
-                "already_registered": resolved in registered_paths,
-            })
+            hits.append(
+                {
+                    "path": resolved,
+                    "slug": _resolve_slug_from_registry(current),
+                    "already_registered": resolved in registered_paths,
+                }
+            )
             # Don't recurse into a cos project; nested cos repos are
             # extremely rare and the skip keeps scans snappy.
             continue
@@ -325,12 +347,12 @@ def hub_registry_gc(
     """Remove registry entries whose directory no longer exists."""
     try:
         from cli.registry import Registry, load_registry, save_registry  # type: ignore
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _err("unavailable", f"cli.registry unavailable: {exc}", status=503)
 
     try:
         reg = load_registry()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _err("internal", f"load_registry failed: {exc}", status=500)
 
     kept: list[dict] = []
@@ -342,13 +364,10 @@ def hub_registry_gc(
         (kept if alive else removed).append(item)
 
     if not dry_run and removed:
-        reg.projects = [
-            p for p in reg.projects
-            if _looks_like_cos_project(Path(p.path))
-        ]
+        reg.projects = [p for p in reg.projects if _looks_like_cos_project(Path(p.path))]
         try:
             save_registry(reg)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return _err("internal", f"save_registry failed: {exc}", status=500)
 
     return {

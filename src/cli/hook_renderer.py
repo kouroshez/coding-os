@@ -161,9 +161,7 @@ def load_adapter_capabilities(adapter_yaml: Path) -> AdapterCapabilities:
     )
 
 
-def render_for_adapter(
-    registry: list[HookEntry], caps: AdapterCapabilities
-) -> dict[str, Any]:
+def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> dict[str, Any]:
     """Walk the registry once, keep only events this adapter can fire.
 
     Output shape matches both Claude's settings.template.json and Codex's
@@ -273,7 +271,8 @@ def list_hooks_for_agent(
         raise FileNotFoundError(f"adapter not found: {agent}")
     caps = load_adapter_capabilities(adapter_yaml)
     return [
-        h for h in registry
+        h
+        for h in registry
         if any(caps.supports(e["event"], e.get("matcher", "")) for e in h.events)
     ]
 

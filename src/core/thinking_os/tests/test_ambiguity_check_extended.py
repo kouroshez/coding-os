@@ -1,10 +1,21 @@
 """Tests for ambiguity_check coverage of all formula roles (Wave 0 C1)."""
+
 from __future__ import annotations
 
 from cognition import ambiguity_check
 from cognition_schemas import (
-    EvidenceBundle, ResearcherOutput, AnalystOutput, ArchitectOutput, DocumenterOutput, ImplementerOutput,
-    ReviewerOutput, DebuggerOutput, SecurityAuditorOutput, DeployerOutput, ObserverOutput, RefactorerOutput,
+    AnalystOutput,
+    ArchitectOutput,
+    DebuggerOutput,
+    DeployerOutput,
+    DocumenterOutput,
+    EvidenceBundle,
+    ImplementerOutput,
+    ObserverOutput,
+    RefactorerOutput,
+    ResearcherOutput,
+    ReviewerOutput,
+    SecurityAuditorOutput,
 )
 
 
@@ -15,6 +26,7 @@ def _bundle(**fields) -> EvidenceBundle:
 
 
 # --- happy path: a fully populated formula passes its criteria ---
+
 
 def test_f1_passes_when_sources_and_findings_present():
     out = ResearcherOutput(
@@ -33,15 +45,21 @@ def test_f2_passes_with_full_evidence():
         scope_in=["x"],
         actors=[{"id": "a1", "role": "user"}],
         success_metrics=[{"name": "n", "target": "t", "measurement": "m"}],
-        scenarios=[{
-            "id": "s1", "given": "g", "when": "w", "then": "t",
-        }],
+        scenarios=[
+            {
+                "id": "s1",
+                "given": "g",
+                "when": "w",
+                "then": "t",
+            }
+        ],
     )
     v = ambiguity_check(_bundle(analyst=out))
     assert all(item["formula"] != "analyst" for item in v), v
 
 
 # --- empty paths: each formula raises its declared violations ---
+
 
 def test_f1_empty_violates_observable_and_scoped():
     v = ambiguity_check(_bundle(researcher=ResearcherOutput(summary="x")))
@@ -114,12 +132,14 @@ def test_f11_empty_violates_three():
 
 # --- empty bundle: no formula dispatched → no violations ---
 
+
 def test_empty_bundle_yields_no_violations():
     v = ambiguity_check(_bundle())
     assert v == []
 
 
 # --- partial bundle: only checks dispatched formulas ---
+
 
 def test_only_dispatched_formula_is_checked():
     v = ambiguity_check(_bundle(refactorer=RefactorerOutput()))

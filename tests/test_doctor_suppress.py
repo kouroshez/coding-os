@@ -15,10 +15,10 @@ if str(REPO_ROOT / "src" / "core") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src" / "core"))
 
 from cli.doctor import (
-    CheckResult,
-    DoctorReport,
     SEV_PASS,
     SEV_WARN,
+    CheckResult,
+    DoctorReport,
     _explain_check,
     _ignore_globs_from_config,
     _suppress_checks,

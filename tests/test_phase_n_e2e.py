@@ -35,140 +35,151 @@ def _reset():
 # expected_source, expected_chain_prefix, must_include_role_ids).
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("scenario", [
-    # Greenfield backend
-    {
-        "name": "greenfield-backend-api",
-        "prompt": "add a new /orders POST endpoint with pagination to the backend API",
-        "complexity": "COMPLICATED",
-        "dimensions": 4,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "greenfield-backend-api",
-        "must_include": ["analyst", "implementer", "reviewer"],
-    },
-    # Schema migration with breaking change
-    {
-        "name": "schema-migration",
-        "prompt": "drop column email from users table, breaking change required",
-        "complexity": "COMPLICATED",
-        "dimensions": 3,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "schema-migration",
-        "must_include": ["analyst", "architect", "security_auditor", "implementer", "reviewer"],
-    },
-    # External integration (Stripe)
-    {
-        "name": "external-integration-stripe",
-        "prompt": "integrate Stripe webhook for subscription renewal, needs api key setup",
-        "complexity": "COMPLICATED",
-        "dimensions": 3,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "external-integration",
-        "must_include": ["researcher", "analyst", "architect", "implementer", "reviewer", "security_auditor"],
-    },
-    # Frontend feature
-    {
-        "name": "frontend-feature",
-        "prompt": "build a new React component for the user profile page",
-        "complexity": "COMPLICATED",
-        "dimensions": 2,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "greenfield-frontend-feature",
-        "must_include": ["analyst", "implementer", "reviewer"],
-    },
-    # Debug standard (non-incident)
-    {
-        "name": "debug-standard",
-        "prompt": "fix the crash in the checkout flow, users seeing 500 errors",
-        "complexity": "COMPLICATED",
-        "dimensions": 3,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "debug-standard",
-        "must_include": ["debugger", "reviewer"],
-    },
-    # Docs-only
-    {
-        "name": "docs-only",
-        "prompt": "document the new auth flow in docs, write an ADR",
-        "complexity": "COMPLICATED",
-        "dimensions": 2,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "docs-only-update",
-        "must_include": ["documenter"],
-    },
-    # Security audit full
-    {
-        "name": "security-audit",
-        "prompt": "security audit of the OAuth flow, vet all auth boundaries",
-        "complexity": "COMPLEX",
-        "dimensions": 5,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "security-audit-full",
-        "must_include": ["security_auditor"],
-    },
-    # Research spike
-    {
-        "name": "research-spike",
-        "prompt": "investigate alternatives to Redis, compare options, evaluate tradeoffs",
-        "complexity": "COMPLEX",
-        "dimensions": 4,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "research-spike",
-        "must_include": ["researcher"],
-    },
-    # Refactor sprint
-    {
-        "name": "refactor-sprint",
-        "prompt": "refactor the auth module, consolidate the JWT and session handling",
-        "complexity": "COMPLICATED",
-        "dimensions": 3,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "refactor-sprint",
-        "must_include": ["refactorer", "architect", "implementer", "reviewer"],
-    },
-    # Deploy release
-    {
-        "name": "deploy-release",
-        "prompt": "ship the v2 release to production, finalize the rollout",
-        "complexity": "COMPLICATED",
-        "dimensions": 3,
-        "situation": None,
-        "expected_source": "preset",
-        "expected_preset_id": "deploy-release",
-        "must_include": ["security_auditor", "deployer", "observer"],
-    },
-    # Incident override (situation wins even if preset would match)
-    {
-        "name": "incident-override",
-        "prompt": "add a new /orders endpoint to the backend",
-        "complexity": "COMPLICATED",
-        "dimensions": 3,
-        "situation": "incident-response",
-        "expected_source": "situation",
-        "expected_preset_id": None,
-        "must_include": ["debugger", "reviewer"],
-    },
-    # Legacy takeover (via situation)
-    {
-        "name": "legacy-takeover-situation",
-        "prompt": "get oriented in the inherited codebase, no docs anywhere",
-        "complexity": "COMPLEX",
-        "dimensions": 5,
-        "situation": "existing-project-takeover",
-        "expected_source": "situation",
-        "expected_preset_id": None,
-        "must_include": ["analyst"],
-    },
-])
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        # Greenfield backend
+        {
+            "name": "greenfield-backend-api",
+            "prompt": "add a new /orders POST endpoint with pagination to the backend API",
+            "complexity": "COMPLICATED",
+            "dimensions": 4,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "greenfield-backend-api",
+            "must_include": ["analyst", "implementer", "reviewer"],
+        },
+        # Schema migration with breaking change
+        {
+            "name": "schema-migration",
+            "prompt": "drop column email from users table, breaking change required",
+            "complexity": "COMPLICATED",
+            "dimensions": 3,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "schema-migration",
+            "must_include": ["analyst", "architect", "security_auditor", "implementer", "reviewer"],
+        },
+        # External integration (Stripe)
+        {
+            "name": "external-integration-stripe",
+            "prompt": "integrate Stripe webhook for subscription renewal, needs api key setup",
+            "complexity": "COMPLICATED",
+            "dimensions": 3,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "external-integration",
+            "must_include": [
+                "researcher",
+                "analyst",
+                "architect",
+                "implementer",
+                "reviewer",
+                "security_auditor",
+            ],
+        },
+        # Frontend feature
+        {
+            "name": "frontend-feature",
+            "prompt": "build a new React component for the user profile page",
+            "complexity": "COMPLICATED",
+            "dimensions": 2,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "greenfield-frontend-feature",
+            "must_include": ["analyst", "implementer", "reviewer"],
+        },
+        # Debug standard (non-incident)
+        {
+            "name": "debug-standard",
+            "prompt": "fix the crash in the checkout flow, users seeing 500 errors",
+            "complexity": "COMPLICATED",
+            "dimensions": 3,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "debug-standard",
+            "must_include": ["debugger", "reviewer"],
+        },
+        # Docs-only
+        {
+            "name": "docs-only",
+            "prompt": "document the new auth flow in docs, write an ADR",
+            "complexity": "COMPLICATED",
+            "dimensions": 2,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "docs-only-update",
+            "must_include": ["documenter"],
+        },
+        # Security audit full
+        {
+            "name": "security-audit",
+            "prompt": "security audit of the OAuth flow, vet all auth boundaries",
+            "complexity": "COMPLEX",
+            "dimensions": 5,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "security-audit-full",
+            "must_include": ["security_auditor"],
+        },
+        # Research spike
+        {
+            "name": "research-spike",
+            "prompt": "investigate alternatives to Redis, compare options, evaluate tradeoffs",
+            "complexity": "COMPLEX",
+            "dimensions": 4,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "research-spike",
+            "must_include": ["researcher"],
+        },
+        # Refactor sprint
+        {
+            "name": "refactor-sprint",
+            "prompt": "refactor the auth module, consolidate the JWT and session handling",
+            "complexity": "COMPLICATED",
+            "dimensions": 3,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "refactor-sprint",
+            "must_include": ["refactorer", "architect", "implementer", "reviewer"],
+        },
+        # Deploy release
+        {
+            "name": "deploy-release",
+            "prompt": "ship the v2 release to production, finalize the rollout",
+            "complexity": "COMPLICATED",
+            "dimensions": 3,
+            "situation": None,
+            "expected_source": "preset",
+            "expected_preset_id": "deploy-release",
+            "must_include": ["security_auditor", "deployer", "observer"],
+        },
+        # Incident override (situation wins even if preset would match)
+        {
+            "name": "incident-override",
+            "prompt": "add a new /orders endpoint to the backend",
+            "complexity": "COMPLICATED",
+            "dimensions": 3,
+            "situation": "incident-response",
+            "expected_source": "situation",
+            "expected_preset_id": None,
+            "must_include": ["debugger", "reviewer"],
+        },
+        # Legacy takeover (via situation)
+        {
+            "name": "legacy-takeover-situation",
+            "prompt": "get oriented in the inherited codebase, no docs anywhere",
+            "complexity": "COMPLEX",
+            "dimensions": 5,
+            "situation": "existing-project-takeover",
+            "expected_source": "situation",
+            "expected_preset_id": None,
+            "must_include": ["analyst"],
+        },
+    ],
+)
 def test_e2e_scenario(scenario):
     """Run the full analyze→compose pipeline and assert the chain is correct."""
     signals = analyze_task(
@@ -212,9 +223,11 @@ def test_e2e_scenario(scenario):
 # Latency budget (N.5 enterprise requirement)
 # ---------------------------------------------------------------------------
 
+
 def test_analyze_compose_under_latency_budget():
     """End-to-end analyze + compose under 600ms (500ms analyzer + 100ms composer)."""
     import time
+
     t0 = time.time()
     signals = analyze_task(
         prompt="add Stripe webhook integration for payment processing",
@@ -232,6 +245,7 @@ def test_analyze_compose_under_latency_budget():
 # ---------------------------------------------------------------------------
 # Determinism under concurrent load (thread-safety smoke)
 # ---------------------------------------------------------------------------
+
 
 def test_compose_deterministic_under_threading():
     """Same signals produce identical chains across threads (immutable cache)."""
@@ -266,6 +280,7 @@ def test_compose_deterministic_under_threading():
 # Fallback behavior (never empty chain)
 # ---------------------------------------------------------------------------
 
+
 def test_empty_signals_returns_fallback_not_empty():
     """Completely empty prompt must still yield a valid non-empty chain."""
     signals = analyze_task(prompt="", complexity="COMPLICATED", dimensions=1)
@@ -279,9 +294,10 @@ def test_empty_signals_returns_fallback_not_empty():
 def test_connection_pool_multithreaded_safe():
     """N.5-A: thread-local connection pool must survive concurrent gets."""
     sys.path.insert(0, str(_THINKING_OS))
+    import threading
+
     from database import close_pool, get_pooled_conn, pool_stats
 
-    import threading
     close_pool()
 
     errors: list[Exception] = []

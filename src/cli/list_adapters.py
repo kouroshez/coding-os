@@ -27,12 +27,7 @@ def _render_text(adapters: dict) -> str:
     col1 = max(len(a.id) for a in adapters.values())
     col2 = max(len(a.label) for a in adapters.values())
     col3 = max(len(a.settings_file or "—") for a in adapters.values())
-    header = (
-        f"{'ID':<{col1}}  "
-        f"{'LABEL':<{col2}}  "
-        f"{'SETTINGS FILE':<{col3}}  "
-        f"RULES  SETTINGS"
-    )
+    header = f"{'ID':<{col1}}  {'LABEL':<{col2}}  {'SETTINGS FILE':<{col3}}  RULES  SETTINGS"
     divider = "-" * len(header)
     lines = [header, divider]
     for a in sorted(adapters.values(), key=lambda a: a.id):
@@ -68,7 +63,8 @@ def _render_json(adapters: dict) -> str:
 
 @click.command("list-adapters")
 @click.option(
-    "--format", "output_format",
+    "--format",
+    "output_format",
     type=click.Choice(["text", "json"]),
     default="text",
     help="Output format",

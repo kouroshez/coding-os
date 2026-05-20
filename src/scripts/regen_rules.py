@@ -25,10 +25,10 @@ SKILL_ENFORCEMENT_PATH = CORE_RULES / "skill-enforcement.md"
 def _build_world():
     """Build an AggregatedWorld containing every installed stack."""
     sys.path.insert(0, str(REPO_ROOT))
-    from cli._data_types import AdapterProfile  # noqa: E402
-    from cli.adapter_registry import load_adapter_registry  # noqa: E402
-    from cli.aggregator import aggregate, today_iso  # noqa: E402
-    from cli.stack_registry import load_base_profile, load_stack_registry  # noqa: E402
+    from cli._data_types import AdapterProfile
+    from cli.adapter_registry import load_adapter_registry
+    from cli.aggregator import aggregate, today_iso
+    from cli.stack_registry import load_base_profile, load_stack_registry
 
     base = load_base_profile(REPO_ROOT / "src" / "templates" / "_base")
     stacks_reg = load_stack_registry(REPO_ROOT / "src" / "templates")
@@ -41,21 +41,32 @@ def _build_world():
         adapter = next(iter(adapters.values()))
     else:
         adapter = AdapterProfile(
-            id="stub", label="stub", settings_file=None, hooks_dir=None,
-            rules_dir=None, skills_dir=None, sourced_hooks=(),
-            supports_rules=False, supports_settings_json=False,
-            install_script=Path("."), default_settings={},
+            id="stub",
+            label="stub",
+            settings_file=None,
+            hooks_dir=None,
+            rules_dir=None,
+            skills_dir=None,
+            sourced_hooks=(),
+            supports_rules=False,
+            supports_settings_json=False,
+            install_script=Path("."),
+            default_settings={},
             source_dir=Path("."),
         )
 
     all_stacks = [stacks_reg[sid] for sid in sorted(stacks_reg.keys())]
     return aggregate(
-        base, all_stacks, adapter, "coding-os", today=today_iso(),
+        base,
+        all_stacks,
+        adapter,
+        "coding-os",
+        today=today_iso(),
     )
 
 
 def main() -> int:
-    from cli.renderer import (  # noqa: E402
+    from cli.renderer import (
         render_dimension_registry,
         render_skill_enforcement,
     )
@@ -69,12 +80,8 @@ def main() -> int:
     DIMENSION_REGISTRY_PATH.write_text(dim_content, encoding="utf-8")
     SKILL_ENFORCEMENT_PATH.write_text(enf_content, encoding="utf-8")
 
-    print(
-        f"[regen-rules] wrote {DIMENSION_REGISTRY_PATH.relative_to(REPO_ROOT)}"
-    )
-    print(
-        f"[regen-rules] wrote {SKILL_ENFORCEMENT_PATH.relative_to(REPO_ROOT)}"
-    )
+    print(f"[regen-rules] wrote {DIMENSION_REGISTRY_PATH.relative_to(REPO_ROOT)}")
+    print(f"[regen-rules] wrote {SKILL_ENFORCEMENT_PATH.relative_to(REPO_ROOT)}")
     print(
         f"[regen-rules] {len(world.dimensions)} dimensions, "
         f"{len(world.skill_enforcement)} skill-enforcement rows, "

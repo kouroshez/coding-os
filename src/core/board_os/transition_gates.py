@@ -66,9 +66,7 @@ class DoRConfig(BaseModel):
         """
         if kind not in self.by_kind:
             return DoRKindRules(
-                sections={
-                    n: r for n, r in self.default.sections.items() if r is not None
-                },
+                sections={n: r for n, r in self.default.sections.items() if r is not None},
             )
         merged: dict[str, SectionRule | None] = deepcopy(self.default.sections)
         for name, rule in self.by_kind[kind].sections.items():
@@ -101,9 +99,7 @@ class DoDConfig(BaseModel):
             return self.default
         # DoD rules are flat — kind block overrides field-by-field.
         merged = self.default.model_dump()
-        merged.update(
-            {k: v for k, v in self.by_kind[kind].model_dump().items() if v is not None}
-        )
+        merged.update({k: v for k, v in self.by_kind[kind].model_dump().items() if v is not None})
         return DoDKindRules(**merged)
 
 
@@ -134,9 +130,7 @@ class SizeLimits(BaseModel):
     def _block_above_warn(cls, v: int, info: Any) -> int:
         warn = info.data.get("warn_tokens", 0)
         if v < warn:
-            raise ValueError(
-                f"block_tokens ({v}) must be >= warn_tokens ({warn})"
-            )
+            raise ValueError(f"block_tokens ({v}) must be >= warn_tokens ({warn})")
         return v
 
 
@@ -167,9 +161,7 @@ class GatesConfig(BaseModel):
 # ────────────────────────────────────────────────────────────────────
 
 
-DEFAULT_GATES_PATH = (
-    Path(__file__).resolve().parent / "transition-gates.yaml"
-)
+DEFAULT_GATES_PATH = Path(__file__).resolve().parent / "transition-gates.yaml"
 
 
 class GatesConfigError(ValueError):
@@ -193,15 +185,11 @@ def load_gates_config(path: Path | str | None = None) -> GatesConfig:
     try:
         raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise GatesConfigError(
-            f"transition-gates: malformed YAML at {target}: {exc}"
-        ) from exc
+        raise GatesConfigError(f"transition-gates: malformed YAML at {target}: {exc}") from exc
     try:
         return GatesConfig.model_validate(raw)
     except Exception as exc:
-        raise GatesConfigError(
-            f"transition-gates: schema violation at {target}: {exc}"
-        ) from exc
+        raise GatesConfigError(f"transition-gates: schema violation at {target}: {exc}") from exc
 
 
 def load_gates_from_str(content: str) -> GatesConfig:
@@ -217,6 +205,7 @@ def load_gates_from_str(content: str) -> GatesConfig:
 
 
 __all__ = [
+    "DEFAULT_GATES_PATH",
     "DoDConfig",
     "DoDKindRules",
     "DoRConfig",
@@ -229,5 +218,4 @@ __all__ = [
     "WipLimits",
     "load_gates_config",
     "load_gates_from_str",
-    "DEFAULT_GATES_PATH",
 ]

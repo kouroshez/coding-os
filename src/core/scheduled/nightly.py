@@ -27,6 +27,10 @@ _THINKING_OS = _HERE.parent / "thinking_os"
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
+from scheduled._activity import (  # noqa: E402
+    observations_since_marker,
+    outcomes_since_marker,
+)
 from scheduled._state import (  # noqa: E402
     days_since_marker,
     now_iso,
@@ -35,10 +39,6 @@ from scheduled._state import (  # noqa: E402
     state_dir,
     touch_marker,
     write_state,
-)
-from scheduled._activity import (  # noqa: E402
-    observations_since_marker,
-    outcomes_since_marker,
 )
 
 # ---------------------------------------------------------------------------
@@ -62,9 +62,7 @@ def _setup_logging(verbose: bool = False) -> None:
     _logging_os_setup(level="debug" if verbose else "info")
 
     fmt = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s")
-    fh = logging.handlers.RotatingFileHandler(
-        _LOG_FILE, maxBytes=100_000, backupCount=10
-    )
+    fh = logging.handlers.RotatingFileHandler(_LOG_FILE, maxBytes=100_000, backupCount=10)
     fh.setFormatter(fmt)
     logging.getLogger().addHandler(fh)
 
@@ -76,12 +74,11 @@ logger = logging.getLogger("codingos.scheduled.nightly")
 # Schema guard
 # ---------------------------------------------------------------------------
 
+
 def _schema_ok(db_path: Path) -> bool:
     try:
         with sqlite3.connect(str(db_path), timeout=5) as conn:
-            row = conn.execute(
-                "SELECT MAX(version) FROM schema_version"
-            ).fetchone()
+            row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
             if row and row[0] is not None:
                 return int(row[0]) >= _SCHEMA_VERSION_MIN
             return False
@@ -93,6 +90,7 @@ def _schema_ok(db_path: Path) -> bool:
 # ---------------------------------------------------------------------------
 # Task: decay
 # ---------------------------------------------------------------------------
+
 
 def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
     """Run confidence decay, flock-protected against session_enrich race."""
@@ -118,7 +116,7 @@ def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
                 if dry_run:
                     return {"status": "dry_run", "would_run": True, "marker_age_days": age}
 
-                from decay import run_decay as do_decay  # noqa: PLC0415
+                from decay import run_decay as do_decay
 
                 result = do_decay(db_path)
                 touch_marker(marker)
@@ -132,7 +130,7 @@ def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
     except ImportError as exc:
         logger.warning("decay task import error (decay.py missing?): %s", exc)
         return {"status": "error", "error": str(exc)}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("decay task unexpected error: %s", exc)
         return {"status": "error", "error": str(exc)}
 
@@ -140,6 +138,7 @@ def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
 # ---------------------------------------------------------------------------
 # Task: learn_extract
 # ---------------------------------------------------------------------------
+
 
 def _run_learn_extract(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
     """Mine patterns from task_outcomes; gated on new outcomes since last run."""
@@ -166,7 +165,7 @@ def _run_learn_extract(db_path: Path, project_root: Path, *, dry_run: bool) -> d
         return {"status": "dry_run", "would_run": True, "new_outcomes": new_outcomes}
 
     try:
-        from tools.learning import learn_extract  # noqa: PLC0415
+        from tools.learning import learn_extract
 
         with sqlite3.connect(str(db_path), timeout=10) as conn:
             conn.row_factory = sqlite3.Row
@@ -181,7 +180,7 @@ def _run_learn_extract(db_path: Path, project_root: Path, *, dry_run: bool) -> d
     except sqlite3.Error as exc:
         logger.warning("learn_extract db error: %s", exc)
         return {"status": "error", "error": str(exc)}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("learn_extract unexpected error: %s", exc)
         return {"status": "error", "error": str(exc)}
 
@@ -190,10 +189,11 @@ def _run_learn_extract(db_path: Path, project_root: Path, *, dry_run: bool) -> d
 # Task: routing_recalc
 # ---------------------------------------------------------------------------
 
+
 def _run_routing_recalc(db_path: Path, *, dry_run: bool) -> dict:
     """Recalculate routing weights if drift detected."""
     try:
-        from tools.routing import recalculate_weights, routing_drift  # noqa: PLC0415
+        from tools.routing import recalculate_weights, routing_drift
 
         with sqlite3.connect(str(db_path), timeout=10) as conn:
             conn.row_factory = sqlite3.Row
@@ -223,7 +223,7 @@ def _run_routing_recalc(db_path: Path, *, dry_run: bool) -> dict:
     except sqlite3.Error as exc:
         logger.warning("routing_recalc db error: %s", exc)
         return {"status": "error", "error": str(exc)}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("routing_recalc unexpected error: %s", exc)
         return {"status": "error", "error": str(exc)}
 
@@ -249,6 +249,7 @@ Log results to stderr.
 # Per-project run
 # ---------------------------------------------------------------------------
 
+
 def run_project(project: dict, *, dry_run: bool) -> dict:
     """Run all maintenance tasks for one project."""
     slug = project.get("slug", "?")
@@ -273,7 +274,10 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         return run
 
     if not _schema_ok(db_path):
-        run["tasks"]["all"] = {"status": "skipped", "reason": f"schema_version < {_SCHEMA_VERSION_MIN}"}
+        run["tasks"]["all"] = {
+            "status": "skipped",
+            "reason": f"schema_version < {_SCHEMA_VERSION_MIN}",
+        }
         logger.warning("[%s] schema too old — skip all", slug)
         return run
 
@@ -299,7 +303,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         logger.info("[%s] decay → %s", slug, t.get("status"))
         if t.get("status") == "error":
             errors += 1
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         run["tasks"]["decay"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] decay raised: %s", slug, exc)
         errors += 1
@@ -311,7 +315,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         logger.info("[%s] learn_extract → %s", slug, t.get("status"))
         if t.get("status") == "error":
             errors += 1
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         run["tasks"]["learn_extract"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] learn_extract raised: %s", slug, exc)
         errors += 1
@@ -323,7 +327,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         logger.info("[%s] routing_recalc → %s", slug, t.get("status"))
         if t.get("status") == "error":
             errors += 1
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         run["tasks"]["routing_recalc"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] routing_recalc raised: %s", slug, exc)
         errors += 1
@@ -335,7 +339,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         logger.info("[%s] graph_reindex → %s", slug, t.get("status"))
         if t.get("status") == "error":
             errors += 1
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         run["tasks"]["graph_reindex"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] graph_reindex raised: %s", slug, exc)
         errors += 1
@@ -365,6 +369,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
 # ---------------------------------------------------------------------------
 # Task: graph_reindex_if_stale
 # ---------------------------------------------------------------------------
+
 
 def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
     """Trigger a full graph reindex when the backend probe is older than 24h.
@@ -398,7 +403,7 @@ def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
     if dry_run:
         return {"status": "dry_run", "would_reindex": True, "age_seconds": age}
 
-    import subprocess  # noqa: PLC0415 — keep import local; not used elsewhere
+    import subprocess
 
     # Invoke via `sys.executable -m cli.main graph-reindex` so launchd's
     # stripped PATH (typically /usr/bin:/bin) cannot lose the binary —
@@ -431,6 +436,7 @@ def _run_graph_reindex_if_stale(project_root: Path, *, dry_run: bool) -> dict:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="coding-os nightly maintenance")
@@ -474,7 +480,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             r = run_project(proj, dry_run=args.dry_run)
             results.append(r)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             slug = proj.get("slug", "?")
             logger.error("[%s] unhandled error: %s", slug, exc)
             results.append({"slug": slug, "error": str(exc)})
@@ -495,9 +501,7 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.info("=== nightly done projects=%d ===", len(results))
 
-    errors_total = sum(
-        1 for r in results if r.get("last_error") or r.get("error")
-    )
+    errors_total = sum(1 for r in results if r.get("last_error") or r.get("error"))
     return 1 if errors_total > 0 else 0
 
 

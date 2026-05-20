@@ -8,6 +8,7 @@ Coverage:
   - MCP cos_graph_query finds extracted symbols
   - Go extractor is wired into dispatch (regression for the A5 gap)
 """
+
 from __future__ import annotations
 
 import sys
@@ -40,7 +41,9 @@ def db_setup(tmp_path):
     conn.close()
 
 
-def _dispatch(file_path: Path, tmp_path: Path, db_file: Path, *, force: bool = False) -> dict[str, Any]:
+def _dispatch(
+    file_path: Path, tmp_path: Path, db_file: Path, *, force: bool = False
+) -> dict[str, Any]:
     from graph_os.tools.reindex_dispatch import dispatch
 
     return dispatch(
@@ -55,6 +58,7 @@ def _dispatch(file_path: Path, tmp_path: Path, db_file: Path, *, force: bool = F
 def _make_backend(db_file: Path):
     """Open a fresh SqliteBackend from db_file (post-dispatch snapshot)."""
     import database as thinking_os_db  # type: ignore
+
     from graph_os.backends.sqlite_backend import SqliteBackend
 
     conn = thinking_os_db.init_db(str(db_file))
@@ -72,6 +76,7 @@ def _query_ok(backend, q: str) -> list[dict[str, Any]]:
         gtools._BACKEND_SINGLETON = prev
     if isinstance(env, str):
         import json
+
         env = json.loads(env)
     assert env.get("ok") is True, f"expected ok, got: {env}"
     return env["data"].get("results", [])
@@ -105,9 +110,7 @@ class TestPythonPipeline:
     def test_class_and_method_extracted(self, db_setup):
         tmp_path, db_file, _ = db_setup
         src = tmp_path / "models.py"
-        src.write_text(
-            "class UserModel:\n    def get_user(self, uid):\n        pass\n"
-        )
+        src.write_text("class UserModel:\n    def get_user(self, uid):\n        pass\n")
 
         result = _dispatch(src, tmp_path, db_file)
 
@@ -133,8 +136,9 @@ class TestPythonPipeline:
         backend, conn = _make_backend(db_file)
         try:
             old_hits = _query_ok(backend, "old_function")
-            assert not any("old_function" in h.get("uid", "") for h in old_hits), \
+            assert not any("old_function" in h.get("uid", "") for h in old_hits), (
                 "old_function should be pruned"
+            )
             new_hits = _query_ok(backend, "new_function")
             assert any("new_function" in h.get("uid", "") for h in new_hits)
         finally:
@@ -186,8 +190,9 @@ class TestGoPipeline:
 
         assert result["status"] == "ok"
         assert "graph" in result["layers"]
-        assert result["layers"]["graph"]["nodes_written"] >= 1, \
+        assert result["layers"]["graph"]["nodes_written"] >= 1, (
             "code_go extractor must be wired (was broken before A5 fix)"
+        )
 
     def test_go_method_dispatched(self, db_setup):
         tmp_path, db_file, _ = db_setup
@@ -213,9 +218,7 @@ class TestMarkdownPipeline:
         tmp_path, db_file, _ = db_setup
         (tmp_path / "docs").mkdir()
         src = tmp_path / "docs" / "overview.md"
-        src.write_text(
-            "# Overview\n\nSee [architecture](architecture.md) for details.\n"
-        )
+        src.write_text("# Overview\n\nSee [architecture](architecture.md) for details.\n")
 
         result = _dispatch(src, tmp_path, db_file)
 
@@ -227,9 +230,7 @@ class TestMarkdownPipeline:
         tmp_path, db_file, _ = db_setup
         (tmp_path / "docs" / "tasks").mkdir(parents=True)
         src = tmp_path / "docs" / "tasks" / "TASK-001-test.md"
-        src.write_text(
-            "---\ntask_id: TASK-001\ntitle: Test\nstatus: open\n---\n\nBody.\n"
-        )
+        src.write_text("---\ntask_id: TASK-001\ntitle: Test\nstatus: open\n---\n\nBody.\n")
 
         result = _dispatch(src, tmp_path, db_file)
 

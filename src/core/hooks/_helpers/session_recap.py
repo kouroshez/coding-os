@@ -3,6 +3,7 @@ the just-finished session: observations captured, dispatches fired, backtracks.
 Used by core/hooks/session-end.sh to give the operator a visible end-of-turn
 pulse, mirroring the always-on caveman pattern. Bounded — silent on any error.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,9 @@ def main() -> int:
     except sqlite3.Error:
         return 0
     obs = _scalar(cur, "SELECT COUNT(*) FROM observations WHERE session_id = ?", (session_id,))
-    disp = _scalar(cur, "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?", (session_id,))
+    disp = _scalar(
+        cur, "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?", (session_id,)
+    )
     bt = _scalar(cur, "SELECT COUNT(*) FROM backtrack_events WHERE session_id = ?", (session_id,))
     try:
         conn.close()

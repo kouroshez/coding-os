@@ -81,6 +81,7 @@ class PrecisionSnapshot:
         precision: successes / (successes + failures), 0.0 when denom is 0.
         sufficient_sample: True when successes+failures ≥ MIN_SAMPLE_FOR_DECISION.
     """
+
     lookback_days: int
     total_retrievals: int
     successes: int
@@ -109,8 +110,7 @@ def precision_snapshot(
         return PrecisionSnapshot(lookback_days, 0, 0, 0, 0, 0.0, False)
 
     rows = conn.execute(
-        "SELECT outcome FROM retrievals "
-        "WHERE created_at >= datetime('now', '-' || ? || ' days')",
+        "SELECT outcome FROM retrievals WHERE created_at >= datetime('now', '-' || ? || ' days')",
         (lookback_days,),
     ).fetchall()
 

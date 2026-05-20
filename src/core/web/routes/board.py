@@ -34,6 +34,7 @@ def _board_tools():
     """Lazy import for board_os mcp_tools."""
     try:
         from board_os import mcp_tools  # type: ignore
+
         return mcp_tools
     except ImportError:
         return None
@@ -41,14 +42,17 @@ def _board_tools():
 
 def _unavailable():
     import json
-    return json.dumps({
-        "ok": False,
-        "error": {
-            "category": "unavailable",
-            "retryable": False,
-            "message": "board_os package not importable",
-        },
-    })
+
+    return json.dumps(
+        {
+            "ok": False,
+            "error": {
+                "category": "unavailable",
+                "retryable": False,
+                "message": "board_os package not importable",
+            },
+        }
+    )
 
 
 # Presence windows + state-rank live in board_os.presence (SSOT).  Re-
@@ -58,10 +62,11 @@ from board_os.presence import (  # noqa: E402  (after sys.path bootstrap above)
     PRESENT_WINDOW_SECS as _PRESENT_WINDOW_SECS,
     WORKING_WINDOW_SECS as _WORKING_WINDOW_SECS,
     agent_state as _agent_state_fs,
+    pid_alive as _pid_alive_fn,
     session_inventory as _session_inventory_fs,
     session_presence as _session_presence_fn,
-    pid_alive as _pid_alive_fn,
 )
+
 _DB_FALLBACK_WINDOW_SECS = 300  # legacy DB-only signal window
 
 
@@ -184,11 +189,11 @@ async def board_task_detail(
     if row is None:
         return JSONResponse(
             status_code=404,
-            content={"error": {"category": "not_found",
-                               "message": f"{task_id} not found"}},
+            content={"error": {"category": "not_found", "message": f"{task_id} not found"}},
         )
 
     import json as _json
+
     try:
         labels = _json.loads(row[8] or "[]")
     except (TypeError, ValueError):
@@ -214,10 +219,12 @@ async def board_task_detail(
         except ValueError:
             return JSONResponse(
                 status_code=410,
-                content={"error": {
-                    "category": "validation",
-                    "message": f"task file outside docs/tasks/: {file_rel}",
-                }},
+                content={
+                    "error": {
+                        "category": "validation",
+                        "message": f"task file outside docs/tasks/: {file_rel}",
+                    }
+                },
             )
         if file_abs.exists() and file_abs.is_file():
             exists = True
@@ -266,9 +273,9 @@ async def board_task_detail(
 
 @router.get("/list")
 async def board_list(
-    swimlane: Optional[str] = Query(None),
-    kind: Optional[str] = Query(None),
-    epic: Optional[str] = Query(None),
+    swimlane: str | None = Query(None),
+    kind: str | None = Query(None),
+    epic: str | None = Query(None),
     include_archive: bool = Query(False),
     limit: int = Query(50),
     _rl=Depends(make_rate_limit_dep("board.list")),
@@ -331,6 +338,7 @@ async def board_list(
                 files = _presence_files(agent)
                 count = 0
                 import time as _time
+
                 now = _time.time()
                 for path in files:
                     if not path.stem.startswith(f"ses-{agent}-sdk-"):
@@ -346,7 +354,7 @@ async def board_list(
                         count += 1
                 if count:
                     sub_counts[agent] = count
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("sub-session count failed for %s: %s", agent, exc)
         env["data"]["sub_session_counts"] = sub_counts
         human_row = {
@@ -372,13 +380,13 @@ async def board_create(
     kind: str = Body(...),
     priority: str = Body("P2"),
     appetite: str = Body("1d"),
-    epic: Optional[str] = Body(None),
-    labels: Optional[List[str]] = Body(None),
-    outcome: Optional[str] = Body(None),
-    read_first: Optional[List[str]] = Body(None),
-    depends_on: Optional[List[str]] = Body(None),
+    epic: str | None = Body(None),
+    labels: list[str] | None = Body(None),
+    outcome: str | None = Body(None),
+    read_first: list[str] | None = Body(None),
+    depends_on: list[str] | None = Body(None),
     status: str = Body("icebox"),
-    agent_session: Optional[str] = Body(None),
+    agent_session: str | None = Body(None),
     _rl=Depends(make_rate_limit_dep("board.create")),
     _m=Depends(make_metrics_dep("board.create")),
 ):
@@ -412,10 +420,10 @@ async def board_create(
 async def board_move(
     task_id: str = Body(...),
     to: str = Body(...),
-    reason: Optional[str] = Body(None),
+    reason: str | None = Body(None),
     bypass_wip: bool = Body(False),
     force: bool = Body(False),
-    agent_session: Optional[str] = Body(None),
+    agent_session: str | None = Body(None),
     _rl=Depends(make_rate_limit_dep("board.move")),
     _m=Depends(make_metrics_dep("board.move")),
 ):
@@ -498,12 +506,12 @@ async def board_config(
 @router.post("/reposition")
 async def board_reposition(
     task_id: str = Body(...),
-    swimlane: Optional[str] = Body(None),
-    to: Optional[str] = Body(None),
-    reason: Optional[str] = Body(None),
+    swimlane: str | None = Body(None),
+    to: str | None = Body(None),
+    reason: str | None = Body(None),
     bypass_wip: bool = Body(False),
     force: bool = Body(False),
-    agent_session: Optional[str] = Body(None),
+    agent_session: str | None = Body(None),
     _rl=Depends(make_rate_limit_dep("board.reposition")),
     _m=Depends(make_metrics_dep("board.reposition")),
 ):
@@ -531,7 +539,7 @@ async def board_reposition(
 @router.get("/daily")
 async def board_daily(
     since: str = Query("24h"),
-    agent_session: Optional[str] = Query(None),
+    agent_session: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("board.daily")),
     _m=Depends(make_metrics_dep("board.daily")),
 ):
@@ -584,7 +592,7 @@ async def board_wip(
 
 @router.get("/pick")
 async def board_pick(
-    swimlane: Optional[str] = Query(None),
+    swimlane: str | None = Query(None),
     priority_min: str = Query("P2"),
     max_candidates: int = Query(5),
     _rl=Depends(make_rate_limit_dep("board.pick")),

@@ -66,7 +66,8 @@ references: []
 def project(tmp_path: Path) -> Path:
     (tmp_path / "docs" / "tasks").mkdir(parents=True)
     (tmp_path / "docs" / "tasks" / "TASK-042-sync-fixture.md").write_text(
-        LEAN_TASK, encoding="utf-8",
+        LEAN_TASK,
+        encoding="utf-8",
     )
     return tmp_path
 
@@ -147,7 +148,5 @@ def test_sync_one_on_lean_task_writes_epic(project: Path, conn: sqlite3.Connecti
     assert parsed is not None
     assert parsed.epic == "phase-l"
 
-    row = conn.execute(
-        "SELECT epic FROM tasks WHERE task_id = 'TASK-042'"
-    ).fetchone()
+    row = conn.execute("SELECT epic FROM tasks WHERE task_id = 'TASK-042'").fetchone()
     assert row[0] == "phase-l"

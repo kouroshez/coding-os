@@ -266,9 +266,7 @@ class TestInvariants:
         a = code_ts.extract("frontend/src/service.ts", self._SRC)
         b = code_ts.extract("frontend/src/service.ts", self._SRC)
         assert [n.uid for n in a.nodes] == [n.uid for n in b.nodes]
-        assert [
-            (e.source_uid, e.target_uid, e.edge_type) for e in a.edges
-        ] == [
+        assert [(e.source_uid, e.target_uid, e.edge_type) for e in a.edges] == [
             (e.source_uid, e.target_uid, e.edge_type) for e in b.edges
         ]
 
@@ -287,9 +285,7 @@ class TestInvariants:
         assert r.parse_errors == []
 
     def test_large_file_does_not_time_out(self):
-        r = _extract(
-            "\n".join(f"export const fn{i} = () => {i};" for i in range(200))
-        )
+        r = _extract("\n".join(f"export const fn{i} = () => {i};" for i in range(200)))
         fns = [n for n in r.nodes if n.kind == "code:function"]
         assert len(fns) >= 100
 

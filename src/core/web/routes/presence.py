@@ -46,9 +46,10 @@ def _strip_session_prefix(value: str | None, session_id: str | None) -> str | No
     if not value:
         return value
     if session_id and value.startswith(session_id):
-        return value[len(session_id):].strip() or None
+        return value[len(session_id) :].strip() or None
     # Fall-through pattern: any "ses-<agent>-<digits>-<hex>" prefix.
     import re as _re
+
     m = _re.match(r"^ses-[^\s]+\s+(.*)$", value)
     if m:
         return m.group(1).strip() or None
@@ -66,8 +67,9 @@ def _latest_claude_chat_uuid(project_root: Path) -> str | None:
     """Newest Claude SDK transcript file (proxy for currently-active chat)."""
     try:
         from claude_agent_sdk import project_key_for_directory  # type: ignore
+
         key = project_key_for_directory(project_root)
-    except Exception as exc:  # noqa: BLE001 — fall back to canonical dashed-path
+    except Exception as exc:
         logger.debug("project_key_for_directory unavailable: %s", exc)
         key = "-" + str(project_root).replace("/", "-").lstrip("-")
     base = Path.home() / ".claude" / "projects" / key
@@ -125,6 +127,7 @@ def _last_hook_event(state: Path) -> dict[str, Any] | None:
     except OSError:
         return None
     from .hooks import _parse_hook_line  # type: ignore
+
     for line in reversed(tail.splitlines()):
         evt = _parse_hook_line(line)
         if evt is not None:
@@ -136,9 +139,10 @@ def _canonical_agents() -> list[str]:
     """Return the canonical adapter ids (filter out test/legacy dirs)."""
     try:
         from board_os.hub_adapter_manifest import list_agent_manifest_rows  # type: ignore
+
         rows = list_agent_manifest_rows()
         return [str(r["id"]) for r in rows if r.get("id")]
-    except Exception as exc:  # noqa: BLE001 — fall back to the hardcoded trio
+    except Exception as exc:
         logger.debug("list_agent_manifest_rows unavailable: %s", exc)
         return ["claude", "codex", "cursor"]
 
@@ -172,24 +176,29 @@ async def presence_now(
     agent_states: dict[str, str] = {"human": "active"}
     try:
         from web.routes.board import _agent_state, _db_conn  # type: ignore
+
         conn = _db_conn()
         try:
             for agent_id in canonical:
                 agent_states[agent_id] = _agent_state(conn, agent_id)
         finally:
             conn.close()
-    except Exception as exc:  # noqa: BLE001 — presence HUD must not 500
+    except Exception as exc:
         logger.debug("agent_state lookup failed; using bare presence: %s", exc)
 
-    return unwrap(json.dumps({
-        "ok": True,
-        "data": {
-            "project_root": str(project),
-            "state_dir": str(state),
-            "agents": agents,
-            "agent_states": agent_states,
-            "last_hook": last_hook,
-            "current_chat_uuid": chat_uuid,
-            "meta": {"layer": "presence"},
-        },
-    }))
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "project_root": str(project),
+                    "state_dir": str(state),
+                    "agents": agents,
+                    "agent_states": agent_states,
+                    "last_hook": last_hook,
+                    "current_chat_uuid": chat_uuid,
+                    "meta": {"layer": "presence"},
+                },
+            }
+        )
+    )

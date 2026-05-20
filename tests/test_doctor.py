@@ -16,11 +16,11 @@ from pathlib import Path
 import pytest
 
 from cli.doctor import (
-    DoctorReport,
     EXPECTED_SCHEMA_VERSION,
     SEV_FAIL,
     SEV_PASS,
     SEV_WARN,
+    DoctorReport,
     _check_placeholders,
     run_doctor,
 )
@@ -30,10 +30,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def _cos_init(target: Path, agent: str = "claude", template: str | None = None) -> None:
     cmd = [
-        sys.executable, "-m", "cli.main", "init",
-        "--agent", agent,
-        "--project-dir", str(target.parent),
-        "--name", target.name,
+        sys.executable,
+        "-m",
+        "cli.main",
+        "init",
+        "--agent",
+        agent,
+        "--project-dir",
+        str(target.parent),
+        "--name",
+        target.name,
         "--no-git",
         "--force",
         "--no-register",
@@ -43,8 +49,13 @@ def _cos_init(target: Path, agent: str = "claude", template: str | None = None) 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(REPO_ROOT)
     subprocess.run(
-        cmd, cwd=str(REPO_ROOT), env=env,
-        capture_output=True, text=True, timeout=120, check=True,
+        cmd,
+        cwd=str(REPO_ROOT),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=True,
     )
 
 
@@ -53,6 +64,7 @@ def _severity_map(report: DoctorReport) -> dict[str, str]:
 
 
 # ---------- C1: missing config ----------
+
 
 def test_doctor_missing_config_fails(tmp_path: Path) -> None:
     report = run_doctor(tmp_path)
@@ -70,6 +82,7 @@ def test_doctor_invalid_yaml_fails(tmp_path: Path) -> None:
 
 # ---------- Fresh scaffold → all PASS ----------
 
+
 @pytest.mark.parametrize("agent", ["claude", "codex"])
 def test_doctor_fresh_scaffold_all_pass(tmp_path: Path, agent: str) -> None:
     target = tmp_path / "proj"
@@ -77,7 +90,18 @@ def test_doctor_fresh_scaffold_all_pass(tmp_path: Path, agent: str) -> None:
     report = run_doctor(target)
 
     sevs = _severity_map(report)
-    for check_id in ("config.file_present", "state.directory_present", "database.openable", "database.schema_current", "database.tables_present", "scaffold.roots_present", "adapter.configured", "scaffold.manifest_fresh", "scaffold.placeholders_resolved", "mcp.self_test_passes"):
+    for check_id in (
+        "config.file_present",
+        "state.directory_present",
+        "database.openable",
+        "database.schema_current",
+        "database.tables_present",
+        "scaffold.roots_present",
+        "adapter.configured",
+        "scaffold.manifest_fresh",
+        "scaffold.placeholders_resolved",
+        "mcp.self_test_passes",
+    ):
         assert sevs.get(check_id) == SEV_PASS, (
             f"{check_id} not PASS for agent={agent}: "
             f"{[c for c in report.checks if c.id == check_id]}"
@@ -94,6 +118,7 @@ def test_doctor_base_template_pass(tmp_path: Path, agent: str) -> None:
 
 
 # ---------- C8: drift detection ----------
+
 
 def test_doctor_missing_file_fails_c8(tmp_path: Path) -> None:
     target = tmp_path / "proj"
@@ -116,6 +141,7 @@ def test_doctor_extra_file_warns_c8(tmp_path: Path) -> None:
 
 
 # ---------- C9: placeholder detection ----------
+
 
 def test_doctor_unresolved_placeholder_fails(tmp_path: Path) -> None:
     target = tmp_path / "proj"
@@ -142,6 +168,7 @@ def test_check_placeholders_clean_project(tmp_path: Path) -> None:
 
 # ---------- C4: schema version ----------
 
+
 def test_expected_schema_version_is_reasonable() -> None:
     # Sourced from db.MIGRATIONS — must be a positive int.
     assert isinstance(EXPECTED_SCHEMA_VERSION, int)
@@ -150,15 +177,27 @@ def test_expected_schema_version_is_reasonable() -> None:
 
 # ---------- JSON output ----------
 
+
 def test_doctor_json_format_valid_schema(tmp_path: Path) -> None:
     target = tmp_path / "proj"
     _cos_init(target, agent="claude", template=None)
 
     result = subprocess.run(
-        [sys.executable, "-m", "cli.main", "doctor",
-         "--project-dir", str(target), "--format", "json"],
+        [
+            sys.executable,
+            "-m",
+            "cli.main",
+            "doctor",
+            "--project-dir",
+            str(target),
+            "--format",
+            "json",
+        ],
         cwd=str(REPO_ROOT),
-        capture_output=True, text=True, timeout=60, check=False,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
         env={**os.environ, "PYTHONPATH": str(REPO_ROOT)},
     )
     payload = json.loads(result.stdout)
@@ -169,6 +208,7 @@ def test_doctor_json_format_valid_schema(tmp_path: Path) -> None:
 
 
 # ---------- C11: stack registry consistency ----------
+
 
 def test_doctor_c11_base_only_passes(tmp_path: Path) -> None:
     target = tmp_path / "proj"
@@ -191,6 +231,7 @@ def test_doctor_c11_unknown_stack_fails(tmp_path: Path) -> None:
     _cos_init(target, agent="claude", template="django")
     # Simulate someone adding a ghost stack to the project config
     import yaml as _yaml
+
     cfg_path = target / ".coding-os.yaml"
     cfg = _yaml.safe_load(cfg_path.read_text())
     cfg["templates"].append("ghoststack")
@@ -201,6 +242,7 @@ def test_doctor_c11_unknown_stack_fails(tmp_path: Path) -> None:
 
 
 # ---------- C12: category balance ----------
+
 
 def test_doctor_c12_single_stack_passes(tmp_path: Path) -> None:
     target = tmp_path / "proj"
@@ -215,6 +257,7 @@ def test_doctor_c12_multi_backend_warns(tmp_path: Path) -> None:
     _cos_init(target, agent="claude", template="django")
     # Force a second backend stack by editing the config directly.
     import yaml as _yaml
+
     cfg_path = target / ".coding-os.yaml"
     cfg = _yaml.safe_load(cfg_path.read_text())
     cfg["templates"].append("fastapi")
@@ -228,6 +271,7 @@ def test_doctor_c12_backend_plus_frontend_passes(tmp_path: Path) -> None:
     target = tmp_path / "proj"
     _cos_init(target, agent="claude", template="django")
     import yaml as _yaml
+
     cfg_path = target / ".coding-os.yaml"
     cfg = _yaml.safe_load(cfg_path.read_text())
     cfg["templates"].append("nextjs")
@@ -243,10 +287,12 @@ def test_doctor_strict_mode_exits_nonzero_on_warn(tmp_path: Path) -> None:
     (target / "docs" / "extra.md").write_text("user add")
 
     result = subprocess.run(
-        [sys.executable, "-m", "cli.main", "doctor",
-         "--project-dir", str(target), "--strict"],
+        [sys.executable, "-m", "cli.main", "doctor", "--project-dir", str(target), "--strict"],
         cwd=str(REPO_ROOT),
-        capture_output=True, text=True, timeout=60, check=False,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
         env={**os.environ, "PYTHONPATH": str(REPO_ROOT)},
     )
     assert result.returncode == 1

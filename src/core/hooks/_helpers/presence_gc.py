@@ -11,6 +11,7 @@ Reaps a file when ANY of:
 USAGE
     python3 presence_gc.py <presence_dir> <now_epoch>
 """
+
 from __future__ import annotations
 
 import contextlib

@@ -53,12 +53,8 @@ def thinking_os_on_path():
 def tiny_project(tmp_path: Path):
     root = tmp_path / "proj"
     (root / "pkg").mkdir(parents=True)
-    (root / "pkg" / "mod.py").write_text(
-        "def hello():\n    return 'world'\n", encoding="utf-8"
-    )
-    (root / "README.md").write_text(
-        "# Proj\n\nSee [mod](pkg/mod.py).\n", encoding="utf-8"
-    )
+    (root / "pkg" / "mod.py").write_text("def hello():\n    return 'world'\n", encoding="utf-8")
+    (root / "README.md").write_text("# Proj\n\nSee [mod](pkg/mod.py).\n", encoding="utf-8")
     (root / ".coding-os").mkdir()
     db_path = root / ".coding-os" / "coding-os.db"
     return root, db_path
@@ -113,12 +109,14 @@ class TestIndexSingleFile:
         backend = graph_indexer.open_backend(db_path)
         try:
             r1 = graph_indexer.index_single_file(
-                backend=backend, project_root=root,
+                backend=backend,
+                project_root=root,
                 file_path=root / "pkg" / "mod.py",
             )
             assert r1.files_indexed == 1
             r2 = graph_indexer.index_single_file(
-                backend=backend, project_root=root,
+                backend=backend,
+                project_root=root,
                 file_path=root / "pkg" / "mod.py",
             )
             assert r2.files_skipped_unchanged == 1
@@ -134,7 +132,8 @@ class TestIndexSingleFile:
         backend = graph_indexer.open_backend(db_path)
         try:
             report = graph_indexer.index_single_file(
-                backend=backend, project_root=root,
+                backend=backend,
+                project_root=root,
                 file_path=root / "pkg" / "ghost.py",
             )
             assert report.files_errored == 1
@@ -156,7 +155,8 @@ class TestIndexProject:
         backend = graph_indexer.open_backend(db_path)
         try:
             report = graph_indexer.index_project(
-                backend=backend, project_root=root,
+                backend=backend,
+                project_root=root,
             )
             assert report.mode == "bulk"
             assert report.files_seen >= 2
@@ -172,7 +172,8 @@ class TestIndexProject:
         try:
             graph_indexer.index_project(backend=backend, project_root=root)
             report = graph_indexer.index_project(
-                backend=backend, project_root=root,
+                backend=backend,
+                project_root=root,
             )
             assert report.files_skipped_unchanged >= 2
             assert report.files_indexed <= 1  # at most the md+task cross-extractor
@@ -188,7 +189,9 @@ class TestIndexProject:
         try:
             graph_indexer.index_project(backend=backend, project_root=root)
             report = graph_indexer.index_project(
-                backend=backend, project_root=root, force=True,
+                backend=backend,
+                project_root=root,
+                force=True,
             )
             assert report.files_skipped_unchanged == 0
         finally:
@@ -205,7 +208,9 @@ class TestIndexProject:
         try:
             with pytest.raises(Exception):
                 graph_indexer.index_project(
-                    backend=backend, project_root=root, max_files=3,
+                    backend=backend,
+                    project_root=root,
+                    max_files=3,
                 )
         finally:
             backend.close()
@@ -217,9 +222,7 @@ class TestIndexProject:
 
 
 class TestBackgroundGraphRunner:
-    def test_runner_indexes_project(
-        self, thinking_os_on_path, tiny_project, monkeypatch
-    ):
+    def test_runner_indexes_project(self, thinking_os_on_path, tiny_project, monkeypatch):
         root, db_path = tiny_project
         monkeypatch.setenv("COS_PROJECT_ROOT", str(root))
         monkeypatch.setenv("COS_DB_PATH", str(db_path))
@@ -231,9 +234,7 @@ class TestBackgroundGraphRunner:
         assert result["status"] == "ok"
         assert result["stats"]["files_seen"] >= 2
 
-    def test_runner_skipped_when_project_missing(
-        self, thinking_os_on_path, tmp_path, monkeypatch
-    ):
+    def test_runner_skipped_when_project_missing(self, thinking_os_on_path, tmp_path, monkeypatch):
         monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path / "ghost"))
         monkeypatch.setenv("COS_DB_PATH", str(tmp_path / "t.db"))
         import background  # type: ignore
@@ -241,9 +242,7 @@ class TestBackgroundGraphRunner:
         result = background._default_graph_index_runner()
         assert result["status"] == "skipped"
 
-    def test_run_once_fires_graph_step(
-        self, thinking_os_on_path, tiny_project, monkeypatch
-    ):
+    def test_run_once_fires_graph_step(self, thinking_os_on_path, tiny_project, monkeypatch):
         """BackgroundIndexer.run_once() should record a graph iter."""
         root, db_path = tiny_project
         monkeypatch.setenv("COS_PROJECT_ROOT", str(root))
@@ -294,6 +293,7 @@ class TestWarnGraphEmptyHook:
 
     def test_non_empty_db_silent(self, thinking_os_on_path, tmp_path):
         from database import init_db  # type: ignore
+
         from graph_os.backends.sqlite_backend import SqliteBackend
         from graph_os.types import GraphNode
 
@@ -332,11 +332,16 @@ class TestCliGraphReindex:
             [
                 sys.executable,
                 str(THINKING_OS / "graph_indexer.py"),
-                "--project-root", str(root),
-                "--db", str(db_path),
+                "--project-root",
+                str(root),
+                "--db",
+                str(db_path),
                 "--quiet",
             ],
-            capture_output=True, text=True, timeout=30, env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
         )
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)
@@ -352,21 +357,32 @@ class TestCliGraphReindex:
             [
                 sys.executable,
                 str(THINKING_OS / "graph_indexer.py"),
-                "--project-root", str(root),
-                "--db", str(db_path),
+                "--project-root",
+                str(root),
+                "--db",
+                str(db_path),
                 "--quiet",
             ],
-            capture_output=True, text=True, timeout=30, env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
         )
         proc = subprocess.run(
             [
                 sys.executable,
                 str(THINKING_OS / "graph_indexer.py"),
-                "--project-root", str(root),
-                "--db", str(db_path),
-                "--file", str(root / "pkg" / "mod.py"),
+                "--project-root",
+                str(root),
+                "--db",
+                str(db_path),
+                "--file",
+                str(root / "pkg" / "mod.py"),
             ],
-            capture_output=True, text=True, timeout=30, env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
         )
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)

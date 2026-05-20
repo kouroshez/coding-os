@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger("graph_os.tree_sitter_overlay")
 
@@ -27,6 +28,7 @@ def is_available() -> bool:
     """Return True iff the tree-sitter core package is importable."""
     try:
         import tree_sitter  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -54,48 +56,48 @@ def _load_language(language_id: str) -> Any | None:
     except ImportError as exc:
         logger.debug("grammar %s not installed: %s", language_id, exc)
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("grammar %s failed to load: %s", language_id, exc)
         return None
     try:
         return Language(raw)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("Language wrap failed for %s: %s", language_id, exc)
         return None
 
 
 def _load_python() -> Any:
-    import tree_sitter_python as m  # noqa: WPS433
+    import tree_sitter_python as m
 
     return m.language()
 
 
 def _load_typescript() -> Any:
-    import tree_sitter_typescript as m  # noqa: WPS433
+    import tree_sitter_typescript as m
 
     return m.language_typescript()
 
 
 def _load_tsx() -> Any:
-    import tree_sitter_typescript as m  # noqa: WPS433
+    import tree_sitter_typescript as m
 
     return m.language_tsx()
 
 
 def _load_bash() -> Any:
-    import tree_sitter_bash as m  # noqa: WPS433
+    import tree_sitter_bash as m
 
     return m.language()
 
 
 def _load_yaml() -> Any:
-    import tree_sitter_yaml as m  # noqa: WPS433
+    import tree_sitter_yaml as m
 
     return m.language()
 
 
 def _load_go() -> Any:
-    import tree_sitter_go as m  # noqa: WPS433
+    import tree_sitter_go as m
 
     return m.language()
 
@@ -126,12 +128,12 @@ def parse(language_id: str, content: str) -> OverlayParse | None:
         try:
             parser = Parser()
             parser.set_language(language)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("parser init failed for %s: %s", language_id, exc)
             return None
     try:
         tree = parser.parse(content.encode("utf-8"))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("parse failed for %s: %s", language_id, exc)
         return None
     return OverlayParse(language_id=language_id, tree=tree, root=tree.root_node)
@@ -154,14 +156,14 @@ def node_text(node: Any, content: bytes) -> str:
         start = node.start_byte
         end = node.end_byte
         return content[start:end].decode("utf-8", errors="replace")
-    except Exception:  # noqa: BLE001
+    except Exception:
         return ""
 
 
 __all__ = [
     "OverlayParse",
     "is_available",
-    "parse",
     "iter_nodes",
     "node_text",
+    "parse",
 ]

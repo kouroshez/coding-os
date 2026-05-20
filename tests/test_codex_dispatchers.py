@@ -6,7 +6,6 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "src" / "adapters" / "codex" / "hooks"
 
@@ -15,7 +14,9 @@ SESSIONSTART = HOOKS_DIR / "codex-sessionstart-dispatch.sh"
 STOP = HOOKS_DIR / "codex-stop-dispatch.sh"
 
 
-def _invoke(hook: Path, payload: dict, env: dict | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:
+def _invoke(
+    hook: Path, payload: dict, env: dict | None = None, cwd: Path | None = None
+) -> subprocess.CompletedProcess:
     full_env = os.environ.copy()
     if env:
         full_env.update(env)
@@ -88,9 +89,7 @@ def test_codex_stop_dispatch_returns_valid_json(tmp_path: Path) -> None:
     (state / "session-id").write_text("ses-stop\n")
     db = state / "coding-os.db"
     conn = sqlite3.connect(str(db))
-    conn.execute(
-        "CREATE TABLE observations (id INTEGER PRIMARY KEY, session_id TEXT, body TEXT)"
-    )
+    conn.execute("CREATE TABLE observations (id INTEGER PRIMARY KEY, session_id TEXT, body TEXT)")
     conn.commit()
     conn.close()
 

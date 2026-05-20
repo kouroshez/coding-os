@@ -1,0 +1,8 @@
+dist
+node_modules
+coverage
+playwright-report
+test-results
+.vite
+src/lib/api-types.ts
+*.lock

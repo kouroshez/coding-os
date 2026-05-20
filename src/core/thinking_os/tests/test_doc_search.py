@@ -25,10 +25,10 @@ import pytest
 # Make the package importable from the package root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import embeddings  # noqa: E402
-from database import init_db  # noqa: E402
-from doc_indexer import index_docs  # noqa: E402
-from tools.docs import doc_search  # noqa: E402
+import embeddings
+from database import init_db
+from doc_indexer import index_docs
+from tools.docs import doc_search
 
 REQUIRES_RAG = pytest.mark.skipif(
     not embeddings.is_available(),
@@ -39,6 +39,7 @@ REQUIRES_RAG = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db(tmp_path: Path) -> sqlite3.Connection:
@@ -115,6 +116,7 @@ exclude: []
 # Empty / unavailable cases
 # ---------------------------------------------------------------------------
 
+
 class TestDocSearchEdgeCases:
     def test_empty_query_returns_empty(self, tmp_db: sqlite3.Connection) -> None:
         assert doc_search(tmp_db, "") == []
@@ -141,39 +143,40 @@ class TestDocSearchEdgeCases:
 # Real semantic search (requires rag extras)
 # ---------------------------------------------------------------------------
 
+
 class TestDocSearchSemantic:
     @REQUIRES_RAG
-    def test_finds_authentication_chunks(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_finds_authentication_chunks(self, indexed_project: sqlite3.Connection) -> None:
         """An auth query should surface the auth-related chunks across sources."""
         results = doc_search(indexed_project, "user login authentication", limit=5)
         assert len(results) >= 1
         # Inspect content for the strongest hit — should mention auth/JWT/login
         top_content = results[0]["content"].lower()
-        assert any(
-            keyword in top_content
-            for keyword in ("jwt", "auth", "login", "token")
-        )
+        assert any(keyword in top_content for keyword in ("jwt", "auth", "login", "token"))
 
     @REQUIRES_RAG
-    def test_results_have_required_fields(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_results_have_required_fields(self, indexed_project: sqlite3.Connection) -> None:
         results = doc_search(indexed_project, "django backend", limit=3)
         assert len(results) >= 1
         required_keys = {
-            "id", "source_path", "source_type", "heading_path",
-            "content", "score", "cosine", "priority", "mtime", "chunk_index",
+            "id",
+            "source_path",
+            "source_type",
+            "heading_path",
+            "content",
+            "score",
+            "cosine",
+            "priority",
+            "mtime",
+            "chunk_index",
         }
         for result in results:
-            assert required_keys.issubset(result.keys()), \
+            assert required_keys.issubset(result.keys()), (
                 f"missing keys: {required_keys - result.keys()}"
+            )
 
     @REQUIRES_RAG
-    def test_results_sorted_by_score_desc(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_results_sorted_by_score_desc(self, indexed_project: sqlite3.Connection) -> None:
         results = doc_search(indexed_project, "stack technology", limit=5)
         scores = [r["score"] for r in results]
         assert scores == sorted(scores, reverse=True)
@@ -183,11 +186,10 @@ class TestDocSearchSemantic:
 # Source type filter
 # ---------------------------------------------------------------------------
 
+
 class TestDocSearchFiltering:
     @REQUIRES_RAG
-    def test_source_type_filter_single(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_source_type_filter_single(self, indexed_project: sqlite3.Connection) -> None:
         results = doc_search(
             indexed_project,
             "authentication tokens",
@@ -197,9 +199,7 @@ class TestDocSearchFiltering:
         assert all(r["source_type"] == "prd" for r in results)
 
     @REQUIRES_RAG
-    def test_source_type_filter_multiple(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_source_type_filter_multiple(self, indexed_project: sqlite3.Connection) -> None:
         results = doc_search(
             indexed_project,
             "authentication",
@@ -210,9 +210,7 @@ class TestDocSearchFiltering:
             assert r["source_type"] in {"prd", "engineering"}
 
     @REQUIRES_RAG
-    def test_source_type_filter_empty_match(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_source_type_filter_empty_match(self, indexed_project: sqlite3.Connection) -> None:
         """A filter that matches no rows should return empty list."""
         results = doc_search(
             indexed_project,
@@ -227,11 +225,10 @@ class TestDocSearchFiltering:
 # Dedupe + limit
 # ---------------------------------------------------------------------------
 
+
 class TestDocSearchDedupe:
     @REQUIRES_RAG
-    def test_dedupe_caps_chunks_per_source(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_dedupe_caps_chunks_per_source(self, indexed_project: sqlite3.Connection) -> None:
         """Each source_path should appear at most twice when dedupe_per_source is True."""
         results = doc_search(
             indexed_project,
@@ -245,9 +242,7 @@ class TestDocSearchDedupe:
         assert all(c <= 2 for c in per_source.values()), per_source
 
     @REQUIRES_RAG
-    def test_no_dedupe_allows_all_chunks(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_no_dedupe_allows_all_chunks(self, indexed_project: sqlite3.Connection) -> None:
         results = doc_search(
             indexed_project,
             "authentication",
@@ -275,11 +270,10 @@ class TestDocSearchDedupe:
 # Priority boost
 # ---------------------------------------------------------------------------
 
+
 class TestDocSearchPriority:
     @REQUIRES_RAG
-    def test_engineering_priority_boost_present(
-        self, indexed_project: sqlite3.Connection
-    ) -> None:
+    def test_engineering_priority_boost_present(self, indexed_project: sqlite3.Connection) -> None:
         """Engineering source has priority=0.9, others use default 0.5.
 
         Verify the priority field is recorded on each result so callers can

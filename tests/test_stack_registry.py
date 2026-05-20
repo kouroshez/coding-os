@@ -19,17 +19,14 @@ def _write_stack(base: Path, stack_id: str, extra: str = "") -> Path:
     stack_dir = base / stack_id
     stack_dir.mkdir(parents=True)
     (stack_dir / "stack.yaml").write_text(
-        f"version: 1\n"
-        f"id: {stack_id}\n"
-        f"label: Test Stack\n"
-        f"category: backend\n"
-        f"{extra}",
+        f"version: 1\nid: {stack_id}\nlabel: Test Stack\ncategory: backend\n{extra}",
         encoding="utf-8",
     )
     return stack_dir
 
 
 # ---------- live repo ----------
+
 
 def test_load_live_registry_has_django_and_nextjs() -> None:
     result = load_stack_registry(REPO_ROOT / "src" / "templates")
@@ -47,6 +44,7 @@ def test_load_live_base_profile() -> None:
 
 
 # ---------- invalid YAML → soft fail ----------
+
 
 def test_invalid_yaml_skipped_with_warning(tmp_path: Path) -> None:
     stack_dir = tmp_path / "brokenstack"
@@ -96,6 +94,7 @@ def test_unsupported_version_skipped(tmp_path: Path) -> None:
 
 # ---------- multi-stack discovery ----------
 
+
 def test_multi_stack_discovery(tmp_path: Path) -> None:
     _write_stack(tmp_path, "alpha")
     _write_stack(tmp_path, "beta")
@@ -127,6 +126,7 @@ def test_nonexistent_templates_dir_returns_warning() -> None:
 
 # ---------- base profile errors ----------
 
+
 def test_missing_base_yaml_raises(tmp_path: Path) -> None:
     with pytest.raises(StackManifestError, match="not found"):
         load_base_profile(tmp_path)
@@ -134,14 +134,12 @@ def test_missing_base_yaml_raises(tmp_path: Path) -> None:
 
 # ---------- JSON schema validation ----------
 
+
 def test_schema_rejects_invalid_category(tmp_path: Path) -> None:
     stack_dir = tmp_path / "badcat"
     stack_dir.mkdir()
     (stack_dir / "stack.yaml").write_text(
-        "version: 1\n"
-        "id: badcat\n"
-        "label: Bad Category\n"
-        "category: not-a-real-category\n",
+        "version: 1\nid: badcat\nlabel: Bad Category\ncategory: not-a-real-category\n",
         encoding="utf-8",
     )
     result = load_stack_registry(tmp_path)

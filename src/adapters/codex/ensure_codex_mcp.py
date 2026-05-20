@@ -16,9 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-SECTION_RE = re.compile(
-    r"(?ms)^\[mcp_servers\.coding-os\]\s*\n.*?(?=^\[|\Z)"
-)
+SECTION_RE = re.compile(r"(?ms)^\[mcp_servers\.coding-os\]\s*\n.*?(?=^\[|\Z)")
 
 
 def _quote(value: str) -> str:

@@ -29,28 +29,30 @@ _PROCESS_EDGE_TYPES: tuple[str, ...] = (
 
 # Node kinds that can be cluster members.  Filter out folder/file/import
 # stubs so processes name themselves after real symbols.
-_PROCESS_MEMBER_KINDS: frozenset[str] = frozenset({
-    "code:function",
-    "function",
-    "code:method",
-    "method",
-    "code:class",
-    "class",
-    "cos:mcp_tool",
-    "mcp_tool",
-    "cos:route",
-    "route",
-})
+_PROCESS_MEMBER_KINDS: frozenset[str] = frozenset(
+    {
+        "code:function",
+        "function",
+        "code:method",
+        "method",
+        "code:class",
+        "class",
+        "cos:mcp_tool",
+        "mcp_tool",
+        "cos:route",
+        "route",
+    }
+)
 
 
 @dataclass(frozen=True)
 class Community:
     """One detected process / community."""
 
-    community_id: str       # stable hash of sorted member uids
-    name: str               # anchor function name + suffix
-    summary: str            # 1-line: top-3 member labels joined
-    priority: float         # log10(size+1) * avg(entry_score)
+    community_id: str  # stable hash of sorted member uids
+    name: str  # anchor function name + suffix
+    summary: str  # 1-line: top-3 member labels joined
+    priority: float  # log10(size+1) * avg(entry_score)
     member_count: int
     members: tuple[dict[str, Any], ...]  # [{uid, label, kind, step_index}]
 
@@ -209,7 +211,7 @@ def _detect_communities(
         return []
     try:
         clusters = detector(g)
-    except Exception as exc:  # noqa: BLE001 — community libs raise creatively
+    except Exception as exc:
         logger.debug("community detection failed: %s", exc)
         return []
 
@@ -222,10 +224,7 @@ def _detect_communities(
     try:
         from . import entry_points  # type: ignore[attr-defined]
 
-        eps = {
-            ep.uid: ep.score
-            for ep in entry_points.discover(backend, min_score=0.0)
-        }
+        eps = {ep.uid: ep.score for ep in entry_points.discover(backend, min_score=0.0)}
     except ImportError as exc:
         logger.debug("entry_points unavailable; priority degrades: %s", exc)
 
@@ -263,7 +262,9 @@ def _detect_communities(
 
 def _pick_detector(nx: Any):  # type: ignore[no-untyped-def]
     community = getattr(nx, "community", None) or getattr(
-        nx.algorithms, "community", None  # type: ignore[attr-defined]
+        nx.algorithms,
+        "community",
+        None,  # type: ignore[attr-defined]
     )
     if community is None:
         return None
@@ -362,7 +363,7 @@ def _community_summary(members: list[GraphNode]) -> str:
 
 __all__ = [
     "Community",
-    "compute_communities",
     "communities_to_processes",
+    "compute_communities",
     "reset_cache",
 ]

@@ -22,6 +22,7 @@ from cli._data_types import AdapterProfile, McpLaunchConfigPath, McpLaunchSpec
 
 try:
     from jsonschema import Draft202012Validator
+
     _HAS_JSONSCHEMA = True
 except ImportError:  # pragma: no cover
     _HAS_JSONSCHEMA = False
@@ -112,29 +113,21 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
 
     sourced_hooks_raw = data.get("sourced_hooks") or []
     if not isinstance(sourced_hooks_raw, list):
-        raise AdapterManifestError(
-            f"{manifest_path}: 'sourced_hooks' must be a list"
-        )
+        raise AdapterManifestError(f"{manifest_path}: 'sourced_hooks' must be a list")
 
     default_settings = data.get("default_settings") or {}
     if not isinstance(default_settings, dict):
-        raise AdapterManifestError(
-            f"{manifest_path}: 'default_settings' must be a mapping"
-        )
+        raise AdapterManifestError(f"{manifest_path}: 'default_settings' must be a mapping")
 
     mcp_helper = data.get("mcp_helper")
     if mcp_helper is not None and not isinstance(mcp_helper, str):
-        raise AdapterManifestError(
-            f"{manifest_path}: 'mcp_helper' must be a string"
-        )
+        raise AdapterManifestError(f"{manifest_path}: 'mcp_helper' must be a string")
 
     mcp_launch_raw = data.get("mcp_launch")
     mcp_launch: McpLaunchSpec | None = None
     if mcp_launch_raw is not None:
         if not isinstance(mcp_launch_raw, dict):
-            raise AdapterManifestError(
-                f"{manifest_path}: 'mcp_launch' must be a mapping"
-            )
+            raise AdapterManifestError(f"{manifest_path}: 'mcp_launch' must be a mapping")
         loader = mcp_launch_raw.get("loader")
         if not isinstance(loader, str) or not loader:
             raise AdapterManifestError(
@@ -142,9 +135,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
             )
         paths_raw = mcp_launch_raw.get("config_paths") or []
         if not isinstance(paths_raw, list):
-            raise AdapterManifestError(
-                f"{manifest_path}: 'mcp_launch.config_paths' must be a list"
-            )
+            raise AdapterManifestError(f"{manifest_path}: 'mcp_launch.config_paths' must be a list")
         paths: list[McpLaunchConfigPath] = []
         for p in paths_raw:
             if not isinstance(p, dict):
@@ -175,9 +166,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
     return AdapterProfile(
         id=adapter_id,
         label=str(_require(data, "label", manifest_path)),
-        settings_file=(
-            str(data["settings_file"]) if data.get("settings_file") else None
-        ),
+        settings_file=(str(data["settings_file"]) if data.get("settings_file") else None),
         hooks_dir=str(data["hooks_dir"]) if data.get("hooks_dir") else None,
         rules_dir=str(data["rules_dir"]) if data.get("rules_dir") else None,
         skills_dir=str(data["skills_dir"]) if data.get("skills_dir") else None,
@@ -216,9 +205,7 @@ def load_adapter_registry(adapters_dir: Path) -> dict[str, AdapterProfile]:
             continue
         profile = _load_one(manifest)
         if profile.id in result:
-            raise AdapterManifestError(
-                f"duplicate adapter id '{profile.id}' at {manifest}"
-            )
+            raise AdapterManifestError(f"duplicate adapter id '{profile.id}' at {manifest}")
         result[profile.id] = profile
 
     return result

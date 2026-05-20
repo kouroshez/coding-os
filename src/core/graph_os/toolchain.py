@@ -63,6 +63,7 @@ def _toml_error() -> type[Exception]:
         return ValueError
     return getattr(tomllib, "TOMLDecodeError", ValueError)
 
+
 logger = logging.getLogger("graph_os.toolchain")
 
 
@@ -229,10 +230,7 @@ def _load_ts_paths(root: Path) -> dict[str, tuple[str, ...]]:
     for pattern, replacements in paths.items():
         if not isinstance(replacements, list):
             continue
-        cleaned = tuple(
-            r for r in replacements
-            if isinstance(r, str) and r
-        )
+        cleaned = tuple(r for r in replacements if isinstance(r, str) and r)
         if cleaned:
             out[str(pattern)] = cleaned
     return out
@@ -370,9 +368,7 @@ def _load_python_packages(root: Path) -> dict[str, str]:
                 from_ = entry.get("from", "")
                 if not isinstance(include, str) or not include:
                     continue
-                rel = (
-                    f"{from_.rstrip('/')}/{include}" if from_ else include
-                )
+                rel = f"{from_.rstrip('/')}/{include}" if from_ else include
                 if (root / rel).is_dir():
                     out[include] = rel.replace("\\", "/")
 
@@ -390,8 +386,8 @@ def _load_python_packages(root: Path) -> dict[str, str]:
 
 __all__ = [
     "ToolchainContext",
+    "get_active",
     "load_toolchain",
     "reset_cache",
     "set_active",
-    "get_active",
 ]

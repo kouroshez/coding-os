@@ -37,7 +37,7 @@ class MigrationCheckpoint:
     updated_at: float = field(default_factory=time.time)
 
     @classmethod
-    def load(cls, path: str | Path) -> "MigrationCheckpoint":
+    def load(cls, path: str | Path) -> MigrationCheckpoint:
         p = Path(path)
         if not p.exists():
             return cls()

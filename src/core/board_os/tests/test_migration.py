@@ -23,7 +23,6 @@ import pytest
 from core.board_os.migration import migrate
 from core.board_os.parser import is_lean_format, parse_task
 
-
 _LEGACY_TEMPLATE = """<!-- domain:{domain} | layer:task | ssot:true | updated:2026-01-01 -->
 # {task_id}: [{domain}] Legacy task {n}
 
@@ -65,7 +64,10 @@ Legacy goal for {task_id}.
 
 
 def _build_legacy_repo(
-    root: Path, count: int, *, with_broken: bool = False,
+    root: Path,
+    count: int,
+    *,
+    with_broken: bool = False,
 ) -> None:
     (root / "docs" / "tasks").mkdir(parents=True)
     for i in range(1, count + 1):
@@ -73,16 +75,19 @@ def _build_legacy_repo(
         domain = "BACKEND" if i % 2 == 0 else "FRONTEND"
         deps_block = ""
         if i > 1:
-            prev = f"TASK-{i-1:03d}"
+            prev = f"TASK-{i - 1:03d}"
             deps_block = f"- {prev}"
         content = _LEGACY_TEMPLATE.format(
-            task_id=task_id, n=i, domain=domain,
+            task_id=task_id,
+            n=i,
+            domain=domain,
             domain_lower=domain.lower(),
             deps_block=deps_block,
         )
         slug = f"legacy-task-{i}"
         (root / "docs" / "tasks" / f"{task_id}-{slug}.md").write_text(
-            content, encoding="utf-8",
+            content,
+            encoding="utf-8",
         )
 
     if with_broken:
@@ -96,21 +101,20 @@ def _build_legacy_repo(
 def test_dry_run_writes_nothing(tmp_path: Path):
     _build_legacy_repo(tmp_path, count=5)
     before = {
-        p.read_text(encoding="utf-8")
-        for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md")
+        p.read_text(encoding="utf-8") for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md")
     }
     report = migrate(tmp_path, dry_run=True)
-    after = {
-        p.read_text(encoding="utf-8")
-        for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md")
-    }
+    after = {p.read_text(encoding="utf-8") for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md")}
     assert before == after, "dry_run mutated files"
     assert report.scanned == 5
     assert report.migrated == 5  # would-migrate count
     # No archive / backup on dry-run.
     assert not (tmp_path / "docs" / "tasks" / "archive").exists()
-    backups = list((tmp_path / ".coding-os").glob("migration-backup-*.tar.gz")) \
-        if (tmp_path / ".coding-os").exists() else []
+    backups = (
+        list((tmp_path / ".coding-os").glob("migration-backup-*.tar.gz"))
+        if (tmp_path / ".coding-os").exists()
+        else []
+    )
     assert not backups
 
 
@@ -161,17 +165,13 @@ def test_broken_file_aborts_phase_one(tmp_path: Path):
     """R-L-27: one broken file aborts the whole migration; no final writes."""
     _build_legacy_repo(tmp_path, count=5, with_broken=True)
 
-    before_files = sorted(
-        p.name for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md")
-    )
+    before_files = sorted(p.name for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md"))
     report = migrate(tmp_path, dry_run=False)
 
     # At least one error reported.
     assert report.errors, "expected broken-file error"
     # No final writes — original files unchanged + no archive rename happened.
-    after_files = sorted(
-        p.name for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md")
-    )
+    after_files = sorted(p.name for p in (tmp_path / "docs" / "tasks").glob("TASK-*.md"))
     assert before_files == after_files
     # Verify the 5 real files are STILL in legacy format (not migrated).
     legacy_still = 0

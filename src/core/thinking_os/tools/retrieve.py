@@ -28,7 +28,8 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 
 logger = logging.getLogger("coding_os.tools.retrieve")
 
@@ -62,6 +63,7 @@ def _read_session_id() -> str:
     (Rule 1) — agent-agnostic, never reads .claude/."""
     import os
     from pathlib import Path
+
     state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
     # Priority 1 — explicit COS_AGENT_DIR
     agent_dir_env = os.environ.get("COS_AGENT_DIR")
@@ -109,13 +111,14 @@ def _normalize_task_id(raw: str) -> str:
     return s
 
 
-def _read_current_task() -> Optional[str]:
+def _read_current_task() -> str | None:
     """Return the active task id/slug from agent-private state, or None.
     Same resolution order as _read_session_id.  Always canonicalizes
     through _normalize_task_id so `retrievals.task_id` stays consistent
     across writers (plain TASK-NNN when the marker carries one)."""
     import os
     from pathlib import Path
+
     state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
     candidates: list[Path] = []
     agent_dir_env = os.environ.get("COS_AGENT_DIR")
@@ -143,7 +146,7 @@ def log_retrieval(
     layer: str,
     query: str,
     rows: Iterable[dict],
-    task_id: Optional[str] = None,
+    task_id: str | None = None,
 ) -> list[int]:
     """Append one retrievals row per returned result. Fire-and-forget."""
     if not rows:
@@ -165,8 +168,15 @@ def log_retrieval(
                 "INSERT INTO retrievals "
                 "(session_id, task_id, layer, query, source_table, source_id, score) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (session_id, tid, layer, query, source_table,
-                 int(source_id), float(row.get("score", 0.0))),
+                (
+                    session_id,
+                    tid,
+                    layer,
+                    query,
+                    source_table,
+                    int(source_id),
+                    float(row.get("score", 0.0)),
+                ),
             )
             inserted.append(cur.lastrowid)
         except sqlite3.OperationalError as exc:
@@ -179,7 +189,7 @@ def log_retrieval(
     return inserted
 
 
-def _infer_source_table(row: dict, layer: str) -> Optional[str]:
+def _infer_source_table(row: dict, layer: str) -> str | None:
     """Best-effort source_table inference for rows that don't carry it.
 
     - doc_search rows have `source_path` + `source_type`  → document_chunks
@@ -196,8 +206,7 @@ def _infer_source_table(row: dict, layer: str) -> Optional[str]:
 def _has_router_log(conn: sqlite3.Connection) -> bool:
     try:
         row = conn.execute(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name='retrieval_router_log'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='retrieval_router_log'"
         ).fetchone()
     except sqlite3.Error:
         return False
@@ -241,6 +250,7 @@ def log_router_decision(
     if not _has_router_log(conn):
         return None
     import hashlib
+
     digest = hashlib.sha1((query or "").encode("utf-8")).hexdigest()[:16]
     fanout_csv = ",".join(fanout_layers) if fanout_layers else None
     try:
@@ -268,7 +278,8 @@ def log_router_decision(
 
 
 def cite_retrievals(
-    conn: sqlite3.Connection, retrieval_ids: list[int],
+    conn: sqlite3.Connection,
+    retrieval_ids: list[int],
 ) -> dict:
     """Mark retrievals as actively cited by the agent."""
     if not _has_retrievals(conn):
@@ -278,7 +289,8 @@ def cite_retrievals(
 
     placeholders = ",".join("?" * len(retrieval_ids))
     existing = {
-        r[0] for r in conn.execute(
+        r[0]
+        for r in conn.execute(
             f"SELECT id FROM retrievals WHERE id IN ({placeholders})",
             retrieval_ids,
         ).fetchall()
@@ -295,7 +307,9 @@ def cite_retrievals(
 
 
 def backfill_task_outcome(
-    conn: sqlite3.Connection, task_id: str, outcome: str,
+    conn: sqlite3.Connection,
+    task_id: str,
+    outcome: str,
 ) -> int:
     """Back-fill `outcome` and `outcome_at` for all retrievals of a task."""
     if not _has_retrievals(conn):
@@ -317,8 +331,7 @@ def learn_from_retrievals(
 ) -> dict:
     """Adjust document_chunks.priority based on retrieval outcomes."""
     if not _has_retrievals(conn):
-        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [],
-                "status": "pre_v10_no_op"}
+        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [], "status": "pre_v10_no_op"}
 
     rows = conn.execute(
         "SELECT source_id, was_cited, outcome "
@@ -330,8 +343,7 @@ def learn_from_retrievals(
     ).fetchall()
 
     if not rows:
-        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [],
-                "status": "no_data"}
+        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [], "status": "no_data"}
 
     delta_by_chunk: dict[int, float] = {}
     for r in rows:
@@ -346,8 +358,13 @@ def learn_from_retrievals(
         delta_by_chunk[r["source_id"]] = delta_by_chunk.get(r["source_id"], 0.0) + step
 
     if not delta_by_chunk:
-        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [],
-                "status": "no_effective_signal"}
+        return {
+            "adjusted": 0,
+            "gained": 0,
+            "lost": 0,
+            "changes": [],
+            "status": "no_effective_signal",
+        }
 
     placeholders = ",".join("?" * len(delta_by_chunk))
     current = {
@@ -367,12 +384,14 @@ def learn_from_retrievals(
         new = max(_PRIORITY_MIN, min(_PRIORITY_MAX, prev + delta))
         if abs(new - prev) < 1e-9:
             continue
-        changes.append({
-            "chunk_id": chunk_id,
-            "old": round(prev, 4),
-            "new": round(new, 4),
-            "delta": round(delta, 4),
-        })
+        changes.append(
+            {
+                "chunk_id": chunk_id,
+                "old": round(prev, 4),
+                "new": round(new, 4),
+                "delta": round(delta, 4),
+            }
+        )
         if new > prev:
             gained += 1
         else:

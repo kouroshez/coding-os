@@ -1,4 +1,5 @@
 """_absolute_module_for: relative-import resolution from a file's path."""
+
 from __future__ import annotations
 
 from graph_os.extractors.code_python import _absolute_module_for
@@ -33,5 +34,7 @@ def test_relative_overshoot_falls_back_gracefully():
 
 
 def test_dotted_relative_appends_tail():
-    result = _absolute_module_for("..extractors.code_python", path="core/graph_os/backends/sqlite_backend.py")
+    result = _absolute_module_for(
+        "..extractors.code_python", path="core/graph_os/backends/sqlite_backend.py"
+    )
     assert result == "graph_os.extractors.code_python"

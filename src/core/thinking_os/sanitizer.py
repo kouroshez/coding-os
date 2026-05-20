@@ -43,13 +43,13 @@ from database import record_audit
 # Per-field character caps. Chosen to fit comfortably within one embedding
 # chunk (all-MiniLM-L6-v2 ~512 token limit) while still preserving meaning.
 FIELD_CAPS: dict[str, int] = {
-    "title":        200,
-    "narrative":    4000,
-    "pattern":      500,
-    "key_insight":  500,
-    "what_failed":  2000,
-    "what_worked":  2000,
-    "concepts":     800,
+    "title": 200,
+    "narrative": 4000,
+    "pattern": 500,
+    "key_insight": 500,
+    "what_failed": 2000,
+    "what_worked": 2000,
+    "concepts": 800,
 }
 
 # Prompt-injection phrasings — compiled once at module load.
@@ -99,8 +99,7 @@ _INJECTION_SPECS: list[tuple[str, str]] = [
 ]
 
 INJECTION_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(pattern, re.IGNORECASE), label)
-    for pattern, label in _INJECTION_SPECS
+    (re.compile(pattern, re.IGNORECASE), label) for pattern, label in _INJECTION_SPECS
 ]
 
 _TRUNCATION_MARKER = "\n\n…[truncated]"
@@ -109,6 +108,7 @@ _TRUNCATION_MARKER = "\n\n…[truncated]"
 # ---------------------------------------------------------------------------
 # Result shape
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class SanitizeResult:
@@ -124,7 +124,7 @@ class SanitizeResult:
     """
 
     ok: bool
-    cleaned: Optional[str]
+    cleaned: str | None
     reason: str
     original_len: int
     cleaned_len: int
@@ -134,7 +134,8 @@ class SanitizeResult:
 # Public API
 # ---------------------------------------------------------------------------
 
-def detect_injection(text: str) -> Optional[str]:
+
+def detect_injection(text: str) -> str | None:
     """Return the label of the first injection pattern matched, or None."""
     if not text:
         return None
@@ -159,12 +160,12 @@ def _truncate(text: str, cap: int) -> str:
 
 def sanitize_write(
     field: str,
-    text: Optional[str],
+    text: str | None,
     *,
     actor: str,
     source_table: str,
-    source_id: Optional[int] = None,
-    conn: Optional[sqlite3.Connection] = None,
+    source_id: int | None = None,
+    conn: sqlite3.Connection | None = None,
 ) -> SanitizeResult:
     """Validate and clean text before it is written into memory storage."""
     if text is None:

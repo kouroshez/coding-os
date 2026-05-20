@@ -60,8 +60,7 @@ def test_v20_creates_partial_index(conn: sqlite3.Connection) -> None:
     indices = {
         r[0]
         for r in conn.execute(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='index' AND tbl_name='task_status_history'"
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='task_status_history'"
         )
     }
     assert "idx_tsh_override" in indices
@@ -81,8 +80,7 @@ def test_v20_existing_rows_backfill_null(conn: sqlite3.Connection) -> None:
     _migrate_v20_override_audit(conn)
 
     row = conn.execute(
-        "SELECT override_reason, override_actor FROM task_status_history "
-        "WHERE task_id = 'TASK-001'"
+        "SELECT override_reason, override_actor FROM task_status_history WHERE task_id = 'TASK-001'"
     ).fetchone()
     assert row == (None, None)
 
@@ -146,8 +144,7 @@ def test_v20_history_row_with_override_reason_persists() -> None:
     )
     c.commit()
     row = c.execute(
-        "SELECT override_reason, override_actor FROM task_status_history "
-        "WHERE task_id = 'TASK-001'"
+        "SELECT override_reason, override_actor FROM task_status_history WHERE task_id = 'TASK-001'"
     ).fetchone()
     assert row[0].startswith("Hotfix")
     assert row[1] == "claude"

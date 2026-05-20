@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import math
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
@@ -24,10 +24,10 @@ from decay import (
     run_decay,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -48,52 +48,77 @@ def db_path(tmp_path: Path) -> Path:
 # effective_decay_rate
 # ---------------------------------------------------------------------------
 
+
 class TestEffectiveDecayRate:
     def test_base_rate_passthrough(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=0, impact_score=0.5, last_accessed_days=30,
+            base_rate=0.1,
+            times_validated=0,
+            impact_score=0.5,
+            last_accessed_days=30,
         )
         assert rate == 0.1
 
     def test_deep_encoding_reduces_rate(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=5, impact_score=0.5, last_accessed_days=30,
+            base_rate=0.1,
+            times_validated=5,
+            impact_score=0.5,
+            last_accessed_days=30,
         )
         assert rate == pytest.approx(0.03)  # 0.1 * 0.3
 
     def test_high_impact_reduces_rate(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=0, impact_score=0.8, last_accessed_days=30,
+            base_rate=0.1,
+            times_validated=0,
+            impact_score=0.8,
+            last_accessed_days=30,
         )
         assert rate == pytest.approx(0.05)  # 0.1 * 0.5
 
     def test_deep_and_high_impact_stacks(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=5, impact_score=0.8, last_accessed_days=30,
+            base_rate=0.1,
+            times_validated=5,
+            impact_score=0.8,
+            last_accessed_days=30,
         )
         assert rate == pytest.approx(0.015)  # 0.1 * 0.3 * 0.5
 
     def test_recently_accessed_zero_rate(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=0, impact_score=0.5, last_accessed_days=3,
+            base_rate=0.1,
+            times_validated=0,
+            impact_score=0.5,
+            last_accessed_days=3,
         )
         assert rate == 0.0
 
     def test_never_accessed_uses_base(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=0, impact_score=0.5, last_accessed_days=None,
+            base_rate=0.1,
+            times_validated=0,
+            impact_score=0.5,
+            last_accessed_days=None,
         )
         assert rate == 0.1
 
     def test_exactly_7_days_is_protected(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=0, impact_score=0.5, last_accessed_days=7,
+            base_rate=0.1,
+            times_validated=0,
+            impact_score=0.5,
+            last_accessed_days=7,
         )
         assert rate == 0.0
 
     def test_8_days_not_protected(self) -> None:
         rate = effective_decay_rate(
-            base_rate=0.1, times_validated=0, impact_score=0.5, last_accessed_days=8,
+            base_rate=0.1,
+            times_validated=0,
+            impact_score=0.5,
+            last_accessed_days=8,
         )
         assert rate > 0.0
 
@@ -101,6 +126,7 @@ class TestEffectiveDecayRate:
 # ---------------------------------------------------------------------------
 # decay_confidence
 # ---------------------------------------------------------------------------
+
 
 class TestDecayConfidence:
     def test_no_decay_at_zero_months(self) -> None:
@@ -141,6 +167,7 @@ class TestDecayConfidence:
 # run_decay batch
 # ---------------------------------------------------------------------------
 
+
 class TestRunDecay:
     def test_absent_db(self, tmp_path: Path) -> None:
         result = run_decay(tmp_path / "nonexistent.db")
@@ -170,7 +197,9 @@ class TestRunDecay:
         # Verify confidence decreased
         conn = init_db(db_path)
         try:
-            row = conn.execute("SELECT confidence FROM learned_patterns WHERE pattern = 'Old pattern'").fetchone()
+            row = conn.execute(
+                "SELECT confidence FROM learned_patterns WHERE pattern = 'Old pattern'"
+            ).fetchone()
             assert row[0] < 0.7
         finally:
             conn.close()
@@ -204,8 +233,7 @@ class TestRunDecay:
         conn = init_db(db_path)
         try:
             conn.execute(
-                "INSERT INTO learned_patterns (pattern, confidence, promoted_to) "
-                "VALUES (?, ?, ?)",
+                "INSERT INTO learned_patterns (pattern, confidence, promoted_to) VALUES (?, ?, ?)",
                 ("Archived pattern", 0.1, "archived"),
             )
             conn.commit()
@@ -269,8 +297,7 @@ class TestRunDecay:
                 ("Active working memory", "working"),
             )
             conn.execute(
-                "INSERT INTO observations (title, memory_type) "
-                "VALUES (?, ?)",
+                "INSERT INTO observations (title, memory_type) VALUES (?, ?)",
                 ("Permanent observation", "discovery"),
             )
             conn.commit()

@@ -3,6 +3,7 @@
 USAGE
     python3 observation_count.py <db_path> <session_id>
 """
+
 from __future__ import annotations
 
 import sqlite3

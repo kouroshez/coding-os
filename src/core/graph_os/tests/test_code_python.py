@@ -111,8 +111,7 @@ class TestDecls:
         contains = [e for e in r.edges if e.edge_type == "contains"]
         # Class → method containment.
         assert any(
-            e.source_uid.startswith("code:class:")
-            and e.target_uid.startswith("code:method:")
+            e.source_uid.startswith("code:class:") and e.target_uid.startswith("code:method:")
             for e in contains
         )
 
@@ -194,10 +193,7 @@ class TestDecorators:
             """
         )
         decs = [e for e in r.edges if e.edge_type == "is_decorated_by"]
-        assert any(
-            e.target_uid.startswith("code:function:") and e.confidence >= 0.85
-            for e in decs
-        )
+        assert any(e.target_uid.startswith("code:function:") and e.confidence >= 0.85 for e in decs)
 
 
 # ---------------------------------------------------------------------------
@@ -250,9 +246,7 @@ class TestCalls:
             """
         )
         calls = [e for e in r.edges if e.edge_type == "calls"]
-        assert any(
-            e.target_uid.endswith("::bar") and e.confidence >= 0.5 for e in calls
-        )
+        assert any(e.target_uid.endswith("::bar") and e.confidence >= 0.5 for e in calls)
 
     def test_imported_function_call(self):
         r = _extract(
@@ -321,9 +315,7 @@ class TestErrorHandling:
 
     def test_unicode_identifiers_tolerated(self):
         r = _extract("def ünicode(): pass")
-        assert any(
-            n.kind == "code:function" and n.label == "ünicode" for n in r.nodes
-        )
+        assert any(n.kind == "code:function" and n.label == "ünicode" for n in r.nodes)
 
 
 # ---------------------------------------------------------------------------
@@ -349,9 +341,7 @@ class TestPipelineInvariants:
         a = code_python.extract("core/cache.py", self._SRC)
         b = code_python.extract("core/cache.py", self._SRC)
         assert [n.uid for n in a.nodes] == [n.uid for n in b.nodes]
-        assert [
-            (e.source_uid, e.target_uid, e.edge_type) for e in a.edges
-        ] == [
+        assert [(e.source_uid, e.target_uid, e.edge_type) for e in a.edges] == [
             (e.source_uid, e.target_uid, e.edge_type) for e in b.edges
         ]
 

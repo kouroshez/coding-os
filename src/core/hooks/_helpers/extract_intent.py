@@ -14,6 +14,7 @@ Decision rule: a prompt has exhaustive intent IFF an exhaustive verb and
 a scope verb co-occur within a 20-token sliding window. The predicates
 inherited from all matched exhaustive verbs are UNIONED in the result.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
 
 WINDOW_TOKENS = 20
 
@@ -75,15 +75,45 @@ EXHAUSTIVE_VERBS_EN: dict[str, list[str]] = {
 }
 
 SCOPE_VERBS_EN: set[str] = {
-    "find", "fix", "update", "rename", "migrate", "audit", "verify",
-    "check", "sweep", "search", "review", "refactor", "remove", "replace",
-    "delete", "patch", "repair", "address", "resolve",
+    "find",
+    "fix",
+    "update",
+    "rename",
+    "migrate",
+    "audit",
+    "verify",
+    "check",
+    "sweep",
+    "search",
+    "review",
+    "refactor",
+    "remove",
+    "replace",
+    "delete",
+    "patch",
+    "repair",
+    "address",
+    "resolve",
 }
 
 SCOPE_VERBS_FA: set[str] = {
-    "پیدا", "جستجو", "سرچ", "فیکس", "درست", "اصلاح", "آپدیت",
-    "بررسی", "چک", "rename", "منتقل", "جایگزین", "حذف", "پاک",
-    "وریفای", "ریویو", "audit",
+    "پیدا",
+    "جستجو",
+    "سرچ",
+    "فیکس",
+    "درست",
+    "اصلاح",
+    "آپدیت",
+    "بررسی",
+    "چک",
+    "rename",
+    "منتقل",
+    "جایگزین",
+    "حذف",
+    "پاک",
+    "وریفای",
+    "ریویو",
+    "audit",
 }
 
 
@@ -100,7 +130,7 @@ def _find_verb_positions(tokens: list[str], verb: str) -> list[int]:
     n = len(verb_tokens)
     hits: list[int] = []
     for i in range(len(tokens) - n + 1):
-        if tokens[i:i + n] == verb_tokens:
+        if tokens[i : i + n] == verb_tokens:
             hits.append(i)
     return hits
 
@@ -166,9 +196,7 @@ def extract_intent(prompt: str) -> dict[str, Any]:
     predicates: set[str] = set()
     if exhaustive:
         for verb in matched_ex_within_window:
-            predicates.update(
-                EXHAUSTIVE_VERBS_FA.get(verb, []) + EXHAUSTIVE_VERBS_EN.get(verb, [])
-            )
+            predicates.update(EXHAUSTIVE_VERBS_FA.get(verb, []) + EXHAUSTIVE_VERBS_EN.get(verb, []))
 
     matched_scope_verbs = sorted(set(matched_scope_en) | set(matched_scope_fa))
 

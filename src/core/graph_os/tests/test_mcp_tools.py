@@ -16,7 +16,6 @@ import pytest
 from graph_os.tools import graph
 from graph_os.types import EvidenceSignal, GraphEdge, GraphNode
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -33,21 +32,87 @@ def seeded_backend(migrated_conn, monkeypatch, tmp_path):
     monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
 
     nodes = [
-        GraphNode(uid="code:function:a.py::foo", kind="code:function", label="foo", file_path="a.py", start_line=1),
-        GraphNode(uid="code:function:a.py::bar", kind="code:function", label="bar", file_path="a.py", start_line=10),
-        GraphNode(uid="code:function:a.py::baz", kind="code:function", label="baz_handler", file_path="a.py", start_line=20),
+        GraphNode(
+            uid="code:function:a.py::foo",
+            kind="code:function",
+            label="foo",
+            file_path="a.py",
+            start_line=1,
+        ),
+        GraphNode(
+            uid="code:function:a.py::bar",
+            kind="code:function",
+            label="bar",
+            file_path="a.py",
+            start_line=10,
+        ),
+        GraphNode(
+            uid="code:function:a.py::baz",
+            kind="code:function",
+            label="baz_handler",
+            file_path="a.py",
+            start_line=20,
+        ),
         GraphNode(uid="doc:file:docs/x.md", kind="doc:file", label="x.md", file_path="docs/x.md"),
-        GraphNode(uid="cos:route:GET:/users", kind="cos:route", label="GET /users", file_path="app.py", metadata={"kind": "http", "method": "get", "path": "/users", "framework": "fastapi"}),
-        GraphNode(uid="cos:mcp_tool:cos_graph_query", kind="cos:mcp_tool", label="mcp:cos_graph_query", file_path="srv.py", metadata={"kind": "mcp", "method": "rpc", "path": "cos_graph_query"}),
+        GraphNode(
+            uid="cos:route:GET:/users",
+            kind="cos:route",
+            label="GET /users",
+            file_path="app.py",
+            metadata={"kind": "http", "method": "get", "path": "/users", "framework": "fastapi"},
+        ),
+        GraphNode(
+            uid="cos:mcp_tool:cos_graph_query",
+            kind="cos:mcp_tool",
+            label="mcp:cos_graph_query",
+            file_path="srv.py",
+            metadata={"kind": "mcp", "method": "rpc", "path": "cos_graph_query"},
+        ),
         GraphNode(uid="code:file:a.py", kind="code:file", label="a.py", file_path="a.py"),
     ]
     edges = [
-        GraphEdge(source_uid="code:function:a.py::foo", target_uid="code:function:a.py::bar", edge_type="calls", extractor="test", confidence=0.9),
-        GraphEdge(source_uid="code:function:a.py::bar", target_uid="code:function:a.py::baz", edge_type="calls", extractor="test", confidence=0.6),
-        GraphEdge(source_uid="code:file:a.py", target_uid="code:function:a.py::foo", edge_type="contains", extractor="test", confidence=1.0),
-        GraphEdge(source_uid="doc:file:docs/x.md", target_uid="code:function:a.py::foo", edge_type="references_doc", extractor="test", confidence=0.85),
-        GraphEdge(source_uid="code:file:a.py", target_uid="cos:route:GET:/users", edge_type="handles_route", extractor="test", confidence=0.9),
-        GraphEdge(source_uid="code:file:a.py", target_uid="cos:mcp_tool:cos_graph_query", edge_type="handles_tool", extractor="test", confidence=0.95),
+        GraphEdge(
+            source_uid="code:function:a.py::foo",
+            target_uid="code:function:a.py::bar",
+            edge_type="calls",
+            extractor="test",
+            confidence=0.9,
+        ),
+        GraphEdge(
+            source_uid="code:function:a.py::bar",
+            target_uid="code:function:a.py::baz",
+            edge_type="calls",
+            extractor="test",
+            confidence=0.6,
+        ),
+        GraphEdge(
+            source_uid="code:file:a.py",
+            target_uid="code:function:a.py::foo",
+            edge_type="contains",
+            extractor="test",
+            confidence=1.0,
+        ),
+        GraphEdge(
+            source_uid="doc:file:docs/x.md",
+            target_uid="code:function:a.py::foo",
+            edge_type="references_doc",
+            extractor="test",
+            confidence=0.85,
+        ),
+        GraphEdge(
+            source_uid="code:file:a.py",
+            target_uid="cos:route:GET:/users",
+            edge_type="handles_route",
+            extractor="test",
+            confidence=0.9,
+        ),
+        GraphEdge(
+            source_uid="code:file:a.py",
+            target_uid="cos:mcp_tool:cos_graph_query",
+            edge_type="handles_tool",
+            extractor="test",
+            confidence=0.95,
+        ),
     ]
     backend.bulk_upsert(nodes, edges)
     yield backend
@@ -118,12 +183,8 @@ class TestContext:
         assert "ok" in env
 
     def test_depth_honoured(self, seeded_backend):
-        shallow = _assert_ok(
-            graph.cos_graph_context("code:function:a.py::foo", depth=1)
-        )
-        deeper = _assert_ok(
-            graph.cos_graph_context("code:function:a.py::foo", depth=3)
-        )
+        shallow = _assert_ok(graph.cos_graph_context("code:function:a.py::foo", depth=1))
+        deeper = _assert_ok(graph.cos_graph_context("code:function:a.py::foo", depth=3))
         assert deeper["edge_count"] >= shallow["edge_count"]
 
 
@@ -138,21 +199,13 @@ class TestImpact:
         _assert_fail(graph.cos_graph_impact("code:function:missing"), "not_found")
 
     def test_confidence_min_filters(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_impact(
-                "code:function:a.py::foo", confidence_min=0.9
-            )
-        )
+        data = _assert_ok(graph.cos_graph_impact("code:function:a.py::foo", confidence_min=0.9))
         # Tiered counts honour the floor.
         for entry in data["tiers"]["should_review"]:
             assert entry["confidence"] >= 0.5
 
     def test_upstream_direction(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_impact(
-                "code:function:a.py::bar", direction="upstream"
-            )
-        )
+        data = _assert_ok(graph.cos_graph_impact("code:function:a.py::bar", direction="upstream"))
         assert data["direction"] == "upstream"
 
 
@@ -185,9 +238,7 @@ class TestTrace:
         _assert_fail(graph.cos_graph_trace("code:function:missing"), "not_found")
 
     def test_max_steps_honoured(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_trace("code:function:a.py::foo", max_steps=1)
-        )
+        data = _assert_ok(graph.cos_graph_trace("code:function:a.py::foo", max_steps=1))
         assert len(data["steps"]) <= 1
 
     def test_branches_captured(self, seeded_backend):
@@ -198,18 +249,24 @@ class TestTrace:
 
 class TestSimilar:
     def test_happy_path(self, seeded_backend):
-        data = _assert_ok(graph.cos_graph_similar("code:function:a.py::foo", confidence_min=0.0, top_k=5))
+        data = _assert_ok(
+            graph.cos_graph_similar("code:function:a.py::foo", confidence_min=0.0, top_k=5)
+        )
         assert "results" in data
 
     def test_unknown_uid(self, seeded_backend):
         _assert_fail(graph.cos_graph_similar("code:function:missing"), "not_found")
 
     def test_top_k_honoured(self, seeded_backend):
-        data = _assert_ok(graph.cos_graph_similar("code:function:a.py::foo", top_k=2, confidence_min=0.0))
+        data = _assert_ok(
+            graph.cos_graph_similar("code:function:a.py::foo", top_k=2, confidence_min=0.0)
+        )
         assert len(data["results"]) <= 2
 
     def test_confidence_floor_excludes_low(self, seeded_backend):
-        data = _assert_ok(graph.cos_graph_similar("code:function:a.py::foo", confidence_min=0.99, top_k=5))
+        data = _assert_ok(
+            graph.cos_graph_similar("code:function:a.py::foo", confidence_min=0.99, top_k=5)
+        )
         assert all(r["similarity"] >= 0.99 for r in data["results"])
 
 
@@ -223,27 +280,19 @@ class TestReferences:
 
     def test_filter_kinds(self, seeded_backend):
         data = _assert_ok(
-            graph.cos_graph_references(
-                "code:function:a.py::foo", kinds=["references_doc"]
-            )
+            graph.cos_graph_references("code:function:a.py::foo", kinds=["references_doc"])
         )
-        assert all(
-            e["edge_type"] == "references_doc" for e in data["references"]
-        )
+        assert all(e["edge_type"] == "references_doc" for e in data["references"])
 
     def test_limit_respected(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_references("code:function:a.py::foo", limit=1)
-        )
+        data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo", limit=1))
         assert data["count"] <= 1
 
 
 class TestPath:
     def test_happy_path(self, seeded_backend):
         data = _assert_ok(
-            graph.cos_graph_path(
-                "code:function:a.py::foo", "code:function:a.py::baz"
-            )
+            graph.cos_graph_path("code:function:a.py::foo", "code:function:a.py::baz")
         )
         assert data["hops"] >= 1
 
@@ -261,9 +310,7 @@ class TestPath:
 
     def test_unreachable_path_empty(self, seeded_backend):
         data = _assert_ok(
-            graph.cos_graph_path(
-                "doc:file:docs/x.md", "cos:route:GET:/users", max_hops=0
-            )
+            graph.cos_graph_path("doc:file:docs/x.md", "cos:route:GET:/users", max_hops=0)
         )
         assert data["path"] is None
 
@@ -288,9 +335,7 @@ class TestExport:
 
 class TestRenamePlan:
     def test_happy_path(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_rename_plan("code:function:a.py::foo", "renamed_foo")
-        )
+        data = _assert_ok(graph.cos_graph_rename_plan("code:function:a.py::foo", "renamed_foo"))
         assert data["old_name"] == "foo"
         assert data["new_name"] == "renamed_foo"
 
@@ -307,9 +352,7 @@ class TestRenamePlan:
         )
 
     def test_risk_set(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_rename_plan("code:function:a.py::foo", "new_foo")
-        )
+        data = _assert_ok(graph.cos_graph_rename_plan("code:function:a.py::foo", "new_foo"))
         assert data["risk"] in {"low", "medium", "high"}
 
 
@@ -330,7 +373,8 @@ class TestContracts:
         expected = sum(
             len(v)
             for k, v in data.items()
-            if k.endswith("_routes") or k in ("mcp_tools", "grpc_endpoints", "event_handlers", "websocket")
+            if k.endswith("_routes")
+            or k in ("mcp_tools", "grpc_endpoints", "event_handlers", "websocket")
         )
         assert data["count"] == expected
 
@@ -353,7 +397,10 @@ def test_every_tool_uses_graph_layer(seeded_backend):
         ("trace", lambda: graph.cos_graph_trace("code:function:a.py::foo")),
         ("similar", lambda: graph.cos_graph_similar("code:function:a.py::foo")),
         ("references", lambda: graph.cos_graph_references("code:function:a.py::foo")),
-        ("path", lambda: graph.cos_graph_path("code:function:a.py::foo", "code:function:a.py::bar")),
+        (
+            "path",
+            lambda: graph.cos_graph_path("code:function:a.py::foo", "code:function:a.py::bar"),
+        ),
         ("export", lambda: graph.cos_graph_export(format="json")),
         ("rename_plan", lambda: graph.cos_graph_rename_plan("code:function:a.py::foo", "x")),
         ("contracts", lambda: graph.cos_graph_contracts()),

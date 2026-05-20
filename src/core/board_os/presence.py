@@ -72,12 +72,14 @@ def session_presence(data: dict, now: int) -> str:
     if not pid_alive(pid):
         return "offline"
 
-    prompt_in_flight = (
-        isinstance(last_prompt, int)
-        and (not isinstance(last_stop, int) or last_stop < last_prompt)
+    prompt_in_flight = isinstance(last_prompt, int) and (
+        not isinstance(last_stop, int) or last_stop < last_prompt
     )
-    if prompt_in_flight and isinstance(last_prompt, int) \
-            and now - last_prompt <= WORKING_WINDOW_SECS:
+    if (
+        prompt_in_flight
+        and isinstance(last_prompt, int)
+        and now - last_prompt <= WORKING_WINDOW_SECS
+    ):
         return "working"
     if isinstance(last_prompt, int) and now - last_prompt <= PRESENT_WINDOW_SECS:
         return "present"
@@ -111,7 +113,9 @@ def agent_state(presence_dir: Path, now: int | None = None) -> str:
     return best
 
 
-def session_inventory(agent: str, presence_dir: Path, now: int | None = None) -> list[dict[str, Any]]:
+def session_inventory(
+    agent: str, presence_dir: Path, now: int | None = None
+) -> list[dict[str, Any]]:
     """Per-session rows for `agent`; offline sessions are filtered out."""
     if now is None:
         now = int(time.time())
@@ -124,18 +128,22 @@ def session_inventory(agent: str, presence_dir: Path, now: int | None = None) ->
         verdict = session_presence(data, now)
         if verdict == "offline":
             continue
-        rows.append({
-            "agent": agent,
-            "sid": data.get("session_id") or path.stem,
-            "state": verdict,
-            "pid": int(data.get("pid") or 0),
-            "started_at": data.get("started_at"),
-            "last_prompt_at": data.get("last_prompt_at"),
-            "last_tool_at": data.get("last_tool_at"),
-            "last_stop_at": data.get("last_stop_at"),
-        })
-    rows.sort(key=lambda r: (
-        -STATE_RANK.get(r["state"], 0),
-        -(r.get("last_tool_at") or r.get("last_prompt_at") or r.get("started_at") or 0),
-    ))
+        rows.append(
+            {
+                "agent": agent,
+                "sid": data.get("session_id") or path.stem,
+                "state": verdict,
+                "pid": int(data.get("pid") or 0),
+                "started_at": data.get("started_at"),
+                "last_prompt_at": data.get("last_prompt_at"),
+                "last_tool_at": data.get("last_tool_at"),
+                "last_stop_at": data.get("last_stop_at"),
+            }
+        )
+    rows.sort(
+        key=lambda r: (
+            -STATE_RANK.get(r["state"], 0),
+            -(r.get("last_tool_at") or r.get("last_prompt_at") or r.get("started_at") or 0),
+        )
+    )
     return rows

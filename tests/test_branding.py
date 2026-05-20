@@ -1,10 +1,10 @@
 """Branding compliance gate (T16.2)."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -31,13 +31,12 @@ def _iter_guarded_files() -> list[Path]:
     files: list[Path] = []
     for pattern in GUARDED_GLOBS:
         files.extend(REPO_ROOT.glob(pattern))
-    return [
-        f for f in files
-        if f.relative_to(REPO_ROOT).as_posix() not in ALLOWED_PATHS
-    ]
+    return [f for f in files if f.relative_to(REPO_ROOT).as_posix() not in ALLOWED_PATHS]
 
 
-@pytest.mark.parametrize("source_file", _iter_guarded_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix())
+@pytest.mark.parametrize(
+    "source_file", _iter_guarded_files(), ids=lambda p: p.relative_to(REPO_ROOT).as_posix()
+)
 def test_no_claude_code_branding(source_file: Path) -> None:
     text = source_file.read_text(encoding="utf-8")
     for token in FORBIDDEN_TOKENS:

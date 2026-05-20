@@ -23,9 +23,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / "core"))
 sys.path.insert(0, str(REPO_ROOT / "core" / "thinking_os"))
 
-from database import init_db  # type: ignore  # noqa: E402
-from graph_os.backends.sqlite_backend import SqliteBackend  # noqa: E402
-from graph_os.extractors import (  # noqa: E402
+from database import init_db  # type: ignore
+
+from graph_os.backends.sqlite_backend import SqliteBackend
+from graph_os.extractors import (
     code_python,
     code_shell,
     code_ts,
@@ -34,8 +35,8 @@ from graph_os.extractors import (  # noqa: E402
     md_links,
     task_deps,
 )
-from graph_os.ingest import walk_local  # noqa: E402
-from graph_os.viewer import build_view  # noqa: E402
+from graph_os.ingest import walk_local
+from graph_os.viewer import build_view
 
 
 def _extractors_for(path: str) -> list:
@@ -59,9 +60,7 @@ def _extractors_for(path: str) -> list:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", default=str(REPO_ROOT))
-    parser.add_argument(
-        "--out", default=str(REPO_ROOT / ".coding-os" / "graph-viz.html")
-    )
+    parser.add_argument("--out", default=str(REPO_ROOT / ".coding-os" / "graph-viz.html"))
     parser.add_argument("--db", default=None)
     parser.add_argument("--max-files", type=int, default=2000)
     parser.add_argument("--no-open", action="store_true")
@@ -99,7 +98,7 @@ def main() -> int:
             try:
                 result = extractor(rel, content)
                 backend.bulk_upsert(result.nodes, result.edges)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 errors += 1
                 print(f"[demo]   ! {rel}: {extractor.__name__} -> {exc}")
         indexed += 1

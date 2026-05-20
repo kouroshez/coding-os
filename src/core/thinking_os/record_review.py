@@ -72,15 +72,23 @@ def record_review(
 
     if path.exists():
         return _write_to_db(
-            path, task_id=task_id, request=request,
-            investigated=investigated, learned=learned,
-            completed=completed, next_steps=next_steps,
+            path,
+            task_id=task_id,
+            request=request,
+            investigated=investigated,
+            learned=learned,
+            completed=completed,
+            next_steps=next_steps,
         )
     else:
         return _write_fallback_file(
-            fallback_dir, task_id=task_id, request=request,
-            investigated=investigated, learned=learned,
-            completed=completed, next_steps=next_steps,
+            fallback_dir,
+            task_id=task_id,
+            request=request,
+            investigated=investigated,
+            learned=learned,
+            completed=completed,
+            next_steps=next_steps,
         )
 
 

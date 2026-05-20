@@ -1,7 +1,9 @@
 """Tests for board_os._agent_runtime (Wave 0 E2)."""
+
 from __future__ import annotations
 
 import os
+
 import pytest
 
 from core.board_os import _agent_runtime as ar
@@ -11,11 +13,18 @@ from core.board_os import _agent_runtime as ar
 def _scrub_env(tmp_path, monkeypatch):
     """Clear all known env markers + run from a clean cwd."""
     for k in (
-        "COS_AGENT", "COS_STATE_DIR",
-        "CLAUDECODE", "CLAUDE_CODE_SSE_PORT",
-        "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_AGENT_SDK_VERSION",
-        "CURSOR_AGENT", "CURSOR_PROJECT_DIR", "CURSOR_VERSION",
-        "CODEX_SESSION_ID", "CODEX_AGENT_DIR", "CODEX_HOME",
+        "COS_AGENT",
+        "COS_STATE_DIR",
+        "CLAUDECODE",
+        "CLAUDE_CODE_SSE_PORT",
+        "CLAUDE_CODE_ENTRYPOINT",
+        "CLAUDE_AGENT_SDK_VERSION",
+        "CURSOR_AGENT",
+        "CURSOR_PROJECT_DIR",
+        "CURSOR_VERSION",
+        "CODEX_SESSION_ID",
+        "CODEX_AGENT_DIR",
+        "CODEX_HOME",
     ):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.chdir(tmp_path)
@@ -81,4 +90,5 @@ def test_explicit_overrides_env(monkeypatch):
 def test_legacy_agent_label_delegates():
     """board_os.mcp_tools._agent_label must delegate to detect_agent."""
     from core.board_os.mcp_tools import _agent_label
+
     assert _agent_label("ses-codex-q") == "codex"

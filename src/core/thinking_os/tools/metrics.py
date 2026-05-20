@@ -25,16 +25,17 @@ VALID_METRICS = {"success_rate", "rework_rate", "count"}
 # cos_metric_record
 # ---------------------------------------------------------------------------
 
+
 def metric_record(
     conn: sqlite3.Connection,
     *,
-    task_id: Optional[str] = None,
+    task_id: str | None = None,
     agent_type: str,
-    model: Optional[str] = None,
-    duration_ms: Optional[int] = None,
+    model: str | None = None,
+    duration_ms: int | None = None,
     outcome: str,
-    domain: Optional[str] = None,
-    complexity: Optional[str] = None,
+    domain: str | None = None,
+    complexity: str | None = None,
 ) -> dict:
     """Record a single agent metric.
 
@@ -67,15 +68,16 @@ def metric_record(
 # cos_metric_query
 # ---------------------------------------------------------------------------
 
+
 def metric_query(
     conn: sqlite3.Connection,
     *,
-    domain: Optional[str] = None,
-    model: Optional[str] = None,
-    outcome: Optional[str] = None,
-    agent_type: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
+    domain: str | None = None,
+    model: str | None = None,
+    outcome: str | None = None,
+    agent_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     limit: int = 20,
 ) -> dict:
     """Query agent metrics with optional filters.
@@ -118,13 +120,11 @@ def metric_query(
 
     where = " AND ".join(conditions) if conditions else "1=1"
 
-    count_row = conn.execute(
-        f"SELECT COUNT(*) FROM agent_metrics WHERE {where}", params  # noqa: S608
-    ).fetchone()
+    count_row = conn.execute(f"SELECT COUNT(*) FROM agent_metrics WHERE {where}", params).fetchone()
     total = count_row[0]
 
     rows = conn.execute(
-        f"SELECT id, task_id, agent_type, model, duration_ms, outcome, domain, complexity, created_at "  # noqa: S608
+        f"SELECT id, task_id, agent_type, model, duration_ms, outcome, domain, complexity, created_at "
         f"FROM agent_metrics WHERE {where} ORDER BY created_at DESC LIMIT ?",
         params + [limit],
     ).fetchall()
@@ -139,6 +139,7 @@ def metric_query(
 # ---------------------------------------------------------------------------
 # cos_metric_trend
 # ---------------------------------------------------------------------------
+
 
 def metric_trend(
     conn: sqlite3.Connection,
@@ -167,7 +168,7 @@ def metric_trend(
 
     # Build aggregation query — group_by is validated against whitelist above
     sql = (
-        f"SELECT {group_by} AS group_key, "  # noqa: S608
+        f"SELECT {group_by} AS group_key, "
         "strftime('%Y-%W', created_at) AS period, "
         "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS success_count, "
         "SUM(CASE WHEN outcome = 'rework' THEN 1 ELSE 0 END) AS rework_count, "

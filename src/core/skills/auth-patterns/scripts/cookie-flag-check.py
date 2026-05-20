@@ -11,13 +11,14 @@ Usage:
 
 Exit code 1 if any finding.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 # Lightweight regex audit — not a full parser. Trade-off: occasional false
@@ -87,12 +88,14 @@ def audit_file(path: Path) -> list[Finding]:
             if pat.search(line):
                 missing = _audit_block(text, i, required)
                 if missing:
-                    findings.append(Finding(
-                        path=str(path),
-                        line=i + 1,
-                        missing=missing,
-                        snippet=line.strip()[:120],
-                    ))
+                    findings.append(
+                        Finding(
+                            path=str(path),
+                            line=i + 1,
+                            missing=missing,
+                            snippet=line.strip()[:120],
+                        )
+                    )
                 break  # one finding per line max
     return findings
 
@@ -101,7 +104,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", default=["."])
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--exclude", default=".venv,venv,node_modules,.build,dist,__pycache__,.git,vendor")
+    parser.add_argument(
+        "--exclude", default=".venv,venv,node_modules,.build,dist,__pycache__,.git,vendor"
+    )
     args = parser.parse_args()
 
     excluded = set(s for s in args.exclude.split(",") if s)

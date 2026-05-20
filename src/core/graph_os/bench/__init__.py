@@ -6,12 +6,12 @@ the backend, and records the measured numbers in a machine-readable
 shape that `docs/benchmarks/graph_os.md` pulls in.
 """
 
-from .fixtures import build_python_corpus, build_mixed_corpus
+from .fixtures import build_mixed_corpus, build_python_corpus
 from .harness import BenchResult, run_benchmark
 
 __all__ = [
-    "build_python_corpus",
-    "build_mixed_corpus",
     "BenchResult",
+    "build_mixed_corpus",
+    "build_python_corpus",
     "run_benchmark",
 ]

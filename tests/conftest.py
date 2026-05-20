@@ -6,6 +6,7 @@ via the CLI runner) writes to COS_REGISTRY_PATH — this autouse fixture
 redirects that to a per-test tmp file, matching the pattern already used in
 tests/test_registry.py.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -20,9 +21,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Skip sdk_e2e tests unless --run-sdk-e2e is passed."""
     if config.getoption("--run-sdk-e2e"):
         return
@@ -33,7 +32,9 @@ def pytest_collection_modifyitems(
 
 
 @pytest.fixture(autouse=True)
-def _isolate_registry(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> None:
+def _isolate_registry(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Redirect global registry to a temp file for every test.
 
     Prevents cos init / add_project() from writing to ~/.coding-os/registry.json.

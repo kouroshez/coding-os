@@ -21,8 +21,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db  # noqa: E402
-from precision import (  # noqa: E402
+from database import init_db
+from precision import (
     MIN_SAMPLE_FOR_DECISION,
     PRECISION_TARGET,
     PrecisionSnapshot,
@@ -31,10 +31,10 @@ from precision import (  # noqa: E402
     should_enable_contextual_enrichment,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def conn(tmp_path: Path) -> sqlite3.Connection:
@@ -73,6 +73,7 @@ def _seed_retrieval(
 # precision_snapshot
 # ---------------------------------------------------------------------------
 
+
 class TestPrecisionSnapshot:
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
         snap = precision_snapshot(conn)
@@ -97,7 +98,7 @@ class TestPrecisionSnapshot:
             _seed_retrieval(conn, "success")
         for _ in range(1):
             _seed_retrieval(conn, "rework")
-        _seed_retrieval(conn, None)   # unresolved
+        _seed_retrieval(conn, None)  # unresolved
         _seed_retrieval(conn, "wip")  # unresolved
         snap = precision_snapshot(conn)
         assert snap.successes == 4
@@ -127,6 +128,7 @@ class TestPrecisionSnapshot:
 # ---------------------------------------------------------------------------
 # should_enable_contextual_enrichment
 # ---------------------------------------------------------------------------
+
 
 class TestShouldEnable:
     def test_pre_v10_returns_no_signal(self, tmp_path: Path) -> None:
@@ -192,6 +194,7 @@ class TestShouldEnable:
 # contextual_enrichment_stub
 # ---------------------------------------------------------------------------
 
+
 class TestContextualStub:
     def test_returns_same_content(self) -> None:
         out = contextual_enrichment_stub("A > B", "original body", doc_title="T")
@@ -216,6 +219,7 @@ class TestContextualStub:
 # ---------------------------------------------------------------------------
 # Contract invariants
 # ---------------------------------------------------------------------------
+
 
 class TestInvariants:
     def test_constants_are_sane(self) -> None:

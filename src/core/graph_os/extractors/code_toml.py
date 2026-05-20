@@ -27,10 +27,12 @@ EXTRACTOR_ID = "code_toml@v1"
 
 try:
     import tomllib  # 3.11+
+
     _TOML_ERR = tomllib.TOMLDecodeError
 except ModuleNotFoundError:
     try:
         import tomli as tomllib  # type: ignore[no-redef]
+
         _TOML_ERR = tomllib.TOMLDecodeError
     except ModuleNotFoundError:
         tomllib = None  # type: ignore[assignment]
@@ -81,7 +83,20 @@ def _emit_pyproject(
             for entry in deps:
                 if not isinstance(entry, str):
                     continue
-                dep_name = entry.split(";")[0].strip().split()[0].split("[")[0].split("==")[0].split(">=")[0].split("<=")[0].split("!=")[0].split("~=")[0].split(">")[0].split("<")[0].strip()
+                dep_name = (
+                    entry.split(";")[0]
+                    .strip()
+                    .split()[0]
+                    .split("[")[0]
+                    .split("==")[0]
+                    .split(">=")[0]
+                    .split("<=")[0]
+                    .split("!=")[0]
+                    .split("~=")[0]
+                    .split(">")[0]
+                    .split("<")[0]
+                    .strip()
+                )
                 if dep_name:
                     result.edges.append(
                         GraphEdge(
@@ -221,7 +236,10 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     if tomllib is None:
         result.parse_errors.append(
-            ParseError(kind="missing_dep", detail="tomllib unavailable (Python < 3.11 and tomli not installed)")
+            ParseError(
+                kind="missing_dep",
+                detail="tomllib unavailable (Python < 3.11 and tomli not installed)",
+            )
         )
         emit_contains_spine(
             file_path=path,
@@ -235,9 +253,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     try:
         data = tomllib.loads(content)
     except _TOML_ERR as exc:
-        result.parse_errors.append(
-            ParseError(kind="toml_decode", detail=str(exc))
-        )
+        result.parse_errors.append(ParseError(kind="toml_decode", detail=str(exc)))
         emit_contains_spine(
             file_path=path,
             file_uid_=file_uid(path),

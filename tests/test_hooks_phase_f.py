@@ -107,7 +107,9 @@ class TestSessionContext:
         session_id = (agent_dir / "session-id").read_text().strip()
         assert session_id.startswith("ses-codex-"), session_id
 
-    def test_user_prompt_submit_does_not_rotate_session_or_clear_state(self, tmp_path: Path) -> None:
+    def test_user_prompt_submit_does_not_rotate_session_or_clear_state(
+        self, tmp_path: Path
+    ) -> None:
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "codex"
@@ -186,14 +188,19 @@ class TestWarnMcpDown:
         hook_dir.mkdir(parents=True)
         (hook_dir / "warn-mcp-down.sh").symlink_to(WARN_MCP_DOWN)
         (tmp_path / ".mcp.json").write_text(
-            json.dumps({"mcpServers": {"coding-os": {
-                "command": "this-cmd-does-not-exist-xyz",
-                "args": []
-            }}})
+            json.dumps(
+                {
+                    "mcpServers": {
+                        "coding-os": {"command": "this-cmd-does-not-exist-xyz", "args": []}
+                    }
+                }
+            )
         )
         r = subprocess.run(
             ["bash", str(hook_dir / "warn-mcp-down.sh")],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         assert r.returncode == 0
         assert "DOWN" in r.stderr
@@ -204,7 +211,7 @@ class TestWarnMcpDown:
         hook_dir.mkdir(parents=True)
         (hook_dir / "warn-mcp-down.sh").symlink_to(WARN_MCP_DOWN)
         (tmp_path / ".codex" / "config.toml").write_text(
-            '[mcp_servers.coding-os]\n'
+            "[mcp_servers.coding-os]\n"
             'command = "this-cmd-does-not-exist-xyz"\n'
             'args = ["server-start"]\n',
             encoding="utf-8",
@@ -225,14 +232,13 @@ class TestWarnMcpDown:
         hook_dir.mkdir(parents=True)
         (hook_dir / "warn-mcp-down.sh").symlink_to(WARN_MCP_DOWN)
         (tmp_path / ".codex" / "config.toml").write_text(
-            '[mcp_servers.coding-os]\n'
-            'command = "project-cmd-does-not-exist-xyz"\n',
+            '[mcp_servers.coding-os]\ncommand = "project-cmd-does-not-exist-xyz"\n',
             encoding="utf-8",
         )
         home = tmp_path / "home"
         (home / ".codex").mkdir(parents=True)
         (home / ".codex" / "config.toml").write_text(
-            '[mcp_servers.coding-os]\n'
+            "[mcp_servers.coding-os]\n"
             'command = "python3"\n'
             'args = ["-c", "import sys; sys.stdout.write(\'{\\\\\\"jsonrpc\\\\\\":\\\\\\"2.0\\\\\\",\\\\\\"result\\\\\\":{}}\')"]\n',
             encoding="utf-8",
@@ -273,8 +279,7 @@ class TestCheckCaptureWorked:
     def _init_db(self, db_path: Path) -> None:
         conn = sqlite3.connect(str(db_path))
         conn.execute(
-            "CREATE TABLE observations ("
-            "id INTEGER PRIMARY KEY, session_id TEXT, body TEXT)"
+            "CREATE TABLE observations (id INTEGER PRIMARY KEY, session_id TEXT, body TEXT)"
         )
         conn.commit()
         conn.close()
@@ -355,10 +360,13 @@ class TestEnforceMemoryCheck:
     def test_blocks_when_no_marker(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "src" / "cli" / "main.py"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 2
         assert "Memory Check" in r.stderr
@@ -367,10 +375,13 @@ class TestEnforceMemoryCheck:
         state = self._setup(tmp_path)
         (state / "claude" / ".memory-check").write_text("ses-claude-mc cos_search:auth\n")
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "src" / "cli" / "main.py"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 0
 
@@ -378,10 +389,13 @@ class TestEnforceMemoryCheck:
         state = self._setup(tmp_path)
         (state / "claude" / ".thinking_os-gate").write_text("ses-claude-mc CLEAR 1\n")
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "src" / "cli" / "main.py"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 0
 
@@ -389,30 +403,39 @@ class TestEnforceMemoryCheck:
         state = self._setup(tmp_path)
         (state / "claude" / ".task-current").write_text("ses-claude-mc exploratory-refactor\n")
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "src" / "cli" / "main.py"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 0
 
     def test_exempt_on_non_code(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "docs" / "x.md"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "docs" / "x.md"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 0
 
     def test_exempt_on_test_file(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "tests" / "test_foo.py"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "tests" / "test_foo.py"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 0
 
@@ -421,10 +444,13 @@ class TestEnforceMemoryCheck:
         override_file = state / "claude" / ".memory-check-override"
         override_file.write_text("")
         env = self._env(state)
-        p = {"tool_name": "Write", "tool_input": {
-            "file_path": str(tmp_path / "src" / "cli" / "main.py"),
-            "content": "x",
-        }}
+        p = {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": str(tmp_path / "src" / "cli" / "main.py"),
+                "content": "x",
+            },
+        }
         r = _invoke(ENFORCE_MEMORY_CHECK, p, env=env)
         assert r.returncode == 0
         assert not override_file.exists()
@@ -453,9 +479,12 @@ class TestRemindLearnValidate:
     def test_fires_on_make_task_done(self, tmp_path: Path) -> None:
         _, agent_dir, env = self._setup(tmp_path)
         (agent_dir / ".learn-suggestions").write_text("42\tPattern A\n43\tPattern B\n")
-        p = {"tool_name": "Bash", "tool_input": {
-            "command": "make task-done TASK=1 TYPE=feat MSG=x",
-        }}
+        p = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "make task-done TASK=1 TYPE=feat MSG=x",
+            },
+        }
         r = _invoke(REMIND_LEARN_VALIDATE, p, env=env)
         assert r.returncode == 0
         assert "cos_learn_validate" in r.stdout
@@ -471,9 +500,12 @@ class TestRemindLearnValidate:
 
     def test_silent_when_no_suggestions_file(self, tmp_path: Path) -> None:
         _, _, env = self._setup(tmp_path)
-        p = {"tool_name": "Bash", "tool_input": {
-            "command": "make task-done TASK=1",
-        }}
+        p = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "make task-done TASK=1",
+            },
+        }
         r = _invoke(REMIND_LEARN_VALIDATE, p, env=env)
         assert r.returncode == 0
         assert r.stdout == ""
@@ -482,9 +514,12 @@ class TestRemindLearnValidate:
         _, agent_dir, env = self._setup(tmp_path)
         sugg = agent_dir / ".learn-suggestions"
         sugg.write_text("42\tPattern A\n")
-        p = {"tool_name": "Bash", "tool_input": {
-            "command": "make task-done TASK=1",
-        }}
+        p = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "make task-done TASK=1",
+            },
+        }
         _invoke(REMIND_LEARN_VALIDATE, p, env=env)
         assert sugg.read_text() == ""
 
@@ -525,15 +560,18 @@ class TestHookVisibility:
 class TestDoctorC15Regression:
     def _make_project(self, tmp_path: Path, mcp_content: str | None) -> Path:
         import yaml as _yaml
+
         project = tmp_path / "proj"
         project.mkdir()
         (project / ".coding-os.yaml").write_text(
-            _yaml.dump({
-                "version": "1.0",
-                "agents": ["claude"],
-                "templates": [],
-                "state_dir": ".coding-os",
-            })
+            _yaml.dump(
+                {
+                    "version": "1.0",
+                    "agents": ["claude"],
+                    "templates": [],
+                    "state_dir": ".coding-os",
+                }
+            )
         )
         state = project / ".coding-os"
         state.mkdir()
@@ -546,7 +584,8 @@ class TestDoctorC15Regression:
         return project
 
     def _run_check(self, project: Path):
-        from cli.doctor import _check_mcp_actually_launches, DoctorReport
+        from cli.doctor import DoctorReport, _check_mcp_actually_launches
+
         report = DoctorReport(project_dir=str(project), agent="claude", templates=[])
         _check_mcp_actually_launches(project, report)
         return next((c for c in report.checks if c.id == "mcp.actually_launches"), None)
@@ -560,27 +599,31 @@ class TestDoctorC15Regression:
 
     def test_hardcoded_uv_run_directory_is_fail(self, tmp_path: Path) -> None:
         """The historical break: uv run --directory chdirs, DB path lost."""
-        mcp = json.dumps({
-            "mcpServers": {
-                "coding-os": {
-                    "command": "uv",
-                    "args": [
-                        "run", "--directory",
-                        "/does/not/exist/core/thinking_os",
-                        "python", "server.py",
-                    ],
+        mcp = json.dumps(
+            {
+                "mcpServers": {
+                    "coding-os": {
+                        "command": "uv",
+                        "args": [
+                            "run",
+                            "--directory",
+                            "/does/not/exist/core/thinking_os",
+                            "python",
+                            "server.py",
+                        ],
+                    }
                 }
             }
-        })
+        )
         project = self._make_project(tmp_path, mcp)
         check = self._run_check(project)
         assert check is not None
         assert check.severity == "FAIL"
 
     def test_missing_command_is_fail(self, tmp_path: Path) -> None:
-        mcp = json.dumps({
-            "mcpServers": {"coding-os": {"command": "nonexistent-cmd-xyz", "args": []}}
-        })
+        mcp = json.dumps(
+            {"mcpServers": {"coding-os": {"command": "nonexistent-cmd-xyz", "args": []}}}
+        )
         project = self._make_project(tmp_path, mcp)
         check = self._run_check(project)
         assert check is not None
@@ -590,11 +633,12 @@ class TestDoctorC15Regression:
 
     def test_wrapper_form_passes_when_cos_available(self, tmp_path: Path) -> None:
         import shutil
+
         if shutil.which("cos") is None:
             pytest.skip("cos not on PATH — wrapper form requires cos binary")
-        mcp = json.dumps({
-            "mcpServers": {"coding-os": {"command": "cos", "args": ["server-start"]}}
-        })
+        mcp = json.dumps(
+            {"mcpServers": {"coding-os": {"command": "cos", "args": ["server-start"]}}}
+        )
         project = self._make_project(tmp_path, mcp)
         check = self._run_check(project)
         assert check is not None
@@ -604,11 +648,10 @@ class TestDoctorC15Regression:
         project = self._make_project(tmp_path, None)
         (project / ".codex").mkdir(parents=True, exist_ok=True)
         (project / ".codex" / "config.toml").write_text(
-            "[mcp_servers.coding-os]\n"
-            'args = ["server-start"]\n',
+            '[mcp_servers.coding-os]\nargs = ["server-start"]\n',
             encoding="utf-8",
         )
-        from cli.doctor import _check_mcp_actually_launches, DoctorReport
+        from cli.doctor import DoctorReport, _check_mcp_actually_launches
 
         report = DoctorReport(project_dir=str(project), agent="codex", templates=[])
         _check_mcp_actually_launches(project, report)

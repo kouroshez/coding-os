@@ -20,6 +20,7 @@ async def health():
     result: dict = {"status": "ok"}
     try:
         from graph_os.backend import BackendUnavailable, get_backend  # type: ignore
+
         backend = get_backend()
         result["backend_id"] = backend.backend_id
 
@@ -36,7 +37,7 @@ async def health():
         result["node_count_sample"] = len(uids)
         result["edge_count_sample"] = len(sample_edges)
 
-    except Exception as exc:  # noqa: BLE001 — health never raises
+    except Exception as exc:
         result["status"] = "degraded"
         result["backend_id"] = "unavailable"
         result["reason"] = str(exc)
@@ -49,12 +50,12 @@ async def health():
     result["file_index_state_last_indexed_at"] = None
     try:
         from thinking_os import database  # type: ignore
+
         conn = database.init_db()
         try:
             if database.has_file_index_state_table(conn):
                 row = conn.execute(
-                    "SELECT COUNT(*), MAX(last_indexed_at) "
-                    "FROM file_index_state"
+                    "SELECT COUNT(*), MAX(last_indexed_at) FROM file_index_state"
                 ).fetchone()
                 if row is not None:
                     result["file_index_state_rows"] = int(row[0] or 0)
@@ -63,7 +64,7 @@ async def health():
                     )
         finally:
             conn.close()
-    except Exception as exc:  # noqa: BLE001 — never fail /health
+    except Exception as exc:
         result["file_index_state_error"] = str(exc)
 
     return result

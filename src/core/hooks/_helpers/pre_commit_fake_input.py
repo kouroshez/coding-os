@@ -22,7 +22,7 @@ def main() -> int:
         return 2
     abs_path, file_path = sys.argv[1], sys.argv[2]
     try:
-        with open(abs_path, "r", errors="replace") as f:
+        with open(abs_path, errors="replace") as f:
             content = f.read()
     except Exception:
         content = ""

@@ -23,28 +23,61 @@ DEFAULT_HOST = os.environ.get("COS_WEB_HOST", "127.0.0.1")
 _SPA_DIST = Path(__file__).resolve().parent / "ui" / "dist"
 
 _CORS_ORIGINS = [
-    "http://localhost:5173",   # Vite dev server
+    "http://localhost:5173",  # Vite dev server
     f"http://localhost:{DEFAULT_PORT}",  # same-origin prod
     f"http://{DEFAULT_HOST}:{DEFAULT_PORT}",  # bound interface
 ]
 
 
 TAGS_METADATA = [
-    {"name": "board", "description": "Scrumban board state — tasks, columns, daily/wip/retro/pick."},
-    {"name": "cognition", "description": "Cognitive cycle artifacts — traces, dispatchers, costs, Claude SDK chats."},
-    {"name": "graph", "description": "graph_os knowledge graph — context, impact, export, rename-plan, communities."},
-    {"name": "health", "description": "Liveness probe — backend status + file_index_state freshness."},
-    {"name": "hooks", "description": "Hook registry + live event stream from .coding-os/.hooks.log."},
+    {
+        "name": "board",
+        "description": "Scrumban board state — tasks, columns, daily/wip/retro/pick.",
+    },
+    {
+        "name": "cognition",
+        "description": "Cognitive cycle artifacts — traces, dispatchers, costs, Claude SDK chats.",
+    },
+    {
+        "name": "graph",
+        "description": "graph_os knowledge graph — context, impact, export, rename-plan, communities.",
+    },
+    {
+        "name": "health",
+        "description": "Liveness probe — backend status + file_index_state freshness.",
+    },
+    {
+        "name": "hooks",
+        "description": "Hook registry + live event stream from .coding-os/.hooks.log.",
+    },
     {"name": "hub", "description": "Multi-project Hub — registry, suggest-roots, GC."},
-    {"name": "metrics", "description": "Prometheus text-format counters + summary quantiles (cos_web_*)."},
-    {"name": "observability", "description": "Cross-source timeline — hooks + cognition + sessions."},
+    {
+        "name": "metrics",
+        "description": "Prometheus text-format counters + summary quantiles (cos_web_*).",
+    },
+    {
+        "name": "observability",
+        "description": "Cross-source timeline — hooks + cognition + sessions.",
+    },
     {"name": "presence", "description": "Who-is-active aggregate across agents (single-shot)."},
-    {"name": "roles", "description": "11 semantic roles + active formula chain + per-formula outputs."},
+    {
+        "name": "roles",
+        "description": "11 semantic roles + active formula chain + per-formula outputs.",
+    },
     {"name": "scheduled", "description": "Cron-style scheduled formula dispatches."},
-    {"name": "search", "description": "Four-layer retrieval — memory, docs, tasks (semantic + keyword)."},
-    {"name": "sessions", "description": "Per-project agent presence (active / present / idle / offline / ended)."},
+    {
+        "name": "search",
+        "description": "Four-layer retrieval — memory, docs, tasks (semantic + keyword).",
+    },
+    {
+        "name": "sessions",
+        "description": "Per-project agent presence (active / present / idle / offline / ended).",
+    },
     {"name": "settings", "description": "Hub configuration — read + patch."},
-    {"name": "stream", "description": "Server-sent events: live tool/state changes + replayable history."},
+    {
+        "name": "stream",
+        "description": "Server-sent events: live tool/state changes + replayable history.",
+    },
 ]
 
 
@@ -112,10 +145,10 @@ def create_app() -> FastAPI:
     from web.routes.observability import router as observability_router
     from web.routes.presence import router as presence_router
     from web.routes.roles import router as roles_router
+    from web.routes.scheduled import router as scheduled_router
     from web.routes.search import router as search_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
-    from web.routes.scheduled import router as scheduled_router
     from web.routes.stream import router as stream_router
 
     app.include_router(health_router)
@@ -175,6 +208,7 @@ def create_app() -> FastAPI:
             # Default — hand control to the React SPA.
             return FileResponse(_SPA_DIST / "index.html")
     else:
+
         @app.get("/", response_class=HTMLResponse, include_in_schema=False)
         async def spa_not_built():
             return HTMLResponse(

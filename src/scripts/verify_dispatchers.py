@@ -24,16 +24,15 @@ NOTES:
     drift-detection layer that catches forgetfulness without changing the
     dispatch design. Same applies to Codex.
 """
+
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
 
 import yaml
-
-
-import json
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 REGISTRY = REPO_ROOT / "core" / "hooks" / "registry.yaml"
@@ -41,7 +40,7 @@ REGISTRY = REPO_ROOT / "core" / "hooks" / "registry.yaml"
 # The rendered settings/hooks file we compare against, keyed by adapter.
 RENDERED_TEMPLATE: dict[str, Path] = {
     "claude": REPO_ROOT / "adapters" / "claude" / "settings.template.json",
-    "codex":  REPO_ROOT / "adapters" / "codex"  / "hooks.template.json",
+    "codex": REPO_ROOT / "adapters" / "codex" / "hooks.template.json",
     "cursor": REPO_ROOT / "adapters" / "cursor" / "hooks.cursor.template.json",
 }
 
@@ -51,37 +50,64 @@ RENDERED_TEMPLATE: dict[str, Path] = {
 # whose matcher is `Bash` isn't flagged "missing" from the Write|Edit
 # dispatcher and vice versa.
 DISPATCHERS: dict[tuple[str, str, str], Path] = {
-    ("cursor", "SessionStart", "startup"):
-        REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-sessionstart-dispatch.sh",
-    ("cursor", "PreToolUse", "Bash"):
-        REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-pretool-dispatch.sh",
-    ("cursor", "PreToolUse", "Write|Edit"):
-        REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-pretool-write-dispatch.sh",
-    ("cursor", "PostToolUse", "Write|Edit"):
-        REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-posttool-write-dispatch.sh",
-    ("cursor", "Stop", ""):
-        REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-stop-dispatch.sh",
-    ("codex", "SessionStart", "startup"):
-        REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-sessionstart-dispatch.sh",
-    ("codex", "PreToolUse", "Bash"):
-        REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-pretool-dispatch.sh",
-    ("codex", "PostToolUse", "Bash"):
-        REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-posttool-dispatch.sh",
-    ("codex", "Stop", ""):
-        REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-stop-dispatch.sh",
-    ("codex", "UserPromptSubmit", ""):
-        REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-userpromptsubmit-dispatch.sh",
+    ("cursor", "SessionStart", "startup"): REPO_ROOT
+    / "adapters"
+    / "cursor"
+    / "hooks"
+    / "cursor-sessionstart-dispatch.sh",
+    ("cursor", "PreToolUse", "Bash"): REPO_ROOT
+    / "adapters"
+    / "cursor"
+    / "hooks"
+    / "cursor-pretool-dispatch.sh",
+    ("cursor", "PreToolUse", "Write|Edit"): REPO_ROOT
+    / "adapters"
+    / "cursor"
+    / "hooks"
+    / "cursor-pretool-write-dispatch.sh",
+    ("cursor", "PostToolUse", "Write|Edit"): REPO_ROOT
+    / "adapters"
+    / "cursor"
+    / "hooks"
+    / "cursor-posttool-write-dispatch.sh",
+    ("cursor", "Stop", ""): REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-stop-dispatch.sh",
+    ("codex", "SessionStart", "startup"): REPO_ROOT
+    / "adapters"
+    / "codex"
+    / "hooks"
+    / "codex-sessionstart-dispatch.sh",
+    ("codex", "PreToolUse", "Bash"): REPO_ROOT
+    / "adapters"
+    / "codex"
+    / "hooks"
+    / "codex-pretool-dispatch.sh",
+    ("codex", "PostToolUse", "Bash"): REPO_ROOT
+    / "adapters"
+    / "codex"
+    / "hooks"
+    / "codex-posttool-dispatch.sh",
+    ("codex", "Stop", ""): REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-stop-dispatch.sh",
+    ("codex", "UserPromptSubmit", ""): REPO_ROOT
+    / "adapters"
+    / "codex"
+    / "hooks"
+    / "codex-userpromptsubmit-dispatch.sh",
 }
 
 # Hooks the dispatcher cannot meaningfully delegate (their I/O contract is
 # specific to the adapter; or they're internal to the dispatcher pattern itself).
 DISPATCHER_INTERNAL = {
     # The dispatcher script names themselves — never expected to delegate to themselves.
-    "cursor-sessionstart-dispatch", "cursor-pretool-dispatch",
-    "cursor-pretool-write-dispatch", "cursor-posttool-write-dispatch",
-    "cursor-precompact-dispatch", "cursor-stop-dispatch",
-    "codex-sessionstart-dispatch", "codex-pretool-dispatch",
-    "codex-posttool-dispatch", "codex-stop-dispatch",
+    "cursor-sessionstart-dispatch",
+    "cursor-pretool-dispatch",
+    "cursor-pretool-write-dispatch",
+    "cursor-posttool-write-dispatch",
+    "cursor-precompact-dispatch",
+    "cursor-stop-dispatch",
+    "codex-sessionstart-dispatch",
+    "codex-pretool-dispatch",
+    "codex-posttool-dispatch",
+    "codex-stop-dispatch",
     "codex-userpromptsubmit-dispatch",
 }
 
@@ -103,7 +129,8 @@ def parse_delegate_list(script: Path) -> set[str]:
     text = script.read_text()
     m = re.search(
         r"for\s+delegate\s+in\s+(.*?);\s*do",
-        text, re.MULTILINE | re.DOTALL,
+        text,
+        re.MULTILINE | re.DOTALL,
     )
     if not m:
         return set()
@@ -112,10 +139,7 @@ def parse_delegate_list(script: Path) -> set[str]:
     body = body.replace("\\\n", " ").replace("\\", " ")
     parts = body.split()
     # Strip .sh suffix to compare with registry IDs; ignore empty tokens.
-    return {
-        (p[:-3] if p.endswith(".sh") else p)
-        for p in parts if p and p != "\\"
-    }
+    return {(p[:-3] if p.endswith(".sh") else p) for p in parts if p and p != "\\"}
 
 
 def adapter_hook_capabilities(adapter: str) -> dict[str, list[str]]:
@@ -148,7 +172,7 @@ def rendered_direct_hooks(adapter: str, event: str) -> set[str]:
     inline: set[str] = set()
     blocks = data.get("hooks", {}).get(event, []) or []
     for block in blocks:
-        for entry in (block.get("hooks") or []):
+        for entry in block.get("hooks") or []:
             cmd = entry.get("command") or ""
             # Strip the {{HOOKS_DIR}}/ template var and trailing .sh.
             stem = cmd.rsplit("/", 1)[-1]
@@ -165,7 +189,10 @@ def rendered_direct_hooks(adapter: str, event: str) -> set[str]:
 
 
 def expected_delegates(
-    adapter: str, event: str, matcher: str, registry: list[dict],
+    adapter: str,
+    event: str,
+    matcher: str,
+    registry: list[dict],
 ) -> set[str]:
     """Hooks that SHOULD be reachable from the dispatcher (or inline) for the
     (adapter, event, matcher) triple.
@@ -210,9 +237,7 @@ def main() -> int:
         # (e.g. block-secrets is in pretool-dispatch.sh which is Bash, but
         # also delegated by pretool-write-dispatch.sh which is Write|Edit)
         # are not surprising — they're defensive double-coverage.
-        sibling_matchers = {
-            m for (a, e, m) in DISPATCHERS if a == adapter and e == event
-        }
+        sibling_matchers = {m for (a, e, m) in DISPATCHERS if a == adapter and e == event}
         sibling_expected: set[str] = set()
         for sm in sibling_matchers:
             sibling_expected |= expected_delegates(adapter, event, sm, registry)
@@ -228,10 +253,12 @@ def main() -> int:
         print(f"  ✗ {label} ({script.name}):")
         if missing:
             print(f"      missing (neither delegated nor inline): {sorted(missing)}")
-            print( "      → add to the dispatcher's `for delegate in ...; do` list")
+            print("      → add to the dispatcher's `for delegate in ...; do` list")
         if unexpected:
-            print(f"      unexpected delegate (not in any sibling registry entry): {sorted(unexpected)}")
-            print( "      → remove from dispatcher OR add to registry")
+            print(
+                f"      unexpected delegate (not in any sibling registry entry): {sorted(unexpected)}"
+            )
+            print("      → remove from dispatcher OR add to registry")
 
     if drift_found:
         print()

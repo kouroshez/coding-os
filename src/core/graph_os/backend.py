@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Protocol, Sequence, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from .types import EvidenceSignal, GraphEdge, GraphNode
 
@@ -114,11 +115,7 @@ def _resolve_backend_choice(explicit: str | None) -> str:
     pinned consumer configs from before the 2026-05-18 Kuzu retirement
     keep working.
     """
-    chosen = (
-        explicit
-        or os.environ.get("COS_GRAPH_BACKEND")
-        or "auto"
-    ).strip().lower()
+    chosen = (explicit or os.environ.get("COS_GRAPH_BACKEND") or "auto").strip().lower()
     if chosen == "kuzu":
         # Log once per process — long-running Hub callers shouldn't
         # produce a line per request after the first.
@@ -128,9 +125,7 @@ def _resolve_backend_choice(explicit: str | None) -> str:
             _KUZU_COERCE_LOGGED = True
         chosen = "sqlite"
     if chosen not in _BACKEND_CHOICES:
-        raise ValueError(
-            f"graph backend must be one of {_BACKEND_CHOICES}; got {chosen!r}"
-        )
+        raise ValueError(f"graph backend must be one of {_BACKEND_CHOICES}; got {chosen!r}")
     return chosen
 
 
@@ -151,7 +146,8 @@ def get_backend(
     # caller is told to drop it before the next release removes the
     # tolerance entirely.
     if "kuzu_path" in extra:
-        import warnings  # noqa: PLC0415 — only needed on the deprecation path
+        import warnings
+
         warnings.warn(
             "get_backend(kuzu_path=…) is retired (Kuzu backend removed "
             "2026-05-18); the argument is ignored and will become a "
@@ -170,8 +166,9 @@ def get_backend(
     if cacheable:
         try:
             from thinking_os.database import resolve_db_path  # type: ignore
+
             cache_db_key = str(resolve_db_path())
-        except Exception:  # noqa: BLE001 — keep placeholder on failure
+        except Exception:
             pass
     cache_key = (choice, cache_db_key) if cacheable else None
     if cache_key is not None:
@@ -179,7 +176,7 @@ def get_backend(
         if cached is not None:
             return cached
 
-    from .backends.sqlite_backend import SqliteBackend  # noqa: PLC0415
+    from .backends.sqlite_backend import SqliteBackend
 
     new_backend = SqliteBackend(conn=sqlite_conn, **extra)
     _record_backend_probe(new_backend)
@@ -190,7 +187,8 @@ def get_backend(
 
 # Per-process cache of backend instances. Sized to one or two entries
 # in practice (default + maybe an explicit kuzu_path).
-_BACKEND_CACHE: dict[Any, "GraphBackend"] = {}
+_BACKEND_CACHE: dict[Any, GraphBackend] = {}
+
 
 def reset_backend_cache() -> None:
     """Drop the cached backend(s).
@@ -204,30 +202,30 @@ def reset_backend_cache() -> None:
         if callable(close):
             try:
                 close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("backend close suppressed: %s", exc)
 
 
-def _record_backend_probe(backend: "GraphBackend") -> None:
+def _record_backend_probe(backend: GraphBackend) -> None:
     """Write `.coding-os/.graph-backend.json` so doctor C19 can audit health.
 
     Fire-and-forget: any failure is swallowed (path missing, permission
     denied, etc.) — the probe is an observability aid, not load-bearing.
     """
     try:
-        from .enterprise import write_backend_probe  # noqa: WPS433
+        from .enterprise import write_backend_probe
 
         state_dir = os.environ.get("COS_STATE_DIR") or str(
             Path(os.environ.get("COS_PROJECT_ROOT", os.getcwd())) / ".coding-os"
         )
         write_backend_probe(state_dir, backend=backend.backend_id)
-    except Exception as exc:  # noqa: BLE001 — probe must not break backend boot
+    except Exception as exc:
         logger.debug("backend probe write skipped: %s", exc)
 
 
 __all__ = [
-    "GraphBackend",
     "BackendUnavailable",
+    "GraphBackend",
     "get_backend",
     "reset_backend_cache",
 ]

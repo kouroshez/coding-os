@@ -17,18 +17,18 @@ from __future__ import annotations
 import json
 import random
 import sqlite3
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db, get_db_stats, has_fts5_table
-from tools.learning import learn_extract, learn_suggest, learn_validate, generate_feedback_drafts
-from tools.memory import memory_search, memory_timeline, memory_details, memory_promote
-from tools.metrics import metric_record, metric_query, metric_trend
+from database import get_db_stats, has_fts5_table, init_db
+from tools.learning import generate_feedback_drafts, learn_extract, learn_suggest, learn_validate
+from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
+from tools.metrics import metric_query, metric_record, metric_trend
 from tools.routing import route_model, route_skill
 
 # ---------------------------------------------------------------------------
@@ -42,32 +42,55 @@ COMPLEXITIES = ["CLEAR", "CLEAR", "COMPLICATED", "COMPLICATED", "COMPLICATED", "
 MODELS = ["sonnet", "sonnet", "sonnet", "opus", "haiku"]
 AGENT_TYPES = ["general", "planner", "code-reviewer", "tdd-guide", "architect", "security-reviewer"]
 SKILLS = [
-    "python-django", "nextjs-react", "clean-code", "thinking_os",
-    "tailwind-design-system", "django-tdd", "postgres-patterns",
-    "bash-linux", "api-design-principles", "",
+    "python-django",
+    "nextjs-react",
+    "clean-code",
+    "thinking_os",
+    "tailwind-design-system",
+    "django-tdd",
+    "postgres-patterns",
+    "bash-linux",
+    "api-design-principles",
+    "",
 ]
 
 BACKEND_FILES = [
-    "backend/apps/products/models.py", "backend/apps/products/views.py",
-    "backend/apps/products/serializers.py", "backend/apps/products/services.py",
-    "backend/apps/orders/models.py", "backend/apps/orders/views.py",
-    "backend/apps/auth/views.py", "backend/apps/auth/services.py",
-    "backend/apps/payments/services.py", "backend/config/settings/base.py",
+    "backend/apps/products/models.py",
+    "backend/apps/products/views.py",
+    "backend/apps/products/serializers.py",
+    "backend/apps/products/services.py",
+    "backend/apps/orders/models.py",
+    "backend/apps/orders/views.py",
+    "backend/apps/auth/views.py",
+    "backend/apps/auth/services.py",
+    "backend/apps/payments/services.py",
+    "backend/config/settings/base.py",
 ]
 FRONTEND_FILES = [
-    "frontend/src/app/page.tsx", "frontend/src/app/layout.tsx",
-    "frontend/src/components/ProductCard.tsx", "frontend/src/components/Header.tsx",
-    "frontend/src/hooks/useCart.ts", "frontend/src/lib/api.ts",
-    "frontend/src/app/products/[slug]/page.tsx", "frontend/src/components/Footer.tsx",
+    "frontend/src/app/page.tsx",
+    "frontend/src/app/layout.tsx",
+    "frontend/src/components/ProductCard.tsx",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/hooks/useCart.ts",
+    "frontend/src/lib/api.ts",
+    "frontend/src/app/products/[slug]/page.tsx",
+    "frontend/src/components/Footer.tsx",
 ]
 INFRA_FILES = [
-    "core/scripts/task-done.sh", "core/scripts/task-start.sh",
-    "core/thinking_os/server.py", "core/thinking_os/database.py",
-    "Makefile", "docker-compose.yml", ".github/workflows/ci.yml",
+    "core/scripts/task-done.sh",
+    "core/scripts/task-start.sh",
+    "core/thinking_os/server.py",
+    "core/thinking_os/database.py",
+    "Makefile",
+    "docker-compose.yml",
+    ".github/workflows/ci.yml",
 ]
 DOC_FILES = [
-    "docs/PRD/01-overview.md", "docs/engineering/backend-rules.md",
-    "docs/playbooks/backend-api.md", "AGENTS.md", "docs/tasks.md",
+    "docs/PRD/01-overview.md",
+    "docs/engineering/backend-rules.md",
+    "docs/playbooks/backend-api.md",
+    "AGENTS.md",
+    "docs/tasks.md",
 ]
 
 DOMAIN_FILES = {
@@ -79,20 +102,32 @@ DOMAIN_FILES = {
 }
 
 OBSERVATION_TITLES = [
-    "Modified {file}", "Created {file}", "Refactored {file}",
-    "Fixed bug in {file}", "Added validation to {file}",
-    "Updated imports in {file}", "Added error handling to {file}",
+    "Modified {file}",
+    "Created {file}",
+    "Refactored {file}",
+    "Fixed bug in {file}",
+    "Added validation to {file}",
+    "Updated imports in {file}",
+    "Added error handling to {file}",
 ]
 
 CONCEPTS_POOL = [
-    ["django", "model", "orm"], ["django", "view", "api"],
-    ["react", "component", "hooks"], ["react", "ssr", "hydration"],
-    ["auth", "security", "jwt"], ["payment", "stripe", "webhook"],
-    ["testing", "pytest", "coverage"], ["migration", "schema", "sql"],
-    ["docker", "deploy", "ci"], ["docs", "governance", "ssot"],
-    ["tailwind", "design", "responsive"], ["celery", "async", "queue"],
-    ["error-handling", "exception", "logging"], ["performance", "cache", "query"],
-    ["typescript", "types", "interface"], ["nextjs", "routing", "metadata"],
+    ["django", "model", "orm"],
+    ["django", "view", "api"],
+    ["react", "component", "hooks"],
+    ["react", "ssr", "hydration"],
+    ["auth", "security", "jwt"],
+    ["payment", "stripe", "webhook"],
+    ["testing", "pytest", "coverage"],
+    ["migration", "schema", "sql"],
+    ["docker", "deploy", "ci"],
+    ["docs", "governance", "ssot"],
+    ["tailwind", "design", "responsive"],
+    ["celery", "async", "queue"],
+    ["error-handling", "exception", "logging"],
+    ["performance", "cache", "query"],
+    ["typescript", "types", "interface"],
+    ["nextjs", "routing", "metadata"],
 ]
 
 # 20 persona descriptions for realistic narratives
@@ -124,10 +159,13 @@ PERSONAS = [
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _random_date(start_days_ago: int = 180, end_days_ago: int = 0) -> str:
     """Random ISO datetime within range."""
     delta = random.randint(end_days_ago, start_days_ago)
-    dt = datetime.now() - timedelta(days=delta, hours=random.randint(0, 23), minutes=random.randint(0, 59))
+    dt = datetime.now() - timedelta(
+        days=delta, hours=random.randint(0, 23), minutes=random.randint(0, 59)
+    )
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -138,6 +176,7 @@ def _random_session_id() -> str:
 # ---------------------------------------------------------------------------
 # Seed functions
 # ---------------------------------------------------------------------------
+
 
 def seed_task_outcomes(conn: sqlite3.Connection, count: int = 200) -> list[str]:
     """Seed task_outcomes with realistic distribution."""
@@ -153,7 +192,9 @@ def seed_task_outcomes(conn: sqlite3.Connection, count: int = 200) -> list[str]:
         if domain == "BACKEND":
             outcome = random.choice(["success", "success", "rework", "rework", "rework", "partial"])
         elif domain == "FRONTEND":
-            outcome = random.choice(["success", "success", "success", "rework", "partial", "partial"])
+            outcome = random.choice(
+                ["success", "success", "success", "rework", "partial", "partial"]
+            )
         else:
             outcome = random.choice(OUTCOMES)
 
@@ -166,8 +207,17 @@ def seed_task_outcomes(conn: sqlite3.Connection, count: int = 200) -> list[str]:
             "INSERT OR REPLACE INTO task_outcomes "
             "(task_id, type, domain, complexity, dimensions, outcome, model, skills_used, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (task_id, task_type, domain, complexity, dims.get(complexity, 1),
-             outcome, model, skills, created),
+            (
+                task_id,
+                task_type,
+                domain,
+                complexity,
+                dims.get(complexity, 1),
+                outcome,
+                model,
+                skills,
+                created,
+            ),
         )
         task_ids.append(task_id)
 
@@ -195,8 +245,11 @@ def seed_observations(conn: sqlite3.Connection, count: int = 500) -> int:
         created = _random_date()
 
         memory_type_map = {
-            "BACKEND": "pattern", "FRONTEND": "pattern",
-            "INFRA": "workflow", "DOCS": "config", "TEST": "pattern",
+            "BACKEND": "pattern",
+            "FRONTEND": "pattern",
+            "INFRA": "workflow",
+            "DOCS": "config",
+            "TEST": "pattern",
         }
 
         conn.execute(
@@ -204,8 +257,19 @@ def seed_observations(conn: sqlite3.Connection, count: int = 500) -> int:
             "(session_id, tool_name, observation_type, memory_type, impact_score, "
             "title, narrative, concepts, files_modified, cost_tokens, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (session, tool, tool.lower(), memory_type_map[domain], impact,
-             title, narrative, concepts, file_path, cost, created),
+            (
+                session,
+                tool,
+                tool.lower(),
+                memory_type_map[domain],
+                impact,
+                title,
+                narrative,
+                concepts,
+                file_path,
+                cost,
+                created,
+            ),
         )
         inserted += 1
 
@@ -247,13 +311,16 @@ def seed_sessions(conn: sqlite3.Connection, count: int = 30) -> int:
             "INSERT INTO session_summaries "
             "(session_id, task_id, request, investigated, learned, completed, next_steps, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (session_id, task_id,
-             random.choice(PERSONAS),
-             f"Explored {random.choice(DOMAINS).lower()} domain files",
-             f"Discovered {random.choice(['performance issue', 'missing validation', 'dead code', 'naming inconsistency'])}",
-             f"Fixed {random.randint(1, 5)} issues in {random.choice(DOMAINS).lower()}",
-             f"Continue with {random.choice(['testing', 'refactoring', 'documentation', 'deployment'])}",
-             created),
+            (
+                session_id,
+                task_id,
+                random.choice(PERSONAS),
+                f"Explored {random.choice(DOMAINS).lower()} domain files",
+                f"Discovered {random.choice(['performance issue', 'missing validation', 'dead code', 'naming inconsistency'])}",
+                f"Fixed {random.randint(1, 5)} issues in {random.choice(DOMAINS).lower()}",
+                f"Continue with {random.choice(['testing', 'refactoring', 'documentation', 'deployment'])}",
+                created,
+            ),
         )
 
     conn.commit()
@@ -285,11 +352,14 @@ def seed_experiments(conn: sqlite3.Connection, count: int = 20) -> int:
             "INSERT INTO experiment_log "
             "(task_id, hypothesis, test_description, outcome, learning, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?)",
-            (task_id, hypothesis,
-             f"Tested over {random.randint(5, 20)} tasks",
-             outcome,
-             f"{'Pattern validated' if outcome == 'confirmed' else 'Need more data'}",
-             created),
+            (
+                task_id,
+                hypothesis,
+                f"Tested over {random.randint(5, 20)} tasks",
+                outcome,
+                f"{'Pattern validated' if outcome == 'confirmed' else 'Need more data'}",
+                created,
+            ),
         )
 
     conn.commit()
@@ -299,6 +369,7 @@ def seed_experiments(conn: sqlite3.Connection, count: int = 20) -> int:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def seeded_conn(tmp_path: Path) -> sqlite3.Connection:
@@ -320,6 +391,7 @@ def seeded_conn(tmp_path: Path) -> sqlite3.Connection:
 # Tests — Full learning cycle verification
 # ---------------------------------------------------------------------------
 
+
 class TestSeedHealth:
     """Verify seeded DB is healthy."""
 
@@ -334,13 +406,12 @@ class TestSeedHealth:
     def test_fts5_indexed(self, seeded_conn: sqlite3.Connection):
         if not has_fts5_table(seeded_conn):
             pytest.skip("FTS5 not available")
-        count = seeded_conn.execute(
-            "SELECT COUNT(*) FROM observations_fts"
-        ).fetchone()[0]
+        count = seeded_conn.execute("SELECT COUNT(*) FROM observations_fts").fetchone()[0]
         assert count == 500
 
     def test_schema_version(self, seeded_conn: sqlite3.Connection):
         from database import MIGRATIONS, get_schema_version
+
         # Tracks the latest applied migration — currently v5 (Phase B RAG).
         assert get_schema_version(seeded_conn) == len(MIGRATIONS)
 
@@ -411,8 +482,9 @@ class TestLearningCycle:
         # Compare first half average vs second half average
         first_half = sum(boosts[:5]) / 5
         second_half = sum(boosts[5:]) / 5
-        assert second_half <= first_half + 0.01, \
+        assert second_half <= first_half + 0.01, (
             f"Second half avg ({second_half:.4f}) should be <= first half ({first_half:.4f})"
+        )
 
     def test_confidence_never_exceeds_095(self, seeded_conn: sqlite3.Connection):
         learn_extract(seeded_conn, min_occurrences=3)
@@ -535,21 +607,27 @@ class TestPromote:
             pytest.skip("No patterns to promote")
         pid = suggestions[0]["id"]
         result = memory_promote(
-            seeded_conn, pattern_id=pid, target="feedback",
+            seeded_conn,
+            pattern_id=pid,
+            target="feedback",
             memory_dir=str(Path(__file__).parent / "tmp_memory"),
         )
         assert "error" not in result or "too low" not in result.get("error", "")
 
     def test_promote_nonexistent(self, seeded_conn: sqlite3.Connection):
         result = memory_promote(
-            seeded_conn, pattern_id=99999, target="feedback",
+            seeded_conn,
+            pattern_id=99999,
+            target="feedback",
             memory_dir="/tmp/test_memory",
         )
         assert "error" in result
 
     def test_promote_invalid_target(self, seeded_conn: sqlite3.Connection):
         result = memory_promote(
-            seeded_conn, pattern_id=1, target="invalid",
+            seeded_conn,
+            pattern_id=1,
+            target="invalid",
             memory_dir="/tmp/test_memory",
         )
         assert "error" in result
@@ -579,7 +657,9 @@ class TestMetrics:
         assert result["total"] > 0
 
     def test_trend_by_domain(self, seeded_conn: sqlite3.Connection):
-        result = metric_trend(seeded_conn, metric="success_rate", group_by="domain", window_days=365)
+        result = metric_trend(
+            seeded_conn, metric="success_rate", group_by="domain", window_days=365
+        )
         assert len(result["trends"]) > 0
 
     def test_trend_by_model(self, seeded_conn: sqlite3.Connection):
@@ -638,10 +718,28 @@ class TestMultiPersona:
     @pytest.mark.parametrize("persona_idx", range(20))
     def test_persona_workflow(self, seeded_conn: sqlite3.Connection, persona_idx: int):
         """Each persona: search → get suggestions → record metric → validate."""
-        domain = ["BACKEND", "FRONTEND", "INFRA", "DOCS", "BACKEND",
-                  "TEST", "BACKEND", "INFRA", "BACKEND", "FRONTEND",
-                  "BACKEND", "BACKEND", "BACKEND", "INFRA", "BACKEND",
-                  "FRONTEND", "INFRA", "BACKEND", "FRONTEND", "BACKEND"][persona_idx]
+        domain = [
+            "BACKEND",
+            "FRONTEND",
+            "INFRA",
+            "DOCS",
+            "BACKEND",
+            "TEST",
+            "BACKEND",
+            "INFRA",
+            "BACKEND",
+            "FRONTEND",
+            "BACKEND",
+            "BACKEND",
+            "BACKEND",
+            "INFRA",
+            "BACKEND",
+            "FRONTEND",
+            "INFRA",
+            "BACKEND",
+            "FRONTEND",
+            "BACKEND",
+        ][persona_idx]
         complexity = COMPLEXITIES[persona_idx % len(COMPLEXITIES)]
 
         # 1. Search for relevant patterns
@@ -710,7 +808,9 @@ class TestEdgeCases:
         conn.commit()
         result = learn_extract(conn, min_occurrences=2)
         # No rework patterns because everything succeeded
-        rework_patterns = [p for p in result.get("extracted", []) if "rework" in p.get("pattern", "")]
+        rework_patterns = [
+            p for p in result.get("extracted", []) if "rework" in p.get("pattern", "")
+        ]
         assert len(rework_patterns) == 0
         conn.close()
 
@@ -767,9 +867,7 @@ class TestEdgeCases:
 
     def test_null_fields(self, seeded_conn: sqlite3.Connection):
         """Records with NULL fields should not crash tools."""
-        seeded_conn.execute(
-            "INSERT INTO observations (title) VALUES (?)", ("Minimal observation",)
-        )
+        seeded_conn.execute("INSERT INTO observations (title) VALUES (?)", ("Minimal observation",))
         seeded_conn.commit()
         result = memory_search(seeded_conn, query="Minimal")
         assert "results" in result

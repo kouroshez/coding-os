@@ -67,9 +67,7 @@ def clone_github(
     clone_url = url.rstrip("/")
     if auth:
         # Token-embedded URL — never logged.
-        clone_url = re.sub(
-            r"^https://", f"https://{auth}@", clone_url
-        )
+        clone_url = re.sub(r"^https://", f"https://{auth}@", clone_url)
     # Private repos return `fatal: could not read Username for ...` when
     # anonymous. We refuse eagerly when `auth` is not provided and the
     # URL suggests a non-public path; heuristic is best-effort.
@@ -90,15 +88,11 @@ def clone_github(
             capture_output=True,
         )
     except subprocess.TimeoutExpired as exc:
-        raise IngestError(
-            f"clone timed out after {size.timeout_seconds}s"
-        ) from exc
+        raise IngestError(f"clone timed out after {size.timeout_seconds}s") from exc
     except subprocess.CalledProcessError as exc:
         msg = (exc.stderr or b"").decode("utf-8", "replace")
         if "could not read Username" in msg and auth is None:
-            raise IngestError(
-                "private repo requires --auth flag (token)"
-            ) from exc
+            raise IngestError("private repo requires --auth flag (token)") from exc
         raise IngestError(f"git clone failed: {msg.strip()}") from exc
     except FileNotFoundError as exc:
         raise IngestError("git executable not found on PATH") from exc
@@ -115,4 +109,4 @@ def _scrub(url: str) -> str:
     return re.sub(r"https://[^@]+@", "https://<auth>@", url)
 
 
-__all__ = ["clone_github", "GithubSize", "DEFAULT_CLONE_DIR"]
+__all__ = ["DEFAULT_CLONE_DIR", "GithubSize", "clone_github"]

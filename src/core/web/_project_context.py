@@ -1,4 +1,5 @@
 """core.web._project_context — per-request project scope."""
+
 from __future__ import annotations
 
 import os
@@ -19,7 +20,8 @@ if str(_REPO_ROOT) not in sys.path:
 
 
 _current_project: ContextVar[Path | None] = ContextVar(
-    "cos_current_project", default=None,
+    "cos_current_project",
+    default=None,
 )
 
 
@@ -50,6 +52,7 @@ def current_db_path() -> Path:
     is auto-renamed by `migrate_legacy_db_filename()` on first init_db().
     """
     from thinking_os.database import resolve_db_path  # type: ignore
+
     bound = _current_project.get()
     if bound is not None:
         return resolve_db_path(bound)
@@ -82,7 +85,8 @@ class ProjectScopeMiddleware(BaseHTTPMiddleware):
             # backend singletons (graph_os.tools.graph._BACKEND_SINGLETON,
             # graph_os.backend._BACKEND_CACHE) keep serving whichever
             # project opened first.
-            from thinking_os.database import set_active_project_root, reset_active_project_root
+            from thinking_os.database import reset_active_project_root, set_active_project_root
+
             db_token = set_active_project_root(project_root)
             new_path = "/api/" + rest if rest else "/api/"
             request.scope["path"] = new_path
@@ -99,8 +103,9 @@ def _resolve_slug(slug: str) -> Path | None:
     """Look up a slug → absolute path via the global registry."""
     try:
         from cli.registry import load_registry  # type: ignore
+
         reg = load_registry()
-    except Exception:  # noqa: BLE001 — registry optional, fall through to cwd
+    except Exception:
         reg = None
     if reg is not None:
         for entry in reg.projects:
@@ -119,11 +124,14 @@ def _resolve_slug(slug: str) -> Path | None:
     cwd_slug = cwd.name.lower().strip() or "project"
     try:
         from cli.registry import _derive_slug  # type: ignore
+
         cwd_slug = _derive_slug(cwd)
-    except Exception as exc:  # noqa: BLE001 — slug is UX; fall through
+    except Exception as exc:
         import logging as _logging
+
         _logging.getLogger("coding_os.web.context").debug(
-            "cli.registry._derive_slug unavailable: %s", exc,
+            "cli.registry._derive_slug unavailable: %s",
+            exc,
         )
     if cwd_slug == slug.lower().strip():
         return cwd

@@ -16,47 +16,47 @@ from pathlib import Path
 from typing import Any
 
 _logger = logging.getLogger(__name__)
-_MAX_FILE_BYTES = 5 * 1024 * 1024   # 5 MB → rotate
+_MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB → rotate
 _TRACE_SUBDIR = "traces"
 
 # Canonical flowchart-node mapping. Keep in sync with V1.html `data-role` IDs.
 # Any `kind` emitted by the system must map to a flowchart node so replay works.
 FLOWCHART_NODES: dict[str, str] = {
     # Entry lifecycle
-    "session_init":         "n-sinit",
-    "gate_recorded":        "n-gate",
+    "session_init": "n-sinit",
+    "gate_recorded": "n-gate",
     # Cognition layer
-    "analyze_start":        "n-analyzer",
-    "analyze_done":         "n-analyzer",
-    "compose_done":         "n-router",
-    "situation_override":   "n-router",
-    "preset_matched":       "n-router",
-    "composer_fallback":    "n-router",
-    "hard_fallback":        "n-router",
+    "analyze_start": "n-analyzer",
+    "analyze_done": "n-analyzer",
+    "compose_done": "n-router",
+    "situation_override": "n-router",
+    "preset_matched": "n-router",
+    "composer_fallback": "n-router",
+    "hard_fallback": "n-router",
     # Supervisor
-    "supervise_action":     "n-supervisor",
-    "role_dispatch":        "n-supervisor",
+    "supervise_action": "n-supervisor",
+    "role_dispatch": "n-supervisor",
     "role_output_recorded": "n-supervisor",
-    "parallel_dispatch":    "n-supervisor",
+    "parallel_dispatch": "n-supervisor",
     # Dispatcher (real SDK execution, not just supervisor decision)
-    "dispatch_started":     "n-supervisor",
-    "dispatch_completed":   "n-supervisor",
+    "dispatch_started": "n-supervisor",
+    "dispatch_completed": "n-supervisor",
     # Gates
-    "ambiguity_check":      "n-ambi",
-    "ambiguity_violation":  "n-ambi",
-    "traceability_check":   "n-trace",
+    "ambiguity_check": "n-ambi",
+    "ambiguity_violation": "n-ambi",
+    "traceability_check": "n-trace",
     # Loops
-    "backtrack":            "n-supervisor",
-    "discovery":            "n-supervisor",
-    "anti_paralysis_warn":  "n-supervisor",
+    "backtrack": "n-supervisor",
+    "discovery": "n-supervisor",
+    "anti_paralysis_warn": "n-supervisor",
     # Execution
-    "implementation":       "n-impl",
-    "verification":         "n-verify",
+    "implementation": "n-impl",
+    "verification": "n-verify",
     # Close
-    "task_done":            "n-done",
-    "session_end":          "n-end",
+    "task_done": "n-done",
+    "session_end": "n-end",
     # Errors
-    "error":                "n-supervisor",
+    "error": "n-supervisor",
 }
 
 
@@ -68,6 +68,7 @@ def _trace_dir(agent_dir: Path | None = None) -> Path:
     """
     if agent_dir is None:
         import os as _os
+
         explicit = _os.environ.get("COS_AGENT_DIR")
         if explicit:
             agent_dir = Path(explicit)
@@ -125,7 +126,7 @@ def emit(
         line = json.dumps(event, separators=(",", ":"), default=str) + "\n"
         _append_locked(path, line)
         return event
-    except Exception as exc:   # pragma: no cover — tracing must never break callers
+    except Exception as exc:  # pragma: no cover — tracing must never break callers
         os.write(2, f"[tracing] failed kind={kind} exc={exc}\n".encode())
         return {"kind": kind, "error": str(exc)}
 
@@ -134,6 +135,7 @@ def _append_locked(path: Path, line: str) -> None:
     """Flock-safe append. Each write gets its own lock for multi-agent safety."""
     try:
         import fcntl
+
         with open(path, "a", encoding="utf-8") as fh:
             try:
                 fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
@@ -210,7 +212,7 @@ def summarize(session_id: str, agent_dir: Path | None = None) -> dict[str, Any]:
         elif k == "discovery":
             discoveries += 1
         elif k == "ambiguity_violation":
-            violations.append(f"{data.get('formula','?')}/{data.get('criterion','?')}")
+            violations.append(f"{data.get('formula', '?')}/{data.get('criterion', '?')}")
 
     return {
         "session_id": session_id,

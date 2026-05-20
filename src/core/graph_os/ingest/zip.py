@@ -56,23 +56,16 @@ def extract_zip(
             compressed_total += member.compress_size
             uncompressed_total += member.file_size
             if uncompressed_total > size.max_size_bytes:
-                raise IngestError(
-                    f"uncompressed size exceeds {size.max_size_bytes} bytes"
-                )
+                raise IngestError(f"uncompressed size exceeds {size.max_size_bytes} bytes")
             if (
                 member.compress_size
-                and (member.file_size / max(member.compress_size, 1))
-                > size.max_compression_ratio
+                and (member.file_size / max(member.compress_size, 1)) > size.max_compression_ratio
             ):
-                raise IngestError(
-                    f"suspicious compression ratio on {member.filename!r}"
-                )
+                raise IngestError(f"suspicious compression ratio on {member.filename!r}")
             # Reject path traversal.
             member_path = Path(member.filename)
             if member_path.is_absolute() or ".." in member_path.parts:
-                raise IngestError(
-                    f"zip traversal blocked: {member.filename!r}"
-                )
+                raise IngestError(f"zip traversal blocked: {member.filename!r}")
         zf.extractall(target_root)
     finally:
         zf.close()
@@ -99,4 +92,4 @@ def extract_zip(
     )
 
 
-__all__ = ["extract_zip", "ZipSize"]
+__all__ = ["ZipSize", "extract_zip"]

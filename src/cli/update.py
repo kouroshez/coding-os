@@ -86,6 +86,7 @@ class AssetRef:
     `rel_link` is the project-relative path where the symlink lives.
     `source_path` is the absolute path in CODING_OS_ROOT that it targets.
     """
+
     name: str
     rel_link: str
     source_path: Path
@@ -109,23 +110,20 @@ class ManifestDiff:
 def _load_config(project: Path) -> dict:
     path = project / CONFIG_FILE
     if not path.exists():
-        raise click.ClickException(
-            f"Not a coding-os project ({CONFIG_FILE} missing in {project})"
-        )
+        raise click.ClickException(f"Not a coding-os project ({CONFIG_FILE} missing in {project})")
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def _load_adapter(agent: str):
     from cli.adapter_registry import load_adapter_registry
+
     adapters = load_adapter_registry(CODING_OS_ROOT / "src" / "adapters")
     if agent not in adapters:
         raise click.ClickException(f"adapter '{agent}' not in registry")
     return adapters[agent]
 
 
-def _build_target_assets(
-    agent: str, templates: list[str]
-) -> dict[str, list[AssetRef]]:
+def _build_target_assets(agent: str, templates: list[str]) -> dict[str, list[AssetRef]]:
     """Enumerate every symlink we expect to exist for this install."""
     adapter = _load_adapter(agent)
     result: dict[str, list[AssetRef]] = {
@@ -139,21 +137,25 @@ def _build_target_assets(
     hooks_dir_rel = adapter.hooks_dir
     if hooks_dir_rel:
         for hook in sorted((CORE_DIR / "hooks").glob("*.sh")):
-            result["hooks"].append(AssetRef(
-                name=hook.name,
-                rel_link=f"{hooks_dir_rel}/{hook.name}",
-                source_path=hook,
-            ))
+            result["hooks"].append(
+                AssetRef(
+                    name=hook.name,
+                    rel_link=f"{hooks_dir_rel}/{hook.name}",
+                    source_path=hook,
+                )
+            )
 
     # Rules — only when adapter supports them.
     rules_dir_rel = adapter.rules_dir
     if rules_dir_rel:
         for rule in sorted((CORE_DIR / "rules").glob("*.md")):
-            result["rules"].append(AssetRef(
-                name=rule.name,
-                rel_link=f"{rules_dir_rel}/{rule.name}",
-                source_path=rule,
-            ))
+            result["rules"].append(
+                AssetRef(
+                    name=rule.name,
+                    rel_link=f"{rules_dir_rel}/{rule.name}",
+                    source_path=rule,
+                )
+            )
 
     # Core skills.
     skills_dir_rel = adapter.skills_dir
@@ -164,11 +166,13 @@ def _build_target_assets(
             skill_md = skill_dir / "SKILL.md"
             if not skill_md.exists():
                 continue
-            result["skills"].append(AssetRef(
-                name=skill_dir.name,
-                rel_link=f"{skills_dir_rel}/{skill_dir.name}/SKILL.md",
-                source_path=skill_md,
-            ))
+            result["skills"].append(
+                AssetRef(
+                    name=skill_dir.name,
+                    rel_link=f"{skills_dir_rel}/{skill_dir.name}/SKILL.md",
+                    source_path=skill_md,
+                )
+            )
         # Stack skills.
         for stack in templates:
             stack_skills = TEMPLATES_DIR / stack / "skills"
@@ -180,11 +184,13 @@ def _build_target_assets(
                 skill_md = skill_dir / "SKILL.md"
                 if not skill_md.exists():
                     continue
-                result["skills"].append(AssetRef(
-                    name=skill_dir.name,
-                    rel_link=f"{skills_dir_rel}/{skill_dir.name}/SKILL.md",
-                    source_path=skill_md,
-                ))
+                result["skills"].append(
+                    AssetRef(
+                        name=skill_dir.name,
+                        rel_link=f"{skills_dir_rel}/{skill_dir.name}/SKILL.md",
+                        source_path=skill_md,
+                    )
+                )
 
     # Commands — adapters that declare commands_dir in adapter.yaml.
     # Adapters merging commands into a single instructions file leave
@@ -194,11 +200,13 @@ def _build_target_assets(
         commands_src = CORE_DIR / "commands"
         if commands_src.exists():
             for cmd in sorted(commands_src.glob("*.md")):
-                result["commands"].append(AssetRef(
-                    name=cmd.name,
-                    rel_link=f"{commands_dir_rel}/{cmd.name}",
-                    source_path=cmd,
-                ))
+                result["commands"].append(
+                    AssetRef(
+                        name=cmd.name,
+                        rel_link=f"{commands_dir_rel}/{cmd.name}",
+                        source_path=cmd,
+                    )
+                )
         # Phase N role-agent slash commands installed by install-adapter.sh §8.
         # Each semantic agent (researcher.md, analyst.md, …) is exposed as
         # /role-<name>. README.md is excluded (catalog, not a role).
@@ -208,11 +216,13 @@ def _build_target_assets(
                 if agent.name == "README.md":
                     continue
                 role = agent.stem
-                result["commands"].append(AssetRef(
-                    name=f"role-{role}.md",
-                    rel_link=f"{commands_dir_rel}/role-{role}.md",
-                    source_path=agent,
-                ))
+                result["commands"].append(
+                    AssetRef(
+                        name=f"role-{role}.md",
+                        rel_link=f"{commands_dir_rel}/role-{role}.md",
+                        source_path=agent,
+                    )
+                )
 
     return result
 
@@ -265,22 +275,15 @@ def _scan_project_assets(
 # ---------------------------------------------------------------------------
 
 
-def _compute_diff(
-    target: dict[str, list[AssetRef]], present: dict[str, list[str]]
-) -> ManifestDiff:
+def _compute_diff(target: dict[str, list[AssetRef]], present: dict[str, list[str]]) -> ManifestDiff:
     diff = ManifestDiff()
     # For "skills", we compare skill_dir names; for others, file names.
     for cat, targets in target.items():
         current_names = set(present.get(cat, []))
-        target_keys = {
-            t.name if cat != "skills" else t.name: t for t in targets
-        }
+        target_keys = {t.name if cat != "skills" else t.name: t for t in targets}
         # We need the skill-dir-name mapping: since rel_link for skill is
         # <dir>/<skill_name>/SKILL.md, the presence list stores <skill_name>.
-        added = [
-            t for key, t in target_keys.items()
-            if key not in current_names
-        ]
+        added = [t for key, t in target_keys.items() if key not in current_names]
         if added:
             diff.added[cat] = added
         removed = [n for n in current_names if n not in target_keys]
@@ -333,10 +336,12 @@ def _run_db_migrations(project: Path) -> None:
         return
     import subprocess
     import sys
+
     brain = CORE_DIR / "thinking_os"
     subprocess.run(
         [
-            sys.executable, "-c",
+            sys.executable,
+            "-c",
             f"import sys; sys.path.insert(0, {str(brain)!r}); "
             f"from database import init_db; init_db({str(db)!r})",
         ],
@@ -346,7 +351,9 @@ def _run_db_migrations(project: Path) -> None:
 
 
 def _write_installed_manifest(
-    project: Path, agent: str, templates: list[str],
+    project: Path,
+    agent: str,
+    templates: list[str],
     target: dict[str, list[AssetRef]],
 ) -> Path:
     manifest = {
@@ -354,10 +361,7 @@ def _write_installed_manifest(
         "installed_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
         "agent": agent,
         "templates": templates,
-        "linked_assets": {
-            cat: [a.name for a in items]
-            for cat, items in target.items()
-        },
+        "linked_assets": {cat: [a.name for a in items] for cat, items in target.items()},
     }
     state = project / STATE_DIR
     state.mkdir(parents=True, exist_ok=True)
@@ -423,7 +427,9 @@ def update(
     for agent in agents:
         target = _build_target_assets(agent, templates)
         present = _scan_project_assets(
-            project, list(target.keys()), agent,
+            project,
+            list(target.keys()),
+            agent,
         )
         diff = _compute_diff(target, present)
 
@@ -460,18 +466,23 @@ def update(
                 if ensure_agents_md(project, world):
                     click.echo("  Generated missing AGENTS.md")
                     overall_changes = True
-            except Exception as exc:  # noqa: BLE001 — update must not abort on cosmetic step
+            except Exception as exc:
                 click.echo(f"  WARN: could not generate AGENTS.md ({exc})", err=True)
 
         _run_db_migrations(project)
 
     if output_format == "json":
-        click.echo(json.dumps({
-            "project": str(project),
-            "dry_run": dry_run,
-            "changes": overall_changes,
-            "per_agent": applied_summary,
-        }, indent=2))
+        click.echo(
+            json.dumps(
+                {
+                    "project": str(project),
+                    "dry_run": dry_run,
+                    "changes": overall_changes,
+                    "per_agent": applied_summary,
+                },
+                indent=2,
+            )
+        )
     else:
         if dry_run:
             click.echo("\n(dry run — nothing applied)")

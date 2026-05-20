@@ -47,7 +47,7 @@ def _tree_sitter_imports_active() -> bool:
         from ..tree_sitter_overlay import _load_language
 
         return _load_language("python") is not None
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
 
 
@@ -63,7 +63,7 @@ def _imports_via_tree_sitter(content: str) -> list[_ImportDecl] | None:
         prepend the dot count to source_module to match ast semantics.
     """
     try:
-        from ..tree_sitter_overlay import parse, node_text
+        from ..tree_sitter_overlay import node_text, parse
     except ImportError:
         return None
 
@@ -147,10 +147,7 @@ def _emit_import_from(node, content_bytes: bytes, out: list[_ImportDecl]) -> Non
     # Wildcard import: the body is a `*` token, no aliased_import children.
     is_wildcard = any(
         getattr(c, "type", None) == "wildcard_import"
-        or (
-            getattr(c, "type", None) == "*"
-            and getattr(c, "is_named", True) is False
-        )
+        or (getattr(c, "type", None) == "*" and getattr(c, "is_named", True) is False)
         for c in node.children
     )
     if is_wildcard:
@@ -200,10 +197,8 @@ def _emit_import_from(node, content_bytes: bytes, out: list[_ImportDecl]) -> Non
 
 def _node_text(node, content_bytes: bytes) -> str:
     try:
-        return content_bytes[node.start_byte:node.end_byte].decode(
-            "utf-8", errors="replace"
-        )
-    except Exception:  # noqa: BLE001
+        return content_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
+    except Exception:
         return ""
 
 
@@ -263,7 +258,8 @@ def _heritage_via_tree_sitter(
             if superclasses is not None:
                 for child in superclasses.children:
                     if getattr(child, "type", None) in (
-                        "identifier", "attribute",
+                        "identifier",
+                        "attribute",
                     ):
                         base_name = _node_text(child, content_bytes)
                         if base_name:
@@ -287,11 +283,14 @@ def _heritage_via_tree_sitter(
             fn_name = _node_text(name_node, content_bytes)
             new_qual = qual_stack + [fn_name]
             qualname = ".".join(new_qual)
-            in_class = (
-                scope_uid is not None and scope_uid.startswith("code:class:")
-            )
-            uid = method_uid(path, qualname) if in_class else function_uid(
-                path, qualname,
+            in_class = scope_uid is not None and scope_uid.startswith("code:class:")
+            uid = (
+                method_uid(path, qualname)
+                if in_class
+                else function_uid(
+                    path,
+                    qualname,
+                )
             )
 
             for dec_name in _decorator_names(node, content_bytes):
@@ -462,7 +461,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
         _promote_stubs(result)
         return result
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
         emit_contains_spine(
             file_path=path,
@@ -569,9 +568,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         result.edges.append(
             GraphEdge(
                 source_uid=subclass_uid,
-                target_uid=_resolve_symbol(
-                    base_name, path=normalised, visitor=visitor
-                ),
+                target_uid=_resolve_symbol(base_name, path=normalised, visitor=visitor),
                 edge_type="inherits_from",
                 extractor=heritage_extractor_id,
                 confidence=_inherit_confidence(base_name, visitor),
@@ -585,9 +582,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         result.edges.append(
             GraphEdge(
                 source_uid=fn_uid,
-                target_uid=_resolve_symbol(
-                    type_name, path=normalised, visitor=visitor
-                ),
+                target_uid=_resolve_symbol(type_name, path=normalised, visitor=visitor),
                 edge_type="has_param_type",
                 extractor=EXTRACTOR_ID,
                 confidence=_annotation_confidence(type_name, visitor),
@@ -599,9 +594,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         result.edges.append(
             GraphEdge(
                 source_uid=fn_uid,
-                target_uid=_resolve_symbol(
-                    type_name, path=normalised, visitor=visitor
-                ),
+                target_uid=_resolve_symbol(type_name, path=normalised, visitor=visitor),
                 edge_type="returns_type",
                 extractor=EXTRACTOR_ID,
                 confidence=_annotation_confidence(type_name, visitor),
@@ -613,9 +606,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         result.edges.append(
             GraphEdge(
                 source_uid=field_stub,
-                target_uid=_resolve_symbol(
-                    type_name, path=normalised, visitor=visitor
-                ),
+                target_uid=_resolve_symbol(type_name, path=normalised, visitor=visitor),
                 edge_type="field_of_type",
                 extractor=EXTRACTOR_ID,
                 confidence=_annotation_confidence(type_name, visitor),
@@ -634,9 +625,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         result.edges.append(
             GraphEdge(
                 source_uid=decorated_uid,
-                target_uid=_resolve_symbol(
-                    dec_name, path=normalised, visitor=visitor
-                ),
+                target_uid=_resolve_symbol(dec_name, path=normalised, visitor=visitor),
                 edge_type="is_decorated_by",
                 extractor=heritage_extractor_id,
                 confidence=_decorator_confidence(dec_name, visitor),
@@ -674,9 +663,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
         target_mod = imp.source_module or imp.imported
         signal_name = (
-            "tree_sitter_import"
-            if import_extractor_id == EXTRACTOR_ID_TS_IMPORTS
-            else "ast_import"
+            "tree_sitter_import" if import_extractor_id == EXTRACTOR_ID_TS_IMPORTS else "ast_import"
         )
         result.edges.append(
             GraphEdge(
@@ -696,9 +683,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     # `unresolved_call` evidence signal so the LSP overlay can lift
     # them to 0.95 later without double-writing.
     for call in visitor.calls:
-        confidence, evidence, resolved_uid = _resolve_call(
-            call, visitor=visitor, path=normalised
-        )
+        confidence, evidence, resolved_uid = _resolve_call(call, visitor=visitor, path=normalised)
         result.edges.append(
             GraphEdge(
                 source_uid=call.caller_uid,
@@ -727,17 +712,9 @@ def extract(path: str, content: str) -> ExtractionResult:
     # extractor) uniqueness constraint.
     file_uid_str = file_node.uid
     for decl in visitor.decls:
-        if decl.kind == "code:class" and decl.parent_uid is None:
-            result.edges.append(
-                GraphEdge(
-                    source_uid=file_uid_str,
-                    target_uid=decl.uid,
-                    edge_type="contains",
-                    extractor=EXTRACTOR_ID,
-                    confidence=1.0,
-                )
-            )
-        elif decl.kind == "code:function" and decl.parent_uid is None:
+        if (decl.kind == "code:class" and decl.parent_uid is None) or (
+            decl.kind == "code:function" and decl.parent_uid is None
+        ):
             result.edges.append(
                 GraphEdge(
                     source_uid=file_uid_str,
@@ -930,9 +907,7 @@ class _PythonVisitor(ast.NodeVisitor):
             # emit code:function / code:method nodes with full qualnames)
             # AND Call nodes (emit call edges scoped to this function).
             for child in node.body:  # type: ignore[attr-defined]
-                if isinstance(
-                    child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-                ):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     self.visit(child)
                 else:
                     self._walk_calls(child)
@@ -1079,12 +1054,34 @@ def _annotation_confidence(type_name: str, visitor: _PythonVisitor) -> float:
     return 0.3
 
 
-_BUILTIN_TYPES: frozenset[str] = frozenset({
-    "str", "int", "float", "bool", "bytes", "list", "dict", "tuple",
-    "set", "frozenset", "None", "Any", "object", "type", "complex",
-    "range", "memoryview", "bytearray", "Path", "datetime", "date",
-    "time", "timedelta", "Decimal",
-})
+_BUILTIN_TYPES: frozenset[str] = frozenset(
+    {
+        "str",
+        "int",
+        "float",
+        "bool",
+        "bytes",
+        "list",
+        "dict",
+        "tuple",
+        "set",
+        "frozenset",
+        "None",
+        "Any",
+        "object",
+        "type",
+        "complex",
+        "range",
+        "memoryview",
+        "bytearray",
+        "Path",
+        "datetime",
+        "date",
+        "time",
+        "timedelta",
+        "Decimal",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -1145,15 +1142,13 @@ def _toolchain_python_module_parts(parts: list[str]) -> list[str] | None:
         return None
     flat = "/".join(parts)
     # Match longest root first so nested packages win over shallow ones.
-    for pkg_name, pkg_root in sorted(
-        ctx.python_packages.items(), key=lambda kv: -len(kv[1])
-    ):
+    for pkg_name, pkg_root in sorted(ctx.python_packages.items(), key=lambda kv: -len(kv[1])):
         rel_root = pkg_root.strip("/").replace("\\", "/")
         if not rel_root:
             continue
         prefix = f"{rel_root}/"
         if flat.startswith(prefix):
-            tail = flat[len(prefix):]
+            tail = flat[len(prefix) :]
             tail_parts = [p for p in tail.split("/") if p]
             return [pkg_name, *tail_parts]
         if flat == rel_root:
@@ -1184,9 +1179,7 @@ def _function_param_annotations(node: ast.AST) -> list[str]:
     if args is None:
         return []
     out: list[str] = []
-    pos_args = list(getattr(args, "posonlyargs", []) or []) + list(
-        getattr(args, "args", []) or []
-    )
+    pos_args = list(getattr(args, "posonlyargs", []) or []) + list(getattr(args, "args", []) or [])
     for idx, arg in enumerate(pos_args):
         if idx == 0 and arg.arg in ("self", "cls"):
             continue
@@ -1245,7 +1238,9 @@ def _expand_annotation(node: ast.AST) -> list[str]:
     if isinstance(node, ast.Subscript):
         # Container subscripts: `list[Foo]`, `Optional[Foo]`, `Union[Foo, Bar]`,
         # `dict[str, Foo]`.  Walk inside and recurse.
-        value_name = _dotted_name(node.value) if isinstance(node.value, (ast.Name, ast.Attribute)) else ""
+        value_name = (
+            _dotted_name(node.value) if isinstance(node.value, (ast.Name, ast.Attribute)) else ""
+        )
         slice_node = getattr(node, "slice", None)
         if slice_node is None:
             return []
@@ -1282,16 +1277,16 @@ def _dotted_name(node: ast.AST) -> str:
         return _dotted_name(node.value)
     try:
         return ast.unparse(node)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return "<expr>"
 
 
 __all__ = [
     "EXTRACTOR_ID",
+    "class_uid",
     "extract",
     "file_uid",
-    "module_uid",
-    "class_uid",
     "function_uid",
     "method_uid",
+    "module_uid",
 ]

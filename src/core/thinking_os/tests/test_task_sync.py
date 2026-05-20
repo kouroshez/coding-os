@@ -23,9 +23,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import embeddings  # noqa: E402
-from database import init_db  # noqa: E402
-from task_sync import (  # noqa: E402
+import embeddings
+from database import init_db
+from task_sync import (
     _canonicalize_task_id,
     parse_task_index,
     sync_status_only,
@@ -41,6 +41,7 @@ REQUIRES_RAG = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_db(tmp_path: Path) -> sqlite3.Connection:
@@ -100,6 +101,7 @@ def tmp_project(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 # parse_task_index
 # ---------------------------------------------------------------------------
+
 
 class TestParseTaskIndex:
     def test_parses_done_status(self, tmp_path: Path) -> None:
@@ -166,10 +168,9 @@ class TestParseTaskIndex:
 # sync_tasks — happy path
 # ---------------------------------------------------------------------------
 
+
 class TestSyncTasksHappyPath:
-    def test_first_run_inserts_all(
-        self, tmp_db: sqlite3.Connection, tmp_project: Path
-    ) -> None:
+    def test_first_run_inserts_all(self, tmp_db: sqlite3.Connection, tmp_project: Path) -> None:
         stats = sync_tasks(tmp_db, project_root=tmp_project)
         assert stats["processed"] == 3
         assert stats["new"] == 3
@@ -182,25 +183,19 @@ class TestSyncTasksHappyPath:
         count = tmp_db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
         assert count == 3
 
-    def test_status_read_from_tasks_md(
-        self, tmp_db: sqlite3.Connection, tmp_project: Path
-    ) -> None:
+    def test_status_read_from_tasks_md(self, tmp_db: sqlite3.Connection, tmp_project: Path) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
         statuses = {
-            row[0]: row[1]
-            for row in tmp_db.execute("SELECT task_id, status FROM tasks").fetchall()
+            row[0]: row[1] for row in tmp_db.execute("SELECT task_id, status FROM tasks").fetchall()
         }
         assert statuses["TASK-001"] == "done"
         assert statuses["TASK-002"] == "wip"
         assert statuses["TASK-003"] == "open"
 
-    def test_domain_extracted(
-        self, tmp_db: sqlite3.Connection, tmp_project: Path
-    ) -> None:
+    def test_domain_extracted(self, tmp_db: sqlite3.Connection, tmp_project: Path) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
         domains = {
-            row[0]: row[1]
-            for row in tmp_db.execute("SELECT task_id, domain FROM tasks").fetchall()
+            row[0]: row[1] for row in tmp_db.execute("SELECT task_id, domain FROM tasks").fetchall()
         }
         assert domains["TASK-001"] == "DOCS"
         assert domains["TASK-002"] == "BACKEND"
@@ -209,9 +204,7 @@ class TestSyncTasksHappyPath:
         self, tmp_db: sqlite3.Connection, tmp_project: Path
     ) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
-        row = tmp_db.execute(
-            "SELECT dependencies FROM tasks WHERE task_id = 'TASK-002'"
-        ).fetchone()
+        row = tmp_db.execute("SELECT dependencies FROM tasks WHERE task_id = 'TASK-002'").fetchone()
         deps = json.loads(row[0])
         assert deps == ["TASK-001"]
 
@@ -225,9 +218,7 @@ class TestSyncTasksHappyPath:
         assert second["new"] == 0
         assert second["updated"] == 0
 
-    def test_modified_file_re_synced(
-        self, tmp_db: sqlite3.Connection, tmp_project: Path
-    ) -> None:
+    def test_modified_file_re_synced(self, tmp_db: sqlite3.Connection, tmp_project: Path) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
 
         # Modify TASK-002 goal text
@@ -249,9 +240,7 @@ class TestSyncTasksHappyPath:
         assert second["new"] == 0
 
         # Verify the updated content landed
-        row = tmp_db.execute(
-            "SELECT goal_text FROM tasks WHERE task_id = 'TASK-002'"
-        ).fetchone()
+        row = tmp_db.execute("SELECT goal_text FROM tasks WHERE task_id = 'TASK-002'").fetchone()
         assert "Celery worker" in row[0]
 
     def test_deleted_file_removed_from_db(
@@ -262,17 +251,12 @@ class TestSyncTasksHappyPath:
         (tmp_project / "docs" / "tasks" / "TASK-003-auth-flow.md").unlink()
         second = sync_tasks(tmp_db, project_root=tmp_project)
         assert second["deleted"] == 1
-        remaining = {
-            row[0]
-            for row in tmp_db.execute("SELECT task_id FROM tasks").fetchall()
-        }
+        remaining = {row[0] for row in tmp_db.execute("SELECT task_id FROM tasks").fetchall()}
         assert "TASK-003" not in remaining
         assert "TASK-001" in remaining
         assert "TASK-002" in remaining
 
-    def test_force_resyncs_all(
-        self, tmp_db: sqlite3.Connection, tmp_project: Path
-    ) -> None:
+    def test_force_resyncs_all(self, tmp_db: sqlite3.Connection, tmp_project: Path) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
         second = sync_tasks(tmp_db, project_root=tmp_project, force=True)
         assert second["skipped"] == 0
@@ -291,15 +275,14 @@ class TestSyncTasksHappyPath:
         index_path.write_text(content)
 
         sync_tasks(tmp_db, project_root=tmp_project)
-        status = tmp_db.execute(
-            "SELECT status FROM tasks WHERE task_id = 'TASK-003'"
-        ).fetchone()[0]
+        status = tmp_db.execute("SELECT status FROM tasks WHERE task_id = 'TASK-003'").fetchone()[0]
         assert status == "done"
 
 
 # ---------------------------------------------------------------------------
 # sync_tasks — edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestSyncTasksEdgeCases:
     def test_missing_tasks_dir_returns_empty_stats(
@@ -318,39 +301,27 @@ class TestSyncTasksEdgeCases:
         project = tmp_path / "project"
         tasks_dir = project / "docs" / "tasks"
         tasks_dir.mkdir(parents=True)
-        (tasks_dir / "README.md").write_text(
-            "# How to write a task\n\nThis is not a task file.\n"
-        )
+        (tasks_dir / "README.md").write_text("# How to write a task\n\nThis is not a task file.\n")
         (project / "docs" / "tasks.md").write_text("# Tasks\n")
         stats = sync_tasks(tmp_db, project_root=project)
         assert stats["processed"] == 1
         assert stats["errors"] == 1
         assert stats["new"] == 0
 
-    def test_archive_subdirectory_ignored(
-        self, tmp_db: sqlite3.Connection, tmp_path: Path
-    ) -> None:
+    def test_archive_subdirectory_ignored(self, tmp_db: sqlite3.Connection, tmp_path: Path) -> None:
         project = tmp_path / "project"
         tasks_dir = project / "docs" / "tasks"
         archive = tasks_dir / "archive"
         archive.mkdir(parents=True)
 
-        (tasks_dir / "TASK-001-active.md").write_text(
-            "# TASK-001: Active\n\n## Goal\n\nDo it.\n"
-        )
-        (archive / "TASK-999-old.md").write_text(
-            "# TASK-999: Archived\n\n## Goal\n\nOld.\n"
-        )
-        (project / "docs" / "tasks.md").write_text(
-            "- [ ] TASK-001: Active\n"
-        )
+        (tasks_dir / "TASK-001-active.md").write_text("# TASK-001: Active\n\n## Goal\n\nDo it.\n")
+        (archive / "TASK-999-old.md").write_text("# TASK-999: Archived\n\n## Goal\n\nOld.\n")
+        (project / "docs" / "tasks.md").write_text("- [ ] TASK-001: Active\n")
 
         stats = sync_tasks(tmp_db, project_root=project)
         assert stats["new"] == 1
         assert stats["processed"] == 1
-        task_ids = {
-            row[0] for row in tmp_db.execute("SELECT task_id FROM tasks").fetchall()
-        }
+        task_ids = {row[0] for row in tmp_db.execute("SELECT task_id FROM tasks").fetchall()}
         assert "TASK-999" not in task_ids
 
 
@@ -358,10 +329,9 @@ class TestSyncTasksEdgeCases:
 # sync_status_only
 # ---------------------------------------------------------------------------
 
+
 class TestSyncStatusOnly:
-    def test_updates_changed_statuses(
-        self, tmp_db: sqlite3.Connection, tmp_project: Path
-    ) -> None:
+    def test_updates_changed_statuses(self, tmp_db: sqlite3.Connection, tmp_project: Path) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
         # Change TASK-002 from wip to done
         index_path = tmp_project / "docs" / "tasks.md"
@@ -374,9 +344,7 @@ class TestSyncStatusOnly:
         # Plus 2 unchanged
         assert stats["unchanged"] == 2
 
-        status = tmp_db.execute(
-            "SELECT status FROM tasks WHERE task_id = 'TASK-002'"
-        ).fetchone()[0]
+        status = tmp_db.execute("SELECT status FROM tasks WHERE task_id = 'TASK-002'").fetchone()[0]
         assert status == "done"
 
     def test_missing_index_returns_empty_stats(
@@ -391,6 +359,7 @@ class TestSyncStatusOnly:
 # ---------------------------------------------------------------------------
 # Embeddings integration (requires rag extras)
 # ---------------------------------------------------------------------------
+
 
 class TestSyncEmbeddings:
     @REQUIRES_RAG
@@ -418,6 +387,7 @@ class TestSyncEmbeddings:
 # Canonicalization helper
 # ---------------------------------------------------------------------------
 
+
 class TestCanonicalizeTaskId:
     def test_pads_single_digit(self) -> None:
         assert _canonicalize_task_id("TASK-3") == "TASK-003"
@@ -435,6 +405,7 @@ class TestCanonicalizeTaskId:
 # ---------------------------------------------------------------------------
 # Regression: symlinked project root (macOS /tmp vs /private/tmp safety)
 # ---------------------------------------------------------------------------
+
 
 class TestSyncPathResolutionRegression:
     """Guard against the `/tmp` vs `/private/tmp` ValueError that bit
@@ -454,7 +425,8 @@ class TestSyncPathResolutionRegression:
             encoding="utf-8",
         )
         (project / "docs" / "tasks.md").write_text(
-            "- [ ] TASK-001: [DOCS] Demo task\n", encoding="utf-8",
+            "- [ ] TASK-001: [DOCS] Demo task\n",
+            encoding="utf-8",
         )
 
         # Symlink the project and pass the symlink to sync_tasks — must
@@ -467,8 +439,6 @@ class TestSyncPathResolutionRegression:
         assert stats["errors"] == 0
         assert stats["new"] == 1
 
-        row = tmp_db.execute(
-            "SELECT file_path FROM tasks WHERE task_id = 'TASK-001'"
-        ).fetchone()
+        row = tmp_db.execute("SELECT file_path FROM tasks WHERE task_id = 'TASK-001'").fetchone()
         assert row is not None
         assert not row[0].startswith("/"), f"expected relative path, got {row[0]!r}"

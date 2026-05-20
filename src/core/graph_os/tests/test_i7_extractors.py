@@ -56,7 +56,7 @@ class TestShellExtractor:
         assert any("cos-env.sh" in e.target_uid for e in imports)
 
     def test_dot_include_edge(self):
-        r = code_shell.extract("core/hooks/x.sh", '. ./utils.sh\n')
+        r = code_shell.extract("core/hooks/x.sh", ". ./utils.sh\n")
         imports = [e for e in r.edges if e.edge_type == "imports"]
         assert imports
 
@@ -68,7 +68,7 @@ class TestShellExtractor:
     def test_function_node_emitted(self):
         r = code_shell.extract(
             "core/hooks/x.sh",
-            'greet() {\n  echo hi\n}\n',
+            "greet() {\n  echo hi\n}\n",
         )
         fns = [n for n in r.nodes if n.kind == "code:function"]
         assert any(n.label == "greet" for n in fns)
@@ -76,7 +76,7 @@ class TestShellExtractor:
     def test_cos_log_hook_edge(self):
         r = code_shell.extract(
             "core/hooks/x.sh",
-            'cos_log_hook my-hook entered\n',
+            "cos_log_hook my-hook entered\n",
         )
         edges = [e for e in r.edges if e.edge_type == "handles_tool"]
         assert any(e.target_uid == "cos:hook:my-hook" for e in edges)
@@ -91,7 +91,7 @@ class TestShellExtractor:
     def test_script_call_not_duplicated_as_import(self):
         r = code_shell.extract(
             "core/hooks/x.sh",
-            'source ./util.sh\nbash ./util.sh\n',
+            "source ./util.sh\nbash ./util.sh\n",
         )
         imports = [e for e in r.edges if e.edge_type == "imports"]
         calls = [e for e in r.edges if e.edge_type == "calls"]
@@ -102,12 +102,7 @@ class TestShellExtractor:
     def test_function_inside_heredoc_not_matched(self):
         # Tree-sitter-bash classifies heredoc bodies as raw text — function
         # definitions inside must not become graph nodes.
-        src = (
-            "real_func() { echo real; }\n"
-            "cat <<EOF\n"
-            "fake_inside_heredoc() { echo nope; }\n"
-            "EOF\n"
-        )
+        src = "real_func() { echo real; }\ncat <<EOF\nfake_inside_heredoc() { echo nope; }\nEOF\n"
         r = code_shell.extract("core/hooks/x.sh", src)
         names = {n.label for n in r.nodes if n.kind == "code:function"}
         assert "real_func" in names
@@ -223,9 +218,7 @@ class TestContractsFastAPI:
             """
         )
         r = contracts.extract("backend/app.py", src)
-        mounts = [
-            n for n in r.nodes if n.metadata.get("derivation") == "fastapi_include_router"
-        ]
+        mounts = [n for n in r.nodes if n.metadata.get("derivation") == "fastapi_include_router"]
         assert mounts
 
 
@@ -267,9 +260,7 @@ class TestContractsDRF:
             """
         )
         r = contracts.extract("backend/urls.py", src)
-        routes = [
-            n for n in r.nodes if n.metadata.get("derivation") == "drf_router_register"
-        ]
+        routes = [n for n in r.nodes if n.metadata.get("derivation") == "drf_router_register"]
         # router_register synthesises 6 routes (list, create, retrieve,
         # update, partial_update, delete).
         assert len(routes) == 6
@@ -294,7 +285,7 @@ class TestContractsNextjs:
         assert "**" in path or "{" in path
 
     def test_dynamic_fetch_flagged(self):
-        src = 'const r = await fetch(`/api/${id}`);\n'
+        src = "const r = await fetch(`/api/${id}`);\n"
         r = contracts.extract("frontend/src/client.ts", src)
         assert any(p.kind == "opaque_route" for p in r.parse_errors)
 
@@ -325,9 +316,7 @@ class TestContractsEvents:
             """
         )
         r = contracts.extract("worker/tasks.py", src)
-        events = [
-            n for n in r.nodes if n.metadata.get("kind") == "event"
-        ]
+        events = [n for n in r.nodes if n.metadata.get("kind") == "event"]
         assert events
         assert any(n.metadata.get("framework") == "celery" for n in events)
 
@@ -476,7 +465,9 @@ members = ["crates/core", "crates/util"]
         dep_targets = {e.target_uid for e in r.edges if e.edge_type == "imports"}
         assert "crates:package:tokio" in dep_targets
         assert "crates:package:serde" in dep_targets
-        workspace_targets = {e.target_uid for e in r.edges if e.target_uid.startswith("folder:crates")}
+        workspace_targets = {
+            e.target_uid for e in r.edges if e.target_uid.startswith("folder:crates")
+        }
         assert "folder:crates/core" in workspace_targets
         assert "folder:crates/util" in workspace_targets
 
@@ -502,7 +493,9 @@ class TestGoExtractor:
         assert pkg_nodes[0].label == "server"
 
     def test_function_node(self):
-        r = code_go.extract("server/handler.go", "package server\nfunc Hello() string { return \"\" }\n")
+        r = code_go.extract(
+            "server/handler.go", 'package server\nfunc Hello() string { return "" }\n'
+        )
         funcs = [n for n in r.nodes if n.kind == "code:function"]
         assert any(n.label == "Hello" for n in funcs)
 
@@ -552,7 +545,7 @@ type Server struct {
     def test_interface_embedding_edge(self):
         r = code_go.extract(
             "p/x.go",
-            "package p\nimport \"io\"\ntype RC interface { io.Reader; io.Closer }\n",
+            'package p\nimport "io"\ntype RC interface { io.Reader; io.Closer }\n',
         )
         inh = [e for e in r.edges if e.edge_type == "inherits_from"]
         labels = [e.target_uid for e in inh]
@@ -584,7 +577,7 @@ import (
     def test_const_and_var_nodes(self):
         r = code_go.extract(
             "p/x.go",
-            "package p\nconst Version = \"1\"\nvar DefaultPort = 8080\n",
+            'package p\nconst Version = "1"\nvar DefaultPort = 8080\n',
         )
         vars_ = [n for n in r.nodes if n.kind == "code:variable"]
         names = {n.label: (n.metadata or {}).get("go_kind") for n in vars_}
@@ -609,8 +602,11 @@ func FuzzQux(f *testing.F) {}
 func TestMain(m *testing.M) {}
 """,
         )
-        kinds = {n.label: (n.metadata or {}).get("test_kind")
-                 for n in r.nodes if n.kind == "code:function"}
+        kinds = {
+            n.label: (n.metadata or {}).get("test_kind")
+            for n in r.nodes
+            if n.kind == "code:function"
+        }
         assert kinds["TestFoo"] == "test"
         assert kinds["BenchmarkBar"] == "benchmark"
         assert kinds["ExampleBaz"] == "example"
@@ -644,60 +640,77 @@ func TestMain(m *testing.M) {}
 
 class TestContractsGoFrameworks:
     def test_gin(self):
-        r = contracts.extract("backend/server.go", """package main
+        r = contracts.extract(
+            "backend/server.go",
+            """package main
 import "github.com/gin-gonic/gin"
 func main() {
   r := gin.Default()
   r.GET("/health", h)
   v1 := r.Group("/v1")
   v1.POST("/items", h2)
-}""")
+}""",
+        )
         routes = [n for n in r.nodes if n.kind == "cos:route"]
         labels = {n.label for n in routes}
         assert "GET /health" in labels or "GET /v1/health" in labels
         assert "POST /v1/items" in labels
 
     def test_chi(self):
-        r = contracts.extract("backend/server.go", """package main
+        r = contracts.extract(
+            "backend/server.go",
+            """package main
 import "github.com/go-chi/chi/v5"
 func main() {
   r := chi.NewRouter()
   r.Get("/users", h)
-}""")
+}""",
+        )
         labels = {n.label for n in r.nodes if n.kind == "cos:route"}
         assert "GET /users" in labels
 
     def test_echo(self):
-        r = contracts.extract("backend/server.go", """package main
+        r = contracts.extract(
+            "backend/server.go",
+            """package main
 import "github.com/labstack/echo/v4"
-func main() { e := echo.New(); e.GET("/", h) }""")
+func main() { e := echo.New(); e.GET("/", h) }""",
+        )
         labels = {n.label for n in r.nodes if n.kind == "cos:route"}
         assert "GET /" in labels
 
     def test_gorilla(self):
-        r = contracts.extract("backend/server.go", """package main
+        r = contracts.extract(
+            "backend/server.go",
+            """package main
 import "github.com/gorilla/mux"
 func main() {
   r := mux.NewRouter()
   r.HandleFunc("/api/{id}", h).Methods("GET", "POST")
-}""")
+}""",
+        )
         labels = {n.label for n in r.nodes if n.kind == "cos:route"}
         assert "GET /api/{id}" in labels
         assert "POST /api/{id}" in labels
 
     def test_net_http_go122(self):
-        r = contracts.extract("backend/server.go", """package main
+        r = contracts.extract(
+            "backend/server.go",
+            """package main
 import "net/http"
 func main() {
   http.HandleFunc("GET /status", statusH)
   http.HandleFunc("POST /webhook", hookH)
-}""")
+}""",
+        )
         labels = {n.label for n in r.nodes if n.kind == "cos:route"}
         assert "GET /status" in labels
         assert "POST /webhook" in labels
 
     def test_grpc_register(self):
-        r = contracts.extract("backend/server.go", """package main
+        r = contracts.extract(
+            "backend/server.go",
+            """package main
 import (
   "google.golang.org/grpc"
   pb "example.com/api/proto"
@@ -705,19 +718,23 @@ import (
 func main() {
   s := grpc.NewServer()
   pb.RegisterUserServer(s, &userSrv{})
-}""")
+}""",
+        )
         labels = {n.label for n in r.nodes if n.kind == "cos:route"}
         assert any("User" in l for l in labels)
 
     def test_cobra_command(self):
-        r = contracts.extract("cmd/root.go", """package cmd
+        r = contracts.extract(
+            "cmd/root.go",
+            """package cmd
 import "github.com/spf13/cobra"
 var rootCmd = &cobra.Command{
   Use: "myapp",
   Short: "tool",
 }
 var serveCmd = &cobra.Command{ Use: "serve" }
-""")
+""",
+        )
         labels = {n.label for n in r.nodes if n.kind == "cos:cli_command"}
         assert "cobra:myapp" in labels
         assert "cobra:serve" in labels

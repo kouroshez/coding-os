@@ -80,7 +80,12 @@ def test_roles_outputs_collects_trace_and_bundle(client):
             {
                 "task_marker": "TASK-124",
                 "persona_id": "builder",
-                "F1_research": {"summary": "done", "sources": [], "key_findings": [], "open_questions": []},
+                "F1_research": {
+                    "summary": "done",
+                    "sources": [],
+                    "key_findings": [],
+                    "open_questions": [],
+                },
             }
         ),
         encoding="utf-8",

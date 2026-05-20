@@ -175,9 +175,7 @@ class TestTreeSitterDecorators:
         )
         edges = _edges_of(r, "is_decorated_by")
         # Decorator on `hello` must be present and tagged tree-sitter.
-        hello_decs = [
-            e for e in edges if "::hello" in e.source_uid
-        ]
+        hello_decs = [e for e in edges if "::hello" in e.source_uid]
         assert len(hello_decs) == 1
         assert hello_decs[0].extractor == "code_python_ts@v1"
         # Resolution lands on the Cache class (head-identifier match).
@@ -236,9 +234,7 @@ class TestNestedQualnames:
 
 class TestParity:
     def _grouped(self, edges):
-        return sorted(
-            (e.source_uid, e.target_uid, e.edge_type) for e in edges
-        )
+        return sorted((e.source_uid, e.target_uid, e.edge_type) for e in edges)
 
     def test_inherits_topology_matches(self, monkeypatch):
         src = textwrap.dedent(

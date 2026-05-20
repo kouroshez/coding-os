@@ -23,10 +23,10 @@ import os
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Rate limiter — token bucket per tool name.
@@ -215,14 +215,12 @@ class _KVLogger:
 def _fmt(event: str, fields: dict[str, Any]) -> str:
     if not fields:
         return event
-    return " ".join(
-        [event] + [f"{k}={_quote(v)}" for k, v in sorted(fields.items())]
-    )
+    return " ".join([event] + [f"{k}={_quote(v)}" for k, v in sorted(fields.items())])
 
 
 def _quote(value: Any) -> str:
     text = str(value)
-    if any(ch in text for ch in " \t\n\"="):
+    if any(ch in text for ch in ' \t\n"='):
         return json.dumps(text)
     return text
 
@@ -231,6 +229,7 @@ def get_logger(name: str = "graph_os") -> Any:
     """Return a structured logger — structlog if installed, stdlib otherwise."""
     try:
         import structlog  # type: ignore
+
         return structlog.get_logger(name)
     except ImportError:
         return _KVLogger(logging.getLogger(name))
@@ -256,10 +255,10 @@ def metrics() -> PrometheusSnapshot:
 
 
 __all__ = [
-    "RateLimiter",
     "PrometheusSnapshot",
-    "write_backend_probe",
+    "RateLimiter",
     "get_logger",
-    "rate_limiter",
     "metrics",
+    "rate_limiter",
+    "write_backend_probe",
 ]

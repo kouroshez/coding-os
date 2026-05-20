@@ -28,10 +28,19 @@ CONTEXTUAL_ALLOW_RE = [
 ]
 
 BUILTIN_FALLBACK = {
-    "django", "nextjs", "fastapi", "go", "go-fiber",
-    "claude", "codex", "cursor",
-    "python-django", "nextjs-react", "python-fastapi", "go-patterns",
-    "go-fiber", "frontend-design",
+    "django",
+    "nextjs",
+    "fastapi",
+    "go",
+    "go-fiber",
+    "claude",
+    "codex",
+    "cursor",
+    "python-django",
+    "nextjs-react",
+    "python-fastapi",
+    "go-patterns",
+    "frontend-design",
 }
 
 
@@ -69,9 +78,7 @@ def scan(content: str, forbidden: set[str]) -> list[tuple[int, str, str]]:
     """Return list of (line_no, token, stripped_line) violations."""
     violations: list[tuple[int, str, str]] = []
     patterns = {
-        token: re.compile(
-            rf'(?<![A-Za-z0-9_])["\']({re.escape(token)})["\'](?![A-Za-z0-9_])'
-        )
+        token: re.compile(rf'(?<![A-Za-z0-9_])["\']({re.escape(token)})["\'](?![A-Za-z0-9_])')
         for token in forbidden
     }
     for i, line in enumerate(content.splitlines(), start=1):

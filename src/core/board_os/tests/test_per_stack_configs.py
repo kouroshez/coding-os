@@ -9,7 +9,6 @@ import yaml
 
 from core.board_os.config import parse_config
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 TEMPLATES = REPO_ROOT / "src" / "templates"
 META = REPO_ROOT / ".coding-os" / "scrumban-config.yaml"
@@ -69,6 +68,5 @@ def test_all_configs_have_one_in_progress_wip_default():
     for path in _all_shipped_configs():
         cfg = parse_config(yaml.safe_load(path.read_text(encoding="utf-8")))
         assert cfg.wip_limits.in_progress == 1, (
-            f"{path}: in_progress WIP must default to 1 "
-            f"(perfectionism defense, P-L-4)"
+            f"{path}: in_progress WIP must default to 1 (perfectionism defense, P-L-4)"
         )

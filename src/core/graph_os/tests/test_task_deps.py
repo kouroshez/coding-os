@@ -12,7 +12,6 @@ import pytest
 
 from graph_os.extractors import task_deps
 
-
 TASK_042 = """\
 <!-- domain:BACKEND | layer:task | ssot:true -->
 # TASK-042: [BACKEND] Example commission model
@@ -90,20 +89,14 @@ class TestExtract:
         # the file references (e.g., depends_on TASK-007 / TASK-199).
         # We assert the canonical one is present and a singleton among
         # non-stub task_file nodes.
-        non_stub = [
-            n for n in r.nodes
-            if n.kind == "task:file" and not n.metadata.get("stub")
-        ]
+        non_stub = [n for n in r.nodes if n.kind == "task:file" and not n.metadata.get("stub")]
         assert len(non_stub) == 1
         assert non_stub[0].uid == "task:file:TASK-042"
         assert "BACKEND" in (non_stub[0].label or "")
 
     def test_metadata_includes_domain(self):
         r = self._extract()
-        task = next(
-            n for n in r.nodes
-            if n.kind == "task:file" and not n.metadata.get("stub")
-        )
+        task = next(n for n in r.nodes if n.kind == "task:file" and not n.metadata.get("stub"))
         assert task.metadata.get("domain") == "BACKEND"
         assert task.metadata.get("task_id") == "TASK-042"
 
@@ -141,8 +134,16 @@ class TestExtract:
 
     def test_source_of_truth_higher_confidence_than_read_first(self):
         r = self._extract()
-        sot_edges = [e for e in r.edges if e.edge_type == "references_doc" and "source_of_truth" in (e.source_span or "")]
-        rf_edges = [e for e in r.edges if e.edge_type == "references_doc" and "read_first" in (e.source_span or "")]
+        sot_edges = [
+            e
+            for e in r.edges
+            if e.edge_type == "references_doc" and "source_of_truth" in (e.source_span or "")
+        ]
+        rf_edges = [
+            e
+            for e in r.edges
+            if e.edge_type == "references_doc" and "read_first" in (e.source_span or "")
+        ]
         assert all(e.confidence >= 0.95 for e in sot_edges)
         assert all(e.confidence <= 0.95 for e in rf_edges)
 
@@ -173,9 +174,7 @@ class TestExtract:
         first = self._extract()
         second = self._extract()
         assert [n.uid for n in first.nodes] == [n.uid for n in second.nodes]
-        assert [
-            (e.source_uid, e.target_uid, e.edge_type) for e in first.edges
-        ] == [
+        assert [(e.source_uid, e.target_uid, e.edge_type) for e in first.edges] == [
             (e.source_uid, e.target_uid, e.edge_type) for e in second.edges
         ]
 
@@ -235,9 +234,7 @@ class TestProducesCode:
         assert edges[0].target_uid == "code:file:core/foo.py"
 
     def test_confidence_below_manual_edges(self):
-        edges = task_deps.produces_code_edges(
-            task_id="TASK-42", modified_files=["a.py"]
-        )
+        edges = task_deps.produces_code_edges(task_id="TASK-42", modified_files=["a.py"])
         assert edges[0].confidence == pytest.approx(0.85)
 
     def test_canonicalises_task_id(self):

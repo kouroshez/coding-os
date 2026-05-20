@@ -155,11 +155,18 @@ class TestCosEnv:
         # fallback path — otherwise the outer pytest process (which has
         # CLAUDE_CODE_ENTRYPOINT set by the IDE) short-circuits detection.
         blocked_keys = {
-            "COS_STATE_DIR", "COS_AGENT",
-            "CURSOR_AGENT", "CURSOR_PROJECT_DIR", "CURSOR_VERSION",
-            "CODEX_SESSION_ID", "CODEX_AGENT_DIR", "CODEX_HOME",
-            "CLAUDECODE", "CLAUDE_CODE_SSE_PORT",
-            "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_AGENT_SDK_VERSION",
+            "COS_STATE_DIR",
+            "COS_AGENT",
+            "CURSOR_AGENT",
+            "CURSOR_PROJECT_DIR",
+            "CURSOR_VERSION",
+            "CODEX_SESSION_ID",
+            "CODEX_AGENT_DIR",
+            "CODEX_HOME",
+            "CLAUDECODE",
+            "CLAUDE_CODE_SSE_PORT",
+            "CLAUDE_CODE_ENTRYPOINT",
+            "CLAUDE_AGENT_SDK_VERSION",
             "CLAUDE_PROJECT_DIR",
         }
         result = subprocess.run(
@@ -326,11 +333,15 @@ class TestThinkingOsGate:
 
     def test_blocks_py_without_gate(self, gate_env: tuple[Path, dict]) -> None:
         tmp_path, env = gate_env
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "app/main.py", "old_string": "x", "new_string": "y"},
-        })
-        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "app/main.py", "old_string": "x", "new_string": "y"},
+            }
+        )
+        result = run_hook(
+            "thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path)
+        )
         assert result.returncode == 2
 
     def test_allows_py_with_valid_gate(self, gate_env: tuple[Path, dict]) -> None:
@@ -338,29 +349,45 @@ class TestThinkingOsGate:
         state_dir = Path(env["COS_STATE_DIR"])
         session_id = (state_dir / "claude" / "session-id").read_text().strip()
         self._write_gate(state_dir, session_id, "CLEAR 1")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "app/main.py", "old_string": "x", "new_string": "y"},
-        })
-        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "app/main.py", "old_string": "x", "new_string": "y"},
+            }
+        )
+        result = run_hook(
+            "thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path)
+        )
         assert result.returncode == 0
 
     def test_allows_md_without_gate(self, gate_env: tuple[Path, dict]) -> None:
         tmp_path, env = gate_env
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "docs/readme.md", "old_string": "x", "new_string": "y"},
-        })
-        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "docs/readme.md", "old_string": "x", "new_string": "y"},
+            }
+        )
+        result = run_hook(
+            "thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path)
+        )
         assert result.returncode == 0
 
     def test_allows_test_file_without_gate(self, gate_env: tuple[Path, dict]) -> None:
         tmp_path, env = gate_env
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "tests/test_main.py", "old_string": "x", "new_string": "y"},
-        })
-        result = run_hook("thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path))
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "tests/test_main.py",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
+        result = run_hook(
+            "thinking_os-gate.sh", stdin=payload, env_overrides=env, cwd=str(tmp_path)
+        )
         assert result.returncode == 0
 
 
@@ -371,74 +398,90 @@ class TestThinkingOsGate:
 
 class TestBlockSecrets:
     def test_blocks_env_file(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Bash",
-            "tool_input": {"command": "git add backend/.env"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git add backend/.env"},
+            }
+        )
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 2
 
     def test_allows_env_example(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Bash",
-            "tool_input": {"command": "git add .env.example"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git add .env.example"},
+            }
+        )
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 0
 
     def test_blocks_private_key_in_code(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {
-                "file_path": "app/config.py",
-                "new_string": "-----BEGIN RSA PRIVATE KEY-----",
-            },
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "app/config.py",
+                    "new_string": "-----BEGIN RSA PRIVATE KEY-----",
+                },
+            }
+        )
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 2
 
     def test_allows_secret_patterns_in_docs(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {
-                "file_path": "docs/security.md",
-                "new_string": "sk_live_example",
-            },
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/security.md",
+                    "new_string": "sk_live_example",
+                },
+            }
+        )
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 0
 
 
 class TestBlockDangerousCommands:
     def test_blocks_force_push_main(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Bash",
-            "tool_input": {"command": "git push --force origin main"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git push --force origin main"},
+            }
+        )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 2
 
     def test_blocks_rm_rf(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Bash",
-            "tool_input": {"command": "rm -rf backend"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "rm -rf backend"},
+            }
+        )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 2
 
     def test_allows_normal_git_push(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Bash",
-            "tool_input": {"command": "git push origin feature-branch"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git push origin feature-branch"},
+            }
+        )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 0
 
     def test_allows_normal_commands(self) -> None:
-        payload = json.dumps({
-            "tool_name": "Bash",
-            "tool_input": {"command": "ls -la"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "ls -la"},
+            }
+        )
         result = run_hook("block-dangerous-commands.sh", stdin=payload)
         assert result.returncode == 0
 
@@ -477,37 +520,61 @@ class TestBlockProtectedFilesGovernanceEscape:
 
     def test_blocks_claude_md_with_unrelated_task(self, tmp_path: Path) -> None:
         env = self._make_task_state(tmp_path, "feature-auth-flow")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "/repo/CLAUDE.md", "old_string": "x", "new_string": "y"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/CLAUDE.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 2
 
     def test_allows_claude_md_with_docs_update_task(self, tmp_path: Path) -> None:
         env = self._make_task_state(tmp_path, "docs-update-phase-d")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "/repo/CLAUDE.md", "old_string": "x", "new_string": "y"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/CLAUDE.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 0
 
     def test_allows_agents_md_with_governance_task(self, tmp_path: Path) -> None:
         env = self._make_task_state(tmp_path, "governance-refactor")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "/repo/AGENTS.md", "old_string": "x", "new_string": "y"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/AGENTS.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 0
 
     def test_blocks_core_rules_with_unrelated_task(self, tmp_path: Path) -> None:
         env = self._make_task_state(tmp_path, "feature-checkout")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "/repo/.claude/rules/memory.md", "old_string": "x", "new_string": "y"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/repo/.claude/rules/memory.md",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 2
 
@@ -515,10 +582,16 @@ class TestBlockProtectedFilesGovernanceEscape:
         """Non-governance files are always allowed — the task-name filter
         only gates governance files."""
         env = self._make_task_state(tmp_path, "feature-cart")
-        payload = json.dumps({
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "backend/apps/cart/services.py", "old_string": "x", "new_string": "y"},
-        })
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "backend/apps/cart/services.py",
+                    "old_string": "x",
+                    "new_string": "y",
+                },
+            }
+        )
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 0
 
@@ -541,19 +614,23 @@ class TestHookScriptPaths:
 
     def test_core_thinking_os_module_present(self) -> None:
         assert self.CORE_MODULE.is_dir(), (
-            f"Expected {self.CORE_MODULE} — hooks use '../thinking_os/' "
-            "after the bb27aac rename."
+            f"Expected {self.CORE_MODULE} — hooks use '../thinking_os/' after the bb27aac rename."
         )
 
-    @pytest.mark.parametrize("hook_name, target", [
-        ("capture-observation.sh", "capture.py"),
-        ("session-end.sh", "session_summary.py"),
-        ("session-end.sh", "session_enrich.py"),
-        ("session-context.sh", "session_summary.py"),
-        ("session-context.sh", "session_startup.py"),
-    ])
+    @pytest.mark.parametrize(
+        "hook_name, target",
+        [
+            ("capture-observation.sh", "capture.py"),
+            ("session-end.sh", "session_summary.py"),
+            ("session-end.sh", "session_enrich.py"),
+            ("session-context.sh", "session_summary.py"),
+            ("session-context.sh", "session_startup.py"),
+        ],
+    )
     def test_hook_references_resolve_to_real_module(
-        self, hook_name: str, target: str,
+        self,
+        hook_name: str,
+        target: str,
     ) -> None:
         """Ensure the target script every hook tries to execute actually
         resolves under core/thinking_os/. Guards the 2026-04 regression
@@ -561,8 +638,7 @@ class TestHookScriptPaths:
         hook_src = (HOOKS_DIR / hook_name).read_text()
         assert target in hook_src, f"{hook_name} no longer references {target}"
         assert (self.CORE_MODULE / target).exists(), (
-            f"src/core/thinking_os/{target} missing — hook {hook_name} will silently "
-            "no-op"
+            f"src/core/thinking_os/{target} missing — hook {hook_name} will silently no-op"
         )
 
     def test_capture_observation_path_resolves(self) -> None:
@@ -577,6 +653,5 @@ class TestHookScriptPaths:
         """auto-reindex-docs.sh embeds a sys.path.insert with the brain dir."""
         src = (HOOKS_DIR / "auto-reindex-docs.sh").read_text()
         assert "/thinking_os'" in src, (
-            "auto-reindex-docs.sh sys.path.insert must use thinking_os/ "
-            "(underscore)."
+            "auto-reindex-docs.sh sys.path.insert must use thinking_os/ (underscore)."
         )

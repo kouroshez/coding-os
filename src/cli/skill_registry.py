@@ -37,6 +37,7 @@ import yaml
 
 try:
     from jsonschema import Draft202012Validator, ValidationError as _JSValidationError
+
     _HAS_JSONSCHEMA = True
 except ImportError:  # pragma: no cover
     _HAS_JSONSCHEMA = False
@@ -53,19 +54,37 @@ _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 # Authoritative enums — duplicated here so a missing schema file doesn't
 # silently pass invalid data through. Kept in sync with skill.schema.json.
-TIER_ENUM = frozenset({
-    "methodology", "workflow", "exploration", "quality",
-    "layer", "cross-cutting", "stack",
-})
-DOMAIN_ENUM = frozenset({
-    "universal", "backend", "frontend", "mobile", "data",
-    "security", "architecture", "performance", "infra", "governance",
-})
+TIER_ENUM = frozenset(
+    {
+        "methodology",
+        "workflow",
+        "exploration",
+        "quality",
+        "layer",
+        "cross-cutting",
+        "stack",
+    }
+)
+DOMAIN_ENUM = frozenset(
+    {
+        "universal",
+        "backend",
+        "frontend",
+        "mobile",
+        "data",
+        "security",
+        "architecture",
+        "performance",
+        "infra",
+        "governance",
+    }
+)
 
 
 @dataclass(frozen=True)
 class SkillProfile:
     """Loaded SKILL.md frontmatter + source path."""
+
     name: str
     description: str
     tier: str
@@ -80,6 +99,7 @@ class SkillProfile:
 @dataclass(frozen=True)
 class SkillRegistry:
     """All discovered skills under a root, plus any WARN-level issues."""
+
     skills: dict[str, SkillProfile]
     warnings: tuple[str, ...]
 
@@ -94,10 +114,11 @@ class SkillRegistry:
 
 
 @lru_cache(maxsize=1)
-def _skill_schema_validator() -> "Draft202012Validator | None":
+def _skill_schema_validator() -> Draft202012Validator | None:
     if not _HAS_JSONSCHEMA or not _SKILL_SCHEMA_PATH.exists():
         return None
     import json
+
     schema = json.loads(_SKILL_SCHEMA_PATH.read_text(encoding="utf-8"))
     return Draft202012Validator(schema)
 
@@ -127,7 +148,10 @@ def _validate(data: dict[str, Any], skill_md: Path) -> tuple[bool, str | None]:
         try:
             validator.validate(data)
         except _JSValidationError as exc:
-            return False, f"{skill_md}: schema violation: {exc.message} at {list(exc.absolute_path)}"
+            return (
+                False,
+                f"{skill_md}: schema violation: {exc.message} at {list(exc.absolute_path)}",
+            )
 
     # Handwritten safety net (works without jsonschema too).
     name = data.get("name")
@@ -146,7 +170,10 @@ def _validate(data: dict[str, Any], skill_md: Path) -> tuple[bool, str | None]:
         return False, f"{skill_md}: 'domain' must be a non-empty list"
     bad = [d for d in domain if d not in DOMAIN_ENUM]
     if bad:
-        return False, f"{skill_md}: 'domain' contains unknown values {bad}; allowed: {sorted(DOMAIN_ENUM)}"
+        return (
+            False,
+            f"{skill_md}: 'domain' contains unknown values {bad}; allowed: {sorted(DOMAIN_ENUM)}",
+        )
     return True, None
 
 
@@ -197,7 +224,9 @@ def load_skill_registry(skills_root: Path) -> SkillRegistry:
             continue
         profile = _build_profile(data, skill_md)
         if profile.name in skills:
-            warnings.append(f"duplicate skill name '{profile.name}' at {skill_md} (already at {skills[profile.name].source_path})")
+            warnings.append(
+                f"duplicate skill name '{profile.name}' at {skill_md} (already at {skills[profile.name].source_path})"
+            )
             continue
         skills[profile.name] = profile
 

@@ -73,8 +73,12 @@ def _section_text_or_none(body: str, name: str) -> str | None:
         # Prefix match — header must start with the configured name as a
         # whole word, not as a substring of a different word.
         norm = header.lower()
-        if norm == target or norm.startswith(target + " ") or norm.startswith(
-            target + "(",
+        if (
+            norm == target
+            or norm.startswith(target + " ")
+            or norm.startswith(
+                target + "(",
+            )
         ):
             return text
     return None
@@ -82,9 +86,7 @@ def _section_text_or_none(body: str, name: str) -> str | None:
 
 def _count_list_items(text: str) -> int:
     """Count `- ` bullets in a section, ignoring empty lines."""
-    return sum(
-        1 for line in text.splitlines() if line.lstrip().startswith("- ")
-    )
+    return sum(1 for line in text.splitlines() if line.lstrip().startswith("- "))
 
 
 def _evaluate_section(
@@ -184,8 +186,7 @@ def _evaluate_section(
                     severity=Verdict.BLOCK,
                     field=name,
                     message=(
-                        f'Section "{name}" has {items} bullet(s); needs '
-                        f"at least {rule.min_items}."
+                        f'Section "{name}" has {items} bullet(s); needs at least {rule.min_items}.'
                     ),
                 ),
             )
@@ -303,7 +304,9 @@ def evaluate_override(
     pol = config.overrides
     if not pol.require_reason:
         return result, OverrideRequest(
-            gate=gate, reason=reason or "", actor=actor or "unknown",
+            gate=gate,
+            reason=reason or "",
+            actor=actor or "unknown",
         )
 
     if not reason or not reason.strip():
@@ -336,7 +339,9 @@ def evaluate_override(
         return result, None
 
     return result, OverrideRequest(
-        gate=gate, reason=reason.strip(), actor=actor or "unknown",
+        gate=gate,
+        reason=reason.strip(),
+        actor=actor or "unknown",
     )
 
 

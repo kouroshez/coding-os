@@ -12,10 +12,11 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Callable, Generator, Union
+from typing import Union
 
 # Per-request project scope hook.  The web layer (Hub) binds this CV in
 # `ProjectScopeMiddleware` so every downstream lookup that goes through
@@ -26,7 +27,8 @@ from typing import Callable, Generator, Union
 # falls through to its legacy behaviour (explicit project_root arg or
 # DEFAULT_DB_PATH).  This keeps single-project callers unaffected.
 _active_project_root: ContextVar[Path | None] = ContextVar(
-    "cos_active_project_root", default=None,
+    "cos_active_project_root",
+    default=None,
 )
 
 
@@ -44,6 +46,7 @@ def get_active_project_root() -> Path | None:
     """Return the currently-bound project root (or None when unset)."""
     return _active_project_root.get()
 
+
 logger = logging.getLogger("coding_os.db")
 
 # Default DB path — configurable via COS_DB_PATH env var
@@ -54,8 +57,7 @@ DB_FILENAME = "coding-os.db"
 LEGACY_DB_FILENAME = "thinking_os.db"  # rename target for migrate_legacy_db_filename()
 STATE_DIRNAME = ".coding-os"
 DEFAULT_DB_PATH = Path(
-    os.environ.get("COS_DB_PATH", "")
-    or str(Path.cwd() / STATE_DIRNAME / DB_FILENAME)
+    os.environ.get("COS_DB_PATH", "") or str(Path.cwd() / STATE_DIRNAME / DB_FILENAME)
 )
 
 
@@ -100,9 +102,11 @@ def migrate_legacy_db_filename(target: Path) -> bool:
     logger.info("Migrated legacy DB filename: %s -> %s", legacy.name, target.name)
     return True
 
+
 # ---------------------------------------------------------------------------
 # FTS5 detection (must be defined before migrations that use it)
 # ---------------------------------------------------------------------------
+
 
 def has_fts5(conn: sqlite3.Connection) -> bool:
     """Check whether the current SQLite build supports FTS5."""
@@ -125,6 +129,7 @@ def has_fts5_table(conn: sqlite3.Connection) -> bool:
 # ---------------------------------------------------------------------------
 # Callable migrations (defined before MIGRATIONS list so they can be referenced directly)
 # ---------------------------------------------------------------------------
+
 
 def _migrate_v2_fts5(conn: sqlite3.Connection) -> None:
     """Migration v2: create FTS5 virtual table and sync triggers.
@@ -233,7 +238,9 @@ CREATE INDEX IF NOT EXISTS idx_concept_graph_type ON concept_graph(edge_type);
         if col_name not in existing_columns:
             conn.execute(f"ALTER TABLE session_summaries ADD COLUMN {col_name} {col_type}")
 
-    logger.info("Brain features migration v4 applied: outcome_history, concept_graph, session_summaries enrichment")
+    logger.info(
+        "Brain features migration v4 applied: outcome_history, concept_graph, session_summaries enrichment"
+    )
 
 
 def _migrate_v5_rag(conn: sqlite3.Connection) -> None:
@@ -358,18 +365,20 @@ def has_tasks_table(conn: sqlite3.Connection) -> bool:
 
 VALID_TRUST_TIERS: frozenset[str] = frozenset({"volatile", "validated", "locked", "core"})
 PROTECTED_TRUST_TIERS: frozenset[str] = frozenset({"locked", "core"})
-VALID_PROVENANCE: frozenset[str] = frozenset({
-    "agent_self",
-    "user_directive",
-    "extracted_from_outcome",
-    "promoted_from_rule",
-    "imported",
-})
+VALID_PROVENANCE: frozenset[str] = frozenset(
+    {
+        "agent_self",
+        "user_directive",
+        "extracted_from_outcome",
+        "promoted_from_rule",
+        "imported",
+    }
+)
 
 
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     """Return True if `column` is present in `table` per PRAGMA table_info."""
-    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608 — table names hardcoded
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
     return any(r[1] == column for r in rows)
 
 
@@ -439,7 +448,9 @@ CREATE TRIGGER IF NOT EXISTS trg_learned_patterns_protect_delete
         SELECT RAISE(ABORT, 'learned_patterns: trust_tier locked/core cannot be deleted via standard path');
     END;
 """)
-    logger.info("Phase G.1 brain-hardening migration v7 applied: trust_tier, provenance, memory_audit")
+    logger.info(
+        "Phase G.1 brain-hardening migration v7 applied: trust_tier, provenance, memory_audit"
+    )
 
 
 def has_memory_audit_table(conn: sqlite3.Connection) -> bool:
@@ -535,8 +546,7 @@ END;
 def has_document_chunks_fts(conn: sqlite3.Connection) -> bool:
     """Check whether document_chunks_fts exists (v9 + FTS5 available)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='document_chunks_fts'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='document_chunks_fts'"
     ).fetchone()
     return row is not None
 
@@ -601,16 +611,10 @@ CREATE INDEX IF NOT EXISTS idx_retrieval_quality_created
     # embed time. Column is nullable until G.11 enrichment runs; retrieval
     # stays on the plain heading-path prefix meanwhile.
     if not _column_exists(conn, "document_chunks", "contextual_prefix"):
-        conn.execute(
-            "ALTER TABLE document_chunks ADD COLUMN contextual_prefix TEXT"
-        )
+        conn.execute("ALTER TABLE document_chunks ADD COLUMN contextual_prefix TEXT")
     if not _column_exists(conn, "document_chunks", "context_model"):
-        conn.execute(
-            "ALTER TABLE document_chunks ADD COLUMN context_model TEXT"
-        )
-    logger.info(
-        "Phase G.11 migration v11 applied: retrieval_quality + contextual chunk columns"
-    )
+        conn.execute("ALTER TABLE document_chunks ADD COLUMN context_model TEXT")
+    logger.info("Phase G.11 migration v11 applied: retrieval_quality + contextual chunk columns")
 
 
 def has_retrieval_quality_table(conn: sqlite3.Connection) -> bool:
@@ -700,9 +704,7 @@ END;
 """)
 
     if has_embeddings_table(conn) and not _column_exists(conn, "embeddings", "embedding_dim"):
-        conn.execute(
-            "ALTER TABLE embeddings ADD COLUMN embedding_dim INTEGER DEFAULT 384"
-        )
+        conn.execute("ALTER TABLE embeddings ADD COLUMN embedding_dim INTEGER DEFAULT 384")
 
     logger.info(
         "Phase I.0 migration v12 applied: graph_nodes + graph_edges_v12 + "
@@ -764,9 +766,7 @@ def _migrate_v13_board_os(conn: sqlite3.Connection) -> None:
     if not _column_exists(conn, "tasks", "agent_session"):
         conn.execute("ALTER TABLE tasks ADD COLUMN agent_session TEXT")
     if not _column_exists(conn, "tasks", "work_log_last_5"):
-        conn.execute(
-            "ALTER TABLE tasks ADD COLUMN work_log_last_5 TEXT DEFAULT '[]'"
-        )
+        conn.execute("ALTER TABLE tasks ADD COLUMN work_log_last_5 TEXT DEFAULT '[]'")
 
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS task_status_history (
@@ -886,16 +886,13 @@ BEGIN
     SELECT RAISE(ABORT, 'graph_edges_v12.confidence must lie in [0,1]');
 END;
 """)
-    logger.info(
-        "Migration v15 applied: graph_edges_v12 confidence CHECK triggers"
-    )
+    logger.info("Migration v15 applied: graph_edges_v12 confidence CHECK triggers")
 
 
 def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
     """Migration v16 (graph_os S3): normalize graph_nodes.kind values."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='graph_nodes'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='graph_nodes'"
     ).fetchone()
     if row is None:
         logger.debug("Migration v16: graph_nodes table not present — skip")
@@ -908,12 +905,13 @@ def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
     try:
         import sys as _sys
         from pathlib import Path as _Path
+
         core_dir = _Path(__file__).resolve().parent.parent
         core_str = str(core_dir)
         if core_str not in _sys.path:
             _sys.path.insert(0, core_str)
         from graph_os.types import normalize_kind as _normalize  # type: ignore
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning(
             "Migration v16 could not import normalize_kind (%s) — "
             "skipping normalization; rows remain in legacy form",
@@ -921,9 +919,7 @@ def _migrate_v16_normalize_graph_node_kinds(conn: sqlite3.Connection) -> None:
         )
         return
 
-    rows = conn.execute(
-        "SELECT DISTINCT kind FROM graph_nodes"
-    ).fetchall()
+    rows = conn.execute("SELECT DISTINCT kind FROM graph_nodes").fetchall()
     rename_map: dict[str, str] = {}
     for r in rows:
         legacy = r[0]
@@ -973,9 +969,7 @@ CREATE INDEX IF NOT EXISTS idx_file_index_state_hash
 """
     )
     conn.commit()
-    logger.info(
-        "Migration v17 applied: file_index_state table + hash index"
-    )
+    logger.info("Migration v17 applied: file_index_state table + hash index")
 
 
 def _migrate_v18_retrieval_router_log(conn: sqlite3.Connection) -> None:
@@ -1016,6 +1010,7 @@ def _migrate_v19_drop_ready_status(conn: sqlite3.Connection) -> None:
 
     import json as _json
     import time as _time
+
     now_epoch = int(_time.time())
 
     for task_id, labels_json in rows:
@@ -1047,9 +1042,7 @@ def _migrate_v19_drop_ready_status(conn: sqlite3.Connection) -> None:
     )
 
 
-def _column_exists_table(
-    conn: sqlite3.Connection, table: str, column: str
-) -> bool:
+def _column_exists_table(conn: sqlite3.Connection, table: str, column: str) -> bool:
     """Local helper — pragma table_info reads. Defined inline to keep
     the migration self-contained (the file already has _column_exists
     earlier; this is only used by v20)."""
@@ -1071,13 +1064,9 @@ def _migrate_v20_override_audit(conn: sqlite3.Connection) -> None:
         return
 
     if not _column_exists_table(conn, "task_status_history", "override_reason"):
-        conn.execute(
-            "ALTER TABLE task_status_history ADD COLUMN override_reason TEXT"
-        )
+        conn.execute("ALTER TABLE task_status_history ADD COLUMN override_reason TEXT")
     if not _column_exists_table(conn, "task_status_history", "override_actor"):
-        conn.execute(
-            "ALTER TABLE task_status_history ADD COLUMN override_actor TEXT"
-        )
+        conn.execute("ALTER TABLE task_status_history ADD COLUMN override_actor TEXT")
 
     # Index lets retro/audit queries scan only override rows efficiently.
     conn.execute(
@@ -1142,8 +1131,7 @@ def _migrate_v21_doc_audit_trail(conn: sqlite3.Connection) -> None:
 def has_doc_audit_trail_table(conn: sqlite3.Connection) -> bool:
     """Check whether doc_audit_trail exists (migration v21)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='doc_audit_trail'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='doc_audit_trail'"
     ).fetchone()
     return row is not None
 
@@ -1155,20 +1143,18 @@ def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
         return
 
     cols = [
-        ("domain",      "TEXT"),
-        ("layer",       "TEXT"),
-        ("ssot",        "TEXT"),
+        ("domain", "TEXT"),
+        ("layer", "TEXT"),
+        ("ssot", "TEXT"),
         ("updated_iso", "TEXT"),
-        ("is_active",   "INTEGER DEFAULT 1"),
+        ("is_active", "INTEGER DEFAULT 1"),
     ]
     for name, decl in cols:
         if not _column_exists_table(conn, "document_chunks", name):
             conn.execute(f"ALTER TABLE document_chunks ADD COLUMN {name} {decl}")
 
     # Backfill is_active for rows that pre-date this migration.
-    conn.execute(
-        "UPDATE document_chunks SET is_active = 1 WHERE is_active IS NULL"
-    )
+    conn.execute("UPDATE document_chunks SET is_active = 1 WHERE is_active IS NULL")
 
     conn.executescript(
         """
@@ -1195,18 +1181,16 @@ def _migrate_v23_dispatch_cost(conn: sqlite3.Connection) -> None:
         return
 
     cols = [
-        ("cost_usd",            "REAL"),
-        ("budget_usd",          "REAL"),
-        ("usage_jsonb",         "TEXT"),
-        ("model_usage_jsonb",   "TEXT"),
-        ("tool_calls_jsonb",    "TEXT"),
+        ("cost_usd", "REAL"),
+        ("budget_usd", "REAL"),
+        ("usage_jsonb", "TEXT"),
+        ("model_usage_jsonb", "TEXT"),
+        ("tool_calls_jsonb", "TEXT"),
         ("tool_failures_jsonb", "TEXT"),
     ]
     for name, decl in cols:
         if not _column_exists_table(conn, "formula_dispatches", name):
-            conn.execute(
-                f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}"
-            )
+            conn.execute(f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}")
 
     conn.executescript(
         """
@@ -1255,16 +1239,14 @@ def _migrate_v25_backtrack_failure_anatomy(conn: sqlite3.Connection) -> None:
         return
 
     cols = [
-        ("hypothesis",        "TEXT"),
-        ("failure_signal",    "TEXT"),
-        ("root_cause",        "TEXT"),
+        ("hypothesis", "TEXT"),
+        ("failure_signal", "TEXT"),
+        ("root_cause", "TEXT"),
         ("corrective_action", "TEXT"),
     ]
     for name, decl in cols:
         if not _column_exists_table(conn, "backtrack_events", name):
-            conn.execute(
-                f"ALTER TABLE backtrack_events ADD COLUMN {name} {decl}"
-            )
+            conn.execute(f"ALTER TABLE backtrack_events ADD COLUMN {name} {decl}")
 
     conn.executescript("""\
 CREATE INDEX IF NOT EXISTS idx_backtrack_root_cause
@@ -1285,14 +1267,9 @@ def _migrate_v26_routing_evolution(conn: sqlite3.Connection) -> None:
 
     for name, decl in [("last_recalc_at", "TEXT"), ("outcomes_at_recalc", "INTEGER")]:
         if not _column_exists_table(conn, "routing_weights", name):
-            conn.execute(
-                f"ALTER TABLE routing_weights ADD COLUMN {name} {decl}"
-            )
+            conn.execute(f"ALTER TABLE routing_weights ADD COLUMN {name} {decl}")
     conn.commit()
-    logger.info(
-        "Migration v26 applied: routing_weights gained "
-        "last_recalc_at / outcomes_at_recalc"
-    )
+    logger.info("Migration v26 applied: routing_weights gained last_recalc_at / outcomes_at_recalc")
 
 
 def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
@@ -1302,15 +1279,13 @@ def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
         return
 
     cols = [
-        ("sub_session_id",   "TEXT"),
-        ("model",            "TEXT"),
+        ("sub_session_id", "TEXT"),
+        ("model", "TEXT"),
         ("checkpoints_jsonb", "TEXT"),
     ]
     for name, decl in cols:
         if not _column_exists_table(conn, "formula_dispatches", name):
-            conn.execute(
-                f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}"
-            )
+            conn.execute(f"ALTER TABLE formula_dispatches ADD COLUMN {name} {decl}")
 
     conn.executescript(
         """
@@ -1348,8 +1323,7 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
     """Check whether the file_index_state table exists (migration v17)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='file_index_state'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='file_index_state'"
     ).fetchone()
     return row is not None
 
@@ -1357,8 +1331,7 @@ def has_file_index_state_table(conn: sqlite3.Connection) -> bool:
 def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
     """Check whether formula_dispatches exists (migration v14)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='formula_dispatches'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='formula_dispatches'"
     ).fetchone()
     return row is not None
 
@@ -1366,8 +1339,7 @@ def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
 def has_backtrack_events_table(conn: sqlite3.Connection) -> bool:
     """Check whether backtrack_events exists (migration v14)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='backtrack_events'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='backtrack_events'"
     ).fetchone()
     return row is not None
 
@@ -1375,8 +1347,7 @@ def has_backtrack_events_table(conn: sqlite3.Connection) -> bool:
 def has_persona_selections_table(conn: sqlite3.Connection) -> bool:
     """Check whether persona_selections exists (migration v14)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='persona_selections'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='persona_selections'"
     ).fetchone()
     return row is not None
 
@@ -1384,17 +1355,14 @@ def has_persona_selections_table(conn: sqlite3.Connection) -> bool:
 def has_task_status_history_table(conn: sqlite3.Connection) -> bool:
     """Check whether task_status_history exists (migration v13)."""
     row = conn.execute(
-        "SELECT name FROM sqlite_master "
-        "WHERE type='table' AND name='task_status_history'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='task_status_history'"
     ).fetchone()
     return row is not None
 
 
 def has_tasks_v13_columns(conn: sqlite3.Connection) -> bool:
     """Quick check whether the v13 columns are on the tasks table."""
-    return _column_exists(conn, "tasks", "swimlane") and _column_exists(
-        conn, "tasks", "kind"
-    )
+    return _column_exists(conn, "tasks", "swimlane") and _column_exists(conn, "tasks", "kind")
 
 
 def record_audit(
@@ -1534,10 +1502,16 @@ CREATE TABLE IF NOT EXISTS session_summaries (
 """,
     ),
     # TASK-152: FTS5 full-text search layer (callable migration — needs runtime FTS5 check)
-    (2, "TASK-152: FTS5 observations_fts virtual table + INSERT/UPDATE/DELETE triggers", _migrate_v2_fts5),
+    (
+        2,
+        "TASK-152: FTS5 observations_fts virtual table + INSERT/UPDATE/DELETE triggers",
+        _migrate_v2_fts5,
+    ),
     # TASK-148: routing_weights table for adaptive model/skill routing
-    (3, "TASK-148: routing_weights table for adaptive routing",
-     """\
+    (
+        3,
+        "TASK-148: routing_weights table for adaptive routing",
+        """\
 CREATE TABLE IF NOT EXISTS routing_weights (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     domain          TEXT NOT NULL,
@@ -1549,87 +1523,144 @@ CREATE TABLE IF NOT EXISTS routing_weights (
     last_updated    DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(domain, complexity, model, skill)
 );
-"""),
+""",
+    ),
     # Brain features: outcome_history, concept_graph, session_summaries enrichment
-    (4, "Brain features: outcome_history, concept_graph, session_summaries enrichment",
-     _migrate_v4_brain_features),
+    (
+        4,
+        "Brain features: outcome_history, concept_graph, session_summaries enrichment",
+        _migrate_v4_brain_features,
+    ),
     # Phase B: embeddings + document_chunks for RAG vector search
-    (5, "Phase B RAG: embeddings + document_chunks tables",
-     _migrate_v5_rag),
+    (5, "Phase B RAG: embeddings + document_chunks tables", _migrate_v5_rag),
     # Phase C: tasks table for hybrid task store
-    (6, "Phase C task store: tasks table indexing docs/tasks/*.md",
-     _migrate_v6_tasks),
+    (6, "Phase C task store: tasks table indexing docs/tasks/*.md", _migrate_v6_tasks),
     # Phase G.1: brain hardening — trust_tier, provenance, memory_audit
-    (7, "Phase G.1 brain hardening: trust_tier + provenance + memory_audit",
-     _migrate_v7_brain_hardening),
+    (
+        7,
+        "Phase G.1 brain hardening: trust_tier + provenance + memory_audit",
+        _migrate_v7_brain_hardening,
+    ),
     # Phase G.4: self-validation throttle
-    (8, "Phase G.4 validation throttle: pattern_validations table",
-     _migrate_v8_validation_throttle),
+    (
+        8,
+        "Phase G.4 validation throttle: pattern_validations table",
+        _migrate_v8_validation_throttle,
+    ),
     # Phase G.7.3: FTS5 over document_chunks for lexical doc fallback
-    (9, "Phase G.7.3 docs FTS: document_chunks_fts + triggers",
-     _migrate_v9_docs_fts),
+    (9, "Phase G.7.3 docs FTS: document_chunks_fts + triggers", _migrate_v9_docs_fts),
     # Phase G.8: retrievals table — audit + feedback loop
-    (10, "Phase G.8 retrieval-outcome loop: retrievals table",
-     _migrate_v10_retrievals),
+    (10, "Phase G.8 retrieval-outcome loop: retrievals table", _migrate_v10_retrievals),
     # Phase G.11: retrieval quality tracker + contextual-chunk scaffolding
-    (11, "Phase G.11 retrieval quality: retrieval_quality + contextual chunk columns",
-     _migrate_v11_retrieval_quality),
+    (
+        11,
+        "Phase G.11 retrieval quality: retrieval_quality + contextual chunk columns",
+        _migrate_v11_retrieval_quality,
+    ),
     # Phase I.0: graph_os knowledge-graph tables + embedding_dim column
-    (12, "Phase I.0 graph_os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
-     _migrate_v12_graph_os),
+    (
+        12,
+        "Phase I.0 graph_os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
+        _migrate_v12_graph_os,
+    ),
     # Phase L.0: board_os Scrumban — extend tasks + task_status_history
-    (13, "Phase L.0 board_os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
-     _migrate_v13_board_os),
+    (
+        13,
+        "Phase L.0 board_os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
+        _migrate_v13_board_os,
+    ),
     # Phase M: formula-agent supervisor — 4 cognition tables
-    (14, "Phase M formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
-     _migrate_v14_cognition),
+    (
+        14,
+        "Phase M formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
+        _migrate_v14_cognition,
+    ),
     # graph_os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
-    (15, "graph_os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
-     _migrate_v15_graph_edges_confidence_check),
+    (
+        15,
+        "graph_os S1 B17: graph_edges_v12 confidence CHECK triggers (INSERT + UPDATE)",
+        _migrate_v15_graph_edges_confidence_check,
+    ),
     # graph_os S3: data migration — normalize graph_nodes.kind legacy values
-    (16, "graph_os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
-     _migrate_v16_normalize_graph_node_kinds),
+    (
+        16,
+        "graph_os S3: normalize graph_nodes.kind via NodeKind/normalize_kind",
+        _migrate_v16_normalize_graph_node_kinds,
+    ),
     # graph_os V1: file-level incremental indexing — file_index_state cache
-    (17, "graph_os V1: file_index_state cache table for incremental reindex",
-     _migrate_v17_file_index_state),
+    (
+        17,
+        "graph_os V1: file_index_state cache table for incremental reindex",
+        _migrate_v17_file_index_state,
+    ),
     # Phase J.3: retrieval router telemetry table
-    (18, "Phase J.3 retrieval router telemetry: retrieval_router_log table",
-     _migrate_v18_retrieval_router_log),
+    (
+        18,
+        "Phase J.3 retrieval router telemetry: retrieval_router_log table",
+        _migrate_v18_retrieval_router_log,
+    ),
     # Phase ?.board: drop 'ready' column — fold into icebox + 'ready' label
-    (19, "board_os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
-     _migrate_v19_drop_ready_status),
+    (
+        19,
+        "board_os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
+        _migrate_v19_drop_ready_status,
+    ),
     # Phase L.10: override audit — task_status_history.override_reason/actor
-    (20, "Phase L.10: override audit columns on task_status_history",
-     _migrate_v20_override_audit),
+    (20, "Phase L.10: override audit columns on task_status_history", _migrate_v20_override_audit),
     # Phase O: doc_audit_trail — append-only doc edit + decision history
-    (21, "Phase O: doc_audit_trail (append-only) for doc edits + decision history",
-     _migrate_v21_doc_audit_trail),
+    (
+        21,
+        "Phase O: doc_audit_trail (append-only) for doc edits + decision history",
+        _migrate_v21_doc_audit_trail,
+    ),
     # Phase O: document_chunks frontmatter metadata for Stage-1 RAG pre-filter
-    (22, "Phase O: document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
-     _migrate_v22_doc_chunks_metadata),
-    (23, "Phase Q.deep T2.3: formula_dispatches cost / budget / usage / tool_calls columns",
-     _migrate_v23_dispatch_cost),
+    (
+        22,
+        "Phase O: document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
+        _migrate_v22_doc_chunks_metadata,
+    ),
+    (
+        23,
+        "Phase Q.deep T2.3: formula_dispatches cost / budget / usage / tool_calls columns",
+        _migrate_v23_dispatch_cost,
+    ),
     # Phase EVO v24: project_trajectory — long-term project intent across sessions
-    (24, "Phase EVO v24: project_trajectory table for cross-session project intent",
-     _migrate_v24_project_trajectory),
+    (
+        24,
+        "Phase EVO v24: project_trajectory table for cross-session project intent",
+        _migrate_v24_project_trajectory,
+    ),
     # Phase EVO v25: structured failure anatomy on backtrack_events
-    (25, "Phase EVO v25: backtrack_events failure anatomy (hypothesis/failure_signal/root_cause/corrective_action)",
-     _migrate_v25_backtrack_failure_anatomy),
+    (
+        25,
+        "Phase EVO v25: backtrack_events failure anatomy (hypothesis/failure_signal/root_cause/corrective_action)",
+        _migrate_v25_backtrack_failure_anatomy,
+    ),
     # Phase EVO v26: routing_weights staleness tracking for autonomous refresh
-    (26, "Phase EVO v26: routing_weights last_recalc_at + outcomes_at_recalc",
-     _migrate_v26_routing_evolution),
+    (
+        26,
+        "Phase EVO v26: routing_weights last_recalc_at + outcomes_at_recalc",
+        _migrate_v26_routing_evolution,
+    ),
     # Phase Q.deep wave 3: formula_dispatches gains sub_session_id (SDK key),
     # model (claude-opus-4-7 / claude-sonnet-4-6), checkpoints_jsonb (T9.2).
-    (27, "Phase Q.deep v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
-     _migrate_v27_dispatch_sdk_columns),
-    (28, "Polyglot v28: file_index_state.duration_ms for per-extractor latency telemetry",
-     _migrate_v28_file_index_duration),
+    (
+        27,
+        "Phase Q.deep v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
+        _migrate_v27_dispatch_sdk_columns,
+    ),
+    (
+        28,
+        "Polyglot v28: file_index_state.duration_ms for per-extractor latency telemetry",
+        _migrate_v28_file_index_duration,
+    ),
 ]
 
 
 # ---------------------------------------------------------------------------
 # Connection helpers
 # ---------------------------------------------------------------------------
+
 
 def _apply_pragmas(conn: sqlite3.Connection) -> None:
     """Apply performance and safety PRAGMAs.
@@ -1639,13 +1670,13 @@ def _apply_pragmas(conn: sqlite3.Connection) -> None:
     throughput maximized via mmap + large cache.
     """
     conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA synchronous = NORMAL")          # 3-5x faster writes; WAL still crash-safe
+    conn.execute("PRAGMA synchronous = NORMAL")  # 3-5x faster writes; WAL still crash-safe
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA temp_store = MEMORY")           # sort/group spill to RAM, not disk
-    conn.execute("PRAGMA cache_size = -65536")           # 64 MB page cache (signed = KB)
-    conn.execute("PRAGMA mmap_size = 268435456")         # 256 MB memory-mapped I/O — skips read() syscalls
-    conn.execute("PRAGMA wal_autocheckpoint = 1000")     # checkpoint every ~4MB of WAL (4KB pages)
-    conn.execute("PRAGMA busy_timeout = 5000")           # 5s wait on locked DB instead of immediate fail
+    conn.execute("PRAGMA temp_store = MEMORY")  # sort/group spill to RAM, not disk
+    conn.execute("PRAGMA cache_size = -65536")  # 64 MB page cache (signed = KB)
+    conn.execute("PRAGMA mmap_size = 268435456")  # 256 MB memory-mapped I/O — skips read() syscalls
+    conn.execute("PRAGMA wal_autocheckpoint = 1000")  # checkpoint every ~4MB of WAL (4KB pages)
+    conn.execute("PRAGMA busy_timeout = 5000")  # 5s wait on locked DB instead of immediate fail
 
 
 def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
@@ -1741,6 +1772,7 @@ def db_connection(db_path: str | Path | None = None) -> Generator[sqlite3.Connec
 # Schema versioning & migration
 # ---------------------------------------------------------------------------
 
+
 def _ensure_version_table(conn: sqlite3.Connection) -> None:
     """Create the schema_version table if it doesn't exist."""
     conn.execute(
@@ -1799,13 +1831,14 @@ def run_migrations(conn: sqlite3.Connection) -> list[int]:
                 # confirms the schema is already where we want it.
                 if "duplicate column name" in str(exc).lower():
                     logger.debug(
-                        "migration v%d ALTER race tolerated: %s", version, exc,
+                        "migration v%d ALTER race tolerated: %s",
+                        version,
+                        exc,
                     )
                 else:
                     raise
             conn.execute(
-                "INSERT OR IGNORE INTO schema_version (version, description) "
-                "VALUES (?, ?)",
+                "INSERT OR IGNORE INTO schema_version (version, description) VALUES (?, ?)",
                 (version, description),
             )
             applied.append(version)
@@ -1857,7 +1890,7 @@ def get_db_stats(conn: sqlite3.Connection) -> dict:
 
     for table in _TABLES:
         try:
-            row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()  # noqa: S608 — table names are hardcoded
+            row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
             stats["tables"][table] = row[0]
         except sqlite3.OperationalError:
             stats["tables"][table] = None  # table doesn't exist yet
@@ -1878,6 +1911,7 @@ def get_db_stats(conn: sqlite3.Connection) -> dict:
 # ---------------------------------------------------------------------------
 # Bootstrap (called on server start and by --test)
 # ---------------------------------------------------------------------------
+
 
 def init_db(db_path: str | Path | None = None) -> sqlite3.Connection:
     """Open the DB, run migrations, return the live connection.

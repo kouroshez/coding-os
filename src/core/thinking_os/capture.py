@@ -47,6 +47,7 @@ DEFAULT_MEMORY_TYPE = "discovery"
 def _detect_memory_type(file_path: str) -> str:
     """Auto-detect memory type from file path."""
     from _agent_markers import agent_state_prefixes
+
     for prefix, mtype in _STATIC_MEMORY_TYPE_MAP:
         if prefix in file_path:
             return mtype
@@ -237,9 +238,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
     # file (single file_path with multiple hunks) so we treat it as an
     # Edit for narrative purposes — the hunk count lives in edits[].
     title = (
-        f"Modified {file_path}"
-        if tool_name in ("Edit", "MultiEdit")
-        else f"Created {file_path}"
+        f"Modified {file_path}" if tool_name in ("Edit", "MultiEdit") else f"Created {file_path}"
     )
     narrative = _build_narrative(tool_name, file_path)
     memory_type = _detect_memory_type(file_path)
@@ -268,15 +267,21 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         from sanitizer import sanitize_write
 
         title_sr = sanitize_write(
-            "title", title,
-            actor="capture.py", source_table="observations", conn=conn,
+            "title",
+            title,
+            actor="capture.py",
+            source_table="observations",
+            conn=conn,
         )
         if not title_sr.ok:
             return {"status": "rejected", "field": "title", "reason": title_sr.reason}
 
         narr_sr = sanitize_write(
-            "narrative", narrative,
-            actor="capture.py", source_table="observations", conn=conn,
+            "narrative",
+            narrative,
+            actor="capture.py",
+            source_table="observations",
+            conn=conn,
         )
         if not narr_sr.ok:
             return {"status": "rejected", "field": "narrative", "reason": narr_sr.reason}
@@ -289,14 +294,26 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
             "(session_id, tool_name, observation_type, memory_type, impact_score, "
             "title, narrative, files_modified, cost_tokens, content_hash, concepts) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (session_id, tool_name, tool_name.lower(), memory_type, impact_score,
-             title, narrative, file_path, cost_tokens, content_hash, concepts),
+            (
+                session_id,
+                tool_name,
+                tool_name.lower(),
+                memory_type,
+                impact_score,
+                title,
+                narrative,
+                file_path,
+                cost_tokens,
+                content_hash,
+                concepts,
+            ),
         )
         conn.commit()
 
         # Record co-edit edges in concept graph (fire-and-forget)
         try:
             from graph import record_co_edit
+
             record_co_edit(conn, session_id=session_id, file_path=file_path)
         except Exception:
             pass  # graph table may not exist (pre-v4 DB)
@@ -304,6 +321,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         # Phase B RAG: embed the observation for semantic search (fire-and-forget)
         try:
             from embeddings import upsert_embedding
+
             text_to_embed = " ".join(filter(None, [title, narrative, concepts]))
             upsert_embedding(conn, "observations", cursor.lastrowid, text_to_embed)
         except Exception:

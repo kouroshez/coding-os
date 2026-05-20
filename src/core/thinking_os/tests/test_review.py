@@ -7,11 +7,11 @@ Covers DB write path, fallback file path, missing DB, directory creation.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
@@ -50,9 +50,7 @@ class TestRecordReviewDB:
         )
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM session_summaries WHERE task_id = 'TASK-101'"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM session_summaries WHERE task_id = 'TASK-101'").fetchone()
         conn.close()
         assert row is not None
         assert row["request"] == "Add search"

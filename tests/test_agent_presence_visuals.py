@@ -1,4 +1,5 @@
 """Cross-language lock-in: backend AgentPresence literals ↔ frontend visuals."""
+
 from __future__ import annotations
 
 import re
@@ -9,8 +10,20 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 # Backend source: the board.py enum.  We extract these from the union
 # in the AgentPresence type declaration in types.ts so the test fails
 # loudly if someone introduces a new state on one side only.
-_TYPES_TS = _REPO_ROOT / "src" / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "types.ts"
-_VISUALS_TS = _REPO_ROOT / "src" / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "agentPresenceVisuals.ts"
+_TYPES_TS = (
+    _REPO_ROOT / "src" / "core" / "web" / "ui" / "src" / "features" / "cos-board" / "types.ts"
+)
+_VISUALS_TS = (
+    _REPO_ROOT
+    / "src"
+    / "core"
+    / "web"
+    / "ui"
+    / "src"
+    / "features"
+    / "cos-board"
+    / "agentPresenceVisuals.ts"
+)
 _BOARD_PY = _REPO_ROOT / "src" / "core" / "web" / "routes" / "board.py"
 
 
@@ -21,11 +34,7 @@ def _extract_ts_union(path: Path) -> set[str]:
         src,
     )
     assert m, f"AgentPresence type not found in {path}"
-    return {
-        s.strip().strip("'").strip('"')
-        for s in m.group(1).split("|")
-        if s.strip()
-    }
+    return {s.strip().strip("'").strip('"') for s in m.group(1).split("|") if s.strip()}
 
 
 def _extract_visual_keys(path: Path) -> set[str]:

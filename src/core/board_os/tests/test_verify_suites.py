@@ -26,7 +26,8 @@ def test_default_yaml_loads_cleanly() -> None:
 def test_match_suites_resolves_core_hooks_changes() -> None:
     cfg = load_verify_suites()
     suites = match_suites(
-        ["src/core/hooks/enforce-verify.sh", "src/core/hooks/registry.yaml"], cfg,
+        ["src/core/hooks/enforce-verify.sh", "src/core/hooks/registry.yaml"],
+        cfg,
     )
     assert "verify-hooks" in suites
 
@@ -34,7 +35,8 @@ def test_match_suites_resolves_core_hooks_changes() -> None:
 def test_match_suites_resolves_board_os_changes() -> None:
     cfg = load_verify_suites()
     suites = match_suites(
-        ["src/core/board_os/transition_gates.py"], cfg,
+        ["src/core/board_os/transition_gates.py"],
+        cfg,
     )
     assert "test-board_os" in suites
 

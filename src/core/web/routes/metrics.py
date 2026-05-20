@@ -20,6 +20,7 @@ async def prometheus_metrics():
     """Render collected metrics in Prometheus text format."""
     try:
         from graph_os.enterprise import metrics  # type: ignore
+
         return PlainTextResponse(content=metrics().render(), media_type="text/plain")
     except ImportError:
         # Enterprise not available — return a stub with a note.

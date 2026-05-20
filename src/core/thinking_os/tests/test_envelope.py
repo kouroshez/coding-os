@@ -16,7 +16,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tools._shared import (  # noqa: E402
+from tools._shared import (
     TOKEN_BUDGET_CHARS,
     VALID_LAYERS,
     fail,
@@ -24,10 +24,10 @@ from tools._shared import (  # noqa: E402
     safe_tool,
 )
 
-
 # ---------------------------------------------------------------------------
 # ok() — shape and meta merging
 # ---------------------------------------------------------------------------
+
 
 class TestOkEnvelope:
     def test_scalar_data_passes_through(self) -> None:
@@ -57,9 +57,7 @@ class TestOkEnvelope:
         assert envelope["data"]["meta"]["truncated"] is False
 
     def test_caller_meta_merged(self) -> None:
-        envelope = json.loads(
-            ok({"results": [1]}, meta={"layer": "memory", "query": "foo"})
-        )
+        envelope = json.loads(ok({"results": [1]}, meta={"layer": "memory", "query": "foo"}))
         meta = envelope["data"]["meta"]
         assert meta["layer"] == "memory"
         assert meta["query"] == "foo"
@@ -67,9 +65,7 @@ class TestOkEnvelope:
 
     def test_caller_meta_does_not_override_diagnostics(self) -> None:
         """Callers cannot spoof tokens_estimated or truncated — they're computed."""
-        envelope = json.loads(
-            ok({"results": [1]}, meta={"tokens_estimated": 1, "truncated": True})
-        )
+        envelope = json.loads(ok({"results": [1]}, meta={"tokens_estimated": 1, "truncated": True}))
         meta = envelope["data"]["meta"]
         # tokens_estimated is recomputed — will not equal the fake 1
         assert meta["tokens_estimated"] != 1
@@ -91,6 +87,7 @@ class TestOkEnvelope:
 # ---------------------------------------------------------------------------
 # Token budget — trimming
 # ---------------------------------------------------------------------------
+
 
 class TestTokenBudget:
     def test_under_budget_not_truncated(self) -> None:
@@ -138,11 +135,11 @@ class TestTokenBudget:
 # Layer contract — VALID_LAYERS
 # ---------------------------------------------------------------------------
 
+
 class TestLayerContract:
     def test_valid_layers_complete(self) -> None:
         """Every layer used by a cos_* tool must be declared."""
-        required = {"memory", "docs", "tasks", "metrics",
-                    "routing", "graph", "health", "learning"}
+        required = {"memory", "docs", "tasks", "metrics", "routing", "graph", "health", "learning"}
         assert required <= VALID_LAYERS
 
     def test_layer_meta_roundtrips(self) -> None:
@@ -154,6 +151,7 @@ class TestLayerContract:
 # ---------------------------------------------------------------------------
 # fail() — unchanged
 # ---------------------------------------------------------------------------
+
 
 class TestFail:
     def test_validation_not_retryable(self) -> None:
@@ -183,11 +181,13 @@ class TestFail:
 # safe_tool decorator
 # ---------------------------------------------------------------------------
 
+
 class TestSafeTool:
     def test_passes_through_success(self) -> None:
         @safe_tool
         def good() -> str:
             return ok({"results": [1]})
+
         envelope = json.loads(good())
         assert envelope["ok"] is True
 
@@ -195,6 +195,7 @@ class TestSafeTool:
         @safe_tool
         def bad() -> str:
             raise ValueError("nope")
+
         envelope = json.loads(bad())
         assert envelope["ok"] is False
         assert envelope["error"]["category"] == "validation"
@@ -203,6 +204,7 @@ class TestSafeTool:
         @safe_tool
         def boom() -> str:
             raise RuntimeError("kaboom")
+
         envelope = json.loads(boom())
         assert envelope["error"]["category"] == "internal"
         assert envelope["error"]["retryable"] is False
@@ -211,6 +213,7 @@ class TestSafeTool:
         @safe_tool
         def needs_dep() -> str:
             raise ImportError("no module")
+
         envelope = json.loads(needs_dep())
         assert envelope["error"]["category"] == "unavailable"
         assert envelope["error"]["retryable"] is True

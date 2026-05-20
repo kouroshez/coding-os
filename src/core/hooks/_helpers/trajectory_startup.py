@@ -1,4 +1,5 @@
 """Session startup helper — inject project trajectory context."""
+
 from __future__ import annotations
 
 import json

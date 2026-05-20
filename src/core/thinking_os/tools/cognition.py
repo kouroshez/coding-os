@@ -14,19 +14,24 @@ from tools._shared import fail, ok, safe_tool
 
 logger = logging.getLogger("coding_os.tools.cognition")
 
+
 # Lazy import of cognition — avoids circular at module load time
 def _cog():
     import cognition as _mod
+
     return _mod
+
 
 def _schemas():
     import cognition_schemas as _mod
+
     return _mod
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -50,7 +55,7 @@ def _resolve_role_persistence(role_id: str) -> tuple[str | None, Any]:
 
         try:
             registry = cog.load_agent_registry()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("agent registry load failed: %s", exc)
             registry = {}
         for rid, meta in registry.items():
@@ -85,6 +90,7 @@ def _all_bundle_fields() -> set[str]:
 
 def _resolve_agent_dir() -> Path:
     import os as _os
+
     explicit = _os.environ.get("COS_AGENT_DIR")
     if explicit:
         d = Path(explicit)
@@ -124,6 +130,7 @@ def _save_bundle(session_id: str, bundle: Any) -> None:
 # ---------------------------------------------------------------------------
 # cos_supervise
 # ---------------------------------------------------------------------------
+
 
 def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-history ranking
     @mcp.tool(
@@ -167,6 +174,7 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
         # Phase N — emit trace event for every supervisor transition
         try:
             import tracing
+
             event_kind = "supervise_action"
             if action.action == "dispatch":
                 event_kind = "role_dispatch"
@@ -176,15 +184,21 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
                 event_kind = "backtrack"
             elif action.action == "done":
                 event_kind = "task_done"
-            tracing.emit(session_id, event_kind, {
-                "action": action.action,
-                "formula": action.formula,
-                "formulas": action.formulas,
-                "reason": action.reason,
-                "phase": state.phase,
-                "dispatched_count": len(state.dispatched),
-                "backtrack_count": state.backtrack_count,
-            }, role=action.formula, phase=state.phase)
+            tracing.emit(
+                session_id,
+                event_kind,
+                {
+                    "action": action.action,
+                    "formula": action.formula,
+                    "formulas": action.formulas,
+                    "reason": action.reason,
+                    "phase": state.phase,
+                    "dispatched_count": len(state.dispatched),
+                    "backtrack_count": state.backtrack_count,
+                },
+                role=action.formula,
+                phase=state.phase,
+            )
         except Exception:
             pass
 
@@ -212,6 +226,7 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
 # ---------------------------------------------------------------------------
 # cos_supervise_record_output
 # ---------------------------------------------------------------------------
+
 
 def register_cos_supervise_record_output(mcp, db_path):
     @mcp.tool(
@@ -271,27 +286,40 @@ def register_cos_supervise_record_output(mcp, db_path):
                     "INSERT INTO formula_dispatches "
                     "(session_id, task_marker, persona_id, formula_id, input_hash, "
                     "output_hash, latency_ms, status, ts) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (session_id, task_marker, persona_id, formula_id, input_hash,
-                     output_hash, latency_ms, status, _now_iso()),
+                    (
+                        session_id,
+                        task_marker,
+                        persona_id,
+                        formula_id,
+                        input_hash,
+                        output_hash,
+                        latency_ms,
+                        status,
+                        _now_iso(),
+                    ),
                 )
         except Exception as exc:
             logger.debug("formula_dispatches insert failed: %s", exc)
 
-        filled = sum(
-            1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None
-        )
+        filled = sum(1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None)
         # Phase N — emit trace event so the flowchart replay knows a role completed
         try:
             import tracing
-            tracing.emit(session_id, "role_output_recorded", {
-                "formula_id": formula_id,
-                "status": status,
-                "latency_ms": latency_ms,
-                "output_hash": output_hash,
-                "bundle_fields_filled": filled,
-            }, role=formula_id)
+
+            tracing.emit(
+                session_id,
+                "role_output_recorded",
+                {
+                    "formula_id": formula_id,
+                    "status": status,
+                    "latency_ms": latency_ms,
+                    "output_hash": output_hash,
+                    "bundle_fields_filled": filled,
+                },
+                role=formula_id,
+            )
         except Exception:
-            pass   # tracing must never break caller
+            pass  # tracing must never break caller
         return ok(
             {"formula_id": formula_id, "status": status, "bundle_fields_filled": filled},
             meta={"layer": "routing"},
@@ -304,7 +332,8 @@ def register_cos_supervise_record_output(mcp, db_path):
 # cos_dispatch_formula
 # ---------------------------------------------------------------------------
 
-def register_cos_dispatch_formula(mcp, db_path):  # noqa: ARG001 — reserved for future dispatch logging
+
+def register_cos_dispatch_formula(mcp, db_path):
     @mcp.tool(
         name="cos_dispatch_formula",
         description=(
@@ -354,6 +383,7 @@ def register_cos_dispatch_formula(mcp, db_path):  # noqa: ARG001 — reserved fo
 # cos_ambiguity_check
 # ---------------------------------------------------------------------------
 
+
 def register_cos_ambiguity_check(mcp, db_path):
     @mcp.tool(
         name="cos_ambiguity_check",
@@ -381,8 +411,13 @@ def register_cos_ambiguity_check(mcp, db_path):
                             "INSERT INTO ambiguity_violations "
                             "(session_id, formula_id, criterion, detail, ts) "
                             "VALUES (?, ?, ?, ?, ?)",
-                            (session_id, v["formula"], v["criterion"],
-                             v.get("detail", ""), _now_iso()),
+                            (
+                                session_id,
+                                v["formula"],
+                                v["criterion"],
+                                v.get("detail", ""),
+                                _now_iso(),
+                            ),
                         )
             except Exception as exc:
                 logger.debug("ambiguity_violations insert failed: %s", exc)
@@ -398,6 +433,7 @@ def register_cos_ambiguity_check(mcp, db_path):
 # ---------------------------------------------------------------------------
 # cos_traceability
 # ---------------------------------------------------------------------------
+
 
 def register_cos_traceability(mcp, db_path):
     @mcp.tool(
@@ -452,6 +488,7 @@ def register_cos_traceability(mcp, db_path):
 # cos_backtrack_log
 # ---------------------------------------------------------------------------
 
+
 def register_cos_backtrack_log(mcp, db_path):
     @mcp.tool(
         name="cos_backtrack_log",
@@ -476,17 +513,22 @@ def register_cos_backtrack_log(mcp, db_path):
         corrective_action: str = "",
     ) -> str:
         _VALID_ROOT_CAUSES = {
-            "wrong_model", "scope_too_large", "missing_context",
-            "tool_failure", "spec_ambiguity", "env_mismatch", "other",
+            "wrong_model",
+            "scope_too_large",
+            "missing_context",
+            "tool_failure",
+            "spec_ambiguity",
+            "env_mismatch",
+            "other",
         }
         _SUGGESTED_ACTIONS: dict[str, str] = {
-            "wrong_model":     "Use cos_route_model to select the right model before re-dispatching.",
+            "wrong_model": "Use cos_route_model to select the right model before re-dispatching.",
             "scope_too_large": "Decompose via cos_task_create and pick the smallest slice.",
             "missing_context": "Run cos_doc_search or cos_search to load relevant context first.",
-            "tool_failure":    "Run cos_health to verify permissions/env vars, then retry with explicit paths.",
-            "spec_ambiguity":  "Log open questions via cos_discovery and resolve with user before implementing.",
-            "env_mismatch":    "Run cos doctor to validate environment config, then restart the session.",
-            "other":           "Re-classify the problem (Cynefin gate) and review the Anti-Paralysis advisory.",
+            "tool_failure": "Run cos_health to verify permissions/env vars, then retry with explicit paths.",
+            "spec_ambiguity": "Log open questions via cos_discovery and resolve with user before implementing.",
+            "env_mismatch": "Run cos doctor to validate environment config, then restart the session.",
+            "other": "Re-classify the problem (Cynefin gate) and review the Anti-Paralysis advisory.",
         }
 
         # Silently clear invalid root_cause to avoid polluting the enum
@@ -503,9 +545,15 @@ def register_cos_backtrack_log(mcp, db_path):
                         " hypothesis, failure_signal, root_cause, corrective_action) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
-                            session_id, from_formula, to_formula, reason, _now_iso(),
-                            hypothesis or None, failure_signal or None,
-                            root_cause or None, corrective_action or None,
+                            session_id,
+                            from_formula,
+                            to_formula,
+                            reason,
+                            _now_iso(),
+                            hypothesis or None,
+                            failure_signal or None,
+                            root_cause or None,
+                            corrective_action or None,
                         ),
                     )
                 except sqlite3.OperationalError:
@@ -544,9 +592,7 @@ def register_cos_backtrack_log(mcp, db_path):
                 "Consider narrowing task scope or raising intensity level."
             )
         elif count >= 3:
-            advisory = (
-                f"Anti-Paralysis: {count} backtracks. Review scope if pattern continues."
-            )
+            advisory = f"Anti-Paralysis: {count} backtracks. Review scope if pattern continues."
 
         # C2: concrete next step for the supplied root_cause
         suggested_action = _SUGGESTED_ACTIONS.get(root_cause, "") if root_cause else ""
@@ -554,14 +600,27 @@ def register_cos_backtrack_log(mcp, db_path):
         # Phase N — emit trace event for replay
         try:
             import tracing
-            tracing.emit(session_id, "backtrack", {
-                "from": from_formula, "to": to_formula,
-                "reason": reason, "count": count,
-            }, role=from_formula)
+
+            tracing.emit(
+                session_id,
+                "backtrack",
+                {
+                    "from": from_formula,
+                    "to": to_formula,
+                    "reason": reason,
+                    "count": count,
+                },
+                role=from_formula,
+            )
             if advisory:
-                tracing.emit(session_id, "anti_paralysis_warn", {
-                    "count": count, "advisory": advisory,
-                })
+                tracing.emit(
+                    session_id,
+                    "anti_paralysis_warn",
+                    {
+                        "count": count,
+                        "advisory": advisory,
+                    },
+                )
         except Exception as _exc:
             logger.debug("backtrack tracing skipped: %s", _exc)
 
@@ -581,6 +640,7 @@ def register_cos_backtrack_log(mcp, db_path):
 # ---------------------------------------------------------------------------
 # cos_discovery
 # ---------------------------------------------------------------------------
+
 
 def register_cos_discovery(mcp, db_path):
     @mcp.tool(
@@ -620,12 +680,15 @@ def register_cos_discovery(mcp, db_path):
         try:
             with sqlite3.connect(db_path) as conn:
                 conn.execute(
-                    "INSERT INTO observations (session_id, kind, content, ts) "
-                    "VALUES (?, ?, ?, ?)",
-                    (session_id, f"discovery:{kind}",
-                     json.dumps({"summary": summary, "impact": impact_assessment,
-                                  "decision": decision}),
-                     _now_iso()),
+                    "INSERT INTO observations (session_id, kind, content, ts) VALUES (?, ?, ?, ?)",
+                    (
+                        session_id,
+                        f"discovery:{kind}",
+                        json.dumps(
+                            {"summary": summary, "impact": impact_assessment, "decision": decision}
+                        ),
+                        _now_iso(),
+                    ),
                 )
         except Exception as exc:
             logger.debug("observation insert failed: %s", exc)
@@ -642,7 +705,8 @@ def register_cos_discovery(mcp, db_path):
 # cos_situation_detect
 # ---------------------------------------------------------------------------
 
-def register_cos_situation_detect(mcp, db_path):  # noqa: ARG001 — reserved for learned situation overrides
+
+def register_cos_situation_detect(mcp, db_path):
     @mcp.tool(
         name="cos_situation_detect",
         description=(
@@ -676,7 +740,8 @@ def register_cos_situation_detect(mcp, db_path):  # noqa: ARG001 — reserved fo
 # cos_takeover
 # ---------------------------------------------------------------------------
 
-def register_cos_takeover(mcp, db_path):  # noqa: ARG001 — reserved for takeover session persistence
+
+def register_cos_takeover(mcp, db_path):
     @mcp.tool(
         name="cos_takeover",
         description=(
@@ -742,7 +807,8 @@ def register_cos_takeover(mcp, db_path):  # noqa: ARG001 — reserved for takeov
 # Spec: docs/phase-n-role-based-routing-plan.md §2.6
 # ---------------------------------------------------------------------------
 
-def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for metric persistence
+
+def register_cos_analyze_task(mcp, db_path):
     @mcp.tool(
         name="cos_analyze_task",
         description=(
@@ -763,15 +829,20 @@ def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for me
     ) -> str:
         import task_analyzer  # lazy
         import tracing
+
         agent_dir = _resolve_agent_dir()
         pd = Path(project_dir) if project_dir else Path.cwd()
         sid = session_id or "anon"
-        tracing.emit(sid, "analyze_start", {
-            "prompt_len": len(prompt),
-            "task_marker": task_marker,
-            "complexity": complexity,
-            "dimensions": dimensions,
-        })
+        tracing.emit(
+            sid,
+            "analyze_start",
+            {
+                "prompt_len": len(prompt),
+                "task_marker": task_marker,
+                "complexity": complexity,
+                "dimensions": dimensions,
+            },
+        )
         signals = task_analyzer.analyze_task(
             prompt=prompt,
             task_marker=task_marker or None,
@@ -780,17 +851,21 @@ def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for me
             agent_dir=agent_dir,
             project_dir=pd,
         )
-        tracing.emit(sid, "analyze_done", {
-            "action": signals.action,
-            "domain": signals.domain,
-            "urgency": signals.urgency,
-            "scope_size": signals.scope_size,
-            "external_dependency": signals.external_dependency,
-            "is_takeover": signals.is_takeover,
-            "breaking_change": signals.breaking_change,
-            "extraction_ms": signals.extraction_ms,
-            "source_errors": signals.source_errors,
-        })
+        tracing.emit(
+            sid,
+            "analyze_done",
+            {
+                "action": signals.action,
+                "domain": signals.domain,
+                "urgency": signals.urgency,
+                "scope_size": signals.scope_size,
+                "external_dependency": signals.external_dependency,
+                "is_takeover": signals.is_takeover,
+                "breaking_change": signals.breaking_change,
+                "extraction_ms": signals.extraction_ms,
+                "source_errors": signals.source_errors,
+            },
+        )
         return ok(
             signals.model_dump(),
             meta={"layer": "routing", "source": "task_analyzer"},
@@ -799,7 +874,7 @@ def register_cos_analyze_task(mcp, db_path):  # noqa: ARG001 — reserved for me
     return cos_analyze_task
 
 
-def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for preset-version audit log
+def register_cos_compose_chain(mcp, db_path):
     @mcp.tool(
         name="cos_compose_chain",
         description=(
@@ -818,6 +893,7 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
     ) -> str:
         import formula_composer  # lazy
         import tracing
+
         schemas = _schemas()
         signals = schemas.TaskSignals.model_validate_json(signals_json)
         chain = formula_composer.compose_chain(
@@ -828,43 +904,63 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
         sid = session_id or "anon"
         # Branch-specific event so replay knows which path fired
         if chain.source == "preset":
-            tracing.emit(sid, "preset_matched", {
-                "preset_id": chain.preset_id,
-                "preset_version": chain.preset_version,
-                "chain": chain.chain,
-                "effective_threshold": chain.effective_threshold,
-            })
+            tracing.emit(
+                sid,
+                "preset_matched",
+                {
+                    "preset_id": chain.preset_id,
+                    "preset_version": chain.preset_version,
+                    "chain": chain.chain,
+                    "effective_threshold": chain.effective_threshold,
+                },
+            )
         elif chain.source == "situation":
-            tracing.emit(sid, "situation_override", {
-                "situation_id": chain.situation_id,
-                "chain": chain.chain,
-            })
+            tracing.emit(
+                sid,
+                "situation_override",
+                {
+                    "situation_id": chain.situation_id,
+                    "chain": chain.chain,
+                },
+            )
         elif chain.source == "composer":
-            tracing.emit(sid, "composer_fallback", {
-                "chain": chain.chain,
-                "activations": [a.model_dump() for a in chain.activations],
-            })
+            tracing.emit(
+                sid,
+                "composer_fallback",
+                {
+                    "chain": chain.chain,
+                    "activations": [a.model_dump() for a in chain.activations],
+                },
+            )
         else:
-            tracing.emit(sid, "hard_fallback", {
+            tracing.emit(
+                sid,
+                "hard_fallback",
+                {
+                    "chain": chain.chain,
+                    "reason": chain.reason,
+                },
+            )
+        tracing.emit(
+            sid,
+            "compose_done",
+            {
                 "chain": chain.chain,
-                "reason": chain.reason,
-            })
-        tracing.emit(sid, "compose_done", {
-            "chain": chain.chain,
-            "source": chain.source,
-            "preset_id": chain.preset_id,
-        })
+                "source": chain.source,
+                "preset_id": chain.preset_id,
+            },
+        )
         # Phase M telemetry — persist the lead persona for the dispatch.
         # Schema (migration v14): one row per compose_chain call.
         try:
             import sqlite3 as _sqlite
+
             _conn = _sqlite.connect(db_path)
             try:
                 lead_persona = chain.chain[0] if chain.chain else "unknown"
                 # Confidence proxy: preset_matched > situation_override >
                 # composer_fallback > hard_fallback (1.0 / 0.85 / 0.7 / 0.4).
-                conf_map = {"preset": 1.0, "situation": 0.85,
-                            "composer": 0.7, "hard": 0.4}
+                conf_map = {"preset": 1.0, "situation": 0.85, "composer": 0.7, "hard": 0.4}
                 conf = conf_map.get(chain.source, 0.5)
                 # Intensity is per-role; use lead role's first step as the
                 # session-level signal (pragmatic — full breakdown lives in
@@ -874,13 +970,12 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
                     "INSERT INTO persona_selections "
                     "(session_id, task_marker, persona_id, confidence, reason, intensity) "
                     "VALUES (?, ?, ?, ?, ?, ?)",
-                    (sid, chain.preset_id or "",
-                     lead_persona, conf, chain.source, intensity),
+                    (sid, chain.preset_id or "", lead_persona, conf, chain.source, intensity),
                 )
                 _conn.commit()
             finally:
                 _conn.close()
-        except Exception as exc:  # noqa: BLE001 — telemetry must never block dispatch
+        except Exception as exc:
             logger.debug("persona_selections insert failed: %s", exc)
         return ok(
             chain.model_dump(),
@@ -890,7 +985,7 @@ def register_cos_compose_chain(mcp, db_path):  # noqa: ARG001 — reserved for p
     return cos_compose_chain
 
 
-def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-health readout
+def register_cos_role_info(mcp, db_path):
     @mcp.tool(
         name="cos_role_info",
         description=(
@@ -902,18 +997,30 @@ def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-
     @safe_tool
     def cos_role_info(role_id: str) -> str:
         import formula_composer  # lazy
+
         roles = formula_composer.load_roles()
         role = roles.get(role_id)
         if role is None:
             return fail("not_found", f"unknown role_id: {role_id}")
         keep = {
-            k: role.get(k) for k in (
-                "id", "role_name", "formula_ref", "agent_file",
-                "intensity_steps", "tools_budget", "max_tokens_in",
-                "max_tokens_out", "timeout_s", "model_pref",
-                "backtrack_triggers", "criteria_required",
-                "prompt_prefix", "parallel_dispatch",
-            ) if k in role
+            k: role.get(k)
+            for k in (
+                "id",
+                "role_name",
+                "formula_ref",
+                "agent_file",
+                "intensity_steps",
+                "tools_budget",
+                "max_tokens_in",
+                "max_tokens_out",
+                "timeout_s",
+                "model_pref",
+                "backtrack_triggers",
+                "criteria_required",
+                "prompt_prefix",
+                "parallel_dispatch",
+            )
+            if k in role
         }
         return ok(keep, meta={"layer": "routing", "source": "role_registry"})
 
@@ -924,9 +1031,16 @@ def register_cos_role_info(mcp, db_path):  # noqa: ARG001 — reserved for role-
 # cos_dispatch_formula_run — Phase N.SDK real-dispatch tool
 # ---------------------------------------------------------------------------
 
+
 def _persist_dispatch_output(
-    *, session_id: str, task_marker: str, persona_id: str,
-    formula_id: str, output_json: dict, status: str, latency_ms: int,
+    *,
+    session_id: str,
+    task_marker: str,
+    persona_id: str,
+    formula_id: str,
+    output_json: dict,
+    status: str,
+    latency_ms: int,
     db_path: str,
 ) -> int:
     bundle = _load_bundle(session_id, task_marker, persona_id)
@@ -946,7 +1060,9 @@ def _persist_dispatch_output(
             # saved with degraded_formulas marker so the supervisor can
             # backtrack.
             logger.warning(
-                "Failed to validate %s output against schema: %s", formula_id, exc,
+                "Failed to validate %s output against schema: %s",
+                formula_id,
+                exc,
             )
             bundle.degraded_formulas.append(formula_id)
             status = "fail"
@@ -959,9 +1075,7 @@ def _persist_dispatch_output(
     # T1.6: skip the dispatch row INSERT when schema validation failed.
     # Returning the bundle field count keeps the caller signature stable.
     if validation_failed:
-        return sum(
-            1 for f in field_map if getattr(bundle, field_map[f], None) is not None
-        )
+        return sum(1 for f in field_map if getattr(bundle, field_map[f], None) is not None)
 
     raw = json.dumps(output_json, sort_keys=True, default=str).encode()
     output_hash = hashlib.sha256(raw).hexdigest()[:16]
@@ -997,8 +1111,15 @@ def _persist_dispatch_output(
                 "sub_session_id, model, checkpoints_jsonb) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    session_id, task_marker, persona_id, formula_id, input_hash,
-                    output_hash, latency_ms, status, _now_iso(),
+                    session_id,
+                    task_marker,
+                    persona_id,
+                    formula_id,
+                    input_hash,
+                    output_hash,
+                    latency_ms,
+                    status,
+                    _now_iso(),
                     cost_usd_val,
                     meta.get("budget_usd"),
                     _jsonb(meta.get("usage")),
@@ -1013,20 +1134,28 @@ def _persist_dispatch_output(
     except Exception as exc:
         logger.debug("formula_dispatches insert failed: %s", exc)
 
-    return sum(
-        1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None
-    )
+    return sum(1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None)
 
 
 def _emit_dispatch_metrics_safe(
-    *, db_path: str, formula_id: str, status: str,
-    latency_ms: int, output_json: dict,
+    *,
+    db_path: str,
+    formula_id: str,
+    status: str,
+    latency_ms: int,
+    output_json: dict,
 ) -> None:
     import sqlite3 as _sqlite3
 
     try:
         from tools.metrics import metric_record  # type: ignore[import]
-        _outcome_map = {"ok": "success", "timeout": "blocked", "error": "partial", "skipped": "partial"}
+
+        _outcome_map = {
+            "ok": "success",
+            "timeout": "blocked",
+            "error": "partial",
+            "skipped": "partial",
+        }
         outcome = _outcome_map.get(status, "partial")
         meta = output_json.get("_meta") if isinstance(output_json, dict) else {}
         meta = meta if isinstance(meta, dict) else {}
@@ -1041,16 +1170,21 @@ def _emit_dispatch_metrics_safe(
                 model=model_used,
                 complexity="CLEAR",
             )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("dispatch metric emit failed: %s", exc)
 
 
 def _build_dispatch_request(
-    formula_id: str, session_id: str, task_marker: str,
-    persona_id: str, intensity: str, timeout_s: float | None,
+    formula_id: str,
+    session_id: str,
+    task_marker: str,
+    persona_id: str,
+    intensity: str,
+    timeout_s: float | None,
 ):
     """Build a DispatchRequest from session state (shared by run-one and run-parallel)."""
     from thinking_os import dispatcher as _disp  # lazy: avoid circular at import time
+
     cog = _cog()
     agents = cog.load_agent_registry()
     meta = agents.get(formula_id) or {}
@@ -1101,8 +1235,8 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         timeout_s: float | None = None,
     ) -> str:
         import asyncio as _asyncio
-        from thinking_os import dispatcher as _disp
-        from thinking_os import budget as _budget
+
+        from thinking_os import budget as _budget, dispatcher as _disp
 
         gate = _budget.check(db_path)
         if not gate.allowed:
@@ -1110,8 +1244,12 @@ def register_cos_dispatch_formula_run(mcp, db_path):
 
         try:
             req = _build_dispatch_request(
-                formula_id, session_id, task_marker,
-                persona_id, intensity, timeout_s,
+                formula_id,
+                session_id,
+                task_marker,
+                persona_id,
+                intensity,
+                timeout_s,
             )
         except Exception as exc:
             return fail("validation", f"failed to build request: {exc}")
@@ -1122,14 +1260,21 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         # flowchart shows the actual sub-agent execution span.
         try:
             import tracing
-            tracing.emit(session_id, "dispatch_started", {
-                "formula_id": formula_id,
-                "dispatcher_name": getattr(d, "name", "unknown"),
-                "intensity": intensity,
-                "model": req.model,
-                "long_context": req.long_context,
-            }, role=formula_id, phase="EXECUTE")
-        except Exception as exc:  # noqa: BLE001 — tracing must never break dispatch
+
+            tracing.emit(
+                session_id,
+                "dispatch_started",
+                {
+                    "formula_id": formula_id,
+                    "dispatcher_name": getattr(d, "name", "unknown"),
+                    "intensity": intensity,
+                    "model": req.model,
+                    "long_context": req.long_context,
+                },
+                role=formula_id,
+                phase="EXECUTE",
+            )
+        except Exception as exc:
             logger.debug("dispatch_started trace emit failed: %s", exc)
 
         try:
@@ -1138,13 +1283,16 @@ def register_cos_dispatch_formula_run(mcp, db_path):
             # Nested loop — fall back to a fresh thread-owned loop
             if "already running" in str(exc):
                 import threading
+
                 box: dict = {}
+
                 def _runner():
                     loop = _asyncio.new_event_loop()
                     try:
                         box["result"] = loop.run_until_complete(d.dispatch(req))
                     finally:
                         loop.close()
+
                 t = threading.Thread(target=_runner, daemon=True)
                 t.start()
                 t.join(timeout=req.timeout_s + 10)
@@ -1157,10 +1305,14 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         filled = 0
         if result.status in ("ok", "timeout") and result.output_json:
             filled = _persist_dispatch_output(
-                session_id=session_id, task_marker=task_marker,
-                persona_id=persona_id, formula_id=formula_id,
-                output_json=result.output_json, status=result.status,
-                latency_ms=result.latency_ms, db_path=db_path,
+                session_id=session_id,
+                task_marker=task_marker,
+                persona_id=persona_id,
+                formula_id=formula_id,
+                output_json=result.output_json,
+                status=result.status,
+                latency_ms=result.latency_ms,
+                db_path=db_path,
             )
 
         # T2.5 + T8.4: emit dispatch cost and duration as coding-os metrics
@@ -1178,19 +1330,26 @@ def register_cos_dispatch_formula_run(mcp, db_path):
         # routing decision).
         try:
             import tracing
+
             _meta = result.output_json.get("_meta") if isinstance(result.output_json, dict) else {}
             _meta = _meta if isinstance(_meta, dict) else {}
-            tracing.emit(session_id, "dispatch_completed", {
-                "formula_id": formula_id,
-                "status": result.status,
-                "latency_ms": result.latency_ms,
-                "cost_usd": _meta.get("total_cost_usd"),
-                "sub_session_id": _meta.get("session_id"),
-                "model": _meta.get("model"),
-                "bundle_fields_filled": filled,
-                "error": result.error,
-            }, role=formula_id, phase="EXECUTE")
-        except Exception as exc:  # noqa: BLE001 — tracing must never break dispatch
+            tracing.emit(
+                session_id,
+                "dispatch_completed",
+                {
+                    "formula_id": formula_id,
+                    "status": result.status,
+                    "latency_ms": result.latency_ms,
+                    "cost_usd": _meta.get("total_cost_usd"),
+                    "sub_session_id": _meta.get("session_id"),
+                    "model": _meta.get("model"),
+                    "bundle_fields_filled": filled,
+                    "error": result.error,
+                },
+                role=formula_id,
+                phase="EXECUTE",
+            )
+        except Exception as exc:
             logger.debug("dispatch_completed trace emit failed: %s", exc)
 
         return ok(
@@ -1229,8 +1388,8 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         timeout_s: float | None = None,
     ) -> str:
         import asyncio as _asyncio
-        from thinking_os import dispatcher as _disp
-        from thinking_os import budget as _budget
+
+        from thinking_os import budget as _budget, dispatcher as _disp
 
         if not formula_ids:
             return fail("validation", "formula_ids must be non-empty")
@@ -1242,7 +1401,12 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         try:
             requests = [
                 _build_dispatch_request(
-                    fid, session_id, task_marker, persona_id, intensity, timeout_s,
+                    fid,
+                    session_id,
+                    task_marker,
+                    persona_id,
+                    intensity,
+                    timeout_s,
                 )
                 for fid in formula_ids
             ]
@@ -1258,19 +1422,23 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
             )
 
         import time as _time
+
         t0 = _time.monotonic()
         try:
             gathered = _asyncio.run(_gather_all())
         except RuntimeError:
             # Nested-loop fallback: run in a dedicated thread with fresh loop
             import threading
+
             box: dict = {}
+
             def _runner():
                 loop = _asyncio.new_event_loop()
                 try:
                     box["result"] = loop.run_until_complete(_gather_all())
                 finally:
                     loop.close()
+
             t = threading.Thread(target=_runner, daemon=True)
             t.start()
             deadline = max(req.timeout_s for req in requests) + 10
@@ -1282,31 +1450,42 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
         ok_count = 0
         for req, outcome in zip(requests, gathered):
             if isinstance(outcome, Exception):
-                results.append({
-                    "status": "error", "formula_id": req.formula_id,
-                    "error": f"{type(outcome).__name__}: {outcome}",
-                    "dispatcher_name": d.name, "latency_ms": 0,
-                    "output_json": {}, "bundle_fields_filled": 0,
-                })
+                results.append(
+                    {
+                        "status": "error",
+                        "formula_id": req.formula_id,
+                        "error": f"{type(outcome).__name__}: {outcome}",
+                        "dispatcher_name": d.name,
+                        "latency_ms": 0,
+                        "output_json": {},
+                        "bundle_fields_filled": 0,
+                    }
+                )
                 continue
             filled = 0
             if outcome.status == "ok" and outcome.output_json:
                 filled = _persist_dispatch_output(
-                    session_id=session_id, task_marker=task_marker,
-                    persona_id=persona_id, formula_id=outcome.formula_id,
-                    output_json=outcome.output_json, status=outcome.status,
-                    latency_ms=outcome.latency_ms, db_path=db_path,
+                    session_id=session_id,
+                    task_marker=task_marker,
+                    persona_id=persona_id,
+                    formula_id=outcome.formula_id,
+                    output_json=outcome.output_json,
+                    status=outcome.status,
+                    latency_ms=outcome.latency_ms,
+                    db_path=db_path,
                 )
                 ok_count += 1
-            results.append({
-                "status": outcome.status,
-                "formula_id": outcome.formula_id,
-                "dispatcher_name": outcome.dispatcher_name,
-                "latency_ms": outcome.latency_ms,
-                "output_json": outcome.output_json,
-                "error": outcome.error,
-                "bundle_fields_filled": filled,
-            })
+            results.append(
+                {
+                    "status": outcome.status,
+                    "formula_id": outcome.formula_id,
+                    "dispatcher_name": outcome.dispatcher_name,
+                    "latency_ms": outcome.latency_ms,
+                    "output_json": outcome.output_json,
+                    "error": outcome.error,
+                    "bundle_fields_filled": filled,
+                }
+            )
 
         return ok(
             {
@@ -1321,13 +1500,14 @@ def register_cos_dispatch_parallel_run(mcp, db_path):
     return cos_dispatch_parallel_run
 
 
-def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved for hit-rate metrics
+def register_cos_classify_prompt(mcp, db_path):
     """Register cos_classify_prompt — heuristic Cynefin + dimensions classifier.
 
     Replaces the manual `bash write-state.sh .thinking_os-gate "COMPLICATED 3"`
     step. The agent calls this on the user's prompt and gets back a recorded
     gate without manually counting domains or evaluating Cynefin signals.
     """
+
     @mcp.tool(
         name="cos_classify_prompt",
         description=(
@@ -1346,15 +1526,19 @@ def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved 
     ) -> str:
         import os as _os
         import re as _re
+
         text = (prompt or "").strip().lower()
         if not text:
-            return ok({
-                "complexity": "CLEAR",
-                "dimensions": 1,
-                "reasoning": "empty prompt",
-                "signals": [],
-                "recorded": False,
-            }, meta={"layer": "routing"})
+            return ok(
+                {
+                    "complexity": "CLEAR",
+                    "dimensions": 1,
+                    "reasoning": "empty prompt",
+                    "signals": [],
+                    "recorded": False,
+                },
+                meta={"layer": "routing"},
+            )
 
         signals: list[str] = []
         complexity = "CLEAR"
@@ -1395,16 +1579,16 @@ def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved 
 
         # Dimensions — count distinct domains touched
         domain_patterns = {
-            "backend":   r"\b(api|backend|server|django|fastapi|fiber|endpoint|router|service)\b",
-            "frontend":  r"\b(frontend|react|next\.?js|nextjs|component|ui|client|page|jsx|tsx)\b",
-            "mobile":    r"\b(mobile|ios|android|react native|expo|swift|kotlin)\b",
-            "ai":        r"\b(llm|ai|prompt|embedding|rag|model|completion|token)\b",
-            "security":  r"\b(security|auth|permission|csrf|xss|sql injection|jwt|oauth|tls|encryption|secret)\b",
-            "ops":       r"\b(deploy|ci/cd|docker|kubernetes|k8s|infra|monitoring|alert|runbook|sre)\b",
-            "docs":      r"\b(doc|documentation|readme|spec|playbook|adr)\b",
-            "db":        r"\b(database|sql|sqlite|postgres|mysql|migration|schema|index|query)\b",
-            "graph":     r"\b(graph|neo4j|kuzu|node|edge|traversal)\b",
-            "test":      r"\b(test|testing|pytest|jest|coverage|fixture|mock)\b",
+            "backend": r"\b(api|backend|server|django|fastapi|fiber|endpoint|router|service)\b",
+            "frontend": r"\b(frontend|react|next\.?js|nextjs|component|ui|client|page|jsx|tsx)\b",
+            "mobile": r"\b(mobile|ios|android|react native|expo|swift|kotlin)\b",
+            "ai": r"\b(llm|ai|prompt|embedding|rag|model|completion|token)\b",
+            "security": r"\b(security|auth|permission|csrf|xss|sql injection|jwt|oauth|tls|encryption|secret)\b",
+            "ops": r"\b(deploy|ci/cd|docker|kubernetes|k8s|infra|monitoring|alert|runbook|sre)\b",
+            "docs": r"\b(doc|documentation|readme|spec|playbook|adr)\b",
+            "db": r"\b(database|sql|sqlite|postgres|mysql|migration|schema|index|query)\b",
+            "graph": r"\b(graph|neo4j|kuzu|node|edge|traversal)\b",
+            "test": r"\b(test|testing|pytest|jest|coverage|fixture|mock)\b",
         }
         hit_domains: list[str] = []
         for name, pat in domain_patterns.items():
@@ -1418,9 +1602,7 @@ def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved 
         # Trivial-fix shortcut: VERY short prompt + obvious one-shot keyword,
         # AND no multi-domain signal. Conservative — ambiguous prompts must
         # NOT silently degrade to CLEAR (the gate exists to prevent that).
-        trivial_re = _re.compile(
-            r"^(fix typo|update doc(?:string)?|tweak (?:wording|comment))\b"
-        )
+        trivial_re = _re.compile(r"^(fix typo|update doc(?:string)?|tweak (?:wording|comment))\b")
         if (
             trivial_re.search(text)
             and word_count < 15
@@ -1443,19 +1625,20 @@ def register_cos_classify_prompt(mcp, db_path):  # noqa: ARG001 — db reserved 
             if target_dir:
                 gate_path = Path(target_dir) / ".thinking_os-gate"
                 gate_path.parent.mkdir(parents=True, exist_ok=True)
-                gate_path.write_text(
-                    f"{complexity} {dimensions}\n", encoding="utf-8"
-                )
+                gate_path.write_text(f"{complexity} {dimensions}\n", encoding="utf-8")
                 recorded = True
 
-        return ok({
-            "complexity": complexity,
-            "dimensions": dimensions,
-            "reasoning": reasoning,
-            "signals": signals,
-            "domains": hit_domains,
-            "recorded": recorded,
-        }, meta={"layer": "routing"})
+        return ok(
+            {
+                "complexity": complexity,
+                "dimensions": dimensions,
+                "reasoning": reasoning,
+                "signals": signals,
+                "domains": hit_domains,
+                "recorded": recorded,
+            },
+            meta={"layer": "routing"},
+        )
 
     return cos_classify_prompt
 

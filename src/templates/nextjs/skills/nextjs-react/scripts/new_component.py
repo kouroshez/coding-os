@@ -48,7 +48,7 @@ def main() -> int:
         f"  // TODO: define props\n"
         f"}}\n\n"
         f"export function {pascal}(_props: {pascal}Props) {{\n"
-        f"  return <div data-testid=\"{args.name}\" />;\n"
+        f'  return <div data-testid="{args.name}" />;\n'
         f"}}\n",
         encoding="utf-8",
     )

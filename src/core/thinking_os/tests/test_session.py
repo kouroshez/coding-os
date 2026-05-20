@@ -10,12 +10,12 @@ import os
 import re
 import sqlite3
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
@@ -26,9 +26,14 @@ class TestSessionIdFormat:
         """Session ID should match ses-YYYYMMDD-HHMMSS-XXXX."""
         # Simulate what the hook generates
         result = subprocess.run(
-            ["bash", "-c",
-             'echo "ses-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"'],
-            capture_output=True, text=True, timeout=5,
+            [
+                "bash",
+                "-c",
+                'echo "ses-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         session_id = result.stdout.strip()
         assert re.match(r"ses-\d{8}-\d{6}-[a-f0-9]{4}", session_id)
@@ -38,9 +43,14 @@ class TestSessionIdFormat:
         ids = set()
         for _ in range(5):
             result = subprocess.run(
-                ["bash", "-c",
-                 'echo "ses-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"'],
-                capture_output=True, text=True, timeout=5,
+                [
+                    "bash",
+                    "-c",
+                    'echo "ses-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"',
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             ids.add(result.stdout.strip())
         # At least some should be unique (suffix randomness)
@@ -156,7 +166,9 @@ class TestSessionContextHook:
         hooks_dir = Path(__file__).resolve().parent.parent.parent / "hooks"
         result = subprocess.run(
             ["bash", "-n", str(hooks_dir / "session-context.sh")],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         assert result.returncode == 0
 
@@ -165,7 +177,9 @@ class TestSessionContextHook:
         hooks_dir = Path(__file__).resolve().parent.parent.parent / "hooks"
         result = subprocess.run(
             ["bash", "-n", str(hooks_dir / "session-end.sh")],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         assert result.returncode == 0
 

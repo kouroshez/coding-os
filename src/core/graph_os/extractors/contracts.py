@@ -101,9 +101,7 @@ _NEST_METHOD_RE = re.compile(
     rf"""@(?P<method>Get|Post|Put|Patch|Delete)\s*\(\s*{_STRING_CAPTURE}""",
     re.VERBOSE,
 )
-_NEST_CONTROLLER_RE = re.compile(
-    rf"""@Controller\s*\(\s*{_STRING_CAPTURE}""", re.VERBOSE
-)
+_NEST_CONTROLLER_RE = re.compile(rf"""@Controller\s*\(\s*{_STRING_CAPTURE}""", re.VERBOSE)
 
 # Go Fiber: app.Get("/x", handler), app.Group("/v1")
 _FIBER_ROUTE_RE = re.compile(
@@ -154,7 +152,7 @@ _GORILLA_RE = re.compile(
 
 # Go stdlib net/http (Go 1.22+): http.HandleFunc("GET /path", h) and mux.HandleFunc
 _NET_HTTP_RE = re.compile(
-    rf"""(?:http|[A-Za-z_]\w*)\.HandleFunc
+    r"""(?:http|[A-Za-z_]\w*)\.HandleFunc
         \s*\(\s*"(?P<pattern>(?:[A-Z]+\s+)?/[^"]*)"
     """,
     re.VERBOSE,
@@ -195,7 +193,7 @@ _CELERY_TASK_RE = re.compile(
     re.VERBOSE,
 )
 _CHANNELS_RECEIVER_RE = re.compile(
-    rf"""@(?:receiver)\s*\(\s*[A-Za-z_][\w]*\s*,\s*sender\s*=\s*(?P<sender>[A-Za-z_][\w.]*)""",
+    r"""@(?:receiver)\s*\(\s*[A-Za-z_][\w]*\s*,\s*sender\s*=\s*(?P<sender>[A-Za-z_][\w.]*)""",
     re.VERBOSE,
 )
 _WEBSOCKET_RE = re.compile(
@@ -255,7 +253,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             matches.extend(_scan_grpc(content))
             matches.extend(_scan_cobra(content))
             matches.extend(_scan_urfave_cli(content))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
 
     if _DYNAMIC_FETCH_RE.search(content):
@@ -621,8 +619,12 @@ def _scan_gin(content: str) -> list[ContractMatch]:
             method = "any"
         hits.append(
             ContractMatch(
-                kind="http", framework="gin", method=method, path=path,
-                handler=None, line=_line_of(content, match.start()),
+                kind="http",
+                framework="gin",
+                method=method,
+                path=path,
+                handler=None,
+                line=_line_of(content, match.start()),
             )
         )
     return hits
@@ -635,9 +637,11 @@ def _scan_echo(content: str) -> list[ContractMatch]:
     for match in _GIN_ROUTE_RE.finditer(content):
         hits.append(
             ContractMatch(
-                kind="http", framework="echo",
+                kind="http",
+                framework="echo",
                 method=match.group("method").lower(),
-                path=match.group("path"), handler=None,
+                path=match.group("path"),
+                handler=None,
                 line=_line_of(content, match.start()),
             )
         )
@@ -654,8 +658,11 @@ def _scan_chi(content: str) -> list[ContractMatch]:
             method = "any"
         hits.append(
             ContractMatch(
-                kind="http", framework="chi", method=method,
-                path=match.group("path"), handler=None,
+                kind="http",
+                framework="chi",
+                method=method,
+                path=match.group("path"),
+                handler=None,
                 line=_line_of(content, match.start()),
             )
         )
@@ -674,8 +681,11 @@ def _scan_gorilla(content: str) -> list[ContractMatch]:
         for method in methods:
             hits.append(
                 ContractMatch(
-                    kind="http", framework="gorilla", method=method,
-                    path=match.group("path"), handler=None,
+                    kind="http",
+                    framework="gorilla",
+                    method=method,
+                    path=match.group("path"),
+                    handler=None,
                     line=_line_of(content, match.start()),
                 )
             )
@@ -695,23 +705,35 @@ def _scan_net_http(content: str) -> list[ContractMatch]:
             method, path = "any", pattern
         hits.append(
             ContractMatch(
-                kind="http", framework="net_http", method=method,
-                path=path, handler=None, line=_line_of(content, match.start()),
+                kind="http",
+                framework="net_http",
+                method=method,
+                path=path,
+                handler=None,
+                line=_line_of(content, match.start()),
             )
         )
     return hits
 
 
 def _scan_grpc(content: str) -> list[ContractMatch]:
-    if "grpc." not in content and "google.golang.org/grpc" not in content and ".RegisterServer" not in content:
+    if (
+        "grpc." not in content
+        and "google.golang.org/grpc" not in content
+        and ".RegisterServer" not in content
+    ):
         return []
     hits: list[ContractMatch] = []
     for match in _GRPC_REGISTER_RE.finditer(content):
         svc = match.group("svc")
         hits.append(
             ContractMatch(
-                kind="grpc", framework="grpc", method="register",
-                path=svc, handler=None, line=_line_of(content, match.start()),
+                kind="grpc",
+                framework="grpc",
+                method="register",
+                path=svc,
+                handler=None,
+                line=_line_of(content, match.start()),
             )
         )
     return hits
@@ -726,8 +748,12 @@ def _scan_cobra(content: str) -> list[ContractMatch]:
         cmd_name = use_value.split()[0] if use_value else use_value
         hits.append(
             ContractMatch(
-                kind="cli", framework="cobra", method="command",
-                path=cmd_name, handler=None, line=_line_of(content, match.start()),
+                kind="cli",
+                framework="cobra",
+                method="command",
+                path=cmd_name,
+                handler=None,
+                line=_line_of(content, match.start()),
             )
         )
     return hits
@@ -740,8 +766,11 @@ def _scan_urfave_cli(content: str) -> list[ContractMatch]:
     for match in _URFAVE_CLI_RE.finditer(content):
         hits.append(
             ContractMatch(
-                kind="cli", framework="urfave_cli", method="command",
-                path=match.group("path"), handler=None,
+                kind="cli",
+                framework="urfave_cli",
+                method="command",
+                path=match.group("path"),
+                handler=None,
                 line=_line_of(content, match.start()),
             )
         )

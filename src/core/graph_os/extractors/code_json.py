@@ -272,7 +272,7 @@ def _detect_subtype(name: str) -> str:
         return "tsconfig"
     if lname == "mcp.json" or lname == ".mcp.json":
         return "mcp"
-    if lname == "settings.json" or lname.startswith("settings.") and lname.endswith(".json"):
+    if lname == "settings.json" or (lname.startswith("settings.") and lname.endswith(".json")):
         return "settings"
     return "generic"
 

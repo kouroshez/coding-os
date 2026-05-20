@@ -15,8 +15,7 @@ from cli._data_types import (
     StackProfile,
     VerifyRow,
 )
-from cli.aggregator import AggregationError
-from cli.aggregator import aggregate as _raw_aggregate
+from cli.aggregator import AggregationError, aggregate as _raw_aggregate
 
 FIXED_DATE = "2026-01-01"
 
@@ -24,7 +23,11 @@ FIXED_DATE = "2026-01-01"
 def aggregate(base, stacks, adapter, project_name):
     """Test helper — always uses a fixed date for determinism."""
     return _raw_aggregate(
-        base, stacks, adapter, project_name, today=FIXED_DATE,
+        base,
+        stacks,
+        adapter,
+        project_name,
+        today=FIXED_DATE,
     )
 
 
@@ -74,7 +77,8 @@ def _dummy_stack(stack_id: str, **overrides) -> StackProfile:
 
 def _dummy_adapter() -> AdapterProfile:
     return AdapterProfile(
-        id="claude", label="Claude",
+        id="claude",
+        label="Claude",
         settings_file=".claude/settings.json",
         hooks_dir=".claude/hooks",
         rules_dir=".claude/rules",
@@ -90,6 +94,7 @@ def _dummy_adapter() -> AdapterProfile:
 
 
 # ---------- substitution merge + auto tokens ----------
+
 
 def test_auto_project_name_resolved() -> None:
     world = aggregate(_dummy_base(), [], _dummy_adapter(), "my-proj")
@@ -121,6 +126,7 @@ def test_installed_skills_derived_as_backtick_list() -> None:
 
 # ---------- verify row dedupe ----------
 
+
 def test_verify_rows_dedupe_by_glob_and_suites() -> None:
     row_a = VerifyRow("x/", "a", "`a`")
     row_b = VerifyRow("x/", "a", "`b`")  # same key, different cmd
@@ -133,6 +139,7 @@ def test_verify_rows_dedupe_by_glob_and_suites() -> None:
 
 # ---------- ref code dedupe + conflict ----------
 
+
 def test_ref_codes_conflict_is_warned() -> None:
     base = _dummy_base(ref_codes=(RefCode("REF:X", "./a.md", ""),))
     stack = _dummy_stack("s", ref_codes=(RefCode("REF:X", "./b.md", ""),))
@@ -142,6 +149,7 @@ def test_ref_codes_conflict_is_warned() -> None:
 
 
 # ---------- makefile target dedupe ----------
+
 
 def test_makefile_target_conflict_is_warned() -> None:
     t1 = MakefileTarget("lint", "cmd1")
@@ -155,6 +163,7 @@ def test_makefile_target_conflict_is_warned() -> None:
 
 # ---------- hook conflict = error ----------
 
+
 def test_duplicate_hook_raises_aggregation_error() -> None:
     h1 = HookEntry("PreToolUse", "*", "cmd")
     h2 = HookEntry("PreToolUse", "*", "cmd")
@@ -166,6 +175,7 @@ def test_duplicate_hook_raises_aggregation_error() -> None:
 
 # ---------- skills merge preserves order, dedupes ----------
 
+
 def test_skills_preserve_first_occurrence_order() -> None:
     base = _dummy_base(skills=("a", "b"))
     s1 = _dummy_stack("s1", skills=("b", "c"))
@@ -175,6 +185,7 @@ def test_skills_preserve_first_occurrence_order() -> None:
 
 
 # ---------- derived routing joins ----------
+
 
 def test_routing_joined_on_pipe() -> None:
     base = _dummy_base(substitutions={"DOMAIN_ROUTES": "base route"})
@@ -193,6 +204,7 @@ def test_quick_routing_joined_on_newline() -> None:
 
 
 # ---------- no stacks → base defaults retained ----------
+
 
 def test_base_only_keeps_defaults() -> None:
     base = _dummy_base(substitutions={"STACK": "Polyglot", "DOMAIN_ROUTES": "anywhere"})

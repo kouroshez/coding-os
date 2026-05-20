@@ -1,4 +1,5 @@
 """cli.sync_all — push the meta-repo's current state to every registered project."""
+
 from __future__ import annotations
 
 import json
@@ -27,8 +28,9 @@ def _load_project_config(project: Path) -> dict:
         return {}
     try:
         import yaml
+
         return yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
-    except Exception as exc:  # noqa: BLE001 — best-effort scan
+    except Exception as exc:
         click.echo(f"    WARN: could not parse {cfg}: {exc}", err=True)
         return {}
 
@@ -45,8 +47,7 @@ def _iter_symlinks(project: Path) -> list[Path]:
     # no-op for stripped-down test fixtures.
     try:
         agent_ids = sorted(
-            d.name for d in _meta_root.iterdir()
-            if d.is_dir() and (d / "adapter.yaml").exists()
+            d.name for d in _meta_root.iterdir() if d.is_dir() and (d / "adapter.yaml").exists()
         )
     except OSError:
         agent_ids = []
@@ -86,7 +87,7 @@ def _apply_migrations(project: Path) -> tuple[bool, str]:
         return True, "no DB (pre-Phase-C install)"
     try:
         from thinking_os.database import get_schema_version, init_db  # type: ignore
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return False, f"import failed: {exc}"
     try:
         conn = init_db(db_path)
@@ -95,12 +96,13 @@ def _apply_migrations(project: Path) -> tuple[bool, str]:
         finally:
             conn.close()
         return True, f"schema v{ver}"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return False, f"migration error: {exc}"
 
 
-def _re_run_installs(project: Path, agents: list[str],
-                     templates: tuple[str, ...], dry_run: bool) -> list[str]:
+def _re_run_installs(
+    project: Path, agents: list[str], templates: tuple[str, ...], dry_run: bool
+) -> list[str]:
     """Re-run each declared adapter's install.sh — idempotent re-link."""
     notes: list[str] = []
     if dry_run:
@@ -108,13 +110,14 @@ def _re_run_installs(project: Path, agents: list[str],
             notes.append(f"would re-run adapters/{ag}/install.sh")
         return notes
     from cli.main import _link_stack_skills, _run_adapter_install  # type: ignore
+
     for ag in agents:
         try:
             _run_adapter_install(ag, project)
             if templates:
                 _link_stack_skills(ag, templates, project)
             notes.append(f"re-linked {ag}")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             notes.append(f"FAILED {ag}: {exc}")
     return notes
 
@@ -122,6 +125,7 @@ def _re_run_installs(project: Path, agents: list[str],
 def _each_registered_project(only_slug: str | None = None):
     """Yield (entry, path) for every registered project whose dir exists."""
     from cli.registry import load_registry  # type: ignore
+
     reg = load_registry()
     for entry in reg.projects:
         if only_slug and entry.slug != only_slug:
@@ -139,12 +143,19 @@ def _each_registered_project(only_slug: str | None = None):
 
 
 @click.command("sync-all", help="Propagate meta-repo state to every registered project.")
-@click.option("--slug", default=None,
-              help="Sync only the project with this slug (default: all).")
-@click.option("--dry-run", is_flag=True, default=False,
-              help="Report what would be done without mutating anything.")
-@click.option("--skip-installs", is_flag=True, default=False,
-              help="Skip adapter install.sh re-run (migrations + symlink check only).")
+@click.option("--slug", default=None, help="Sync only the project with this slug (default: all).")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Report what would be done without mutating anything.",
+)
+@click.option(
+    "--skip-installs",
+    is_flag=True,
+    default=False,
+    help="Skip adapter install.sh re-run (migrations + symlink check only).",
+)
 def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
     """Re-render adapter templates, re-link symlinks, apply DB migrations.
 
@@ -182,15 +193,19 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
         dangling = [str(link) for link in links if _dangling(link)]
         if dangling:
             seen_broken[entry.slug] = dangling
-            click.echo(f"    ⚠ {len(dangling)} dangling symlink(s) "
-                       f"(run `cos sync-doctor --slug {entry.slug} --repair`)")
+            click.echo(
+                f"    ⚠ {len(dangling)} dangling symlink(s) "
+                f"(run `cos sync-doctor --slug {entry.slug} --repair`)"
+            )
         else:
             click.echo(f"    ✓ {len(links)} symlink(s) healthy")
 
     click.echo(f"\n{total} project(s) processed.")
     if seen_broken:
-        click.echo(f"{sum(len(v) for v in seen_broken.values())} dangling link(s) across "
-                   f"{len(seen_broken)} project(s).  Use `cos sync-doctor --repair`.")
+        click.echo(
+            f"{sum(len(v) for v in seen_broken.values())} dangling link(s) across "
+            f"{len(seen_broken)} project(s).  Use `cos sync-doctor --repair`."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -200,8 +215,12 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
 
 @click.command("sync-doctor", help="Audit and optionally repair per-project symlinks.")
 @click.option("--slug", default=None, help="Check only this project.")
-@click.option("--repair", is_flag=True, default=False,
-              help="Re-run install.sh on projects with dangling links to fix them.")
+@click.option(
+    "--repair",
+    is_flag=True,
+    default=False,
+    help="Re-run install.sh on projects with dangling links to fix them.",
+)
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 def sync_doctor_cmd(slug: str | None, repair: bool, fmt: str) -> None:
     """Walk each project's agent dirs, flag broken symlinks."""
@@ -222,13 +241,15 @@ def sync_doctor_cmd(slug: str | None, repair: bool, fmt: str) -> None:
                 links = _iter_symlinks(path)
                 dangling = [str(link) for link in links if _dangling(link)]
                 repaired = True
-        report.append({
-            "slug": entry.slug,
-            "path": str(path),
-            "total_links": len(links),
-            "dangling": dangling,
-            "repaired_attempted": repaired,
-        })
+        report.append(
+            {
+                "slug": entry.slug,
+                "path": str(path),
+                "total_links": len(links),
+                "dangling": dangling,
+                "repaired_attempted": repaired,
+            }
+        )
 
     if fmt == "json":
         click.echo(json.dumps(report, indent=2))

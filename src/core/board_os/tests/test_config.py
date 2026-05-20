@@ -8,10 +8,10 @@ import pytest
 import yaml
 
 from core.board_os.config import (
+    APPETITE_RE,
     KIND_ENUM,
     PRIORITY_ENUM,
     STATUS_ENUM,
-    APPETITE_RE,
     ConfigValidationError,
     ScrumbanConfig,
     Swimlane,
@@ -20,7 +20,6 @@ from core.board_os.config import (
     parse_config,
 )
 
-
 # ---------------------------------------------------------------------------
 # Closed enums
 # ---------------------------------------------------------------------------
@@ -28,16 +27,27 @@ from core.board_os.config import (
 
 def test_kind_enum_is_eight_values_in_fixed_order():
     assert KIND_ENUM == (
-        "feature", "bug", "chore", "spike",
-        "docs", "refactor", "test", "security",
+        "feature",
+        "bug",
+        "chore",
+        "spike",
+        "docs",
+        "refactor",
+        "test",
+        "security",
     )
 
 
 def test_status_enum_has_seven_workflow_columns():
     """'ready' was folded into a label on icebox rows — seven columns remain."""
     assert set(STATUS_ENUM) == {
-        "icebox", "emergency", "in_progress",
-        "testing", "complete", "blocked", "archive",
+        "icebox",
+        "emergency",
+        "in_progress",
+        "testing",
+        "complete",
+        "blocked",
+        "archive",
     }
 
 
@@ -90,8 +100,7 @@ def test_parse_minimal_config():
 def test_parse_config_with_all_fields():
     data = {
         "swimlanes": [
-            {"id": "backend", "label": "Backend", "color": "#3b82f6",
-             "description": "Server-side"},
+            {"id": "backend", "label": "Backend", "color": "#3b82f6", "description": "Server-side"},
             {"id": "frontend", "label": "Frontend", "color": "#22c55e"},
         ],
         "wip_limits": {"in_progress": 2, "testing": 5, "emergency": 3},
@@ -157,7 +166,6 @@ def test_swimlane_id_must_match_id_regex():
     assert "id" in str(exc.value)
 
 
-
 def test_swimlane_color_must_be_hex():
     with pytest.raises(ConfigValidationError) as exc:
         parse_config({"swimlanes": [{"id": "x", "color": "blue"}]})
@@ -200,7 +208,7 @@ def test_wip_limits_partial_override_uses_defaults_for_rest():
         }
     )
     assert cfg.wip_limits.in_progress == 5
-    assert cfg.wip_limits.testing == 3   # default
+    assert cfg.wip_limits.testing == 3  # default
     assert cfg.wip_limits.emergency == 2  # default
 
 
@@ -245,13 +253,13 @@ def test_load_config_missing_file_raises_filenotfound(tmp_path: Path):
 def test_load_config_round_trip(tmp_path: Path):
     cfg_dir = tmp_path / ".coding-os"
     cfg_dir.mkdir()
-    (cfg_dir / "scrumban-config.yaml").write_text(
-        yaml.safe_dump(_minimal_dict()), encoding="utf-8"
-    )
+    (cfg_dir / "scrumban-config.yaml").write_text(yaml.safe_dump(_minimal_dict()), encoding="utf-8")
     cfg = load_config(tmp_path)
     assert cfg.swimlanes[0].id == "backend"
-    assert cfg.source_path == (cfg_dir / "scrumban-config.yaml").resolve() or \
-           cfg.source_path == cfg_dir / "scrumban-config.yaml"
+    assert (
+        cfg.source_path == (cfg_dir / "scrumban-config.yaml").resolve()
+        or cfg.source_path == cfg_dir / "scrumban-config.yaml"
+    )
 
 
 def test_load_config_top_level_must_be_mapping(tmp_path: Path):

@@ -7,17 +7,17 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Anti-Ambiguity Criteria (7 canonical)
 # ---------------------------------------------------------------------------
 
+
 class AmbiguityCriterion(str, Enum):
-    OBSERVABLE              = "observable"
-    MEASURABLE              = "measurable"
-    TESTABLE                = "testable"
-    SCOPED                  = "scoped"
-    OWNED                   = "owned"
+    OBSERVABLE = "observable"
+    MEASURABLE = "measurable"
+    TESTABLE = "testable"
+    SCOPED = "scoped"
+    OWNED = "owned"
     REVERSIBLE_OR_JUSTIFIED = "reversible_or_justified"
     CONNECTED_TO_USER_VALUE = "connected_to_user_value"
 
@@ -26,15 +26,18 @@ class AmbiguityCriterion(str, Enum):
 # Shared sub-models
 # ---------------------------------------------------------------------------
 
+
 class Metric(BaseModel):
     name: str
     target: str
     measurement: str
 
+
 class Actor(BaseModel):
     id: str
     role: str
     capabilities: list[str] = Field(default_factory=list)
+
 
 class Scenario(BaseModel):
     id: str
@@ -42,46 +45,56 @@ class Scenario(BaseModel):
     when: str
     then: str
 
+
 class GoalNode(BaseModel):
     id: str
     description: str
-    children: list["GoalNode"] = Field(default_factory=list)
+    children: list[GoalNode] = Field(default_factory=list)
+
 
 GoalNode.model_rebuild()
+
 
 class DecisionTable(BaseModel):
     conditions: list[str]
     actions: list[str]
     rules: list[dict[str, Any]] = Field(default_factory=list)
 
+
 class ConceptualModel(BaseModel):
     entities: list[dict[str, Any]] = Field(default_factory=list)
     relations: list[dict[str, Any]] = Field(default_factory=list)
+
 
 class StateMachine(BaseModel):
     entity: str
     states: list[str]
     transitions: list[dict[str, Any]] = Field(default_factory=list)
 
+
 class EventDef(BaseModel):
     name: str
     trigger: str
     payload: dict[str, Any] = Field(default_factory=dict)
+
 
 class PermissionMatrix(BaseModel):
     actors: list[str]
     resources: list[str]
     rules: list[dict[str, Any]] = Field(default_factory=list)
 
+
 class DependencyGraph(BaseModel):
     nodes: list[str]
     edges: list[dict[str, str]] = Field(default_factory=list)
+
 
 class Unknown(BaseModel):
     id: str
     description: str
     impact: str
     resolution: str = ""
+
 
 class ADR(BaseModel):
     id: str
@@ -92,6 +105,7 @@ class ADR(BaseModel):
     consequences: str
     alternatives: list[str] = Field(default_factory=list)
 
+
 class TestCase(BaseModel):
     id: str
     formula: str
@@ -100,6 +114,7 @@ class TestCase(BaseModel):
     then: str
     layer: str = ""
 
+
 class SecurityFinding(BaseModel):
     id: str
     severity: Literal["critical", "high", "medium", "low", "info"]
@@ -107,17 +122,20 @@ class SecurityFinding(BaseModel):
     description: str
     remediation: str
 
+
 class DeployStep(BaseModel):
     order: int
     action: str
     rollback: str = ""
     timeout_s: int = 60
 
+
 class MonitorAlert(BaseModel):
     name: str
     condition: str
     severity: str
     runbook: str = ""
+
 
 class RefactorItem(BaseModel):
     id: str
@@ -131,10 +149,12 @@ class RefactorItem(BaseModel):
 # Formula-role input/output contracts (researcher..refactorer)
 # ---------------------------------------------------------------------------
 
+
 class ResearcherInput(BaseModel):
     task_description: str
     domain: str = ""
     scope_hint: str = ""
+
 
 class ResearcherOutput(BaseModel):
     summary: str
@@ -148,6 +168,7 @@ class AnalystInput(BaseModel):
     task_description: str
     researcher: ResearcherOutput | None = None
     intensity_steps: list[int] = Field(default_factory=lambda: list(range(1, 13)))
+
 
 class AnalystOutput(BaseModel):
     problem_statement: str
@@ -171,6 +192,7 @@ class ArchitectInput(BaseModel):
     researcher: ResearcherOutput | None = None
     analyst: AnalystOutput | None = None
 
+
 class ArchitectOutput(BaseModel):
     selected_style: str
     adrs: list[ADR] = Field(default_factory=list)
@@ -188,6 +210,7 @@ class DocumenterInput(BaseModel):
     analyst: AnalystOutput | None = None
     architect: ArchitectOutput | None = None
 
+
 class DocumenterOutput(BaseModel):
     docs_created: list[str] = Field(default_factory=list)
     docs_updated: list[str] = Field(default_factory=list)
@@ -201,6 +224,7 @@ class ImplementerInput(BaseModel):
     architect: ArchitectOutput | None = None
     intensity_steps: list[int] = Field(default_factory=lambda: list(range(1, 9)))
 
+
 class ImplementerOutput(BaseModel):
     files_created: list[str] = Field(default_factory=list)
     files_modified: list[str] = Field(default_factory=list)
@@ -212,6 +236,7 @@ class ReviewerInput(BaseModel):
     task_description: str
     analyst: AnalystOutput | None = None
     implementer: ImplementerOutput | None = None
+
 
 class ReviewerOutput(BaseModel):
     test_cases: list[TestCase] = Field(default_factory=list)
@@ -225,6 +250,7 @@ class DebuggerInput(BaseModel):
     task_description: str
     error_description: str
     analyst: AnalystOutput | None = None
+
 
 class DebuggerOutput(BaseModel):
     root_cause: str
@@ -240,6 +266,7 @@ class SecurityAuditorInput(BaseModel):
     architect: ArchitectOutput | None = None
     scope: Literal["pre_design", "pre_release", "audit"] = "pre_release"
 
+
 class SecurityAuditorOutput(BaseModel):
     findings: list[SecurityFinding] = Field(default_factory=list)
     auth_coverage: dict[str, Any] = Field(default_factory=dict)
@@ -254,6 +281,7 @@ class DeployerInput(BaseModel):
     reviewer: ReviewerOutput | None = None
     security_auditor: SecurityAuditorOutput | None = None
 
+
 class DeployerOutput(BaseModel):
     deploy_steps: list[DeployStep] = Field(default_factory=list)
     rollback_steps: list[DeployStep] = Field(default_factory=list)
@@ -266,6 +294,7 @@ class ObserverInput(BaseModel):
     task_description: str
     deployer: DeployerOutput | None = None
 
+
 class ObserverOutput(BaseModel):
     alerts_added: list[MonitorAlert] = Field(default_factory=list)
     dashboards_updated: list[str] = Field(default_factory=list)
@@ -276,6 +305,7 @@ class ObserverOutput(BaseModel):
 class RefactorerInput(BaseModel):
     task_description: str
     scope: Literal["scout", "targeted", "full"] = "targeted"
+
 
 class RefactorerOutput(BaseModel):
     items: list[RefactorItem] = Field(default_factory=list)
@@ -288,11 +318,13 @@ class RefactorerOutput(BaseModel):
 # Backtrack and Discovery events
 # ---------------------------------------------------------------------------
 
+
 class BacktrackEvent(BaseModel):
     from_formula: str
     to_formula: str
     reason: str
     ts: str = ""
+
 
 class Discovery(BaseModel):
     kind: str
@@ -312,6 +344,7 @@ class Discovery(BaseModel):
 # (coverage_100, iterate_until_zero_residual, all_categories_evidence,
 # exhaustive_grep, per_item_evidence, strict_zero_residual) are
 # evaluated against the fields below by validate_exhaustive_evidence().
+
 
 class ExhaustiveEvidence(BaseModel):
     categories_declared: list[str] = Field(default_factory=list)
@@ -357,9 +390,7 @@ def validate_exhaustive_evidence(
         "iterate_until_zero_residual" in intent_predicates
         or "strict_zero_residual" in intent_predicates
     ):
-        residuals = {
-            cat: count for cat, count in evidence.counts_after.items() if count > 0
-        }
+        residuals = {cat: count for cat, count in evidence.counts_after.items() if count > 0}
         if residuals:
             gaps.append(f"strict_zero_residual: residual hits {residuals}")
         for cat in declared:
@@ -394,6 +425,7 @@ def validate_exhaustive_evidence(
 # ---------------------------------------------------------------------------
 # EvidenceBundle — immutable accumulator per session
 # ---------------------------------------------------------------------------
+
 
 class EvidenceBundle(BaseModel):
     task_marker: str
@@ -456,6 +488,7 @@ def all_role_ids() -> tuple[str, ...]:
 # Supervisor state
 # ---------------------------------------------------------------------------
 
+
 class SupervisorState(BaseModel):
     session_id: str
     task_marker: str
@@ -463,12 +496,12 @@ class SupervisorState(BaseModel):
     intensity: Literal["light", "standard", "full"] = "standard"
     situation_id: str | None = None
     phase: Literal[
-        "IDLE", "CLASSIFYING", "ROUTING", "DISPATCHING",
-        "AWAITING_AGENT", "INTEGRATING", "DONE"
+        "IDLE", "CLASSIFYING", "ROUTING", "DISPATCHING", "AWAITING_AGENT", "INTEGRATING", "DONE"
     ] = "IDLE"
     dispatched: list[str] = Field(default_factory=list)
     pending: list[str] = Field(default_factory=list)
     backtrack_count: int = 0
+
 
 class NextAction(BaseModel):
     action: Literal["classify", "dispatch", "dispatch_parallel", "backtrack", "done"]
@@ -477,7 +510,7 @@ class NextAction(BaseModel):
     input_slice: dict[str, Any] = Field(default_factory=dict)
     agent_file: str | None = None
     reason: str = ""
-    advisory: str = ""   # Anti-Paralysis advisory text (empty when no warning)
+    advisory: str = ""  # Anti-Paralysis advisory text (empty when no warning)
 
 
 # ---------------------------------------------------------------------------
@@ -485,12 +518,20 @@ class NextAction(BaseModel):
 # Spec: docs/phase-n-role-based-routing-plan.md §2.1 and §2.3
 # ---------------------------------------------------------------------------
 
-class TaskSignals(BaseModel):
 
+class TaskSignals(BaseModel):
     domain: list[str] = Field(default_factory=list)
     action: Literal[
-        "create", "modify", "debug", "research", "review",
-        "deploy", "refactor", "document", "audit", "unknown"
+        "create",
+        "modify",
+        "debug",
+        "research",
+        "review",
+        "deploy",
+        "refactor",
+        "document",
+        "audit",
+        "unknown",
     ] = "unknown"
 
     novelty: float = 0.0
@@ -512,6 +553,7 @@ class TaskSignals(BaseModel):
 
 class RoleActivation(BaseModel):
     """Output of the per-role scoring step in the composer."""
+
     role_id: str
     score: int
     matched_triggers: list[str] = Field(default_factory=list)

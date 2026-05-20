@@ -68,9 +68,11 @@ def _create_task(
 # ────────────────────────────────────────────────────────────────────
 
 
-def _preflight(task_id: str, *, for_status: str = "in_progress") -> "ValidationResult":  # noqa: F821
+def _preflight(task_id: str, *, for_status: str = "in_progress") -> ValidationResult:  # noqa: F821
     """Mirror what `_task_validate_preflight` does — body+kind from DB,
     config from disk, validator pure."""
+    import sqlite3 as _sql
+
     from core.board_os.parser import extract_frontmatter
     from core.board_os.transition_gates import load_gates_config
     from core.board_os.transition_gates_cli import (
@@ -79,10 +81,10 @@ def _preflight(task_id: str, *, for_status: str = "in_progress") -> "ValidationR
     )
     from core.board_os.transition_gates_validator import validate_transition
 
-    import sqlite3 as _sql
     conn = _sql.connect(str(Path.cwd() / "coding-os.db"))
     row = conn.execute(
-        "SELECT file_path, kind FROM tasks WHERE task_id = ?", (task_id,),
+        "SELECT file_path, kind FROM tasks WHERE task_id = ?",
+        (task_id,),
     ).fetchone()
     conn.close()
     assert row, f"{task_id} not in DB"
@@ -104,7 +106,9 @@ def _preflight(task_id: str, *, for_status: str = "in_progress") -> "ValidationR
 
 
 def test_preflight_blocks_default_placeholder_body(
-    project: Path, conn: sqlite3.Connection, monkeypatch,
+    project: Path,
+    conn: sqlite3.Connection,
+    monkeypatch,
 ) -> None:
     """Task created with no --outcome → preflight reports BLOCK with
     DOR_OUTCOME_PLACEHOLDER, exact same verdict cos task-start would
@@ -118,7 +122,7 @@ def test_preflight_blocks_default_placeholder_body(
     from core.board_os.transition_gates import load_gates_config
     from core.board_os.transition_gates_validator import validate_transition
 
-    body = (project / f"docs/tasks").glob(f"{tid}*.md").__next__().read_text()
+    body = (project / "docs/tasks").glob(f"{tid}*.md").__next__().read_text()
     fm = extract_frontmatter(body) or {}
     result = validate_transition(
         task_id=tid,
@@ -133,12 +137,15 @@ def test_preflight_blocks_default_placeholder_body(
 
 
 def test_preflight_passes_when_outcome_filled_for_chore(
-    project: Path, conn: sqlite3.Connection, monkeypatch,
+    project: Path,
+    conn: sqlite3.Connection,
+    monkeypatch,
 ) -> None:
     """Chore kind only needs Outcome ≥15 chars; passes when filled."""
     monkeypatch.chdir(project)
     tid = _create_task(
-        conn, project,
+        conn,
+        project,
         title="filled chore",
         kind="chore",
         outcome="Bump dep X to v2.3 for security patch.",
@@ -160,12 +167,15 @@ def test_preflight_passes_when_outcome_filled_for_chore(
 
 
 def test_preflight_for_complete_blocks_without_verify(
-    project: Path, conn: sqlite3.Connection, monkeypatch,
+    project: Path,
+    conn: sqlite3.Connection,
+    monkeypatch,
 ) -> None:
     """target=complete checks DoD — without verify, BLOCK."""
     monkeypatch.chdir(project)
     tid = _create_task(
-        conn, project,
+        conn,
+        project,
         title="filled feature",
         kind="chore",
         outcome="Sufficient outcome for a chore-kind preflight test.",
@@ -190,16 +200,22 @@ def test_preflight_for_complete_blocks_without_verify(
 
 
 def test_preflight_idempotent_no_state_change(
-    project: Path, conn: sqlite3.Connection, monkeypatch,
+    project: Path,
+    conn: sqlite3.Connection,
+    monkeypatch,
 ) -> None:
     """Running preflight must not change task status or write history rows."""
     monkeypatch.chdir(project)
     tid = _create_task(
-        conn, project, title="idempotent", kind="chore",
+        conn,
+        project,
+        title="idempotent",
+        kind="chore",
         outcome="Outcome long enough for chore.",
     )
     before = conn.execute(
-        "SELECT status FROM tasks WHERE task_id = ?", (tid,),
+        "SELECT status FROM tasks WHERE task_id = ?",
+        (tid,),
     ).fetchone()[0]
     history_before = conn.execute(
         "SELECT COUNT(*) FROM task_status_history WHERE task_id = ?",
@@ -223,7 +239,8 @@ def test_preflight_idempotent_no_state_change(
         )
 
     after = conn.execute(
-        "SELECT status FROM tasks WHERE task_id = ?", (tid,),
+        "SELECT status FROM tasks WHERE task_id = ?",
+        (tid,),
     ).fetchone()[0]
     history_after = conn.execute(
         "SELECT COUNT(*) FROM task_status_history WHERE task_id = ?",

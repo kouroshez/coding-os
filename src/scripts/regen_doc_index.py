@@ -14,7 +14,7 @@ _THINKING_OS = _REPO_ROOT / "core" / "thinking_os"
 sys.path.insert(0, str(_THINKING_OS))
 sys.path.insert(0, str(_THINKING_OS.parent))
 
-from tools.docs import list_doc_headers  # noqa: E402
+from tools.docs import list_doc_headers
 
 BEGIN_MARKER = "<!-- BEGIN auto-index -->"
 END_MARKER = "<!-- END auto-index -->"
@@ -104,10 +104,7 @@ def regenerate(directory: Path, *, write: bool = True) -> str | None:
     canonical-frontmatter docs (caller decides whether to warn).
     """
     headers = list_doc_headers(directory, limit=500)
-    headers = [
-        h for h in headers
-        if Path(h["path"]).parent.resolve() == directory.resolve()
-    ]
+    headers = [h for h in headers if Path(h["path"]).parent.resolve() == directory.resolve()]
     if not headers:
         return None
     auto_section = _render_index(directory, headers)
@@ -143,12 +140,15 @@ def regenerate(directory: Path, *, write: bool = True) -> str | None:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("directory", nargs="?", default="docs",
-                        help="Directory to index (default: docs)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print the regenerated index instead of writing")
-    parser.add_argument("--all", action="store_true",
-                        help="Recurse into every subdir with ≥2 frontmatter docs")
+    parser.add_argument(
+        "directory", nargs="?", default="docs", help="Directory to index (default: docs)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print the regenerated index instead of writing"
+    )
+    parser.add_argument(
+        "--all", action="store_true", help="Recurse into every subdir with ≥2 frontmatter docs"
+    )
     args = parser.parse_args(argv)
 
     root = Path(args.directory)
@@ -159,11 +159,9 @@ def main(argv: list[str]) -> int:
     targets: list[Path]
     if args.all:
         # Walk every subdir; only those with ≥2 canonical docs index.
-        targets = sorted({
-            p.parent.resolve()
-            for p in root.rglob("*.md")
-            if p.name != "00-index.md"
-        })
+        targets = sorted(
+            {p.parent.resolve() for p in root.rglob("*.md") if p.name != "00-index.md"}
+        )
     else:
         targets = [root]
 

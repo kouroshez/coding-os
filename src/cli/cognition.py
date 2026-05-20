@@ -76,8 +76,14 @@ def cognition_log(
     conn.row_factory = sqlite3.Row
 
     try:
-        _print_dispatches(conn, formula=formula, persona=persona, cutoff=cutoff, limit=limit,
-                          backtrack_only=backtrack)
+        _print_dispatches(
+            conn,
+            formula=formula,
+            persona=persona,
+            cutoff=cutoff,
+            limit=limit,
+            backtrack_only=backtrack,
+        )
         if not backtrack:
             _print_persona_selections(conn, persona=persona, cutoff=cutoff, limit=limit)
     finally:
@@ -121,17 +127,17 @@ def _print_dispatches(
             click.echo("No formula dispatches found.")
             return
 
-        click.echo(f"\n{'─'*72}")
+        click.echo(f"\n{'─' * 72}")
         click.echo("  FORMULA DISPATCHES")
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         click.echo(f"  {'TS':<20} {'FORMULA':<8} {'PERSONA':<22} {'STATUS':<10} {'MS':>6}")
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         for r in rows:
             ms = r["latency_ms"] if r["latency_ms"] is not None else "-"
             click.echo(
-                f"  {r['ts']:<20} {r['formula_id']:<8} {r['persona_id']:<22} {r['status']:<10} {str(ms):>6}"
+                f"  {r['ts']:<20} {r['formula_id']:<8} {r['persona_id']:<22} {r['status']:<10} {ms!s:>6}"
             )
-        click.echo(f"{'─'*72}\n")
+        click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
         click.echo("formula_dispatches table not found — DB may pre-date Phase M.", err=True)
 
@@ -155,14 +161,12 @@ def _print_backtracks(conn: sqlite3.Connection, cutoff: str | None, limit: int) 
             click.echo("No backtrack events found.")
             return
 
-        click.echo(f"\n{'─'*72}")
+        click.echo(f"\n{'─' * 72}")
         click.echo("  BACKTRACK EVENTS")
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         for r in rows:
-            click.echo(
-                f"  [{r['ts']}] {r['from_formula']} → {r['to_formula']}: {r['reason'][:50]}"
-            )
-        click.echo(f"{'─'*72}\n")
+            click.echo(f"  [{r['ts']}] {r['from_formula']} → {r['to_formula']}: {r['reason'][:50]}")
+        click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
         click.echo("backtrack_events table not found — DB may pre-date Phase M.", err=True)
 
@@ -193,16 +197,16 @@ def _print_persona_selections(
         if not rows:
             return
 
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         click.echo("  PERSONA SELECTIONS")
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         click.echo(f"  {'TS':<20} {'PERSONA':<22} {'CONF':>6} {'INTENSITY':<10}")
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         for r in rows:
             click.echo(
                 f"  {r['ts']:<20} {r['persona_id']:<22} {r['confidence']:>6.2f} {r['intensity']:<10}"
             )
-        click.echo(f"{'─'*72}\n")
+        click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
         pass  # persona_selections is optional — skip silently
 
@@ -212,7 +216,8 @@ def _print_persona_selections(
 @click.option("--raw", is_flag=True, help="Print raw JSONL lines instead of pretty timeline")
 @click.option("--summary", is_flag=True, help="Print only the summary block")
 @click.option(
-    "--agent-dir", default=None,
+    "--agent-dir",
+    default=None,
     help="Agent dir (default: $COS_AGENT_DIR or .coding-os/<agent>/)",
 )
 def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | None) -> None:
@@ -232,7 +237,7 @@ def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | 
     core = _Path(__file__).resolve().parent.parent.parent / "src" / "core" / "thinking_os"
     if str(core) not in sys.path:
         sys.path.insert(0, str(core))
-    import tracing  # noqa: E402
+    import tracing
 
     adir = _Path(agent_dir) if agent_dir else None
     events = tracing.read_trace(session_id, adir)
@@ -242,30 +247,33 @@ def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | 
 
     if raw:
         import json
+
         for ev in events:
             click.echo(json.dumps(ev, separators=(",", ":"), default=str))
         return
 
     summary_data = tracing.summarize(session_id, adir)
     if summary:
-        click.echo(f"\n{'─'*72}")
+        click.echo(f"\n{'─' * 72}")
         click.echo(f"  TRACE SUMMARY — {session_id}")
-        click.echo(f"{'─'*72}")
+        click.echo(f"{'─' * 72}")
         for k, v in summary_data.items():
             if k == "session_id":
                 continue
             click.echo(f"  {k:<22} {v}")
-        click.echo(f"{'─'*72}\n")
+        click.echo(f"{'─' * 72}\n")
         return
 
     # Pretty timeline
-    click.echo(f"\n{'─'*72}")
+    click.echo(f"\n{'─' * 72}")
     click.echo(f"  COGNITION TRACE — {session_id}")
-    click.echo(f"  {summary_data['events']} events across {len(set(summary_data['nodes']))} flowchart nodes")
+    click.echo(
+        f"  {summary_data['events']} events across {len(set(summary_data['nodes']))} flowchart nodes"
+    )
     click.echo(f"  path: {' → '.join(summary_data['nodes'])}")
-    click.echo(f"{'─'*72}")
+    click.echo(f"{'─' * 72}")
     click.echo(f"  {'TIME':<12} {'NODE':<14} {'KIND':<24} {'ROLE':<6} DATA")
-    click.echo(f"{'─'*72}")
+    click.echo(f"{'─' * 72}")
     t0 = events[0].get("ts", 0) if events else 0
     for ev in events:
         ts_ms = int((ev.get("ts", 0) - t0) * 1000)
@@ -274,10 +282,12 @@ def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | 
         role = ev.get("role") or "-"
         data = ev.get("data") or {}
         # Compact data preview
-        keys = [k for k in ("action", "chain", "preset_id", "formula", "status", "reason") if k in data]
+        keys = [
+            k for k in ("action", "chain", "preset_id", "formula", "status", "reason") if k in data
+        ]
         preview = " ".join(f"{k}={data.get(k)}" for k in keys[:3])
         click.echo(f"  +{ts_ms:>6}ms  {node:<14} {kind:<24} {role:<6} {preview}")
-    click.echo(f"{'─'*72}\n")
+    click.echo(f"{'─' * 72}\n")
 
 
 @cognition_group.command("trace-replay")
@@ -304,10 +314,11 @@ def cognition_trace_replay(session_id: str, audit_mode: bool) -> None:
     """
     import sys
     from pathlib import Path as _Path
+
     core = _Path(__file__).resolve().parent.parent.parent / "src" / "core" / "thinking_os"
     if str(core) not in sys.path:
         sys.path.insert(0, str(core))
-    import tracing  # noqa: E402
+    import tracing
 
     events = tracing.read_trace(session_id)
     if not events:
@@ -366,9 +377,7 @@ def _assert_exhaustive_evidence(session_id: str) -> None:
         click.echo("[replay/audit] FAIL — bundle has no exhaustive_evidence slot")
         raise SystemExit(1)
 
-    residuals = {
-        cat: count for cat, count in (ee.get("counts_after") or {}).items() if count > 0
-    }
+    residuals = {cat: count for cat, count in (ee.get("counts_after") or {}).items() if count > 0}
     if residuals:
         click.echo(f"[replay/audit] FAIL — counts_after non-zero: {residuals}")
         raise SystemExit(1)

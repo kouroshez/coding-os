@@ -24,6 +24,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class VerifyRow:
     """One row in the AGENTS.md Verification Matrix."""
+
     glob: str
     suites: str
     cmd: str
@@ -36,6 +37,7 @@ class VerifyRow:
 @dataclass(frozen=True)
 class RefCode:
     """One entry in the REF: shortcodes table."""
+
     code: str
     path: str
     desc: str
@@ -44,6 +46,7 @@ class RefCode:
 @dataclass(frozen=True)
 class MakefileTarget:
     """One target contributed to the project root Makefile."""
+
     name: str
     cmd: str
     help: str = ""
@@ -56,6 +59,7 @@ class RuleEntry:
     `file` is relative to the stack's source_dir (e.g. "rules/backend.md").
     `globs` are the file-match patterns the rule auto-loads on.
     """
+
     file: str
     globs: tuple[str, ...]
     always_load: bool = False
@@ -65,6 +69,7 @@ class RuleEntry:
 @dataclass(frozen=True)
 class DimensionEntry:
     """One row in the dimension-registry.md generated doc."""
+
     stack_id: str
     name: str
     read_files: tuple[str, ...]
@@ -74,6 +79,7 @@ class DimensionEntry:
 @dataclass(frozen=True)
 class SkillEnforcementEntry:
     """One row in the skill-enforcement.md generated doc."""
+
     stack_id: str
     globs: tuple[str, ...]
     primary: str
@@ -89,6 +95,7 @@ class AgentsMdSection:
     `owner_dir` is resolved at registry load time so the renderer can
     locate the fragment file.
     """
+
     id: str
     order: int
     template: str
@@ -98,14 +105,16 @@ class AgentsMdSection:
 @dataclass(frozen=True)
 class HookEntry:
     """A hook a stack (or adapter default) contributes to settings.json."""
-    event: str         # PreToolUse, PostToolUse, Stop, SessionStart, …
-    matcher: str       # tool-name pattern ("*", "Write|Edit", …)
-    command: str       # shell command the harness runs
+
+    event: str  # PreToolUse, PostToolUse, Stop, SessionStart, …
+    matcher: str  # tool-name pattern ("*", "Write|Edit", …)
+    command: str  # shell command the harness runs
 
 
 @dataclass(frozen=True)
 class StackProfile:
     """Everything a stack contributes. Loaded from src/templates/<id>/stack.yaml."""
+
     id: str
     label: str
     category: str
@@ -132,6 +141,7 @@ class BaseProfile:
     `primary_skill` — base is never 'a stack' but it contributes the
     same kind of data (sections, verify rows, ref codes, …).
     """
+
     id: str
     label: str
     skills: tuple[str, ...]
@@ -151,20 +161,23 @@ class BaseProfile:
 @dataclass(frozen=True)
 class McpLaunchConfigPath:
     """One location the doctor should probe for a coding-os MCP launch config."""
-    scope: str          # "project" | "home"
-    path: str           # relative to scope
+
+    scope: str  # "project" | "home"
+    path: str  # relative to scope
 
 
 @dataclass(frozen=True)
 class McpLaunchSpec:
     """Data-driven mcp.actually_launches metadata from adapter.yaml::mcp_launch."""
-    loader: str                                         # "claude_json" | "codex_toml"
+
+    loader: str  # "claude_json" | "codex_toml"
     config_paths: tuple[McpLaunchConfigPath, ...]
 
 
 @dataclass(frozen=True)
 class AdapterProfile:
     """Everything an agent adapter declares. Loaded from src/adapters/<id>/adapter.yaml."""
+
     id: str
     label: str
     settings_file: str | None
@@ -178,7 +191,9 @@ class AdapterProfile:
     install_script: Path
     default_settings: dict  # raw dict, deep-merged by renderer
     source_dir: Path
-    mcp_helper: str | None = None         # relative path (from src/adapters/<id>/) to MCP install helper, if any
+    mcp_helper: str | None = (
+        None  # relative path (from src/adapters/<id>/) to MCP install helper, if any
+    )
     mcp_launch: McpLaunchSpec | None = None
     # Env vars whose presence identifies this agent's runtime.  Read by
     # src/cli/board_commands.py::_detect_agent_runtime so the CLI can attribute
@@ -193,6 +208,7 @@ class AggregatedWorld:
     Passed as Jinja2 context to every fragment renderer. Pure data —
     no filesystem access, no mutation. Deterministic for a given input.
     """
+
     project_name: str
     agent_id: str
     stack_ids: tuple[str, ...]

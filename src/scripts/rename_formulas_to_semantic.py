@@ -13,6 +13,7 @@ import re
 import sys
 from pathlib import Path
 
+
 # Mapping stored via hex codes so the migration patterns themselves
 # don't match this file. _D() decodes a hex-encoded ASCII literal.
 def _D(hex_str: str) -> str:
@@ -20,16 +21,43 @@ def _D(hex_str: str) -> str:
 
 
 # Role codes: hex(F1) = "4631", hex(F2) = "4632", … hex(F11) = "463131"
-_CODE_HEX = ["4631", "4632", "4633", "4634", "4635", "4636",
-             "4637", "4638", "4639", "463130", "463131"]
+_CODE_HEX = [
+    "4631",
+    "4632",
+    "4633",
+    "4634",
+    "4635",
+    "4636",
+    "4637",
+    "4638",
+    "4639",
+    "463130",
+    "463131",
+]
 _NAMES = [
-    "researcher", "analyst", "architect", "documenter", "implementer",
-    "reviewer", "debugger", "security_auditor", "deployer", "observer",
+    "researcher",
+    "analyst",
+    "architect",
+    "documenter",
+    "implementer",
+    "reviewer",
+    "debugger",
+    "security_auditor",
+    "deployer",
+    "observer",
     "refactorer",
 ]
 _PYDANTIC_NAMES = [
-    "Researcher", "Analyst", "Architect", "Documenter", "Implementer",
-    "Reviewer", "Debugger", "SecurityAuditor", "Deployer", "Observer",
+    "Researcher",
+    "Analyst",
+    "Architect",
+    "Documenter",
+    "Implementer",
+    "Reviewer",
+    "Debugger",
+    "SecurityAuditor",
+    "Deployer",
+    "Observer",
     "Refactorer",
 ]
 ROLE_MAP: dict[str, str] = dict(zip([_D(h) for h in _CODE_HEX], _NAMES))
@@ -37,12 +65,20 @@ PYDANTIC_MAP: dict[str, str] = dict(zip([_D(h) for h in _CODE_HEX], _PYDANTIC_NA
 
 # Compound field names like  hex(F2_decompose) used in Pydantic schemas.
 _VERBS = [
-    "research", "decompose", "architect", "document", "implement",
-    "test_review", "debug", "security", "deploy", "monitor", "refactor",
+    "research",
+    "decompose",
+    "architect",
+    "document",
+    "implement",
+    "test_review",
+    "debug",
+    "security",
+    "deploy",
+    "monitor",
+    "refactor",
 ]
 COMPOUND_MAP: dict[str, str] = {
-    f"{_D(h)}_{verb}": name
-    for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES)
+    f"{_D(h)}_{verb}": name for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES)
 }
 
 FILE_RENAMES: dict[str, str] = {}
@@ -58,10 +94,18 @@ for h, verb, name in zip(_CODE_HEX, _VERBS, _NAMES):
 
 
 EXCLUDE_DIR_FRAGMENTS = (
-    "/.venv/", "/.build/", "/.git/", "/__pycache__/",
-    "/tests/golden/", "/.coding-os/", "/node_modules/",
-    "/.claude/", "/.codex/", "/.cursor/",
-    "/coding_os.egg-info/", "/dist/",
+    "/.venv/",
+    "/.build/",
+    "/.git/",
+    "/__pycache__/",
+    "/tests/golden/",
+    "/.coding-os/",
+    "/node_modules/",
+    "/.claude/",
+    "/.codex/",
+    "/.cursor/",
+    "/coding_os.egg-info/",
+    "/dist/",
 )
 
 PRESERVE_F_NUMBERING: tuple[str, ...] = (
@@ -90,10 +134,8 @@ def build_replacers() -> list[tuple[re.Pattern, str, str]]:
     # 1. Pydantic class names (longest first so 4631_30 wins over 4631).
     for code in sorted(PYDANTIC_MAP, key=lambda c: -len(c)):
         new = PYDANTIC_MAP[code]
-        pats.append((re.compile(rf"\b{code}Output\b"), f"{new}Output",
-                     f"{code}Output→{new}Output"))
-        pats.append((re.compile(rf"\b{code}Input\b"), f"{new}Input",
-                     f"{code}Input→{new}Input"))
+        pats.append((re.compile(rf"\b{code}Output\b"), f"{new}Output", f"{code}Output→{new}Output"))
+        pats.append((re.compile(rf"\b{code}Input\b"), f"{new}Input", f"{code}Input→{new}Input"))
 
     # 2. Path fragments
     for old, new in PATH_FRAGMENT_RENAMES.items():
@@ -116,12 +158,16 @@ def build_replacers() -> list[tuple[re.Pattern, str, str]]:
     # 5. YAML id field
     for code in sorted(ROLE_MAP, key=lambda c: -len(c)):
         new = ROLE_MAP[code]
-        pats.append((
-            re.compile(rf"^(\s*id:\s*){code}\b", re.MULTILINE),
-            rf"\1{new}", f"id:{code}→id:{new}"))
-        pats.append((
-            re.compile(rf"^(\s*formula_ref:\s*){code}\b", re.MULTILINE),
-            rf"\1{new}", f"formula_ref:{code}→formula_ref:{new}"))
+        pats.append(
+            (re.compile(rf"^(\s*id:\s*){code}\b", re.MULTILINE), rf"\1{new}", f"id:{code}→id:{new}")
+        )
+        pats.append(
+            (
+                re.compile(rf"^(\s*formula_ref:\s*){code}\b", re.MULTILINE),
+                rf"\1{new}",
+                f"formula_ref:{code}→formula_ref:{new}",
+            )
+        )
 
     return pats
 
@@ -147,8 +193,7 @@ def rewrite_file(path: Path, replacers, dry_run: bool):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path,
-                        default=Path(__file__).resolve().parent.parent.parent)
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent.parent)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 

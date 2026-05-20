@@ -23,6 +23,7 @@ OUTPUT (one line per finding, tab-separated)
     STALE\t<doc_path>\t<reason>
 Always exits 0 — this is a WARN signal, never a BLOCK.
 """
+
 from __future__ import annotations
 
 import os
@@ -39,13 +40,13 @@ _FTS_BUDGET_S = 0.1
 
 
 CODE_EXT_TO_LANG = {
-    ".py":  "python",
-    ".ts":  "ts",
+    ".py": "python",
+    ".ts": "ts",
     ".tsx": "ts",
-    ".js":  "ts",
+    ".js": "ts",
     ".jsx": "ts",
-    ".go":  "go",
-    ".rs":  "rust",
+    ".go": "go",
+    ".rs": "rust",
 }
 
 DOC_EXTENSIONS = {".md", ".mdx"}
@@ -55,9 +56,7 @@ DOC_EXTENSIONS = {".md", ".mdx"}
 # pure-rename, a pure-signature-change, and a deletion all surface
 # distinct signals.
 
-_PY_FN_RX = re.compile(
-    r"^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)"
-)
+_PY_FN_RX = re.compile(r"^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)")
 _PY_CLASS_RX = re.compile(r"^\s*class\s+([A-Z][A-Za-z0-9_]*)\b")
 _TS_FN_RX = re.compile(
     r"^\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)"
@@ -150,6 +149,7 @@ def _extract_symbols(text: str, lang: str) -> dict[str, tuple[int, str]]:
 
 # ── Doc candidate enumeration ────────────────────────────────────────────
 
+
 def _find_project_root(code_file: Path) -> Path | None:
     p = code_file.resolve().parent
     while p != p.parent:
@@ -223,8 +223,7 @@ def _fts_candidates(
     out: list[Path] = []
     for (path,) in rows:
         try:
-            p = (project_root / path).resolve() if not Path(path).is_absolute() \
-                else Path(path)
+            p = (project_root / path).resolve() if not Path(path).is_absolute() else Path(path)
             if p.is_file() and p.suffix in DOC_EXTENSIONS:
                 out.append(p)
         except OSError:
@@ -258,9 +257,9 @@ def _path_mirror_candidates(project_root: Path, code_file: Path) -> list[Path]:
     seen: set[Path] = set()
 
     def _add(p: Path) -> None:
-        if p not in seen and p.exists() and p.is_file() \
-                and p.suffix in DOC_EXTENSIONS:
-            out.append(p); seen.add(p)
+        if p not in seen and p.exists() and p.is_file() and p.suffix in DOC_EXTENSIONS:
+            out.append(p)
+            seen.add(p)
 
     try:
         rel = code_file.resolve().relative_to(project_root.resolve())
@@ -284,6 +283,7 @@ def _path_mirror_candidates(project_root: Path, code_file: Path) -> list[Path]:
 
 
 # ── Drift detection ──────────────────────────────────────────────────────
+
 
 def _check_doc(
     doc_path: Path,
@@ -334,6 +334,7 @@ def _check_doc(
 
 # ── Optional graph enrichment ────────────────────────────────────────────
 
+
 def _graph_reference_hint(symbol: str, code_file: Path, deadline: float) -> str | None:
     """If graph_os backend is up, add 'symbol is called from N other files'.
     Best-effort; silent on any failure."""
@@ -344,6 +345,7 @@ def _graph_reference_hint(symbol: str, code_file: Path, deadline: float) -> str 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
         sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
         from graph_os.tools import graph as gtools  # type: ignore
+
         # cos_graph_references signature varies per version; call defensively.
         backend = gtools._backend()
         if backend is None:
@@ -354,20 +356,21 @@ def _graph_reference_hint(symbol: str, code_file: Path, deadline: float) -> str 
             return None
         items = envelope.get("data", {}).get("references", [])
         external = [
-            it for it in items
-            if str(it.get("file") or it.get("path") or "") not in (
-                str(code_file), str(code_file.name)
-            )
+            it
+            for it in items
+            if str(it.get("file") or it.get("path") or "")
+            not in (str(code_file), str(code_file.name))
         ]
         n = len(external)
         if n == 0:
             return None
         return f"referenced from {n} other location(s)"
-    except Exception:  # noqa: BLE001 — fail-open by design
+    except Exception:
         return None
 
 
 # ── Main ─────────────────────────────────────────────────────────────────
+
 
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
@@ -412,17 +415,19 @@ def main(argv: list[str]) -> int:
             try:
                 marker.parent.mkdir(parents=True, exist_ok=True)
                 marker.touch()
-            except OSError as exc:  # noqa: BLE001 — fail-open marker write
+            except OSError as exc:
                 sys.stderr.write(f"doc_sync_check: marker write skipped: {exc}\n")
 
-    fts_query_syms = list((set(new_syms) | set(old_syms)))[:8]
+    fts_query_syms = list(set(new_syms) | set(old_syms))[:8]
     for p in _fts_candidates(project_root, fts_query_syms, _MAX_CANDIDATES):
         if p not in seen:
-            candidates.append(p); seen.add(p)
+            candidates.append(p)
+            seen.add(p)
     if len(candidates) < 3:
         for p in _path_mirror_candidates(project_root, code_file):
             if p not in seen:
-                candidates.append(p); seen.add(p)
+                candidates.append(p)
+                seen.add(p)
     candidates = candidates[:_MAX_CANDIDATES]
 
     if not candidates:
@@ -448,15 +453,18 @@ def main(argv: list[str]) -> int:
                 except OSError:
                     continue
                 touched = [
-                    s for s in new_syms
+                    s
+                    for s in new_syms
                     if re.search(rf"(?<![A-Za-z0-9_]){re.escape(s)}(?![A-Za-z0-9_])", text)
                 ]
                 if touched:
-                    findings.append((
-                        doc,
-                        f"older than code; mentions `{touched[0]}`"
-                        f"{'…' if len(touched) > 1 else ''}",
-                    ))
+                    findings.append(
+                        (
+                            doc,
+                            f"older than code; mentions `{touched[0]}`"
+                            f"{'…' if len(touched) > 1 else ''}",
+                        )
+                    )
 
     if not findings:
         return 0

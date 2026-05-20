@@ -10,10 +10,9 @@ logger = logging.getLogger("coding_os.dispatcher.cursor")
 
 
 class CursorDispatcher:
-
     name = "cursor"
 
-    def available(self) -> bool:  # noqa: D401
+    def available(self) -> bool:
         """Cursor has no programmable spawn path; always unavailable."""
         return False
 

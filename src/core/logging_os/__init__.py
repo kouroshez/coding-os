@@ -1,4 +1,4 @@
-from .api import debug, error, fatal, info, ok, scoped, warn, ScopedLogger
+from .api import ScopedLogger, debug, error, fatal, info, ok, scoped, warn
 from .bridge import install_bridge, uninstall_bridge
 from .config import Level, setup
 

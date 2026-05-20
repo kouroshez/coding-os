@@ -16,14 +16,14 @@ Kuzu backend was retired 2026-05-18 — see backends/__init__.py.
 
 from __future__ import annotations
 
+from .backend import BackendUnavailable, GraphBackend, get_backend
 from .types import EvidenceSignal, GraphEdge, GraphNode
-from .backend import GraphBackend, BackendUnavailable, get_backend
 
 __all__ = [
+    "BackendUnavailable",
     "EvidenceSignal",
+    "GraphBackend",
     "GraphEdge",
     "GraphNode",
-    "GraphBackend",
-    "BackendUnavailable",
     "get_backend",
 ]

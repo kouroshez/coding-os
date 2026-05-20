@@ -14,7 +14,6 @@ import pytest
 
 from graph_os.extractors import md_links
 
-
 # ---------------------------------------------------------------------------
 # slugify + _resolve_link helpers
 # ---------------------------------------------------------------------------
@@ -111,13 +110,22 @@ class TestHeadings:
         r = _extract(content)
         contains = [e for e in r.edges if e.edge_type == "contains"]
         # file → A
-        assert any(e.source_uid == "doc:file:docs/demo.md" and e.target_uid.endswith("#a:1") for e in contains)
+        assert any(
+            e.source_uid == "doc:file:docs/demo.md" and e.target_uid.endswith("#a:1")
+            for e in contains
+        )
         # A → B
-        assert any(e.source_uid.endswith("#a:1") and e.target_uid.endswith("#b:2") for e in contains)
+        assert any(
+            e.source_uid.endswith("#a:1") and e.target_uid.endswith("#b:2") for e in contains
+        )
         # B → C
-        assert any(e.source_uid.endswith("#b:2") and e.target_uid.endswith("#c:3") for e in contains)
+        assert any(
+            e.source_uid.endswith("#b:2") and e.target_uid.endswith("#c:3") for e in contains
+        )
         # A → D (not B → D; D sibling of B)
-        assert any(e.source_uid.endswith("#a:1") and e.target_uid.endswith("#d:2") for e in contains)
+        assert any(
+            e.source_uid.endswith("#a:1") and e.target_uid.endswith("#d:2") for e in contains
+        )
 
     def test_duplicate_slug_disambiguated(self):
         content = "# Overview\n\n## Overview\n\n## Overview"
@@ -147,9 +155,7 @@ class TestFrontmatter:
         assert {n.metadata["key"] for n in keys} >= {"domain", "layer", "ssot", "ssot_of"}
 
     def test_ssot_of_emits_edge(self):
-        content = (
-            "<!-- ssot_of:docs/core/rules.md -->\n# H"
-        )
+        content = "<!-- ssot_of:docs/core/rules.md -->\n# H"
         r = _extract(content)
         ssot_edges = [e for e in r.edges if e.edge_type == "ssot_of"]
         assert len(ssot_edges) == 1
@@ -162,14 +168,7 @@ class TestFrontmatter:
         assert len(rn) == 1
 
     def test_yaml_fence_style(self):
-        content = (
-            "---\n"
-            "title: My Doc\n"
-            "ssot: true\n"
-            "updated: 2026-04-19\n"
-            "---\n"
-            "# H"
-        )
+        content = "---\ntitle: My Doc\nssot: true\nupdated: 2026-04-19\n---\n# H"
         r = _extract(content)
         keys = {n.metadata["key"] for n in r.nodes if n.kind == "doc:frontmatter_key"}
         assert {"title", "ssot", "updated"} <= keys
@@ -188,10 +187,7 @@ class TestFrontmatter:
 
 class TestOpeningBlockReadNext:
     def test_frontmatter_reads_vector_emits_one_edge_per_target(self):
-        content = (
-            "<!-- domain:DOCS | layer:policy | reads:[a.md, b.md, c.md] -->\n"
-            "# H\n"
-        )
+        content = "<!-- domain:DOCS | layer:policy | reads:[a.md, b.md, c.md] -->\n# H\n"
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
         assert {e.target_uid for e in rn} == {
@@ -202,7 +198,8 @@ class TestOpeningBlockReadNext:
         # `reads` itself is NOT a frontmatter_key node — it expands into edges.
         assert all(
             (n.metadata or {}).get("key") != "reads"
-            for n in r.nodes if n.kind == "doc:frontmatter_key"
+            for n in r.nodes
+            if n.kind == "doc:frontmatter_key"
         )
 
     def test_long_form_opening_block_emits_edges(self):
@@ -232,15 +229,10 @@ class TestOpeningBlockReadNext:
         assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
 
     def test_external_url_targets_become_external_uid(self):
-        content = (
-            "# H\n\n"
-            "Read next: https://example.com/spec\n"
-        )
+        content = "# H\n\nRead next: https://example.com/spec\n"
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
-        assert any(
-            e.target_uid == "doc:external:https://example.com/spec" for e in rn
-        )
+        assert any(e.target_uid == "doc:external:https://example.com/spec" for e in rn)
 
     def test_read_next_inside_fenced_code_ignored(self):
         # TASK-162 fix #4 — fenced code blocks are stripped before the
@@ -262,11 +254,7 @@ class TestOpeningBlockReadNext:
         assert "doc:file:not-a-real-doc.md" not in targets
 
     def test_duplicate_targets_deduplicated(self):
-        content = (
-            "<!-- reads:[a.md, a.md, b.md] -->\n"
-            "# H\n\n"
-            "Read next: a.md, b.md\n"
-        )
+        content = "<!-- reads:[a.md, a.md, b.md] -->\n# H\n\nRead next: a.md, b.md\n"
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
         # Frontmatter dedupe: 2 unique. Body dedupe inside opening block: 2.
@@ -347,15 +335,12 @@ class TestPipelineInvariants:
 
     def test_deterministic_across_runs(self):
         content = (
-            "<!-- domain:x | ssot:true -->\n"
-            "# Title\n\n## Child\n\n[link](./other.md) and [[wiki]]"
+            "<!-- domain:x | ssot:true -->\n# Title\n\n## Child\n\n[link](./other.md) and [[wiki]]"
         )
         first = _extract(content)
         second = _extract(content)
         assert [n.uid for n in first.nodes] == [n.uid for n in second.nodes]
-        assert [
-            (e.source_uid, e.target_uid, e.edge_type) for e in first.edges
-        ] == [
+        assert [(e.source_uid, e.target_uid, e.edge_type) for e in first.edges] == [
             (e.source_uid, e.target_uid, e.edge_type) for e in second.edges
         ]
 

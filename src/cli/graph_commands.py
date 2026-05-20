@@ -33,11 +33,11 @@ import json
 import os
 import sys
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import click
-
 
 # ---------------------------------------------------------------------------
 # Lazy bootstrap — push core/ + src/core/thinking_os onto sys.path.
@@ -70,6 +70,7 @@ def _json_echo(payload: Any, *, pretty: bool = False) -> None:
 def _open_backend():
     _bootstrap_paths()
     from database import init_db  # type: ignore
+
     from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
     from graph_os.tools import graph as graph_tools  # type: ignore
 
@@ -158,7 +159,9 @@ def register(cli: click.Group) -> None:
 
     @cli.command(name="graph-impact")
     @click.argument("uid")
-    @click.option("--direction", default="downstream", type=click.Choice(["downstream", "upstream", "both"]))
+    @click.option(
+        "--direction", default="downstream", type=click.Choice(["downstream", "upstream", "both"])
+    )
     @click.option("--depth", default=3, type=int)
     @click.option("--confidence-min", default=0.5, type=float)
     @click.option("--pretty", is_flag=True)
@@ -312,16 +315,24 @@ def register(cli: click.Group) -> None:
     @cli.command(name="graph-reindex")
     @click.option("--path", default=None, help="Directory to reindex (default: repo root).")
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
-    @click.option("--max-files", default=1_000_000, type=int, help="Cap on files walked (default 1M for monorepo-scale).")
     @click.option(
-        "--workers", "-j",
-        default=1, type=int,
+        "--max-files",
+        default=1_000_000,
+        type=int,
+        help="Cap on files walked (default 1M for monorepo-scale).",
+    )
+    @click.option(
+        "--workers",
+        "-j",
+        default=1,
+        type=int,
         help="Parallel worker processes (default 1 = sequential). For "
         "large monorepos, set to CPU count (e.g. -j 8). SQLite WAL + "
         "the dispatcher's lock-retry loop handle concurrent writes.",
     )
     @click.option(
-        "--force", "-f",
+        "--force",
+        "-f",
         is_flag=True,
         help="V1: bypass the file_index_state cache; reindex even "
         "files whose content_hash matches the last successful run.",
@@ -368,15 +379,14 @@ def register(cli: click.Group) -> None:
             # S3 data migration — idempotent; can be invoked standalone.
             try:
                 import database  # type: ignore
+
                 from graph_os.types import normalize_kind  # type: ignore
             except ImportError as exc:
                 click.echo(f"[graph-reindex] rebuild-kinds import failed: {exc}", err=True)
                 return
             conn = database.get_connection()
             try:
-                rows = conn.execute(
-                    "SELECT DISTINCT kind FROM graph_nodes"
-                ).fetchall()
+                rows = conn.execute("SELECT DISTINCT kind FROM graph_nodes").fetchall()
                 renames: dict[str, str] = {}
                 for r in rows:
                     legacy = r[0]
@@ -412,10 +422,7 @@ def register(cli: click.Group) -> None:
 
         target = Path(path or Path.cwd()).resolve()
         plan = walk_local(target, max_files=max_files)
-        click.echo(
-            f"[graph-reindex] walking {target}; {len(plan.files)} files "
-            f"(force={force})"
-        )
+        click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files (force={force})")
         processed = skipped = errors = 0
         started = _time.monotonic()
 
@@ -451,7 +458,7 @@ def register(cli: click.Group) -> None:
                     try:
                         report = fut.result()
                         _record(report)
-                    except Exception as exc:  # noqa: BLE001
+                    except Exception as exc:
                         errors += 1
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
         else:
@@ -468,7 +475,7 @@ def register(cli: click.Group) -> None:
                         click.echo(f"[graph-reindex]   · cache-hit {report['path']}")
                     else:
                         processed += 1
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     errors += 1
                     click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
         duration = _time.monotonic() - started
@@ -584,7 +591,7 @@ def register(cli: click.Group) -> None:
     @click.option("--pretty", is_flag=True)
     def graph_detect_changes(mode, git_range, pretty):
         """Map changed files to affected graph symbols + downstream tasks."""
-        import subprocess  # noqa: PLC0415
+        import subprocess
 
         # Build the git command based on selected mode.
         if git_range:
@@ -608,11 +615,7 @@ def register(cli: click.Group) -> None:
                 raise click.ClickException(
                     f"git exited {result.returncode}: {result.stderr.strip()}"
                 )
-            files = [
-                line.strip()
-                for line in result.stdout.splitlines()
-                if line.strip()
-            ]
+            files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
         except FileNotFoundError:
             raise click.ClickException("git not found on PATH")
         except subprocess.TimeoutExpired:
@@ -707,7 +710,9 @@ def register(cli: click.Group) -> None:
 
     @graph_group.command("create")
     @click.argument("name")
-    @click.option("--manifest-dir", default=None, help="Root for ~/.coding-os/groups/<name>/ overrides.")
+    @click.option(
+        "--manifest-dir", default=None, help="Root for ~/.coding-os/groups/<name>/ overrides."
+    )
     def group_create(name, manifest_dir):
         _bootstrap_paths()
         from graph_os.groups import GroupManifest, save_manifest  # type: ignore
@@ -810,8 +815,8 @@ def register(cli: click.Group) -> None:
 
 
 def _group_root(manifest_dir: str | None) -> Path:
-    return Path(manifest_dir).expanduser() if manifest_dir else (
-        Path.home() / ".coding-os" / "groups"
+    return (
+        Path(manifest_dir).expanduser() if manifest_dir else (Path.home() / ".coding-os" / "groups")
     )
 
 
@@ -836,8 +841,7 @@ def _graph_reindex_print_status() -> None:
     try:
         if not database.has_file_index_state_table(conn):
             click.echo(
-                "[graph-reindex] file_index_state table missing "
-                "(migration v17 not applied)."
+                "[graph-reindex] file_index_state table missing (migration v17 not applied)."
             )
             return
         rows = conn.execute(
@@ -852,9 +856,7 @@ def _graph_reindex_print_status() -> None:
         click.echo("[graph-reindex] file_index_state is empty.")
         return
 
-    click.echo(
-        f"{'file_path':<60}  {'hash':<12}  {'indexed_at':<20}  status"
-    )
+    click.echo(f"{'file_path':<60}  {'hash':<12}  {'indexed_at':<20}  status")
     click.echo("-" * 110)
     for file_path, chash, chain, ts, err in rows:
         when = datetime.fromtimestamp(int(ts)).isoformat(timespec="seconds")

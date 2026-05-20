@@ -18,9 +18,8 @@ import os
 import sys
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
-
 from database import get_db_stats, init_db
+from mcp.server.fastmcp import FastMCP
 from tools._shared import fail, ok, safe_tool
 
 # ---------------------------------------------------------------------------
@@ -54,11 +53,12 @@ _db_conn = init_db()
 # Phase G.9 — opt-in continuous indexer. No-op unless COS_BACKGROUND_INDEX=1.
 # Wrapped in try/except so a broken indexer never blocks MCP startup.
 try:
-    from background import maybe_start_indexer  # noqa: WPS433 — intentional late bind
+    from background import maybe_start_indexer
+
     _bg_status = maybe_start_indexer()
     if _bg_status.get("started"):
         logger.info("background indexer started: %s", _bg_status.get("reason"))
-except Exception as exc:  # noqa: BLE001 — never fail MCP boot on indexer glitch
+except Exception as exc:
     logger.warning("background indexer bootstrap failed: %s", exc)
 
 
@@ -92,7 +92,8 @@ def thinking_os_health() -> str:
     # semantic search is wired up before issuing cos_doc_search.
     embeddings_available = False
     try:
-        from embeddings import is_available  # noqa: WPS433 — lazy keeps server start fast
+        from embeddings import is_available
+
         embeddings_available = is_available()
     except ImportError as exc:
         logger.debug("Embeddings module unavailable for health check: %s", exc)
@@ -113,14 +114,24 @@ def thinking_os_health() -> str:
     # Phase G.9: background indexer status — surfaced even when the loop
     # is disabled so `cos doctor` can warn about misconfigured state.
     try:
-        from background import get_indexer, is_enabled  # noqa: WPS433 — lazy import keeps boot fast
-        stats["background_indexer"] = get_indexer().status() if is_enabled() else {
-            "enabled": False, "running": False, "reason": "COS_BACKGROUND_INDEX not set",
-        }
+        from background import get_indexer, is_enabled
+
+        stats["background_indexer"] = (
+            get_indexer().status()
+            if is_enabled()
+            else {
+                "enabled": False,
+                "running": False,
+                "reason": "COS_BACKGROUND_INDEX not set",
+            }
+        )
     except ImportError as exc:  # pragma: no cover — defensive
         logger.debug("background module unavailable: %s", exc)
-        stats["background_indexer"] = {"enabled": False, "running": False,
-                                        "reason": f"import_error: {exc}"}
+        stats["background_indexer"] = {
+            "enabled": False,
+            "running": False,
+            "reason": f"import_error: {exc}",
+        }
 
     return ok(stats, meta={"layer": "health"})
 
@@ -131,18 +142,29 @@ def thinking_os_health() -> str:
 from graph import query_related
 from tools.audit import audit_log_query, audit_log_record, audit_log_timeline
 from tools.docs import doc_search, list_doc_headers, parse_doc_header
-from tools.learning import generate_feedback_drafts, learn_extract, learn_narrative, learn_suggest, learn_validate
+from tools.learning import (
+    generate_feedback_drafts,
+    learn_extract,
+    learn_narrative,
+    learn_suggest,
+    learn_validate,
+)
 from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
 from tools.metrics import metric_query, metric_record, metric_trend
-from tools.retrieve import cite_retrievals, learn_from_retrievals, log_retrieval, log_router_decision
-from tools.routing import route_model, route_skill, routing_drift, failure_pattern_query
-from tools.trajectory import trajectory_snapshot, trajectory_read
+from tools.retrieve import (
+    cite_retrievals,
+    learn_from_retrievals,
+    log_retrieval,
+    log_router_decision,
+)
+from tools.routing import failure_pattern_query, route_model, route_skill, routing_drift
 from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search
-
+from tools.trajectory import trajectory_read, trajectory_snapshot
 
 # ---------------------------------------------------------------------------
 # Agent-session resolver — Phase Q.deep fix for AGENT STREAM "H" label
 # ---------------------------------------------------------------------------
+
 
 def _detect_agent_session_default() -> str | None:
     """Best-effort fallback for MCP tools that accept `agent_session`."""
@@ -176,12 +198,13 @@ def _detect_agent_session_default() -> str | None:
     else:
         try:
             from board_os._agent_runtime import detect_agent as _detect_agent
+
             detected = _detect_agent(None)
             # detect_agent returns "agent" or "human" when nothing matches;
             # only treat real adapter ids as a positive identification.
             if detected and detected not in ("human", "agent"):
                 agent = detected
-        except Exception:  # noqa: BLE001
+        except Exception:
             agent = None
         # Fallback heuristic — CLAUDE_PROJECT_DIR is shared with Cursor,
         # so it only fires when no stronger signal matched.
@@ -302,10 +325,18 @@ def cos_metric_query(
         date_to=date_to or None,
         limit=limit,
     )
-    return ok(result, meta={"layer": "metrics", "filters_applied": {
-        "domain": domain or None, "model": model or None, "outcome": outcome or None,
-        "agent_type": agent_type or None,
-    }})
+    return ok(
+        result,
+        meta={
+            "layer": "metrics",
+            "filters_applied": {
+                "domain": domain or None,
+                "model": model or None,
+                "outcome": outcome or None,
+                "agent_type": agent_type or None,
+            },
+        },
+    )
 
 
 @mcp.tool(
@@ -499,10 +530,10 @@ def cos_observation_record(
 ) -> str:
     """Record an observation explicitly."""
     from capture import capture_observation
+
     tool_name = (tool_name or "Edit").strip()
     if tool_name not in {"Write", "Edit", "MultiEdit"}:
-        return fail("validation",
-                    f"tool_name must be Write|Edit|MultiEdit, got {tool_name!r}")
+        return fail("validation", f"tool_name must be Write|Edit|MultiEdit, got {tool_name!r}")
     if not file_path:
         return fail("validation", "file_path is required")
     payload = {"tool_name": tool_name, "tool_input": {"file_path": file_path}}
@@ -551,6 +582,7 @@ def thinking_os_search(
         str: JSON with results list [{id, title, confidence, impact_score, memory_type, source_table}].
     """
     from database import has_fts5_table
+
     result = memory_search(
         _db_conn,
         query=query,
@@ -566,10 +598,15 @@ def thinking_os_search(
     if isinstance(result, dict):
         result["retrieval_ids"] = rids
     # Phase J.3 — router-level telemetry.
-    log_router_decision(_db_conn, query=query, chosen_layer="memory",
-                        bytes_returned=len(str(rows)))
-    return ok(result, meta={"layer": "memory", "query": query,
-                            "source": result.get("source") if isinstance(result, dict) else None})
+    log_router_decision(_db_conn, query=query, chosen_layer="memory", bytes_returned=len(str(rows)))
+    return ok(
+        result,
+        meta={
+            "layer": "memory",
+            "query": query,
+            "source": result.get("source") if isinstance(result, dict) else None,
+        },
+    )
 
 
 @mcp.tool(
@@ -604,8 +641,10 @@ def thinking_os_timeline(
         domain=domain or None,
         limit=limit,
     )
-    return ok(result, meta={"layer": "memory",
-                            "filters_applied": {"domain": domain or None, "days": days}})
+    return ok(
+        result,
+        meta={"layer": "memory", "filters_applied": {"domain": domain or None, "days": days}},
+    )
 
 
 @mcp.tool(
@@ -684,6 +723,7 @@ def _persist_learn_suggestions_safe(result: dict) -> None:
     try:
         import os as _os
         from pathlib import Path as _P
+
         agent_dir = _os.environ.get("COS_AGENT_DIR")
         if not agent_dir:
             state_dir = _P(_os.environ.get("COS_STATE_DIR", ".coding-os"))
@@ -713,7 +753,7 @@ def _persist_learn_suggestions_safe(result: dict) -> None:
         if lines:
             with target.open("a", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
-    except Exception as exc:  # noqa: BLE001 — never fail learn_suggest
+    except Exception as exc:
         logger.debug("_persist_learn_suggestions_safe swallowed: %s", exc)
 
 
@@ -786,10 +826,17 @@ def cos_learn_suggest(
     # can prompt the agent to close the loop after task-done. One line
     # per pattern, format "id<TAB>text" — the hook prints a slice.
     _persist_learn_suggestions_safe(result)
-    return ok(result, meta={"layer": "learning",
-                            "filters_applied": {"domain": domain or None,
-                                                "complexity": complexity or None,
-                                                "task_type": task_type or None}})
+    return ok(
+        result,
+        meta={
+            "layer": "learning",
+            "filters_applied": {
+                "domain": domain or None,
+                "complexity": complexity or None,
+                "task_type": task_type or None,
+            },
+        },
+    )
 
 
 @mcp.tool(
@@ -908,11 +955,11 @@ def cos_learn_narrative(
     },
 )
 @safe_tool
-def thinking_os_graph(  # noqa: ARG001
-    node: str,  # noqa: ARG001
-    max_hops: int = 2,  # noqa: ARG001
-    limit: int = 10,  # noqa: ARG001
-    edge_types: str = "",  # noqa: ARG001
+def thinking_os_graph(
+    node: str,
+    max_hops: int = 2,
+    limit: int = 10,
+    edge_types: str = "",
 ) -> str:
     """[REMOVED] cos_graph was removed. Migrate to cos_graph_context / cos_graph_impact."""
     try:
@@ -924,7 +971,7 @@ def thinking_os_graph(  # noqa: ARG001
             domain="graph_os",
             complexity="legacy",
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("cos_graph removal metric failed: %s", exc)
     return fail(
         "validation",
@@ -1017,6 +1064,7 @@ def cos_route_skill(
 # Phase EVO — Project Trajectory + Failure Archaeology + Routing Drift
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool(
     name="cos_trajectory_snapshot",
     annotations={
@@ -1059,10 +1107,11 @@ def cos_trajectory_snapshot(
         JSON with {status, id, supersedes_id}.
     """
     import json as _json
+
     try:
-        ad  = _json.loads(architectural_decisions  or "[]")
+        ad = _json.loads(architectural_decisions or "[]")
         apd = _json.loads(anti_patterns_discovered or "[]")
-        oq  = _json.loads(open_questions           or "[]")
+        oq = _json.loads(open_questions or "[]")
     except _json.JSONDecodeError as exc:
         return fail("validation", f"JSON parse error in list field: {exc}")
 
@@ -1251,28 +1300,42 @@ def cos_doc_search(
     since_clean = since_iso.strip() or None
 
     results, search_meta = doc_search(
-        _db_conn, query=query, source_types=types, limit=limit, mode=mode_clean,
-        domain=domain_clean, layer=layer_clean, since_iso=since_clean,
+        _db_conn,
+        query=query,
+        source_types=types,
+        limit=limit,
+        mode=mode_clean,
+        domain=domain_clean,
+        layer=layer_clean,
+        since_iso=since_clean,
         include_inactive=include_inactive,
-        auto_context=auto_context, return_meta=True,
+        auto_context=auto_context,
+        return_meta=True,
     )
     # Derive retrieval source from result rows for diagnostic meta.
     if results:
-        sources_used = sorted({r.get("retrieval_source") for r in results if r.get("retrieval_source")})
+        sources_used = sorted(
+            {r.get("retrieval_source") for r in results if r.get("retrieval_source")}
+        )
         source_label = "+".join(sources_used) if sources_used else mode_clean
     else:
         source_label = "empty"
     # Phase G.8 — outcome-feedback loop logging.
     rids = log_retrieval(_db_conn, layer="docs", query=query, rows=results)
     # Phase J.3 — router-level telemetry.
-    log_router_decision(_db_conn, query=query, chosen_layer="docs",
-                        bytes_returned=len(str(results)))
+    log_router_decision(
+        _db_conn, query=query, chosen_layer="docs", bytes_returned=len(str(results))
+    )
     return ok(
         {"results": results, "count": len(results), "retrieval_ids": rids},
-        meta={"layer": "docs", "query": query, "mode": mode_clean,
-              "source": source_label,
-              "filters_applied": search_meta.get("applied", {}),
-              "filter_hints": search_meta.get("filter_hints", {})},
+        meta={
+            "layer": "docs",
+            "query": query,
+            "mode": mode_clean,
+            "source": source_label,
+            "filters_applied": search_meta.get("applied", {}),
+            "filter_hints": search_meta.get("filter_hints", {}),
+        },
     )
 
 
@@ -1376,10 +1439,15 @@ def cos_doc_headers_by(
             "layer": "docs",
             "source": "filesystem",
             "filters_applied": {
-                k: v for k, v in {
-                    "domain": domain, "layer": layer, "ssot": ssot,
-                    "since_iso": since_iso, "root": str(root_path),
-                }.items() if v
+                k: v
+                for k, v in {
+                    "domain": domain,
+                    "layer": layer,
+                    "ssot": ssot,
+                    "since_iso": since_iso,
+                    "root": str(root_path),
+                }.items()
+                if v
             },
         },
     )
@@ -1429,12 +1497,16 @@ def cos_task_search(
         limit=limit,
     )
     rids = log_retrieval(_db_conn, layer="tasks", query=query, rows=results)
-    log_router_decision(_db_conn, query=query, chosen_layer="tasks",
-                        bytes_returned=len(str(results)))
+    log_router_decision(
+        _db_conn, query=query, chosen_layer="tasks", bytes_returned=len(str(results))
+    )
     return ok(
         {"results": results, "count": len(results), "retrieval_ids": rids},
-        meta={"layer": "tasks", "query": query,
-              "filters_applied": {"status": status or None, "domain": domain or None}},
+        meta={
+            "layer": "tasks",
+            "query": query,
+            "filters_applied": {"status": status or None, "domain": domain or None},
+        },
     )
 
 
@@ -1463,8 +1535,10 @@ def cos_task_dependencies(task_id: str) -> str:
         JSON with task_id, dependencies list, and count.
     """
     results = task_dependencies(_db_conn, task_id)
-    return ok({"task_id": task_id, "dependencies": results, "count": len(results)},
-              meta={"layer": "tasks"})
+    return ok(
+        {"task_id": task_id, "dependencies": results, "count": len(results)},
+        meta={"layer": "tasks"},
+    )
 
 
 @mcp.tool(
@@ -1491,8 +1565,9 @@ def cos_task_dependents(task_id: str) -> str:
         JSON with task_id, dependents list, and count.
     """
     results = task_dependents(_db_conn, task_id)
-    return ok({"task_id": task_id, "dependents": results, "count": len(results)},
-              meta={"layer": "tasks"})
+    return ok(
+        {"task_id": task_id, "dependents": results, "count": len(results)}, meta={"layer": "tasks"}
+    )
 
 
 @mcp.tool(
@@ -1532,8 +1607,10 @@ def cos_task_by_filter(
     )
     return ok(
         {"results": results, "count": len(results)},
-        meta={"layer": "tasks",
-              "filters_applied": {"status": status or None, "domain": domain or None}},
+        meta={
+            "layer": "tasks",
+            "filters_applied": {"status": status or None, "domain": domain or None},
+        },
     )
 
 
@@ -1550,6 +1627,7 @@ try:
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
     from board_os import mcp_tools as _board_mcp  # type: ignore
+
     _BOARD_OS_AVAILABLE = True
 except ImportError as _exc:
     logger.warning("board_os MCP tools unavailable: %s", _exc)
@@ -1588,8 +1666,11 @@ if _BOARD_OS_AVAILABLE:
         """
         return _board_mcp.cos_task_create(
             _db_conn,
-            title=title, swimlane=swimlane, kind=kind,
-            priority=priority, appetite=appetite,
+            title=title,
+            swimlane=swimlane,
+            kind=kind,
+            priority=priority,
+            appetite=appetite,
             epic=epic or None,
             labels=labels or [],
             outcome=outcome or None,
@@ -1665,8 +1746,9 @@ if _BOARD_OS_AVAILABLE:
         # multi-project servers inspect the right .coding-os/ tree.
         try:
             from web._project_context import current_project_root  # type: ignore
+
             root = current_project_root()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return fail(
                 "unavailable",
                 f"cannot resolve project root: {exc}",
@@ -1674,7 +1756,8 @@ if _BOARD_OS_AVAILABLE:
             )
 
         agents = (
-            [agent.strip()] if agent.strip()
+            [agent.strip()]
+            if agent.strip()
             else [str(r.get("id") or "") for r in list_agent_manifest_rows() if r.get("id")]
         )
         states: dict[str, str] = {}
@@ -1685,16 +1768,17 @@ if _BOARD_OS_AVAILABLE:
             d = root / ".coding-os" / aid / "sessions"
             states[aid] = _agent_state_q(d)
             sessions.extend(_session_inventory_q(aid, d))
-        return ok({
-            "agent_states": states,
-            "session_states": sessions,
-            "session_counts": {
-                aid: sum(1 for s in sessions if s["agent"] == aid)
-                for aid in agents
-            },
-            "scope": "per_project",
-            "root": str(root),
-        })
+        return ok(
+            {
+                "agent_states": states,
+                "session_states": sessions,
+                "session_counts": {
+                    aid: sum(1 for s in sessions if s["agent"] == aid) for aid in agents
+                },
+                "scope": "per_project",
+                "root": str(root),
+            }
+        )
 
     @mcp.tool(
         name="cos_task_move",
@@ -1714,12 +1798,11 @@ if _BOARD_OS_AVAILABLE:
         agent_session: str = "",
     ) -> str:
         """Transition a task through the Scrumban state machine."""
-        resolved_session = (
-            agent_session or _detect_agent_session_default() or None
-        )
+        resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_move(
             _db_conn,
-            task_id=task_id, to=to,
+            task_id=task_id,
+            to=to,
             reason=reason or None,
             bypass_wip=bypass_wip,
             agent_session=resolved_session,
@@ -1744,9 +1827,7 @@ if _BOARD_OS_AVAILABLE:
         agent_session: str = "",
     ) -> str:
         """Update Scrumban status and/or swimlane (MD frontmatter + sync)."""
-        resolved_session = (
-            agent_session or _detect_agent_session_default() or None
-        )
+        resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_reposition(
             _db_conn,
             task_id=task_id,
@@ -1793,7 +1874,9 @@ if _BOARD_OS_AVAILABLE:
     def cos_task_daily(since: str = "24h", agent_session: str = "") -> str:
         """Produce the daily standup summary."""
         return _board_mcp.cos_task_daily(
-            _db_conn, since=since, agent_session=agent_session or None,
+            _db_conn,
+            since=since,
+            agent_session=agent_session or None,
         )
 
     @mcp.tool(
@@ -1841,12 +1924,11 @@ if _BOARD_OS_AVAILABLE:
         source: str = "manual",
     ) -> str:
         """Append one Work Log line to a task. Critical for Codex sessions."""
-        resolved_session = (
-            agent_session or _detect_agent_session_default() or None
-        )
+        resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_work_log_append(
             _db_conn,
-            task_id=task_id, summary=summary,
+            task_id=task_id,
+            summary=summary,
             agent_session=resolved_session,
             source=source,
         )
@@ -1920,9 +2002,9 @@ def cos_retrieval_learn(lookback_days: int = 7, dry_run: bool = False) -> str:
     Returns:
         `{adjusted, gained, lost, changes[], status}` envelope.
     """
-    result = learn_from_retrievals(_db_conn,
-                                   lookback_days=int(lookback_days),
-                                   dry_run=bool(dry_run))
+    result = learn_from_retrievals(
+        _db_conn, lookback_days=int(lookback_days), dry_run=bool(dry_run)
+    )
     return ok(result, meta={"layer": "learning"})
 
 
@@ -1956,11 +2038,10 @@ def cos_digest_regenerate(project_root: str = "") -> str:
     """
     import os
     from pathlib import Path
+
     from digest import regenerate
 
-    root = Path(project_root) if project_root else Path(
-        os.environ.get("COS_PROJECT_ROOT", ".")
-    )
+    root = Path(project_root) if project_root else Path(os.environ.get("COS_PROJECT_ROOT", "."))
     result = regenerate(_db_conn, project_root=root)
     return ok(result, meta={"layer": "learning"})
 
@@ -2000,7 +2081,9 @@ def cos_retrieval_quality(lookback_days: int = 14, layer: str = "") -> str:
     # Idempotent: ensure quality rows are up to date before summarising
     backfill_quality_from_outcomes(_db_conn, lookback_days=int(lookback_days))
     result = precision_summary(
-        _db_conn, lookback_days=int(lookback_days), layer=layer or None,
+        _db_conn,
+        lookback_days=int(lookback_days),
+        layer=layer or None,
     )
     return ok(result, meta={"layer": "metrics"})
 
@@ -2045,6 +2128,7 @@ def cos_retrieval_enrichment_check(lookback_days: int = 14) -> str:
 try:
     from database import DEFAULT_DB_PATH as _DEFAULT_DB_PATH
     from tools.cognition import register_all as _register_cognition_tools
+
     _register_cognition_tools(mcp, str(_DEFAULT_DB_PATH))
     logger.info("Cognition tools registered (Phase M: 9 + Phase N: 3 + Phase N.SDK: 2 = 14 tools)")
 except Exception as _cog_exc:  # pragma: no cover
@@ -2061,7 +2145,10 @@ except Exception as _cog_exc:  # pragma: no cover
 # through ok()/fail().
 # ---------------------------------------------------------------------------
 try:
-    from graph_os.tools import graph as _graph_tools  # noqa: WPS433 — lazy import is the pattern here
+    from graph_os.tools import (
+        graph as _graph_tools,
+    )
+
     _GRAPH_TOOLS_AVAILABLE = True
 except ImportError as _graph_import_exc:  # pragma: no cover — defensive
     logger.warning("graph_os tools unavailable: %s", _graph_import_exc)
@@ -2085,7 +2172,8 @@ def _graph_unavailable() -> str:
     function always returns a ``str``. The explicit ``json.dumps`` wrapper
     below makes the contract unambiguous should the import path change.
     """
-    import json as _json  # noqa: PLC0415 — keep boot lean
+    import json as _json
+
     return _json.dumps(
         {
             "ok": False,
@@ -2099,6 +2187,7 @@ def _graph_unavailable() -> str:
 
 
 if _GRAPH_TOOLS_AVAILABLE:
+
     @mcp.tool(
         name="cos_graph_query",
         annotations={
@@ -2710,6 +2799,7 @@ else:
         "cos_graph_ranking",
         "cos_graph_doctor",
     ):
+
         def _make_stub(tool_name: str):
             @mcp.tool(
                 name=tool_name,
@@ -2718,6 +2808,7 @@ else:
             @safe_tool
             def _stub(*_args: object, **_kwargs: object) -> str:
                 return _graph_unavailable()
+
             return _stub
 
         _make_stub(_name)
@@ -2754,8 +2845,12 @@ def _run_self_test() -> bool:
         checks_passed = False
     else:
         expected_tables = [
-            "task_outcomes", "agent_metrics", "learned_patterns",
-            "experiment_log", "observations", "session_summaries",
+            "task_outcomes",
+            "agent_metrics",
+            "learned_patterns",
+            "experiment_log",
+            "observations",
+            "session_summaries",
         ]
         for table in expected_tables:
             if table not in data["tables"]:

@@ -30,9 +30,7 @@ class TestEjectFile:
         original_content = link.read_text()
 
         runner = CliRunner()
-        result = runner.invoke(
-            cos_cli, ["eject-file", rel, "-d", str(project)]
-        )
+        result = runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
         assert result.exit_code == 0, result.output
         assert not link.is_symlink()
         assert link.is_file()
@@ -81,7 +79,5 @@ class TestEjectFile:
         link.write_text("tampered")
         # --force should re-copy from the source (but source is already
         # ejected target, so content == 'tampered'). Just verify exit code.
-        result = runner.invoke(
-            cos_cli, ["eject-file", rel, "--force", "-d", str(project)]
-        )
+        result = runner.invoke(cos_cli, ["eject-file", rel, "--force", "-d", str(project)])
         assert result.exit_code == 0

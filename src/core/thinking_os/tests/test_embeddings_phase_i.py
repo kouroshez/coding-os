@@ -12,12 +12,10 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-import pytest
-
 import embeddings
 import migrator_embeddings
+import pytest
 from database import init_db
-
 
 # ---------------------------------------------------------------------------
 # Fake encoder — deterministic, dim-parameterised, no network.
@@ -42,9 +40,7 @@ class FakeEncoder:
         norm = sum(v * v for v in raw) ** 0.5 or 1.0
         return [v / norm for v in raw]
 
-    def encode(
-        self, text: Any, convert_to_numpy: bool = True, **_: Any
-    ) -> Any:
+    def encode(self, text: Any, convert_to_numpy: bool = True, **_: Any) -> Any:
         import numpy as np
 
         if isinstance(text, str):
@@ -57,9 +53,7 @@ class _SmallRNG:
         self._state = seed & ((1 << 64) - 1) or 0x9E3779B97F4A7C15
 
     def next(self) -> float:
-        self._state = (self._state * 6364136223846793005 + 1442695040888963407) & (
-            (1 << 64) - 1
-        )
+        self._state = (self._state * 6364136223846793005 + 1442695040888963407) & ((1 << 64) - 1)
         return ((self._state >> 33) / (1 << 31)) - 1.0
 
 
@@ -144,9 +138,7 @@ class TestDimAwareCosine:
         assert len(scores) == 1
         assert scores[0] == pytest.approx(1.0, abs=1e-5)
 
-    def test_dim_mismatch_does_not_blank_results(
-        self, minilm_fake, bge_m3_fake
-    ):
+    def test_dim_mismatch_does_not_blank_results(self, minilm_fake, bge_m3_fake):
         """Mixing a 1024-dim row with a 384-dim query must keep matching
         rows scoring normally — pre-I.1 behaviour returned [] wholesale."""
         q = embeddings.embed_text("hi", model_name="all-MiniLM-L6-v2")
@@ -215,9 +207,7 @@ class TestUpsertEmbeddingPhaseI:
         assert row[0] == 384
         assert row[1] == "all-MiniLM-L6-v2"
 
-    def test_reembed_with_different_model_updates_row(
-        self, conn, minilm_fake, bge_m3_fake
-    ):
+    def test_reembed_with_different_model_updates_row(self, conn, minilm_fake, bge_m3_fake):
         conn.execute(
             "INSERT INTO observations (id, session_id, title, narrative) "
             "VALUES (1, 'test', 'hi', 'hi narrative')"
@@ -265,14 +255,21 @@ class TestMigratorEmbeddings:
         conn.commit()
         for i in range(1, n + 1):
             embeddings.upsert_embedding(
-                conn, "observations", i, f"observation number {i}",
+                conn,
+                "observations",
+                i,
+                f"observation number {i}",
                 model_name="all-MiniLM-L6-v2",
             )
 
     def test_checkpoint_round_trip(self, tmp_path):
         path = tmp_path / ".embedding-migration.json"
         cp = migrator_embeddings.MigrationCheckpoint(
-            target_model="BAAI/bge-m3", total=500, done=128, last_id=128, eta_seconds=42.5,
+            target_model="BAAI/bge-m3",
+            total=500,
+            done=128,
+            last_id=128,
+            eta_seconds=42.5,
         )
         cp.save(path)
         loaded = migrator_embeddings.MigrationCheckpoint.load(path)
@@ -282,9 +279,7 @@ class TestMigratorEmbeddings:
         assert loaded.eta_seconds == pytest.approx(42.5)
 
     def test_checkpoint_missing_returns_fresh(self, tmp_path):
-        cp = migrator_embeddings.MigrationCheckpoint.load(
-            tmp_path / "no-such-file.json"
-        )
+        cp = migrator_embeddings.MigrationCheckpoint.load(tmp_path / "no-such-file.json")
         assert cp.done == 0
         assert cp.last_id == 0
 
@@ -299,9 +294,7 @@ class TestMigratorEmbeddings:
         loaded = migrator_embeddings.MigrationCheckpoint.load(path)
         assert loaded.done == 5
 
-    def test_run_one_batch_migrates_rows(
-        self, conn, minilm_fake, bge_m3_fake, tmp_path
-    ):
+    def test_run_one_batch_migrates_rows(self, conn, minilm_fake, bge_m3_fake, tmp_path):
         self._seed_rows(conn, n=5)
         checkpoint = tmp_path / ".cp.json"
         report = migrator_embeddings.run_one_batch(
@@ -319,9 +312,7 @@ class TestMigratorEmbeddings:
         assert len(rows) == 2
         assert {r[1] for r in rows} == {1024}
 
-    def test_run_one_batch_resumes_from_checkpoint(
-        self, conn, minilm_fake, bge_m3_fake, tmp_path
-    ):
+    def test_run_one_batch_resumes_from_checkpoint(self, conn, minilm_fake, bge_m3_fake, tmp_path):
         self._seed_rows(conn, n=6)
         checkpoint = tmp_path / ".cp.json"
 
@@ -349,9 +340,7 @@ class TestMigratorEmbeddings:
         assert second["done"] == 6
         assert second["migrated_this_batch"] == 3
 
-    def test_run_until_idle_completes(
-        self, conn, minilm_fake, bge_m3_fake, tmp_path
-    ):
+    def test_run_until_idle_completes(self, conn, minilm_fake, bge_m3_fake, tmp_path):
         self._seed_rows(conn, n=7)
         checkpoint = tmp_path / ".cp.json"
         final = migrator_embeddings.run_until_idle(
@@ -366,9 +355,7 @@ class TestMigratorEmbeddings:
         ).fetchone()[0]
         assert rows == 7
 
-    def test_target_model_change_resets_progress(
-        self, conn, minilm_fake, bge_m3_fake, tmp_path
-    ):
+    def test_target_model_change_resets_progress(self, conn, minilm_fake, bge_m3_fake, tmp_path):
         """Switching target models (e.g. user picks a different BGE version)
         should not leave stale 'done' counts from the previous model."""
         self._seed_rows(conn, n=3)
@@ -387,9 +374,7 @@ class TestMigratorEmbeddings:
         # the new target.
         assert report["done"] <= 3
 
-    def test_migration_status_reports_complete(
-        self, conn, minilm_fake, bge_m3_fake, tmp_path
-    ):
+    def test_migration_status_reports_complete(self, conn, minilm_fake, bge_m3_fake, tmp_path):
         self._seed_rows(conn, n=2)
         checkpoint = tmp_path / ".cp.json"
         migrator_embeddings.run_until_idle(

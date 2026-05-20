@@ -30,7 +30,10 @@ logger = logging.getLogger("coding_os.board_os.migration")
 
 
 _LEGACY_STATUS_MAP = {
-    "open": "ready", "wip": "in_progress", "done": "complete", "blocked": "blocked",
+    "open": "ready",
+    "wip": "in_progress",
+    "done": "complete",
+    "blocked": "blocked",
 }
 
 

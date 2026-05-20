@@ -18,13 +18,14 @@ Exit code:
   1 — findings present
   2 — error
 """
+
 from __future__ import annotations
 
 import argparse
 import ast
 import json
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
@@ -123,8 +124,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", default=["."], help="Files or directories to audit")
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of human text")
-    parser.add_argument("--exclude", default=".venv,venv,node_modules,.build,__pycache__,.git",
-                        help="Comma-separated dir names to skip")
+    parser.add_argument(
+        "--exclude",
+        default=".venv,venv,node_modules,.build,__pycache__,.git",
+        help="Comma-separated dir names to skip",
+    )
     args = parser.parse_args()
 
     excluded = set(s for s in args.exclude.split(",") if s)
@@ -150,7 +154,9 @@ def main() -> int:
         if not findings:
             print(f"[audit-fail-closed] OK: {len(py_files)} files scanned, no findings.")
         else:
-            print(f"[audit-fail-closed] FOUND {len(findings)} finding(s) across {len(py_files)} files:\n")
+            print(
+                f"[audit-fail-closed] FOUND {len(findings)} finding(s) across {len(py_files)} files:\n"
+            )
             for f in findings:
                 print(f"  {f.path}:{f.line}  {f.kind}  | {f.snippet}")
 

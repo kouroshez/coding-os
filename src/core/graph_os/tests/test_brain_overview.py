@@ -111,8 +111,14 @@ def small_repo_backend():
         _node("code:file:cli/main.py", kind="code:file", file_path="cli/main.py"),
         _node("code:function:cli/main.py::run", kind="code:function", file_path="cli/main.py"),
         _node("code:function:cli/main.py::helper", kind="code:function", file_path="cli/main.py"),
-        _node("code:file:core/graph_os/types.py", kind="code:file", file_path="core/graph_os/types.py"),
-        _node("code:function:core/graph_os/types.py::norm", kind="code:function", file_path="core/graph_os/types.py"),
+        _node(
+            "code:file:core/graph_os/types.py", kind="code:file", file_path="core/graph_os/types.py"
+        ),
+        _node(
+            "code:function:core/graph_os/types.py::norm",
+            kind="code:function",
+            file_path="core/graph_os/types.py",
+        ),
         _node(
             "code:file:core/graph_os/extractors/code_python.py",
             kind="code:file",
@@ -189,9 +195,7 @@ def test_cross_module_edges_aggregate_with_weights(small_repo_backend, monkeypat
     # cli → core/graph_os: 1 import + 2 calls = two distinct edge_types
     assert by_pair_type[("module:cli", "module:core/graph_os", "calls")] == 2
     assert by_pair_type[("module:cli", "module:core/graph_os", "imports")] == 1
-    assert by_pair_type[
-        ("module:core/graph_os/extractors", "module:core/graph_os", "imports")
-    ] == 1
+    assert by_pair_type[("module:core/graph_os/extractors", "module:core/graph_os", "imports")] == 1
 
 
 def test_same_module_edges_dropped(small_repo_backend, monkeypatch):
@@ -225,9 +229,7 @@ def test_min_edge_weight_prunes(small_repo_backend, monkeypatch):
     weights = [e["weight"] for e in res["data"]["edges"]]
     assert all(w >= 2 for w in weights)
     # At least the calls=2 cli→core/graph_os should survive.
-    assert any(
-        e["edge_type"] == "calls" and e["weight"] == 2 for e in res["data"]["edges"]
-    )
+    assert any(e["edge_type"] == "calls" and e["weight"] == 2 for e in res["data"]["edges"])
 
 
 def test_module_metadata_carries_member_count_and_languages(small_repo_backend, monkeypatch):

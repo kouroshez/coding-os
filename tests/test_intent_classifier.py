@@ -185,8 +185,15 @@ class TestSchemaShape:
 @pytest.mark.parametrize(
     "verb",
     [
-        "all", "every", "everything", "everywhere", "completely",
-        "comprehensive", "exhaustive", "thoroughly", "100%",
+        "all",
+        "every",
+        "everything",
+        "everywhere",
+        "completely",
+        "comprehensive",
+        "exhaustive",
+        "thoroughly",
+        "100%",
     ],
 )
 def test_each_en_exhaustive_verb_recognized(verb: str) -> None:
@@ -198,8 +205,13 @@ def test_each_en_exhaustive_verb_recognized(verb: str) -> None:
 @pytest.mark.parametrize(
     "verb",
     [
-        "همه", "همگی", "کامل", "صد در صد", "هیچی نپره",
-        "بدون استثنا", "تمام",
+        "همه",
+        "همگی",
+        "کامل",
+        "صد در صد",
+        "هیچی نپره",
+        "بدون استثنا",
+        "تمام",
     ],
 )
 def test_each_fa_exhaustive_verb_recognized(verb: str) -> None:

@@ -13,9 +13,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 
-def _run_hook(hook_name: str, tool_input: dict, env: dict | None = None) -> subprocess.CompletedProcess:
+def _run_hook(
+    hook_name: str, tool_input: dict, env: dict | None = None
+) -> subprocess.CompletedProcess:
     hook = HOOK_DIR / hook_name
-    payload = json.dumps({"tool_name": tool_input.pop("tool_name", "Write"), "tool_input": tool_input})
+    payload = json.dumps(
+        {"tool_name": tool_input.pop("tool_name", "Write"), "tool_input": tool_input}
+    )
     e = {**os.environ, "COS_AGENT": "claude", "COS_STATE_DIR": "/tmp/cos-hook-test"}
     if env:
         e.update(env)

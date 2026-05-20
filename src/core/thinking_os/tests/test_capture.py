@@ -8,21 +8,21 @@ session_id fallback, DB-absent handling, and content hash dedup.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import init_db
 from capture import (
-    capture_observation,
     _compute_content_hash,
     _detect_memory_type,
     _estimate_impact,
     _read_session_id,
+    capture_observation,
 )
+from database import init_db
 
 
 @pytest.fixture
@@ -212,6 +212,7 @@ class TestDataIntegrity:
 # ---------------------------------------------------------------------------
 # Content hash dedup (TASK-153)
 # ---------------------------------------------------------------------------
+
 
 class TestContentHashDedup:
     def test_hash_deterministic(self) -> None:

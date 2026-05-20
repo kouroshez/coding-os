@@ -33,9 +33,7 @@ from typing import Optional
 logger = logging.getLogger("coding_os.task_sync")
 
 # Status marker patterns (order matters — blocked must come before open)
-_STATUS_BLOCKED_RE = re.compile(
-    r"^\-\s*\(BLOCKED:[^)]*\)\s*(TASK-\d+):", re.MULTILINE
-)
+_STATUS_BLOCKED_RE = re.compile(r"^\-\s*\(BLOCKED:[^)]*\)\s*(TASK-\d+):", re.MULTILINE)
 _STATUS_DONE_RE = re.compile(r"^\-\s*\[x\]\s*(TASK-\d+):", re.MULTILINE)
 _STATUS_WIP_RE = re.compile(r"^\-\s*\[/\]\s*(TASK-\d+):", re.MULTILINE)
 _STATUS_OPEN_RE = re.compile(r"^\-\s*\[\s\]\s*(TASK-\d+):", re.MULTILINE)
@@ -95,8 +93,8 @@ def sync_tasks(
     conn: sqlite3.Connection,
     *,
     project_root: Path,
-    tasks_dir: Optional[Path] = None,
-    index_file: Optional[Path] = None,
+    tasks_dir: Path | None = None,
+    index_file: Path | None = None,
     force: bool = False,
 ) -> dict:
     """Sync `docs/tasks/*.md` files into the `tasks` table.
@@ -214,7 +212,7 @@ def sync_status_only(
     conn: sqlite3.Connection,
     *,
     project_root: Path,
-    index_file: Optional[Path] = None,
+    index_file: Path | None = None,
 ) -> dict:
     """Fast path — update only the `status` column from `docs/tasks.md`.
 
@@ -249,6 +247,7 @@ def sync_status_only(
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
 
 def _upsert_task(
     conn: sqlite3.Connection,
@@ -318,10 +317,7 @@ def _delete_orphans(conn: sqlite3.Connection, seen_task_ids: set[str]) -> int:
     Returns:
         Count of deleted task rows.
     """
-    existing_ids = {
-        row[0]
-        for row in conn.execute("SELECT task_id FROM tasks").fetchall()
-    }
+    existing_ids = {row[0] for row in conn.execute("SELECT task_id FROM tasks").fetchall()}
     orphans = existing_ids - seen_task_ids
     if not orphans:
         return 0
@@ -330,9 +326,7 @@ def _delete_orphans(conn: sqlite3.Connection, seen_task_ids: set[str]) -> int:
     # but tasks uses task_id string as PK — we use rowid for the linkage).
     for task_id in orphans:
         # Look up numeric rowid (tasks.rowid == hidden OID in SQLite)
-        row = conn.execute(
-            "SELECT rowid FROM tasks WHERE task_id = ?", (task_id,)
-        ).fetchone()
+        row = conn.execute("SELECT rowid FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
         if row is None:
             continue
         rowid = row[0]
@@ -360,9 +354,7 @@ def _embed_task_safe(conn: sqlite3.Connection, parsed) -> None:
 
     # Use the tasks rowid as the foreign key so embeddings.source_id stays
     # integer-typed across source tables.
-    row = conn.execute(
-        "SELECT rowid FROM tasks WHERE task_id = ?", (parsed.task_id,)
-    ).fetchone()
+    row = conn.execute("SELECT rowid FROM tasks WHERE task_id = ?", (parsed.task_id,)).fetchone()
     if row is None:
         return
 
@@ -392,6 +384,7 @@ def _embed_task_safe(conn: sqlite3.Connection, parsed) -> None:
 # ---------------------------------------------------------------------------
 # CLI entry point — `python -m task_sync`
 # ---------------------------------------------------------------------------
+
 
 def _main() -> None:
     parser = argparse.ArgumentParser(description="Sync docs/tasks/ → coding-os.db")

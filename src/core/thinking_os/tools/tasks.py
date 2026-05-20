@@ -35,11 +35,12 @@ _OVERFETCH_MULTIPLIER = 3
 # task_by_filter — structured filter, no semantic
 # ---------------------------------------------------------------------------
 
+
 def task_by_filter(
     conn: sqlite3.Connection,
     *,
-    status: Optional[str] = None,
-    domain: Optional[str] = None,
+    status: str | None = None,
+    domain: str | None = None,
     limit: int = 20,
 ) -> list[dict]:
     """List tasks matching an optional status and/or domain filter.
@@ -56,10 +57,7 @@ def task_by_filter(
     """
     limit = max(1, min(int(limit), _MAX_LIMIT))
 
-    sql = (
-        "SELECT task_id, title, domain, status, file_path, goal_text, "
-        "dependencies FROM tasks"
-    )
+    sql = "SELECT task_id, title, domain, status, file_path, goal_text, dependencies FROM tasks"
     conditions: list[str] = []
     params: list[Any] = []
 
@@ -87,9 +85,8 @@ def task_by_filter(
 # task_dependencies — upstream refs declared by the task itself
 # ---------------------------------------------------------------------------
 
-def task_dependencies(
-    conn: sqlite3.Connection, task_id: str
-) -> list[dict]:
+
+def task_dependencies(conn: sqlite3.Connection, task_id: str) -> list[dict]:
     """Return the tasks that `task_id` directly depends on (upstream).
 
     Reads the JSON-encoded `dependencies` column of the given task and
@@ -139,9 +136,8 @@ def task_dependencies(
 # task_dependents — downstream tasks that depend on this one
 # ---------------------------------------------------------------------------
 
-def task_dependents(
-    conn: sqlite3.Connection, task_id: str
-) -> list[dict]:
+
+def task_dependents(conn: sqlite3.Connection, task_id: str) -> list[dict]:
     """Return the tasks that declare `task_id` as a dependency (downstream).
 
     Implementation: scan all tasks for `"TASK-NNN"` substring inside the
@@ -177,12 +173,13 @@ def task_dependents(
 # task_search — semantic + structured filter (with LIKE fallback)
 # ---------------------------------------------------------------------------
 
+
 def task_search(
     conn: sqlite3.Connection,
     query: str,
     *,
-    status: Optional[str] = None,
-    domain: Optional[str] = None,
+    status: str | None = None,
+    domain: str | None = None,
     limit: int = 10,
     threshold: float = 0.1,
 ) -> list[dict]:
@@ -257,8 +254,8 @@ def _try_semantic_search(
 def _hydrate_and_filter(
     conn: sqlite3.Connection,
     semantic_hits: list[dict],
-    status: Optional[str],
-    domain: Optional[str],
+    status: str | None,
+    domain: str | None,
     limit: int,
 ) -> list[dict]:
     """Hydrate semantic hit rowids into full task dicts and apply filters.
@@ -304,8 +301,8 @@ def _hydrate_and_filter(
 def _like_fallback(
     conn: sqlite3.Connection,
     query: str,
-    status: Optional[str],
-    domain: Optional[str],
+    status: str | None,
+    domain: str | None,
     limit: int,
 ) -> list[dict]:
     """LIKE-based fallback search when embeddings aren't available."""
@@ -343,6 +340,7 @@ def _like_fallback(
 # ---------------------------------------------------------------------------
 # Row shaping helper
 # ---------------------------------------------------------------------------
+
 
 def _row_to_dict(row) -> dict:
     """Convert a sqlite3.Row into the canonical task dict shape.
