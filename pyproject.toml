@@ -77,8 +77,13 @@ cos-nightly = "scheduled.nightly:main"
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
-    "httpx>=0.27.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
+    "httpx>=0.27.0",
+    "ruff>=0.6.0",
+    "mypy>=1.10.0",
+    "types-pyyaml>=6.0.0",
+    "types-jsonschema>=4.0.0",
 ]
 
 [build-system]
@@ -148,3 +153,142 @@ markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
     "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",
 ]
+# Useful defaults; override with -p no:cacheprovider etc on CI if needed.
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    # Demote known harmless deprecations from upstream deps.
+    "ignore::DeprecationWarning:google.*",
+    "ignore::DeprecationWarning:pydantic.*",
+]
+
+# ============================================================================
+# ruff — single tool for lint + format. Replaces flake8 + black + isort.
+# ============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+extend-exclude = [
+    ".coding-os",
+    ".build",
+    "archive",
+    "tests/golden",          # generated snapshots
+    "src/templates/*/scaffold",  # consumer-shipped files; downstream owns style
+    "src/core/web/ui/node_modules",
+    "src/core/web/ui/dist",
+]
+
+[tool.ruff.lint]
+# Keep the rule set tight on the first stable release; expand as we
+# clear baseline noise. Documented per group so future contributors
+# know why each is on.
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (import order)
+    "B",      # flake8-bugbear (likely-bug patterns)
+    "UP",     # pyupgrade (modern syntax)
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific (mostly correctness)
+]
+ignore = [
+    "E501",   # line-too-long — formatter handles it; long URLs are fine
+    "B008",   # function call in default arg — common w/ Click + FastAPI
+    "SIM108", # ternary-vs-if — readability is subjective
+]
+unfixable = [
+    "F401",   # unused-import — never auto-remove (could hide intent)
+    "F841",   # unused-variable — same
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]                          # asserts in tests are fine
+"src/core/thinking_os/tests/**" = ["B011"]
+"src/core/graph_os/tests/**" = ["B011"]
+"src/core/board_os/tests/**" = ["B011"]
+"src/scripts/**" = ["E402"]                    # late imports in scripts are OK
+"src/templates/**" = ["ALL"]                   # consumer-shipped files
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "cli", "core", "adapters", "scheduled",
+    "thinking_os", "graph_os", "board_os", "web",
+]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = true
+
+# ============================================================================
+# mypy — type checker. Strict on core subsystems; lenient on adapters/scripts.
+# CI runs this informationally for the 0.3 line; promote to required once
+# baseline noise is cleared.
+# ============================================================================
+[tool.mypy]
+python_version = "3.10"
+strict = false                  # promote per-package below
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+show_error_codes = true
+exclude = [
+    "archive/",
+    "tests/golden/",
+    "src/templates/.*/scaffold/",
+    "src/core/web/ui/",
+    ".coding-os/",
+    ".build/",
+]
+
+[[tool.mypy.overrides]]
+# Strict only on the kernel subsystems we own end-to-end.
+module = [
+    "thinking_os.tools.*",
+    "graph_os.backends.*",
+    "board_os.workflow",
+]
+strict = true
+
+[[tool.mypy.overrides]]
+# Untyped third-party stubs we can't fix.
+module = [
+    "tree_sitter.*",
+    "tree_sitter_python.*",
+    "tree_sitter_typescript.*",
+    "tree_sitter_bash.*",
+    "tree_sitter_yaml.*",
+    "sentence_transformers.*",
+    "kuzu.*",                   # retired backend; ignored if anything still imports it
+]
+ignore_missing_imports = true
+
+# ============================================================================
+# pytest-cov — coverage reporting (run via `make coverage`).
+# ============================================================================
+[tool.coverage.run]
+source = ["src/core", "src/cli", "src/adapters"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "src/templates/*",
+    "src/scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false
+fail_under = 60       # baseline for 0.3.0; raise per release
