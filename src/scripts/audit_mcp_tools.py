@@ -17,7 +17,8 @@ sys.path.insert(0, str(ROOT / "core" / "thinking_os"))
 os.environ.setdefault("COS_DB_PATH", str(ROOT / ".coding-os/coding-os.db"))
 
 print("Loading server…")
-import thinking_os.server as srv_mod  # noqa: E402
+import thinking_os.server as srv_mod
+
 MCP = srv_mod.mcp
 print("Done.\n")
 
@@ -77,7 +78,7 @@ async def T(tool: str, **kwargs) -> dict:
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
-from thinking_os.database import init_db  # noqa: E402
+from thinking_os.database import init_db
 
 DB = init_db(str(ROOT / ".coding-os/coding-os.db"))
 _obs = DB.execute("SELECT id FROM observations LIMIT 1").fetchone()
@@ -89,11 +90,12 @@ TASK_ID = _task["task_id"] if _task else "TASK-001"
 SESSION = "ses-claude-audit-smoke"
 
 GRAPH_FILE = "src/core/graph_os/tools/graph.py"
-GRAPH_UID  = f"code:file:{GRAPH_FILE}"
-FUNC_UID   = "code:function:src/core/graph_os/tools/graph.py::_resolve_uid"
+GRAPH_UID = f"code:file:{GRAPH_FILE}"
+FUNC_UID = "code:function:src/core/graph_os/tools/graph.py::_resolve_uid"
 
 
 # ── tests ────────────────────────────────────────────────────────────────────
+
 
 async def test_health():
     print("\n═══ Health ═══════════════════════════════════════════════════════")
@@ -102,12 +104,17 @@ async def test_health():
     if env.get("ok"):
         d = _d(env)
         tables = d.get("tables", {})
-        _ok("health", "cos_health", tables.get("graph_nodes", 0) > 0,
-            f"graph_nodes={tables.get('graph_nodes')}")
-        _ok("health", "cos_health", tables.get("tasks", 0) > 0,
-            f"tasks={tables.get('tasks')}")
-        print(f"    db_size={d.get('db_size_bytes',0)//1024//1024}MB "
-              f"schema_v={d.get('schema_version')} fts5={d.get('fts5_available')}")
+        _ok(
+            "health",
+            "cos_health",
+            tables.get("graph_nodes", 0) > 0,
+            f"graph_nodes={tables.get('graph_nodes')}",
+        )
+        _ok("health", "cos_health", tables.get("tasks", 0) > 0, f"tasks={tables.get('tasks')}")
+        print(
+            f"    db_size={d.get('db_size_bytes', 0) // 1024 // 1024}MB "
+            f"schema_v={d.get('schema_version')} fts5={d.get('fts5_available')}"
+        )
 
 
 async def test_memory():
@@ -119,7 +126,7 @@ async def test_memory():
         r = _d(env).get("results", [])
         _ok("memory", "cos_search results", isinstance(r, list), f"{len(r)} results")
         for x in r[:2]:
-            print(f"    → [{x.get('memory_type','?')}] {x.get('title','?')[:70]}")
+            print(f"    → [{x.get('memory_type', '?')}] {x.get('title', '?')[:70]}")
 
     env, ms = await T("cos_search", query="hook enforcement gate block", memory_type="pattern")
     _rec("memory", "cos_search(type=pattern)", env, ms=ms)
@@ -135,19 +142,24 @@ async def test_memory():
     env, ms = await T("cos_promote", pattern_id=PAT_ID, target="feedback")
     _rec("memory", "cos_promote", env, ms=ms)
 
-    env, ms = await T("cos_observation_record",
-                      file_path="src/core/graph_os/tools/graph.py",
-                      tool_name="Edit")
+    env, ms = await T(
+        "cos_observation_record", file_path="src/core/graph_os/tools/graph.py", tool_name="Edit"
+    )
     _rec("memory", "cos_observation_record", env, ms=ms)
 
 
 async def test_metrics():
     print("\n═══ Metrics ══════════════════════════════════════════════════════")
 
-    env, ms = await T("cos_metric_record",
-                      agent_type="claude", outcome="success",
-                      task_id=TASK_ID, domain="graph_os",
-                      metric_name="audit_smoke", value=1.0)
+    env, ms = await T(
+        "cos_metric_record",
+        agent_type="claude",
+        outcome="success",
+        task_id=TASK_ID,
+        domain="graph_os",
+        metric_name="audit_smoke",
+        value=1.0,
+    )
     _rec("metrics", "cos_metric_record", env, ms=ms)
 
     env, ms = await T("cos_metric_query", domain="", model="", outcome="", window_days=7)
@@ -190,11 +202,13 @@ async def test_learning():
         d = _d(env)
         print(f"    feedback_preview={str(d)[:120]}")
 
-    env, ms = await T("cos_learn_narrative",
-                      task_id=TASK_ID,
-                      what_failed="raw paths passed to cos_graph_impact returned not_found",
-                      what_worked="auto-resolve prefix fallback in _resolve_uid",
-                      key_insight="uid scheme never documented in tool description")
+    env, ms = await T(
+        "cos_learn_narrative",
+        task_id=TASK_ID,
+        what_failed="raw paths passed to cos_graph_impact returned not_found",
+        what_worked="auto-resolve prefix fallback in _resolve_uid",
+        key_insight="uid scheme never documented in tool description",
+    )
     _rec("learning", "cos_learn_narrative", env, ms=ms)
 
 
@@ -207,7 +221,9 @@ async def test_routing():
         d = _d(env)
         _ok("routing", "cos_route_model", bool(d), f"rec={str(d)[:120]}")
 
-    env, ms = await T("cos_route_skill", domain="python", task_type="implementation", complexity="CLEAR")
+    env, ms = await T(
+        "cos_route_skill", domain="python", task_type="implementation", complexity="CLEAR"
+    )
     _rec("routing", "cos_route_skill", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
@@ -225,18 +241,30 @@ async def test_docs():
         for h in hits[:3]:
             sc = h.get("score", 0)
             fp = h.get("file_path", h.get("source", "?"))
-            print(f"    [{sc:.3f}] {fp} — {h.get('title','?')[:50]}")
+            print(f"    [{sc:.3f}] {fp} — {h.get('title', '?')[:50]}")
 
-    env, ms = await T("cos_doc_search", query="hook enforcement pre-tool-use blocking gate rule", limit=5)
+    env, ms = await T(
+        "cos_doc_search", query="hook enforcement pre-tool-use blocking gate rule", limit=5
+    )
     _rec("docs", "cos_doc_search(hook enforcement)", env, ms=ms)
     if env.get("ok"):
         hits = _d(env).get("results", [])
-        relevant = [h for h in hits if any(kw in str(h).lower() for kw in ("hook","enforce","gate"))]
-        _ok("docs", "cos_doc_search relevance",
+        relevant = [
+            h for h in hits if any(kw in str(h).lower() for kw in ("hook", "enforce", "gate"))
+        ]
+        _ok(
+            "docs",
+            "cos_doc_search relevance",
             len(hits) == 0 or len(relevant) > 0,
-            f"{len(relevant)}/{len(hits)} hook-related")
+            f"{len(relevant)}/{len(hits)} hook-related",
+        )
 
-    env, ms = await T("cos_doc_search", query="meta-project DNA mRNA phenotype coding-os architecture", limit=3, mode="semantic")
+    env, ms = await T(
+        "cos_doc_search",
+        query="meta-project DNA mRNA phenotype coding-os architecture",
+        limit=3,
+        mode="semantic",
+    )
     _rec("docs", "cos_doc_search(AGENTS semantic)", env, ms=ms)
 
 
@@ -279,7 +307,7 @@ async def test_tasks():
         hits = _d(env).get("results", [])
         _ok("tasks", "cos_task_search", isinstance(hits, list), f"{len(hits)} tasks")
         for h in hits[:3]:
-            print(f"    {h.get('task_id','?')} — {h.get('title','?')[:60]}")
+            print(f"    {h.get('task_id', '?')} — {h.get('title', '?')[:60]}")
 
     env, ms = await T("cos_task_by_filter", status="in_progress", limit=10)
     _rec("tasks", "cos_task_by_filter(in_progress)", env, ms=ms)
@@ -310,10 +338,12 @@ async def test_tasks():
     env, ms = await T("cos_task_retro", since="7d")
     _rec("tasks", "cos_task_retro(7d)", env, ms=ms)
 
-    env, ms = await T("cos_work_log_append",
-                      task_id=TASK_ID,
-                      summary="audit smoke — all MCP tools exercised",
-                      source="audit")
+    env, ms = await T(
+        "cos_work_log_append",
+        task_id=TASK_ID,
+        summary="audit smoke — all MCP tools exercised",
+        source="audit",
+    )
     _rec("tasks", "cos_work_log_append", env, ms=ms)
 
     env, ms = await T("cos_digest_regenerate", project_root="")
@@ -329,13 +359,15 @@ async def test_graph():
         r = _d(env).get("results", [])
         _ok("graph", "cos_graph_query", len(r) > 0, f"{len(r)} results")
         for x in r[:3]:
-            print(f"    [{x.get('kind')}] {x.get('uid','?')[:70]}")
+            print(f"    [{x.get('kind')}] {x.get('uid', '?')[:70]}")
 
     env, ms = await T("cos_graph_query", q="", kinds="mcp_tool", limit=10)
     _rec("graph", "cos_graph_query(mcp_tool kind)", env, ms=ms)
     if env.get("ok"):
         r = _d(env).get("results", [])
-        _ok("graph", "cos_graph_query kinds filter", isinstance(r, list), f"{len(r)} mcp_tool nodes")
+        _ok(
+            "graph", "cos_graph_query kinds filter", isinstance(r, list), f"{len(r)} mcp_tool nodes"
+        )
 
     # cos_graph_context — raw path auto-resolve
     env, ms = await T("cos_graph_context", uid_or_name=GRAPH_FILE, depth=1)
@@ -343,7 +375,12 @@ async def test_graph():
     if env.get("ok"):
         d = _d(env)
         nb = d.get("neighbours", [])
-        _ok("graph", "cos_graph_context", True, f"node={d.get('node',{}).get('uid','?')[:50]} neighbours={len(nb)}")
+        _ok(
+            "graph",
+            "cos_graph_context",
+            True,
+            f"node={d.get('node', {}).get('uid', '?')[:50]} neighbours={len(nb)}",
+        )
 
     # cos_graph_impact — raw path auto-resolve (was broken before fix)
     env, ms = await T("cos_graph_impact", uid=GRAPH_FILE, direction="downstream", depth=2)
@@ -351,12 +388,18 @@ async def test_graph():
     if env.get("ok"):
         d = _d(env)
         tiers = d.get("tiers", {})
-        _ok("graph", "cos_graph_impact 3 tiers",
-            all(k in tiers for k in ("will_break","should_review","context")), "all 3 tiers present")
-        wb = len(tiers.get("will_break",[]))
-        sr = len(tiers.get("should_review",[]))
-        ct = len(tiers.get("context",[]))
-        print(f"    will_break={wb} should_review={sr} context={ct} impacted={d.get('impacted_count')}")
+        _ok(
+            "graph",
+            "cos_graph_impact 3 tiers",
+            all(k in tiers for k in ("will_break", "should_review", "context")),
+            "all 3 tiers present",
+        )
+        wb = len(tiers.get("will_break", []))
+        sr = len(tiers.get("should_review", []))
+        ct = len(tiers.get("context", []))
+        print(
+            f"    will_break={wb} should_review={sr} context={ct} impacted={d.get('impacted_count')}"
+        )
 
     env, ms = await T("cos_graph_impact", uid=GRAPH_UID, direction="upstream", depth=2)
     _rec("graph", "cos_graph_impact(upstream)", env, ms=ms)
@@ -369,19 +412,28 @@ async def test_graph():
     env, ms = await T("cos_graph_similar", uid=GRAPH_FILE, top_k=5)
     _rec("graph", "cos_graph_similar(raw_path)", env, ms=ms)
     if env.get("ok"):
-        _ok("graph", "cos_graph_similar", True, f"{len(_d(env).get('similar',[]))} candidates")
+        _ok("graph", "cos_graph_similar", True, f"{len(_d(env).get('similar', []))} candidates")
 
-    env, ms = await T("cos_graph_path",
-                      source_uid=GRAPH_FILE, target_uid="src/core/hooks/registry.yaml", max_hops=4)
+    env, ms = await T(
+        "cos_graph_path",
+        source_uid=GRAPH_FILE,
+        target_uid="src/core/hooks/registry.yaml",
+        max_hops=4,
+    )
     _rec("graph", "cos_graph_path(raw→raw)", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
-        _ok("graph", "cos_graph_path", True, f"hops={d.get('hops')} path_len={len(d.get('path') or [])}")
+        _ok(
+            "graph",
+            "cos_graph_path",
+            True,
+            f"hops={d.get('hops')} path_len={len(d.get('path') or [])}",
+        )
 
     env, ms = await T("cos_graph_trace", entry_uid=FUNC_UID, max_steps=10)
     _rec("graph", "cos_graph_trace(func_uid)", env, ms=ms)
     if env.get("ok"):
-        _ok("graph", "cos_graph_trace", True, f"{len(_d(env).get('steps',[]))} steps")
+        _ok("graph", "cos_graph_trace", True, f"{len(_d(env).get('steps', []))} steps")
 
     env, ms = await T("cos_graph_entrypoints", top_k=8)
     _rec("graph", "cos_graph_entrypoints", env, ms=ms)
@@ -389,7 +441,7 @@ async def test_graph():
         eps = _d(env).get("entrypoints", [])
         _ok("graph", "cos_graph_entrypoints", len(eps) > 0, f"{len(eps)} entrypoints")
         for ep in eps[:3]:
-            print(f"    ep: {ep.get('uid','?')[:60]}  score={ep.get('score','?')}")
+            print(f"    ep: {ep.get('uid', '?')[:60]}  score={ep.get('score', '?')}")
 
     env, ms = await T("cos_graph_communities", min_size=3, max_communities=5)
     _rec("graph", "cos_graph_communities", env, ms=ms)
@@ -415,9 +467,12 @@ async def test_graph():
     if env.get("ok"):
         _ok("graph", "cos_graph_contracts", bool(_d(env)), f"keys={list(_d(env).keys())[:4]}")
 
-    env, ms = await T("cos_graph_detect_changes",
-                      files="src/core/graph_os/tools/graph.py",
-                      scope="working", analyze_downstream=True)
+    env, ms = await T(
+        "cos_graph_detect_changes",
+        files="src/core/graph_os/tools/graph.py",
+        scope="working",
+        analyze_downstream=True,
+    )
     _rec("graph", "cos_graph_detect_changes", env, ms=ms)
 
     env, ms = await T("cos_graph_rename_plan", uid=GRAPH_FILE, new_name="graph_tools")
@@ -432,15 +487,19 @@ async def test_cognition():
     print("\n═══ Cognition ════════════════════════════════════════════════════")
 
     # cos_analyze_task — needs `prompt` not `task_description`
-    env, ms = await T("cos_analyze_task",
-                      prompt="Fix graph_os uid resolution: agents pass raw paths, tools return not_found",
-                      task_marker="graph-os-uid-resolver", complexity="COMPLICATED",
-                      dimensions=3, session_id=SESSION)
+    env, ms = await T(
+        "cos_analyze_task",
+        prompt="Fix graph_os uid resolution: agents pass raw paths, tools return not_found",
+        task_marker="graph-os-uid-resolver",
+        complexity="COMPLICATED",
+        dimensions=3,
+        session_id=SESSION,
+    )
     _rec("cognition", "cos_analyze_task", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
         _ok("cognition", "cos_analyze_task signals", "domain" in d, f"keys={list(d.keys())[:5]}")
-        print(f"    signals_preview={str(d.get('signals','?'))[:200]}")
+        print(f"    signals_preview={str(d.get('signals', '?'))[:200]}")
 
     # cos_situation_detect — signals is JSON array string
     env, ms = await T("cos_situation_detect", signals='["new_developer","first_time","no_docs"]')
@@ -449,7 +508,7 @@ async def test_cognition():
         d = _d(env)
         print(f"    situation={str(d)[:120]}")
 
-    env, ms = await T("cos_situation_detect", signals='[]')
+    env, ms = await T("cos_situation_detect", signals="[]")
     _rec("cognition", "cos_situation_detect(no signals)", env, ms=ms)
 
     # cos_role_info — needs role_id
@@ -464,12 +523,18 @@ async def test_cognition():
 
     # cos_compose_chain — needs `signals_json`
     import task_analyzer  # lazy
+
     pd = Path.cwd()
     signals_obj = task_analyzer.analyze_task(
-        "Fix graph_os uid resolution ergonomics",
-        project_dir=str(pd)
+        "Fix graph_os uid resolution ergonomics", project_dir=str(pd)
     )
-    signals_json_str = signals_obj.model_dump_json() if hasattr(signals_obj, "model_dump_json") else json.dumps({"domain":"graph_os","action":"fix","novelty":"low","urgency":"medium"})
+    signals_json_str = (
+        signals_obj.model_dump_json()
+        if hasattr(signals_obj, "model_dump_json")
+        else json.dumps(
+            {"domain": "graph_os", "action": "fix", "novelty": "low", "urgency": "medium"}
+        )
+    )
     env, ms = await T("cos_compose_chain", signals_json=signals_json_str, session_id=SESSION)
     _rec("cognition", "cos_compose_chain", env, ms=ms)
     if env.get("ok"):
@@ -477,68 +542,99 @@ async def test_cognition():
         _ok("cognition", "cos_compose_chain", bool(d), f"keys={list(d.keys())[:5]}")
 
     # cos_ambiguity_check — needs session_id, task_marker, persona_id
-    env, ms = await T("cos_ambiguity_check",
-                      session_id=SESSION, task_marker="graph-os-uid-resolver", persona_id="backend-engineer")
+    env, ms = await T(
+        "cos_ambiguity_check",
+        session_id=SESSION,
+        task_marker="graph-os-uid-resolver",
+        persona_id="backend-engineer",
+    )
     _rec("cognition", "cos_ambiguity_check", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
         _ok("cognition", "cos_ambiguity_check", "passed" in d or bool(d), f"result={str(d)[:120]}")
 
     # cos_supervise
-    env, ms = await T("cos_supervise",
-                      session_id=SESSION, task_marker="graph-os-uid-resolver",
-                      persona_id="backend-engineer", intensity="standard")
+    env, ms = await T(
+        "cos_supervise",
+        session_id=SESSION,
+        task_marker="graph-os-uid-resolver",
+        persona_id="backend-engineer",
+        intensity="standard",
+    )
     _rec("cognition", "cos_supervise", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
-        _ok("cognition", "cos_supervise", "action" in d, f"action={d.get('action')} formula={d.get('formula')}")
+        _ok(
+            "cognition",
+            "cos_supervise",
+            "action" in d,
+            f"action={d.get('action')} formula={d.get('formula')}",
+        )
 
     # cos_dispatch_formula
-    env, ms = await T("cos_dispatch_formula",
-                      formula_id="analyst", session_id=SESSION,
-                      task_marker="graph-os-uid-resolver", persona_id="backend-engineer")
+    env, ms = await T(
+        "cos_dispatch_formula",
+        formula_id="analyst",
+        session_id=SESSION,
+        task_marker="graph-os-uid-resolver",
+        persona_id="backend-engineer",
+    )
     _rec("cognition", "cos_dispatch_formula(F2)", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
         _ok("cognition", "cos_dispatch_formula", bool(d), f"keys={list(d.keys())[:4]}")
 
     # cos_traceability
-    env, ms = await T("cos_traceability",
-                      session_id=SESSION, task_marker="graph-os-uid-resolver",
-                      persona_id="backend-engineer", scope="task")
+    env, ms = await T(
+        "cos_traceability",
+        session_id=SESSION,
+        task_marker="graph-os-uid-resolver",
+        persona_id="backend-engineer",
+        scope="task",
+    )
     _rec("cognition", "cos_traceability", env, ms=ms)
     if env.get("ok"):
         d = _d(env)
         _ok("cognition", "cos_traceability", "gaps" in d or bool(d), f"result={str(d)[:120]}")
 
     # cos_backtrack_log
-    env, ms = await T("cos_backtrack_log",
-                      session_id=SESSION, from_formula="implementer", to_formula="analyst",
-                      reason="uid scheme was wrong, need to re-research graph node format")
+    env, ms = await T(
+        "cos_backtrack_log",
+        session_id=SESSION,
+        from_formula="implementer",
+        to_formula="analyst",
+        reason="uid scheme was wrong, need to re-research graph node format",
+    )
     _rec("cognition", "cos_backtrack_log", env, ms=ms)
 
     # cos_discovery
-    env, ms = await T("cos_discovery",
-                      session_id=SESSION, task_marker="graph-os-uid-resolver",
-                      persona_id="backend-engineer",
-                      kind="constraint_change",
-                      summary="graph uid scheme requires prefix (code:file:, doc:file:, folder:) — undocumented",
-                      impact_assessment="all graph tools fail silently when raw paths passed",
-                      decision="record_for_later")
+    env, ms = await T(
+        "cos_discovery",
+        session_id=SESSION,
+        task_marker="graph-os-uid-resolver",
+        persona_id="backend-engineer",
+        kind="constraint_change",
+        summary="graph uid scheme requires prefix (code:file:, doc:file:, folder:) — undocumented",
+        impact_assessment="all graph tools fail silently when raw paths passed",
+        decision="record_for_later",
+    )
     _rec("cognition", "cos_discovery", env, ms=ms)
 
     # cos_takeover
-    env, ms = await T("cos_takeover",
-                      session_id=SESSION + "-takeover",
-                      task_marker="existing-project-audit")
+    env, ms = await T(
+        "cos_takeover", session_id=SESSION + "-takeover", task_marker="existing-project-audit"
+    )
     _rec("cognition", "cos_takeover", env, ms=ms)
 
     # cos_situation_detect with actual signal
-    env, ms = await T("cos_situation_detect", signals='["existing_project","no_tests","unknown_codebase"]')
+    env, ms = await T(
+        "cos_situation_detect", signals='["existing_project","no_tests","unknown_codebase"]'
+    )
     _rec("cognition", "cos_situation_detect(takeover signals)", env, ms=ms)
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 async def main():
     tools = await MCP.list_tools()

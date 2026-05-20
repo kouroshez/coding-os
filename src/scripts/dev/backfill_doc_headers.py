@@ -29,6 +29,7 @@ Exit codes:
     1  — at least one file would change (dry-run signal for CI)
     2  — fatal error (bad path, IO failure)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,7 +43,13 @@ ROOT = Path(__file__).resolve().parents[2]
 DOCS_ROOT = ROOT / "docs"
 
 _VALID_FRONTMATTER_KEYS = {
-    "domain", "layer", "ssot", "updated", "tokens", "reads", "priority",
+    "domain",
+    "layer",
+    "ssot",
+    "updated",
+    "tokens",
+    "reads",
+    "priority",
 }
 
 _HTML_FM_RE = re.compile(r"^\s*<!--\s*(?P<body>.+?)\s*-->", re.DOTALL)
@@ -178,10 +185,10 @@ def _plan_backfill(path: Path, *, only_missing: bool) -> HeaderPlan | None:
                 continue
             k, _, v = fragment.partition(":")
             fm[k.strip()] = v.strip()
-        body = text[html_match.end():].lstrip("\n")
+        body = text[html_match.end() :].lstrip("\n")
     elif had_yaml:
         fm = _parse_yaml_frontmatter(yaml_match.group("body"))
-        body = text[yaml_match.end():]
+        body = text[yaml_match.end() :]
 
     if had_html and only_missing:
         return None

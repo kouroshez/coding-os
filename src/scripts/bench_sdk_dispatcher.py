@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "core" / "thinking_os"))
 
-from dispatcher import DispatchRequest  # noqa: E402
+from dispatcher import DispatchRequest
 
 # Load the claude-sdk dispatcher by path (core/ can't import it directly)
 spec = importlib.util.spec_from_file_location(
@@ -117,12 +117,16 @@ async def main():
             r = await run_one(d, sc)
         except Exception as exc:
             r = {
-                "scenario": sc["name"], "formula": sc["formula"],
-                "status": "crashed", "error": f"{type(exc).__name__}: {exc}",
+                "scenario": sc["name"],
+                "formula": sc["formula"],
+                "status": "crashed",
+                "error": f"{type(exc).__name__}: {exc}",
             }
         results.append(r)
-        print(f"  status={r.get('status')} latency={r.get('latency_ms')}ms "
-              f"output_keys={r.get('output_keys')}")
+        print(
+            f"  status={r.get('status')} latency={r.get('latency_ms')}ms "
+            f"output_keys={r.get('output_keys')}"
+        )
 
     print("\n=== Sequential summary ===")
     ok = sum(1 for r in results if r["status"] == "ok")
@@ -138,22 +142,27 @@ async def main():
         return_exceptions=True,
     )
     par_wall_ms = int((time.monotonic() - t0) * 1000)
-    par_ok = sum(
-        1 for r in par_results
-        if isinstance(r, dict) and r.get("status") == "ok"
-    )
+    par_ok = sum(1 for r in par_results if isinstance(r, dict) and r.get("status") == "ok")
     seq_equivalent = results[1].get("latency_ms", 0) + results[2].get("latency_ms", 0)
-    print(f"parallel wall: {par_wall_ms}ms   "
-          f"vs sequential equivalent: {seq_equivalent}ms   "
-          f"speedup: {seq_equivalent / par_wall_ms:.2f}x")
+    print(
+        f"parallel wall: {par_wall_ms}ms   "
+        f"vs sequential equivalent: {seq_equivalent}ms   "
+        f"speedup: {seq_equivalent / par_wall_ms:.2f}x"
+    )
 
     print("\n=== Full results ===")
-    print(json.dumps(
-        {"sequential": results, "parallel": par_results,
-         "parallel_wall_ms": par_wall_ms,
-         "sequential_equivalent_ms": seq_equivalent},
-        indent=2, default=str,
-    ))
+    print(
+        json.dumps(
+            {
+                "sequential": results,
+                "parallel": par_results,
+                "parallel_wall_ms": par_wall_ms,
+                "sequential_equivalent_ms": seq_equivalent,
+            },
+            indent=2,
+            default=str,
+        )
+    )
     return 0 if ok == len(results) and par_ok == 2 else 2
 
 

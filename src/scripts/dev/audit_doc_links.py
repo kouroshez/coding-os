@@ -128,21 +128,38 @@ def _check_orphans() -> list[tuple[str, str]]:
             if sibling.name == "00-index.md":
                 continue
             if sibling.name not in listed:
-                findings.append(
-                    ("ORPHAN-FILE", f"{sibling.relative_to(REPO)} not listed in {rel}")
-                )
+                findings.append(("ORPHAN-FILE", f"{sibling.relative_to(REPO)} not listed in {rel}"))
     return findings
 
 
 def _check_dup_h2() -> list[tuple[str, str]]:
     bucket: dict[str, list[str]] = defaultdict(list)
     generic = {
-        "tl;dr", "why", "overview", "rollback", "anti-patterns",
-        "acceptance", "steps", "scope", "notes", "references", "see also",
-        "background", "summary", "links", "purpose", "examples",
-        "verification", "the model", "the contract", "when to use",
-        "when to invoke", "the seven checks", "the mental model",
-        "steps to add a new adapter", "steps to modify an existing adapter",
+        "tl;dr",
+        "why",
+        "overview",
+        "rollback",
+        "anti-patterns",
+        "acceptance",
+        "steps",
+        "scope",
+        "notes",
+        "references",
+        "see also",
+        "background",
+        "summary",
+        "links",
+        "purpose",
+        "examples",
+        "verification",
+        "the model",
+        "the contract",
+        "when to use",
+        "when to invoke",
+        "the seven checks",
+        "the mental model",
+        "steps to add a new adapter",
+        "steps to modify an existing adapter",
     }
     for path in _gather_md_files():
         text = path.read_text(encoding="utf-8")
@@ -157,9 +174,7 @@ def _check_dup_h2() -> list[tuple[str, str]]:
     findings: list[tuple[str, str]] = []
     for title, files in bucket.items():
         if len(files) >= 3:
-            findings.append(
-                ("DUP-H2", f"'{title}' in {len(files)} files: {', '.join(files[:5])}")
-            )
+            findings.append(("DUP-H2", f"'{title}' in {len(files)} files: {', '.join(files[:5])}"))
     return findings
 
 

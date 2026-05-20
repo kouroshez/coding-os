@@ -58,14 +58,21 @@ FROZEN_DATE = "2026-01-01"  # passed to `cos init --today` for determinism
 
 def _scaffold(agent: str, templates: list[str], target: Path) -> None:
     cmd = [
-        sys.executable, "-m", "cli.main", "init",
-        "--agent", agent,
-        "--project-dir", str(target.parent),
-        "--name", target.name,
+        sys.executable,
+        "-m",
+        "cli.main",
+        "init",
+        "--agent",
+        agent,
+        "--project-dir",
+        str(target.parent),
+        "--name",
+        target.name,
         "--no-git",
         "--force",
         "--no-register",
-        "--today", FROZEN_DATE,
+        "--today",
+        FROZEN_DATE,
     ]
     for t in templates:
         cmd.extend(["--template", t])
