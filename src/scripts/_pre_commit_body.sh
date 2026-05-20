@@ -44,12 +44,19 @@ _check_hook() {
   local ABS_PATH="${REPO_ROOT}/${FILE}"
   [[ ! -f "$ABS_PATH" ]] && return 0
   [[ ! -f "$HELPER" ]] && return 0
-  local FAKE_INPUT
-  FAKE_INPUT=$(python3 "$HELPER" "$ABS_PATH" "$FILE" 2>/dev/null || true)
-  [[ -z "$FAKE_INPUT" ]] && return 0
+  # Pass the JSON envelope via a temp file (mktemp) instead of nested
+  # pipes inside command substitution. Bash 5.x has been observed to
+  # deadlock on $(echo "$X" | bash hook 2>&1) when invoked under
+  # git-commit's hook environment with the parent's stdin attached to a
+  # non-EOF source. File-based IPC sidesteps the deadlock entirely.
+  local TMPIN
+  TMPIN=$(mktemp -t cos_precommit.XXXXXX)
+  python3 "$HELPER" "$ABS_PATH" "$FILE" >"$TMPIN" 2>/dev/null || { rm -f "$TMPIN"; return 0; }
+  [[ ! -s "$TMPIN" ]] && { rm -f "$TMPIN"; return 0; }
   local OUT
   local CODE=0
-  OUT=$(echo "$FAKE_INPUT" | bash "${HOOKS_DIR}/${HOOK_SCRIPT}" 2>&1) || CODE=$?
+  OUT=$(bash "${HOOKS_DIR}/${HOOK_SCRIPT}" <"$TMPIN" 2>&1) || CODE=$?
+  rm -f "$TMPIN"
   if [[ "$CODE" == "2" ]]; then
     echo "BLOCKED [${LABEL}] ${FILE}:" >&2
     echo "${OUT}" >&2
