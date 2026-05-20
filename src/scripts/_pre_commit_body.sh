@@ -26,6 +26,16 @@ fi
 FAILED=0
 echo "cos pre-commit: checking $(echo "$STAGED_FILES" | wc -l | tr -d ' ') staged file(s)..."
 
+# Locate the JSON-envelope helper. Extracted to a stand-alone script so
+# bash 5.3.9 does NOT deadlock on $(python3 -c '<multiline>') — see
+# Rule 8 in docs/governance/critical-rules.md.
+HELPER="${HOOKS_DIR}/_helpers/pre_commit_fake_input.py"
+if [[ ! -f "$HELPER" ]]; then
+  # Fallback: try repo-rooted path when HOOKS_DIR points at .claude/hooks
+  # (an adapter dir without the _helpers/ tree).
+  HELPER="${REPO_ROOT}/src/core/hooks/_helpers/pre_commit_fake_input.py"
+fi
+
 _check_hook() {
   local HOOK_SCRIPT="$1"
   local FILE="$2"
@@ -33,18 +43,9 @@ _check_hook() {
   [[ ! -f "${HOOKS_DIR}/${HOOK_SCRIPT}" ]] && return 0
   local ABS_PATH="${REPO_ROOT}/${FILE}"
   [[ ! -f "$ABS_PATH" ]] && return 0
+  [[ ! -f "$HELPER" ]] && return 0
   local FAKE_INPUT
-  FAKE_INPUT=$(python3 -c "
-import json, sys
-abs_path = sys.argv[1]
-file_path = sys.argv[2]
-try:
-    with open(abs_path, 'r', errors='replace') as f:
-        content = f.read()
-except Exception:
-    content = ''
-print(json.dumps({'tool_name':'Write','tool_input':{'file_path':file_path,'content':content,'new_string':content}}))
-" "$ABS_PATH" "$FILE" 2>/dev/null || true)
+  FAKE_INPUT=$(python3 "$HELPER" "$ABS_PATH" "$FILE" 2>/dev/null || true)
   [[ -z "$FAKE_INPUT" ]] && return 0
   local OUT
   local CODE=0

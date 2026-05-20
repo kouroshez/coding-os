@@ -10,9 +10,12 @@
 # Uninstall: rm .git/hooks/pre-commit
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$REPO_ROOT" ]]; then
+  REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+fi
 HOOK_FILE="${REPO_ROOT}/.git/hooks/pre-commit"
-SOURCE_HOOK="${REPO_ROOT}/scripts/_pre_commit_body.sh"
+SOURCE_HOOK="${REPO_ROOT}/src/scripts/_pre_commit_body.sh"
 
 if [[ ! -d "${REPO_ROOT}/.git" ]]; then
   echo "ERROR: not a git repository root: ${REPO_ROOT}" >&2
