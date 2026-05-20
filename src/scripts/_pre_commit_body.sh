@@ -23,67 +23,38 @@ if [[ -z "$STAGED_FILES" ]]; then
   exit 0
 fi
 
-FAILED=0
-echo "cos pre-commit: checking $(echo "$STAGED_FILES" | wc -l | tr -d ' ') staged file(s)..."
+FILE_COUNT=$(echo "$STAGED_FILES" | wc -l | tr -d ' ')
+echo "cos pre-commit: checking ${FILE_COUNT} staged file(s)..."
 
-# Locate the JSON-envelope helper. Extracted to a stand-alone script so
-# bash 5.3.9 does NOT deadlock on $(python3 -c '<multiline>') — see
-# Rule 8 in docs/governance/critical-rules.md.
-HELPER="${HOOKS_DIR}/_helpers/pre_commit_fake_input.py"
-if [[ ! -f "$HELPER" ]]; then
-  # Fallback: try repo-rooted path when HOOKS_DIR points at .claude/hooks
-  # (an adapter dir without the _helpers/ tree).
-  HELPER="${REPO_ROOT}/src/core/hooks/_helpers/pre_commit_fake_input.py"
+# Delegate the per-file iteration to a single Python helper. The previous
+# bash-loop implementation (even with mktemp IPC) deadlocks git-commit's
+# hook environment beyond ~15 staged files — bash 5.x fork-bombs and
+# loses pipe synchronization. The Python helper does the same work in
+# one process: no nested subshells, no per-file fork-bomb.
+BATCH_HELPER="${HOOKS_DIR}/_helpers/pre_commit_batch.py"
+if [[ ! -f "$BATCH_HELPER" ]]; then
+  BATCH_HELPER="${REPO_ROOT}/src/core/hooks/_helpers/pre_commit_batch.py"
 fi
 
-_check_hook() {
-  local HOOK_SCRIPT="$1"
-  local FILE="$2"
-  local LABEL="$3"
-  [[ ! -f "${HOOKS_DIR}/${HOOK_SCRIPT}" ]] && return 0
-  local ABS_PATH="${REPO_ROOT}/${FILE}"
-  [[ ! -f "$ABS_PATH" ]] && return 0
-  [[ ! -f "$HELPER" ]] && return 0
-  # Pass the JSON envelope via a temp file (mktemp) instead of nested
-  # pipes inside command substitution. Bash 5.x has been observed to
-  # deadlock on $(echo "$X" | bash hook 2>&1) when invoked under
-  # git-commit's hook environment with the parent's stdin attached to a
-  # non-EOF source. File-based IPC sidesteps the deadlock entirely.
-  local TMPIN
-  TMPIN=$(mktemp -t cos_precommit.XXXXXX)
-  python3 "$HELPER" "$ABS_PATH" "$FILE" >"$TMPIN" 2>/dev/null || { rm -f "$TMPIN"; return 0; }
-  [[ ! -s "$TMPIN" ]] && { rm -f "$TMPIN"; return 0; }
-  local OUT
-  local CODE=0
-  OUT=$(bash "${HOOKS_DIR}/${HOOK_SCRIPT}" <"$TMPIN" 2>&1) || CODE=$?
-  rm -f "$TMPIN"
-  if [[ "$CODE" == "2" ]]; then
-    echo "BLOCKED [${LABEL}] ${FILE}:" >&2
-    echo "${OUT}" >&2
-    FAILED=1
-  fi
-}
+if [[ ! -f "$BATCH_HELPER" ]]; then
+  echo "cos pre-commit: WARNING — batch helper missing; skipping hook scan." >&2
+  echo "  expected at: $BATCH_HELPER" >&2
+  exit 0
+fi
 
+# Pass file list as positional args (one per arg, no shell-word splits).
+FILE_ARGS=()
 while IFS= read -r FILE; do
   [[ -z "$FILE" ]] && continue
-  _check_hook "block-bad-patterns.sh" "$FILE" "bad-patterns"
-  _check_hook "block-migration-conflict.sh" "$FILE" "migration-conflict"
+  FILE_ARGS+=("$FILE")
 done <<< "$STAGED_FILES"
 
-TASK_FILES=$(echo "$STAGED_FILES" | grep "^docs/tasks/TASK-" 2>/dev/null || true)
-if [[ -n "$TASK_FILES" ]]; then
-  while IFS= read -r FILE; do
-    [[ -z "$FILE" ]] && continue
-    _check_hook "validate-task-frontmatter.sh" "$FILE" "task-frontmatter"
-  done <<< "$TASK_FILES"
-fi
-
-if [[ "$FAILED" == "1" ]]; then
+if python3 "$BATCH_HELPER" "$HOOKS_DIR" "$REPO_ROOT" "${FILE_ARGS[@]}"; then
+  echo "cos pre-commit: OK"
+  exit 0
+else
   echo "" >&2
   echo "cos pre-commit: commit blocked. Fix the issues above and re-stage." >&2
   echo "To skip (NOT recommended): git commit --no-verify" >&2
   exit 1
 fi
-
-echo "cos pre-commit: OK"
-exit 0
