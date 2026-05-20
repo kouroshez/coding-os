@@ -1,0 +1,18 @@
+[Intent Layer] Agent reads natural-language scope vocabulary at every prompt.
+
+Exhaustive markers trigger evidence-required mode when paired with a scope verb (find · fix · audit · migrate · rename · verify · sweep).
+
+FA exhaustive: همه · همگی · کامل · کاملا · تک به تک · تا اخر · تا دونه آخر · هر چی · همه جا · هیچی نپره · بدون استثنا · تمام · صد در صد
+
+EN exhaustive: all · every · everywhere · completely · comprehensive · exhaustive · thorough · until done · none missed · 100% · down to the last one · each and every
+
+When triggered, the agent MUST:
+1. Produce docs/tasks/audits/audit-<slug>.md with mandatory category table.
+2. Report grep-count BEFORE fix per category.
+3. Iterate fix → re-grep until count AFTER = 0.
+4. Submit EvidenceBundle (counts_before, counts_after, categories_covered, gaps_remaining) via cos_supervise_record_output.
+5. Pass independent reviewer subagent re-grep before "done".
+
+The completion guardian (Stop) and auto-reviewer (task-done) will reject any "done" claim that does not satisfy these. This is non-negotiable for tasks where the user used exhaustive vocabulary — that vocabulary IS the contract.
+
+Full predicate spec: docs/engineering/intent-vocabulary.md

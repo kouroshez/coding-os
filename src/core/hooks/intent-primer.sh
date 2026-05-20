@@ -39,30 +39,45 @@ if [[ -n "${COS_AGENT_DIR:-}" ]]; then
   rm -f "${COS_AGENT_DIR}/.subagent-delegation-nudged" 2>/dev/null || true
 fi
 
-CONTEXT=$(cat <<'CARD'
-[Intent Layer] Agent reads natural-language scope vocabulary at every prompt.
+# The card text lives next to this script — keeps the bash heredoc out
+# of `CONTEXT=$(cat <<HEREDOC ... HEREDOC)`, which deadlocks bash 5.3.9
+# on macOS (CLAUDE.md Rule 8). Each deadlocked invocation orphaned an
+# `intent-primer.sh` worker, and Claude Code's 60s subprocess-init
+# timeout fired after enough orphans piled up — visible as
+# `Subprocess initialization did not complete within 60000ms` and
+# every MCP server (coding-os, gmail, drive, …) cleanly closing
+# after 60s.
+# Follow the symlink that consumer projects (or this repo's own
+# .claude/hooks/) install — without `readlink -f` the card file would
+# resolve next to the symlink (.claude/hooks/) and never exist there.
+_HOOK_SRC="${BASH_SOURCE[0]:-$0}"
+if command -v readlink >/dev/null 2>&1 && readlink -f "$_HOOK_SRC" >/dev/null 2>&1; then
+  _HOOK_REAL="$(readlink -f "$_HOOK_SRC")"
+else
+  # macOS BSD readlink lacks -f; emulate with Python.
+  _HOOK_REAL="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$_HOOK_SRC")"
+fi
+CARD_FILE="$(dirname "$_HOOK_REAL")/_intent_primer_card.txt"
 
-Exhaustive markers trigger evidence-required mode when paired with a scope verb (find · fix · audit · migrate · rename · verify · sweep).
+if [[ ! -f "$CARD_FILE" ]]; then
+  # Defensive: never abort the agent on a missing primer card.
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'
+  exit 0
+fi
 
-FA exhaustive: همه · همگی · کامل · کاملا · تک به تک · تا اخر · تا دونه آخر · هر چی · همه جا · هیچی نپره · بدون استثنا · تمام · صد در صد
-
-EN exhaustive: all · every · everywhere · completely · comprehensive · exhaustive · thorough · until done · none missed · 100% · down to the last one · each and every
-
-When triggered, the agent MUST:
-1. Produce docs/tasks/audits/audit-<slug>.md with mandatory category table.
-2. Report grep-count BEFORE fix per category.
-3. Iterate fix → re-grep until count AFTER = 0.
-4. Submit EvidenceBundle (counts_before, counts_after, categories_covered, gaps_remaining) via cos_supervise_record_output.
-5. Pass independent reviewer subagent re-grep before "done".
-
-The completion guardian (Stop) and auto-reviewer (task-done) will reject any "done" claim that does not satisfy these. This is non-negotiable for tasks where the user used exhaustive vocabulary — that vocabulary IS the contract.
-
-Full predicate spec: docs/engineering/intent-vocabulary.md
-CARD
-)
-
-# Emit as SessionStart additionalContext so the card lands in agent context
-# (plain stdout would only surface as a status line).
-printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
+# Read the card file and JSON-encode it. The `--card` arg keeps the file
+# path out of stdin so this hook can stay stdin-clean for the agent
+# runtime (which may still send the SessionStart JSON we choose to ignore).
+python3 -c '
+import json, sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    card = f.read()
+print(json.dumps({
+    "hookSpecificOutput": {
+        "hookEventName": "SessionStart",
+        "additionalContext": card,
+    }
+}))
+' "$CARD_FILE"
 
 exit 0
