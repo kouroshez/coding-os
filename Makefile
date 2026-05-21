@@ -99,6 +99,19 @@ verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + brandi
 	@echo ""
 	@echo "Claude verification passed."
 
+.PHONY: coverage
+coverage: ## Run the kernel test suites under pytest-cov; enforce the fail_under gate in pyproject.toml
+	@echo "Running coverage across thinking_os + graph_os + board_os..."
+	@uv run --extra rag --extra graph_os --with aiohttp --with pytest-asyncio --with pytest-cov pytest \
+	    src/core/thinking_os/tests/ \
+	    src/core/graph_os/tests/ \
+	    src/core/board_os/tests/ \
+	    --cov=src/core --cov=src/cli --cov=src/adapters \
+	    --cov-report=term-missing --cov-report=xml \
+	    -q
+	@echo ""
+	@echo "Coverage report written to coverage.xml (gate: fail_under in pyproject.toml)."
+
 .PHONY: eval-operational eval-sandboxes eval-clean
 eval-operational: ## Full operational evaluation — scaffolds sandboxes, runs all checks, writes .build/
 	@uv run python src/scripts/operational_eval.py all
