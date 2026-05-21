@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
+import { useScopedLink } from '@/lib/use-scoped-link';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 
 interface ActiveSession {
@@ -14,6 +15,7 @@ interface ActiveSession {
   ended_at: number | null;
   state: 'active' | 'present' | 'idle' | 'offline' | 'ended';
   presence_file: string;
+  model?: string | null;
 }
 interface ActivePayload {
   sessions: ActiveSession[];
@@ -65,6 +67,7 @@ function relTime(epoch: number | null | undefined, now: number): string {
 
 export default function SessionsPage() {
   const navigate = useNavigate();
+  const { scopedLink } = useScopedLink();
   const active = useApiGet<ActivePayload>(['sessions-active'], '/api/sessions/active', undefined, {
     refetchIntervalMs: 5000,
   });
@@ -80,7 +83,7 @@ export default function SessionsPage() {
   }, [active.data, history.data]);
 
   const openTrace = (sid: string) => {
-    navigate(`/cognition/${encodeURIComponent(sid)}`);
+    navigate(scopedLink('cognition', encodeURIComponent(sid)));
   };
 
   return (
@@ -124,8 +127,10 @@ export default function SessionsPage() {
               <tr>
                 <th className="py-1 pr-2">state</th>
                 <th className="py-1 pr-2">agent</th>
+                <th className="py-1 pr-2">model</th>
                 <th className="py-1 pr-2">session</th>
                 <th className="py-1 pr-2">pid</th>
+                <th className="py-1 pr-2">age</th>
                 <th className="py-1 pr-2">last tool</th>
                 <th className="py-1 pr-2">last prompt</th>
               </tr>
@@ -147,9 +152,13 @@ export default function SessionsPage() {
                   </td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.agent}</td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono text-[var(--cos-muted)]">
+                    {s.model ?? '—'}
+                  </td>
+                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono text-[var(--cos-muted)]">
                     {s.session_id}
                   </td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2">{s.pid ?? '—'}</td>
+                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">{relTime(s.started_at, now)}</td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2">{relTime(s.last_tool_at, now)}</td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2">{relTime(s.last_prompt_at, now)}</td>
                 </tr>

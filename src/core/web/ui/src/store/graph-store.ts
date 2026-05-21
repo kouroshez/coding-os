@@ -36,6 +36,7 @@ interface GraphStoreState {
   depth: DepthFilter;
   visibleKinds: Set<NodeKind>;
   visibleEdgeTypes: Set<string>;
+  searchQuery: string;
 
   setRoot: (uid: string | null) => void;
   setSelectedNode: (uid: string | null) => void;
@@ -44,6 +45,7 @@ interface GraphStoreState {
   toggleKind: (k: NodeKind) => void;
   setAllKinds: (visible: boolean) => void;
   toggleEdgeType: (t: string) => void;
+  setSearchQuery: (q: string) => void;
 }
 
 export const useGraphStore = create<GraphStoreState>((set) => ({
@@ -53,6 +55,7 @@ export const useGraphStore = create<GraphStoreState>((set) => ({
   depth: 2,
   visibleKinds: new Set<NodeKind>(ALL_KINDS),
   visibleEdgeTypes: new Set<string>(DEFAULT_EDGE_TYPES),
+  searchQuery: '',
 
   // TASK-141 P3: when a root is picked, mirror it into selectedNodeUid
   // so the right-pane Inspector opens for it.  Previously the inspector
@@ -88,4 +91,6 @@ export const useGraphStore = create<GraphStoreState>((set) => ({
       }
       return { visibleEdgeTypes: next };
     }),
+
+  setSearchQuery: (searchQuery) => set({ searchQuery }),
 }));

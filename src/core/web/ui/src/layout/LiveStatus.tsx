@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
+import { useScopedLink } from '@/lib/use-scoped-link';
 
 interface AgentRuntime {
   agent: string;
@@ -49,6 +50,7 @@ function relTime(iso: string | null | undefined): string {
 }
 
 export default function LiveStatus() {
+  const { scopedLink } = useScopedLink();
   const { data } = useApiGet<PresencePayload>(
     ['presence-now'],
     '/api/presence/now',
@@ -244,7 +246,7 @@ export default function LiveStatus() {
 
           <div className="flex items-center justify-between px-3 py-2 text-[10px]">
             <Link
-              to="/cognition?view=live"
+              to={scopedLink('cognition', '?view=live')}
               onClick={() => setOpen(false)}
               className="text-[var(--cos-accent)] hover:underline"
             >
@@ -252,7 +254,7 @@ export default function LiveStatus() {
             </Link>
             {data.current_chat_uuid && (
               <Link
-                to={`/cognition/${encodeURIComponent(data.current_chat_uuid)}?view=chat`}
+                to={scopedLink('cognition', `${encodeURIComponent(data.current_chat_uuid)}?view=chat`)}
                 onClick={() => setOpen(false)}
                 className="text-[var(--cos-accent)] hover:underline"
               >

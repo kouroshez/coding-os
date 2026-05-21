@@ -99,35 +99,37 @@ export default function CognitionPage() {
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-[var(--cos-border)] bg-[var(--cos-bg)] px-4 py-2">
-      <span className="mr-2 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--cos-muted)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 shadow-[0_0_8px] shadow-fuchsia-400/60" />
-        cognition
-      </span>
-      <div className="flex flex-wrap gap-1 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 p-0.5 backdrop-blur">
-        {VIEW_ORDER.map((v) => {
-          const { Icon, label } = VIEW_LABELS[v];
-          const active = view === v;
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => onChange(v)}
-              aria-pressed={active}
-              className={[
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all',
-                active
-                  ? 'bg-[var(--accent)] text-[var(--cos-bg)] shadow shadow-[var(--accent)]/30'
-                  : 'text-[var(--cos-muted)] hover:bg-[var(--cos-panel)] hover:text-[var(--cos-text)]',
-              ].join(' ')}
-            >
-              <Icon size={13} aria-hidden />
-              {label}
-            </button>
-          );
-        })}
+    <div className="flex shrink-0 items-center justify-between border-b border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-6 py-2.5 backdrop-blur-md">
+      <div className="flex items-center gap-6">
+        <span className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest text-[var(--cos-muted)] uppercase">
+          <span className="h-2 w-2 rounded-full bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse" />
+          cognition hub
+        </span>
+        <div className="flex items-center gap-1 rounded-full border border-white/5 bg-black/15 p-1">
+          {VIEW_ORDER.map((v) => {
+            const { Icon, label } = VIEW_LABELS[v];
+            const active = view === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => onChange(v)}
+                aria-pressed={active}
+                className={[
+                  'inline-flex items-center gap-1.5 rounded-full px-4 py-1.25 text-[11px] font-bold tracking-wide uppercase transition-all duration-300 cursor-pointer',
+                  active
+                    ? 'bg-[var(--cos-accent)] text-white shadow-lg shadow-orange-500/10 border border-white/10'
+                    : 'text-[var(--cos-muted)] hover:text-[var(--cos-text)] hover:bg-white/5 border border-transparent',
+                ].join(' ')}
+              >
+                <Icon size={12} aria-hidden />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <span className="ml-auto text-[10px] italic text-[var(--cos-muted)]">{VIEW_LABELS[view].hint}</span>
+      <span className="text-[10px] font-medium tracking-wide text-[var(--cos-faint)] italic max-w-sm text-right leading-relaxed truncate">{VIEW_LABELS[view].hint}</span>
     </div>
   );
 }

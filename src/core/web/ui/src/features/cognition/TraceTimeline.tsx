@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
+import { useScopedLink } from '@/lib/use-scoped-link';
 
 interface TraceEvent {
   kind?: string;
@@ -56,6 +57,7 @@ function eventKey(e: TraceEvent, i: number): string {
 }
 
 export default function TraceTimeline({ sessionId }: { sessionId: string }) {
+  const { scopedLink } = useScopedLink();
   const { data, isLoading, error } = useApiGet<TracePayload>(
     ['cognition-trace', sessionId],
     `/api/cognition/trace/${encodeURIComponent(sessionId)}`,
@@ -102,7 +104,7 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
         <div className="flex items-center gap-2">
           <h2 className="font-mono text-xs font-semibold text-[var(--cos-text)]">{data.session_id}</h2>
           <Link
-            to={`/cognition/${encodeURIComponent(data.session_id)}?view=chat`}
+            to={scopedLink('cognition', `${encodeURIComponent(data.session_id)}?view=chat`)}
             className="ml-auto text-[10px] text-[var(--cos-accent)] hover:underline"
             title="see SDK chat transcript for the session that produced these events"
           >

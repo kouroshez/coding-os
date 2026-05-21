@@ -7,6 +7,7 @@ import noverlap from 'graphology-layout-noverlap';
 import type { SigmaEdgeAttrs, SigmaNodeAttrs } from './graph-adapter';
 import { applyDagreLayout } from './dagre-layout';
 import { NodeImageProgram } from "@sigma/node-image";
+import { useGraphStore } from '@/store/graph-store';
 
 export type LayoutMode = 'force' | 'dagre';
 
@@ -69,6 +70,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
   const supervisorRef = useRef<any>(null);
   const layoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isLayoutRunning, setLayoutRunning] = useState(false);
+  const updateSearchRef = useRef<((query: string) => void) | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -92,6 +94,64 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     let inboundEdges: Set<string> | null = null;
     let outboundEdges: Set<string> | null = null;
     let currentLOD = 2; // 0 = zoomed far out, 1 = zoomed mid, 2 = zoomed in
+
+    // Search query sets for high-fidelity path highlighting
+    const matchedNodes = new Set<string>();
+    const matchedPaths = new Set<string>();
+    const matchedEdges = new Set<string>();
+
+    const updateSearchHighlight = (query: string) => {
+      matchedNodes.clear();
+      matchedPaths.clear();
+      matchedEdges.clear();
+
+      const q = query.trim().toLowerCase();
+      if (!q) return;
+
+      const live = graphRef.current;
+      if (!live) return;
+
+      // 1. Find all directly matched nodes (case-insensitive on label or uid)
+      live.forEachNode((node: string, data: SigmaNodeAttrs) => {
+        const label = (data.label || '').toLowerCase();
+        const uid = node.toLowerCase();
+        if (label.includes(q) || uid.includes(q)) {
+          matchedNodes.add(node);
+          matchedPaths.add(node);
+        }
+      });
+
+      // 2. BFS from matched nodes to depth 1 (immediate adjacent paths)
+      const MAX_SEARCH_DEPTH = 1;
+      let currentQueue = Array.from(matchedNodes);
+      
+      for (let depth = 0; depth < MAX_SEARCH_DEPTH; depth++) {
+        const nextQueue: string[] = [];
+        for (const n of currentQueue) {
+          // Outbound (target nodes and edges)
+          live.outEdges(n).forEach((edge: string) => {
+            const target = live.target(edge);
+            matchedEdges.add(edge);
+            if (!matchedPaths.has(target)) {
+              matchedPaths.add(target);
+              nextQueue.push(target);
+            }
+          });
+          // Inbound (source nodes and edges)
+          live.inEdges(n).forEach((edge: string) => {
+            const source = live.source(edge);
+            matchedEdges.add(edge);
+            if (!matchedPaths.has(source)) {
+              matchedPaths.add(source);
+              nextQueue.push(source);
+            }
+          });
+        }
+        currentQueue = nextQueue;
+      }
+    };
+
+    updateSearchRef.current = updateSearchHighlight;
 
     // Cast graph for Sigma's less-permissive generic bounds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,9 +177,11 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         if (data.hidden) return { ...data, hidden: true };
         
         const nodeData = { ...data };
+        const query = useGraphStore.getState().searchQuery.trim().toLowerCase();
         
         // Dynamic LOD: hide very low level concepts when zoomed out
-        if (!hoveredNode) {
+        // Disable LOD rules when active search query exists so matching elements are not hidden
+        if (!hoveredNode && !query) {
           if (currentLOD <= 1) {
             if (['variable', 'field', 'method', 'function', 'import_', 'identifier', 'type'].includes(data.kind || '')) {
               nodeData.hidden = true;
@@ -132,28 +194,53 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
           }
         }
 
+        // Hover highlight state takes precedence
         if (hoveredNode && hoveredNeighbours) {
           if (node === hoveredNode) {
-            return { ...nodeData, size: nodeData.size * 1.4, zIndex: 2 };
+            return { ...nodeData, size: nodeData.size * 1.4, zIndex: 10 };
           }
           if (!hoveredNeighbours.has(node)) {
-            return { ...nodeData, color: '#d4ccbf', label: '', zIndex: 0 };
+            return { ...nodeData, color: '#33415530', label: '', zIndex: 0 };
           }
-          return { ...nodeData, zIndex: 1 };
+          return { ...nodeData, zIndex: 5 };
         }
+
+        // Search highlight path state
+        if (query) {
+          if (matchedNodes.has(node)) {
+            return { ...nodeData, size: nodeData.size * 1.5, zIndex: 10 };
+          }
+          if (matchedPaths.has(node)) {
+            return { ...nodeData, zIndex: 5 };
+          }
+          return { ...nodeData, color: '#33415520', label: '', zIndex: 0 };
+        }
+
         return nodeData;
       },
       edgeReducer: (edge: string, data: SigmaEdgeAttrs) => {
         if (data.hidden) return { ...data, hidden: true };
+
+        // Hover highlight state takes precedence
         if (hoveredNode && inboundEdges && outboundEdges) {
           if (outboundEdges.has(edge)) {
-            return { ...data, size: Math.max(data.size * 2, 2), color: '#d96c2c', zIndex: 2 }; // Outbound (orange)
+            return { ...data, size: Math.max(data.size * 2, 2), color: '#f97316', zIndex: 10 }; // Outbound (orange)
           }
           if (inboundEdges.has(edge)) {
-            return { ...data, size: Math.max(data.size * 2, 2), color: '#3A7A7A', zIndex: 1 }; // Inbound (teal)
+            return { ...data, size: Math.max(data.size * 2, 2), color: '#3b82f6', zIndex: 5 }; // Inbound (blue)
           }
-          return { ...data, color: '#e7dfd0', size: 0.4, zIndex: 0 };
+          return { ...data, color: '#33415510', size: 0.4, zIndex: 0 };
         }
+
+        // Search highlight state
+        const query = useGraphStore.getState().searchQuery.trim().toLowerCase();
+        if (query) {
+          if (matchedEdges.has(edge)) {
+            return { ...data, size: Math.max(data.size * 2.5, 2.5), color: '#d96c2c', zIndex: 5 };
+          }
+          return { ...data, color: '#33415505', size: 0.1, zIndex: 0 };
+        }
+
         return data;
       },
     });
@@ -236,7 +323,24 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       sigma.refresh();
     });
 
+    // Initial search computation if search query exists
+    const initialQuery = useGraphStore.getState().searchQuery;
+    if (initialQuery) {
+      updateSearchHighlight(initialQuery);
+    }
+
+    // Subscribe to graph-store searchQuery changes
+    let prevSearchQuery = useGraphStore.getState().searchQuery;
+    const unsubscribe = useGraphStore.subscribe((state) => {
+      if (state.searchQuery !== prevSearchQuery) {
+        prevSearchQuery = state.searchQuery;
+        updateSearchHighlight(state.searchQuery);
+        sigma.refresh();
+      }
+    });
+
     return () => {
+      unsubscribe();
       // Tear down the worker FIRST so it doesn't try to mutate a
       // graph whose Sigma render has already been killed.
       if (layoutTimerRef.current) {
@@ -273,6 +377,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sigma.setGraph(incoming as any);
         graphRef.current = incoming;
+        updateSearchRef.current?.(useGraphStore.getState().searchQuery);
         return;
       }
 
@@ -305,6 +410,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sigma.setGraph(incoming as any);
         graphRef.current = incoming;
+        updateSearchRef.current?.(useGraphStore.getState().searchQuery);
         sigma.getCamera().animatedReset({ duration: 400 });
         setLayoutRunning(false);
         return;
@@ -319,6 +425,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sigma.setGraph(incoming as any);
       graphRef.current = incoming;
+      updateSearchRef.current?.(useGraphStore.getState().searchQuery);
       sigma.getCamera().animatedReset({ duration: 400 });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

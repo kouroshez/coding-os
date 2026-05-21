@@ -38,18 +38,19 @@
   }
 
   html[data-theme="dark"] {
-    --paper-h: 220;
-    --paper-s: 8%;
-    --paper-l: 12%;
-    --ink: #e8e4dc;
-    --ink-soft: #aaa49a;
-    --ink-faint: #6b675f;
-    --board: hsl(var(--paper-h) var(--paper-s) var(--paper-l));
-    --board-grain: hsl(220 10% 17%);
-    --line: #d4cfc3;
-    --line-soft: #8a847a;
-    --col-bg: hsl(var(--paper-h) var(--paper-s) 15%);
-    --col-border: #3a3630;
+    --paper-h: 224;
+    --paper-s: 71%;
+    --paper-l: 4%;
+    --ink: #f3f4f6;
+    --ink-soft: #9ca3af;
+    --ink-faint: #4b5563;
+    --board: #080a10;
+    --board-grain: #0d111c;
+    --line: #3b82f6;
+    --line-soft: #1e3a8a;
+    --col-bg: #0e111a;
+    --col-border: rgba(255, 255, 255, 0.08);
+    --accent: #f97316;
   }
 
   * { box-sizing: border-box; }

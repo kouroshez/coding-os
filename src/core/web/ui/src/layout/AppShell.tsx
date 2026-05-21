@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Activity, Brain, FileText, HeartPulse, KanbanSquare, LayoutDashboard, Network, Search, Settings, Users } from 'lucide-react';
+import { Brain, HeartPulse, LayoutDashboard, Network } from 'lucide-react';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
@@ -23,16 +23,10 @@ import ProjectSwitcher from '@/layout/ProjectSwitcher';
  */
 
 const NAV = [
-  { feature: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard, end: true },
-  { feature: 'board', label: 'Board', Icon: KanbanSquare, end: true },
+  { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false },
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
-  { feature: 'search', label: 'Search', Icon: Search, end: true },
   { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
-  { feature: 'observability', label: 'Observability', Icon: Activity, end: true },
-  { feature: 'logs', label: 'Logs', Icon: FileText, end: true },
-  { feature: 'sessions', label: 'Sessions', Icon: Users, end: true },
-  { feature: 'doctor', label: 'Doctor', Icon: HeartPulse, end: true },
-  { feature: 'settings', label: 'Settings', Icon: Settings, end: true },
+  { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
 ] as const;
 
 /**

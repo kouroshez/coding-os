@@ -1,13 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@import "highlight.js/styles/github-dark.css";
 
 /*
  * Unified semantic tokens — every feature (board, graph, search,
- * cognition, hub) reads via `var(--cos-*)`. Pass 1 (TASK-070) aliases
- * these onto the board-native design tokens from
- * public/cos-board-tokens.css (loaded via <link> in index.html) so
- * themes, aesthetics, and dark-mode switches flow from a single source.
- * The fallback literals inside each var() only fire on first-paint
- * before the board tokens hydrate (prevents FOUC on slow connections).
+ * cognition, hub) reads via `var(--cos-*)`.
  */
 :root {
   --cos-bg: var(--board, #f4efe1);
@@ -20,12 +17,69 @@
   --cos-accent: var(--accent, #d96c2c);
 }
 
-/*
- * Dark theme already flips --board/--ink/--col-bg via
- * cos-board-tokens.css::html[data-theme="dark"]; the var() chain above
- * inherits those values automatically. We only keep the paper defaults
- * as literal fallbacks here — no second :root block needed.
- */
+/* Glassmorphic premium card styles */
+.glass-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="dark"] .glass-card {
+  background: rgba(14, 17, 26, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+}
+
+.glass-card:hover {
+  border-color: var(--cos-accent);
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="dark"] .glass-card:hover {
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Glowing glows */
+.glow-emerald {
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
+}
+
+.glow-fuchsia {
+  text-shadow: 0 0 8px rgba(217, 70, 239, 0.5);
+  filter: drop-shadow(0 0 6px rgba(217, 70, 239, 0.4));
+}
+
+.glow-amber {
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+}
+
+.glow-rose {
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+  filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.4));
+}
+
+/* Bilingual and Persian RTL auto-detection font mapping */
+[dir="rtl"],
+.rtl-text,
+:dir(rtl) {
+  font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif !important;
+  direction: rtl;
+  text-align: right;
+  line-height: 1.8 !important;
+}
+
+[dir="ltr"] {
+  font-family: 'Inter', system-ui, sans-serif;
+  direction: ltr;
+  text-align: left;
+}
 
 html,
 body,
@@ -69,4 +123,75 @@ body,
     box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
     transform: scale(1.15);
   }
+}
+
+/*
+ * Markdown rendering — used by chat transcripts, role outputs, and any
+ * place we surface user/assistant prose. Per-paragraph dir="auto" lives
+ * on the inner elements themselves; this block just dials in whitespace
+ * + ensures rehype-highlight code tokens read correctly on the paper bg.
+ */
+.cos-markdown > *:first-child { margin-top: 0; }
+.cos-markdown > *:last-child { margin-bottom: 0; }
+.cos-markdown pre code.hljs {
+  background: transparent;
+  padding: 0;
+}
+/* Force readable contrast for highlight.js tokens inside CodeBlock.
+ * github-dark theme assumes a dark background; we already paint
+ * bg-zinc-900 on the pre wrapper, but the token classes (hljs-keyword,
+ * hljs-string, …) sometimes lose colour to the surrounding markdown
+ * styling.  These selectors lock in the dark-theme palette regardless
+ * of the page theme. */
+.cos-code-block,
+.cos-code-block code,
+.cos-code-block code.hljs {
+  color: #e5e7eb;
+}
+.cos-code-block .hljs-keyword,
+.cos-code-block .hljs-built_in,
+.cos-code-block .hljs-type { color: #f97316; }
+.cos-code-block .hljs-string,
+.cos-code-block .hljs-attr { color: #a3e635; }
+.cos-code-block .hljs-number,
+.cos-code-block .hljs-literal { color: #f59e0b; }
+.cos-code-block .hljs-comment,
+.cos-code-block .hljs-meta { color: #9ca3af; }
+.cos-code-block .hljs-function,
+.cos-code-block .hljs-title { color: #60a5fa; }
+.cos-code-block .hljs-variable,
+.cos-code-block .hljs-name { color: #f472b6; }
+.cos-markdown[dir="rtl"] code,
+.cos-markdown[dir="rtl"] pre {
+  direction: ltr;
+  text-align: left;
+}
+.cos-markdown p,
+.cos-markdown li {
+  line-height: 1.7;
+}
+.cos-markdown p + p,
+.cos-markdown p + ul,
+.cos-markdown p + ol,
+.cos-markdown p + h1,
+.cos-markdown p + h2,
+.cos-markdown p + h3,
+.cos-markdown p + h4,
+.cos-markdown ul + p,
+.cos-markdown ol + p {
+  margin-top: 0.75rem;
+}
+/* Inline code on RTL paragraphs needs explicit margin so it doesn't
+ * bleed into the Persian text it's neighbouring. */
+.cos-markdown[dir="rtl"] code {
+  margin-inline: 0.15rem;
+}
+/* A bold-only paragraph (Persian writers often use `**Section**` as a
+ * pseudo-heading) gets visual weight similar to an h4 — picks up the
+ * accent colour and a small bottom margin so the following paragraph
+ * reads as its body, not as a continuation of the bold line. */
+.cos-markdown p > strong:only-child {
+  display: inline-block;
+  color: var(--cos-text);
+  font-size: 0.95rem;
 }

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
+import { MarkdownBlock } from '@/components/MarkdownBlock';
+import { useScopedLink } from '@/lib/use-scoped-link';
 
 interface ContentBlock {
   type: string;
@@ -126,6 +128,7 @@ function buildTurns(messages: ChatMessage[]): Turn[] {
 }
 
 export default function ChatView({ sessionId }: { sessionId: string }) {
+  const { scopedLink } = useScopedLink();
   // Live transcript — re-pull every 2s while the view is mounted so the
   // Hub panel reflects the same conversation the Claude Code IDE shows
   // (it writes to ~/.claude/projects/<key>/<uuid>.jsonl as the agent
@@ -240,7 +243,15 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
       } finally {
         setStreaming(false);
         abortRef.current = null;
+        // Refetch reloads the persisted Claude jsonl which now contains
+        // the new turn.  Clear liveEvents AFTER the refetch resolves so
+        // the SSE stream's pending-user echo + assistant pill don't
+        // double-render alongside the just-persisted HumanTurn /
+        // AssistantTurn.  Without this clear the user sees their prompt
+        // and the reply printed twice (TASK 2026-05-20 UI audit).
         await refetch();
+        setLiveEvents([]);
+        setStreamErr(null);
       }
     },
     [draft, fork, sessionId, streaming, refetch],
@@ -272,7 +283,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
           <span>· {turns.length} turn{turns.length === 1 ? '' : 's'}</span>
           <span>· {data?.count ?? 0} msg{data?.count === 1 ? '' : 's'}</span>
           <Link
-            to={`/cognition/${encodeURIComponent(sessionId)}`}
+            to={scopedLink('cognition', encodeURIComponent(sessionId))}
             className="ml-auto text-[var(--cos-accent)] hover:underline"
             title="see cognition trace for this session"
           >
@@ -295,9 +306,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
             <div className="mb-2 text-[10px] uppercase tracking-wider text-[var(--cos-accent)]">
               live · {streaming ? 'streaming…' : 'completed'}
             </div>
-            {liveEvents.map((e) => (
-              <LiveEventRow key={e.id} event={e} />
-            ))}
+            <LiveEventList events={liveEvents} />
           </div>
         )}
 
@@ -308,7 +317,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         )}
       </div>
 
-      <form onSubmit={send} className="shrink-0 border-t border-[var(--cos-border)] bg-[var(--cos-panel)] p-3">
+      <form onSubmit={send} className="shrink-0 border-t border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/90 backdrop-blur-md p-4">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -321,14 +330,14 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
           placeholder="resume this session — type a message (⌘/Ctrl + Enter to send)"
           rows={3}
           aria-label="Send message"
-          className="w-full resize-y rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-3 py-2 text-sm text-[var(--cos-text)] focus:border-[var(--cos-accent)] focus:outline-none"
+          className="w-full resize-y rounded-xl border border-[var(--cos-border)]/50 bg-[var(--cos-bg)]/80 px-4 py-3 text-sm text-[var(--cos-text)] transition-all placeholder:text-[var(--cos-muted)] focus:border-[var(--cos-accent)] focus:ring-1 focus:ring-[var(--cos-accent)]/30 focus:outline-none"
         />
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10px] text-[var(--cos-muted)]">
-            <input type="checkbox" checked={fork} onChange={(e) => setFork(e.target.checked)} />
+        <div className="mt-2.5 flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-1.5 text-[10px] text-[var(--cos-muted)] select-none cursor-pointer">
+            <input type="checkbox" checked={fork} onChange={(e) => setFork(e.target.checked)} className="rounded border-[var(--cos-border)]/60 bg-[var(--cos-bg)] text-[var(--cos-accent)] focus:ring-0" />
             fork (don't mutate this session)
           </label>
-          <span className="text-[10px] text-[var(--cos-muted)]">
+          <span className="text-[10px] text-[var(--cos-muted)] font-mono">
             spawns Claude CLI · resume={sessionId.slice(0, 8)}…
           </span>
           <div className="ml-auto flex items-center gap-2">
@@ -336,7 +345,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
               <button
                 type="button"
                 onClick={cancel}
-                className="rounded border border-rose-500/50 px-3 py-1 text-xs text-rose-400 hover:bg-rose-500/10"
+                className="rounded-full border border-rose-500/40 px-4 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10 transition-colors"
               >
                 cancel
               </button>
@@ -345,10 +354,10 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
               type="submit"
               disabled={!draft.trim() || streaming}
               className={[
-                'rounded border px-3 py-1 text-xs font-semibold transition-colors',
+                'rounded-full px-5 py-1.5 text-xs font-semibold transition-all duration-150',
                 streaming || !draft.trim()
-                  ? 'cursor-not-allowed border-[var(--cos-border)] text-[var(--cos-muted)] opacity-50'
-                  : 'border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 text-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/20',
+                  ? 'cursor-not-allowed border border-[var(--cos-border)]/40 text-[var(--cos-muted)] opacity-50'
+                  : 'bg-[var(--cos-accent)] text-white hover:shadow-lg hover:shadow-[var(--cos-accent)]/20 hover:-translate-y-px active:translate-y-0',
               ].join(' ')}
             >
               {streaming ? 'streaming…' : fork ? 'fork & send' : 'send'}
@@ -366,9 +375,9 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
 
 function HumanTurn({ blocks }: { blocks: ContentBlock[] }) {
   return (
-    <div className="mb-3 flex flex-col items-end gap-1">
-      <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">you</div>
-      <div className="max-w-[88%] rounded-lg border border-[var(--cos-accent)]/40 bg-[var(--cos-accent)]/8 px-3 py-2 text-sm text-[var(--cos-text)]">
+    <div className="mb-4 flex flex-col items-end gap-1.5">
+      <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)] pr-1 font-mono">you</div>
+      <div className="max-w-[88%] rounded-2xl border border-fuchsia-500/25 bg-gradient-to-br from-fuchsia-950/15 via-purple-950/10 to-transparent dark:from-fuchsia-500/10 dark:via-purple-500/5 dark:to-transparent backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-lg shadow-fuchsia-500/5">
         {blocks.map((b, i) => (
           <TextOrImage key={i} block={b} />
         ))}
@@ -402,46 +411,52 @@ function AssistantTurn({
     0,
   );
 
-  const textBlocks = allBlocks.filter((b) => b.type === 'text' || b.type === 'thinking');
-  const toolUses = allBlocks.filter((b) => b.type === 'tool_use');
-  const otherBlocks = allBlocks.filter(
-    (b) => b.type !== 'text' && b.type !== 'thinking' && b.type !== 'tool_use',
-  );
+  // Document-order render — text, thinking, tool_use, and any other
+  // block kinds appear in the EXACT order the SDK emitted them, so a
+  // tool call mid-stream sits between the surrounding prose instead of
+  // collapsing to the bottom.  Tool results are looked up by id from
+  // the trailing tool_result message that immediately follows.
+  const toolUseCount = allBlocks.filter((b) => b.type === 'tool_use').length;
 
   return (
-    <div className="mb-4 flex flex-col items-start gap-1">
-      <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+    <div className="mb-5 flex flex-col items-start gap-1.5">
+      <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] pl-1 font-mono">
         <span>assistant</span>
-        {lastWithModel?.model && <span>· {lastWithModel.model}</span>}
+        {lastWithModel?.model && <span className="opacity-80">· {lastWithModel.model}</span>}
         {(totalInputTokens > 0 || totalOutputTokens > 0) && (
-          <span>· {totalInputTokens}+{totalOutputTokens} tok</span>
+          <span className="opacity-80">· {totalInputTokens}+{totalOutputTokens} tok</span>
         )}
-        {toolUses.length > 0 && (
-          <span>· {toolUses.length} tool call{toolUses.length === 1 ? '' : 's'}</span>
+        {toolUseCount > 0 && (
+          <span className="opacity-80">· {toolUseCount} tool call{toolUseCount === 1 ? '' : 's'}</span>
         )}
       </div>
-      <div className="max-w-[88%] space-y-1 rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-2 text-sm text-[var(--cos-text)]">
-        {textBlocks.length === 0 && toolUses.length === 0 && otherBlocks.length === 0 && (
+      <div className="max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-md shadow-black/10">
+        {allBlocks.length === 0 && (
           <p className="text-xs text-[var(--cos-muted)]">(empty message)</p>
         )}
-        {textBlocks.map((b, i) => (
-          <TextOrImage key={`t-${i}`} block={b} />
-        ))}
-        {toolUses.map((b, i) => (
-          <ToolCall
-            key={`tu-${i}`}
-            toolUse={b}
-            result={b.id ? toolResults.get(b.id) : undefined}
-          />
-        ))}
-        {otherBlocks.map((b, i) => (
-          <pre
-            key={`o-${i}`}
-            className="my-1 overflow-auto rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-[10px] text-[var(--cos-muted)] cos-scroll"
-          >
-            {JSON.stringify(b, null, 2)}
-          </pre>
-        ))}
+        {allBlocks.map((b, i) => {
+          if (b.type === 'text' || b.type === 'thinking') {
+            return <TextOrImage key={`b-${i}`} block={b} />;
+          }
+          if (b.type === 'tool_use') {
+            return (
+              <ToolCall
+                key={`b-${i}`}
+                toolUse={b}
+                result={b.id ? toolResults.get(b.id) : undefined}
+              />
+            );
+          }
+          return (
+            <pre
+              key={`b-${i}`}
+              dir="ltr"
+              className="my-1 overflow-auto rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-[10px] text-[var(--cos-muted)] cos-scroll"
+            >
+              {JSON.stringify(b, null, 2)}
+            </pre>
+          );
+        })}
       </div>
     </div>
   );
@@ -450,11 +465,7 @@ function AssistantTurn({
 function TextOrImage({ block }: { block: ContentBlock }) {
   if (block.type === 'text') {
     if (!block.text) return null;
-    return (
-      <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-[var(--cos-text)]">
-        {block.text}
-      </pre>
-    );
+    return <MarkdownBlock source={block.text} />;
   }
   if (block.type === 'thinking') {
     if (!block.text) return null;
@@ -463,13 +474,43 @@ function TextOrImage({ block }: { block: ContentBlock }) {
         <summary className="cursor-pointer px-2 py-1 text-[var(--cos-muted)]">
           🧠 thinking ({block.text.length} chars)
         </summary>
-        <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words p-2 italic text-[var(--cos-muted)] cos-scroll">
-          {block.text}
-        </pre>
+        <div className="max-h-64 overflow-auto p-2 italic cos-scroll">
+          <MarkdownBlock source={block.text} className="text-[11px] text-[var(--cos-muted)]" />
+        </div>
       </details>
     );
   }
   return null;
+}
+
+function looksLikeJson(text: string): boolean {
+  const trimmed = text.trimStart();
+  return trimmed.startsWith('{') || trimmed.startsWith('[');
+}
+
+function ToolResultBody({ text }: { text: string }) {
+  if (!text.trim()) {
+    return (
+      <pre dir="ltr" className="rounded bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-muted)] cos-scroll">
+        (empty)
+      </pre>
+    );
+  }
+  if (looksLikeJson(text)) {
+    return (
+      <pre
+        dir="ltr"
+        className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll"
+      >
+        {text}
+      </pre>
+    );
+  }
+  return (
+    <div className="max-h-64 overflow-auto rounded bg-[var(--cos-panel)] p-2 cos-scroll">
+      <MarkdownBlock source={text} className="text-[12px]" />
+    </div>
+  );
 }
 
 function ToolCall({
@@ -515,7 +556,10 @@ function ToolCall({
       </summary>
       <div className="space-y-1 border-t border-[var(--cos-border)] p-2">
         <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">input</div>
-        <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
+        <pre
+          dir="ltr"
+          className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll"
+        >
           {JSON.stringify(toolUse.input, null, 2)}
         </pre>
         {result && resultText != null && (
@@ -523,11 +567,82 @@ function ToolCall({
             <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
               result {hasError && <span className="text-rose-400">· error</span>}
             </div>
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--cos-panel)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
-              {resultText}
-            </pre>
+            <ToolResultBody text={resultText} />
           </>
         )}
+      </div>
+    </details>
+  );
+}
+
+// Signal events render inline.  Anything else is "noise" — the SDK
+// emits hookevent / system / ratelimitevent / cost_update / etc. per
+// turn; rendering each as a full collapsible row buries the actual
+// conversation under 20+ identical-looking blocks.  Matching the
+// VSCode Claude plugin's UX, we hide noise behind a single subtle
+// pill at the END of the stream — invisible during normal use,
+// expandable when an operator wants to inspect raw SDK plumbing.
+const SIGNAL_KINDS = new Set([
+  'pending-user',
+  'assistant',
+  'result',
+  'error',
+  'started',
+  'done',
+]);
+
+function LiveEventList({ events }: { events: LiveEvent[] }) {
+  const { signal, noise } = useMemo(() => {
+    const signalEvents: LiveEvent[] = [];
+    const noiseEvents: LiveEvent[] = [];
+    for (const e of events) {
+      if (SIGNAL_KINDS.has(e.kind)) signalEvents.push(e);
+      else noiseEvents.push(e);
+    }
+    return { signal: signalEvents, noise: noiseEvents };
+  }, [events]);
+
+  return (
+    <>
+      {signal.map((e) => (
+        <LiveEventRow key={e.id} event={e} />
+      ))}
+      {noise.length > 0 && <NoiseGroup events={noise} />}
+    </>
+  );
+}
+
+function NoiseGroup({ events }: { events: LiveEvent[] }) {
+  const kinds = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of events) counts[e.kind] = (counts[e.kind] ?? 0) + 1;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, n]) => `${k}×${n}`)
+      .join(' · ');
+  }, [events]);
+  return (
+    <details className="mb-2 rounded border border-dashed border-[var(--cos-border)]/40 bg-transparent text-[10px]">
+      <summary className="cursor-pointer px-2 py-1 font-mono text-[var(--cos-faint)]/70 hover:text-[var(--cos-muted)]">
+        ⓘ raw SDK events ({events.length}) · {kinds}
+      </summary>
+      <div className="border-t border-[var(--cos-border)]/30 p-2">
+        {events.map((e) => (
+          <details
+            key={e.id}
+            className="mb-1 rounded border border-[var(--cos-border)]/30 bg-[var(--cos-bg)]/50"
+          >
+            <summary className="cursor-pointer px-2 py-1 font-mono text-[var(--cos-muted)]">
+              {e.kind}
+            </summary>
+            <pre
+              dir="ltr"
+              className="max-h-48 overflow-auto whitespace-pre-wrap break-words p-2 text-[var(--cos-text)] cos-scroll"
+            >
+              {JSON.stringify(e.payload, null, 2)}
+            </pre>
+          </details>
+        ))}
       </div>
     </details>
   );
@@ -540,7 +655,7 @@ function LiveEventRow({ event }: { event: LiveEvent }) {
     return (
       <div className="mb-3 flex items-end justify-end">
         <div className="max-w-[88%] rounded-lg border border-[var(--cos-accent)] bg-[var(--cos-accent)]/15 px-3 py-2 text-sm">
-          <pre className="whitespace-pre-wrap break-words font-sans">{payload.text}</pre>
+          <MarkdownBlock source={payload.text} />
         </div>
       </div>
     );

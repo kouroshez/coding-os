@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -12,6 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
+import { useScopedLink } from '@/lib/use-scoped-link';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Types — minimal slice of each upstream payload that the dashboard reads.
@@ -24,12 +25,37 @@ interface PresenceAgent {
   skill_active?: string | null;
   model?: string | null;
   gate?: string | null;
+  session?: {
+    started_at?: number | null;
+    last_tool_at?: number | null;
+    last_prompt_at?: number | null;
+    pid?: number | null;
+  } | null;
 }
 interface PresencePayload {
   agents: PresenceAgent[];
   agent_states: Record<string, string>;
   last_hook: HookEvent | null;
   current_chat_uuid: string | null;
+}
+
+interface ActiveSession {
+  agent: string;
+  session_id: string;
+  pid: number | null;
+  started_at: number | null;
+  last_prompt_at: number | null;
+  last_tool_at: number | null;
+  last_stop_at: number | null;
+  ended_at: number | null;
+  state: 'active' | 'present' | 'idle' | 'offline' | 'ended';
+  model?: string | null;
+}
+interface ActiveSessionsPayload {
+  sessions: ActiveSession[];
+  counts: Record<string, number>;
+  now: number;
+  ttl_s: number;
 }
 
 interface HookEvent {
@@ -147,6 +173,11 @@ function relIso(iso: string | null | undefined): string {
   return Number.isFinite(ms) ? rel(ms) : '';
 }
 
+function ageBadge(epochSeconds: number | null | undefined): string {
+  if (!epochSeconds) return '';
+  return rel(epochSeconds * 1000);
+}
+
 function compactSession(sid?: string | null): string {
   if (!sid) return '';
   if (sid.startsWith('ses-')) return sid.split('-').slice(-2).join('-');
@@ -158,9 +189,16 @@ function compactSession(sid?: string | null): string {
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { scopedLink } = useScopedLink();
   const presence = useApiGet<PresencePayload>(
     ['presence-now'],
     '/api/presence/now',
+    undefined,
+    { refetchIntervalMs: 4000 },
+  );
+  const sessionsActive = useApiGet<ActiveSessionsPayload>(
+    ['sessions-active-dash'],
+    '/api/sessions/active',
     undefined,
     { refetchIntervalMs: 4000 },
   );
@@ -216,10 +254,33 @@ export default function DashboardPage() {
   const budgetPct =
     budget?.enabled && budget.cap_usd > 0 ? Math.min(100, (todayCost / budget.cap_usd) * 100) : 0;
 
-  const liveAgents = Object.entries(presence.data?.agent_states ?? {}).filter(
-    ([id, s]) => s !== 'offline' && id !== 'human',
+  // Live agents are derived from sessions/active, NOT from agent_states —
+  // agent_states is keyed by canonical adapter id (claude, codex, cursor)
+  // so two concurrent Claude sessions would collapse to one entry there.
+  // sessions/active yields one record per `sessions/<sid>.json` file, so
+  // every concurrent runtime gets its own row.
+  const liveSessions = useMemo(() => {
+    // Only `active` (recent tool/prompt within 30 s) and `present`
+    // (within 300 s TTL).  `idle` is excluded: the session's PID is
+    // alive but no activity has been recorded, which on this repo
+    // commonly means a long-dead Claude Code process whose PID was
+    // recycled by the OS — counting those as "live" inflated the
+    // Mission Control KPI to 21 when only one agent was really
+    // working (TASK 2026-05-20 UI audit, dashboard screenshot).
+    const all = sessionsActive.data?.sessions ?? [];
+    return all
+      .filter((s) => s.state === 'active' || s.state === 'present')
+      .filter((s) => s.agent !== 'human');
+  }, [sessionsActive.data]);
+  const presentCount = liveSessions.length;
+  // Agent-shared snapshot (task / skill / gate live in $COS_AGENT_DIR
+  // shared across the canonical agent's concurrent sessions) — only
+  // attached to the row whose session_id matches the agent's current
+  // active session marker.
+  const agentSnapshot = useCallback(
+    (agent: string) => presence.data?.agents.find((a) => a.agent === agent) ?? null,
+    [presence.data],
   );
-  const presentCount = liveAgents.length;
 
   const recentTraces = (traces.data?.sessions ?? []).slice(0, 5);
   const recentChats = (chats.data?.sessions ?? []).slice(0, 5);
@@ -236,7 +297,12 @@ export default function DashboardPage() {
           label="agents live"
           value={presentCount === 0 ? '—' : String(presentCount)}
           tone={presentCount > 0 ? 'positive' : 'neutral'}
-          hint={presentCount === 0 ? 'no agent running' : `of ${Object.keys(presence.data?.agent_states ?? {}).length}`}
+          hint={(() => {
+            if (presentCount === 0) return 'no agent running';
+            const total = sessionsActive.data?.sessions.length ?? presentCount;
+            const offline = Math.max(0, total - presentCount);
+            return offline > 0 ? `${presentCount} live · ${offline} offline` : `${presentCount} session${presentCount === 1 ? '' : 's'}`;
+          })()}
         />
         <KpiCard
           Icon={CircleDollarSign}
@@ -269,8 +335,9 @@ export default function DashboardPage() {
       {/* Quick actions — 1 row of CTAs */}
       <QuickActions
         currentChat={presence.data?.current_chat_uuid ?? null}
-        activeSessionAgent={liveAgents[0]?.[0] ?? null}
-        activeSession={presence.data?.agents.find((a) => a.agent === liveAgents[0]?.[0])?.session_id ?? null}
+        activeSessionAgent={liveSessions[0]?.agent ?? null}
+        activeSession={liveSessions[0]?.session_id ?? null}
+        scopedLink={scopedLink}
       />
 
       {/* Main grid — 3 cols on xl, 2 on md */}
@@ -280,7 +347,7 @@ export default function DashboardPage() {
           title="Live agents"
           link={null}
         >
-          {liveAgents.length === 0 ? (
+          {liveSessions.length === 0 ? (
             <EmptyState
               icon="●"
               text="No agent running right now"
@@ -288,12 +355,17 @@ export default function DashboardPage() {
             />
           ) : (
             <ul className="space-y-2">
-              {liveAgents.map(([id, state]) => {
-                const snap = presence.data?.agents.find((a) => a.agent === id);
-                const dot = STATE_DOT[state] ?? STATE_DOT.offline;
+              {liveSessions.map((s) => {
+                const snap = agentSnapshot(s.agent);
+                // task/skill/gate live in $COS_AGENT_DIR shared across
+                // concurrent sessions of the same canonical agent — only
+                // attach to the row whose session matches the agent's
+                // current session_id marker.
+                const isActiveSession = snap?.session_id === s.session_id;
+                const dot = STATE_DOT[s.state] ?? STATE_DOT.offline;
                 return (
                   <li
-                    key={id}
+                    key={s.session_id}
                     className="rounded-md border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2.5"
                   >
                     <div className="flex items-center gap-2">
@@ -305,39 +377,53 @@ export default function DashboardPage() {
                         ].join(' ')}
                         style={{ background: dot.color }}
                       />
-                      <span className="font-semibold text-[var(--cos-text)]">{id}</span>
+                      <span className="font-semibold text-[var(--cos-text)]">{s.agent}</span>
                       <Badge tone="muted">{dot.label}</Badge>
-                      {snap?.model && (
+                      {s.model && (
                         <span className="ml-auto font-mono text-[10px] text-[var(--cos-faint)]">
-                          {snap.model}
+                          {s.model}
                         </span>
                       )}
                     </div>
-                    {snap?.session_id && (
-                      <div className="mt-1.5 truncate font-mono text-[10px] text-[var(--cos-muted)]">
-                        {snap.session_id}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-[10px] text-[var(--cos-muted)]">
+                      <span className="truncate">{s.session_id}</span>
+                      {s.started_at && (
+                        <span
+                          className="rounded bg-[var(--cos-panel)] px-1.5 py-0.5 text-[var(--cos-faint)]"
+                          title={`Started ${new Date(s.started_at * 1000).toLocaleString()}`}
+                        >
+                          age {ageBadge(s.started_at)}
+                        </span>
+                      )}
+                      {s.pid && <span className="text-[var(--cos-faint)]">pid {s.pid}</span>}
+                      {s.last_tool_at && (
+                        <span className="text-[var(--cos-faint)]">
+                          last tool {ageBadge(s.last_tool_at)}
+                        </span>
+                      )}
+                    </div>
+                    {isActiveSession && (
+                      <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-[var(--cos-muted)]">
+                        {snap?.task && (
+                          <span className="col-span-2 truncate" title={snap.task}>
+                            <span className="text-[var(--cos-faint)]">task </span>
+                            <span className="text-[var(--cos-text)]">{snap.task}</span>
+                          </span>
+                        )}
+                        {snap?.skill_active && (
+                          <span className="col-span-2 truncate" title={snap.skill_active}>
+                            <span className="text-[var(--cos-faint)]">skill </span>
+                            <span>{snap.skill_active}</span>
+                          </span>
+                        )}
+                        {snap?.gate && (
+                          <span className="col-span-2 truncate">
+                            <span className="text-[var(--cos-faint)]">gate </span>
+                            <span className="font-mono">{snap.gate}</span>
+                          </span>
+                        )}
                       </div>
                     )}
-                    <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-[var(--cos-muted)]">
-                      {snap?.task && (
-                        <span className="col-span-2 truncate" title={snap.task}>
-                          <span className="text-[var(--cos-faint)]">task </span>
-                          <span className="text-[var(--cos-text)]">{snap.task}</span>
-                        </span>
-                      )}
-                      {snap?.skill_active && (
-                        <span className="col-span-2 truncate" title={snap.skill_active}>
-                          <span className="text-[var(--cos-faint)]">skill </span>
-                          <span>{snap.skill_active}</span>
-                        </span>
-                      )}
-                      {snap?.gate && (
-                        <span className="col-span-2 truncate">
-                          <span className="text-[var(--cos-faint)]">gate </span>
-                          <span className="font-mono">{snap.gate}</span>
-                        </span>
-                      )}
-                    </div>
                   </li>
                 );
               })}
@@ -348,7 +434,7 @@ export default function DashboardPage() {
         <PanelCard
           Icon={Zap}
           title="Recent hooks"
-          link="/cognition?view=live"
+          link={scopedLink('cognition', '?view=live')}
           linkLabel="live →"
         >
           {hooks.isLoading && recentHooks.length === 0 ? (
@@ -376,7 +462,7 @@ export default function DashboardPage() {
         <PanelCard
           Icon={CircleDollarSign}
           title="Cost · 7 days"
-          link="/cognition"
+          link={scopedLink('cognition')}
           linkLabel="dispatchers →"
         >
           <div className="mb-2 flex items-baseline gap-2">
@@ -425,7 +511,7 @@ export default function DashboardPage() {
         <PanelCard
           Icon={MessageSquare}
           title="Recent chats"
-          link="/cognition?view=chat"
+          link={scopedLink('cognition', '?view=chat')}
           linkLabel="all chats →"
         >
           {chats.isLoading && recentChats.length === 0 ? (
@@ -437,10 +523,10 @@ export default function DashboardPage() {
               {recentChats.map((c) => (
                 <li key={c.session_id}>
                   <Link
-                    to={`/cognition/${encodeURIComponent(c.session_id)}?view=chat`}
+                    to={scopedLink('cognition', `${encodeURIComponent(c.session_id)}?view=chat`)}
                     className="block rounded-md border border-transparent px-2 py-1.5 transition-colors hover:border-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/5"
                   >
-                    <div className="truncate text-xs font-semibold text-[var(--cos-text)]">
+                    <div className="truncate text-xs font-semibold text-[var(--cos-text)]" dir="auto">
                       {c.custom_title ?? c.summary ?? c.first_prompt ?? c.session_id}
                     </div>
                     <div className="mt-0.5 flex items-center gap-2 text-[9px] text-[var(--cos-muted)]">
@@ -469,7 +555,7 @@ export default function DashboardPage() {
         <PanelCard
           Icon={Brain}
           title="Recent traces"
-          link="/cognition"
+          link={scopedLink('cognition')}
           linkLabel="all traces →"
         >
           {traces.isLoading && recentTraces.length === 0 ? (
@@ -481,7 +567,7 @@ export default function DashboardPage() {
               {recentTraces.map((t) => (
                 <li key={`${t.agent}-${t.session_id}`}>
                   <Link
-                    to={`/cognition/${encodeURIComponent(t.session_id)}`}
+                    to={scopedLink('cognition', encodeURIComponent(t.session_id))}
                     className="block rounded-md border border-transparent px-2 py-1.5 transition-colors hover:border-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/5"
                   >
                     <div className="flex items-center gap-2">
@@ -510,7 +596,7 @@ export default function DashboardPage() {
         <PanelCard
           Icon={Activity}
           title="Board summary"
-          link="/board"
+          link={scopedLink('board')}
           linkLabel="open board →"
         >
           <div className="grid grid-cols-3 gap-2">
@@ -542,7 +628,7 @@ export default function DashboardPage() {
             </ul>
           ) : (
             <p className="mt-3 text-[10px] text-[var(--cos-faint)]">
-              no tasks — create one in <Link to="/board" className="text-[var(--cos-accent)] hover:underline">Board</Link>.
+              no tasks — create one in <Link to={scopedLink('board')} className="text-[var(--cos-accent)] hover:underline">Board</Link>.
             </p>
           )}
         </PanelCard>
@@ -589,16 +675,18 @@ function QuickActions({
   currentChat,
   activeSessionAgent,
   activeSession,
+  scopedLink,
 }: {
   currentChat: string | null;
   activeSessionAgent: string | null;
   activeSession: string | null;
+  scopedLink: (featurePath: string, suffix?: string) => string;
 }) {
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       {currentChat && (
         <Link
-          to={`/cognition/${encodeURIComponent(currentChat)}?view=chat`}
+          to={scopedLink('cognition', `${encodeURIComponent(currentChat)}?view=chat`)}
           className="inline-flex items-center gap-1.5 rounded-md border border-[var(--cos-accent)] bg-[var(--cos-accent)]/10 px-3 py-1.5 text-[11px] font-semibold text-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/20"
         >
           <MessageSquare size={12} aria-hidden /> Open current chat
@@ -606,26 +694,26 @@ function QuickActions({
       )}
       {activeSession && (
         <Link
-          to={`/cognition/${encodeURIComponent(activeSession)}`}
+          to={scopedLink('cognition', encodeURIComponent(activeSession))}
           className="inline-flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] px-3 py-1.5 text-[11px] text-[var(--cos-text)] hover:border-[var(--cos-accent)]"
         >
           <Brain size={12} aria-hidden /> {activeSessionAgent ?? 'agent'} trace
         </Link>
       )}
       <Link
-        to="/cognition?view=live"
+        to={scopedLink('cognition', '?view=live')}
         className="inline-flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] px-3 py-1.5 text-[11px] text-[var(--cos-text)] hover:border-[var(--cos-accent)]"
       >
         <Zap size={12} aria-hidden /> Live hook stream
       </Link>
       <Link
-        to="/board"
+        to={scopedLink('board')}
         className="inline-flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] px-3 py-1.5 text-[11px] text-[var(--cos-text)] hover:border-[var(--cos-accent)]"
       >
         <KanbanSquare size={12} aria-hidden /> Board
       </Link>
       <Link
-        to="/search"
+        to={scopedLink('search')}
         className="inline-flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] px-3 py-1.5 text-[11px] text-[var(--cos-text)] hover:border-[var(--cos-accent)]"
       >
         <Activity size={12} aria-hidden /> Search
@@ -651,26 +739,38 @@ function KpiCard({
 }) {
   const toneClass = {
     neutral: 'text-[var(--cos-text)]',
-    positive: 'text-emerald-300',
-    warning: 'text-amber-300',
-    danger: 'text-rose-300',
+    positive: 'text-emerald-400 glow-emerald',
+    warning: 'text-amber-400 glow-amber',
+    danger: 'text-rose-400 glow-rose',
   }[tone];
+
+  const borderClass = {
+    neutral: 'border-white/5 shadow-white/5',
+    positive: 'border-emerald-500/20 shadow-emerald-500/5 hover:border-emerald-500/40',
+    warning: 'border-amber-500/20 shadow-amber-500/5 hover:border-amber-500/40',
+    danger: 'border-rose-500/20 shadow-rose-500/5 hover:border-rose-500/40',
+  }[tone];
+
   return (
-    <section className="flex flex-col rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3">
-      <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
-        <Icon size={11} aria-hidden />
-        {label}
-      </div>
-      <div className={['font-mono text-2xl font-semibold leading-none', toneClass].join(' ')}>{value}</div>
-      {hint && <div className="mt-1 text-[10px] text-[var(--cos-faint)]">{hint}</div>}
-      {bar && (
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--cos-border)]/30">
-          <div
-            className={bar.warn ? 'h-full bg-amber-400' : 'h-full bg-[var(--cos-accent)]'}
-            style={{ width: `${Math.min(100, bar.pct)}%` }}
-          />
+    <section className={['glass-card rounded-xl border p-4 transition-all duration-300 relative overflow-hidden flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-xl group', borderClass].join(' ')}>
+      <div>
+        <div className="mb-2.5 flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold text-[var(--cos-muted)] group-hover:text-[var(--cos-text)] transition-colors">
+          <Icon size={12} aria-hidden />
+          {label}
         </div>
-      )}
+        <div className={['font-mono text-3xl font-extrabold leading-none', toneClass].join(' ')}>{value}</div>
+      </div>
+      <div className="mt-3">
+        {hint && <div className="text-[10px] font-medium text-[var(--cos-faint)]">{hint}</div>}
+        {bar && (
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/5">
+            <div
+              className={bar.warn ? 'h-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'h-full bg-[var(--cos-accent)] shadow-[0_0_8px_var(--cos-accent)]'}
+              style={{ width: `${Math.min(100, bar.pct)}%` }}
+            />
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -689,14 +789,14 @@ function PanelCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex min-h-[260px] flex-col rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3">
-      <header className="mb-2 flex items-center gap-2 border-b border-[var(--cos-border)]/60 pb-1.5">
-        <Icon size={13} aria-hidden className="text-[var(--cos-muted)]" />
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--cos-text)]">
+    <section className="glass-card flex min-h-[280px] flex-col rounded-xl border border-white/5 p-4 transition-all duration-300 hover:shadow-2xl">
+      <header className="mb-3.5 flex items-center gap-2 border-b border-white/5 pb-2.5">
+        <Icon size={14} aria-hidden className="text-[var(--cos-muted)]" />
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--cos-text)]">
           {title}
         </h2>
         {link && (
-          <Link to={link} className="ml-auto text-[10px] text-[var(--cos-accent)] hover:underline">
+          <Link to={link} className="ml-auto text-[10px] font-bold uppercase tracking-wider text-[var(--cos-accent)] hover:opacity-85">
             {linkLabel ?? 'open →'}
           </Link>
         )}

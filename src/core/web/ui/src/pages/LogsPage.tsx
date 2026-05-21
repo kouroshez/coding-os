@@ -52,6 +52,32 @@ function ExtrasCell({ event }: { event: LogEvent }) {
   );
 }
 
+interface GroupedEvent {
+  event: LogEvent;
+  count: number;
+  allEvents: LogEvent[];
+}
+
+function groupConsecutiveEvents(events: LogEvent[]): GroupedEvent[] {
+  const grouped: GroupedEvent[] = [];
+  for (const e of events) {
+    if (grouped.length > 0) {
+      const lastGroup = grouped[grouped.length - 1];
+      if (lastGroup.event.scope === e.scope && lastGroup.event.msg === e.msg) {
+        lastGroup.count += 1;
+        lastGroup.allEvents.push(e);
+        continue;
+      }
+    }
+    grouped.push({
+      event: e,
+      count: 1,
+      allEvents: [e],
+    });
+  }
+  return grouped;
+}
+
 export default function LogsPage() {
   const [level, setLevel] = useState<LevelFloor>('debug');
   const [scope, setScope] = useState('');
@@ -60,6 +86,7 @@ export default function LogsPage() {
   const [limit, setLimit] = useState(200);
   const [liveTail, setLiveTail] = useState(false);
   const [liveEvents, setLiveEvents] = useState<LogEvent[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
   const sourceRef = useRef<EventSource | null>(null);
 
   const params = useMemo(() => {
@@ -110,6 +137,15 @@ export default function LogsPage() {
     };
   }, [liveTail, level, scope, search]);
 
+  // Reset expanded states when log data changes
+  useEffect(() => {
+    setExpandedGroups({});
+  }, [liveTail, level, scope, search, since, limit]);
+
+  const toggleGroup = (idx: number) => {
+    setExpandedGroups((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
   const events = liveTail ? liveEvents : recent.data?.events ?? [];
   const count = events.length;
   const logPath = recent.data?.log_path ?? '';
@@ -122,48 +158,48 @@ export default function LogsPage() {
         subtitle="Structured agent + server activity from .cos.log.jsonl — filter by level, scope (glob), substring, or relative window."
       />
 
-      <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-6">
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+      <section className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-6 bg-[var(--cos-panel)]/40 backdrop-blur-md border border-[var(--cos-border)]/30 rounded-2xl p-4">
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] font-mono">
           level floor
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as LevelFloor)}
-            className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1 font-mono text-xs text-[var(--cos-text)]"
+            className="rounded-xl border border-[var(--cos-border)]/60 bg-[var(--cos-panel)] px-3 py-1.5 font-mono text-xs text-[var(--cos-text)] focus:border-[var(--cos-accent)] focus:outline-none"
           >
             {LEVELS.map((lv) => (
               <option key={lv} value={lv}>{lv}</option>
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] font-mono">
           scope (glob)
           <input
             value={scope}
             onChange={(e) => setScope(e.target.value)}
             placeholder="hook.* / core.*"
-            className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1 font-mono text-xs text-[var(--cos-text)]"
+            className="rounded-xl border border-[var(--cos-border)]/60 bg-[var(--cos-panel)] px-3 py-1.5 font-mono text-xs text-[var(--cos-text)] placeholder:text-[var(--cos-muted)] focus:border-[var(--cos-accent)] focus:outline-none"
           />
         </label>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] font-mono">
           msg substring
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="match…"
-            className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1 font-mono text-xs text-[var(--cos-text)]"
+            className="rounded-xl border border-[var(--cos-border)]/60 bg-[var(--cos-panel)] px-3 py-1.5 font-mono text-xs text-[var(--cos-text)] placeholder:text-[var(--cos-muted)] focus:border-[var(--cos-accent)] focus:outline-none"
           />
         </label>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] font-mono">
           since (duration)
           <input
             value={since}
             onChange={(e) => setSince(e.target.value)}
             placeholder="10m / 1h"
             disabled={liveTail}
-            className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1 font-mono text-xs text-[var(--cos-text)] disabled:opacity-50"
+            className="rounded-xl border border-[var(--cos-border)]/60 bg-[var(--cos-panel)] px-3 py-1.5 font-mono text-xs text-[var(--cos-text)] placeholder:text-[var(--cos-muted)] disabled:opacity-50 focus:border-[var(--cos-accent)] focus:outline-none"
           />
         </label>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-[var(--cos-muted)] font-mono">
           limit
           <input
             type="number"
@@ -172,7 +208,7 @@ export default function LogsPage() {
             value={limit}
             disabled={liveTail}
             onChange={(e) => setLimit(Math.max(1, Math.min(2000, Number(e.target.value) || 1)))}
-            className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1 font-mono text-xs text-[var(--cos-text)] disabled:opacity-50"
+            className="rounded-xl border border-[var(--cos-border)]/60 bg-[var(--cos-panel)] px-3 py-1.5 font-mono text-xs text-[var(--cos-text)] disabled:opacity-50 focus:border-[var(--cos-accent)] focus:outline-none"
           />
         </label>
         <div className="flex items-end">
@@ -180,13 +216,13 @@ export default function LogsPage() {
             type="button"
             onClick={() => setLiveTail((v) => !v)}
             className={[
-              'h-[30px] w-full rounded px-3 font-mono text-xs font-semibold',
+              'h-[34px] w-full rounded-xl font-mono text-xs font-semibold transition-all duration-150',
               liveTail
-                ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/50'
-                : 'bg-[var(--cos-grain)] text-[var(--cos-text)] ring-1 ring-[var(--cos-border)] hover:bg-[var(--cos-panel)]',
+                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-md shadow-emerald-500/5 hover:bg-emerald-500/30'
+                : 'bg-[var(--cos-panel)] text-[var(--cos-text)] border border-[var(--cos-border)]/70 hover:border-[var(--cos-accent)] hover:text-[var(--cos-accent)] hover:-translate-y-px active:translate-y-0',
             ].join(' ')}
           >
-            {liveTail ? 'live · click to stop' : 'tail live'}
+            {liveTail ? 'live · stop' : 'tail live'}
           </button>
         </div>
       </section>
@@ -218,36 +254,83 @@ export default function LogsPage() {
               </tr>
             </thead>
             <tbody>
-              {events.map((event, idx) => (
-                <tr
-                  key={`${event.ts}-${idx}`}
-                  className="border-t border-[var(--cos-border)]/40 align-top text-xs"
-                >
-                  <td className="px-3 py-1.5 font-mono text-[11px] text-[var(--cos-muted)]">
-                    {shortTime(event.ts)}
-                  </td>
-                  <td className="px-3 py-1.5 font-mono text-[11px]">
-                    <span
-                      className="rounded px-1.5 py-0.5 font-semibold"
-                      style={{
-                        color: LEVEL_COLORS[event.lvl] ?? 'inherit',
-                        background: `${LEVEL_COLORS[event.lvl] ?? '#888'}22`,
-                      }}
+              {(() => {
+                const grouped = groupConsecutiveEvents(events);
+                return grouped.flatMap((group, idx) => {
+                  const isExpanded = expandedGroups[idx];
+                  const rows = [];
+                  rows.push(
+                    <tr
+                      key={`${group.event.ts}-${idx}-primary`}
+                      className="border-t border-[var(--cos-border)]/40 align-top text-xs hover:bg-[var(--cos-panel)]/40"
                     >
-                      {event.lvl}
-                    </span>
-                  </td>
-                  <td className="truncate px-3 py-1.5 font-mono text-[11px] text-[var(--cos-text)]" title={event.scope}>
-                    {event.scope}
-                  </td>
-                  <td className="break-words px-3 py-1.5 text-[var(--cos-text)]">
-                    {event.msg}
-                  </td>
-                  <td className="px-3 py-1.5 align-top">
-                    <ExtrasCell event={event} />
-                  </td>
-                </tr>
-              ))}
+                      <td className="px-3 py-2 font-mono text-[11px] text-[var(--cos-muted)]">
+                        {shortTime(group.event.ts)}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-[11px]">
+                        <span
+                          className="rounded-lg px-2 py-0.5 font-mono text-[10px] font-semibold"
+                          style={{
+                            color: LEVEL_COLORS[group.event.lvl] ?? 'inherit',
+                            background: `${LEVEL_COLORS[group.event.lvl] ?? '#888'}18`,
+                          }}
+                        >
+                          {group.event.lvl}
+                        </span>
+                      </td>
+                      <td className="truncate px-3 py-2 font-mono text-[11px] text-[var(--cos-muted)]" title={group.event.scope}>
+                        {group.event.scope}
+                      </td>
+                      <td className="break-words px-3 py-2 text-[var(--cos-text)]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{group.event.msg}</span>
+                          {group.count > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleGroup(idx)}
+                              className="inline-flex items-center cursor-pointer rounded-full bg-[var(--cos-accent)]/10 border border-[var(--cos-accent)]/20 px-2 py-0.5 text-[9px] font-mono font-semibold text-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/20 transition-all select-none focus:outline-none"
+                            >
+                              {isExpanded ? '▼ hide repeats' : `▶ +${group.count - 1} repeated`}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <ExtrasCell event={group.event} />
+                      </td>
+                    </tr>
+                  );
+
+                  if (isExpanded && group.count > 1) {
+                    group.allEvents.slice(1).forEach((subEv, subIdx) => {
+                      rows.push(
+                        <tr
+                          key={`${subEv.ts}-${idx}-sub-${subIdx}`}
+                          className="bg-[var(--cos-bg)]/20 border-t border-[var(--cos-border)]/20 align-top text-xs opacity-80 hover:opacity-100"
+                        >
+                          <td className="pl-6 pr-3 py-1.5 font-mono text-[11px] text-[var(--cos-muted)]">
+                            ↳ {shortTime(subEv.ts)}
+                          </td>
+                          <td className="px-3 py-1.5 font-mono text-[11px] opacity-60">
+                            {subEv.lvl}
+                          </td>
+                          <td className="truncate px-3 py-1.5 font-mono text-[11px] text-[var(--cos-muted)]" title={subEv.scope}>
+                            {subEv.scope}
+                          </td>
+                          <td className="break-words px-3 py-1.5 text-[var(--cos-muted)] italic">
+                            {subEv.msg}
+                          </td>
+                          <td className="px-3 py-1.5 align-top">
+                            <ExtrasCell event={subEv} />
+                          </td>
+                        </tr>
+                      );
+                    });
+                  }
+
+                  return rows;
+                });
+              })()}
             </tbody>
           </table>
         )}

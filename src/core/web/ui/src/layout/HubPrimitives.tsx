@@ -173,13 +173,29 @@ export function EmptyState({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-gradient-to-br from-[var(--cos-panel)] to-[var(--cos-panel)]/40 p-10">
-      <div className="mx-auto max-w-xl text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-bg)]/60 text-[var(--accent)]">
+    <div className="glass-card relative overflow-hidden rounded-3xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/60 p-12 backdrop-blur-xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--accent)]/5">
+      {/* Premium subtle glowing background vectors */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 -top-20 -z-10 h-72 w-72 rounded-full opacity-20 blur-[80px]"
+        style={{
+          background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-20 -bottom-20 -z-10 h-72 w-72 rounded-full opacity-10 blur-[80px]"
+        style={{
+          background: 'radial-gradient(circle, var(--cos-accent, var(--accent)) 0%, transparent 70%)',
+        }}
+      />
+      
+      <div className="mx-auto max-w-lg text-center relative z-10">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--cos-border)] bg-gradient-to-br from-[var(--cos-panel)] to-[var(--cos-bg)] text-[var(--accent)] shadow-inner transition-transform duration-500 hover:rotate-12 hover:scale-105">
           {icon}
         </div>
-        <h2 className="mb-2 text-lg font-semibold text-[var(--cos-text)]">{title}</h2>
-        {children && <div className="text-sm text-[var(--cos-muted)]">{children}</div>}
+        <h2 className="mb-3 text-xl font-bold tracking-tight text-[var(--cos-text)]">{title}</h2>
+        {children && <div className="text-sm leading-relaxed text-[var(--cos-muted)]">{children}</div>}
       </div>
     </div>
   );

@@ -32,12 +32,16 @@ interface RoleOutput {
   output_json?: unknown;
   schema_ok?: boolean | null;
   schema_errors?: string[];
+  chain?: string[];
+  preset_id?: string | null;
 }
 
 interface RoleOutputsPayload {
   formula_id: string;
   outputs: RoleOutput[];
   count: number;
+  executed_count?: number;
+  planned_count?: number;
 }
 
 function formatTs(ts?: number): string {
@@ -153,22 +157,55 @@ export default function RolesPage() {
           <h2 className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
             Evidence ({selectedRole?.formula_id ?? '-'})
           </h2>
-          <p className="text-[var(--cos-muted)]">{outputData?.count ?? 0} recent outputs</p>
+          <p className="text-[var(--cos-muted)]">
+            {outputData?.executed_count ?? 0} executed · {outputData?.planned_count ?? 0} planned
+          </p>
         </header>
         {outputLoading && <p className="p-4 text-sm text-[var(--cos-muted)]">loading outputs...</p>}
         {!outputLoading && (outputData?.outputs?.length ?? 0) === 0 && (
-          <p className="p-4 text-sm text-[var(--cos-muted)]">No outputs recorded yet.</p>
+          <div className="m-4 rounded border border-dashed border-[var(--cos-border)] bg-[var(--cos-panel)] p-4 text-sm">
+            <p className="font-semibold text-[var(--cos-text)]">
+              No traces reference <span className="font-mono">{selectedRole?.formula_id}</span> yet.
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed text-[var(--cos-muted)]">
+              Roles light up when a session calls
+              <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_compose_chain</code>
+              (the chain plan) and then
+              <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_supervise_record_output</code>
+              (the per-role evidence). If you see compose events but no
+              outputs, the formula was planned but never recorded — open
+              the trace timeline and look for the gap.
+            </p>
+            <p className="mt-3 text-[11px] text-[var(--cos-muted)]">
+              Selected agent: <span className="font-mono">{agent}</span> · switch above to
+              check other agents, or visit the Cognition tab to inspect raw traces.
+            </p>
+          </div>
         )}
         <ol className="p-3 space-y-2">
           {outputData?.outputs.map((row) => {
             const link = slug
               ? `/p/${encodeURIComponent(slug)}/cognition/${encodeURIComponent(row.session_id)}`
               : `/cognition/${encodeURIComponent(row.session_id)}`;
+            const isPlanned = row.status === 'planned';
             return (
-              <li key={`${row.agent}:${row.session_id}:${row.output_hash ?? ''}`} className="rounded border border-[var(--cos-border)] p-2">
+              <li
+                key={`${row.agent}:${row.session_id}:${row.output_hash ?? row.ts ?? 'planned'}`}
+                className={[
+                  'rounded border p-2',
+                  isPlanned
+                    ? 'border-amber-500/40 bg-amber-500/5'
+                    : 'border-[var(--cos-border)]',
+                ].join(' ')}
+              >
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-mono font-semibold">{row.agent}</span>
                   <span className="text-[var(--cos-muted)]">{formatTs(row.ts)}</span>
+                  {isPlanned && (
+                    <span className="rounded bg-amber-500/15 px-1 text-[10px] text-amber-300">
+                      planned · awaiting record
+                    </span>
+                  )}
                   {typeof row.schema_ok === 'boolean' && (
                     <span
                       className={[
@@ -183,10 +220,22 @@ export default function RolesPage() {
                     open trace
                   </Link>
                 </div>
-                <div className="mt-1 text-[10px] text-[var(--cos-muted)]">
-                  status: {row.status ?? '-'} - latency: {row.latency_ms ?? 0}ms
-                </div>
-                {row.schema_ok === null && (
+                {isPlanned ? (
+                  <div className="mt-1 text-[10px] text-[var(--cos-muted)]">
+                    chain: <span className="font-mono">{(row.chain ?? []).join(' → ')}</span>
+                    {row.preset_id && (
+                      <>
+                        {' '}· preset:{' '}
+                        <span className="font-mono">{row.preset_id}</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[10px] text-[var(--cos-muted)]">
+                    status: {row.status ?? '-'} · latency: {row.latency_ms ?? 0}ms
+                  </div>
+                )}
+                {row.schema_ok === null && !isPlanned && (
                   <div className="mt-1 text-[10px] text-amber-300">
                     schema n/a: output payload missing from evidence bundle for this session.
                   </div>
@@ -197,7 +246,7 @@ export default function RolesPage() {
                   </pre>
                 )}
                 {row.output_json != null && (
-                  <pre className="mt-2 overflow-auto rounded bg-[var(--cos-panel)] p-2 text-[10px] text-[var(--cos-muted)] cos-scroll">
+                  <pre dir="ltr" className="mt-2 overflow-auto rounded bg-[var(--cos-panel)] p-2 text-[10px] text-[var(--cos-muted)] cos-scroll">
                     {JSON.stringify(row.output_json, null, 2)}
                   </pre>
                 )}

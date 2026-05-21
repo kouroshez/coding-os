@@ -4,7 +4,7 @@ import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { BarList, Gauge, Sparkline, StatTile } from '@/lib/charts';
 import { indexByName, parsePrometheus, type MetricSample } from '@/lib/prometheus-parse';
 
-type Tab = 'overview' | 'health' | 'maintenance';
+type Tab = 'overview' | 'health' | 'maintenance' | 'backend' | 'sqlite';
 
 interface HealthPayload {
   status: 'ok' | 'degraded' | string;
@@ -18,10 +18,26 @@ interface HealthPayload {
   reason?: string;
 }
 
+interface DbHealthPayload {
+  db_path: string;
+  exists: boolean;
+  size_bytes: number;
+  tables: Record<string, number | null | { error: string }>;
+  error?: string;
+}
+
+interface GraphDoctorPayload {
+  ok?: boolean;
+  data?: Record<string, unknown>;
+  [k: string]: unknown;
+}
+
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'health', label: 'Health & charts' },
   { id: 'maintenance', label: 'Maintenance' },
+  { id: 'backend', label: 'Backend' },
+  { id: 'sqlite', label: 'sqlite' },
 ];
 
 const MAX_SAMPLES = 60; // 2 minutes at 2s/poll
@@ -45,7 +61,9 @@ function fmtMs(seconds: number | null | undefined): string {
 
 export default function DoctorPage() {
   const [tab, setTab] = useState<Tab>('overview');
-  const health = useApiGet<HealthPayload>(['health'], '/health', undefined, {
+  // Project-scoped via api-client rewrite — on /p/<slug>/doctor this
+  // becomes /api/p/<slug>/health and the middleware swaps the DB.
+  const health = useApiGet<HealthPayload>(['api-health'], '/api/health', undefined, {
     refetchIntervalMs: 5000,
   });
   return (
@@ -81,12 +99,108 @@ export default function DoctorPage() {
           </button>
         ))}
       </nav>
-      <div className="rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/40 p-5">
+      <div className="p-1">
         {tab === 'overview' && <OverviewTab health={health.data} loading={health.isLoading} error={health.error} />}
         {tab === 'health' && <HealthTab />}
         {tab === 'maintenance' && <MaintenanceTab health={health.data} />}
+        {tab === 'backend' && <BackendTab />}
+        {tab === 'sqlite' && <SqliteTab />}
       </div>
     </PageShell>
+  );
+}
+
+// ----- Backend (graph) ----------------------------------------------
+function BackendTab() {
+  const doctor = useApiGet<GraphDoctorPayload>(['api-graph-doctor'], '/api/graph/doctor', undefined, {
+    refetchIntervalMs: 10000,
+  });
+  if (doctor.isLoading) return <p className="text-xs text-[var(--cos-muted)]">probing graph backend…</p>;
+  if (doctor.error) return <p className="text-xs text-rose-400">{doctor.error.message}</p>;
+  const data = (doctor.data?.data ?? doctor.data ?? {}) as Record<string, unknown>;
+  if (!data || Object.keys(data).length === 0) {
+    return <p className="text-xs text-[var(--cos-muted)]">graph_os backend reported no data.</p>;
+  }
+  const flat = Object.entries(data).filter(([, v]) => typeof v !== 'object' || v === null);
+  const nested = Object.entries(data).filter(([, v]) => typeof v === 'object' && v !== null);
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <Section title="Backend report" cols="md:col-span-2">
+        <table className="w-full text-[11px]">
+          <tbody>
+            {flat.map(([k, v]) => (
+              <tr key={k} className="border-b border-[var(--cos-border)]">
+                <td className="py-1 pr-2 text-[var(--cos-muted)]">{k}</td>
+                <td className="py-1 pr-2 font-mono text-[var(--cos-text)]">{String(v)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+      {nested.map(([k, v]) => (
+        <Section key={k} title={k}>
+          <pre dir="ltr" className="cos-scroll max-h-64 overflow-auto rounded bg-[var(--cos-bg)] p-2 text-[10px] leading-tight">
+            {JSON.stringify(v, null, 2)}
+          </pre>
+        </Section>
+      ))}
+    </div>
+  );
+}
+
+// ----- sqlite (per-project DB row counts) ---------------------------
+function SqliteTab() {
+  const db = useApiGet<DbHealthPayload>(['api-health-db'], '/api/health/db', undefined, {
+    refetchIntervalMs: 10000,
+  });
+  if (db.isLoading) return <p className="text-xs text-[var(--cos-muted)]">reading sqlite…</p>;
+  if (db.error) return <p className="text-xs text-rose-400">{db.error.message}</p>;
+  if (!db.data) return null;
+  const tables = Object.entries(db.data.tables ?? {});
+  const presentTables = tables.filter(([, v]) => typeof v === 'number');
+  const totalRows = presentTables.reduce((acc, [, v]) => acc + (v as number), 0);
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <StatTile label="DB present" value={db.data.exists ? 'yes' : 'no'} tone={db.data.exists ? 'ok' : 'danger'} />
+      <StatTile label="Size" value={db.data.exists ? `${(db.data.size_bytes / 1024).toFixed(1)} kB` : '—'} tone="neutral" />
+      <StatTile label="Tables present" value={presentTables.length} tone={presentTables.length > 0 ? 'ok' : 'warn'} />
+      <StatTile label="Total rows" value={totalRows} tone="neutral" />
+      <Section title="Rows by table" cols="md:col-span-4">
+        {tables.length === 0 ? (
+          <p className="text-[11px] text-[var(--cos-muted)]">no tables reported.</p>
+        ) : (
+          <table className="w-full text-[11px]">
+            <thead className="text-left text-[var(--cos-muted)]">
+              <tr>
+                <th className="py-1 pr-2">table</th>
+                <th className="py-1 pr-2 text-right">rows</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tables.map(([t, v]) => {
+                const isError = typeof v === 'object' && v !== null && 'error' in v;
+                const missing = v == null;
+                const display = missing
+                  ? <span className="text-[var(--cos-faint)]">absent</span>
+                  : isError
+                  ? <span className="text-rose-400">{(v as { error: string }).error}</span>
+                  : <span className="font-mono">{String(v)}</span>;
+                return (
+                  <tr key={t}>
+                    <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{t}</td>
+                    <td className="border-t border-[var(--cos-border)] py-1 pr-2 text-right">{display}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </Section>
+      <Section title="DB path" cols="md:col-span-4">
+        <p dir="ltr" className="break-all font-mono text-[10px] text-[var(--cos-muted)]">{db.data.db_path}</p>
+        {db.data.error && <p className="mt-1 text-[10px] text-rose-400">{db.data.error}</p>}
+      </Section>
+    </div>
   );
 }
 
@@ -433,8 +547,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className={['rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3 text-xs', cols ?? ''].join(' ')}>
-      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--cos-muted)]">{title}</h3>
+    <section className={['glass-card rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50 p-5 text-xs transition-all duration-200 hover:-translate-y-0.5 shadow-sm', cols ?? ''].join(' ')}>
+      <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--accent)]">{title}</h3>
       {children}
     </section>
   );
@@ -442,9 +556,9 @@ function Section({
 
 function Row({ k, v, danger }: { k: string; v: string; danger?: boolean }) {
   return (
-    <div className="flex justify-between gap-2 text-[11px]">
-      <span className="text-[var(--cos-muted)]">{k}</span>
-      <span className={danger ? 'font-mono text-rose-400' : 'font-mono'}>{v}</span>
+    <div className="flex justify-between items-center py-2 border-b border-[var(--cos-border)] last:border-b-0 text-[11px]">
+      <span className="text-[var(--cos-muted)] font-medium">{k}</span>
+      <span className={danger ? 'font-mono text-rose-400 glow-rose font-semibold' : 'font-mono text-[var(--cos-text)] font-semibold'}>{v}</span>
     </div>
   );
 }

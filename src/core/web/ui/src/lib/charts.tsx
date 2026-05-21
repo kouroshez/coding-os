@@ -176,24 +176,26 @@ export function StatTile({
 }) {
   const accent =
     tone === 'ok' ? PALETTE.ok : tone === 'warn' ? PALETTE.warn : tone === 'danger' ? PALETTE.danger : PALETTE.line;
+  const glowClass =
+    tone === 'ok' ? 'glow-emerald' : tone === 'warn' ? 'glow-amber' : tone === 'danger' ? 'glow-rose' : '';
   const trendStr = trend == null ? null : trend === 0 ? '0%' : `${trend > 0 ? '+' : ''}${trend.toFixed(1)}%`;
   const trendColor = trend == null ? PALETTE.muted : trend > 0 ? PALETTE.ok : trend < 0 ? PALETTE.danger : PALETTE.muted;
   return (
-    <div className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--cos-muted)]">{label}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl font-bold" style={{ color: accent }}>
+    <div className="glass-card rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--cos-muted)]">{label}</div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className={`text-2xl font-extrabold tracking-tight ${glowClass}`} style={{ color: accent }}>
           {value}
         </span>
         {trendStr && (
-          <span className="text-[10px] font-mono" style={{ color: trendColor }}>
+          <span className="text-[10px] font-mono font-semibold" style={{ color: trendColor }}>
             {trendStr}
           </span>
         )}
       </div>
       {spark && spark.length > 1 && (
-        <div className="mt-2">
-          <Sparkline data={spark} width={150} height={28} stroke={accent} fill={`${accent}22`} label={`${label} trend`} />
+        <div className="mt-3">
+          <Sparkline data={spark} width={150} height={28} stroke={accent} fill={`${accent}15`} label={`${label} trend`} />
         </div>
       )}
     </div>
