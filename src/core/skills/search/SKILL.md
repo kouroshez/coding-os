@@ -1,5 +1,7 @@
 ---
 name: search
+tier: exploration
+domain: [universal]
 description: 'Use for ANY search, find, replace, or rename operation across a codebase — text literals, code symbols, semantic concepts, docs, or tasks. INVOKE BEFORE grep, before rename, before "find all X", before any cross-cutting edit. Enforces ground-truth counting before edits so nothing gets missed. Triggers — "find all", "rename X to Y", "replace everywhere", "where is X used", "update all references", "search for", "grep for", "change X to Y in all files", refactor, rename, cross-cutting edits.'
 last_reviewed: "2026-05-11"
 

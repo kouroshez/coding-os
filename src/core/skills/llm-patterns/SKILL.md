@@ -1,5 +1,7 @@
 ---
 name: llm-patterns
+tier: cross-cutting
+domain: [backend]
 description: Patterns for building production-grade LLM features — prompt engineering, retrieval-augmented generation (RAG), evaluation harnesses, guardrails, cost control, hallucination mitigation, structured output, agentic loops. Stack-agnostic; recipes target Anthropic Claude (Opus 4.7 / Sonnet 4.6 / Haiku 4.5) and OpenAI as the two reference providers. Use when adding an LLM feature, designing a RAG system, writing an eval suite, or hardening an agent loop. Pairs with claude-sdk-integration (raw Claude SDK) and observability (LLM telemetry).
 last_reviewed: "2026-05-11"
 ---

@@ -1,5 +1,7 @@
 ---
 name: a11y
+tier: cross-cutting
+domain: [frontend, mobile]
 description: Accessibility (a11y) for web + mobile per WCAG 2.2 AA. Use when writing or reviewing UI code (React, React Native, Vue, Svelte) — screens, components, forms, modals, toasts, navigation. Covers semantic HTML / RN AccessibilityInfo props, ARIA patterns (use natives first), keyboard navigation, focus management, screen reader testing (VoiceOver / TalkBack / NVDA), color contrast, motion sensitivity, accessible forms with error handling, live regions, automated tooling (axe-core, Lighthouse, Playwright). Pairs with frontend-fundamentals (generic UI patterns).
 last_reviewed: "2026-05-11"
 

@@ -1,5 +1,7 @@
 ---
 name: frontend-fundamentals
+tier: layer
+domain: [frontend, mobile]
 description: Stack-agnostic frontend patterns. Use when writing or modifying any UI code (React, React Native, Vue, Svelte) regardless of framework. Covers three-state async UI, loading/error/empty handling, client vs server components, hydration safety, accessibility, performance, SEO basics, and state management patterns.
 globs: "frontend/**/*"
 paths: ["frontend/**/*"]

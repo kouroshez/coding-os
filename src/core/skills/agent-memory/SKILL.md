@@ -1,5 +1,7 @@
 ---
 name: agent-memory
+tier: workflow
+domain: [universal]
 description: Mechanical recipes for writing to and reading from agent memory (cross-session patterns, decisions, failure modes) via the cos_observation_record / cos_search / cos_learn_* tool family. Use when capturing a breakthrough, replaying a past pattern in a new session, tuning confidence scores, or composing the learn-extract → learn-suggest → learn-validate loop. Pairs with src/core/rules/memory.md (policy), thinking_os (when in the Cognitive Cycle to invoke), and search (which retrieval layer to hit first).
 last_reviewed: "2026-05-11"
 ---

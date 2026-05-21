@@ -1,5 +1,7 @@
 ---
 name: performance
+tier: cross-cutting
+domain: [performance]
 description: Application performance for backend (Go+Fiber, Python+FastAPI), web frontends, and React Native mobile clients. Use when measuring or improving Web Vitals (LCP / INP / CLS), mobile FPS / TTI / memory, image/font/code-split optimization, profiling, or interpreting Lighthouse / Reanimated / Hermes / Flipper traces. Pairs with frontend-fundamentals + react-native-patterns + db-design.
 last_reviewed: "2026-05-11"
 

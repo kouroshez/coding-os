@@ -1,5 +1,7 @@
 ---
 name: security-web
+tier: cross-cutting
+domain: [security]
 description: Server-side / API-side security per OWASP Top-10 (2025 release). Use when writing or reviewing backend code (Go+Fiber business core, Python+FastAPI AI adapter, Node) for broken access control, security misconfiguration, supply-chain failures, cryptographic mistakes, injection, insecure design, authentication failures, integrity failures, logging/alerting gaps, mishandling of exceptional conditions, plus SSRF/CSRF/XXE/SSTI/secrets/headers (CSP/HSTS/COOP/COEP) and JWT pitfalls. Pairs with auth-patterns and security-mobile.
 last_reviewed: "2026-05-11"
 

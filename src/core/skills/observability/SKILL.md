@@ -1,5 +1,7 @@
 ---
 name: observability
+tier: cross-cutting
+domain: [infra]
 description: Production observability done right — structured logs, distributed traces, metrics, alerting, SLO/SLI. Use when adding logging to a new service, designing dashboards, choosing between OpenTelemetry / Datadog / Grafana stack, defining SLOs for a feature, writing alert rules, or untangling a noisy alert channel. Stack-agnostic; recipes target OpenTelemetry as the canonical instrumentation, Prometheus + Grafana / Datadog as the canonical backends. Pairs with performance (perf budgets), security-web (audit logs), and incident-response (alert → runbook).
 last_reviewed: "2026-05-11"
 ---

@@ -1,5 +1,7 @@
 ---
 name: codebase-explorer
+tier: exploration
+domain: [universal]
 description: Conceptual code-reading for unfamiliar areas — trace a feature, follow a data flow, understand a domain. Use when the question is conceptual ("how does auth work?", "what happens when a user buys X?"); for symbol-precise queries (callers, blast radius, rename) use graph-explorer instead. The two are complementary — codebase-explorer reads code as prose; graph-explorer queries it as a graph.
 context: fork
 allowed-tools:

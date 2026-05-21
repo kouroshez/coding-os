@@ -1,5 +1,7 @@
 ---
 name: deployment-cicd
+tier: cross-cutting
+domain: [infra]
 description: Production-ready CI/CD pipelines, container images, and release patterns. Use when designing a CI pipeline, writing Dockerfiles, choosing between blue-green / canary / rolling, setting up semantic versioning, defining a rollback playbook, or migrating from manual deploys to GitOps. Stack-agnostic; recipes target GitHub Actions, Docker, Kubernetes, and the major cloud providers. Pairs with observability (deploy markers in metrics) and incident-response (rollback playbook).
 last_reviewed: "2026-05-11"
 ---

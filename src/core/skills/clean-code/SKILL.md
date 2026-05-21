@@ -1,5 +1,7 @@
 ---
 name: clean-code
+tier: quality
+domain: [universal]
 description: Universal coding principles applied on every code change — fail-closed error handling, self-documenting code, edge-case awareness, and test coverage for error paths. Stack-agnostic; covers Python, TypeScript/JavaScript, Go, and any other language. Triggers on every commit that touches code files.
 globs: "**/*.{py,ts,tsx,js,jsx,go,rs,java,kt,swift,rb}"
 context: fork

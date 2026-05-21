@@ -1,5 +1,7 @@
 ---
 name: incident-response
+tier: workflow
+domain: [infra]
 description: Production incident handling — severity classification, runbook execution, communication, postmortem. Use when something is on fire (CHAOTIC quadrant), when designing a runbook before launch, after an incident to drive the postmortem, or to define the SEV scale + on-call rotation. Pairs with observability (alerts → runbook) and thinking_os (CHAOTIC routing) and deployment-cicd (rollback as the most-used incident action).
 last_reviewed: "2026-05-11"
 ---

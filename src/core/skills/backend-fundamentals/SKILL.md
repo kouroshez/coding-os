@@ -1,5 +1,7 @@
 ---
 name: backend-fundamentals
+tier: layer
+domain: [backend]
 description: Stack-agnostic backend patterns. Use when writing or modifying any server-side code (HTTP handler, DB query, background job, auth/middleware, webhook) regardless of language or framework. Covers services/selectors split, idempotency, error envelopes, migration discipline, N+1 avoidance, scale-aware design, auth guardrails, and logging hygiene.
 globs: "backend/**/*"
 paths: ["backend/**/*"]

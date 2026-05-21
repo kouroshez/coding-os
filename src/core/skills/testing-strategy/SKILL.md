@@ -1,5 +1,7 @@
 ---
 name: testing-strategy
+tier: quality
+domain: [universal]
 description: Choose the right test type for every change — unit, integration, contract, end-to-end, property-based, mutation, fuzz. Use when adding tests to a new feature, deciding what to test for a bug fix, designing a test pyramid for a service, evaluating coverage targets, or untangling a slow test suite. Stack-agnostic; concrete recipes target Python (pytest), TypeScript (Vitest/Jest/Playwright), and Go (table tests + testify). Pairs with clean-code (error-path tests) and observability (CI signal hygiene).
 last_reviewed: "2026-05-11"
 ---

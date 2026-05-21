@@ -1,5 +1,7 @@
 ---
 name: graph-explorer
+tier: exploration
+domain: [universal]
 description: Navigate the graph_os knowledge graph before editing load-bearing code. Use when tracing dependencies, planning a rename, auditing API surface, or answering "what breaks if I change this?". Pairs with codebase-explorer — graph-explorer wins for symbol-precise queries, codebase-explorer wins for conceptual code-reading.
 last_reviewed: "2026-05-11"
 

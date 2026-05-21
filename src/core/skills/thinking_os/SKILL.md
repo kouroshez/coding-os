@@ -1,5 +1,7 @@
 ---
 name: thinking_os
+tier: methodology
+domain: [universal]
 description: >
   Cognitive operating system for structured problem solving. Use when
   designing features, planning projects, debugging issues, implementing

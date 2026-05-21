@@ -1,5 +1,7 @@
 ---
 name: task-driver
+tier: workflow
+domain: [governance]
 description: Use when creating, modifying, or transitioning Scrumban tasks in docs/tasks/. Triggers on "create a task", "move task", "start task X", "what's blocked", "daily standup", "retro", or any edit to docs/tasks/TASK-*.md.
 phase: L
 last_reviewed: "2026-05-11"
