@@ -167,6 +167,10 @@ jobs:
       - name: docs-lint
         run: make docs-lint || true
         # Informational-only for first stable release.
+      - name: OpenAPI snapshot in sync
+        run: uv run python src/scripts/dump_openapi.py --check
+        # Required: a drifted Hub API contract must regenerate the
+        # snapshot (python src/scripts/dump_openapi.py) before merge.
 
   # ============================================================
   # Required-checks gate — every job above must succeed.

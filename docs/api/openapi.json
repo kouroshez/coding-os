@@ -1,0 +1,5644 @@
+{
+  "components": {
+    "schemas": {
+      "Body_board_create_api_board_create_post": {
+        "properties": {
+          "agent_session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Session"
+          },
+          "appetite": {
+            "default": "1d",
+            "title": "Appetite",
+            "type": "string"
+          },
+          "depends_on": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depends On"
+          },
+          "epic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Epic"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "priority": {
+            "default": "P2",
+            "title": "Priority",
+            "type": "string"
+          },
+          "read_first": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read First"
+          },
+          "status": {
+            "default": "icebox",
+            "title": "Status",
+            "type": "string"
+          },
+          "swimlane": {
+            "title": "Swimlane",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "swimlane",
+          "kind"
+        ],
+        "title": "Body_board_create_api_board_create_post",
+        "type": "object"
+      },
+      "Body_board_move_api_board_move_post": {
+        "properties": {
+          "agent_session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Session"
+          },
+          "bypass_wip": {
+            "default": false,
+            "title": "Bypass Wip",
+            "type": "boolean"
+          },
+          "force": {
+            "default": false,
+            "title": "Force",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "to"
+        ],
+        "title": "Body_board_move_api_board_move_post",
+        "type": "object"
+      },
+      "Body_board_reposition_api_board_reposition_post": {
+        "properties": {
+          "agent_session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Session"
+          },
+          "bypass_wip": {
+            "default": false,
+            "title": "Bypass Wip",
+            "type": "boolean"
+          },
+          "force": {
+            "default": false,
+            "title": "Force",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "swimlane": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Swimlane"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "title": "Body_board_reposition_api_board_reposition_post",
+        "type": "object"
+      },
+      "Body_hub_registry_add_api_hub_registry_add_post": {
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "Body_hub_registry_add_api_hub_registry_add_post",
+        "type": "object"
+      },
+      "Body_hub_registry_gc_api_hub_registry_gc_post": {
+        "properties": {
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          }
+        },
+        "title": "Body_hub_registry_gc_api_hub_registry_gc_post",
+        "type": "object"
+      },
+      "Body_hub_registry_scan_api_hub_registry_scan_post": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "max_depth": {
+            "default": 6,
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "root": {
+            "title": "Root",
+            "type": "string"
+          }
+        },
+        "required": [
+          "root"
+        ],
+        "title": "Body_hub_registry_scan_api_hub_registry_scan_post",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "properties": {
+          "category": {
+            "description": "Error class: validation | permission | not_found | transient | unavailable | internal.",
+            "title": "Category",
+            "type": "string"
+          },
+          "message": {
+            "description": "Human-readable explanation.",
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "default": false,
+            "description": "True when the caller may safely retry after a short delay.",
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "category",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "description": "Standard error envelope returned for all 4xx/5xx responses.",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "_BudgetCapIn": {
+        "properties": {
+          "cap_usd": {
+            "title": "Cap Usd",
+            "type": "number"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "cap_usd"
+        ],
+        "title": "_BudgetCapIn",
+        "type": "object"
+      },
+      "_PatchBody": {
+        "properties": {
+          "budget_cap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_BudgetCapIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trace_rotation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_TraceRotationIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "_PatchBody",
+        "type": "object"
+      },
+      "_TraceRotationIn": {
+        "properties": {
+          "delete_age_days": {
+            "title": "Delete Age Days",
+            "type": "integer"
+          },
+          "gzip_age_days": {
+            "title": "Gzip Age Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gzip_age_days",
+          "delete_age_days"
+        ],
+        "title": "_TraceRotationIn",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Unified HTTP backbone for graph_os + board_os + cognition + search.\n\nAll routes follow the MCP envelope contract — `{data, meta}` on 2xx, `{error: {category, message, retryable}}` on 4xx/5xx. See `docs/engineering/mcp-error-envelope.md`.",
+    "title": "Coding OS Web API",
+    "version": "0.4.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/audits": {
+      "get": {
+        "description": "List all audit artifacts with their progress state.\n\nOptional `status` filter narrows to e.g. status=in_progress.",
+        "operationId": "list_audits_api_audits_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Status",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response List Audits Api Audits Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Audits",
+        "tags": [
+          "audits"
+        ]
+      }
+    },
+    "/api/audits/{audit_id}": {
+      "get": {
+        "description": "Full markdown body for one audit_id.",
+        "operationId": "get_audit_api_audits__audit_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "audit_id",
+            "required": true,
+            "schema": {
+              "title": "Audit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Audit Api Audits  Audit Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audit",
+        "tags": [
+          "audits"
+        ]
+      }
+    },
+    "/api/board/config": {
+      "get": {
+        "description": "Return scrumban-config swimlanes + WIP caps + status column ids for the SPA.",
+        "operationId": "board_config_api_board_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Config",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/create": {
+      "post": {
+        "description": "Create a new Scrumban task file + sync to DB.",
+        "operationId": "board_create_api_board_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_board_create_api_board_create_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Create",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/daily": {
+      "get": {
+        "description": "Daily standup summary.",
+        "operationId": "board_daily_api_board_daily_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "default": "24h",
+              "title": "Since",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Daily",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/list": {
+      "get": {
+        "description": "Return the board state grouped by (swimlane, status).",
+        "operationId": "board_list_api_board_list_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "swimlane",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Swimlane"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "epic",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Epic"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archive",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board List",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/move": {
+      "post": {
+        "description": "Transition a task through the Scrumban state machine.",
+        "operationId": "board_move_api_board_move_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_board_move_api_board_move_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Move",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/pick": {
+      "get": {
+        "description": "Top candidate tasks to start next.",
+        "operationId": "board_pick_api_board_pick_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "swimlane",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Swimlane"
+            }
+          },
+          {
+            "in": "query",
+            "name": "priority_min",
+            "required": false,
+            "schema": {
+              "default": "P2",
+              "title": "Priority Min",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_candidates",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "title": "Max Candidates",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Pick",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/reposition": {
+      "post": {
+        "description": "HTTP wrapper for cos_task_reposition (status and/or swimlane).",
+        "operationId": "board_reposition_api_board_reposition_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_board_reposition_api_board_reposition_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Reposition",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/retro": {
+      "get": {
+        "description": "Weekly retrospective metrics.",
+        "operationId": "board_retro_api_board_retro_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "default": "7d",
+              "title": "Since",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Retro",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/task/{task_id}": {
+      "get": {
+        "description": "Return the full markdown content + resolved metadata for one task.",
+        "operationId": "board_task_detail_api_board_task__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Task Detail",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/wip": {
+      "get": {
+        "description": "WIP cap health check.",
+        "operationId": "board_wip_api_board_wip_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Board Wip",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/cognition/analyze": {
+      "get": {
+        "description": "Analyze a task via cos_analyze_task.",
+        "operationId": "cognition_analyze_api_cognition_analyze_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "task_description",
+            "required": true,
+            "schema": {
+              "title": "Task Description",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "complexity_hint",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Complexity Hint"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Cognition Analyze",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/chat/{session_id}": {
+      "get": {
+        "description": "Return a Claude SDK session's metadata + parsed messages.",
+        "operationId": "get_chat_api_cognition_chat__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 5000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Get Chat",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/chat/{session_id}/send": {
+      "post": {
+        "description": "Resume a Claude session with a new prompt; stream events as SSE.\n\nBody: ``{\"prompt\": str, \"fork\": bool=false, \"model\": str|null}``.\nEach SSE event ``data`` payload is a serialized SDK message; ``event``\nfield is one of ``user``, ``assistant``, ``system``, ``result``,\n``stream``, ``rate_limit``, ``error``, ``done``.",
+        "operationId": "chat_send_api_cognition_chat__session_id__send_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Chat Send",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/chats": {
+      "get": {
+        "description": "List Claude Agent SDK chat sessions for the current project.",
+        "operationId": "list_chats_api_cognition_chats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Chats",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/cost": {
+      "get": {
+        "description": "Aggregate dispatch cost rolled up by formula and day (T2.4).",
+        "operationId": "dispatcher_cost_summary_api_cognition_cost_get",
+        "parameters": [
+          {
+            "description": "Filter to one formula",
+            "in": "query",
+            "name": "formula_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to one formula",
+              "title": "Formula Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Dispatcher Cost Summary",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/dispatchers": {
+      "get": {
+        "description": "List recent formula dispatches with telemetry (T19.1).",
+        "operationId": "list_dispatchers_api_cognition_dispatchers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Dispatchers",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/dispatchers/{session_id}/tools": {
+      "get": {
+        "description": "Parse tool_calls_jsonb for one dispatch session (T19.2).",
+        "operationId": "dispatcher_tools_api_cognition_dispatchers__session_id__tools_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Dispatcher Tools",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/trace/{session_id}": {
+      "get": {
+        "description": "Read trace events for a session; fall back to session metadata when no jsonl yet.",
+        "operationId": "get_trace_api_cognition_trace__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Get Trace",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/cognition/traces": {
+      "get": {
+        "description": "List trace + session-only entries with activity sort.",
+        "operationId": "list_traces_api_cognition_traces_get",
+        "parameters": [
+          {
+            "description": "Agent name (e.g. 'claude')",
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Agent name (e.g. 'claude')",
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Traces",
+        "tags": [
+          "cognition"
+        ]
+      }
+    },
+    "/api/graph/communities": {
+      "get": {
+        "description": "Louvain-detected processes for the Hub Search tab grouping (TASK-075).",
+        "operationId": "graph_communities_api_graph_communities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_size",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Min Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Communities",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/context/{uid_or_name}": {
+      "get": {
+        "description": "Return neighbourhood around a node.",
+        "operationId": "graph_context_api_graph_context__uid_or_name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid_or_name",
+            "required": true,
+            "schema": {
+              "title": "Uid Or Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "both",
+              "title": "Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_content",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Content",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_evidence",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Evidence",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_spine",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Spine",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Context",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/contracts": {
+      "get": {
+        "description": "Enumerate every handler declared in the graph.",
+        "operationId": "graph_contracts_api_graph_contracts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "default": "http,mcp,grpc,event,websocket",
+              "title": "Kinds",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Contracts",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/detect-changes": {
+      "get": {
+        "description": "Map changed files to affected symbols.",
+        "operationId": "graph_detect_changes_api_graph_detect_changes_get",
+        "parameters": [
+          {
+            "description": "Comma-separated file paths",
+            "in": "query",
+            "name": "files",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated file paths",
+              "title": "Files"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "working",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "analyze_downstream",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Analyze Downstream",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Detect Changes",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/doctor": {
+      "get": {
+        "description": "Graph backend health snapshot — counts, freshness, backend id.",
+        "operationId": "graph_doctor_api_graph_doctor_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Doctor",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/entrypoints": {
+      "get": {
+        "description": "Scored entry points for the Hub Graph tab (TASK-081).",
+        "operationId": "graph_entrypoints_api_graph_entrypoints_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_score",
+            "required": false,
+            "schema": {
+              "default": 0.05,
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "Min Score",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Entrypoints",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/export": {
+      "get": {
+        "description": "Export a subgraph as json | mermaid | dot.",
+        "operationId": "graph_export_api_graph_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "title": "Format",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "root_uid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Root Uid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "edge_types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Edge Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_nodes",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "title": "Max Nodes",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_spine",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Spine",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "auto",
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exclude_kinds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exclude Kinds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Export",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/impact/{uid}": {
+      "get": {
+        "description": "Blast-radius grouped by risk tier.",
+        "operationId": "graph_impact_api_graph_impact__uid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "title": "Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "downstream",
+              "title": "Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 3,
+              "title": "Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "confidence_min",
+            "required": false,
+            "schema": {
+              "default": 0.5,
+              "title": "Confidence Min",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Impact",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/path": {
+      "get": {
+        "description": "Shortest path between two nodes.",
+        "operationId": "graph_path_api_graph_path_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source_uid",
+            "required": true,
+            "schema": {
+              "title": "Source Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_uid",
+            "required": true,
+            "schema": {
+              "title": "Target Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_hops",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "title": "Max Hops",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Path",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/query": {
+      "get": {
+        "description": "Hybrid search over node labels + docstrings.",
+        "operationId": "graph_query_api_graph_query_get",
+        "parameters": [
+          {
+            "description": "Natural-language query",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Natural-language query",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated node kinds",
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated node kinds",
+              "title": "Kinds"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_hops",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "title": "Max Hops",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "confidence_min",
+            "required": false,
+            "schema": {
+              "default": 0.3,
+              "title": "Confidence Min",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_spine",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Spine",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Query",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/references/{uid}": {
+      "get": {
+        "description": "Inbound references to uid.",
+        "operationId": "graph_references_api_graph_references__uid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "title": "Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "default": "calls,accesses_field,imports,references_doc",
+              "title": "Kinds",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph References",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/rename-plan/{uid}": {
+      "get": {
+        "description": "Plan a rename — call-sites, docs, tests, risk.",
+        "operationId": "graph_rename_plan_api_graph_rename_plan__uid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "title": "Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "new_name",
+            "required": true,
+            "schema": {
+              "title": "New Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "check_strings",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Check Strings",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Rename Plan",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/similar/{uid}": {
+      "get": {
+        "description": "Top-K nodes most similar to uid.",
+        "operationId": "graph_similar_api_graph_similar__uid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "title": "Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top_k",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "title": "Top K",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "confidence_min",
+            "required": false,
+            "schema": {
+              "default": 0.5,
+              "title": "Confidence Min",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Similar",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/graph/trace/{entry_uid}": {
+      "get": {
+        "description": "Forward execution walk from an entry point.",
+        "operationId": "graph_trace_api_graph_trace__entry_uid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_uid",
+            "required": true,
+            "schema": {
+              "title": "Entry Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "terminals",
+            "required": false,
+            "schema": {
+              "default": "return,exception",
+              "title": "Terminals",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_steps",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Max Steps",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Graph Trace",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "description": "Project-scoped health endpoint — rewritten by ProjectScopeMiddleware.",
+        "operationId": "api_health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Api Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/health/db": {
+      "get": {
+        "description": "Per-project sqlite row counts grouped by table.\n\nReturns the project's coding-os.db row counts for the tables the\nDoctor tab surfaces — empty result means the table is absent from\nthis DB's migration history (treated as 0, not error).",
+        "operationId": "api_health_db_api_health_db_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Api Health Db",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/hooks/list": {
+      "get": {
+        "description": "List registered hooks with their event, matcher, scope, category.",
+        "operationId": "list_hooks_api_hooks_list_get",
+        "parameters": [
+          {
+            "description": "Filter by adapter_scope (claude / codex / cursor)",
+            "in": "query",
+            "name": "adapter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by adapter_scope (claude / codex / cursor)",
+              "title": "Adapter"
+            }
+          },
+          {
+            "description": "Filter by event (PreToolUse / Stop / …)",
+            "in": "query",
+            "name": "event",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by event (PreToolUse / Stop / …)",
+              "title": "Event"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Hooks",
+        "tags": [
+          "hooks"
+        ]
+      }
+    },
+    "/api/hooks/recent": {
+      "get": {
+        "description": "Tail .coding-os/.hooks.log and return parsed events (newest first).",
+        "operationId": "recent_hook_fires_api_hooks_recent_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Recent Hook Fires",
+        "tags": [
+          "hooks"
+        ]
+      }
+    },
+    "/api/hooks/stream": {
+      "get": {
+        "description": "SSE: tail the project hook log; emit one ``hook`` event per new line.",
+        "operationId": "stream_hooks_api_hooks_stream_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Stream Hooks",
+        "tags": [
+          "hooks"
+        ]
+      }
+    },
+    "/api/hub/projects": {
+      "get": {
+        "description": "List every registered coding-os project whose directory still exists.",
+        "operationId": "hub_projects_api_hub_projects_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Hub Projects Api Hub Projects Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hub Projects",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/registry/add": {
+      "post": {
+        "description": "Register an existing `.coding-os/` directory with the Hub.",
+        "operationId": "hub_registry_add_api_hub_registry_add_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hub_registry_add_api_hub_registry_add_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Add",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/registry/gc": {
+      "post": {
+        "description": "Remove registry entries whose directory no longer exists.",
+        "operationId": "hub_registry_gc_api_hub_registry_gc_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hub_registry_gc_api_hub_registry_gc_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Gc",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/registry/scan": {
+      "post": {
+        "description": "Walk a filesystem root and return every `.coding-os/` project found.",
+        "operationId": "hub_registry_scan_api_hub_registry_scan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hub_registry_scan_api_hub_registry_scan_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Scan",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/registry/{slug}": {
+      "delete": {
+        "description": "Unregister a project by slug.  Does NOT touch the project on disk.",
+        "operationId": "hub_registry_remove_api_hub_registry__slug__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Registry Remove",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/hub/suggest-roots": {
+      "get": {
+        "description": "Return sensible default scan roots for the UI's import wizard.",
+        "operationId": "hub_suggest_roots_api_hub_suggest_roots_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Depth",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hub Suggest Roots",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
+    "/api/logs/recent": {
+      "get": {
+        "description": "Tail .cos.log.jsonl and return parsed events (newest last).",
+        "operationId": "recent_logs_api_logs_recent_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 2000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "floor — events at or above this level",
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "default": "debug",
+              "description": "floor — events at or above this level",
+              "title": "Level",
+              "type": "string"
+            }
+          },
+          {
+            "description": "fnmatch glob, e.g. hook.* or core.thinking_os.*",
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "fnmatch glob, e.g. hook.* or core.thinking_os.*",
+              "title": "Scope"
+            }
+          },
+          {
+            "description": "relative duration: 30s, 10m, 1h, 2d",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "relative duration: 30s, 10m, 1h, 2d",
+              "title": "Since"
+            }
+          },
+          {
+            "description": "substring match on msg (case-insensitive)",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "substring match on msg (case-insensitive)",
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Recent Logs",
+        "tags": [
+          "logs"
+        ]
+      }
+    },
+    "/api/logs/stream": {
+      "get": {
+        "description": "SSE: tail .cos.log.jsonl; emit one ``log`` event per new line.",
+        "operationId": "stream_logs_api_logs_stream_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "default": "debug",
+              "title": "Level",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Stream Logs",
+        "tags": [
+          "logs"
+        ]
+      }
+    },
+    "/api/observability/sessions": {
+      "get": {
+        "operationId": "list_sessions_api_observability_sessions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "List Sessions",
+        "tags": [
+          "observability"
+        ]
+      }
+    },
+    "/api/observability/timeline": {
+      "get": {
+        "operationId": "timeline_api_observability_timeline_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sources",
+            "required": false,
+            "schema": {
+              "default": "hook,cognition",
+              "title": "Sources",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 2000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Timeline",
+        "tags": [
+          "observability"
+        ]
+      }
+    },
+    "/api/presence/now": {
+      "get": {
+        "description": "Compact 'who is running, doing what, last hook fire' for the AppShell HUD.",
+        "operationId": "presence_now_api_presence_now_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Presence Now",
+        "tags": [
+          "presence"
+        ]
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "operationId": "list_roles_api_roles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Roles",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/roles/chain": {
+      "get": {
+        "operationId": "current_chain_api_roles_chain_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "default": "claude",
+              "title": "Agent",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Current Chain",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/roles/{formula_id}/outputs": {
+      "get": {
+        "operationId": "formula_outputs_api_roles__formula_id__outputs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "formula_id",
+            "required": true,
+            "schema": {
+              "title": "Formula Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Formula Outputs",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/scheduled/project/{slug}": {
+      "get": {
+        "description": "Return last_run.json for a single project.",
+        "operationId": "project_scheduled_status_api_scheduled_project__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Project Scheduled Status",
+        "tags": [
+          "scheduled"
+        ]
+      }
+    },
+    "/api/scheduled/status": {
+      "get": {
+        "description": "Return nightly cron status + per-project last_run.json contents.",
+        "operationId": "scheduled_status_api_scheduled_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Scheduled Status",
+        "tags": [
+          "scheduled"
+        ]
+      }
+    },
+    "/api/search/docs": {
+      "get": {
+        "description": "Semantic search over project documentation chunks.",
+        "operationId": "doc_search_api_search_docs_get",
+        "parameters": [
+          {
+            "description": "Natural-language search query",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "description": "Natural-language search query",
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated source types",
+            "in": "query",
+            "name": "source_types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated source types",
+              "title": "Source Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "auto",
+              "title": "Mode",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Doc Search",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/search/memory": {
+      "get": {
+        "description": "Search thinking_os memory (observations + learned patterns).",
+        "operationId": "memory_search_api_search_memory_get",
+        "parameters": [
+          {
+            "description": "Natural-language search query",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "description": "Natural-language search query",
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "memory_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Memory Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Memory Search",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/search/tasks": {
+      "get": {
+        "description": "Semantic + structured search over the Scrumban task store.",
+        "operationId": "task_search_api_search_tasks_get",
+        "parameters": [
+          {
+            "description": "Natural-language search query",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "description": "Natural-language search query",
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "description": "open/wip/done/blocked",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "open/wip/done/blocked",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "BACKEND/FRONTEND/DOCS/INFRA/...",
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "BACKEND/FRONTEND/DOCS/INFRA/...",
+              "title": "Domain"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Backend unavailable (retryable)."
+          }
+        },
+        "summary": "Task Search",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/sessions/active": {
+      "get": {
+        "description": "Return all known agent presence records grouped by lifecycle state.\n\nState values:\n  - active   : tool/prompt activity within last 30 s and pid alive\n  - present  : activity within PRESENCE_TTL_S (default 300 s) and pid alive\n  - idle     : pid alive but no recent activity\n  - offline  : pid not alive\n  - ended    : ended_at recorded",
+        "operationId": "list_active_sessions_api_sessions_active_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Active Sessions",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "operationId": "get_settings_api_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Settings",
+        "tags": [
+          "settings"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_settings_api_settings_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_PatchBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/stream/events": {
+      "get": {
+        "description": "SSE endpoint for live board task updates.",
+        "operationId": "sse_events_api_stream_events_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sse Events",
+        "tags": [
+          "stream"
+        ]
+      }
+    },
+    "/api/stream/history": {
+      "get": {
+        "description": "Recent official status transitions for stream bootstrap.",
+        "operationId": "stream_history_api_stream_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream History",
+        "tags": [
+          "stream"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Legacy hub-wide health endpoint (kept for back-compat).",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Render collected metrics in Prometheus text format.",
+        "operationId": "prometheus_metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Prometheus Metrics",
+        "tags": [
+          "metrics"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local Hub",
+      "url": "http://127.0.0.1:9188"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Scrumban board state — tasks, columns, daily/wip/retro/pick.",
+      "name": "board"
+    },
+    {
+      "description": "Cognitive cycle artifacts — traces, dispatchers, costs, Claude SDK chats.",
+      "name": "cognition"
+    },
+    {
+      "description": "graph_os knowledge graph — context, impact, export, rename-plan, communities.",
+      "name": "graph"
+    },
+    {
+      "description": "Liveness probe — backend status + file_index_state freshness.",
+      "name": "health"
+    },
+    {
+      "description": "Hook registry + live event stream from .coding-os/.hooks.log.",
+      "name": "hooks"
+    },
+    {
+      "description": "Multi-project Hub — registry, suggest-roots, GC.",
+      "name": "hub"
+    },
+    {
+      "description": "Prometheus text-format counters + summary quantiles (cos_web_*).",
+      "name": "metrics"
+    },
+    {
+      "description": "Cross-source timeline — hooks + cognition + sessions.",
+      "name": "observability"
+    },
+    {
+      "description": "Who-is-active aggregate across agents (single-shot).",
+      "name": "presence"
+    },
+    {
+      "description": "11 semantic roles + active formula chain + per-formula outputs.",
+      "name": "roles"
+    },
+    {
+      "description": "Cron-style scheduled formula dispatches.",
+      "name": "scheduled"
+    },
+    {
+      "description": "Four-layer retrieval — memory, docs, tasks (semantic + keyword).",
+      "name": "search"
+    },
+    {
+      "description": "Per-project agent presence (active / present / idle / offline / ended).",
+      "name": "sessions"
+    },
+    {
+      "description": "Hub configuration — read + patch.",
+      "name": "settings"
+    },
+    {
+      "description": "Server-sent events: live tool/state changes + replayable history.",
+      "name": "stream"
+    }
+  ]
+}
