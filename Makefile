@@ -112,6 +112,12 @@ coverage: ## Run the kernel test suites under pytest-cov; enforce the fail_under
 	@echo ""
 	@echo "Coverage report written to coverage.xml (gate: fail_under in pyproject.toml)."
 
+.PHONY: bench
+bench: ## Run pytest-benchmark micro-benchmarks for hot-path primitives
+	@echo "Running micro-benchmarks (tests/bench/)..."
+	@uv run --extra rag --with pytest-benchmark pytest tests/bench/ \
+	    -m bench --benchmark-only --benchmark-columns=min,mean,max,rounds -q
+
 .PHONY: eval-operational eval-sandboxes eval-clean
 eval-operational: ## Full operational evaluation — scaffolds sandboxes, runs all checks, writes .build/
 	@uv run python src/scripts/operational_eval.py all

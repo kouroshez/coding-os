@@ -92,6 +92,7 @@ dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=5.0.0",
+    "pytest-benchmark>=4.0.0",
     "httpx>=0.27.0",
     "ruff>=0.6.0",
     "mypy>=1.10.0",
@@ -165,6 +166,7 @@ testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "src/core/
 markers = [
     "slow: tests that scaffold sandboxes or regenerate the manifest (~30s+)",
     "sdk_e2e: real claude-agent-sdk dispatch tests — require ANTHROPIC_API_KEY (nightly only)",
+    "bench: pytest-benchmark micro-benchmarks (run via `make bench`, excluded from normal sweeps)",
 ]
 # Useful defaults; override with -p no:cacheprovider etc on CI if needed.
 addopts = "-ra --strict-markers"
