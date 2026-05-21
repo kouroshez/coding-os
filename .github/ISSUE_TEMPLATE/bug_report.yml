@@ -1,0 +1,88 @@
+name: Bug report
+description: Report something that does not work as documented.
+title: "bug: <short summary>"
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. A reproducible report gets fixed far
+        faster than a vague one — please fill every field.
+
+  - type: input
+    id: version
+    attributes:
+      label: coding-os version
+      description: Output of `cos --version`.
+      placeholder: "cos 0.3.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Agent runtime
+      description: Which agent runtime were you using?
+      options:
+        - Claude Code
+        - Cursor
+        - Codex CLI
+        - Codex GUI
+        - Not agent-related (CLI / MCP direct)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS + Python version
+      placeholder: "macOS 15.3 / Python 3.12.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you observe? Include exact error text in a code block.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, deterministic steps. A failing command is ideal.
+      placeholder: |
+        1. cos init --agent claude --template django --name repro
+        2. cd repro
+        3. cos hub start
+        4. observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Output of `cos doctor`, `cos hooks-log`, or the failing
+        command with full traceback. Will be rendered as shell.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I ran `cos doctor` and pasted the result above (or it is irrelevant).
+          required: false

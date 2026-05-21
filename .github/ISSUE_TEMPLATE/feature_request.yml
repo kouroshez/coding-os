@@ -1,0 +1,58 @@
+name: Feature request
+description: Propose a new capability or an improvement.
+title: "feat: <short summary>"
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before proposing: coding-os follows an anti-overengineering
+        rule (Rule 22). The strongest feature requests describe a
+        concrete problem you hit, not a speculative "might be nice".
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What concrete situation is painful today? Who hits it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should change? Keep it to the smallest correct change.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer does this touch?
+      options:
+        - "core/ — agent-agnostic kernel"
+        - "adapters/ — a specific agent"
+        - "templates/ — a specific stack"
+        - "cli/ — the cos command"
+        - "web/ — the Hub UI"
+        - "docs/ — documentation only"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you consider, and why is the proposal better?
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues and discussions for this idea.
+          required: true
+        - label: This solves a problem I actually have (not speculative).
+          required: true
