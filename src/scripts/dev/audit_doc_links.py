@@ -1,7 +1,14 @@
-"""Audit internal markdown links across docs/ for broken targets, anchors, and duplicates."""
+"""Audit internal markdown links across docs/ for broken targets, anchors, and duplicates.
+
+Also scans the repo-root agent entrypoint (AGENTS.md) and flags
+symlinked directories inside the doc tree — a symlink dir resolves
+transparently on a local filesystem but renders as a plain file on
+GitHub, so every link that traverses it 404s in the web view.
+"""
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from collections import defaultdict
@@ -10,12 +17,56 @@ from urllib.parse import unquote, urlparse
 
 REPO = Path(__file__).resolve().parent.parent.parent.parent
 DOCS = (REPO / "docs").resolve()
-SKIP_DIRS = {"code-os-core-docs"}
+# code-os-core-docs: external reference material (not project docs).
+# _templates: doc TEMPLATES shipped by `cos init` — their links are
+#   intentionally consumer-relative / placeholder (`relative/path`,
+#   `./<related>.md`), so auditing them as navigable docs is a
+#   category error.
+SKIP_DIRS = {"code-os-core-docs", "_templates"}
+# Repo-root markdown files that are agent entrypoints — scanned for
+# links but exempt from the doc frontmatter contract.
+ROOT_DOCS = ["AGENTS.md"]
 # Categories that signal real breakage — non-zero exit when any are present.
-_FAIL_CATEGORIES = {"BROKEN-FILE", "BROKEN-ANCHOR", "DEAD-NEXT-LINK"}
+_FAIL_CATEGORIES = {"BROKEN-FILE", "BROKEN-ANCHOR", "DEAD-NEXT-LINK", "SYMLINK-DIR"}
 
 _LINK = re.compile(r"\[([^\]]*?)\]\(([^)]+?)\)")
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.M)
+_FENCE = re.compile(r"```.*?```", re.S)
+_INLINE_CODE = re.compile(r"`[^`\n]+`")
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+
+
+def _blank(match: re.Match) -> str:
+    """Replace a region with spaces, preserving newlines (so offsets hold)."""
+    return re.sub(r"[^\n]", " ", match.group(0))
+
+
+def _strip_for_links(text: str) -> str:
+    """Blank fenced blocks, inline code, and HTML comments for LINK scans.
+
+    Link patterns inside ```fences```, `inline code`, and
+    <!-- comments --> are documentation ABOUT links — e.g. a doc that
+    shows `[text](path)` as example syntax, or a Go snippet containing
+    `F[T any](…)`. They are not real links and must not be audited.
+    """
+    text = _HTML_COMMENT.sub(_blank, text)
+    text = _FENCE.sub(_blank, text)
+    text = _INLINE_CODE.sub(_blank, text)
+    return text
+
+
+def _strip_for_headings(text: str) -> str:
+    """Blank fenced blocks + HTML comments for HEADING/anchor scans.
+
+    Unlike the link strip, inline code is KEPT: GitHub includes a
+    heading's code-span content in the anchor slug — `## Rule 1 —
+    Never hardcode `.claude/` in `core/`` anchors as
+    `rule-1--never-hardcode-claude-in-core`. Only fenced blocks (where
+    a `#` is not a real heading) and comments are removed.
+    """
+    text = _HTML_COMMENT.sub(_blank, text)
+    text = _FENCE.sub(_blank, text)
+    return text
 _FRONTMATTER = re.compile(
     r"^<!--\s*domain:[A-Z_]+\s*\|\s*layer:[a-z_]+\s*\|\s*ssot:(?:true|false|ref)\s*\|\s*updated:(?:\d{4}-\d{2}-\d{2}|auto)\s*-->\s*$"
 )
@@ -23,10 +74,20 @@ _OPENING_NEXT = re.compile(r"^(?:Read next:|>\s*N:)\s*(.+)$", re.M)
 
 
 def _slugify(text: str) -> str:
+    """Slugify a heading the way GitHub does.
+
+    GitHub's anchor algorithm (github-slugger): lowercase, drop
+    characters that are not word/space/hyphen, then replace each
+    whitespace character with a single hyphen. Crucially it does NOT
+    collapse consecutive hyphens — `## Rule 0 — Docs-first` becomes
+    `rule-0--docs-first` (the em-dash is dropped, the two spaces around
+    it become two hyphens). The previous implementation collapsed `-+`,
+    which produced `rule-0-docs-first` and false-flagged every
+    `Rule N — title` cross-reference as a broken anchor.
+    """
     s = text.lower()
     s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"\s+", "-", s).strip("-")
-    s = re.sub(r"-+", "-", s)
+    s = re.sub(r"\s", "-", s)
     return s or "section"
 
 
@@ -53,17 +114,51 @@ def _gather_md_files() -> list[Path]:
         if any(part in SKIP_DIRS for part in rel.parts):
             continue
         files.append(path)
+    for name in ROOT_DOCS:
+        root_doc = REPO / name
+        if root_doc.is_file():
+            files.append(root_doc)
     return sorted(files)
 
 
+def _check_symlink_dirs() -> list[tuple[str, str]]:
+    """Flag symlinked directories inside docs/.
+
+    A symlink dir resolves transparently on the local filesystem, so
+    link auditing that calls .resolve() never notices it. But GitHub
+    (and most web doc viewers) render a symlink as a plain text file —
+    so every link that traverses the symlink 404s in the browser. This
+    is the exact failure mode that hid ~95 broken links behind a
+    docs/governance + docs/workflow symlink pair.
+    """
+    findings: list[tuple[str, str]] = []
+    for dirpath, dirnames, _files in os.walk(DOCS):
+        for dirname in dirnames:
+            full = Path(dirpath) / dirname
+            if full.is_symlink():
+                rel = full.relative_to(REPO)
+                findings.append(
+                    (
+                        "SYMLINK-DIR",
+                        f"{rel} is a symlink — GitHub renders it as a file; "
+                        f"every link through it 404s. Replace with a real directory.",
+                    )
+                )
+    return findings
+
+
 def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[str, str]]:
-    text = path.read_text(encoding="utf-8")
+    raw = path.read_text(encoding="utf-8")
+    text = _strip_for_links(raw)
     findings: list[tuple[str, str]] = []
     rel = path.relative_to(REPO)
 
-    first_line = text.split("\n", 1)[0]
-    if not _FRONTMATTER.match(first_line):
-        findings.append(("BAD-FRONTMATTER", f"{rel}: {first_line[:100]!r}"))
+    # Repo-root agent entrypoints (AGENTS.md) are exempt from the doc
+    # frontmatter contract — they are not part of the docs/ taxonomy.
+    if path.name not in ROOT_DOCS:
+        first_line = raw.split("\n", 1)[0]
+        if not _FRONTMATTER.match(first_line):
+            findings.append(("BAD-FRONTMATTER", f"{rel}: {first_line[:100]!r}"))
 
     for match in _LINK.finditer(text):
         url = unquote(match.group(2).strip())
@@ -88,7 +183,9 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
         if anchor and target.suffix == ".md":
             anchors = anchor_cache.get(target)
             if anchors is None:
-                anchors = _gather_anchors(target.read_text(encoding="utf-8"))
+                anchors = _gather_anchors(
+                    _strip_for_headings(target.read_text(encoding="utf-8"))
+                )
                 anchor_cache[target] = anchors
             if anchor not in anchors:
                 findings.append(("BROKEN-ANCHOR", f"{rel} -> {url}"))
@@ -184,6 +281,7 @@ def main() -> int:
     findings: list[tuple[str, str]] = []
     for path in md_files:
         findings.extend(_check_links(path, anchor_cache))
+    findings.extend(_check_symlink_dirs())
     findings.extend(_check_orphans())
     findings.extend(_check_dup_h2())
 
@@ -193,6 +291,7 @@ def main() -> int:
 
     print(f"Scanned {len(md_files)} markdown files (skipping: {sorted(SKIP_DIRS)})\n")
     for cat in [
+        "SYMLINK-DIR",
         "BROKEN-FILE",
         "BROKEN-ANCHOR",
         "DEAD-NEXT-LINK",

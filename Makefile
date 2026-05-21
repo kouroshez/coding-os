@@ -253,6 +253,16 @@ stats: ## Show project statistics
 	@echo -n "Core skills: " && ls src/core/skills/*/SKILL.md | wc -l | tr -d ' '
 	@echo -n "Templates: " && find src/templates -type f | wc -l | tr -d ' '
 
+.PHONY: docs-lint
+docs-lint: ## Lint docs/ — internal link + anchor + symlink-dir audit, then SSOT frontmatter
+	@echo "docs-lint: auditing internal links + anchors + symlink dirs..."
+	@uv run python src/scripts/dev/audit_doc_links.py
+	@echo ""
+	@echo "docs-lint: checking SSOT frontmatter contract..."
+	@bash src/core/scripts/docs-lint.sh --quiet || true
+	@echo ""
+	@echo "docs-lint: OK (link audit is the hard gate; frontmatter is advisory)."
+
 .PHONY: docs-index-regen
 docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (TASK-157+161)
 	@python3 src/scripts/regen_doc_index.py docs --all

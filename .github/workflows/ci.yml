@@ -170,8 +170,11 @@ jobs:
           version: "latest"
       - run: uv sync
       - name: docs-lint
-        run: make docs-lint || true
-        # Informational-only for first stable release.
+        run: make docs-lint
+        # Required: the internal-link + anchor + symlink-dir audit is a
+        # hard gate (a broken doc link or a symlinked docs/ subdir fails
+        # CI). The SSOT frontmatter sub-check inside the target stays
+        # advisory until that baseline is cleared.
       - name: OpenAPI snapshot in sync
         run: uv run python src/scripts/dump_openapi.py --check
         # Required: a drifted Hub API contract must regenerate the
