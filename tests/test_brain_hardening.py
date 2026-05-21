@@ -45,17 +45,20 @@ def _seed_db(tmp: Path) -> Path:
 # --------------------------------------------------------------------------
 
 
-def test_capture_accepts_multiedit(tmp_path: Path) -> None:
+def test_capture_accepts_multiedit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     sys.path.insert(0, str(BRAIN))
     from capture import CAPTURE_TOOLS, capture_observation  # type: ignore
 
     assert "MultiEdit" in CAPTURE_TOOLS, "MultiEdit must be in CAPTURE_TOOLS"
     db = _seed_db(tmp_path)
-    os.environ["COS_STATE_DIR"] = str(tmp_path)
-    os.environ["COS_AGENT"] = "claude"
-    os.environ["COS_AGENT_DIR"] = str(tmp_path / "claude")
-    Path(os.environ["COS_AGENT_DIR"]).mkdir(parents=True, exist_ok=True)
-    (Path(os.environ["COS_AGENT_DIR"]) / "session-id").write_text("ses-claude-20260424-120000-abcd")
+    agent_dir = tmp_path / "claude"
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+    monkeypatch.setenv("COS_AGENT", "claude")
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    agent_dir.mkdir(parents=True, exist_ok=True)
+    (agent_dir / "session-id").write_text("ses-claude-20260424-120000-abcd")
     result = capture_observation(
         {"tool_name": "MultiEdit", "tool_input": {"file_path": "backend/apps/foo/models.py"}},
         db_path=db,
@@ -271,11 +274,13 @@ def test_session_context_refreshes_agent_marker(tmp_path: Path) -> None:
 # --------------------------------------------------------------------------
 
 
-def test_persist_learn_suggestions_writes_file(tmp_path: Path) -> None:
+def test_persist_learn_suggestions_writes_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     sys.path.insert(0, str(BRAIN))
     agent_dir = tmp_path / "claude"
     agent_dir.mkdir()
-    os.environ["COS_AGENT_DIR"] = str(agent_dir)
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
     import server  # type: ignore
 
     server._persist_learn_suggestions_safe(
