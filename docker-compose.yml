@@ -1,0 +1,35 @@
+# coding-os Hub — demo compose file.
+#
+#   docker compose up          # build + run the Hub
+#   open http://127.0.0.1:9188
+#
+# Single-service demo. The Hub state (SQLite DB, traces) lives in a
+# named volume so it survives `docker compose down` / `up` cycles.
+services:
+  hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: coding-os-hub:latest
+    ports:
+      - "9188:9188"
+    environment:
+      COS_WEB_HOST: 0.0.0.0
+      COS_WEB_PORT: "9188"
+    volumes:
+      # Persist Hub runtime state across container restarts.
+      - cos-state:/app/.coding-os
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9188/api/health').status==200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  cos-state:

@@ -1,0 +1,22 @@
+# Keep the build context small + deterministic.
+.git
+.github
+archive
+.coding-os
+.build
+.venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+src/core/web/ui/dist
+tests/golden
+*.db
+*.db-shm
+*.db-wal
+.pytest_cache
+.ruff_cache
+.mypy_cache
+htmlcov
+coverage.xml
+.playwright-mcp
+hub-*.png
