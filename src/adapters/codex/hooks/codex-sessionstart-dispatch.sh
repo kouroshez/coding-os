@@ -50,21 +50,9 @@ done
 # Wrap captured text in the JSON schema Codex expects. Python is the only
 # dependency we can rely on for safe JSON encoding (jq is not always
 # installed) and it handles UTF-8 + embedded quotes/newlines natively.
-python3 - "$CAPTURED_FILE" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
-payload = {
-    "hookSpecificOutput": {
-        "hookEventName": "SessionStart",
-        "additionalContext": text.strip(),
-    }
-}
-json.dump(payload, sys.stdout, ensure_ascii=False)
-sys.stdout.write("\n")
-PY
+HELPER="$(dirname "$0")/../../../core/hooks/_helpers/wrap_dispatch_output.py"
+if [[ -f "$HELPER" ]]; then
+  python3 "$HELPER" additional-context SessionStart "$CAPTURED_FILE"
+fi
 
 exit 0

@@ -25,8 +25,8 @@ if "new_string" in tool_input and "old_string" in tool_input:
                 tool_input["old_string"],
                 tool_input["new_string"],
             )
-        except Exception:
-            pass
+        except Exception as exc:  # fail-open: log + continue (Rule 6)
+            print(f"wip_limit_check: simulate-edit failed: {exc}", file=sys.stderr)
 
 if not content or not is_lean_format(content):
     sys.exit(0)
@@ -50,8 +50,8 @@ if target_path.exists():
         existing_fm = extract_frontmatter(existing)
         if existing_fm and existing_fm.get("status") == new_status:
             sys.exit(0)
-    except Exception:
-        pass
+    except Exception as exc:  # fail-open: log + continue (Rule 6)
+        print(f"wip_limit_check: read existing failed: {exc}", file=sys.stderr)
 
 if os.environ.get("COS_WIP_OVERRIDE") == "1":
     sys.exit(0)

@@ -40,17 +40,10 @@ for delegate in session-context.sh warn-mcp-down.sh remind-daily.sh; do
   fi
 done
 
-python3 - "$CAPTURED_FILE" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
-# Cursor sessionStart output schema (snake_case per Cursor hooks docs).
-payload = {"additional_context": text.strip()}
-json.dump(payload, sys.stdout, ensure_ascii=False)
-sys.stdout.write("\n")
-PY
+HELPER="$(dirname "$0")/../../../core/hooks/_helpers/wrap_dispatch_output.py"
+if [[ -f "$HELPER" ]]; then
+  # Cursor sessionStart schema (snake_case per Cursor hooks docs).
+  python3 "$HELPER" additional-context-flat "$CAPTURED_FILE"
+fi
 
 exit 0

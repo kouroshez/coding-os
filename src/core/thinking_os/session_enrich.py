@@ -82,8 +82,8 @@ def main() -> None:
                     f"{Path(r['source']).name} <-> {Path(r['target']).name}" for r in edge_rows
                 ]
                 learned = "Co-edited: " + "; ".join(pairs)
-        except Exception:
-            pass
+        except Exception as exc:  # fail-open (Rule 6)
+            print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 
         conn.execute(
             "UPDATE session_summaries SET "
@@ -94,8 +94,8 @@ def main() -> None:
             (request_str, completed, learned, session_id),
         )
         conn.commit()
-    except Exception:
-        pass
+    except Exception as exc:  # fail-open (Rule 6)
+        print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 
     # ── Step 2: Auto-record agent metric ──
     try:
@@ -141,8 +141,8 @@ def main() -> None:
             (task_id or None, duration_ms, domain, complexity),
         )
         conn.commit()
-    except Exception:
-        pass
+    except Exception as exc:  # fail-open (Rule 6)
+        print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 
     # ── Step 4: Build concept_link edges from observations ──
     try:
@@ -177,8 +177,8 @@ def main() -> None:
                 (c1, c2, weight, session_id),
             )
         conn.commit()
-    except Exception:
-        pass
+    except Exception as exc:  # fail-open (Rule 6)
+        print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 
     # ── Step 6: Run decay if >7 days since last run ──
     try:
@@ -199,8 +199,8 @@ def main() -> None:
 
             do_decay(db_path)
             decay_marker.write_text(datetime.now(tz=timezone.utc).isoformat())
-    except Exception:
-        pass
+    except Exception as exc:  # fail-open (Rule 6)
+        print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 
     conn.close()
 

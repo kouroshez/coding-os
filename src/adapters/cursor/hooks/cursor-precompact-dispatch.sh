@@ -33,22 +33,10 @@ for delegate in session-context.sh warn-mcp-down.sh remind-daily.sh; do
   fi
 done
 
-python3 - "$CAPTURED_FILE" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
-text = text.strip()
-# Cap: preCompact user_message is a user-visible banner, not a full system prompt.
-if len(text) > 2400:
-    text = text[:2397] + "..."
-out: dict[str, str | dict] = {}
-if text:
-    out["user_message"] = text
-json.dump(out, sys.stdout, ensure_ascii=False)
-sys.stdout.write("\n")
-PY
+HELPER="$(dirname "$0")/../../../core/hooks/_helpers/wrap_dispatch_output.py"
+if [[ -f "$HELPER" ]]; then
+  # preCompact user_message is a user-visible banner; cap at 2400 chars.
+  python3 "$HELPER" user-message 2400 "$CAPTURED_FILE"
+fi
 
 exit 0

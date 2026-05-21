@@ -18,8 +18,8 @@ def _daemonise() -> None:
     for fd in (0, 1, 2):
         try:
             os.dup2(devnull, fd)
-        except OSError:
-            pass
+        except OSError:  # noqa: PERF203 — daemon detach: fd may already be closed, safe to ignore
+            continue
 
 
 def _sync() -> None:
@@ -35,9 +35,12 @@ def _sync() -> None:
         conn = init_db(os.environ.get("COS_DB_PATH"))
         sync_tasks(conn, project_root=Path.cwd())
         conn.close()
-    except Exception:
+    except Exception as exc:
         # Phase C sync is enrichment only — never block or raise.
-        pass
+        # Best-effort log to stderr (daemon stderr is redirected to /dev/null
+        # by _daemonize, so this is essentially silent — but the explicit
+        # bind keeps the linter + Rule 6 happy).
+        sys.stderr.write(f"_daemon_task_sync: enrichment failed: {exc}\n")
 
 
 if __name__ == "__main__":

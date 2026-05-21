@@ -29,8 +29,8 @@ if "new_string" in tool_input and "old_string" in tool_input:
         try:
             old_content = p.read_text(encoding="utf-8")
             content = old_content.replace(tool_input["old_string"], tool_input["new_string"])
-        except Exception:
-            pass
+        except Exception as exc:  # fail-open: log + continue (Rule 6)
+            print(f"validate_task_frontmatter: simulate-edit failed: {exc}", file=sys.stderr)
 
 if not content:
     sys.exit(0)

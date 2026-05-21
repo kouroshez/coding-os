@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import os
 import re
 import subprocess
@@ -328,8 +329,8 @@ def _extract_is_takeover(project_dir: Path | None, _mcp_hooks: dict[str, Any] | 
             age = time.time() - cache.stat().st_mtime
             if age < _TAKEOVER_CACHE_TTL_S:
                 return cache.read_text().strip() == "true"
-        except OSError:
-            pass
+        except OSError as exc:  # fail-open (Rule 6)
+            print(f"task_analyzer.py: {exc.__class__.__name__}: {exc}", file=sys.stderr)
 
     # Compute (best-effort, time-boxed)
     verdict = _compute_takeover_verdict(project_dir)
@@ -338,8 +339,8 @@ def _extract_is_takeover(project_dir: Path | None, _mcp_hooks: dict[str, Any] | 
     try:
         cache.parent.mkdir(parents=True, exist_ok=True)
         _flock_write(cache, "true" if verdict else "false")
-    except OSError:
-        pass
+    except OSError as exc:  # fail-open (Rule 6)
+        print(f"task_analyzer.py: {exc.__class__.__name__}: {exc}", file=sys.stderr)
     return verdict
 
 
@@ -397,8 +398,8 @@ def _source_paths(project_dir: Path) -> list[str]:
             paths = data.get("source_paths")
             if isinstance(paths, list) and paths:
                 return [str(p) for p in paths]
-        except Exception:
-            pass
+        except Exception as exc:  # fail-open (Rule 6)
+            print(f"task_analyzer.py: {exc.__class__.__name__}: {exc}", file=sys.stderr)
     canonical = ["src", "core", "backend", "frontend", "cli", "app"]
     return [p for p in canonical if (project_dir / p).is_dir()]
 
@@ -436,8 +437,8 @@ def _write_cache(cache: Path, task_marker: str, signals: TaskSignals) -> None:
         payload = signals.model_dump()
         payload["_task_marker"] = task_marker
         _flock_write(cache, json.dumps(payload))
-    except OSError:
-        pass
+    except OSError as exc:  # fail-open (Rule 6)
+        print(f"task_analyzer.py: {exc.__class__.__name__}: {exc}", file=sys.stderr)
 
 
 def _flock_write(path: Path, content: str) -> None:
@@ -455,7 +456,7 @@ def _flock_write(path: Path, content: str) -> None:
         # Best-effort cleanup of lock file
         try:
             os.unlink(lock_path)
-        except OSError:
-            pass
+        except OSError as exc:  # fail-open (Rule 6)
+            print(f"task_analyzer.py: {exc.__class__.__name__}: {exc}", file=sys.stderr)
     except ImportError:
         path.write_text(content)

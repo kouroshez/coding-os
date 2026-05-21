@@ -90,8 +90,11 @@ fi
 
 # Block bare TODOs without task reference (must be TODO: TASK-### or TODO(TASK-###))
 # Source: backend-rules.md § Comments, frontend-rules.md § Comments
-# Skip: test files may have legitimate TODOs
-if [[ "$FILE_PATH" != *test* ]] && [[ "$FILE_PATH" != *spec* ]]; then
+# Skip: test files may have legitimate TODOs; scaffold scripts under
+# src/templates/*/skills/*/scripts/ are user-facing placeholders where
+# bare TODOs are the entire point ("# TODO: implement your endpoint").
+if [[ "$FILE_PATH" != *test* ]] && [[ "$FILE_PATH" != *spec* ]] \
+   && [[ "$FILE_PATH" != *templates/*/skills/*/scripts/* ]]; then
   # Check if TODO exists but TASK-### does NOT exist in the same content
   if echo "$CONTENT" | grep -qiE '(//|#)\s*TODO' && ! echo "$CONTENT" | grep -qE 'TASK-[0-9]{3}'; then
     echo "BLOCKED: Bare TODO without task reference. Use 'TODO: TASK-### description' format. See docs/engineering/backend-rules.md § Comments." >&2
