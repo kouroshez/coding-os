@@ -5,7 +5,7 @@ but the committed schema snapshot in `core/doctor-config.yaml` is stale.
 
 Fix by running:
 
-    uv run python scripts/regen_doctor_schema.py
+    uv run python src/scripts/regen_doctor_schema.py
 """
 
 from __future__ import annotations
@@ -49,10 +49,10 @@ def test_expected_tables_match_live_db() -> None:
 
     assert committed_version == live_version, (
         f"schema version mismatch: committed={committed_version} live={live_version} "
-        "— run `uv run python scripts/regen_doctor_schema.py`"
+        "— run `uv run python src/scripts/regen_doctor_schema.py`"
     )
     assert committed_tables == live_tables, (
-        f"table list mismatch — run `uv run python scripts/regen_doctor_schema.py`\n"
+        f"table list mismatch — run `uv run python src/scripts/regen_doctor_schema.py`\n"
         f"  committed: {committed_tables}\n"
         f"  live:      {live_tables}"
     )

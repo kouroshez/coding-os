@@ -49,15 +49,10 @@ schema:
   - learned_patterns
   - memory_audit
   - observations
-  - observations_fts
-  - observations_fts_config
-  - observations_fts_data
-  - observations_fts_docsize
-  - observations_fts_idx
   - outcome_history
-  - project_trajectory
   - pattern_validations
   - persona_selections
+  - project_trajectory
   - retrieval_quality
   - retrieval_router_log
   - retrievals

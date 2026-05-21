@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Regenerate core/doctor-config.yaml::schema from the live database.py state.
+"""Regenerate src/core/doctor-config.yaml::schema from the live database.py state.
 
-Run this after editing core/thinking_os/database.py::MIGRATIONS so doctor's
+Run this after editing src/core/thinking_os/database.py::MIGRATIONS so doctor's
 EXPECTED_TABLES + expected_version stay in sync with the migration chain.
 
 The test `tests/test_expected_tables_fresh.py` guards this in CI.
@@ -17,12 +17,12 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DOCTOR_CONFIG = REPO_ROOT / "core" / "doctor-config.yaml"
+DOCTOR_CONFIG = REPO_ROOT / "src" / "core" / "doctor-config.yaml"
 
 
 def _introspect() -> tuple[int, list[str]]:
     """Run init_db on an empty DB and return (version, sorted_table_list)."""
-    sys.path.insert(0, str(REPO_ROOT / "core" / "thinking_os"))
+    sys.path.insert(0, str(REPO_ROOT / "src" / "core" / "thinking_os"))
     from database import MIGRATIONS, init_db  # type: ignore
 
     version = max(m[0] for m in MIGRATIONS)
