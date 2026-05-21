@@ -1,0 +1,26 @@
+name: release-please
+
+# Reads Conventional Commits on `main` and maintains a standing
+# "release" PR that bumps the version + updates CHANGELOG.md. Merging
+# that PR tags the release. Publishing (PyPI / GitHub release assets)
+# is intentionally NOT wired here yet — add a `release` job gated on
+# `releases_created` when the project is ready to publish.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          # config + manifest live at the repo root.
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
