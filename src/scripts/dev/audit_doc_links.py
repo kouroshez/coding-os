@@ -153,9 +153,16 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
     findings: list[tuple[str, str]] = []
     rel = path.relative_to(REPO)
 
-    # Repo-root agent entrypoints (AGENTS.md) are exempt from the doc
-    # frontmatter contract — they are not part of the docs/ taxonomy.
-    if path.name not in ROOT_DOCS:
+    # Frontmatter contract exemptions:
+    #  - ROOT_DOCS (AGENTS.md): repo-root entrypoint, not docs/ taxonomy.
+    #  - docs/tasks/: Scrumban task + audit files use YAML frontmatter
+    #    (`---\nid: TASK-NNN\n...`), not the HTML-comment doc header.
+    #  - docs/adr/: ADRs are Nygard-format records, a distinct genre.
+    rel_parts = set(path.relative_to(REPO).parts) if path.is_relative_to(REPO) else set()
+    frontmatter_exempt = (
+        path.name in ROOT_DOCS or "tasks" in rel_parts or "adr" in rel_parts
+    )
+    if not frontmatter_exempt:
         first_line = raw.split("\n", 1)[0]
         if not _FRONTMATTER.match(first_line):
             findings.append(("BAD-FRONTMATTER", f"{rel}: {first_line[:100]!r}"))
@@ -259,7 +266,12 @@ def _check_dup_h2() -> list[tuple[str, str]]:
         "steps to modify an existing adapter",
     }
     for path in _gather_md_files():
-        text = path.read_text(encoding="utf-8")
+        # ADRs (docs/adr/) are Nygard-format: every record repeats
+        # Context / Decision / Consequences / Alternatives by design.
+        # Counting those as duplicate H2s is a genre false positive.
+        if "adr" in path.relative_to(REPO).parts:
+            continue
+        text = _strip_for_headings(path.read_text(encoding="utf-8"))
         for match in _HEADING.finditer(text):
             level = len(match.group(1))
             if level != 2:
