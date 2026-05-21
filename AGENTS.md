@@ -60,7 +60,7 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 | 8 | Multi-step verification = Python, never `uv run` + bash heredoc. | [Rule 8](docs/governance/critical-rules.md#rule-8--multi-step-verification--python-never-bash-heredoc-inside--with-uv-run) |
 | 9 | Schema migrations append-only — new tables → vN+1, never edit past. | [Rule 9](docs/governance/critical-rules.md#rule-9--schema-migrations-are-append-only) |
 | 10 | Regenerate derived artifacts: `make regen-rules` + `manifest-regen` + `regen-adapter-templates`. | [Rule 10](docs/governance/critical-rules.md#rule-10--regenerate-derived-artifacts) |
-| 11 | No hardcoded stack/adapter literals in `src/cli/*.py` — data-driven from yaml. | [Rule 11](docs/governance/critical-rules.md#rule-11--no-hardcoded-stackadapter-literals-in-clipy) |
+| 11 | No hardcoded stack/adapter literals in `src/cli/*.py` — data-driven from yaml. | [Rule 11](docs/governance/critical-rules.md#rule-11--no-hardcoded-stackadapter-literals-in-srcclipy) |
 | 12 | Comments by exception, not default. NO docstrings on internal helpers. ONE-line docstring on `@mcp.tool` functions only (FastMCP description). | [Rule 12](docs/governance/critical-rules.md#rule-12--comments-by-exception-not-by-default) |
 | 13 | MCP envelope — every `cos_*` returns `ok(data)` / `fail(category, message)` via `@safe_tool`. | [Rule 13](docs/governance/critical-rules.md#rule-13--mcp-tool-response-envelope) · [contract](docs/engineering/mcp-error-envelope.md) |
 | 14 | Tasks are pointers — `TASK-NNN-slug.md` never inlines doc content; lint-task warns >1.5k blocks >3k. Axes: swimlane · kind · epic · labels. | [Rule 14](docs/governance/critical-rules.md#rule-14--tasks-are-pointers-not-specs) |
