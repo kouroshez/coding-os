@@ -1,0 +1,62 @@
+# pre-commit framework config — https://pre-commit.com
+#
+# This is the OPTIONAL community-standard pre-commit framework, run by
+# contributors who install `pre-commit`. It is independent of the
+# project's own .git/hooks/pre-commit (the cos guardrail hook), which
+# enforces block-bad-patterns / migration-conflict checks.
+#
+# Install:  pip install pre-commit && pre-commit install
+# Run all:  pre-commit run --all-files
+repos:
+  # ---- generic hygiene ----
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '^(tests/golden/|src/templates/.*/scaffold/)'
+      - id: end-of-file-fixer
+        exclude: '^(tests/golden/|src/templates/.*/scaffold/)'
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # ---- Python: ruff (lint + format) ----
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.13
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # ---- Shell: shellcheck ----
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]
+        files: '^src/core/(hooks|scripts)/.*\.sh$'
+
+  # ---- Frontend: prettier (Hub UI only) ----
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: '^src/core/web/ui/src/.*\.(ts|tsx|css|json)$'
+        exclude: '^src/core/web/ui/src/lib/api-types\.ts$'
+
+# Skip noisy generated trees everywhere.
+exclude: |
+  (?x)^(
+    tests/golden/.*|
+    src/templates/.*/scaffold/.*|
+    src/core/web/ui/(node_modules|dist)/.*|
+    \.coding-os/.*|
+    archive/.*
+  )$
