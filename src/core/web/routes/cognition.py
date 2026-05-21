@@ -698,10 +698,39 @@ async def get_chat(
     )
 
 
+# SDK content-block dataclasses don't carry a `type` discriminator
+# field — they're disambiguated by Python class.  The frontend renders
+# blocks by `b.type === 'text' | 'thinking' | 'tool_use' | …`, so
+# without this map every block round-trips as a typeless dict and the
+# Cognition / Chats panel shows an empty assistant pill (TASK 2026-05-20
+# UI audit).  Names map to the wire-format discriminators that
+# ChatView.tsx already understands.
+_BLOCK_TYPE_BY_CLASS = {
+    "TextBlock": "text",
+    "ThinkingBlock": "thinking",
+    "ToolUseBlock": "tool_use",
+    "ToolResultBlock": "tool_result",
+    "ServerToolUseBlock": "server_tool_use",
+    "ServerToolResultBlock": "server_tool_result",
+}
+
+
 def _safe_serialize(obj: Any) -> Any:
     """Best-effort recursive serializer for SDK dataclass events."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
-        return {k: _safe_serialize(v) for k, v in dataclasses.asdict(obj).items()}
+        cls_name = type(obj).__name__
+        out: dict[str, Any] = {
+            k: _safe_serialize(v) for k, v in dataclasses.asdict(obj).items()
+        }
+        block_type = _BLOCK_TYPE_BY_CLASS.get(cls_name)
+        if block_type is not None:
+            out["type"] = block_type
+            # ThinkingBlock stores its text under `.thinking`; the UI
+            # reads `.text` for both text + thinking blocks, so mirror
+            # the field rather than forking the frontend.
+            if block_type == "thinking" and "text" not in out and "thinking" in out:
+                out["text"] = out["thinking"]
+        return out
     if isinstance(obj, dict):
         return {str(k): _safe_serialize(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
@@ -761,17 +790,30 @@ async def chat_send(
         yield _sse_chunk(
             "started", {"session_id": session_id, "prompt": prompt[:200], "fork": fork}
         )
+        emitted_kinds: list[str] = []
         try:
             async for event in sdk.query(prompt=prompt, options=options):
                 kind = type(event).__name__.lower().replace("message", "")
                 if not kind:
                     kind = "event"
+                emitted_kinds.append(kind)
+                logger.info(
+                    "chat_send stream: session=%s kind=%s class=%s",
+                    session_id,
+                    kind,
+                    type(event).__name__,
+                )
                 yield _sse_chunk(kind, _safe_serialize(event))
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             logger.exception("chat resume stream failed")
             yield _sse_chunk("error", {"message": str(exc)})
+        logger.info(
+            "chat_send stream done: session=%s emitted=%s",
+            session_id,
+            ",".join(emitted_kinds) or "(none)",
+        )
         yield _sse_chunk("done", {"session_id": session_id})
 
     return StreamingResponse(

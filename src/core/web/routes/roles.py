@@ -235,6 +235,7 @@ async def formula_outputs(
 
     agents = [agent] if agent else _agents_with_traces(state)
     outputs: list[dict[str, Any]] = []
+    planned: list[dict[str, Any]] = []
     for ag in agents:
         traces_dir = state / ag / "traces"
         if not traces_dir.exists():
@@ -246,6 +247,7 @@ async def formula_outputs(
             output_json = None
             if bundle and field_name:
                 output_json = bundle.get(field_name)
+            executed_in_session = False
             for ev in reversed(events):
                 if ev.get("kind") != "role_output_recorded":
                     continue
@@ -275,10 +277,42 @@ async def formula_outputs(
                         "schema_errors": schema_errors,
                     }
                 )
+                executed_in_session = True
+                break
+            if executed_in_session:
+                continue
+            # Lifecycle fallback: the session composed a chain that
+            # INCLUDED this formula but never reached the
+            # supervise_record_output step.  Surface it as "planned"
+            # so the Roles tab is no longer silent — that empty state
+            # was hiding the fact that compose_chain is firing but
+            # the recording side never runs.
+            for ev in reversed(events):
+                if ev.get("kind") != "compose_done":
+                    continue
+                chain = (ev.get("data", {}) or {}).get("chain") or []
+                if formula_id in chain:
+                    planned.append(
+                        {
+                            "session_id": session_id,
+                            "agent": ag,
+                            "ts": ev.get("ts"),
+                            "status": "planned",
+                            "latency_ms": None,
+                            "output_hash": None,
+                            "bundle_fields_filled": None,
+                            "output_json": None,
+                            "schema_ok": None,
+                            "schema_errors": [],
+                            "chain": chain,
+                            "preset_id": (ev.get("data", {}) or {}).get("preset_id"),
+                        }
+                    )
                 break
 
     outputs.sort(key=lambda row: float(row.get("ts") or 0.0), reverse=True)
-    outputs = outputs[:limit]
+    planned.sort(key=lambda row: float(row.get("ts") or 0.0), reverse=True)
+    combined = (outputs + planned)[:limit]
 
     return unwrap(
         json.dumps(
@@ -286,8 +320,10 @@ async def formula_outputs(
                 "ok": True,
                 "data": {
                     "formula_id": formula_id,
-                    "outputs": outputs,
-                    "count": len(outputs),
+                    "outputs": combined,
+                    "count": len(combined),
+                    "executed_count": len(outputs),
+                    "planned_count": len(planned),
                 },
                 "meta": {"layer": "cognition"},
             }

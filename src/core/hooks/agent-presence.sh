@@ -119,9 +119,16 @@ COS_HOOK_SRC_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 
 PRESENCE_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_write.py"
+# Extract runtime model from the hook payload (Claude Code 2.x ships
+# `.model` on every stop/tool event).  Empty string falls through —
+# helper preserves the previously-stored value.
+HOOK_MODEL=""
+if [[ -n "$INPUT" ]]; then
+  HOOK_MODEL=$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)
+fi
 if [[ -f "$PRESENCE_HELPER" ]]; then
   python3 "$PRESENCE_HELPER" \
-    "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" \
+    "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" "$HOOK_MODEL" \
     2>/dev/null || true
 fi
 

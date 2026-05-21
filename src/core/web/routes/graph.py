@@ -343,3 +343,15 @@ async def graph_entrypoints(
         min_score=float(min_score),
     )
     return unwrap(result)
+
+
+@router.get("/doctor")
+async def graph_doctor(
+    _rl=Depends(make_rate_limit_dep("graph.doctor")),
+    _m=Depends(make_metrics_dep("graph.doctor")),
+):
+    """Graph backend health snapshot — counts, freshness, backend id."""
+    g = _tools()
+    if g is None:
+        return unwrap(_unavailable())
+    return unwrap(g.cos_graph_doctor())

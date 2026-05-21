@@ -56,8 +56,32 @@ logger = logging.getLogger("coding_os.db")
 DB_FILENAME = "coding-os.db"
 LEGACY_DB_FILENAME = "thinking_os.db"  # rename target for migrate_legacy_db_filename()
 STATE_DIRNAME = ".coding-os"
+
+
+def _find_project_root_from_cwd(start: Path | None = None) -> Path:
+    """Walk up from cwd to find the enclosing coding-os project root.
+
+    .coding-os/ lives ONLY at the project root.  Anywhere we land —
+    src/core/web/, tests/, src/cli/, … — we must walk parents and
+    anchor on the first .coding-os/ we find.  Without this walk, lazy
+    init_db() calls from a subdirectory would CREATE a new stray
+    .coding-os/ at cwd, which then surfaces in the Hub as a phantom
+    project (the exact bug TASK-117 traced to nested .coding-os/).
+    """
+    cur = (start or Path.cwd()).resolve()
+    candidates = [cur, *cur.parents]
+    for parent in candidates:
+        try:
+            if (parent / STATE_DIRNAME).is_dir():
+                return parent
+        except OSError:
+            continue
+    return cur  # fall through — caller creates .coding-os here
+
+
 DEFAULT_DB_PATH = Path(
-    os.environ.get("COS_DB_PATH", "") or str(Path.cwd() / STATE_DIRNAME / DB_FILENAME)
+    os.environ.get("COS_DB_PATH", "")
+    or str(_find_project_root_from_cwd() / STATE_DIRNAME / DB_FILENAME)
 )
 
 
@@ -67,7 +91,10 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     Resolution priority:
     1. ``$COS_DB_PATH`` env var, when set.
     2. ``<project_root>/.coding-os/coding-os.db`` when project_root given.
-    3. ``<cwd>/.coding-os/coding-os.db`` (DEFAULT_DB_PATH).
+    3. ``<bound_root>/.coding-os/coding-os.db`` if a ProjectScopeMiddleware
+       request is in flight.
+    4. Walk up from cwd to find the enclosing ``.coding-os/`` and use that
+       project root — falls back to cwd only if no ancestor has one.
 
     Use this helper instead of inlining the same fallback formula in
     ~30 different sites — a future filename change becomes one edit
@@ -84,7 +111,7 @@ def resolve_db_path(project_root: Path | str | None = None) -> Path:
     bound = _active_project_root.get()
     if bound is not None:
         return Path(bound) / STATE_DIRNAME / DB_FILENAME
-    return DEFAULT_DB_PATH
+    return _find_project_root_from_cwd() / STATE_DIRNAME / DB_FILENAME
 
 
 def migrate_legacy_db_filename(target: Path) -> bool:

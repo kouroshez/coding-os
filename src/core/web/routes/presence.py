@@ -97,11 +97,22 @@ def _agent_runtime(agent_dir: Path, agent: str) -> dict[str, Any] | None:
     sid = _read_text(agent_dir / "session-id")
     task = _strip_session_prefix(_read_text(agent_dir / ".task-current"), sid)
     skill_active = _strip_session_prefix(_read_text(agent_dir / ".skill-active"), sid)
-    model = _strip_session_prefix(_read_text(agent_dir / ".model"), sid)
     gate = _strip_session_prefix(_read_text(agent_dir / ".thinking_os-gate"), sid)
     session_payload = None
     if sid:
         session_payload = _read_json(agent_dir / "sessions" / f"{sid}.json")
+    # Model is per-session — the shared $COS_AGENT_DIR/.model file is a
+    # stale fallback (gets overwritten by whichever runtime started last
+    # and never cleaned up).  Prefer sessions/<sid>.json::model so two
+    # concurrent agents on the same project can disagree on model without
+    # one trampling the other's display.
+    model: str | None = None
+    if isinstance(session_payload, dict):
+        candidate = session_payload.get("model")
+        if isinstance(candidate, str) and candidate.strip():
+            model = candidate.strip()
+    if not model:
+        model = _strip_session_prefix(_read_text(agent_dir / ".model"), sid)
     return {
         "agent": agent,
         "session_id": sid,

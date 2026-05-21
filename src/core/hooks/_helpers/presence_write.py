@@ -7,9 +7,13 @@ zombie bash children pile up and starve the agent runtime's auxiliary
 subprocess spawns. Separate .py file = zero heredoc surface = immune.
 
 USAGE
-    python3 presence_write.py <path> <agent> <sid> <pid> <event> <now>
+    python3 presence_write.py <path> <agent> <sid> <pid> <event> <now> [model]
 
 EVENT ∈ {start, prompt, tool, stop, end}. Other values fall through silently.
+MODEL (optional 7th arg) — Claude Code / Cursor / Codex runtime model id
+(e.g. "claude-opus-4-7"). When provided, stored as sessions/<sid>.json::model so
+the Hub UI can attribute live agents to the actual runtime model rather
+than the stale shared $COS_AGENT_DIR/.model file.
 """
 
 from __future__ import annotations
@@ -20,9 +24,10 @@ import sys
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 7:
+    if len(argv) not in (7, 8):
         return 0  # fail-open: presence is UX, not correctness
-    path, agent, sid, pid_s, event, now_s = argv[1:]
+    path, agent, sid, pid_s, event, now_s = argv[1:7]
+    model = argv[7].strip() if len(argv) == 8 else ""
     try:
         pid = int(pid_s)
         now = int(now_s)
@@ -51,6 +56,7 @@ def main(argv: list[str]) -> int:
         "last_tool_at": prev.get("last_tool_at"),
         "last_stop_at": prev.get("last_stop_at"),
         "ended_at": prev.get("ended_at"),
+        "model": (model or prev.get("model") or None),
     }
     if event == "start":
         # Authoritative session boundary — overwrite even if a prompt

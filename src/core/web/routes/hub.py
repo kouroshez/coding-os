@@ -32,6 +32,27 @@ def _looks_like_cos_project(path: Path) -> bool:
         return False
 
 
+def _ancestor_with_coding_os(path: Path) -> Path | None:
+    """Walk parents looking for an enclosing .coding-os/ root.
+
+    Returns the first ancestor (strictly above `path`) that has a
+    .coding-os/ directory.  Used to detect stray .coding-os/ inside a
+    legitimate project — those must never be registered as a separate
+    project (.coding-os belongs ONLY at the project root).
+    """
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError):
+        return None
+    for parent in resolved.parents:
+        try:
+            if (parent / ".coding-os").is_dir():
+                return parent
+        except OSError:
+            continue
+    return None
+
+
 def _resolve_slug_from_registry(cwd: Path) -> str:
     """Match cli.registry._derive_slug so UI and API agree on spelling."""
     try:
@@ -47,6 +68,12 @@ def _derive_runtime_entry() -> dict | None:
     """Return an in-memory entry for the cwd project when it's a cos repo."""
     cwd = Path(os.environ.get("COS_PROJECT_ROOT") or os.getcwd()).resolve()
     if not _looks_like_cos_project(cwd):
+        return None
+    # .coding-os/ only exists at the project root.  A nested .coding-os/
+    # inside another project (e.g. src/core/web/ui/.coding-os/ left over
+    # from a test run) must NEVER surface as a separate project entry —
+    # we'd hijack the Hub's "default" slot with a stray dir.
+    if _ancestor_with_coding_os(cwd) is not None:
         return None
     return {
         "slug": _resolve_slug_from_registry(cwd),
@@ -84,6 +111,16 @@ def _validate_project_path(raw: str) -> tuple[Path | None, JSONResponse | None]:
         return None, _err(
             "validation",
             f"{path} has no .coding-os/ — run `cos init` there first",
+        )
+    ancestor = _ancestor_with_coding_os(path)
+    if ancestor is not None:
+        return None, _err(
+            "validation",
+            (
+                f"{path} sits inside {ancestor} which is already a coding-os "
+                "project — .coding-os/ must only exist at the project root. "
+                "Remove the nested .coding-os/ directory."
+            ),
         )
     return path, None
 

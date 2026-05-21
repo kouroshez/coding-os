@@ -11,6 +11,25 @@ dependencies = [
     "pyyaml>=6.0",
     "jinja2>=3.1.0",
     "jsonschema>=4.17.0",
+    # Web Hub (FastAPI + uvicorn + SSE) — moved from optional `[web]`
+    # extra to core because `cos hub start` is now a first-class entry
+    # point used by every agent UX flow.  Without these in core, a
+    # bare `uv tool install --editable .` produces a cos binary that
+    # crashes on `cos hub start` with ModuleNotFoundError: fastapi.
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "sse-starlette>=2.1.0",
+    # claude-agent-sdk — same reasoning as fastapi: the Hub's Cognition
+    # tab reads Claude SDK transcripts via project_key_for_directory()
+    # regardless of which adapter is the active agent, so a force
+    # reinstall of `cos` without --extra claude-sdk would wipe the
+    # package and the panel would render "claude_agent_sdk not installed".
+    # P8 (no adapter-SDK imports from core/) was already softened by
+    # presence.py + cognition.py reading the transcript format directly;
+    # promoting the dep finishes that pragmatic decision instead of
+    # leaving a half-broken contract.
+    "claude-agent-sdk>=0.1.81,<0.2.0",
+    "anyio>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -45,24 +64,18 @@ board_os = [
     "watchdog>=4.0.0",
 ]
 
-# web — S4 unified HTTP backbone (FastAPI + uvicorn + SSE).
-# Install with: uv sync --extra web
-web = [
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.30.0",
-    "sse-starlette>=2.1.0",
-]
+# web — kept as no-op alias so historical `uv sync --extra web` calls
+# in scripts / CI keep working.  The actual packages live in core
+# `dependencies` above (see comment) because the Hub is no longer
+# optional.
+web = []
 
-# claude-sdk — Claude-adapter-only: real sub-agent dispatch via claude-agent-sdk.
-# Scope: adapters/claude/sdk_dispatcher.py. core/ stays agent-agnostic.
-# Other adapters (codex, cursor, ...) fall back to the default DB-only dispatcher.
-# Install with: uv sync --extra claude-sdk
-claude-sdk = [
-    # 2026-05-14: pin floor to 0.1.81 (latest); cap below 0.2 — major bump
-    # would change SDK shape and invalidate dispatcher assumptions.
-    "claude-agent-sdk>=0.1.81,<0.2.0",
-    "anyio>=4.0.0",
-]
+# claude-sdk — kept as no-op alias.  Packages live in core
+# `dependencies` above (see comment) because the Hub Cognition tab
+# reads Claude SDK transcripts on every project, regardless of which
+# adapter happens to be active.  Old scripts / CI calling
+# `uv sync --extra claude-sdk` continue to work via this alias.
+claude-sdk = []
 
 [project.scripts]
 cos = "cli.main:cli"

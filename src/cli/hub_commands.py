@@ -232,6 +232,25 @@ def hub_stop() -> None:
     )
 
 
+@hub_cli.command("restart")
+@click.option("--port", type=int, default=DEFAULT_HUB_PORT, show_default=True)
+def hub_restart(port: int) -> None:
+    """Stop the running Hub (if any) and start it again on the same port.
+
+    Convenience wrapper around `hub stop` + `hub start` — used after
+    UI rebuilds or core/ edits that need a process refresh.  Always
+    re-detaches; pass `cos hub start --foreground` directly if you
+    need a foreground process.
+    """
+    ctx = click.get_current_context()
+    pid = _read_pid()
+    if pid is not None:
+        ctx.invoke(hub_stop)
+    else:
+        click.echo("Hub: not running, starting fresh.")
+    ctx.invoke(hub_start, port=port, foreground=False)
+
+
 @hub_cli.command("status")
 def hub_status() -> None:
     """Report the Hub's PID, port, meta-repo path, and symlink health.
