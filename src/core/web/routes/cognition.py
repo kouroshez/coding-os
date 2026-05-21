@@ -719,9 +719,7 @@ def _safe_serialize(obj: Any) -> Any:
     """Best-effort recursive serializer for SDK dataclass events."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         cls_name = type(obj).__name__
-        out: dict[str, Any] = {
-            k: _safe_serialize(v) for k, v in dataclasses.asdict(obj).items()
-        }
+        out: dict[str, Any] = {k: _safe_serialize(v) for k, v in dataclasses.asdict(obj).items()}
         block_type = _BLOCK_TYPE_BY_CLASS.get(cls_name)
         if block_type is not None:
             out["type"] = block_type

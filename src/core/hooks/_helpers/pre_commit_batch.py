@@ -18,7 +18,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 # Hook → file pattern matcher. Skip files the hook wouldn't act on.
 _HOOK_PATTERNS = {
     "block-bad-patterns.sh": (".py", ".ts", ".tsx", ".js", ".sh", ".go"),
@@ -39,14 +38,16 @@ def _make_envelope(abs_path: Path, rel_path: str) -> str:
         content = abs_path.read_text(errors="replace")
     except OSError:
         content = ""
-    return json.dumps({
-        "tool_name": "Write",
-        "tool_input": {
-            "file_path": rel_path,
-            "content": content,
-            "new_string": content,
-        },
-    })
+    return json.dumps(
+        {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": rel_path,
+                "content": content,
+                "new_string": content,
+            },
+        }
+    )
 
 
 def _run_hook(hook_path: Path, envelope: str) -> tuple[int, str]:

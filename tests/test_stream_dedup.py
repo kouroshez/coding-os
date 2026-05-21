@@ -88,7 +88,7 @@ async def _run_scenario(on_poll, max_polls: int = 5, want_events: int = 1) -> li
 
     polls = [0]
 
-    async def _instant_sleep(delay):  # noqa: ARG001 — shape mandated by asyncio.sleep
+    async def _instant_sleep(delay):
         polls[0] += 1
         await on_poll(polls[0])
         if polls[0] >= max_polls:

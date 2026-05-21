@@ -18,7 +18,7 @@ def _daemonise() -> None:
     for fd in (0, 1, 2):
         try:
             os.dup2(devnull, fd)
-        except OSError:  # noqa: PERF203 — daemon detach: fd may already be closed, safe to ignore
+        except OSError:
             continue
 
 

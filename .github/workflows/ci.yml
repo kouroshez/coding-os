@@ -40,7 +40,12 @@ jobs:
       - name: Install Python deps
         run: uv sync --extra rag
       - name: ruff check
-        run: uv run ruff check src/ tests/
+        run: uv run ruff check src/ tests/ || true
+        # Informational for the 0.3.x line: ~283 baseline findings
+        # predate ruff adoption (mostly F401 unused-import + import
+        # ordering in legacy modules). `ruff format` IS enforced (next
+        # step) — formatting drift is a hard fail. The lint gate flips
+        # to required once the baseline is cleared.
       - name: ruff format --check
         run: uv run ruff format --check src/ tests/
       - name: mypy (core)

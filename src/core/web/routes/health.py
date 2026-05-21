@@ -123,9 +123,7 @@ async def api_health_db():
         return payload
     try:
         # Discover which of our candidate tables actually live in this DB.
-        rows = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         existing = {r[0] for r in rows}
         for table in _DB_TABLES_OF_INTEREST:
             if table not in existing:

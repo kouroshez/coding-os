@@ -244,7 +244,7 @@ async def graph_export(
         # Cheap (<1 ms) probe — covers the only mutation paths that
         # matter for export shape: node + edge counts and the latest
         # node updated_at. Re-index bumps all three.
-        from thinking_os.database import get_pooled_conn, resolve_db_path  # noqa: PLC0415
+        from thinking_os.database import get_pooled_conn, resolve_db_path
 
         conn = get_pooled_conn(resolve_db_path())
         cur = conn.execute("SELECT COALESCE(MAX(updated_at), 0) FROM graph_nodes")

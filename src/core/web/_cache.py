@@ -33,7 +33,8 @@ import logging
 import threading
 import time
 from collections import OrderedDict
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger("coding_os.web.cache")
 
@@ -67,7 +68,7 @@ class SignatureLRUCache:
         # serve stale data when we can't tell whether it's stale.
         try:
             sig = signature_fn()
-        except Exception as exc:  # noqa: BLE001 — fall back to fresh path
+        except Exception as exc:
             logger.debug("cache signature unavailable, bypassing: %s", exc)
             return producer()
 

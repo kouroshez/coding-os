@@ -212,6 +212,12 @@ ignore = [
     "E501",   # line-too-long — formatter handles it; long URLs are fine
     "B008",   # function call in default arg — common w/ Click + FastAPI
     "SIM108", # ternary-vs-if — readability is subjective
+    # Ambiguous-unicode rules — coding-os is bilingual (Persian + English);
+    # Persian text in docstrings/comments/strings is intentional, not a
+    # homoglyph attack. These rules would fire forever on legitimate copy.
+    "RUF001", # ambiguous-unicode-character-string
+    "RUF002", # ambiguous-unicode-character-docstring
+    "RUF003", # ambiguous-unicode-character-comment
 ]
 unfixable = [
     "F401",   # unused-import — never auto-remove (could hide intent)
