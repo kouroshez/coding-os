@@ -1,3 +1,8 @@
+---
+status: completed
+completed: 2026-05-21
+task_id: TASK-006
+---
 <!-- domain:DOCS | layer:reference | ssot:false | updated:2026-05-21 -->
 # Audit — Complete the legacy `make task-*` → Scrumban migration
 

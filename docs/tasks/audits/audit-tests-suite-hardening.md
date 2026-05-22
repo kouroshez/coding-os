@@ -1,6 +1,6 @@
 ---
 title: "Audit — tests/ suite hardening"
-status: complete
+status: completed
 created: 2026-05-21
 completed: 2026-05-22
 scope: tests/
