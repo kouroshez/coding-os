@@ -15,7 +15,6 @@ adapter has its own focused tests (test_codex_dispatchers.py, etc.).
 from __future__ import annotations
 
 import asyncio
-import os
 
 import pytest
 
@@ -51,25 +50,19 @@ class TestDispatcherContract:
         assert isinstance(dispatcher.name, str) and dispatcher.name
         assert isinstance(dispatcher.available(), bool)
 
-    def test_default_dispatcher_always_available(self) -> None:
+    def test_default_dispatcher_always_available(self, monkeypatch) -> None:
         """Forcing default fallback yields an always-available dispatcher."""
-        os.environ["COS_FORCE_DEFAULT_DISPATCHER"] = "1"
-        try:
-            dispatcher = get_dispatcher()
-            assert dispatcher.name == "default"
-            assert dispatcher.available() is True
-        finally:
-            del os.environ["COS_FORCE_DEFAULT_DISPATCHER"]
+        monkeypatch.setenv("COS_FORCE_DEFAULT_DISPATCHER", "1")
+        dispatcher = get_dispatcher()
+        assert dispatcher.name == "default"
+        assert dispatcher.available() is True
 
-    def test_default_dispatcher_returns_skipped(self) -> None:
+    def test_default_dispatcher_returns_skipped(self, monkeypatch) -> None:
         """The default fallback never spawns; it returns a 'skipped' result
         with a structured hint so the main agent inlines the formula."""
-        os.environ["COS_FORCE_DEFAULT_DISPATCHER"] = "1"
-        try:
-            dispatcher = get_dispatcher()
-            result = asyncio.run(dispatcher.dispatch(_build_request()))
-        finally:
-            del os.environ["COS_FORCE_DEFAULT_DISPATCHER"]
+        monkeypatch.setenv("COS_FORCE_DEFAULT_DISPATCHER", "1")
+        dispatcher = get_dispatcher()
+        result = asyncio.run(dispatcher.dispatch(_build_request()))
 
         assert isinstance(result, DispatchResult)
         assert result.status == "skipped"
@@ -82,16 +75,13 @@ class TestCrossAdapterShapeParity:
     """Same DispatchRequest yields a DispatchResult with the same fields,
     regardless of which adapter the factory selected."""
 
-    def test_result_shape_is_stable(self) -> None:
+    def test_result_shape_is_stable(self, monkeypatch) -> None:
         """Every adapter's DispatchResult must carry the same key set so
         downstream code (cos_supervise_record_output, traces, metrics) can
         consume it without per-agent branches."""
-        os.environ["COS_FORCE_DEFAULT_DISPATCHER"] = "1"
-        try:
-            dispatcher = get_dispatcher()
-            result = asyncio.run(dispatcher.dispatch(_build_request()))
-        finally:
-            del os.environ["COS_FORCE_DEFAULT_DISPATCHER"]
+        monkeypatch.setenv("COS_FORCE_DEFAULT_DISPATCHER", "1")
+        dispatcher = get_dispatcher()
+        result = asyncio.run(dispatcher.dispatch(_build_request()))
 
         # Pydantic dump captures the canonical field set.
         keys = set(result.model_dump().keys())

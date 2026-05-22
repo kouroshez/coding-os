@@ -9,7 +9,10 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-GUARDED_DIRS = ("core", "cli", "adapters")
+# Post src/-layout migration these live under src/ — the old bare
+# ("core", "cli", "adapters") silently matched nothing, so the whole
+# secret/model scan collected zero files and skipped.
+GUARDED_DIRS = ("src/core", "src/cli", "src/adapters")
 
 # Anthropic API key prefix per https://docs.anthropic.com/en/api/.
 # `sk-ant-…` keys are 100+ chars; the prefix alone is enough to fail.
@@ -23,6 +26,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "src/adapters/claude/adapter.yaml",  # adapter manifest
     "src/core/thinking_os/dispatcher.py",  # docstring example only
     "src/core/thinking_os/database.py",  # migration docstring example
+    "src/core/hooks/_helpers/presence_write.py",  # docstring example of the model arg
     "src/core/thinking_os/compress.py",  # COS_COMPRESS_MODEL env default
     "src/core/thinking_os/agents/researcher.md",  # role frontmatter
     "src/core/thinking_os/agents/implementer.md",
@@ -75,3 +79,17 @@ def test_no_hardcoded_anthropic_secrets_or_models(source_file: Path) -> None:
         f"intentional (compatibility gate), add the path to "
         f"ALLOWED_MODEL_PATHS in tests/test_no_hardcoded_anthropic.py."
     )
+
+
+def test_allowed_model_paths_all_exist() -> None:
+    """Guard the allow-list itself — a renamed or deleted allowed file leaves
+    a stale entry that silently shrinks the scan's coverage."""
+    missing = sorted(p for p in ALLOWED_MODEL_PATHS if not (REPO_ROOT / p).exists())
+    assert not missing, f"stale ALLOWED_MODEL_PATHS entries (file gone): {missing}"
+
+
+def test_scan_actually_covers_files() -> None:
+    """Guard the guard — if GUARDED_DIRS goes stale (e.g. a layout migration),
+    _iter_source_files() returns [] and the secret/model scan silently skips."""
+    files = _iter_source_files()
+    assert len(files) > 50, f"source scan collected only {len(files)} files — GUARDED_DIRS stale?"
