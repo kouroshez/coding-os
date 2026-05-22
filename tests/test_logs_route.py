@@ -156,3 +156,15 @@ def test_stream_route_is_registered(client):
     routes = {getattr(r, "path", "") for r in c.app.routes}
     assert "/api/logs/stream" in routes
     assert "/api/logs/recent" in routes
+
+
+def test_logs_envelope_contract(client):
+    """Web envelope contract — unwrap() translates the MCP ok envelope to
+    HTTP 200 + {data, meta}; a failure becomes a 4xx/5xx + {error}.
+    The raw `ok` boolean is intentionally NOT echoed in the HTTP body."""
+    c, _ = client
+    resp = c.get("/api/logs/recent")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "data" in body
+    assert "meta" in body

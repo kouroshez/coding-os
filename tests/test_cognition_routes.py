@@ -144,6 +144,18 @@ def test_cognition_trace_returns_404_for_unknown_session(client):
     assert resp.status_code == 404
 
 
+def test_cognition_traces_envelope_contract(client):
+    """Web envelope contract — unwrap() translates the MCP ok envelope to
+    HTTP 200 + {data, meta}; a failure becomes a 4xx/5xx + {error}.
+    The raw `ok` boolean is intentionally NOT echoed in the HTTP body."""
+    c, _ = client
+    resp = c.get("/api/cognition/traces")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "data" in body
+    assert "meta" in body
+
+
 def test_cognition_traces_sorted_newest_first(client):
     c, state = client
     old_file = state / "claude" / "traces" / "ses-old.jsonl"

@@ -94,3 +94,15 @@ def test_observability_timeline_source_filter(client):
     events = resp.json()["data"]["events"]
     assert events
     assert all(evt["source"] == "hook" for evt in events)
+
+
+def test_observability_envelope_contract(client):
+    """Web envelope contract — unwrap() translates the MCP ok envelope to
+    HTTP 200 + {data, meta}; a failure becomes a 4xx/5xx + {error}.
+    The raw `ok` boolean is intentionally NOT echoed in the HTTP body."""
+    c, _ = client
+    resp = c.get("/api/observability/sessions")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "data" in body
+    assert "meta" in body

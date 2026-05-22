@@ -100,3 +100,15 @@ def test_roles_outputs_collects_trace_and_bundle(client):
     assert row["session_id"] == "ses-test-1"
     assert row["status"] == "ok"
     assert row["schema_ok"] is True
+
+
+def test_roles_envelope_contract(client):
+    """Web envelope contract — unwrap() translates the MCP ok envelope to
+    HTTP 200 + {data, meta}; a failure becomes a 4xx/5xx + {error}.
+    The raw `ok` boolean is intentionally NOT echoed in the HTTP body."""
+    c, _ = client
+    resp = c.get("/api/roles")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "data" in body
+    assert "meta" in body
