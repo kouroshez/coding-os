@@ -106,3 +106,21 @@ def test_observability_envelope_contract(client):
     body = resp.json()
     assert "data" in body
     assert "meta" in body
+
+
+def test_observability_empty_state_returns_200(client):
+    """Empty state — no traces/sessions/hooks — must still return clean 200s.
+    (Merged from the former test_observability_smoke.py, which otherwise just
+    duplicated the sessions/timeline merge already covered above.)"""
+    c, _ = client
+    sessions = c.get("/api/observability/sessions")
+    assert sessions.status_code == 200
+    sdata = sessions.json()["data"]
+    assert sdata["sessions"] == []
+    assert sdata["count"] == 0
+
+    timeline = c.get("/api/observability/timeline")
+    assert timeline.status_code == 200
+    tdata = timeline.json()["data"]
+    assert tdata["events"] == []
+    assert tdata["count"] == 0
