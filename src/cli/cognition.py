@@ -345,9 +345,19 @@ def _assert_exhaustive_evidence(session_id: str) -> None:
     import sys
     from pathlib import Path as _Path
 
-    state = os.environ.get("COS_STATE_DIR") or ".coding-os"
-    agent = os.environ.get("COS_AGENT") or "claude"
-    agent_dir = _Path(state) / agent
+    # Resolve the agent dir without hardcoding an adapter name (Rule 11):
+    # prefer the explicit COS_AGENT_DIR, fall back to COS_STATE_DIR/COS_AGENT,
+    # skip the audit if the runtime is unresolvable.
+    agent_dir_env = os.environ.get("COS_AGENT_DIR")
+    if agent_dir_env:
+        agent_dir = _Path(agent_dir_env)
+    else:
+        agent = os.environ.get("COS_AGENT")
+        if not agent:
+            click.echo("[replay/audit] SKIP — agent runtime not resolvable (COS_AGENT/COS_AGENT_DIR unset)")
+            return
+        state = os.environ.get("COS_STATE_DIR") or ".coding-os"
+        agent_dir = _Path(state) / agent
 
     intent_path = agent_dir / ".intent.json"
     if not intent_path.exists():

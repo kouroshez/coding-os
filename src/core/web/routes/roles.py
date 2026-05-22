@@ -150,6 +150,31 @@ def _bundle_field(formula_id: str) -> str | None:
     }.get(formula_id)
 
 
+# The API + traces + bundle fields key formulas as F1..F11; role yamls
+# (src/core/thinking_os/roles/*.yaml) key by semantic role name. Map
+# between them in the canonical formula order (formulas-en.md).
+_FORMULA_TO_ROLE: dict[str, str] = {
+    "F1": "researcher",
+    "F2": "analyst",
+    "F3": "architect",
+    "F4": "documenter",
+    "F5": "implementer",
+    "F6": "reviewer",
+    "F7": "debugger",
+    "F8": "security_auditor",
+    "F9": "deployer",
+    "F10": "observer",
+    "F11": "refactorer",
+}
+
+
+def _role_for_formula(formula_id: str, roles: dict[str, dict]) -> dict:
+    """Resolve a role def by F-number or by raw role name."""
+    if formula_id in roles:
+        return roles[formula_id]
+    return roles.get(_FORMULA_TO_ROLE.get(formula_id, ""), {})
+
+
 @router.get("")
 async def list_roles(
     _rl=Depends(make_rate_limit_dep("roles.list")),
@@ -229,7 +254,7 @@ async def formula_outputs(
 ):
     state = _state_dir()
     roles = {r["formula_id"]: r for r in _role_defs()}
-    role = roles.get(formula_id, {})
+    role = _role_for_formula(formula_id, roles)
     schema_cls = _schema_class(str(role.get("output_schema") or ""))
     field_name = _bundle_field(formula_id)
 
