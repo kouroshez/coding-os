@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, git-workflow]
-status: testing
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-22
 started: null
-completed: null
+completed: 2026-05-22
 agent_session: ses-claude-20260522-181701-790c
 depends_on: []
 blocked_by: []
@@ -42,3 +42,4 @@ references: []
   Verified: verify-hooks clean, 11 branch-guard tests, adapter+golden
   parity green. Golden regen also folds in pre-existing doc-link drift
   from da59ea5.
+- 2026-05-22 [claude]: Status transitioned to complete via cos task-done.
