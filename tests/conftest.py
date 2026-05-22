@@ -5,11 +5,44 @@ Isolates side-effectful global state so tests never pollute the real
 via the CLI runner) writes to COS_REGISTRY_PATH — this autouse fixture
 redirects that to a per-test tmp file, matching the pattern already used in
 tests/test_registry.py.
+
+Also bootstraps sys.path once for the whole tests/ tree so individual files
+need not each re-insert the flat-module dirs (cognition_schemas, database,
+formula_composer, …) — see REPO_ROOT below.
 """
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pytest
+
+# --- Shared path bootstrap -------------------------------------------------
+# Flat-module imports (cognition_schemas, database, capture, formula_composer,
+# task_analyzer, …) live under src/core/<subsystem>/ and are imported with no
+# package prefix. conftest.py loads before collection, so inserting the dirs
+# here covers every test file — replacing ~28 per-file sys.path.insert hacks.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+for _p in (
+    REPO_ROOT,
+    REPO_ROOT / "src",
+    REPO_ROOT / "src" / "core",
+    REPO_ROOT / "src" / "core" / "thinking_os",
+    REPO_ROOT / "src" / "core" / "board_os",
+    REPO_ROOT / "src" / "core" / "graph_os",
+):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
+
+
+@pytest.fixture
+def cli_runner():
+    """Shared Click CliRunner — replaces inline CliRunner() instantiation."""
+    from click.testing import CliRunner
+
+    return CliRunner()
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
