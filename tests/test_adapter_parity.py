@@ -35,8 +35,16 @@ CODEX_COMPATIBLE_MATCHERS = {"Bash", ""}
 # Explicit whitelist of hooks that are legitimately Claude-only. Add
 # with a comment explaining why (usually a platform limit).
 CLAUDE_ONLY_WHITELIST: set[str] = {
-    # No entries yet — kept as a hook for future Claude-specific
-    # features (e.g. Skill tool tracking).
+    # The 3-layer intent-enforcement hooks deliver their entire effect
+    # via stdout JSON (additionalContext / {"decision":"block"}) with
+    # exit 0. Codex's coalescing dispatchers (codex-userpromptsubmit-
+    # dispatch.sh, codex-stop-dispatch.sh) route delegate stdout to
+    # /dev/null — so wiring these as Codex delegates would run them as
+    # no-ops. Effective Codex support needs the dispatchers to forward
+    # delegate stdout — tracked in TASK-009.
+    "detect-exhaustive-intent.sh",
+    "verify-completion-claim.sh",
+    "prevent-premature-done.sh",
 }
 
 
