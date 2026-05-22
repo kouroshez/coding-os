@@ -111,15 +111,26 @@ in-flight WIP (NOT this task):
   TASK-006 removes the legacy `make task` workflow.
 - test_manifest_fresh timeout — slow-test runtime, folded into L6.
 
-**L1–L8 DONE** (branch `harden/tests-suite`). L5 deferred (the per-file
-sys.path hacks are harmless idempotent no-ops once conftest bootstraps the
-path; full 28-file migration is low-value/high-churn cleanup).
+**L1–L10, L13 DONE + L9, L14(batch 1-2a) DONE** (branch `harden/tests-suite`).
 
-**Next: L9** — route tests assert the `ok`/`error` envelope (Rule 13), not
-just `["data"]`. Then L10 (dead/misplaced tests), L11 (parametrize), L12
-(hook file reorg by concern), L13 (merge test_observability_smoke + Phase-N
-scenario dedup), L14 (brittleness — source-grep tests, hardcoded lists,
-hand parsers, manual env mutation → monkeypatch).
+Every genuine DEFECT the audit found is fixed — including one not in the
+original list: `test_no_hardcoded_anthropic` had stale `GUARDED_DIRS`
+(`core/` not `src/core/`), so its secret/model-id scan collected **zero**
+files and silently skipped; now scans 468.
+
+**Deferred (Rule 22 — cosmetic / churn / brittle-but-working, NOT defects):**
+- L5 — conftest sys.path migration: per-file hacks are idempotent no-ops
+  once conftest bootstraps the path; 28-file rewrite is pure churn.
+- L11 — `parametrize` copy-paste blocks: the tests work; granularity-only.
+- L12 — hook-file reorg by commit-phase→concern: pure file reorganization;
+  each phase file owns disjoint hooks (no cross-file re-test).
+- L13 part 2 — Phase-N scenario-table extraction: behavioral/e2e assert
+  different surfaces; duplicated data is maintenance overhead only.
+- L14 remainder — `test_stream_dedup` global `asyncio.sleep` patch,
+  `test_web_server` hand-rolled monkeypatch, `test_brain_hardening` /
+  `test_agent_presence_visuals` source-grep tests, `test_role_registry`
+  hardcoded preset exemption, `test_cli_update` brace-matching JSON parser:
+  all brittle-but-passing — flagged for a future polish pass.
 
 ## Evidence Log
 
@@ -139,3 +150,8 @@ hand parsers, manual env mutation → monkeypatch).
 | L6 fixture scope | 10/10/10 | test_template_scaffold 551s→154s, 38 pass | c844aba |
 | L7 in-process classifier/doctor | 10/10/10 | intent 3-6s→0.42s; doctor 19 pass; conftest collision fixed | 552217e |
 | L8 vacuous/hedged asserts | 10/10/10 | test_metrics failable; formula_composer 16 pass; non-slow suite 839 pass | 71be40c |
+| L9 route envelope contract | 10/10/10 | 4 web routes, 25 pass | 71be40c-next |
+| L10 dead/misplaced tests | 10/10/10 | 110 fast + 12 slow pass | (L10 commit) |
+| L13 observability merge | 10/10/10 | observability_routes 5 pass | (L13 commit) |
+| L14b1 anthropic scan revived | 10/10/10 | 0→468 files scanned; budgets de-flaked | (L14 commit) |
+| L14b2a SDK Literal parse | 10/10/10 | claude_dispatcher_options 5 pass | (L14b2a commit) |
