@@ -53,6 +53,7 @@ run_delegate() {
 for delegate in \
   block-secrets.sh \
   block-dangerous-commands.sh \
+  branch-guard.sh \
   block-uv-heredoc.sh \
   enforce-verify.sh \
   search-enforce-inventory.sh \

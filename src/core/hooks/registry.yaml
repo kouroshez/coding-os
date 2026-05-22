@@ -58,6 +58,17 @@ hooks:
         matcher: Bash
         status_message: "🛡️ Checking command safety (rm, force-push, reset)..."
 
+  - id: branch-guard
+    script: branch-guard.sh
+    description: Enforces trunk-based workflow — blocks git branch/worktree creation in trunk mode.
+    category: enforcement
+    phase: "0"
+    timeout: 5
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🌳 Enforcing trunk-based workflow (no branches)..."
+
   - id: block-uv-heredoc
     script: block-uv-heredoc.sh
     description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).

@@ -178,6 +178,21 @@ if [[ "$SOURCE" == "startup" ]]; then
     fi
   fi
 
+  # Surface an uncommitted working tree — a prior session may have been
+  # abandoned mid-task. The agent must NOT blind-commit another session's
+  # WIP (see src/core/rules/git-workflow.md § Concurrent sessions).
+  # Read-only; never blocks.
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    DIRTY=$(git status --porcelain 2>/dev/null | head -20 || true)
+    if [ -n "$DIRTY" ]; then
+      DIRTY_N=$(printf '%s\n' "$DIRTY" | wc -l | tr -d ' ')
+      echo ""
+      echo "[Uncommitted Work] ${DIRTY_N} file(s) modified — possibly a prior session's WIP:"
+      printf '%s\n' "$DIRTY" | sed 's/^/  /'
+      echo "  Commit with EXPLICIT paths only — never a bare 'git commit'."
+    fi
+  fi
+
   # Phase G.10 — Agent digest: print the rolling identity snapshot so the
   # agent inherits its beliefs/preferences across sessions. The file is
   # refreshed on every task-done; missing file (new project) is fine.

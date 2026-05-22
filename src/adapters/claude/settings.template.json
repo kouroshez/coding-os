@@ -18,6 +18,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/branch-guard.sh",
+            "statusMessage": "🌳 Enforcing trunk-based workflow (no branches)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/block-uv-heredoc.sh",
             "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)...",
             "timeout": 5

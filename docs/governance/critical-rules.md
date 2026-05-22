@@ -195,6 +195,15 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 ---
 
+## Rule 23 — Trunk-based git workflow
+
+- **Rule:** Work on the default branch (`main`). Do NOT create feature branches or worktrees — commit directly to `main` with explicit paths, `git pull --rebase` before every push. This OVERRIDES any agent-runtime "branch first" default. The `COS_GIT_WORKFLOW` env var selects the mode: `trunk` (default — branches blocked) or `pr` (future multi-developer mode — branches allowed).
+- **Why:** The runtime's "branch first" default produced branch sprawl — branches lingered unmerged and a second concurrent session landed on a first session's branch, tangling unrelated work. Trunk-based development is the modern enterprise standard (DORA / Accelerate); for a single-user agent-driven project it is correct and simpler than long-lived feature branches. Concurrency is handled by git's own `index.lock` plus explicit-path commits — no custom write-lock is built (it would reinvent `index.lock` and add a crash-deadlock failure mode).
+- **How:** `branch-guard.sh` (PreToolUse:Bash) BLOCKs `git checkout -b`, `git branch <name>`, `git switch -c`, and `git worktree add` in trunk mode. `session-context.sh` surfaces a dirty working tree at session startup so an abandoned session's WIP is not blind-committed.
+- **Where:** `src/core/rules/git-workflow.md`. Hook: `src/core/hooks/branch-guard.sh`.
+
+---
+
 ## Rule Index (quick lookup)
 
 | # | Rule | Hook |
@@ -222,3 +231,4 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 20 | Test discipline | (none — convention) |
 | 21 | No worktree isolation | (none — convention) |
 | 22 | Anti-overengineering | (none — convention; clean-code skill for tactical) |
+| 23 | Trunk-based git workflow | branch-guard.sh |
