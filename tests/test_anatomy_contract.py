@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 
 import pytest
@@ -259,10 +260,16 @@ def test_forbids_writing_in_references_real_subtrees() -> None:
                     f"{boundary_path.relative_to(REPO_ROOT)} forbids writes "
                     f"in '{forbidden}' but no installed stack owns that root."
                 )
-    # Soft assertion: a forbidden subtree may legitimately reference a future
-    # stack. Surface as a single combined message; do not block.
+    # forbids_writing_in legitimately contains non-stack-root paths (.claude/,
+    # src/ai-service/, …) — generated/adapter dirs that no stack "owns" yet
+    # are valid forbid targets. So an unowned-root reference is informational,
+    # not a defect: surface it via a warning (visible in `-W` / CI logs)
+    # rather than a silent skip or a false-positive hard failure.
     if issues:
-        pytest.skip("forbids_writing_in references unowned subtrees: " + " ; ".join(issues))
+        warnings.warn(
+            "forbids_writing_in references unowned subtrees: " + " ; ".join(issues),
+            stacklevel=2,
+        )
 
 
 # ---------------------------------------------------------------------------

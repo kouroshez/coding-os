@@ -123,9 +123,11 @@ class TestClaudeAdapter:
     def test_symlinks_commands(self, project: Path) -> None:
         run_adapter_install("claude", project)
         commands_dir = project / ".claude" / "commands"
-        if commands_dir.exists():
-            cmd_files = list(commands_dir.glob("*.md"))
-            assert len(cmd_files) >= 1
+        # Hard precondition — the old `if commands_dir.exists()` guard let this
+        # test pass asserting nothing when install silently skipped commands.
+        assert commands_dir.is_dir(), ".claude/commands not created by install"
+        cmd_files = list(commands_dir.glob("*.md"))
+        assert len(cmd_files) >= 1
 
     def test_idempotent_install(self, project: Path) -> None:
         """Running install twice should not fail."""

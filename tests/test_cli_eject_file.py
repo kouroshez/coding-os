@@ -73,14 +73,16 @@ class TestEjectFile:
         )
         assert result.exit_code != 0
 
-    def test_force_re_copies_regular_file(self, tmp_path: Path) -> None:
+    def test_force_succeeds_on_already_ejected_file(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         rel = ".claude/skills/thinking_os/SKILL.md"
         runner = CliRunner()
         runner.invoke(cos_cli, ["eject-file", rel, "-d", str(project)])
         link = project / rel
         link.write_text("tampered")
-        # --force should re-copy from the source (but source is already
-        # ejected target, so content == 'tampered'). Just verify exit code.
+        # Without --force a second eject errors (see test_already_regular_errors
+        # _without_force); --force re-ejects an already-regular file cleanly.
         result = runner.invoke(cos_cli, ["eject-file", rel, "--force", "-d", str(project)])
-        assert result.exit_code == 0
+        assert result.exit_code == 0, result.output
+        # The path stays a real regular file — not deleted, not a dangling symlink.
+        assert link.is_file() and not link.is_symlink()

@@ -2,8 +2,8 @@
 
   core/hooks/enforce-template.sh       — blocks raw Write on structured .md
                                          paths, redirects to make/cos/MCP tools
-  core/hooks/doc-sync-reminder.sh      — soft nudge after code changes to
-                                         keep companion docs in sync
+  core/hooks/enforce-doc-sync.sh       — companion-doc hints after code
+                                         changes (absorbed doc-sync-reminder.sh)
 
 Both are agent-agnostic (live in core/hooks/) — they're symlinked into
 every project via adapter install, so these tests drive them directly
@@ -20,7 +20,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 ENFORCE_TEMPLATE = HOOKS_DIR / "enforce-template.sh"
-DOC_SYNC_REMINDER = HOOKS_DIR / "doc-sync-reminder.sh"
 ENFORCE_DOC_SYNC = HOOKS_DIR / "enforce-doc-sync.sh"
 
 
@@ -197,39 +196,13 @@ class TestEnforceTemplate:
 
 
 # ---------------------------------------------------------------------------
-# doc-sync-reminder.sh
+# enforce-doc-sync.sh — companion-doc hints (the old doc-sync-reminder.sh is
+# now a stub; its behaviour was absorbed here). The stub no-op tests were
+# removed — verifying a stub returns 0 carries no signal.
 # ---------------------------------------------------------------------------
 
 
-class TestDocSyncReminder:
-    def test_hook_is_executable(self) -> None:
-        assert DOC_SYNC_REMINDER.exists()
-        assert os.access(DOC_SYNC_REMINDER, os.X_OK)
-
-    def test_non_code_file_is_silent(self, tmp_path: Path) -> None:
-        target = tmp_path / "docs" / "playbooks" / "x.md"
-        result = _invoke(
-            DOC_SYNC_REMINDER,
-            {
-                "tool_name": "Edit",
-                "tool_input": {"file_path": str(target)},
-            },
-        )
-        assert result.returncode == 0
-        assert result.stdout == ""
-
-    def test_test_file_is_silent(self, tmp_path: Path) -> None:
-        target = tmp_path / "tests" / "test_foo.py"
-        result = _invoke(
-            DOC_SYNC_REMINDER,
-            {
-                "tool_name": "Edit",
-                "tool_input": {"file_path": str(target)},
-            },
-        )
-        assert result.returncode == 0
-        assert result.stdout == ""
-
+class TestEnforceDocSync:
     def test_cli_py_prints_readme_and_features(self, tmp_path: Path) -> None:
         # enforce-doc-sync.sh absorbed companion-doc hints from doc-sync-reminder.sh.
         # Output goes to stderr; file must exist for the hook to proceed past the
@@ -275,39 +248,3 @@ class TestDocSyncReminder:
         )
         assert result.returncode == 0
         assert "hook" in result.stderr.lower()
-
-    def test_doc_map_yaml_override_adds_docs(self, tmp_path: Path) -> None:
-        # doc-sync-reminder.sh is now a stub; the doc-map.yaml override feature
-        # was not carried over to enforce-doc-sync.sh. Verify stub exits cleanly.
-        state = tmp_path / ".coding-os"
-        state.mkdir()
-        doc_map = state / "doc-map.yaml"
-        doc_map.write_text("# project override\nsrc/cli/main.py=>docs/custom-extra.md\n")
-        target = tmp_path / "src" / "cli" / "main.py"
-        env = os.environ.copy()
-        env["COS_STATE_DIR"] = str(state)
-        result = subprocess.run(
-            ["bash", str(DOC_SYNC_REMINDER)],
-            input=json.dumps(
-                {
-                    "tool_name": "Edit",
-                    "tool_input": {"file_path": str(target)},
-                }
-            ),
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=5,
-        )
-        assert result.returncode == 0  # stub always exits clean
-
-    def test_never_blocks(self, tmp_path: Path) -> None:
-        target = tmp_path / "some" / "random" / "thing.py"
-        result = _invoke(
-            DOC_SYNC_REMINDER,
-            {
-                "tool_name": "Edit",
-                "tool_input": {"file_path": str(target)},
-            },
-        )
-        assert result.returncode == 0

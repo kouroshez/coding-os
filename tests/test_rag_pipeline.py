@@ -13,7 +13,6 @@ If any of them regresses, these tests fail with an actionable message.
 from __future__ import annotations
 
 import os
-import shutil
 import sqlite3
 import subprocess
 import sys
@@ -23,10 +22,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FROZEN_DATE = "2026-01-01"
-
-
-def _cos_available() -> bool:
-    return shutil.which("cos") is not None
 
 
 def _init_project(target: Path, *, agent: str = "claude") -> None:

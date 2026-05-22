@@ -139,29 +139,10 @@ class TestIdempotentDetection:
         assert skill.exists(), "sync did not re-link python-django"
 
 
-class TestInitRerunTriggersSync:
-    def test_rerun_in_same_dir_offers_sync(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        project = tmp_path / "p"
-        project.mkdir()
-        # First: fresh install
-        r1 = runner.invoke(
-            cos_cli,
-            ["init", "--yes", "-a", "claude", "--no-git", "-d", str(project)],
-        )
-        assert r1.exit_code == 0
-        # Second: re-run WITHOUT flags, no name/project-dir — should detect + sync
-        # Simulate by cd'ing via project_dir? Actually the detection path is
-        # triggered only when name and project_dir are both None. The prompt
-        # flow then handles the user saying "yes" to sync.
-        # For this test, we rely on _detect_existing_install being called when
-        # neither name nor project-dir is passed AND the shell cwd contains
-        # the install. Since CliRunner keeps the process cwd, just changing
-        # via os.chdir won't propagate. We test the detection function itself
-        # above; here we verify the detection object shape is correct.
-        info = _detect_existing_install(project)
-        assert info is not None
-        assert info["agents"] == ["claude"]
+# Removed test_rerun_in_same_dir_offers_sync — CliRunner keeps the process
+# cwd so it could never exercise the rerun-detection path it was named for;
+# its only real assertion (detection object shape) duplicates
+# TestIdempotentDetection::test_detect_reads_config.
 
 
 def test_valid_agents_resolves() -> None:

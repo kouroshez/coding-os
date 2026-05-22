@@ -5,7 +5,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -93,7 +92,7 @@ def test_explain_unknown_id_returns_helpful_message() -> None:
     assert "no entry" in out.lower() or "not found" in out.lower()
 
 
-def test_cli_explain_prints_section_and_exits_clean(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_explain_prints_section_and_exits_clean() -> None:
     runner = CliRunner()
     result = runner.invoke(doctor_cli, ["--explain", "hook.cos_env_sourced"])
     assert result.exit_code == 0
