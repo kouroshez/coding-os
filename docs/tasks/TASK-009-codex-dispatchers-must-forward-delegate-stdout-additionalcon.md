@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: []
-status: icebox
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-05-22
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260522-1151
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-009: Codex dispatchers must forward delegate stdout (additionalContext/decision JSON)
 
 **Outcome (one sentence):** (fill in: one-sentence outcome — e.g. 'Stop double-charging users on retry of failed payments.')
@@ -36,3 +35,4 @@ Actual: ...
 - **Then** ...
 
 ## Work Log
+- 2026-05-22 [claude]: Archived — not current scope. Real bug (Codex dispatchers drop delegate stdout) but a never-filled stub from session ses
