@@ -103,32 +103,31 @@ speed · accuracy), and committed before moving on.
 
 ## Resume Marker
 
-L1 in progress. Baseline: 36 failed / 1068 passed / 3 skipped, 39 min runtime.
-Fixed so far (L1a–L1e): ~28 reds. Remaining genuine (pre-existing) reds:
-- composer preset shadowing — `audit-exhaustive` (score 11, match `action:audit`)
-  greedily shadows `security-audit-full` (score 10) and every other audit
-  preset. TaskSignals has no `exhaustive` field. Fails test_formula_composer
-  ::test_security_audit_parallel + test_phase_n_e2e::scenario6. DEEP — needs an
-  `exhaustive` signal threaded through TaskSignals + the analyzer. Separate fix.
-- test_hooks_phase_f::test_warns_when_zero_observations — check-capture-worked.sh
-  emits nothing. Needs hook investigation.
-- test_roles_endpoint::test_roles_outputs_collects_trace_and_bundle — route
-  returns schema_ok=None.
-- test_no_hardcoded_stacks[cognition.py] — `os.environ.get("COS_AGENT") or "claude"`.
-
-NOT MINE — caused by the user's in-flight WIP, left untouched:
+**L1–L4 DONE** (11 commits on branch `harden/tests-suite`). All 31 genuine
+pre-existing baseline reds fixed. 5 reds left untouched — caused by the user's
+in-flight WIP (NOT this task):
 - test_cli_setup ×3 — src/cli/setup.py is WIP-modified.
-- test_rag_pipeline::test_task_start_skips_template_placeholder_anchors — TASK-006
-  removes the legacy `make task` workflow (7 staged task-*.sh deletions).
+- test_rag_pipeline::test_task_start_skips_template_placeholder_anchors —
+  TASK-006 removes the legacy `make task` workflow.
 - test_manifest_fresh timeout — slow-test runtime, folded into L6.
+
+**Next: L5** — migrate test files to the shared `tests/conftest.py` fixtures
+(L4 added sys.path bootstrap + cli_runner); delete duplicated `_init`/
+`_cos_init` (5×), `run_hook`/`_invoke` (6×), `sys.path.insert` (~20×),
+`REPO_ROOT` (~13×). Then L6–L14.
 
 ## Evidence Log
 
 | Item | Score (opt/speed/acc) | Verification | Commit |
 |---|---|---|---|
-| L1a env-leak | 10/10/10 | test_brain_hardening+victims 27 pass | env-leak commit |
-| L1b skill tier | 10/10/10 | test_skill_registry+frontmatter 38 pass | skill-tier commit |
-| L1c doctor schema | 10/10/10 | test_expected_tables_fresh pass | doctor-schema commit |
-| L1c regen batch | 10/10/10 | doctor/stack/parity green | regen commit |
-| L1d branding/presence/hub | 10/10/10 | 116 pass | L1d commit |
-| L1e persona path | 10/10/10 | pending verify | this commit |
+| L1a env-leak | 10/10/10 | test_brain_hardening+victims 27 pass | dee66d8 |
+| L1b skill tier | 10/10/10 | test_skill_registry+frontmatter 38 pass | 59fe938 |
+| L1c doctor schema | 10/10/10 | test_expected_tables_fresh pass | 36cef79 |
+| L1c regen batch | 10/10/10 | doctor/stack/parity green | 8df949b |
+| L1d branding/presence/hub | 10/10/10 | 116 pass | 91f215b |
+| L1e persona path | 10/10/10 | go-fiber persona green | 57cfc1e |
+| L1f composer exhaustive | 10/10/10 | 56 + 1195 thinking_os + MCP self-test | e531d43 |
+| L1g last-3-reds | 10/10/10 | phase_f+roles+no-hardcoded 41 pass | 18028a9 |
+| L2 pytest-timeout | 10/10/10 | phase_m 9 pass, timeout=300 active | d8ff1d8 |
+| L3 slow markers | 10/10/10 | slow files marked | aa1eafb |
+| L4 conftest foundation | 10/10/10 | 159-test slice green | 915c0b6 |
