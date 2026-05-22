@@ -68,17 +68,18 @@ class TestMetrics:
         assert "text/plain" in ct
 
     def test_metrics_is_prometheus_format(self, client):
-        """Metrics body should be valid text after at least one request fires metrics."""
+        """/metrics responds 200; a non-empty body is Prometheus text format."""
         # Prime the metrics by hitting a route that has a metrics dependency.
         client.get("/api/graph/query", params={"q": "warm"})
         resp = client.get("/metrics")
+        # Deterministic contract — the endpoint must answer 200. (Previously
+        # this test asserted only `isinstance(body, str)` — a tautology — so
+        # it could never fail even if /metrics 500'd.)
+        assert resp.status_code == 200
         body = resp.text
-        # After at least one request, the body should contain a TYPE comment or
-        # a known counter.  An empty body ("\n") is also acceptable if enterprise
-        # counters haven't been written yet (graph backend absent in test env).
-        assert isinstance(body, str)
-        # If enterprise is available the body will have TYPE lines; otherwise
-        # the stub response includes cos_enterprise_available.
+        # Body content is env-dependent: empty when enterprise counters
+        # haven't been written (graph backend absent). When non-empty it
+        # must be valid Prometheus exposition text.
         if body.strip():
             assert "# TYPE" in body or "cos_web" in body or "cos_enterprise" in body
 

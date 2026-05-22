@@ -64,8 +64,8 @@ def test_unknown_situation_falls_through():
         complexity="COMPLICATED",
     )
     chain = compose_chain(sig, situation_id="no-such-situation")
-    # Should fall through to preset or composer
-    assert chain.source in ("preset", "composer", "fallback")
+    # Unknown situation → falls through; this signal scores to the composer.
+    assert chain.source == "composer"
 
 
 # --- 2. Preset match --------------------------------------------------------
@@ -120,7 +120,7 @@ def test_preset_threshold_too_high_falls_through():
     )
     # Raise threshold above every preset's score
     chain = compose_chain(sig, preset_min_score=15)
-    assert chain.source in ("composer", "fallback")
+    assert chain.source == "composer"
 
 
 # --- 3. Composer fallback ---------------------------------------------------
@@ -134,7 +134,7 @@ def test_composer_produces_chain_when_no_preset():
         complexity="COMPLICATED",
     )
     chain = compose_chain(sig, preset_min_score=14)  # force past presets
-    assert chain.source in ("composer", "fallback")
+    assert chain.source == "composer"
     assert len(chain.chain) >= 1
 
 
@@ -178,10 +178,11 @@ def test_hard_fallback_never_empty():
         complexity="COMPLICATED",
     )
     chain = compose_chain(sig, preset_min_score=15)
-    assert len(chain.chain) >= 1
-    # Either composer scoring succeeds or hard fallback fires
-    if chain.source == "fallback":
-        assert chain.chain == ["analyst", "architect", "implementer", "reviewer"]
+    # Worst-case signal (action=unknown, empty domain, threshold above every
+    # preset) — composer still yields a non-empty chain. The "never empty"
+    # guarantee this test is named for.
+    assert chain.source == "composer"
+    assert chain.chain == ["analyst"]
 
 
 def test_hard_fallback_for_clear():
@@ -190,8 +191,9 @@ def test_hard_fallback_for_clear():
         complexity="CLEAR",
     )
     chain = compose_chain(sig, preset_min_score=15)
-    if chain.source == "fallback":
-        assert chain.chain == ["implementer", "reviewer"]
+    # action=unknown + CLEAR scores nothing → hard fallback fires.
+    assert chain.source == "fallback"
+    assert chain.chain == ["implementer", "reviewer"]
 
 
 # --- 5. Role scoring primitives --------------------------------------------
@@ -227,8 +229,8 @@ def test_presets_production_bug_mitigate_via_situation():
         complexity="CHAOTIC",
     )
     chain = compose_chain(sig)
-    # Either preset production-bug-mitigate OR situation override wins
-    assert chain.source in ("preset", "situation", "composer")
+    # incident + CHAOTIC debug → production-bug-mitigate preset wins.
+    assert chain.source == "preset"
     assert "debugger" in chain.chain
 
 
