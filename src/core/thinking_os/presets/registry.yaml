@@ -116,7 +116,7 @@ presets:
     rationale: "Audit-shape task with exhaustive intent (TASK-004 G2). Inventory categories (researcher), enumerate evidence plan (analyst), per-category sweep + fix (implementer), independent re-verify (reviewer), capture artifact (documenter). The chain mirrors the audit-checklist-template structure so every role contributes one column to the evidence table. Reviewer phase is mandatory — the auto-reviewer hint (G6) on cos_task_move complete spawns an Explore subagent that posts back ExhaustiveEvidence.reviewer_check=pass before the completion guardian (G4) will allow Stop."
     match:
       action: audit
-      novelty_gte: 0.0
+      exhaustive: true
     chain: [researcher, analyst, implementer, reviewer, documenter]
     chain_notes:
       researcher: "inventory every category the exhaustive vocabulary implies — do not stop at the obvious ones"

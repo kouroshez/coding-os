@@ -131,6 +131,17 @@ _PROD_IMPACT_TOKENS = [
 # ---------------------------------------------------------------------------
 
 
+def _extract_exhaustive(agent_dir: Path | None) -> bool:
+    """Read exhaustive-scope intent from $COS_AGENT_DIR/.intent.json (fail-open)."""
+    if agent_dir is None:
+        return False
+    try:
+        data = json.loads((agent_dir / ".intent.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return bool(data.get("exhaustive")) if isinstance(data, dict) else False
+
+
 def analyze_task(
     prompt: str,
     task_marker: str | None = None,
@@ -219,6 +230,7 @@ def analyze_task(
         scope_size=scope_size,
         external_dependency=external_dependency,
         is_takeover=is_takeover,
+        exhaustive=_extract_exhaustive(agent_dir),
         complexity=complexity,  # type: ignore[arg-type]
         dimensions=dimensions,
         evidence=evidence,
