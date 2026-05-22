@@ -37,6 +37,10 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+          # uv.lock is intentionally gitignored (see .gitignore) — key the
+          # cache on pyproject.toml so setup-uv does not hard-fail with
+          # "No matches found for glob **/uv.lock".
+          cache-dependency-glob: "pyproject.toml"
       - name: Install Python deps
         run: uv sync --extra rag
       - name: ruff check
@@ -91,6 +95,10 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+          # uv.lock is intentionally gitignored (see .gitignore) — key the
+          # cache on pyproject.toml so setup-uv does not hard-fail with
+          # "No matches found for glob **/uv.lock".
+          cache-dependency-glob: "pyproject.toml"
       - name: Install deps
         run: uv sync --extra rag --extra graph_os
       - name: Install bash 5 (macOS)
