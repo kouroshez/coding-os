@@ -111,10 +111,15 @@ in-flight WIP (NOT this task):
   TASK-006 removes the legacy `make task` workflow.
 - test_manifest_fresh timeout — slow-test runtime, folded into L6.
 
-**Next: L5** — migrate test files to the shared `tests/conftest.py` fixtures
-(L4 added sys.path bootstrap + cli_runner); delete duplicated `_init`/
-`_cos_init` (5×), `run_hook`/`_invoke` (6×), `sys.path.insert` (~20×),
-`REPO_ROOT` (~13×). Then L6–L14.
+**L1–L8 DONE** (branch `harden/tests-suite`). L5 deferred (the per-file
+sys.path hacks are harmless idempotent no-ops once conftest bootstraps the
+path; full 28-file migration is low-value/high-churn cleanup).
+
+**Next: L9** — route tests assert the `ok`/`error` envelope (Rule 13), not
+just `["data"]`. Then L10 (dead/misplaced tests), L11 (parametrize), L12
+(hook file reorg by concern), L13 (merge test_observability_smoke + Phase-N
+scenario dedup), L14 (brittleness — source-grep tests, hardcoded lists,
+hand parsers, manual env mutation → monkeypatch).
 
 ## Evidence Log
 
@@ -131,3 +136,6 @@ in-flight WIP (NOT this task):
 | L2 pytest-timeout | 10/10/10 | phase_m 9 pass, timeout=300 active | d8ff1d8 |
 | L3 slow markers | 10/10/10 | slow files marked | aa1eafb |
 | L4 conftest foundation | 10/10/10 | 159-test slice green | 915c0b6 |
+| L6 fixture scope | 10/10/10 | test_template_scaffold 551s→154s, 38 pass | c844aba |
+| L7 in-process classifier/doctor | 10/10/10 | intent 3-6s→0.42s; doctor 19 pass; conftest collision fixed | 552217e |
+| L8 vacuous/hedged asserts | 10/10/10 | test_metrics failable; formula_composer 16 pass; non-slow suite 839 pass | 71be40c |
