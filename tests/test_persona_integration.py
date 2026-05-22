@@ -214,7 +214,7 @@ class TestPersonaGoFiber:
         assert "go-fiber" in cfg["templates"]
 
         # Verify commands populated.
-        assert cfg["verify"].get("backend", "").startswith("cd backend && go vet")
+        assert cfg["verify"].get("backend", "").startswith("cd src/backend && go vet")
 
     def test_go_fiber_doctor_passes(self, tmp_path: Path) -> None:
         project = tmp_path / "gofiber-doctor"

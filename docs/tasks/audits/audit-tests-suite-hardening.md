@@ -103,10 +103,32 @@ speed · accuracy), and committed before moving on.
 
 ## Resume Marker
 
-Next: L1 (awaiting baseline run `/tmp/cos-baseline.log`).
+L1 in progress. Baseline: 36 failed / 1068 passed / 3 skipped, 39 min runtime.
+Fixed so far (L1a–L1e): ~28 reds. Remaining genuine (pre-existing) reds:
+- composer preset shadowing — `audit-exhaustive` (score 11, match `action:audit`)
+  greedily shadows `security-audit-full` (score 10) and every other audit
+  preset. TaskSignals has no `exhaustive` field. Fails test_formula_composer
+  ::test_security_audit_parallel + test_phase_n_e2e::scenario6. DEEP — needs an
+  `exhaustive` signal threaded through TaskSignals + the analyzer. Separate fix.
+- test_hooks_phase_f::test_warns_when_zero_observations — check-capture-worked.sh
+  emits nothing. Needs hook investigation.
+- test_roles_endpoint::test_roles_outputs_collects_trace_and_bundle — route
+  returns schema_ok=None.
+- test_no_hardcoded_stacks[cognition.py] — `os.environ.get("COS_AGENT") or "claude"`.
+
+NOT MINE — caused by the user's in-flight WIP, left untouched:
+- test_cli_setup ×3 — src/cli/setup.py is WIP-modified.
+- test_rag_pipeline::test_task_start_skips_template_placeholder_anchors — TASK-006
+  removes the legacy `make task` workflow (7 staged task-*.sh deletions).
+- test_manifest_fresh timeout — slow-test runtime, folded into L6.
 
 ## Evidence Log
 
 | Item | Score (opt/speed/acc) | Verification | Commit |
 |---|---|---|---|
-| — | — | — | — |
+| L1a env-leak | 10/10/10 | test_brain_hardening+victims 27 pass | env-leak commit |
+| L1b skill tier | 10/10/10 | test_skill_registry+frontmatter 38 pass | skill-tier commit |
+| L1c doctor schema | 10/10/10 | test_expected_tables_fresh pass | doctor-schema commit |
+| L1c regen batch | 10/10/10 | doctor/stack/parity green | regen commit |
+| L1d branding/presence/hub | 10/10/10 | 116 pass | L1d commit |
+| L1e persona path | 10/10/10 | pending verify | this commit |
