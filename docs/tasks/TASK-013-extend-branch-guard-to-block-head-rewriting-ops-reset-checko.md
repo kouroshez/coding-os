@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, git-workflow, post-mortem-TASK-012]
-status: in_progress
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-22
 started: null
-completed: null
-agent_session: null
+completed: 2026-05-22
+agent_session: ses-claude-20260522-181701-790c
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-013: Extend branch-guard to block HEAD-rewriting ops (reset/checkout/switch)
 
 **Outcome (one sentence):** branch-guard.sh also BLOCKs git reset to non-HEAD refs, git checkout/switch to non-main branches in trunk mode. Closes the gap TASK-012 left open: branch creation was blocked, but concurrent or accidental HEAD-rewrites still clobbered peer commits. Same hook, expanded scope = one gate = "trunk integrity".
@@ -67,3 +66,4 @@ references: []
   `sh -c` nested, `git checkout .`, literal-string false-positives in
   grep/echo). Filed as [TASK-014](TASK-014-branch-guard-hardening-whitespace-normalize-git-c-c-options-.md)
   (P3, icebox, depends_on TASK-013). Closed TASK-013 as-scoped.
+- 2026-05-22 [claude]: Status transitioned to complete via cos task-done.
