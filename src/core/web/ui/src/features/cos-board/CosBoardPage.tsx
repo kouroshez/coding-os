@@ -272,8 +272,9 @@ function AgentBadge({
 }
 
 function AgentPip({ agentId, title, size = 18 }: { agentId?: string | null; title?: string; size?: number }) {
-  if (!agentId) return null;
+  // Hook must run unconditionally — call before the early return (rules-of-hooks).
   const catalog = useAgentCatalog();
+  if (!agentId) return null;
   const a = catalog.find((x) => x.id === agentId);
   if (!a) return null;
   // Two-letter glyphs need a tighter font to fit inside the pip cleanly.
@@ -1992,8 +1993,9 @@ function LegendPanel({
   setHighlight: (h: Highlight | null) => void;
   taskCounts: TaskCounts;
 }) {
-  if (!open) return null;
+  // Hook must run unconditionally — call before the early return (rules-of-hooks).
   const legendAgents = useAgentCatalog();
+  if (!open) return null;
   const kinds = Object.entries(KIND_COLORS);
   return (
     <div

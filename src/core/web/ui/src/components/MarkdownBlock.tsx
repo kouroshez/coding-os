@@ -16,7 +16,7 @@ export interface MarkdownBlockProps {
 // neutral characters (digits, punctuation, ASCII), so the test is "does
 // this string contain ANY strong-RTL character?" — exactly the Google
 // Docs behaviour the user wants: any Persian present → whole block RTL.
-const STRONG_RTL_RE = /[֐-׿؀-ۿ܀-ݏݐ-ݿހ-޿߀-߿ࠀ-࠿ࡀ-࡟ࢠ-ࣿיִ-﷿ﹰ-﻿]/;
+const STRONG_RTL_RE = /[֐-׿؀-ۿ܀-ݏݐ-ݿހ-޿߀-߿ࠀ-࠿ࡀ-࡟ࢠ-ࣿיִ-﷿ﹰ-﻿]/;  // eslint-disable-line no-irregular-whitespace -- U+FEFF is a deliberate regex range bound
 
 function hasStrongRtl(text: string): boolean {
   return STRONG_RTL_RE.test(text);
