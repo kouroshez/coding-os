@@ -60,3 +60,10 @@ references: []
   Updated git-workflow.md with the safe-form table + history-rewrite
   anti-patterns. registry description updated. Adapter templates +
   golden parity confirmed green.
+- 2026-05-22 — Reviewer subagent (general-purpose) audited commit
+  `0edccc3`: PASS-with-followups. Dominant-case gate works (16/16
+  block probes, 12/14 false-positive probes correct). 5 hardening
+  gaps surfaced (whitespace bypass, `git -C`/`git -c` global options,
+  `sh -c` nested, `git checkout .`, literal-string false-positives in
+  grep/echo). Filed as [TASK-014](TASK-014-branch-guard-hardening-whitespace-normalize-git-c-c-options-.md)
+  (P3, icebox, depends_on TASK-013). Closed TASK-013 as-scoped.
