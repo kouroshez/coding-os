@@ -315,6 +315,51 @@ def _resolve_attribution(agent_session: str | None) -> str | None:
     return resolve_agent_session(agent_session)
 
 
+def _assign_guard(
+    file_path: Path | None,
+    agent_session: str | None,
+    force: bool,
+) -> str | None:
+    """Block a move when the task's `assignee` frontmatter names someone else.
+
+    Opt-in and backward-compatible: a task with no `assignee:` field — the
+    default — is movable by anyone. When `assignee` IS set, only that
+    session, or any session of the same agent, may move the card. This
+    stops one agent silently driving a task another agent (or a human)
+    parked. `force=True` or `COS_ASSIGN_OVERRIDE=1` bypasses. Returns an
+    error message, or None when the move is allowed.
+    """
+    if force or os.environ.get("COS_ASSIGN_OVERRIDE") == "1":
+        return None
+    if file_path is None or not file_path.exists():
+        return None
+    try:
+        head = file_path.read_text(encoding="utf-8")[:2000]
+    except OSError:
+        return None
+    match = re.search(r"^assignee:[ \t]*(.+?)[ \t]*$", head, re.MULTILINE)
+    if not match:
+        return None
+    assignee = match.group(1).strip().strip('"').strip("'")
+    if assignee.lower() in ("", "any", "anyone", "unassigned", "null", "~"):
+        return None
+
+    from ._agent_runtime import detect_agent
+
+    mover = (agent_session or "").strip()
+    if assignee == mover:
+        return None
+    mover_agent = detect_agent(mover)
+    if mover_agent != "agent" and detect_agent(assignee) == mover_agent:
+        return None
+    return (
+        f"task is assigned to {assignee!r} — current mover is "
+        f"{mover or 'unattributed'!r}. Re-assign the task (edit its "
+        "`assignee:` frontmatter) or override with force=True / "
+        "COS_ASSIGN_OVERRIDE=1."
+    )
+
+
 _BOARD_SELECT = (
     "SELECT task_id, title, swimlane, kind, epic, labels_json, "
     "       status, priority, appetite, agent_session, work_log_last_5, "
@@ -584,6 +629,11 @@ def cos_task_move(
         if candidate.exists():
             file_path = candidate
 
+    agent_session = _resolve_attribution(agent_session)
+    guard = _assign_guard(file_path, agent_session, force)
+    if guard is not None:
+        return fail("validation", guard)
+
     result = transition(
         conn,
         task_id,
@@ -736,6 +786,10 @@ def cos_task_reposition(
             file_path = candidate
 
     config = _current_config()
+    agent_session = _resolve_attribution(agent_session)
+    guard = _assign_guard(file_path, agent_session, force)
+    if guard is not None:
+        return fail("validation", guard)
     if swim_eff is not None:
         if config is None:
             return fail(

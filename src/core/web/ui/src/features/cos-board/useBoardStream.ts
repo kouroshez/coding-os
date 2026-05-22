@@ -83,7 +83,7 @@ interface StreamHistoryPayload {
   events?: StreamHistoryEvent[];
 }
 
-const MAX_EVENTS = 120;
+const MAX_EVENTS = 400;
 
 function nowHMS(): string {
   return formatHMS(new Date());
@@ -117,21 +117,37 @@ export function agentForSession(session: string | null | undefined): 'claude' | 
   return 'human';
 }
 
-// Module-level cache of board events keyed by pathname.  Survives the
-// CosBoardPage unmount + remount that happens every time the user nav
-// away to Graph / Cognition / etc.  Without it the panel re-bootstraps
-// from `/api/stream/history` on every visit and any live SSE events that
-// arrived between unmount and history-fetch silently disappear — the
-// "panel keeps resetting" complaint.  Cleared on full page reload (by
-// design — agent activity is browser-session-scoped, not durable).
-const _eventCache = new Map<string, BoardEvent[]>();
+// Board-event cache keyed by pathname.  Backed by sessionStorage so it
+// survives BOTH the CosBoardPage unmount/remount (nav away to Graph /
+// Cognition) AND a full page reload — a reload used to flash the panel
+// empty until `/api/stream/history` re-fetched ("panel keeps resetting"
+// complaint).  sessionStorage (not localStorage) keeps the intent that
+// the feed is browser-session-scoped: it clears when the tab closes.
+const CACHE_PREFIX = 'cos-board-stream:';
+
+function readCache(pathname: string): BoardEvent[] {
+  try {
+    const raw = sessionStorage.getItem(CACHE_PREFIX + pathname);
+    return raw ? (JSON.parse(raw) as BoardEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCache(pathname: string, events: BoardEvent[]): void {
+  try {
+    sessionStorage.setItem(CACHE_PREFIX + pathname, JSON.stringify(events));
+  } catch {
+    /* sessionStorage full / unavailable — panel still works in-memory */
+  }
+}
 
 export function useBoardStream(): UseBoardStreamReturn {
   const { pathname } = useLocation();
   const [bump, setBump] = useState<number>(0);
   const [connected, setConnected] = useState<boolean>(false);
   const [events, setEvents] = useState<BoardEvent[]>(
-    () => _eventCache.get(pathname) ?? [],
+    () => readCache(pathname),
   );
   const sourceRef = useRef<EventSource | null>(null);
 
@@ -140,7 +156,7 @@ export function useBoardStream(): UseBoardStreamReturn {
       setEvents((prev) => {
         const next = [ev, ...prev];
         if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
-        _eventCache.set(pathname, next);
+        writeCache(pathname, next);
         return next;
       });
     },
@@ -150,22 +166,22 @@ export function useBoardStream(): UseBoardStreamReturn {
   // Mirror every events-state update into the module cache so a navigate
   // -away mid-stream still keeps the rows when we navigate back.
   useEffect(() => {
-    _eventCache.set(pathname, events);
+    writeCache(pathname, events);
   }, [pathname, events]);
 
   useEffect(() => {
     let cancelled = false;
     // Keep whatever the previous mount already buffered for this
     // pathname — only seed history if the cache is empty.
-    const cached = _eventCache.get(pathname);
-    if (!cached || cached.length === 0) {
+    const cached = readCache(pathname);
+    if (cached.length === 0) {
       setEvents([]);
     } else {
       setEvents(cached);
     }
     const loadHistory = async () => {
       try {
-        const [payload] = await apiGet<StreamHistoryPayload>('/api/stream/history', { limit: 20 });
+        const [payload] = await apiGet<StreamHistoryPayload>('/api/stream/history', { limit: 100 });
         if (cancelled) return;
         const seed = (payload?.events || [])
           .filter((e) => !!e.task_id)
@@ -245,7 +261,7 @@ export function useBoardStream(): UseBoardStreamReturn {
           ...prev,
         ];
         if (next.length > MAX_EVENTS) next.length = MAX_EVENTS;
-        _eventCache.set(pathname, next);
+        writeCache(pathname, next);
         return next;
       });
     });
