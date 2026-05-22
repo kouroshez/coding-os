@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import typing
 
 import pytest
 
@@ -67,28 +68,34 @@ def test_options_carries_required_fields(options_cls) -> None:
     assert not missing, f"ClaudeAgentOptions missing fields the dispatcher uses: {missing}"
 
 
+def _literal_strings(annotation: object) -> set[str]:
+    """Recursively collect Literal[...] string members from a type annotation.
+
+    Robust replacement for repr()-substring matching, which broke whenever the
+    SDK changed how it spelled Optional / Literal in source.
+    """
+    if typing.get_origin(annotation) is typing.Literal:
+        return {a for a in typing.get_args(annotation) if isinstance(a, str)}
+    out: set[str] = set()
+    for arg in typing.get_args(annotation):
+        out |= _literal_strings(arg)
+    return out
+
+
 def test_permission_mode_literal_carries_required_values() -> None:
     sdk_types = pytest.importorskip("claude_agent_sdk.types")
-    # SDK declares Optional[Literal[...]] on ClaudeAgentOptions.
-    # Walk dataclass fields and find the permission_mode annotation.
-    field = next(
-        f for f in dataclasses.fields(sdk_types.ClaudeAgentOptions) if f.name == "permission_mode"
-    )
-    annotation = repr(field.type)
-    for mode in REQUIRED_PERMISSION_MODES:
-        assert f"'{mode}'" in annotation, (
-            f"permission_mode literal missing required value {mode!r}; got: {annotation}"
-        )
+    hints = typing.get_type_hints(sdk_types.ClaudeAgentOptions)
+    values = _literal_strings(hints["permission_mode"])
+    missing = REQUIRED_PERMISSION_MODES - values
+    assert not missing, f"permission_mode literal missing {missing}; got: {sorted(values)}"
 
 
 def test_hooks_dict_supports_required_events() -> None:
     sdk_types = pytest.importorskip("claude_agent_sdk.types")
-    field = next(f for f in dataclasses.fields(sdk_types.ClaudeAgentOptions) if f.name == "hooks")
-    annotation = repr(field.type)
-    for event in REQUIRED_HOOK_EVENTS:
-        assert f"'{event}'" in annotation, (
-            f"hooks dict missing event literal {event!r}; got: {annotation}"
-        )
+    hints = typing.get_type_hints(sdk_types.ClaudeAgentOptions)
+    values = _literal_strings(hints["hooks"])
+    missing = REQUIRED_HOOK_EVENTS - values
+    assert not missing, f"hooks dict missing event literals {missing}; got: {sorted(values)}"
 
 
 def test_dispatcher_import_failure_path() -> None:
