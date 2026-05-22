@@ -93,6 +93,7 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=5.0.0",
     "pytest-benchmark>=4.0.0",
+    "pytest-timeout>=2.3.0",
     "httpx>=0.27.0",
     "ruff>=0.6.0",
     "mypy>=1.10.0",
@@ -170,6 +171,10 @@ markers = [
 ]
 # Useful defaults; override with -p no:cacheprovider etc on CI if needed.
 addopts = "-ra --strict-markers"
+# Hard ceiling so a hung test (deadlocked subprocess, infinite poll) fails
+# loud instead of stalling the whole suite. 300s clears the slowest legit
+# test; genuinely-slow tests can override with @pytest.mark.timeout(N).
+timeout = 300
 filterwarnings = [
     # Demote known harmless deprecations from upstream deps.
     "ignore::DeprecationWarning:google.*",

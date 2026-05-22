@@ -14,13 +14,15 @@ HOOK_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 
 def _run_hook(
-    hook_name: str, tool_input: dict, env: dict | None = None
+    hook_name: str, tool_input: dict, state_dir: Path, env: dict | None = None
 ) -> subprocess.CompletedProcess:
     hook = HOOK_DIR / hook_name
     payload = json.dumps(
         {"tool_name": tool_input.pop("tool_name", "Write"), "tool_input": tool_input}
     )
-    e = {**os.environ, "COS_AGENT": "claude", "COS_STATE_DIR": "/tmp/cos-hook-test"}
+    # state_dir is the test's tmp_path — never a shared /tmp path, so
+    # concurrent runs (pytest -n) and stale state never collide.
+    e = {**os.environ, "COS_AGENT": "claude", "COS_STATE_DIR": str(state_dir)}
     if env:
         e.update(env)
     return subprocess.run(
@@ -29,6 +31,7 @@ def _run_hook(
         capture_output=True,
         text=True,
         env=e,
+        timeout=10,
     )
 
 
@@ -37,6 +40,7 @@ class TestEnforceAntiAmbiguity:
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "README.md")},
+            tmp_path,
         )
         assert result.returncode == 0
 
@@ -44,6 +48,7 @@ class TestEnforceAntiAmbiguity:
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Read", "file_path": str(tmp_path / "src.py")},
+            tmp_path,
         )
         assert result.returncode == 0
 
@@ -51,6 +56,7 @@ class TestEnforceAntiAmbiguity:
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
+            tmp_path,
             env={"COS_AGENT_DIR": str(tmp_path)},
         )
         assert result.returncode == 0
@@ -60,6 +66,7 @@ class TestEnforceAntiAmbiguity:
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
+            tmp_path,
             env={"COS_AGENT_DIR": str(tmp_path)},
         )
         assert result.returncode == 0
@@ -69,6 +76,7 @@ class TestEnforceAntiAmbiguity:
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
+            tmp_path,
             env={"COS_AGENT_DIR": str(tmp_path)},
         )
         assert result.returncode == 1
@@ -80,6 +88,7 @@ class TestEnforceAntiAmbiguity:
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
+            tmp_path,
             env={"COS_AGENT_DIR": str(tmp_path)},
         )
         assert result.returncode == 0
