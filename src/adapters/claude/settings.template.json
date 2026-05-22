@@ -555,6 +555,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/warn-abandoned-task.sh",
+            "statusMessage": "🩹 Checking for tasks left in_progress...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/agent-presence.sh",
             "timeout": 5
           },

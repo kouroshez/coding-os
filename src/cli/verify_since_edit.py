@@ -38,6 +38,10 @@ MATRIX_RULES: list[tuple[str, str]] = [
     ("docs/", "make docs-lint"),
 ]
 
+# Per-suite subprocess timeout. The slowest matrix suite (test_template_scaffold)
+# runs ~9 min cold; 20 min leaves margin without masking a genuine hang.
+_SUITE_TIMEOUT_S = 1200
+
 
 # ---------------------------------------------------------------------------
 # IO contracts
@@ -145,14 +149,25 @@ def _map_files_to_suites(files: list[str]) -> dict[str, list[str]]:
 
 def _run_suite(command: str, files: list[str], cwd: Path) -> SuiteResult:
     started = time.time()
-    proc = subprocess.run(
-        command,
-        shell=True,
-        capture_output=True,
-        text=True,
-        cwd=cwd,
-        timeout=300,
-    )
+    try:
+        proc = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            timeout=_SUITE_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        # A genuine timeout is a reported failure, not an unhandled crash.
+        return SuiteResult(
+            command=command,
+            files=files,
+            exit_code=124,  # conventional timeout exit code
+            duration_s=round(time.time() - started, 2),
+            stdout_tail=(exc.stdout or "")[-1500:] if exc.stdout else "",
+            stderr_tail=f"suite timed out after {_SUITE_TIMEOUT_S}s",
+        )
     return SuiteResult(
         command=command,
         files=files,
@@ -161,6 +176,12 @@ def _run_suite(command: str, files: list[str], cwd: Path) -> SuiteResult:
         stdout_tail=proc.stdout[-1500:] if proc.stdout else "",
         stderr_tail=proc.stderr[-1500:] if proc.stderr else "",
     )
+
+
+def _echo_suite_progress(result: SuiteResult, done: int, total: int) -> None:
+    """Print one live [done/total] tick as a matrix suite finishes."""
+    status = "✓" if result.passed else "✗"
+    click.echo(f"  [{done}/{total}] {status} {result.command}  ({result.duration_s:.1f}s)")
 
 
 # ---------------------------------------------------------------------------
@@ -316,14 +337,35 @@ def verify_since_edit_cmd(
     # ------------------------------------------------------------------
     results: list[SuiteResult] = []
     if not no_tests and suites:
+        # Stream progress in text mode — a matrix run can take several
+        # minutes and capture_output() buffers everything, so without a
+        # live [done/total] tick the command looks frozen (it isn't).
+        streaming = output_format == "text"
+        if streaming:
+            click.echo("")
+            click.echo(
+                f"running {len(suites)} suite(s) — output streams as each finishes "
+                "(slowest can take several minutes):"
+            )
+        done = 0
         if parallel and len(suites) > 1:
             with ThreadPoolExecutor(max_workers=min(4, len(suites))) as pool:
                 futures = {pool.submit(_run_suite, cmd, fs, repo_root): cmd for cmd, fs in suites}
                 for fut in as_completed(futures):
-                    results.append(fut.result())
+                    result = fut.result()
+                    results.append(result)
+                    done += 1
+                    if streaming:
+                        _echo_suite_progress(result, done, len(suites))
         else:
             for cmd, fs in suites:
-                results.append(_run_suite(cmd, fs, repo_root))
+                if streaming:
+                    click.echo(f"  [{done + 1}/{len(suites)}] ▶ {cmd} ...")
+                result = _run_suite(cmd, fs, repo_root)
+                results.append(result)
+                done += 1
+                if streaming:
+                    _echo_suite_progress(result, done, len(suites))
 
     failed = [r for r in results if not r.passed]
     overall = 0 if not failed and not ref_issues else 1
@@ -370,16 +412,15 @@ def verify_since_edit_cmd(
         for f in unmatched[:5]:
             click.echo(f"      - {f}")
 
-    if results:
+    # Per-suite ✓/✗ already streamed above; here only expand failures.
+    if failed:
         click.echo("")
-        click.echo("Results:")
-        for r in results:
-            status = "✓" if r.passed else "✗"
-            click.echo(f"  {status} {r.command}  ({r.duration_s:.1f}s)")
-            if not r.passed:
-                tail = r.stderr_tail or r.stdout_tail
-                for line in tail.splitlines()[-15:]:
-                    click.echo(f"      {line}")
+        click.echo("Failures:")
+        for r in failed:
+            click.echo(f"  ✗ {r.command}")
+            tail = r.stderr_tail or r.stdout_tail
+            for line in tail.splitlines()[-15:]:
+                click.echo(f"      {line}")
 
     if ref_issues:
         click.echo("")

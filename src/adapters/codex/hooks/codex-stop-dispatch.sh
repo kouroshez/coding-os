@@ -55,7 +55,7 @@ run_delegate() {
   return 0
 }
 
-for delegate in session-end.sh check-capture-worked.sh auto-trace-rotate.sh agent-presence.sh; do
+for delegate in session-end.sh warn-abandoned-task.sh check-capture-worked.sh auto-trace-rotate.sh agent-presence.sh; do
   run_delegate "$delegate"
 done
 

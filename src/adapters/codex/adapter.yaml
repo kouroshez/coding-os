@@ -108,6 +108,7 @@ hook_dispatchers:
     timeout: 5000
     delegates:
       - session-end.sh
+      - warn-abandoned-task.sh
       - check-capture-worked.sh
       - auto-trace-rotate.sh
       - agent-presence.sh
