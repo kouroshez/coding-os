@@ -1015,9 +1015,9 @@ def init(
     click.echo(f"  State:    {STATE_DIR}/")
     click.echo("  Makefile: make help")
     click.echo("\nQuick start:")
-    click.echo("  make session-init    # See project status")
-    click.echo("  make task-next       # See next task")
-    click.echo("  make task-start TASK=001  # Start working")
+    click.echo("  cos daily              # Project status + today's tasks")
+    click.echo("  cos task-pick          # See next recommended task")
+    click.echo("  cos task-start TASK-001   # Start working")
 
     if not template:
         available = sorted(_get_stack_registry().keys())

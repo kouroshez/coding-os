@@ -253,7 +253,7 @@ def _build_queue(state: SupervisorState) -> list[str]:
             return chain
 
     # Phase N — caller passed a composer-derived role chain as persona_id?
-    # Format: "chain:analyst,architect,implementer,reviewer" (supported by task-start.sh)
+    # Format: "chain:analyst,architect,implementer,reviewer" (role-chain persona format)
     if state.persona_id.startswith("chain:"):
         return [r.strip() for r in state.persona_id[6:].split(",") if r.strip()]
 

@@ -146,6 +146,27 @@ Graph                graph-reindex · graph-viz · graph-doctor
 
 Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
 
+## Slash commands (20 commands)
+
+The `cos` CLI above is the *factory*. Inside an agent session you also get
+**slash commands** — packaged workflows invoked by typing `/`. They ship in
+`.claude/commands/` (and `.codex/commands/`), are version-controlled, and are
+available to every teammate on clone.
+
+```
+Scrumban     /board · /daily · /retro · /task
+Cognition    /classify · /memory-search
+Quality      /verify · /review · /diagnose
+Roles (11)   /role-researcher · /role-analyst · /role-architect · /role-documenter
+             /role-implementer · /role-reviewer · /role-debugger · /role-security_auditor
+             /role-deployer · /role-observer · /role-refactorer
+```
+
+The 9 workflow commands are sourced from [src/core/commands/](./src/core/commands/);
+the 11 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinking_os/agents/)
+(the semantic roles of the cognition chain). Day-to-day usage:
+[docs/workflow/workflow-guide.md](./docs/workflow/workflow-guide.md).
+
 ## MCP tools (79 tools, all `cos_*` prefix, all `ok / fail` envelope)
 
 | Family       | Examples                                                          |
@@ -233,7 +254,7 @@ make verify-hooks         # shellcheck + bash -n on every hook
 make verify               # matrix-targeted tests for what changed
 make test-mcp             # MCP self-test (cold start)
 make docs-lint            # markdown structure + link integrity
-make cos-health           # cross-project health summary
+cos health                # cross-project health summary
 make manifest-regen       # refresh src/core/scaffold_manifest.json
 make regen-rules          # refresh dimension-registry + skill-enforcement
 ```

@@ -8,9 +8,8 @@
 # Write/Edit lands.
 #
 # Flow:
-#   1. Task file parsed by task-start.sh — on success it writes
-#      $COS_AGENT_DIR/.doc-anchor with the extracted Source of Truth /
-#      Read First paths.
+#   1. The active task's Source of Truth / Read First paths are
+#      recorded to $COS_AGENT_DIR/.doc-anchor when the task starts.
 #   2. This hook reads .doc-anchor and verifies it exists + is non-empty.
 #   3. If missing / placeholder → BLOCK with a clear repair path.
 #
@@ -122,17 +121,17 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "       cos_graph_context \"doc:file:docs/...\"" >&2
   echo "  2. READ it (cos_doc_header first → full read only if relevant)." >&2
   echo "  3. ANCHOR — populate the task's \"Read First\" section with the doc" >&2
-  echo "     paths you read, then run: cos task-start TASK=N" >&2
-  echo "     (or make task-start TASK=N) — this refreshes \$COS_AGENT_DIR/.doc-anchor." >&2
+  echo "     paths you read, then run: cos task-start TASK-NNN" >&2
+  echo "     — this refreshes ${COS_AGENT_DIR}/.doc-anchor." >&2
   echo "  4. If NO matching doc exists → WRITE THE DOC FIRST" >&2
   echo "     (src/templates/doc-cheat-sheet.md picks the layer), commit it as a" >&2
   echo "     separate change, then return for the code." >&2
   echo "" >&2
   echo "  Bypass paths (use sparingly — logged):" >&2
   echo "  • trivial fix (typo, docstring):" >&2
-  echo "      bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking_os-gate\" \"CLEAR 1\"" >&2
+  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.thinking_os-gate\" \"CLEAR 1\"" >&2
   echo "  • genuinely exploratory / throwaway code:" >&2
-  echo "      bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
+  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.task-current\" \"exploratory-<slug>\"" >&2
   echo "  • one-shot manual override (consumed on use):" >&2
   echo "      touch $COS_AGENT_DIR/.doc-anchor-override" >&2
   exit 2
@@ -148,7 +147,7 @@ if echo "$ANCHOR_HEADER" | grep -qE '^ses-[^[:space:]]+[[:space:]]+task:'; then
       echo "BLOCKED: Doc anchor is stale or belongs to another session." >&2
       echo "  File: $ANCHOR_FILE" >&2
       echo "  Reason: ${STATE_REASON:-unknown}" >&2
-      echo "  Re-run \`make task-start TASK=N\` so the anchor refreshes for this session." >&2
+      echo "  Re-run \`cos task-start TASK-NNN\` so the anchor refreshes for this session." >&2
       exit 2
     fi
   fi
@@ -158,7 +157,7 @@ else
   if [[ "$FILE_AGE" -gt "$ANCHOR_MAX_AGE" ]]; then
     echo "BLOCKED: Legacy doc anchor is stale and cannot prove session ownership." >&2
     echo "  File: $ANCHOR_FILE" >&2
-    echo "  Re-run \`make task-start TASK=N\` to refresh the anchor with a session header." >&2
+    echo "  Re-run \`cos task-start TASK-NNN\` to refresh the anchor with a session header." >&2
     exit 2
   fi
   ANCHOR_CONTENT=$(head -20 "$ANCHOR_FILE")
@@ -167,7 +166,7 @@ fi
 if [[ -z "$(echo "$ANCHOR_CONTENT" | tr -d '[:space:]')" ]]; then
   echo "BLOCKED: Doc anchor is empty for this session." >&2
   echo "  File: $ANCHOR_FILE" >&2
-  echo "  Populate Source of Truth / Read First, then re-run \`make task-start TASK=N\`." >&2
+  echo "  Populate Source of Truth / Read First, then re-run \`cos task-start TASK-NNN\`." >&2
   exit 2
 fi
 
@@ -176,7 +175,7 @@ if echo "$ANCHOR_CONTENT" | grep -qiE '^\s*(-\s*)?(\{[^}]*\}|_\(unfilled\)_|_\(n
   echo "BLOCKED: Doc anchor is a placeholder, not a real reference." >&2
   echo "  File: $ANCHOR_FILE" >&2
   echo "  Populate the Source of Truth / Read First in the active task file," >&2
-  echo "  then re-run \`make task-start\` so the anchor gets refreshed." >&2
+  echo "  then re-run \`cos task-start\` so the anchor gets refreshed." >&2
   exit 2
 fi
 

@@ -95,6 +95,13 @@ Practically:
    every push.
 7. **Iterate on review.** Squash-merge is the default when PRs land.
 
+**Tooling shortcut:** inside an agent session the loop is driven by
+**slash commands** — `/classify`, `/board`, `/task`, `/verify`, `/review`,
+`/role-*`, etc. They are packaged workflows shipped in `.claude/commands/`
+(and `.codex/commands/`). The full list and day-to-day usage are in
+[docs/workflow/workflow-guide.md](docs/workflow/workflow-guide.md); the
+sources live in [src/core/commands/](src/core/commands/).
+
 ## Commit Message Style
 
 We use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)

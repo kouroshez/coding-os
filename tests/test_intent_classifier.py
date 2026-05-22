@@ -13,9 +13,8 @@ import json
 import subprocess
 from pathlib import Path
 
-import pytest
-
 import extract_intent  # src/core/hooks/_helpers — on sys.path via conftest
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK = REPO_ROOT / "src" / "core" / "hooks" / "detect-exhaustive-intent.sh"

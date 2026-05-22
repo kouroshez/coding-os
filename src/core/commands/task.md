@@ -1,7 +1,7 @@
 Load and summarize the task specified by $ARGUMENTS.
 
 Steps:
-1. Run `make task-context TASK=$ARGUMENTS` or read the task detail file directly from docs/tasks/
+1. Run `cos task-show $ARGUMENTS` (or read the task detail file directly from docs/tasks/)
 2. Read the full task detail file — including Notes and Session Checkpoint sections
 3. Classify the task domain and identify which playbook applies
 4. Present a summary:
@@ -14,4 +14,4 @@ Steps:
    - **Session Checkpoint:** any previous progress (if exists)
 5. Ask: "What would you like to do? (a) Start — run Classify → Orient → Plan → Execute, (b) Investigate first, (c) Mark as blocked"
 
-If no task number is provided, run `make task-next` to suggest the next task.
+If no task number is provided, run `cos task-pick` to suggest the next task.

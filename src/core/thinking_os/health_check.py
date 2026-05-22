@@ -346,8 +346,7 @@ def check_learning_pipeline() -> dict:
     result["components"]["task_done_wired"] = found_outcome_call
     if not found_outcome_call:
         result["issues"].append(
-            "task-done wiring missing: neither cli/board_commands.py nor "
-            "core/scripts/task-done.sh calls record_outcome",
+            "task-done wiring missing: cli/board_commands.py does not call record_outcome",
         )
 
     # Check if session-end calls session_summary

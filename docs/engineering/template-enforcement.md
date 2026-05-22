@@ -17,7 +17,7 @@ Hard enforcement ONLY for SSOT documents — artifacts that feed the cognitive l
 
 | Class | Path pattern | Required bootstrap | Template source |
 |---|---|---|---|
-| **Task** | `docs/tasks/TASK-*.md` | `make task-create NUM=<N> TITLE="..."` | [task-detail.md](../../src/templates/_base/scaffold/docs/governance/_templates/task-detail.md) |
+| **Task** | `docs/tasks/TASK-*.md` | `cos task-create --title "..." --swimlane <lane> --kind <kind>` | [task-detail.md](../../src/templates/_base/scaffold/docs/governance/_templates/task-detail.md) |
 | **ADR** | `docs/architecture/adr/ADR-*.md` | copy from `docs/governance/_templates/adr-template.md` | project-local template |
 | **PRD** | `docs/prd/NN-*.md` | `cos setup --mode interactive` (4-Q wizard) or `--mode import-prd` | PRD classifier |
 | **Breakthrough** | `docs/insights/*.md` | `cos_learn_narrative` MCP tool | written by tool |
@@ -47,7 +47,7 @@ The hook `rm -f`s the marker after the first Write, so subsequent writes re-enfo
 
 | Class | Why enforce |
 |---|---|
-| Task | `tasks.md` must stay consistent with `docs/tasks/*.md`; `make task-create` keeps them aligned. Hand-writing drifts the registry. |
+| Task | `cos task-create` writes the `docs/tasks/TASK-*.md` detail file and the board DB row atomically. Hand-writing a task file drifts the board cache. |
 | ADR | ADRs feed the doc RAG index; consistent H2 structure (`## Status`, `## Context`, `## Decision`, `## Consequences`, `## Alternatives`) makes them queryable via `cos_doc_search` |
 | PRD | PRDs are multi-part by design (numbered `NN-feature-name.md`); the classifier routes sections across files. A single-file PRD is usually wrong |
 | Breakthrough | Breakthrough files live alongside `outcome_history` DB rows. The MCP tool writes both atomically so they never desync |

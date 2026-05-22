@@ -150,11 +150,8 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
 fi
 
 # On startup: show active in-progress tasks (Phase L Scrumban) so the agent
-# inherits open work without having to query the board first. Falls back to
-# the legacy single-file `docs/tasks.md` only if the Phase L directory is
-# absent (early-init projects).
+# inherits open work without having to query the board first.
 if [[ "$SOURCE" == "startup" ]]; then
-  WIP_LISTED=0
   if [ -d "docs/tasks" ] && [ -f "$COS_DB_PATH" ]; then
     # bash 5.3.9 deadlocks `$(python3 - <<HEREDOC)`. Form B (separate
     # .py file invoked as `python3 path/to/file.py`) is the only
@@ -178,16 +175,6 @@ if [[ "$SOURCE" == "startup" ]]; then
       echo "[Session Start] Active tasks (in_progress / testing):"
       echo "$WIP_LINES"
       echo "  Resume with: cos task-show TASK-NNN  |  cos board"
-      WIP_LISTED=1
-    fi
-  fi
-  if [ "$WIP_LISTED" = "0" ] && [ -f "docs/tasks.md" ]; then
-    WIP=$(grep '^\- \[/\]' docs/tasks.md 2>/dev/null | head -3 || true)
-    if [ -n "$WIP" ]; then
-      echo "[Session Start] In-progress tasks (legacy):"
-      echo "$WIP" | while read -r line; do
-        echo "  $line"
-      done
     fi
   fi
 

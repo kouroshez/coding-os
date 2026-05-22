@@ -2,7 +2,7 @@
 # PreToolUse hook: Enforce template usage for structured doc creation.
 #
 # Four classes of markdown files have canonical creation flows:
-#   docs/tasks/TASK-*.md          → `make task-create NUM=N TITLE="..."`
+#   docs/tasks/TASK-*.md          → `cos task-create --title "..." --swimlane <lane> --kind <kind>`
 #   docs/architecture/adr/ADR-*.md → copy docs/governance/_templates/adr-template.md
 #   docs/prd/NN-*.md              → `cos setup --mode ...`
 #   docs/insights/*.md             → cos_learn_narrative MCP tool

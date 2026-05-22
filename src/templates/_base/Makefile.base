@@ -48,22 +48,22 @@ task-next: ## Show next recommended task
 .PHONY: task-start
 task-start: ## Start a task (TASK=043)
 	@if [ -z "$(TASK)" ]; then echo "Usage: make task-start TASK=<number>"; exit 1; fi
-	@bash $(COS_SCRIPTS)/task-start.sh "$(TASK)"
+	@cos task-start TASK-$(TASK)
 
 .PHONY: task-done
-task-done: ## Mark task done (TASK+TYPE+MSG+WHAT+FILES+OUTCOME)
-	@if [ -z "$(TASK)" ] || [ -z "$(TYPE)" ] || [ -z "$(MSG)" ]; then echo "Usage: make task-done TASK=### TYPE=<feat|fix|refactor|docs|test|infra> MSG=\"title\" [WHAT=\"impact\"] [FILES=\"a.sh\"] [OUTCOME=success]"; exit 1; fi
-	@bash $(COS_SCRIPTS)/task-done.sh "$(TASK)" "$(TYPE)" "$(MSG)" "$(WHAT)" "$(FILES)" "$(OUTCOME)"
+task-done: ## Mark a task done (TASK=043)
+	@if [ -z "$(TASK)" ]; then echo "Usage: make task-done TASK=<number>"; exit 1; fi
+	@cos task-done TASK-$(TASK)
 
 .PHONY: task-block
 task-block: ## Block a task (TASK=024 REASON="why")
 	@if [ -z "$(TASK)" ] || [ -z "$(REASON)" ]; then echo "Usage: make task-block TASK=<number> REASON=\"why it is blocked\""; exit 1; fi
-	@bash $(COS_SCRIPTS)/task-block.sh "$(TASK)" "$(REASON)"
+	@cos task-block TASK-$(TASK) --reason "$(REASON)"
 
 .PHONY: task-create
-task-create: ## Create new task (NUM=098 TITLE="description")
-	@if [ -z "$(NUM)" ] || [ -z "$(TITLE)" ]; then echo "Usage: make task-create NUM=<number> TITLE=\"[DOMAIN] description\""; exit 1; fi
-	@bash $(COS_SCRIPTS)/task-create.sh $(NUM) "$(TITLE)"
+task-create: ## Create a new task — use the cos CLI directly
+	@echo "Create tasks with the cos CLI (it needs the required --swimlane / --kind flags):"
+	@echo "  cos task-create --title \"...\" --swimlane <lane> --kind <feature|bug|chore|spike|docs|refactor|test|security>"
 
 .PHONY: task-context
 task-context: ## Show task content + frontmatter (TASK=043) — alias for task-show

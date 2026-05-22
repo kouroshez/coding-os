@@ -13,8 +13,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
 import pytest
+import yaml
 
 pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
 

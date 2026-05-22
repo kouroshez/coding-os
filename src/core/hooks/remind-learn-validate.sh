@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# PostToolUse Bash hook: after `make task-done`, remind to close the
+# PostToolUse Bash hook: after `cos task-done`, remind to close the
 # learning loop with cos_learn_validate.
 #
 # thinking_os learning pipeline:
 #   Orient  → cos_learn_suggest  → patterns presented to the agent
 #   Plan    → agent uses (or ignores) the patterns
-#   Verify  → `make task-done`
+#   Verify  → `cos task-done`
 #   After   → agent MUST call cos_learn_validate(pattern_id, was_helpful)
 #             for each pattern used, so confidence formulas (LTP / LTD)
 #             update. Without validation, learning stalls.
 #
-# This hook never blocks — it fires only on `make task-done` commands
+# This hook never blocks — it fires only on task-done commands
 # and prints a concise reminder if any cos_learn_suggest hit came back
 # during Orient (tracked via $COS_AGENT_DIR/.learn-suggestions).
 #

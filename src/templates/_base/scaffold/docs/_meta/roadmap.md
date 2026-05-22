@@ -18,7 +18,7 @@ Phase 0 — Project bootstrap
 - [ ] Project scaffolding complete
 - [ ] AGENTS.md routing configured
 - [ ] First architecture doc drafted
-- [ ] First task created via `make task-create`
+- [ ] First task created via `cos task-create`
 
 ## Phase 1 — MVP
 

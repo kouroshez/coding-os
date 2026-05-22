@@ -61,7 +61,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `enforce-doc-anchor` | Write/Edit on code | `.coding-os/.doc-anchor` points at a real doc (Rule 0 — docs-first) |
 | `enforce-memory-check` | Write/Edit | `.coding-os/.memory-check` records a recent `cos_search` for past patterns |
 | `enforce-template` | Write on specific markdown paths | proper template bootstrap ran (see [template-enforcement.md](template-enforcement.md)) |
-| `enforce-verify` | `make task-done` | Verification Matrix commands passed for the changed domain |
+| `enforce-verify` | `cos task-done` | Verification Matrix commands passed for the changed domain |
 
 ### Observability (6 hooks) — SILENT log-only
 
@@ -131,6 +131,6 @@ By design. Silent hooks are for *telemetry*, not *control*. Surfacing every `cap
 
 - [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) — SSOT registration
 - [src/core/hooks/cos-env.sh](../../src/core/hooks/cos-env.sh) — logging helper + agent detection
-- [src/core/docs/agent-workflow.md](../../src/core/docs/agent-workflow.md) — when hooks fire in the Core Loop
+- [docs/governance/agent-workflow.md](../governance/agent-workflow.md) — when hooks fire in the Core Loop
 - [docs/engineering/template-enforcement.md](template-enforcement.md) — enforce-template.sh detail
 - [docs/engineering/skill-architecture.md](skill-architecture.md) — enforce-skill.sh detail

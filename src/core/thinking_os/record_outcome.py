@@ -2,7 +2,7 @@
 """
 Thinking OS — Record task outcome to task_outcomes table (TASK-136).
 
-Called by task-done.sh as fire-and-forget background process.
+Called by `cos task-done` (src/cli/board_commands.py) as a fire-and-forget step.
 Writes to coding-os.db if it exists, exits silently otherwise.
 
 Usage:

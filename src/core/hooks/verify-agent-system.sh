@@ -194,13 +194,11 @@ echo ""
 # ── Layer 5: Task System ─────────────────────────────────────────────
 echo "--- Layer 5: Task System ---"
 
-if [ -f "docs/tasks.md" ]; then
-  OPEN=$(grep -c '\- \[ \]' docs/tasks.md 2>/dev/null || true)
-  WIP=$(grep -c '\- \[/\]' docs/tasks.md 2>/dev/null || true)
-  DONE=$(grep -c '\- \[x\]' docs/tasks.md 2>/dev/null || true)
-  pass "Task index: $OPEN open, $WIP wip, $DONE done"
+if [ -d "docs/tasks" ]; then
+  TASK_COUNT=$(find docs/tasks -maxdepth 1 -name 'TASK-*.md' 2>/dev/null | wc -l | tr -d ' ')
+  pass "Scrumban tasks: $TASK_COUNT task file(s) in docs/tasks/"
 else
-  warn "No docs/tasks.md — create with 'make task-create NUM=001 TITLE=\"First task\"'"
+  warn "No docs/tasks/ — create a task with 'cos task-create --title \"...\" --swimlane <lane> --kind <kind>'"
 fi
 
 if [ -f "changes.log" ]; then

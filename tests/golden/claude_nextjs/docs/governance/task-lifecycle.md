@@ -18,7 +18,7 @@ There is no flat `docs/tasks.md` index. Status is read from frontmatter, not fro
 
 ## Status States
 
-`open → in_progress → testing → complete`, plus `blocked` reachable from any state.
+`icebox → in_progress → testing → complete`, plus `blocked` reachable from any state (and `emergency` / `archive` for the incident and retirement lanes).
 
 Transitions go through `cos task-*` (or the equivalent MCP tool). The CLI writes the detail-file frontmatter and the DB row atomically; manual edits to one side without the other create drift that the doctor will flag.
 
@@ -31,7 +31,7 @@ For any task that is `in_progress`, `testing`, `blocked`, or `complete`:
 - An Outcome line at the top, plus Read First, Acceptance (Given/When/Then), and Rollback sections.
 - Optional companion reference docs only when the primary file would exceed the size cap (warn ≥1.5 k tokens, block ≥3 k — Rule 14).
 
-Backlog entries that are not yet started may live in `cos board` (icebox swimlane) without a detail file. Detail file becomes required at the moment of first transition out of icebox.
+Backlog entries that are not yet started may live in `cos board` (icebox status) without a detail file. Detail file becomes required at the moment of first transition out of icebox.
 
 ## Execution Rules
 
@@ -64,8 +64,8 @@ Optional sections:
 | `id` | yes | matches the file name slug |
 | `title` | yes | one line, no trailing punctuation |
 | `swimlane` | yes | agent-defined; common: `infra`, `frontend`, `docs`, `research` |
-| `kind` | yes | one of `feat · fix · refactor · docs · test · infra · spike · chore` |
-| `status` | yes | `open · in_progress · testing · blocked · complete` |
+| `kind` | yes | one of `feature · bug · chore · spike · docs · refactor · test · security` |
+| `status` | yes | `icebox · in_progress · testing · blocked · complete · emergency · archive` |
 | `priority` | yes | `P1 · P2 · P3` |
 | `appetite` | yes | shape-up budget, e.g. `30m · 2h · 1d · 2w` |
 | `epic`, `labels` | no | grouping helpers |
@@ -89,19 +89,18 @@ Optional sections:
 | WIP check | `cos wip` | `cos_task_wip_check` |
 | Pick next | `cos task-pick` | `cos_task_pick` |
 
-## Migration from `make task-*` to `cos task-*`
+## The `make task-*` wrappers
 
-The legacy `make task-*` targets (defined in `src/templates/_base/Makefile.base`) remain as thin aliases for back-compat with consumer projects that have not yet adopted the `cos` CLI. They shell out to the same `src/cli/board_commands.py` code path as the `cos` CLI, so behavior is identical.
+`cos task-*` is the canonical task interface. `src/templates/_base/Makefile.base` keeps a few `make task-*` targets purely as muscle-memory wrappers — each shells straight out to `cos`:
 
-| Legacy | Preferred | Notes |
-|---|---|---|
-| `make task-create NUM=098 TITLE="…"` | `cos task-create --title "…" --swimlane … --kind …` | `cos` requires swimlane + kind; `make` infers defaults. |
-| `make task-start TASK=098` | `cos task-start TASK-098` | Identical. |
-| `make task-done TASK=098 …` | `cos task-done TASK-098` | `cos` reads metadata from frontmatter; `make` needs explicit args. |
-| `make task-block TASK=098 REASON="…"` | `cos task-move TASK-098 --to blocked` | `cos` records the reason in Work Log. |
-| `make task-list STATUS=wip` | `cos board` / `cos task-by-filter --status wip` | `cos` is the only surface that reads from the DB cache. |
+| Wrapper | Delegates to |
+|---|---|
+| `make task-start TASK=098` | `cos task-start TASK-098` |
+| `make task-done TASK=098` | `cos task-done TASK-098` |
+| `make task-block TASK=098 REASON="…"` | `cos task-block TASK-098 --reason "…"` |
+| `make task-create` | prints the `cos task-create` usage (it needs `--swimlane` / `--kind`) |
 
-New consumer projects should not use `make task-*`. The targets will be removed from `Makefile.base` once two release cycles have passed with `cos` as the default — track the deprecation under the next icebox audit task. Existing projects that still rely on `make task-*` can keep using them; the aliases are stable for the duration of v0.2.x.
+The legacy file-based task system — the `task-*.sh` scripts and the flat `docs/tasks.md` index — has been removed. `make task-*` provides nothing that `cos task-*` does not; new code and docs should always call `cos task-*` directly.
 
 ## Script Output Convention
 

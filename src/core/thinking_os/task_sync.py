@@ -214,9 +214,9 @@ def sync_status_only(
     project_root: Path,
     index_file: Path | None = None,
 ) -> dict:
-    """Fast path — update only the `status` column from `docs/tasks.md`.
+    """Fast path — update only the `status` column from a task detail file.
 
-    Called by `make task-done` / `task-start` when only the status changed
+    Called by `cos task-done` / `cos task-start` when only the status changed
     and a full re-parse + re-embed would be overkill.
 
     Returns:

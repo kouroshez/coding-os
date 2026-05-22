@@ -117,6 +117,6 @@ A skill is invoked on demand (`Skill skill: "python-django"`); a **rule** loads 
 
 - [src/core/rules/skill-enforcement.md](../../src/core/rules/skill-enforcement.md) — generated globs → skills table
 - [src/core/hooks/enforce-skill.sh](../../src/core/hooks/enforce-skill.sh) — the gating hook
-- [src/core/docs/agent-workflow.md](../../src/core/docs/agent-workflow.md) § Hook & Skill Enforcement
+- [docs/governance/agent-workflow.md](../governance/agent-workflow.md) § Hook & Skill Enforcement
 - [docs/engineering/hooks-reference.md](hooks-reference.md) — all hooks catalog
 - Claude Certified Architect Foundations → Task Statement 3.2 and 3.3

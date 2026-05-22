@@ -78,7 +78,7 @@ if [[ -n "$FOUND" ]]; then
   REL="${FOUND#$ROOT/}"
   echo "  🧪 [test] Code edited. Related test file:"
   echo "     → $REL"
-  echo "     Keep it in sync — run the suite before \`make task-done\`."
+  echo "     Keep it in sync — run the suite before \`cos task-done\`."
 else
   # Suggest a canonical location.
   case "$EXT" in

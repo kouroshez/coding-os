@@ -82,10 +82,10 @@ For COMPLICATED/COMPLEX tasks, Zoom In/Out cycles operate WITHIN the Plan phase 
 After running the Complexity Gate, record your classification before any Write/Edit on code files (.py/.ts/.tsx). A programmatic hook will BLOCK code writes until this is done. All state files are **session-scoped** — a new session invalidates previous state.
 
 ```bash
-bash .claude/hooks/write-state.sh .claude/.thinking_os-gate "CLEAR 1"
+bash .claude/hooks/write-state.sh .coding-os/claude/.thinking_os-gate "CLEAR 1"
 ```
 
-Replace `CLEAR 1` with your actual classification and dimension count (e.g., `COMPLICATED 3`, `COMPLEX 5`). The gate expires after 120 minutes or when a new session starts. Skip for non-code work (docs, config).
+The gate file is `$COS_AGENT_DIR/.thinking_os-gate` — i.e. `.coding-os/<agent>/.thinking_os-gate` (`.coding-os/claude/…` for the Claude adapter, `.coding-os/codex/…` for Codex). `write-state.sh` lives in your adapter's hooks dir (`.claude/hooks/` or `.codex/hooks/`). Replace `CLEAR 1` with your actual classification and dimension count (e.g., `COMPLICATED 3`, `COMPLEX 5`). The gate expires after 120 minutes or when a new session starts. Skip for non-code work (docs, config).
 
 ## Routing
 

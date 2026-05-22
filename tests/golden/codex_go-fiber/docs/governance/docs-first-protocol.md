@@ -78,9 +78,9 @@ EOF
 )"
 ```
 
-`make task-start TASK=N` does this automatically from the task file's `Read First` section. Set the anchor by hand only for ad-hoc work covered by `*docs-update*` / `*governance*` markers.
+`cos task-start TASK-NNN` does this automatically from the task file's `Read First` section. Set the anchor by hand only for ad-hoc work covered by `*docs-update*` / `*governance*` markers.
 
-If the anchor exists but came from a previous session, the hook BLOCKS — re-run `make task-start` to refresh.
+If the anchor exists but came from a previous session, the hook BLOCKS — re-run `cos task-start TASK-NNN` to refresh.
 
 ### 5. Edit
 

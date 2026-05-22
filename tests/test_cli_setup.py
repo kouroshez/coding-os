@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from cli.main import cli as cos_cli
@@ -21,7 +22,6 @@ from cli.setup import (
     _classify_section,
     _parse_markdown_sections,
 )
-import pytest
 
 pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests (TASK-008 L3)
 

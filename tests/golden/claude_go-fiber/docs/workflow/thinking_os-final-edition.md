@@ -1351,7 +1351,7 @@ Session end (Stop hook: session-end.sh)
   └─ concept_graph      (concept_link edges from concept co-occurrence in obs)
   └─ decay.py           (runs if last decay >7 days — prunes stale learned_patterns)
 
-make task-done
+cos task-done
   └─► record_outcome.py → task_outcomes
         └─ every 10 tasks: cos_learn_extract → learned_patterns + routing_weights
 ```
@@ -1372,7 +1372,7 @@ python3 .claude/thinking_os/health_check.py --json        # JSON output for prog
 **Bootstrap tool** (one-time cold-start):
 
 ```bash
-python3 .claude/thinking_os/bootstrap_outcomes.py          # populate from docs/tasks.md
+python3 .claude/thinking_os/bootstrap_outcomes.py          # populate from docs/tasks/
 python3 .claude/thinking_os/bootstrap_outcomes.py --dry-run # preview only
 ```
 
@@ -1384,7 +1384,7 @@ python3 .claude/thinking_os/bootstrap_outcomes.py --dry-run # preview only
 | concept_graph     | capture.py + session-end.sh   | Every Write/Edit + session end|
 | session_summaries | session-end.sh                | Session end                   |
 | agent_metrics     | session-end.sh                | Session end                   |
-| task_outcomes     | make task-done                | Task completion               |
+| task_outcomes     | cos task-done                 | Task completion               |
 | learned_patterns  | cos_learn_extract            | Every 10 task_outcomes        |
 | routing_weights   | cos_route_skill/model        | After learned_patterns updated|
 | outcome_history   | decay.py                      | Periodic (>7 days)            |

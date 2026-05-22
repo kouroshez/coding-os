@@ -71,4 +71,4 @@ Before starting a task, verify each requirement has:
 - A SSOT document reference
 - Testable Given/When/Then acceptance criteria
 
-This checklist is enforced at task creation time (see `make task-create`), not as a section in the task file.
+This checklist is enforced at task creation time (see `cos task-create`), not as a section in the task file.

@@ -8,7 +8,7 @@
 # every session to zero institutional memory.
 #
 # Mechanism: the agent records "I did the memory check" by calling
-#   bash "$COS_AGENT_DIR/hooks/write-state.sh" "$COS_AGENT_DIR/.memory-check" "cos_search:<query>"
+#   bash ".${COS_AGENT}/hooks/write-state.sh" "${COS_AGENT_DIR}/.memory-check" "cos_search:<query>"
 # once per session. This hook validates that marker exists. A future
 # enhancement could auto-write this from inside the MCP server when
 # cos_search is called, but the state-marker pattern keeps the hook
@@ -111,11 +111,11 @@ echo "  File attempted: $FILE_PATH" >&2
 echo "" >&2
 echo "  Repair (pick one):" >&2
 echo "  1. Call cos_search in this session, then mark:" >&2
-echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.memory-check\" \"cos_search:<your-query>\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.memory-check\" \"cos_search:<your-query>\"" >&2
 echo "  2. Trivial ad-hoc fix → record CLEAR 1 gate instead:" >&2
-echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.thinking_os-gate\" \"CLEAR 1\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.thinking_os-gate\" \"CLEAR 1\"" >&2
 echo "  3. Exploratory spike → rename task marker:" >&2
-echo "       bash \"\$COS_AGENT_DIR/hooks/write-state.sh\" \"\$COS_AGENT_DIR/.task-current\" \"exploratory-<slug>\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.task-current\" \"exploratory-<slug>\"" >&2
 echo "" >&2
 echo "  One-shot bypass: touch ${COS_AGENT_DIR}/.memory-check-override" >&2
 exit 2

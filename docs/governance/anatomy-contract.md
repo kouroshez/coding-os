@@ -61,7 +61,7 @@ The contract test (`tests/test_anatomy_contract.py`) rejects any anatomy missing
 ONE line that links to the machine-readable SSOT — no table, no duplicated fields:
 
 ```markdown
-SSOT: [`src/templates/<stack>/scaffold-boundary.yaml`](../../src/templates/go/scaffold-boundary.yaml).
+SSOT: `src/templates/<stack>/scaffold-boundary.yaml`.
 ```
 
 Rationale: duplication of `roots` / `imports_from` / `forbids_writing_in` in prose creates drift. The yaml is the only canonical source; humans read it directly via the link.

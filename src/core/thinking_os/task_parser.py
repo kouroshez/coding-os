@@ -2,7 +2,7 @@
 Coding OS — Task detail file parser (Phase C.2).
 
 Pure, stateless parser for `docs/tasks/TASK-###-slug.md` files produced by
-`make task-create`. No DB dependency — fully unit-testable without any
+`cos task-create`. No DB dependency — fully unit-testable without any
 side effects.
 
 Expected section layout (from docs/governance/task-lifecycle.md):

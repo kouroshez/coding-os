@@ -80,7 +80,7 @@ Task and infrastructure scripts use standardized prefixes:
 
 - Log contradictions and missing truth in `docs/_meta/questions.md`.
 - Stop when product intent is not derivable from SSOT — never invent schema names, route shapes, or copy.
-- RETRY_LIMIT — second identical failure with no new evidence → `make task-block`.
+- RETRY_LIMIT — second identical failure with no new evidence → `cos task-move TASK-NNN --to blocked`.
 
 ## Memory & Learning (Thinking OS)
 

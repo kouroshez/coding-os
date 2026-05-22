@@ -114,12 +114,6 @@ H="${HOOKS_DIR}/block-protected-files.sh"
 run_test "Block changes.log edit" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"changes.log","old_string":"x","new_string":"y"}}' 2
 
-run_test "Block task status change" "$H" \
-  '{"tool_name":"Edit","tool_input":{"file_path":"docs/tasks.md","old_string":"- [x] TASK-001","new_string":"- [ ] TASK-001"}}' 2
-
-run_test "Allow task title edit" "$H" \
-  '{"tool_name":"Edit","tool_input":{"file_path":"docs/tasks.md","old_string":"## Phase 11","new_string":"## Phase 11 Updated"}}' 0
-
 run_test "Allow normal file edit" "$H" \
   '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py","old_string":"x","new_string":"y"}}' 0
 

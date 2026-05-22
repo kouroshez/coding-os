@@ -8,7 +8,7 @@ Read next: The blocked task file referenced in each question.
 
 > Nav: [Docs Index](../00-index.md)
 
-<!-- Blocker questions are logged here automatically by `make task-block`.
+<!-- Blocker questions are logged here automatically by `cos task-block`.
      Format: each question is `Q-NNN: <question>` followed by context lines.
      Resolve a question by removing it and adding the answer to the related task or ADR. -->
 

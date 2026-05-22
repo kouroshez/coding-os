@@ -30,8 +30,8 @@ if [ ! -f "$COS_DB_PATH" ]; then
 fi
 
 ACTIVE_TASK=""
-if [ -f "docs/tasks.md" ]; then
-  ACTIVE_TASK=$(grep '^\- \[/\]' docs/tasks.md | head -1 | grep -oE 'TASK-[0-9]+' || true)
+if [ -f "${COS_AGENT_DIR}/.task-current" ]; then
+  ACTIVE_TASK=$(grep -oE 'TASK-[0-9]+' "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -1 || true)
 fi
 
 run_bounded_python() {

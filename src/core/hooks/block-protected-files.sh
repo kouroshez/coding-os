@@ -2,7 +2,6 @@
 # PreToolUse hook: Block direct edits to protected files.
 # Protected:
 #   - changes.log (use make log-write)
-#   - tasks.md status lines (use make task-done/task-start)
 #   - Governance files: agent rules/, hooks/, CLAUDE.md, AGENTS.md,
 #     infrastructure/scripts/ — never edit as side-effect of another task.
 set -euo pipefail
@@ -11,21 +10,15 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 INPUT="$(cos_read_stdin_bounded 2)"
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-OLD_STRING=$(echo "$INPUT" | jq -r '.tool_input.old_string // empty' 2>/dev/null || echo "")
 
 # Block direct edits to changes.log
 if [[ "$FILE_PATH" == *"changes.log"* ]]; then
-  echo "BLOCKED: Do not edit changes.log directly. Use 'make log-write TYPE=<type> MSG=\"title\" WHAT=\"impact\" FILES=\"files\"' or 'make task-done'." >&2
+  echo "BLOCKED: Do not edit changes.log directly. Use 'make log-write TYPE=<type> MSG=\"title\" WHAT=\"impact\" FILES=\"files\"'." >&2
   exit 2
 fi
 
-# Block direct status changes in tasks.md (checkbox modifications)
-if [[ "$FILE_PATH" == *"docs/tasks.md"* ]]; then
-  if echo "$OLD_STRING" | grep -qE '^\- \[[ x/]\]'; then
-    echo "BLOCKED: Do not change task status directly in tasks.md. Use 'make task-start TASK=<num>', 'make task-done TASK=<num> TYPE=<type> MSG=\"title\" WHAT=\"impact\" FILES=\"files\"', or 'make task-block TASK=<num> REASON=\"why\"'." >&2
-    exit 2
-  fi
-fi
+# Scrumban task status changes go through `cos task-move` / `cos task-done`,
+# never a hand-edit of a task file — validate-task-frontmatter.sh guards that.
 
 # Block edits to governance/workflow files unless explicitly tasked.
 # These define HOW we work — changing them as a side-effect of another task
@@ -95,7 +88,7 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
   # Escape hatch: if the active task explicitly names governance work,
   # allow the edit. This prevents genuine docs/governance tasks from
   # being blocked by the safety net. The active task marker is session-
-  # scoped and set via `make task-start` or write-state.sh.
+  # scoped and set via `cos task-start` or write-state.sh.
   # Task marker lives in the agent-private state dir (COS_AGENT_DIR); when
   # cos-env.sh hasn't been sourced we fall back to the shared root.
   AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"

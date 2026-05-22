@@ -7,9 +7,9 @@ Steps:
    - **Q1 (Cynefin):** `CLEAR` (known fix) | `COMPLICATED` (known type, needs design) | `COMPLEX` (unknown answer, needs experiment) | `CHAOTIC` (broken now, act first) | `CONFUSION` (decompose first).
    - **Q2 (dimensions):** integer count of distinct concerns this task touches (auth + DB + UI = 3).
 2. State your classification + one-sentence rationale.
-3. Persist via:
+3. Persist via the canonical gate writer — `write-state.sh` (the same hook the kernel rule's Record Gate documents). Replace `.claude` / `claude` with your adapter dir (`.codex` / `codex` for Codex):
    ```
-   bash core/skills/thinking_os/scripts/classify.sh --q1 <Q1> --q2 <Q2>
+   bash .claude/hooks/write-state.sh .coding-os/claude/.thinking_os-gate "<Q1> <Q2>"
    ```
    This writes `$COS_AGENT_DIR/.thinking_os-gate` and unblocks downstream skill/edit hooks.
 4. If `Q1` is `COMPLICATED` or `COMPLEX`, invoke `Skill thinking_os` for the full Zoom cycle.

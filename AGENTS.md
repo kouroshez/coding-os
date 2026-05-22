@@ -89,7 +89,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 **Orient (targeted reads):** Read List only · `cos_search` for past patterns · grep/glob existing code.
 **Plan:** per dimension → current/target/gap/risk → ordered steps. If no matching task exists, create one and fill Outcome/Read First/Acceptance before coding. COMPLICATED+ loads the `thinking_os` skill for Zoom cycles.
 **Execute:** smallest correct change [P1, P4]. After code: run verification.
-**Verify & Close:** move task to `testing` → run verification (`make verify` or targeted matrix command) → append concise work-log note → `cos task-done TASK-NNN` (Scrumban) or `make task-done` (legacy). Loop on failure: fix → re-run → assert green; never close on assumed pass.
+**Verify & Close:** move task to `testing` → run verification (`make verify` or targeted matrix command) → append concise work-log note → `cos task-done TASK-NNN`. Loop on failure: fix → re-run → assert green; never close on assumed pass.
 
 ## Verification Matrix
 
@@ -109,9 +109,10 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 **Scrumban (preferred):** `cos board [--web]` · `cos task-show TASK-NNN` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to blocked|testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
 **MCP equivalents:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
+**Slash commands:** packaged workflows invoked with `/` — `/board` · `/daily` · `/retro` · `/task` · `/classify` · `/verify` · `/review` · `/diagnose` · `/memory-search` · 11× `/role-*`. Sourced from [src/core/commands/](src/core/commands/) + [src/core/thinking_os/agents/](src/core/thinking_os/agents/); rendered per adapter into `<agent>/commands/`.
 **Deferred tool schemas (Claude only):** all 79 `cos_*` tools are deferred — schemas are NOT loaded at session start. Call `ToolSearch("select:<tool>")` before the first invocation each session or you get `InputValidationError`. Schema traps (TaskSignals field types, envelope format, UID scheme): [docs/engineering/mcp-schema-traps.md](docs/engineering/mcp-schema-traps.md).
 **Meta retrieval (when unsure):** `cos_retrieve(query, hint="auto")` dispatches to memory/docs/tasks or returns a code-grep hint for identifier queries.
-**Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `make cos-health` · `cos doctor` · `make log-{latest,write,search}`.
+**Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `cos health` · `cos doctor` · `make log-{latest,write,search}`.
 **Web UI (visual exploration):** `cos hub start` boots the singleton FastAPI + React SPA at `http://127.0.0.1:9188`; one hub serves every registered project via `/api/p/<slug>/*`. `cos hub status` reports meta-repo path + symlink health. UI iteration: `make ui-dev` (HMR on :5173) or `make ui-build` (rebuild `dist/`). Full contract + propagation matrix: [docs/engineering/hub-architecture.md](docs/engineering/hub-architecture.md).
 
 **Hub propagation:** `src/core/{hooks,rules,skills,commands}` reach every consumer project via live symlinks. `src/adapters/*/*.template.*` regen + consumer re-render via `cos sync-all`. Dangling symlinks (meta repo moved) → `cos sync-doctor --repair`.

@@ -24,7 +24,7 @@ if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   echo "Examples:"
   echo "  make log-write TYPE=fix MSG=\"optimized session-init\""
   echo "  make log-write TASK=014 TYPE=fix MSG=\"SSOT restructured\" WHAT=\"8 bugs fixed\""
-  echo "  make log-write TASK=014 TYPE=fix MSG=\"SSOT restructured\" WHAT=\"8 bugs fixed\" FILES=\"task-create.sh, task-context.sh\""
+  echo "  make log-write TASK=014 TYPE=fix MSG=\"SSOT restructured\" WHAT=\"8 bugs fixed\" FILES=\"board_commands.py, task_parser.py\""
   exit 0
 fi
 

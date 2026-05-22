@@ -115,5 +115,5 @@ Do NOT update design docs after implementation — code is SSOT. Live API docs: 
 ## Stop and Escalate If
 
 - architecture docs conflict with schema docs
-- the endpoint contract is missing from PRD/architecture — **do not infer endpoints from page specs alone; log a blocker via `make task-block`**
+- the endpoint contract is missing from PRD/architecture — **do not infer endpoints from page specs alone; log a blocker via `cos task-move TASK-NNN --to blocked`**
 - the change requires undocumented security behavior or provider semantics

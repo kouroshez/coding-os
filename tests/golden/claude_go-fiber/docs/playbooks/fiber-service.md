@@ -146,4 +146,4 @@ make lint-backend    # go vet + golangci-lint
 make test-backend    # go test ./...
 ```
 
-Both must pass before `make task-done`.
+Both must pass before `cos task-done`.
