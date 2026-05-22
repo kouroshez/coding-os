@@ -31,10 +31,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _cos_init(target: Path, agent: str = "claude", template: str | None = None) -> None:
-    cmd = [
-        sys.executable,
-        "-m",
-        "cli.main",
+    """Scaffold a project in-process via CliRunner — far cheaper than the old
+    `python -m cli.main` subprocess per test (matches test_template_scaffold)."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    args = [
         "init",
         "--agent",
         agent,
@@ -47,18 +50,9 @@ def _cos_init(target: Path, agent: str = "claude", template: str | None = None) 
         "--no-register",
     ]
     if template:
-        cmd.extend(["--template", template])
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(REPO_ROOT)
-    subprocess.run(
-        cmd,
-        cwd=str(REPO_ROOT),
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=True,
-    )
+        args += ["--template", template]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0, f"cos init failed:\n{result.output}"
 
 
 def _severity_map(report: DoctorReport) -> dict[str, str]:

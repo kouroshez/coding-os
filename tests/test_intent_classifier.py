@@ -11,26 +11,21 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
+import extract_intent  # src/core/hooks/_helpers — on sys.path via conftest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
-HELPER = REPO_ROOT / "src" / "core" / "hooks" / "_helpers" / "extract_intent.py"
 HOOK = REPO_ROOT / "src" / "core" / "hooks" / "detect-exhaustive-intent.sh"
 
 
 def _run_helper(prompt: str) -> dict:
-    payload = json.dumps({"prompt": prompt})
-    proc = subprocess.run(
-        [sys.executable, str(HELPER)],
-        input=payload.encode("utf-8"),
-        capture_output=True,
-        timeout=5,
-    )
-    assert proc.returncode == 0, proc.stderr.decode("utf-8")
-    return json.loads(proc.stdout.decode("utf-8"))
+    """Call the classifier in-process — extract_intent() is pure (the file
+    write lives only in the script's main()). Replaces ~25 interpreter
+    cold-starts the subprocess form paid one-per-test."""
+    return extract_intent.extract_intent(prompt)
 
 
 def _run_hook(prompt: str) -> tuple[int, str, str]:

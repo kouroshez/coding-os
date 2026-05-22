@@ -20,9 +20,15 @@ import pytest
 
 # --- Shared path bootstrap -------------------------------------------------
 # Flat-module imports (cognition_schemas, database, capture, formula_composer,
-# task_analyzer, …) live under src/core/<subsystem>/ and are imported with no
-# package prefix. conftest.py loads before collection, so inserting the dirs
-# here covers every test file — replacing ~28 per-file sys.path.insert hacks.
+# task_analyzer — all under thinking_os/; extract_intent under hooks/_helpers/)
+# are imported with no package prefix. conftest.py loads before collection, so
+# inserting the dirs here covers every test file.
+#
+# IMPORTANT: do NOT add src/core/board_os or src/core/graph_os here — they each
+# ship a `tools/` subpackage that collides with thinking_os/tools when both
+# parents are on sys.path (graph_os code does a flat `from tools import _shared`
+# resolving to thinking_os/tools). board_os/graph_os are imported package-
+# qualified via `src/core` on the path instead.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 for _p in (
@@ -30,8 +36,7 @@ for _p in (
     REPO_ROOT / "src",
     REPO_ROOT / "src" / "core",
     REPO_ROOT / "src" / "core" / "thinking_os",
-    REPO_ROOT / "src" / "core" / "board_os",
-    REPO_ROOT / "src" / "core" / "graph_os",
+    REPO_ROOT / "src" / "core" / "hooks" / "_helpers",
 ):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
