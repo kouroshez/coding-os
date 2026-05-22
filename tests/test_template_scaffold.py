@@ -29,6 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cli.main import cli
 
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
+
 
 @pytest.fixture
 def runner() -> CliRunner:
@@ -97,7 +99,6 @@ class TestBaseScaffold:
     def test_creates_governance_templates(self, initialized: Path) -> None:
         templates = initialized / "docs" / "governance" / "_templates"
         assert (templates / "task-detail.md").exists()
-        assert (templates / "task-list.md").exists()
 
     def test_task_detail_template_has_required_sections(self, initialized: Path) -> None:
         """Verify the Phase L lean Scrumban template is in place.

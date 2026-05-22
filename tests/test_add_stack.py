@@ -14,6 +14,9 @@ import sys
 from pathlib import Path
 
 import yaml
+import pytest
+
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FROZEN_DATE = "2026-01-01"

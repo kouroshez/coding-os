@@ -451,6 +451,8 @@ class TestVersion:
 
 from cli.main import _refuse_coding_os_self_init, _resolve_project_dir  # noqa: E402
 
+pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests (TASK-008 L3)
+
 
 class TestResolveProjectDir:
     def test_explicit_absolute_path(self, tmp_path: Path) -> None:

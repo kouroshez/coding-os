@@ -21,6 +21,9 @@ from cli.setup import (
     _classify_section,
     _parse_markdown_sections,
 )
+import pytest
+
+pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests (TASK-008 L3)
 
 
 def _init(tmp_path: Path, *templates: str) -> Path:

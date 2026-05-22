@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
+
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent
 ADAPTERS_DIR = CODING_OS_ROOT / "src" / "adapters"
 CORE_HOOKS_DIR = CODING_OS_ROOT / "src" / "core" / "hooks"

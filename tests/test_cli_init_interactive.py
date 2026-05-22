@@ -17,6 +17,8 @@ from cli.main import (
     cli as cos_cli,
 )
 
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
+
 
 class TestYesFlagGating:
     def test_yes_requires_agent(self, tmp_path: Path) -> None:

@@ -22,6 +22,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests (TASK-008 L3)
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
@@ -305,10 +307,18 @@ class TestCheckCaptureWorked:
         state = self._setup(tmp_path)
         db = state / "coding-os.db"
         self._init_db(db)
+        # A read-only session (no Write/Edit) is expected to capture 0 obs and
+        # is intentionally silent. Simulate a session that DID edit code so the
+        # zero-observation drift warning actually fires: capture-observation
+        # logs `[capture-observation] [fire] ... session=<sid> ... tool=Write`.
+        (state / ".hooks.log").write_text(
+            "[2026-05-21T00:00:00] [capture-observation] [fire] "
+            "agent=claude session=ses-claude-test-1 task=none tool=Write\n"
+        )
         env = {**self._env_for(state), "COS_DB_PATH": str(db)}
         r = _invoke(CHECK_CAPTURE_WORKED, {}, env=env)
         assert r.returncode == 0
-        assert "Zero observations" in r.stderr
+        assert "0 observations recorded" in r.stderr
 
     def test_shows_error_log_if_present(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)

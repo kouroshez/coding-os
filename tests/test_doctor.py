@@ -25,6 +25,8 @@ from cli.doctor import (
     run_doctor,
 )
 
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
