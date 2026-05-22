@@ -1,0 +1,48 @@
+# coding-os meta-project Scrumban config.
+# 8-lane set matching the architecture (core/thinking_os/graph_os/...).
+# See docs/phase-l-scrumban-task-system-plan.md.
+
+swimlanes:
+  - id: core
+    label: "Core Kernel"
+    color: "#2563eb"
+    description: "Agent-agnostic + stack-agnostic DNA"
+  - id: thinking_os
+    label: "Thinking OS"
+    color: "#7c3aed"
+    description: "MCP server, memory, learning"
+  - id: graph_os
+    label: "Graph OS"
+    color: "#059669"
+    description: "Knowledge graph (Phase I)"
+  - id: board_os
+    label: "Board OS"
+    color: "#dc2626"
+    description: "Scrumban task system (Phase L)"
+  - id: adapters
+    label: "Adapters (claude/codex/...)"
+    color: "#d97706"
+    description: "Per-agent translation layer"
+  - id: templates
+    label: "Templates (django/nextjs/...)"
+    color: "#0891b2"
+    description: "Per-stack overlays"
+  - id: cli
+    label: "CLI"
+    color: "#6b7280"
+    description: "cos command-line interface"
+  - id: docs
+    label: "Documentation"
+    color: "#db2777"
+    description: "Architecture, plans, governance"
+  - id: infra
+    label: "Infrastructure"
+    color: "#78716c"
+    description: "CI, Make, scripts, scaffold manifest"
+
+wip_limits:
+  in_progress: 1
+  testing: 3
+  emergency: 2
+
+label_families: []

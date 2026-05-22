@@ -64,6 +64,11 @@ Thumbs.db
 # SSOT for what `cos init` writes into a consumer project. Track them.
 !src/templates/*/scaffold/.coding-os/
 !src/templates/*/scaffold/.coding-os/**
+# Exception: the meta-repo's OWN board config is real project structure
+# (swimlanes board_os/graph_os/thinking_os). The test suite asserts its
+# invariants, so it must exist on a fresh CI checkout — track this one
+# file (the rest of .coding-os/ stays runtime junk and stays ignored).
+!.coding-os/scrumban-config.yaml
 
 # ---- Adapter-generated output (live symlinks into src/core/) --------
 .claude/
