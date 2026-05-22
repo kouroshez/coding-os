@@ -45,9 +45,7 @@ def _seed_db(tmp: Path) -> Path:
 # --------------------------------------------------------------------------
 
 
-def test_capture_accepts_multiedit(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_capture_accepts_multiedit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     sys.path.insert(0, str(BRAIN))
     from capture import CAPTURE_TOOLS, capture_observation  # type: ignore
 

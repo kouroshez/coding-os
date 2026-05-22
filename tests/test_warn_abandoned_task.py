@@ -31,9 +31,7 @@ def test_warns_on_stuck_task(tmp_path: Path) -> None:
     db = tmp_path / "coding-os.db"
     conn = sqlite3.connect(db)
     conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT)")
-    conn.execute(
-        "INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')"
-    )
+    conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
     conn.commit()
     conn.close()
     (tmp_path / "session-id").write_text("ses-claude-test", encoding="utf-8")
@@ -62,9 +60,7 @@ def test_debounced_after_first_warning(tmp_path: Path) -> None:
     db = tmp_path / "coding-os.db"
     conn = sqlite3.connect(db)
     conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT)")
-    conn.execute(
-        "INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')"
-    )
+    conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
     conn.commit()
     conn.close()
     (tmp_path / "session-id").write_text("ses-claude-test", encoding="utf-8")

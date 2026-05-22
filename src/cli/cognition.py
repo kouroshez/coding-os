@@ -354,7 +354,9 @@ def _assert_exhaustive_evidence(session_id: str) -> None:
     else:
         agent = os.environ.get("COS_AGENT")
         if not agent:
-            click.echo("[replay/audit] SKIP — agent runtime not resolvable (COS_AGENT/COS_AGENT_DIR unset)")
+            click.echo(
+                "[replay/audit] SKIP — agent runtime not resolvable (COS_AGENT/COS_AGENT_DIR unset)"
+            )
             return
         state = os.environ.get("COS_STATE_DIR") or ".coding-os"
         agent_dir = _Path(state) / agent

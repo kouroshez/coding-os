@@ -67,6 +67,8 @@ def _strip_for_headings(text: str) -> str:
     text = _HTML_COMMENT.sub(_blank, text)
     text = _FENCE.sub(_blank, text)
     return text
+
+
 _FRONTMATTER = re.compile(
     r"^<!--\s*domain:[A-Z_]+\s*\|\s*layer:[a-z_]+\s*\|\s*ssot:(?:true|false|ref)\s*\|\s*updated:(?:\d{4}-\d{2}-\d{2}|auto)\s*-->\s*$"
 )
@@ -159,9 +161,7 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
     #    (`---\nid: TASK-NNN\n...`), not the HTML-comment doc header.
     #  - docs/adr/: ADRs are Nygard-format records, a distinct genre.
     rel_parts = set(path.relative_to(REPO).parts) if path.is_relative_to(REPO) else set()
-    frontmatter_exempt = (
-        path.name in ROOT_DOCS or "tasks" in rel_parts or "adr" in rel_parts
-    )
+    frontmatter_exempt = path.name in ROOT_DOCS or "tasks" in rel_parts or "adr" in rel_parts
     if not frontmatter_exempt:
         first_line = raw.split("\n", 1)[0]
         if not _FRONTMATTER.match(first_line):
@@ -190,9 +190,7 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
         if anchor and target.suffix == ".md":
             anchors = anchor_cache.get(target)
             if anchors is None:
-                anchors = _gather_anchors(
-                    _strip_for_headings(target.read_text(encoding="utf-8"))
-                )
+                anchors = _gather_anchors(_strip_for_headings(target.read_text(encoding="utf-8")))
                 anchor_cache[target] = anchors
             if anchor not in anchors:
                 findings.append(("BROKEN-ANCHOR", f"{rel} -> {url}"))

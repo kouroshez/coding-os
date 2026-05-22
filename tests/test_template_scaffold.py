@@ -59,9 +59,7 @@ def _init_project(
     assert result.exit_code == 0, f"init failed: {result.output}"
 
 
-def _class_scaffold(
-    tmp_path_factory: pytest.TempPathFactory, name: str, *templates: str
-) -> Path:
+def _class_scaffold(tmp_path_factory: pytest.TempPathFactory, name: str, *templates: str) -> Path:
     """Scaffold one cos-init project shared across a class of read-only tests.
 
     Class-scoped fixtures run before the function-scoped _isolate_registry

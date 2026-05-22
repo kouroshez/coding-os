@@ -385,6 +385,8 @@ def setup(
     if written > 0:
         _post_setup(project)
         click.echo(f"\nSetup complete. {written} file(s) written.")
-        click.echo('Next: review docs/prd/*, then `cos task-create --title "..." --swimlane <lane> --kind <kind>`')
+        click.echo(
+            'Next: review docs/prd/*, then `cos task-create --title "..." --swimlane <lane> --kind <kind>`'
+        )
     else:
         click.echo("\nNo files written (all already existed).")

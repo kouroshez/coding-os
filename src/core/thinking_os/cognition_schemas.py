@@ -543,7 +543,9 @@ class TaskSignals(BaseModel):
     scope_size: Literal["trivial", "small", "medium", "large", "recursive"] = "medium"
     external_dependency: bool = False
     is_takeover: bool = False
-    exhaustive: bool = False  # exhaustive-scope intent (.intent.json) — gates audit-exhaustive preset
+    exhaustive: bool = (
+        False  # exhaustive-scope intent (.intent.json) — gates audit-exhaustive preset
+    )
 
     complexity: Literal["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC", "CONFUSION"] = "COMPLICATED"
     dimensions: int = 1

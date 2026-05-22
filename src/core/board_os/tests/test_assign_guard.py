@@ -54,9 +54,7 @@ def test_force_bypasses(tmp_path: Path) -> None:
     assert _assign_guard(path, "ses-codex-bbb", force=True) is None
 
 
-def test_env_override_bypasses(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_env_override_bypasses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COS_ASSIGN_OVERRIDE", "1")
     path = _task(tmp_path, "ses-claude-aaa")
     assert _assign_guard(path, "ses-codex-bbb", force=False) is None
