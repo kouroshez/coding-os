@@ -190,3 +190,92 @@ def test_pr_mode_allows_branch_create() -> None:
 def test_pr_mode_allows_reset_head_tilde() -> None:
     code, _ = _run("git reset HEAD~1", workflow="pr")
     assert code == 0
+
+
+# --- TASK-014 hardening: bypass probes (must BLOCK after this task) -------
+
+
+def test_blocks_reset_with_double_space() -> None:
+    code, _ = _run("git  reset HEAD~1")
+    assert code == 2
+
+
+def test_blocks_reset_with_tab() -> None:
+    code, _ = _run("git\treset HEAD~1")
+    assert code == 2
+
+
+def test_blocks_reset_via_git_dash_C() -> None:
+    code, _ = _run("git -C /tmp reset HEAD~1")
+    assert code == 2
+
+
+def test_blocks_reset_via_git_dash_c_config() -> None:
+    code, _ = _run("git -c core.editor=vi reset HEAD~1")
+    assert code == 2
+
+
+def test_blocks_reset_via_git_dir_long_opt() -> None:
+    code, _ = _run("git --git-dir=.git reset HEAD~1")
+    assert code == 2
+
+
+def test_blocks_reset_nested_sh_dash_c() -> None:
+    code, _ = _run("sh -c \"git reset HEAD~1\"")
+    assert code == 2
+
+
+def test_blocks_reset_nested_bash_dash_c_single_quote() -> None:
+    code, _ = _run("bash -c 'git reset HEAD~1'")
+    assert code == 2
+
+
+def test_blocks_checkout_nested_in_sh_c() -> None:
+    code, _ = _run("sh -c 'git checkout feature-x'")
+    assert code == 2
+
+
+def test_blocks_with_leading_env_var() -> None:
+    code, _ = _run("FOO=bar git reset HEAD~1")
+    assert code == 2
+
+
+# --- TASK-014 hardening: false-positive probes (must ALLOW after this task)
+
+
+def test_allows_checkout_dot_for_restore_cwd() -> None:
+    # `git checkout .` restores all files in cwd — HEAD does not move.
+    code, _ = _run("git checkout .")
+    assert code == 0
+
+
+def test_allows_literal_string_in_echo() -> None:
+    code, _ = _run("echo 'do not run git reset HEAD~1'")
+    assert code == 0
+
+
+def test_allows_literal_string_in_grep() -> None:
+    code, _ = _run("grep 'git reset HEAD~1' docs/")
+    assert code == 0
+
+
+def test_allows_git_log_grep_with_literal() -> None:
+    # `git log --grep='...'` is read-only; the literal inside should not block.
+    code, _ = _run("git log --grep='git reset HEAD~1'")
+    assert code == 0
+
+
+def test_allows_git_status_alongside_literal_text() -> None:
+    code, _ = _run("git status # noted: do not run git reset HEAD~1")
+    assert code == 0
+
+
+def test_allows_git_show_other_branch() -> None:
+    # `git show <branch>:path` reads from another ref but doesn't move HEAD.
+    code, _ = _run("git show feature-x:src/foo.py")
+    assert code == 0
+
+
+def test_allows_git_diff_two_refs() -> None:
+    code, _ = _run("git diff main..HEAD")
+    assert code == 0

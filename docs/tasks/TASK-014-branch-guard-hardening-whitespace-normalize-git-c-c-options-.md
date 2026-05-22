@@ -5,21 +5,20 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, hardening, post-mortem-TASK-013]
-status: icebox
+status: in_progress
 priority: P3
 appetite: "1d"
 created: 2026-05-22
-started: null
+started: 2026-05-22
 completed: null
-agent_session: null
+agent_session: ses-claude-20260522-181701-790c
 depends_on: [TASK-013]
 blocked_by: []
 references: []
 ---
-
 # TASK-014: branch-guard hardening — whitespace normalize + git -C/-c options + literal-string false positives
 
-**Outcome (one sentence):** Close branch-guard bypass vectors surfaced by TASK-013 reviewer: normalize whitespace (tab/double-space slip through), strip `git -C <path>` + `git -c k=v` global-option prefixes, decide policy on nested `sh -c "git ..."`, allow `git checkout .` (or document), and stop false-positives on literal strings inside grep/echo/log args by anchoring to command-start positions.
+**Outcome (one sentence):** Close branch-guard bypass vectors surfaced by TASK-013 reviewer — normalize whitespace (tab/double-space), strip `git -C <path>` + `git -c k=v` global-option prefixes, handle nested `sh -c`/`bash -c` invocations, allow `git checkout .` as a file-restore form, and stop false-positives on literal strings inside grep/echo/log args by anchoring matches to command-start positions instead of pure substring.
 
 ## Read First
 - src/core/hooks/branch-guard.sh
@@ -59,3 +58,16 @@ Source: reviewer subagent of TASK-013 (commit `0edccc3`). Findings are
 hardening — not a security boundary; dominant-case gate works.
 
 ## Work Log
+
+- 2026-05-22 — Lifted parsing out of bash into Python helper
+  `src/core/hooks/_helpers/branch_guard_check.py`. The hook is now a
+  thin wrapper (~40 LOC) that fast-skips if the command lacks `git`,
+  then dispatches to the helper for a JSON verdict. The helper uses
+  `shlex.split` for proper quote handling, normalizes whitespace,
+  strips `git -C` / `git -c` / `--git-dir=` / `--work-tree=` global
+  options, extracts nested `sh -c` / `bash -c` / `zsh -c` invocations,
+  and splits on shell separators so a `git` token inside an `echo` /
+  `grep` arg is never treated as a git invocation. All 9 reviewer
+  probes from TASK-013 now produce the expected verdict (5 previously-
+  bypassed cases block, 4 previously-false-positives allow). 16 new
+  tests added (45 total). Adapter + golden parity green.

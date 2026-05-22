@@ -97,9 +97,25 @@ initiative.
 | `git reset -- <path>` | Unstage one path |
 | `git checkout -- <path>` / `git restore <path>` | Restore file content |
 | `git checkout HEAD <path>` | Restore file from HEAD; HEAD does not move |
+| `git checkout HEAD~1 -- <path>` | Restore file from a past commit; HEAD does not move |
+| `git checkout .` | Restore all files in cwd; HEAD does not move |
 | `git checkout main` / `git switch main` | Idempotent (already there) |
 | `git branch` / `git branch -d X` / `git branch -m` | List / delete / rename existing branches |
 | `git revert <sha>` | Undo a commit safely — creates a new commit |
+
+### Mid-session cleanup recipe
+
+If a session accidentally lands a garbage commit (e.g. a `tmp:` repro
+commit), the trunk-safe undo is:
+
+```
+git revert HEAD --no-edit && git push origin main
+```
+
+This *adds* a "Revert …" commit on top of main — never moves HEAD off a
+published commit. `git reset HEAD~1` is BLOCKed by `branch-guard.sh`
+because it orphans the bad commit but leaves peer sessions with a
+phantom HEAD.
 
 ## Anti-patterns (reject on sight)
 
