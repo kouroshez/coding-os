@@ -59,16 +59,37 @@ def _init_project(
     assert result.exit_code == 0, f"init failed: {result.output}"
 
 
+def _class_scaffold(
+    tmp_path_factory: pytest.TempPathFactory, name: str, *templates: str
+) -> Path:
+    """Scaffold one cos-init project shared across a class of read-only tests.
+
+    Class-scoped fixtures run before the function-scoped _isolate_registry
+    autouse fixture, so this re-isolates COS_REGISTRY_PATH itself via a
+    standalone MonkeyPatch — otherwise `cos init` would write the real
+    ~/.coding-os/registry.json.
+    """
+    base = tmp_path_factory.mktemp(name)
+    project = base / "test-project"
+    project.mkdir()
+    mp = pytest.MonkeyPatch()
+    mp.setenv("COS_REGISTRY_PATH", str(base / "registry.json"))
+    try:
+        _init_project(CliRunner(), project, *templates)
+    finally:
+        mp.undo()
+    return project
+
+
 # ---------------------------------------------------------------------------
 # Base scaffold (every init creates these)
 # ---------------------------------------------------------------------------
 
 
 class TestBaseScaffold:
-    @pytest.fixture
-    def initialized(self, runner: CliRunner, project_dir: Path) -> Path:
-        _init_project(runner, project_dir)
-        return project_dir
+    @pytest.fixture(scope="class")
+    def initialized(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "base-scaffold")
 
     def test_creates_root_index(self, initialized: Path) -> None:
         assert (initialized / "docs" / "00-index.md").exists()
@@ -179,19 +200,25 @@ class TestBaseScaffold:
 
 
 class TestPlaceholderResolution:
-    def test_no_unresolved_placeholders_in_agents_md(
-        self, runner: CliRunner, project_dir: Path
-    ) -> None:
-        _init_project(runner, project_dir, "django")
-        agents_md = (project_dir / "AGENTS.md").read_text()
+    @pytest.fixture(scope="class")
+    def django_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "ph-django", "django")
+
+    @pytest.fixture(scope="class")
+    def nextjs_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "ph-nextjs", "nextjs")
+
+    @pytest.fixture(scope="class")
+    def base_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "ph-base")
+
+    def test_no_unresolved_placeholders_in_agents_md(self, django_project: Path) -> None:
+        agents_md = (django_project / "AGENTS.md").read_text()
         unresolved = re.findall(r"\{\{[^}]+\}\}", agents_md)
         assert not unresolved, f"AGENTS.md has unresolved placeholders: {unresolved}"
 
-    def test_no_unresolved_placeholders_in_scaffold_docs(
-        self, runner: CliRunner, project_dir: Path
-    ) -> None:
-        _init_project(runner, project_dir, "django")
-        for md_file in (project_dir / "docs").rglob("*.md"):
+    def test_no_unresolved_placeholders_in_scaffold_docs(self, django_project: Path) -> None:
+        for md_file in (django_project / "docs").rglob("*.md"):
             content = md_file.read_text()
             unresolved = re.findall(r"\{\{[A-Z_]+\}\}", content)
             # Allow {{DOMAIN}}, {{DATE}} only inside the task-detail template (it's a meta-template)
@@ -199,30 +226,21 @@ class TestPlaceholderResolution:
                 continue
             assert not unresolved, f"{md_file}: unresolved {unresolved}"
 
-    def test_django_substitution_includes_backend_routing(
-        self, runner: CliRunner, project_dir: Path
-    ) -> None:
-        _init_project(runner, project_dir, "django")
-        agents_md = (project_dir / "AGENTS.md").read_text()
+    def test_django_substitution_includes_backend_routing(self, django_project: Path) -> None:
+        agents_md = (django_project / "AGENTS.md").read_text()
         assert "Django" in agents_md
         assert "Backend" in agents_md
         assert "python-django" in agents_md
 
-    def test_nextjs_substitution_includes_frontend_routing(
-        self, runner: CliRunner, project_dir: Path
-    ) -> None:
-        _init_project(runner, project_dir, "nextjs")
-        agents_md = (project_dir / "AGENTS.md").read_text()
+    def test_nextjs_substitution_includes_frontend_routing(self, nextjs_project: Path) -> None:
+        agents_md = (nextjs_project / "AGENTS.md").read_text()
         assert "Next.js" in agents_md
         assert "Frontend" in agents_md
         assert "nextjs-react" in agents_md
 
-    def test_no_template_substitution_uses_defaults(
-        self, runner: CliRunner, project_dir: Path
-    ) -> None:
+    def test_no_template_substitution_uses_defaults(self, base_project: Path) -> None:
         """Init without --template should still produce a valid AGENTS.md."""
-        _init_project(runner, project_dir)
-        agents_md = (project_dir / "AGENTS.md").read_text()
+        agents_md = (base_project / "AGENTS.md").read_text()
         assert "{{" not in agents_md
         assert "Polyglot" in agents_md  # default stack label
 
@@ -233,10 +251,9 @@ class TestPlaceholderResolution:
 
 
 class TestDjangoOverlay:
-    @pytest.fixture
-    def django_project(self, runner: CliRunner, project_dir: Path) -> Path:
-        _init_project(runner, project_dir, "django")
-        return project_dir
+    @pytest.fixture(scope="class")
+    def django_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "django-overlay", "django")
 
     def test_creates_backend_playbook(self, django_project: Path) -> None:
         assert (django_project / "docs" / "playbooks" / "backend-api.md").exists()
@@ -266,10 +283,9 @@ class TestDjangoOverlay:
 
 
 class TestNextjsOverlay:
-    @pytest.fixture
-    def nextjs_project(self, runner: CliRunner, project_dir: Path) -> Path:
-        _init_project(runner, project_dir, "nextjs")
-        return project_dir
+    @pytest.fixture(scope="class")
+    def nextjs_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "nextjs-overlay", "nextjs")
 
     def test_creates_frontend_playbook(self, nextjs_project: Path) -> None:
         assert (nextjs_project / "docs" / "playbooks" / "frontend-ui.md").exists()
@@ -313,10 +329,9 @@ class TestNextjsOverlay:
 
 
 class TestMultiTemplate:
-    @pytest.fixture
-    def fullstack_project(self, runner: CliRunner, project_dir: Path) -> Path:
-        _init_project(runner, project_dir, "django", "nextjs")
-        return project_dir
+    @pytest.fixture(scope="class")
+    def fullstack_project(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+        return _class_scaffold(tmp_path_factory, "fullstack", "django", "nextjs")
 
     def test_both_playbooks_present(self, fullstack_project: Path) -> None:
         playbooks = fullstack_project / "docs" / "playbooks"
