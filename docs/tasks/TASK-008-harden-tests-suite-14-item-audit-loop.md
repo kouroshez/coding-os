@@ -5,18 +5,17 @@ swimlane: infra
 kind: chore
 epic: null
 labels: [tests, quality]
-status: in_progress
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-21
 started: 2026-05-21
-completed: null
-agent_session: null
+completed: 2026-05-22
+agent_session: ses-claude-20260522-1151
 depends_on: []
 blocked_by: []
 references: [docs/tasks/audits/audit-tests-suite-hardening.md]
 ---
-
 # TASK-008: Harden tests/ suite — 14-item audit loop
 
 **Outcome (one sentence):** The `tests/` suite is green, fast, and
@@ -39,3 +38,4 @@ brittle/vacuous-assertion patterns from the audit removed.
 
 ## Work Log
 - L1a–L1e + composer fix: ~30 baseline reds resolved. See audit Evidence Log.
+- 2026-05-22 [claude]: Closed: audit-tests-suite-hardening.md status→complete, 14 category rows resolved (11 done, 3 deferred per Rule 22 — L5/

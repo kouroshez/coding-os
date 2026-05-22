@@ -410,3 +410,20 @@ class TestAuditsRoutes:
         """GET /api/audits/<missing> returns 404."""
         resp = client.get("/api/audits/does-not-exist-xyz")
         assert resp.status_code == 404
+
+    def test_row_counts_handles_prefixed_ids(self):
+        """_row_counts counts both numeric (`| 1 |`) and prefixed (`| L1 |`)
+        category-row IDs, and treats `pending` as unchecked — regression for
+        the L-style audit rendering as 0/0."""
+        from web.routes.audits import _row_counts
+
+        numeric = "| # | C |\n|---|---|\n| 1 | a |\n| 2 | b |\n"
+        assert _row_counts(numeric)["total"] == 2
+
+        prefixed = (
+            "| # | C | Status |\n|---|---|---|\n"
+            "| L1 | a | done |\n| L2 | b | pending |\n| L10 | c | deferred |\n"
+        )
+        counts = _row_counts(prefixed)
+        assert counts["total"] == 3
+        assert counts["unchecked"] == 1  # only L2 is pending

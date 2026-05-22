@@ -1,7 +1,8 @@
 ---
 title: "Audit — tests/ suite hardening"
-status: in_progress
+status: complete
 created: 2026-05-21
+completed: 2026-05-22
 scope: tests/
 ---
 
@@ -16,20 +17,20 @@ speed · accuracy), and committed before moving on.
 
 | # | Category | Files affected | Severity | Status |
 |---|---|---|---|---|
-| L1 | Suite not green — failing tests | TBD from baseline | CRITICAL | pending |
-| L2 | Hang / timeout safety | pyproject, test_hooks_phase_m, hook test files | CRITICAL | pending |
-| L3 | `@pytest.mark.slow` discipline missing | 10 heavy files | HIGH | pending |
-| L4 | No shared `conftest.py` foundation | new tests/conftest.py | HIGH | pending |
-| L5 | conftest migration — kill duplication | ~30 files | HIGH | pending |
-| L6 | Runtime: function-scoped scaffold fixtures | test_template_scaffold, test_cli, test_doctor | HIGH | pending |
-| L7 | Runtime: subprocess → in-process | test_intent_classifier, test_doctor, test_add_stack | MED | pending |
-| L8 | Vacuous / hedged assertions | test_web_server, test_cli*, test_rag_pipeline, test_formula_composer, test_persona_integration, test_task_analyzer | HIGH | pending |
-| L9 | Envelope under-assertion (Rule 13) | route test files | MED | pending |
-| L10 | Dead / misnamed / misplaced tests + dead code | test_cli_*, test_hooks_*, test_phase_n_e2e, test_rag_pipeline, test_registry, test_doctor_suppress, test_adapters | MED | pending |
-| L11 | `parametrize` under-used (copy-paste blocks) | test_task_analyzer, test_formula_composer, test_phase_n_behavioral, test_stack_registry, test_cli, test_cli_setup, test_adapters, test_codex_formula_commands | MED | pending |
-| L12 | Hook test files split by commit-phase not concern | test_hooks_phase_{e,f,m}, test_hooks_new, test_hook_registry_integration | MED | pending |
-| L13 | Redundant files + duplicated scenario tables | test_observability_smoke, test_phase_n_{behavioral,e2e} | MED | pending |
-| L14 | Brittleness — source-grep, hardcoded lists, hand parsers, manual env mutation | test_brain_hardening, test_agent_presence_visuals, test_skill_registry, test_role_registry, test_no_hardcoded_anthropic, test_cli_update, test_multi_agent_dispatch, test_web_server, test_claude_dispatcher_options, test_stream_dedup, test_branding, test_golden_parity, test_phase_n_e2e | MED | pending |
+| L1 | Suite not green — failing tests | TBD from baseline | CRITICAL | done |
+| L2 | Hang / timeout safety | pyproject, test_hooks_phase_m, hook test files | CRITICAL | done |
+| L3 | `@pytest.mark.slow` discipline missing | 10 heavy files | HIGH | done |
+| L4 | No shared `conftest.py` foundation | new tests/conftest.py | HIGH | done |
+| L5 | conftest migration — kill duplication | ~30 files | HIGH | deferred |
+| L6 | Runtime: function-scoped scaffold fixtures | test_template_scaffold, test_cli, test_doctor | HIGH | done |
+| L7 | Runtime: subprocess → in-process | test_intent_classifier, test_doctor, test_add_stack | MED | done |
+| L8 | Vacuous / hedged assertions | test_web_server, test_cli*, test_rag_pipeline, test_formula_composer, test_persona_integration, test_task_analyzer | HIGH | done |
+| L9 | Envelope under-assertion (Rule 13) | route test files | MED | done |
+| L10 | Dead / misnamed / misplaced tests + dead code | test_cli_*, test_hooks_*, test_phase_n_e2e, test_rag_pipeline, test_registry, test_doctor_suppress, test_adapters | MED | done |
+| L11 | `parametrize` under-used (copy-paste blocks) | test_task_analyzer, test_formula_composer, test_phase_n_behavioral, test_stack_registry, test_cli, test_cli_setup, test_adapters, test_codex_formula_commands | MED | deferred |
+| L12 | Hook test files split by commit-phase not concern | test_hooks_phase_{e,f,m}, test_hooks_new, test_hook_registry_integration | MED | deferred |
+| L13 | Redundant files + duplicated scenario tables | test_observability_smoke, test_phase_n_{behavioral,e2e} | MED | done |
+| L14 | Brittleness — source-grep, hardcoded lists, hand parsers, manual env mutation | test_brain_hardening, test_agent_presence_visuals, test_skill_registry, test_role_registry, test_no_hardcoded_anthropic, test_cli_update, test_multi_agent_dispatch, test_web_server, test_claude_dispatcher_options, test_stream_dedup, test_branding, test_golden_parity, test_phase_n_e2e | MED | done |
 
 ## Loop Items (detailed)
 

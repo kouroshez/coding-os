@@ -78,8 +78,20 @@ def _parse_frontmatter(text: str) -> dict:
 
 
 def _row_counts(text: str) -> dict:
-    data_rows = re.findall(r"^\|\s*\d+\s*\|", text, flags=re.MULTILINE)
-    unchecked = re.findall(r"^\|.*\|\s*no\s*\|", text, flags=re.MULTILINE)
+    # Audit category tables use two row-ID conventions: bare numeric
+    # (`| 1 |`) and prefixed (`| L1 |`, `| G10 |`). Count both, but only
+    # when the first cell is JUST the ID — so Evidence-Log rows like
+    # `| L1a env-leak |` are not miscounted as category rows.
+    data_rows = re.findall(
+        r"^\|\s*(?:\d+|[A-Za-z]+\d+)\s*\|", text, flags=re.MULTILINE
+    )
+    # "Unchecked" = a status cell still open. Tables use either a yes/no
+    # Verified column or a pending/todo/done status column.
+    unchecked = re.findall(
+        r"^\|.*\|\s*(?:no|pending|todo)\s*\|?\s*$",
+        text,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
     return {"total": len(data_rows), "unchecked": len(unchecked)}
 
 
