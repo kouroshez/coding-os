@@ -60,7 +60,7 @@ hooks:
 
   - id: branch-guard
     script: branch-guard.sh
-    description: Enforces trunk-based workflow — blocks git branch/worktree creation in trunk mode.
+    description: Enforces trunk-based git integrity — blocks branch/worktree creation AND HEAD-rewriting ops (`reset <ref>`, `checkout/switch <other-branch>`) in trunk mode.
     category: enforcement
     phase: "0"
     timeout: 5

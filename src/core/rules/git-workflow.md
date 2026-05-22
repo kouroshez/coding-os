@@ -25,8 +25,16 @@ correct and simpler.
 
 ## The rule
 
-- **Never run** `git checkout -b`, `git branch <name>`, `git switch -c`.
-  The `branch-guard.sh` hook BLOCKs these in trunk mode.
+- **Never run** `git checkout -b`, `git branch <name>`, `git switch -c`,
+  `git worktree add`. The `branch-guard.sh` hook BLOCKs these in trunk mode.
+- **Never run HEAD-moving commands** on the shared checkout: `git reset
+  HEAD~N`, `git reset <sha>`, `git reset <branch>`, `git checkout
+  <other-branch>`, `git switch <other-branch>`. The same hook BLOCKs
+  these — moving HEAD off a published commit clobbers a peer session's
+  work and orphans commits. Modern git separates these concerns:
+  `git restore <path>` for files, `git switch main` for branches. Use them.
+- **To undo a published commit** use `git revert <sha>` — it creates a
+  new commit, preserves history, and works under trunk-based discipline.
 - **Commit directly to `main`.** The user's mental model is "main = the
   project". A commit to `main` IS the deliverable.
 - **Commit with explicit paths** — `git commit <path> <path>`, never a
@@ -80,11 +88,30 @@ for this experiment"). The agent then sets `COS_GIT_WORKFLOW=pr` for
 that action or the user overrides. The agent never branches on its own
 initiative.
 
+## Always-allowed forms (the safe escape hatches)
+
+| Form | What it does |
+|---|---|
+| `git reset` (bare) | Unstage everything; HEAD does not move |
+| `git reset --mixed HEAD` | Same — explicit form |
+| `git reset -- <path>` | Unstage one path |
+| `git checkout -- <path>` / `git restore <path>` | Restore file content |
+| `git checkout HEAD <path>` | Restore file from HEAD; HEAD does not move |
+| `git checkout main` / `git switch main` | Idempotent (already there) |
+| `git branch` / `git branch -d X` / `git branch -m` | List / delete / rename existing branches |
+| `git revert <sha>` | Undo a commit safely — creates a new commit |
+
 ## Anti-patterns (reject on sight)
 
 - `git checkout -b feature/...` "to keep main clean" — no, commit to main.
 - Bare `git commit` / `git commit -am` — sweeps concurrent WIP.
 - `git push --force` to `main` — blocked by `block-dangerous-commands.sh`.
+- `git reset --hard HEAD~N` to "redo" a bad commit — blocked twice
+  (`block-dangerous-commands` and `branch-guard`). Use `git revert`.
+- `git reset --soft HEAD~N` to "squash before push" — blocked. Push the
+  small commits; squash is a `pr`-mode-only concern.
+- `git checkout <some-branch>` to "peek at something" — blocked; use
+  `git log <branch>` or `git show <branch>:<path>` instead (read-only).
 - Creating a branch because the runtime suggested "branch first" — this
   rule overrides that.
 - Deleting `.git/index.lock` to "unstick" a commit — wait and retry.
