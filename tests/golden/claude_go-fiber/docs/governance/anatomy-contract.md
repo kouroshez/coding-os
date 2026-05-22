@@ -4,7 +4,7 @@
 > P: Defines the canonical shape of `src/templates/<stack>/skills/<skill>/references/anatomy.md` so every stack and every agent (claude · codex · cursor) emits the same file structure, naming, and entity recipes.
 > R: Authoring or auditing a stack's anatomy file; resolving disagreement between agents about where a new file belongs.
 > S: Reading code — the actual conventions are in the per-stack `anatomy.md`, not here.
-> N: [docs-system.md](docs-system.md), [scaffold-boundary-contract.md](scaffold-boundary-contract.md), [doc-cheat-sheet.md](src/templates/doc-cheat-sheet.md)
+> N: [docs-system.md](docs-system.md), [scaffold-boundary-contract.md](scaffold-boundary-contract.md), `doc-cheat-sheet.md`
 
 > Nav: [Governance Index](./00-index.md)
 
@@ -61,7 +61,7 @@ The contract test (`tests/test_anatomy_contract.py`) rejects any anatomy missing
 ONE line that links to the machine-readable SSOT — no table, no duplicated fields:
 
 ```markdown
-SSOT: [`src/templates/<stack>/scaffold-boundary.yaml`](../../../scaffold-boundary.yaml).
+SSOT: `src/templates/<stack>/scaffold-boundary.yaml`.
 ```
 
 Rationale: duplication of `roots` / `imports_from` / `forbids_writing_in` in prose creates drift. The yaml is the only canonical source; humans read it directly via the link.

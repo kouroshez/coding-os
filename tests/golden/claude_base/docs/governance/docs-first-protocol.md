@@ -125,12 +125,12 @@ This is **not** a bypass — it is the protocol. A code agent that updates a doc
 | `src/core/thinking_os/**` | [docs/architecture/meta-project.md](../architecture/meta-project.md), [docs/engineering/mcp-error-envelope.md](../engineering/mcp-error-envelope.md) |
 | `src/core/graph_os/**` | [docs/engineering/graph_os-queries.md](../engineering/graph_os-queries.md), [docs/engineering/graph-hallucination-cures.md](../engineering/graph-hallucination-cures.md) |
 | `src/core/board_os/**` | [docs/governance/task-lifecycle.md](task-lifecycle.md), [docs/engineering/board-thinking-os-coupling.md](../engineering/board-thinking-os-coupling.md) |
-| `src/core/hooks/**` | [docs/engineering/hooks-reference.md](../engineering/hooks-reference.md), [src/core/hooks/registry.yaml](../../core/hooks/registry.yaml) |
+| `src/core/hooks/**` | [docs/engineering/hooks-reference.md](../engineering/hooks-reference.md), `src/core/hooks/registry.yaml` |
 | `src/adapters/<id>/**` | [docs/playbooks/adapter-authoring.md](../playbooks/adapter-authoring.md), [docs/adapters/claude-sdk.md](../adapters/claude-sdk.md) |
 | `src/templates/<id>/**` | [docs/playbooks/template-authoring.md](../playbooks/template-authoring.md), [docs/governance/anatomy-contract.md](anatomy-contract.md), [docs/governance/scaffold-boundary-contract.md](scaffold-boundary-contract.md) |
 | `src/cli/**` | [docs/architecture/meta-project.md](../architecture/meta-project.md) |
 
-Beyond `src/core/**`, the [Dimension Registry](../../core/rules/dimension-registry.md) routes per-stack edits to the right doc set.
+Beyond `src/core/**`, the `Dimension Registry` routes per-stack edits to the right doc set.
 
 ## Verification
 
@@ -153,5 +153,5 @@ After any non-trivial code change, before `task-done`:
 - [Rule 0 — Docs-first](critical-rules.md#rule-0--docs-first)
 - [Rule 19 — Docs are the contract](critical-rules.md#rule-19--docs-are-the-contract--never-extend-code-beyond-doc-spec)
 - [docs-system.md](docs-system.md) — taxonomy, headers, navigation
-- [doc-cheat-sheet.md](src/templates/doc-cheat-sheet.md) — pick the right layer
+- `doc-cheat-sheet.md` — pick the right layer
 - [agent-workflow.md](agent-workflow.md) — Core Loop (Classify → Orient → Plan → Execute → Verify)

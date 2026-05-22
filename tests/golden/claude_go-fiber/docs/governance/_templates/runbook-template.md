@@ -6,7 +6,7 @@ Read when: <Alert name> fires, OR a user reports symptom matching this runbook.
 Skip when: The fault is upstream of this service — escalate per §6.
 Read next: [post-mortem-template.md](./post-mortem-template.md), [<related runbook>](./<related>.md)
 
-> Nav: [Runbooks Index](../../../ops/runbooks/00-index.md)
+> Nav: `Runbooks Index`
 
 ---
 
