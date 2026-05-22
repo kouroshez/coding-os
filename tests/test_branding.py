@@ -19,6 +19,12 @@ GUARDED_GLOBS: list[str] = [
 # product reference, NOT coding-os branding). Skip these from the scan.
 ALLOWED_PATHS: set[str] = {
     "src/cli/doctor.py",  # describes Claude Code CLI version checks
+    # Descriptive references to Anthropic's product in code comments —
+    # not self-branding. ChatView explains where the Claude Code IDE
+    # writes session JSONL; DashboardPage explains a recycled-PID edge
+    # case ("long-dead Claude Code process").
+    "src/core/web/ui/src/features/cognition/ChatView.tsx",
+    "src/core/web/ui/src/pages/DashboardPage.tsx",
 }
 
 FORBIDDEN_TOKENS: tuple[str, ...] = (
@@ -32,6 +38,13 @@ def _iter_guarded_files() -> list[Path]:
     for pattern in GUARDED_GLOBS:
         files.extend(REPO_ROOT.glob(pattern))
     return [f for f in files if f.relative_to(REPO_ROOT).as_posix() not in ALLOWED_PATHS]
+
+
+def test_branding_globs_match_files() -> None:
+    """Guard the guard: if GUARDED_GLOBS match zero files (repo restructure),
+    the parametrized branding test silently collects nothing and the gate
+    evaporates. Fail loud instead."""
+    assert _iter_guarded_files(), "GUARDED_GLOBS matched no files — branding gate is dead"
 
 
 @pytest.mark.parametrize(

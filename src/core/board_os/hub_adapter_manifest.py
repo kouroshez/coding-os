@@ -24,12 +24,12 @@ def _coding_os_repo_root() -> Path:
     env = os.environ.get("COS_CODING_OS_ROOT", "").strip()
     if env:
         return Path(env).resolve()
-    # core/board_os/this_file.py → parents[2] == repo root
-    return Path(__file__).resolve().parents[2]
+    # src/core/board_os/this_file.py → parents[3] == repo root
+    return Path(__file__).resolve().parents[3]
 
 
 def _adapters_dir() -> Path:
-    return _coding_os_repo_root() / "adapters"
+    return _coding_os_repo_root() / "src" / "adapters"
 
 
 def _scan_manifest_mtime(adapters: Path) -> float:

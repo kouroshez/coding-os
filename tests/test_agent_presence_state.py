@@ -97,7 +97,7 @@ def test_old_prompt_with_alive_pid_is_present(fake_project):
         "claude",
         "ses-claude-present-old-prompt",
         last_prompt_at=now - 300,  # 5 min ago, past ACTIVE
-        last_stop_at=None,
+        last_stop_at=now - 290,  # prompt completed → not in-flight (else "working")
         last_tool_at=now - 320,
     )
     assert board_routes._presence_state("claude") == "present"
