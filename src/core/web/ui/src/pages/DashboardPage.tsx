@@ -49,6 +49,7 @@ interface ActiveSession {
   last_stop_at: number | null;
   ended_at: number | null;
   state: 'active' | 'present' | 'idle' | 'offline' | 'ended';
+  is_current?: boolean;
   model?: string | null;
 }
 interface ActiveSessionsPayload {
@@ -260,16 +261,24 @@ export default function DashboardPage() {
   // sessions/active yields one record per `sessions/<sid>.json` file, so
   // every concurrent runtime gets its own row.
   const liveSessions = useMemo(() => {
-    // Only `active` (recent tool/prompt within 30 s) and `present`
-    // (within 300 s TTL).  `idle` is excluded: the session's PID is
-    // alive but no activity has been recorded, which on this repo
-    // commonly means a long-dead Claude Code process whose PID was
-    // recycled by the OS — counting those as "live" inflated the
-    // Mission Control KPI to 21 when only one agent was really
-    // working (TASK 2026-05-20 UI audit, dashboard screenshot).
+    // `active` (tool/prompt within 30 s) and `present` (within 300 s
+    // TTL) always count. `idle` (PID alive, no recent activity) is
+    // excluded by default — on this repo it commonly means a long-dead
+    // Claude Code process whose PID the OS recycled (inflated the KPI
+    // to 21 when one agent worked — 2026-05-20 UI audit).
+    // EXCEPTION: an `is_current` row IS the agent's live session (its
+    // session_id matches the `session-id` marker), so a recycled PID
+    // can't masquerade as it. A read-only session (verify/git/pytest,
+    // no Write/Edit) that aged past the TTL classifies `idle` but is
+    // still genuinely working — count it when its PID is alive.
     const all = sessionsActive.data?.sessions ?? [];
     return all
-      .filter((s) => s.state === 'active' || s.state === 'present')
+      .filter(
+        (s) =>
+          s.state === 'active' ||
+          s.state === 'present' ||
+          (s.is_current === true && s.state !== 'offline' && s.state !== 'ended'),
+      )
       .filter((s) => s.agent !== 'human');
   }, [sessionsActive.data]);
   const presentCount = liveSessions.length;

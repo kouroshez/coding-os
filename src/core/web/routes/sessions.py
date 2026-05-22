@@ -74,6 +74,13 @@ def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict
     sessions_dir = agent_dir / "sessions"
     if not sessions_dir.is_dir():
         return []
+    # The agent's `session-id` marker names its one live session. A row
+    # matching it is genuinely current — never a recycled-PID leftover —
+    # so the dashboard can trust it as live even when activity is stale.
+    try:
+        current_sid = (agent_dir / "session-id").read_text(encoding="utf-8").strip() or None
+    except (OSError, UnicodeDecodeError):
+        current_sid = None
     out: list[dict] = []
     try:
         candidates = sorted(sessions_dir.glob("*.json"))
@@ -90,6 +97,7 @@ def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict
             continue
         data.setdefault("agent", agent)
         data["state"] = _classify(data, now)
+        data["is_current"] = current_sid is not None and data.get("session_id") == current_sid
         data["presence_file"] = str(path)
         out.append(data)
     return out
@@ -105,6 +113,9 @@ async def list_active_sessions():
       - idle     : pid alive but no recent activity
       - offline  : pid not alive
       - ended    : ended_at recorded
+
+    Each record also carries `is_current` — true when its session_id
+    matches the agent's `session-id` marker (the agent's live session).
     """
     state_dir = _project_state_dir()
     if not state_dir.is_dir():

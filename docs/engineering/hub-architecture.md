@@ -36,6 +36,17 @@ Successful board list payloads include:
 
 **Not implemented:** aggregating “this adapter is active in *any* registered repo” under `~/.coding-os/`. That would need a separate global store or a registry walk; the field `presence_scope` leaves room to extend the contract later.
 
+## Dashboard live agents (`/api/sessions/active`)
+
+`DashboardPage` derives its "agents live" count from `/api/sessions/active` — one row per `.coding-os/<agent>/sessions/<sid>.json`. Each row carries:
+
+| Field | Meaning |
+|---|---|
+| `state` | `active` (tool/prompt ≤30s) · `present` (≤300s TTL) · `idle` (pid alive, activity stale) · `offline` (pid dead) · `ended`. |
+| `is_current` | `true` when the row's `session_id` equals the agent's `session-id` marker — i.e. this is the agent's live session, not a recycled-PID leftover. |
+
+The dashboard counts `active`/`present` rows **plus** any `is_current` row whose pid is alive. Without the `is_current` clause a read-only session (verify/git/pytest, no `Write`/`Edit`) aged past the 300s TTL would classify `idle` and be silently dropped — the agent shows as working while the HUD reads "no agent running". `agent-presence.sh` also fires on `PostToolUse Bash` so such sessions refresh `last_tool_at` and mostly never reach `idle` in the first place; `is_current` is the defense-in-depth backstop.
+
 ## Per-project backend keying (graph + DB)
 
 One uvicorn process serves every registered project. To prevent the first project's SQLite handle from leaking into another project's response, every layer that opens a database now keys its singleton by the **resolved DB path**, not by a process-global slot.

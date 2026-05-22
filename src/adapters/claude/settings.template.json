@@ -337,6 +337,11 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/remind-learn-validate.sh",
             "statusMessage": "💡 Checking if learn-validate reminder is due...",
             "timeout": 5
