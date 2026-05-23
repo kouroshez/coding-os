@@ -23,9 +23,12 @@ COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 # mid-session — reload to pick up new hook config).
 cos_log_hook capture-observation fire "tool=${TOOL_NAME}"
 
-# Only capture Write and Edit tool calls (skip Read, Glob, Grep, Bash)
+# Only capture Write, Edit, MultiEdit tool calls (skip Read, Glob, Grep, Bash).
+# MultiEdit is the batched variant — Claude SDK emits it for most real agent
+# edits, so excluding it produced ~0 observations (capture.py CAPTURE_TOOLS
+# already includes MultiEdit; the shell filter was the stale layer).
 case "$TOOL_NAME" in
-  Write|Edit) ;;
+  Write|Edit|MultiEdit) ;;
   *) exit 0 ;;
 esac
 
