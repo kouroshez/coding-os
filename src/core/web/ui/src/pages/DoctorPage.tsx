@@ -456,6 +456,8 @@ function HealthTab() {
     <div className="space-y-3">
       <header className="flex items-center gap-3 text-[10px] text-[var(--cos-muted)]">
         <span>polling /metrics every 2s · buffer = last {MAX_SAMPLES * 2}s</span>
+        <span>·</span>
+        <span>real Prometheus counters from FastAPI middleware (cos_web_requests_total) — the numbers move because the SPA itself polls /api in the background</span>
         {state.err && <span className="text-rose-400">{state.err}</span>}
       </header>
 

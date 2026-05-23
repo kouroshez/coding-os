@@ -80,16 +80,22 @@ async def api_health():
     return _health_payload()
 
 
+# Tables the Doctor sqlite tab surfaces. Names are the CANONICAL
+# migration names (see src/core/thinking_os/database.py + the v* SQL
+# files). Earlier this list referenced legacy names (`metrics`,
+# `patterns`, `audit_log`) that never existed in any migration — they
+# rendered as "absent" forever, masking the actual table state. Fixed
+# 2026-05-23 (TASK-024).
 _DB_TABLES_OF_INTEREST = (
     "tasks",
     "observations",
-    "metrics",
+    "agent_metrics",
     "task_outcomes",
-    "patterns",
+    "learned_patterns",
     "session_summaries",
     "persona_selections",
     "formula_dispatches",
-    "audit_log",
+    "doc_audit_trail",
     "file_index_state",
 )
 

@@ -348,11 +348,15 @@ def emit_contains_spine(
     directory_parts = parts[:-1]
 
     # Always emit the repo root folder (parent of every top-level dir).
+    # uid stays `folder:.` for stability across rebuilds and idempotency;
+    # `label` upgraded from "." to "repo-root" so the graph canvas shows
+    # a recognisable anchor instead of a tiny dot — uid is the contract,
+    # label is presentation. (TASK-024)
     root_uid = folder_uid(".")
     root_node = GraphNode(
         uid=root_uid,
         kind="folder",
-        label=".",
+        label="repo-root",
         file_path=None,
         metadata={"extractor": extractor_id, "repo_root": True},
     )
