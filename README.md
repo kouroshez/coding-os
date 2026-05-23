@@ -481,6 +481,7 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | Docker build OOM on `npm ci` | Default Docker memory < 4 GB | Docker Desktop → Settings → Resources → bump memory to 4 GB+ |
 | `ToolSearch` returns `InputValidationError` for a `cos_*` tool | First-call schema not loaded (Claude defers MCP schemas) | `ToolSearch("select:cos_<name>")` first, then call the tool |
 | Hooks silently skip on Codex / Cursor | Agent runtime doesn't expose that `{event, matcher}` pair | Expected — see [Persona Enforcement Coverage](#supported-agents); use Claude Code for protected work |
+| Hub rejects the meta-repo checkout with `sits inside … already a coding-os project` | A stray `.coding-os/` exists higher up (e.g. `~/.coding-os/` from a test run) — fixed 2026-05-23: only **registered** ancestors block | Update + restart Hub: `git pull && cos hub stop && cos hub start`. If still blocking, the ancestor is genuinely registered: `cos registry remove <ancestor-path>` |
 
 Still stuck? Run `cos doctor --verbose` and open a
 [discussion](https://github.com/kouroshebra/coding-os/discussions)

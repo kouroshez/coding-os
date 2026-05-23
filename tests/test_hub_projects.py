@@ -128,3 +128,65 @@ def test_registry_add_rejects_nested_coding_os(hub_fixture):
     assert resp.status_code == 400
     body = resp.json()
     assert "inside" in body["error"]["message"].lower()
+
+
+def test_unregistered_ancestor_coding_os_does_not_block(hub_fixture):
+    """Issue reported 2026-05-23: contributor cloned coding-os to
+    `~/p/coding-os/` while a stray `~/.coding-os/` (test artefact)
+    existed in their home dir. The nested-project check rejected the
+    legitimate checkout. Fix: only enforce nesting when the ancestor
+    is REGISTERED in the cli registry — stray `.coding-os/` is noise.
+    """
+    from cli.registry import add_project
+
+    # Create the ancestor `.coding-os/` but do NOT register it.
+    parent = hub_fixture["tmp"] / "noisy-parent"
+    parent.mkdir()
+    (parent / ".coding-os").mkdir()
+    # The legit project sits under the noisy parent.
+    inner = parent / "legit-project"
+    (inner / ".coding-os").mkdir(parents=True)
+
+    with _client() as client:
+        resp = client.post(
+            "/api/hub/registry/add",
+            json={"path": str(inner)},
+        )
+    assert resp.status_code == 200, resp.json()
+
+    # And re-registering the ancestor must now flip the check back to reject.
+    add_project(parent)
+    inner2 = parent / "another-legit"
+    (inner2 / ".coding-os").mkdir(parents=True)
+    with _client() as client:
+        resp2 = client.post(
+            "/api/hub/registry/add",
+            json={"path": str(inner2)},
+        )
+    assert resp2.status_code == 400
+    assert "inside" in resp2.json()["error"]["message"].lower()
+
+
+def test_meta_repo_is_never_flagged_nested(hub_fixture):
+    """Dogfood: the meta-repo's own checkout has `.coding-os/` (P5
+    Dogfood). Even if the user has a `.coding-os/` higher in the
+    tree, the meta-repo checkout must register fine.
+    """
+    parent = hub_fixture["tmp"] / "home-noise"
+    parent.mkdir()
+    (parent / ".coding-os").mkdir()
+    meta = parent / "coding-os"
+    (meta / ".coding-os").mkdir(parents=True)
+    # Lay down the meta-repo signature files so _is_meta_repo() returns True.
+    (meta / "pyproject.toml").write_text("[project]\nname = 'coding-os'\n")
+    (meta / "src" / "cli").mkdir(parents=True)
+    (meta / "src" / "cli" / "main.py").write_text("# meta cli\n")
+    (meta / "src" / "core" / "thinking_os").mkdir(parents=True)
+    (meta / "src" / "core" / "thinking_os" / "server.py").write_text("# mcp server\n")
+
+    with _client() as client:
+        resp = client.post(
+            "/api/hub/registry/add",
+            json={"path": str(meta)},
+        )
+    assert resp.status_code == 200, resp.json()

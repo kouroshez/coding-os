@@ -32,21 +32,73 @@ def _looks_like_cos_project(path: Path) -> bool:
         return False
 
 
+def _is_meta_repo(path: Path) -> bool:
+    """True when `path` is the coding-os meta-repo checkout itself.
+
+    Recognises the dogfood case: the meta-repo lives at
+    `<somewhere>/coding-os/` AND ships its own `.coding-os/`
+    (dogfood — Principle P5). It must never be flagged as "nested
+    inside another coding-os project" just because a higher-up
+    ancestor (e.g. `~/.coding-os/` scratch dir) happens to have a
+    `.coding-os/`.
+    """
+    try:
+        return (
+            (path / "src" / "cli" / "main.py").is_file()
+            and (path / "src" / "core" / "thinking_os" / "server.py").is_file()
+            and (path / "pyproject.toml").is_file()
+        )
+    except OSError:
+        return False
+
+
+def _is_registered_project(path: Path) -> bool:
+    """True iff `path` (resolved) is recorded in the cli registry.
+
+    The nested-project check should only fire when the enclosing
+    ancestor is an *actual registered project*. A stray
+    `~/.coding-os/` (left over from a test run, or the user's
+    scratch dir) is not a project — blocking on it has rejected
+    legitimate contributor checkouts (issue reported 2026-05-23).
+    """
+    try:
+        from cli.registry import load_registry  # type: ignore
+
+        reg = load_registry()
+    except Exception:
+        return False
+    target = str(path.resolve())
+    for p in reg.projects:
+        try:
+            if str(Path(p.path).resolve()) == target:
+                return True
+        except (OSError, RuntimeError):
+            continue
+    return False
+
+
 def _ancestor_with_coding_os(path: Path) -> Path | None:
-    """Walk parents looking for an enclosing .coding-os/ root.
+    """Walk parents looking for an enclosing **registered** coding-os
+    project root.
 
     Returns the first ancestor (strictly above `path`) that has a
-    .coding-os/ directory.  Used to detect stray .coding-os/ inside a
-    legitimate project — those must never be registered as a separate
-    project (.coding-os belongs ONLY at the project root).
+    `.coding-os/` directory AND is recorded in the cli registry —
+    a true nesting violation. An ancestor with just `.coding-os/`
+    on disk but not in the registry is treated as noise (scratch,
+    leftover) and ignored.
+
+    Also skips the check entirely when `path` is the meta-repo
+    itself (dogfood — see `_is_meta_repo`).
     """
     try:
         resolved = path.resolve()
     except (OSError, RuntimeError):
         return None
+    if _is_meta_repo(resolved):
+        return None
     for parent in resolved.parents:
         try:
-            if (parent / ".coding-os").is_dir():
+            if (parent / ".coding-os").is_dir() and _is_registered_project(parent):
                 return parent
         except OSError:
             continue
