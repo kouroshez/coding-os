@@ -87,12 +87,32 @@ export function buildGraph(
     'folder', 'file', 'module', 'class', 'route',
     'mcp_tool', 'task', 'doc_file', 'rule', 'skill', 'hook', 'contract',
   ]);
+  // Repo-root anchor — extractor emits exactly one of these. Always
+  // dominates the canvas (size + label) so the viewer's eye lands on
+  // the centre of importance. (TASK-019)
+  const ROOT_UIDS = new Set(['folder:.', 'folder:']);
+  // Top-5 by degree get an additional emphasis tier (label + size bump)
+  // so structural hubs (e.g. src/core, the MCP server file, the README)
+  // are never lost in the cloud. Cheaper than a server-side PageRank
+  // round-trip; matches the formula radius = base + α·log(deg) +
+  // β·kind_weight + γ·root_bonus from the viz audit (PageRank path is
+  // deferred to Phase 9, when /api/graph/ranking lands).
+  const topByDegree = [...degree.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([uid]) => uid);
+  const TOP_DEGREE: Set<string> = new Set(topByDegree);
   const sizeFor = (uid: string, kind: string): number => {
+    if (ROOT_UIDS.has(uid)) return 32;             // γ·root_bonus
     const base = kind === 'folder' ? 5 : kind === 'file' ? 4 : kind === 'module' ? 3.5 : 2;
     const d = degree.get(uid) ?? 0;
-    return Math.min(28, base + Math.log2(d + 1) * 2.6);
+    const sized = base + Math.log2(d + 1) * 2.6;
+    const hubBoost = TOP_DEGREE.has(uid) ? 1.4 : 1.0;
+    return Math.min(28, sized * hubBoost);
   };
   const labelForceFor = (uid: string, kind: string): boolean => {
+    if (ROOT_UIDS.has(uid)) return true;
+    if (TOP_DEGREE.has(uid)) return true;
     const d = degree.get(uid) ?? 0;
     if (d >= 10) return true;
     if (SEMANTIC_KINDS.has(kind) && d >= 2) return true;
