@@ -805,6 +805,7 @@ def cos_graph_impact(
         return _fail_uid_not_found(uid, tried_uids)
 
     walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(direction, "in")
+    visit_limit = 500
     nodes, edges = _walk_bfs(
         be,
         root_uid=root.uid,
@@ -812,7 +813,13 @@ def cos_graph_impact(
         max_hops=max(1, int(depth)),
         confidence_min=confidence_min,
         edge_types=None,
+        visit_limit=visit_limit,
     )
+    # BFS stops once `len(seen_nodes) >= visit_limit`. When it hits the
+    # cap the answer is incomplete and silent — agent could mis-judge
+    # blast radius. Expose the signal so callers re-run with a smaller
+    # depth (typical fix) or raise visit_limit deliberately.
+    truncated = len(nodes) >= visit_limit
     tiers: dict[str, list[dict[str, Any]]] = {
         "will_break": [],
         "should_review": [],
@@ -833,7 +840,13 @@ def cos_graph_impact(
             "tiers": tiers,
             "impacted_count": max(0, len(nodes) - 1),
         },
-        meta={"backend": be.backend_id, "depth": depth, "confidence_min": confidence_min},
+        meta={
+            "backend": be.backend_id,
+            "depth": depth,
+            "confidence_min": confidence_min,
+            "visit_limit": visit_limit,
+            "truncated": truncated,
+        },
     )
 
 
@@ -1120,7 +1133,15 @@ def cos_graph_references(
     limit: int = 100,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Inbound edges to `uid` — "who references this?"."""
+    """Inbound edges to `uid` — "who references this?".
+
+    Coverage contract (so silent truncation can't bite the agent):
+      - ``count`` is the rows in *this* response (≤ limit).
+      - ``total_count`` is the TRUE inbound-edge count across the kinds
+        filter. If ``count < total_count`` the response is incomplete —
+        the agent must either widen ``limit`` or narrow ``kinds``.
+      - ``meta.truncated`` mirrors the same condition for fast inspection.
+    """
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1131,14 +1152,74 @@ def cos_graph_references(
 
     canonical_uid = node.uid
     edges = be.list_edges(target_uid=canonical_uid, edge_types=tuple(kinds), limit=limit)
+
+    # True total — separate count query so the caller knows if `edges`
+    # is a complete picture or a slice. Uses the same kinds filter
+    # because the backend's list_edges does the same filtering.
+    total = _count_edges_for(
+        be, target_uid=canonical_uid, edge_types=tuple(kinds)
+    )
+    truncated = total > len(edges)
+
     return _ok(
         {
             "node": NodeSummary.from_node(node).to_dict(),
             "references": [_edge_to_dict(e) for e in edges],
             "count": len(edges),
+            "total_count": total,
         },
-        meta={"backend": be.backend_id, "kinds": list(kinds)},
+        meta={
+            "backend": be.backend_id,
+            "kinds": list(kinds),
+            "limit": limit,
+            "truncated": truncated,
+        },
     )
+
+
+def _count_edges_for(
+    backend: GraphBackend,
+    *,
+    target_uid: str | None = None,
+    source_uid: str | None = None,
+    edge_types: Sequence[str] | None = None,
+) -> int:
+    """Count edges matching the filter — separate from list_edges so the
+    caller can know "you got N of M". Walks SQLite directly when the
+    backend exposes ``_conn`` (the production path); falls back to
+    pulling a large list and counting it for stub backends (tests).
+    """
+    sqlite_conn = getattr(backend, "_conn", None)
+    if sqlite_conn is not None:
+        where = []
+        params: list[Any] = []
+        if source_uid is not None:
+            where.append("n_src.uid = ?")
+            params.append(source_uid)
+        if target_uid is not None:
+            where.append("n_tgt.uid = ?")
+            params.append(target_uid)
+        if edge_types:
+            placeholders = ",".join("?" * len(edge_types))
+            where.append(f"e.edge_type IN ({placeholders})")
+            params.extend(edge_types)
+        clause = ("WHERE " + " AND ".join(where)) if where else ""
+        sql = f"""
+          SELECT COUNT(*)
+          FROM graph_edges_v12 e
+          JOIN graph_nodes n_src ON n_src.id = e.source_id
+          JOIN graph_nodes n_tgt ON n_tgt.id = e.target_id
+          {clause}
+        """
+        return int(sqlite_conn.execute(sql, params).fetchone()[0])
+    # Stub backend path — pull a generous slice and count it.
+    edges = backend.list_edges(
+        source_uid=source_uid,
+        target_uid=target_uid,
+        edge_types=tuple(edge_types) if edge_types else None,
+        limit=10_000,
+    )
+    return len(edges)
 
 
 def cos_graph_path(

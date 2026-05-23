@@ -288,6 +288,35 @@ class TestReferences:
         data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo", limit=1))
         assert data["count"] <= 1
 
+    def test_truncated_flag_when_limit_below_total(self, seeded_backend):
+        """Silent truncation is the silent-incomplete-coverage bug — pin
+        the contract that total_count + meta.truncated are populated so
+        the agent can re-run with a wider limit when needed."""
+        full_data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo"))
+        total = full_data["total_count"]
+        assert total >= 1
+        assert full_data["count"] == total
+        assert full_data["meta"]["truncated"] is False
+        if total > 1:
+            tight_data = _assert_ok(
+                graph.cos_graph_references("code:function:a.py::foo", limit=1)
+            )
+            assert tight_data["count"] == 1
+            assert tight_data["total_count"] == total
+            assert tight_data["meta"]["truncated"] is True
+
+
+class TestImpactTruncation:
+    def test_meta_carries_visit_limit_and_truncated_flag(self, seeded_backend):
+        """Impact's BFS has a visit_limit cap. When the walk hits it the
+        result is incomplete — meta.truncated MUST surface that."""
+        data = _assert_ok(graph.cos_graph_impact("code:function:a.py::bar"))
+        meta = data["meta"]
+        assert "visit_limit" in meta
+        assert "truncated" in meta
+        # Small seeded graph — fits comfortably, never truncated.
+        assert meta["truncated"] is False
+
 
 class TestPath:
     def test_happy_path(self, seeded_backend):

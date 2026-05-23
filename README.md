@@ -255,6 +255,38 @@ deliberate views — each backed by a different edge-bucket recipe in
 | `dependencies` | Semantic edges only (no contains) | Auditing call graphs / API surface |
 | `processes` | Louvain communities + member edges | Discovering implicit subsystems |
 
+### Budgets, truncation, and "did I see everything?"
+
+Every coverage-sensitive graph tool exposes its budget knobs and tells
+the agent when the answer is **incomplete** — there is no silent
+truncation:
+
+| Tool | Knob | Default | Coverage signal |
+|---|---|---:|---|
+| `cos_graph_references` | `limit` (edges returned) | 100 | `data.total_count` (true total) · `data.meta.truncated` (bool) |
+| `cos_graph_impact` | `depth` (BFS hops) + `visit_limit` (nodes) | 3 / 500 | `data.meta.truncated` set when the BFS hits `visit_limit` |
+| `cos_graph_context` | `depth` (BFS hops) | 1 | response shape mirrors `references`; rely on `total_count` |
+| `cos_graph_export` | `max_nodes` + `max_hops` | 500 / 3 | UI surfaces a "truncated · raise depth budget" badge |
+| `cos_graph_path` | `max_hops` | 5 | `data.meta.truncated` when any hop saturates the 1000-edge cap |
+
+Recommended agent workflow — never blindly accept a single call:
+
+1. **Probe** with the default `limit` / `depth`.
+2. **Check coverage** — `data.total_count > data.count`? `meta.truncated == true`?
+3. **If incomplete**: either widen `limit` (cheap — references is O(N)), or
+   narrow `kinds` to focus on the edge class that matters (e.g. drop
+   `imports` and `references_doc` when auditing only `calls`), or split
+   the question (e.g. impact `depth=2` on each direct caller instead of
+   `depth=4` on the original symbol).
+4. **For exhaustive sweeps** (rename refactor, security audit), explicit
+   `limit=10_000` is fine — references runs in <50 ms even on the
+   highest-degree hubs.
+
+Bottom line: `limit=20` is a fine *probe* default ("show me a sample
+fast"). `limit=100` (the actual default) is the *correctness* default.
+For audits, set it to whatever the graph's actual total demands and
+let the response's `total_count` confirm full coverage.
+
 ### Health, freshness, hallucination guards
 
 - **`cos_graph_doctor`** reports orphans, dangling edges, duplicate
