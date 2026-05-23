@@ -186,6 +186,93 @@ Per-tool docs + envelope spec: [docs/governance/mcp-tool-inventory.md](./docs/go
 
 The MCP server is launched by `.mcp.json` → `cos server-start`.
 
+## The knowledge graph — why it changes the economics
+
+Most "AI coding" tools answer structural questions ("who calls this?",
+"what breaks if I rename it?", "where does this data flow?") by *reading
+files* until the agent guesses an answer. That burns tokens, slows the
+loop, and produces hallucinations the moment a caller lives in a file
+the agent didn't open.
+
+coding-os ships a precomputed knowledge graph as the **third retrieval
+layer** alongside memory and docs. Every commit refreshes 23 node kinds
+(functions, methods, classes, modules, routes, MCP tools, docs,
+headings, frontmatter, hooks, rules, skills, tasks, …) and 18 edge
+types (`contains`, `calls`, `imports`, `inherits_from`,
+`handles_route`, `has_param_type`, `references_doc`, `is_decorated_by`,
+`links_to`, …). The agent then asks the graph — `cos_graph_references`,
+`cos_graph_impact`, `cos_graph_rename_plan` — and gets a small,
+high-confidence JSON envelope back.
+
+### Benchmark — graph vs read-the-file (live repo · 37,606 nodes · 74,319 edges)
+
+Three representative agent questions, asked against this very codebase.
+Token counts are **measured**, not estimated, against the actual MCP
+response payload and the actual file the Read tool would consume:
+
+| Question | Tool | `Read`-the-file tokens | `cos_graph_*` tokens | **Savings** | Latency |
+|---|---|---:|---:|---:|---:|
+| Who calls `cos_graph_query`? | `cos_graph_references` | 23,985 | **129** | **99.5%** | 3 ms |
+| What breaks if `init_db` signature changes? | `cos_graph_impact(depth=2)` | 18,754 | **573** | **96.9%** | 1 ms |
+| Who depends on the `GraphNode` dataclass? | `cos_graph_references` | 1,808 | **130** | **92.8%** | <1 ms |
+
+**Mean: 96.4% token reduction · response in single-digit milliseconds.**
+
+The savings compound across a session: an agent that asks 50 structural
+questions over a feature spends ~50 KB of context, not ~1 MB of file
+reads — leaving the budget for actual reasoning.
+
+### Per-kind coverage
+
+All 23 indexed node kinds were probed end-to-end (one
+`cos_graph_context` call per kind on the highest-degree sample):
+**23/23 returned `ok=true` with non-empty neighbours, zero errors,
+latency 0–23 ms.** Full breakdown:
+
+| Kind | Latency | Typical context tokens |
+|---|---:|---:|
+| `function`, `method`, `class` | 1–5 ms | 5K–13K |
+| `file`, `folder`, `module` | 3–16 ms | 9K–71K |
+| `route`, `mcp_tool`, `hook`, `task` | <1 ms | 250–760 |
+| `doc_file`, `doc_heading`, `rule`, `skill` | 1 ms | 1K–85K |
+| `interface`, `import_`, `variable`, `event`, `tool`, `contract` | <1 ms | 250–700 |
+
+Tips: for high-degree hubs (folders, large modules, the `unresolved:str`
+identifier) **always start with `cos_graph_references(limit=20)` or
+`cos_graph_impact(depth=2)`** rather than `cos_graph_context(depth=2)`
+— the latter expands quickly on the well-connected nodes.
+
+### View modes (Hub Graph tab)
+
+The bundled web UI at `http://127.0.0.1:9188/graph` exposes four
+deliberate views — each backed by a different edge-bucket recipe in
+[`cos_graph_export`](./src/core/graph_os/tools/graph.py):
+
+| Mode | What you see | Use for |
+|---|---|---|
+| `auto` (default) | Balanced blend across 8 edge buckets — calls, imports, inheritance, route/MCP handlers, types, doc cross-links, decorators, contains | One-glance "how is this system wired?" |
+| `containment` | Folder → file → class → method spine only | Navigating the structural skeleton |
+| `dependencies` | Semantic edges only (no contains) | Auditing call graphs / API surface |
+| `processes` | Louvain communities + member edges | Discovering implicit subsystems |
+
+### Health, freshness, hallucination guards
+
+- **`cos_graph_doctor`** reports orphans, dangling edges, duplicate
+  edges, self-loops, **and stale-path nodes** (file_path nodes whose
+  underlying file no longer exists). Pass `fix=true` to sweep
+  remediable issues. The detector caught and removed 3,727 ghost
+  nodes left over from a pre-`src/` reorganization in our own repo.
+- **Idempotent re-indexing** is fire-and-forget on every Write/Edit —
+  the PostToolUse hook re-extracts only the file just written. Bulk
+  changes: `cos graph-reindex`.
+- **Confidence-tiered edges** so weak heuristics never get treated as
+  facts. Tools like `cos_graph_impact` group their result by tier
+  (`will_break` / `should_review` / `context`).
+
+Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-queries.md)
+· [docs/engineering/graph-hallucination-cures.md](./docs/engineering/graph-hallucination-cures.md)
+· [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md).
+
 ## Supported agents
 
 | Agent           | Hook coverage | Skills              | MCP server | Notes                          |

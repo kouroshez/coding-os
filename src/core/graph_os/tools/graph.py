@@ -189,6 +189,22 @@ def _current_db_key() -> str:
         return "__default__"
 
 
+def _repo_root_for_paths() -> Path:
+    """Project root used to resolve relative file_path entries against the
+    filesystem (e.g. stale-path detection in cos_graph_doctor).
+
+    The DB lives at ``<repo>/.coding-os/coding-os.db``, so we walk two
+    parents up. Falls back to CWD if the DB path can't be resolved.
+    """
+    try:
+        from thinking_os.database import resolve_db_path  # type: ignore
+
+        db = Path(resolve_db_path()).resolve()
+        return db.parent.parent
+    except Exception:
+        return Path.cwd().resolve()
+
+
 def _backend(*, backend: str | None = None) -> GraphBackend:
     """Return the shared GraphBackend instance for the active project scope.
 
@@ -1257,10 +1273,16 @@ _DEFAULT_NOISE_KINDS: frozenset[str] = frozenset(
 # semantic relationship lands in the result.
 _AUTO_BLEND_BUCKETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("calls", ("calls", "constructs")),
-    ("imports", ("imports",)),
+    ("imports", ("imports", "re_exports")),
     ("inherit", ("inherits_from", "implements", "extends")),
-    ("handle", ("handles_route", "handles_tool", "handles_event", "dispatches")),
-    ("type", ("has_param_type", "returns_type", "field_of_type")),
+    ("handle", ("handles_route", "handles_tool", "handles_event", "dispatches", "defines_route")),
+    ("type", ("has_param_type", "returns_type", "field_of_type", "accesses_field")),
+    # Doc cross-references — `links_to` alone carries 1.5K+ edges; the
+    # previous blend had no bucket so auto-mode renderings of the doc
+    # subgraph showed nothing but contains spine.
+    ("doc_link", ("links_to", "cites_heading", "references_doc", "read_next", "references")),
+    # Decorators + module-level declarations.
+    ("decoration", ("is_decorated_by", "declares")),
     ("contains", ("contains",)),
 )
 
@@ -2451,6 +2473,52 @@ def cos_graph_doctor(
                         "sample": [{"uid": r[0], "edge_type": r[1]} for r in sl_sample],
                     }
                 )
+
+            # 6. Stale-path nodes — file_path points to a file that no
+            # longer exists on disk. Accumulates when files move (e.g.
+            # the `core/` → `src/core/` reorg left 3.7K ghost nodes
+            # invisible to the dangling/orphan/self_loop checks because
+            # ghosts had their own internal contains-children tree).
+            distinct_paths = [
+                r[0]
+                for r in sqlite_conn.execute(
+                    "SELECT DISTINCT file_path FROM graph_nodes "
+                    "WHERE file_path IS NOT NULL AND file_path != ''"
+                ).fetchall()
+            ]
+            repo_root = _repo_root_for_paths()
+            stale_paths = [
+                p for p in distinct_paths if not (repo_root / p).exists()
+            ]
+            if stale_paths:
+                stale_node_count = sqlite_conn.execute(
+                    f"SELECT COUNT(*) FROM graph_nodes WHERE file_path IN ({','.join('?' * len(stale_paths))})",
+                    stale_paths,
+                ).fetchone()[0]
+                sp_sample = sqlite_conn.execute(
+                    f"SELECT uid, kind, file_path FROM graph_nodes WHERE file_path IN ({','.join('?' * len(stale_paths))}) LIMIT 5",
+                    stale_paths,
+                ).fetchall()
+                issues.append(
+                    {
+                        "category": "stale_paths",
+                        "count": stale_node_count,
+                        "path_count": len(stale_paths),
+                        "sample": [
+                            {"uid": r[0], "kind": r[1], "file_path": r[2]} for r in sp_sample
+                        ],
+                    }
+                )
+                if fix:
+                    chunk = 500
+                    for i in range(0, len(stale_paths), chunk):
+                        batch = stale_paths[i : i + chunk]
+                        cur = sqlite_conn.execute(
+                            f"DELETE FROM graph_nodes WHERE file_path IN ({','.join('?' * len(batch))})",
+                            batch,
+                        )
+                        fixed_count += int(cur.rowcount or 0)
+                    sqlite_conn.commit()
 
             stats["issue_count"] = len(issues)
             if fix:
