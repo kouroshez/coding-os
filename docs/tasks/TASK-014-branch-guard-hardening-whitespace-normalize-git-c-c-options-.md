@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, hardening, post-mortem-TASK-013]
-status: testing
+status: complete
 priority: P3
 appetite: "1d"
 created: 2026-05-22
 started: 2026-05-22
-completed: null
+completed: 2026-05-22
 agent_session: ses-claude-20260522-181701-790c
 depends_on: [TASK-013]
 blocked_by: []
@@ -80,3 +80,4 @@ hardening — not a security boundary; dominant-case gate works.
   (50 total). All TASK-013 + TASK-014 reviewer probes now match
   expected verdicts. Closed TASK-014 without spawning TASK-015 — the
   patterns are within the original task's threat class.
+- 2026-05-23 [claude]: Status transitioned to complete via cos task-done.
