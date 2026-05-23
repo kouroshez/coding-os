@@ -85,6 +85,22 @@ def _split_segments(command: str) -> list[str]:
     return [s.strip() for s in _SEGMENT_SPLIT_RE.split(command) if s.strip()]
 
 
+# Backtick command substitution `` `cmd` `` — extract inner. The negative
+# lookbehind skips ESCAPED backticks (`\``), which inside a `"..."` arg are
+# inert literals — bash does not execute them. This avoids false positives
+# on commit messages / docs that quote shell snippets like
+# `git commit -m "see \`git reset HEAD~1\` for unsafe form"`.
+_BACKTICK_RE = re.compile(r"(?<!\\)`([^`]+)`")
+
+
+def _extract_backticks(segments: list[str]) -> list[str]:
+    extra: list[str] = []
+    for seg in segments:
+        for m in _BACKTICK_RE.finditer(seg):
+            extra.extend(_split_segments(m.group(1)))
+    return extra
+
+
 def _extract_nested_shells(segments: list[str]) -> list[str]:
     """For each `sh -c <inner>` / `bash -c <inner>` token sequence, return the
     inner string split into its own segments. shlex unquotes the inner."""
@@ -231,16 +247,32 @@ _MSG = {
 
 def _evaluate(command: str) -> tuple[str, str, str]:
     """Returns (verdict, reason, message). verdict is 'allow' or 'block'."""
+    # Treat literal newlines as command separators BEFORE the whitespace
+    # collapse below would erase them — `git status\ngit reset HEAD~1`
+    # is two commands.
+    command = re.sub(r"\n+", "; ", command)
     # Whitespace normalize — collapses tabs and multi-space runs that bash
     # substring match would have missed.
     command = " ".join(command.split())
     if not command:
         return "allow", "", ""
 
-    segments = _split_segments(command)
-    segments.extend(_extract_nested_shells(segments))
+    # Build the full segment list with bounded recursion so multi-level
+    # `sh -c "sh -c '...'"` and backtick subshells are unwrapped.
+    all_segments = _split_segments(command)
+    all_segments.extend(_extract_backticks(all_segments))
+    frontier = list(all_segments)
+    seen = set(all_segments)
+    for _ in range(8):  # depth cap — runaway recursion guard
+        layer = _extract_nested_shells(frontier) + _extract_backticks(frontier)
+        layer = [s for s in layer if s not in seen]
+        if not layer:
+            break
+        seen.update(layer)
+        all_segments.extend(layer)
+        frontier = layer
 
-    for seg in segments:
+    for seg in all_segments:
         try:
             tokens = shlex.split(seg, posix=True)
         except ValueError:

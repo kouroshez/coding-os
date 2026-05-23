@@ -71,3 +71,12 @@ hardening — not a security boundary; dominant-case gate works.
   probes from TASK-013 now produce the expected verdict (5 previously-
   bypassed cases block, 4 previously-false-positives allow). 16 new
   tests added (45 total). Adapter + golden parity green.
+- 2026-05-22 (post-review fix) — Reviewer subagent of commit `7c21565`
+  found 4 residual bypass patterns (doubly-nested `sh -c`, literal `\n`
+  separator, `` `backtick` `` subshell, multi-level `bash -c "sh -c
+  ...".`). Extended `_evaluate` with: depth-bounded recursion (cap=8)
+  through `_extract_nested_shells` + new `_extract_backticks`; treat
+  `\n` as a `;` separator BEFORE whitespace collapse. Added 5 tests
+  (50 total). All TASK-013 + TASK-014 reviewer probes now match
+  expected verdicts. Closed TASK-014 without spawning TASK-015 — the
+  patterns are within the original task's threat class.

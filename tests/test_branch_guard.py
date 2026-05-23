@@ -279,3 +279,44 @@ def test_allows_git_show_other_branch() -> None:
 def test_allows_git_diff_two_refs() -> None:
     code, _ = _run("git diff main..HEAD")
     assert code == 0
+
+
+# --- TASK-014 post-review hardening: residual nesting / separators -------
+
+
+def test_blocks_doubly_nested_sh_c() -> None:
+    code, _ = _run('sh -c "sh -c \'git reset HEAD~1\'"')
+    assert code == 2
+
+
+def test_blocks_newline_separated_commands() -> None:
+    # A literal newline must be treated as a command separator, not folded
+    # into a single space.
+    code, _ = _run("git status\ngit reset HEAD~1")
+    assert code == 2
+
+
+def test_blocks_backtick_subshell() -> None:
+    code, _ = _run("`git reset HEAD~1`")
+    assert code == 2
+
+
+def test_blocks_backtick_nested_in_echo() -> None:
+    # `echo `git reset HEAD~1`` — backtick body must be inspected even
+    # when the outer command name is `echo`.
+    code, _ = _run("echo `git reset HEAD~1`")
+    assert code == 2
+
+
+def test_blocks_multi_level_nested_shells() -> None:
+    code, _ = _run('bash -c "sh -c \\"git checkout feature-x\\""')
+    assert code == 2
+
+
+def test_allows_escaped_backticks_in_commit_message() -> None:
+    # `\`git reset HEAD~1\`` inside a `git commit -m` arg is an inert
+    # literal — bash does not execute escaped backticks. Must NOT block.
+    code, _ = _run(
+        "git commit -m 'see \\`git reset HEAD~1\\` for the unsafe form' foo.py"
+    )
+    assert code == 0
