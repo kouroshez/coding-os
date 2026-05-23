@@ -157,6 +157,20 @@ def _check_worktree(args: list[str]) -> tuple[str | None, str | None]:
     return None, None
 
 
+def _check_rebase(args: list[str]) -> tuple[str | None, str | None]:
+    # Cleanup / inspection of an in-progress rebase doesn't rewrite history.
+    _SAFE_REBASE_FLAGS = {
+        "--abort", "--continue", "--skip", "--quit",
+        "--edit-todo", "--show-current-patch",
+    }
+    for a in args:
+        if a in _SAFE_REBASE_FLAGS:
+            return None, None
+    # Everything else (`git rebase main`, `-i HEAD~3`, bare → upstream)
+    # rewrites trunk history and breaks peers.
+    return "rebase-history-rewrite", _MSG["rebase-history"]
+
+
 def _check_reset(args: list[str]) -> tuple[str | None, str | None]:
     # Strip leading reset flags.
     rest: list[str] = []
@@ -195,6 +209,7 @@ _DISPATCH = {
     "branch": _check_branch,
     "worktree": _check_worktree,
     "reset": _check_reset,
+    "rebase": _check_rebase,
 }
 
 _MSG = {
@@ -238,6 +253,20 @@ _MSG = {
         "a trunk-based workflow.\n"
         "\n"
         "  Only 'git switch main' is allowed in trunk mode.\n"
+        "\n"
+        "  See src/core/rules/git-workflow.md. Override:\n"
+        "  COS_GIT_WORKFLOW=pr."
+    ),
+    "rebase-history": (
+        "BLOCKED: 'git rebase' rewrites history on the shared trunk —\n"
+        "peer commits get orphaned and force-push is required.\n"
+        "\n"
+        "  Safe forms (cleanup of an in-progress rebase):\n"
+        "    git rebase --abort | --continue | --skip | --quit\n"
+        "  To integrate concurrent commits before push:\n"
+        "    git pull --rebase origin main   (rebases LOCAL commits only)\n"
+        "  To undo a bad commit:\n"
+        "    git revert HEAD                 (new commit, history intact)\n"
         "\n"
         "  See src/core/rules/git-workflow.md. Override:\n"
         "  COS_GIT_WORKFLOW=pr."

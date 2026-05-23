@@ -320,3 +320,76 @@ def test_allows_escaped_backticks_in_commit_message() -> None:
         "git commit -m 'see \\`git reset HEAD~1\\` for the unsafe form' foo.py"
     )
     assert code == 0
+
+
+# --- TASK-015: git rebase blocks (history rewrite on trunk) ----------------
+
+
+def test_blocks_rebase_onto_main() -> None:
+    code, err = _run("git rebase main")
+    assert code == 2
+    assert "rebase" in err.lower()
+
+
+def test_blocks_rebase_interactive() -> None:
+    code, _ = _run("git rebase -i HEAD~3")
+    assert code == 2
+
+
+def test_blocks_rebase_onto_remote() -> None:
+    code, _ = _run("git rebase origin/main")
+    assert code == 2
+
+
+def test_blocks_bare_rebase() -> None:
+    # `git rebase` with no args defaults to the upstream tracking branch,
+    # i.e. still rewrites local commits onto a remote ref.
+    code, _ = _run("git rebase")
+    assert code == 2
+
+
+def test_allows_rebase_abort() -> None:
+    code, _ = _run("git rebase --abort")
+    assert code == 0
+
+
+def test_allows_rebase_continue() -> None:
+    code, _ = _run("git rebase --continue")
+    assert code == 0
+
+
+def test_allows_rebase_skip() -> None:
+    code, _ = _run("git rebase --skip")
+    assert code == 0
+
+
+def test_allows_rebase_quit() -> None:
+    code, _ = _run("git rebase --quit")
+    assert code == 0
+
+
+def test_allows_rebase_show_current_patch() -> None:
+    code, _ = _run("git rebase --show-current-patch")
+    assert code == 0
+
+
+def test_allows_pull_rebase_origin_main() -> None:
+    # `git pull --rebase origin main` is the documented trunk integration
+    # step — subcommand is `pull`, not `rebase`. Must NOT block.
+    code, _ = _run("git pull --rebase origin main")
+    assert code == 0
+
+
+def test_blocks_rebase_via_git_dash_C() -> None:
+    code, _ = _run("git -C /tmp rebase main")
+    assert code == 2
+
+
+def test_blocks_rebase_in_nested_sh_c() -> None:
+    code, _ = _run("sh -c 'git rebase -i HEAD~3'")
+    assert code == 2
+
+
+def test_pr_mode_allows_rebase() -> None:
+    code, _ = _run("git rebase main", workflow="pr")
+    assert code == 0

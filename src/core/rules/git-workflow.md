@@ -35,6 +35,12 @@ correct and simpler.
   `git restore <path>` for files, `git switch main` for branches. Use them.
 - **To undo a published commit** use `git revert <sha>` — it creates a
   new commit, preserves history, and works under trunk-based discipline.
+- **`git rebase` is blocked in trunk mode.** Rebasing onto `main`
+  rewrites the shared trunk and orphans peer commits. Use
+  `git pull --rebase origin main` (a `pull` subcommand — only your
+  *local* commits move) for integration before push. Cleanup of an
+  in-progress rebase (`--abort` / `--continue` / `--skip` / `--quit`)
+  remains allowed.
 - **Commit directly to `main`.** The user's mental model is "main = the
   project". A commit to `main` IS the deliverable.
 - **Commit with explicit paths** — `git commit <path> <path>`, never a
