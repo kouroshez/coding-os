@@ -91,15 +91,15 @@ export function buildGraph(
   // dominates the canvas (size + label) so the viewer's eye lands on
   // the centre of importance. (TASK-019)
   const ROOT_UIDS = new Set(['folder:.', 'folder:']);
-  // Top-5 by degree get an additional emphasis tier (label + size bump)
-  // so structural hubs (e.g. src/core, the MCP server file, the README)
-  // are never lost in the cloud. Cheaper than a server-side PageRank
-  // round-trip; matches the formula radius = base + α·log(deg) +
-  // β·kind_weight + γ·root_bonus from the viz audit (PageRank path is
-  // deferred to Phase 9, when /api/graph/ranking lands).
+  // Top-K-by-degree get an emphasis tier (label + size bump). K scales
+  // with graph size — five labels make sense on a 200-node subgraph;
+  // a 20K-node overview needs more but capped well below "every
+  // semantic kind with deg≥2" (which used to force ~thousands of
+  // labels and turned the canvas into the reported black blob).
+  const TOP_K = Math.min(40, Math.max(5, Math.round(Math.sqrt(nodes.length))));
   const topByDegree = [...degree.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, TOP_K)
     .map(([uid]) => uid);
   const TOP_DEGREE: Set<string> = new Set(topByDegree);
   const sizeFor = (uid: string, kind: string): number => {
@@ -110,12 +110,17 @@ export function buildGraph(
     const hubBoost = TOP_DEGREE.has(uid) ? 1.4 : 1.0;
     return Math.min(28, sized * hubBoost);
   };
-  const labelForceFor = (uid: string, kind: string): boolean => {
+  // forceLabel was so permissive that any semantic node with deg≥2 got
+  // a label rendered ignoring the camera zoom — on a dense overview
+  // that's thousands of forced labels and the canvas becomes
+  // unreadable. Restrict to the curated top-K hubs + the structural
+  // root; everything else relies on Sigma's zoom-aware label budget
+  // (labelDensity / labelRenderedSizeThreshold) so labels only show
+  // when there's room. SEMANTIC_KINDS remains relevant for sizing.
+  void SEMANTIC_KINDS;
+  const labelForceFor = (uid: string): boolean => {
     if (ROOT_UIDS.has(uid)) return true;
     if (TOP_DEGREE.has(uid)) return true;
-    const d = degree.get(uid) ?? 0;
-    if (d >= 10) return true;
-    if (SEMANTIC_KINDS.has(kind) && d >= 2) return true;
     return false;
   };
 
@@ -155,7 +160,7 @@ export function buildGraph(
       filePath: n.file_path ?? undefined,
       startLine: n.start_line ?? undefined,
       hidden: !kindVisible,
-      forceLabel: labelForceFor(n.uid, normalKind),
+      forceLabel: labelForceFor(n.uid),
       type: image ? 'image' : 'circle',
       image: image,
     });

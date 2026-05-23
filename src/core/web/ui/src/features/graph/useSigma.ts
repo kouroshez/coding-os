@@ -46,10 +46,10 @@ const FA2_BUDGET_MAX_MS = 3000;
 const FA2_BUDGET_PER_NODE_MS = 1.2; // measured empirically on Barnes-Hut
 
 const NOVERLAP_SETTINGS = {
-  maxIterations: 30,
-  ratio: 1.1,
-  margin: 6,
-  expansion: 1.05,
+  maxIterations: 80,
+  ratio: 1.2,
+  margin: 18,
+  expansion: 1.25,
 };
 
 function _fa2Budget(nodeCount: number): number {
@@ -429,15 +429,22 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       sigma.getCamera().animatedReset({ duration: 400 });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Spread tuned for clarity over compactness — the user's
+      // reference image (inspiration.png) shows a wide radial layout
+      // with empty space between clusters. ForceAtlas2 by itself
+      // collapsed everything to a hairball at scalingRatio=15 /
+      // gravity=0.4. Higher scalingRatio + lower gravity pushes
+      // clusters outward; noverlap then polishes spacing.
       const supervisor = new FA2LayoutSupervisor(incoming as any, {
         settings: {
           ...inferred,
           barnesHutOptimize: true,
           barnesHutTheta: 0.5,
-          slowDown: 5,
-          scalingRatio: 15,
-          gravity: 0.4,
+          slowDown: 8,
+          scalingRatio: 40,
+          gravity: 0.15,
           edgeWeightInfluence: 1,
+          strongGravityMode: false,
         },
       });
       supervisorRef.current = supervisor;

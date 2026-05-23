@@ -1271,6 +1271,7 @@ def cos_graph_export(
     root_uid: str | None = None,
     edge_types: Sequence[str] | None = None,
     max_nodes: int = 500,
+    max_hops: int | None = None,
     include_spine: bool = False,
     mode: str = "auto",
     exclude_kinds: Sequence[str] | None = None,
@@ -1309,11 +1310,16 @@ def cos_graph_export(
     excluded = _DEFAULT_NOISE_KINDS if exclude_kinds is None else frozenset(exclude_kinds)
 
     if root_uid is not None:
+        # Hub Graph tab "depth=all" sent max_nodes=10000 but the walk
+        # stopped at 3 hops, so subfolder contents never appeared
+        # (user-reported: "max doesn't show 100%"). Accept the
+        # frontend's depth choice and clamp to a safe ceiling.
+        effective_hops = 3 if max_hops is None else max(1, min(int(max_hops), 16))
         nodes, edges = _walk_bfs(
             be,
             root_uid=root_uid,
             direction="both",
-            max_hops=3,
+            max_hops=effective_hops,
             confidence_min=0.0,
             edge_types=edge_types,
             visit_limit=max_nodes,

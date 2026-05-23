@@ -2914,6 +2914,24 @@
           },
           {
             "in": "query",
+            "name": "max_hops",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 16,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Hops"
+            }
+          },
+          {
+            "in": "query",
             "name": "include_spine",
             "required": false,
             "schema": {

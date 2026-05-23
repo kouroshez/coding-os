@@ -47,6 +47,16 @@ export default function GraphCanvas() {
   const requestedMax = selectedRootUid
     ? rootedBudgetByDepth[depthKey] ?? 600
     : overviewBudgetByDepth[depthKey] ?? 400;
+  // Backend BFS used to be capped at 3 hops regardless of the slider —
+  // "depth=all" returned 3-hop walks, so a folder's grandchildren were
+  // visible but their contents weren't. Mirror the slider on the wire
+  // so the server walks as far as the user asked.
+  const rootedHopsByDepth: Record<string, number> = {
+    '1': 1,
+    '2': 2,
+    '3': 3,
+    all: 12,
+  };
   const exportParams: Record<string, unknown> = {
     format: 'json',
     max_nodes: requestedMax,
@@ -55,6 +65,7 @@ export default function GraphCanvas() {
   if (selectedRootUid) {
     exportParams.root_uid = selectedRootUid;
     exportParams.include_spine = true;
+    exportParams.max_hops = rootedHopsByDepth[depthKey] ?? 3;
   }
   const { data, isLoading, error } = useApiGet<ApiGraphPayload>(
     ['graph-export', selectedRootUid ?? '__overview__', viewMode, depthKey],
