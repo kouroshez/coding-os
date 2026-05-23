@@ -35,6 +35,12 @@ def _prune_one(rel_path: str, *, db_path: Path) -> dict:
     """Run all DELETEs for one path. Returns counts per layer."""
     counts = {"graph_nodes": 0, "document_chunks": 0, "file_index_state": 0}
     conn = sqlite3.connect(str(db_path))
+    # Per-connection PRAGMA — without this the ON DELETE CASCADE declared
+    # on graph_edges_v12.{source,target}_id is silently skipped (sqlite3
+    # defaults FK enforcement OFF), accumulating orphan edges over the
+    # project's lifetime. graph_os.SqliteBackend sets the same PRAGMA at
+    # open time; this is the peer path that had drifted.
+    conn.execute("PRAGMA foreign_keys = ON")
     try:
         # graph_os layer — cascades to graph_edges_v12 + graph_evidence_v12
         # via FK ON DELETE CASCADE (migration v12).
