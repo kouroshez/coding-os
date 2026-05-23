@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [memory, observability]
-status: testing
+status: complete
 priority: P1
 appetite: "1h"
 created: 2026-05-23
 started: 2026-05-23
-completed: null
+completed: 2026-05-23
 agent_session: ses-claude-20260523-010526-e647
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ Expected: ≥1 row per MultiEdit call. Actual: 0 rows; shell filter at `capture-
 - **Then** the shell case-pattern matches `MultiEdit`, `capture.py` is spawned, and a new row appears in `observations` within ≤2s of the call. `make verify-hooks` passes.
 
 ## Work Log
+- 2026-05-23 — diagnosed shell-vs-python filter mismatch (audit-memory-dead.md), patched `capture-observation.sh:28` to include MultiEdit, smoke-tested via direct capture.py and shell-hook paths (observations rows #3 + #4 written), `make verify-hooks` clean, committed `9dca67a`.
+- 2026-05-23 [claude]: Status transitioned to complete via cos task-done.
