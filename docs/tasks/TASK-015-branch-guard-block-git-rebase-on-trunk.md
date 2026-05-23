@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, hardening, post-TASK-014]
-status: testing
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-23
 started: null
-completed: null
+completed: 2026-05-22
 agent_session: ses-claude-20260522-181701-790c
 depends_on: [TASK-014]
 blocked_by: []
@@ -57,3 +57,4 @@ references: []
   `sh -c`) + 1 `git pull --rebase` regression + 1 pr-mode seam. Total
   64 tests pass. git-workflow.md updated with the rebase rule. Adapter
   + golden parity green.
+- 2026-05-23 [claude]: Status transitioned to complete via cos task-done.
