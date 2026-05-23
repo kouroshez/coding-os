@@ -27,11 +27,17 @@ export default function HealthAlarmBar() {
   const issueCount = doctor.data?.data?.stats?.issue_count ?? 0;
   const graphHealthy = doctor.data?.data?.healthy ?? true;
   const healthOk = (health.data?.status ?? 'ok') === 'ok';
+  // TASK-027: fetch errors mean the backend is unreachable, which IS the
+  // worst kind of degraded state — silently hiding it defeated the bar's
+  // whole purpose. Treat any error as alarm-worthy on top of the
+  // backend-reported issue checks.
+  const backendUnreachable = Boolean(doctor.error || health.error);
 
-  const degraded = !graphHealthy || !healthOk || issueCount > 0;
+  const degraded = backendUnreachable || !graphHealthy || !healthOk || issueCount > 0;
   if (!degraded) return null;
 
   const summary: string[] = [];
+  if (backendUnreachable) summary.push('backend unreachable');
   if (!healthOk) summary.push(`/health: ${health.data?.status ?? '?'}`);
   if (issueCount > 0) summary.push(`${issueCount} graph issue${issueCount === 1 ? '' : 's'}`);
   if (summary.length === 0) summary.push('degraded');
