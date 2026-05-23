@@ -143,12 +143,7 @@ export function buildGraph(
       : true;
     if (graph.hasNode(n.uid)) continue;
 
-    // Hub nodes (root + top-K by degree) are rendered as plain circles
-    // so the custom label renderer can fill the disc with centred text
-    // instead of competing with the kind icon. Small nodes keep their
-    // icon since their label is drawn beside them.
-    const isHub = ROOT_UIDS.has(n.uid) || TOP_DEGREE.has(n.uid);
-    const image = isHub ? undefined : ICONS[normalKind];
+    const image = ICONS[normalKind];
 
     graph.addNode(n.uid, {
       x: Math.random() * 2 - 1,
