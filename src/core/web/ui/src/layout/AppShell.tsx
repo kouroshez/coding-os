@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Brain, HeartPulse, LayoutDashboard, Network } from 'lucide-react';
+import HealthAlarmBar from '@/layout/HealthAlarmBar';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
@@ -74,6 +75,7 @@ export default function AppShell({
         </div>
         <ProjectSwitcher />
         <LiveStatus />
+        <HealthAlarmBar />
         {brandingSlot && (
           <div className="flex items-center gap-2 text-xs text-[var(--cos-muted)]">
             {brandingSlot}

@@ -44,11 +44,12 @@ export default function GraphCanvas() {
     all: 10000,
   };
   const depthKey = String(depth);
+  const requestedMax = selectedRootUid
+    ? rootedBudgetByDepth[depthKey] ?? 600
+    : overviewBudgetByDepth[depthKey] ?? 400;
   const exportParams: Record<string, unknown> = {
     format: 'json',
-    max_nodes: selectedRootUid
-      ? rootedBudgetByDepth[depthKey] ?? 600
-      : overviewBudgetByDepth[depthKey] ?? 400,
+    max_nodes: requestedMax,
     mode: viewMode,
   };
   if (selectedRootUid) {
@@ -114,6 +115,33 @@ export default function GraphCanvas() {
       {!isLoading && !error && pruned && pruned.nodes?.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--cos-muted)]">
           no nodes reachable at this depth
+        </div>
+      )}
+      {/* TASK-023: honest truncation badge (cert Domain 5.6 — provenance) */}
+      {!isLoading && !error && pruned && (pruned.nodes?.length ?? 0) > 0 && (
+        <div
+          role="status"
+          aria-label="node count and budget"
+          className="absolute bottom-3 right-3 rounded bg-[var(--cos-panel)]/85 px-2 py-1 text-[10px] font-mono text-[var(--cos-muted)]"
+        >
+          {(() => {
+            const shown = pruned.nodes?.length ?? 0;
+            const fetched = data?.nodes?.length ?? shown;
+            const truncated = fetched >= requestedMax;
+            return (
+              <>
+                <span className="text-[var(--cos-text)]">{shown}</span>
+                <span> / </span>
+                <span>{fetched}</span>
+                <span> nodes</span>
+                {truncated && (
+                  <span className="ml-1 rounded bg-amber-900/40 px-1 text-amber-300">
+                    truncated · raise depth budget
+                  </span>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
