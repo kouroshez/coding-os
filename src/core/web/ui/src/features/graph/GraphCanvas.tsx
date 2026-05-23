@@ -25,17 +25,23 @@ export default function GraphCanvas() {
   // string) — the backend would interpret that as "look up empty uid,
   // find nothing" and return 0 nodes.  Pass the key only when a root
   // is actually pinned.
+  // Depth-budget = max_nodes the backend returns. Sigma.js WebGL renders
+  // ~40k nodes comfortably; on a 41k-node repo "all" should approach the
+  // full graph for the overview view, and be permissive for rooted BFS
+  // walks. Old caps were 1.4k/1.5k → ≤3.5% coverage which is what the
+  // user reported as "max doesn't show 100%". Bumped 10-15× per the
+  // enterprise viz audit (docs/_meta/audits/audit-graph-viz-research.md).
   const overviewBudgetByDepth: Record<string, number> = {
-    '1': 120,
-    '2': 320,
-    '3': 700,
-    all: 1400,
+    '1': 200,
+    '2': 800,
+    '3': 3000,
+    all: 20000,
   };
   const rootedBudgetByDepth: Record<string, number> = {
-    '1': 80,
-    '2': 250,
-    '3': 600,
-    all: 1500,
+    '1': 150,
+    '2': 600,
+    '3': 1800,
+    all: 10000,
   };
   const depthKey = String(depth);
   const exportParams: Record<string, unknown> = {

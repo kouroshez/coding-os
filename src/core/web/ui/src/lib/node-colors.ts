@@ -29,43 +29,47 @@ export type NodeKind =
   | 'identifier'
   | 'unknown';
 
-// Tokens chosen to stay legible on the cream paper canvas
-// (--cos-bg ≈ #f4efe1). Brand anchors: Mocha 500 (#FF7A3D, primary
-// orange) for the most-clicked code kinds, Mocha 700 (#C84B16) for
-// emphasis, Ink 600 (#6B504A) for muted tooling. Saturation kept high
-// so 4-6px node dots stay readable, lightness kept ≤ 65% so labels
-// don't blow out.
+// Semantic colour groups (TASK-018). 25 kinds → 8 hue families so the
+// canvas reads at a glance: brown=structure, orange=code-defs (BRAND
+// Mocha), gray=code-refs, blue=API-surface, teal=docs, purple=governance,
+// gold=analysis. Within each family kinds vary by lightness to stay
+// distinguishable at 4-6 px dot size. Saturation high, lightness ≤ 65 %
+// so labels render cleanly on the cream paper background (--cos-bg ≈
+// #f4efe1). ΔE ≥ 10 across cross-group neighbours.
 export const NODE_COLORS: Record<NodeKind, string> = {
-  // Structure: warm browns from the Ink ramp.
+  // ─── STRUCTURE (filesystem) — warm browns ───
   folder: '#8B5A2B',
   file: '#3A2925',
   module: '#6B504A',
-  // Code kinds anchored on Mocha (orange) family.
+  // ─── CODE-DEFS (symbol declarations) — Mocha orange/red [BRAND] ───
   class: '#FF7A3D',
   method: '#FFA468',
   function: '#C84B16',
-  variable: '#B19A93',
-  interface: '#3A7A3A',
-  import_: '#8a8378',
-  // Cross-cutting / framework concepts.
-  route: '#2C5AA0',
-  tool: '#C0392B',
-  mcp_tool: '#8B2318',
-  event: '#0D7377',
-  task: '#3A7A3A',
-  // Docs: muted blues so prose nodes don't compete with code.
-  doc_file: '#2C5AA0',
-  doc_heading: '#5A7CA8',
-  doc_frontmatter: '#8593a8',
-  doc_external: '#6B665E',
-  // Governance: red ramp for rules, plum for skills.
-  rule: '#8B2318',
-  skill: '#7A3A7A',
-  contract: '#3A7A7A',
-  community: '#C0719B',
-  hook: '#D96C2C',
-  identifier: '#6B665E',
-  unknown: '#B19A93',
+  variable: '#E89C6B',
+  interface: '#A53C12',
+  // ─── CODE-REFS (references / imports) — neutral gray ───
+  import_: '#A8A29B',
+  identifier: '#736C66',
+  // ─── API-SURFACE (external contracts) — blue family ───
+  route: '#1E5FBA',
+  mcp_tool: '#0D47A1',
+  tool: '#3F7DC9',
+  contract: '#1565C0',
+  event: '#0277BD',
+  // ─── DOCS (prose) — teal / cyan family ───
+  doc_file: '#00838F',
+  doc_heading: '#26A69A',
+  doc_frontmatter: '#80CBC4',
+  doc_external: '#4DB6AC',
+  // ─── GOVERNANCE (coding-os meta) — purple / magenta family ───
+  rule: '#6A1B9A',
+  skill: '#9C27B0',
+  hook: '#C2185B',
+  task: '#7B1FA2',
+  // ─── ANALYSIS (rare meta nodes) — gold ───
+  community: '#F9A825',
+  // ─── DEFAULT — light gray ───
+  unknown: '#B0B0B0',
 };
 
 export const ALL_KINDS: NodeKind[] = Object.keys(NODE_COLORS) as NodeKind[];

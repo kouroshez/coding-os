@@ -207,7 +207,7 @@ async def graph_export(
     format: str = Query("json"),
     root_uid: str | None = Query(None),
     edge_types: str | None = Query(None),
-    max_nodes: int = Query(500),
+    max_nodes: int = Query(2000),
     include_spine: bool = Query(False),
     mode: str = Query("auto"),
     exclude_kinds: str | None = Query(None),
