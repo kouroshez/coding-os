@@ -2907,7 +2907,7 @@
             "name": "max_nodes",
             "required": false,
             "schema": {
-              "default": 500,
+              "default": 2000,
               "title": "Max Nodes",
               "type": "integer"
             }
@@ -5394,7 +5394,7 @@
     },
     "/api/sessions/active": {
       "get": {
-        "description": "Return all known agent presence records grouped by lifecycle state.\n\nState values:\n  - active   : tool/prompt activity within last 30 s and pid alive\n  - present  : activity within PRESENCE_TTL_S (default 300 s) and pid alive\n  - idle     : pid alive but no recent activity\n  - offline  : pid not alive\n  - ended    : ended_at recorded",
+        "description": "Return all known agent presence records grouped by lifecycle state.\n\nState values:\n  - active   : tool/prompt activity within last 30 s and pid alive\n  - present  : activity within PRESENCE_TTL_S (default 300 s) and pid alive\n  - idle     : pid alive but no recent activity\n  - offline  : pid not alive\n  - ended    : ended_at recorded\n\nEach record also carries `is_current` — true when its session_id\nmatches the agent's `session-id` marker (the agent's live session).",
         "operationId": "list_active_sessions_api_sessions_active_get",
         "responses": {
           "200": {
