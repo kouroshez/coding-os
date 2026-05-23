@@ -111,40 +111,128 @@ export default function DoctorPage() {
 }
 
 // ----- Backend (graph) ----------------------------------------------
+// TASK-020: Render `cos_graph_doctor` output as structured cards instead
+// of a raw JSON dump. The top grid surfaces flat stats (healthy,
+// node/edge counts), and each issue category from `issues[]` becomes
+// its own card with a count badge + sortable sample table.
+interface GraphIssue {
+  category: string;
+  count: number;
+  sample?: Array<Record<string, unknown>>;
+}
+interface GraphStats {
+  node_count?: number;
+  edge_count?: number;
+  orphaned_nodes?: number;
+  issue_count?: number;
+  fixed_edge_count?: number;
+}
+interface GraphDoctorData {
+  healthy?: boolean;
+  issues?: GraphIssue[];
+  stats?: GraphStats;
+  meta?: Record<string, unknown>;
+}
+const ISSUE_LABELS: Record<string, string> = {
+  dangling_source: 'Dangling source edges',
+  dangling_target: 'Dangling target edges',
+  orphaned_nodes: 'Orphaned nodes',
+  self_loops: 'Self-loops',
+  duplicate_edges: 'Duplicate edges',
+};
 function BackendTab() {
   const doctor = useApiGet<GraphDoctorPayload>(['api-graph-doctor'], '/api/graph/doctor', undefined, {
     refetchIntervalMs: 10000,
   });
   if (doctor.isLoading) return <p className="text-xs text-[var(--cos-muted)]">probing graph backend…</p>;
   if (doctor.error) return <p className="text-xs text-rose-400">{doctor.error.message}</p>;
-  const data = (doctor.data?.data ?? doctor.data ?? {}) as Record<string, unknown>;
-  if (!data || Object.keys(data).length === 0) {
+  const payload = (doctor.data?.data ?? doctor.data ?? {}) as GraphDoctorData;
+  if (!payload || Object.keys(payload).length === 0) {
     return <p className="text-xs text-[var(--cos-muted)]">graph_os backend reported no data.</p>;
   }
-  const flat = Object.entries(data).filter(([, v]) => typeof v !== 'object' || v === null);
-  const nested = Object.entries(data).filter(([, v]) => typeof v === 'object' && v !== null);
+  const issues = payload.issues ?? [];
+  const stats = payload.stats ?? {};
+  const healthy = payload.healthy ?? false;
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-      <Section title="Backend report" cols="md:col-span-2">
-        <table className="w-full text-[11px]">
-          <tbody>
-            {flat.map(([k, v]) => (
-              <tr key={k} className="border-b border-[var(--cos-border)]">
-                <td className="py-1 pr-2 text-[var(--cos-muted)]">{k}</td>
-                <td className="py-1 pr-2 font-mono text-[var(--cos-text)]">{String(v)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Section>
-      {nested.map(([k, v]) => (
-        <Section key={k} title={k}>
-          <pre dir="ltr" className="cos-scroll max-h-64 overflow-auto rounded bg-[var(--cos-bg)] p-2 text-[10px] leading-tight">
-            {JSON.stringify(v, null, 2)}
-          </pre>
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <StatTile
+        label="Health"
+        value={healthy ? 'OK' : 'attention'}
+        tone={healthy ? 'ok' : 'warn'}
+      />
+      <StatTile label="Nodes" value={stats.node_count ?? '—'} tone="neutral" />
+      <StatTile label="Edges" value={stats.edge_count ?? '—'} tone="neutral" />
+      <StatTile
+        label="Issues"
+        value={stats.issue_count ?? issues.length}
+        tone={(stats.issue_count ?? issues.length) > 0 ? 'warn' : 'ok'}
+      />
+      {issues.length === 0 ? (
+        <Section title="No issues" cols="md:col-span-4">
+          <p className="text-[11px] text-[var(--cos-muted)]">All graph_os health checks pass.</p>
         </Section>
-      ))}
+      ) : (
+        issues.map((issue) => <IssueCard key={issue.category} issue={issue} />)
+      )}
     </div>
+  );
+}
+
+function IssueCard({ issue }: { issue: GraphIssue }) {
+  const label = ISSUE_LABELS[issue.category] ?? issue.category;
+  const sample = issue.sample ?? [];
+  // Derive columns from the first sample row; sort by string key so the
+  // table layout is stable across renders. Missing keys render `—`.
+  const columns = sample.length > 0 ? Object.keys(sample[0]).sort() : [];
+  return (
+    <Section
+      title={
+        <span className="flex items-center gap-2">
+          <span>{label}</span>
+          <span className="rounded bg-rose-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200">
+            {issue.count.toLocaleString()}
+          </span>
+        </span>
+      }
+      cols="md:col-span-2"
+    >
+      {sample.length === 0 ? (
+        <p className="text-[11px] text-[var(--cos-muted)]">no sample available.</p>
+      ) : (
+        <div className="cos-scroll max-h-64 overflow-auto">
+          <table dir="ltr" className="w-full text-[10px]">
+            <thead className="text-left text-[var(--cos-muted)]">
+              <tr>
+                {columns.map((c) => (
+                  <th key={c} className="py-1 pr-2 font-normal">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sample.map((row, i) => (
+                <tr key={i}>
+                  {columns.map((c) => {
+                    const v = row[c];
+                    const display =
+                      v == null
+                        ? <span className="text-[var(--cos-faint)]">—</span>
+                        : <span className="break-all font-mono">{String(v)}</span>;
+                    return (
+                      <td
+                        key={c}
+                        className="border-t border-[var(--cos-border)] py-1 pr-2 align-top"
+                      >
+                        {display}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
   );
 }
 
@@ -542,7 +630,7 @@ function Section({
   cols,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   cols?: string;
   children: React.ReactNode;
 }) {
