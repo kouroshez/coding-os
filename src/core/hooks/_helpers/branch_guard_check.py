@@ -27,9 +27,16 @@ import sys
 _GLOBAL_OPTS_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 # git global flags with no argument.
 _GLOBAL_OPTS_NO_ARG = {
-    "-p", "--paginate", "-P", "--no-pager",
-    "--no-replace-objects", "--bare", "--no-optional-locks",
-    "--literal-pathspecs", "--glob-pathspecs", "--noglob-pathspecs",
+    "-p",
+    "--paginate",
+    "-P",
+    "--no-pager",
+    "--no-replace-objects",
+    "--bare",
+    "--no-optional-locks",
+    "--literal-pathspecs",
+    "--glob-pathspecs",
+    "--noglob-pathspecs",
     "--icase-pathspecs",
 }
 # `--key=value` long options that bundle the arg.
@@ -160,8 +167,12 @@ def _check_worktree(args: list[str]) -> tuple[str | None, str | None]:
 def _check_rebase(args: list[str]) -> tuple[str | None, str | None]:
     # Cleanup / inspection of an in-progress rebase doesn't rewrite history.
     _SAFE_REBASE_FLAGS = {
-        "--abort", "--continue", "--skip", "--quit",
-        "--edit-todo", "--show-current-patch",
+        "--abort",
+        "--continue",
+        "--skip",
+        "--quit",
+        "--edit-todo",
+        "--show-current-patch",
     }
     for a in args:
         if a in _SAFE_REBASE_FLAGS:

@@ -82,9 +82,7 @@ def _row_counts(text: str) -> dict:
     # (`| 1 |`) and prefixed (`| L1 |`, `| G10 |`). Count both, but only
     # when the first cell is JUST the ID — so Evidence-Log rows like
     # `| L1a env-leak |` are not miscounted as category rows.
-    data_rows = re.findall(
-        r"^\|\s*(?:\d+|[A-Za-z]+\d+)\s*\|", text, flags=re.MULTILINE
-    )
+    data_rows = re.findall(r"^\|\s*(?:\d+|[A-Za-z]+\d+)\s*\|", text, flags=re.MULTILINE)
     # "Unchecked" = a status cell still open. Tables use either a yes/no
     # Verified column or a pending/todo/done status column.
     unchecked = re.findall(

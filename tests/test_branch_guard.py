@@ -221,7 +221,7 @@ def test_blocks_reset_via_git_dir_long_opt() -> None:
 
 
 def test_blocks_reset_nested_sh_dash_c() -> None:
-    code, _ = _run("sh -c \"git reset HEAD~1\"")
+    code, _ = _run('sh -c "git reset HEAD~1"')
     assert code == 2
 
 
@@ -285,7 +285,7 @@ def test_allows_git_diff_two_refs() -> None:
 
 
 def test_blocks_doubly_nested_sh_c() -> None:
-    code, _ = _run('sh -c "sh -c \'git reset HEAD~1\'"')
+    code, _ = _run("sh -c \"sh -c 'git reset HEAD~1'\"")
     assert code == 2
 
 
@@ -316,9 +316,7 @@ def test_blocks_multi_level_nested_shells() -> None:
 def test_allows_escaped_backticks_in_commit_message() -> None:
     # `\`git reset HEAD~1\`` inside a `git commit -m` arg is an inert
     # literal — bash does not execute escaped backticks. Must NOT block.
-    code, _ = _run(
-        "git commit -m 'see \\`git reset HEAD~1\\` for the unsafe form' foo.py"
-    )
+    code, _ = _run("git commit -m 'see \\`git reset HEAD~1\\` for the unsafe form' foo.py")
     assert code == 0
 
 
