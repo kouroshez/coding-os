@@ -47,14 +47,21 @@ exposes it; the rule below is mandatory before you act on a result.
 
 ### Signals to read on every response
 
-| Tool | `data.total_count` | `data.meta.truncated` | `data.meta.<budget>` |
+| Tool | `data.total_count` | Coverage signal in meta | `data.meta.<budget>` |
 |---|---|---|---|
-| `cos_graph_references` | ✓ | ✓ | `limit` |
-| `cos_graph_impact` | – | ✓ | `visit_limit` · `depth` |
-| `cos_graph_path` | – | ✓ | hop saturation |
+| `cos_graph_references` | ✓ | `result_truncated` (limit hit) | `limit` |
+| `cos_graph_impact` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
+| `cos_graph_context` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
+| `cos_graph_path` | – | `walk_truncated` (hop saturation) | `hop_limit` |
 | `cos_graph_export` | – | UI badge | `max_nodes` · `max_hops` |
 
-**`truncated == true` ⇒ the answer is incomplete. Do NOT proceed on it.**
+**`result_truncated == true` or `walk_truncated == true` ⇒ the answer
+is incomplete. Do NOT proceed on it.**
+
+Why two distinct names? The envelope layer writes `data.meta.truncated`
+when *token-budget* trimming kicked in (response too big, tail rows
+dropped). Coverage truncation is a different concept — keep the keys
+distinct so the agent reacts to the right signal.
 
 ### The mandatory 2-step probe → widen workflow
 
@@ -65,14 +72,14 @@ total = r["data"]["total_count"]
 shown = r["data"]["count"]
 
 # 2. if incomplete, widen with the actual total
-if r["data"]["meta"]["truncated"]:
+if r["data"]["meta"]["result_truncated"]:
     r = cos_graph_references(uid, limit=total)  # exhaustive
     # alternative: narrow the kinds filter first when total is huge
     # r = cos_graph_references(uid, kinds=["calls"], limit=total)
 ```
 
-For `cos_graph_impact`, the budget is `visit_limit` (default 500
-nodes). When `meta.truncated` is true:
+For `cos_graph_impact` and `cos_graph_context`, the budget is
+`visit_limit` (default 500 nodes). When `meta.walk_truncated` is true:
 
 ```python
 # option A — raise the cap deliberately

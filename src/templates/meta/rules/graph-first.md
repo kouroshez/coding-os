@@ -40,21 +40,31 @@ Decision ladder: [src/core/skills/graph-explorer/SKILL.md](../../../core/skills/
 | Shortest path between X and Y | `cos_graph_path(src, tgt)` |
 | Graph health snapshot | `cos_graph_doctor()` |
 
-## Coverage rule — `truncated == true` is incomplete data
+## Coverage rule — `result_truncated` / `walk_truncated == true` is incomplete data
 
-Every coverage-sensitive tool reports its budget state in
-`data.meta.truncated` (and `data.total_count` where applicable).
-**Acting on a truncated result = silent-incomplete-coverage bug.**
+Every coverage-sensitive tool reports its budget state under one of
+two distinct keys:
 
-Mandatory check on every `cos_graph_references` and `cos_graph_impact` call:
+- **`data.meta.result_truncated`** — a result-set `limit` cut off rows
+  (e.g. `cos_graph_references` returned 100 of 487 callers).
+- **`data.meta.walk_truncated`** — a BFS hit its node cap (e.g.
+  `cos_graph_impact` `visit_limit=500` reached before frontier
+  exhausted).
+
+These are distinct from `data.meta.truncated`, which the envelope
+layer sets when *token-budget* trimming kicks in. **Acting on either
+truncation flag = silent-incomplete-coverage bug.**
+
+Mandatory check on every `cos_graph_references`, `cos_graph_impact`,
+and `cos_graph_context` call:
 
 ```python
 r = cos_graph_references(uid)              # default limit=100
-if r["data"]["meta"]["truncated"]:
+if r["data"]["meta"]["result_truncated"]:
     r = cos_graph_references(uid, limit=r["data"]["total_count"])
 
 r = cos_graph_impact(uid, depth=3)         # default visit_limit=500
-if r["data"]["meta"]["truncated"]:
+if r["data"]["meta"]["walk_truncated"]:
     # raise the cap OR step down depth and walk frontier by frontier
     r = cos_graph_impact(uid, depth=3, visit_limit=5000)
 ```

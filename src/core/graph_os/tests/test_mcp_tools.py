@@ -288,34 +288,57 @@ class TestReferences:
         data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo", limit=1))
         assert data["count"] <= 1
 
-    def test_truncated_flag_when_limit_below_total(self, seeded_backend):
+    def test_result_truncated_when_limit_below_total(self, seeded_backend):
         """Silent truncation is the silent-incomplete-coverage bug — pin
-        the contract that total_count + meta.truncated are populated so
-        the agent can re-run with a wider limit when needed."""
+        the contract that total_count + meta.result_truncated are
+        populated so the agent can re-run with a wider limit when
+        needed. Key is `result_truncated` (not `truncated`) because the
+        envelope's `meta.truncated` is reserved for token-budget trims."""
         full_data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo"))
         total = full_data["total_count"]
         assert total >= 1
         assert full_data["count"] == total
-        assert full_data["meta"]["truncated"] is False
+        assert full_data["meta"]["result_truncated"] is False
         if total > 1:
             tight_data = _assert_ok(
                 graph.cos_graph_references("code:function:a.py::foo", limit=1)
             )
             assert tight_data["count"] == 1
             assert tight_data["total_count"] == total
-            assert tight_data["meta"]["truncated"] is True
+            assert tight_data["meta"]["result_truncated"] is True
 
 
 class TestImpactTruncation:
-    def test_meta_carries_visit_limit_and_truncated_flag(self, seeded_backend):
+    def test_meta_carries_visit_limit_and_walk_truncated(self, seeded_backend):
         """Impact's BFS has a visit_limit cap. When the walk hits it the
-        result is incomplete — meta.truncated MUST surface that."""
+        result is incomplete — meta.walk_truncated MUST surface that."""
         data = _assert_ok(graph.cos_graph_impact("code:function:a.py::bar"))
         meta = data["meta"]
         assert "visit_limit" in meta
-        assert "truncated" in meta
+        assert "walk_truncated" in meta
         # Small seeded graph — fits comfortably, never truncated.
-        assert meta["truncated"] is False
+        assert meta["walk_truncated"] is False
+
+
+class TestContextTruncation:
+    def test_meta_carries_visit_limit_and_walk_truncated(self, seeded_backend):
+        """Context shares the BFS path with impact — same coverage
+        contract. README claims meta.walk_truncated + meta.visit_limit;
+        pin both so the claim stays honest."""
+        data = _assert_ok(graph.cos_graph_context("code:function:a.py::foo"))
+        meta = data["meta"]
+        assert "visit_limit" in meta
+        assert "walk_truncated" in meta
+        assert meta["walk_truncated"] is False
+
+    def test_visit_limit_one_walk_truncates(self, seeded_backend):
+        """Tightening visit_limit to a value smaller than the reachable
+        frontier must flip walk_truncated=true."""
+        data = _assert_ok(
+            graph.cos_graph_context("code:function:a.py::foo", visit_limit=1)
+        )
+        assert data["meta"]["walk_truncated"] is True
+        assert data["meta"]["visit_limit"] == 1
 
 
 class TestPath:

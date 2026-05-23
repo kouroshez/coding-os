@@ -681,9 +681,17 @@ def cos_graph_context(
     include_content: bool = False,
     include_evidence: bool = False,
     include_spine: bool = False,
+    visit_limit: int = 500,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Neighbourhood around a node."""
+    """Neighbourhood around a node.
+
+    Coverage: when the BFS hits ``visit_limit`` before exhausting the
+    reachable frontier the result is incomplete — ``data.meta.walk_truncated``
+    surfaces that signal so callers can re-run with a higher cap or a
+    smaller ``depth``. (Distinct from the envelope-level ``meta.truncated``
+    which signals *token-budget* trimming applied by the response layer.)
+    """
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -695,6 +703,7 @@ def cos_graph_context(
     if root is None:
         return _fail_uid_not_found(uid_or_name, tried_uids, label="uid_or_name")
 
+    visit_limit = max(1, min(int(visit_limit), 50_000))
     nodes, edges = _walk_bfs(
         be,
         root_uid=root.uid,
@@ -702,7 +711,9 @@ def cos_graph_context(
         max_hops=max(1, int(depth)),
         confidence_min=0.0,
         edge_types=None,
+        visit_limit=visit_limit,
     )
+    truncated = len(nodes) >= visit_limit
     # Group neighbours by edge_type for the SPA inspector. Each entry
     # carries the *other endpoint*'s summary (uid / kind / label) plus
     # the edge_type so the panel can render "contains → file.py" rows.
@@ -762,6 +773,8 @@ def cos_graph_context(
             "depth": depth,
             "direction": direction,
             "include_spine": include_spine,
+            "visit_limit": visit_limit,
+            "walk_truncated": truncated,
         },
     )
 
@@ -846,7 +859,7 @@ def cos_graph_impact(
             "depth": depth,
             "confidence_min": confidence_min,
             "visit_limit": visit_limit,
-            "truncated": truncated,
+            "walk_truncated": truncated,
         },
     )
 
@@ -1141,7 +1154,10 @@ def cos_graph_references(
       - ``total_count`` is the TRUE inbound-edge count across the kinds
         filter. If ``count < total_count`` the response is incomplete —
         the agent must either widen ``limit`` or narrow ``kinds``.
-      - ``meta.truncated`` mirrors the same condition for fast inspection.
+      - ``meta.result_truncated`` mirrors the same condition for fast
+        inspection. (Distinct from the envelope-level ``meta.truncated``
+        which signals *token-budget* truncation; result_truncated signals
+        the caller-budget hit.)
     """
     try:
         be = _backend(backend=backend)
@@ -1173,7 +1189,7 @@ def cos_graph_references(
             "backend": be.backend_id,
             "kinds": list(kinds),
             "limit": limit,
-            "truncated": truncated,
+            "result_truncated": truncated,
         },
     )
 
@@ -1277,11 +1293,11 @@ def cos_graph_path(
                 queue.append((nxt, depth + 1))
     if target_uid not in parents:
         return _ok(
-            {"path": None, "edges": [], "truncated": truncated},
+            {"path": None, "edges": [], "walk_truncated": truncated},
             meta={
                 "backend": be.backend_id,
                 "reason": "unreachable",
-                "truncated": truncated,
+                "walk_truncated": truncated,
                 "hop_limit": _PATH_HOP_LIMIT,
             },
         )
@@ -1298,11 +1314,11 @@ def cos_graph_path(
             + [e.target_uid if e.source_uid == source_uid else e.source_uid for e in chain],
             "edges": [_edge_to_dict(e) for e in chain],
             "hops": len(chain),
-            "truncated": truncated,
+            "walk_truncated": truncated,
         },
         meta={
             "backend": be.backend_id,
-            "truncated": truncated,
+            "walk_truncated": truncated,
             "hop_limit": _PATH_HOP_LIMIT,
         },
     )
@@ -2148,7 +2164,7 @@ def cos_graph_centrality(
             "backend": be.backend_id,
             "metric": metric,
             "node_count": len(rows_out),
-            "truncated": truncated,
+            "result_truncated": truncated,
         },
     )
 
@@ -2346,7 +2362,7 @@ def cos_graph_ranking(
             "node_count": N,
             "iterations": iterations,
             "damping": damping,
-            "truncated": truncated,
+            "result_truncated": truncated,
             "personalized": bool(personalized),
         },
     )

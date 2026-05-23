@@ -265,16 +265,24 @@ truncation:
 
 | Tool | Knob | Default | Coverage signal |
 |---|---|---:|---|
-| `cos_graph_references` | `limit` (edges returned) | 100 | `data.total_count` (true total) · `data.meta.truncated` (bool) |
-| `cos_graph_impact` | `depth` (BFS hops) + `visit_limit` (nodes) | 3 / 500 | `data.meta.truncated` set when the BFS hits `visit_limit` |
-| `cos_graph_context` | `depth` (BFS hops) | 1 | response shape mirrors `references`; rely on `total_count` |
+| `cos_graph_references` | `limit` (edges returned) | 100 | `data.total_count` (true total) · `data.meta.result_truncated` (limit hit) · `data.meta.limit` (echo) |
+| `cos_graph_impact` | `depth` (BFS hops) + `visit_limit` (nodes) | 3 / 500 | `data.meta.walk_truncated` set when the BFS hits `visit_limit` · `data.meta.visit_limit` (echo) |
+| `cos_graph_context` | `depth` (BFS hops) + `visit_limit` (nodes) | 1 / 500 | `data.meta.walk_truncated` set when the BFS hits `visit_limit` · `data.meta.visit_limit` (echo) |
 | `cos_graph_export` | `max_nodes` + `max_hops` | 500 / 3 | UI surfaces a "truncated · raise depth budget" badge |
-| `cos_graph_path` | `max_hops` | 5 | `data.meta.truncated` when any hop saturates the 1000-edge cap |
+| `cos_graph_path` | `max_hops` | 5 | `data.meta.walk_truncated` set when any hop saturates the 1000-edge cap · `data.meta.hop_limit` (echo) |
+
+Two distinct names matter: the envelope layer also writes
+`data.meta.truncated`, but that signals *token-budget* trimming (the
+framework cut tail rows because the response was too big). Tool-level
+coverage truncation lives under separate keys — `result_truncated`
+when a limit cut a result set, `walk_truncated` when a BFS hit its
+node cap — so the agent can tell which kind of incompleteness
+happened and react accordingly.
 
 Recommended agent workflow — never blindly accept a single call:
 
 1. **Probe** with the default `limit` / `depth`.
-2. **Check coverage** — `data.total_count > data.count`? `meta.truncated == true`?
+2. **Check coverage** — `data.total_count > data.count`? `meta.result_truncated == true` (limit hit)? `meta.walk_truncated == true` (BFS cap hit)?
 3. **If incomplete**: either widen `limit` (cheap — references is O(N)), or
    narrow `kinds` to focus on the edge class that matters (e.g. drop
    `imports` and `references_doc` when auditing only `calls`), or split
