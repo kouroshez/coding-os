@@ -37,7 +37,7 @@ Hook delivery itself was healthy: `[capture-observation] [fire] tool=Write` hear
 
 | # | Issue | Fix in |
 |---|---|---|
-| 1 | Nightly cron not installed (no `~/Library/LaunchAgents/com.codingos.nightly.plist`) → `learn_extract` / decay / routing_recalc never run → `learned_patterns=0`, `routing_drift=0`. | Phase 2 (`cos cron install --hour 3`) |
+| 1 | ~~Nightly cron not installed~~ — CORRECTION (Phase-2 verify, 2026-05-23): `cos cron status` reports `installed: True`, `loaded: True`, last run 2026-05-22T07:00 with `learn_extract: ok`. Audit agent's "no launchd plist found" check looked at the wrong path. `learned_patterns=0` is the downstream symptom of having only 2 stale observations to extract from — once Phase 1 fix lands enough fresh observations, patterns will populate on next nightly. | n/a (already healthy) |
 | 2 | `doc_audit_trail` empty — `cos_audit_log_record` invocation never triggered in any session. | follow-up task |
 | 3 | Two existing observations from `tool_name='completion_guardian'` (not Write/Edit) — captured via direct MCP-tool call path, not the hook. Confirms capture.py write path works when reached. | n/a |
 
