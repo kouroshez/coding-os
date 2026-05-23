@@ -37,6 +37,82 @@ Every response carries `data.meta.layer="graph"` and `data.meta.backend`
 so you can confirm which store answered. When `meta.backend_fallback=true`
 the answer came from the SQLite fallback (lower precision on deep walks).
 
+## Coverage contract — never trust a single call blindly
+
+The biggest soundness trap in graph queries is **silent truncation**:
+asking "who calls X?" on a 500-caller hub with `limit=100` (the
+default) returns 100 rows and **no signal** that 400 more exist —
+unless you read the coverage metadata. Every coverage-sensitive tool
+exposes it; the rule below is mandatory before you act on a result.
+
+### Signals to read on every response
+
+| Tool | `data.total_count` | `data.meta.truncated` | `data.meta.<budget>` |
+|---|---|---|---|
+| `cos_graph_references` | ✓ | ✓ | `limit` |
+| `cos_graph_impact` | – | ✓ | `visit_limit` · `depth` |
+| `cos_graph_path` | – | ✓ | hop saturation |
+| `cos_graph_export` | – | UI badge | `max_nodes` · `max_hops` |
+
+**`truncated == true` ⇒ the answer is incomplete. Do NOT proceed on it.**
+
+### The mandatory 2-step probe → widen workflow
+
+```python
+# 1. probe with defaults (cheap, gives you the lay of the land)
+r = cos_graph_references(uid)                  # default limit=100
+total = r["data"]["total_count"]
+shown = r["data"]["count"]
+
+# 2. if incomplete, widen with the actual total
+if r["data"]["meta"]["truncated"]:
+    r = cos_graph_references(uid, limit=total)  # exhaustive
+    # alternative: narrow the kinds filter first when total is huge
+    # r = cos_graph_references(uid, kinds=["calls"], limit=total)
+```
+
+For `cos_graph_impact`, the budget is `visit_limit` (default 500
+nodes). When `meta.truncated` is true:
+
+```python
+# option A — raise the cap deliberately
+r = cos_graph_impact(uid, depth=3, visit_limit=5000)
+
+# option B — step DOWN in depth and walk each frontier separately
+# (more expensive but produces tier-quality risk grouping)
+r1 = cos_graph_impact(uid, depth=1)
+for caller in r1["data"]["tiers"]["will_break"]:
+    cos_graph_impact(caller["uid"], depth=2)
+```
+
+### Per-task-class budget recipes
+
+| Task class | Tool | Budget |
+|---|---|---|
+| Quick probe ("does X have any callers?") | `cos_graph_references` | `limit=20` |
+| Implementation pre-check ("what neighbours?") | `cos_graph_context` | `depth=1` |
+| Refactor planning ("what breaks?") | `cos_graph_impact` | `depth=3`, `visit_limit=2000` |
+| Rename — must hit every site | `cos_graph_rename_plan` | (exhaustive by design) |
+| Security audit — every caller chain | `cos_graph_references` then `cos_graph_impact` per caller | `limit=10_000`, `visit_limit=10_000` |
+| Doc cross-reference audit | `cos_graph_references` | `kinds=["references_doc","links_to","cites_heading"]`, `limit=1000` |
+
+**Cost math:** `cos_graph_references` is O(N) with an index; `limit=10_000`
+runs in <50 ms on the highest-degree hubs in this repo. There is no
+reason to under-budget a coverage-critical sweep. Pay the 50 ms.
+
+### Anti-patterns
+
+- Calling `cos_graph_references(uid)` once and treating the slice as
+  complete — without reading `total_count` or `meta.truncated`.
+- Setting `limit=20` for a rename or security audit because "small is
+  safer" — small **hides** coverage gaps, doesn't prevent them.
+- Calling `cos_graph_impact(uid, depth=4)` on a hub and not noticing
+  `meta.truncated` — `depth=4` × hub frontier blows past `visit_limit`
+  before you reach the interesting frontier.
+- Asking the graph the same question twice with the same params hoping
+  a different answer comes back — the result is deterministic; widen
+  the budget or narrow the filter.
+
 ## Enforcement
 
 - `enforce-graph-context.sh` — when editing a file under a path the

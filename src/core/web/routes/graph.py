@@ -104,6 +104,7 @@ async def graph_impact(
     direction: str = Query("downstream"),
     depth: int = Query(3),
     confidence_min: float = Query(0.5),
+    visit_limit: int = Query(500, ge=1, le=50_000),
     _rl=Depends(make_rate_limit_dep("graph.impact")),
     _m=Depends(make_metrics_dep("graph.impact")),
 ):
@@ -112,7 +113,11 @@ async def graph_impact(
     if g is None:
         return unwrap(_unavailable())
     result = g.cos_graph_impact(
-        uid, direction=direction, depth=depth, confidence_min=confidence_min
+        uid,
+        direction=direction,
+        depth=depth,
+        confidence_min=confidence_min,
+        visit_limit=visit_limit,
     )
     return unwrap(result)
 

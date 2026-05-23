@@ -772,6 +772,7 @@ def cos_graph_impact(
     direction: str = "downstream",
     depth: int = 3,
     confidence_min: float = 0.5,
+    visit_limit: int = 500,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Blast-radius: which nodes depend on (or are depended on by) `uid`.
@@ -805,7 +806,7 @@ def cos_graph_impact(
         return _fail_uid_not_found(uid, tried_uids)
 
     walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(direction, "in")
-    visit_limit = 500
+    visit_limit = max(1, min(int(visit_limit), 50_000))
     nodes, edges = _walk_bfs(
         be,
         root_uid=root.uid,

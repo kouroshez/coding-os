@@ -3076,6 +3076,18 @@
               "title": "Confidence Min",
               "type": "number"
             }
+          },
+          {
+            "in": "query",
+            "name": "visit_limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 50000,
+              "minimum": 1,
+              "title": "Visit Limit",
+              "type": "integer"
+            }
           }
         ],
         "responses": {

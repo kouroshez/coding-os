@@ -40,6 +40,28 @@ Decision ladder: [src/core/skills/graph-explorer/SKILL.md](../../../core/skills/
 | Shortest path between X and Y | `cos_graph_path(src, tgt)` |
 | Graph health snapshot | `cos_graph_doctor()` |
 
+## Coverage rule — `truncated == true` is incomplete data
+
+Every coverage-sensitive tool reports its budget state in
+`data.meta.truncated` (and `data.total_count` where applicable).
+**Acting on a truncated result = silent-incomplete-coverage bug.**
+
+Mandatory check on every `cos_graph_references` and `cos_graph_impact` call:
+
+```python
+r = cos_graph_references(uid)              # default limit=100
+if r["data"]["meta"]["truncated"]:
+    r = cos_graph_references(uid, limit=r["data"]["total_count"])
+
+r = cos_graph_impact(uid, depth=3)         # default visit_limit=500
+if r["data"]["meta"]["truncated"]:
+    # raise the cap OR step down depth and walk frontier by frontier
+    r = cos_graph_impact(uid, depth=3, visit_limit=5000)
+```
+
+Full workflow + per-task-class budget recipes:
+[graph-explorer skill — Coverage contract](../../../core/skills/graph-explorer/SKILL.md#coverage-contract--never-trust-a-single-call-blindly).
+
 ## Hard enforcement (current)
 
 - `enforce-skill.sh` — BLOCKS Edit on `src/core/**/*.py`, `src/cli/**/*.py`, `src/adapters/**/*.py` unless `Skill graph-explorer` was invoked in this session.
