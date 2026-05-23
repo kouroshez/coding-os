@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: null
 labels: [governance, hooks, hardening, post-TASK-014]
-status: in_progress
+status: testing
 priority: P2
 appetite: "1d"
 created: 2026-05-23
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260522-181701-790c
 depends_on: [TASK-014]
 blocked_by: []
 references: []
 ---
-
 # TASK-015: branch-guard — block git rebase on trunk
 
 **Outcome (one sentence):** branch-guard.sh blocks git rebase (history-rewrite onto main) while still allowing safe cleanup forms (--abort/--continue/--skip/--quit/--edit-todo/--show-current-patch) and the unrelated `git pull --rebase` workflow. Closes the most enterprise-relevant gap left after TASK-014.
