@@ -53,7 +53,12 @@ Requirements:
 - Node.js ≥ 20 (only if you touch `src/core/web/ui/`).
 - Bash ≥ 4 (macOS ships with bash 3.2 by default; install via `brew install bash`).
 
-Clone + install:
+Three adapters are wired today: `claude`, `codex`, `cursor` (under
+`src/adapters/<id>/`). Each has its own `install.sh`; `cos init`
+runs the right one based on `--agent`. All three speak the same MCP
+server defined in `.mcp.json`.
+
+### Option A — native install (recommended for daily work)
 
 ```bash
 git clone https://github.com/kouroshebra/coding-os.git
@@ -70,6 +75,23 @@ cos --version                         # should print cos 0.3.0
 cos doctor                            # should report no critical issues
 uv run pytest src/core/thinking_os/tests/ -q   # ~3 min, 1195 tests
 ```
+
+### Option B — Docker (zero local Python/Node)
+
+The repo ships a production-shaped `Dockerfile` + `docker-compose.yml`
+that bake the Hub into a single non-root container on port 9188.
+
+```bash
+git clone https://github.com/kouroshebra/coding-os.git
+cd coding-os
+docker compose up                     # → http://127.0.0.1:9188
+```
+
+Hub state (SQLite DB, traces) persists in the `cos-state` named
+volume across `docker compose down` / `up`. Note: the image runs
+only the Hub demo — `cos init` and the adapter wire-up still need
+the native path above. Use Docker when you want to inspect the UI
+without installing Python locally.
 
 ## The Contribution Loop
 

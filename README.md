@@ -13,21 +13,35 @@
 
 ---
 
-## 60-second quickstart
+## Prerequisites
+
+| Tool | Min version | Why | macOS install |
+|---|---|---|---|
+| Python | 3.10 | CLI, MCP server, extractors | `brew install python@3.12` |
+| [uv](https://docs.astral.sh/uv/) | 0.5 | Fast Python installer + tool runner | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Bash | 4 | Hook scripts use 4.x features (macOS ships 3.2) | `brew install bash` |
+| Node.js | 20 | **Only** if rebuilding the Hub UI under `src/core/web/ui/` | `brew install node@20` |
+| Docker | 24 | **Only** for the Docker quickstart below | `brew install --cask docker` |
+
+Linux: replace `brew install …` with your distro's package manager
+(`apt`, `dnf`, `pacman`). Windows: WSL 2 + the same Linux steps.
+
+## 60-second quickstart (native `uv`)
 
 ```bash
-# 1. Install
+# 1. Install the `cos` CLI globally
 git clone https://github.com/kouroshebra/coding-os.git
 cd coding-os
-uv tool install --editable .          # installs the `cos` CLI globally
+uv tool install --editable .
 
 # 2. Verify
 cos --version                          # → cos 0.3.0
-cos doctor                             # 14-point health check
+cos doctor                             # 14-point health check (must be all-green)
 
 # 3. Spawn a new project, scaffolded with one agent + one stack
 cos init --agent claude --template django --name my-shop --yes
-cd my-shop
+cd my-shop                             # adapter installer ran for you and wrote
+                                       # .claude/, .mcp.json, .coding-os/
 
 # 4. Boot the multi-project Web Hub (graph + board + cognition + search)
 cos hub start                          # → http://127.0.0.1:9188
@@ -38,7 +52,54 @@ knowledge graph of `my-shop`, the Scrumban board, the cognition
 trace timeline, and unified search across all retrieval layers.
 
 For Codex or Cursor, swap `--agent claude` for `--agent codex` or
-`--agent cursor` — everything else is identical.
+`--agent cursor` — everything else is identical. Each agent's
+installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
+for you and re-runs it on `cos update`.
+
+## Run with Docker (zero local Python)
+
+The repo ships a production-shaped `Dockerfile` (multi-stage UI +
+Python runtime, non-root user, healthcheck) and a `docker-compose.yml`
+that runs the Hub on port 9188 with a persistent named volume.
+
+```bash
+# Foreground, build + run in one step:
+docker compose up
+
+# Or build + run manually:
+docker build -t coding-os-hub .
+docker run --rm -p 9188:9188 coding-os-hub
+```
+
+Open `http://127.0.0.1:9188`. State (SQLite DB, traces) lives in the
+`cos-state` named volume and survives `docker compose down` / `up`
+cycles. The image is a **single-project demo** of the Hub — for
+running the full `cos init` factory locally, use the native quickstart
+above. Multi-project production deployment is on the roadmap.
+
+## MCP server wire-up (Claude / Codex / Cursor)
+
+`cos init` writes `.mcp.json` at the project root automatically. If
+you ever need to register the MCP server manually (e.g. another tool
+that reads MCP configs), this is the shape every adapter installs:
+
+```json
+{
+  "mcpServers": {
+    "coding-os": { "command": "cos", "args": ["server-start"] }
+  }
+}
+```
+
+Verify the wire is live in your agent runtime:
+
+- **Claude Code:** `cos doctor` shows `mcp.coding-os = ok`; the CLI
+  exposes `cos_*` tools via `ToolSearch("select:<tool>")`.
+- **Cursor:** Settings → MCP → `coding-os` shows status "connected".
+- **Codex CLI:** `codex --mcp-list` lists `coding-os`.
+
+If the server isn't found, re-run `bash src/adapters/<agent>/install.sh`
+from the project root, then restart the agent.
 
 ---
 
@@ -167,7 +228,7 @@ the 11 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinkin
 (the semantic roles of the cognition chain). Day-to-day usage:
 [docs/workflow/workflow-guide.md](./docs/workflow/workflow-guide.md).
 
-## MCP tools (79 tools, all `cos_*` prefix, all `ok / fail` envelope)
+## MCP tools (`cos_*` family, all `ok / fail` envelope)
 
 | Family       | Examples                                                          |
 | ------------ | ----------------------------------------------------------------- |
@@ -407,6 +468,23 @@ CI runs the matrix on every PR. See `.github/workflows/ci.yml`.
 | [CONTRIBUTING.md](./CONTRIBUTING.md)                                                | Setup, contribution loop, PR checklist                      |
 | [SECURITY.md](./SECURITY.md)                                                        | Vulnerability disclosure policy                             |
 | [CHANGELOG.md](./CHANGELOG.md)                                                      | Release notes                                               |
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `cos: command not found` after `uv tool install` | `~/.local/bin` (or uv's tool dir) not on `PATH` | `uv tool update-shell` then open a new shell |
+| `cos doctor` reports `mcp.coding-os = absent` | Adapter installer hasn't run for this project | `bash src/adapters/<agent>/install.sh` from project root, then restart the agent runtime |
+| `cos hub start` fails with `Address already in use :9188` | Port 9188 busy (likely an old Hub still running) | `lsof -ti:9188 \| xargs kill` then re-run; or `cos hub start --port 9999` |
+| `make verify` complains `bash: declare -A …` | macOS default bash 3.2 doesn't have associative arrays | `brew install bash` (Makefile picks up `/opt/homebrew/bin/bash` automatically) |
+| `cos init` fails on `npm ci` step | Node.js missing or below 20 | Install Node ≥20 (`brew install node@20`); only required if your template touches `src/core/web/ui/` |
+| Docker build OOM on `npm ci` | Default Docker memory < 4 GB | Docker Desktop → Settings → Resources → bump memory to 4 GB+ |
+| `ToolSearch` returns `InputValidationError` for a `cos_*` tool | First-call schema not loaded (Claude defers MCP schemas) | `ToolSearch("select:cos_<name>")` first, then call the tool |
+| Hooks silently skip on Codex / Cursor | Agent runtime doesn't expose that `{event, matcher}` pair | Expected — see [Persona Enforcement Coverage](#supported-agents); use Claude Code for protected work |
+
+Still stuck? Run `cos doctor --verbose` and open a
+[discussion](https://github.com/kouroshebra/coding-os/discussions)
+with the output attached.
 
 ## License
 
