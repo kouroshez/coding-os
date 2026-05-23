@@ -52,6 +52,61 @@ const NOVERLAP_SETTINGS = {
   expansion: 1.25,
 };
 
+// Custom label renderer: large hub nodes show the label CENTERED INSIDE
+// the disc (max readability per the user's "inspiration.png" reference),
+// while small nodes fall back to Sigma's beside-the-node default. The
+// threshold is in screen pixels — Sigma normalizes `data.size` to the
+// post-camera-ratio rendered radius before calling the renderer.
+const LABEL_INSIDE_RADIUS_PX = 16;
+
+function _pickContrastColor(bgHex: string | undefined): string {
+  if (!bgHex || !bgHex.startsWith('#')) return '#ffffff';
+  const hex = bgHex.length === 9 ? bgHex.slice(0, 7) : bgHex;
+  if (hex.length < 7) return '#ffffff';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#ffffff';
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55 ? '#1a1814' : '#ffffff';
+}
+
+function drawNodeLabel(
+  context: CanvasRenderingContext2D,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: { x: number; y: number; size: number; label?: string | null; color?: string } & any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  settings: any,
+): void {
+  if (!data.label) return;
+  const baseSize = (settings.labelSize as number) ?? 12;
+  const labelFont = (settings.labelFont as string) ?? 'sans-serif';
+
+  if (data.size >= LABEL_INSIDE_RADIUS_PX) {
+    const fontPx = Math.max(10, Math.min(baseSize + 2, data.size * 0.55));
+    context.font = `bold ${fontPx}px ${labelFont}`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = _pickContrastColor(data.color);
+    let text = data.label as string;
+    const maxWidth = data.size * 1.85;
+    if (context.measureText(text).width > maxWidth) {
+      while (text.length > 2 && context.measureText(text + '…').width > maxWidth) {
+        text = text.slice(0, -1);
+      }
+      text = text + '…';
+    }
+    context.fillText(text, data.x, data.y);
+    return;
+  }
+
+  context.font = `${(settings.labelWeight as string) ?? 'normal'} ${baseSize}px ${labelFont}`;
+  context.fillStyle = (settings.labelColor as { color?: string })?.color ?? '#1a1814';
+  context.textAlign = 'left';
+  context.textBaseline = 'middle';
+  context.fillText(data.label as string, data.x + data.size + 3, data.y);
+}
+
 function _fa2Budget(nodeCount: number): number {
   return Math.max(
     FA2_BUDGET_MIN_MS,
@@ -167,6 +222,8 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       labelRenderedSizeThreshold: 9,
       labelDensity: 0.8,
       labelGridCellSize: 90,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      defaultDrawNodeLabel: drawNodeLabel as any,
       defaultNodeColor: fallbackNodeHex,
       defaultEdgeColor: edgeHex,
       defaultEdgeType: "arrow",

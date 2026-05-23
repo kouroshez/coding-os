@@ -325,3 +325,67 @@ class TestRootWalkUnchanged:
         # Login + neighbours are reachable; noise is still filtered by default.
         node_uids = {n["uid"] for n in res["data"]["nodes"]}
         assert "code:function:a.py::login" in node_uids
+
+
+# ---------------------------------------------------------------------------
+# max_hops parameter — pinned so a future ruff format or refactor can't
+# silently revert to the 3-hop cap that hid subfolder contents in the
+# Hub Graph tab (user-reported "depth=all doesn't show 100%").
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def chain_backend():
+    """6-link contains chain so depth gating is observable."""
+    chain = [f"code:module:level_{i}" for i in range(6)]
+    nodes = [_node(uid, kind="code:module", label=uid.split(":")[-1]) for uid in chain]
+    edges = [_edge(chain[i], chain[i + 1], "contains") for i in range(len(chain) - 1)]
+    return _StubBackend(nodes, edges)
+
+
+class TestRootWalkMaxHops:
+    def test_default_caps_at_three_hops(self, chain_backend, monkeypatch):
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", chain_backend)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: chain_backend)
+        res = _parse(
+            graph_tools.cos_graph_export(
+                root_uid="code:module:level_0",
+                max_nodes=50,
+            )
+        )
+        uids = {n["uid"] for n in res["data"]["nodes"]}
+        # 3-hop walk reaches level_0..level_3 inclusive (root + 3 hops).
+        assert "code:module:level_3" in uids
+        assert "code:module:level_5" not in uids, (
+            "default max_hops should still cap at 3 hops — backward compat"
+        )
+
+    def test_explicit_max_hops_extends_walk(self, chain_backend, monkeypatch):
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", chain_backend)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: chain_backend)
+        res = _parse(
+            graph_tools.cos_graph_export(
+                root_uid="code:module:level_0",
+                max_nodes=50,
+                max_hops=5,
+            )
+        )
+        uids = {n["uid"] for n in res["data"]["nodes"]}
+        # 5-hop walk reaches the full chain.
+        assert "code:module:level_5" in uids, (
+            "max_hops=5 should walk to the end of the chain — bug was a hardcoded 3"
+        )
+
+    def test_max_hops_one_is_just_root_and_neighbours(self, chain_backend, monkeypatch):
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", chain_backend)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: chain_backend)
+        res = _parse(
+            graph_tools.cos_graph_export(
+                root_uid="code:module:level_0",
+                max_nodes=50,
+                max_hops=1,
+            )
+        )
+        uids = {n["uid"] for n in res["data"]["nodes"]}
+        assert "code:module:level_1" in uids
+        assert "code:module:level_2" not in uids

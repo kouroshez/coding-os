@@ -83,10 +83,6 @@ export function buildGraph(
     degree.set(e.source_uid, (degree.get(e.source_uid) ?? 0) + 1);
     degree.set(e.target_uid, (degree.get(e.target_uid) ?? 0) + 1);
   }
-  const SEMANTIC_KINDS = new Set([
-    'folder', 'file', 'module', 'class', 'route',
-    'mcp_tool', 'task', 'doc_file', 'rule', 'skill', 'hook', 'contract',
-  ]);
   // Repo-root anchor — extractor emits exactly one of these. Always
   // dominates the canvas (size + label) so the viewer's eye lands on
   // the centre of importance. (TASK-019)
@@ -116,8 +112,7 @@ export function buildGraph(
   // unreadable. Restrict to the curated top-K hubs + the structural
   // root; everything else relies on Sigma's zoom-aware label budget
   // (labelDensity / labelRenderedSizeThreshold) so labels only show
-  // when there's room. SEMANTIC_KINDS remains relevant for sizing.
-  void SEMANTIC_KINDS;
+  // when there's room.
   const labelForceFor = (uid: string): boolean => {
     if (ROOT_UIDS.has(uid)) return true;
     if (TOP_DEGREE.has(uid)) return true;
@@ -147,9 +142,14 @@ export function buildGraph(
       ? opts.visibleKinds.has(normalKind)
       : true;
     if (graph.hasNode(n.uid)) continue;
-    
-    const image = ICONS[normalKind];
-    
+
+    // Hub nodes (root + top-K by degree) are rendered as plain circles
+    // so the custom label renderer can fill the disc with centred text
+    // instead of competing with the kind icon. Small nodes keep their
+    // icon since their label is drawn beside them.
+    const isHub = ROOT_UIDS.has(n.uid) || TOP_DEGREE.has(n.uid);
+    const image = isHub ? undefined : ICONS[normalKind];
+
     graph.addNode(n.uid, {
       x: Math.random() * 2 - 1,
       y: Math.random() * 2 - 1,
