@@ -212,11 +212,13 @@ response payload and the actual file the Read tool would consume:
 
 | Question | Tool | `Read`-the-file tokens | `cos_graph_*` tokens | **Savings** | Latency |
 |---|---|---:|---:|---:|---:|
-| Who calls `cos_graph_query`? | `cos_graph_references` | 23,985 | **129** | **99.5%** | 3 ms |
-| What breaks if `init_db` signature changes? | `cos_graph_impact(depth=2)` | 18,754 | **573** | **96.9%** | 1 ms |
-| Who depends on the `GraphNode` dataclass? | `cos_graph_references` | 1,808 | **130** | **92.8%** | <1 ms |
+| Who calls `cos_graph_query`? | `cos_graph_references` | 23,985 | **140** | **99.4%** | 3 ms |
+| What breaks if `init_db` signature changes? | `cos_graph_impact(depth=2)` | 18,754 | **579** | **96.9%** | 1 ms |
+| Who depends on the `GraphNode` dataclass? | `cos_graph_references` | 1,808 | **140** | **92.3%** | <1 ms |
 
-**Mean: 96.4% token reduction · response in single-digit milliseconds.**
+**Mean: 96.2% token reduction · response in single-digit milliseconds.**
+Numbers reflect the post-`truncated`/`total_count` envelope (a ~6–11
+token coverage tax per call — the price of not silently truncating).
 
 The savings compound across a session: an agent that asks 50 structural
 questions over a feature spends ~50 KB of context, not ~1 MB of file
