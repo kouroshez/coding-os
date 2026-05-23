@@ -1,6 +1,6 @@
 # AGENTS — Coding OS Development Protocol (META PROJECT)
 
-Root entry point for agents working **ON** coding-os itself. Read first; re-read after context loss. Hard limit: keep this file under 180 lines — overflow goes to [docs/](docs/).
+Root entry point for agents working **ON** coding-os itself. Read first; re-read after context loss. Hard limit: keep this file under 200 lines — overflow goes to [docs/](docs/).
 
 ## Nature — Meta-Project (read first, 30s)
 
@@ -79,7 +79,6 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 Every `cos_analyze_task`, `cos_compose_chain`, `cos_supervise`, `cos_supervise_record_output`, `cos_backtrack_log` emits a structured event to `.coding-os/<agent>/traces/<session_id>.jsonl` via [src/core/thinking_os/tracing.py](src/core/thinking_os/tracing.py). Inspect:
 - `cos cognition trace <session_id>` (pretty timeline) · `cos cognition trace --summary` · `cos cognition trace-replay <session_id>` (CI assertion).
 
-
 Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--category Y] [--phase Z]`. SSOT for hook registration: [src/core/hooks/registry.yaml](src/core/hooks/registry.yaml). Adapter templates are generated from it via `make regen-adapter-templates`.
 
 **Adapter parity is bounded by runtime capability, not adapter design.** Each `src/adapters/<agent>/adapter.yaml::hook_capabilities` declares the `{event, matcher}` pairs that agent's CLI can actually fire. The renderer skips registry entries whose pair isn't in the list — so Codex (Bash-only PreToolUse/PostToolUse, no `Write|Edit` or `Skill` matcher as of 2026-04) emits a smaller template than Claude. This is *correct*, not a gap. When OpenAI adds the missing matchers, update `src/adapters/codex/adapter.yaml` and re-run `make regen-adapter-templates` — no other code changes needed.
@@ -110,8 +109,8 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 **Scrumban (preferred):** `cos board [--web]` · `cos task-show TASK-NNN` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to blocked|testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
 **MCP equivalents:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
-**Slash commands:** packaged workflows invoked with `/` — `/board` · `/daily` · `/retro` · `/task` · `/classify` · `/verify` · `/review` · `/diagnose` · `/memory-search` · 11× `/role-*`. Sourced from [src/core/commands/](src/core/commands/) + [src/core/thinking_os/agents/](src/core/thinking_os/agents/); rendered per adapter into `<agent>/commands/`.
-**Deferred tool schemas (Claude only):** all 79 `cos_*` tools are deferred — schemas are NOT loaded at session start. Call `ToolSearch("select:<tool>")` before the first invocation each session or you get `InputValidationError`. Schema traps (TaskSignals field types, envelope format, UID scheme): [docs/engineering/mcp-schema-traps.md](docs/engineering/mcp-schema-traps.md).
+**Slash commands:** packaged workflows invoked with `/` — `/board` · `/daily` · `/retro` · `/task` · `/classify` · `/verify` · `/review` · `/diagnose` · `/memory-search` · `/compose` · 11× `/role-*`. Sourced from [src/core/commands/](src/core/commands/) + [src/core/thinking_os/agents/](src/core/thinking_os/agents/); rendered per adapter into `<agent>/commands/`.
+**Deferred tool schemas (Claude only):** every `cos_*` tool is deferred — schemas are NOT loaded at session start. Call `ToolSearch("select:<tool>")` before the first invocation each session or you get `InputValidationError`. Schema traps (TaskSignals field types, envelope format, UID scheme): [docs/engineering/mcp-schema-traps.md](docs/engineering/mcp-schema-traps.md).
 **Meta retrieval (when unsure):** `cos_retrieve(query, hint="auto")` dispatches to memory/docs/tasks or returns a code-grep hint for identifier queries.
 **Verify/log:** `make verify` · `make verify-hooks` · `make test-mcp` · `cos health` · `cos doctor` · `make log-{latest,write,search}`.
 **Web UI (visual exploration):** `cos hub start` boots the singleton FastAPI + React SPA at `http://127.0.0.1:9188`; one hub serves every registered project via `/api/p/<slug>/*`. `cos hub status` reports meta-repo path + symlink health. UI iteration: `make ui-dev` (HMR on :5173) or `make ui-build` (rebuild `dist/`). Full contract + propagation matrix: [docs/engineering/hub-architecture.md](docs/engineering/hub-architecture.md).
@@ -142,7 +141,7 @@ Routing decisions, freshness contract, contracts audit, and the rename workflow:
 | Before any Read on load-bearing file | `cos_graph_*` should already have run this session. `enforce-graph-first-read.sh` warns (toggle with `COS_ENFORCE_GRAPH_FIRST=strict`). |
 | Hot prompt patterns auto-recommend a tool | `nudge-graph-os.sh` (UserPromptSubmit) — 13 bilingual patterns, per-pattern debounced. |
 
-The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
+The 17 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineering/graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md).
 
 **Polyglot extractor coverage (post-9bee865):** the graph now indexes `.py` `.ts` `.tsx` `.go` `.sh` `.yaml` `.yml` `.md` `.json` `.toml` — JSON and TOML configs (package.json deps, tsconfig paths, mcp.json servers, pyproject deps, Cargo workspaces) are first-class nodes. Shell extractor runs on tree-sitter-bash (no more false-positive function matches inside heredocs/comments). For monorepo-scale repos, `cos graph-reindex --workers N` parallelises across processes. Roadmap + edge-case catalog: [docs/playbooks/polyglot-extractor-roadmap.md](docs/playbooks/polyglot-extractor-roadmap.md) · post-ship audit: [docs/engineering/polyglot-extractor-audit-2026-05-12.md](docs/engineering/polyglot-extractor-audit-2026-05-12.md).
 
@@ -158,12 +157,11 @@ The 16 `cos_graph_*` tools and the hallucinations they cure: see [docs/engineeri
 | Web backbone (S4) | [src/core/web/](src/core/web/) — FastAPI on port 9188, `/api/{graph,board,cognition,search}` + `/api/stream/events` SSE |
 | React SPA (S5) | [src/core/web/ui/](src/core/web/ui/) — Vite + React 18 + Sigma.js, served at http://127.0.0.1:9188 |
 | Roles (11 semantic) | [src/core/thinking_os/roles/](src/core/thinking_os/roles/) — researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer + presets/registry.yaml |
-| Hooks | [src/core/hooks/](src/core/hooks/) (49 scripts) + [registry.yaml](src/core/hooks/registry.yaml) |
-| Skills | [src/core/skills/](src/core/skills/) — backend-fundamentals, clean-code, codebase-explorer, frontend-fundamentals, graph-explorer, task-driver, thinking_os |
-| CLI | [src/cli/](src/cli/) — main.py + 21 sibling modules (board, brain, graph, doctor, …) |
-| Adapters | [src/adapters/claude/](src/adapters/claude/), [src/adapters/codex/](src/adapters/codex/) + [src/adapters/claude/sdk_dispatcher.py](src/adapters/claude/sdk_dispatcher.py) |
-| Templates | [src/templates/_base/](src/templates/_base/) + django/nextjs/fastapi/go/go-fiber |
-
+| Hooks | [src/core/hooks/](src/core/hooks/) (82 scripts · 75 registered in [registry.yaml](src/core/hooks/registry.yaml)) + 24 helpers in [_helpers/](src/core/hooks/_helpers/) |
+| Skills | [src/core/skills/](src/core/skills/) — 24 skills (clean-code, graph-explorer, thinking_os, codebase-explorer, task-driver, search, agent-memory, security-{web,mobile}, auth-patterns, api-design, db-design, hexagonal-architecture, observability, performance, testing-strategy, deployment-cicd, incident-response, llm-patterns, state-management, a11y, mobile-fundamentals, {backend,frontend}-fundamentals); routing table → [skill-enforcement.md](src/core/rules/skill-enforcement.md) |
+| CLI | [src/cli/](src/cli/) — `main.py` + 32 sibling modules (board, brain, graph, doctor, hub, adapter_registry, …) |
+| Adapters | [src/adapters/claude/](src/adapters/claude/), [src/adapters/codex/](src/adapters/codex/), [src/adapters/cursor/](src/adapters/cursor/) + [src/adapters/claude/sdk_dispatcher.py](src/adapters/claude/sdk_dispatcher.py) |
+| Templates | [src/templates/_base/](src/templates/_base/) + django, fastapi, go, go-fiber, nextjs, react-native, python, meta (8 stacks) |
 
 ## Persona Enforcement Coverage
 
@@ -171,11 +169,11 @@ Hook enforcement varies by runtime — choose accordingly:
 
 | Runtime | Hooks fire | Use for |
 |---|---|---|
-| Claude Code | 58/62 ✅ | All protected work (gates + skills + doc-anchor enforce) |
-| Cursor (Agent mode) | 59/62 ✅ | All protected work |
-| Codex CLI (`codex exec`) | 21/62 ⚠️ | Bash-only — NOT for Write/Edit on `src/core/**` |
-| Codex.app (Antigravity GUI) | **0/62** ❌ | DO NOT use for protected work — `.codex/hooks.json` silently ignored upstream |
-| Human (direct edit) | 0/62 ❌ | Install `bash src/scripts/install-git-hooks.sh` for git pre-commit coverage |
+| Claude Code | ~71/75 ✅ | All protected work (gates + skills + doc-anchor enforce) |
+| Cursor (Agent mode) | ~72/75 ✅ | All protected work |
+| Codex CLI (`codex exec`) | ~25/75 ⚠️ | Bash-only matcher — NOT for Write/Edit on `src/core/**` |
+| Codex.app (Antigravity GUI) | **0/75** ❌ | DO NOT use for protected work — `.codex/hooks.json` silently ignored upstream |
+| Human (direct edit) | 0/75 ❌ | Install `bash src/scripts/install-git-hooks.sh` for git pre-commit coverage |
 
 Audit + reasoning: [docs/engineering/workflow-audit-2026-04-25.md](docs/engineering/workflow-audit-2026-04-25.md). Codex GUI fallback details: [docs/engineering/codex-presence-fallback.md](docs/engineering/codex-presence-fallback.md).
 
