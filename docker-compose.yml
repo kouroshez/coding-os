@@ -1,10 +1,25 @@
-# coding-os Hub — demo compose file.
+# coding-os Hub — compose file.
 #
-#   docker compose up          # build + run the Hub
+#   docker compose up                  # build + run the Hub
 #   open http://127.0.0.1:9188
 #
-# Single-service demo. The Hub state (SQLite DB, traces) lives in a
-# named volume so it survives `docker compose down` / `up` cycles.
+# Architecture split:
+#   - Hub (this container)  → web/visualization layer (graph · board ·
+#     cognition · search). Stateless beyond the named volume below.
+#   - Consumer projects     → live on the HOST filesystem (each has
+#     its own .coding-os/, MCP server, skills, adapters). The Hub
+#     READS their state via the bind mount declared below — it does
+#     NOT manage their lifecycle.
+#
+# Auto-discovery contract:
+#   The host's home directory is bind-mounted read-only inside the
+#   container at the SAME path. The Hub's registry path env var
+#   points at the host's registry file (mounted via the same bind),
+#   so every absolute path inside the registry stays valid inside
+#   the container. `cos registry scan ~` Just Works.
+#
+# Custom scan root (e.g. only mount your projects dir):
+#   SCAN_ROOT=$HOME/projects docker compose up
 services:
   hub:
     build:
@@ -16,9 +31,28 @@ services:
     environment:
       COS_WEB_HOST: 0.0.0.0
       COS_WEB_PORT: "9188"
+      # Tell the Hub where the host's registry lives. Defaults to the
+      # XDG location relative to the host's $HOME (which is bind-mounted
+      # same-path below). Override if you keep it elsewhere.
+      COS_REGISTRY_PATH: ${COS_REGISTRY_PATH:-${HOME}/.config/coding-os/registry.json}
+      # Default scan root surfaced by /api/hub/suggest-roots and used
+      # by `cos registry scan` inside the container.
+      COS_SCAN_ROOT: ${SCAN_ROOT:-/host}
     volumes:
-      # Persist Hub runtime state across container restarts.
+      # Hub's own runtime state (SQLite, traces) — survives down/up.
       - cos-state:/app/.coding-os
+      # Host filesystem mount — read-only. Defaults to $HOME; override
+      # via SCAN_ROOT for a narrower window (e.g. $HOME/projects).
+      # Mounted at /host AND at the same path as on the host (via
+      # the second bind) so absolute paths in the registry resolve.
+      - type: bind
+        source: ${SCAN_ROOT:-${HOME}}
+        target: /host
+        read_only: true
+      - type: bind
+        source: ${SCAN_ROOT:-${HOME}}
+        target: ${SCAN_ROOT:-${HOME}}
+        read_only: true
     restart: unless-stopped
     healthcheck:
       test:

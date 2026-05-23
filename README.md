@@ -56,26 +56,72 @@ For Codex or Cursor, swap `--agent claude` for `--agent codex` or
 installer is `src/adapters/<agent>/install.sh`; `cos init` runs it
 for you and re-runs it on `cos update`.
 
-## Run with Docker (zero local Python)
+## Run with Docker (Hub layer; native for projects)
 
-The repo ships a production-shaped `Dockerfile` (multi-stage UI +
-Python runtime, non-root user, healthcheck) and a `docker-compose.yml`
-that runs the Hub on port 9188 with a persistent named volume.
+**Architecture split** — adopted because each layer wants a different
+deploy shape:
+
+| Layer | Runs where | Why |
+|---|---|---|
+| **Hub** (web panel: graph · board · cognition · search) | **Docker** (production-shaped) | Reproducible build · isolated runtime · same image dev → CI → prod |
+| **Consumer projects** (each project's `.coding-os/`, MCP server, skills, adapters) | **Host (native)** | Agent runtimes (Claude Code / Cursor / Codex CLI) live on the host filesystem · `cos init` factory writes alongside your source · IDE/editor needs direct paths |
+
+The Hub container **reads** the host's projects via a read-only bind
+mount and the host's registry file, so every absolute path stays
+valid inside the container — no path translation.
+
+### Quickstart
 
 ```bash
-# Foreground, build + run in one step:
 docker compose up
-
-# Or build + run manually:
-docker build -t coding-os-hub .
-docker run --rm -p 9188:9188 coding-os-hub
+# → http://127.0.0.1:9188
 ```
 
-Open `http://127.0.0.1:9188`. State (SQLite DB, traces) lives in the
-`cos-state` named volume and survives `docker compose down` / `up`
-cycles. The image is a **single-project demo** of the Hub — for
-running the full `cos init` factory locally, use the native quickstart
-above. Multi-project production deployment is on the roadmap.
+By default, `docker-compose.yml` bind-mounts `$HOME` read-only at
+the same path inside the container so `cos registry scan ~` finds
+every `.coding-os/` directory below it. Hub state (SQLite, traces)
+lives in the `cos-state` named volume and survives `down` / `up`.
+
+### Auto-discovery
+
+Inside the running container the Hub reads your host's registry
+file. Two paths to populate it:
+
+```bash
+# (a) On the host, register projects via the native CLI:
+cos registry scan ~              # walks $HOME, prints every .coding-os/
+cos registry scan ~ --register   # register everything it finds
+cos registry add ~/projects/my-shop
+
+# (b) Or from the Hub UI: 'Add project' → paste a host path → the
+#     Hub validates via /api/hub/registry/add (which calls registry
+#     scan/add under the hood).
+```
+
+Restart of the Hub container is **not** required after registry
+changes — the registry file is re-read on every `/api/hub/projects`
+request.
+
+### Narrowing the mount
+
+`$HOME` is the convenient default but broader than you want for
+production. Mount only a projects directory:
+
+```bash
+SCAN_ROOT=$HOME/projects docker compose up
+```
+
+### Manual `docker run` (no compose)
+
+```bash
+docker build -t coding-os-hub .
+docker run --rm -p 9188:9188 \
+  -e COS_REGISTRY_PATH=/host/.config/coding-os/registry.json \
+  -v "$HOME:$HOME:ro" \
+  -v "$HOME:/host:ro" \
+  -v cos-state:/app/.coding-os \
+  coding-os-hub
+```
 
 ## MCP server wire-up (Claude / Codex / Cursor)
 
