@@ -24,3 +24,17 @@ jobs:
           # config + manifest live at the repo root.
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          # Prefer an explicit PAT (RELEASE_PLEASE_TOKEN secret) so the
+          # release PR ALSO triggers downstream workflows on its push
+          # event; default GITHUB_TOKEN cannot do that. Falls back to
+          # GITHUB_TOKEN when the PAT secret is not set. If you see
+          # "Bad credentials" here, the cause is one of:
+          #   (a) repo Settings → Actions → General → Workflow
+          #       permissions = "Read repository contents" (read-only).
+          #       Change to "Read and write" AND check
+          #       "Allow GitHub Actions to create and approve pull
+          #       requests". This is the most common cause.
+          #   (b) The RELEASE_PLEASE_TOKEN secret is set but invalid /
+          #       expired / lacks `contents:write` + `pull_requests:write`
+          #       scopes. Regenerate the PAT.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
