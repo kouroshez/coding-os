@@ -662,13 +662,20 @@ def cos_graph_query(
         logger.debug("community grouping suppressed: %s", exc)
         processes = []
 
+    total = len(results)
     return _ok(
-        {"results": results[:limit], "processes": processes},
+        {
+            "results": results[:limit],
+            "processes": processes,
+            "total_count": total,
+        },
         meta={
             "query": query_meta,
             "backend": be.backend_id,
             "include_spine": include_spine,
             "process_count": len(processes),
+            "limit": limit,
+            "result_truncated": total > limit,
         },
     )
 
@@ -891,20 +898,25 @@ def cos_graph_detect_changes(
     affected_symbols: list[dict[str, Any]] = []
     downstream_tasks: set[str] = set()
     risk = "low"
+    _DC_VISIT_LIMIT = 500
+    walk_truncated = False
 
     for file_path in files:
         file_uid = f"code:file:{file_path}"
         node = be.get_node(file_uid)
         if node is None:
             continue
-        _, edges = _walk_bfs(
+        nodes_1, edges = _walk_bfs(
             be,
             root_uid=file_uid,
             direction="both",
             max_hops=1,
             confidence_min=0.0,
             edge_types=None,
+            visit_limit=_DC_VISIT_LIMIT,
         )
+        if len(nodes_1) >= _DC_VISIT_LIMIT:
+            walk_truncated = True
         for edge in edges:
             affected_symbols.append(
                 {
@@ -920,14 +932,17 @@ def cos_graph_detect_changes(
                 if uid_candidate.startswith("task:file:"):
                     downstream_tasks.add(uid_candidate)
         if analyze_downstream:
-            _, deep_edges = _walk_bfs(
+            nodes_deep, deep_edges = _walk_bfs(
                 be,
                 root_uid=file_uid,
                 direction="in",
                 max_hops=3,
                 confidence_min=0.6,
                 edge_types=None,
+                visit_limit=_DC_VISIT_LIMIT,
             )
+            if len(nodes_deep) >= _DC_VISIT_LIMIT:
+                walk_truncated = True
             # B15: also collect task uids from the deep (depth-3) walk.
             for deep_edge in deep_edges:
                 for uid_candidate in (deep_edge.source_uid, deep_edge.target_uid):
@@ -946,7 +961,12 @@ def cos_graph_detect_changes(
             "downstream_tasks": sorted(downstream_tasks),
             "risk_level": risk,
         },
-        meta={"backend": be.backend_id, "analyze_downstream": analyze_downstream},
+        meta={
+            "backend": be.backend_id,
+            "analyze_downstream": analyze_downstream,
+            "visit_limit": _DC_VISIT_LIMIT,
+            "walk_truncated": walk_truncated,
+        },
     )
 
 
@@ -1022,6 +1042,10 @@ def cos_graph_trace(
         for edge in edges:
             if edge.target_uid not in seen:
                 stack.append(edge.target_uid)
+    # Walk stopped either because the stack drained (complete) or
+    # because the step cap fired (incomplete — caller should re-run
+    # with a higher max_steps or split the trace at a branch).
+    walk_truncated = len(steps) >= max_steps and bool(stack)
     return _ok(
         {
             "entry": NodeSummary.from_node(root).to_dict(),
@@ -1034,6 +1058,8 @@ def cos_graph_trace(
             "backend": be.backend_id,
             "step_count": len(steps),
             "start_source": start_source,
+            "max_steps": max_steps,
+            "walk_truncated": walk_truncated,
         },
     )
 
@@ -1130,13 +1156,24 @@ def cos_graph_similar(
         if ratio >= confidence_min:
             scored.append((ratio, node))
     scored.sort(key=lambda pair: pair[0], reverse=True)
+    top_k_eff = max(1, top_k)
+    total = len(scored)
     results = [
         {**NodeSummary.from_node(n).to_dict(), "similarity": round(r, 4)}
-        for r, n in scored[: max(1, top_k)]
+        for r, n in scored[:top_k_eff]
     ]
     return _ok(
-        {"root": NodeSummary.from_node(root).to_dict(), "results": results},
-        meta={"backend": be.backend_id, "scorer": scorer_name},
+        {
+            "root": NodeSummary.from_node(root).to_dict(),
+            "results": results,
+            "total_count": total,
+        },
+        meta={
+            "backend": be.backend_id,
+            "scorer": scorer_name,
+            "top_k": top_k_eff,
+            "result_truncated": total > top_k_eff,
+        },
     )
 
 
@@ -1667,22 +1704,39 @@ def cos_graph_rename_plan(
         return _fail_uid_not_found(uid, tried_uids)
     uid = root.uid
 
+    # Rename plans MUST be exhaustive — a missed call-site leaves
+    # broken code after rename. Counter each bucket separately so the
+    # caller can see if the in-line slice was incomplete.
+    _RENAME_BUCKET_LIMIT = 500
+    call_edge_types = ("calls", "accesses_field", "imports")
+    doc_edge_types = ("links_to", "cites_heading", "references_doc")
+    test_edge_types = ("tested_by",)
     call_sites = [
         _edge_to_dict(e)
         for e in be.list_edges(
-            target_uid=uid, edge_types=("calls", "accesses_field", "imports"), limit=500
+            target_uid=uid, edge_types=call_edge_types, limit=_RENAME_BUCKET_LIMIT
         )
     ]
     doc_refs = [
         _edge_to_dict(e)
         for e in be.list_edges(
-            target_uid=uid, edge_types=("links_to", "cites_heading", "references_doc"), limit=500
+            target_uid=uid, edge_types=doc_edge_types, limit=_RENAME_BUCKET_LIMIT
         )
     ]
     test_refs = [
         _edge_to_dict(e)
-        for e in be.list_edges(target_uid=uid, edge_types=("tested_by",), limit=500)
+        for e in be.list_edges(
+            target_uid=uid, edge_types=test_edge_types, limit=_RENAME_BUCKET_LIMIT
+        )
     ]
+    call_total = _count_edges_for(be, target_uid=uid, edge_types=call_edge_types)
+    doc_total = _count_edges_for(be, target_uid=uid, edge_types=doc_edge_types)
+    test_total = _count_edges_for(be, target_uid=uid, edge_types=test_edge_types)
+    result_truncated = (
+        call_total > len(call_sites)
+        or doc_total > len(doc_refs)
+        or test_total > len(test_refs)
+    )
     risk = "high" if len(call_sites) > 20 else "medium" if call_sites else "low"
 
     return _ok(
@@ -1691,8 +1745,11 @@ def cos_graph_rename_plan(
             "new_name": new_name,
             "uid": root.uid,
             "call_sites": call_sites,
+            "call_sites_total_count": call_total,
             "doc_references": doc_refs,
+            "doc_references_total_count": doc_total,
             "test_references": test_refs,
+            "test_references_total_count": test_total,
             "string_literals": [] if not check_strings else _grep_string_literals(root.label or ""),
             "risk": risk,
             "suggested_order": [
@@ -1703,7 +1760,11 @@ def cos_graph_rename_plan(
             ],
             "confidence": 0.9 if call_sites else 0.6,
         },
-        meta={"backend": be.backend_id},
+        meta={
+            "backend": be.backend_id,
+            "bucket_limit": _RENAME_BUCKET_LIMIT,
+            "result_truncated": result_truncated,
+        },
     )
 
 
@@ -1726,8 +1787,16 @@ def cos_graph_contracts(
         "event_handlers": [],
         "websocket": [],
     }
+    # Per-edge-type slice — silent truncation at limit=2000 would hide
+    # contracts on a large API surface. Counter each kind so the agent
+    # knows if the slice was complete.
+    _CONTRACT_BUCKET_LIMIT = 2000
+    per_kind_truncated: dict[str, bool] = {}
     for edge_type in ("handles_route", "handles_tool", "handles_event"):
-        for edge in be.list_edges(edge_types=(edge_type,), limit=2000):
+        edges_slice = be.list_edges(edge_types=(edge_type,), limit=_CONTRACT_BUCKET_LIMIT)
+        total = _count_edges_for(be, edge_types=(edge_type,))
+        per_kind_truncated[edge_type] = total > len(edges_slice)
+        for edge in edges_slice:
             node = be.get_node(edge.target_uid)
             if node is None:
                 continue
@@ -1752,9 +1821,16 @@ def cos_graph_contracts(
                     "confidence": edge.confidence,
                 }
             )
+    result_truncated = any(per_kind_truncated.values())
     return _ok(
         {"scope": scope, **buckets, "count": sum(len(v) for v in buckets.values())},
-        meta={"backend": be.backend_id, "kinds": list(kinds)},
+        meta={
+            "backend": be.backend_id,
+            "kinds": list(kinds),
+            "bucket_limit": _CONTRACT_BUCKET_LIMIT,
+            "result_truncated": result_truncated,
+            "per_edge_type_truncated": per_kind_truncated,
+        },
     )
 
 
@@ -1976,13 +2052,16 @@ def cos_graph_entrypoints(
         )
 
     eps = ep_mod.discover(be, min_score=float(min_score), kind_filter=kind)
+    total = len(eps)
     rows = [ep.to_dict() for ep in eps[:top]]
     return _ok(
-        {"entrypoints": rows},
+        {"entrypoints": rows, "total_count": total},
         meta={
             "backend": be.backend_id,
             "count": len(rows),
             "scanned_kinds": list(("code:function", "code:method", "function", "method")),
+            "top": top,
+            "result_truncated": total > top,
         },
     )
 

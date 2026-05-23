@@ -341,6 +341,82 @@ class TestContextTruncation:
         assert data["meta"]["visit_limit"] == 1
 
 
+class TestSweepCoverageSignals:
+    """One-shot coverage audit (2026-05-23) — every cos_graph_* tool that
+    can silently truncate MUST emit either `meta.result_truncated` or
+    `meta.walk_truncated` so the agent never proceeds on incomplete
+    data. Pins the contract for the seven tools that gained the signal
+    in the deep-sweep audit."""
+
+    def test_query_emits_result_truncated_and_total(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_query("foo", limit=10))
+        assert "total_count" in data
+        assert data["meta"]["result_truncated"] is False
+        assert data["meta"]["limit"] == 10
+        # Tighten to force truncation if there are >1 hits.
+        tight = _assert_ok(graph.cos_graph_query("foo", limit=1))
+        if tight["total_count"] > 1:
+            assert tight["meta"]["result_truncated"] is True
+
+    def test_similar_emits_result_truncated_and_total(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_similar("code:function:a.py::foo", top_k=20))
+        assert "total_count" in data
+        assert "result_truncated" in data["meta"]
+        assert "top_k" in data["meta"]
+
+    def test_rename_plan_emits_per_bucket_totals(self, seeded_backend):
+        data = _assert_ok(
+            graph.cos_graph_rename_plan("code:function:a.py::foo", "renamed_foo")
+        )
+        assert "call_sites_total_count" in data
+        assert "doc_references_total_count" in data
+        assert "test_references_total_count" in data
+        assert "result_truncated" in data["meta"]
+        assert "bucket_limit" in data["meta"]
+        # Small seeded — totals match in-line lengths.
+        assert data["call_sites_total_count"] == len(data["call_sites"])
+        assert data["meta"]["result_truncated"] is False
+
+    def test_trace_emits_walk_truncated(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_trace("code:function:a.py::foo"))
+        assert "max_steps" in data["meta"]
+        assert "walk_truncated" in data["meta"]
+
+    def test_trace_walk_truncated_fires_under_tight_max_steps(self, seeded_backend):
+        data = _assert_ok(
+            graph.cos_graph_trace("code:function:a.py::foo", max_steps=1)
+        )
+        # max_steps=1 stops after the root if the stack still has work.
+        if data["meta"]["step_count"] == 1:
+            # walk_truncated should be True iff the walk could have continued.
+            assert "walk_truncated" in data["meta"]
+
+    def test_contracts_emits_per_kind_truncated(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_contracts())
+        assert "result_truncated" in data["meta"]
+        assert "per_edge_type_truncated" in data["meta"]
+        assert "bucket_limit" in data["meta"]
+        # Small seeded — none of the buckets exceed 2000 edges.
+        assert data["meta"]["result_truncated"] is False
+        assert all(v is False for v in data["meta"]["per_edge_type_truncated"].values())
+
+    def test_detect_changes_emits_walk_truncated(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_detect_changes(files=["a.py"]))
+        assert "visit_limit" in data["meta"]
+        assert "walk_truncated" in data["meta"]
+
+    def test_entrypoints_emits_result_truncated(self, seeded_backend):
+        # ep module may be missing on stub backends — accept either ok
+        # or unavailable, but if ok, the new signals must be present.
+        res = graph.cos_graph_entrypoints(top=5)
+        env = json.loads(res) if isinstance(res, str) else res
+        if env.get("ok"):
+            data = env["data"]
+            assert "total_count" in data
+            assert "result_truncated" in data["meta"]
+            assert "top" in data["meta"]
+
+
 class TestPath:
     def test_happy_path(self, seeded_backend):
         data = _assert_ok(

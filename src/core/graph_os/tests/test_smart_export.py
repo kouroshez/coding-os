@@ -389,3 +389,154 @@ class TestRootWalkMaxHops:
         uids = {n["uid"] for n in res["data"]["nodes"]}
         assert "code:module:level_1" in uids
         assert "code:module:level_2" not in uids
+
+
+# ---------------------------------------------------------------------------
+# 8-bucket auto-blend coverage — added 2026-05-23 audit. Doc-link and
+# decoration buckets were absent from the previous 6-bucket recipe; the
+# blend rendered the doc subgraph invisible (1.5K+ links_to edges).
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def doc_link_backend():
+    """Backend with mixed contains + calls + doc-link + decoration edges."""
+    nodes = [
+        _node("code:file:a.py", kind="code:file"),
+        _node("code:function:a.py::foo", label="foo"),
+        _node("code:function:a.py::bar", label="bar"),
+        _node("doc:file:guide.md", kind="doc_file", label="guide.md"),
+        _node("doc:file:other.md", kind="doc_file", label="other.md"),
+        _node("code:function:a.py::decorated", label="decorated"),
+        _node("code:function:a.py::decorator", label="decorator"),
+    ]
+    edges = [
+        # contains spine
+        _edge("code:file:a.py", "code:function:a.py::foo", "contains"),
+        _edge("code:file:a.py", "code:function:a.py::bar", "contains"),
+        # semantic
+        _edge("code:function:a.py::foo", "code:function:a.py::bar", "calls"),
+        # doc cross-link — previously invisible in auto mode
+        _edge("doc:file:guide.md", "doc:file:other.md", "links_to"),
+        _edge("doc:file:guide.md", "code:function:a.py::foo", "references_doc"),
+        # decoration
+        _edge("code:function:a.py::decorated", "code:function:a.py::decorator", "is_decorated_by"),
+    ]
+    return _StubBackend(nodes, edges)
+
+
+class TestAutoBlendNewBuckets:
+    def test_auto_mode_includes_doc_link_edges(self, doc_link_backend, monkeypatch):
+        """Pre-2026-05-23: auto blend had no doc_link bucket so links_to
+        edges only landed if they happened to win the per-bucket race
+        in another category. Now there's a dedicated bucket."""
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", doc_link_backend)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: doc_link_backend)
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=100))
+        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
+        assert "links_to" in edge_types, (
+            "auto blend must include links_to edges via the doc_link bucket"
+        )
+
+    def test_auto_mode_includes_decoration_edges(self, doc_link_backend, monkeypatch):
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", doc_link_backend)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: doc_link_backend)
+        res = _parse(graph_tools.cos_graph_export(mode="auto", max_nodes=100))
+        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
+        assert "is_decorated_by" in edge_types, (
+            "auto blend must include is_decorated_by edges via the decoration bucket"
+        )
+
+    def test_dependencies_mode_includes_doc_link(self, doc_link_backend, monkeypatch):
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", doc_link_backend)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: doc_link_backend)
+        res = _parse(graph_tools.cos_graph_export(mode="dependencies", max_nodes=100))
+        edge_types = {e["edge_type"] for e in res["data"]["edges"]}
+        assert "links_to" in edge_types or "is_decorated_by" in edge_types
+
+
+# ---------------------------------------------------------------------------
+# stale_paths detector (cos_graph_doctor) — added 2026-05-23 audit.
+# Previously zero pytest coverage; the detector removed 3,727 ghost
+# nodes from the live repo so silent regression would be very bad.
+# ---------------------------------------------------------------------------
+
+
+class TestStalePathsDetector:
+    def test_reports_stale_paths_when_files_missing(self, tmp_path, monkeypatch):
+        """Build a real SqliteBackend on a temp DB, seed it with file_path
+        nodes pointing to /definitely-not-on-disk, then confirm doctor
+        surfaces them as stale_paths."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        db_path = tmp_path / "probe.db"
+        backend = SqliteBackend(db_path=str(db_path))
+        # Seed two nodes — one with a real path, one with a stale one.
+        real_file = tmp_path / "exists.py"
+        real_file.write_text("# present on disk\n")
+        backend.upsert_node(
+            GraphNode(
+                uid="code:file:exists.py",
+                kind="code:file",
+                label="exists.py",
+                file_path=str(real_file),
+                start_line=1,
+                metadata={},
+            )
+        )
+        backend.upsert_node(
+            GraphNode(
+                uid="code:file:stale.py",
+                kind="code:file",
+                label="stale.py",
+                file_path="/definitely-not-on-disk-stale.py",
+                start_line=1,
+                metadata={},
+            )
+        )
+        # Point doctor's repo-root probe at our tmp_path so the
+        # "exists.py" file resolves there.
+        monkeypatch.setattr(
+            graph_tools,
+            "_repo_root_for_paths",
+            lambda: tmp_path,
+        )
+        captured = backend
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", captured)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: captured)
+
+        res = _parse(graph_tools.cos_graph_doctor())
+        assert res["ok"] is True
+        categories = {issue["category"] for issue in res["data"]["issues"]}
+        assert "stale_paths" in categories
+        stale = next(i for i in res["data"]["issues"] if i["category"] == "stale_paths")
+        # /definitely-not-on-disk-stale.py is absolute, so doctor checks
+        # `tmp_path / "/definitely-not-on-disk-stale.py"` which is itself
+        # absolute and not-exists; that counts as stale.
+        assert stale["count"] >= 1
+
+    def test_no_false_positives_on_clean_graph(self, tmp_path, monkeypatch):
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        db_path = tmp_path / "probe.db"
+        backend = SqliteBackend(db_path=str(db_path))
+        real_file = tmp_path / "x.py"
+        real_file.write_text("# ok\n")
+        backend.upsert_node(
+            GraphNode(
+                uid="code:file:x.py",
+                kind="code:file",
+                label="x.py",
+                file_path="x.py",  # relative — resolved against repo_root
+                start_line=1,
+                metadata={},
+            )
+        )
+        monkeypatch.setattr(graph_tools, "_repo_root_for_paths", lambda: tmp_path)
+        captured = backend
+        monkeypatch.setattr(graph_tools, "_BACKEND_SINGLETON", captured)
+        monkeypatch.setattr(graph_tools, "_backend", lambda backend=None: captured)
+
+        res = _parse(graph_tools.cos_graph_doctor())
+        categories = {issue["category"] for issue in res["data"]["issues"]}
+        assert "stale_paths" not in categories
