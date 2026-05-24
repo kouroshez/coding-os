@@ -422,10 +422,77 @@ class TestEdgeCases:
         decs = [e for e in r.edges if e.edge_type == "is_decorated_by"]
         assert decs
 
-    def test_call_in_module_body_not_in_function(self):
-        """A call at module scope (top-level, not inside a function) is
-        currently not captured by the pure-Python baseline — this is the
-        documented limit from Section 7.3. Assert behaviour explicitly."""
+    def test_call_in_module_body_captured_at_module_scope(self):
+        """Module-level calls (e.g. ``_db_conn = init_db()`` at server.py:51)
+        are captured against the module uid. Closes the gap documented at
+        Section 7.3 — server boot patterns and CLI dispatcher inits were
+        previously dropped, leaving ``cos_graph_references`` blind to
+        prod call-sites."""
         r = _extract("print('hi')")
         calls = [e for e in r.edges if e.edge_type == "calls"]
-        assert calls == []  # documented gap; LSP overlay fills it later
+        assert len(calls) == 1
+        assert calls[0].source_uid.startswith("code:module:")
+
+    def test_module_level_call_resolves_via_unqualified_import(self):
+        """``from <bare> import X`` at module scope followed by ``X()`` at
+        module scope produces a call edge whose target is the external
+        stub ``code:external:<bare>:X``. ``link_external_stubs`` then
+        rewrites the stub to the canonical function uid when a real
+        symbol of that name lives in ``**/<bare>.py`` (covered by
+        ``test_link_external_stubs.py``)."""
+        src = textwrap.dedent(
+            """
+            from database import init_db
+            _db_conn = init_db()
+            """
+        )
+        r = code_python.extract("core/thinking_os/server.py", src)
+        calls = [e for e in r.edges if e.edge_type == "calls"]
+        assert len(calls) == 1
+        assert calls[0].target_uid == "code:external:database:init_db", (
+            f"expected stub-style target, got {calls[0].target_uid}"
+        )
+
+    def test_function_local_import_resolves_call_to_external_stub(self):
+        """A function that does ``from <pkg> import X`` THEN ``X()``
+        inside its own body must produce a resolved call edge, not a
+        ``code:external:unresolved:`` orphan. This is the sync_all.py
+        / graph_commands.py pattern: defer the import to avoid top-level
+        cycles, then invoke. Without this, prod CLI commands stayed
+        invisible to ``cos_graph_references``."""
+        src = textwrap.dedent(
+            """
+            def _apply():
+                from thinking_os.database import init_db
+                return init_db()
+            """
+        )
+        r = code_python.extract("core/cli/sync.py", src)
+        calls = [e for e in r.edges if e.edge_type == "calls"]
+        assert len(calls) == 1
+        # Target should be the bare-import stub (post-link rewritten by
+        # link_external_stubs into the canonical uid).
+        assert calls[0].target_uid == "code:external:thinking_os.database:init_db", (
+            f"expected resolved stub, got {calls[0].target_uid}"
+        )
+        # Caller scope is the function, not module.
+        assert calls[0].source_uid.endswith("::_apply")
+
+    def test_module_level_call_skips_for_decl_statements(self):
+        """The module-level walk must NOT double-count calls already
+        captured inside FunctionDef / ClassDef bodies — that would
+        produce duplicate ``calls`` edges."""
+        src = textwrap.dedent(
+            """
+            def outer():
+                inner()
+
+            def inner():
+                pass
+            """
+        )
+        r = code_python.extract("core/dup.py", src)
+        calls = [e for e in r.edges if e.edge_type == "calls"]
+        # Exactly one call: outer -> inner. No module-level duplicate.
+        assert len(calls) == 1
+        assert calls[0].source_uid.endswith("::outer")

@@ -496,6 +496,29 @@ def extract(path: str, content: str) -> ExtractionResult:
     visitor = _PythonVisitor(path=normalised, module_name=mod_name, content=content)
     visitor.visit(tree)
 
+    # Module-level call statements (e.g. ``_db_conn = init_db()`` at
+    # server.py:51) are not captured during ``visitor.visit`` because the
+    # visitor only walks call-sites inside ``visit_FunctionDef`` /
+    # ``visit_AsyncFunctionDef``. After the visit completes, the scope
+    # stack is back at module scope, so walking top-level non-decl
+    # statements attributes their calls correctly to the module uid.
+    # FunctionDef / ClassDef are skipped because their bodies were
+    # already walked. Import / ImportFrom were registered by
+    # ``visit_Import`` / ``visit_ImportFrom`` during generic_visit.
+    for stmt in tree.body:
+        if isinstance(
+            stmt,
+            (
+                ast.FunctionDef,
+                ast.AsyncFunctionDef,
+                ast.ClassDef,
+                ast.Import,
+                ast.ImportFrom,
+            ),
+        ):
+            continue
+        visitor._walk_calls(stmt)
+
     # TASK-119: tree-sitter primary path for imports, opt-in via the
     # `--extractor=tree-sitter` flag (TASK-122).  When active and the
     # grammar parse succeeds, replace the ast-derived import list with
@@ -917,7 +940,18 @@ class _PythonVisitor(ast.NodeVisitor):
 
     def _walk_calls(self, node: ast.AST) -> None:
         for sub in ast.walk(node):
-            if isinstance(sub, ast.Call):
+            # Function-local / nested-block imports must register so
+            # call-site resolution (line 685 in extract()) can rewrite a
+            # bare `init_db()` call into `code:external:database:init_db`
+            # which `link_external_stubs` then promotes to the canonical
+            # function uid. Without this, prod call-sites that do
+            # `from <pkg> import X` inside a function are silently
+            # dropped as `code:external:unresolved:X` orphans.
+            if isinstance(sub, ast.Import):
+                self.visit_Import(sub)
+            elif isinstance(sub, ast.ImportFrom):
+                self.visit_ImportFrom(sub)
+            elif isinstance(sub, ast.Call):
                 target = _dotted_name(sub.func)
                 if not target:
                     continue

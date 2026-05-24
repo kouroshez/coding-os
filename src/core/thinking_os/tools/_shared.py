@@ -106,27 +106,34 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
     existing_meta["truncated"] = False
 
-    # Enforce token budget
+    # Enforce token budget. `truncated` only flips when _apply_token_budget
+    # actually shrank the body — a no-op (shape not matched) leaves the
+    # flag False so agents trust the signal.
     if len(serialized) > TOKEN_BUDGET_CHARS:
-        body, existing_meta = _apply_token_budget(body, existing_meta)
-        existing_meta["truncated"] = True
-        serialized = json.dumps(
-            {"ok": True, "data": {**body, "meta": existing_meta}},
-            indent=2,
-            default=str,
-        )
-        existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
+        body, existing_meta, did_trim = _apply_token_budget(body, existing_meta)
+        if did_trim:
+            existing_meta["truncated"] = True
+            serialized = json.dumps(
+                {"ok": True, "data": {**body, "meta": existing_meta}},
+                indent=2,
+                default=str,
+            )
+            existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
 
     payload = {"ok": True, "data": {**body, "meta": existing_meta}}
     return json.dumps(payload, indent=2, default=str)
 
 
-def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict]:
-    """Shrink `body` to fit TOKEN_BUDGET_CHARS by trimming `results` list."""
+def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
+    """Shrink `body` to fit TOKEN_BUDGET_CHARS by trimming `results` list.
+
+    Returns ``(body, meta, did_trim)``. ``did_trim`` is False when the
+    body shape doesn't match the standard ``results`` list-wrapper so
+    callers know not to flip ``meta.truncated``.
+    """
     results = body.get("results")
     if not isinstance(results, list) or not results:
-        # Shape doesn't match the standard list-wrapper; leave it alone
-        return body, meta
+        return body, meta, False
 
     original_n = len(results)
     for keep in range(original_n - 1, 0, -1):
@@ -139,13 +146,13 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict]:
         if len(probe) <= TOKEN_BUDGET_CHARS:
             meta["truncated_results_from"] = original_n
             meta["truncated_results_to"] = keep
-            return trimmed_body, meta
+            return trimmed_body, meta, True
 
     # Even keeping one result is over budget — return a body with zero results
     # so the envelope is at least valid JSON.
     meta["truncated_results_from"] = original_n
     meta["truncated_results_to"] = 0
-    return {**body, "results": []}, meta
+    return {**body, "results": []}, meta, True
 
 
 # ---------------------------------------------------------------------------
