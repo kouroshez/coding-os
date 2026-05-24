@@ -123,6 +123,41 @@ published commit. `git reset HEAD~1` is BLOCKed by `branch-guard.sh`
 because it orphans the bad commit but leaves peer sessions with a
 phantom HEAD.
 
+## Commit Message Contract (Always Active)
+
+> **Hard rule:** Title ≤100 chars. Body ≤3 non-empty lines. No agent / AI attribution. No quoted user prompts. No `Co-Authored-By:` trailers. Enforced by two layers — `enforce-commit-message.sh` (PreToolUse Bash) blocks the agent before `git commit` runs; the git-level `commit-msg` hook (installed via `src/scripts/install-git-hooks.sh`) blocks human-direct + Codex-GUI commits.
+
+### Why
+
+Every line in a commit message exists forever. Verbose bodies (audit tables, file lists, verification blocks) bloat `git log`, leak ephemeral context into permanent history, and inflate token cost for every future agent that ever runs `git log`. Enterprise convention (Linux kernel, Chromium, Google) is title + tight 2–3 line "why". Anything richer belongs in the PR description, the audit doc, or the work-log — not the commit.
+
+### Shape
+
+```
+<conventional-commit title — ≤100 chars, no agent attribution>
+<blank>
+<body — ≤3 non-empty lines, plain prose explaining "why">
+```
+
+### Forbidden (will BLOCK)
+
+- `Co-Authored-By:` trailers of any kind (agent attribution belongs nowhere in history).
+- Lines containing `🤖`, `Generated with [Claude`, `noreply@anthropic.com`, `claude.com/claude-code`, `@anthropic.com`.
+- Any paragraph whose first line begins with `USER` / `User` / `user` (prompt leak).
+- Quoted Persian/Arabic text >40 characters (user-prompt leak: `"..."`).
+- Markdown tables, bullet lists of file paths, `Verification:` / `Tests:` / `Files:` headers — these are PR-description / audit-doc material, not commit body.
+
+### Allowed escape hatch
+
+`git commit --no-verify ...` bypasses the git-level hook for the rare legitimate case (e.g. emergency revert). The PreToolUse hook does NOT honor `--no-verify` — agents always go through the contract.
+
+### Install (per repo, once)
+
+```bash
+bash src/scripts/install-git-hooks.sh
+# installs .git/hooks/pre-commit AND .git/hooks/commit-msg
+```
+
 ## Anti-patterns (reject on sight)
 
 - `git checkout -b feature/...` "to keep main clean" — no, commit to main.

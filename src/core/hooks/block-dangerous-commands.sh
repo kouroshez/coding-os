@@ -16,16 +16,27 @@ fi
 cos_log_hook block-dangerous-commands fire "tool=Bash"
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 
-# Block force push to main/master
-if echo "$COMMAND" | grep -qE 'git push.*--force.*(main|master)'; then
-  cos_log_hook block-dangerous-commands block "rule=force-push-main"
-  echo "BLOCKED: Force push to main/master is extremely dangerous and can destroy shared history. Use a feature branch instead." >&2
-  exit 2
+# Block force push to main/master. Opt-in escape hatch for legitimate cases
+# (pre-public history scrub, secret removal, BFG-style cleanup): prefix the
+# command with COS_ALLOW_FORCE_PUSH_MAIN=1 (or export it before the call).
+_FORCE_PUSH_OPT_IN=0
+if [[ "${COS_ALLOW_FORCE_PUSH_MAIN:-0}" == "1" ]]; then
+  _FORCE_PUSH_OPT_IN=1
 fi
-if echo "$COMMAND" | grep -qE 'git push.*-f.*(main|master)'; then
-  cos_log_hook block-dangerous-commands block "rule=force-push-main-short"
-  echo "BLOCKED: Force push to main/master is extremely dangerous. Use a feature branch instead." >&2
-  exit 2
+if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])COS_ALLOW_FORCE_PUSH_MAIN=1\b'; then
+  _FORCE_PUSH_OPT_IN=1
+fi
+if [[ "$_FORCE_PUSH_OPT_IN" != "1" ]]; then
+  if echo "$COMMAND" | grep -qE 'git push.*--force.*(main|master)'; then
+    cos_log_hook block-dangerous-commands block "rule=force-push-main"
+    echo "BLOCKED: Force push to main/master is extremely dangerous and can destroy shared history. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
+    exit 2
+  fi
+  if echo "$COMMAND" | grep -qE 'git push.*-f.*(main|master)'; then
+    cos_log_hook block-dangerous-commands block "rule=force-push-main-short"
+    echo "BLOCKED: Force push to main/master is extremely dangerous. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
+    exit 2
+  fi
 fi
 
 # Block dropping database tables

@@ -54,6 +54,7 @@ run_delegate() {
 for delegate in \
   block-secrets.sh \
   block-dangerous-commands.sh \
+  enforce-commit-message.sh \
   block-uv-heredoc.sh \
   enforce-verify.sh; do
   run_delegate "$delegate"

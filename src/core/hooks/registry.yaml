@@ -69,6 +69,17 @@ hooks:
         matcher: Bash
         status_message: "🌳 Enforcing trunk-based workflow (no branches)..."
 
+  - id: enforce-commit-message
+    script: enforce-commit-message.sh
+    description: Enforces commit message contract — title ≤100 chars, body ≤3 non-empty lines, no Claude/Anthropic/USER/Co-Authored-By attribution, no Persian prompt quotes.
+    category: enforcement
+    phase: G
+    timeout: 5
+    events:
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "📝 Validating commit message contract..."
+
   - id: block-uv-heredoc
     script: block-uv-heredoc.sh
     description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).

@@ -73,6 +73,7 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 | 21 | Never `isolation: "worktree"` — Agent tool only for read-only research; write work single-agent. | [Rule 21](docs/governance/critical-rules.md#rule-21--never-use-isolation-worktree-in-this-repo) |
 | 22 | Anti-overengineering — reuse-first · no speculation · diff-minimal · rule-of-three abstraction · defer-by-default. Applies to **every artifact** (code, docs, hooks, skills, templates). | [Rule 22](docs/governance/critical-rules.md#rule-22--anti-overengineering) · [rule body](src/core/rules/anti-overengineering.md) |
 | 23 | Trunk-based git — commit direct to `main`, never create branches/worktrees; `branch-guard.sh` blocks creation in trunk mode. Overrides runtime "branch first". | [Rule 23](docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow) · [rule body](src/core/rules/git-workflow.md) |
+| 24 | Commit message contract — title ≤100 chars · body ≤3 non-empty lines · no agent attribution / `Co-Authored-By` / quoted prompts. Enforced by `enforce-commit-message.sh` (agent) + git `commit-msg` hook (human/GUI). | [git-workflow.md § Commit Message Contract](src/core/rules/git-workflow.md#commit-message-contract-always-active) |
 
 ## Cognition & Tracing
 

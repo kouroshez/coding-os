@@ -54,6 +54,7 @@ for delegate in \
   block-secrets.sh \
   block-dangerous-commands.sh \
   branch-guard.sh \
+  enforce-commit-message.sh \
   block-uv-heredoc.sh \
   enforce-verify.sh \
   search-enforce-inventory.sh \
