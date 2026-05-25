@@ -47,6 +47,12 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _COMMENT_RE = re.compile(r"(?<!\\)#[^\n]*")
+# E10: heredoc-aware stripping so the regex-fallback doesn't false-match
+# `func_in_heredoc() { }` inside `<<EOF ... EOF` as a real function def.
+_HEREDOC_RE = re.compile(
+    r"<<-?\s*['\"]?(?P<tag>\w+)['\"]?\n[\s\S]*?^[ \t]*(?P=tag)\b",
+    re.MULTILINE,
+)
 _SOURCE_RE = re.compile(r"^\s*(?:source|\.)\s+(?P<path>[^\s;&|]+)", re.MULTILINE)
 _CALL_SCRIPT_RE = re.compile(
     r"""^\s*
@@ -315,7 +321,16 @@ def _walk_regex(
     mod_uid: str,
     result: ExtractionResult,
 ) -> None:
-    stripped = _COMMENT_RE.sub("", content)
+    # E10: blank heredoc bodies first (preserving line count so source
+    # spans stay correct) so `<<EOF\nfake_func() { } \nEOF` cannot
+    # spawn a phantom function node.
+    def _blank_heredoc(match: re.Match[str]) -> str:
+        # Keep the opener + tag, blank the body, keep the closing tag.
+        text = match.group(0)
+        return re.sub(r"[^\n]", " ", text)
+
+    stripped = _HEREDOC_RE.sub(_blank_heredoc, content)
+    stripped = _COMMENT_RE.sub("", stripped)
 
     for match in _SOURCE_RE.finditer(stripped):
         raw_target = match.group("path")
