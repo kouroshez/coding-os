@@ -1340,6 +1340,61 @@ def _migrate_v28_file_index_duration(conn: sqlite3.Connection) -> None:
     logger.info("Migration v28 applied: file_index_state gained duration_ms")
 
 
+def _migrate_v29_fts5_unicode_tokenizer(conn: sqlite3.Connection) -> None:
+    """Migration v29 (G14) — drop `porter` from FTS5 so non-English tokens
+    (Persian, Arabic, Chinese) are actually indexed. porter is an
+    English-only stemmer that strips Persian body content silently;
+    unicode61 alone normalises + tokenises by Unicode letter classes.
+    """
+    if not _table_exists(conn, "graph_nodes"):
+        logger.info("Migration v29 skipped: graph_nodes not present yet")
+        return
+    # Detect current tokenizer; only act when porter is still configured.
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='graph_nodes_fts'"
+    ).fetchone()
+    if row is None:
+        logger.info("Migration v29 skipped: graph_nodes_fts not present")
+        return
+    current_sql = row[0] or ""
+    if "porter" not in current_sql:
+        logger.info("Migration v29 skipped: FTS5 already on unicode61-only tokenizer")
+        return
+    conn.executescript(
+        """
+        DROP TRIGGER IF EXISTS graph_nodes_fts_ai;
+        DROP TRIGGER IF EXISTS graph_nodes_fts_ad;
+        DROP TRIGGER IF EXISTS graph_nodes_fts_au;
+        DROP TABLE IF EXISTS graph_nodes_fts;
+        CREATE VIRTUAL TABLE graph_nodes_fts USING fts5(
+            label, signature, doc_blob,
+            content=graph_nodes,
+            content_rowid=id,
+            tokenize='unicode61 remove_diacritics 2'
+        );
+        INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+            SELECT id, label, COALESCE(signature, ''), COALESCE(doc_blob, '')
+            FROM graph_nodes;
+        CREATE TRIGGER graph_nodes_fts_ai AFTER INSERT ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+                VALUES (new.id, new.label, COALESCE(new.signature, ''), COALESCE(new.doc_blob, ''));
+        END;
+        CREATE TRIGGER graph_nodes_fts_ad AFTER DELETE ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, signature, doc_blob)
+                VALUES ('delete', old.id, old.label, COALESCE(old.signature, ''), COALESCE(old.doc_blob, ''));
+        END;
+        CREATE TRIGGER graph_nodes_fts_au AFTER UPDATE ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, signature, doc_blob)
+                VALUES ('delete', old.id, old.label, COALESCE(old.signature, ''), COALESCE(old.doc_blob, ''));
+            INSERT INTO graph_nodes_fts(rowid, label, signature, doc_blob)
+                VALUES (new.id, new.label, COALESCE(new.signature, ''), COALESCE(new.doc_blob, ''));
+        END;
+        """
+    )
+    conn.commit()
+    logger.info("Migration v29 applied: FTS5 tokenizer porter→unicode61 (Persian/Arabic/CJK now indexed)")
+
+
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     row = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
@@ -1680,6 +1735,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         28,
         "Polyglot v28: file_index_state.duration_ms for per-extractor latency telemetry",
         _migrate_v28_file_index_duration,
+    ),
+    (
+        29,
+        "G14 FTS5 v29: porter→unicode61 tokenizer so Persian/Arabic body content is indexed",
+        _migrate_v29_fts5_unicode_tokenizer,
     ),
 ]
 
