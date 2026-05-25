@@ -437,16 +437,18 @@ class SqliteBackend:
     # -- Read path ---------------------------------------------------------
 
     def get_node(self, uid: str) -> GraphNode | None:
-        with self._write_lock:
-            row = self._conn.execute(
-                """
-                SELECT kind, label, uid, file_path, start_line, end_line,
-                       signature, lang, doc_blob, ast_hash, content_hash,
-                       metadata_json
-                FROM graph_nodes WHERE uid=?
-                """,
-                (uid,),
-            ).fetchone()
+        # G18: pure-SELECT, no write_lock — WAL gives concurrent
+        # readers; the lock here was serialising reads behind any
+        # in-flight write for no correctness benefit.
+        row = self._conn.execute(
+            """
+            SELECT kind, label, uid, file_path, start_line, end_line,
+                   signature, lang, doc_blob, ast_hash, content_hash,
+                   metadata_json
+            FROM graph_nodes WHERE uid=?
+            """,
+            (uid,),
+        ).fetchone()
         if row is None:
             return None
         return self._row_to_node(row)
@@ -459,37 +461,37 @@ class SqliteBackend:
         result: dict[str, GraphNode] = {}
         # SQLite parameter limit is 999; chunk to stay safely under.
         chunk = 500
-        with self._write_lock:
-            for start in range(0, len(uniq), chunk):
-                group = uniq[start : start + chunk]
-                placeholders = ",".join("?" for _ in group)
-                rows = self._conn.execute(
-                    f"""
-                    SELECT kind, label, uid, file_path, start_line, end_line,
-                           signature, lang, doc_blob, ast_hash, content_hash,
-                           metadata_json
-                    FROM graph_nodes WHERE uid IN ({placeholders})
-                    """,
-                    tuple(group),
-                ).fetchall()
-                for row in rows:
-                    node = self._row_to_node(row)
-                    result[node.uid] = node
+        # G18: pure-SELECT, no write_lock.
+        for start in range(0, len(uniq), chunk):
+            group = uniq[start : start + chunk]
+            placeholders = ",".join("?" for _ in group)
+            rows = self._conn.execute(
+                f"""
+                SELECT kind, label, uid, file_path, start_line, end_line,
+                       signature, lang, doc_blob, ast_hash, content_hash,
+                       metadata_json
+                FROM graph_nodes WHERE uid IN ({placeholders})
+                """,
+                tuple(group),
+            ).fetchall()
+            for row in rows:
+                node = self._row_to_node(row)
+                result[node.uid] = node
         return result
 
     def count_nodes(self, kind: str | None = None) -> int:
-        with self._write_lock:
-            if kind is None:
-                row = self._conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()
-            else:
-                # Accept legacy or canonical form; storage is canonical.
-                try:
-                    kind_q = normalize_kind(kind).value
-                except ValueError:
-                    kind_q = kind
-                row = self._conn.execute(
-                    "SELECT COUNT(*) FROM graph_nodes WHERE kind=?", (kind_q,)
-                ).fetchone()
+        # G18: pure-SELECT, no write_lock.
+        if kind is None:
+            row = self._conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()
+        else:
+            # Accept legacy or canonical form; storage is canonical.
+            try:
+                kind_q = normalize_kind(kind).value
+            except ValueError:
+                kind_q = kind
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM graph_nodes WHERE kind=?", (kind_q,)
+            ).fetchone()
         return int(row[0])
 
     def count_edges(self, edge_type: str | None = None) -> int:
@@ -499,16 +501,16 @@ class SqliteBackend:
         # and skews density / centrality consumers downstream.
         # `list_edges` already dedupes via highest-confidence subquery
         # — match that semantic here.
-        with self._write_lock:
-            if edge_type is None:
-                row = self._conn.execute(
-                    "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12)"
-                ).fetchone()
-            else:
-                row = self._conn.execute(
-                    "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12 WHERE edge_type=?)",
-                    (edge_type,),
-                ).fetchone()
+        # G18: pure-SELECT, no write_lock.
+        if edge_type is None:
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12)"
+            ).fetchone()
+        else:
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12 WHERE edge_type=?)",
+                (edge_type,),
+            ).fetchone()
         return int(row[0])
 
     def list_edges(
@@ -564,22 +566,22 @@ class SqliteBackend:
             LIMIT ?
         """
         params.append(int(limit))
-        with self._write_lock:
-            rows = self._conn.execute(query, params).fetchall()
+        # G18: pure-SELECT, no write_lock.
+        rows = self._conn.execute(query, params).fetchall()
 
-            evidence_by_edge: dict[int, list[sqlite3.Row]] = {}
-            if include_evidence and rows:
-                ev_rows = self._conn.execute(
-                    """
-                    SELECT edge_id, signal_name, weight, note
-                    FROM graph_evidence_v12
-                    WHERE edge_id IN (%s)
-                    ORDER BY id ASC
-                    """
-                    % ",".join(str(int(r[0])) for r in rows)
-                ).fetchall()
-                for ev in ev_rows:
-                    evidence_by_edge.setdefault(int(ev[0]), []).append(ev)
+        evidence_by_edge: dict[int, list[sqlite3.Row]] = {}
+        if include_evidence and rows:
+            ev_rows = self._conn.execute(
+                """
+                SELECT edge_id, signal_name, weight, note
+                FROM graph_evidence_v12
+                WHERE edge_id IN (%s)
+                ORDER BY id ASC
+                """
+                % ",".join(str(int(r[0])) for r in rows)
+            ).fetchall()
+            for ev in ev_rows:
+                evidence_by_edge.setdefault(int(ev[0]), []).append(ev)
 
         edges: list[GraphEdge] = []
         for edge_row in rows:
@@ -604,36 +606,36 @@ class SqliteBackend:
 
     def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
         """B13: return up to `limit` nodes, optionally filtered by kind."""
-        with self._write_lock:
-            if kind is None:
-                rows = self._conn.execute(
-                    """
-                    SELECT kind, label, uid, file_path, start_line, end_line,
-                           signature, lang, doc_blob, ast_hash, content_hash,
-                           metadata_json
-                    FROM graph_nodes
-                    ORDER BY id ASC
-                    LIMIT ?
-                    """,
-                    (int(limit),),
-                ).fetchall()
-            else:
-                try:
-                    kind_q = normalize_kind(kind).value
-                except ValueError:
-                    kind_q = kind
-                rows = self._conn.execute(
-                    """
-                    SELECT kind, label, uid, file_path, start_line, end_line,
-                           signature, lang, doc_blob, ast_hash, content_hash,
-                           metadata_json
-                    FROM graph_nodes
-                    WHERE kind = ?
-                    ORDER BY id ASC
-                    LIMIT ?
-                    """,
-                    (kind_q, int(limit)),
-                ).fetchall()
+        # G18: pure-SELECT, no write_lock.
+        if kind is None:
+            rows = self._conn.execute(
+                """
+                SELECT kind, label, uid, file_path, start_line, end_line,
+                       signature, lang, doc_blob, ast_hash, content_hash,
+                       metadata_json
+                FROM graph_nodes
+                ORDER BY id ASC
+                LIMIT ?
+                """,
+                (int(limit),),
+            ).fetchall()
+        else:
+            try:
+                kind_q = normalize_kind(kind).value
+            except ValueError:
+                kind_q = kind
+            rows = self._conn.execute(
+                """
+                SELECT kind, label, uid, file_path, start_line, end_line,
+                       signature, lang, doc_blob, ast_hash, content_hash,
+                       metadata_json
+                FROM graph_nodes
+                WHERE kind = ?
+                ORDER BY id ASC
+                LIMIT ?
+                """,
+                (kind_q, int(limit)),
+            ).fetchall()
         return [self._row_to_node(row) for row in rows]
 
     # -- Internal helpers --------------------------------------------------
