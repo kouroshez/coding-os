@@ -83,6 +83,14 @@ def seeded_backend(migrated_conn, monkeypatch, tmp_path):
             file_path="a.py",
             start_line=40,
         ),
+        # F6 fixture: an external/unresolved node — must NOT dominate
+        # centrality or PageRank when include_external defaults False.
+        GraphNode(
+            uid="code:external:unresolved:str",
+            kind="identifier",
+            label="unresolved:str",
+            file_path=None,
+        ),
     ]
     edges = [
         GraphEdge(
@@ -141,6 +149,29 @@ def seeded_backend(migrated_conn, monkeypatch, tmp_path):
             edge_type="has_param_type",
             extractor="test",
             confidence=0.85,
+        ),
+        # F6 fixture: lots of inbound edges to the external stub so
+        # that, without the filter, it'd dominate the ranking.
+        GraphEdge(
+            source_uid="code:function:a.py::foo",
+            target_uid="code:external:unresolved:str",
+            edge_type="has_return_type",
+            extractor="test",
+            confidence=0.7,
+        ),
+        GraphEdge(
+            source_uid="code:function:a.py::bar",
+            target_uid="code:external:unresolved:str",
+            edge_type="has_return_type",
+            extractor="test",
+            confidence=0.7,
+        ),
+        GraphEdge(
+            source_uid="code:function:a.py::baz",
+            target_uid="code:external:unresolved:str",
+            edge_type="has_return_type",
+            extractor="test",
+            confidence=0.7,
         ),
     ]
     backend.bulk_upsert(nodes, edges)
@@ -508,6 +539,28 @@ class TestExport:
 
     def test_unknown_format(self, seeded_backend):
         _assert_fail(graph.cos_graph_export(format="svg"), "validation")
+
+    def test_centrality_default_excludes_external(self, seeded_backend):
+        """F6 / Audit #10: default `include_external=False` must drop
+        `code:external:*` nodes from the centrality top — otherwise
+        unresolved builtins dominate every real call result."""
+        data = _assert_ok(graph.cos_graph_centrality(top=10))
+        uids = {n["uid"] for n in data["nodes"]}
+        for u in uids:
+            assert not u.startswith("code:external:"), f"external leaked: {u}"
+
+    def test_centrality_include_external_opts_in(self, seeded_backend):
+        data = _assert_ok(graph.cos_graph_centrality(top=10, include_external=True))
+        uids = {n["uid"] for n in data["nodes"]}
+        assert any(u.startswith("code:external:") for u in uids)
+
+    def test_ranking_default_excludes_external(self, seeded_backend):
+        """F6 / Audit #11: PageRank top must not be polluted by
+        `code:external:unresolved:*` when called with defaults."""
+        data = _assert_ok(graph.cos_graph_ranking(top=10))
+        uids = {n["uid"] for n in data["nodes"]}
+        for u in uids:
+            assert not u.startswith("code:external:"), f"external leaked: {u}"
 
     def test_safe_id_collision_proof_for_long_method_uids(self):
         """F5 / Audit #14: previous `_safe_id` truncated at 60 chars,

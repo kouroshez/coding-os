@@ -2161,9 +2161,16 @@ def cos_graph_centrality(
     top: int = 20,
     kind: str | None = None,
     metric: str = "degree",
+    include_external: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Hub detection via degree (or betweenness) centrality."""
+    """Hub detection via degree (or betweenness) centrality.
+
+    F6 / Audit #10: `include_external` defaults to False so unresolved
+    builtins (`code:external:unresolved:str/int/bool/len`) and stdlib
+    stubs (`code:external:pathlib:Path`) do not crowd the top of the
+    list. Set True to opt back into the raw ranking.
+    """
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -2180,11 +2187,14 @@ def cos_graph_centrality(
 
     if sqlite_conn is not None:
         try:
-            kind_clause = ""
+            where_parts: list[str] = []
             params: list[Any] = []
             if kind:
-                kind_clause = "WHERE n.kind = ?"
+                where_parts.append("n.kind = ?")
                 params.append(kind)
+            if not include_external:
+                where_parts.append("n.uid NOT LIKE 'code:external:%'")
+            kind_clause = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
             in_deg_rows = sqlite_conn.execute(
                 f"""
@@ -2348,9 +2358,16 @@ def cos_graph_ranking(
     kind: str | None = None,
     damping: float = 0.85,
     iterations: int = 30,
+    include_external: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """PageRank-based node ranking with optional query personalisation."""
+    """PageRank-based node ranking with optional query personalisation.
+
+    F6 / Audit #11: `include_external=False` (default) excludes
+    unresolved-stub + stdlib nodes (`code:external:*`) from the input
+    set so the top of the ranking surfaces project-internal hubs
+    instead of `__future__` / `pathlib` / builtins.
+    """
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -2368,8 +2385,15 @@ def cos_graph_ranking(
 
     if sqlite_conn is not None:
         try:
-            kind_filter = "WHERE kind = ?" if kind else ""
-            params_n: list[Any] = ([kind] if kind else []) + [_NODE_CAP]
+            where_parts: list[str] = []
+            params_n: list[Any] = []
+            if kind:
+                where_parts.append("kind = ?")
+                params_n.append(kind)
+            if not include_external:
+                where_parts.append("uid NOT LIKE 'code:external:%'")
+            kind_filter = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
+            params_n.append(_NODE_CAP)
             uid_rows = sqlite_conn.execute(
                 f"SELECT id, uid, kind, label, file_path, start_line "
                 f"FROM graph_nodes {kind_filter} LIMIT ?",
