@@ -554,6 +554,16 @@ class TestExport:
         uids = {n["uid"] for n in data["nodes"]}
         assert any(u.startswith("code:external:") for u in uids)
 
+    def test_communities_caps_members_per_process(self, seeded_backend):
+        """F8 / Audit #9: each process truncates its members to
+        max_members=10 by default so the envelope stays under the MCP
+        token budget. `members_truncated` flag surfaces the cap."""
+        data = _assert_ok(graph.cos_graph_communities(top=5, max_members=2))
+        for proc in data["processes"]:
+            assert len(proc.get("members", [])) <= 2
+        assert "max_members" in data["meta"]
+        assert "members_truncated" in data["meta"]
+
     def test_ranking_token_personalization_targets_widget(self, seeded_backend):
         """F7 / Audit #12: previous substring matcher missed any
         whitespace query. `make widget` now matches `make_widget` AND

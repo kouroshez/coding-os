@@ -2128,15 +2128,27 @@ def cos_graph_communities(
     *,
     top: int = 50,
     min_size: int = 2,
+    max_members: int = 10,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Return Louvain process clusters. Response payload key is `processes`."""
+    """Return Louvain process clusters. Response payload key is `processes`.
+
+    F8 / Audit #9: each process embeds its member nodes. On real repos
+    a single process can hold 100+ members and `top=5` returned a
+    236KB envelope that blew past the MCP token budget. `max_members`
+    caps the inline list per process; `member_count` still reports the
+    real size, and `members_truncated` flags when the slice is short.
+    """
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
         top = 200
     if not isinstance(min_size, int) or min_size < 1:
         return _fail("validation", "min_size must be >= 1")
+    if not isinstance(max_members, int) or max_members < 1:
+        return _fail("validation", "max_members must be >= 1")
+    if max_members > 500:
+        max_members = 500
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -2146,12 +2158,22 @@ def cos_graph_communities(
 
     all_communities, _membership = comm_mod.compute_communities(be, min_size=int(min_size))
     rows = comm_mod.communities_to_processes(all_communities, relevant_uids=None)
+    capped: list[dict[str, Any]] = []
+    members_truncated = False
+    for row in rows[:top]:
+        members = row.get("members") or []
+        if len(members) > max_members:
+            members_truncated = True
+            row = {**row, "members": members[:max_members]}
+        capped.append(row)
     return _ok(
-        {"processes": rows[:top]},
+        {"processes": capped},
         meta={
             "backend": be.backend_id,
-            "count": len(rows[:top]),
+            "count": len(capped),
             "total": len(rows),
+            "max_members": max_members,
+            "members_truncated": members_truncated,
         },
     )
 

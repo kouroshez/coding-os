@@ -2623,11 +2623,13 @@ if _GRAPH_TOOLS_AVAILABLE:
     def cos_graph_communities_tool(
         top: int = 50,
         min_size: int = 2,
+        max_members: int = 10,
     ) -> str:
         """Louvain process clusters — response key is `processes` (not `communities`)."""
         return _graph_tools.cos_graph_communities(
             top=int(top),
             min_size=int(min_size),
+            max_members=int(max_members),
         )
 
     @mcp.tool(
