@@ -702,6 +702,21 @@ def extract(path: str, content: str) -> ExtractionResult:
                 evidence=(EvidenceSignal(signal_name, 0.9),),
             )
         )
+        # R3: wildcard `from .X import *` is also a re-export from the
+        # current module's surface — emit an explicit re_exports edge so
+        # consumers see what this module redistributes.
+        if imp.is_wildcard:
+            result.edges.append(
+                GraphEdge(
+                    source_uid=mod_node.uid,
+                    target_uid=module_uid(target_mod),
+                    edge_type="re_exports",
+                    extractor=import_extractor_id,
+                    confidence=0.9,
+                    source_span=f"{normalised}:{imp.line}",
+                    evidence=(EvidenceSignal("wildcard_import", 0.9),),
+                )
+            )
 
     # Calls. These are the hardest — the pure-Python baseline uses the
     # 3-step subset of the 7-step lookup (same-scope, enclosing-scope,
