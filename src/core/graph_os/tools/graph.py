@@ -2790,6 +2790,14 @@ def cos_graph_ranking(
         if total_p:
             personalized = {k: v / total_p for k, v in personalized.items()}
 
+    # P1: precompute in_links ONCE — was recomputed O(N²) per iter
+    # inside the rank loop (35.5s p99 → ~50ms expected at N=5000).
+    in_links: dict[int, list[int]] = {}
+    out_link_count: dict[int, int] = {}
+    for src, tgts in out_links.items():
+        out_link_count[src] = len(tgts)
+        for tgt in tgts:
+            in_links.setdefault(tgt, []).append(src)
     # Power iteration
     rank: dict[int, float] = dict.fromkeys(node_ids, 1.0 / N)
     dangling = {nid for nid in node_ids if not out_links.get(nid)}
@@ -2797,8 +2805,8 @@ def cos_graph_ranking(
         dangling_sum = sum(rank[nid] for nid in dangling) / N
         new_rank: dict[int, float] = {}
         for nid in node_ids:
-            inbound = [src for src in node_ids if nid in out_links.get(src, [])]
-            push = sum(rank[src] / len(out_links[src]) for src in inbound if out_links.get(src))
+            inbound = in_links.get(nid, [])
+            push = sum(rank[src] / out_link_count[src] for src in inbound if out_link_count.get(src))
             if personalized:
                 teleport = personalized.get(nid, 0.0)
             else:
