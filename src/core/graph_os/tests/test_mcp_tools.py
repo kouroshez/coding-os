@@ -512,6 +512,27 @@ class TestContracts:
 
 
 # ---------------------------------------------------------------------------
+# Regression — F1 / Audit #2: cos_graph_resolve FTS5 column-order swap.
+# Was: SELECT n.uid,n.kind,n.label disagrees with _row_to_node(kind=row[0],
+# label=row[1], uid=row[2]) → uid/kind/label silently rotated on every FTS5
+# hit. After fix the SELECT order matches the canonical _row_to_node order.
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_fts5_preserves_uid_kind_label(seeded_backend):
+    data = _assert_ok(graph.cos_graph_resolve("baz_handler"))
+    assert data["results"], "expected at least one resolve hit"
+    hit = data["results"][0]
+    # canonical _row_to_node order: kind→col0, label→col1, uid→col2.
+    # Pre-fix SELECT was uid,kind,label → 3-way rotation. After fix
+    # each field carries the right value (kind is normalised by
+    # _LEGACY_KIND_MAP so `code:function` → `function`).
+    assert hit["uid"] == "code:function:a.py::baz"
+    assert hit["kind"] == "function"
+    assert hit["label"] == "baz_handler"
+
+
+# ---------------------------------------------------------------------------
 # Cross-tool: every tool must return an envelope with layer="graph".
 # ---------------------------------------------------------------------------
 

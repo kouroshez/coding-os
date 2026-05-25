@@ -2785,7 +2785,7 @@ def cos_graph_resolve(
                 if fts_q:
                     rows = sqlite_conn.execute(
                         """
-                        SELECT n.uid, n.kind, n.label, n.file_path, n.start_line,
+                        SELECT n.kind, n.label, n.uid, n.file_path, n.start_line,
                                n.end_line, n.signature, n.lang, n.doc_blob,
                                n.ast_hash, n.content_hash, n.metadata_json
                         FROM graph_nodes_fts
