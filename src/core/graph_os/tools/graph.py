@@ -833,12 +833,21 @@ def cos_graph_context(
     if root is None:
         return _fail_uid_not_found(uid_or_name, tried_uids, label="uid_or_name")
 
+    # G33: at deep walks default visit_limit cripples the envelope
+    # (depth=3 from a popular function returned 353KB). Scale the cap
+    # inversely with depth so depth=3 still gives a usable envelope
+    # without bloat. Caller can override explicitly.
+    _depth = max(1, int(depth))
     visit_limit = max(1, min(int(visit_limit), 50_000))
+    if _depth >= 3 and visit_limit > 100:
+        visit_limit = 100
+    elif _depth == 2 and visit_limit > 250:
+        visit_limit = 250
     nodes, edges = _walk_bfs(
         be,
         root_uid=root.uid,
         direction=direction,
-        max_hops=max(1, int(depth)),
+        max_hops=_depth,
         confidence_min=0.0,
         edge_types=None,
         visit_limit=visit_limit,
@@ -1016,7 +1025,9 @@ def cos_graph_detect_changes(
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Pre-commit self-review: map changed files to affected graph nodes."""
-    if not files:
+    # G3: normalize files (FastMCP wire trap)
+    parsed_files = _normalize_kinds(files)
+    if not parsed_files:
         return _ok(
             {
                 "scope": scope,
@@ -1038,7 +1049,7 @@ def cos_graph_detect_changes(
     _DC_VISIT_LIMIT = 500
     walk_truncated = False
 
-    for file_path in files:
+    for file_path in parsed_files:
         file_uid = f"code:file:{file_path}"
         node = be.get_node(file_uid)
         if node is None:
@@ -1980,6 +1991,11 @@ def cos_graph_contracts(
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
 
+    # G3: normalize kinds (wire trap)
+    parsed_kinds = _normalize_kinds(kinds)
+    if not parsed_kinds:
+        parsed_kinds = ("http", "mcp", "grpc", "event", "websocket")
+
     buckets: dict[str, list[dict[str, Any]]] = {
         "http_routes": [],
         "mcp_tools": [],
@@ -2004,7 +2020,7 @@ def cos_graph_contracts(
             if node is None:
                 continue
             kind = (node.metadata or {}).get("kind", "http")
-            if kind not in kinds:
+            if kind not in parsed_kinds:
                 continue
             bucket_key = {
                 "http": "http_routes",
@@ -2029,7 +2045,7 @@ def cos_graph_contracts(
         {"scope": scope, **buckets, "count": sum(len(v) for v in buckets.values())},
         meta={
             "backend": be.backend_id,
-            "kinds": list(kinds),
+            "kinds": list(parsed_kinds),
             "bucket_limit": _CONTRACT_BUCKET_LIMIT,
             "result_truncated": result_truncated,
             "per_edge_type_truncated": per_kind_truncated,
@@ -3128,7 +3144,9 @@ def cos_graph_resolve(
         return _fail("unavailable", str(exc), retryable=True)
 
     candidate = q.strip()
-    kinds_set = set(kinds) if kinds else None
+    # G3: normalize kinds (wire trap)
+    parsed_kinds = _normalize_kinds(kinds)
+    kinds_set = set(parsed_kinds) if parsed_kinds else None
     candidates: list[GraphNode] = []
     strategy = ""
 
@@ -3185,7 +3203,7 @@ def cos_graph_resolve(
         candidates = _lexical_search(
             be,
             q=candidate,
-            kinds=tuple(kinds) if kinds else None,
+            kinds=parsed_kinds if parsed_kinds else None,
             limit=int(top),
             max_hops=1,
         )
