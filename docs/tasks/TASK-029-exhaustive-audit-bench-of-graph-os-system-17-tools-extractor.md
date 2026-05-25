@@ -9,9 +9,9 @@ status: in_progress
 priority: P1
 appetite: "2d"
 created: 2026-05-25
-started: null
+started: 2026-05-25
 completed: null
-agent_session: null
+agent_session: ses-claude-pid50864
 depends_on: []
 blocked_by: []
 references: []

@@ -440,9 +440,15 @@ def cos_task_create(
         "priority": priority,
         "appetite": appetite,
         "created": today,
-        "started": None,
-        "completed": None,
-        "agent_session": None,
+        # F17 / TASK-029 task-lifecycle fix: when a task is created
+        # directly into an active status (in_progress / testing / etc.)
+        # the create path used to leave started + agent_session null
+        # because only `transition` stamps them. That drifted DB
+        # (tasks.started_at via INSERT) and YAML (started: null) out
+        # of sync. Stamp on create so both layers agree.
+        "started": today if status in {"in_progress", "testing", "emergency"} else None,
+        "completed": today if status == "complete" else None,
+        "agent_session": agent_session if status in {"in_progress", "testing", "emergency"} else None,
         "depends_on": depends_on or [],
         "blocked_by": [],
         "references": [],
