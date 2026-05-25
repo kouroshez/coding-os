@@ -406,6 +406,8 @@ class _CallSite:
     full_expr: str  # dotted form for later chain resolution
     line: int
     is_constructor_like: bool  # `Foo()` where Foo looks capitalised
+    is_await: bool = False  # E5: `await X()` — emits `awaits` edge
+    dispatched_uids: tuple[str, ...] = ()  # E6: known-function uids passed as args
 
 
 @dataclass
@@ -725,11 +727,13 @@ def extract(path: str, content: str) -> ExtractionResult:
     # them to 0.95 later without double-writing.
     for call in visitor.calls:
         confidence, evidence, resolved_uid = _resolve_call(call, visitor=visitor, path=normalised)
-        # E11 fix: name-only `Foo()` heuristic over-tags `Path()`,
-        # `Counter()`, etc. as `constructs`. Promote to `constructs`
-        # only when the resolved target is a real `code:class:*` node;
-        # otherwise demote to `calls`.
-        if call.is_constructor_like and resolved_uid.startswith("code:class:"):
+        # E5: `await X()` — emit `awaits` instead of `calls`.
+        # E11: name-only `Foo()` heuristic over-tags `Path()` / `Counter()`
+        # as `constructs`. Promote to `constructs` only when resolved
+        # target is a real `code:class:*` node; demote otherwise.
+        if call.is_await:
+            edge_type = "awaits"
+        elif call.is_constructor_like and resolved_uid.startswith("code:class:"):
             edge_type = "constructs"
         else:
             edge_type = "calls"
@@ -744,6 +748,22 @@ def extract(path: str, content: str) -> ExtractionResult:
                 evidence=evidence,
             )
         )
+        # E6: dispatches — when a call arg is a known function uid the
+        # caller is dispatching that fn (registry.register(fn) etc.).
+        # Emit secondary `dispatches` edges; confidence 0.8 (heuristic
+        # but only fires on local resolved symbols).
+        for dispatched_uid in call.dispatched_uids:
+            result.edges.append(
+                GraphEdge(
+                    source_uid=call.caller_uid,
+                    target_uid=dispatched_uid,
+                    edge_type="dispatches",
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.8,
+                    source_span=f"{normalised}:{call.line}",
+                    evidence=(EvidenceSignal("callable_arg", 0.8),),
+                )
+            )
 
     # S3: Folder→...→File CONTAINS spine (idempotent via uid).
     emit_contains_spine(
@@ -965,34 +985,47 @@ class _PythonVisitor(ast.NodeVisitor):
             self._pop_qual()
 
     def _walk_calls(self, node: ast.AST) -> None:
-        for sub in ast.walk(node):
+        # E5/E6: track parent ast.Await so we can emit `awaits` instead
+        # of `calls`. ast.walk loses parent info → walk with our own
+        # stack that records the immediate parent type.
+        stack: list[tuple[ast.AST, ast.AST | None]] = [(node, None)]
+        while stack:
+            sub, parent = stack.pop()
             # Function-local / nested-block imports must register so
-            # call-site resolution (line 685 in extract()) can rewrite a
-            # bare `init_db()` call into `code:external:database:init_db`
-            # which `link_external_stubs` then promotes to the canonical
-            # function uid. Without this, prod call-sites that do
-            # `from <pkg> import X` inside a function are silently
-            # dropped as `code:external:unresolved:X` orphans.
+            # call-site resolution can rewrite a bare `init_db()` call
+            # into `code:external:database:init_db` which
+            # `link_external_stubs` then promotes to the canonical uid.
             if isinstance(sub, ast.Import):
                 self.visit_Import(sub)
             elif isinstance(sub, ast.ImportFrom):
                 self.visit_ImportFrom(sub)
             elif isinstance(sub, ast.Call):
-                # R2: skip when the call target is method-access on an
-                # inline dict/set/list/tuple/f-string literal —
-                # `{'a': 'b'}.get(...)` produced bogus unresolved
-                # identifier nodes like `unresolved:{'ssot_of': ...}.get`.
+                # R2: skip when target is method-access on a literal
+                # (`{'a': 'b'}.get(...)` → bogus unresolved identifier).
                 func = sub.func
                 if isinstance(func, ast.Attribute) and isinstance(
                     func.value,
                     (ast.Dict, ast.Set, ast.List, ast.Tuple, ast.JoinedStr),
                 ):
+                    # Still descend into args
+                    for child in ast.iter_child_nodes(sub):
+                        stack.append((child, sub))
                     continue
                 target = _dotted_name(func)
                 if not target:
+                    for child in ast.iter_child_nodes(sub):
+                        stack.append((child, sub))
                     continue
                 last_segment = target.split(".")[-1]
                 is_ctor = last_segment[:1].isupper()
+                # E6: collect any args that resolve to known function uids
+                # in this file's symbols_by_name — these are dispatched fns.
+                dispatched: list[str] = []
+                for arg in sub.args:
+                    if isinstance(arg, ast.Name) and arg.id in self.symbols_by_name:
+                        resolved = self.symbols_by_name[arg.id]
+                        if resolved.startswith(("code:function:", "code:method:")):
+                            dispatched.append(resolved)
                 self.calls.append(
                     _CallSite(
                         caller_uid=self._scope_uid_stack[-1],
@@ -1000,8 +1033,15 @@ class _PythonVisitor(ast.NodeVisitor):
                         full_expr=target,
                         line=sub.lineno,
                         is_constructor_like=is_ctor,
+                        is_await=isinstance(parent, ast.Await),
+                        dispatched_uids=tuple(dispatched),
                     )
                 )
+                for child in ast.iter_child_nodes(sub):
+                    stack.append((child, sub))
+                continue
+            for child in ast.iter_child_nodes(sub):
+                stack.append((child, sub))
 
     # -- qualname stack helpers --------------------------------------------
 
