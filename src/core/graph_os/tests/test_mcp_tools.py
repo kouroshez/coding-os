@@ -585,6 +585,14 @@ class TestExport:
         uids = {n["uid"] for n in data["nodes"]}
         assert any(u.startswith("code:external:") for u in uids)
 
+    def test_context_resolves_unqualified_label_via_fts5(self, seeded_backend):
+        """F11 / Audit #17: cos_graph_context used to fail with
+        not_found on an unqualified label like `baz_handler` because
+        _resolve_uid never tried FTS5. After fix it picks the
+        FTS5-top-ranked hit and the context call succeeds."""
+        data = _assert_ok(graph.cos_graph_context("baz_handler"))
+        assert data["node"]["uid"] == "code:function:a.py::baz"
+
     def test_entrypoints_default_diversifies_by_file(self, seeded_backend):
         """F10 / Audit #13: seed several tied-score entrypoints across
         two files. Default `diversify=True` should interleave the two

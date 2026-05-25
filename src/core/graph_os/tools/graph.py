@@ -297,6 +297,11 @@ def _resolve_uid(backend: GraphBackend, raw_uid: str) -> tuple[GraphNode | None,
     Returns ``(node, tried)`` where ``tried`` is the ordered list of uid
     candidates we attempted. The first entry is always the literal input
     so error messages can reflect the user's original intent.
+
+    F11 / Audit #17: unqualified labels (e.g. ``cos_graph_doctor``) fell
+    through every path-prefix candidate to a `not_found`. After fix the
+    last-resort tries FTS5 on `graph_nodes_fts` so a top-ranked label
+    match is returned before giving up.
     """
     direct = backend.get_node(raw_uid)
     if direct is not None:
@@ -312,7 +317,52 @@ def _resolve_uid(backend: GraphBackend, raw_uid: str) -> tuple[GraphNode | None,
         node = backend.get_node(candidate)
         if node is not None:
             return node, tried
+
+    # F11: FTS5 last-resort fallback for unqualified labels.
+    fts_node = _fts5_label_lookup(backend, raw_uid)
+    if fts_node is not None:
+        tried.append(f"fts5:{raw_uid}")
+        return fts_node, tried
     return None, tried
+
+
+def _fts5_label_lookup(backend: GraphBackend, raw_label: str) -> GraphNode | None:
+    """Pick the top-ranked FTS5 hit whose label matches `raw_label`."""
+    sqlite_conn = getattr(backend, "_conn", None)
+    if sqlite_conn is None:
+        return None
+    row_to_node = getattr(backend, "_row_to_node", None)
+    if row_to_node is None:
+        return None
+    fts_q = _fts5_safe_query(raw_label)
+    if not fts_q:
+        return None
+    try:
+        rows = sqlite_conn.execute(
+            """
+            SELECT n.kind, n.label, n.uid, n.file_path, n.start_line,
+                   n.end_line, n.signature, n.lang, n.doc_blob,
+                   n.ast_hash, n.content_hash, n.metadata_json
+            FROM graph_nodes_fts
+            JOIN graph_nodes n ON n.id = graph_nodes_fts.rowid
+            WHERE graph_nodes_fts MATCH ?
+            ORDER BY rank
+            LIMIT 5
+            """,
+            (fts_q,),
+        ).fetchall()
+    except Exception as exc:
+        logger.debug("fts5 resolve fallback suppressed: %s", exc)
+        return None
+    # Prefer an exact label match if FTS5 surfaces one; otherwise take
+    # the top-ranked hit so a near-match still resolves.
+    for row in rows:
+        node = row_to_node(row)
+        if node and (node.label or "") == raw_label:
+            return node
+    if rows:
+        return row_to_node(rows[0])
+    return None
 
 
 def _fail_uid_not_found(
