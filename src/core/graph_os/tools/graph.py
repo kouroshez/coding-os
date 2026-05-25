@@ -284,6 +284,44 @@ _UID_FORMAT_HINT = (
     "Use cos_graph_query to discover candidates."
 )
 
+# F7b: prefix-noise tokens that pollute uid-based personalisation. Drop
+# from the haystack so ranking queries like "function" / "src" don't
+# spuriously match every node. Lowercase comparison.
+_UID_PREFIX_NOISE_TOKENS: frozenset[str] = frozenset(
+    {
+        "code", "doc", "folder", "cos", "external", "unresolved",
+        "file", "function", "class", "method", "module", "heading",
+        "mcp_tool", "route", "frontmatter", "interface", "variable",
+        "src",
+    }
+)
+
+# F4 / F2 / shared: edge types that represent *behavioural* dependency
+# (a real call / construction / dispatch / import) — promoting a
+# behavioural edge to `will_break` in impact analysis, or counting it
+# as a usage site in rename planning. Structural edges (`contains`,
+# `tested_by`) are deliberately excluded. Single SSOT shared by
+# `cos_graph_impact`, `cos_graph_rename_plan`, and any future tier
+# logic — keeps the three call sites in lockstep.
+_BEHAVIOURAL_EDGE_TYPES: frozenset[str] = frozenset(
+    {
+        "calls",
+        "imports",
+        "constructs",
+        "accesses_field",
+        "has_param_type",
+        "has_return_type",
+        "inherits_from",
+        "implements",
+        "dispatches",
+        "awaits",
+        "handles_route",
+        "handles_event",
+        "handles_tool",
+        "references_doc",
+    }
+)
+
 
 def _looks_prefixed(raw: str) -> bool:
     """True when input already carries an explicit uid scheme."""
@@ -901,25 +939,11 @@ def cos_graph_impact(
     # confidence. `contains` (file→class) has confidence=1.0 but is
     # structural — it never "breaks" when the target changes. Only
     # behavioural edges (calls / imports / constructs / type-usage /
-    # dispatch / handler-binding) belong in `will_break`.
-    _BEHAVIOURAL_EDGES = {
-        "calls",
-        "imports",
-        "constructs",
-        "accesses_field",
-        "has_param_type",
-        "has_return_type",
-        "inherits_from",
-        "implements",
-        "dispatches",
-        "awaits",
-        "handles_route",
-        "handles_event",
-        "handles_tool",
-        "references_doc",
-    }
+    # dispatch / handler-binding) belong in `will_break`. Single SSOT
+    # in `_BEHAVIOURAL_EDGE_TYPES` (module-level) so rename_plan +
+    # impact stay in lockstep.
     for edge in edges:
-        if edge.edge_type in _BEHAVIOURAL_EDGES:
+        if edge.edge_type in _BEHAVIOURAL_EDGE_TYPES:
             if edge.confidence >= 0.7:
                 bucket = "will_break"
             elif edge.confidence >= 0.4:
@@ -1799,28 +1823,13 @@ def cos_graph_rename_plan(
 
     # Rename plans MUST be exhaustive — a missed call-site leaves
     # broken code after rename. Counter each bucket separately so the
-    # caller can see if the in-line slice was incomplete. The bucket
-    # covers every edge_type that makes the renamed symbol the *target*
-    # of a usage site: calls, attribute access, imports, AND class-
-    # consumer kinds (constructs / has_param_type / has_return_type /
-    # inherits_from / dispatches / awaits / handles_route /
-    # handles_event / handles_tool). Class renames used to miss every
-    # construct edge — TASK-029 Finding #6.
+    # caller can see if the in-line slice was incomplete. Bucket pulls
+    # from the same SSOT (`_BEHAVIOURAL_EDGE_TYPES`) impact uses,
+    # minus `references_doc` which is counted under doc_edge_types
+    # below to avoid double-counting.
     _RENAME_BUCKET_LIMIT = 500
-    call_edge_types = (
-        "calls",
-        "accesses_field",
-        "imports",
-        "constructs",
-        "has_param_type",
-        "has_return_type",
-        "inherits_from",
-        "implements",
-        "dispatches",
-        "awaits",
-        "handles_route",
-        "handles_event",
-        "handles_tool",
+    call_edge_types = tuple(
+        sorted(_BEHAVIOURAL_EDGE_TYPES - {"references_doc"})
     )
     doc_edge_types = ("links_to", "cites_heading", "references_doc")
     test_edge_types = ("tested_by",)
@@ -2595,6 +2604,11 @@ def cos_graph_ranking(
     # Token-OR match: any whitespace-split token hits → seed weight ∝
     # token-hit count. Falls back to substring-AND when query has no
     # internal whitespace so single-name queries still target precisely.
+    #
+    # F7b: drop uid-prefix noise tokens (`code`, `function`, `module`,
+    # `cos`, …) so a query like "function" or "src" does not spuriously
+    # match every node via the uid string. Personalisation seed now
+    # comes from content tokens only — label + uid-suffix words.
     personalized: dict[int, float] = {}
     if query:
         lower_q = query.lower().strip()
@@ -2605,7 +2619,12 @@ def cos_graph_ranking(
             meta_entry = int_to_meta.get(nid)
             label = (meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))) or ""
             uid_str = int_to_uid.get(nid, "")
-            hay = (label + " " + uid_str).lower()
+            uid_content_tokens = [
+                t
+                for t in re.split(r"[^A-Za-z0-9]+", uid_str.lower())
+                if t and t not in _UID_PREFIX_NOISE_TOKENS and len(t) >= 2
+            ]
+            hay = label.lower() + " " + " ".join(uid_content_tokens)
             hits = sum(1 for t in tokens if t in hay)
             if hits:
                 personalized[nid] = float(hits)

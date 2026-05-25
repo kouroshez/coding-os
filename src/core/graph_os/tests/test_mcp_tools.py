@@ -652,6 +652,41 @@ class TestExport:
         for u in uids:
             assert not u.startswith("code:external:"), f"external leaked: {u}"
 
+    def test_ranking_uid_prefix_noise_does_not_match(self, seeded_backend):
+        """F7b: a query like 'function' or 'src' used to seed every
+        code-node's personalisation weight because uid_str contained
+        the prefix 'code:function:src/...' verbatim. After F7b the uid
+        is tokenised and prefix-noise (`code`, `function`, `module`,
+        `src`, …) is filtered before the substring match."""
+        personalized = _assert_ok(graph.cos_graph_ranking(query="function", top=10))
+        baseline = _assert_ok(graph.cos_graph_ranking(top=10))
+        # If F7b regressed, personalised top would differ heavily from
+        # baseline because every function would seed. With the fix
+        # there are no labels containing 'function', so personalisation
+        # collapses to uniform → identical baseline ordering.
+        assert [n["uid"] for n in personalized["nodes"]] == [
+            n["uid"] for n in baseline["nodes"]
+        ], "prefix-noise token 'function' polluted personalisation"
+
+    def test_rename_plan_uses_same_behavioural_edge_ssot_as_impact(
+        self, seeded_backend
+    ):
+        """DRY: rename_plan + impact share _BEHAVIOURAL_EDGE_TYPES.
+        Pin the contract — both surface the same `constructs` edge for
+        a class-consumer site."""
+        impact = _assert_ok(graph.cos_graph_impact("code:class:a.py::Widget"))
+        impact_types = {
+            e["edge_type"]
+            for e in impact["tiers"]["will_break"] + impact["tiers"]["should_review"]
+        }
+        rename = _assert_ok(
+            graph.cos_graph_rename_plan("code:class:a.py::Widget", "Gadget")
+        )
+        rename_types = {e["edge_type"] for e in rename["call_sites"]}
+        # Both tools must agree on constructs being a behavioural site.
+        assert "constructs" in impact_types
+        assert "constructs" in rename_types
+
     def test_safe_id_collision_proof_for_long_method_uids(self):
         """F5 / Audit #14: previous `_safe_id` truncated at 60 chars,
         making every method of the same class collide. Use the helper
