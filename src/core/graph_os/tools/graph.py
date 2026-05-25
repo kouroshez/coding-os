@@ -1706,9 +1706,29 @@ def cos_graph_rename_plan(
 
     # Rename plans MUST be exhaustive — a missed call-site leaves
     # broken code after rename. Counter each bucket separately so the
-    # caller can see if the in-line slice was incomplete.
+    # caller can see if the in-line slice was incomplete. The bucket
+    # covers every edge_type that makes the renamed symbol the *target*
+    # of a usage site: calls, attribute access, imports, AND class-
+    # consumer kinds (constructs / has_param_type / has_return_type /
+    # inherits_from / dispatches / awaits / handles_route /
+    # handles_event / handles_tool). Class renames used to miss every
+    # construct edge — TASK-029 Finding #6.
     _RENAME_BUCKET_LIMIT = 500
-    call_edge_types = ("calls", "accesses_field", "imports")
+    call_edge_types = (
+        "calls",
+        "accesses_field",
+        "imports",
+        "constructs",
+        "has_param_type",
+        "has_return_type",
+        "inherits_from",
+        "implements",
+        "dispatches",
+        "awaits",
+        "handles_route",
+        "handles_event",
+        "handles_tool",
+    )
     doc_edge_types = ("links_to", "cites_heading", "references_doc")
     test_edge_types = ("tested_by",)
     call_sites = [

@@ -69,6 +69,20 @@ def seeded_backend(migrated_conn, monkeypatch, tmp_path):
             metadata={"kind": "mcp", "method": "rpc", "path": "cos_graph_query"},
         ),
         GraphNode(uid="code:file:a.py", kind="code:file", label="a.py", file_path="a.py"),
+        GraphNode(
+            uid="code:class:a.py::Widget",
+            kind="code:class",
+            label="Widget",
+            file_path="a.py",
+            start_line=30,
+        ),
+        GraphNode(
+            uid="code:function:a.py::make_widget",
+            kind="code:function",
+            label="make_widget",
+            file_path="a.py",
+            start_line=40,
+        ),
     ]
     edges = [
         GraphEdge(
@@ -112,6 +126,21 @@ def seeded_backend(migrated_conn, monkeypatch, tmp_path):
             edge_type="handles_tool",
             extractor="test",
             confidence=0.95,
+        ),
+        # Class-consumer edges — rename_plan must surface these (F2/#6).
+        GraphEdge(
+            source_uid="code:function:a.py::make_widget",
+            target_uid="code:class:a.py::Widget",
+            edge_type="constructs",
+            extractor="test",
+            confidence=0.85,
+        ),
+        GraphEdge(
+            source_uid="code:function:a.py::foo",
+            target_uid="code:class:a.py::Widget",
+            edge_type="has_param_type",
+            extractor="test",
+            confidence=0.85,
         ),
     ]
     backend.bulk_upsert(nodes, edges)
@@ -472,6 +501,18 @@ class TestRenamePlan:
             graph.cos_graph_rename_plan("code:function:a.py::foo", ""),
             "validation",
         )
+
+    def test_class_rename_finds_constructs_and_has_param_type(self, seeded_backend):
+        """F2 / Audit #6: class renames used to return 0 call_sites
+        because rename_plan's edge filter only covered (calls,
+        accesses_field, imports). `constructs` + `has_param_type`
+        were silently dropped → rename corrupts code. After fix the
+        bucket includes both edge types and every consumer surfaces."""
+        data = _assert_ok(graph.cos_graph_rename_plan("code:class:a.py::Widget", "Gadget"))
+        edge_types = {site["edge_type"] for site in data["call_sites"]}
+        assert "constructs" in edge_types, "constructs edge missing — F2 regressed"
+        assert "has_param_type" in edge_types, "has_param_type edge missing — F2 regressed"
+        assert data["call_sites_total_count"] >= 2
 
     def test_unknown_uid(self, seeded_backend):
         _assert_fail(
