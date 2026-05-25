@@ -509,6 +509,21 @@ class TestExport:
     def test_unknown_format(self, seeded_backend):
         _assert_fail(graph.cos_graph_export(format="svg"), "validation")
 
+    def test_safe_id_collision_proof_for_long_method_uids(self):
+        """F5 / Audit #14: previous `_safe_id` truncated at 60 chars,
+        making every method of the same class collide. Use the helper
+        directly so the contract is pinned regardless of fixture
+        graph contents."""
+        uid_a = (
+            "code:method:src/core/graph_os/backends/sqlite_backend.py::"
+            "SqliteBackend.upsert_node"
+        )
+        uid_b = (
+            "code:method:src/core/graph_os/backends/sqlite_backend.py::"
+            "SqliteBackend.delete_node"
+        )
+        assert graph._safe_id(uid_a) != graph._safe_id(uid_b)
+
 
 class TestRenamePlan:
     def test_happy_path(self, seeded_backend):

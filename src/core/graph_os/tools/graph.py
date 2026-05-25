@@ -6,6 +6,7 @@ DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
 from __future__ import annotations
 
 import difflib
+import hashlib
 import logging
 import os
 import re
@@ -2061,7 +2062,16 @@ def _to_dot(nodes: Iterable[GraphNode], edges: Iterable[GraphEdge]) -> str:
 
 
 def _safe_id(uid: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_]", "_", uid)[:60]
+    # F5 / Audit #14: previous impl `re.sub(..., "_", uid)[:60]` made
+    # every method of one class collapse to identical mermaid/dot node
+    # IDs (uid prefix is the same — class+method suffix got chopped).
+    # Suffix an 8-char sha1 so IDs are collision-proof regardless of uid
+    # length, and keep a readable 40-char prefix for diagram legibility.
+    sanitised = re.sub(r"[^A-Za-z0-9_]", "_", uid)
+    if len(sanitised) <= 48:
+        return sanitised
+    digest = hashlib.sha1(uid.encode("utf-8")).hexdigest()[:8]
+    return f"{sanitised[:40]}_{digest}"
 
 
 def _escape(text: str) -> str:
