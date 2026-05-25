@@ -2351,6 +2351,18 @@ def cos_graph_entrypoints(
         )
 
     eps = ep_mod.discover(be, min_score=float(min_score), kind_filter=kind)
+    # G20: rank cli/http/mcp/cron above tests. Audit showed top-10
+    # ALL tests at the 0.85 tied score, with main()/CLI never visible.
+    _KIND_PRIORITY = {
+        "main": 4, "cli": 4, "http": 3, "cron": 2, "test": 1,
+    }
+    eps = sorted(
+        eps,
+        key=lambda ep: (
+            -_KIND_PRIORITY.get(getattr(ep, "kind", ""), 0),
+            -float(getattr(ep, "score", 0.0)),
+        ),
+    )
     total = len(eps)
     if diversify and eps:
         # Round-robin by file_path within each score-tier so the top-N
@@ -2893,6 +2905,11 @@ def cos_graph_ranking(
             }
         )
 
+    # G13: surface why personalisation didn't engage when caller passed
+    # a query — silent fallback to global rank is the audit's complaint.
+    personalization_reason: str | None = None
+    if query and query.strip() and not personalized:
+        personalization_reason = "no_candidate_labels_matched"
     return _ok(
         {"nodes": results},
         meta={
@@ -2903,6 +2920,7 @@ def cos_graph_ranking(
             "damping": damping,
             "result_truncated": truncated,
             "personalized": bool(personalized),
+            "personalization_reason": personalization_reason,
         },
     )
 
