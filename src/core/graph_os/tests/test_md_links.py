@@ -167,6 +167,16 @@ class TestFrontmatter:
         rn = [e for e in r.edges if e.edge_type == "read_next"]
         assert len(rn) == 1
 
+    def test_relative_read_next_anchors_against_source_doc(self):
+        """F13 / Audit #4: relative paths in frontmatter used to emit
+        `doc:file:../foo.md` ghost uids surfaced by doctor as stale.
+        After fix the path is anchored against the source doc."""
+        content = "<!-- read_next:../sibling.md -->\n# H"
+        r = _extract(content, path="src/core/skills/x/SKILL.md")
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        assert len(rn) == 1
+        assert rn[0].target_uid == "doc:file:src/core/skills/sibling.md"
+
     def test_yaml_fence_style(self):
         content = "---\ntitle: My Doc\nssot: true\nupdated: 2026-04-19\n---\n# H"
         r = _extract(content)

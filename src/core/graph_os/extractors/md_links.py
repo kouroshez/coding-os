@@ -81,6 +81,13 @@ def _emit_read_next_targets(
     for target_path in _split_read_targets(raw_value):
         if target_path.startswith(("http://", "https://")):
             target_uid = f"doc:external:{target_path}"
+        elif target_path.startswith(("../", "./")):
+            # F13 / Audit #4: anchor relative `../foo.md` paths against
+            # the source doc's directory. Pre-fix emitted
+            # `doc:file:../foo.md` uids that pointed nowhere.
+            target_uid = _resolve_link(path, target_path)
+            if not target_uid:
+                continue
         else:
             target_uid = f"doc:file:{_normalize_path(target_path)}"
         result.edges.append(
@@ -105,6 +112,11 @@ def _extract_opening_block_reads(path: str, content: str, result: ExtractionResu
             seen_targets.add(target_path)
             if target_path.startswith(("http://", "https://")):
                 target_uid = f"doc:external:{target_path}"
+            elif target_path.startswith(("../", "./")):
+                # F13: see _emit_read_next_edges — anchor relatives.
+                target_uid = _resolve_link(path, target_path)
+                if not target_uid:
+                    continue
             else:
                 target_uid = f"doc:file:{_normalize_path(target_path)}"
             result.edges.append(
@@ -545,6 +557,14 @@ def _extract_frontmatter(path: str, content: str, result: ExtractionResult) -> N
                 target_path = value.split()[0]
                 if target_path.startswith(("http://", "https://")):
                     target_uid = f"doc:external:{target_path}"
+                elif target_path.startswith(("../", "./")):
+                    # F13 / Audit #4: frontmatter values are usually
+                    # repo-rooted, but some docs ship relative paths.
+                    # Anchor those against the source doc instead of
+                    # emitting a `doc:file:../...` stub.
+                    target_uid = _resolve_link(path, target_path)
+                    if not target_uid:
+                        continue
                 else:
                     target_uid = f"doc:file:{_normalize_path(target_path)}"
                 result.edges.append(
