@@ -546,7 +546,17 @@ def extract(path: str, content: str) -> ExtractionResult:
         if ts_heritage is not None:
             ts_inherits, ts_decorators = ts_heritage
             visitor.inherits = ts_inherits
-            visitor.decorators_edges = ts_decorators
+            # G1/G28: tree-sitter overlay misses module-level decorators
+            # for some files (board_os/mcp_tools.py: 0 of 16 @safe_tool
+            # captured). MERGE rather than overwrite — keep the AST's
+            # decorators when tree-sitter's set is a strict subset.
+            ast_dec_set = set(visitor.decorators_edges)
+            ts_dec_set = set(ts_decorators)
+            if ast_dec_set - ts_dec_set:
+                # AST sees more — union and prefer.
+                visitor.decorators_edges = list(ast_dec_set | ts_dec_set)
+            else:
+                visitor.decorators_edges = ts_decorators
             heritage_extractor_id = EXTRACTOR_ID_TS_IMPORTS
 
     # Emit decls + containment.
