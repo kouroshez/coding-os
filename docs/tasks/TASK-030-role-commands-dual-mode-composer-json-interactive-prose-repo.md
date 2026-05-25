@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [meta, role-prompts, repo-aware, ux]
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-05-25
 started: 2026-05-25
-completed: null
+completed: 2026-05-25
 agent_session: ses-claude-20260524-224550-c745
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-030: Role-* commands: dual-mode (composer JSON + interactive prose) + repo-aware input
 
 **Outcome (one sentence):** Each of 11 role-*.md agent SSOT files works for both human slash-command and composer dispatch — interactive auto-detects task/diff/stack/contracts from repo, returns prose review + embedded JSON envelope; composer path still returns JSON-only via SDK injection.
@@ -40,3 +39,4 @@ references: []
 - **Then** it reports 0 rewrote, 11 skipped (idempotent).
 
 ## Work Log
+- 2026-05-25 [claude]: All 11 role-*.md SSOT dual-mode (composer JSON + interactive prose). refactor_agent_dual_mode.py idempotent. /review fol
