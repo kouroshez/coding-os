@@ -1,6 +1,11 @@
 # coding-os — Development Makefile
 # This project dogfoods its own Makefile.base
 
+# Suppress UV warning when contributor has unrelated VIRTUAL_ENV exported
+# (e.g. homebrew python venv). UV uses pyproject .venv regardless; warning
+# clutters every `uv run` invocation.
+unexport VIRTUAL_ENV
+
 # Override COS paths for self-development
 COS_ROOT := $(shell pwd)
 
