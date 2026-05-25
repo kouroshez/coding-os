@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-25 -->
 # Risk Register
 
 Purpose: Canonical list of active project, architecture, and workflow risks that still require mitigation or follow-up.

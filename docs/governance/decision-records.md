@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-05-25 -->
 # Decision Records
 
 Purpose: Define where durable architectural decisions live and how to reference them from tasks and governance docs.

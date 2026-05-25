@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-05-25 -->
 # Workflow Guide
 
 Purpose: Quick-start guide for new contributors and AI agents joining the project.

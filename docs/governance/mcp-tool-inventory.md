@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-05-25 -->
 # MCP Tool Inventory
 
 Purpose: Route AI agents to the correct tools for research, validation, and automation tasks.
@@ -10,7 +10,7 @@ Read next: The domain playbook matching your task type.
 
 ## Runtime Snapshot
 
-- Verified on `{{DATE}}`
+- Verified on `2026-05-25`
 - Standard runtime must match this doc before it is treated as available truth
 - Agent checks available tools via its session's deferred tool list
 

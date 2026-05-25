@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:{{DATE}} -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-25 -->
 # GDPR / Privacy Compliance
 
 Purpose: Define data handling, consent, and retention rules for personal data in the project.

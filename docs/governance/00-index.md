@@ -19,13 +19,13 @@ Read next: any of the entries below.
 - [Wrapper Derivation Policy](wrapper-derivation.md) — `ssot:true` · updated 2026-05-10
 - [Docs-First Protocol](docs-first-protocol.md) — `ssot:true` · updated 2026-05-10
 - [Critical Rules — Full Text](critical-rules.md) — `ssot:true` · updated 2026-05-13
-- [GDPR / Privacy Compliance](gdpr-compliance.md) — `ssot:true` · updated {{DATE}}
-- [Risk Register](risk-register.md) — `ssot:true` · updated {{DATE}}
+- [GDPR / Privacy Compliance](gdpr-compliance.md) — `ssot:true` · updated 2026-05-25
+- [Risk Register](risk-register.md) — `ssot:true` · updated 2026-05-25
 
 ### Reference (2)
 
-- [MCP Tool Inventory](mcp-tool-inventory.md) — `ssot:true` · updated {{DATE}}
-- [Decision Records](decision-records.md) — `ssot:true` · updated {{DATE}}
+- [MCP Tool Inventory](mcp-tool-inventory.md) — `ssot:true` · updated 2026-05-25
+- [Decision Records](decision-records.md) — `ssot:true` · updated 2026-05-25
 
 <!-- END auto-index -->
 
