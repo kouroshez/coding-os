@@ -2603,12 +2603,14 @@ if _GRAPH_TOOLS_AVAILABLE:
         top: int = 20,
         kind: str = "",
         min_score: float = 0.05,
+        diversify: bool = True,
     ) -> str:
         """Top-N scored entry points (main / cli / http / cron / test) — TASK-081."""
         return _graph_tools.cos_graph_entrypoints(
             top=int(top),
             kind=(kind or None),
             min_score=float(min_score),
+            diversify=bool(diversify),
         )
 
     @mcp.tool(

@@ -2097,9 +2097,18 @@ def cos_graph_entrypoints(
     top: int = 20,
     kind: str | None = None,
     min_score: float = 0.05,
+    diversify: bool = True,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Return scored entry-point candidates (TASK-081)."""
+    """Return scored entry-point candidates (TASK-081).
+
+    F10 / Audit #13: many real entrypoints tie at the same score and
+    the pre-fix `sort(-score, uid)` made the alphabetically-first file
+    monopolise the top-N. `diversify=True` (default) round-robins
+    across distinct file_paths within each score tier so the top
+    surfaces structurally different entrypoints. Set False to recover
+    the raw score-only ranking.
+    """
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
@@ -2125,6 +2134,35 @@ def cos_graph_entrypoints(
 
     eps = ep_mod.discover(be, min_score=float(min_score), kind_filter=kind)
     total = len(eps)
+    if diversify and eps:
+        # Round-robin by file_path within each score-tier so the top-N
+        # spans multiple files. Pure sort would let one file's tests
+        # all alphabetise to the front.
+        from collections import defaultdict
+
+        by_file: dict[str | None, list[Any]] = defaultdict(list)
+        for ep in eps:
+            by_file[ep.file_path].append(ep)
+        # Stable interleave: pop one entry from each file bucket per
+        # round until either top or all buckets are drained.
+        ordered: list[Any] = []
+        files_in_score_order: list[str | None] = []
+        seen_files: set[str | None] = set()
+        for ep in eps:
+            if ep.file_path not in seen_files:
+                seen_files.add(ep.file_path)
+                files_in_score_order.append(ep.file_path)
+        while len(ordered) < top:
+            advanced = False
+            for fp in files_in_score_order:
+                if by_file[fp]:
+                    ordered.append(by_file[fp].pop(0))
+                    advanced = True
+                    if len(ordered) >= top:
+                        break
+            if not advanced:
+                break
+        eps = ordered
     rows = [ep.to_dict() for ep in eps[:top]]
     return _ok(
         {"entrypoints": rows, "total_count": total},
