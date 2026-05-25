@@ -441,14 +441,16 @@ def cos_task_create(
         "appetite": appetite,
         "created": today,
         # F17 / TASK-029 task-lifecycle fix: when a task is created
-        # directly into an active status (in_progress / testing / etc.)
-        # the create path used to leave started + agent_session null
-        # because only `transition` stamps them. That drifted DB
-        # (tasks.started_at via INSERT) and YAML (started: null) out
-        # of sync. Stamp on create so both layers agree.
-        "started": today if status in {"in_progress", "testing", "emergency"} else None,
+        # directly into `in_progress`, stamp started + agent_session
+        # so YAML and DB agree. F17b: narrowed to `in_progress` only
+        # to match `workflow.transition`'s semantics — testing/emergency
+        # are reached via transition, not create-path, so stamping them
+        # at create would diverge from the transition convention.
+        # `completed` stays stamp-on-create because creating a task
+        # already-complete is a legitimate retro entry.
+        "started": today if status == "in_progress" else None,
         "completed": today if status == "complete" else None,
-        "agent_session": agent_session if status in {"in_progress", "testing", "emergency"} else None,
+        "agent_session": agent_session if status == "in_progress" else None,
         "depends_on": depends_on or [],
         "blocked_by": [],
         "references": [],

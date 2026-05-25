@@ -93,8 +93,8 @@ def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
 def test_create_task_in_progress_stamps_started_and_session(
     project: Path, conn: sqlite3.Connection
 ):
-    """F17 / TASK-029 task-lifecycle: creating a task directly in an
-    active status used to leave `started` and `agent_session` null in
+    """F17 / TASK-029 task-lifecycle: creating a task directly in
+    `in_progress` used to leave `started` and `agent_session` null in
     the YAML frontmatter — the DB row had values but the file did
     not. After fix both layers agree on creation."""
     env = _parse(
@@ -113,6 +113,31 @@ def test_create_task_in_progress_stamps_started_and_session(
     assert "started: null" not in content
     assert "agent_session: null" not in content
     assert "ses-test-lifecycle-1" in content
+
+
+def test_create_task_testing_does_not_stamp_started(
+    project: Path, conn: sqlite3.Connection
+):
+    """F17b: only `in_progress` stamps `started` at create-time to
+    match `workflow.transition` semantics. Tasks created directly in
+    `testing` / `emergency` are unusual and should reach those states
+    via transition; keep create-path conservative so the two layers
+    do not diverge."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Created in testing",
+            swimlane="core",
+            kind="feature",
+            status="testing",
+            agent_session="ses-test-lifecycle-2",
+        )
+    )
+    assert env["ok"] is True
+    md = project / env["data"]["file_path"]
+    content = md.read_text(encoding="utf-8")
+    assert "started: null" in content
+    assert "agent_session: null" in content
 
 
 def test_create_task_rejects_unknown_swimlane(project: Path, conn: sqlite3.Connection):
