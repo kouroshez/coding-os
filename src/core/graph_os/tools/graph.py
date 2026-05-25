@@ -1315,7 +1315,16 @@ def cos_graph_similar(
                 if n is not None:
                     raw_candidates.append(n)
 
-    candidates = [n for n in raw_candidates if n.uid != uid]
+    # G21: drop external/orphan/unresolved stubs from the candidate
+    # pool — they otherwise dominate similarity for any noise-shaped
+    # input (`unresolved:str` returned 120 noise neighbours).
+    candidates = [
+        n
+        for n in raw_candidates
+        if n.uid != uid
+        and not n.uid.startswith("code:external:unresolved:")
+        and n.kind != "identifier"
+    ]
 
     # Phase I.1 — use BGE-M3 embeddings when the model is available;
     # fall back to lexical SequenceMatcher otherwise. Both signals get
