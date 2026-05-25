@@ -1052,11 +1052,19 @@ def cos_work_log_append(
     conn: sqlite3.Connection,
     *,
     task_id: str,
-    summary: str,
+    summary: str | None = None,
+    note: str | None = None,
     agent_session: str | None = None,
     source: str = "manual",
 ) -> str:
     """Append one line to a task's Work Log section in the MD file."""
+    # G38: accept `note` as alias of `summary` — many task-driver
+    # callers (and docs) pass `note=...`; the prior signature only
+    # honoured `summary`, producing a 422 validation error.
+    if summary is None and note is not None:
+        summary = note
+    if not isinstance(summary, str) or not summary.strip():
+        return fail("validation", "summary (or note) is required")
     row = conn.execute(
         "SELECT file_path FROM tasks WHERE task_id = ?",
         (task_id,),
