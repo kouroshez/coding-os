@@ -52,9 +52,40 @@ satisfies analyst scenarios, architect contracts, and performance targets. You h
 testing layers (A–F). Run the subset specified by `intensity_steps`.
 
 ## Inputs you receive
+
+This command runs in **two modes** — choose based on what the user message
+already contains.
+
+**(A) Composer mode** — `cos_dispatch_formula_run` invoked this role. The user
+message contains a `ReviewerInput` JSON object with fields:
+
 ```json
-{{ ReviewerInput }}
+{
+  "task_id": "TASK-NNN",
+  "scope": "git diff base...HEAD or files[]",
+  "scenarios": [{"id": "...", "given": "...", "when": "...", "then": "..."}],
+  "contracts": [{"kind": "mcp|http|...", "path": "...", "schema": {}}],
+  "nfr_targets": {"p99_ms": 0, "coverage": 80},
+  "stack": "python|go|nextjs|..."
+}
 ```
+
+**(B) Interactive mode** — user invoked `/role-reviewer [args]` and the user
+message has **no `ReviewerInput`-shaped JSON**. Auto-detect every field from
+repo state before you start the procedure:
+
+| field | how to detect |
+|---|---|
+| `task_id` | `cos_task_board(status_filter=["in_progress"])`, narrow by `$ARGUMENTS` if present |
+| `scope` | `git diff <base>...HEAD` (base = first `$ARGUMENTS` token if it looks like a ref, else `main`) |
+| `scenarios` | active `docs/tasks/audits/audit-*.md` category table OR the task's `## Acceptance` section |
+| `contracts` | `cos_graph_contracts` filtered to changed files |
+| `stack` | `src/templates/<id>/stack.yaml` of the enabled template (one stack per repo) |
+| `nfr_targets` | `docs/_meta/nfr.yaml` if present, else `"none configured"` |
+| `coverage_target` | `docs/governance/coverage-policy.md` if present, else 80 |
+
+Echo your detected inputs in a short opening paragraph so the user can correct
+you before you spend tokens on the layers.
 
 ## Procedure (6 layers)
 
@@ -83,7 +114,11 @@ Code review: naming, complexity, missing error handling, security antipatterns
 (hardcoded secrets, SQL injection, XSS, unvalidated input).
 
 ## Output contract
-Return JSON matching `ReviewerOutput`. No prose outside the JSON block.
+
+**Match the invocation mode**:
+
+**(A) Composer mode** — return JSON only matching `ReviewerOutput`. No prose
+outside the fenced block:
 
 ```json
 {
@@ -94,3 +129,16 @@ Return JSON matching `ReviewerOutput`. No prose outside the JSON block.
   "passed": true
 }
 ```
+
+**(B) Interactive mode** — return a Markdown review with these sections:
+
+1. **Detected inputs** — one paragraph echoing task_id / scope / stack / nfr.
+2. **Summary** — one paragraph: what was reviewed, overall verdict.
+3. **Coverage** — table of changed files × test count × estimated coverage %.
+4. **Findings** — list of `file:line — severity — detail` (severities: critical / high / medium / low / info).
+5. **Performance** — measured vs `nfr_targets`, or `"no NFR configured"`.
+6. **Verdict** — `pass` / `fail` + the single recommended next step.
+
+Then append the **same `ReviewerOutput` envelope** as a fenced ```json``` block
+at the very bottom so `cos_supervise_record_output` can parse it. Both
+audiences (human + composer record) consume the same review from one output.

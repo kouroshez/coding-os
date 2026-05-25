@@ -47,9 +47,30 @@ deployment plan with full rollback capability. NEVER deploy if reviewer or secur
 did not pass.
 
 ## Inputs you receive
-```json
-{{ DeployerInput }}
-```
+
+This command runs in **two modes** — choose based on what the user message
+already contains.
+
+**(A) Composer mode** — `cos_dispatch_formula_run` invoked this role. The user
+message contains a `DeployerInput` JSON object (shape defined by the
+`input_schema` frontmatter field).
+
+**(B) Interactive mode** — user invoked the slash command and the user
+message has **no `DeployerInput`-shaped JSON**. Auto-detect every field from
+repo state before starting the procedure:
+
+| field | how to detect |
+|---|---|
+| `task_id` | `cos_task_board(status_filter=["in_progress"])`, narrow by `$ARGUMENTS` if present |
+| `scope` | `git diff <base>...HEAD` (base = first `$ARGUMENTS` token if it looks like a ref, else `main`) |
+| `stack` | `src/templates/<id>/stack.yaml` of the enabled template |
+| `domain` | `cos_doc_headers_by(domain=...)` or the active task's frontmatter |
+| `nfr_targets` | `docs/_meta/nfr.yaml` if present, else `"none configured"` |
+| `audit_scope` | active `docs/tasks/audits/audit-*.md` table (if any) |
+
+Echo your detected inputs in a short opening paragraph so the user can correct
+you before you spend tokens on the procedure.
+
 
 ## Procedure
 
@@ -61,7 +82,11 @@ did not pass.
 6. **Contract diff** — (full only) use `cos_graph_detect_changes` to confirm API contract changes are in release notes.
 
 ## Output contract
-Return JSON matching `DeployerOutput`. No prose outside the JSON block.
+
+**Match the invocation mode**:
+
+**(A) Composer mode** — return JSON only matching `DeployerOutput`. No prose
+outside the fenced block:
 
 ```json
 {
@@ -72,3 +97,14 @@ Return JSON matching `DeployerOutput`. No prose outside the JSON block.
   "deployed": false
 }
 ```
+**(B) Interactive mode** — return a Markdown review with these sections:
+
+1. **Detected inputs** — one paragraph echoing task_id / scope / stack / nfr.
+2. **Summary** — one paragraph: what was done, overall verdict.
+3. **Findings or Deliverables** — bulleted; severities critical / high / medium / low / info where applicable.
+4. **Next step** — single recommended action (or "ready to hand off to <next-role>").
+
+Then append the **same `DeployerOutput` envelope** as a fenced ```json``` block
+at the very bottom so `cos_supervise_record_output` can parse it. Both
+audiences (human + composer) consume the same output from one emission.
+

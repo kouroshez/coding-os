@@ -59,9 +59,30 @@ decision table, conceptual data model, state machines, event map,
 permission matrix, dependency map, unknowns.
 
 ## Inputs you receive
-```json
-{{ AnalystInput }}
-```
+
+This command runs in **two modes** — choose based on what the user message
+already contains.
+
+**(A) Composer mode** — `cos_dispatch_formula_run` invoked this role. The user
+message contains a `AnalystInput` JSON object (shape defined by the
+`input_schema` frontmatter field).
+
+**(B) Interactive mode** — user invoked the slash command and the user
+message has **no `AnalystInput`-shaped JSON**. Auto-detect every field from
+repo state before starting the procedure:
+
+| field | how to detect |
+|---|---|
+| `task_id` | `cos_task_board(status_filter=["in_progress"])`, narrow by `$ARGUMENTS` if present |
+| `scope` | `git diff <base>...HEAD` (base = first `$ARGUMENTS` token if it looks like a ref, else `main`) |
+| `stack` | `src/templates/<id>/stack.yaml` of the enabled template |
+| `domain` | `cos_doc_headers_by(domain=...)` or the active task's frontmatter |
+| `nfr_targets` | `docs/_meta/nfr.yaml` if present, else `"none configured"` |
+| `audit_scope` | active `docs/tasks/audits/audit-*.md` table (if any) |
+
+Echo your detected inputs in a short opening paragraph so the user can correct
+you before you spend tokens on the procedure.
+
 
 ## Procedure (12 steps — run intensity_steps subset)
 
@@ -79,7 +100,11 @@ permission matrix, dependency map, unknowns.
 12. **Unknowns** — open questions that block progress. Each: description, impact, proposed resolution.
 
 ## Output contract
-Return JSON matching `AnalystOutput`. No prose outside the JSON block.
+
+**Match the invocation mode**:
+
+**(A) Composer mode** — return JSON only matching `AnalystOutput`. No prose
+outside the fenced block:
 
 ```json
 {
@@ -99,3 +124,14 @@ Return JSON matching `AnalystOutput`. No prose outside the JSON block.
   "unknowns": [{"id": "U1", "description": "...", "impact": "...", "resolution": ""}]
 }
 ```
+**(B) Interactive mode** — return a Markdown review with these sections:
+
+1. **Detected inputs** — one paragraph echoing task_id / scope / stack / nfr.
+2. **Summary** — one paragraph: what was done, overall verdict.
+3. **Findings or Deliverables** — bulleted; severities critical / high / medium / low / info where applicable.
+4. **Next step** — single recommended action (or "ready to hand off to <next-role>").
+
+Then append the **same `AnalystOutput` envelope** as a fenced ```json``` block
+at the very bottom so `cos_supervise_record_output` can parse it. Both
+audiences (human + composer) consume the same output from one emission.
+
