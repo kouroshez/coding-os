@@ -11,12 +11,12 @@ Companion to [graph-os-deep-audit-findings-2026-05-25.md](graph-os-deep-audit-fi
 - [x] **F-G4** impact `confidence_min` 0.5→0.3 (commit fb2f683)
 - [x] **F-G5** contracts bucket 2000→200 (commit fb2f683)
 - [x] **F-P2** communities adaptive envelope cap (commit fb2f683)
-- [ ] **F-G3a-rest** apply `_normalize_kinds` in 5 more tools: context, contracts, trace, export, resolve, detect_changes
-- [ ] **F-G33** context depth=3 envelope cap (353KB→<10K via visit_limit honor)
-- [ ] **F-G1+G28+E5+E6** Python AST extractor — module-level decorator coverage + `awaits` + `dispatches` edges
-- [ ] **F-E1** migration v18 `deleted_at` on graph_nodes + soft-delete in delete_*; filter queries
-- [ ] **F-E2** Python `code:import` UID drop line-number
-- [ ] **F-P1** PageRank O(N²) → O(E) precompute `in_links` once
+- [x] **F-G3a-rest** applied in detect_changes + contracts + resolve (export edge_types/exclude_kinds too)
+- [x] **F-G33** context depth=3 envelope cap (auto-clamp visit_limit by depth)
+- [ ] **F-G1+G28+E5+E6** Python AST extractor — module-level decorator coverage + `awaits` + `dispatches` edges (DEFERRED — needs deeper resolver work)
+- [ ] **F-E1** migration v18 `deleted_at` on graph_nodes + soft-delete in delete_*; filter queries (DEFERRED — schema migration scope)
+- [x] **F-E2** Python `code:import` UID drop line-number
+- [x] **F-P1** PageRank O(N²) → O(E) precompute `in_links` once (bench: 35.5s → 104ms)
 
 ## P1 — HIGH (correctness + UX)
 
@@ -27,7 +27,7 @@ Companion to [graph-os-deep-audit-findings-2026-05-25.md](graph-os-deep-audit-fi
 - [ ] **F-G15** ranking expose `meta.node_cap=5000`
 - [ ] **F-G19** detect_changes risk = behavioural-edge inbound count (not contains-children)
 - [ ] **F-G20** entrypoints kind-bias: cli_entry/http_route/mcp_tool > test
-- [ ] **F-G35** export max_nodes global cap + meta.nodes_capped_at
+- [x] **F-G35** export max_nodes global cap + meta.nodes_capped_at
 - [ ] **F-G37** doctor stale_paths sweep on file-delete (deleted-file orphan)
 - [ ] **F-G39** query FTS5 kind-weighting (same as G8)
 - [ ] **F-R1** impact also drops 83% of calls below 0.5 (companion to G4 — verified by lowering to 0.3)
@@ -38,9 +38,9 @@ Companion to [graph-os-deep-audit-findings-2026-05-25.md](graph-os-deep-audit-fi
 - [ ] **F-E8** YAML hook registry first-class `cos:hook:<id>` nodes
 - [ ] **F-E9** TOML walk `project.optional-dependencies` + `dependency-groups`
 - [ ] **F-E10** Shell regex-fallback heredoc-aware stripping
-- [ ] **F-G16** standalone SqliteBackend apply pragma SSOT
-- [ ] **F-G17** count_edges → DISTINCT subquery dedupe
-- [ ] **F-G18** drop write_lock from pure-SELECT methods
+- [x] **F-G16** standalone SqliteBackend apply pragma SSOT
+- [x] **F-G17** count_edges → DISTINCT subquery dedupe
+- [ ] **F-G18** drop write_lock from pure-SELECT methods (DEFERRED — concurrency stress test needed first)
 
 ## P2 — MEDIUM (polish + edge cases)
 
@@ -51,7 +51,7 @@ Companion to [graph-os-deep-audit-findings-2026-05-25.md](graph-os-deep-audit-fi
 - [ ] **F-G21** similar exclude orphan/external from pool
 - [ ] **F-G27-mcp** doctor fixable_categories meta (done in W1; check)
 - [ ] **F-G30** embedding pool audit for thinking_os/tools/*
-- [ ] **F-E11** Python constructs gate on resolved target kind `class`
+- [x] **F-E11** Python constructs gate on resolved target kind `class`
 - [ ] **F-E12** YAML _REFERENCE_KEYS scope to known files
 - [ ] **F-R3** broaden `re_exports` detection (`from .X import *` + `__all__`)
 - [ ] **F-R4** broaden `handles_event` detection (subscribers, SSE)

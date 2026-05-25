@@ -786,12 +786,17 @@ def cos_graph_query(
         processes = []
 
     total = len(results)
+    # G25: omit `processes` from payload when empty so the envelope
+    # shape doesn't carry a constant noise key. Keep `process_count`
+    # in meta so callers can detect community-grouping availability.
+    payload: dict[str, Any] = {
+        "results": results[:limit],
+        "total_count": total,
+    }
+    if processes:
+        payload["processes"] = processes
     return _ok(
-        {
-            "results": results[:limit],
-            "processes": processes,
-            "total_count": total,
-        },
+        payload,
         meta={
             "query": query_meta,
             "backend": be.backend_id,
@@ -1193,10 +1198,16 @@ def cos_graph_trace(
             limit=20,
         )
         if len(edges) > 1:
+            # G24: strip externals from fan_out — they already live in
+            # `external_targets`, so duplicating them in branches inflates
+            # the envelope without new information.
+            fan_out_uids = [e.target_uid for e in edges]
+            if not include_external:
+                fan_out_uids = [u for u in fan_out_uids if not u.startswith("code:external:")]
             branches.append(
                 {
                     "from": uid,
-                    "fan_out": [e.target_uid for e in edges],
+                    "fan_out": fan_out_uids,
                 }
             )
         for edge in edges:
@@ -2842,6 +2853,7 @@ def cos_graph_ranking(
         meta={
             "backend": be.backend_id,
             "node_count": N,
+            "node_cap": _NODE_CAP,  # G15: was hidden default; expose it
             "iterations": iterations,
             "damping": damping,
             "result_truncated": truncated,
