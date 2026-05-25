@@ -139,13 +139,18 @@ Every line in a commit message exists forever. Verbose bodies (audit tables, fil
 <body — ≤3 non-empty lines, plain prose explaining "why">
 ```
 
-### Forbidden (will BLOCK)
+### Hard fails (will BLOCK — enforced by `check_commit_message.py`)
 
+- Title >100 chars.
+- Body with >3 non-empty lines.
 - `Co-Authored-By:` trailers of any kind (agent attribution belongs nowhere in history).
-- Lines containing `🤖`, `Generated with [Claude`, `noreply@anthropic.com`, `claude.com/claude-code`, `@anthropic.com`.
-- Any paragraph whose first line begins with `USER` / `User` / `user` (prompt leak).
-- Quoted Persian/Arabic text >40 characters (user-prompt leak: `"..."`).
-- Markdown tables, bullet lists of file paths, `Verification:` / `Tests:` / `Files:` headers — these are PR-description / audit-doc material, not commit body.
+- Lines matching `🤖`, `Generated with [Claude`, `noreply@anthropic.com`, `claude.com/claude-code`, `@anthropic.com` (case-insensitive).
+- Any line beginning with `USER` / `User` / `user` (prompt-leak guard — `^USER\b`).
+- Quoted text containing >40 Persian/Arabic characters (user-prompt leak guard: `"..."`).
+
+### Convention (not enforced — caught indirectly by 3-line limit)
+
+Markdown tables, bullet lists of file paths, `Verification:` / `Tests:` / `Files:` headers all require multiple lines so they hit the 3-line ceiling in practice. They are PR-description / audit-doc / work-log material — keep them out of `git log`.
 
 ### Allowed escape hatch
 
