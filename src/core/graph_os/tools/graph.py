@@ -747,6 +747,11 @@ def cos_graph_query(
         return _fail(
             "validation", "query must be a non-empty string (or provide kinds for kind-only browse)"
         )
+    # G32: single-char queries produce 100-row token bombs (LIKE '%x%'
+    # matches every identifier containing 'x'). Require ≥2 chars unless
+    # kind-only browse.
+    if q and q.strip() and len(q.strip()) < 2 and not parsed_kinds:
+        return _fail("validation", "query must be ≥2 chars (or pass kinds for kind-only browse)")
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1125,9 +1130,16 @@ def cos_graph_detect_changes(
                 for uid_candidate in (deep_edge.source_uid, deep_edge.target_uid):
                     if uid_candidate.startswith("task:file:"):
                         downstream_tasks.add(uid_candidate)
-            if len(deep_edges) > 20:
+            # G19: risk reflects BLAST RADIUS (callers / behavioural
+            # consumers), not contains-children inside the file. A new
+            # file with 30 functions but zero callers is "low", not "high".
+            behavioural = [
+                e for e in deep_edges
+                if e.edge_type in _BEHAVIOURAL_EDGE_TYPES
+            ]
+            if len(behavioural) > 20:
                 risk = "high"
-            elif len(deep_edges) > 5 and risk != "high":
+            elif len(behavioural) > 5 and risk != "high":
                 risk = "medium"
 
     return _ok(
