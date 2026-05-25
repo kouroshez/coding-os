@@ -218,7 +218,16 @@ class SqliteBackend:
         """Insert or update an edge; replace evidence atomically.
 
         DEPENDS:  upsert_node must have been called for both endpoints.
+
+        F12 / Audit #3: extractors occasionally emit self-loops
+        (source_uid == target_uid) when an AST visitor mis-resolves
+        recursion or nested attribute access. They poison call-graph
+        analytics. Drop them at the backend write boundary so a single
+        fix covers every extractor.
         """
+        if edge.source_uid == edge.target_uid:
+            logger.debug("self-loop dropped at upsert_edge: uid=%s type=%s", edge.source_uid, edge.edge_type)
+            return -1
         now = int(time.time())
         with self._write_lock:
             source_id = self._node_id_for_uid(edge.source_uid)
@@ -304,8 +313,8 @@ class SqliteBackend:
             node_count += 1
         edge_count = 0
         for edge in edges:
-            self.upsert_edge(edge)
-            edge_count += 1
+            if self.upsert_edge(edge) >= 0:
+                edge_count += 1
         return node_count, edge_count
 
     def delete_node(self, uid: str) -> bool:

@@ -100,6 +100,24 @@ def test_upsert_edge_round_trip_with_evidence(backend):
     }
 
 
+def test_upsert_edge_drops_self_loops(backend):
+    """F12 / Audit #3: extractors sometimes emit edges where
+    source_uid == target_uid (mis-resolved recursion). Backend rejects
+    them with rc=-1 so doctor's self-loop bucket stays empty post-
+    reindex."""
+    backend.upsert_node(_make_node("code:function:self"))
+    edge = GraphEdge(
+        source_uid="code:function:self",
+        target_uid="code:function:self",
+        edge_type="calls",
+        extractor="test",
+        confidence=0.5,
+    )
+    rc = backend.upsert_edge(edge)
+    assert rc == -1
+    assert backend.count_edges() == 0
+
+
 def test_upsert_edge_is_idempotent(backend):
     backend.upsert_node(_make_node("code:function:a"))
     backend.upsert_node(_make_node("code:function:b"))
