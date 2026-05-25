@@ -2624,7 +2624,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         top: int = 50,
         min_size: int = 2,
     ) -> str:
-        """Louvain-detected processes (LoginFlow / RegistrationFlow / …) — TASK-075."""
+        """Louvain process clusters — response key is `processes` (not `communities`)."""
         return _graph_tools.cos_graph_communities(
             top=int(top),
             min_size=int(min_size),

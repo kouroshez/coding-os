@@ -2092,7 +2092,7 @@ def cos_graph_communities(
     min_size: int = 2,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Return Louvain-detected processes / communities (TASK-075)."""
+    """Return Louvain process clusters. Response payload key is `processes`."""
     if not isinstance(top, int) or top <= 0:
         return _fail("validation", "top must be a positive int")
     if top > 200:
