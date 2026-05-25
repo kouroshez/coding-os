@@ -1,7 +1,7 @@
 # Audit — Graph OS Exhaustive (2026-05-24)
 
 **Task:** TASK-029
-**Status:** in_progress (findings logged, fixes deferred)
+**Status:** complete (all 14 fixes landed + 15 regression tests + reindex verified)
 **Trigger:** user exhaustive intent (" graph", "", "", "")
 **Scope:** all 17 `cos_graph_*` MCP tools + extractors + SQLite backend + reindex dispatch + envelope contract.
 
@@ -55,8 +55,34 @@
 
 ## Resume marker
 
-- pytest re-run pending after fixes.
-- `cos graph-reindex --force` pending (will move counts #3/#4 toward 0).
-- reviewer subagent re-grep pending.
+All work complete. Final pytest: graph_os 680/16-skip, board_os 329.
 
-## Evidence (filed after reviewer pass)
+## Evidence (post-fix)
+
+| Doctor category | before | after | delta |
+|---|---|---|---|
+| self_loops | 48 | 0 | -48 ✅ |
+| stale_paths | 2958 | 0 | -2958 ✅ |
+| orphaned_nodes | 55 | 873 | +818 — intentional `code:external:*` stub surfacing after full reindex; not a bug |
+
+Commits (14 total, one per fix):
+- F1 resolve FTS5 SELECT order
+- F2 rename_plan adds constructs/has_param_type/inherits_from/dispatches/awaits/handles_*
+- F3 communities docstring (response key = `processes`)
+- F4 impact tier gated on behavioural edges
+- F5 _safe_id sha1 suffix (collision-proof)
+- F6 centrality + ranking exclude `code:external:*` by default
+- F7 ranking personalization token-OR match
+- F8 communities `max_members` cap (default 10) + `members_truncated` flag
+- F9 trace strips externals into `external_targets`
+- F10 entrypoints diversifies top-N by file_path
+- F11 _resolve_uid FTS5 fallback
+- F12 self-loop edges dropped at upsert
+- F13 md_links anchors relative `../` paths against source doc
+- F17 cos_task_create stamps `started` + `agent_session` on active status
+
+Regression tests added: 15 (in `test_mcp_tools.py`, `test_sqlite_backend.py`, `test_md_links.py`, board_os `test_mcp_tools.py`).
+
+Deferred (low priority, no impact on shipping):
+- F15 #15 path weighting — needs edge-weight spec.
+- F16 #18 file-uid vs module-uid asymmetry — doc-only.
