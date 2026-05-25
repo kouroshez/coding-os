@@ -658,7 +658,10 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     # Imports.
     for imp in visitor.imports:
-        imp_uid = f"code:import:{normalised}::{imp.line}:{imp.local_name}"
+        # E2 fix: drop {imp.line} from UID so blank-line insertion above
+        # an import doesn't spawn a duplicate node. Line is still carried
+        # in start_line.
+        imp_uid = f"code:import:{normalised}::{imp.local_name}"
         result.nodes.append(
             GraphNode(
                 uid=imp_uid,
@@ -707,11 +710,19 @@ def extract(path: str, content: str) -> ExtractionResult:
     # them to 0.95 later without double-writing.
     for call in visitor.calls:
         confidence, evidence, resolved_uid = _resolve_call(call, visitor=visitor, path=normalised)
+        # E11 fix: name-only `Foo()` heuristic over-tags `Path()`,
+        # `Counter()`, etc. as `constructs`. Promote to `constructs`
+        # only when the resolved target is a real `code:class:*` node;
+        # otherwise demote to `calls`.
+        if call.is_constructor_like and resolved_uid.startswith("code:class:"):
+            edge_type = "constructs"
+        else:
+            edge_type = "calls"
         result.edges.append(
             GraphEdge(
                 source_uid=call.caller_uid,
                 target_uid=resolved_uid,
-                edge_type="constructs" if call.is_constructor_like else "calls",
+                edge_type=edge_type,
                 extractor=EXTRACTOR_ID,
                 confidence=confidence,
                 source_span=f"{normalised}:{call.line}",

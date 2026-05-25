@@ -1670,7 +1670,17 @@ def cos_graph_export(
             f"mode must be one of auto/containment/dependencies/processes (got {mode!r})",
         )
 
-    excluded = _DEFAULT_NOISE_KINDS if exclude_kinds is None else frozenset(exclude_kinds)
+    # G3: normalize edge_types + exclude_kinds (wire trap)
+    parsed_edge_types = _normalize_kinds(edge_types) or None
+    # exclude_kinds None → default noise list; [] explicit → no filter.
+    if exclude_kinds is None:
+        excluded = _DEFAULT_NOISE_KINDS
+    else:
+        parsed_exclude_kinds = _normalize_kinds(exclude_kinds)
+        excluded = frozenset(parsed_exclude_kinds)
+    # G35: enforce a hard global cap on max_nodes so non-root export
+    # cannot blow past the budget per-component aggregation.
+    max_nodes = max(1, min(int(max_nodes), 2000))
 
     if root_uid is not None:
         # Hub Graph tab "depth=all" sent max_nodes=10000 but the walk
@@ -1684,7 +1694,7 @@ def cos_graph_export(
             direction="both",
             max_hops=effective_hops,
             confidence_min=0.0,
-            edge_types=edge_types,
+            edge_types=parsed_edge_types,
             visit_limit=max_nodes,
         )
     elif mode == "processes":
@@ -1693,9 +1703,14 @@ def cos_graph_export(
         nodes, edges = _export_blend(
             be,
             mode=mode,
-            edge_types=edge_types,
+            edge_types=parsed_edge_types,
             max_nodes=max_nodes,
         )
+    # G35: hard-enforce node cap after blend (per-bucket leak).
+    if len(nodes) > max_nodes:
+        nodes = nodes[:max_nodes]
+        kept_uids = {n.uid for n in nodes}
+        edges = [e for e in edges if e.source_uid in kept_uids and e.target_uid in kept_uids]
 
     # TASK-141: apply noise filter.  Drop nodes whose kind is in
     # ``excluded`` AND drop any edges that touch them.
