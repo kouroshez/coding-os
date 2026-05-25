@@ -1004,9 +1004,17 @@ def cos_graph_trace(
     *,
     terminals: Sequence[str] = ("return", "exception"),
     max_steps: int = 50,
+    include_external: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Forward execution walk from an entry point."""
+    """Forward execution walk from an entry point.
+
+    F9 / Audit #7: `include_external=False` (default) keeps unresolved
+    builtins / stdlib stubs (`code:external:*`) out of `steps`. They
+    are collected in `external_targets` instead so the walk surface
+    stays project-internal but the call-site relationship is still
+    visible.
+    """
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1034,6 +1042,7 @@ def cos_graph_trace(
 
     steps: list[dict[str, Any]] = []
     branches: list[dict[str, Any]] = []
+    external_targets: list[str] = []
     seen: set[str] = set()
     stack: list[str] = [root.uid]
     while stack and len(steps) < max_steps:
@@ -1041,6 +1050,9 @@ def cos_graph_trace(
         if uid in seen:
             continue
         seen.add(uid)
+        if not include_external and uid.startswith("code:external:"):
+            external_targets.append(uid)
+            continue
         node = be.get_node(uid)
         if node is None:
             continue
@@ -1080,12 +1092,14 @@ def cos_graph_trace(
             "entry": NodeSummary.from_node(root).to_dict(),
             "steps": steps,
             "branches": branches,
+            "external_targets": external_targets,
             "terminals": list(terminals),
             "start_source": start_source,
         },
         meta={
             "backend": be.backend_id,
             "step_count": len(steps),
+            "external_count": len(external_targets),
             "start_source": start_source,
             "max_steps": max_steps,
             "walk_truncated": walk_truncated,

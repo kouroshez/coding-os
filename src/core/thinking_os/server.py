@@ -2373,6 +2373,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         entry_uid: str,
         terminals: str = "return,exception",
         max_steps: int = 50,
+        include_external: bool = False,
     ) -> str:
         """Forward execution walk from `entry_uid` until terminals.
 
@@ -2388,6 +2389,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             entry_uid,
             terminals=tuple(_csv(terminals) or ("return", "exception")),
             max_steps=int(max_steps),
+            include_external=bool(include_external),
         )
 
     @mcp.tool(

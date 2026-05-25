@@ -462,6 +462,37 @@ class TestSweepCoverageSignals:
         assert "max_steps" in data["meta"]
         assert "walk_truncated" in data["meta"]
 
+    def test_trace_default_omits_external_targets_from_steps(self, seeded_backend):
+        """F9 / Audit #7: trace walk used to emit `code:external:*`
+        nodes inline in `steps`, polluting the call graph. Default
+        keeps them out of `steps` and surfaces them via
+        `external_targets` instead."""
+        # Seed an external node + edge so walk would normally include it.
+        backend = graph._BACKEND_SINGLETON
+        backend.upsert_node(
+            GraphNode(
+                uid="code:external:json:dumps",
+                kind="identifier",
+                label="json:dumps",
+                file_path=None,
+            )
+        )
+        backend.upsert_edge(
+            GraphEdge(
+                source_uid="code:function:a.py::foo",
+                target_uid="code:external:json:dumps",
+                edge_type="calls",
+                extractor="test",
+                confidence=0.5,
+            )
+        )
+        data = _assert_ok(graph.cos_graph_trace("code:function:a.py::foo"))
+        step_uids = {s["uid"] for s in data["steps"]}
+        for u in step_uids:
+            assert not u.startswith("code:external:"), f"external leaked into steps: {u}"
+        assert "external_targets" in data
+        assert "external_count" in data["meta"]
+
     def test_trace_walk_truncated_fires_under_tight_max_steps(self, seeded_backend):
         data = _assert_ok(
             graph.cos_graph_trace("code:function:a.py::foo", max_steps=1)
