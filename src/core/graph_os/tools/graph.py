@@ -349,6 +349,30 @@ _STDLIB_MODULE_NAMES: frozenset[str] = frozenset(
 )
 
 
+# G8/G9/G39: kind-weighting for resolve / context / query — real
+# symbols rank above imports + external stubs at the same FTS5 score.
+_KIND_RESOLVE_WEIGHT: dict[str, int] = {
+    "class": 1, "code:class": 1,
+    "function": 2, "code:function": 2,
+    "method": 3, "code:method": 3,
+    "interface": 4, "code:interface": 4,
+    "variable": 5, "code:variable": 5,
+    "mcp_tool": 6, "hook": 6, "tool": 6, "route": 6,
+    "module": 10, "code:module": 10,
+    "file": 11, "code:file": 11, "doc:file": 12, "doc:heading": 13,
+    "import_": 20, "code:import": 20,
+    "identifier": 30,  # `code:external:unresolved:*` lives here
+}
+
+
+def _KIND_RESOLVE_RANK(node: GraphNode) -> tuple[int, int]:
+    """Lower tuple == better. Tie-break by uid length (shorter is canonical)."""
+    weight = _KIND_RESOLVE_WEIGHT.get(node.kind or "", 25)
+    if (node.uid or "").startswith("code:external:"):
+        weight += 5
+    return (weight, len(node.uid or ""))
+
+
 def _normalize_kinds(kinds: Any) -> tuple[str, ...]:
     """Defensive parser for `kinds`/list-of-strings args (G3).
 
@@ -441,7 +465,7 @@ def _fts5_label_lookup(backend: GraphBackend, raw_label: str) -> GraphNode | Non
             JOIN graph_nodes n ON n.id = graph_nodes_fts.rowid
             WHERE graph_nodes_fts MATCH ?
             ORDER BY rank
-            LIMIT 5
+            LIMIT 20
             """,
             (fts_q,),
         ).fetchall()
@@ -450,12 +474,16 @@ def _fts5_label_lookup(backend: GraphBackend, raw_label: str) -> GraphNode | Non
         return None
     # Prefer an exact label match if FTS5 surfaces one; otherwise take
     # the top-ranked hit so a near-match still resolves.
-    for row in rows:
-        node = row_to_node(row)
-        if node and (node.label or "") == raw_label:
-            return node
-    if rows:
-        return row_to_node(rows[0])
+    # G9: rank candidates by kind weight (real symbol > doc heading >
+    # import > external) — F11 fallback used to return whatever FTS5
+    # ranked first, including doc:heading when caller wanted code:function.
+    nodes = [row_to_node(r) for r in rows]
+    nodes = [n for n in nodes if n is not None]
+    for n in nodes:
+        if (n.label or "") == raw_label and not (n.uid or "").startswith("code:external:"):
+            return n
+    if nodes:
+        return sorted(nodes, key=_KIND_RESOLVE_RANK)[0]
     return None
 
 
@@ -2271,7 +2299,16 @@ def _lexical_search(
         else:
             base = difflib.SequenceMatcher(None, lower, label).ratio() * 0.5
         boost = log2((degree_map.get(n.uid) or 0) + 1) * 0.05
-        return base + min(boost, 0.4)
+        # G39: penalise external stubs + identifier noise so they don't
+        # outrank a real symbol at the same label match.
+        kind_penalty = 0.0
+        if (n.uid or "").startswith("code:external:"):
+            kind_penalty = 0.5
+        elif n.kind == "identifier":
+            kind_penalty = 0.4
+        elif (n.kind or "") in ("import_", "code:import"):
+            kind_penalty = 0.2
+        return base + min(boost, 0.4) - kind_penalty
 
     return sorted(candidates, key=score, reverse=True)[:limit]
 
@@ -3288,18 +3325,20 @@ def cos_graph_resolve(
                         ORDER BY rank
                         LIMIT ?
                         """,
-                        (fts_q, int(top) * 3),
+                        (fts_q, int(top) * 6),
                     ).fetchall()
                     row_to_node = getattr(be, "_row_to_node", None)
+                    pool: list[GraphNode] = []
                     for row in rows:
                         node = row_to_node(row) if row_to_node else None
                         if node is None:
                             continue
                         if kinds_set is not None and node.kind not in kinds_set:
                             continue
-                        candidates.append(node)
-                        if len(candidates) >= int(top):
-                            break
+                        pool.append(node)
+                    # G8: weight by kind preference — real symbols beat
+                    # imports + external stubs at the same FTS5 rank.
+                    candidates.extend(sorted(pool, key=_KIND_RESOLVE_RANK)[: int(top)])
                     if candidates and not strategy:
                         strategy = "fts5"
             except Exception as exc:
