@@ -963,7 +963,17 @@ class _PythonVisitor(ast.NodeVisitor):
             elif isinstance(sub, ast.ImportFrom):
                 self.visit_ImportFrom(sub)
             elif isinstance(sub, ast.Call):
-                target = _dotted_name(sub.func)
+                # R2: skip when the call target is method-access on an
+                # inline dict/set/list/tuple/f-string literal —
+                # `{'a': 'b'}.get(...)` produced bogus unresolved
+                # identifier nodes like `unresolved:{'ssot_of': ...}.get`.
+                func = sub.func
+                if isinstance(func, ast.Attribute) and isinstance(
+                    func.value,
+                    (ast.Dict, ast.Set, ast.List, ast.Tuple, ast.JoinedStr),
+                ):
+                    continue
+                target = _dotted_name(func)
                 if not target:
                     continue
                 last_segment = target.split(".")[-1]
