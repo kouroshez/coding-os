@@ -78,9 +78,12 @@ def _emit_pyproject(
                     confidence=1.0,
                 )
             )
-        deps = project.get("dependencies")
-        if isinstance(deps, list):
-            for entry in deps:
+        # E9: emit deps from main + optional-dependencies (PEP 621) +
+        # dependency-groups (PEP 735). Was only walking main deps.
+        def _emit_dep_list(dep_list: Any, evidence_name: str) -> None:
+            if not isinstance(dep_list, list):
+                return
+            for entry in dep_list:
                 if not isinstance(entry, str):
                     continue
                 dep_name = (
@@ -105,9 +108,21 @@ def _emit_pyproject(
                             edge_type="imports",
                             extractor=EXTRACTOR_ID,
                             confidence=0.9,
-                            evidence=(EvidenceSignal("pyproject_dependency", 0.9),),
+                            evidence=(EvidenceSignal(evidence_name, 0.9),),
                         )
                     )
+
+        _emit_dep_list(project.get("dependencies"), "pyproject_dependency")
+        # PEP 621 optional-dependencies — {"rag": [...], "graph_os": [...], ...}
+        optional_deps = project.get("optional-dependencies") or {}
+        if isinstance(optional_deps, dict):
+            for group_name, group_deps in optional_deps.items():
+                _emit_dep_list(group_deps, f"pyproject_optional_{group_name}")
+        # PEP 735 dependency-groups (top-level, not under project).
+        dep_groups = data.get("dependency-groups") or {}
+        if isinstance(dep_groups, dict):
+            for group_name, group_deps in dep_groups.items():
+                _emit_dep_list(group_deps, f"pep735_group_{group_name}")
         scripts = project.get("scripts")
         if isinstance(scripts, dict):
             for script_name in scripts.keys():
