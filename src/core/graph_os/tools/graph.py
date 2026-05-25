@@ -311,16 +311,48 @@ _BEHAVIOURAL_EDGE_TYPES: frozenset[str] = frozenset(
         "accesses_field",
         "has_param_type",
         "has_return_type",
+        "returns_type",
         "inherits_from",
         "implements",
         "dispatches",
         "awaits",
+        "is_decorated_by",
         "handles_route",
         "handles_event",
         "handles_tool",
         "references_doc",
     }
 )
+
+
+def _normalize_kinds(kinds: Any) -> tuple[str, ...]:
+    """Defensive parser for `kinds`/list-of-strings args (G3).
+
+    FastMCP wire sometimes delivers Sequence[str] as stringified JSON.
+    Accept: tuple/list, CSV string, JSON-array string, or single-element
+    list containing such a string. Returns clean tuple.
+    """
+    if kinds is None:
+        return ()
+    if isinstance(kinds, str):
+        s = kinds.strip()
+        if not s:
+            return ()
+        if s.startswith("[") and s.endswith("]"):
+            try:
+                import json as _json
+
+                parsed = _json.loads(s)
+                if isinstance(parsed, list):
+                    return tuple(str(x).strip() for x in parsed if str(x).strip())
+            except Exception:
+                pass
+        return tuple(p.strip() for p in s.split(",") if p.strip())
+    if isinstance(kinds, (list, tuple)):
+        if len(kinds) == 1 and isinstance(kinds[0], str) and kinds[0].lstrip().startswith("["):
+            return _normalize_kinds(kinds[0])
+        return tuple(str(k).strip() for k in kinds if str(k).strip())
+    return ()
 
 
 def _looks_prefixed(raw: str) -> bool:
@@ -685,7 +717,9 @@ def cos_graph_query(
 
     DEPENDS:      GraphBackend.
     """
-    if (not q or not q.strip()) and not kinds:
+    # G3: normalize kinds (handles wire-stringified list trap)
+    parsed_kinds = _normalize_kinds(kinds)
+    if (not q or not q.strip()) and not parsed_kinds:
         return _fail(
             "validation", "query must be a non-empty string (or provide kinds for kind-only browse)"
         )
@@ -694,7 +728,7 @@ def cos_graph_query(
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
 
-    kinds_filter = tuple(kinds) if kinds else None
+    kinds_filter = parsed_kinds if parsed_kinds else None
     nodes = _lexical_search(be, q=q, kinds=kinds_filter, limit=limit, max_hops=max_hops)
 
     # Fallback — when lexical hybrid returns nothing AND the query
@@ -880,7 +914,7 @@ def cos_graph_impact(
     *,
     direction: str = "downstream",
     depth: int = 3,
-    confidence_min: float = 0.5,
+    confidence_min: float = 0.3,
     visit_limit: int = 500,
     backend: str | None = None,
 ) -> dict[str, Any]:
@@ -1297,7 +1331,7 @@ def cos_graph_similar(
 def cos_graph_references(
     uid: str,
     *,
-    kinds: Sequence[str] = ("calls", "accesses_field", "imports", "references_doc"),
+    kinds: Sequence[str] | str | None = None,
     limit: int = 100,
     backend: str | None = None,
 ) -> dict[str, Any]:
@@ -1313,6 +1347,19 @@ def cos_graph_references(
         which signals *token-budget* truncation; result_truncated signals
         the caller-budget hit.)
     """
+    # G22: validate + clamp limit
+    if limit is not None and limit <= 0:
+        return _fail("validation", "limit must be > 0")
+    _LIMIT_MAX = 10_000
+    limit_clamped = False
+    if limit and limit > _LIMIT_MAX:
+        limit = _LIMIT_MAX
+        limit_clamped = True
+    # G2 + G3: normalize kinds; default to _BEHAVIOURAL_EDGE_TYPES SSOT.
+    parsed_kinds = _normalize_kinds(kinds)
+    if not parsed_kinds:
+        parsed_kinds = tuple(sorted(_BEHAVIOURAL_EDGE_TYPES))
+
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1322,13 +1369,13 @@ def cos_graph_references(
         return _fail_uid_not_found(uid, tried_uids)
 
     canonical_uid = node.uid
-    edges = be.list_edges(target_uid=canonical_uid, edge_types=tuple(kinds), limit=limit)
+    edges = be.list_edges(target_uid=canonical_uid, edge_types=parsed_kinds, limit=limit)
 
     # True total — separate count query so the caller knows if `edges`
     # is a complete picture or a slice. Uses the same kinds filter
     # because the backend's list_edges does the same filtering.
     total = _count_edges_for(
-        be, target_uid=canonical_uid, edge_types=tuple(kinds)
+        be, target_uid=canonical_uid, edge_types=parsed_kinds
     )
     truncated = total > len(edges)
 
@@ -1341,8 +1388,9 @@ def cos_graph_references(
         },
         meta={
             "backend": be.backend_id,
-            "kinds": list(kinds),
+            "kinds": list(parsed_kinds),
             "limit": limit,
+            "limit_clamped": limit_clamped,
             "result_truncated": truncated,
         },
     )
@@ -1419,19 +1467,29 @@ def cos_graph_path(
         return _fail_uid_not_found(target_uid, tried_tgt, label="target_uid")
     source_uid = src_node.uid
     target_uid = tgt_node.uid
-    _PATH_HOP_LIMIT = 1000
-    truncated = False
+    # G11/G23/P5: separate the two distinct truncation concepts:
+    #   * `walk_truncated` — search ran out of budget BEFORE reaching target
+    #     (the previous "truncated" semantics blurred this with fanout-cap).
+    #   * `frontier_saturated` — per-node fanout hit the cap (search may
+    #     still have succeeded, but a wider neighbour list could yield a
+    #     shorter path). Was the original `walk_truncated` semantics —
+    #     renamed to stop the false-positive panic on 3-hop paths.
+    # P5: hop edge cap reduced 1000 → 200 to stay sub-100ms at 1M-node.
+    _PATH_HOP_LIMIT = 200
+    frontier_saturated = False
     parents: dict[str, tuple[str, GraphEdge] | None] = {source_uid: None}
     queue: deque[tuple[str, int]] = deque([(source_uid, 0)])
-    while queue:
+    found = source_uid == target_uid
+    while queue and not found:
         uid, depth = queue.popleft()
         if uid == target_uid:
+            found = True
             break
         if depth >= max_hops:
             continue
         out_edges = be.list_edges(source_uid=uid, limit=_PATH_HOP_LIMIT)
         if len(out_edges) >= _PATH_HOP_LIMIT:
-            truncated = True
+            frontier_saturated = True
         for edge in out_edges:
             nxt = edge.target_uid
             if nxt not in parents:
@@ -1439,20 +1497,28 @@ def cos_graph_path(
                 queue.append((nxt, depth + 1))
         in_edges = be.list_edges(target_uid=uid, limit=_PATH_HOP_LIMIT)
         if len(in_edges) >= _PATH_HOP_LIMIT:
-            truncated = True
+            frontier_saturated = True
         for edge in in_edges:
             nxt = edge.source_uid
             if nxt not in parents:
                 parents[nxt] = (uid, edge)
                 queue.append((nxt, depth + 1))
+    walk_truncated = (target_uid not in parents) and frontier_saturated
     if target_uid not in parents:
         return _ok(
-            {"path": None, "edges": [], "walk_truncated": truncated},
+            {
+                "path": None,
+                "edges": [],
+                "walk_truncated": walk_truncated,
+                "frontier_saturated": frontier_saturated,
+            },
             meta={
                 "backend": be.backend_id,
-                "reason": "unreachable",
-                "walk_truncated": truncated,
-                "hop_limit": _PATH_HOP_LIMIT,
+                "reason": "unreachable" if not frontier_saturated else "exhausted_budget",
+                "walk_truncated": walk_truncated,
+                "frontier_saturated": frontier_saturated,
+                "max_hops": max_hops,
+                "frontier_edge_limit": _PATH_HOP_LIMIT,
             },
         )
     chain: list[GraphEdge] = []
@@ -1462,18 +1528,30 @@ def cos_graph_path(
         chain.append(edge)
         cur = prev
     chain.reverse()
+    # G29: walk the chain step-by-step so we don't emit consecutive
+    # duplicate nodes. The previous "[source] + [e.target if e.source==source
+    # else e.source for e]" was anchored to the original source, which broke
+    # past the first hop.
+    path_nodes: list[str] = [source_uid]
+    prev_uid = source_uid
+    for e in chain:
+        nxt_uid = e.target_uid if e.source_uid == prev_uid else e.source_uid
+        path_nodes.append(nxt_uid)
+        prev_uid = nxt_uid
     return _ok(
         {
-            "path": [source_uid]
-            + [e.target_uid if e.source_uid == source_uid else e.source_uid for e in chain],
+            "path": path_nodes,
             "edges": [_edge_to_dict(e) for e in chain],
             "hops": len(chain),
-            "walk_truncated": truncated,
+            "walk_truncated": False,
+            "frontier_saturated": frontier_saturated,
         },
         meta={
             "backend": be.backend_id,
-            "walk_truncated": truncated,
-            "hop_limit": _PATH_HOP_LIMIT,
+            "walk_truncated": False,
+            "frontier_saturated": frontier_saturated,
+            "max_hops": max_hops,
+            "frontier_edge_limit": _PATH_HOP_LIMIT,
         },
     )
 
@@ -1912,7 +1990,10 @@ def cos_graph_contracts(
     # Per-edge-type slice — silent truncation at limit=2000 would hide
     # contracts on a large API surface. Counter each kind so the agent
     # knows if the slice was complete.
-    _CONTRACT_BUCKET_LIMIT = 2000
+    # G5: was 2000; default invocation blew past MCP token cap (106KB).
+    # 200 per-edge-type bucket keeps the typical envelope well under
+    # ~10K tokens; callers needing more can paginate.
+    _CONTRACT_BUCKET_LIMIT = 200
     per_kind_truncated: dict[str, bool] = {}
     for edge_type in ("handles_route", "handles_tool", "handles_event"):
         edges_slice = be.list_edges(edge_types=(edge_type,), limit=_CONTRACT_BUCKET_LIMIT)
@@ -2271,20 +2352,66 @@ def cos_graph_communities(
     rows = comm_mod.communities_to_processes(all_communities, relevant_uids=None)
     capped: list[dict[str, Any]] = []
     members_truncated = False
-    for row in rows[:top]:
+    # P2: adaptive envelope cap. At top=50 × default max_members=10, the
+    # envelope hit 47K tokens — well past the safe ~5K threshold. Project
+    # rows × members and shrink max_members or top until under budget.
+    _TOKEN_TARGET = 5000
+    _TOKENS_PER_MEMBER = 90  # empirical average per member entry
+    _TOKENS_PER_PROCESS_HEADER = 60
+    projected_top = min(top, len(rows))
+    effective_max_members = max_members
+    projected = (
+        projected_top * _TOKENS_PER_PROCESS_HEADER
+        + projected_top * effective_max_members * _TOKENS_PER_MEMBER
+    )
+    if projected > _TOKEN_TARGET:
+        # Reduce max_members first; falls back to truncating `top` only
+        # when even max_members=1 would still overshoot.
+        budget_per_process_for_members = max(
+            0, (_TOKEN_TARGET - projected_top * _TOKENS_PER_PROCESS_HEADER)
+        )
+        if projected_top > 0:
+            effective_max_members = max(
+                1,
+                budget_per_process_for_members
+                // (projected_top * _TOKENS_PER_MEMBER),
+            )
+        # If projected_top is so large that even max_members=1 overshoots,
+        # shrink top.
+        while (
+            projected_top > 0
+            and projected_top * (
+                _TOKENS_PER_PROCESS_HEADER
+                + max(1, effective_max_members) * _TOKENS_PER_MEMBER
+            )
+            > _TOKEN_TARGET
+        ):
+            projected_top -= 1
+        if projected_top < 1:
+            projected_top = 1
+            effective_max_members = 1
+        members_truncated = True
+    for row in rows[:projected_top]:
         members = row.get("members") or []
-        if len(members) > max_members:
+        if len(members) > effective_max_members:
             members_truncated = True
-            row = {**row, "members": members[:max_members]}
+            row = {**row, "members": members[:effective_max_members]}
         capped.append(row)
+    payload_truncated = projected_top < min(top, len(rows))
     return _ok(
         {"processes": capped},
         meta={
             "backend": be.backend_id,
             "count": len(capped),
             "total": len(rows),
-            "max_members": max_members,
+            # back-compat: keep `max_members` key (existing tests + UI)
+            "max_members": effective_max_members,
+            "max_members_effective": effective_max_members,
+            "max_members_requested": max_members,
             "members_truncated": members_truncated,
+            "envelope_truncated": payload_truncated,
+            "top_effective": projected_top,
+            "top_requested": top,
         },
     )
 
@@ -2967,6 +3094,11 @@ def cos_graph_doctor(
             "backend": be.backend_id,
             "fix_applied": fix and fixed_count > 0,
             "fixed_count": fixed_count,
+            # G27: clarify which categories `fix=true` can act on.
+            # orphan_nodes (code:external:unresolved:*) are stub
+            # surfacing — they are NOT fixable by this tool; only
+            # self_loops and stale_paths are.
+            "fixable_categories": ["self_loops", "stale_paths"],
         },
     )
 
