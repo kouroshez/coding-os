@@ -325,6 +325,30 @@ _BEHAVIOURAL_EDGE_TYPES: frozenset[str] = frozenset(
 )
 
 
+# G6/G7: stdlib + common third-party module names that pollute the
+# centrality / ranking output when not excluded. Project-internal
+# modules (`core.thinking_os.server` etc.) stay in scope.
+_STDLIB_MODULE_NAMES: frozenset[str] = frozenset(
+    {
+        "__future__", "abc", "argparse", "ast", "asyncio", "base64",
+        "builtins", "collections", "concurrent", "contextlib", "copy",
+        "csv", "dataclasses", "datetime", "decimal", "difflib", "enum",
+        "functools", "glob", "hashlib", "heapq", "http", "importlib",
+        "inspect", "io", "ipaddress", "itertools", "json", "logging",
+        "math", "multiprocessing", "operator", "os", "pathlib", "pickle",
+        "platform", "pprint", "queue", "random", "re", "secrets",
+        "select", "shutil", "signal", "socket", "sqlite3", "stat",
+        "string", "struct", "subprocess", "sys", "tempfile", "textwrap",
+        "threading", "time", "tomllib", "traceback", "types", "typing",
+        "unittest", "urllib", "uuid", "warnings", "weakref", "xml",
+        "yaml", "zipfile",
+        # very common third-party that pollutes hubs
+        "pytest", "click", "anyio", "httpx", "pydantic", "fastapi",
+        "requests", "numpy",
+    }
+)
+
+
 def _normalize_kinds(kinds: Any) -> tuple[str, ...]:
     """Defensive parser for `kinds`/list-of-strings args (G3).
 
@@ -2496,6 +2520,11 @@ def cos_graph_centrality(
                 params.append(kind)
             if not include_external:
                 where_parts.append("n.uid NOT LIKE 'code:external:%'")
+                # G6: also drop stdlib module hubs (`code:module:__future__`,
+                # `code:module:pathlib`, ...) — F6 only kicked external out.
+                stdlib_placeholders = ",".join("?" * len(_STDLIB_MODULE_NAMES))
+                where_parts.append(f"n.uid NOT IN ({stdlib_placeholders})")
+                params.extend(f"code:module:{name}" for name in _STDLIB_MODULE_NAMES)
             kind_clause = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
             in_deg_rows = sqlite_conn.execute(
@@ -2694,6 +2723,10 @@ def cos_graph_ranking(
                 params_n.append(kind)
             if not include_external:
                 where_parts.append("uid NOT LIKE 'code:external:%'")
+                # G7: drop stdlib module hubs in line with G6 centrality.
+                stdlib_placeholders = ",".join("?" * len(_STDLIB_MODULE_NAMES))
+                where_parts.append(f"uid NOT IN ({stdlib_placeholders})")
+                params_n.extend(f"code:module:{name}" for name in _STDLIB_MODULE_NAMES)
             kind_filter = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
             params_n.append(_NODE_CAP)
             uid_rows = sqlite_conn.execute(
