@@ -2465,14 +2465,26 @@ def cos_graph_ranking(
         return _ok({"nodes": []}, meta={"backend": be.backend_id, "count": 0})
 
     # Personalisation vector: uniform unless query given.
+    # F7 / Audit #12: previous matcher required the full query as a
+    # substring of the label. "graph backend" matched no label literally
+    # → empty vector → uniform teleport → identical to global PageRank.
+    # Token-OR match: any whitespace-split token hits → seed weight ∝
+    # token-hit count. Falls back to substring-AND when query has no
+    # internal whitespace so single-name queries still target precisely.
     personalized: dict[int, float] = {}
     if query:
-        lower_q = query.lower()
+        lower_q = query.lower().strip()
+        tokens = [t for t in lower_q.split() if len(t) >= 2]
+        if not tokens:
+            tokens = [lower_q] if lower_q else []
         for nid in node_ids:
             meta_entry = int_to_meta.get(nid)
-            label = meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))
-            if lower_q in label.lower():
-                personalized[nid] = 1.0
+            label = (meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))) or ""
+            uid_str = int_to_uid.get(nid, "")
+            hay = (label + " " + uid_str).lower()
+            hits = sum(1 for t in tokens if t in hay)
+            if hits:
+                personalized[nid] = float(hits)
         total_p = sum(personalized.values())
         if total_p:
             personalized = {k: v / total_p for k, v in personalized.items()}

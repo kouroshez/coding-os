@@ -554,6 +554,20 @@ class TestExport:
         uids = {n["uid"] for n in data["nodes"]}
         assert any(u.startswith("code:external:") for u in uids)
 
+    def test_ranking_token_personalization_targets_widget(self, seeded_backend):
+        """F7 / Audit #12: previous substring matcher missed any
+        whitespace query. `make widget` now matches `make_widget` AND
+        `Widget` via token-OR, so the personalized top should surface
+        those nodes ahead of the unrelated `foo` baseline."""
+        baseline = _assert_ok(graph.cos_graph_ranking(top=5))
+        personalized = _assert_ok(graph.cos_graph_ranking(query="make widget", top=5))
+        baseline_uids = [n["uid"] for n in baseline["nodes"]]
+        personalized_uids = [n["uid"] for n in personalized["nodes"]]
+        assert baseline_uids != personalized_uids, "personalization had no effect"
+        targets = {"code:function:a.py::make_widget", "code:class:a.py::Widget"}
+        assert any(u in targets for u in personalized_uids[:3]), \
+            "make_widget / Widget should be in top-3 with query='make widget'"
+
     def test_ranking_default_excludes_external(self, seeded_backend):
         """F6 / Audit #11: PageRank top must not be polluted by
         `code:external:unresolved:*` when called with defaults."""
