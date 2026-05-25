@@ -86,6 +86,17 @@ class SqliteBackend:
             # reindexing different files at the same time without the
             # busy_timeout firing.
             self._conn.execute("PRAGMA busy_timeout = 30000")
+            # G16: apply the full pragma SSOT (cache_size, mmap_size,
+            # temp_store, wal_autocheckpoint) so standalone-conn bench
+            # harnesses (bench/scale_500k.py, bench/viewer_fps.py) +
+            # reindex_dispatch.py see the same p99 SLA the pooled path
+            # does. Fail-open if helper unavailable (older DB module).
+            _apply_pragmas = getattr(db, "_apply_pragmas", None)
+            if callable(_apply_pragmas):
+                try:
+                    _apply_pragmas(self._conn)
+                except Exception as exc:  # pragma: no cover — diagnostic
+                    logger.debug("standalone PRAGMA application skipped: %s", exc)
             db.run_migrations(self._conn)
             self._owns_conn = True
         self._conn.execute("PRAGMA foreign_keys = ON")
@@ -482,12 +493,20 @@ class SqliteBackend:
         return int(row[0])
 
     def count_edges(self, edge_type: str | None = None) -> int:
+        # G17: count DISTINCT logical edges (source, target, edge_type).
+        # The schema lets the same logical edge appear with multiple
+        # `extractor` values; raw COUNT(*) inflates the count by 1-5%
+        # and skews density / centrality consumers downstream.
+        # `list_edges` already dedupes via highest-confidence subquery
+        # — match that semantic here.
         with self._write_lock:
             if edge_type is None:
-                row = self._conn.execute("SELECT COUNT(*) FROM graph_edges_v12").fetchone()
+                row = self._conn.execute(
+                    "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12)"
+                ).fetchone()
             else:
                 row = self._conn.execute(
-                    "SELECT COUNT(*) FROM graph_edges_v12 WHERE edge_type=?",
+                    "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12 WHERE edge_type=?)",
                     (edge_type,),
                 ).fetchone()
         return int(row[0])
