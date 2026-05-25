@@ -76,6 +76,12 @@ _IMPORT_RE = re.compile(
     re.VERBOSE | re.MULTILINE,
 )
 _SIDE_EFFECT_IMPORT_RE = re.compile(r"""^\s*import\s+['"](?P<module>[^'"]+)['"]""", re.MULTILINE)
+# E7: dynamic import — `import('./mod')` and `await import('./mod')`.
+# Used heavily for code-splitting / lazy routes; previously invisible.
+_DYNAMIC_IMPORT_RE = re.compile(
+    r"""(?<![\w$])(?:await\s+)?import\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)""",
+    re.MULTILINE,
+)
 _EXPORT_FROM_RE = re.compile(
     r"""^\s*export\s+(?:\*|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
     re.MULTILINE,
@@ -415,7 +421,9 @@ def _extract_imports(
         target_mod_uid = _resolve_module_uid(path, module)
 
         for name in _parse_clause(clause):
-            imp_uid = f"code:import:{_normalize_path(path)}::{line}:{name}"
+            # E3: drop {line} from UID so import-shuffle doesn't spawn
+            # duplicates. Line still carried in start_line.
+            imp_uid = f"code:import:{_normalize_path(path)}::{name}"
             result.nodes.append(
                 GraphNode(
                     uid=imp_uid,
@@ -467,6 +475,23 @@ def _extract_imports(
                 confidence=0.85,
                 source_span=f"{path}:{line}",
                 evidence=(EvidenceSignal(eid_signal_side, 0.85),),
+            )
+        )
+
+    # E7: dynamic imports (lazy routes / code-splitting).
+    for match in _DYNAMIC_IMPORT_RE.finditer(content):
+        module = match.group("module")
+        line = content[: match.start()].count("\n") + 1
+        target_mod_uid = _resolve_module_uid(path, module)
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=target_mod_uid,
+                edge_type="imports",
+                extractor=eid,
+                confidence=0.7,
+                source_span=f"{path}:{line}",
+                evidence=(EvidenceSignal("ts_dynamic_import", 0.7),),
             )
         )
 
