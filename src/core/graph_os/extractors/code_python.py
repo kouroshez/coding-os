@@ -1037,30 +1037,29 @@ def _resolve_call(
 ) -> tuple[float, tuple[EvidenceSignal, ...], str]:
     """Return (confidence, evidence, resolved_uid) for a call-site.
 
-    Implements the pure-Python subset of the 7-step lookup:
-      step 1 (same_scope)     → 0.5
-      step 2 (enclosing)      → 0.3 (module-scoped name)
-      step 3 (explicit_import)→ 0.4
-    Everything else falls to 0.3 unresolved.
+    E4 calibration (audit: was 0.3-0.5 ceiling; 58.7% of calls at 0.3):
+      same_scope (real fn in this file)  → 1.0 (AST-certain)
+      explicit_import (resolved to mod)  → 0.9 (origin known)
+      unresolved                          → 0.3 (best-effort stub)
     """
     signals: list[EvidenceSignal] = []
     confidence = 0.0
 
     if call.callee_name in visitor.symbols_by_name:
-        signals.append(EvidenceSignal("same_scope", 0.5))
-        confidence += 0.5
+        signals.append(EvidenceSignal("same_scope", 1.0))
+        confidence = 1.0
         resolved = visitor.symbols_by_name[call.callee_name]
     elif call.callee_name in visitor.imported_local_names:
         imp = visitor.imported_local_names[call.callee_name]
-        signals.append(EvidenceSignal("explicit_import", 0.4, note=imp.source_module))
-        confidence += 0.4
+        signals.append(EvidenceSignal("explicit_import", 0.9, note=imp.source_module))
+        confidence = 0.9
         target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
         resolved = f"code:external:{target_mod}:{imp.imported}"
     elif "." in call.full_expr and call.full_expr.split(".")[0] in visitor.imported_local_names:
         root = call.full_expr.split(".")[0]
         imp = visitor.imported_local_names[root]
-        signals.append(EvidenceSignal("explicit_import", 0.4, note=imp.source_module))
-        confidence += 0.4
+        signals.append(EvidenceSignal("explicit_import", 0.9, note=imp.source_module))
+        confidence = 0.9
         tail = ".".join(call.full_expr.split(".")[1:])
         target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
         resolved = f"code:external:{target_mod}:{tail}"
