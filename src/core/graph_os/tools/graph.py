@@ -846,12 +846,40 @@ def cos_graph_impact(
         "should_review": [],
         "context": [],
     }
+    # F4 / Audit #5: tier classification is edge-type-aware, not pure
+    # confidence. `contains` (file→class) has confidence=1.0 but is
+    # structural — it never "breaks" when the target changes. Only
+    # behavioural edges (calls / imports / constructs / type-usage /
+    # dispatch / handler-binding) belong in `will_break`.
+    _BEHAVIOURAL_EDGES = {
+        "calls",
+        "imports",
+        "constructs",
+        "accesses_field",
+        "has_param_type",
+        "has_return_type",
+        "inherits_from",
+        "implements",
+        "dispatches",
+        "awaits",
+        "handles_route",
+        "handles_event",
+        "handles_tool",
+        "references_doc",
+    }
     for edge in edges:
-        bucket = (
-            "will_break"
-            if edge.confidence >= 0.9
-            else ("should_review" if edge.confidence >= 0.5 else "context")
-        )
+        if edge.edge_type in _BEHAVIOURAL_EDGES:
+            if edge.confidence >= 0.7:
+                bucket = "will_break"
+            elif edge.confidence >= 0.4:
+                bucket = "should_review"
+            else:
+                bucket = "context"
+        else:
+            # Structural / metadata edge (contains, tested_by, …) —
+            # never a break risk; surface as context so the consumer
+            # still sees the relationship.
+            bucket = "context"
         tiers[bucket].append(_edge_to_dict(edge))
 
     return _ok(

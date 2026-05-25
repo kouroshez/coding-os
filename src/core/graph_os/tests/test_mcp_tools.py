@@ -237,6 +237,26 @@ class TestImpact:
         data = _assert_ok(graph.cos_graph_impact("code:function:a.py::bar", direction="upstream"))
         assert data["direction"] == "upstream"
 
+    def test_contains_edges_route_to_context_tier(self, seeded_backend):
+        """F4 / Audit #5: structural `contains` edges (file→func,
+        conf=1.0) used to land in `will_break` because the classifier
+        looked at confidence only. After fix every `contains` edge is
+        routed to `context`, regardless of confidence."""
+        data = _assert_ok(graph.cos_graph_impact("code:function:a.py::foo"))
+        will_break_types = {e["edge_type"] for e in data["tiers"]["will_break"]}
+        assert "contains" not in will_break_types, "contains leaked into will_break"
+        should_review_types = {e["edge_type"] for e in data["tiers"]["should_review"]}
+        assert "contains" not in should_review_types, "contains leaked into should_review"
+
+    def test_behavioural_edge_in_will_break(self, seeded_backend):
+        """F4: high-confidence behavioural edges (calls @ 0.9) still
+        populate will_break — the fix narrows the classifier, doesn't
+        empty it."""
+        data = _assert_ok(graph.cos_graph_impact("code:function:a.py::bar"))
+        will_break_types = {e["edge_type"] for e in data["tiers"]["will_break"]}
+        # foo → bar is "calls" at conf 0.9 — must land in will_break.
+        assert "calls" in will_break_types
+
 
 class TestDetectChanges:
     def test_no_files_returns_empty_envelope(self, seeded_backend):
