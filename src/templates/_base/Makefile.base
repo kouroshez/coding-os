@@ -161,9 +161,14 @@ task-sync: ## Sync docs/tasks/*.md → coding-os.db (Phase C incremental)
 task-resync: ## Force full re-sync of every task file (after schema or parser change)
 	@cos task-sync --project-dir $(CURDIR) --force
 
+# Skip in meta-repo (COS_META_REPO=1) — the meta Makefile provides a richer
+# docs-lint that runs link audit + frontmatter. Without this guard GNU make
+# warns "overriding commands for target `docs-lint'" on every invocation.
+ifndef COS_META_REPO
 .PHONY: docs-lint
 docs-lint: ## Lint markdown files in docs/ for SSOT contract compliance
 	@bash $(COS_SCRIPTS)/docs-lint.sh
+endif
 
 .PHONY: docs-nav-fix
 docs-nav-fix: ## Auto-add missing > Nav: breadcrumbs in docs/
