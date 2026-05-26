@@ -45,6 +45,12 @@ _OPENING_READ_NEXT_RE = re.compile(
 # Strip markdown link wrapper `[label](href)` to keep only the href.
 _LINK_HREF_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
+# W6.5 (X7): valid path target must match this — no spaces, must look like
+# a path / URL / fragment. Rejects garbage prose fragments captured by
+# the previous lenient `_split_read_targets` (Round 3 root cause of 386
+# stale_paths + ranking pollution from doc:file:"…prose…" uids).
+_PATH_LIKE_RE = re.compile(r"^[\w./\-:#?&=%~+]+$")
+
 
 def _split_read_targets(raw: str) -> list[str]:
     """Split a comma-or-bracket list of read_next targets into clean paths."""
@@ -64,6 +70,11 @@ def _split_read_targets(raw: str) -> list[str]:
         href = (match.group(1) if match else frag).strip()
         href = href.strip("`").strip()
         if not href or href in seen:
+            continue
+        # W6.5 (X7): reject prose fragments — only accept path-like strings.
+        # Prevents `Relevant ADR in ../architecture/adr/ or the domain doc.`
+        # from becoming a doc:file: uid.
+        if not _PATH_LIKE_RE.match(href):
             continue
         seen.add(href)
         out.append(href)
