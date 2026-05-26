@@ -791,6 +791,57 @@ def test_resolve_fts5_preserves_uid_kind_label(seeded_backend):
 # ---------------------------------------------------------------------------
 
 
+# TASK-034: cos_graph_context envelope must stay under TOKEN_BUDGET_CHARS
+# even on high-fan-in hubs at depth=2. Pre-fix _apply_token_budget only
+# trimmed body["results"] — context emits neighbours+edges_by_type so the
+# trimmer never fired, and 150-caller hubs returned 50KB envelopes.
+def test_context_envelope_token_budget(seeded_backend):
+    """Seed a 200-edge fan-in on a single file uid + assert that a
+    depth=2 context call comes back ≤32KB with meta.truncated=true."""
+    from graph_os.types import GraphEdge, GraphNode
+    from tools._shared import TOKEN_BUDGET_CHARS
+
+    seeded_backend.upsert_node(
+        GraphNode(
+            uid="code:file:src/hub.sh",
+            kind="file",
+            label="hub.sh",
+            file_path="src/hub.sh",
+            lang="sh",
+        )
+    )
+    # 200 caller hooks → 200 inbound edges into hub.sh.
+    for i in range(200):
+        seeded_backend.upsert_node(
+            GraphNode(
+                uid=f"code:file:src/caller_{i}.sh",
+                kind="file",
+                label=f"caller_{i}.sh",
+                file_path=f"src/caller_{i}.sh",
+                lang="sh",
+                signature="x" * 200,  # bloat so each neighbour is ~250B
+            )
+        )
+        seeded_backend.upsert_edge(
+            GraphEdge(
+                source_uid=f"code:file:src/caller_{i}.sh",
+                target_uid="code:file:src/hub.sh",
+                edge_type="imports",
+                extractor="test@v1",
+                confidence=0.9,
+            )
+        )
+    env = _decode(graph.cos_graph_context("code:file:src/hub.sh", depth=2))
+    assert env["ok"]
+    body = env["data"]
+    serialized_len = len(_encode_back := __import__("json").dumps(env, indent=2))
+    assert serialized_len <= TOKEN_BUDGET_CHARS, (
+        f"context envelope blew budget — {serialized_len} > {TOKEN_BUDGET_CHARS}"
+    )
+    assert body["meta"]["truncated"] is True
+    assert "truncated_neighbours_from" in body["meta"]
+
+
 # G35: export must enforce max_nodes globally even on non-root export
 # (was silently exceeding max_nodes=5 by 4.4× when no root_uid given).
 def test_export_max_nodes_hard_cap(seeded_backend):

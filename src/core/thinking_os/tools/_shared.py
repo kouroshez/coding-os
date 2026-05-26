@@ -124,35 +124,112 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     return json.dumps(payload, indent=2, default=str)
 
 
-def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
-    """Shrink `body` to fit TOKEN_BUDGET_CHARS by trimming `results` list.
+# TASK-034: keys that hold list payloads across cos_* tools. Trimmer
+# walks them in order — biggest payload first when there's a choice.
+# `results` stays first for legacy callers; context/references/impact
+# emit the rest. `edges_by_type` is a dict-of-lists handled separately.
+_TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
+    "results",
+    "neighbours",
+    "references",
+    "nodes",
+    "edges",
+    "processes",
+    "call_sites",
+    "doc_references",
+    "test_references",
+    "string_literals",
+)
 
-    Returns ``(body, meta, did_trim)``. ``did_trim`` is False when the
-    body shape doesn't match the standard ``results`` list-wrapper so
-    callers know not to flip ``meta.truncated``.
-    """
-    results = body.get("results")
-    if not isinstance(results, list) or not results:
-        return body, meta, False
 
-    original_n = len(results)
-    for keep in range(original_n - 1, 0, -1):
-        trimmed_body = {**body, "results": results[:keep]}
-        probe = json.dumps(
-            {"ok": True, "data": {**trimmed_body, "meta": meta}},
+def _probe_size(body: dict, meta: dict) -> int:
+    return len(
+        json.dumps(
+            {"ok": True, "data": {**body, "meta": meta}},
             indent=2,
             default=str,
         )
-        if len(probe) <= TOKEN_BUDGET_CHARS:
-            meta["truncated_results_from"] = original_n
-            meta["truncated_results_to"] = keep
-            return trimmed_body, meta, True
+    )
 
-    # Even keeping one result is over budget — return a body with zero results
-    # so the envelope is at least valid JSON.
-    meta["truncated_results_from"] = original_n
-    meta["truncated_results_to"] = 0
-    return {**body, "results": []}, meta, True
+
+def _trim_list_key(
+    body: dict, meta: dict, key: str
+) -> tuple[dict, dict, bool]:
+    """Halve the list at `body[key]` until envelope ≤ TOKEN_BUDGET_CHARS.
+
+    Returns (body, meta, fits). `fits=True` means we're now under budget.
+    Uses binary-search shrink so worst-case is O(log N) probes.
+    """
+    items = body.get(key)
+    if not isinstance(items, list) or not items:
+        return body, meta, False
+    original_n = len(items)
+    lo, hi = 0, original_n
+    best_keep = 0
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        trial = {**body, key: items[:mid]}
+        if _probe_size(trial, meta) <= TOKEN_BUDGET_CHARS:
+            best_keep = mid
+            lo = mid
+        else:
+            hi = mid - 1
+    if best_keep < original_n:
+        meta[f"truncated_{key}_from"] = original_n
+        meta[f"truncated_{key}_to"] = best_keep
+        body = {**body, key: items[:best_keep]}
+    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+
+def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
+    """`edges_by_type` is a dict-of-lists. Trim biggest bucket first."""
+    edges_by_type = body.get("edges_by_type")
+    if not isinstance(edges_by_type, dict) or not edges_by_type:
+        return body, meta, False
+    # Sort by current list length DESC; trim biggest until fits.
+    trimmed = {k: list(v) for k, v in edges_by_type.items() if isinstance(v, list)}
+    trim_record: dict[str, dict[str, int]] = {}
+    while _probe_size({**body, "edges_by_type": trimmed}, meta) > TOKEN_BUDGET_CHARS:
+        # Pick biggest bucket; halve.
+        biggest = max(trimmed, key=lambda k: len(trimmed[k]), default=None)
+        if biggest is None or not trimmed[biggest]:
+            break
+        before = trim_record.get(biggest, {}).get("from", len(edges_by_type[biggest]))
+        new_len = max(0, len(trimmed[biggest]) // 2)
+        trim_record[biggest] = {"from": before, "to": new_len}
+        trimmed[biggest] = trimmed[biggest][:new_len]
+        if all(len(v) == 0 for v in trimmed.values()):
+            break
+    body = {**body, "edges_by_type": trimmed}
+    if trim_record:
+        meta["truncated_edges_by_type"] = trim_record
+    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+
+def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
+    """Shrink `body` to fit TOKEN_BUDGET_CHARS.
+
+    Strategy: trim every trimmable list-shaped field in order, plus the
+    `edges_by_type` dict-of-lists. ``did_trim`` is True when any field
+    actually got cut. Conservative — leaves non-list payloads untouched.
+    """
+    did_any = False
+    fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    for key in _TRIMMABLE_LIST_KEYS:
+        if fits:
+            break
+        body, meta, fits_after = _trim_list_key(body, meta, key)
+        if fits_after and not fits:
+            did_any = True
+        if f"truncated_{key}_to" in meta:
+            did_any = True
+        fits = fits or fits_after
+    if not fits:
+        body, meta, fits_after = _trim_edges_by_type(body, meta)
+        if "truncated_edges_by_type" in meta:
+            did_any = True
+        fits = fits or fits_after
+    return body, meta, did_any
 
 
 # ---------------------------------------------------------------------------
