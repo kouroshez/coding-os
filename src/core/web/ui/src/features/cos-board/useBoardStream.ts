@@ -40,6 +40,11 @@ export interface BoardEvent {
    *  can surface "→ now: complete" when the transition is historical
    *  and the board column no longer contains it. */
   currentStatus?: string | null;
+  /** new_status emitted by this transition row — used to suppress the
+   *  "now:" chip when it would just repeat `new_status` (live row).
+   *  Stored separately from `message` so the renderer doesn't have to
+   *  parse the human-readable string back out. */
+  newStatus?: string | null;
   /** Unix-seconds timestamp of the underlying DB row, when available.
    *  Stream-live events leave this undefined and rely on `t` for
    *  wall-clock display; history rows use it to render the actual
@@ -201,6 +206,7 @@ export function useBoardStream(): UseBoardStreamReturn {
                 ? `created in ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`
                 : `${e.old_status ?? '?'} -> ${e.new_status ?? '?'}${e.reason ? ` (${e.reason})` : ''}`,
               currentStatus: e.current_status ?? null,
+              newStatus: e.new_status ?? null,
               transitionedAt: e.transitioned_at,
             };
           });
@@ -310,6 +316,7 @@ export function useBoardStream(): UseBoardStreamReturn {
           agent: agentForSession(data.agent_session),
           message: `${core}${suffix}`,
           currentStatus: data.current_status ?? data.status ?? null,
+          newStatus: data.new_status ?? data.status ?? null,
           transitionedAt: data.ts,
         });
       } catch {

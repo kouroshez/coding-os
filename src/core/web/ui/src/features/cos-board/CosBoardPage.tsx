@@ -1668,9 +1668,11 @@ function LiveStreamPanel({
           const label = EVENT_LABEL[ev.kind] || ev.kind;
           // "Where is the task NOW?" chip — shown when the transition
           // is historical and the board column no longer reflects it.
-          // Suppressed when new_status equals current_status (live row).
+          // Suppressed when new_status equals current_status (live row)
+          // so the latest event doesn't render redundant noise like
+          // `in_progress -> complete   now: complete`.
           const current = ev.currentStatus;
-          const showCurrent = Boolean(current);
+          const showCurrent = Boolean(current) && current !== ev.newStatus;
           return (
             <div
               key={ev.id}
