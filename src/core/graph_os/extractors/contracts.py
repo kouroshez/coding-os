@@ -205,6 +205,36 @@ _WEBSOCKET_RE = re.compile(
 _DYNAMIC_FETCH_RE = re.compile(r"fetch\s*\(\s*`[^`]*\$\{")
 
 
+# R4: event-driven handler patterns — `@bus.on("event")`, `@router.subscribe`,
+# `@<emitter>.subscribe`, FastAPI SSE endpoints, hook event subscribers.
+# Captured kind="event" — flows into the same handles_event edge type.
+_PUBSUB_ON_RE = re.compile(
+    rf"""@(?P<emitter>[A-Za-z_][\w.]*)\.on\s*\(\s*{_STRING_CAPTURE}""",
+    re.VERBOSE,
+)
+_PUBSUB_SUBSCRIBE_RE = re.compile(
+    rf"""@(?P<emitter>[A-Za-z_][\w.]*)\.subscribe\s*\(\s*{_STRING_CAPTURE}""",
+    re.VERBOSE,
+)
+# FastAPI/Starlette SSE: function returns EventSourceResponse(...) or
+# yields ServerSentEvent(...) — best paired with an @app.get/@router.get
+# decorator (already captured by FASTAPI_ROUTE_RE). Flag the function
+# so the route node can be annotated; we promote the route from
+# handles_route → handles_event via post-pass downstream.
+_SSE_HINT_RE = re.compile(
+    r"""(?:EventSourceResponse|ServerSentEvent|sse_starlette)\s*\(""",
+    re.VERBOSE,
+)
+# Node.js EventEmitter / browser DOM: `<emitter>.addEventListener("evt", fn)`,
+# `<emitter>.on("evt", fn)` in TS/JS files.
+_TS_EMITTER_ON_RE = re.compile(
+    rf"""(?P<emitter>[A-Za-z_$][\w$.]*)\.(?:on|addEventListener)\s*\(\s*{_STRING_CAPTURE}\s*,\s*
+        (?P<handler>[A-Za-z_$][\w$]*|\([^)]*\)\s*=>)
+    """,
+    re.VERBOSE,
+)
+
+
 # ---------------------------------------------------------------------------
 # Main entry
 # ---------------------------------------------------------------------------
@@ -240,9 +270,15 @@ def extract(path: str, content: str) -> ExtractionResult:
             matches.extend(_scan_celery(content))
             matches.extend(_scan_channels_signals(content))
             matches.extend(_scan_websocket(content))
+            # R4: pub/sub + SSE patterns broaden handles_event surface.
+            matches.extend(_scan_pubsub(content, framework_label="python"))
+            matches.extend(_scan_sse(content))
         elif normalised.endswith(".ts") or normalised.endswith(".tsx"):
             matches.extend(_scan_nextjs(content, path=normalised))
             matches.extend(_scan_nest(content))
+            # R4: TS-side event listeners.
+            matches.extend(_scan_pubsub(content, framework_label="ts"))
+            matches.extend(_scan_ts_emitter(content))
         elif normalised.endswith(".go"):
             matches.extend(_scan_fiber(content))
             matches.extend(_scan_gin(content))
@@ -856,6 +892,95 @@ def _scan_websocket(content: str) -> list[ContractMatch]:
                 framework="generic",
                 method="ws",
                 path=match.group("path"),
+                handler=None,
+                line=_line_of(content, match.start()),
+            )
+        )
+    return hits
+
+
+def _scan_pubsub(content: str, *, framework_label: str) -> list[ContractMatch]:
+    """R4: collect `@bus.on(...)` / `@<emitter>.subscribe(...)` matches.
+
+    framework_label tags the source language (`python` / `ts`).
+    """
+    hits: list[ContractMatch] = []
+    for match in _PUBSUB_ON_RE.finditer(content):
+        emitter = match.group("emitter")
+        event_name = match.group("path")
+        # Skip noisy matches: `app.on` (Flask before_request etc.) and
+        # `os.on` are clearly not pubsub. Allow when emitter has a
+        # discriminating suffix (bus/emitter/events).
+        emitter_tail = emitter.split(".")[-1].lower()
+        if emitter_tail not in {"bus", "events", "emitter", "pubsub", "signals"}:
+            continue
+        hits.append(
+            ContractMatch(
+                kind="event",
+                framework=f"{framework_label}_{emitter_tail}",
+                method="on",
+                path=f"{emitter}:{event_name}",
+                handler=None,
+                line=_line_of(content, match.start()),
+            )
+        )
+    for match in _PUBSUB_SUBSCRIBE_RE.finditer(content):
+        emitter = match.group("emitter")
+        event_name = match.group("path")
+        hits.append(
+            ContractMatch(
+                kind="event",
+                framework=f"{framework_label}_subscribe",
+                method="subscribe",
+                path=f"{emitter}:{event_name}",
+                handler=None,
+                line=_line_of(content, match.start()),
+            )
+        )
+    return hits
+
+
+def _scan_sse(content: str) -> list[ContractMatch]:
+    """R4: FastAPI/Starlette SSE — file uses EventSourceResponse /
+    ServerSentEvent. Emits one synthetic event match per file so trace
+    knows the file participates in event flows."""
+    hits: list[ContractMatch] = []
+    m = _SSE_HINT_RE.search(content)
+    if m:
+        hits.append(
+            ContractMatch(
+                kind="event",
+                framework="fastapi_sse",
+                method="sse",
+                path="<file_scope>",
+                handler=None,
+                line=_line_of(content, m.start()),
+            )
+        )
+    return hits
+
+
+def _scan_ts_emitter(content: str) -> list[ContractMatch]:
+    """R4: TS `<emitter>.on('evt', fn)` / `addEventListener('evt', fn)`.
+
+    Narrowed to emitter names containing 'bus', 'emitter', 'events' or
+    DOM-side `addEventListener` so we don't false-match generic .on().
+    """
+    hits: list[ContractMatch] = []
+    for match in _TS_EMITTER_ON_RE.finditer(content):
+        emitter = match.group("emitter")
+        event_name = match.group("path")
+        tail = emitter.split(".")[-1].lower()
+        # `addEventListener` always passes through; for `on` we gate on tail.
+        if "addEventListener" not in match.group(0):
+            if tail not in {"bus", "events", "emitter", "pubsub", "channel"}:
+                continue
+        hits.append(
+            ContractMatch(
+                kind="event",
+                framework="ts_emitter",
+                method="on",
+                path=f"{emitter}:{event_name}",
                 handler=None,
                 line=_line_of(content, match.start()),
             )
