@@ -49,6 +49,22 @@ runtime_env_markers:
   - CLAUDE_CODE_ENTRYPOINT
   - CLAUDE_AGENT_SDK_VERSION
 
+# Per-panel session identity — declares how cos_panel_upgrade_from_payload
+# (src/core/hooks/cos-env.sh) derives the panel id from this agent's hook
+# stdin payload, and which env vars the agent runtime exports as fallback.
+# Adding a new adapter (e.g. gemini) = add this block to its adapter.yaml;
+# no code change in src/core/hooks/ or src/cli/ (Rule 11 data-driven).
+#
+# stdin_field: JSON key in the hook stdin payload carrying the panel id.
+#   Claude Code spec: every hook event payload has `session_id` (UUID).
+# env_vars: priority-ordered fallback when stdin is unavailable
+#   (e.g. raw bash test, hook helpers that don't slurp stdin).
+runtime_session_marker:
+  stdin_field: session_id
+  env_vars:
+    - CLAUDE_SESSION_ID
+    - ANTHROPIC_SESSION_ID
+
 # MCP launch metadata consumed by cli/doctor.py::_load_coding_os_mcp_launch
 # (C15 check). Data-driven so tests/test_no_hardcoded_stacks.py stays green.
 mcp_launch:

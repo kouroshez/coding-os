@@ -195,6 +195,29 @@ Optional block on each adapter manifest (validated by [src/core/schemas/adapter.
 - **`presence_events`:** documentation list of which events refresh presence for this runtime (mirrors `hook_capabilities` + dispatchers; not interpreted by Python logic beyond the Hub manifest reader).
 - **`hub_glyph` / `hub_color`:** pill metadata for `GET /api/board/list` → `agent_manifest` ([src/core/board_os/hub_adapter_manifest.py](../../src/core/board_os/hub_adapter_manifest.py)).
 
+## `adapter.yaml::runtime_session_marker` — per-panel identity contract
+
+Each adapter declares how `src/core/hooks/cos-env.sh::_cos_resolve_panel_id` and `cos_panel_upgrade_from_payload` derive the per-panel id from its runtime. The block exists on every adapter manifest:
+
+```yaml
+runtime_session_marker:
+  stdin_field: session_id      # JSON key the agent's hook payload carries
+  env_vars:                    # priority-ordered fallback when stdin missing
+    - CLAUDE_SESSION_ID
+    - ANTHROPIC_SESSION_ID
+```
+
+Resolution order (highest first), implemented once in core:
+
+1. `$COS_PANEL_ID` — explicit caller override (tests, manual debug).
+2. Stdin `session_id` (or `sessionId`) — set by `cos_panel_upgrade_from_payload` after the hook reads stdin. **Strongest signal**; Claude/Codex/Cursor hook specs all carry it.
+3. The adapter's `env_vars` list, probed in declared order. cos-env.sh today probes the union across all adapters (`CLAUDE_SESSION_ID` · `CURSOR_SESSION_ID` · `CURSOR_TRACE_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`) so an env var set by any adapter wins regardless of which adapter currently owns the hook subprocess.
+4. PPID-derived hash — last-resort safety net for raw shell tests.
+
+**Adding a new adapter** (e.g. `src/adapters/gemini/`) requires zero code change in `src/core/`: drop a `runtime_session_marker` block into `src/adapters/gemini/adapter.yaml` declaring its env var(s) and stdin field, then the per-panel routing in `cos-env.sh` / `write-state.sh` / `check-state.sh` / `session-context.sh` works for that adapter immediately. The data-drivenness is enforced by Rule 11 — `tests/test_no_hardcoded_anthropic.py` would catch any leak of an adapter-specific session var into `src/core/` or `src/cli/`.
+
+The contract pairs with [docs/engineering/state-files.md § Panel-id resolution](state-files.md#panel-id-resolution--multi-adapter-data-driven) — the canonical multi-panel scenario (P6) doc.
+
 ## Claude adapter — curriculum alignment + Agent SDK (P8)
 
 - **Anthropic “Certified Architect — Foundations” instructor guide** (internal copy: [instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md](../code-os-core-docs/instructor_Claude+Certified+Architect+–+Foundations+Certification+Exam+Guide.md)) frames Domain 1 orchestration, **Task 1.5** (hooks for deterministic enforcement vs prompt-only), MCP (Domain 2), and session lifecycle (**Task 1.7**). Use it as a **design checklist** when extending `src/adapters/claude/` hooks or documentation — not as exam content copied into `src/core/`.

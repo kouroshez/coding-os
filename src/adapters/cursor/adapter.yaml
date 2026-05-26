@@ -34,6 +34,16 @@ runtime_env_markers:
   - CURSOR_TRACE_ID
   - CURSOR_VERSION
 
+# Per-panel session identity — see adapters/claude/adapter.yaml for the
+# contract. Cursor exports CURSOR_TRACE_ID per agent turn and (when
+# present) CURSOR_SESSION_ID per IDE session. Stdin payload `session_id`
+# is the strongest signal when Cursor's native hook spec provides it.
+runtime_session_marker:
+  stdin_field: session_id
+  env_vars:
+    - CURSOR_SESSION_ID
+    - CURSOR_TRACE_ID
+
 # MCP — project `.cursor/mcp.json`.
 mcp_launch:
   loader: cursor_mcp_json

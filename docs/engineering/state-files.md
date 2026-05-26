@@ -10,33 +10,57 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 ## The split — shared root vs. agent-private subdir
 
 ```
-.coding-os/                          ← SHARED root  ($COS_STATE_DIR)
-├── .agent                              adapter identity marker (written by install.sh)
-├── .hooks.log                          append-only hook log (every line tagged agent=X session=Y task=Z)
-├── .capture-errors.log                 background capture.py errors
-├── .dogfood-reminded                   10-min debounce for remind-dogfood
-├── .last-decay / .last-verify*         singleton timestamps
-├── coding-os.db + -shm + -wal        SQLite brain (WAL = shared reader; one writer lock)
-├── domain-config.json                  project config (routing, paths)
-├── rag-config.yaml                     doc indexer config
-├── installed-manifest.json             what `cos init` installed
-├── Makefile.base                       inherited make targets
+.coding-os/                              ← SHARED root  ($COS_STATE_DIR)
+├── .agent                                  adapter identity marker (written by install.sh)
+├── .hooks.log                              append-only hook log (every line tagged agent=X session=Y task=Z)
+├── .capture-errors.log                     background capture.py errors
+├── .dogfood-reminded                       10-min debounce for remind-dogfood
+├── .last-decay / .last-verify*             singleton timestamps
+├── coding-os.db + -shm + -wal              SQLite brain (WAL = shared reader; one writer lock)
+├── domain-config.json                      project config (routing, paths)
+├── rag-config.yaml                         doc indexer config
+├── installed-manifest.json                 what `cos init` installed
+├── Makefile.base                           inherited make targets
 │
-├── claude/                          ← AGENT-PRIVATE  ($COS_AGENT_DIR for Claude)
-│   ├── session-id                      ses-claude-YYYYMMDD-HHMMSS-xxxx
-│   ├── .task-current                   "<session-id> <task-name>"
-│   ├── .thinking_os-gate               "<session-id> <CYNEFIN> <DIMS>"
-│   ├── .zoom-checkpoint                "<session-id> PROBLEM_FRAMED"
-│   ├── .doc-anchor                     "<session-id> task:<id>\n<doc paths>"
-│   ├── .memory-check                   "<session-id> cos_search:<query>"
-│   └── .active-skill                   "<session-id> skill1 skill2 …"
+├── claude/                              ← AGENT-PRIVATE  ($COS_AGENT_DIR for Claude)
+│   ├── .agent · .model · .task-mode        ┐
+│   ├── .swimlane · .turn-activity.log      ├ SHARED across panels of this agent
+│   ├── sessions/<sid>.json                 │ (presence, panel-id-agnostic by design)
+│   ├── traces/<sid>.jsonl                  ┘
+│   │
+│   └── panels/<panel-id>/               ← PANEL-PRIVATE  ($COS_PANEL_DIR for this panel)
+│       ├── session-id                      ses-claude-YYYYMMDD-HHMMSS-xxxx
+│       ├── heartbeat                       unix ts, written every hook fire (orphan GC signal)
+│       ├── .task-current                   "<session-id> <task-name>"
+│       ├── .thinking_os-gate               "<session-id> <CYNEFIN> <DIMS>"
+│       ├── .zoom-checkpoint                "<session-id> PROBLEM_FRAMED"
+│       ├── .doc-anchor                     "<session-id> task:<id>\n<doc paths>"
+│       ├── .memory-check                   "<session-id> cos_search:<query>"
+│       ├── .active-skill                   "<session-id> skill1 skill2 …"
+│       ├── .active-formula                 active cognition formula id
+│       ├── .learn-suggestions              learn-suggest payload for this prompt
+│       └── .intent.json                    extract_intent.py output for current turn
 │
-└── codex/                           ← AGENT-PRIVATE  ($COS_AGENT_DIR for Codex)
-    ├── session-id                      ses-codex-YYYYMMDD-HHMMSS-xxxx
-    └── …                               same shape as claude/
+└── codex/                               ← AGENT-PRIVATE  ($COS_AGENT_DIR for Codex)
+    ├── …                                   same shape as claude/
+    └── panels/<panel-id>/               ← per-Codex-panel state
 ```
 
-**Rule of thumb:** if two agents attached to the same repo could have DIFFERENT answers, the file is agent-private. If there's only one correct answer (DB row, install manifest, log stream), it's shared.
+**Rule of thumb (two axes):**
+- If two *agents* (Claude + Codex) attached to the same repo could have DIFFERENT answers, the file is **agent-private** → lives at `$COS_AGENT_DIR/`.
+- If two *panels of the same agent* (two Claude tabs) could have DIFFERENT answers, the file is **panel-private** → lives at `$COS_PANEL_DIR/` (`$COS_AGENT_DIR/panels/<panel-id>/`).
+- If there's only one correct answer (DB row, install manifest, log stream, runtime model, task-mode classifier output), it's **shared** → lives at `$COS_STATE_DIR/` or `$COS_AGENT_DIR/` per scope.
+
+The single source of truth for which cognitive markers are panel-private is `$COS_PER_PANEL_FILES` in [src/core/hooks/cos-env.sh](../../src/core/hooks/cos-env.sh) — appending a basename to that list makes the writer (`write-state.sh`) and reader (`check-state.sh`) auto-route from then on; no per-hook edits needed.
+
+## Panel-id resolution — multi-adapter, data-driven
+
+Two panels of the same agent get distinct `$COS_PANEL_ID` values via the resolver in `cos-env.sh::_cos_resolve_panel_id`:
+
+1. **Explicit override** — `$COS_PANEL_ID` env (tests, manual debugging).
+2. **Stdin `session_id`** — every Claude / Codex / Cursor hook payload carries one; `cos_panel_upgrade_from_payload <payload>` refines `$COS_PANEL_ID` right after the hook reads stdin. Strongest signal.
+3. **Adapter env vars** — declared per adapter in [src/adapters/`<id>`/adapter.yaml `::runtime_session_marker`](../../src/adapters/claude/adapter.yaml). Probed in order: `CLAUDE_SESSION_ID` · `CURSOR_SESSION_ID` · `CURSOR_TRACE_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`. **Add a new agent (e.g. Gemini) = add its `runtime_session_marker` block and adapter dir; zero code change** anywhere in `src/core/`.
+4. **PPID-derived hash** — last resort for raw shell tests. Format `ppid-<8hex>`. Stable per parent process; documented as best-effort because PPID semantics differ across raw bash vs SDK-spawned hooks.
 
 ## Session-id format — identity in the name itself
 
@@ -115,18 +139,30 @@ Persona: dev uses Claude for backend work, closes it, opens Codex for a refactor
 
 Outcome: perfect isolation. Each agent's history in `.hooks.log` is filterable via `cos hooks-log --agent claude` vs `--agent codex`.
 
-### S3 — Multi-agent concurrent (the case the user flagged)
+### S3 — Multi-agent concurrent (Claude + Codex on one repo)
 
 Persona: Claude in terminal A, Codex in terminal B, both attached to the same repo at the same time.
 
-- Each agent's SessionStart generates its own `ses-{agent}-…` id into its own `$COS_AGENT_DIR`. **No shared file is overwritten.**
-- Each agent's hook state (task, gate, skill) writes to its own dir.
+- Each agent's SessionStart generates its own `ses-{agent}-…` id into its own `$COS_PANEL_DIR`. **No shared file is overwritten.**
+- Each agent's hook state (task, gate, skill) writes to its own panel dir under its own agent dir.
 - Shared DB writes (observations from capture-observation) use WAL — multiple readers, one writer at a time. SQLite serializes writes; each observation row carries its `session_id` and any schema column also implicitly carries the agent prefix, so cross-agent analytics stay separable.
 - `.hooks.log` is append-only text — both agents write to it, each line tagged `agent=X`. `cos hooks-log --agent claude` gives Claude's stream.
 
-Outcome: no thrashing. The "last writer wins" failure mode described in the previous design is eliminated because writers never target the same per-agent file.
+Outcome: no thrashing.
 
-**Remaining limitation:** the SQLite DB is still a single writer at a time. Under heavy concurrent observation capture (thousands of edits/sec), WAL may throttle. In practice both agents' aggregate throughput is low enough that this is not measurable.
+### S7 — Multi-panel same agent (two Claude tabs on one repo)
+
+Persona: two panels (browser tabs, terminals, IDE windows) of the same Claude on the same project, working different tasks in parallel.
+
+- Each panel's SessionStart receives a distinct stdin `session_id` from the Claude runtime → `cos_panel_upgrade_from_payload` writes `$COS_PANEL_ID` accordingly, and `session-context.sh` materialises `$COS_AGENT_DIR/panels/<panel-id>/` with its own `session-id`, `.task-current`, `.thinking_os-gate`, etc.
+- The startup-time cleanup loop in `session-context.sh` is scoped to `$COS_PANEL_DIR` only — sibling panels' state is untouched.
+- Shared per-agent state (`.model`, `.task-mode`, `.swimlane`, presence `sessions/<sid>.json`, traces, the DB) stays at `$COS_AGENT_DIR` / `$COS_STATE_DIR`.
+- `auto-brain-decay.sh` reaps `panels/<panel-id>/` subdirs whose `heartbeat` is older than `$COS_PANEL_GC_TTL` (default 24h). Live panels rewrite `heartbeat` on every hook fire (`cos-env.sh` line ~140), so an active session is never collected.
+- Coverage: regression locked by `tests/test_panel_isolation.py` and `tests/test_cos_env_panel_resolution.py`.
+
+Outcome: per-panel isolation. The "two panels share `$COS_AGENT_DIR/session-id`, last `SessionStart` wins" failure mode that previously required a `git worktree` workaround is eliminated.
+
+**Remaining limitation:** the SQLite DB is still a single writer at a time. Under heavy concurrent observation capture (thousands of edits/sec), WAL may throttle. In practice the aggregate throughput across two or three panels is low enough that this is not measurable.
 
 ### S4 — Session abandoned (laptop closes mid-task)
 
@@ -161,16 +197,17 @@ Outcome: correct-by-construction. Nothing touched outside the chosen agent's sub
 
 ## Personas × scenarios matrix
 
-| | P1 Solo-Claude | P2 Solo-Codex | P3 Dual-serial | P4 Dual-concurrent | P5 Power-user w/ worktrees |
-|---|---|---|---|---|---|
-| **S1 normal session** | ✅ `.coding-os/claude/` only | ✅ `.coding-os/codex/` only | ✅ each uses own dir when active | ✅ both dirs coexist | ✅ each worktree has own `.coding-os/` |
-| **S2 agent switch** | N/A | N/A | ✅ clean handoff, stale dir ignored on next run | ✅ no handoff needed | ✅ per-worktree anyway |
-| **S3 concurrent** | N/A | N/A | N/A | ✅ no file contention | ✅ different filesystems |
-| **S4 abandoned** | ✅ orphan recovery | ✅ orphan recovery | ✅ each agent recovers own | ✅ per-agent recovery | ✅ per-worktree recovery |
-| **S5 compact** | ✅ transparent | ✅ transparent | N/A | ✅ each agent compacts independently | ✅ per worktree |
-| **S6 fresh init** | ✅ only claude dir | ✅ only codex dir | ✅ add-adapter later | ✅ add-adapter later | ✅ per worktree |
+| | P1 Solo-Claude | P2 Solo-Codex | P3 Dual-serial | P4 Dual-concurrent | P5 Power-user w/ worktrees | P6 Multi-panel same agent |
+|---|---|---|---|---|---|---|
+| **S1 normal session** | ✅ panel under `claude/panels/` | ✅ panel under `codex/panels/` | ✅ each uses own dir when active | ✅ both dirs coexist | ✅ each worktree has own `.coding-os/` | ✅ each panel under its own `panels/<id>/` |
+| **S2 agent switch** | N/A | N/A | ✅ clean handoff, stale dir ignored on next run | ✅ no handoff needed | ✅ per-worktree anyway | N/A (same agent) |
+| **S3 concurrent** | N/A | N/A | N/A | ✅ no file contention | ✅ different filesystems | ✅ no panel contention |
+| **S4 abandoned** | ✅ orphan recovery | ✅ orphan recovery | ✅ each agent recovers own | ✅ per-agent recovery | ✅ per-worktree recovery | ✅ panel-dir GC + per-panel orphan summary |
+| **S5 compact** | ✅ transparent | ✅ transparent | N/A | ✅ each agent compacts independently | ✅ per worktree | ✅ each panel compacts independently |
+| **S6 fresh init** | ✅ only claude dir | ✅ only codex dir | ✅ add-adapter later | ✅ add-adapter later | ✅ per worktree | ✅ each panel materialises its own subdir |
+| **S7 multi-panel** | N/A | N/A | N/A | N/A | N/A (already isolated by FS) | ✅ panel-id from stdin/env/PPID |
 
-**Every cell resolves safely.** The one historical failure mode (P4 × S1 with the old shared session-id file) is eliminated.
+**Every cell resolves safely.** The two historical failure modes (P4 × S1 with the old shared session-id file, and P6 × S7 with two panels racing on `$COS_AGENT_DIR/session-id`) are both eliminated; the `git worktree` workaround for P6 is no longer needed and the corresponding fallback paragraph has been removed.
 
 ## What intentionally stays shared
 

@@ -197,20 +197,26 @@ class TestCosEnv:
         assert result.stdout.strip() == ".my-custom-dir"
 
     def test_session_file_follows_state_dir(self, tmp_path: Path) -> None:
-        """COS_SESSION_FILE lives inside the agent-private subdir so two agents
-        on the same project never share one file. See docs/engineering/state-files.md."""
+        """COS_SESSION_FILE lives inside the PANEL-private subdir (per TASK-035)
+        so two panels of the same agent never share one file. The path shape is
+        $COS_STATE_DIR/<agent>/panels/<panel-id>/session-id."""
         script = 'source "{}"; echo "$COS_SESSION_FILE"'.format(HOOKS_DIR / "cos-env.sh")
-        # Pin COS_AGENT so the detection heuristic doesn't pick up claude/codex
-        # from the environment the pytest process was started in.
+        # Pin COS_AGENT + COS_PANEL_ID so the path is deterministic regardless
+        # of which Claude/Codex env vars happen to be set in the pytest shell.
         result = subprocess.run(
             ["bash", "-c", script],
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
-            env={**os.environ, "COS_STATE_DIR": ".custom", "COS_AGENT": "claude"},
+            env={
+                **os.environ,
+                "COS_STATE_DIR": ".custom",
+                "COS_AGENT": "claude",
+                "COS_PANEL_ID": "test-panel",
+            },
             timeout=10,
         )
-        assert result.stdout.strip() == ".custom/claude/session-id"
+        assert result.stdout.strip() == ".custom/claude/panels/test-panel/session-id"
 
     def test_agent_dir_is_agent_scoped(self, tmp_path: Path) -> None:
         """COS_AGENT_DIR separates claude/ and codex/ state so concurrent
@@ -288,8 +294,11 @@ class TestStateRoundTrip:
         # write-state.sh prepends session id; content should end with the value
         assert "CLEAR 1" in content
 
-    def test_fails_without_parent_dir(self, tmp_path: Path) -> None:
-        """write-state.sh requires parent directory to exist."""
+    def test_creates_parent_dir(self, tmp_path: Path) -> None:
+        """write-state.sh creates intermediate parent dirs (per TASK-035 panel
+        routing — writes to $COS_PANEL_DIR which may not exist yet on the
+        first write of a fresh panel). Behaviour change from the historic
+        "fail when parent missing" contract; covered by panel isolation tests."""
         state_file = tmp_path / "deep" / "nested" / "state"
         result = subprocess.run(
             ["bash", str(HOOKS_DIR / "write-state.sh"), str(state_file), "TEST"],
@@ -298,7 +307,9 @@ class TestStateRoundTrip:
             cwd=str(tmp_path),
             timeout=10,
         )
-        assert result.returncode != 0
+        assert result.returncode == 0, result.stderr
+        assert state_file.exists()
+        assert "TEST" in state_file.read_text()
 
 
 # ---------------------------------------------------------------------------

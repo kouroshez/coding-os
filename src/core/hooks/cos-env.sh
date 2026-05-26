@@ -99,10 +99,77 @@ if [[ -z "${COS_AGENT:-}" ]]; then
   COS_AGENT="${COS_AGENT:-unknown}"
 fi
 
-# Agent-private state dir. Every per-session state file lives here so two
-# agents attached to the same project never trample each other's state.
+# Agent-private state dir. Every per-agent state file lives here so two
+# DIFFERENT agents (e.g. Claude + Codex) attached to the same project never
+# trample each other's state.
 COS_AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR}/${COS_AGENT}}"
-COS_SESSION_FILE="${COS_AGENT_DIR}/session-id"
+
+# ---------------------------------------------------------------------------
+# Panel identity — keys cognitive state per-PANEL of the SAME agent.
+#
+# Two panels of the same Claude/Codex/Cursor instance on the same project
+# share $COS_AGENT_DIR but get distinct $COS_PANEL_DIR subdirs so cognitive
+# state files (.thinking_os-gate, .task-current, .active-skill, .doc-anchor,
+# .memory-check, .zoom-checkpoint, .active-formula, .learn-suggestions and
+# the dedupe markers) never collide.
+#
+# Resolution priority (highest first):
+#   1. $COS_PANEL_ID env — explicit caller override (test harness, manual).
+#   2. Adapter runtime stdin `session_id` — set later by
+#      cos_panel_upgrade_from_payload(). cos-env.sh CANNOT consume stdin
+#      itself (would steal it from the hook), so this slot is filled by
+#      the hook after it reads stdin.
+#   3. Adapter-runtime env vars — declared per adapter in
+#      src/adapters/<id>/adapter.yaml::runtime_session_marker. Listed
+#      below in fall-through order so any adapter that exports its
+#      session id natively (Claude `CLAUDE_SESSION_ID`, Cursor
+#      `CURSOR_TRACE_ID`, Codex `CODEX_SESSION_ID`, future Gemini
+#      `GEMINI_SESSION_ID`) is picked up without code change.
+#   4. PPID-derived stable token — last resort. The hook's parent process
+#      is the agent runtime process for THIS panel; PIDs differ across
+#      panels of the same agent, so a hash over (PPID, agent) is a
+#      panel-stable identifier in the absence of a richer signal.
+# ---------------------------------------------------------------------------
+_cos_resolve_panel_id() {
+  local id="" v val ppid_val
+  if [[ -n "${COS_PANEL_ID:-}" ]]; then
+    printf '%s' "$COS_PANEL_ID"
+    return
+  fi
+  for v in CLAUDE_SESSION_ID CURSOR_SESSION_ID CURSOR_TRACE_ID \
+           CODEX_SESSION_ID GEMINI_SESSION_ID ANTHROPIC_SESSION_ID; do
+    val="$(printenv "$v" 2>/dev/null || true)"
+    if [[ -n "$val" ]]; then
+      id="$val"
+      break
+    fi
+  done
+  if [[ -z "$id" ]]; then
+    ppid_val="${PPID:-$$}"
+    if command -v shasum >/dev/null 2>&1; then
+      id="ppid-$(printf 'p%s-%s' "$ppid_val" "${COS_AGENT:-unknown}" | shasum -a 1 | cut -c1-8)"
+    else
+      id="ppid-${ppid_val}"
+    fi
+  fi
+  # FS-safe: keep [A-Za-z0-9._-] only, cap at 64 chars
+  printf '%s' "$id" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-64
+}
+COS_PANEL_ID="${COS_PANEL_ID:-$(_cos_resolve_panel_id)}"
+COS_PANEL_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR}/panels/${COS_PANEL_ID}}"
+COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
+
+# Per-panel state file allowlist (basenames). Single source of truth used by
+# cos_state_path / write-state.sh / check-state.sh to route a write to the
+# panel dir vs the shared per-agent dir. Adding a new per-panel marker:
+# append its basename here; the writer/reader auto-route from then on.
+#
+# Explicitly NOT in this list (intentionally shared across panels of the
+# same agent): .agent, .model, .task-mode, .swimlane, .last-verify*,
+# .last-decay, .turn-activity.log, .overrides.json, .hooks.log, sessions/,
+# traces/, locks/, heartbeat, coding-os.db. Rationale per file in
+# docs/engineering/state-files.md.
+COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override session-id}"
 
 # Model signal for the routing / learning pipeline. Priority:
 #   1. Caller already exported COS_AGENT_MODEL (test harness / explicit).
@@ -132,11 +199,13 @@ if [[ -z "${COS_AGENT_MODEL:-}" ]] && [[ -f "${COS_AGENT_DIR}/.model" ]]; then
 fi
 COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 
-export COS_STATE_DIR COS_AGENT_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL
+export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES
 
 # Activity heartbeat — written on every hook invocation so GC can measure
-# inactivity rather than session age.
-date +%s > "${COS_AGENT_DIR}/heartbeat" 2>/dev/null || true
+# inactivity rather than session age. Per-panel so orphan GC can target
+# dead panels' subdirs without disturbing live siblings.
+mkdir -p "${COS_PANEL_DIR}" 2>/dev/null || true
+date +%s > "${COS_PANEL_DIR}/heartbeat" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # Identity helpers — pure reads, cheap enough to call per hook invocation.
@@ -144,14 +213,19 @@ date +%s > "${COS_AGENT_DIR}/heartbeat" 2>/dev/null || true
 cos_current_session() {
   # Echo current session id or 'none' if not available. Fail-open.
   # Session-id format (agent-prefixed): ses-<agent>-YYYYMMDD-HHMMSS-xxxx
-  if [[ -f "$COS_SESSION_FILE" ]]; then
-    local raw
-    raw="$(head -c 64 "$COS_SESSION_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
-    if [[ -n "$raw" ]]; then
-      echo "$raw"
-      return
+  # Read from panel-private session-id first; fall back to legacy flat
+  # $COS_AGENT_DIR/session-id during the migration window so consumer
+  # projects upgrading mid-session still attribute correctly.
+  local f raw
+  for f in "$COS_SESSION_FILE" "${COS_AGENT_DIR}/session-id"; do
+    if [[ -f "$f" ]]; then
+      raw="$(head -c 64 "$f" 2>/dev/null | tr -d '[:space:]' || true)"
+      if [[ -n "$raw" ]]; then
+        echo "$raw"
+        return
+      fi
     fi
-  fi
+  done
   echo "none"
 }
 
@@ -163,8 +237,13 @@ cos_current_task() {
   #      return it truncated to 40 chars (keeps log lines readable).
   #   3. Else return 'none'.
   # File format: "<session_id> <task_name>" (single whitespace).
-  local f="${COS_AGENT_DIR}/.task-current"
-  if [[ ! -f "$f" ]]; then
+  # Read from panel dir first, fall back to agent dir during migration.
+  local f
+  if [[ -f "${COS_PANEL_DIR}/.task-current" ]]; then
+    f="${COS_PANEL_DIR}/.task-current"
+  elif [[ -f "${COS_AGENT_DIR}/.task-current" ]]; then
+    f="${COS_AGENT_DIR}/.task-current"
+  else
     echo "none"
     return
   fi
@@ -619,4 +698,81 @@ cos_sanity_check() {
     fi
   done
   return 0
+}
+
+# ---------------------------------------------------------------------------
+# cos_state_path <basename-or-path>
+#
+# Single-source-of-truth path resolver for state files. Centralises the
+# per-panel / per-agent routing decision so write-state.sh and check-state.sh
+# (and any future state-touching hook) never re-implement the allowlist
+# inline. Behavior:
+#
+#   - bare basename ".thinking_os-gate" and basename is in
+#     $COS_PER_PANEL_FILES → returns "$COS_PANEL_DIR/.thinking_os-gate"
+#   - bare basename ".task-mode" (not in allowlist) → returns
+#     "$COS_AGENT_DIR/.task-mode"
+#   - path already containing a slash (absolute or relative): if its
+#     basename is in the per-panel allowlist AND the parent dir resolves
+#     to $COS_AGENT_DIR, redirect to $COS_PANEL_DIR. Otherwise return as
+#     given (back-compat for callers that pass shared-dir paths like
+#     "$COS_STATE_DIR/.capture-errors.log").
+# ---------------------------------------------------------------------------
+cos_state_path() {
+  local arg="${1:?Usage: cos_state_path <basename-or-path>}"
+  local base parent
+  base="$(basename "$arg")"
+  case " $COS_PER_PANEL_FILES " in
+    *" $base "*)
+      if [[ "$arg" == */* ]]; then
+        parent="$(cd "$(dirname "$arg")" 2>/dev/null && pwd || dirname "$arg")"
+        local agent_real
+        agent_real="$(cd "$COS_AGENT_DIR" 2>/dev/null && pwd || echo "$COS_AGENT_DIR")"
+        if [[ "$parent" == "$agent_real" ]]; then
+          printf '%s/%s' "$COS_PANEL_DIR" "$base"
+          return
+        fi
+        printf '%s' "$arg"
+        return
+      fi
+      printf '%s/%s' "$COS_PANEL_DIR" "$base"
+      ;;
+    *)
+      if [[ "$arg" == /* ]] || [[ "$arg" == */* ]]; then
+        printf '%s' "$arg"
+      else
+        printf '%s/%s' "$COS_AGENT_DIR" "$arg"
+      fi
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# cos_panel_upgrade_from_payload <json-payload>
+#
+# Hook helper. After a hook reads stdin via cos_read_stdin_bounded, call
+# this with the payload to upgrade $COS_PANEL_ID from the agent runtime's
+# stdin session_id field — strongest panel signal available. Idempotent;
+# no-op when the payload lacks session_id, jq is missing, or the id is
+# already current.
+#
+# Why a separate helper instead of consuming stdin in cos-env.sh: stdin is
+# one-shot. cos-env.sh runs at hook source-time, before the hook itself
+# reads stdin. Stealing stdin from cos-env would break every hook.
+# ---------------------------------------------------------------------------
+cos_panel_upgrade_from_payload() {
+  local payload="${1:-}"
+  [[ -z "$payload" ]] && return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  local sid
+  sid="$(printf '%s' "$payload" | jq -r '.session_id // .sessionId // empty' 2>/dev/null || true)"
+  [[ -z "$sid" ]] && return 0
+  sid="$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-64)"
+  [[ -z "$sid" ]] && return 0
+  [[ "$COS_PANEL_ID" == "$sid" ]] && return 0
+  COS_PANEL_ID="$sid"
+  COS_PANEL_DIR="${COS_AGENT_DIR}/panels/${COS_PANEL_ID}"
+  COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
+  export COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE
+  mkdir -p "$COS_PANEL_DIR" 2>/dev/null || true
 }

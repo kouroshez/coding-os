@@ -78,6 +78,22 @@
       "items": {"type": "string"},
       "description": "Environment variables whose presence identifies this adapter's runtime. Consumed by src/cli/board_commands.py::_detect_agent_runtime to attribute task_status_history.agent_session — avoids hardcoded adapter-name literals in CLI code (rule #11)."
     },
+    "runtime_session_marker": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per-panel session identity contract — declares how src/core/hooks/cos-env.sh::_cos_resolve_panel_id and cos_panel_upgrade_from_payload derive the per-panel id from this agent's runtime. Data-driven (Rule 11); adding a new adapter (e.g. gemini) requires only this block + the adapter dir — zero code change in src/core/. Pairs with docs/engineering/state-files.md § Panel-id resolution.",
+      "properties": {
+        "stdin_field": {
+          "type": "string",
+          "description": "JSON key in the hook stdin payload carrying the per-panel session id (typically 'session_id' or 'sessionId' depending on the agent runtime)."
+        },
+        "env_vars": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Priority-ordered fallback env vars (probed when stdin is unavailable, e.g. for raw shell tests or hooks that don't slurp stdin). The first non-empty one wins."
+        }
+      }
+    },
     "hook_capabilities": {
       "type": "object",
       "description": "Which {event, matcher} pairs this adapter can actually trigger. Drives src/cli/hook_renderer.py when rendering adapter-specific settings from src/core/hooks/registry.yaml. Key = event name (PreToolUse, PostToolUse, Stop, SessionStart, UserPromptSubmit).",

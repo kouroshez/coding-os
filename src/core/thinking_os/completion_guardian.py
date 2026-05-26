@@ -58,26 +58,45 @@ def _agent_dir() -> Path:
     return Path(state) / agent
 
 
-def _load_intent(agent_dir: Path) -> dict[str, Any] | None:
-    intent_path = agent_dir / ".intent.json"
-    if not intent_path.exists():
-        return None
-    try:
-        return json.loads(intent_path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
-        sys.stderr.write(f"guardian: intent-read-failed: {exc}\n")
-        return None
+def _panel_dir() -> Path:
+    panel = os.environ.get("COS_PANEL_DIR")
+    if panel:
+        return Path(panel)
+    return _agent_dir()
 
 
-def _load_evidence_bundle(agent_dir: Path, session_id: str) -> dict[str, Any] | None:
-    bundle_path = agent_dir / f"evidence_bundle_{session_id}.json"
-    if not bundle_path.exists():
-        return None
-    try:
-        return json.loads(bundle_path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
-        sys.stderr.write(f"guardian: bundle-read-failed: {exc}\n")
-        return None
+def _load_intent(target_dir: Path) -> dict[str, Any] | None:
+    # Panel-private intent first; falls back to legacy agent-dir location
+    # during the migration window so historic consumer projects don't break.
+    candidates = [target_dir / ".intent.json"]
+    agent_dir = _agent_dir()
+    if agent_dir != target_dir:
+        candidates.append(agent_dir / ".intent.json")
+    for intent_path in candidates:
+        if not intent_path.exists():
+            continue
+        try:
+            return json.loads(intent_path.read_text())
+        except (json.JSONDecodeError, OSError) as exc:
+            sys.stderr.write(f"guardian: intent-read-failed: {exc}\n")
+            return None
+    return None
+
+
+def _load_evidence_bundle(target_dir: Path, session_id: str) -> dict[str, Any] | None:
+    candidates = [target_dir / f"evidence_bundle_{session_id}.json"]
+    agent_dir = _agent_dir()
+    if agent_dir != target_dir:
+        candidates.append(agent_dir / f"evidence_bundle_{session_id}.json")
+    for bundle_path in candidates:
+        if not bundle_path.exists():
+            continue
+        try:
+            return json.loads(bundle_path.read_text())
+        except (json.JSONDecodeError, OSError) as exc:
+            sys.stderr.write(f"guardian: bundle-read-failed: {exc}\n")
+            return None
+    return None
 
 
 def _active_audit_files(repo_root: Path) -> list[Path]:
@@ -160,7 +179,7 @@ def guard_completion(
     status="pass" iff no enforcement applies OR all gaps clean.
     status="fail" iff exhaustive intent active AND gaps non-empty.
     """
-    agent_dir = _agent_dir()
+    agent_dir = _panel_dir()
     repo = repo_root or Path.cwd()
 
     intent = _load_intent(agent_dir)

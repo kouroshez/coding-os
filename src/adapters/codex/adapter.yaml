@@ -32,6 +32,14 @@ runtime_env_markers:
   - CODEX_AGENT_DIR
   - CODEX_HOME
 
+# Per-panel session identity — see adapters/claude/adapter.yaml for the
+# contract. Codex CLI exports CODEX_SESSION_ID to hook subprocesses; the
+# stdin payload also carries session_id per the OpenAI Codex hook spec.
+runtime_session_marker:
+  stdin_field: session_id
+  env_vars:
+    - CODEX_SESSION_ID
+
 # Helper script invoked by `cos setup-mcp` / `cli/main.py` to write Codex
 # MCP config safely (TOML-aware).
 mcp_helper: ensure_codex_mcp.py

@@ -64,6 +64,48 @@ if [[ -d "${COS_AGENT_DIR:-}" ]]; then
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# Per-panel orphan GC.
+#
+# WHY
+#   Each panel of the same agent gets its own $COS_AGENT_DIR/panels/<panel-id>/
+#   subdir (see docs/engineering/state-files.md § per-panel isolation). When
+#   a panel terminates without firing Stop (laptop sleeps, agent crashes,
+#   tab killed), its subdir lingers. Without GC, repeated dogfooding leaves
+#   hundreds of dead panel dirs.
+#
+# POLICY
+#   - panels/<id>/ dirs whose heartbeat is older than COS_PANEL_GC_TTL
+#     (default 24 h) → entire subdir removed.
+#   - Live panels (heartbeat fresh) are never touched, even if old; the
+#     heartbeat file is rewritten by cos-env.sh on every hook fire so any
+#     active panel will pass the freshness check.
+#   - The current panel is explicitly excluded ($COS_PANEL_DIR) so the
+#     running session never garbage-collects itself mid-flight.
+#   - Fail-open: any error during GC is swallowed (this is a hygiene
+#     sweep, never a correctness gate).
+# ---------------------------------------------------------------------------
+COS_PANEL_GC_TTL="${COS_PANEL_GC_TTL:-86400}"
+if [[ -d "${COS_AGENT_DIR:-}/panels" ]]; then
+  for panel_dir in "${COS_AGENT_DIR}/panels"/*/; do
+    [[ -d "$panel_dir" ]] || continue
+    panel_dir="${panel_dir%/}"
+    if [[ "$panel_dir" == "$COS_PANEL_DIR" ]]; then
+      continue
+    fi
+    heartbeat_file="${panel_dir}/heartbeat"
+    if [[ -f "$heartbeat_file" ]]; then
+      hb=$(stat -f %m "$heartbeat_file" 2>/dev/null || stat -c %Y "$heartbeat_file" 2>/dev/null || echo 0)
+      if [[ "$hb" -gt 0 ]] && [[ $((NOW_TS - hb)) -lt "$COS_PANEL_GC_TTL" ]]; then
+        continue  # panel is live
+      fi
+    fi
+    # No heartbeat OR heartbeat stale → reap.
+    rm -rf "$panel_dir" 2>/dev/null || true
+    cos_log_hook auto-brain-decay gc "removed_panel=$(basename "$panel_dir")"
+  done
+fi
+
 # DB absent (fresh install, no patterns yet) → skip pattern decay (GC above
 # already ran).
 if [ ! -f "$COS_DB_PATH" ]; then

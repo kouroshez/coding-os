@@ -12,12 +12,44 @@
 # shellcheck disable=SC2034
 
 check_state() {
-  local STATE_FILE="$1"
+  local STATE_FILE_INPUT="$1"
   local MAX_AGE="${2:-7200}"  # default 120 min
 
   STATE_VALID=false
   STATE_VALUE=""
   STATE_REASON=""
+
+  # Source cos-env up front so cos_state_path is available for routing
+  # AND $COS_SESSION_FILE / $COS_PANEL_DIR resolve below.
+  source "$(dirname "${BASH_SOURCE[0]}")/cos-env.sh" 2>/dev/null || true
+
+  # Panel-first routing: if the caller passed a per-panel basename or an
+  # AGENT_DIR-anchored per-panel path, we look in $COS_PANEL_DIR first
+  # and fall back to the legacy $COS_AGENT_DIR location for one cycle
+  # so consumer projects mid-migration don't see "Session mismatch"
+  # spam. The reader trusts whichever path exists.
+  local STATE_FILE
+  if command -v cos_state_path >/dev/null 2>&1; then
+    STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
+  else
+    STATE_FILE="$STATE_FILE_INPUT"
+  fi
+  # Legacy fallback: if panel-routed path is empty but the caller's
+  # original (or AGENT_DIR-equivalent) location exists, prefer that. Covers
+  # (a) bare basename → agent-dir fossil from pre-migration writers, and
+  # (b) callers that pre-built "$COS_AGENT_DIR/<name>" before cos_state_path
+  # existed and whose target panel hasn't written its own copy yet.
+  if [[ ! -f "$STATE_FILE" ]]; then
+    local _base
+    _base="$(basename "$STATE_FILE_INPUT")"
+    case " ${COS_PER_PANEL_FILES:-} " in
+      *" $_base "*)
+        if [[ -f "${COS_AGENT_DIR}/${_base}" ]]; then
+          STATE_FILE="${COS_AGENT_DIR}/${_base}"
+        fi
+        ;;
+    esac
+  fi
 
   # Check existence
   if [[ ! -f "$STATE_FILE" ]]; then
@@ -32,12 +64,14 @@ check_state() {
   FILE_SESSION=$(echo "$CONTENT" | awk '{print $1}')
   STATE_VALUE=$(echo "$CONTENT" | cut -d' ' -f2-)
 
-  # Check session match — agent-agnostic via COS_STATE_DIR
-  source "$(dirname "${BASH_SOURCE[0]}")/cos-env.sh" 2>/dev/null || true
+  # Check session match — read panel-private session-id, then legacy flat
+  # $COS_AGENT_DIR/session-id during the migration window.
   local SESSION_FILE="$COS_SESSION_FILE"
   local CURRENT_SESSION=""
   if [[ -f "$SESSION_FILE" ]]; then
     CURRENT_SESSION=$(cat "$SESSION_FILE")
+  elif [[ -f "${COS_AGENT_DIR}/session-id" ]]; then
+    CURRENT_SESSION=$(cat "${COS_AGENT_DIR}/session-id")
   fi
 
   if [[ -n "$CURRENT_SESSION" ]] && [[ -n "$FILE_SESSION" ]] && [[ "$FILE_SESSION" != "$CURRENT_SESSION" ]]; then

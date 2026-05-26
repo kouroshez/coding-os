@@ -77,9 +77,9 @@ Signals deliberately limited to **cognitive state** (what the agent thinks it's 
 - Synthesizing a banner when `USER_BANNER` is absent — accuracy beats coverage.
 - Bundling the banner with code blocks, headers, or tool-call commentary — keep it standalone on line 1.
 
-## Concurrency model — what the banner does and does NOT isolate
+## Concurrency model — what the banner isolates
 
-Cross-agent and cross-project are isolated by directory split:
+Cross-agent, cross-panel, and cross-project are all isolated by directory split:
 
 | Setup | Banner accuracy | Why |
 |---|---|---|
@@ -87,11 +87,11 @@ Cross-agent and cross-project are isolated by directory split:
 | Claude + Codex concurrent (same project) | ✅ each its own banner | different `$COS_AGENT_DIR` |
 | Same agent in two projects | ✅ accurate | different `.coding-os/` |
 | Same agent in two worktrees (`git worktree add`) | ✅ accurate | different filesystem |
-| **Two panels of the SAME agent on SAME project** | ❌ **NOT isolated** | shared `$COS_AGENT_DIR/session-id` — last `SessionStart` wins |
+| **Two panels of the SAME agent on SAME project** | ✅ **accurate per panel** | each panel writes to its own `$COS_PANEL_DIR = $COS_AGENT_DIR/panels/<panel-id>/`; `cos_panel_upgrade_from_payload` derives `<panel-id>` from the agent runtime's stdin `session_id` |
 
-For the bottom row, the banner from one panel will show `ses=????` or `task=none` after the other panel triggered a fresh `SessionStart` (which rewrites `session-id` and clears volatile markers). The `ses=<last-8>` field in the banner exists to let the user spot the swap.
+`session-context.sh` upgrades the panel id from stdin **before** materialising state, so two concurrent SessionStarts from sibling Claude tabs land in different `panels/<panel-id>/` subdirs and never overwrite each other's `session-id`, `.task-current`, `.thinking_os-gate`, `.active-skill`, `.doc-anchor`, etc. The `ses=<last-8>` field in the banner is the per-panel id tail — different value per tab confirms isolation.
 
-Workaround: use `git worktree add <path>` per panel — each worktree gets its own `.coding-os/` and full isolation. See [docs/engineering/state-files.md § Multi-agent scenarios](../../docs/engineering/state-files.md) for the full personas × scenarios matrix.
+Full personas × scenarios matrix (P1-P6 × S1-S7), per-file routing rationale, and the per-panel orphan-GC contract: [docs/engineering/state-files.md](../../docs/engineering/state-files.md).
 
 ## Accuracy guarantees (per-field)
 

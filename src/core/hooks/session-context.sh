@@ -23,6 +23,13 @@ _COS_HOOKS_PHYS="$(cd -P "$(dirname "$_cos_src")" && pwd)"
 unset _cos_src _cos_dir
 
 INPUT="$(cos_read_stdin_bounded 2)"
+
+# Upgrade panel-id from stdin session_id BEFORE any state file is touched.
+# After this call, $COS_PANEL_ID / $COS_PANEL_DIR / $COS_SESSION_FILE reflect
+# the strongest available signal (Claude/Codex/Cursor hook payload UUID).
+# All subsequent reads/writes in this hook target the right panel dir.
+cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
+
 COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
 export COS_HOOK_RUNTIME_MODEL
 
@@ -45,8 +52,9 @@ SOURCE=$(echo "$INPUT" | jq -r '
 ' 2>/dev/null || echo "startup")
 cos_log_hook session-context fire "source=${SOURCE}"
 
-# Ensure BOTH dirs exist — COS_STATE_DIR for shared, COS_AGENT_DIR for per-agent.
-mkdir -p "$COS_STATE_DIR" "$COS_AGENT_DIR"
+# Ensure all dirs exist — COS_STATE_DIR for shared, COS_AGENT_DIR for
+# per-agent shared, COS_PANEL_DIR for per-panel private.
+mkdir -p "$COS_STATE_DIR" "$COS_AGENT_DIR" "$COS_PANEL_DIR"
 
 # Refresh the .agent marker whenever cos-env.sh detected the runtime.
 # Stale markers (e.g. `cursor` left over after switching to Claude) mis-route
@@ -63,13 +71,17 @@ fi
 
 # Generate session ID ONLY on fresh startup — NOT on compact or resume.
 if [[ "$SOURCE" == "startup" ]]; then
-  # Orphan recovery: if the PREVIOUS session had observations but never got a
-  # clean Stop, its session_summaries row was never built. We rebuild it
-  # here before the ID is overwritten. session_summary.py is idempotent
-  # (UPSERT) so this is a no-op when Stop fired cleanly.
+  # Orphan recovery: if the PREVIOUS session in THIS PANEL had observations
+  # but never got a clean Stop, its session_summaries row was never built.
+  # We rebuild it here before the ID is overwritten. session_summary.py is
+  # idempotent (UPSERT) so this is a no-op when Stop fired cleanly.
+  # Falls back to legacy flat $COS_AGENT_DIR/session-id during the
+  # migration window.
   PREV_SESSION_ID=""
   if [ -f "$COS_SESSION_FILE" ]; then
     PREV_SESSION_ID=$(cat "$COS_SESSION_FILE" 2>/dev/null || true)
+  elif [ -f "${COS_AGENT_DIR}/session-id" ]; then
+    PREV_SESSION_ID=$(cat "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)
   fi
 
   if [ -n "$PREV_SESSION_ID" ] && [ -f "$COS_DB_PATH" ]; then
@@ -81,35 +93,42 @@ if [[ "$SOURCE" == "startup" ]]; then
   fi
 
   # Session-id is agent-prefixed so logs and state files are self-describing.
-  # Format: ses-<agent>-YYYYMMDD-HHMMSS-xxxx. Two agents on the same repo
-  # get distinct ids and never inherit each other's state via string compare
-  # in check-state.sh.
+  # Format: ses-<agent>-YYYYMMDD-HHMMSS-xxxx. Two agents (Claude+Codex) on
+  # the same repo get distinct ids; two PANELS of the same agent get
+  # distinct ids too because each panel writes to its own $COS_SESSION_FILE
+  # (which now lives in $COS_PANEL_DIR, not $COS_AGENT_DIR).
   SESSION_ID="ses-${COS_AGENT}-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"
   echo "$SESSION_ID" > "$COS_SESSION_FILE"
 
-  # Clear volatile markers from previous sessions. These files are either
-  # session-scoped state or one-shot bypasses and must not bleed across chats.
-  # Scope is THIS agent's private dir — the other agent's state is untouched.
+  # Clear volatile markers from previous sessions. Scope is THIS PANEL's
+  # private dir — sibling panels of the same agent are untouched, and the
+  # other agent's state is also untouched. Files that intentionally remain
+  # shared (.task-mode, .model, .swimlane, .last-verify) are NOT cleared.
   CLEARED=0
   for STATE_FILE in \
-    "${COS_AGENT_DIR}/.thinking_os-gate" \
-    "${COS_AGENT_DIR}/.task-current" \
-    "${COS_AGENT_DIR}/.zoom-checkpoint" \
-    "${COS_AGENT_DIR}/.active-skill" \
-    "${COS_AGENT_DIR}/.doc-anchor" \
-    "${COS_AGENT_DIR}/.memory-check" \
-    "${COS_AGENT_DIR}/.learn-suggestions" \
-    "${COS_AGENT_DIR}/.doc-anchor-override" \
-    "${COS_AGENT_DIR}/.memory-check-override" \
-    "${COS_AGENT_DIR}/.uv-heredoc-override" \
-    "${COS_AGENT_DIR}/.zoom-prompt-suggested" \
+    "${COS_PANEL_DIR}/.thinking_os-gate" \
+    "${COS_PANEL_DIR}/.task-current" \
+    "${COS_PANEL_DIR}/.zoom-checkpoint" \
+    "${COS_PANEL_DIR}/.active-skill" \
+    "${COS_PANEL_DIR}/.doc-anchor" \
+    "${COS_PANEL_DIR}/.memory-check" \
+    "${COS_PANEL_DIR}/.learn-suggestions" \
+    "${COS_PANEL_DIR}/.active-formula" \
+    "${COS_PANEL_DIR}/.doc-anchor-override" \
+    "${COS_PANEL_DIR}/.memory-check-override" \
+    "${COS_PANEL_DIR}/.uv-heredoc-override" \
+    "${COS_PANEL_DIR}/.zoom-prompt-suggested" \
+    "${COS_PANEL_DIR}/.docs-first-nudged" \
+    "${COS_PANEL_DIR}/.graph-call-seen" \
+    "${COS_PANEL_DIR}/.abandoned-task-warned" \
+    "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
     "${COS_STATE_DIR}/.capture-errors.log"; do
     if [ -e "$STATE_FILE" ]; then
       rm -f "$STATE_FILE"
       CLEARED=$((CLEARED + 1))
     fi
   done
-  cos_log_hook session-context reset "cleared=${CLEARED}"
+  cos_log_hook session-context reset "cleared=${CLEARED} panel=${COS_PANEL_ID}"
 fi
 
 # On compact or resume: re-inject critical workflow reminders + current state snapshot
@@ -127,9 +146,21 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
 
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
   source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
+  # Helper: pick panel file if present, else legacy agent file. Lets the
+  # compact/resume snapshot still surface state during the migration
+  # window.
+  _panel_or_agent() {
+    local base="$1"
+    if [[ -f "${COS_PANEL_DIR}/${base}" ]]; then
+      echo "${COS_PANEL_DIR}/${base}"
+    elif [[ -f "${COS_AGENT_DIR}/${base}" ]]; then
+      echo "${COS_AGENT_DIR}/${base}"
+    fi
+  }
   _GATE_STATUS="not recorded"
-  if [[ -f "${COS_AGENT_DIR}/.thinking_os-gate" ]]; then
-    check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
+  _GATE_FILE="$(_panel_or_agent .thinking_os-gate)"
+  if [[ -n "$_GATE_FILE" ]]; then
+    check_state "$_GATE_FILE" 7200
     if [[ "$STATE_VALID" == "true" ]]; then
       _GATE_STATUS="$STATE_VALUE (valid)"
     else
@@ -137,12 +168,14 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     fi
   fi
   _TASK_CURRENT=""
-  if [[ -f "${COS_AGENT_DIR}/.task-current" ]]; then
-    _TASK_CURRENT=$(cat "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
+  _TASK_FILE="$(_panel_or_agent .task-current)"
+  if [[ -n "$_TASK_FILE" ]]; then
+    _TASK_CURRENT=$(cat "$_TASK_FILE" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
   fi
   _ACTIVE_SKILL=""
-  if [[ -f "${COS_AGENT_DIR}/.active-skill" ]]; then
-    _ACTIVE_SKILL=$(cat "${COS_AGENT_DIR}/.active-skill" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
+  _SKILL_FILE="$(_panel_or_agent .active-skill)"
+  if [[ -n "$_SKILL_FILE" ]]; then
+    _ACTIVE_SKILL=$(cat "$_SKILL_FILE" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
   fi
 
   printf '%s\n' "[Session State] gate=${_GATE_STATUS} | task=${_TASK_CURRENT:-none} | skill=${_ACTIVE_SKILL:-none}"
@@ -247,8 +280,25 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
     _CURRENT_SESSION=$(head -1 "${COS_SESSION_FILE:-${COS_AGENT_DIR}/session-id}" 2>/dev/null | tr -d '\n\r')
   fi
   _read_state() {
-    local file="$1" cap="$2"
-    [ -f "$file" ] || { echo ""; return; }
+    local file_input="$1" cap="$2"
+    # Panel-first: per-panel files live in $COS_PANEL_DIR; if missing
+    # there, fall back to legacy $COS_AGENT_DIR for one migration cycle.
+    local file=""
+    local base
+    base="$(basename "$file_input")"
+    case " ${COS_PER_PANEL_FILES:-} " in
+      *" $base "*)
+        if [ -f "${COS_PANEL_DIR}/${base}" ]; then
+          file="${COS_PANEL_DIR}/${base}"
+        elif [ -f "${COS_AGENT_DIR}/${base}" ]; then
+          file="${COS_AGENT_DIR}/${base}"
+        fi
+        ;;
+      *)
+        file="$file_input"
+        ;;
+    esac
+    [ -n "$file" ] && [ -f "$file" ] || { echo ""; return; }
     # If we can't determine the current session-id, NEVER trust any state
     # file (could be a fossil from a different session). Fail-empty.
     if [ -z "$_CURRENT_SESSION" ]; then
@@ -273,9 +323,9 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
     fi
     echo "$value"
   }
-  TASK_CUR=$(_read_state "${COS_AGENT_DIR}/.task-current" 32)
-  GATE_STATE=$(_read_state "${COS_AGENT_DIR}/.thinking_os-gate" 24)
-  SKILL_CUR=$(_read_state "${COS_AGENT_DIR}/.active-skill" 48)
+  TASK_CUR=$(_read_state ".task-current" 32)
+  GATE_STATE=$(_read_state ".thinking_os-gate" 24)
+  SKILL_CUR=$(_read_state ".active-skill" 48)
 
   # Task mode (classify-task-mode.sh writes this on every UserPromptSubmit
   # via a separate hook). NOT session-prefixed — it's a single token per
