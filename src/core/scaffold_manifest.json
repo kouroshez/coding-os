@@ -118,6 +118,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -190,7 +191,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 183
+      "count": 184
     },
     "claude_django": {
       "agent": "claude",
@@ -311,6 +312,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -398,7 +400,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 199
+      "count": 200
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -519,6 +521,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -599,7 +602,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 192
+      "count": 193
     },
     "claude_go": {
       "agent": "claude",
@@ -720,6 +723,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -800,7 +804,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 192
+      "count": 193
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -921,6 +925,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -1001,7 +1006,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 192
+      "count": 193
     },
     "claude_meta": {
       "agent": "claude",
@@ -1125,6 +1130,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -1216,7 +1222,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 206
+      "count": 207
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -1337,6 +1343,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -1432,7 +1439,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 207
+      "count": 208
     },
     "claude_python": {
       "agent": "claude",
@@ -1552,6 +1559,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -1624,7 +1632,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 183
+      "count": 184
     },
     "claude_react-native": {
       "agent": "claude",
@@ -1745,6 +1753,7 @@
         ".claude/rules/skill-enforcement.md",
         ".claude/rules/test-discipline.md",
         ".claude/rules/thinking_os.md",
+        ".claude/rules/transparency-banner.md",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".claude/skills/a11y/SKILL.md",
@@ -1831,7 +1840,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 198
+      "count": 199
     },
     "codex_base": {
       "agent": "codex",
@@ -1956,6 +1965,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -2025,7 +2035,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 187
+      "count": 188
     },
     "codex_django": {
       "agent": "codex",
@@ -2153,6 +2163,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -2237,7 +2248,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 203
+      "count": 204
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -2365,6 +2376,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -2442,7 +2454,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 196
+      "count": 197
     },
     "codex_go": {
       "agent": "codex",
@@ -2570,6 +2582,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -2647,7 +2660,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 196
+      "count": 197
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -2775,6 +2788,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -2852,7 +2866,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 196
+      "count": 197
     },
     "codex_meta": {
       "agent": "codex",
@@ -2983,6 +2997,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -3071,7 +3086,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 210
+      "count": 211
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -3199,6 +3214,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -3291,7 +3307,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 211
+      "count": 212
     },
     "codex_python": {
       "agent": "codex",
@@ -3418,6 +3434,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -3487,7 +3504,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 187
+      "count": 188
     },
     "codex_react-native": {
       "agent": "codex",
@@ -3615,6 +3632,7 @@
         ".codex/rules/skill-enforcement.md",
         ".codex/rules/test-discipline.md",
         ".codex/rules/thinking_os.md",
+        ".codex/rules/transparency-banner.md",
         ".codex/skills/a11y/SKILL.md",
         ".codex/skills/agent-memory/SKILL.md",
         ".codex/skills/api-design/SKILL.md",
@@ -3698,7 +3716,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 202
+      "count": 203
     },
     "cursor_base": {
       "agent": "cursor",
@@ -3830,6 +3848,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -3893,7 +3912,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 188
+      "count": 189
     },
     "cursor_django": {
       "agent": "cursor",
@@ -4033,6 +4052,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -4106,7 +4126,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 204
+      "count": 205
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -4246,6 +4266,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -4312,7 +4333,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 197
+      "count": 198
     },
     "cursor_go": {
       "agent": "cursor",
@@ -4452,6 +4473,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -4518,7 +4540,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 197
+      "count": 198
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -4658,6 +4680,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -4724,7 +4747,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 197
+      "count": 198
     },
     "cursor_meta": {
       "agent": "cursor",
@@ -4874,6 +4897,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -4944,7 +4968,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 211
+      "count": 212
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -5085,6 +5109,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -5165,7 +5190,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 212
+      "count": 213
     },
     "cursor_python": {
       "agent": "cursor",
@@ -5299,6 +5324,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -5362,7 +5388,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 188
+      "count": 189
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -5503,6 +5529,7 @@
         ".cursor/rules/skill-enforcement.md",
         ".cursor/rules/test-discipline.md",
         ".cursor/rules/thinking_os.md",
+        ".cursor/rules/transparency-banner.md",
         ".cursor/skills/a11y/SKILL.md",
         ".cursor/skills/agent-memory/SKILL.md",
         ".cursor/skills/api-design/SKILL.md",
@@ -5574,7 +5601,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 203
+      "count": 204
     }
   }
 }
