@@ -155,11 +155,8 @@ def _probe_size(body: dict, meta: dict) -> int:
 def _trim_list_key(
     body: dict, meta: dict, key: str
 ) -> tuple[dict, dict, bool]:
-    """Halve the list at `body[key]` until envelope ≤ TOKEN_BUDGET_CHARS.
-
-    Returns (body, meta, fits). `fits=True` means we're now under budget.
-    Uses binary-search shrink so worst-case is O(log N) probes.
-    """
+    # Binary-search shrink the list at body[key] until envelope ≤ budget.
+    # Returns (body, meta, fits). O(log N) probes.
     items = body.get(key)
     if not isinstance(items, list) or not items:
         return body, meta, False
@@ -182,7 +179,7 @@ def _trim_list_key(
 
 
 def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
-    """`edges_by_type` is a dict-of-lists. Trim biggest bucket first."""
+    # edges_by_type is dict-of-lists; greedily halve biggest bucket until fits.
     edges_by_type = body.get("edges_by_type")
     if not isinstance(edges_by_type, dict) or not edges_by_type:
         return body, meta, False
@@ -207,20 +204,14 @@ def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
 
 
 def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
-    """Shrink `body` to fit TOKEN_BUDGET_CHARS.
-
-    Strategy: trim every trimmable list-shaped field in order, plus the
-    `edges_by_type` dict-of-lists. ``did_trim`` is True when any field
-    actually got cut. Conservative — leaves non-list payloads untouched.
-    """
+    # Trim every list-shaped field in order + edges_by_type dict-of-lists.
+    # did_trim=True when any field got cut. Non-list payloads untouched.
     did_any = False
     fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
     for key in _TRIMMABLE_LIST_KEYS:
         if fits:
             break
         body, meta, fits_after = _trim_list_key(body, meta, key)
-        if fits_after and not fits:
-            did_any = True
         if f"truncated_{key}_to" in meta:
             did_any = True
         fits = fits or fits_after
