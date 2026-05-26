@@ -81,7 +81,24 @@ CONFIG_FILE = ".coding-os.yaml"
 STATE_DIR_DEFAULT = ".coding-os"
 
 _schema_cfg = _DOCTOR_CFG.get("schema") or {}
-EXPECTED_SCHEMA_VERSION: int = int(_schema_cfg.get("expected_version", 6))
+
+
+def _derive_expected_schema_version() -> int:
+    """Read max migration version from thinking_os.database.MIGRATIONS (SSOT).
+
+    Falls back to the doctor-config.yaml mirror if the import fails (fresh
+    clone before .venv install, broken module). Eliminates the drift class
+    where a new migration lands but doctor-config wasn't bumped.
+    """
+    try:
+        from core.thinking_os.database import MIGRATIONS
+
+        return max(int(m[0]) for m in MIGRATIONS)
+    except Exception:
+        return int(_schema_cfg.get("expected_version", 6))
+
+
+EXPECTED_SCHEMA_VERSION: int = _derive_expected_schema_version()
 EXPECTED_TABLES: frozenset[str] = frozenset(_schema_cfg.get("expected_tables") or ())
 
 # Note: `sourced_hooks` is per-adapter (src/adapters/<id>/adapter.yaml) and is

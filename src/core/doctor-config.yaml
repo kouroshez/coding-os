@@ -21,6 +21,9 @@ placeholder_scan:
   - docs/governance/_templates
   - docs/_meta
 schema:
+  # expected_version is derived from thinking_os.database.MIGRATIONS at
+  # runtime (cli.doctor._derive_expected_schema_version). The yaml field
+  # below is only consulted as a fallback when the import fails.
   expected_version: 29
   expected_tables:
   - agent_metrics
