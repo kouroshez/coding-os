@@ -183,29 +183,65 @@ def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     edges_by_type = body.get("edges_by_type")
     if not isinstance(edges_by_type, dict) or not edges_by_type:
         return body, meta, False
-    # Greedy pick biggest bucket each iteration; halve it.
-    trimmed = {k: list(v) for k, v in edges_by_type.items() if isinstance(v, list)}
+    # F#6: separate list buckets (trimmable) from non-list values (preserved).
+    list_buckets = {k: list(v) for k, v in edges_by_type.items() if isinstance(v, list)}
+    non_list = {k: v for k, v in edges_by_type.items() if not isinstance(v, list)}
+    if not list_buckets:
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
     trim_record: dict[str, dict[str, int]] = {}
-    while _probe_size({**body, "edges_by_type": trimmed}, meta) > TOKEN_BUDGET_CHARS:
-        # Pick biggest bucket; halve.
-        biggest = max(trimmed, key=lambda k: len(trimmed[k]), default=None)
-        if biggest is None or not trimmed[biggest]:
+    while _probe_size(
+        {**body, "edges_by_type": {**non_list, **list_buckets}}, meta
+    ) > TOKEN_BUDGET_CHARS:
+        biggest = max(list_buckets, key=lambda k: len(list_buckets[k]), default=None)
+        if biggest is None or not list_buckets[biggest]:
             break
         before = trim_record.get(biggest, {}).get("from", len(edges_by_type[biggest]))
-        new_len = max(0, len(trimmed[biggest]) // 2)
+        new_len = max(0, len(list_buckets[biggest]) // 2)
         trim_record[biggest] = {"from": before, "to": new_len}
-        trimmed[biggest] = trimmed[biggest][:new_len]
-        if all(len(v) == 0 for v in trimmed.values()):
+        list_buckets[biggest] = list_buckets[biggest][:new_len]
+        if all(len(v) == 0 for v in list_buckets.values()):
             break
-    body = {**body, "edges_by_type": trimmed}
+    body = {**body, "edges_by_type": {**non_list, **list_buckets}}
     if trim_record:
         meta["truncated_edges_by_type"] = trim_record
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 
+def _trim_huge_string_fields(
+    body: dict, meta: dict
+) -> tuple[dict, dict, bool]:
+    # F#5 safety net: after list trims, if envelope still over budget the
+    # culprit is a huge top-level scalar (large signature, generated text).
+    # Truncate biggest scalars first until envelope fits. Never touch
+    # `node` (caller's root identity).
+    if _probe_size(body, meta) <= TOKEN_BUDGET_CHARS:
+        return body, meta, True
+    sizes: list[tuple[int, str]] = []
+    for k, v in body.items():
+        if k == "node" or isinstance(v, (list, dict)):
+            continue
+        sizes.append((len(str(v)), k))
+    if not sizes:
+        return body, meta, False
+    sizes.sort(reverse=True)
+    truncated_fields: list[str] = []
+    new_body = dict(body)
+    for _size, key in sizes:
+        if _probe_size(new_body, meta) <= TOKEN_BUDGET_CHARS:
+            break
+        new_body[key] = "[truncated: field exceeded envelope budget]"
+        truncated_fields.append(key)
+    if truncated_fields:
+        meta["truncated_string_fields"] = truncated_fields
+    return new_body, meta, _probe_size(new_body, meta) <= TOKEN_BUDGET_CHARS
+
+
 def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
-    # Trim every list-shaped field in order + edges_by_type dict-of-lists.
-    # did_trim=True when any field got cut. Non-list payloads untouched.
+    # Trim every list-shaped field + edges_by_type dict-of-lists + (F#5
+    # final safety net) huge non-list scalars. did_trim=True when any
+    # field got cut. Contract: post-trim body MUST fit budget — if even
+    # scalar truncation fails (extreme pathological case), surface via
+    # meta.envelope_unshrinkable=True so caller can log/alert.
     did_any = False
     fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
     for key in _TRIMMABLE_LIST_KEYS:
@@ -220,6 +256,19 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
         if "truncated_edges_by_type" in meta:
             did_any = True
         fits = fits or fits_after
+    if not fits:
+        body, meta, fits_after = _trim_huge_string_fields(body, meta)
+        if "truncated_string_fields" in meta:
+            did_any = True
+        fits = fits or fits_after
+    if not fits:
+        meta["envelope_unshrinkable"] = True
+        logger.error(
+            "envelope %d chars > budget %d after all trims",
+            _probe_size(body, meta),
+            TOKEN_BUDGET_CHARS,
+        )
+        did_any = True
     return body, meta, did_any
 
 

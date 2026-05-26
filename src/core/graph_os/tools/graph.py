@@ -952,7 +952,7 @@ def cos_graph_context(
         if other is None:
             continue
         if _depth == 1:
-            entry: dict[str, Any] = {
+            full_entry: dict[str, Any] = {
                 "uid": other.uid,
                 "kind": other.kind,
                 "label": other.label,
@@ -961,15 +961,21 @@ def cos_graph_context(
                 "extractor": e.extractor,
             }
             if include_evidence and e.evidence:
-                entry["evidence"] = [
+                full_entry["evidence"] = [
                     {"signal_name": s.signal_name, "weight": s.weight, "note": s.note}
                     for s in e.evidence
                 ]
+            grouped.setdefault(e.edge_type, []).append(full_entry)
         else:
             # Summary mode — uid+label only. Caller drills via references.
-            entry = {"uid": other.uid, "label": other.label, "edge_type": e.edge_type}
-        grouped.setdefault(e.edge_type, []).append(entry)
+            summary_entry = {
+                "uid": other.uid,
+                "label": other.label,
+                "edge_type": e.edge_type,
+            }
+            grouped.setdefault(e.edge_type, []).append(summary_entry)
 
+    extra_meta: dict[str, Any] = {}
     if _depth == 1:
         payload: dict[str, Any] = {
             "node": _node_dict(root),
@@ -981,7 +987,7 @@ def cos_graph_context(
         # Summary shape — counts + top-5 sample per edge_type. No raw
         # `neighbours` (redundant + huge on high fan-in). `edge_counts`
         # tells the agent the shape; `top_edges_by_type` shows
-        # representative items it can drill into via cos_graph_references.
+        # representative items to drill into via cos_graph_references.
         edge_counts = {k: len(v) for k, v in grouped.items()}
         top_edges = {k: v[:5] for k, v in grouped.items()}
         payload = {
@@ -990,11 +996,13 @@ def cos_graph_context(
             "top_edges_by_type": top_edges,
             "edge_count": len(edges),
             "summary_mode": True,
-            "drill_hint": (
-                "depth>=2 returns summary only. For full edge list call "
-                "cos_graph_references(uid, kinds=[edge_type], limit=...)."
-            ),
         }
+        # drill_hint lives in meta (diagnostic), not payload — saves
+        # 92 bytes per call × every depth>=2 invocation at scale.
+        extra_meta["drill_hint"] = (
+            "depth>=2 returns summary only. For full edge list call "
+            "cos_graph_references(uid, kinds=[edge_type], limit=...)."
+        )
     if include_spine:
         # S3: surface the CONTAINS-ancestor chain (repo-root → … → leaf)
         # so the SPA can render breadcrumbs alongside the context view.
@@ -1010,6 +1018,7 @@ def cos_graph_context(
             "include_spine": include_spine,
             "visit_limit": visit_limit,
             "walk_truncated": truncated,
+            **extra_meta,
         },
     )
 

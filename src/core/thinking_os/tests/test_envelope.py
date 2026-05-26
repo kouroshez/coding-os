@@ -157,6 +157,41 @@ class TestTokenBudget:
         assert meta["truncated"] is True
         assert "truncated_edges_by_type" in meta
 
+    def test_edges_by_type_preserves_non_list_buckets(self) -> None:
+        """Reviewer LOW (F#6): _trim_edges_by_type used to drop non-list
+        dict values silently during the rebuild. Non-list entries (e.g.
+        caller-supplied diagnostics keyed under edges_by_type) must
+        survive even when list buckets are trimmed."""
+        edges = {
+            "contains": [{"uid": f"a:{i}", "label": "x" * 500} for i in range(150)],
+            "diagnostic": {"computed_at": "2026-05-26", "edge_total": 150},
+        }
+        envelope = json.loads(ok({"edges_by_type": edges}))
+        ebt = envelope["data"]["edges_by_type"]
+        # Non-list bucket survived the trim.
+        assert ebt["diagnostic"] == {
+            "computed_at": "2026-05-26",
+            "edge_total": 150,
+        }
+        # List bucket was trimmed.
+        assert len(ebt["contains"]) < 150
+
+    def test_huge_string_field_truncated_as_safety_net(self) -> None:
+        """F#5: after every list-trim path exhausts, a giant non-list
+        scalar must be truncated so the envelope still fits. Pre-fix the
+        function set truncated=true but returned an over-budget body."""
+        big_string = "z" * 60_000  # 60KB single string field
+        envelope = json.loads(
+            ok({"results": [], "report": big_string})
+        )
+        meta = envelope["data"]["meta"]
+        assert meta["truncated"] is True
+        assert "truncated_string_fields" in meta
+        assert "report" in meta["truncated_string_fields"]
+        assert envelope["data"]["report"].startswith("[truncated")
+        serialized_len = len(json.dumps(envelope, indent=2))
+        assert serialized_len <= TOKEN_BUDGET_CHARS
+
     def test_caller_cannot_spoof_truncated_meta(self) -> None:
         """TASK-034 reviewer finding: agents must not be able to lie about
         truncation by passing meta={'truncated_neighbours_to': 999}."""
