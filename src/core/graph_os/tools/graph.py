@@ -1975,12 +1975,14 @@ def cos_graph_export(
         # NodeInspector) all see the same hub score without each
         # recomputing client-side.
         degree_map = _degree_map_for(be, [n.uid for n in nodes])
+        node_dicts = [
+            NodeSummary.from_node(n, degree=degree_map.get(n.uid)).to_dict() for n in nodes
+        ]
+        edge_dicts = [_edge_to_dict(e) for e in edges]
         payload: dict[str, Any] = {
             "format": "json",
-            "nodes": [
-                NodeSummary.from_node(n, degree=degree_map.get(n.uid)).to_dict() for n in nodes
-            ],
-            "edges": [_edge_to_dict(e) for e in edges],
+            "nodes": node_dicts,
+            "edges": edge_dicts,
         }
     elif format == "mermaid":
         payload = {"format": "mermaid", "diagram": _to_mermaid(nodes, edges)}
@@ -2647,32 +2649,45 @@ def cos_graph_communities(
         + projected_top * effective_max_members * _TOKENS_PER_MEMBER
     )
     if projected > _TOKEN_TARGET:
-        # Reduce max_members first; falls back to truncating `top` only
-        # when even max_members=1 would still overshoot.
+        # W6.6 (B10): never shrink members below 3 — a "community" of 1
+        # member kills the concept. Drop tail communities instead, then
+        # only as a last resort shrink members down to 3, then 1.
+        _MEMBER_FLOOR = min(3, max_members)
+        # Step 1: shrink members down to the floor (or requested, whichever
+        # is smaller) at current projected_top.
         budget_per_process_for_members = max(
             0, (_TOKEN_TARGET - projected_top * _TOKENS_PER_PROCESS_HEADER)
         )
         if projected_top > 0:
             effective_max_members = max(
-                1,
+                _MEMBER_FLOOR,
                 budget_per_process_for_members
                 // (projected_top * _TOKENS_PER_MEMBER),
             )
-        # If projected_top is so large that even max_members=1 overshoots,
-        # shrink top.
+        effective_max_members = min(effective_max_members, max_members)
+        # Step 2: if still over budget, drop tail communities.
         while (
-            projected_top > 0
+            projected_top > 1
             and projected_top * (
                 _TOKENS_PER_PROCESS_HEADER
-                + max(1, effective_max_members) * _TOKENS_PER_MEMBER
+                + effective_max_members * _TOKENS_PER_MEMBER
             )
             > _TOKEN_TARGET
         ):
             projected_top -= 1
-        if projected_top < 1:
-            projected_top = 1
-            effective_max_members = 1
-        members_truncated = True
+        # Step 3: last resort — even 1 community at floor doesn't fit.
+        # Lower the floor (1 member is still better than 0 communities).
+        while (
+            projected_top > 0
+            and projected_top * (
+                _TOKENS_PER_PROCESS_HEADER
+                + effective_max_members * _TOKENS_PER_MEMBER
+            )
+            > _TOKEN_TARGET
+            and effective_max_members > 1
+        ):
+            effective_max_members -= 1
+        members_truncated = effective_max_members < max_members
     for row in rows[:projected_top]:
         members = row.get("members") or []
         if len(members) > effective_max_members:

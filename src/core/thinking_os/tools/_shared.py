@@ -132,8 +132,10 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "results",
     "neighbours",
     "references",
-    "nodes",
+    # W6.6 (B4): export-shaped responses — trim `edges` BEFORE `nodes`.
+    # Caller asked for nodes; edges are the high-volume tail.
     "edges",
+    "nodes",
     "processes",
     "call_sites",
     "import_sites",
