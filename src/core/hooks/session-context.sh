@@ -272,12 +272,26 @@ fi
 # renders this as a compact labeled "additionalContext" block.
 if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   # State files written by write-state.sh have format "<session-id> <value>".
-  # Verify session ownership (file's session-id must match current session)
-  # before returning the value — otherwise the banner could echo a stale
-  # value from a prior session that survived the startup cleanup.
+  # Verify session ownership before returning the value. Resolution order:
+  #   1. panel-private $COS_SESSION_FILE (per-panel SSOT)
+  #   2. agent-level legacy $COS_AGENT_DIR/session-id (transition compat —
+  #      old write-state.sh / non-panel-aware writers land here)
+  # Without the fallback, a panel that never ran SessionStart:startup
+  # (resumed conversation, no panel session-id file) shows ses=? · all-
+  # state-rejected. Mirrors cos_current_session() in cos-env.sh.
   _CURRENT_SESSION=""
-  if [ -f "${COS_SESSION_FILE:-${COS_AGENT_DIR}/session-id}" ]; then
-    _CURRENT_SESSION=$(head -1 "${COS_SESSION_FILE:-${COS_AGENT_DIR}/session-id}" 2>/dev/null | tr -d '\n\r')
+  for _f in "${COS_SESSION_FILE:-}" "${COS_AGENT_DIR}/session-id"; do
+    [ -n "$_f" ] && [ -f "$_f" ] || continue
+    _CURRENT_SESSION=$(head -1 "$_f" 2>/dev/null | tr -d '\n\r')
+    [ -n "$_CURRENT_SESSION" ] && break
+  done
+  unset _f
+  # Companion ownership accepts: legacy state files were stamped with the
+  # agent-level session-id, panel-aware writes use the panel session-id.
+  # Both are considered owned by THIS panel during the transition window.
+  _AGENT_SESSION=""
+  if [ -f "${COS_AGENT_DIR}/session-id" ]; then
+    _AGENT_SESSION=$(head -1 "${COS_AGENT_DIR}/session-id" 2>/dev/null | tr -d '\n\r')
   fi
   _read_state() {
     local file_input="$1" cap="$2"
@@ -307,9 +321,16 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
     local line file_session value
     line=$(head -1 "$file" 2>/dev/null) || { echo ""; return; }
     file_session=$(echo "$line" | awk '{print $1}')
-    # Must match current session exactly (no leak from sibling sessions or
-    # sessions that survived a botched cleanup).
-    if [ -z "$file_session" ] || [ "$file_session" != "$_CURRENT_SESSION" ]; then
+    # Must match THIS panel's session-id exactly OR the agent-level
+    # legacy id (transition window: pre-panel writers stamp with agent
+    # session-id; panel-aware writers stamp with panel session-id; the
+    # banner accepts both as owned by this panel until all writers have
+    # been upgraded).
+    if [ -z "$file_session" ]; then
+      echo ""; return
+    fi
+    if [ "$file_session" != "$_CURRENT_SESSION" ] && \
+       [ "$file_session" != "$_AGENT_SESSION" ]; then
       echo ""; return
     fi
     # Truncate by char count (-c is char-aware in GNU and BSD cut),

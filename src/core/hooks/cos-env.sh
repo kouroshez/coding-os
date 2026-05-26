@@ -769,10 +769,31 @@ cos_panel_upgrade_from_payload() {
   [[ -z "$sid" ]] && return 0
   sid="$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-64)"
   [[ -z "$sid" ]] && return 0
-  [[ "$COS_PANEL_ID" == "$sid" ]] && return 0
-  COS_PANEL_ID="$sid"
-  COS_PANEL_DIR="${COS_AGENT_DIR}/panels/${COS_PANEL_ID}"
-  COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
-  export COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE
-  mkdir -p "$COS_PANEL_DIR" 2>/dev/null || true
+  if [[ "$COS_PANEL_ID" != "$sid" ]]; then
+    COS_PANEL_ID="$sid"
+    COS_PANEL_DIR="${COS_AGENT_DIR}/panels/${COS_PANEL_ID}"
+    COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
+    export COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE
+    mkdir -p "$COS_PANEL_DIR" 2>/dev/null || true
+  fi
+  # Initialize the panel session-id file when missing. Without this, every
+  # reader that goes through $COS_SESSION_FILE (the SSOT for "who am I")
+  # sees an empty value, and the per-session ownership check rejects every
+  # state file as un-owned — the cascade that surfaces as banner ses=? ·
+  # task=none · gate=unset on hooks that only have agent-level legacy
+  # state. SessionStart:startup writes a `ses-<agent>-<ts>-<rand>` id; for
+  # resume/compact/user-prompt-submit (where startup never fires for this
+  # panel), we mirror the agent-level session-id when present, else seed
+  # with the panel id (stable across the conversation).
+  if [[ ! -s "$COS_SESSION_FILE" ]]; then
+    local seed=""
+    if [[ -s "${COS_AGENT_DIR}/session-id" ]]; then
+      seed="$(tr -d '\n\r' < "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)"
+    fi
+    [[ -z "$seed" ]] && seed="ses-${COS_AGENT}-${COS_PANEL_ID}"
+    local _tmp="${COS_SESSION_FILE}.tmp.$$"
+    printf '%s\n' "$seed" > "$_tmp" 2>/dev/null \
+      && mv -f "$_tmp" "$COS_SESSION_FILE" 2>/dev/null \
+      || rm -f "$_tmp" 2>/dev/null
+  fi
 }
