@@ -614,6 +614,30 @@ def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[st
     return out
 
 
+def _file_contained_symbols(
+    backend: GraphBackend, file_uid: str, *, limit: int = 500
+) -> list[str]:
+    # W6.3 (F6/B15/N1): when caller hands us a `code:file:*` uid the
+    # interesting blast radius lives on the SYMBOLS the file contains
+    # (class/function/method), not on the file node itself. Return the
+    # contains-children that have behavioural inbound surface area —
+    # so impact + detect_changes can roll the file-level answer up from
+    # the contained symbols.
+    try:
+        edges = backend.list_edges(
+            source_uid=file_uid, edge_types=("contains",), limit=limit
+        )
+    except Exception:
+        return []
+    out: list[str] = []
+    for e in edges:
+        tgt = e.target_uid
+        # Only symbol uids carry behavioural inbound edges.
+        if tgt.startswith(("code:class:", "code:function:", "code:method:")):
+            out.append(tgt)
+    return out
+
+
 def _walk_bfs(
     backend: GraphBackend,
     *,
@@ -1064,20 +1088,47 @@ def cos_graph_impact(
 
     walk_direction = {"downstream": "in", "upstream": "out", "both": "both"}.get(direction, "in")
     visit_limit = max(1, min(int(visit_limit), 50_000))
-    nodes, edges = _walk_bfs(
-        be,
-        root_uid=root.uid,
-        direction=walk_direction,
-        max_hops=max(1, int(depth)),
-        confidence_min=confidence_min,
-        edge_types=None,
-        visit_limit=visit_limit,
-    )
-    # BFS stops once `len(seen_nodes) >= visit_limit`. When it hits the
-    # cap the answer is incomplete and silent — agent could mis-judge
-    # blast radius. Expose the signal so callers re-run with a smaller
-    # depth (typical fix) or raise visit_limit deliberately.
-    truncated = len(nodes) >= visit_limit
+
+    # W6.3 (N1): file uids have ~no behavioural inbound edges of their
+    # own — the blast radius lives on contained symbols. Walk each child
+    # and merge the dedup'd union so callers asking about a file get a
+    # meaningful answer instead of will_break=[].
+    walk_roots = [root.uid]
+    expanded_from_file = False
+    if root.kind == "file":
+        children = _file_contained_symbols(be, root.uid, limit=visit_limit)
+        if children:
+            walk_roots = children + [root.uid]
+            expanded_from_file = True
+
+    seen_node_uids: set[str] = set()
+    edges: list[GraphEdge] = []
+    nodes: list[GraphNode] = []
+    seen_edge_keys: set[tuple] = set()
+    for sub_root in walk_roots:
+        if len(seen_node_uids) >= visit_limit:
+            break
+        sub_nodes, sub_edges = _walk_bfs(
+            be,
+            root_uid=sub_root,
+            direction=walk_direction,
+            max_hops=max(1, int(depth)),
+            confidence_min=confidence_min,
+            edge_types=None,
+            visit_limit=max(1, visit_limit - len(seen_node_uids)),
+        )
+        for n in sub_nodes:
+            if n.uid in seen_node_uids:
+                continue
+            seen_node_uids.add(n.uid)
+            nodes.append(n)
+        for e in sub_edges:
+            key = (e.source_uid, e.target_uid, e.edge_type)
+            if key in seen_edge_keys:
+                continue
+            seen_edge_keys.add(key)
+            edges.append(e)
+    truncated = len(seen_node_uids) >= visit_limit
     tiers: dict[str, list[dict[str, Any]]] = {
         "will_break": [],
         "should_review": [],
@@ -1118,6 +1169,8 @@ def cos_graph_impact(
             "confidence_min": confidence_min,
             "visit_limit": visit_limit,
             "walk_truncated": truncated,
+            "semantic_scope": "transitive_depth_" + str(depth),
+            "expanded_from_file": expanded_from_file,
         },
     )
 
@@ -1185,16 +1238,38 @@ def cos_graph_detect_changes(
                 if uid_candidate.startswith("task:file:"):
                     downstream_tasks.add(uid_candidate)
         if analyze_downstream:
-            nodes_deep, deep_edges = _walk_bfs(
-                be,
-                root_uid=file_uid,
-                direction="in",
-                max_hops=3,
-                confidence_min=0.6,
-                edge_types=None,
-                visit_limit=_DC_VISIT_LIMIT,
-            )
-            if len(nodes_deep) >= _DC_VISIT_LIMIT:
+            # W6.3 (F6/B15): walk from each contained SYMBOL (class/function/
+            # method) instead of the file uid alone. File-level walk only
+            # surfaces folder-contains parents — useless for risk. Roll the
+            # behavioural inbound counts UP to file-level risk.
+            walk_seeds = _file_contained_symbols(be, file_uid, limit=_DC_VISIT_LIMIT)
+            if not walk_seeds:
+                walk_seeds = [file_uid]
+            seen_uids: set[str] = set()
+            deep_edges: list[Any] = []
+            seen_edges: set[tuple] = set()
+            for seed in walk_seeds:
+                if len(seen_uids) >= _DC_VISIT_LIMIT:
+                    walk_truncated = True
+                    break
+                nodes_deep, sub_edges = _walk_bfs(
+                    be,
+                    root_uid=seed,
+                    direction="in",
+                    max_hops=3,
+                    confidence_min=0.6,
+                    edge_types=None,
+                    visit_limit=max(1, _DC_VISIT_LIMIT - len(seen_uids)),
+                )
+                for n in nodes_deep:
+                    seen_uids.add(n.uid)
+                for e in sub_edges:
+                    k = (e.source_uid, e.target_uid, e.edge_type)
+                    if k in seen_edges:
+                        continue
+                    seen_edges.add(k)
+                    deep_edges.append(e)
+            if len(seen_uids) >= _DC_VISIT_LIMIT:
                 walk_truncated = True
             # B15: also collect task uids from the deep (depth-3) walk.
             for deep_edge in deep_edges:
