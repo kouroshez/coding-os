@@ -244,10 +244,17 @@ if [[ -f "${COS_SESSION_FILE}" ]]; then
 fi
 echo "$GATE_TEST_SESSION" > "${COS_SESSION_FILE}"
 
-# Backup existing state files
-for f in "${COS_AGENT_DIR}/.thinking_os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint"; do
+# Backup existing state files.
+# .task-mode is included so classify-task-mode's per-turn marker can't
+# silently skip enforce-{task-start,skill,zoom} tests when the dev's
+# previous turn was tagged query/adhoc/chore/system.
+for f in "${COS_AGENT_DIR}/.thinking_os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint" "${COS_AGENT_DIR}/.task-mode"; do
   [[ -f "$f" ]] && cp "$f" "${f}.bak" 2>/dev/null || true
 done
+# Clear .task-mode for the test run — enforce-* hooks treat
+# query|adhoc|chore|system as "skip enforcement", which would mask
+# block-vs-allow assertions further down the suite.
+rm -f "${COS_AGENT_DIR}/.task-mode"
 
 # Helper to write state with session prefix
 write_test_state() {
@@ -393,9 +400,72 @@ run_test "Allow CHAOTIC without zoom" "$H" \
 
 echo ""
 
+# ---- auto-trace-rotate.sh — size-based log rotation ----
+# Verifies the copytruncate path added on top of the original trace-only
+# rotation. Sandboxes the work under .coding-os/test-rot/ so real logs are
+# untouched.  Each assertion increments PASS/FAIL/TOTAL directly because
+# the rotation hook always exits 0 — run_test() only inspects exit code.
+echo "--- auto-trace-rotate.sh (log rotation) ---"
+H="${HOOKS_DIR}/auto-trace-rotate.sh"
+ROT_SANDBOX="${COS_AGENT_DIR%/*}/test-rot/.coding-os"
+mkdir -p "$ROT_SANDBOX" "$ROT_SANDBOX/claude"
+
+run_check() {
+  local name="$1" ok="$2"
+  TOTAL=$((TOTAL + 1))
+  if [[ "$ok" == "1" ]]; then
+    echo "  PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL  $name"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+# Case 1: file >= threshold → archive created + origin truncated.
+printf 'AAAAAAAAAA' > "$ROT_SANDBOX/.mcp.log"
+COS_STATE_DIR="$ROT_SANDBOX" COS_AGENT_DIR="$ROT_SANDBOX/claude" \
+  COS_LOG_ROTATE_SIZE_BYTES=5 COS_LOG_ROTATE_KEEP=3 \
+  bash "$H" </dev/null >/dev/null 2>&1
+archive_present=0
+[[ -n "$(ls "$ROT_SANDBOX"/.mcp.log.*.gz 2>/dev/null)" ]] && archive_present=1
+origin_size=$(stat -f%z "$ROT_SANDBOX/.mcp.log" 2>/dev/null || stat -c%s "$ROT_SANDBOX/.mcp.log" 2>/dev/null || echo 99)
+[[ "$archive_present" == "1" && "$origin_size" == "0" ]] && pass=1 || pass=0
+run_check "Rotate when file ≥ threshold (archive + truncate)" "$pass"
+
+# Case 2: file < threshold → no archive added, origin untouched.
+rm -f "$ROT_SANDBOX"/.cos.log.*.gz
+printf 'tiny' > "$ROT_SANDBOX/.cos.log"
+size_before=$(stat -f%z "$ROT_SANDBOX/.cos.log" 2>/dev/null || stat -c%s "$ROT_SANDBOX/.cos.log" 2>/dev/null || echo 0)
+COS_STATE_DIR="$ROT_SANDBOX" COS_AGENT_DIR="$ROT_SANDBOX/claude" \
+  COS_LOG_ROTATE_SIZE_BYTES=1073741824 COS_LOG_ROTATE_KEEP=3 \
+  bash "$H" </dev/null >/dev/null 2>&1
+size_after=$(stat -f%z "$ROT_SANDBOX/.cos.log" 2>/dev/null || stat -c%s "$ROT_SANDBOX/.cos.log" 2>/dev/null || echo 0)
+new_archives=$(ls "$ROT_SANDBOX"/.cos.log.*.gz 2>/dev/null | wc -l | tr -d ' ')
+[[ "$size_before" == "$size_after" && "$new_archives" == "0" ]] && pass=1 || pass=0
+run_check "Skip rotation when file < threshold" "$pass"
+
+# Case 3: keep-N trims older archives — seed 5 rotations, expect 3 archives.
+rm -f "$ROT_SANDBOX"/.hooks.log.*.gz
+for i in 1 2 3 4 5; do
+  printf 'round-%s' "$i" > "$ROT_SANDBOX/.hooks.log"
+  COS_STATE_DIR="$ROT_SANDBOX" COS_AGENT_DIR="$ROT_SANDBOX/claude" \
+    COS_LOG_ROTATE_SIZE_BYTES=1 COS_LOG_ROTATE_KEEP=3 \
+    bash "$H" </dev/null >/dev/null 2>&1
+  sleep 1
+done
+kept=$(ls "$ROT_SANDBOX"/.hooks.log.*.gz 2>/dev/null | wc -l | tr -d ' ')
+[[ "$kept" == "3" ]] && pass=1 || pass=0
+run_check "Keep COS_LOG_ROTATE_KEEP newest archives, trim older" "$pass"
+
+# Sandbox cleanup.
+rm -rf "${COS_AGENT_DIR%/*}/test-rot"
+
+echo ""
+
 # ── Cleanup gate test state ─────────────────────────────────────
 # Restore original state files
-for f in "${COS_AGENT_DIR}/.thinking_os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint"; do
+for f in "${COS_AGENT_DIR}/.thinking_os-gate" "${COS_AGENT_DIR}/.task-current" "${COS_AGENT_DIR}/.active-skill" "${COS_AGENT_DIR}/.zoom-checkpoint" "${COS_AGENT_DIR}/.task-mode"; do
   rm -f "$f"
   [[ -f "${f}.bak" ]] && mv "${f}.bak" "$f" || true
 done
