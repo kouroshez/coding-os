@@ -186,7 +186,7 @@ if [[ "$FILE_PATH" == *.ts ]] || [[ "$FILE_PATH" == *.tsx ]] || [[ "$FILE_PATH" 
     if echo "$CONTENT" | awk '
         /eslint-disable-next-line.*no-explicit-any/ { skip=1; next }
         skip { skip=0; next }
-        /:[[:space:]]*any($|[^[:alnum:]_])|<any>|(^|[^[:alnum:]_])as[[:space:]]+any($|[^[:alnum:]_])/ { found=1; exit }
+        /:[[:space:]]*any($|[^[:alnum:]_])|<any>|(^|[^[:alnum:]_])as[[:space:]]+any($|[^[:alnum:]_])|,[[:space:]]*any($|[^[:alnum:]_])|\|[[:space:]]*any($|[^[:alnum:]_])/ { found=1; exit }
         END { exit !found }
     '; then
       echo "BLOCKED: Do not use 'any' type. Define a proper TypeScript type or interface. See docs/engineering/frontend-rules.md § Non-Negotiables." >&2
