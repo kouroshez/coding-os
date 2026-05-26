@@ -62,6 +62,11 @@ if [[ -n "$STATE_DIR" ]] && [[ -d "$STATE_DIR" ]]; then
         size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo 0)
         if [[ "$size" -ge "$LOG_ROTATE_SIZE_BYTES" ]]; then
           archive="$STATE_DIR/${name}.${ts}.gz"
+          # Copytruncate race: bytes written between `gzip -c` and `: > "$f"`
+          # appear in both archive and origin (or are lost if origin truncates
+          # mid-write). Acceptable here — runs at Stop after the agent turn,
+          # MCP server quiescent. Move to logrotate(8)-style rename + SIGHUP
+          # if a writer ever logs faster than the gzip stream can drain.
           if gzip -c -- "$f" > "$archive" 2>/dev/null; then
             : > "$f"
             LOGS_ROTATED=$((LOGS_ROTATED + 1))
