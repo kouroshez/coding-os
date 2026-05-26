@@ -364,6 +364,51 @@ def test_transition_complete_sets_completed_at(
     assert row[0] is not None
 
 
+def test_skip_testing_warning_emitted_on_shortcut(
+    tmp_path: Path,
+    conn: sqlite3.Connection,
+):
+    """in_progress→complete is legal but unconventional — the caller
+    must see a warning so the human can record verification in the
+    work log if intentional. Guards docs/governance/task-lifecycle.md
+    Core Loop contract."""
+    (tmp_path / "docs" / "tasks").mkdir(parents=True)
+    md = tmp_path / "docs" / "tasks" / "TASK-200-skip.md"
+    md.write_text(
+        '---\nid: TASK-200\ntitle: "s"\nswimlane: core\nkind: chore\n'
+        'status: in_progress\npriority: P2\nappetite: "30m"\n---\n\n# TASK-200: s\n',
+        encoding="utf-8",
+    )
+    sync_all(conn, project_root=tmp_path)
+    result = transition(conn, "TASK-200", "complete")
+    assert result.ok, result.error
+    assert any("skipped 'testing'" in w for w in result.warnings), (
+        f"expected skip-testing warning; got: {result.warnings}"
+    )
+
+
+def test_no_skip_testing_warning_on_canonical_path(
+    tmp_path: Path,
+    conn: sqlite3.Connection,
+):
+    """testing→complete is the canonical path — must NOT emit the
+    skip-testing warning. False positives here would train agents to
+    ignore the signal."""
+    (tmp_path / "docs" / "tasks").mkdir(parents=True)
+    md = tmp_path / "docs" / "tasks" / "TASK-201-canon.md"
+    md.write_text(
+        '---\nid: TASK-201\ntitle: "c"\nswimlane: core\nkind: chore\n'
+        'status: testing\npriority: P2\nappetite: "30m"\n---\n\n# TASK-201: c\n',
+        encoding="utf-8",
+    )
+    sync_all(conn, project_root=tmp_path)
+    result = transition(conn, "TASK-201", "complete")
+    assert result.ok, result.error
+    assert not any("skipped 'testing'" in w for w in result.warnings), (
+        f"false-positive skip-testing warning on testing→complete: {result.warnings}"
+    )
+
+
 def test_patch_task_frontmatter_scalars_swimlane(tmp_path: Path):
     (tmp_path / "docs" / "tasks").mkdir(parents=True)
     md = tmp_path / "docs" / "tasks" / "TASK-101-swim.md"

@@ -260,6 +260,20 @@ def transition(
             f"(state machine disallows this; recorded in history)"
         )
 
+    # Soft convention warning: CLAUDE.md Core Loop says "Verify & Close:
+    # move task to testing → run verification → cos task-done". The state
+    # machine permits in_progress→complete directly (legal for trivial
+    # work), but the shortcut bypasses the verification matrix gate.
+    # Emit a warning the caller surfaces — never block (trust the human).
+    skip_testing_warning: str | None = None
+    if current_status == "in_progress" and to_status == "complete":
+        skip_testing_warning = (
+            "convention: in_progress→complete skipped 'testing' — "
+            "Core Loop expects move-to-testing → run verification matrix → "
+            "task-done. Legal but bypasses the gate; record verification in "
+            "the work log if intentional."
+        )
+
     # WIP enforcement
     wip_state: dict[str, int] = {}
     if config is not None and not bypass_wip:
@@ -365,6 +379,8 @@ def transition(
     warnings: list[str] = []
     if forced_warning is not None:
         warnings.append(forced_warning)
+    if skip_testing_warning is not None:
+        warnings.append(skip_testing_warning)
     warnings.extend(gate_warnings)
     if target_file is not None:
         try:

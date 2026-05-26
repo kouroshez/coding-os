@@ -40,6 +40,7 @@ Backlog entries that are not yet started may live in `cos board` (icebox status)
 - Keep Work Log up to date as you go — one bullet per meaningful checkpoint. The CLI's `cos work-log TASK-NNN "note"` is preferred so the DB cache (`work_log_last_5`) stays fresh.
 - Use `Given / When / Then` for Acceptance criteria.
 - Move to `complete` only after Verification Matrix tests for the changed surface pass. Untested error paths fail the gate.
+- **Direct `in_progress → complete` is legal but unconventional.** `workflow.transition` emits a soft warning (`convention: in_progress→complete skipped 'testing'…`) when the shortcut is taken. The state machine permits it for trivial work, but skipping `testing` bypasses the Verification Matrix gate — record verification in the Work Log if the shortcut is intentional, otherwise route through `testing` first.
 - Search the repo and the graph before creating any new file, pattern, or rule. Reuse beats reinvention.
 
 ## Primary Task File Contract
