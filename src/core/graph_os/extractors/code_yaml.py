@@ -117,6 +117,17 @@ def extract(path: str, content: str) -> ExtractionResult:
         _promote_stubs(result)
         return result
 
+    # E8: hook-registry first-class emission. src/core/hooks/registry.yaml
+    # has shape {hooks: [{id, script, category, phase, ...}]}; emit real
+    # cos:hook:<id> nodes per entry instead of generic frontmatter walk.
+    if isinstance(data, dict) and isinstance(data.get("hooks"), list):
+        _emit_hook_registry(
+            data["hooks"],
+            normalised=normalised,
+            file_uid_=file_node.uid,
+            result=result,
+        )
+
     if isinstance(data, dict):
         _walk(data, normalised=normalised, parent_uid=module.uid, result=result, prefix="")
     elif isinstance(data, list):
@@ -135,6 +146,67 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     _promote_stubs(result)
     return result
+
+
+def _emit_hook_registry(
+    hooks: list[Any],
+    *,
+    normalised: str,
+    file_uid_: str,
+    result: ExtractionResult,
+) -> None:
+    """E8: emit cos:hook:<id> first-class nodes from registry.yaml.
+
+    Each `hooks[i]` entry with an `id` field becomes a `hook`-kind node
+    carrying script/category/phase/timeout metadata + a contains edge
+    from the registry file. Consumers (cos hooks-list, audit tools) can
+    then query the graph for hooks without parsing yaml every time.
+    """
+    for entry in hooks:
+        if not isinstance(entry, dict):
+            continue
+        hook_id = entry.get("id")
+        if not isinstance(hook_id, str) or not hook_id:
+            continue
+        uid = f"cos:hook:{hook_id}"
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="hook",
+                label=hook_id,
+                file_path=normalised,
+                lang="yaml",
+                metadata={
+                    "extractor": EXTRACTOR_ID,
+                    "script": entry.get("script"),
+                    "category": entry.get("category"),
+                    "phase": entry.get("phase"),
+                    "timeout": entry.get("timeout"),
+                    "description": entry.get("description"),
+                },
+            )
+        )
+        result.edges.append(
+            GraphEdge(
+                source_uid=file_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
+        )
+        # Link to the script file when present.
+        script = entry.get("script")
+        if isinstance(script, str) and script:
+            result.edges.append(
+                GraphEdge(
+                    source_uid=uid,
+                    target_uid=f"code:file:{script}",
+                    edge_type="declares",
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.95,
+                )
+            )
 
 
 def _walk(
