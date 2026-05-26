@@ -188,7 +188,11 @@ class TestTokenBudget:
         assert meta["truncated"] is True
         assert "truncated_string_fields" in meta
         assert "report" in meta["truncated_string_fields"]
-        assert envelope["data"]["report"].startswith("[truncated")
+        # W6.2: scalar string trim keeps a content prefix + "…[truncated]"
+        # suffix instead of clobbering with a sentinel. Caller still gets
+        # usable partial content.
+        assert envelope["data"]["report"].endswith("…[truncated]")
+        assert envelope["data"]["report"].startswith("z")
         serialized_len = len(json.dumps(envelope, indent=2))
         assert serialized_len <= TOKEN_BUDGET_CHARS
 

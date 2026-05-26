@@ -136,9 +136,41 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "edges",
     "processes",
     "call_sites",
+    "import_sites",
     "doc_references",
     "test_references",
     "string_literals",
+    "external_targets",
+    "branches",
+    "steps",
+    # W6.2: cos_graph_contracts top-level buckets.
+    "http_routes",
+    "mcp_tools",
+    "grpc_endpoints",
+    "event_handlers",
+    "websocket",
+    # Common list payloads in other tools.
+    "nodes_top",
+    "samples",
+)
+
+# W6.2: dict-of-lists buckets (parent_key → {sub_key: [items]}). Trimmer
+# halves the biggest sub-list until envelope fits, like _trim_edges_by_type.
+# Covers cos_graph_impact.tiers + cos_graph_contracts.* bucketed outputs.
+_TRIMMABLE_NESTED_BUCKETS: tuple[str, ...] = (
+    "tiers",
+    "http_routes_by_method",
+    "mcp_tools_by_module",
+    "event_handlers_by_source",
+    "contracts",
+)
+
+# W6.2: list[dict] containers whose members carry a nested list to trim.
+# (parent_key, member_list_key) — e.g. ("processes", "members") for
+# cos_graph_communities so we shrink members per-process before dropping
+# whole processes.
+_TRIMMABLE_NESTED_MEMBERS: tuple[tuple[str, str], ...] = (
+    ("processes", "members"),
 )
 
 
@@ -207,20 +239,104 @@ def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 
+def _trim_nested_buckets(
+    body: dict, meta: dict, parent_key: str
+) -> tuple[dict, dict, bool]:
+    # W6.2: parent_key holds a dict mapping sub_key → list[items]
+    # (impact.tiers, contracts.http_routes_by_method, etc). Same halve-
+    # biggest strategy as _trim_edges_by_type.
+    parent = body.get(parent_key)
+    if not isinstance(parent, dict) or not parent:
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    list_buckets = {k: list(v) for k, v in parent.items() if isinstance(v, list)}
+    non_list = {k: v for k, v in parent.items() if not isinstance(v, list)}
+    if not list_buckets:
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    trim_record: dict[str, dict[str, int]] = {}
+    original_lens = {k: len(v) for k, v in list_buckets.items()}
+    while _probe_size(
+        {**body, parent_key: {**non_list, **list_buckets}}, meta
+    ) > TOKEN_BUDGET_CHARS:
+        biggest = max(list_buckets, key=lambda k: len(list_buckets[k]), default=None)
+        if biggest is None or not list_buckets[biggest]:
+            break
+        new_len = max(0, len(list_buckets[biggest]) // 2)
+        trim_record[biggest] = {"from": original_lens[biggest], "to": new_len}
+        list_buckets[biggest] = list_buckets[biggest][:new_len]
+        if all(len(v) == 0 for v in list_buckets.values()):
+            break
+    body = {**body, parent_key: {**non_list, **list_buckets}}
+    if trim_record:
+        meta[f"truncated_{parent_key}"] = trim_record
+    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+
+def _trim_nested_member_lists(
+    body: dict, meta: dict, parent_key: str, member_key: str, *, floor: int = 3
+) -> tuple[dict, dict, bool]:
+    # W6.2: shrink list-of-dict members[*]. e.g. processes[*].members.
+    # Halve member-lists per-entry until envelope fits or floor reached;
+    # then drop whole entries from the tail.
+    items = body.get(parent_key)
+    if not isinstance(items, list) or not items:
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    members_orig = [len(it.get(member_key) or []) if isinstance(it, dict) else 0 for it in items]
+    new_items = [dict(it) if isinstance(it, dict) else it for it in items]
+    record: dict[str, int] = {}
+    iter_guard = 0
+    while _probe_size({**body, parent_key: new_items}, meta) > TOKEN_BUDGET_CHARS and iter_guard < 64:
+        iter_guard += 1
+        # find entry with biggest member list above floor
+        candidate_idx = -1
+        biggest = floor
+        for i, it in enumerate(new_items):
+            if not isinstance(it, dict):
+                continue
+            n = len(it.get(member_key) or [])
+            if n > biggest:
+                biggest = n
+                candidate_idx = i
+        if candidate_idx == -1:
+            break
+        entry = new_items[candidate_idx]
+        mlist = entry.get(member_key) or []
+        new_len = max(floor, len(mlist) // 2)
+        entry[member_key] = mlist[:new_len]
+        record[f"entry_{candidate_idx}_{member_key}"] = new_len
+    # If still over budget, drop tail entries.
+    while (
+        _probe_size({**body, parent_key: new_items}, meta) > TOKEN_BUDGET_CHARS
+        and len(new_items) > 1
+    ):
+        new_items.pop()
+        record["entries_dropped_tail"] = record.get("entries_dropped_tail", 0) + 1
+    body = {**body, parent_key: new_items}
+    if record:
+        meta[f"truncated_{parent_key}_{member_key}"] = record
+        meta[f"{parent_key}_original_member_counts"] = members_orig
+    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+
 def _trim_huge_string_fields(
     body: dict, meta: dict
 ) -> tuple[dict, dict, bool]:
     # F#5 safety net: after list trims, if envelope still over budget the
     # culprit is a huge top-level scalar (large signature, generated text).
     # Truncate biggest scalars first until envelope fits. Never touch
-    # `node` (caller's root identity).
+    # `node` (caller's root identity). W6.2: ONLY touch str fields —
+    # numeric scalars (int/float/bool) preserve typed contract (e.g.
+    # impacted_count must stay int). Strings get a cut-to-length prefix
+    # instead of a sentinel so partial content remains useful.
     if _probe_size(body, meta) <= TOKEN_BUDGET_CHARS:
         return body, meta, True
     sizes: list[tuple[int, str]] = []
     for k, v in body.items():
         if k == "node" or isinstance(v, (list, dict)):
             continue
-        sizes.append((len(str(v)), k))
+        if not isinstance(v, str):
+            # W6.2 (T4/F7): never stringify int/bool/float scalars.
+            continue
+        sizes.append((len(v), k))
     if not sizes:
         return body, meta, False
     sizes.sort(reverse=True)
@@ -229,7 +345,12 @@ def _trim_huge_string_fields(
     for _size, key in sizes:
         if _probe_size(new_body, meta) <= TOKEN_BUDGET_CHARS:
             break
-        new_body[key] = "[truncated: field exceeded envelope budget]"
+        original = new_body[key]
+        # Aggressive halving until fits or string drops below 80 chars.
+        cut = max(80, len(original) // 2)
+        while cut > 0 and _probe_size(new_body, meta) > TOKEN_BUDGET_CHARS:
+            new_body[key] = original[:cut] + "…[truncated]"
+            cut //= 2
         truncated_fields.append(key)
     if truncated_fields:
         meta["truncated_string_fields"] = truncated_fields
@@ -244,6 +365,27 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # meta.envelope_unshrinkable=True so caller can log/alert.
     did_any = False
     fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    # W6.2: shrink nested members (processes[*].members) BEFORE dropping
+    # whole entries — preserves community/process count signal.
+    for parent_key, member_key in _TRIMMABLE_NESTED_MEMBERS:
+        if fits:
+            break
+        body, meta, fits_after = _trim_nested_member_lists(
+            body, meta, parent_key, member_key
+        )
+        if f"truncated_{parent_key}_{member_key}" in meta:
+            did_any = True
+        fits = fits or fits_after
+    # W6.2: shrink dict-of-list buckets (impact.tiers, contracts.*) BEFORE
+    # toplevel list trims so we preserve top-level metadata (impacted_count,
+    # http_routes count etc).
+    for parent_key in _TRIMMABLE_NESTED_BUCKETS:
+        if fits:
+            break
+        body, meta, fits_after = _trim_nested_buckets(body, meta, parent_key)
+        if f"truncated_{parent_key}" in meta:
+            did_any = True
+        fits = fits or fits_after
     for key in _TRIMMABLE_LIST_KEYS:
         if fits:
             break
