@@ -328,7 +328,7 @@ _BEHAVIOURAL_EDGE_TYPES: frozenset[str] = frozenset(
 # G6/G7: stdlib + common third-party module names that pollute the
 # centrality / ranking output when not excluded. Project-internal
 # modules (`core.thinking_os.server` etc.) stay in scope.
-_STDLIB_MODULE_NAMES: frozenset[str] = frozenset(
+_NOISE_MODULE_NAMES: frozenset[str] = frozenset(
     {
         "__future__", "abc", "argparse", "ast", "asyncio", "base64",
         "builtins", "collections", "concurrent", "contextlib", "copy",
@@ -374,12 +374,8 @@ def _KIND_RESOLVE_RANK(node: GraphNode) -> tuple[int, int]:
 
 
 def _normalize_kinds(kinds: Any) -> tuple[str, ...]:
-    """Defensive parser for `kinds`/list-of-strings args (G3).
-
-    FastMCP wire sometimes delivers Sequence[str] as stringified JSON.
-    Accept: tuple/list, CSV string, JSON-array string, or single-element
-    list containing such a string. Returns clean tuple.
-    """
+    # G3: FastMCP wire can deliver Sequence[str] as stringified JSON.
+    # Accept list/CSV/JSON-array-string/single-stringified-list.
     if kinds is None:
         return ()
     if isinstance(kinds, str):
@@ -2592,9 +2588,9 @@ def cos_graph_centrality(
                 where_parts.append("n.uid NOT LIKE 'code:external:%'")
                 # G6: also drop stdlib module hubs (`code:module:__future__`,
                 # `code:module:pathlib`, ...) — F6 only kicked external out.
-                stdlib_placeholders = ",".join("?" * len(_STDLIB_MODULE_NAMES))
+                stdlib_placeholders = ",".join("?" * len(_NOISE_MODULE_NAMES))
                 where_parts.append(f"n.uid NOT IN ({stdlib_placeholders})")
-                params.extend(f"code:module:{name}" for name in _STDLIB_MODULE_NAMES)
+                params.extend(f"code:module:{name}" for name in _NOISE_MODULE_NAMES)
             kind_clause = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
             in_deg_rows = sqlite_conn.execute(
@@ -2794,9 +2790,9 @@ def cos_graph_ranking(
             if not include_external:
                 where_parts.append("uid NOT LIKE 'code:external:%'")
                 # G7: drop stdlib module hubs in line with G6 centrality.
-                stdlib_placeholders = ",".join("?" * len(_STDLIB_MODULE_NAMES))
+                stdlib_placeholders = ",".join("?" * len(_NOISE_MODULE_NAMES))
                 where_parts.append(f"uid NOT IN ({stdlib_placeholders})")
-                params_n.extend(f"code:module:{name}" for name in _STDLIB_MODULE_NAMES)
+                params_n.extend(f"code:module:{name}" for name in _NOISE_MODULE_NAMES)
             kind_filter = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
             params_n.append(_NODE_CAP)
             uid_rows = sqlite_conn.execute(

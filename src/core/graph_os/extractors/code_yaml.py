@@ -155,13 +155,7 @@ def _emit_hook_registry(
     file_uid_: str,
     result: ExtractionResult,
 ) -> None:
-    """E8: emit cos:hook:<id> first-class nodes from registry.yaml.
-
-    Each `hooks[i]` entry with an `id` field becomes a `hook`-kind node
-    carrying script/category/phase/timeout metadata + a contains edge
-    from the registry file. Consumers (cos hooks-list, audit tools) can
-    then query the graph for hooks without parsing yaml every time.
-    """
+    # E8: emit cos:hook:<id> first-class nodes from registry.yaml.
     for entry in hooks:
         if not isinstance(entry, dict):
             continue
