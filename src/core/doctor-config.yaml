@@ -21,7 +21,7 @@ placeholder_scan:
   - docs/governance/_templates
   - docs/_meta
 schema:
-  expected_version: 28
+  expected_version: 29
   expected_tables:
   - agent_metrics
   - ambiguity_violations
