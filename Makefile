@@ -14,6 +14,10 @@ export COS_DB_PATH ?= $(COS_STATE_DIR)/coding-os.db
 export COS_BRAIN_DIR ?= $(COS_ROOT)/src/core/thinking_os
 
 # ── Include base targets ────────────────────────────────────────────
+# COS_META_REPO MUST be set BEFORE `include` — Makefile.base reads it
+# via `ifndef` to skip targets the meta repo overrides (e.g. docs-lint).
+# Reordering these two lines reintroduces 'overriding commands' warnings
+# (regression-guarded by tests/test_doctor.py::test_makefile_no_duplicate_target_warnings).
 COS_META_REPO := 1
 include src/templates/_base/Makefile.base
 
