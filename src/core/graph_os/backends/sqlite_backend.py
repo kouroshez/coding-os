@@ -61,6 +61,15 @@ class SqliteBackend:
         # not raise ProgrammingError. Reads fall under the same lock to
         # cover BEGIN/COMMIT boundaries in ``upsert_edge``.
         self._write_lock = threading.RLock()
+        # P6: per-thread read connections. WAL allows multiple concurrent
+        # readers; a single shared sqlite3.Connection serialises them
+        # behind the GIL + connection mutex. Opening one connection per
+        # thread (lazy) unblocks true parallel reads in Hub UI + parallel
+        # MCP dispatch. Track all opened conns so close() can drain them.
+        self._db_path: str | None = None
+        self._read_conn_pool = threading.local()
+        self._all_read_conns: list[sqlite3.Connection] = []
+        self._read_conn_lock = threading.Lock()
         if conn is not None:
             self._conn = conn
         else:
@@ -77,6 +86,7 @@ class SqliteBackend:
             # multiple MCP threads can share this backend instance. WAL +
             # busy_timeout give us concurrent readers + a writer without
             # SQLITE_BUSY spam.
+            self._db_path = resolved
             self._conn = sqlite3.connect(resolved, timeout=10, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             self._conn.execute("PRAGMA journal_mode = WAL")
@@ -126,6 +136,49 @@ class SqliteBackend:
                     self._conn.close()
                 except sqlite3.Error as exc:
                     logger.debug("sqlite close suppressed: %s", exc)
+        # P6: drain per-thread read connections too.
+        with self._read_conn_lock:
+            for conn in self._all_read_conns:
+                try:
+                    conn.close()
+                except sqlite3.Error as exc:
+                    logger.debug("sqlite read-conn close suppressed: %s", exc)
+            self._all_read_conns.clear()
+
+    def _get_read_conn(self) -> sqlite3.Connection:
+        """P6: return this thread's read-only sqlite3.Connection.
+
+        Lazy-open per thread under WAL so concurrent get_node /
+        count_edges / list_edges calls don't serialise behind the
+        primary connection's GIL+mutex. Falls back to the shared
+        connection when ``_db_path`` is unset (caller-provided conn
+        via constructor) — tests + caller-pooled scenarios keep
+        working unchanged.
+        """
+        if self._db_path is None:
+            return self._conn
+        conn = getattr(self._read_conn_pool, "conn", None)
+        if conn is not None:
+            return conn
+        conn = sqlite3.connect(
+            self._db_path, timeout=10, check_same_thread=False
+        )
+        conn.row_factory = sqlite3.Row
+        # Read connections need WAL so they see committed writes
+        # immediately. Foreign keys + query_only enforce read-only
+        # semantics (defence-in-depth). Cache stays modest (~2MB
+        # default) so 16 threads don't multiply the 64MB primary cache.
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA query_only = ON")
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("PRAGMA busy_timeout = 30000")
+        except sqlite3.Error as exc:
+            logger.debug("read-conn pragma skipped: %s", exc)
+        self._read_conn_pool.conn = conn
+        with self._read_conn_lock:
+            self._all_read_conns.append(conn)
+        return conn
 
     # -- Write path --------------------------------------------------------
 
@@ -440,7 +493,9 @@ class SqliteBackend:
         # G18: pure-SELECT, no write_lock — WAL gives concurrent
         # readers; the lock here was serialising reads behind any
         # in-flight write for no correctness benefit.
-        row = self._conn.execute(
+        # P6: thread-local read connection so parallel get_node calls
+        # don't serialise behind the primary conn's mutex+GIL.
+        row = self._get_read_conn().execute(
             """
             SELECT kind, label, uid, file_path, start_line, end_line,
                    signature, lang, doc_blob, ast_hash, content_hash,
@@ -461,11 +516,12 @@ class SqliteBackend:
         result: dict[str, GraphNode] = {}
         # SQLite parameter limit is 999; chunk to stay safely under.
         chunk = 500
-        # G18: pure-SELECT, no write_lock.
+        # G18: pure-SELECT, no write_lock. P6: thread-local read conn.
+        read_conn = self._get_read_conn()
         for start in range(0, len(uniq), chunk):
             group = uniq[start : start + chunk]
             placeholders = ",".join("?" for _ in group)
-            rows = self._conn.execute(
+            rows = read_conn.execute(
                 f"""
                 SELECT kind, label, uid, file_path, start_line, end_line,
                        signature, lang, doc_blob, ast_hash, content_hash,
@@ -480,34 +536,32 @@ class SqliteBackend:
         return result
 
     def count_nodes(self, kind: str | None = None) -> int:
-        # G18: pure-SELECT, no write_lock.
+        # G18: pure-SELECT, no write_lock. P6: thread-local read conn.
+        read_conn = self._get_read_conn()
         if kind is None:
-            row = self._conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()
+            row = read_conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()
         else:
             # Accept legacy or canonical form; storage is canonical.
             try:
                 kind_q = normalize_kind(kind).value
             except ValueError:
                 kind_q = kind
-            row = self._conn.execute(
+            row = read_conn.execute(
                 "SELECT COUNT(*) FROM graph_nodes WHERE kind=?", (kind_q,)
             ).fetchone()
         return int(row[0])
 
     def count_edges(self, edge_type: str | None = None) -> int:
         # G17: count DISTINCT logical edges (source, target, edge_type).
-        # The schema lets the same logical edge appear with multiple
-        # `extractor` values; raw COUNT(*) inflates the count by 1-5%
-        # and skews density / centrality consumers downstream.
-        # `list_edges` already dedupes via highest-confidence subquery
-        # — match that semantic here.
-        # G18: pure-SELECT, no write_lock.
+        # `list_edges` dedupes via highest-confidence subquery — match
+        # that semantic here. G18: no write_lock. P6: thread-local conn.
+        read_conn = self._get_read_conn()
         if edge_type is None:
-            row = self._conn.execute(
+            row = read_conn.execute(
                 "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12)"
             ).fetchone()
         else:
-            row = self._conn.execute(
+            row = read_conn.execute(
                 "SELECT COUNT(*) FROM (SELECT DISTINCT source_id, target_id, edge_type FROM graph_edges_v12 WHERE edge_type=?)",
                 (edge_type,),
             ).fetchone()
@@ -566,12 +620,13 @@ class SqliteBackend:
             LIMIT ?
         """
         params.append(int(limit))
-        # G18: pure-SELECT, no write_lock.
-        rows = self._conn.execute(query, params).fetchall()
+        # G18: pure-SELECT, no write_lock. P6: thread-local read conn.
+        read_conn = self._get_read_conn()
+        rows = read_conn.execute(query, params).fetchall()
 
         evidence_by_edge: dict[int, list[sqlite3.Row]] = {}
         if include_evidence and rows:
-            ev_rows = self._conn.execute(
+            ev_rows = read_conn.execute(
                 """
                 SELECT edge_id, signal_name, weight, note
                 FROM graph_evidence_v12
@@ -606,9 +661,10 @@ class SqliteBackend:
 
     def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:
         """B13: return up to `limit` nodes, optionally filtered by kind."""
-        # G18: pure-SELECT, no write_lock.
+        # G18: pure-SELECT, no write_lock. P6: thread-local read conn.
+        read_conn = self._get_read_conn()
         if kind is None:
-            rows = self._conn.execute(
+            rows = read_conn.execute(
                 """
                 SELECT kind, label, uid, file_path, start_line, end_line,
                        signature, lang, doc_blob, ast_hash, content_hash,
@@ -624,7 +680,7 @@ class SqliteBackend:
                 kind_q = normalize_kind(kind).value
             except ValueError:
                 kind_q = kind
-            rows = self._conn.execute(
+            rows = read_conn.execute(
                 """
                 SELECT kind, label, uid, file_path, start_line, end_line,
                        signature, lang, doc_blob, ast_hash, content_hash,
