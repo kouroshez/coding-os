@@ -88,6 +88,26 @@ def _fail(
     return shared.fail(category, message, retryable=retryable)
 
 
+# G36: graph.py local validators wrap _fail so telemetry fires on
+# validation failures too. _shared.py exposes the same helpers for
+# board_os / thinking_os tools that don't need the telemetry layer.
+def _validate_enum(value: Any, allowed: tuple[str, ...], field: str) -> Any:
+    if value not in allowed:
+        return _fail("validation", f"{field} must be one of {allowed} (got {value!r})")
+    return None
+
+
+def _validate_positive_int(value: Any, field: str) -> Any:
+    if not isinstance(value, int) or value <= 0:
+        return _fail("validation", f"{field} must be a positive int (got {value!r})")
+    return None
+
+
+def _clamp_int(value: int, *, min_v: int, max_v: int) -> tuple[int, bool]:
+    clamped = max(min_v, min(int(value), max_v))
+    return clamped, clamped != value
+
+
 # -- Telemetry --------------------------------------------------------
 # Append-only JSONL log of every cos_graph_* invocation. One line per
 # call: {ts, ok, layer, source, backend, ...meta}. The file lives in
@@ -2369,15 +2389,14 @@ def cos_graph_entrypoints(
     surfaces structurally different entrypoints. Set False to recover
     the raw score-only ranking.
     """
-    if not isinstance(top, int) or top <= 0:
-        return _fail("validation", "top must be a positive int")
-    if top > 200:
-        top = 200
-    if kind is not None and kind not in ("main", "cli", "http", "cron", "test"):
-        return _fail(
-            "validation",
-            f"kind must be one of main/cli/http/cron/test (got {kind!r})",
-        )
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
+    top, _ = _clamp_int(top, min_v=1, max_v=200)
+    if kind is not None:
+        err = _validate_enum(kind, ("main", "cli", "http", "cron", "test"), "kind")
+        if err:
+            return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -2463,16 +2482,16 @@ def cos_graph_communities(
     caps the inline list per process; `member_count` still reports the
     real size, and `members_truncated` flags when the slice is short.
     """
-    if not isinstance(top, int) or top <= 0:
-        return _fail("validation", "top must be a positive int")
-    if top > 200:
-        top = 200
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
+    top, _ = _clamp_int(top, min_v=1, max_v=200)
     if not isinstance(min_size, int) or min_size < 1:
         return _fail("validation", "min_size must be >= 1")
-    if not isinstance(max_members, int) or max_members < 1:
-        return _fail("validation", "max_members must be >= 1")
-    if max_members > 500:
-        max_members = 500
+    err = _validate_positive_int(max_members, "max_members")
+    if err:
+        return err
+    max_members, _ = _clamp_int(max_members, min_v=1, max_v=500)
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -2563,12 +2582,13 @@ def cos_graph_centrality(
     stubs (`code:external:pathlib:Path`) do not crowd the top of the
     list. Set True to opt back into the raw ranking.
     """
-    if not isinstance(top, int) or top <= 0:
-        return _fail("validation", "top must be a positive int")
-    if top > 200:
-        top = 200
-    if metric not in ("degree", "betweenness"):
-        return _fail("validation", "metric must be 'degree' or 'betweenness'")
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
+    top, _ = _clamp_int(top, min_v=1, max_v=200)
+    err = _validate_enum(metric, ("degree", "betweenness"), "metric")
+    if err:
+        return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -2765,10 +2785,10 @@ def cos_graph_ranking(
     set so the top of the ranking surfaces project-internal hubs
     instead of `__future__` / `pathlib` / builtins.
     """
-    if not isinstance(top, int) or top <= 0:
-        return _fail("validation", "top must be a positive int")
-    if top > 200:
-        top = 200
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
+    top, _ = _clamp_int(top, min_v=1, max_v=200)
     if not (0.0 < damping < 1.0):
         return _fail("validation", "damping must be in (0, 1)")
     try:

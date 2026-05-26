@@ -188,6 +188,42 @@ def fail(
     )
 
 
+# ---------------------------------------------------------------------------
+# G36: SSOT validation helpers — uniform shape across all cos_* tools.
+# Return None when valid, a fail-envelope string when invalid. Caller
+# pattern is `err = validate_X(...); if err: return err`.
+# ---------------------------------------------------------------------------
+
+
+def validate_enum(value: Any, allowed: tuple[str, ...], field: str) -> str | None:
+    # None when valid; fail envelope when value not in allowed.
+    if value not in allowed:
+        return fail(
+            "validation",
+            f"{field} must be one of {allowed} (got {value!r})",
+        )
+    return None
+
+
+def validate_positive_int(value: Any, field: str) -> str | None:
+    # Reject non-int / <=0; otherwise None.
+    if not isinstance(value, int) or value <= 0:
+        return fail("validation", f"{field} must be a positive int (got {value!r})")
+    return None
+
+
+def validate_non_empty_str(value: Any, field: str) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return fail("validation", f"{field} must be a non-empty string")
+    return None
+
+
+def clamp_int(value: int, *, min_v: int, max_v: int) -> tuple[int, bool]:
+    # Return (clamped, was_clamped). Caller surfaces was_clamped in meta.
+    clamped = max(min_v, min(value, max_v))
+    return clamped, clamped != value
+
+
 def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
     """Decorator: convert unhandled exceptions inside a tool to `fail()`.
 
