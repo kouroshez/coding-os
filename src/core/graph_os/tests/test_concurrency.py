@@ -115,3 +115,54 @@ def test_sqlite_backend_concurrency(tmp_path: Path) -> None:
         _exercise_backend(backend)
     finally:
         backend.close()
+
+
+def test_sqlite_concurrent_reads_no_lock(tmp_path: Path) -> None:
+    """G18: get_node/count_nodes/count_edges/list_edges/sample_nodes no
+    longer hold write_lock. Seed + spawn 16 reader threads; assert all
+    succeed without 'database is locked' under WAL."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.types import GraphEdge, GraphNode
+
+    db_path = tmp_path / "graph_os-reads.db"
+    backend = SqliteBackend(db_path=str(db_path))
+    try:
+        # Seed: 50 nodes + 100 edges.
+        for i in range(50):
+            backend.upsert_node(
+                GraphNode(
+                    uid=f"code:function:test.py::fn_{i}",
+                    kind="function",
+                    label=f"fn_{i}",
+                    file_path="test.py",
+                    start_line=i,
+                    lang="py",
+                )
+            )
+        for i in range(100):
+            backend.upsert_edge(
+                GraphEdge(
+                    source_uid=f"code:function:test.py::fn_{i % 50}",
+                    target_uid=f"code:function:test.py::fn_{(i + 1) % 50}",
+                    edge_type="calls",
+                    extractor="test@v1",
+                    confidence=0.9,
+                )
+            )
+
+        def reader(_):
+            backend.get_node("code:function:test.py::fn_0")
+            backend.count_nodes()
+            backend.count_edges()
+            backend.list_edges(limit=10)
+            backend.sample_nodes(None, 5)
+            return True
+
+        with ThreadPoolExecutor(max_workers=16) as ex:
+            futures = [ex.submit(reader, i) for i in range(16)]
+            for f in as_completed(futures):
+                assert f.result() is True
+    finally:
+        backend.close()

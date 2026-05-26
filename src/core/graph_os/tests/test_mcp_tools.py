@@ -791,6 +791,40 @@ def test_resolve_fts5_preserves_uid_kind_label(seeded_backend):
 # ---------------------------------------------------------------------------
 
 
+# G35: export must enforce max_nodes globally even on non-root export
+# (was silently exceeding max_nodes=5 by 4.4× when no root_uid given).
+def test_export_max_nodes_hard_cap(seeded_backend):
+    data = _assert_ok(graph.cos_graph_export(format="json", max_nodes=5))
+    assert len(data["nodes"]) <= 5, (
+        f"export breached max_nodes — got {len(data['nodes'])} nodes"
+    )
+
+
+# G14: FTS5 tokenizer must index non-English (Persian/Arabic) labels.
+# Pre-v29 the `porter` stemmer stripped them silently → q='گراف' returned 0.
+def test_resolve_unicode_label_round_trip(seeded_backend):
+    """Seed a Persian-labelled node + confirm resolve picks it up. v29
+    migration switched FTS5 to unicode61-only; without that, this asserts
+    pre-fix porter-strip on non-Latin scripts."""
+    from graph_os.types import GraphNode
+
+    seeded_backend.upsert_node(
+        GraphNode(
+            uid="code:function:fa.py::گراف_test",
+            kind="function",
+            label="گراف_تست",
+            file_path="fa.py",
+            start_line=1,
+            lang="py",
+        )
+    )
+    data = _assert_ok(graph.cos_graph_resolve("گراف"))
+    uids = [r["uid"] for r in data["results"]]
+    assert "code:function:fa.py::گراف_test" in uids, (
+        f"unicode61 FTS5 didn't index Persian label — got {uids}"
+    )
+
+
 def test_every_tool_uses_graph_layer(seeded_backend):
     calls = [
         ("query", lambda: graph.cos_graph_query("foo")),
