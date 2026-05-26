@@ -669,3 +669,168 @@ class TestDoctorC15Regression:
         assert check is not None
         assert check.severity == "FAIL"
         assert "no command specified" in check.message
+
+
+# ============================================================
+# transparency-banner — USER_BANNER inside additionalContext
+# ============================================================
+
+
+class TestTransparencyBanner:
+    """Regression guard for `session-context.sh`'s USER_BANNER emission —
+    the line `transparency-banner.md` requires the agent to echo as the
+    first line of every visible reply. Covers: mode-driven verbosity,
+    suppression, session-id ownership, WIP/task-current inconsistency
+    warning, audit unchecked-row count."""
+
+    SESSION_ID = "ses-claude-20990101-000000-abcd"
+
+    def _setup(self, tmp_path: Path, *, mode: str = "formal") -> tuple[Path, dict]:
+        state = tmp_path / ".coding-os"
+        agent_dir = state / "claude"
+        agent_dir.mkdir(parents=True)
+        (agent_dir / "session-id").write_text(self.SESSION_ID + "\n")
+        (agent_dir / ".task-mode").write_text(mode + "\n")
+        env = {
+            "COS_STATE_DIR": str(state),
+            "COS_AGENT": "claude",
+            "CLAUDE_PROJECT_DIR": str(tmp_path),
+        }
+        return agent_dir, env
+
+    def _emit(self, tmp_path: Path, env: dict) -> str:
+        r = subprocess.run(
+            ["bash", str(SESSION_CONTEXT)],
+            input=json.dumps({"prompt": "x"}),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(tmp_path),
+            env={**os.environ, **env},
+        )
+        assert r.returncode == 0, r.stderr
+        if not r.stdout.strip():
+            return ""
+        payload = json.loads(r.stdout)
+        return payload["hookSpecificOutput"]["additionalContext"]
+
+    def test_casual_query_mode_emits_minimal_banner(self, tmp_path: Path) -> None:
+        _, env = self._setup(tmp_path, mode="query")
+        ctx = self._emit(tmp_path, env)
+        assert "USER_BANNER" in ctx
+        assert "mode=query" in ctx
+        # Minimal banner has NO task/gate/skill/audit fields
+        assert "task=" not in ctx.split("USER_BANNER")[1]
+        assert "gate=" not in ctx.split("USER_BANNER")[1]
+
+    def test_formal_mode_emits_full_banner(self, tmp_path: Path) -> None:
+        agent_dir, env = self._setup(tmp_path, mode="formal")
+        (agent_dir / ".task-current").write_text(f"{self.SESSION_ID} TASK-999\n")
+        (agent_dir / ".thinking_os-gate").write_text(f"{self.SESSION_ID} COMPLEX 5\n")
+        (agent_dir / ".active-skill").write_text(f"{self.SESSION_ID} graph-explorer\n")
+        ctx = self._emit(tmp_path, env)
+        banner = ctx.split("USER_BANNER", 1)[1]
+        assert "mode=formal" in banner
+        assert "task=TASK-999" in banner
+        assert "gate=COMPLEX 5" in banner
+        assert "skill=graph-explorer" in banner
+
+    def test_system_mode_suppresses_banner(self, tmp_path: Path) -> None:
+        _, env = self._setup(tmp_path, mode="system")
+        ctx = self._emit(tmp_path, env)
+        # pulse line still emitted (agent-only), but no USER_BANNER directive
+        assert "[coding-os pulse]" in ctx
+        assert "USER_BANNER" not in ctx
+
+    def test_stale_session_id_rejected(self, tmp_path: Path) -> None:
+        """A state file written by a *different* session-id must be rejected
+        so the banner doesn't echo a value the current agent never owned."""
+        agent_dir, env = self._setup(tmp_path, mode="formal")
+        (agent_dir / ".task-current").write_text("ses-claude-FAKE-OTHER TASK-XXX\n")
+        ctx = self._emit(tmp_path, env)
+        banner = ctx.split("USER_BANNER", 1)[1]
+        # Stale value rejected → fallback default
+        assert "task=none" in banner
+        assert "TASK-XXX" not in banner
+
+    def test_missing_session_id_file_rejects_all_state(self, tmp_path: Path) -> None:
+        agent_dir, env = self._setup(tmp_path, mode="formal")
+        (agent_dir / "session-id").unlink()
+        (agent_dir / ".task-current").write_text("anything TASK-Y\n")
+        ctx = self._emit(tmp_path, env)
+        banner = ctx.split("USER_BANNER", 1)[1]
+        # Without a current session-id we can't verify ownership of any state.
+        assert "task=none" in banner
+        assert "ses=?" in banner
+
+    def test_audit_unchecked_row_count_surfaces(self, tmp_path: Path) -> None:
+        agent_dir, env = self._setup(tmp_path, mode="formal")
+        audits = tmp_path / "docs" / "tasks" / "audits"
+        audits.mkdir(parents=True)
+        (audits / "audit-banner-test.md").write_text(
+            "---\n"
+            "audit_id: banner-test\n"
+            "status: in_progress\n"
+            "---\n"
+            "| cat | hits | fix | verified |\n"
+            "|---|---|---|---|\n"
+            "| A | 1 | x | no |\n"
+            "| B | 1 | y | no |\n"
+            "| C | 1 | z | yes |\n"
+        )
+        ctx = self._emit(tmp_path, env)
+        banner = ctx.split("USER_BANNER", 1)[1]
+        assert "audit=1(banner-test)·2-unchecked" in banner
+
+    def test_audit_matches_both_yaml_and_markdown_bold(self, tmp_path: Path) -> None:
+        agent_dir, env = self._setup(tmp_path, mode="formal")
+        audits = tmp_path / "docs" / "tasks" / "audits"
+        audits.mkdir(parents=True)
+        # legacy markdown bold form (no YAML frontmatter)
+        (audits / "audit-legacy.md").write_text(
+            "# Audit\n\n**Task:** TASK-X · **Status:** in_progress\n"
+        )
+        # canonical YAML form
+        (audits / "audit-canonical.md").write_text(
+            "---\naudit_id: canonical\nstatus: in_progress\n---\n# Audit\n"
+        )
+        ctx = self._emit(tmp_path, env)
+        banner = ctx.split("USER_BANNER", 1)[1]
+        # Both files counted
+        assert "audit=2(" in banner
+
+    def test_wip_without_task_emits_warn_marker(self, tmp_path: Path) -> None:
+        agent_dir, env = self._setup(tmp_path, mode="formal")
+        # Build a minimal DB with one in_progress task; query is
+        # SELECT COUNT(*) FROM tasks WHERE status IN ('in_progress','testing').
+        # We seed enough columns to satisfy NOT NULL constraints by reusing
+        # the production schema via the kernel's database module.
+        import sqlite3 as _sq
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        conn = _sq.connect(db)
+        conn.execute(
+            "CREATE TABLE tasks ("
+            "task_id TEXT PRIMARY KEY, status TEXT, title TEXT, "
+            "swimlane TEXT, kind TEXT, file_path TEXT, content_hash TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("TASK-WARN", "in_progress", "t", "meta", "x", "/p", "h"),
+        )
+        conn.commit()
+        conn.close()
+        env["COS_DB_PATH"] = str(db)
+        ctx = self._emit(tmp_path, env)
+        banner = ctx.split("USER_BANNER", 1)[1]
+        assert "⚠️" in banner
+        assert "wip=1" in banner
+        assert "task-start" in banner
+
+    def test_banner_first_line_format_is_stable(self, tmp_path: Path) -> None:
+        """The agent rule contract: banner starts with `🔔 ses=<8>` so the
+        regex `^🔔 ses=` is a reliable detector. Don't break this prefix."""
+        _, env = self._setup(tmp_path, mode="query")
+        ctx = self._emit(tmp_path, env)
+        line = ctx.split("USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ", 1)[1].split("\n")[0]
+        assert line.startswith("🔔 ses="), f"banner prefix changed: {line!r}"

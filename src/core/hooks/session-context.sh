@@ -238,13 +238,53 @@ fi
 # session-id tail). Mirrors the caveman-mode-tracker.js pattern so the UI
 # renders this as a compact labeled "additionalContext" block.
 if [[ "$SOURCE" == "user-prompt-submit" ]]; then
-  TASK_CUR=""
-  if [ -f "${COS_AGENT_DIR}/.task-current" ]; then
-    TASK_CUR=$(tr -d '\n\r' < "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -c 32)
+  # State files written by write-state.sh have format "<session-id> <value>".
+  # Verify session ownership (file's session-id must match current session)
+  # before returning the value — otherwise the banner could echo a stale
+  # value from a prior session that survived the startup cleanup.
+  _CURRENT_SESSION=""
+  if [ -f "${COS_SESSION_FILE:-${COS_AGENT_DIR}/session-id}" ]; then
+    _CURRENT_SESSION=$(head -1 "${COS_SESSION_FILE:-${COS_AGENT_DIR}/session-id}" 2>/dev/null | tr -d '\n\r')
   fi
-  GATE_STATE=""
-  if [ -f "${COS_AGENT_DIR}/.thinking_os-gate" ]; then
-    GATE_STATE=$(tr -d '\n\r' < "${COS_AGENT_DIR}/.thinking_os-gate" 2>/dev/null | head -c 24)
+  _read_state() {
+    local file="$1" cap="$2"
+    [ -f "$file" ] || { echo ""; return; }
+    # If we can't determine the current session-id, NEVER trust any state
+    # file (could be a fossil from a different session). Fail-empty.
+    if [ -z "$_CURRENT_SESSION" ]; then
+      echo ""; return
+    fi
+    local line file_session value
+    line=$(head -1 "$file" 2>/dev/null) || { echo ""; return; }
+    file_session=$(echo "$line" | awk '{print $1}')
+    # Must match current session exactly (no leak from sibling sessions or
+    # sessions that survived a botched cleanup).
+    if [ -z "$file_session" ] || [ "$file_session" != "$_CURRENT_SESSION" ]; then
+      echo ""; return
+    fi
+    # Truncate by char count (-c is char-aware in GNU and BSD cut),
+    # falling back to head -c for byte limit. Prefer cut so multi-byte
+    # utf-8 (e.g. Persian skill names) doesn't get sliced mid-codepoint.
+    value=$(echo "$line" | cut -d' ' -f2- | tr -d '\n\r')
+    if command -v cut >/dev/null 2>&1; then
+      value=$(printf '%s' "$value" | cut -c1-"$cap" 2>/dev/null || printf '%s' "$value" | head -c "$cap")
+    else
+      value=$(printf '%s' "$value" | head -c "$cap")
+    fi
+    echo "$value"
+  }
+  TASK_CUR=$(_read_state "${COS_AGENT_DIR}/.task-current" 32)
+  GATE_STATE=$(_read_state "${COS_AGENT_DIR}/.thinking_os-gate" 24)
+  SKILL_CUR=$(_read_state "${COS_AGENT_DIR}/.active-skill" 48)
+
+  # Task mode (classify-task-mode.sh writes this on every UserPromptSubmit
+  # via a separate hook). NOT session-prefixed — it's a single token per
+  # the writer's contract. Values: formal | query | adhoc | chore |
+  # system | gov-required | propose-formal. Drives banner verbosity:
+  # casual modes get a minimal banner, formal modes get the full one.
+  TASK_MODE=""
+  if [ -f "${COS_AGENT_DIR}/.task-mode" ]; then
+    TASK_MODE=$(head -1 "${COS_AGENT_DIR}/.task-mode" 2>/dev/null | tr -d '\n\r' | head -c 16)
   fi
   WIP_TOTAL=""
   if [ -f "$COS_DB_PATH" ] && command -v python3 >/dev/null 2>&1; then
@@ -258,15 +298,61 @@ except Exception:
     pass
 " 2>/dev/null | head -c 6)
   fi
+  # SES_TAIL: prefer env var (set by some adapters), fall back to the
+  # session-id file we just read into _CURRENT_SESSION. Last 8 chars are
+  # the random suffix that distinguishes panels of the same agent.
   SES_TAIL=""
   if [ -n "${COS_SESSION_ID:-}" ]; then
     SES_TAIL="${COS_SESSION_ID: -8}"
+  elif [ -n "${_CURRENT_SESSION:-}" ]; then
+    SES_TAIL="${_CURRENT_SESSION: -8}"
   fi
 
-  # Active skill (whichever skill was last loaded via Skill tool).
-  SKILL_CUR=""
-  if [ -f "${COS_AGENT_DIR}/.active-skill" ]; then
-    SKILL_CUR=$(tr -d '\n\r' < "${COS_AGENT_DIR}/.active-skill" 2>/dev/null | head -c 24)
+  # Active audits (status:in_progress in docs/tasks/audits/audit-*.md).
+  # One-line summary: count + last id. inject-resume-prompt.sh emits the
+  # full block on SessionStart; here we surface a per-turn ping.
+  AUDIT_ACTIVE=""
+  if [ -d "docs/tasks/audits" ]; then
+    # Match BOTH conventions: YAML frontmatter (template canonical:
+    # `^status: in_progress`) AND markdown bold (legacy/lenient:
+    # `**Status:** in_progress`). The audit-checklist-template.md mandates
+    # YAML, but historic audits use the markdown form — match both so the
+    # banner reflects reality, not template-purism.
+    # grep -l exits 1 when no matches → wrap with `|| true` so pipefail
+    # doesn't kill the whole hook.
+    # Pattern: YAML frontmatter requires `^status: in_progress` (line start);
+    # markdown bold `**Status:** in_progress` can appear mid-line (e.g.
+    # `**Task:** TASK-032 · **Status:** in_progress`), so no `^` anchor on
+    # that alternative. `**Status:**` is distinctive enough to avoid false
+    # positives from prose mentioning `in_progress`.
+    AUDIT_ACTIVE=$({ grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" docs/tasks/audits/audit-*.md 2>/dev/null || true; } \
+      | python3 -c '
+import os, sys, re
+files = [l.strip() for l in sys.stdin if l.strip()]
+if not files: sys.exit(0)
+last_id = ""
+unchecked_total = 0
+# audit-table data row: starts with "|" and contains "| no |" (Verified=no).
+# Same heuristic inject-resume-prompt.sh uses — surface actionable scope,
+# not just file count.
+ROW = re.compile(r"^\|.*\|\s*no\s*\|")
+for f in files:
+    try:
+        with open(f) as fh:
+            for line in fh:
+                if not last_id:
+                    m = re.match(r"audit_id:\s*(\S+)", line)
+                    if m: last_id = m.group(1)
+                if ROW.match(line):
+                    unchecked_total += 1
+    except OSError: pass
+    if not last_id:
+        last_id = os.path.basename(f).replace("audit-", "").replace(".md", "")
+tag = f"{len(files)}({last_id})"
+if unchecked_total:
+    tag += f"·{unchecked_total}-unchecked"
+print(tag)
+' 2>/dev/null | head -c 64 || true)
   fi
 
   # Recent block events from the hook log (last ~5 min). Surfaces hook
@@ -307,6 +393,7 @@ except OSError:
   [[ -n "$GATE_STATE" ]] && PARTS="${PARTS} gate=${GATE_STATE}" || PARTS="${PARTS} gate=unset"
   [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
+  [[ -n "$AUDIT_ACTIVE" ]] && PARTS="${PARTS} audit=${AUDIT_ACTIVE}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
   # Aggregated PostToolUse activity since the previous prompt — Claude Code
@@ -321,7 +408,39 @@ except OSError:
   fi
   [[ -n "$ACTIVITY" ]] && PARTS="${PARTS} | ${ACTIVITY}"
 
-  CONTEXT="[coding-os pulse] ${PARTS}"
+  # User-visible transparency banner. Verbosity is driven by .task-mode
+  # (classify-task-mode.sh writes one of: formal | query | adhoc | chore |
+  # system | gov-required | propose-formal). Casual modes collapse to a
+  # minimal banner so chit-chat doesn't get drowned in noise; formal modes
+  # render the full cognitive state. system mode suppresses entirely
+  # (reserved for hook-internal Bash, never user-facing).
+  #
+  # ⚠️ markers surface inconsistencies (e.g. WIP=N but .task-current=none)
+  # so the agent re-binds before the next edit.
+  WIP_NUM="${WIP_TOTAL:-0}"
+  WARN=""
+  if [ -n "$WIP_NUM" ] && [ "$WIP_NUM" -gt 0 ] 2>/dev/null && [ -z "$TASK_CUR" ]; then
+    WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
+  fi
+
+  case "$TASK_MODE" in
+    system)
+      USER_BANNER=""
+      ;;
+    query|adhoc|chore)
+      USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE}${WARN}"
+      ;;
+    *)
+      USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · audit=${AUDIT_ACTIVE:--}${WARN}"
+      ;;
+  esac
+
+  if [ -n "$USER_BANNER" ]; then
+    CONTEXT="[coding-os pulse] ${PARTS}
+USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ${USER_BANNER}"
+  else
+    CONTEXT="[coding-os pulse] ${PARTS}"
+  fi
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 fi
 
