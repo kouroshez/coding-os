@@ -292,3 +292,32 @@ def test_doctor_strict_mode_exits_nonzero_on_warn(tmp_path: Path) -> None:
         env={**os.environ, "PYTHONPATH": str(REPO_ROOT)},
     )
     assert result.returncode == 1
+
+
+def test_makefile_no_duplicate_target_warnings() -> None:
+    """`make help` must not print GNU-make 'overriding commands' warnings.
+
+    Regression guard for the docs-lint dup fixed in 10ca32e — if a future
+    refactor re-defines a target both in Makefile.base and in the meta
+    Makefile without the ifndef COS_META_REPO guard, every `make` call
+    spams stderr. Catches that at CI time.
+    """
+    result = subprocess.run(
+        ["make", "-s", "help"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    combined = (result.stdout or "") + (result.stderr or "")
+    offenders = [
+        line
+        for line in combined.splitlines()
+        if "overriding commands for target" in line or "ignoring old commands for target" in line
+    ]
+    assert not offenders, (
+        "Makefile target redefinition warnings detected — guard with "
+        "`ifndef COS_META_REPO` in Makefile.base or rename the duplicate.\n"
+        + "\n".join(offenders)
+    )
