@@ -449,16 +449,18 @@ class SqliteBackend:
             placeholders = ",".join(["?"] * len(labels))
             real_rows = self._conn.execute(
                 f"""
-                SELECT id, label, file_path FROM graph_nodes
+                SELECT id, label, file_path, kind FROM graph_nodes
                 WHERE kind IN ('function','method','class','variable','interface')
                   AND label IN ({placeholders})
                   AND file_path IS NOT NULL
                 """,
                 tuple(labels),
             ).fetchall()
-            real_by_label: dict[str, list[tuple[int, str]]] = {}
-            for real_id, real_label, real_file in real_rows:
-                real_by_label.setdefault(real_label, []).append((int(real_id), real_file))
+            real_by_label: dict[str, list[tuple[int, str, str]]] = {}
+            for real_id, real_label, real_file, real_kind in real_rows:
+                real_by_label.setdefault(real_label, []).append(
+                    (int(real_id), real_file, str(real_kind))
+                )
 
             rewrites = 0
             for label, candidate_stubs in stubs_by_label.items():
@@ -468,7 +470,8 @@ class SqliteBackend:
                 for stub_id, module, _stub_uid in candidate_stubs:
                     module_suffix = module.replace(".", "/")
                     matched_real_id: int | None = None
-                    for real_id, real_file in real_candidates:
+                    matched_real_kind: str | None = None
+                    for real_id, real_file, real_kind in real_candidates:
                         if (
                             real_file == f"{module_suffix}.py"
                             or real_file.endswith(f"/{module_suffix}.py")
@@ -476,13 +479,29 @@ class SqliteBackend:
                             or real_file.endswith(f"/{module_suffix}/__init__.py")
                         ):
                             matched_real_id = real_id
+                            matched_real_kind = real_kind
                             break
                     if matched_real_id is None:
                         continue
-                    self._conn.execute(
-                        "UPDATE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
-                        (matched_real_id, stub_id),
-                    )
+                    # N2: when stub resolves to a real CLASS node, promote
+                    # any inbound `calls` edges (constructor-shaped) to
+                    # `constructs`. The original extract-time gate
+                    # (is_constructor_like + target.startswith('code:class:'))
+                    # missed these because the stub uid was `code:external:*`
+                    # at the time edges were emitted.
+                    if matched_real_kind == "class":
+                        self._conn.execute(
+                            "UPDATE graph_edges_v12 SET target_id = ?, "
+                            "edge_type = CASE WHEN edge_type='calls' "
+                            "THEN 'constructs' ELSE edge_type END "
+                            "WHERE target_id = ?",
+                            (matched_real_id, stub_id),
+                        )
+                    else:
+                        self._conn.execute(
+                            "UPDATE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
+                            (matched_real_id, stub_id),
+                        )
                     rewrites += 1
             self._conn.commit()
             return rewrites
