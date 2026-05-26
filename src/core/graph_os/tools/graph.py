@@ -1659,6 +1659,7 @@ def cos_graph_path(
     target_uid: str,
     *,
     max_hops: int = 5,
+    allow_external_intermediates: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Shortest path between two nodes (any direction).
@@ -1667,6 +1668,11 @@ def cos_graph_path(
     When either side's edge list hits that cap the result is flagged
     ``meta.truncated=True`` so callers know the search may have missed a
     shorter path that lives beyond the first 1000 neighbours.
+
+    W6.4 (T1): `code:external:*` stubs are excluded from intermediate
+    hops by default because `unresolved:str` has thousands of in-edges
+    and produces meaningless bridges between unrelated nodes. Pass
+    ``allow_external_intermediates=True`` to opt back in.
     """
     try:
         be = _backend(backend=backend)
@@ -1690,7 +1696,8 @@ def cos_graph_path(
     # P5: hop edge cap reduced 1000 → 200 to stay sub-100ms at 1M-node.
     _PATH_HOP_LIMIT = 200
     frontier_saturated = False
-    parents: dict[str, tuple[str, GraphEdge] | None] = {source_uid: None}
+    # W6.4 (T2): parents stores (prev_uid, edge, traversal_direction).
+    parents: dict[str, tuple[str, GraphEdge, str] | None] = {source_uid: None}
     queue: deque[tuple[str, int]] = deque([(source_uid, 0)])
     found = source_uid == target_uid
     while queue and not found:
@@ -1705,16 +1712,31 @@ def cos_graph_path(
             frontier_saturated = True
         for edge in out_edges:
             nxt = edge.target_uid
+            # W6.4 (T1): skip external stubs as intermediate hops to
+            # prevent meaningless bridges via shared sinks (unresolved:str).
+            # Target uid is exempt — caller may legitimately ask about one.
+            if (
+                not allow_external_intermediates
+                and nxt.startswith("code:external:")
+                and nxt != target_uid
+            ):
+                continue
             if nxt not in parents:
-                parents[nxt] = (uid, edge)
+                parents[nxt] = (uid, edge, "forward")
                 queue.append((nxt, depth + 1))
         in_edges = be.list_edges(target_uid=uid, limit=_PATH_HOP_LIMIT)
         if len(in_edges) >= _PATH_HOP_LIMIT:
             frontier_saturated = True
         for edge in in_edges:
             nxt = edge.source_uid
+            if (
+                not allow_external_intermediates
+                and nxt.startswith("code:external:")
+                and nxt != target_uid
+            ):
+                continue
             if nxt not in parents:
-                parents[nxt] = (uid, edge)
+                parents[nxt] = (uid, edge, "reverse")
                 queue.append((nxt, depth + 1))
     walk_truncated = (target_uid not in parents) and frontier_saturated
     if target_uid not in parents:
@@ -1734,11 +1756,11 @@ def cos_graph_path(
                 "frontier_edge_limit": _PATH_HOP_LIMIT,
             },
         )
-    chain: list[GraphEdge] = []
+    chain: list[tuple[GraphEdge, str]] = []
     cur = target_uid
     while parents.get(cur) is not None:
-        prev, edge = parents[cur]  # type: ignore[misc]
-        chain.append(edge)
+        prev, edge, traversal_dir = parents[cur]  # type: ignore[misc]
+        chain.append((edge, traversal_dir))
         cur = prev
     chain.reverse()
     # G29: walk the chain step-by-step so we don't emit consecutive
@@ -1747,14 +1769,20 @@ def cos_graph_path(
     # past the first hop.
     path_nodes: list[str] = [source_uid]
     prev_uid = source_uid
-    for e in chain:
+    edge_dicts: list[dict[str, Any]] = []
+    for e, traversal_dir in chain:
         nxt_uid = e.target_uid if e.source_uid == prev_uid else e.source_uid
         path_nodes.append(nxt_uid)
         prev_uid = nxt_uid
+        # W6.4 (T2): tag each edge with how the BFS traversed it so callers
+        # can tell semantic-direction edges from reverse-edge bridges.
+        ed = _edge_to_dict(e)
+        ed["traversal_direction"] = traversal_dir
+        edge_dicts.append(ed)
     return _ok(
         {
             "path": path_nodes,
-            "edges": [_edge_to_dict(e) for e in chain],
+            "edges": edge_dicts,
             "hops": len(chain),
             "walk_truncated": False,
             "frontier_saturated": frontier_saturated,
@@ -1765,6 +1793,7 @@ def cos_graph_path(
             "frontier_saturated": frontier_saturated,
             "max_hops": max_hops,
             "frontier_edge_limit": _PATH_HOP_LIMIT,
+            "allow_external_intermediates": allow_external_intermediates,
         },
     )
 
