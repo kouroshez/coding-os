@@ -834,12 +834,22 @@ def test_context_envelope_token_budget(seeded_backend):
     env = _decode(graph.cos_graph_context("code:file:src/hub.sh", depth=2))
     assert env["ok"]
     body = env["data"]
-    serialized_len = len(_encode_back := __import__("json").dumps(env, indent=2))
+    serialized_len = len(__import__("json").dumps(env, indent=2))
     assert serialized_len <= TOKEN_BUDGET_CHARS, (
         f"context envelope blew budget — {serialized_len} > {TOKEN_BUDGET_CHARS}"
     )
-    assert body["meta"]["truncated"] is True
-    assert "truncated_neighbours_from" in body["meta"]
+    # TASK-035: depth>=2 returns SUMMARY (counts + top-5 sample). No raw
+    # neighbours field — agent drills via cos_graph_references.
+    assert body.get("summary_mode") is True
+    assert "edge_counts" in body
+    assert "top_edges_by_type" in body
+    assert "neighbours" not in body
+    # 200-edge fan-in is visible via edge_counts (BFS may visit <200 due
+    # to visit_limit=50 cap, but the structure is preserved).
+    assert body["edge_counts"].get("imports", 0) > 0
+    assert serialized_len < 6000, (
+        f"depth=2 summary should be < 6KB on this fixture, got {serialized_len}"
+    )
 
 
 # G35: export must enforce max_nodes globally even on non-root export

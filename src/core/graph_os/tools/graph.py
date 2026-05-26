@@ -911,16 +911,18 @@ def cos_graph_context(
     if root is None:
         return _fail_uid_not_found(uid_or_name, tried_uids, label="uid_or_name")
 
-    # G33: at deep walks default visit_limit cripples the envelope
-    # (depth=3 from a popular function returned 353KB). Scale the cap
-    # inversely with depth so depth=3 still gives a usable envelope
-    # without bloat. Caller can override explicitly.
+    # TASK-035: two response shapes by depth.
+    #   depth=1 → full (UI path: ~2KB typical, ContextPanel renders nodes)
+    #   depth>=2 → SUMMARY (agent path: counts + top-5 sample per edge_type,
+    #              drops full `neighbours`). Graph must be CHEAPER than file
+    #              reads — at depth=2 on a 150-caller hub, dumping 108 full
+    #              NodeSummary entries (~50KB) defeats the entire point of
+    #              the graph layer. Agent gets actionable summary; if it
+    #              needs more, it calls cos_graph_references(target_uid).
     _depth = max(1, int(depth))
     visit_limit = max(1, min(int(visit_limit), 50_000))
-    if _depth >= 3 and visit_limit > 100:
-        visit_limit = 100
-    elif _depth == 2 and visit_limit > 250:
-        visit_limit = 250
+    if _depth >= 2 and visit_limit > 50:
+        visit_limit = 50
     nodes, edges = _walk_bfs(
         be,
         root_uid=root.uid,
@@ -931,37 +933,9 @@ def cos_graph_context(
         visit_limit=visit_limit,
     )
     truncated = len(nodes) >= visit_limit
-    # Group neighbours by edge_type for the SPA inspector. Each entry
-    # carries the *other endpoint*'s summary (uid / kind / label) plus
-    # the edge_type so the panel can render "contains → file.py" rows.
-    # Edge metadata (confidence / provenance / evidence) is folded in
-    # for callers that want it; the frontend only reads uid/kind/label.
     nodes_by_uid = {n.uid: n for n in nodes}
     nodes_by_uid[root.uid] = root
-    grouped: dict[str, list[dict[str, Any]]] = {}
-    for e in edges:
-        # Pick the endpoint that isn't the root we queried; falls back
-        # to target on self-edges so the panel still has a row.
-        other_uid = e.target_uid if e.source_uid == root.uid else e.source_uid
-        other = nodes_by_uid.get(other_uid)
-        if other is None:
-            continue
-        entry: dict[str, Any] = {
-            "uid": other.uid,
-            "kind": other.kind,
-            "label": other.label,
-            "edge_type": e.edge_type,
-            "confidence": e.confidence,
-            "extractor": e.extractor,
-        }
-        if include_evidence and e.evidence:
-            entry["evidence"] = [
-                {"signal_name": s.signal_name, "weight": s.weight, "note": s.note}
-                for s in e.evidence
-            ]
-        grouped.setdefault(e.edge_type, []).append(entry)
 
-    # B21: include source content for each node when requested.
     def _node_dict(node: GraphNode) -> dict[str, Any]:
         d = NodeSummary.from_node(node).to_dict()
         if include_content:
@@ -971,12 +945,56 @@ def cos_graph_context(
                 d["truncated"] = snippet["truncated"]
         return d
 
-    payload: dict[str, Any] = {
-        "node": _node_dict(root),
-        "neighbours": [_node_dict(n) for n in nodes if n.uid != root.uid],
-        "edges_by_type": grouped,
-        "edge_count": len(edges),
-    }
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for e in edges:
+        other_uid = e.target_uid if e.source_uid == root.uid else e.source_uid
+        other = nodes_by_uid.get(other_uid)
+        if other is None:
+            continue
+        if _depth == 1:
+            entry: dict[str, Any] = {
+                "uid": other.uid,
+                "kind": other.kind,
+                "label": other.label,
+                "edge_type": e.edge_type,
+                "confidence": e.confidence,
+                "extractor": e.extractor,
+            }
+            if include_evidence and e.evidence:
+                entry["evidence"] = [
+                    {"signal_name": s.signal_name, "weight": s.weight, "note": s.note}
+                    for s in e.evidence
+                ]
+        else:
+            # Summary mode — uid+label only. Caller drills via references.
+            entry = {"uid": other.uid, "label": other.label, "edge_type": e.edge_type}
+        grouped.setdefault(e.edge_type, []).append(entry)
+
+    if _depth == 1:
+        payload: dict[str, Any] = {
+            "node": _node_dict(root),
+            "neighbours": [_node_dict(n) for n in nodes if n.uid != root.uid],
+            "edges_by_type": grouped,
+            "edge_count": len(edges),
+        }
+    else:
+        # Summary shape — counts + top-5 sample per edge_type. No raw
+        # `neighbours` (redundant + huge on high fan-in). `edge_counts`
+        # tells the agent the shape; `top_edges_by_type` shows
+        # representative items it can drill into via cos_graph_references.
+        edge_counts = {k: len(v) for k, v in grouped.items()}
+        top_edges = {k: v[:5] for k, v in grouped.items()}
+        payload = {
+            "node": _node_dict(root),
+            "edge_counts": edge_counts,
+            "top_edges_by_type": top_edges,
+            "edge_count": len(edges),
+            "summary_mode": True,
+            "drill_hint": (
+                "depth>=2 returns summary only. For full edge list call "
+                "cos_graph_references(uid, kinds=[edge_type], limit=...)."
+            ),
+        }
     if include_spine:
         # S3: surface the CONTAINS-ancestor chain (repo-root → … → leaf)
         # so the SPA can render breadcrumbs alongside the context view.
