@@ -85,13 +85,13 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     existing_meta = dict(data.get("meta") or {})
     if meta:
         existing_meta.update(meta)
-    for _diag in (
-        "tokens_estimated",
-        "truncated",
-        "truncated_results_from",
-        "truncated_results_to",
-    ):
+    # Strip diagnostic keys the trimmer owns — caller meta can't spoof
+    # them. `tokens_estimated` + `truncated` always; every `truncated_*`
+    # key (added by _trim_list_key + _trim_edges_by_type) reserved too.
+    for _diag in ("tokens_estimated", "truncated"):
         existing_meta.pop(_diag, None)
+    for _k in [k for k in existing_meta if k.startswith("truncated_")]:
+        existing_meta.pop(_k, None)
 
     # Strip `meta` from the data dict so we can re-attach with diagnostics
     body = {k: v for k, v in data.items() if k != "meta"}
@@ -186,7 +186,7 @@ def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     edges_by_type = body.get("edges_by_type")
     if not isinstance(edges_by_type, dict) or not edges_by_type:
         return body, meta, False
-    # Sort by current list length DESC; trim biggest until fits.
+    # Greedy pick biggest bucket each iteration; halve it.
     trimmed = {k: list(v) for k, v in edges_by_type.items() if isinstance(v, list)}
     trim_record: dict[str, dict[str, int]] = {}
     while _probe_size({**body, "edges_by_type": trimmed}, meta) > TOKEN_BUDGET_CHARS:

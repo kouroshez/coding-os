@@ -130,6 +130,48 @@ class TestTokenBudget:
         # ⇒ tokens_estimated ≤ TOKEN_BUDGET_CHARS / 4
         assert envelope["data"]["meta"]["tokens_estimated"] <= TOKEN_BUDGET_CHARS // 4 + 100
 
+    def test_neighbours_trimmed_when_over_budget(self) -> None:
+        """TASK-034: cos_graph_context emits `neighbours` not `results`.
+        Pre-fix `_apply_token_budget` only handled `results` so the
+        envelope blew past MCP cap on high-fan-in nodes."""
+        big_neighbours = [
+            {"uid": f"x:{i}", "kind": "function", "label": "y", "signature": "z" * 500}
+            for i in range(200)
+        ]
+        envelope = json.loads(ok({"neighbours": big_neighbours}))
+        meta = envelope["data"]["meta"]
+        assert meta["truncated"] is True
+        assert meta["truncated_neighbours_from"] == 200
+        assert meta["truncated_neighbours_to"] < 200
+        assert len(envelope["data"]["neighbours"]) < 200
+
+    def test_edges_by_type_trimmed_when_over_budget(self) -> None:
+        """TASK-034: `edges_by_type` is a dict-of-lists. Trim biggest bucket
+        first until envelope fits."""
+        edges = {
+            "contains": [{"uid": f"a:{i}", "label": "x" * 500} for i in range(150)],
+            "calls": [{"uid": f"b:{i}", "label": "y" * 500} for i in range(150)],
+        }
+        envelope = json.loads(ok({"edges_by_type": edges}))
+        meta = envelope["data"]["meta"]
+        assert meta["truncated"] is True
+        assert "truncated_edges_by_type" in meta
+
+    def test_caller_cannot_spoof_truncated_meta(self) -> None:
+        """TASK-034 reviewer finding: agents must not be able to lie about
+        truncation by passing meta={'truncated_neighbours_to': 999}."""
+        envelope = json.loads(
+            ok(
+                {"results": [{"x": 1}]},
+                meta={"truncated_neighbours_to": 999, "truncated": True},
+            )
+        )
+        meta = envelope["data"]["meta"]
+        # Diagnostic keys reserved by the trimmer; caller meta is stripped.
+        assert "truncated_neighbours_to" not in meta
+        # `truncated` flag set by trimmer alone — caller-supplied True ignored.
+        assert meta["truncated"] is False
+
 
 # ---------------------------------------------------------------------------
 # Layer contract — VALID_LAYERS
