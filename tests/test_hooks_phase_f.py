@@ -56,16 +56,22 @@ def _invoke(hook: Path, payload: dict, env: dict | None = None) -> subprocess.Co
 
 class TestSessionContext:
     def test_startup_clears_session_scoped_markers(self, tmp_path: Path) -> None:
-        """State clear on startup targets the AGENT-PRIVATE dir (COS_AGENT_DIR),
-        not the shared root. See docs/engineering/state-files.md for the
-        shared-vs-private split."""
+        """State clear on startup targets THIS PANEL's private dir
+        ($COS_PANEL_DIR), not the agent root. Per docs/engineering/
+        state-files.md: agent-level dir is shared across panels of the
+        same agent; cognitive markers live one level deeper in
+        $COS_AGENT_DIR/panels/<panel-id>/. Pinning COS_PANEL_ID gives a
+        deterministic panel-dir to assert against."""
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "codex"
         agent_dir.mkdir()
+        panel_id = "test-startup-clear"
+        panel_dir = agent_dir / "panels" / panel_id
+        panel_dir.mkdir(parents=True)
 
-        # Agent-private volatile markers — should be cleared.
-        AGENT_MARKERS = [
+        # Per-panel volatile markers — must be cleared by startup.
+        PANEL_MARKERS = [
             ".thinking_os-gate",
             ".task-current",
             ".zoom-checkpoint",
@@ -77,17 +83,18 @@ class TestSessionContext:
             ".memory-check-override",
             ".uv-heredoc-override",
         ]
-        for name in AGENT_MARKERS:
-            (agent_dir / name).write_text("stale\n")
+        for name in PANEL_MARKERS:
+            (panel_dir / name).write_text("stale\n")
         # Shared error log lives at the root and is also cleared on startup.
         (state / ".capture-errors.log").write_text("stale\n")
 
-        # Pin agent explicitly so cos-env.sh heuristics (which pick up
-        # CLAUDECODE / CODEX_* from the test runner's environment) cannot
-        # flip the target dir.
+        # Pin agent + panel explicitly so cos-env.sh heuristics (which
+        # pick up CLAUDECODE / CODEX_* from the test runner's environment)
+        # cannot flip the target dir.
         env = {
             "COS_STATE_DIR": str(state),
             "COS_AGENT": "codex",
+            "COS_PANEL_ID": panel_id,
             "CODEX_HOME": str(tmp_path / "home"),
         }
         r = subprocess.run(
@@ -100,13 +107,13 @@ class TestSessionContext:
             env={**os.environ, **env},
         )
         assert r.returncode == 0
-        for name in AGENT_MARKERS:
-            assert not (agent_dir / name).exists(), f"agent marker {name} not cleared"
+        for name in PANEL_MARKERS:
+            assert not (panel_dir / name).exists(), f"panel marker {name} not cleared"
         assert not (state / ".capture-errors.log").exists()
         log_text = (state / ".hooks.log").read_text()
         assert "[session-context] [reset]" in log_text
-        # Session-id ends up in the agent-private dir, format ses-<agent>-...
-        session_id = (agent_dir / "session-id").read_text().strip()
+        # Session-id ends up in the per-panel dir, format ses-<agent>-...
+        session_id = (panel_dir / "session-id").read_text().strip()
         assert session_id.startswith("ses-codex-"), session_id
 
     def test_user_prompt_submit_does_not_rotate_session_or_clear_state(

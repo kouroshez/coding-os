@@ -150,3 +150,79 @@ def test_panel_dir_takes_precedence_over_legacy(tmp_path: Path) -> None:
     ok, val = _read(env, ".thinking_os-gate")
     assert ok is True
     assert val == "FRESH_PANEL 2"
+
+
+# ============================================================
+# Panel GC (auto-brain-decay.sh tiered cleanup)
+# ============================================================
+
+AUTO_BRAIN_DECAY = HOOKS_DIR / "auto-brain-decay.sh"
+
+
+def _run_gc(env: dict[str, str], panel_id: str) -> None:
+    """Force-run auto-brain-decay.sh with debounce bypassed."""
+    state_dir = Path(env["COS_STATE_DIR"])
+    last_decay = state_dir / ".last-decay"
+    if last_decay.exists():
+        last_decay.unlink()
+    env = {**env, "COS_PANEL_ID": panel_id, "COS_PANEL_DIR": env["COS_PANEL_DIR"]}
+    subprocess.run(
+        ["bash", str(AUTO_BRAIN_DECAY)],
+        env=env,
+        input='{"source":"startup"}',
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+        timeout=15,
+    )
+
+
+def test_gc_reaps_orphan_panel_without_session_id(tmp_path: Path) -> None:
+    """Tier-1 orphan: panel dir created by stray bash invocation (no
+    session-id file ever written). Must be reaped after 1 h of inactivity
+    so /panels/ doesn't grow without bound during test runs."""
+    env = _panel_env(tmp_path, "current-panel")
+    panels_root = Path(env["COS_AGENT_DIR"]) / "panels"
+    orphan = panels_root / "ppid-orphan-stale"
+    orphan.mkdir()
+    # No session-id; backdate heartbeat to 2 h old.
+    hb = orphan / "heartbeat"
+    hb.write_text("0\n")
+    old = (Path(__file__).stat().st_mtime - 7200)
+    os.utime(str(hb), (old, old))
+    os.utime(str(orphan), (old, old))
+
+    _run_gc(env, "current-panel")
+    assert not orphan.exists(), "orphan panel without session-id must be reaped"
+    # Current panel must NEVER be reaped — that would self-immolate.
+    assert Path(env["COS_PANEL_DIR"]).exists()
+
+
+def test_gc_keeps_orphan_panel_within_ttl(tmp_path: Path) -> None:
+    """Fresh orphan (< 1 h since heartbeat) must stay — test runs and
+    sourced shells touch panels constantly; reaping them inside the
+    1-hour window would race against legitimate use."""
+    env = _panel_env(tmp_path, "current-panel-2")
+    panels_root = Path(env["COS_AGENT_DIR"]) / "panels"
+    fresh = panels_root / "ppid-orphan-fresh"
+    fresh.mkdir()
+    (fresh / "heartbeat").write_text(str(int(Path(env["COS_STATE_DIR"]).stat().st_mtime)) + "\n")
+
+    _run_gc(env, "current-panel-2")
+    assert fresh.exists(), "fresh orphan within TTL must survive GC"
+
+
+def test_gc_keeps_real_panel_with_recent_heartbeat(tmp_path: Path) -> None:
+    """Tier-2 real panel (has session-id) is kept while heartbeat is fresh
+    (default 24 h window). Verifies the GC does NOT prematurely reap live
+    panels just because they're not the current panel."""
+    env = _panel_env(tmp_path, "current-panel-3")
+    panels_root = Path(env["COS_AGENT_DIR"]) / "panels"
+    live = panels_root / "panel-live"
+    live.mkdir()
+    (live / "session-id").write_text("ses-claude-live-test\n")
+    import time
+    (live / "heartbeat").write_text(f"{int(time.time())}\n")
+
+    _run_gc(env, "current-panel-3")
+    assert live.exists(), "live panel with recent heartbeat must survive GC"

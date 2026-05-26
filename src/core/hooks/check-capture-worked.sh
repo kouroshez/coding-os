@@ -25,11 +25,24 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/coding-os.db}"
-SESSION_FILE="${COS_SESSION_FILE:-$COS_STATE_DIR/session-id}"
 
+# Resolve session-id via panel-first → agent-level → shared-root chain.
+# Without this, a resumed panel that never ran SessionStart:startup has
+# only the legacy agent-level session-id file and check-capture-worked
+# silently exits, missing the very drift it exists to detect.
 SESSION_ID=""
-if [[ -f "$SESSION_FILE" ]]; then
-  SESSION_ID=$(tr -d '\n\r' < "$SESSION_FILE" | head -c 128)
+if command -v cos_current_session >/dev/null 2>&1; then
+  SESSION_ID=$(cos_current_session 2>/dev/null || true)
+  [[ "$SESSION_ID" == "none" ]] && SESSION_ID=""
+fi
+if [[ -z "$SESSION_ID" ]]; then
+  for f in "${COS_SESSION_FILE:-}" "${COS_AGENT_DIR:-}/session-id" "$COS_STATE_DIR/session-id"; do
+    [[ -z "$f" || "$f" == "/session-id" ]] && continue
+    if [[ -f "$f" ]]; then
+      SESSION_ID=$(tr -d '\n\r' < "$f" | head -c 128)
+      [[ -n "$SESSION_ID" ]] && break
+    fi
+  done
 fi
 [[ -z "$SESSION_ID" ]] && exit 0
 cos_log_hook check-capture-worked fire

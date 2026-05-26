@@ -85,7 +85,8 @@ fi
 #   - Fail-open: any error during GC is swallowed (this is a hygiene
 #     sweep, never a correctness gate).
 # ---------------------------------------------------------------------------
-COS_PANEL_GC_TTL="${COS_PANEL_GC_TTL:-86400}"
+COS_PANEL_GC_TTL="${COS_PANEL_GC_TTL:-86400}"        # 24 h for real panels
+COS_PANEL_GC_ORPHAN_TTL="${COS_PANEL_GC_ORPHAN_TTL:-3600}"  # 1 h for no-session orphans
 if [[ -d "${COS_AGENT_DIR:-}/panels" ]]; then
   for panel_dir in "${COS_AGENT_DIR}/panels"/*/; do
     [[ -d "$panel_dir" ]] || continue
@@ -94,13 +95,38 @@ if [[ -d "${COS_AGENT_DIR:-}/panels" ]]; then
       continue
     fi
     heartbeat_file="${panel_dir}/heartbeat"
+    session_id_file="${panel_dir}/session-id"
+    # Tier 1 — orphan: no session-id was ever written. The only thing
+    # that writes session-id into a panel dir is
+    # cos_panel_upgrade_from_payload (called by session-context.sh on a
+    # real Claude/Codex hook fire). A panel dir without session-id was
+    # created by a stray bash invocation (test, sourced cos-env.sh, etc.)
+    # whose PPID happened to hash to a unique panel-id — never a real
+    # agent session. Reap aggressively (default 1 h) to keep the panels/
+    # subtree from growing without bound during test runs and shell work.
+    if [[ ! -s "$session_id_file" ]]; then
+      orphan_age=0
+      if [[ -f "$heartbeat_file" ]]; then
+        hb=$(stat -f %m "$heartbeat_file" 2>/dev/null || stat -c %Y "$heartbeat_file" 2>/dev/null || echo 0)
+        [[ "$hb" -gt 0 ]] && orphan_age=$((NOW_TS - hb))
+      else
+        # No heartbeat either — use dir mtime.
+        mt=$(stat -f %m "$panel_dir" 2>/dev/null || stat -c %Y "$panel_dir" 2>/dev/null || echo 0)
+        [[ "$mt" -gt 0 ]] && orphan_age=$((NOW_TS - mt))
+      fi
+      if [[ "$orphan_age" -gt "$COS_PANEL_GC_ORPHAN_TTL" ]]; then
+        rm -rf "$panel_dir" 2>/dev/null || true
+        cos_log_hook auto-brain-decay gc "removed_orphan_panel=$(basename "$panel_dir") age_s=${orphan_age}"
+      fi
+      continue
+    fi
+    # Tier 2 — stale real panel: heartbeat older than 24 h.
     if [[ -f "$heartbeat_file" ]]; then
       hb=$(stat -f %m "$heartbeat_file" 2>/dev/null || stat -c %Y "$heartbeat_file" 2>/dev/null || echo 0)
       if [[ "$hb" -gt 0 ]] && [[ $((NOW_TS - hb)) -lt "$COS_PANEL_GC_TTL" ]]; then
         continue  # panel is live
       fi
     fi
-    # No heartbeat OR heartbeat stale → reap.
     rm -rf "$panel_dir" 2>/dev/null || true
     cos_log_hook auto-brain-decay gc "removed_panel=$(basename "$panel_dir")"
   done
