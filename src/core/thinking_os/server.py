@@ -2436,7 +2436,7 @@ if _GRAPH_TOOLS_AVAILABLE:
     @safe_tool
     def cos_graph_references_tool(
         uid: str,
-        kinds: str = "calls,accesses_field,imports,references_doc",
+        kinds: str = "",
         limit: int = 100,
     ) -> str:
         """List inbound edges — "who references this?".
@@ -2446,12 +2446,17 @@ if _GRAPH_TOOLS_AVAILABLE:
                 ``code:function:<path>::<name>`` | ``code:class:<path>::<name>`` |
                 ``code:module:<dotted>`` | ``doc:file:<path>`` | ``folder:<path>``.
                 Raw repo paths are auto-resolved.
-            kinds: Comma-separated edge types to include.
+            kinds: Comma-separated edge types. Empty string (default)
+                picks edge types automatically per node-kind — class
+                nodes get ``constructs+has_param_type+is_decorated_by+inherits_from``,
+                function/method get ``calls+accesses_field+imports``, files
+                get ``imports+links_to+references_doc+contains``. R4-02.
             limit: Max edges returned (default 100).
         """
+        parsed = tuple(_csv(kinds))
         return _graph_tools.cos_graph_references(
             uid,
-            kinds=tuple(_csv(kinds) or ("calls", "accesses_field", "imports", "references_doc")),
+            kinds=parsed if parsed else None,
             limit=int(limit),
         )
 

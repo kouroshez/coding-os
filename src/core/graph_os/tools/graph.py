@@ -394,6 +394,100 @@ def _KIND_RESOLVE_RANK(node: GraphNode) -> tuple[int, int]:
     return (weight, len(node.uid or ""))
 
 
+# R4-02: per-node-kind default edge types for cos_graph_references.
+# A class is referenced by `constructs` (instantiation) — different
+# vocabulary than how a function is referenced (`calls`). Pick the
+# edge-types relevant to the node's kind so the default answer for
+# "who references X?" is meaningful for every kind, not just functions.
+_REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
+    "class": (
+        "constructs",
+        "has_param_type",
+        "returns_type",
+        "field_of_type",
+        "inherits_from",
+        "is_decorated_by",
+        "imports",
+        "references_doc",
+    ),
+    "interface": (
+        "implements",
+        "has_param_type",
+        "returns_type",
+        "field_of_type",
+        "inherits_from",
+        "imports",
+    ),
+    "function": (
+        "calls",
+        "accesses_field",
+        "imports",
+        "is_decorated_by",
+        "references_doc",
+    ),
+    "method": (
+        "calls",
+        "accesses_field",
+        "imports",
+        "is_decorated_by",
+        "references_doc",
+    ),
+    "variable": (
+        "accesses_field",
+        "has_param_type",
+        "references_doc",
+    ),
+    "module": (
+        "imports",
+        "calls",
+        "references_doc",
+    ),
+    "file": (
+        "imports",
+        "links_to",
+        "references_doc",
+        "contains",
+    ),
+    "doc_file": (
+        "links_to",
+        "cites_heading",
+        "references_doc",
+        "read_next",
+    ),
+    "doc_heading": (
+        "links_to",
+        "cites_heading",
+        "references_doc",
+    ),
+    "folder": (
+        "contains",
+        "links_to",
+        "references_doc",
+    ),
+    "mcp_tool": (
+        "calls",
+        "dispatches",
+        "references_doc",
+    ),
+    "hook": (
+        "handles_tool",
+        "handles_event",
+        "declares",
+        "references_doc",
+    ),
+}
+
+
+def _default_reference_kinds_for(node_kind: str | None) -> tuple[str, ...]:
+    """Pick default inbound edge-types based on node kind (R4-02)."""
+    if not node_kind:
+        return ("calls", "accesses_field", "imports", "references_doc")
+    return _REFERENCE_KINDS_BY_NODE_KIND.get(
+        node_kind,
+        ("calls", "accesses_field", "imports", "references_doc"),
+    )
+
+
 def _normalize_kinds(kinds: Any) -> tuple[str, ...]:
     # G3: FastMCP wire can deliver Sequence[str] as stringified JSON.
     # Accept list/CSV/JSON-array-string/single-stringified-list.
@@ -1593,10 +1687,9 @@ def cos_graph_references(
     if limit and limit > _LIMIT_MAX:
         limit = _LIMIT_MAX
         limit_clamped = True
-    # G2 + G3: normalize kinds; default to _BEHAVIOURAL_EDGE_TYPES SSOT.
+    # G2 + G3: normalize kinds (caller-supplied wins; per-kind default
+    # below kicks in only when caller passes empty).
     parsed_kinds = _normalize_kinds(kinds)
-    if not parsed_kinds:
-        parsed_kinds = tuple(sorted(_BEHAVIOURAL_EDGE_TYPES))
 
     try:
         be = _backend(backend=backend)
@@ -1605,6 +1698,15 @@ def cos_graph_references(
     node, tried_uids, resolved_from = _resolve_uid(be, uid)
     if node is None:
         return _fail_uid_not_found(uid, tried_uids)
+
+    # R4-02: per-kind default — class nodes are accessed via `constructs`
+    # (test instantiations) which is NOT in the function-default. Pick a
+    # sensible default per node.kind so callers don't get 0 callers on a
+    # class that has 30+ test constructs.
+    defaults_were_picked = False
+    if not parsed_kinds:
+        parsed_kinds = _default_reference_kinds_for(node.kind)
+        defaults_were_picked = True
 
     canonical_uid = node.uid
     edges = be.list_edges(target_uid=canonical_uid, edge_types=parsed_kinds, limit=limit)
@@ -1631,6 +1733,8 @@ def cos_graph_references(
             "limit_clamped": limit_clamped,
             "result_truncated": truncated,
             "resolved_from": resolved_from,
+            "default_kinds_picked": defaults_were_picked,
+            "node_kind": node.kind,
         },
     )
 
