@@ -363,7 +363,28 @@ def register(cli: click.Group) -> None:
             "Sets COS_EXTRACTOR_PREFERENCE for downstream extractors."
         ),
     )
-    def graph_reindex(path, no_docs, max_files, workers, force, status, rebuild_kinds, extractor):
+    @click.option(
+        "--prune-stale",
+        is_flag=True,
+        help=(
+            "W7.5 / R4-N7: delete nodes whose file_path no longer exists "
+            "on disk BEFORE reindexing. Reindex is idempotent-upsert so "
+            "moved/renamed/deleted files leave ghost nodes that bloat "
+            "the graph; this flag invokes cos_graph_doctor(fix=True) "
+            "to prune them first."
+        ),
+    )
+    def graph_reindex(
+        path,
+        no_docs,
+        max_files,
+        workers,
+        force,
+        status,
+        rebuild_kinds,
+        extractor,
+        prune_stale,
+    ):
         """Walk a directory and rebuild the graph via the dispatcher."""
         _bootstrap_paths()
         # TASK-122: publish the chosen ladder via env so every spawned
@@ -419,6 +440,14 @@ def register(cli: click.Group) -> None:
 
         from graph_os.ingest import walk_local  # type: ignore
         from graph_os.tools.reindex_dispatch import dispatch  # type: ignore
+
+        # W7.5 / R4-N7: prune stale-path nodes before reindex when asked.
+        if prune_stale:
+            from graph_os.tools.graph import cos_graph_doctor  # type: ignore
+
+            doc = cos_graph_doctor(fix=True)
+            fixed = doc.get("data", {}).get("meta", {}).get("fixed_count", 0)
+            click.echo(f"[graph-reindex] prune-stale: removed {fixed} stale node(s)")
 
         target = Path(path or Path.cwd()).resolve()
         plan = walk_local(target, max_files=max_files)
