@@ -124,6 +124,10 @@ interface GraphStats {
   node_count?: number;
   edge_count?: number;
   orphaned_nodes?: number;
+  // W7.6: split orphan stats — orphaned_inrepo are real bugs;
+  // orphaned_external_unresolved are stdlib/3rd-party stub surface.
+  orphaned_inrepo?: number;
+  orphaned_external_unresolved?: number;
   issue_count?: number;
   fixed_edge_count?: number;
 }
@@ -136,9 +140,18 @@ interface GraphDoctorData {
 const ISSUE_LABELS: Record<string, string> = {
   dangling_source: 'Dangling source edges',
   dangling_target: 'Dangling target edges',
-  orphaned_nodes: 'Orphaned nodes',
+  // W7.6: legacy `orphaned_nodes` split into in-repo (real bugs) vs
+  // external-unresolved (informational stdlib stubs).
+  orphaned_nodes: 'Orphaned nodes (legacy)',
+  orphaned_inrepo: 'Orphaned in-repo nodes',
+  orphaned_external_unresolved: 'Unresolved external stubs (info)',
+  malformed_uid_path: 'Malformed UID paths',
   self_loops: 'Self-loops',
   duplicate_edges: 'Duplicate edges',
+  stale_paths: 'Stale paths',
+};
+const ISSUE_SEVERITY: Record<string, 'real' | 'info'> = {
+  orphaned_external_unresolved: 'info',
 };
 function BackendTab() {
   const doctor = useApiGet<GraphDoctorPayload>(['api-graph-doctor'], '/api/graph/doctor', undefined, {
@@ -184,14 +197,25 @@ function IssueCard({ issue }: { issue: GraphIssue }) {
   // Derive columns from the first sample row; sort by string key so the
   // table layout is stable across renders. Missing keys render `—`.
   const columns = sample.length > 0 ? Object.keys(sample[0]).sort() : [];
+  // W7.6: informational issues (e.g. stdlib stub orphans) use a muted
+  // amber badge instead of the alarming rose so the user can tell at a
+  // glance which categories require action.
+  const severity = ISSUE_SEVERITY[issue.category] ?? 'real';
+  const badgeClass =
+    severity === 'info'
+      ? 'rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200'
+      : 'rounded bg-rose-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200';
   return (
     <Section
       title={
         <span className="flex items-center gap-2">
           <span>{label}</span>
-          <span className="rounded bg-rose-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200">
+          <span className={badgeClass}>
             {issue.count.toLocaleString()}
           </span>
+          {severity === 'info' && (
+            <span className="text-[10px] text-[var(--cos-muted)]">informational</span>
+          )}
         </span>
       }
       cols="md:col-span-2"

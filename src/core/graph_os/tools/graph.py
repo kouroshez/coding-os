@@ -3519,9 +3519,15 @@ def cos_graph_doctor(
             real_orphans: list[tuple[str, str, str]] = []
             stub_orphans: list[tuple[str, str, str]] = []
             for uid_, kind_, label_ in orphan_rows:
-                if (uid_ or "").startswith("code:external:unresolved:") or (
-                    uid_ or ""
-                ).startswith("cos:identifier:"):
+                # W7.6: `code:external:*` (all sub-patterns) are stubs by
+                # definition — they reference symbols outside the indexed
+                # graph, so being unconnected is expected, not a bug.
+                # Same for `cos:identifier:*` (skill/adapter reference
+                # singletons that the extractor emits for completeness).
+                uid_str = uid_ or ""
+                if uid_str.startswith("code:external:") or uid_str.startswith(
+                    "cos:identifier:"
+                ):
                     stub_orphans.append((uid_, kind_, label_))
                 else:
                     real_orphans.append((uid_, kind_, label_))
@@ -3586,31 +3592,62 @@ def cos_graph_doctor(
                 ).fetchall()
             ]
             repo_root = _repo_root_for_paths()
-            # W7.6 / R4-25: split malformed paths (containing ../) from
+            # W7.6 / R4-25 + R4-X7-residual: split malformed paths from
             # genuine stale paths. Malformed paths are extractor bugs —
             # they can never resolve from repo root regardless of fs state.
-            malformed_paths = [p for p in distinct_paths if "../" in p]
+            # Patterns:
+            #   - contains `../` (relative-from-wrong-cwd)
+            #   - contains backtick (markdown link regex over-captured
+            #     `[text](path)` syntax including trailing backtick)
+            #   - contains whitespace (raw prose fragment captured as path)
+            def _is_malformed(p: str) -> bool:
+                return ("../" in p) or ("`" in p) or any(c.isspace() for c in p)
+
+            malformed_paths = [p for p in distinct_paths if _is_malformed(p)]
+            # Also catch nodes with malformed UIDs but NULL file_path —
+            # the markdown link extractor sometimes emits a code:file:* uid
+            # whose path is captured in the uid suffix only.
+            malformed_uid_rows = sqlite_conn.execute(
+                "SELECT uid FROM graph_nodes WHERE "
+                "(uid LIKE '%`%' OR uid LIKE 'doc:file:../%' OR uid LIKE 'code:file:../%')"
+            ).fetchall()
+            malformed_uids = [r[0] for r in malformed_uid_rows]
             real_stale_paths = [
                 p
                 for p in distinct_paths
-                if "../" not in p and not (repo_root / p).exists()
+                if not _is_malformed(p) and not (repo_root / p).exists()
             ]
-            if malformed_paths:
-                mp_count = sqlite_conn.execute(
-                    f"SELECT COUNT(*) FROM graph_nodes WHERE file_path IN ({','.join('?' * len(malformed_paths))})",
-                    malformed_paths,
-                ).fetchone()[0]
-                mp_sample = sqlite_conn.execute(
-                    f"SELECT uid, kind, file_path FROM graph_nodes WHERE file_path IN ({','.join('?' * len(malformed_paths))}) LIMIT 5",
-                    malformed_paths,
-                ).fetchall()
+            if malformed_paths or malformed_uids:
+                mp_count = 0
+                if malformed_paths:
+                    mp_count += sqlite_conn.execute(
+                        f"SELECT COUNT(*) FROM graph_nodes WHERE file_path IN ({','.join('?' * len(malformed_paths))})",
+                        malformed_paths,
+                    ).fetchone()[0]
+                if malformed_uids:
+                    mp_count += len(malformed_uids)
+                mp_sample_rows: list = []
+                if malformed_paths:
+                    mp_sample_rows.extend(
+                        sqlite_conn.execute(
+                            f"SELECT uid, kind, file_path FROM graph_nodes WHERE file_path IN ({','.join('?' * len(malformed_paths))}) LIMIT 5",
+                            malformed_paths,
+                        ).fetchall()
+                    )
+                if malformed_uids and len(mp_sample_rows) < 5:
+                    mp_sample_rows.extend(
+                        sqlite_conn.execute(
+                            f"SELECT uid, kind, file_path FROM graph_nodes WHERE uid IN ({','.join('?' * len(malformed_uids[:5]))}) LIMIT ?",
+                            (*malformed_uids[:5], 5 - len(mp_sample_rows)),
+                        ).fetchall()
+                    )
                 issues.append(
                     {
                         "category": "malformed_uid_path",
                         "count": mp_count,
-                        "path_count": len(malformed_paths),
+                        "path_count": len(malformed_paths) + len(malformed_uids),
                         "sample": [
-                            {"uid": r[0], "kind": r[1], "file_path": r[2]} for r in mp_sample
+                            {"uid": r[0], "kind": r[1], "file_path": r[2]} for r in mp_sample_rows[:5]
                         ],
                     }
                 )
@@ -3620,6 +3657,13 @@ def cos_graph_doctor(
                         batch = malformed_paths[i : i + chunk]
                         cur = sqlite_conn.execute(
                             f"DELETE FROM graph_nodes WHERE file_path IN ({','.join('?' * len(batch))})",
+                            batch,
+                        )
+                        fixed_count += int(cur.rowcount or 0)
+                    for i in range(0, len(malformed_uids), chunk):
+                        batch = malformed_uids[i : i + chunk]
+                        cur = sqlite_conn.execute(
+                            f"DELETE FROM graph_nodes WHERE uid IN ({','.join('?' * len(batch))})",
                             batch,
                         )
                         fixed_count += int(cur.rowcount or 0)
