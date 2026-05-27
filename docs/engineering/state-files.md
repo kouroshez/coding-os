@@ -62,6 +62,8 @@ Two panels of the same agent get distinct `$COS_PANEL_ID` values via the resolve
 3. **Adapter env vars** — declared per adapter in [src/adapters/`<id>`/adapter.yaml `::runtime_session_marker`](../../src/adapters/claude/adapter.yaml). Probed in order: `CLAUDE_SESSION_ID` · `CURSOR_SESSION_ID` · `CURSOR_TRACE_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`. **Add a new agent (e.g. Gemini) = add its `runtime_session_marker` block and adapter dir; zero code change** anywhere in `src/core/`.
 4. **PPID-derived hash** — last resort for raw shell tests. Format `ppid-<8hex>`. Stable per parent process; documented as best-effort because PPID semantics differ across raw bash vs SDK-spawned hooks.
 
+> **Operational warning (PPID fallback fragility).** The `ppid-<hash>` form is stable per *parent* process — i.e. per Claude Code daemon, per Cursor IDE backend, per terminal shell. It is NOT stable when an agent runtime spawns hook subprocesses through a fresh shell each time (some CI runners, certain `bash -c` invocation patterns). For production multi-panel correctness, **stdin `session_id` is the primary contract**; the env-var ladder is a secondary fallback; PPID is the last-resort safety net so panels never collapse to an empty identifier. If you ever see >5 `ppid-*` subdirs accumulating per agent in normal use (visible via `ls .coding-os/<agent>/panels/`), the runtime is not propagating its session identity — file a bug rather than relying on the fallback at scale.
+
 ## Session-id format — identity in the name itself
 
 ```

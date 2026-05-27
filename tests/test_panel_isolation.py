@@ -124,6 +124,61 @@ def test_shared_files_stay_shared(tmp_path: Path) -> None:
             f"{name} must NOT route to panel dir"
 
 
+def test_cos_current_session_never_falls_back_to_agent_session_id(tmp_path: Path) -> None:
+    """Regression lock: cos_current_session() in cos-env.sh must read
+    STRICTLY from $COS_SESSION_FILE (panel-private) — never from
+    $COS_AGENT_DIR/session-id (the pre-TASK-035 layout). A fossil at
+    the agent level belongs to a different panel; trusting it leaks
+    that panel's identity into this one's hook log and banner.
+    """
+    env = _panel_env(tmp_path, "panel-noleak")
+    # Plant a competing session-id at the AGENT_DIR level — what a
+    # pre-TASK-035 session-context.sh:startup would have written.
+    agent_session = Path(env["COS_AGENT_DIR"]) / "session-id"
+    agent_session.write_text("ses-claude-from-other-panel-XXX")
+    # Wipe the panel-private session-id so the AGENT_DIR fossil is the
+    # only file present — the worst-case scenario for a leak.
+    panel_session = Path(env["COS_PANEL_DIR"]) / "session-id"
+    panel_session.unlink()
+
+    script = f"source '{COS_ENV}' && cos_current_session"
+    proc = subprocess.run(
+        ["bash", "-c", script], env=env, capture_output=True, text=True, check=True
+    )
+    out = proc.stdout.strip()
+
+    # MUST NOT be the AGENT_DIR fossil. MUST fall back to $COS_PANEL_ID instead.
+    assert out != "ses-claude-from-other-panel-XXX", (
+        "cos_current_session leaked agent-dir fossil into this panel "
+        "(cross-panel identity leak — TASK-035 regression)"
+    )
+    assert out == env["COS_PANEL_ID"], (
+        f"expected fallback to COS_PANEL_ID, got {out!r}"
+    )
+
+
+def test_cos_current_task_never_falls_back_to_agent_dir(tmp_path: Path) -> None:
+    """Same protection for cos_current_task() — agent-dir .task-current
+    fossils from sibling panels must not surface."""
+    env = _panel_env(tmp_path, "panel-task-noleak")
+    sid = (Path(env["COS_PANEL_DIR"]) / "session-id").read_text().strip()
+    # Plant a fossil at agent dir whose session-id matches the current
+    # panel — defeating any naive session-id-based filter; only the scope
+    # rule (panel-dir only) should reject it.
+    fossil = Path(env["COS_AGENT_DIR"]) / ".task-current"
+    fossil.write_text(f"{sid} TASK-FROM-OTHER-PANEL")
+
+    script = f"source '{COS_ENV}' && cos_current_task"
+    proc = subprocess.run(
+        ["bash", "-c", script], env=env, capture_output=True, text=True, check=True
+    )
+    out = proc.stdout.strip()
+    assert out == "none", (
+        f"cos_current_task leaked agent-dir fossil: got {out!r} "
+        f"(expected 'none' because the panel-dir has no .task-current)"
+    )
+
+
 def test_no_cross_panel_leak_via_agent_dir_fossil(tmp_path: Path) -> None:
     """Cross-panel leak protection: a fossil .thinking_os-gate sitting at
     $COS_AGENT_DIR (left over by another panel or a pre-TASK-035 writer)

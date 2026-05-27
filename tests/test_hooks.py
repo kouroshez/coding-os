@@ -518,20 +518,25 @@ class TestBlockProtectedFilesGovernanceEscape:
     """
 
     def _make_task_state(self, tmp_path: Path, task_name: str) -> dict[str, str]:
-        """Build an env that points the hook at a temp agent-scoped state dir
+        """Build an env that points the hook at a temp panel-scoped state dir
         with a pre-written session-scoped .task-current file. Matches the
-        layout from docs/engineering/state-files.md (shared root + claude/)."""
+        post-TASK-035 layout: shared root + claude/ + panels/<panel-id>/."""
         state_dir = tmp_path / ".coding-os"
         state_dir.mkdir()
         agent_dir = state_dir / "claude"
         agent_dir.mkdir()
+        panel_id = "test-protect-panel"
+        panel_dir = agent_dir / "panels" / panel_id
+        panel_dir.mkdir(parents=True)
         session_id = "ses-claude-20260407-120000-TEST"
-        (agent_dir / "session-id").write_text(session_id)
-        (agent_dir / ".task-current").write_text(f"{session_id} {task_name}")
+        (panel_dir / "session-id").write_text(session_id)
+        (panel_dir / ".task-current").write_text(f"{session_id} {task_name}")
         return {
             "COS_STATE_DIR": str(state_dir),
             "COS_AGENT_DIR": str(agent_dir),
-            "COS_SESSION_FILE": str(agent_dir / "session-id"),
+            "COS_PANEL_ID": panel_id,
+            "COS_PANEL_DIR": str(panel_dir),
+            "COS_SESSION_FILE": str(panel_dir / "session-id"),
             "COS_AGENT": "claude",
         }
 

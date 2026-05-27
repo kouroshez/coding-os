@@ -33,7 +33,10 @@ fi
 # meta-repo's own governance dir uses. Other scaffold paths still pass.
 if [[ "$FILE_PATH" == *"/scaffold/docs/governance/"* ]]; then
   AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
-  TASK_FILE="$AGENT_DIR/.task-current"
+  # Panel-aware lookup (TASK-035) — task marker lives in $COS_PANEL_DIR
+  # since the per-panel split. Falls through cleanly when COS_PANEL_DIR
+  # is unset (older hook caller).
+  TASK_FILE="${COS_PANEL_DIR:-$AGENT_DIR}/.task-current"
   TASK_NAME=""
   if [ -f "$TASK_FILE" ]; then
     TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
@@ -89,10 +92,11 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
   # allow the edit. This prevents genuine docs/governance tasks from
   # being blocked by the safety net. The active task marker is session-
   # scoped and set via `cos task-start` or write-state.sh.
-  # Task marker lives in the agent-private state dir (COS_AGENT_DIR); when
-  # cos-env.sh hasn't been sourced we fall back to the shared root.
+  # Task marker lives in the panel-private state dir (COS_PANEL_DIR per
+  # TASK-035); fall back to agent dir only when cos-env.sh hasn't been
+  # sourced. Falls through cleanly during the transition window.
   AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
-  TASK_FILE="$AGENT_DIR/.task-current"
+  TASK_FILE="${COS_PANEL_DIR:-$AGENT_DIR}/.task-current"
   if [ -f "$TASK_FILE" ]; then
     TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
     # The task marker is "session-id value" — extract the value
@@ -104,7 +108,7 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
         ;;
     esac
   fi
-  echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Create a dedicated task for governance changes, e.g. write-state.sh $AGENT_DIR/.task-current 'docs-update-...'" >&2
+  echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Create a dedicated task for governance changes, e.g. write-state.sh ${COS_PANEL_DIR:-$AGENT_DIR}/.task-current 'docs-update-...'" >&2
   exit 2
 fi
 
