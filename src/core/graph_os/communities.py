@@ -68,6 +68,8 @@ class Community:
 @dataclass
 class _CacheEntry:
     signature: tuple[str, int]
+    min_size: int
+    max_communities: int
     communities: list[Community]
     membership: dict[str, str]  # node_uid → community_id
 
@@ -99,14 +101,24 @@ def compute_communities(
     """
     signature = _signature(backend)
     cached = _CACHE.get(backend.backend_id)
-    if cached is not None and cached.signature == signature:
+    # W7.9 / R4-03: cache key MUST include min_size + max_communities,
+    # otherwise the first caller's params silently win for the lifetime
+    # of the process. Re-detection is cheap (~50 ms) compared to the
+    # debug surface of silent param drop.
+    if (
+        cached is not None
+        and cached.signature == signature
+        and cached.min_size == min_size
+        and cached.max_communities == max_communities
+    ):
         return cached.communities, cached.membership
 
     nodes_by_uid, edges = _load_subgraph(backend)
     if not nodes_by_uid or not edges:
-        result: tuple[list[Community], dict[str, str]] = ([], {})
-        _CACHE[backend.backend_id] = _CacheEntry(signature, [], {})
-        return result
+        _CACHE[backend.backend_id] = _CacheEntry(
+            signature, min_size, max_communities, [], {}
+        )
+        return [], {}
 
     communities = _detect_communities(
         nodes_by_uid=nodes_by_uid,
@@ -120,7 +132,9 @@ def compute_communities(
         for m in c.members:
             membership[m["uid"]] = c.community_id
 
-    _CACHE[backend.backend_id] = _CacheEntry(signature, communities, membership)
+    _CACHE[backend.backend_id] = _CacheEntry(
+        signature, min_size, max_communities, communities, membership
+    )
     return communities, membership
 
 
