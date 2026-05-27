@@ -615,6 +615,27 @@ def validate_non_empty_str(value: Any, field: str) -> str | None:
     return None
 
 
+def validate_min_chars(value: Any, field: str, *, min_chars: int = 2) -> str | None:
+    # W7.1 / R4-09: parity between cos_graph_query (already enforces 2)
+    # and cos_graph_resolve (silently accepted single-char fuzzy).
+    if not isinstance(value, str):
+        return fail("validation", f"{field} must be a string (got {type(value).__name__})")
+    if len(value.strip()) < min_chars:
+        return fail("validation", f"{field} must be at least {min_chars} chars (got {value!r})")
+    return None
+
+
+def validate_confidence(value: Any, field: str) -> str | None:
+    # W7.1 / R4-19/R4-26: confidence scores live in [0.0, 1.0]; the
+    # cos_graph_impact / cos_graph_query tools silently accepted 999
+    # and filtered everything.
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return fail("validation", f"{field} must be a number (got {type(value).__name__})")
+    if value < 0.0 or value > 1.0:
+        return fail("validation", f"{field} must be in [0.0, 1.0] (got {value})")
+    return None
+
+
 def clamp_int(value: int, *, min_v: int, max_v: int) -> tuple[int, bool]:
     # Return (clamped, was_clamped). Caller surfaces was_clamped in meta.
     clamped = max(min_v, min(value, max_v))

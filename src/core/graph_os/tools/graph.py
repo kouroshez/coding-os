@@ -104,6 +104,32 @@ def _validate_positive_int(value: Any, field: str) -> Any:
     return None
 
 
+def _validate_non_negative_int(value: Any, field: str) -> Any:
+    if not isinstance(value, int) or value < 0:
+        return _fail("validation", f"{field} must be >= 0 (got {value!r})")
+    return None
+
+
+def _validate_confidence(value: Any, field: str) -> Any:
+    # W7.1 / R4-19/R4-26: confidence is in [0.0, 1.0]; impact + query
+    # silently accepted 999 and filtered everything.
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return _fail("validation", f"{field} must be a number (got {type(value).__name__})")
+    if value < 0.0 or value > 1.0:
+        return _fail("validation", f"{field} must be in [0.0, 1.0] (got {value})")
+    return None
+
+
+def _validate_min_chars(value: Any, field: str, *, min_chars: int = 2) -> Any:
+    # W7.1 / R4-09: cos_graph_query enforces 2-char min; cos_graph_resolve
+    # silently accepted single-char fuzzy. Parity.
+    if not isinstance(value, str):
+        return _fail("validation", f"{field} must be a string (got {type(value).__name__})")
+    if len(value.strip()) < min_chars:
+        return _fail("validation", f"{field} must be at least {min_chars} chars")
+    return None
+
+
 def _clamp_int(value: int, *, min_v: int, max_v: int) -> tuple[int, bool]:
     clamped = max(min_v, min(int(value), max_v))
     return clamped, clamped != value
@@ -929,6 +955,13 @@ def cos_graph_query(
     # kind-only browse.
     if q and q.strip() and len(q.strip()) < 2 and not parsed_kinds:
         return _fail("validation", "query must be ≥2 chars (or pass kinds for kind-only browse)")
+    # W7.1 / R4-08/R4-26: limit + confidence_min validation
+    err = _validate_positive_int(limit, "limit")
+    if err:
+        return err
+    err = _validate_confidence(confidence_min, "confidence_min")
+    if err:
+        return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1190,6 +1223,13 @@ def cos_graph_impact(
       exactly. Do NOT pass raw BFS direction strings ("in"/"out") to
       this parameter — they are unsupported and will default to "in".
     """
+    # W7.1 / R4-19/R4-20: confidence in [0,1] + depth>=1.
+    err = _validate_confidence(confidence_min, "confidence_min")
+    if err:
+        return err
+    err = _validate_positive_int(depth, "depth")
+    if err:
+        return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -1438,6 +1478,11 @@ def cos_graph_trace(
     stays project-internal but the call-site relationship is still
     visible.
     """
+    # W7.1 / R4-07: max_steps=0 returned empty steps + walk_truncated=true
+    # (never walked). Reject as validation error.
+    err = _validate_positive_int(max_steps, "max_steps")
+    if err:
+        return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -3078,6 +3123,11 @@ def cos_graph_ranking(
     top, _ = _clamp_int(top, min_v=1, max_v=200)
     if not (0.0 < damping < 1.0):
         return _fail("validation", "damping must be in (0, 1)")
+    # W7.1 / R4-06: iterations=0 returned uniform vector with positive
+    # rank_score that looked real. Reject as validation error.
+    err = _validate_positive_int(iterations, "iterations")
+    if err:
+        return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
@@ -3583,8 +3633,13 @@ def cos_graph_resolve(
        multi-word natural-language queries like "the dispatcher function"
        far better than the LIKE pattern used by ``cos_graph_query``.
     """
-    if not q or not q.strip():
-        return _fail("validation", "q must be a non-empty string")
+    # W7.1 / R4-09: parity with cos_graph_query — both require q>=2 chars.
+    err = _validate_min_chars(q, "q", min_chars=2)
+    if err:
+        return err
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
     try:
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
