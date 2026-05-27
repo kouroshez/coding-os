@@ -420,6 +420,32 @@ def _KIND_RESOLVE_RANK(node: GraphNode) -> tuple[int, int]:
     return (weight, len(node.uid or ""))
 
 
+# W7.8 / R4-12: in-repo modules that act as stub-hubs because every
+# Python file imports from them. Treat them like ``code:external:*``
+# in path-BFS to prevent meaningless bridges.
+_PATH_STUB_HUB_MODULES: frozenset[str] = frozenset(
+    {
+        "__future__",
+        "__init__",
+        "typing",
+        "typing_extensions",
+        "annotations",
+        "builtins",
+    }
+)
+
+
+def _is_stub_hub_uid(uid: str) -> bool:
+    """True when uid is a stub-hub (external stub or in-repo module hub)."""
+    if uid.startswith("code:external:"):
+        return True
+    if uid.startswith("code:module:"):
+        module = uid.split(":", 2)[-1]
+        last = module.rsplit(".", 1)[-1]
+        return last in _PATH_STUB_HUB_MODULES or module in _PATH_STUB_HUB_MODULES
+    return False
+
+
 # R4-02: per-node-kind default edge types for cos_graph_references.
 # A class is referenced by `constructs` (instantiation) — different
 # vocabulary than how a function is referenced (`calls`). Pick the
@@ -1887,12 +1913,12 @@ def cos_graph_path(
             frontier_saturated = True
         for edge in out_edges:
             nxt = edge.target_uid
-            # W6.4 (T1): skip external stubs as intermediate hops to
-            # prevent meaningless bridges via shared sinks (unresolved:str).
-            # Target uid is exempt — caller may legitimately ask about one.
+            # W6.4 (T1) + W7.8 (R4-12): skip external stubs AND in-repo
+            # stub-hub modules (__future__, typing, __init__, …) which
+            # bridge unrelated nodes. Target uid always exempt.
             if (
                 not allow_external_intermediates
-                and nxt.startswith("code:external:")
+                and _is_stub_hub_uid(nxt)
                 and nxt != target_uid
             ):
                 continue
@@ -1906,7 +1932,7 @@ def cos_graph_path(
             nxt = edge.source_uid
             if (
                 not allow_external_intermediates
-                and nxt.startswith("code:external:")
+                and _is_stub_hub_uid(nxt)
                 and nxt != target_uid
             ):
                 continue
