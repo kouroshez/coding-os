@@ -288,6 +288,21 @@ class TestImpact:
         # foo → bar is "calls" at conf 0.9 — must land in will_break.
         assert "calls" in will_break_types
 
+    def test_file_uid_expands_to_contained_symbols_w63(self, seeded_backend):
+        """W6.3 (F6/B15/N1): impact on `code:file:*` uid must walk each
+        contained symbol so will_break is populated. Pre-fix, file-level
+        impact returned will_break=0 because file nodes have no
+        behavioural inbound edges of their own (only `contains` from
+        folder spine)."""
+        data = _assert_ok(graph.cos_graph_impact("code:file:a.py"))
+        # a.py contains foo/bar/baz; foo has inbound `calls` from bar
+        # → file-level walk should surface a non-empty tier.
+        any_tier_populated = any(data["tiers"][t] for t in ("will_break", "should_review"))
+        assert any_tier_populated, f"file impact returned empty tiers: {data['tiers']}"
+        # impacted_count must stay int (typed scalar — W6.2 invariant).
+        assert isinstance(data["impacted_count"], int)
+        assert data["meta"]["expanded_from_file"] is True
+
 
 class TestDetectChanges:
     def test_no_files_returns_empty_envelope(self, seeded_backend):
@@ -552,6 +567,40 @@ class TestPath:
             graph.cos_graph_path("doc:file:docs/x.md", "cos:route:GET:/users", max_hops=0)
         )
         assert data["path"] is None
+
+    def test_path_excludes_external_intermediates_w64(self, seeded_backend):
+        """W6.4 (T1): `code:external:*` stubs (e.g. unresolved:str with
+        thousands of in-edges) must not bridge unrelated nodes as
+        intermediate hops. Default behaviour skips them; opt-in flag
+        re-enables."""
+        # foo, bar, baz all link to code:external:unresolved:str (3 inbound
+        # edges in seeded fixture). Without the filter a path could bridge
+        # foo → unresolved:str ← baz.
+        data = _assert_ok(
+            graph.cos_graph_path(
+                "code:function:a.py::foo", "code:function:a.py::baz"
+            )
+        )
+        if data["path"]:
+            # No intermediate hop should be an external stub.
+            for n in data["path"][1:-1]:
+                assert not n.startswith("code:external:"), (
+                    f"external stub leaked as intermediate hop: {n}"
+                )
+
+    def test_path_edges_tagged_traversal_direction_w64(self, seeded_backend):
+        """W6.4 (T2): each edge in the path must carry a
+        `traversal_direction` field (forward|reverse) so callers can
+        distinguish semantic-direction edges from reverse-walk bridges."""
+        data = _assert_ok(
+            graph.cos_graph_path(
+                "code:function:a.py::foo", "code:function:a.py::baz"
+            )
+        )
+        if data["edges"]:
+            for e in data["edges"]:
+                assert "traversal_direction" in e
+                assert e["traversal_direction"] in {"forward", "reverse"}
 
 
 class TestExport:

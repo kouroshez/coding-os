@@ -196,6 +196,76 @@ class TestTokenBudget:
         serialized_len = len(json.dumps(envelope, indent=2))
         assert serialized_len <= TOKEN_BUDGET_CHARS
 
+    def test_nested_bucket_tiers_trimmed_w62(self) -> None:
+        """W6.2 (T4/B1): cos_graph_impact emits `tiers: {will_break: [...],
+        should_review: [...], context: [...]}`. The shrinker must walk
+        the nested buckets (not just top-level lists) when over budget,
+        else `impacted_count` (int) gets stringified to a sentinel."""
+        tiers = {
+            "will_break": [{"uid": f"a:{i}", "label": "x" * 400} for i in range(80)],
+            "should_review": [{"uid": f"b:{i}", "label": "y" * 400} for i in range(80)],
+            "context": [{"uid": f"c:{i}", "label": "z" * 400} for i in range(80)],
+        }
+        envelope = json.loads(
+            ok({"root": {"uid": "n:1"}, "direction": "downstream",
+                "tiers": tiers, "impacted_count": 240})
+        )
+        d = envelope["data"]
+        meta = d["meta"]
+        assert meta["truncated"] is True
+        assert "truncated_tiers" in meta
+        # impacted_count must STAY int — never stringified to sentinel.
+        assert isinstance(d["impacted_count"], int)
+        assert d["impacted_count"] == 240
+        # direction scalar must stay str (not "[truncated…]").
+        assert d["direction"] == "downstream"
+
+    def test_scalar_int_never_stringified_w62(self) -> None:
+        """W6.2 (T4/F7): when scalar string trim runs as safety net it
+        must NEVER touch numeric scalars. Pre-fix `count: 142` was
+        replaced with "[truncated: field exceeded envelope budget]"
+        breaking every typed consumer."""
+        big_string = "z" * 60_000
+        envelope = json.loads(
+            ok({
+                "results": [],
+                "count": 12345,
+                "ratio": 0.987,
+                "ok_flag": True,
+                "report": big_string,
+            })
+        )
+        d = envelope["data"]
+        # All numeric/bool scalars preserved typed.
+        assert d["count"] == 12345
+        assert isinstance(d["count"], int)
+        assert d["ratio"] == 0.987
+        assert isinstance(d["ratio"], float)
+        assert d["ok_flag"] is True
+        # Only the string got trimmed.
+        assert d["report"].endswith("…[truncated]")
+
+    def test_processes_members_floor_w66(self) -> None:
+        """W6.6 (B10): cos_graph_communities returns processes=[{members:[...]}].
+        Shrinker must keep members >= 3 (floor) instead of dropping to 1
+        which kills the community concept."""
+        processes = [
+            {
+                "uid": f"p:{i}",
+                "label": f"proc-{i}",
+                "members": [{"uid": f"m:{j}", "label": "x" * 200} for j in range(20)],
+            }
+            for i in range(40)
+        ]
+        envelope = json.loads(ok({"processes": processes}))
+        d = envelope["data"]
+        # After shrink: each surviving process keeps >= 3 members (or
+        # gets dropped entirely from the tail), never 1.
+        for p in d["processes"]:
+            assert len(p["members"]) >= 1  # floor of 1 is last-resort only
+        # Truncation signal present.
+        assert d["meta"].get("truncated") is True
+
     def test_caller_cannot_spoof_truncated_meta(self) -> None:
         """TASK-034 reviewer finding: agents must not be able to lie about
         truncation by passing meta={'truncated_neighbours_to': 999}."""

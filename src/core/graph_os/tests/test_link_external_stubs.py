@@ -92,6 +92,107 @@ def test_skips_unresolvable_stubs():
     assert rewrites == 0
 
 
+def test_calls_to_class_promoted_to_constructs_on_rewrite():
+    """W6.1 (N2): when a stub `code:external:<mod>:<Class>` resolves to a
+    real `code:class:*` node and the inbound edge_type is `calls` (i.e. a
+    constructor invocation that the extractor couldn't classify at emit
+    time because the target was still an external stub), the rewrite
+    must promote the edge_type from `calls` to `constructs`.
+    """
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+
+    real_class = GraphNode(
+        uid="code:class:core/foo.py::Foo",
+        kind="class",
+        label="Foo",
+        file_path="core/foo.py",
+    )
+    caller_file = GraphNode(
+        uid="code:file:core/bar.py",
+        kind="code:file",
+        label="bar.py",
+        file_path="core/bar.py",
+    )
+    stub = GraphNode(
+        uid="code:external:core.foo:Foo",
+        kind="code:external",
+        label="Foo",
+        metadata={"stub": True, "extractor": "code_python@v1"},
+    )
+    backend.bulk_upsert(
+        [real_class, caller_file, stub],
+        [
+            GraphEdge(
+                source_uid=caller_file.uid,
+                target_uid=stub.uid,
+                edge_type="calls",
+                extractor="code_python@v1",
+                confidence=0.9,
+            )
+        ],
+    )
+
+    rewrites = backend.link_external_stubs()
+    assert rewrites == 1
+
+    edges_calls = list(backend.list_edges(edge_types=("calls",), limit=10))
+    edges_ctor = list(backend.list_edges(edge_types=("constructs",), limit=10))
+    # Edge was promoted: no longer `calls`, surfaces as `constructs`.
+    assert edges_calls == []
+    assert len(edges_ctor) == 1
+    assert edges_ctor[0].target_uid == real_class.uid
+
+
+def test_calls_to_function_preserved_on_rewrite():
+    """W6.1 (N2 invariant): non-class targets must NOT be promoted to
+    `constructs` — only class-resolved stubs flip. A function rewrite
+    keeps `edge_type='calls'`.
+    """
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+
+    real_fn = GraphNode(
+        uid="code:function:core/foo.py::helper",
+        kind="function",
+        label="helper",
+        file_path="core/foo.py",
+    )
+    caller_file = GraphNode(
+        uid="code:file:core/bar.py",
+        kind="code:file",
+        label="bar.py",
+        file_path="core/bar.py",
+    )
+    stub = GraphNode(
+        uid="code:external:core.foo:helper",
+        kind="code:external",
+        label="helper",
+        metadata={"stub": True, "extractor": "code_python@v1"},
+    )
+    backend.bulk_upsert(
+        [real_fn, caller_file, stub],
+        [
+            GraphEdge(
+                source_uid=caller_file.uid,
+                target_uid=stub.uid,
+                edge_type="calls",
+                extractor="code_python@v1",
+                confidence=0.9,
+            )
+        ],
+    )
+
+    rewrites = backend.link_external_stubs()
+    assert rewrites == 1
+
+    edges_calls = list(backend.list_edges(edge_types=("calls",), limit=10))
+    edges_ctor = list(backend.list_edges(edge_types=("constructs",), limit=10))
+    assert len(edges_calls) == 1
+    assert edges_calls[0].target_uid == real_fn.uid
+    assert edges_ctor == []
+
+
 def test_label_with_special_chars_does_not_match_unrelated():
     conn = _migrated_conn()
     backend = SqliteBackend(conn=conn)

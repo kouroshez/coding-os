@@ -263,6 +263,40 @@ class TestOpeningBlockReadNext:
         assert "doc:file:real.md" in targets
         assert "doc:file:not-a-real-doc.md" not in targets
 
+    def test_prose_fragment_rejected_w65(self):
+        """W6.5 (X7): `Read next:` followed by prose (no real path) must
+        NOT emit a doc:file: edge. Was the root cause of 386 stale_paths
+        from `doc:file:Relevant ADR in ../architecture/adr/ or the …`."""
+        content = (
+            "<!-- domain:DOCS -->\n"
+            "# H\n\n"
+            "Read next: Relevant ADR in `../architecture/adr/` or the domain doc.\n"
+        )
+        r = _extract(content)
+        rn = [e for e in r.edges if e.edge_type == "read_next"]
+        # No prose-shaped doc:file: target should appear.
+        for edge in rn:
+            assert " " not in edge.target_uid
+            assert "`" not in edge.target_uid
+
+    def test_backtick_path_fragment_rejected_w65(self):
+        """W6.5 (X7): backtick-wrapped fragment like
+        `` `docs/playbooks` `` was previously emitted as a doc_file
+        uid. Path-like regex must reject it (contains characters but
+        also accept the inner `docs/playbooks` once stripped — verify
+        only clean-stripped variant lands)."""
+        content = (
+            "<!-- domain:DOCS -->\n"
+            "# H\n\n"
+            "Read next: then the matching playbook in `docs/playbooks`, ok.md\n"
+        )
+        r = _extract(content)
+        targets = {e.target_uid for e in r.edges if e.edge_type == "read_next"}
+        # Garbage shouldn't appear.
+        for t in targets:
+            assert "playbook in" not in t
+            assert "`" not in t
+
     def test_duplicate_targets_deduplicated(self):
         content = "<!-- reads:[a.md, a.md, b.md] -->\n# H\n\nRead next: a.md, b.md\n"
         r = _extract(content)
