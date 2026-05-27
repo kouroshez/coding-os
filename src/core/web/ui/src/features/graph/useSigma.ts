@@ -246,7 +246,14 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     });
     sigmaRef.current = sigma;
 
-    sigma.on('clickNode', (e: { node: string }) => options.onNodeClick?.(e.node));
+    sigma.on('clickNode', (e: { node: string }) => {
+      // R4-N5: community: uids are synthetic Louvain ids — not registered
+      // as graph_nodes. Skip click handler so NodeInspector doesn't fire
+      // /api/graph/context/community:* which the backend rejects with
+      // the canonical UID-scheme error. Hover-highlighting still works.
+      if (e.node.startsWith('community:')) return;
+      options.onNodeClick?.(e.node);
+    });
     sigma.on('clickStage', () => options.onStageClick?.());
     
     sigma.getCamera().on('updated', () => {
