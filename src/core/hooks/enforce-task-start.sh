@@ -43,7 +43,7 @@ fi
 
 # Allow CLEAR 1 ad-hoc fixes without a task
 source "$(dirname "$0")/check-state.sh"
-check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
+check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate" 7200
 if [[ "$STATE_VALID" == "true" ]]; then
   CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
   DIMS=$(echo "$STATE_VALUE" | awk '{print $2}')
@@ -53,14 +53,14 @@ if [[ "$STATE_VALID" == "true" ]]; then
 fi
 
 # Check task-current (session-scoped, 8h timeout)
-check_state "${COS_AGENT_DIR}/.task-current" 28800
+check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800
 
 if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: No active task for this session. Reason: $STATE_REASON" >&2
   echo "  Preferred:  cos task-create --title \"...\" --swimlane <domain> --kind <type>" >&2
   echo "              cos task-start TASK-NNN" >&2
-  echo "  Manual:     bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.task-current\" \"<task-name>\"" >&2
-  echo "  Trivial:    bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.thinking_os-gate\" \"CLEAR 1\"" >&2
+  echo "  Manual:     bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"<task-name>\"" >&2
+  echo "  Trivial:    bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
   exit 2
 fi
 

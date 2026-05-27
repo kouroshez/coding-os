@@ -57,3 +57,11 @@ references: []
   - Test: renamed `test_legacy_agent_dir_fallback_on_read` → `test_no_cross_panel_leak_via_agent_dir_fossil` — asserts fossil REJECTED. `TestThinkingOsGate` fixture rewritten for panel dir.
   - Docs: `transparency-banner.md` accuracy table changed to "STRICT panel-id match (no AGENT_DIR fallback)".
   - Tests: 134 hooks + 16 isolation + 14 guardian all green.
+- 2026-05-27: **Drift sweep — rules/hooks/cli/docs all panel-aware.** Audit found 80+ refs to `$COS_AGENT_DIR/.X` for per-panel basenames in active code/docs (most cosmetic but several functional). Updates:
+  - **Hooks (functional check_state calls + error messages):** `enforce-skill.sh`, `enforce-doc-anchor.sh`, `enforce-memory-check.sh`, `enforce-task-start.sh`, `enforce-zoom.sh`, `enforce-anti-ambiguity.sh`, `nudge-thinking-os.sh`, `thinking_os-gate.sh` — all `check_state` paths now `${COS_PANEL_DIR:-$COS_AGENT_DIR}/.X`; error messages suggest bare basenames so `write-state.sh` auto-routes via `cos_state_path`.
+  - **`track-skill.sh`** (critical bug): was writing skill stack directly to `$COS_AGENT_DIR/.active-skill`, bypassing routing. Sibling panel skill loads collided. Now upgrades panel-id from stdin and writes to `$COS_PANEL_DIR/.active-skill`.
+  - **Rules:** `src/core/rules/thinking_os.md` gate-file location rewritten as panel-private. `docs/governance/critical-rules.md` Rule 0 + Rule 1 updated (Rule 1 now enumerates the three-tier scope: STATE_DIR / AGENT_DIR / PANEL_DIR with per-file rationale).
+  - **Docs:** `docs/governance/docs-first-protocol.md` + `docs/governance/_templates/doc-cheat-sheet.md` write-state examples switched to bare basename. `docs/engineering/hooks-reference.md` table rows pinned to `$COS_PANEL_DIR/.X`. `docs/engineering/state-files.md` section title rewritten as three-tier.
+  - **CLI:** `cli/board_commands.py` + `cli/main.py` error and print messages updated.
+  - **Skill:** `src/core/skills/thinking_os/scripts/classify.sh` comment updated.
+  - Tests: 136 hooks + 14 guardian green. verify-hooks clean. Functional drift count = 0.

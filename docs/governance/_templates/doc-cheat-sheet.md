@@ -184,7 +184,7 @@ If you find yourself describing the same thing twice, extract to one location an
 1. `make docs-lint` (frontmatter + nav + dead-link check).
 2. Confirm `cos_doc_search "<your title>"` finds the new file (FTS5 indexed).
 3. Confirm `cos_graph_query "<filename>"` shows the file as a node with link edges.
-4. If the doc spec'd new code, anchor with `bash .claude/hooks/write-state.sh "$COS_AGENT_DIR/.doc-anchor" "<doc path>"` before coding.
+4. If the doc spec'd new code, anchor with `bash .claude/hooks/write-state.sh .doc-anchor "<doc path>"` before coding (bare basename auto-routes to `$COS_PANEL_DIR/.doc-anchor` via `cos_state_path` — see [state-files.md](../../engineering/state-files.md)).
 
 ---
 

@@ -73,7 +73,7 @@ file_age_seconds() {
 # CLEAR 1 trivial path — ad-hoc fixes don't need a doc anchor.
 source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
 if type check_state >/dev/null 2>&1; then
-  check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
+  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate" 7200
   if [[ "${STATE_VALID:-}" == "true" ]]; then
     CLASS=$(echo "${STATE_VALUE:-}" | awk '{print $1}')
     DIMS=$(echo "${STATE_VALUE:-}" | awk '{print $2}')
@@ -85,7 +85,7 @@ fi
 
 # Exploratory / spike tasks — allow. The task-name marker signals intent.
 if type check_state >/dev/null 2>&1; then
-  check_state "${COS_AGENT_DIR}/.task-current" 28800
+  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800
   if [[ "${STATE_VALID:-}" == "true" ]]; then
     TASK_NAME="${STATE_VALUE:-}"
     case "$TASK_NAME" in
@@ -122,18 +122,18 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "  2. READ it (cos_doc_header first → full read only if relevant)." >&2
   echo "  3. ANCHOR — populate the task's \"Read First\" section with the doc" >&2
   echo "     paths you read, then run: cos task-start TASK-NNN" >&2
-  echo "     — this refreshes ${COS_AGENT_DIR}/.doc-anchor." >&2
+  echo "     — this refreshes ${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor." >&2
   echo "  4. If NO matching doc exists → WRITE THE DOC FIRST" >&2
   echo "     (src/templates/doc-cheat-sheet.md picks the layer), commit it as a" >&2
   echo "     separate change, then return for the code." >&2
   echo "" >&2
   echo "  Bypass paths (use sparingly — logged):" >&2
   echo "  • trivial fix (typo, docstring):" >&2
-  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.thinking_os-gate\" \"CLEAR 1\"" >&2
+  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
   echo "  • genuinely exploratory / throwaway code:" >&2
-  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.task-current\" \"exploratory-<slug>\"" >&2
+  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"exploratory-<slug>\"" >&2
   echo "  • one-shot manual override (consumed on use):" >&2
-  echo "      touch $COS_AGENT_DIR/.doc-anchor-override" >&2
+  echo "      touch ${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor-override" >&2
   exit 2
 fi
 

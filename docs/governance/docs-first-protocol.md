@@ -69,7 +69,7 @@ Record the doc path(s) you actually read into the session anchor:
 
 ```bash
 bash src/core/hooks/write-state.sh \
-  "$COS_AGENT_DIR/.doc-anchor" \
+  .doc-anchor \
   "$(cat <<'EOF'
 ses-<session-id> task:<task-id>
 - docs/engineering/<spec>.md
@@ -77,6 +77,8 @@ ses-<session-id> task:<task-id>
 EOF
 )"
 ```
+
+The bare basename `.doc-anchor` routes to `$COS_PANEL_DIR/.doc-anchor` via `cos_state_path` (per-panel; see [state-files.md](../engineering/state-files.md)).
 
 `cos task-start TASK-NNN` does this automatically from the task file's `Read First` section. Set the anchor by hand only for ad-hoc work covered by `*docs-update*` / `*governance*` markers.
 
@@ -104,7 +106,7 @@ Bypass paths (use sparingly, all logged):
 - `CLEAR 1` gate — trivial fixes only.
 - `*spike*` / `*exploratory*` / `*scratch*` task name — throwaway code.
 - `*docs-update*` / `*governance*` task name — when the edit IS the doc.
-- `touch $COS_AGENT_DIR/.doc-anchor-override` — one-shot, consumed on use.
+- `touch $COS_PANEL_DIR/.doc-anchor-override` — one-shot, consumed on use (panel-scoped; falls back to `$COS_AGENT_DIR/.doc-anchor-override` in legacy layouts).
 
 ## When the doc is wrong
 

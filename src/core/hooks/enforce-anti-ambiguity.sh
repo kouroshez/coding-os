@@ -33,8 +33,8 @@ case "$FILE_PATH" in
   *) exit 0 ;;
 esac
 
-GATE_FILE="$COS_AGENT_DIR/.thinking_os-gate"
-AMBIGUITY_CACHE="$COS_AGENT_DIR/.ambiguity-cache"
+GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
+AMBIGUITY_CACHE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.ambiguity-cache"
 
 # CLEAR 1 → bypass
 if [[ -f "$GATE_FILE" ]]; then

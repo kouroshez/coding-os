@@ -55,11 +55,11 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | Hook | Fires on | Blocks until |
 |---|---|---|
 | `enforce-skill` | Write/Edit on `.py`/`.ts`/`.tsx` | domain skill invoked (`clean-code`, `python-django`, `nextjs-react`, …) |
-| `enforce-zoom` | Write/Edit after Complexity Gate = COMPLICATED/COMPLEX | `.coding-os/.zoom-checkpoint` records `PROBLEM_FRAMED` |
-| `thinking_os-gate` | Write/Edit | `.coding-os/.thinking_os-gate` records `<CYNEFIN> <DIM>` classification |
-| `enforce-task-start` | Write/Edit | `.coding-os/.task-current` points at an active task (or CLEAR-1 fast-path) |
-| `enforce-doc-anchor` | Write/Edit on code | `.coding-os/.doc-anchor` points at a real doc (Rule 0 — docs-first) |
-| `enforce-memory-check` | Write/Edit | `.coding-os/.memory-check` records a recent `cos_search` for past patterns |
+| `enforce-zoom` | Write/Edit after Complexity Gate = COMPLICATED/COMPLEX | `$COS_PANEL_DIR/.zoom-checkpoint` records `PROBLEM_FRAMED` (per-panel) |
+| `thinking_os-gate` | Write/Edit | `$COS_PANEL_DIR/.thinking_os-gate` records `<CYNEFIN> <DIM>` classification (per-panel) |
+| `enforce-task-start` | Write/Edit | `$COS_PANEL_DIR/.task-current` points at an active task (or CLEAR-1 fast-path) — per-panel |
+| `enforce-doc-anchor` | Write/Edit on code | `$COS_PANEL_DIR/.doc-anchor` points at a real doc (Rule 0 — docs-first), per-panel |
+| `enforce-memory-check` | Write/Edit | `$COS_PANEL_DIR/.memory-check` records a recent `cos_search` for past patterns, per-panel |
 | `enforce-template` | Write on specific markdown paths | proper template bootstrap ran (see [template-enforcement.md](template-enforcement.md)) |
 | `enforce-verify` | `cos task-done` | Verification Matrix commands passed for the changed domain |
 
@@ -86,7 +86,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 
 ### Cognition (3 hooks) — UserPromptSubmit nudges
 
-Surface the right tool / discipline at prompt time so the agent never reaches a downstream BLOCK uninformed. Each is per-session debounced via a marker file under `$COS_AGENT_DIR/`.
+Surface the right tool / discipline at prompt time so the agent never reaches a downstream BLOCK uninformed. Each is per-session debounced via a marker file under `$COS_PANEL_DIR/` (panel-private — two Claude tabs nudge independently).
 
 | Hook | Fires on | Surfaces |
 |---|---|---|

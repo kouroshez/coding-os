@@ -694,7 +694,7 @@ def task_show_cmd(task_id):
                     task_id = match.group(0).upper()
         if not task_id:
             click.echo(
-                "ERROR: no TASK_ID and no active task in $COS_AGENT_DIR/.task-current.\n"
+                "ERROR: no TASK_ID and no active task in $COS_PANEL_DIR/.task-current.\n"
                 "  Hint: cos task-start TASK-NNN  (or pass TASK-NNN explicitly).",
                 err=True,
             )

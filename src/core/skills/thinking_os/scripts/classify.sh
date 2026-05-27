@@ -9,8 +9,9 @@
 #   bash classify.sh --print-only --q1 COMPLEX --q2 5  # echo without writing
 #
 # Output: emits the classification line (e.g. "COMPLICATED 3") to stdout
-# and, by default, writes it to $COS_AGENT_DIR/.thinking_os-gate via
-# write-state.sh (the canonical gate-marker script).
+# and, by default, writes it to $COS_PANEL_DIR/.thinking_os-gate via
+# write-state.sh (the canonical gate-marker script — `cos_state_path`
+# auto-routes the bare `.thinking_os-gate` basename to the per-panel dir).
 set -euo pipefail
 
 # Safety: ensure core POSIX tools resolvable even when caller PATH is restricted.

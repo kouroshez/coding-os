@@ -57,7 +57,7 @@ check_state "$ZOOM_FILE" 7200
 if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: Task classified as $CLASSIFICATION but no Plan checkpoint for this session." >&2
   echo "Reason: $STATE_REASON" >&2
-  echo "Record checkpoint: bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.zoom-checkpoint\" \"PROBLEM_FRAMED\"" >&2
+  echo "Record checkpoint: bash \".${COS_AGENT}/hooks/write-state.sh\" .zoom-checkpoint \"PROBLEM_FRAMED\"" >&2
   exit 2
 fi
 

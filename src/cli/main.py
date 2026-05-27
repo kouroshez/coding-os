@@ -1660,7 +1660,8 @@ def session_state(project_dir: str) -> None:
         click.echo("")
         click.echo("Gate not valid — next Write/Edit on .py/.ts/.tsx will BLOCK")
         click.echo(f'   Re-record: bash "{agent_dir}/hooks/write-state.sh" \\')
-        click.echo(f'              "{agent_dir}/.thinking_os-gate" "CLEAR 1"')
+        click.echo('              .thinking_os-gate "CLEAR 1"')
+        click.echo("   (bare basename auto-routes to $COS_PANEL_DIR via cos_state_path)")
 
 
 # ---------------------------------------------------------------------------

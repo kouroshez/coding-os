@@ -7,7 +7,7 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-## The split — shared root vs. agent-private subdir
+## The split — shared root vs. agent-private subdir vs. panel-private subdir (three-tier scope)
 
 ```
 .coding-os/                              ← SHARED root  ($COS_STATE_DIR)

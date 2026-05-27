@@ -26,7 +26,7 @@ if [[ "$LEN" -lt 80 ]]; then
 fi
 
 MARKER="${COS_AGENT_DIR}/.zoom-prompt-suggested"
-GATE_FILE="${COS_AGENT_DIR}/.thinking_os-gate"
+GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
 
 # Check gate validity (not just file existence).
 # A stale or session-mismatched gate WILL cause a BLOCK on next Write/Edit —
@@ -100,7 +100,7 @@ printf '%s' "$CLASSIFICATION" > "$MARKER" 2>/dev/null || true
 
 # Emit structured hookSpecificOutput JSON.
 if [[ "$GATE_STALE" == "true" ]]; then
-  CONTEXT="[thinking_os gate STALE — ${STATE_REASON}] Re-record NOW to avoid BLOCK on next Write/Edit: bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.thinking_os-gate\" \"${CLASSIFICATION} ${DIM_HINT}\". Then: (1) cos_task_board [Rule 18] (2) Skill(thinking_os) if COMPLICATED+."
+  CONTEXT="[thinking_os gate STALE — ${STATE_REASON}] Re-record NOW to avoid BLOCK on next Write/Edit: bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"${CLASSIFICATION} ${DIM_HINT}\". Then: (1) cos_task_board [Rule 18] (2) Skill(thinking_os) if COMPLICATED+."
 else
   CONTEXT="[thinking_os ${CLASSIFICATION} ~${DIM_HINT}dim] MANDATORY: (1) cos_task_board [Rule 18] (2) write-state.sh gate (3) Skill(thinking_os) (4) /compose — composes the role chain via cos_compose_chain. Heuristic, re-classify after full read."
 fi

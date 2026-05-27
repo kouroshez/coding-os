@@ -20,14 +20,14 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 ## Rule 0 — Docs-first
 
-- **Rule:** Every code `Write`/`Edit` must trace to a doc path recorded in `$COS_AGENT_DIR/.doc-anchor`.
+- **Rule:** Every code `Write`/`Edit` must trace to a doc path recorded in `$COS_PANEL_DIR/.doc-anchor` (per-panel; falls back to `$COS_AGENT_DIR/.doc-anchor` in pre-TASK-035 layouts via `cos_state_path`).
 - **Why:** Code without a documented spec is technical debt the moment it merges. The anchor forces an answer to “which doc does this code implement?”.
 - **How:** Hook `enforce-doc-anchor.sh` (PreToolUse Write|Edit) blocks code writes when `.doc-anchor` is empty or stale.
 - **Where:** `src/core/hooks/enforce-doc-anchor.sh`
 
 ## Rule 1 — Never hardcode `.claude/` in `core/`
 
-- **Rule:** Use `$COS_AGENT_DIR` (per-agent), `$COS_STATE_DIR` (shared), `$COS_DB_PATH`. Session-id at `$COS_AGENT_DIR/session-id`. Sid string format: `ses-{agent}-YYYYMMDD-…`.
+- **Rule:** Use `$COS_STATE_DIR` (shared per-project), `$COS_AGENT_DIR` (shared per-agent: `.model`, `.task-mode`, `.swimlane`, `.hooks.log`, `coding-os.db`), `$COS_PANEL_DIR` (private per-panel-of-same-agent: `.task-current`, `.thinking_os-gate`, `.active-skill`, `.doc-anchor`, `.memory-check`, `.zoom-checkpoint`, `.active-formula`, `.learn-suggestions`, `session-id`), `$COS_DB_PATH`. Session-id at `$COS_PANEL_DIR/session-id`. Sid string format: `ses-{agent}-YYYYMMDD-…` (session-context.sh generated) OR runtime UUID (when `cos_panel_upgrade_from_payload` upgrades from stdin). Three-tier scope contract: [docs/engineering/state-files.md](../engineering/state-files.md).
 - **Why:** `.claude/` is one of N adapter dirs (`.codex/`, `.cursor/`, …). Hardcoding breaks adapter parity (P2).
 - **How:** Hook `block-bad-patterns.sh` greps `src/core/**` for `.claude/`. Adapter resolves env at session start via `src/core/hooks/cos-env.sh`.
 - **Where:** `src/core/hooks/cos-env.sh`

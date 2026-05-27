@@ -65,7 +65,7 @@ source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
 
 # CLEAR 1 gate — trivial ad-hoc fixes skip the memory check.
 if type check_state >/dev/null 2>&1; then
-  check_state "${COS_AGENT_DIR}/.thinking_os-gate" 7200
+  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate" 7200
   if [[ "${STATE_VALID:-}" == "true" ]]; then
     CLASS=$(echo "${STATE_VALUE:-}" | awk '{print $1}')
     DIMS=$(echo "${STATE_VALUE:-}" | awk '{print $2}')
@@ -77,7 +77,7 @@ fi
 
 # Exploratory/spike/governance tasks — skip.
 if type check_state >/dev/null 2>&1; then
-  check_state "${COS_AGENT_DIR}/.task-current" 28800
+  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800
   if [[ "${STATE_VALID:-}" == "true" ]]; then
     TASK_NAME="${STATE_VALUE:-}"
     case "$TASK_NAME" in
@@ -111,11 +111,11 @@ echo "  File attempted: $FILE_PATH" >&2
 echo "" >&2
 echo "  Repair (pick one):" >&2
 echo "  1. Call cos_search in this session, then mark:" >&2
-echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.memory-check\" \"cos_search:<your-query>\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .memory-check \"cos_search:<your-query>\"" >&2
 echo "  2. Trivial ad-hoc fix → record CLEAR 1 gate instead:" >&2
-echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.thinking_os-gate\" \"CLEAR 1\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
 echo "  3. Exploratory spike → rename task marker:" >&2
-echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" \"${COS_AGENT_DIR}/.task-current\" \"exploratory-<slug>\"" >&2
+echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"exploratory-<slug>\"" >&2
 echo "" >&2
-echo "  One-shot bypass: touch ${COS_AGENT_DIR}/.memory-check-override" >&2
+echo "  One-shot bypass: touch ${COS_PANEL_DIR:-$COS_AGENT_DIR}/.memory-check-override" >&2
 exit 2
