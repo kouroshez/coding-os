@@ -106,10 +106,21 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
     existing_meta["truncated"] = False
 
+    # Graph-export-shaped responses ({nodes:[...], edges:[...]}) describe a
+    # whole subgraph — the caller already capped volume via max_nodes /
+    # max_hops parameters; applying the agent-context-window budget on top
+    # would either zero out edges (W6.6 regression) or yield a tiny
+    # incoherent slice. UI consumers (/api/graph/export) need the full
+    # tree to render the CONTAINS spine; agent consumers use cos_graph_export
+    # rarely and can pass smaller max_nodes when context is tight.
+    _is_graph_subgraph = (
+        isinstance(body.get("nodes"), list)
+        and isinstance(body.get("edges"), list)
+    )
     # Enforce token budget. `truncated` only flips when _apply_token_budget
     # actually shrank the body — a no-op (shape not matched) leaves the
     # flag False so agents trust the signal.
-    if len(serialized) > TOKEN_BUDGET_CHARS:
+    if len(serialized) > TOKEN_BUDGET_CHARS and not _is_graph_subgraph:
         body, existing_meta, did_trim = _apply_token_budget(body, existing_meta)
         if did_trim:
             existing_meta["truncated"] = True
