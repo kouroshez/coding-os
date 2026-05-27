@@ -82,7 +82,9 @@ def _emit_package_json(
         result.nodes.append(
             GraphNode(
                 uid=pkg_uid,
-                kind="contract",
+                # W7.7 / R4-N6: dep nodes use `dependency` kind so they
+                # are queryable separately from HTTP/MCP contracts.
+                kind="dependency",
                 label=name,
                 file_path=normalised,
                 lang="json",

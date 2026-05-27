@@ -62,7 +62,10 @@ def _emit_pyproject(
             result.nodes.append(
                 GraphNode(
                     uid=pkg_uid,
-                    kind="contract",
+                    # W7.7 / R4-N6: dep nodes are not HTTP/MCP contracts.
+                    # Distinct `dependency` kind so per-kind defaults +
+                    # filters can treat them correctly.
+                    kind="dependency",
                     label=name,
                     file_path=normalised,
                     lang="toml",
