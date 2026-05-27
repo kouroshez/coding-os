@@ -212,6 +212,83 @@ def _trim_list_key(
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 
+def _trim_coherent_subgraph(
+    body: dict, meta: dict
+) -> tuple[dict, dict, bool]:
+    """Coherent shrink for cos_graph_export-shaped responses.
+
+    Strategy: binary-search the largest K such that the top-K nodes by
+    incident-degree, plus the subset of edges that connect kept nodes,
+    fit the budget. Dropping nodes proportionally (instead of
+    edges-first then nodes-first) keeps the subgraph connected — the
+    Hub UI receives a coherent tree it can render, not 0 edges or 0
+    nodes.
+    """
+    nodes = body.get("nodes")
+    edges = body.get("edges")
+    if not isinstance(nodes, list) or not isinstance(edges, list):
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    if not nodes or not edges:
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+    # Degree map: edges that reference each uid.
+    degree: dict[str, int] = {}
+    for e in edges:
+        if isinstance(e, dict):
+            src = e.get("source_uid") or e.get("src_uid") or e.get("source")
+            dst = e.get("target_uid") or e.get("dst_uid") or e.get("target")
+            if src:
+                degree[src] = degree.get(src, 0) + 1
+            if dst:
+                degree[dst] = degree.get(dst, 0) + 1
+
+    def _uid_of(n):
+        return n.get("uid") if isinstance(n, dict) else None
+
+    # Sort nodes once: highest degree first, stable order for ties.
+    nodes_sorted = sorted(
+        nodes,
+        key=lambda n: (-degree.get(_uid_of(n) or "", 0), nodes.index(n)),
+    )
+    original_n = len(nodes_sorted)
+    original_e = len(edges)
+
+    def _probe(k_nodes: int) -> tuple[list, list, int]:
+        kept_nodes = nodes_sorted[:k_nodes]
+        kept_uids = {_uid_of(n) for n in kept_nodes if _uid_of(n)}
+        kept_edges = [
+            e for e in edges
+            if isinstance(e, dict)
+            and (
+                (e.get("source_uid") or e.get("src_uid") or e.get("source")) in kept_uids
+                and (e.get("target_uid") or e.get("dst_uid") or e.get("target")) in kept_uids
+            )
+        ]
+        trial = {**body, "nodes": kept_nodes, "edges": kept_edges}
+        return kept_nodes, kept_edges, _probe_size(trial, meta)
+
+    lo, hi = 0, original_n
+    best_k = 0
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        _, _, size = _probe(mid)
+        if size <= TOKEN_BUDGET_CHARS:
+            best_k = mid
+            lo = mid
+        else:
+            hi = mid - 1
+
+    kept_nodes, kept_edges, _ = _probe(best_k)
+    if best_k < original_n or len(kept_edges) < original_e:
+        meta["truncated_subgraph"] = True
+        meta["truncated_nodes_from"] = original_n
+        meta["truncated_nodes_to"] = best_k
+        meta["truncated_edges_from"] = original_e
+        meta["truncated_edges_to"] = len(kept_edges)
+        body = {**body, "nodes": kept_nodes, "edges": kept_edges}
+    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+
 def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # edges_by_type is dict-of-lists; greedily halve biggest bucket until fits.
     edges_by_type = body.get("edges_by_type")
@@ -375,6 +452,24 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # meta.envelope_unshrinkable=True so caller can log/alert.
     did_any = False
     fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    # Coherent subgraph trim: cos_graph_export-shaped responses carry
+    # both `nodes` and `edges`. The per-key trimmer would drop one to 0
+    # while the other still has items (W6.6 swapped which goes first;
+    # either way the survivor is useless to a graph renderer). Trim them
+    # together — keep top-N nodes by degree, drop edges that no longer
+    # connect kept nodes — so the consumer always receives a coherent
+    # subgraph the Hub UI can actually render.
+    if (
+        not fits
+        and isinstance(body.get("nodes"), list)
+        and isinstance(body.get("edges"), list)
+        and body["nodes"]
+        and body["edges"]
+    ):
+        body, meta, fits_after = _trim_coherent_subgraph(body, meta)
+        if "truncated_subgraph" in meta:
+            did_any = True
+        fits = fits or fits_after
     # W6.2: shrink nested members (processes[*].members) BEFORE dropping
     # whole entries — preserves community/process count signal.
     for parent_key, member_key in _TRIMMABLE_NESTED_MEMBERS:
