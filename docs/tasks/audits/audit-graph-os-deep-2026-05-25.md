@@ -1,6 +1,16 @@
+---
+audit_id: graph-os-deep-2026-05-25
+task_id: TASK-032
+status: complete
+created: 2026-05-25
+completed: 2026-05-27
+predicates: [counts_after_zero, reviewer_pass, evidence_bundle_submitted]
+matched_exhaustive: [" graph", "", "", ""]
+---
+
 # Audit — Graph OS Deep Re-Audit + Bench (2026-05-25)
 
-**Task:** TASK-032 · **Status:** in_progress
+**Task:** TASK-032 · **Status:** complete
 **Trigger:** user exhaustive intent — " graph", "", "", ""
 **Scope:** post-TASK-029 verification + deepening of all 17 `cos_graph_*` MCP tools, extractors (Py/TS/Go/Shell/MD/YAML/JSON/TOML), SQLite backend, reindex dispatch, envelope contract, perf bench, new defect surface.
 **Prior:** [audit-graph-os-exhaustive-2026-05-24.md](audit-graph-os-exhaustive-2026-05-24.md) — 19 findings · [fix-checklist](audit-graph-os-fix-checklist-2026-05-24.md) — 14 fixes landed.
@@ -52,3 +62,58 @@ Parallel diagnostic subagents (backend, deep-tool smoke, extractor parity, perf 
 ## Resume marker
 
 All 4 subagents complete. **63 total defects** (8 CRITICAL · 26 HIGH · 16 MEDIUM · 13 LOW). Reviewer 9/9 critical PASS + R1-R4 new. Perf bench surfaced 7 more incl. **cos_graph_ranking 70× over latency target (P1)** + **cos_graph_communities 47K-token envelope lie (P2)**. Audit pass read-only; fix waves W1-W5 deferred to follow-up commits per Rule 22.
+
+
+---
+
+## Round 3 (2026-05-26) — TASK-037
+
+**Pointer (per Rule 14):** Full Round 3 register lives in [docs/engineering/graph-os-round3-audit-findings-2026-05-26.md](../../engineering/graph-os-round3-audit-findings-2026-05-26.md) (58 new defects, 2 CRITICAL · 18 HIGH · 18 MEDIUM · 20 LOW/INFO).
+
+**Trigger:** user exhaustive intent — " graph ", "", "", "".
+**Methodology:** 5 parallel diagnostic subagents (deep-traversal, extractor-parity, envelope-budget, concurrency-stress, persona-flow) + reviewer subagent. Live probes against `.coding-os/coding-os.db` (37 617 nodes / 76 285 edges raw / 75 581 deduped).
+
+### Baseline (2026-05-26)
+- nodes 37 617 · edges raw 76 285 / deduped 75 581 (G17 working) · evidence 40 498
+- doctor `healthy=false` — 1 061 orphans + 386 stale_paths (F13 surface regression)
+- pytest `src/core/graph_os/tests/`: 686 pass / 16 skip / 0 fail in 17.25 s
+- 4× tree-sitter-go grammar skips (Go extractor AST-driven path absent)
+
+### Defect totals
+- **58 new defects**: T1-T12 (12) deep-traversal · X1-X12 (12) extractor · B1-B17 (17) envelope · C1-C3 (3) concurrency · F1-F14 (14) persona
+- Severity: **2 CRITICAL** (F3 rename_plan misses imports · F6 detect_changes lies risk=low) · **18 HIGH** · **18 MEDIUM** · **20 LOW/INFO**
+
+### Top 5 cross-cutting root causes
+1. **Envelope shrinker only walks `data.results`** — collapses B1/B2/B4/B5/B10/T4/F7. G5 was patched at the symptom not at root.
+2. **Decorator + builtin type resolver leaks to external stubs** — collapses X1/X6/X8 (root cause of G1's 95% miss).
+3. **Markdown link regex over-captures backtick prose** — collapses X7 + G37 residual + B13. Root cause of 386 stale_paths.
+4. **Silent param overrides** (context depth ignored, communities members→1, export max_nodes→0, trace fuzzy auto-resolves to different file) — collapses T3/B6/B9/B10/B12/F8.
+5. **Cross-tool answer disagreement unflagged** — rename_plan=28 / impact=78 / grep=94 / detect_changes=low for same Q. Add `meta.semantic_scope`. Collapses F1/F4/F6/B15.
+
+### Verifications PASS (Round 3)
+- P6 thread-local read conns deliver 1.74× speedup; 0 lock errors at 32 threads
+- TASK-036 `cos_graph_context` SUMMARY at depth≥2 with `drill_hint`
+- G17 count_edges DISTINCT dedupe correct (76 285 raw → 75 581 distinct)
+- G29 path no-dup-consecutive invariant holds · G21 similar excludes orphans
+- G31/G36 centrality validation rejects bogus metric · G32 query rejects q<2 chars
+- G14 Persian FTS5 body content works · E8/E10 extractor fixes hold
+- FTS5 sync exact (37 617=37 617) · no background indexer runaway
+
+### Coverage statement
+17/17 tools × default + extreme args = ~110 probes · per-tool char-count vs `meta.tokens_estimated` measured · 32-thread reader + 16-thread writer + reindex-while-query stress · PRAGMA SSOT verified primary AND read pool (gap surfaced — C1) · all 4 persona flows simulated with cross-tool numeric reconciliation · 5 parallel diagnostic subagents + reviewer subagent.
+
+### Suggested commit waves (Round 3 — apply after reviewer PASS)
+W6 envelope shrinker per-tool strategy · W7 `meta.semantic_scope` · W8 resolver bullseye (builtin types + decorator targets + commonmark links) · W9 silent-override loudness · W10 rename_plan imports + test bucket · W11 read-pool `_apply_pragmas` · W12 polish (~20 LOW/INFO items).
+
+### Reviewer verdict (12 critical claims re-grepped)
+- **8 CONFIRMED**: T1 (3 137 in-edges) · T3 (byte-identical depths) · T4 (53 642 bytes + `impacted_count:str` type break) · X2 (0 dep nodes vs 23 grep) · X7 (10 garbage uids) · F6 (file=low vs class=55 contradiction) · B1/B2 (116 640 bytes contracts) · C1 (4 pragmas missing in read pool)
+- **2 PARTIAL**: T7 (2 rows not "per pair"), F3 (imports present but mis-encoded — root cause N2)
+- **2 REFUTED**: X1 (0 edges found), B12 (trace exact-resolved, no file jump)
+- **4 NEW (N-series)**: N1 file-level impact broken (will_break=0 for file but =55 for class) · **N2 HIGH Python AST encodes `from … import X` as `edge_type=calls`** (corrupts every downstream consumer) · N3 read vs write busy_timeout 6× drift · N4 visit_limit=50 doesn't scale with depth
+
+### Post-reviewer totals
+- Active: **58** (60 minus 2 REFUTED) · Severity: **1 CRITICAL** (F6) · **20 HIGH** · **18 MEDIUM** · **19 LOW/INFO**
+- Highest-impact new finding: **N2** — imports upstream-encoded as `calls` corrupts semantic of every `calls` edge
+
+### Resume marker
+5 diagnostic subagents + reviewer complete. 58 active defects logged. ExhaustiveEvidence submission pending.

@@ -1,3 +1,11 @@
+---
+audit_id: graph-os-fix-checklist-2026-05-24
+task_id: TASK-029
+status: complete
+created: 2026-05-24
+completed: 2026-05-24
+---
+
 # Fix Checklist — Graph OS Audit (TASK-029) + Followups (TASK-030)
 
 **Doc:** audit-graph-os-exhaustive-2026-05-24.md (root causes)

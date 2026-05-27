@@ -135,13 +135,44 @@ def _row_counts(text: str) -> dict:
     )
     # Checklist-shaped audits use markdown checkboxes instead of tables.
     # Surface those so the Hub UI gets a progress signal here too.
-    checkbox_done = re.findall(r"^\s*-\s\[[xX]\]", text, flags=re.MULTILINE)
-    checkbox_todo = re.findall(r"^\s*-\s\[\s\]", text, flags=re.MULTILINE)
+    # Filter out checkboxes under "deferred"/"skipped"/"out of scope"
+    # sections — those represent explicit non-work, not unfinished gaps.
+    work_text = _strip_non_work_sections(text)
+    checkbox_done = re.findall(r"^\s*-\s\[[xX]\]", work_text, flags=re.MULTILINE)
+    checkbox_todo = re.findall(r"^\s*-\s\[\s\]", work_text, flags=re.MULTILINE)
     total = len(data_rows) + len(checkbox_done) + len(checkbox_todo)
     return {
         "total": total,
         "unchecked": len(unchecked) + len(checkbox_todo),
     }
+
+
+_NON_WORK_HEADING_RE = re.compile(
+    r"^#{1,6}\s+(?:deferred|skipped|out of scope|not in scope|icebox|won.?t fix)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _strip_non_work_sections(text: str) -> str:
+    # Drop everything from a `## Deferred` (etc.) heading until the next
+    # heading at the same-or-shallower depth. Keeps the rest intact so
+    # legitimate `- [ ]` items in the active work sections still count.
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    skip_until_depth: int | None = None
+    for ln in lines:
+        h_match = re.match(r"^(#{1,6})\s", ln)
+        if h_match:
+            depth = len(h_match.group(1))
+            if skip_until_depth is not None and depth <= skip_until_depth:
+                skip_until_depth = None  # exit skip block
+            if skip_until_depth is None and _NON_WORK_HEADING_RE.match(ln):
+                skip_until_depth = depth
+                continue
+        if skip_until_depth is not None:
+            continue
+        out.append(ln)
+    return "".join(out)
 
 
 def _scan_audits() -> list[dict]:

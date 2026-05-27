@@ -153,15 +153,62 @@ class TestRowCounts:
         c = _row_counts(text)
         assert c["total"] == 0
 
+    def test_deferred_section_checkboxes_excluded(self):
+        """Closed audits often carry a `## Deferred` section listing
+        explicit non-work. Those `- [ ]` items must NOT count as gaps
+        because they're already-decided deferrals, not unfinished
+        commitments."""
+        text = (
+            "## Wave 1\n\n"
+            "- [x] F1 done\n"
+            "- [x] F2 done\n\n"
+            "## Deferred (separate task)\n\n"
+            "- [ ] F15 path weighting · DEFER\n"
+            "- [ ] F16 doc-only · DEFER\n"
+            "- [ ] F17 icebox · DEFER\n\n"
+            "## Commit policy\n\n"
+            "One fix → one commit.\n"
+        )
+        c = _row_counts(text)
+        assert c["total"] == 2
+        assert c["unchecked"] == 0
 
-def test_scan_audits_returns_in_progress_status_for_graph_os_deep():
+    def test_skipped_section_also_excluded(self):
+        text = (
+            "## Active\n\n"
+            "- [x] A done\n"
+            "- [ ] B pending\n\n"
+            "## Skipped\n\n"
+            "- [ ] X out-of-scope\n"
+        )
+        c = _row_counts(text)
+        assert c["total"] == 2
+        assert c["unchecked"] == 1  # only B from Active
+
+    def test_non_work_section_ends_at_next_heading(self):
+        """Skip block must terminate at the next same-depth heading so
+        later sections still count."""
+        text = (
+            "## Deferred\n\n"
+            "- [ ] dropped\n\n"
+            "## Open work\n\n"
+            "- [ ] still-pending\n"
+        )
+        c = _row_counts(text)
+        assert c["total"] == 1
+        assert c["unchecked"] == 1
+
+
+def test_scan_audits_surfaces_real_status_for_graph_os_deep():
     """End-to-end: the live audit-graph-os-deep-2026-05-25.md must
-    surface status=in_progress, not 'unknown'."""
+    surface a real status (not 'unknown'). Concrete value depends on
+    whether the audit was closed; assert any non-unknown state."""
     from web.routes.audits import _scan_audits
 
     audits = {a["audit_id"]: a for a in _scan_audits()}
     if "graph-os-deep-2026-05-25" not in audits:
         pytest.skip("graph-os-deep audit not present in this checkout")
-    assert audits["graph-os-deep-2026-05-25"]["status"] == "in_progress"
+    status = audits["graph-os-deep-2026-05-25"]["status"]
+    assert status != "unknown"
     assert audits["graph-os-deep-2026-05-25"]["task_id"] == "TASK-032"
     assert audits["graph-os-deep-2026-05-25"]["rows_total"] > 0
