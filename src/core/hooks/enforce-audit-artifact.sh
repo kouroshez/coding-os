@@ -62,7 +62,11 @@ ACTIVE=""
 if [[ -d "$AUDIT_DIR" ]]; then
   AUDIT_FILES=$(compgen -G "${AUDIT_DIR}/audit-*.md" 2>/dev/null || true)
   if [[ -n "$AUDIT_FILES" ]]; then
-    ACTIVE=$(grep -l "^status: in_progress" $AUDIT_FILES 2>/dev/null | head -1 || true)
+    # Match BOTH conventions: YAML frontmatter (`^status: in_progress`,
+    # template canonical) AND markdown bold (`**Status:** in_progress`,
+    # historic / lenient). Mirrors session-context.sh so every audit-
+    # lifecycle consumer sees the same activeness signal.
+    ACTIVE=$(grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" $AUDIT_FILES 2>/dev/null | head -1 || true)
   fi
 fi
 

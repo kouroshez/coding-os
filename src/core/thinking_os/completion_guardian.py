@@ -109,7 +109,16 @@ def _active_audit_files(repo_root: Path) -> list[Path]:
             text = path.read_text()
         except OSError:
             continue
-        if re.search(r"^status:\s*in_progress\b", text, flags=re.MULTILINE):
+        # Match BOTH conventions: YAML frontmatter (canonical per
+        # audit-checklist-template.md) and markdown bold (historic /
+        # lenient). Mirrors session-context.sh + enforce-audit-artifact.sh
+        # so the guardian never under-counts active audits and lets a
+        # markdown-form audit slip through as "no gaps detected".
+        yaml_form = re.search(r"^status:\s*in_progress\b", text, flags=re.MULTILINE)
+        md_form = re.search(
+            r"\*\*Status:\*\*\s+in_progress\b", text, flags=re.MULTILINE
+        )
+        if yaml_form or md_form:
             active.append(path)
     return active
 

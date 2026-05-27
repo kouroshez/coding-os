@@ -20,11 +20,13 @@ if [[ ! -d "$AUDIT_DIR" ]]; then
   exit 0
 fi
 
-# Collect active audit files (status:in_progress in frontmatter).
+# Collect active audit files — match BOTH YAML frontmatter
+# (`^status: in_progress`, template canonical) and markdown bold
+# (`**Status:** in_progress`, historic). Mirrors session-context.sh.
 ACTIVE_FILES=()
 while IFS= read -r f; do
   [[ -n "$f" ]] && ACTIVE_FILES+=("$f")
-done < <(grep -l "^status: in_progress" "$AUDIT_DIR"/audit-*.md 2>/dev/null || true)
+done < <(grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" "$AUDIT_DIR"/audit-*.md 2>/dev/null || true)
 
 if [[ ${#ACTIVE_FILES[@]} -eq 0 ]]; then
   exit 0

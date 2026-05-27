@@ -130,6 +130,60 @@ class TestPredicateSatisfied:
         assert result.has_evidence_bundle is True
 
 
+class TestMarkdownStatusForm:
+    """Audit lifecycle hooks + guardian must recognise BOTH conventions:
+    YAML frontmatter (`---\\nstatus: in_progress\\n---`, template-canonical)
+    AND markdown bold (`**Status:** in_progress`, historic). Drift between
+    consumers means an agent writing one form gets recognised by some hooks
+    but not by the guardian → premature 'done' slips through."""
+
+    def _write_markdown_form_audit(
+        self,
+        repo_root: Path,
+        slug: str,
+        status: str,
+        unchecked_rows: int,
+    ) -> Path:
+        audit_dir = repo_root / "docs" / "tasks" / "audits"
+        audit_dir.mkdir(parents=True, exist_ok=True)
+        rows = "\n".join(
+            f"| {i + 1} | c{i + 1} | p | 1 | 1 | yes | 0 | no | x |"
+            for i in range(unchecked_rows)
+        )
+        # NO YAML frontmatter — only markdown bold metadata. This is the
+        # historic form (audit-graph-os-*.md, TASK-029/032).
+        text = (
+            f"# Audit — {slug}\n\n"
+            f"**Task:** TASK-X\n"
+            f"**Status:** {status}\n\n"
+            "## Categories\n\n"
+            "| # | Category | Pattern | Files scanned | Hits before | Fixed | Hits after | Verified | Evidence |\n"
+            "|---|---|---|---|---|---|---|---|---|\n" + rows + "\n"
+        )
+        path = audit_dir / f"audit-{slug}.md"
+        path.write_text(text)
+        return path
+
+    def test_markdown_in_progress_blocks_premature_done(self, env) -> None:
+        repo, agent_dir = env
+        _write_intent(agent_dir, {"exhaustive": True, "predicates": ["coverage_100"]})
+        self._write_markdown_form_audit(repo, "md-slug", "in_progress", unchecked_rows=2)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        # Guardian MUST see the markdown-form audit as active and report
+        # the 2 unchecked rows as gaps. Pre-fix the guardian skipped this
+        # file (YAML-only regex), letting premature 'done' through.
+        assert result.status == "fail"
+        assert any("2 unchecked" in g for g in result.gaps)
+
+    def test_markdown_complete_not_scanned(self, env) -> None:
+        repo, agent_dir = env
+        _write_intent(agent_dir, {"exhaustive": True, "predicates": []})
+        # Markdown form `**Status:** complete` — guardian should not flag.
+        self._write_markdown_form_audit(repo, "md-done", "complete", unchecked_rows=5)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass"
+
+
 class TestCompletedAuditStatus:
     def test_completed_audit_not_scanned(self, env) -> None:
         repo, agent_dir = env

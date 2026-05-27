@@ -11,6 +11,12 @@
 When copying, replace the placeholder values (`<slug>`, `TASK-NNN`, ISO
 timestamps, the prompt block) with real values from the active session.
 
+> **Status form** — YAML frontmatter (`status: in_progress`) is
+> canonical. The lifecycle consumers also accept legacy markdown bold
+> (`**Status:** in_progress`) so historic audits keep working, but new
+> audits MUST use the YAML form — it is the form `cos_supervise_record_output`
+> + Hub UI + auto-reviewer all rely on.
+
 ---
 
 ```markdown

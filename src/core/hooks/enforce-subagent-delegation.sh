@@ -63,7 +63,9 @@ ACTIVE_FILE=""
 if [[ -d "$AUDIT_DIR" ]]; then
   AUDIT_FILES=$(compgen -G "${AUDIT_DIR}/audit-*.md" 2>/dev/null || true)
   if [[ -n "$AUDIT_FILES" ]]; then
-    ACTIVE_FILE=$(grep -l "^status: in_progress" $AUDIT_FILES 2>/dev/null | head -1 || true)
+    # Match BOTH YAML (template canonical) and markdown bold (historic)
+    # forms — mirrors session-context.sh / enforce-audit-artifact.sh.
+    ACTIVE_FILE=$(grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" $AUDIT_FILES 2>/dev/null | head -1 || true)
     if [[ -n "$ACTIVE_FILE" ]]; then
       # Data rows start with `| <number> |` — count them.
       CATEGORY_COUNT=$(grep -cE '^\|\s*[0-9]+\s*\|' "$ACTIVE_FILE" 2>/dev/null || echo 0)

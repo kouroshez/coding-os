@@ -44,7 +44,10 @@ ACTIVE_COUNT=0
 if [[ -d "$AUDIT_DIR" ]]; then
   AUDIT_FILES=$(compgen -G "${AUDIT_DIR}/audit-*.md" 2>/dev/null || true)
   if [[ -n "$AUDIT_FILES" ]]; then
-    ACTIVE_COUNT=$(grep -l "^status: in_progress" $AUDIT_FILES 2>/dev/null | wc -l | tr -d ' ')
+    # Match BOTH YAML (`^status: in_progress`) and markdown bold
+    # (`**Status:** in_progress`) — historic audits use the latter; the
+    # template mandates the former. Mirrors session-context.sh.
+    ACTIVE_COUNT=$(grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" $AUDIT_FILES 2>/dev/null | wc -l | tr -d ' ')
   fi
 fi
 if [[ "$ACTIVE_COUNT" -eq 0 ]]; then
