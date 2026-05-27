@@ -1,18 +1,19 @@
 ---
 audit_id: graph-os-exhaustive-2026-05-24
 task_id: TASK-029
-status: complete
+status: completed
 created: 2026-05-24
 completed: 2026-05-24
-predicates: [counts_after_zero, reviewer_pass]
-matched_exhaustive: [" graph", "", "", ""]
+predicates: [coverage_100, iterate_until_zero_residual, strict_zero_residual]
+matched_exhaustive: [, __, ]
+matched_scope: [audit, verify]
 ---
 
 # Audit — Graph OS Exhaustive (2026-05-24)
 
 **Task:** TASK-029
-**Status:** complete (all 14 fixes landed + 15 regression tests + reindex verified)
-**Trigger:** user exhaustive intent (" graph", "", "", "")
+**Status:** completed (all 14 fixes landed + 15 regression tests + reindex verified)
+**Trigger:** user exhaustive intent (vocabulary tokens — see frontmatter)
 **Scope:** all 17 `cos_graph_*` MCP tools + extractors + SQLite backend + reindex dispatch + envelope contract.
 
 ## Baseline snapshot

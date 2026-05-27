@@ -17,6 +17,21 @@ timestamps, the prompt block) with real values from the active session.
 > audits MUST use the YAML form — it is the form `cos_supervise_record_output`
 > + Hub UI + auto-reviewer all rely on.
 
+> **Status enum (SSOT)** — `status:` must be one of:
+> `in_progress` · `completed` · `cancelled`. Anything else is treated
+> as `unknown` by the Hub UI. Use `in_progress` while the audit table
+> still has unverified rows; flip to `completed` only after every row
+> is Verified=yes AND the reviewer subagent re-greps zero. Use
+> `cancelled` only if the audit was abandoned (rare — prefer to close
+> rows as `n/a` with justification rather than cancel).
+>
+> **Prompt-leak ban** — `matched_exhaustive` and `matched_scope` must
+> contain ONLY canonical vocabulary tokens from
+> `src/core/hooks/_helpers/extract_intent.py` (e.g. ``, ``,
+> `all`, `comprehensive`). Never quote literal user prompt text in
+> audit frontmatter — that is private input, not metadata. Mirrors the
+> commit-message rule against quoted prompts (Rule 24).
+
 ---
 
 ```markdown

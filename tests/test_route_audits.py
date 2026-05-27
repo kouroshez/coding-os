@@ -24,6 +24,8 @@ if str(_CORE) not in sys.path:
     sys.path.insert(0, str(_CORE))
 
 from web.routes.audits import (  # noqa: E402 — sys.path mutation above
+    AUDIT_STATUS_VALUES,
+    _canonical_status,
     _parse_frontmatter,
     _row_counts,
 )
@@ -197,6 +199,107 @@ class TestRowCounts:
         c = _row_counts(text)
         assert c["total"] == 1
         assert c["unchecked"] == 1
+
+
+class TestStatusEnum:
+    """Status field must be a controlled enum — free-form drift produced
+    `complete` (typo) vs `completed` (canonical) in the wild. The
+    canonicaliser maps known aliases to the SSOT enum + everything else
+    to `unknown` so consumers see consistent labels."""
+
+    def test_canonical_completed_passes(self):
+        assert _canonical_status("completed") == "completed"
+        assert _canonical_status("in_progress") == "in_progress"
+        assert _canonical_status("cancelled") == "cancelled"
+
+    def test_legacy_complete_typo_normalises_to_completed(self):
+        """Historic agents wrote `complete` (English adjective) — the
+        canonicaliser maps it to the past-tense canonical form."""
+        assert _canonical_status("complete") == "completed"
+        assert _canonical_status("done") == "completed"
+
+    def test_unknown_value_returns_unknown(self):
+        # Free-form prose like "complete (with caveats)" — anything
+        # outside the alias map drops to unknown so the UI displays a
+        # warning glyph instead of pretending it's real.
+        assert _canonical_status("nearly_done") == "unknown"
+        assert _canonical_status("wip-mostly") == "unknown"
+        assert _canonical_status(None) == "unknown"
+        assert _canonical_status("") == "unknown"
+
+    def test_case_insensitive_normalisation(self):
+        assert _canonical_status("COMPLETED") == "completed"
+        assert _canonical_status("In_Progress") == "in_progress"
+
+    def test_status_raw_preserved_in_scan(self):
+        """API surfaces both the canonical value AND the raw input so
+        humans + linters can flag drift."""
+        from web.routes.audits import _scan_audits
+
+        audits = {a["audit_id"]: a for a in _scan_audits()}
+        for a in audits.values():
+            assert "status_raw" in a
+            # raw should match the original file content (possibly with
+            # surrounding whitespace) — at minimum, when canonical is a
+            # real value the raw must be non-empty.
+            if a["status"] in AUDIT_STATUS_VALUES:
+                assert a["status_raw"]
+
+    def test_enum_values_locked(self):
+        # Lock the enum — adding a new value must be deliberate (failing
+        # test signals intent + code review).
+        assert AUDIT_STATUS_VALUES == ("in_progress", "completed", "cancelled")
+
+
+class TestPromptLeakDetection:
+    """matched_exhaustive must hold ONLY canonical vocabulary tokens
+    (from extract_intent.py). Hand-edited audits sometimes capture
+    full prompt sentences — that is private user input, not metadata.
+
+    Heuristic: any token containing whitespace OR longer than the
+    longest known vocabulary entry (`down to the last one` = 20 chars)
+    is almost certainly a quoted prompt fragment, not a token.
+    """
+
+    @staticmethod
+    def _looks_like_prompt_quote(tok: str) -> bool:
+        # Vocabulary tokens are single words or up to 4-word phrases
+        # under ~20 chars. Anything bigger = prompt quote.
+        if len(tok) > 24:
+            return True
+        # Persian sentences typically include verbs ending in را / رو / ها
+        # plus multiple words. Bare vocabulary tokens are usually 1-2 words.
+        if tok.count(" ") >= 3:
+            return True
+        return False
+
+    def test_live_graph_os_audits_have_no_prompt_quotes(self):
+        """End-to-end: after migration the 3 graph-os audits must not
+        contain full Persian sentences in matched_exhaustive."""
+        from web.routes.audits import _scan_audits
+
+        audits = {a["audit_id"]: a for a in _scan_audits()}
+        for slug in (
+            "graph-os-deep-2026-05-25",
+            "graph-os-exhaustive-2026-05-24",
+            "graph-os-fix-checklist-2026-05-24",
+        ):
+            if slug not in audits:
+                continue
+            for tok in audits[slug].get("matched_exhaustive", []) or []:
+                assert not self._looks_like_prompt_quote(tok), (
+                    f"prompt-quote leaked in {slug}: {tok!r}"
+                )
+
+    def test_quote_heuristic_catches_known_bad_examples(self):
+        bad = "کل سیستم graph رو تست و بنچ مارک بگیری"
+        assert self._looks_like_prompt_quote(bad)
+        worse = "تا اخرین بخش گراف دیپ شد"
+        assert self._looks_like_prompt_quote(worse)
+
+    def test_quote_heuristic_passes_known_good_tokens(self):
+        for tok in ("همه", "تمامی", "صد در صد", "all", "comprehensive", "100%"):
+            assert not self._looks_like_prompt_quote(tok), tok
 
 
 def test_scan_audits_surfaces_real_status_for_graph_os_deep():

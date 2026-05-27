@@ -51,6 +51,28 @@ _FM_KEYS = (
     "completed",
 )
 
+# SSOT for audit frontmatter `status:` field. Free-form drift produced
+# `complete` (typo) + `completed` (canonical) in the wild. Enum +
+# canonicaliser keeps every downstream consumer (Hub UI, guardian,
+# hooks) reading one shape.
+AUDIT_STATUS_VALUES: tuple[str, ...] = ("in_progress", "completed", "cancelled")
+_STATUS_ALIASES: dict[str, str] = {
+    # historic typo — agents used `complete` before the enum landed.
+    "complete": "completed",
+    "done": "completed",
+    "open": "in_progress",
+    "active": "in_progress",
+    "abandoned": "cancelled",
+}
+
+
+def _canonical_status(raw: str | None) -> str:
+    if not raw:
+        return "unknown"
+    v = raw.strip().lower()
+    v = _STATUS_ALIASES.get(v, v)
+    return v if v in AUDIT_STATUS_VALUES else "unknown"
+
 
 # Match `**Key:** value` — colon is INSIDE the bold span. Stop value at
 # next `**`, `·`, or newline so cell continues like `· **Status:** X` chain.
@@ -191,7 +213,8 @@ def _scan_audits() -> list[dict]:
             {
                 "audit_id": fm.get("audit_id") or path.stem.replace("audit-", ""),
                 "task_id": fm.get("task_id"),
-                "status": fm.get("status") or "unknown",
+                "status": _canonical_status(fm.get("status")),
+                "status_raw": fm.get("status") or "",
                 "predicates": fm.get("predicates") or [],
                 "matched_exhaustive": fm.get("matched_exhaustive") or [],
                 "matched_scope": fm.get("matched_scope") or [],
@@ -246,7 +269,8 @@ async def get_audit(audit_id: str) -> dict:
         "data": {
             "audit_id": fm.get("audit_id") or audit_id,
             "task_id": fm.get("task_id"),
-            "status": fm.get("status"),
+            "status": _canonical_status(fm.get("status")),
+            "status_raw": fm.get("status") or "",
             "predicates": fm.get("predicates") or [],
             "rows_total": counts["total"],
             "rows_unchecked": counts["unchecked"],

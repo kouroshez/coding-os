@@ -1,7 +1,7 @@
 ---
 audit_id: graph-os-fix-checklist-2026-05-24
 task_id: TASK-029
-status: complete
+status: completed
 created: 2026-05-24
 completed: 2026-05-24
 ---
@@ -9,7 +9,7 @@ completed: 2026-05-24
 # Fix Checklist — Graph OS Audit (TASK-029) + Followups (TASK-030)
 
 **Doc:** audit-graph-os-exhaustive-2026-05-24.md (root causes)
-**Status:** complete (all critical + medium landed; defer items captured as TASK-031 icebox)
+**Status:** completed (all critical + medium landed; defer items captured as TASK-031 icebox)
 
 ## Wave 1 — atomic line fixes
 

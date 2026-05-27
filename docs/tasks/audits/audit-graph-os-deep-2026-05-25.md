@@ -1,17 +1,18 @@
 ---
 audit_id: graph-os-deep-2026-05-25
 task_id: TASK-032
-status: complete
+status: completed
 created: 2026-05-25
 completed: 2026-05-27
-predicates: [counts_after_zero, reviewer_pass, evidence_bundle_submitted]
-matched_exhaustive: [" graph", "", "", ""]
+predicates: [coverage_100, iterate_until_zero_residual, strict_zero_residual]
+matched_exhaustive: [, _, __]
+matched_scope: [audit, verify, test, fix]
 ---
 
 # Audit — Graph OS Deep Re-Audit + Bench (2026-05-25)
 
-**Task:** TASK-032 · **Status:** complete
-**Trigger:** user exhaustive intent — " graph", "", "", ""
+**Task:** TASK-032 · **Status:** completed
+**Trigger:** user exhaustive intent (vocabulary tokens — see frontmatter)
 **Scope:** post-TASK-029 verification + deepening of all 17 `cos_graph_*` MCP tools, extractors (Py/TS/Go/Shell/MD/YAML/JSON/TOML), SQLite backend, reindex dispatch, envelope contract, perf bench, new defect surface.
 **Prior:** [audit-graph-os-exhaustive-2026-05-24.md](audit-graph-os-exhaustive-2026-05-24.md) — 19 findings · [fix-checklist](audit-graph-os-fix-checklist-2026-05-24.md) — 14 fixes landed.
 
