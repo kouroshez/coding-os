@@ -426,24 +426,27 @@ def _looks_prefixed(raw: str) -> bool:
     return ":" in head
 
 
-def _resolve_uid(backend: GraphBackend, raw_uid: str) -> tuple[GraphNode | None, list[str]]:
+def _resolve_uid(
+    backend: GraphBackend, raw_uid: str
+) -> tuple[GraphNode | None, list[str], str]:
     """Look up a node uid, with path-prefix fallback for raw paths.
 
-    Returns ``(node, tried)`` where ``tried`` is the ordered list of uid
-    candidates we attempted. The first entry is always the literal input
-    so error messages can reflect the user's original intent.
+    Returns ``(node, tried, source)`` where ``tried`` is the ordered list
+    of candidates attempted and ``source`` is one of ``direct`` |
+    ``path_prefix`` | ``fuzzy_fts5`` | ``not_found``.
 
-    F11 / Audit #17: unqualified labels (e.g. ``cos_graph_doctor``) fell
-    through every path-prefix candidate to a `not_found`. After fix the
-    last-resort tries FTS5 on `graph_nodes_fts` so a top-ranked label
-    match is returned before giving up.
+    R4-01: bare identifiers used to silently fall through to FTS5 fuzzy
+    and return a plausible-but-wrong symbol. After fix, FTS5 fallback
+    fires only for identifier-shaped inputs (``_looks_like_label``) and
+    callers surface ``meta.resolved_from="fuzzy_fts5"`` so the agent can
+    tell the answer came from a fuzzy match instead of an explicit lookup.
     """
     direct = backend.get_node(raw_uid)
     if direct is not None:
-        return direct, [raw_uid]
+        return direct, [raw_uid], "direct"
 
     if _looks_prefixed(raw_uid):
-        return None, [raw_uid]
+        return None, [raw_uid], "not_found"
 
     tried: list[str] = [raw_uid]
     for prefix in _UID_PATH_PREFIXES:
@@ -451,14 +454,22 @@ def _resolve_uid(backend: GraphBackend, raw_uid: str) -> tuple[GraphNode | None,
         tried.append(candidate)
         node = backend.get_node(candidate)
         if node is not None:
-            return node, tried
+            return node, tried, "path_prefix"
 
-    # F11: FTS5 last-resort fallback for unqualified labels.
-    fts_node = _fts5_label_lookup(backend, raw_uid)
-    if fts_node is not None:
-        tried.append(f"fts5:{raw_uid}")
-        return fts_node, tried
-    return None, tried
+    if _looks_like_label(raw_uid):
+        fts_node = _fts5_label_lookup(backend, raw_uid)
+        if fts_node is not None:
+            tried.append(f"fts5:{raw_uid}")
+            return fts_node, tried, "fuzzy_fts5"
+    return None, tried, "not_found"
+
+
+def _looks_like_label(raw: str) -> bool:
+    if len(raw) < 3:
+        return False
+    if not any(c.isalpha() for c in raw):
+        return False
+    return all(c.isalnum() or c in "_." for c in raw)
 
 
 def _fts5_label_lookup(backend: GraphBackend, raw_label: str) -> GraphNode | None:
@@ -848,7 +859,7 @@ def cos_graph_query(
             or _looks_prefixed(candidate)
         )
         if looks_pathlike:
-            resolved, _tried = _resolve_uid(be, candidate)
+            resolved, _tried, _src = _resolve_uid(be, candidate)
             if resolved is not None and (kinds_filter is None or resolved.kind in kinds_filter):
                 nodes = [resolved]
 
@@ -933,9 +944,11 @@ def cos_graph_context(
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
 
-    root, tried_uids = _resolve_uid(be, uid_or_name)
+    root, tried_uids, resolved_from = _resolve_uid(be, uid_or_name)
     if root is None:
         root = _fuzzy_resolve(be, uid_or_name)
+        if root is not None:
+            resolved_from = "fuzzy_label"
     if root is None:
         return _fail_uid_not_found(uid_or_name, tried_uids, label="uid_or_name")
 
@@ -1046,6 +1059,7 @@ def cos_graph_context(
             "include_spine": include_spine,
             "visit_limit": visit_limit,
             "walk_truncated": truncated,
+            "resolved_from": resolved_from,
             **extra_meta,
         },
     )
@@ -1086,7 +1100,7 @@ def cos_graph_impact(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root, tried_uids = _resolve_uid(be, uid)
+    root, tried_uids, resolved_from = _resolve_uid(be, uid)
     if root is None:
         return _fail_uid_not_found(uid, tried_uids)
 
@@ -1179,6 +1193,7 @@ def cos_graph_impact(
             "walk_truncated": truncated,
             "semantic_scope": "transitive_depth_" + str(depth),
             "expanded_from_file": expanded_from_file,
+            "resolved_from": resolved_from,
         },
     )
 
@@ -1333,7 +1348,7 @@ def cos_graph_trace(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root, tried_entry_uids = _resolve_uid(be, entry_uid)
+    root, tried_entry_uids, resolved_from = _resolve_uid(be, entry_uid)
     start_source = "explicit"
     if root is None:
         # TASK-081: fall back to the highest-scoring entry point whose
@@ -1423,6 +1438,7 @@ def cos_graph_trace(
             "start_source": start_source,
             "max_steps": max_steps,
             "walk_truncated": walk_truncated,
+            "resolved_from": resolved_from,
         },
     )
 
@@ -1446,7 +1462,7 @@ def cos_graph_similar(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root, tried_uids = _resolve_uid(be, uid)
+    root, tried_uids, resolved_from = _resolve_uid(be, uid)
     if root is None:
         return _fail_uid_not_found(uid, tried_uids)
 
@@ -1545,6 +1561,7 @@ def cos_graph_similar(
             "scorer": scorer_name,
             "top_k": top_k_eff,
             "result_truncated": total > top_k_eff,
+            "resolved_from": resolved_from,
         },
     )
 
@@ -1585,7 +1602,7 @@ def cos_graph_references(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    node, tried_uids = _resolve_uid(be, uid)
+    node, tried_uids, resolved_from = _resolve_uid(be, uid)
     if node is None:
         return _fail_uid_not_found(uid, tried_uids)
 
@@ -1613,6 +1630,7 @@ def cos_graph_references(
             "limit": limit,
             "limit_clamped": limit_clamped,
             "result_truncated": truncated,
+            "resolved_from": resolved_from,
         },
     )
 
@@ -1686,10 +1704,10 @@ def cos_graph_path(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    src_node, tried_src = _resolve_uid(be, source_uid)
+    src_node, tried_src, src_resolved_from = _resolve_uid(be, source_uid)
     if src_node is None:
         return _fail_uid_not_found(source_uid, tried_src, label="source_uid")
-    tgt_node, tried_tgt = _resolve_uid(be, target_uid)
+    tgt_node, tried_tgt, tgt_resolved_from = _resolve_uid(be, target_uid)
     if tgt_node is None:
         return _fail_uid_not_found(target_uid, tried_tgt, label="target_uid")
     source_uid = src_node.uid
@@ -1762,6 +1780,8 @@ def cos_graph_path(
                 "frontier_saturated": frontier_saturated,
                 "max_hops": max_hops,
                 "frontier_edge_limit": _PATH_HOP_LIMIT,
+                "source_resolved_from": src_resolved_from,
+                "target_resolved_from": tgt_resolved_from,
             },
         )
     chain: list[tuple[GraphEdge, str]] = []
@@ -1802,6 +1822,8 @@ def cos_graph_path(
             "max_hops": max_hops,
             "frontier_edge_limit": _PATH_HOP_LIMIT,
             "allow_external_intermediates": allow_external_intermediates,
+            "source_resolved_from": src_resolved_from,
+            "target_resolved_from": tgt_resolved_from,
         },
     )
 
@@ -2161,9 +2183,15 @@ def cos_graph_rename_plan(
         be = _backend(backend=backend)
     except BackendUnavailable as exc:
         return _fail("unavailable", str(exc), retryable=True)
-    root, tried_uids = _resolve_uid(be, uid)
+    root, tried_uids, resolved_from = _resolve_uid(be, uid)
     if root is None:
         return _fail_uid_not_found(uid, tried_uids)
+    # R4-18: reject no-op rename (new_name equals current label)
+    if new_name.strip() == (root.label or ""):
+        return _fail(
+            "validation",
+            f"new_name {new_name!r} equals current label — no-op rename",
+        )
     uid = root.uid
 
     # Rename plans MUST be exhaustive — a missed call-site leaves
@@ -2231,6 +2259,7 @@ def cos_graph_rename_plan(
             "backend": be.backend_id,
             "bucket_limit": _RENAME_BUCKET_LIMIT,
             "result_truncated": result_truncated,
+            "resolved_from": resolved_from,
         },
     )
 
@@ -3472,7 +3501,7 @@ def cos_graph_resolve(
         or _looks_prefixed(candidate)
     )
     if looks_pathlike:
-        node, _tried = _resolve_uid(be, candidate)
+        node, _tried, _src = _resolve_uid(be, candidate)
         if node is not None and (kinds_set is None or node.kind in kinds_set):
             candidates.append(node)
             strategy = "path_resolve"
