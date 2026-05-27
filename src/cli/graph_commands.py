@@ -446,6 +446,10 @@ def register(cli: click.Group) -> None:
             from graph_os.tools.graph import cos_graph_doctor  # type: ignore
 
             doc = cos_graph_doctor(fix=True)
+            # cos_graph_doctor returns a JSON string (FastMCP wire); parse
+            # it before reading nested fields.
+            if isinstance(doc, str):
+                doc = json.loads(doc)
             fixed = doc.get("data", {}).get("meta", {}).get("fixed_count", 0)
             click.echo(f"[graph-reindex] prune-stale: removed {fixed} stale node(s)")
 
