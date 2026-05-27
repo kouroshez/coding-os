@@ -3503,33 +3503,52 @@ def cos_graph_doctor(
                     }
                 )
 
-            # 4. Orphaned nodes (nodes with zero edges in either direction)
-            orphan_count = sqlite_conn.execute(
+            # 4. Orphans — split into expected-noise vs real-bug categories.
+            # W7.6 / R4-N9: `code:external:unresolved:*` and `cos:identifier:*`
+            # are stub-surface, not bugs. Count separately so `healthy=true`
+            # is achievable when only stubs are unconnected.
+            orphan_rows = sqlite_conn.execute(
                 """
-                SELECT COUNT(*) FROM graph_nodes n
+                SELECT n.uid, n.kind, n.label
+                FROM graph_nodes n
                 LEFT JOIN graph_edges_v12 src ON src.source_id = n.id
                 LEFT JOIN graph_edges_v12 tgt ON tgt.target_id = n.id
                 WHERE src.id IS NULL AND tgt.id IS NULL
                 """
-            ).fetchone()[0]
-            stats["orphaned_nodes"] = orphan_count
-            if orphan_count > 0:
-                orphan_sample = sqlite_conn.execute(
-                    """
-                    SELECT n.uid, n.kind, n.label
-                    FROM graph_nodes n
-                    LEFT JOIN graph_edges_v12 src ON src.source_id = n.id
-                    LEFT JOIN graph_edges_v12 tgt ON tgt.target_id = n.id
-                    WHERE src.id IS NULL AND tgt.id IS NULL
-                    LIMIT 5
-                    """
-                ).fetchall()
+            ).fetchall()
+            real_orphans: list[tuple[str, str, str]] = []
+            stub_orphans: list[tuple[str, str, str]] = []
+            for uid_, kind_, label_ in orphan_rows:
+                if (uid_ or "").startswith("code:external:unresolved:") or (
+                    uid_ or ""
+                ).startswith("cos:identifier:"):
+                    stub_orphans.append((uid_, kind_, label_))
+                else:
+                    real_orphans.append((uid_, kind_, label_))
+            stats["orphaned_nodes"] = len(orphan_rows)
+            stats["orphaned_inrepo"] = len(real_orphans)
+            stats["orphaned_external_unresolved"] = len(stub_orphans)
+            if real_orphans:
                 issues.append(
                     {
-                        "category": "orphaned_nodes",
-                        "count": orphan_count,
+                        "category": "orphaned_inrepo",
+                        "count": len(real_orphans),
                         "sample": [
-                            {"uid": r[0], "kind": r[1], "label": r[2]} for r in orphan_sample
+                            {"uid": r[0], "kind": r[1], "label": r[2]}
+                            for r in real_orphans[:5]
+                        ],
+                    }
+                )
+            if stub_orphans:
+                # Informational only — never trips healthy=false.
+                issues.append(
+                    {
+                        "category": "orphaned_external_unresolved",
+                        "count": len(stub_orphans),
+                        "severity": "info",
+                        "sample": [
+                            {"uid": r[0], "kind": r[1], "label": r[2]}
+                            for r in stub_orphans[:5]
                         ],
                     }
                 )
@@ -3567,9 +3586,45 @@ def cos_graph_doctor(
                 ).fetchall()
             ]
             repo_root = _repo_root_for_paths()
-            stale_paths = [
-                p for p in distinct_paths if not (repo_root / p).exists()
+            # W7.6 / R4-25: split malformed paths (containing ../) from
+            # genuine stale paths. Malformed paths are extractor bugs —
+            # they can never resolve from repo root regardless of fs state.
+            malformed_paths = [p for p in distinct_paths if "../" in p]
+            real_stale_paths = [
+                p
+                for p in distinct_paths
+                if "../" not in p and not (repo_root / p).exists()
             ]
+            if malformed_paths:
+                mp_count = sqlite_conn.execute(
+                    f"SELECT COUNT(*) FROM graph_nodes WHERE file_path IN ({','.join('?' * len(malformed_paths))})",
+                    malformed_paths,
+                ).fetchone()[0]
+                mp_sample = sqlite_conn.execute(
+                    f"SELECT uid, kind, file_path FROM graph_nodes WHERE file_path IN ({','.join('?' * len(malformed_paths))}) LIMIT 5",
+                    malformed_paths,
+                ).fetchall()
+                issues.append(
+                    {
+                        "category": "malformed_uid_path",
+                        "count": mp_count,
+                        "path_count": len(malformed_paths),
+                        "sample": [
+                            {"uid": r[0], "kind": r[1], "file_path": r[2]} for r in mp_sample
+                        ],
+                    }
+                )
+                if fix:
+                    chunk = 500
+                    for i in range(0, len(malformed_paths), chunk):
+                        batch = malformed_paths[i : i + chunk]
+                        cur = sqlite_conn.execute(
+                            f"DELETE FROM graph_nodes WHERE file_path IN ({','.join('?' * len(batch))})",
+                            batch,
+                        )
+                        fixed_count += int(cur.rowcount or 0)
+                    sqlite_conn.commit()
+            stale_paths = real_stale_paths
             if stale_paths:
                 stale_node_count = sqlite_conn.execute(
                     f"SELECT COUNT(*) FROM graph_nodes WHERE file_path IN ({','.join('?' * len(stale_paths))})",
@@ -3626,18 +3681,29 @@ def cos_graph_doctor(
         stats["edge_count"] = len(edge_list)
         stats["issue_count"] = len(issues)
 
-    healthy = len(issues) == 0
+    # W7.6 / R4-N9: informational categories (orphaned_external_unresolved)
+    # do NOT trip healthy=false. Real issues = anything else.
+    _INFORMATIONAL_CATEGORIES = {"orphaned_external_unresolved"}
+    real_issues = [
+        i for i in issues if i.get("category") not in _INFORMATIONAL_CATEGORIES
+    ]
+    healthy = len(real_issues) == 0
     return _ok(
         {"healthy": healthy, "issues": issues, "stats": stats},
         meta={
             "backend": be.backend_id,
             "fix_applied": fix and fixed_count > 0,
             "fixed_count": fixed_count,
-            # G27: clarify which categories `fix=true` can act on.
-            # orphan_nodes (code:external:unresolved:*) are stub
-            # surfacing — they are NOT fixable by this tool; only
-            # self_loops and stale_paths are.
-            "fixable_categories": ["self_loops", "stale_paths"],
+            # W7.6 / R4-13: list what fix=true actually deletes today.
+            # orphaned_external_unresolved is informational (extractor
+            # stub surfacing — not a fixable bug).
+            "fixable_categories": [
+                "stale_paths",
+                "malformed_uid_path",
+                "dangling_source",
+                "dangling_target",
+            ],
+            "informational_categories": list(_INFORMATIONAL_CATEGORIES),
         },
     )
 

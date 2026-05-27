@@ -252,15 +252,20 @@ class TestDoctor:
         assert data["stats"]["edge_count"] >= 5
 
     def test_orphan_detected(self, seeded, migrated_conn):
-        # "orphan" node has no edges — should appear in issues
+        # W7.6: in-repo orphans surface under `orphaned_inrepo`;
+        # `code:external:unresolved:*` go to `orphaned_external_unresolved`.
         data = _ok(graph.cos_graph_doctor())
         categories = {i["category"] for i in data["issues"]}
-        assert "orphaned_nodes" in categories
+        assert "orphaned_inrepo" in categories or "orphaned_external_unresolved" in categories
 
     def test_orphan_count_correct(self, seeded, migrated_conn):
         data = _ok(graph.cos_graph_doctor())
-        orphan_issue = next(i for i in data["issues"] if i["category"] == "orphaned_nodes")
-        assert orphan_issue["count"] >= 1
+        orphan_issues = [
+            i
+            for i in data["issues"]
+            if i["category"] in ("orphaned_inrepo", "orphaned_external_unresolved")
+        ]
+        assert sum(i["count"] for i in orphan_issues) >= 1
 
     def test_self_loop_detected(self, migrated_conn, monkeypatch):
         """Self-loop edge (source_id == target_id) should appear in issues."""
