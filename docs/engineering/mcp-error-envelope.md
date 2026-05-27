@@ -33,12 +33,57 @@ patterns (zibalvpn R3), the envelope:
 ```json
 {
   "ok": true,
-  "data": <T>
+  "data": {
+    "<payload-keys>": ...,
+    "meta": {
+      "layer": "memory" | "docs" | "tasks" | "metrics" | "routing" | "graph" | "health" | "learning" | "audit",
+      "tokens_estimated": <int>,
+      "truncated": <bool>,
+      "<truncated_*>": ...
+    }
+  }
 }
 ```
 
 `data` is whatever the tool produced — a dict, a list, a scalar, or even
 `null`. Consumers should drill through `data` rather than the top level.
+
+#### `data.meta` — diagnostics block (set by `ok()`, callers cannot spoof)
+
+| Key | Type | Meaning |
+|---|---|---|
+| `layer` | str | Which retrieval layer answered (`memory` / `docs` / `tasks` / `graph` / …). Callers supply this via `ok(data, meta={"layer": ...})`. |
+| `tokens_estimated` | int | Serialized response length ÷ 4. Set by `ok()`; callers MUST NOT set manually. |
+| `truncated` | bool | `True` iff `_apply_token_budget` (or `_trim_coherent_subgraph` for graph-export shape) actually shrank the body. `False` for no-op trims so agents trust the signal. |
+| `truncated_results_from` / `truncated_results_to` | int | Original + kept count when `data.results` was tail-trimmed. Same pattern (`<key>_from` / `<key>_to`) for every key in `_TRIMMABLE_LIST_KEYS` (`neighbours`, `references`, `edges`, `nodes`, `processes`, `call_sites`, `import_sites`, `doc_references`, `test_references`, `string_literals`, `external_targets`, `branches`, `steps`, `http_routes`, `mcp_tools`, `grpc_endpoints`, `event_handlers`, `websocket`, `nodes_top`, `samples`). |
+| `truncated_edges_by_type` | dict | Per-bucket trim record `{kind: {from, to}}` for `edges_by_type` dict-of-lists. |
+| `truncated_string_fields` | list[str] | F#5 final safety-net — names of huge scalar fields shortened with `…[truncated]`. |
+| `truncated_subgraph` | bool | Set when `_trim_coherent_subgraph` cut a `{nodes, edges}` body (graph-export shape). Pairs with `truncated_nodes_from/to` + `truncated_edges_from/to` so the agent can detect coherent (proportional) trim vs catastrophic shrink. |
+| `envelope_unshrinkable` | bool | Surfaced when every trim ladder ran and the payload still exceeded budget — caller should log + investigate. |
+
+The trimmer strips and re-computes `tokens_estimated`, `truncated`, and every
+`truncated_*` key on each call; callers cannot inject false values via the
+`meta=` kwarg.
+
+#### Token budget tiers
+
+| Tier | Constant | Trim strategy | Applies to |
+|---|---|---|---|
+| Default (agent context) | `TOKEN_BUDGET_CHARS = 32_000` | `_apply_token_budget` — per-key shrink ladder (results/neighbours/references/…), then `edges_by_type` buckets, then F#5 string truncation | Every `cos_*` tool whose response does NOT have both `nodes:list` and `edges:list` |
+| Graph subgraph (OOM safety) | `GRAPH_SUBGRAPH_BUDGET_CHARS = 5_000_000` | `_trim_coherent_subgraph` — binary-search top-K nodes by incident degree, keep only edges between kept nodes | `cos_graph_export` and any other tool emitting `{nodes, edges}` |
+
+Rationale for the second tier: `cos_graph_export` describes a whole
+subgraph (Hub UI's CONTAINS spine, 1094 nodes / 1444 edges typical for
+this repo ≈ 1 MB pretty-printed). The agent-context cap (32 KB) is the
+wrong constraint — it would either zero out `edges` (W6.6 regression,
+fixed by [139f239] / [20feb59]) or yield a 59-node incoherent slice.
+The 5 MB ceiling is an OOM safety net: any normal request passes
+through untouched; only pathological agent requests (max_nodes=10000
++ no edge-types filter) trip the coherent trim, and even then the
+caller receives a connected subgraph the Hub UI can render. The
+caller's `max_nodes` / `max_hops` parameters (G35 hard-caps
+`max_nodes ≤ 2000`) are the primary volume controls; the envelope
+is the safety net.
 
 ### Error
 

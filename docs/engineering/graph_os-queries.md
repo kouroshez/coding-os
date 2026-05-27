@@ -34,7 +34,7 @@
 | API surface (HTTP, MCP, gRPC, events) | `cos_graph_contracts()` |
 | Plan before rename | `cos_graph_rename_plan(uid, new_name)` |
 | Pre-commit: what changes broke? | `cos_graph_detect_changes(files=[...])` |
-| Visualise | `cos_graph_export(format="mermaid"|"json"|"dot")` |
+| Visualise | `cos_graph_export(format="mermaid"|"json"|"dot")` — `max_nodes` default 500 for agents, G35 hard-caps at 2000. `{nodes, edges}` envelope uses the 5 MB graph-subgraph budget (see [mcp-error-envelope.md § Token budget tiers](mcp-error-envelope.md#token-budget-tiers)) so Hub UI gets the full tree; coherent-subgraph trim kicks in only above the OOM ceiling. |
 
 ## Routing decision
 
