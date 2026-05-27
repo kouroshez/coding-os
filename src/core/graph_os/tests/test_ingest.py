@@ -39,6 +39,39 @@ class TestLocal:
         plan = walk_local(tmp_path)
         assert all(".git" not in str(p) for p in plan.files)
 
+    def test_exclude_paths_drops_test_golden_fixtures(self, tmp_path):
+        """tests/golden/ mirrors of real repo structure inflate the graph
+        with duplicates that surface as 6 identical "adr" / "api-contracts"
+        entries in the Hub UI sidebar. Path-segment exclude prunes them at
+        walk time, separate from folder-name exclude (`golden` alone would
+        over-match in consumer projects)."""
+        # Real source — kept.
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "real.py").write_text("")
+        # tests/golden — golden fixtures, dropped.
+        golden = tmp_path / "tests" / "golden" / "claude_django"
+        golden.mkdir(parents=True)
+        (golden / "scaffold.py").write_text("")
+        # Sibling tests/ content — kept (only the golden/ subtree is pruned).
+        (tmp_path / "tests" / "real_test.py").write_text("")
+
+        plan = walk_local(tmp_path)
+        paths = [str(p.relative_to(tmp_path)) for p in plan.files]
+        assert "src/real.py" in paths
+        assert "tests/real_test.py" in paths
+        assert not any("tests/golden" in p for p in paths), (
+            f"tests/golden survived prune: {paths}"
+        )
+
+    def test_exclude_paths_does_not_match_partial_segment(self, tmp_path):
+        """A folder named `golden_clone` next to `golden` must NOT be pruned —
+        the segment match requires the literal sequence with a `/` boundary."""
+        clone = tmp_path / "tests" / "golden_clone"
+        clone.mkdir(parents=True)
+        (clone / "f.py").write_text("")
+        plan = walk_local(tmp_path)
+        assert any("golden_clone" in str(p) for p in plan.files)
+
     def test_unknown_path_raises(self, tmp_path):
         with pytest.raises(IngestError):
             walk_local(tmp_path / "missing")

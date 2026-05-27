@@ -65,6 +65,18 @@ DEFAULT_EXCLUDE = (
     ".ruff_cache",
 )
 
+# Path-segment excludes: pruned when this exact relative-path sequence
+# appears anywhere under the walked root. Distinct from DEFAULT_EXCLUDE
+# (folder-name match) so the meta-repo can drop scaffolded test fixtures
+# (`tests/golden/<adapter>_<stack>/...` mirrors of real repo structure
+# rendered by cos init test scaffolds) without also excluding a folder
+# literally named "golden" in a consumer project. 6.1k nodes / 16 % of
+# graph were coming from these mirrors and surfacing as duplicate spine
+# entries in the Hub UI.
+DEFAULT_EXCLUDE_PATHS = (
+    "tests/golden",
+)
+
 
 def walk_local(
     root: str | Path,
@@ -72,6 +84,7 @@ def walk_local(
     alias: str | None = None,
     include: Iterable[str] = DEFAULT_INCLUDE,
     exclude: Iterable[str] = DEFAULT_EXCLUDE,
+    exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_PATHS,
     max_files: int = 1_000_000,
     max_size_bytes: int = 50 * 1024 * 1024 * 1024,
 ) -> IngestPlan:
@@ -88,11 +101,30 @@ def walk_local(
 
     include_set = tuple(include)
     exclude_set = set(exclude)
+    # Normalise to forward-slash POSIX form for stable substring match
+    # regardless of host filesystem. Empty patterns are silently dropped
+    # so an env-var override like COS_GRAPH_EXCLUDE_PATHS="" deactivates
+    # the feature cleanly.
+    exclude_paths_set = {p.strip("/").replace(os.sep, "/") for p in exclude_paths if p}
 
     total_bytes = 0
     collected: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root_path):
+        # Folder-name pruning (cheap, runs first).
         dirnames[:] = [d for d in dirnames if d not in exclude_set]
+        # Relative-path pruning — drop subtrees whose rel-path contains
+        # any configured segment sequence (e.g. tests/golden mirrors).
+        if exclude_paths_set:
+            rel = Path(dirpath).relative_to(root_path).as_posix()
+            # rel == "." at the root; segment substring match works for
+            # nested matches like "src/old/tests/golden/...". The "/"
+            # suffix avoids matching "tests/golden_clone" by accident.
+            if any(
+                rel == p or rel.startswith(p + "/")
+                for p in exclude_paths_set
+            ):
+                dirnames.clear()
+                continue
         for name in filenames:
             if not any(fnmatch.fnmatchcase(name, pat) for pat in include_set):
                 continue
@@ -119,6 +151,7 @@ def walk_local(
 
 __all__ = [
     "DEFAULT_EXCLUDE",
+    "DEFAULT_EXCLUDE_PATHS",
     "DEFAULT_INCLUDE",
     "IngestError",
     "IngestPlan",
