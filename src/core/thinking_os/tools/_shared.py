@@ -286,7 +286,15 @@ def _trim_nested_member_lists(
     new_items = [dict(it) if isinstance(it, dict) else it for it in items]
     record: dict[str, int] = {}
     iter_guard = 0
-    while _probe_size({**body, parent_key: new_items}, meta) > TOKEN_BUDGET_CHARS and iter_guard < 64:
+    # iter_guard caps the halving loop. Each iteration halves the
+    # biggest member list above `floor`, so at most ceil(log2(max_len))
+    # passes per entry × N entries. 64 covers up to ~2^64 starting size
+    # while keeping the loop bounded against pathological inputs.
+    _ITER_GUARD_MAX = 64
+    while (
+        _probe_size({**body, parent_key: new_items}, meta) > TOKEN_BUDGET_CHARS
+        and iter_guard < _ITER_GUARD_MAX
+    ):
         iter_guard += 1
         # find entry with biggest member list above floor
         candidate_idx = -1

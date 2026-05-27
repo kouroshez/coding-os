@@ -10,6 +10,7 @@ import hashlib
 import logging
 import os
 import re
+import sqlite3
 import sys
 import threading
 from collections import deque
@@ -627,7 +628,10 @@ def _file_contained_symbols(
         edges = backend.list_edges(
             source_uid=file_uid, edge_types=("contains",), limit=limit
         )
-    except Exception:
+    except (BackendUnavailable, sqlite3.Error):
+        # Read-fallback only — caller already has a valid root node;
+        # missing contained-symbol expansion degrades to file-only walk.
+        # Narrowed from bare-except so KeyboardInterrupt/SystemExit propagate.
         return []
     out: list[str] = []
     for e in edges:
@@ -1098,7 +1102,11 @@ def cos_graph_impact(
     if root.kind == "file":
         children = _file_contained_symbols(be, root.uid, limit=visit_limit)
         if children:
-            walk_roots = children + [root.uid]
+            # Children carry the behavioural surface area; the file uid
+            # itself has only contains-edges (already walked as parents
+            # of each child) and would consume visit_limit budget for
+            # zero new signal. Drop it.
+            walk_roots = children
             expanded_from_file = True
 
     seen_node_uids: set[str] = set()
@@ -1246,7 +1254,7 @@ def cos_graph_detect_changes(
             if not walk_seeds:
                 walk_seeds = [file_uid]
             seen_uids: set[str] = set()
-            deep_edges: list[Any] = []
+            deep_edges: list[GraphEdge] = []
             seen_edges: set[tuple] = set()
             for seed in walk_seeds:
                 if len(seen_uids) >= _DC_VISIT_LIMIT:
