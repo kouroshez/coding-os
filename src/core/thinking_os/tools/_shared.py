@@ -51,6 +51,20 @@ _RETRYABLE_BY_DEFAULT: frozenset[str] = frozenset({"transient", "unavailable"})
 # catastrophic payloads (e.g. 1000-row metric queries) get trimmed.
 TOKEN_BUDGET_CHARS = 32_000
 
+# OOM-safety ceiling for graph-export-shaped responses ({nodes, edges}).
+# Rationale: structural snapshots aren't textual prose — they describe
+# a whole subgraph. The agent-context budget (32 KB) is the wrong cap;
+# the caller already constrained volume via max_nodes/max_hops (G35
+# hard-caps max_nodes at 2000). UI consumers (/api/graph/export) need
+# the full tree to render the CONTAINS spine. Set ceiling at ~5 MB —
+# any browser fetches that comfortably, MCP transports tolerate it, and
+# the full repo tree (1094 nodes + 1444 edges ≈ 1 MB with indent=2)
+# never trips it under normal operation. Above the ceiling we fall
+# back to coherent-subgraph trim (top-K nodes by degree, edges between
+# kept nodes) so a pathological agent request never returns zero edges
+# or an incoherent slice.
+GRAPH_SUBGRAPH_BUDGET_CHARS = 5_000_000
+
 # Layer names — enumerated so tests can pin the contract and agents can
 # filter (Three-Layer Retrieval in CLAUDE.md).
 VALID_LAYERS: frozenset[str] = frozenset(
@@ -107,20 +121,37 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     existing_meta["truncated"] = False
 
     # Graph-export-shaped responses ({nodes:[...], edges:[...]}) describe a
-    # whole subgraph — the caller already capped volume via max_nodes /
-    # max_hops parameters; applying the agent-context-window budget on top
-    # would either zero out edges (W6.6 regression) or yield a tiny
-    # incoherent slice. UI consumers (/api/graph/export) need the full
-    # tree to render the CONTAINS spine; agent consumers use cos_graph_export
-    # rarely and can pass smaller max_nodes when context is tight.
+    # whole subgraph. Two-tier budget:
+    #   1. Under GRAPH_SUBGRAPH_BUDGET_CHARS (≈500 KB): pass through
+    #      untouched — UI Hub needs full tree to render CONTAINS spine.
+    #   2. Over the larger ceiling: coherent-subgraph trim (top-K nodes
+    #      by degree + edges between kept nodes). Never zero out edges
+    #      (W6.6 regression) and never return an incoherent slice.
+    # Agent consumers can use max_nodes/max_hops to stay under the agent
+    # context window; the envelope is the safety net, not the primary cap.
     _is_graph_subgraph = (
         isinstance(body.get("nodes"), list)
         and isinstance(body.get("edges"), list)
+        and bool(body.get("nodes"))
+        and bool(body.get("edges"))
     )
-    # Enforce token budget. `truncated` only flips when _apply_token_budget
-    # actually shrank the body — a no-op (shape not matched) leaves the
-    # flag False so agents trust the signal.
-    if len(serialized) > TOKEN_BUDGET_CHARS and not _is_graph_subgraph:
+    # Enforce token budget. `truncated` only flips when the body was
+    # actually shrunk — a no-op (shape not matched) leaves the flag
+    # False so agents trust the signal.
+    if _is_graph_subgraph:
+        if len(serialized) > GRAPH_SUBGRAPH_BUDGET_CHARS:
+            body, existing_meta, did_trim = _trim_coherent_subgraph(
+                body, existing_meta, budget_chars=GRAPH_SUBGRAPH_BUDGET_CHARS
+            )
+            if did_trim:
+                existing_meta["truncated"] = True
+                serialized = json.dumps(
+                    {"ok": True, "data": {**body, "meta": existing_meta}},
+                    indent=2,
+                    default=str,
+                )
+                existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
+    elif len(serialized) > TOKEN_BUDGET_CHARS:
         body, existing_meta, did_trim = _apply_token_budget(body, existing_meta)
         if did_trim:
             existing_meta["truncated"] = True
@@ -224,23 +255,28 @@ def _trim_list_key(
 
 
 def _trim_coherent_subgraph(
-    body: dict, meta: dict
+    body: dict, meta: dict, *, budget_chars: int = TOKEN_BUDGET_CHARS
 ) -> tuple[dict, dict, bool]:
     """Coherent shrink for cos_graph_export-shaped responses.
 
     Strategy: binary-search the largest K such that the top-K nodes by
     incident-degree, plus the subset of edges that connect kept nodes,
-    fit the budget. Dropping nodes proportionally (instead of
+    fit ``budget_chars``. Dropping nodes proportionally (instead of
     edges-first then nodes-first) keeps the subgraph connected — the
     Hub UI receives a coherent tree it can render, not 0 edges or 0
     nodes.
+
+    ``budget_chars`` defaults to TOKEN_BUDGET_CHARS (32 KB). Graph-
+    export callers pass GRAPH_SUBGRAPH_BUDGET_CHARS (≈500 KB) so the
+    UI gets the full repo tree under normal load and only the most
+    pathological agent requests trip the coherent trim.
     """
     nodes = body.get("nodes")
     edges = body.get("edges")
     if not isinstance(nodes, list) or not isinstance(edges, list):
-        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+        return body, meta, _probe_size(body, meta) <= budget_chars
     if not nodes or not edges:
-        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+        return body, meta, _probe_size(body, meta) <= budget_chars
 
     # Degree map: edges that reference each uid.
     degree: dict[str, int] = {}
@@ -283,21 +319,22 @@ def _trim_coherent_subgraph(
     while lo < hi:
         mid = (lo + hi + 1) // 2
         _, _, size = _probe(mid)
-        if size <= TOKEN_BUDGET_CHARS:
+        if size <= budget_chars:
             best_k = mid
             lo = mid
         else:
             hi = mid - 1
 
     kept_nodes, kept_edges, _ = _probe(best_k)
-    if best_k < original_n or len(kept_edges) < original_e:
+    did_trim = best_k < original_n or len(kept_edges) < original_e
+    if did_trim:
         meta["truncated_subgraph"] = True
         meta["truncated_nodes_from"] = original_n
         meta["truncated_nodes_to"] = best_k
         meta["truncated_edges_from"] = original_e
         meta["truncated_edges_to"] = len(kept_edges)
         body = {**body, "nodes": kept_nodes, "edges": kept_edges}
-    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    return body, meta, did_trim
 
 
 def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
@@ -461,26 +498,11 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # field got cut. Contract: post-trim body MUST fit budget — if even
     # scalar truncation fails (extreme pathological case), surface via
     # meta.envelope_unshrinkable=True so caller can log/alert.
+    # Graph-subgraph shape ({nodes,edges}) is handled by ok() ahead of
+    # this call via _trim_coherent_subgraph, so the per-key trim ladder
+    # below never zeroes out edges (W6.6 regression).
     did_any = False
     fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
-    # Coherent subgraph trim: cos_graph_export-shaped responses carry
-    # both `nodes` and `edges`. The per-key trimmer would drop one to 0
-    # while the other still has items (W6.6 swapped which goes first;
-    # either way the survivor is useless to a graph renderer). Trim them
-    # together — keep top-N nodes by degree, drop edges that no longer
-    # connect kept nodes — so the consumer always receives a coherent
-    # subgraph the Hub UI can actually render.
-    if (
-        not fits
-        and isinstance(body.get("nodes"), list)
-        and isinstance(body.get("edges"), list)
-        and body["nodes"]
-        and body["edges"]
-    ):
-        body, meta, fits_after = _trim_coherent_subgraph(body, meta)
-        if "truncated_subgraph" in meta:
-            did_any = True
-        fits = fits or fits_after
     # W6.2: shrink nested members (processes[*].members) BEFORE dropping
     # whole entries — preserves community/process count signal.
     for parent_key, member_key in _TRIMMABLE_NESTED_MEMBERS:
