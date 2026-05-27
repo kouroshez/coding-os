@@ -1,4 +1,4 @@
-<!-- domain:ALL | layer:engineering | ssot:true | updated:2026-05-06 -->
+<!-- domain:ALL | layer:engineering | ssot:true | updated:2026-05-27 -->
 # Graph-OS — Hallucination Cures & Token Economics
 
 > P: Catalogue every category of agent hallucination / blind-spot the
@@ -35,6 +35,13 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 > Raw repo paths passed directly to `cos_graph_impact` / `cos_graph_references` /
 > `cos_graph_rename_plan` silently return empty results — the single highest-confidence
 > hallucination pattern in this repo (agent belief score 0.93).
+>
+> **W7.2 transparency**: when a bare identifier (no path / no uid prefix) is
+> passed and the tool's FTS5 fallback picks a label match, the response sets
+> `meta.resolved_from: "fuzzy_fts5"` so the agent can detect the silent
+> hijack and re-issue with an explicit uid if the match is wrong. The pre-W7.2
+> behavior returned a plausible-but-wrong symbol with no signal — agents
+> mistakenly acted on the wrong blast radius. See `docs/engineering/mcp-error-envelope.md`.
 
 | # | Hallucination / blind-spot | Why it happens | Cure | Token win |
 |---|---|---|---|---|
@@ -55,7 +62,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | 14 | "Find me anything that mentions X." | Plain grep buries you in test fixtures + docs | `cos_graph_query(q)` (label + docstring search, kind-filtered) | Filtered to structural matches |
 | 15 | "Show me the surrounding context before I edit." | Read 1 file at a time, lose the connections | `cos_graph_context(uid, depth=1)` | One subgraph vs. Read of N neighbours |
 | 16 | "Sketch this subsystem." | Mermaid by hand drifts from reality | `cos_graph_export(format="mermaid", root_uid=...)` | Always-fresh diagram, copy-pasteable |
-| 17 | "Is the graph itself healthy / why are answers stale?" | Backend selection / extractor breakage hides | `cos_graph_doctor()` — orphans, dangling edges, duplicates | One health snapshot vs. SQL spelunking |
+| 17 | "Is the graph itself healthy / why are answers stale?" | Backend selection / extractor breakage hides | `cos_graph_doctor()` — orphans split into `orphaned_inrepo` (real bugs) vs `orphaned_external_unresolved` (info-only stdlib stubs), `malformed_uid_path` (extractor over-capture: `../`, backtick, whitespace), `stale_paths` (deleted files), dangling edges, duplicates. `fix=True` deletes stale + malformed + dangling. | One health snapshot vs. SQL spelunking |
 | 18 | "Where does this npm/pypi/crates dep come from?" | Config files (package.json / pyproject.toml / Cargo.toml / tsconfig.json / mcp.json / settings.json) were invisible to the graph before 9bee865 — agents had to read each file by hand | `cos_graph_query` now finds `npm:package:<n>`, `pypi:package:<n>`, `crates:package:<n>`, `mcp:server:<n>` directly; `cos_graph_references(uid)` traces back to the declaring config file | One graph hop vs. multi-file Read + manual JSON/TOML parse |
 
 ## Tool by intent

@@ -96,7 +96,7 @@ tools manually at the points where the hook would otherwise run:
 |--------------------|------------------------|
 | `enforce-wip-limit.sh` | `cos_task_wip_check` before moving task to in_progress |
 | `capture-work-log.sh` | `cos_work_log_append` after each meaningful change |
-| `auto-reindex-docs.sh` | `cos_graph` or accept stale graph until next hook-capable run |
+| `auto-reindex-docs.sh` | `cos graph-reindex --prune-stale` (shell) — or accept stale graph until next hook-capable run |
 | `enforce-doc-anchor.sh` | Manually verify doc anchor before each code write |
 
 The `AGENTS.md` Tool Routing section flags Codex specifically:

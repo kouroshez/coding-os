@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-13 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-27 -->
 # MCP Error Envelope — `cos_*` Tool Response Contract
 
 Purpose: Canonical response shape for every `cos_*` MCP tool exposed by
@@ -60,6 +60,12 @@ patterns (zibalvpn R3), the envelope:
 | `truncated_string_fields` | list[str] | F#5 final safety-net — names of huge scalar fields shortened with `…[truncated]`. |
 | `truncated_subgraph` | bool | Set when `_trim_coherent_subgraph` cut a `{nodes, edges}` body (graph-export shape). Pairs with `truncated_nodes_from/to` + `truncated_edges_from/to` so the agent can detect coherent (proportional) trim vs catastrophic shrink. |
 | `envelope_unshrinkable` | bool | Surfaced when every trim ladder ran and the payload still exceeded budget — caller should log + investigate. |
+| `resolved_from` | str | W7.2 / R4-01. For uid-accepting tools (`context`, `impact`, `references`, `rename_plan`, `trace`, `similar`). One of `"direct"` (exact uid match) / `"path_prefix"` (raw path resolved via `code:file:` / `doc:file:` / `folder:` prefix) / `"fuzzy_fts5"` (FTS5 label fallback — answer may be wrong symbol, agent should verify). For `cos_graph_path` the keys are `source_resolved_from` + `target_resolved_from`. |
+| `default_kinds_picked` | bool | W7.3 / R4-02. `cos_graph_references` only. `True` when the caller passed empty `kinds` and the tool picked the per-node-kind default (class → `constructs+has_param_type+inherits_from+…`, function → `calls+accesses_field+imports+…`, file → `imports+links_to+contains+…`, doc_file → `links_to+cites_heading+…`, dependency → `requires+imports+…`). |
+| `node_kind` | str | W7.3. `cos_graph_references` only. The `kind` of the resolved root node — lets the caller verify that the per-kind defaults are appropriate. |
+| `semantic_scope` | str | `cos_graph_impact` only. `"transitive_depth_N"` so the caller can tell direct callers (`depth=1`) apart from N-hop transitive ones — disambiguates the F1 disagreement between rename_plan / references (direct) and impact (transitive). |
+| `fixable_categories` | list[str] | `cos_graph_doctor` only. Categories that `fix=True` actually deletes — `["stale_paths","malformed_uid_path","dangling_source","dangling_target"]`. Distinct from `informational_categories` which surface for visibility but never trip `healthy=false`. |
+| `informational_categories` | list[str] | `cos_graph_doctor` only. Categories surfaced as info — `["orphaned_external_unresolved"]` (stdlib / 3rd-party stub orphans, expected). These are listed in `issues` with `severity: "info"` and ignored by the `healthy` boolean. |
 
 The trimmer strips and re-computes `tokens_estimated`, `truncated`, and every
 `truncated_*` key on each call; callers cannot inject false values via the
@@ -170,6 +176,26 @@ The envelope is the contract for **all** `cos_*` tools registered in
 functions under `src/core/thinking_os/tools/*.py` still return plain Python values
 (dicts/lists) — the envelope is applied only at the MCP boundary so unit tests
 for helpers stay simple.
+
+## `cos_graph_doctor` issue categories (W7.6)
+
+`data.issues[]` carries one entry per finding. Each entry has
+`category`, `count`, optional `severity` (`"real"` default, `"info"`
+when the category is `informational_categories`), `sample[]`, and
+sometimes a `path_count`. Categories:
+
+| Category | Severity | What it means | `fix=True` deletes? |
+|---|---|---|---|
+| `dangling_source` | real | Edge with `source_id` pointing to a deleted node row | yes |
+| `dangling_target` | real | Edge with `target_id` pointing to a deleted node row | yes |
+| `duplicate_edges` | real | More than one row sharing `(source_id, target_id, edge_type, extractor)` | no — schema fix needed |
+| `self_loops` | real | Edge with `source_id == target_id` (extractor bug) | no — fix the extractor |
+| `orphaned_inrepo` | real | Node with no edges that is NOT a stub or external reference. Real bug — most likely the symbol it referenced was deleted, or extractor over-emitted. | no — fix via reindex or by removing the dead reference |
+| `orphaned_external_unresolved` | **info** | `code:external:*` and `cos:identifier:*` stub surfacing — expected noise (stdlib refs, skill/adapter identifiers that don't get inbound edges by design). Never trips `healthy=false`. | no — by design |
+| `malformed_uid_path` | real | Node whose `file_path` or `uid` contains `../`, backtick, or whitespace — extractor over-captured (X7 root cause: markdown link regex pulling in backticked prose). | yes |
+| `stale_paths` | real | Node whose `file_path` is non-malformed but no longer exists on disk. Accumulates from file moves / deletes that idempotent-upsert reindex preserves. | yes |
+
+The `healthy` boolean is computed by `len([i for i in issues if i.category not in informational_categories]) == 0`. So a graph with 1000 `orphaned_external_unresolved` and zero other issues reports `healthy=True`.
 
 ## EvidenceBundle + ExhaustiveEvidence (TASK-004 G3)
 

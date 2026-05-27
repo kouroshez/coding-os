@@ -140,14 +140,13 @@ cos_graph_resolve("src/core/thinking_os/server.py")
 
 ---
 
-## Deprecated Tools
+## Deprecated / Removed Tools
 
 | Tool | Status | Use instead |
 |---|---|---|
-| `cos_graph` | DEPRECATED | `cos_graph_context` / `cos_graph_impact` |
+| `cos_graph` | **REMOVED (W7.10, commit 8bb3cec)** | `cos_graph_resolve(q)` → `cos_graph_context(uid)` / `cos_graph_impact(uid)` / `cos_graph_references(uid)` |
 
-Calling `cos_graph` returns `{"ok": false, "error": {...}}` with a migration message.
-Do not call it; callers that do will receive an empty result set.
+The `cos_graph` MCP tool no longer exists. Calls fail at the FastMCP layer (tool not found) — there is no longer a deprecation envelope. Update any stale callers.
 
 ---
 
