@@ -944,41 +944,9 @@ def cos_learn_narrative(
 # ---------------------------------------------------------------------------
 # Graph tools (v4 brain features)
 # ---------------------------------------------------------------------------
-@mcp.tool(
-    name="cos_graph",
-    annotations={
-        "title": "[DEPRECATED] Query Concept/File Graph",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def thinking_os_graph(
-    node: str,
-    max_hops: int = 2,
-    limit: int = 10,
-    edge_types: str = "",
-) -> str:
-    """[REMOVED] cos_graph was removed. Migrate to cos_graph_context / cos_graph_impact."""
-    try:
-        metric_record(
-            _db_conn,
-            agent_type="system",
-            outcome="deprecated_call",
-            task_id="cos_graph.removed",
-            domain="graph_os",
-            complexity="legacy",
-        )
-    except Exception as exc:
-        logger.debug("cos_graph removal metric failed: %s", exc)
-    return fail(
-        "validation",
-        "cos_graph is removed. Use cos_graph_resolve(q) to get a uid, then "
-        "cos_graph_context(uid) / cos_graph_impact(uid) / cos_graph_references(uid). "
-        "See docs/engineering/mcp-schema-traps.md.",
-    )
+# W7.10 / R4-14: legacy cos_graph stub removed entirely. Use
+# cos_graph_resolve(q) → cos_graph_context(uid) / cos_graph_impact(uid)
+# / cos_graph_references(uid) instead.
 
 
 # ---------------------------------------------------------------------------
