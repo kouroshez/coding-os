@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [graph_os, envelope, token-budget, bug-from-prod]
-status: in_progress
+status: complete
 priority: P0
 appetite: "2h"
 created: 2026-05-26
 started: 2026-05-26
-completed: null
+completed: 2026-05-26
 agent_session: ses-claude-20260526-003648-f813
 depends_on: []
 blocked_by: []
@@ -41,3 +41,4 @@ Actual: 50,771 char serialized → MCP "result exceeds maximum allowed tokens" e
 - **Then** envelope ≤ TOKEN_BUDGET_CHARS (32KB), `meta.truncated=true` surfaces the cut, and downstream consumers (Hub UI / agent) get a usable response. Regression test asserts the envelope cap.
 
 ## Work Log
+- 2026-05-26 [claude]: root cause + fix + regression test

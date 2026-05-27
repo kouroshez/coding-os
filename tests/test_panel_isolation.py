@@ -124,19 +124,28 @@ def test_shared_files_stay_shared(tmp_path: Path) -> None:
             f"{name} must NOT route to panel dir"
 
 
-def test_legacy_agent_dir_fallback_on_read(tmp_path: Path) -> None:
-    """Migration safety: hooks pre-dating per-panel still write to AGENT_DIR.
-    Readers must surface the fossil for one cycle so consumer projects don't
-    see "Session mismatch" spam during the upgrade window.
+def test_no_cross_panel_leak_via_agent_dir_fossil(tmp_path: Path) -> None:
+    """Cross-panel leak protection: a fossil .thinking_os-gate sitting at
+    $COS_AGENT_DIR (left over by another panel or a pre-TASK-035 writer)
+    MUST NOT surface in this panel's read. Reading it would let one
+    panel's cognitive state pollute another's banner — the failure mode
+    TASK-035 exists to prevent.
+
+    The fossil's session-id deliberately matches a legacy agent-level
+    id (matches what cos-env.sh would have produced pre-panel) to prove
+    that the rejection is not just a session-mismatch coincidence but a
+    deliberate scope rule.
     """
-    env = _panel_env(tmp_path, "panel-legacy")
-    session_id = (Path(env["COS_PANEL_DIR"]) / "session-id").read_text().strip()
+    env = _panel_env(tmp_path, "panel-strict")
     legacy = Path(env["COS_AGENT_DIR"]) / ".thinking_os-gate"
-    legacy.write_text(f"{session_id} COMPLICATED 3\n")
+    # Stamp with the panel's session-id to defeat any session-id-based
+    # rejection; only the AGENT_DIR-scope rule should stop the read.
+    session_id = (Path(env["COS_PANEL_DIR"]) / "session-id").read_text().strip()
+    legacy.write_text(f"{session_id} FOSSIL_FROM_OTHER_PANEL 9\n")
 
     ok, val = _read(env, ".thinking_os-gate")
-    assert ok is True
-    assert val == "COMPLICATED 3"
+    assert ok is False, "AGENT_DIR fossil must be ignored to prevent cross-panel leak"
+    assert val == ""
 
 
 def test_panel_dir_takes_precedence_over_legacy(tmp_path: Path) -> None:

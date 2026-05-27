@@ -212,20 +212,23 @@ date +%s > "${COS_PANEL_DIR}/heartbeat" 2>/dev/null || true
 # ---------------------------------------------------------------------------
 cos_current_session() {
   # Echo current session id or 'none' if not available. Fail-open.
-  # Session-id format (agent-prefixed): ses-<agent>-YYYYMMDD-HHMMSS-xxxx
-  # Read from panel-private session-id first; fall back to legacy flat
-  # $COS_AGENT_DIR/session-id during the migration window so consumer
-  # projects upgrading mid-session still attribute correctly.
-  local f raw
-  for f in "$COS_SESSION_FILE" "${COS_AGENT_DIR}/session-id"; do
-    if [[ -f "$f" ]]; then
-      raw="$(head -c 64 "$f" 2>/dev/null | tr -d '[:space:]' || true)"
-      if [[ -n "$raw" ]]; then
-        echo "$raw"
-        return
-      fi
+  # Read STRICTLY from panel-private session-id (no AGENT_DIR fallback —
+  # cross-panel leak protection: a different panel's session-id parked
+  # at $COS_AGENT_DIR/session-id must not become "ours"). When no panel
+  # session-id file exists yet, fall back to $COS_PANEL_ID so write-
+  # state.sh can still stamp ownership.
+  local raw
+  if [[ -f "$COS_SESSION_FILE" ]]; then
+    raw="$(head -c 64 "$COS_SESSION_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
+    if [[ -n "$raw" ]]; then
+      echo "$raw"
+      return
     fi
-  done
+  fi
+  if [[ -n "${COS_PANEL_ID:-}" ]]; then
+    echo "$COS_PANEL_ID"
+    return
+  fi
   echo "none"
 }
 
@@ -237,13 +240,9 @@ cos_current_task() {
   #      return it truncated to 40 chars (keeps log lines readable).
   #   3. Else return 'none'.
   # File format: "<session_id> <task_name>" (single whitespace).
-  # Read from panel dir first, fall back to agent dir during migration.
-  local f
-  if [[ -f "${COS_PANEL_DIR}/.task-current" ]]; then
-    f="${COS_PANEL_DIR}/.task-current"
-  elif [[ -f "${COS_AGENT_DIR}/.task-current" ]]; then
-    f="${COS_AGENT_DIR}/.task-current"
-  else
+  # STRICTLY panel-scoped — never read AGENT_DIR fossil (cross-panel leak).
+  local f="${COS_PANEL_DIR}/.task-current"
+  if [[ ! -f "$f" ]]; then
     echo "none"
     return
   fi

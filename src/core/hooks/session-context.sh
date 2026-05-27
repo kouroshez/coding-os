@@ -146,15 +146,12 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
 
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
   source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
-  # Helper: pick panel file if present, else legacy agent file. Lets the
-  # compact/resume snapshot still surface state during the migration
-  # window.
+  # Helper: panel file ONLY. Reading the agent-dir fossil here would leak
+  # another panel's compact/resume snapshot into this panel (TASK-035).
   _panel_or_agent() {
     local base="$1"
     if [[ -f "${COS_PANEL_DIR}/${base}" ]]; then
       echo "${COS_PANEL_DIR}/${base}"
-    elif [[ -f "${COS_AGENT_DIR}/${base}" ]]; then
-      echo "${COS_AGENT_DIR}/${base}"
     fi
   }
   _GATE_STATUS="not recorded"
@@ -280,23 +277,29 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   # (resumed conversation, no panel session-id file) shows ses=? · all-
   # state-rejected. Mirrors cos_current_session() in cos-env.sh.
   _CURRENT_SESSION=""
-  for _f in "${COS_SESSION_FILE:-}" "${COS_AGENT_DIR}/session-id"; do
-    [ -n "$_f" ] && [ -f "$_f" ] || continue
-    _CURRENT_SESSION=$(head -1 "$_f" 2>/dev/null | tr -d '\n\r')
-    [ -n "$_CURRENT_SESSION" ] && break
-  done
-  unset _f
-  # Companion ownership accepts: legacy state files were stamped with the
-  # agent-level session-id, panel-aware writes use the panel session-id.
-  # Both are considered owned by THIS panel during the transition window.
-  _AGENT_SESSION=""
-  if [ -f "${COS_AGENT_DIR}/session-id" ]; then
-    _AGENT_SESSION=$(head -1 "${COS_AGENT_DIR}/session-id" 2>/dev/null | tr -d '\n\r')
+  if [ -n "${COS_SESSION_FILE:-}" ] && [ -f "$COS_SESSION_FILE" ]; then
+    _CURRENT_SESSION=$(head -1 "$COS_SESSION_FILE" 2>/dev/null | tr -d '\n\r')
+  fi
+  # Synthesise from panel-id when no session-id file exists yet (resumed
+  # panel that never fired SessionStart:startup, or fresh panel where the
+  # startup hook hasn't run). Without this, banner collapses to ses=?.
+  # NEVER fall back to $COS_AGENT_DIR/session-id — that file is a fossil
+  # belonging to a different panel and trusting it leaks state across
+  # panels (TASK-035 regression: cos-env.sh + check-state.sh now reject
+  # the legacy file by the same rule).
+  if [ -z "$_CURRENT_SESSION" ] && [ -n "${COS_PANEL_ID:-}" ]; then
+    _CURRENT_SESSION="$COS_PANEL_ID"
+  fi
+  # Idempotently seed the panel session-id file when missing, so subsequent
+  # hooks read a stable ownership token instead of recomputing the fallback.
+  if [ -n "${COS_SESSION_FILE:-}" ] && [ ! -f "$COS_SESSION_FILE" ] && [ -n "$_CURRENT_SESSION" ]; then
+    mkdir -p "$(dirname "$COS_SESSION_FILE")" 2>/dev/null || true
+    printf '%s' "$_CURRENT_SESSION" > "$COS_SESSION_FILE" 2>/dev/null || true
   fi
   _read_state() {
     local file_input="$1" cap="$2"
-    # Panel-first: per-panel files live in $COS_PANEL_DIR; if missing
-    # there, fall back to legacy $COS_AGENT_DIR for one migration cycle.
+    # STRICTLY panel-scoped for files in $COS_PER_PANEL_FILES — never
+    # fall back to $COS_AGENT_DIR (cross-panel leak protection, TASK-035).
     local file=""
     local base
     base="$(basename "$file_input")"
@@ -304,8 +307,6 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
       *" $base "*)
         if [ -f "${COS_PANEL_DIR}/${base}" ]; then
           file="${COS_PANEL_DIR}/${base}"
-        elif [ -f "${COS_AGENT_DIR}/${base}" ]; then
-          file="${COS_AGENT_DIR}/${base}"
         fi
         ;;
       *)
@@ -329,8 +330,7 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
     if [ -z "$file_session" ]; then
       echo ""; return
     fi
-    if [ "$file_session" != "$_CURRENT_SESSION" ] && \
-       [ "$file_session" != "$_AGENT_SESSION" ]; then
+    if [ "$file_session" != "$_CURRENT_SESSION" ]; then
       echo ""; return
     fi
     # Truncate by char count (-c is char-aware in GNU and BSD cut),

@@ -99,13 +99,13 @@ Full personas × scenarios matrix (P1-P6 × S1-S7), per-file routing rationale, 
 |---|---|---|---|
 | `ses` | `session-id` file → last 8 chars (panel-first, then agent-level fallback) | n/a (identity) | both files missing → seeded from `COS_PANEL_ID` |
 | `mode` | `.task-mode` (`classify-task-mode.sh`) | n/a (per-turn write) | unset → `formal` default |
-| `task` | `.task-current` via `_read_state` | accepts panel-id OR agent-id (transition window) | missing / stale → `none` |
-| `gate` | `.thinking_os-gate` via `_read_state` | accepts panel-id OR agent-id | missing / stale → `unset` |
-| `skill` | `.active-skill` via `_read_state` | accepts panel-id OR agent-id | missing / stale → `-` · **lag 1 turn**: skills loaded mid-turn show in NEXT banner |
+| `task` | `.task-current` via `_read_state` | STRICT panel-id match (no AGENT_DIR fallback) | missing / stale → `none` |
+| `gate` | `.thinking_os-gate` via `_read_state` | STRICT panel-id match | missing / stale → `unset` |
+| `skill` | `.active-skill` via `_read_state` | STRICT panel-id match | missing / stale → `-` · **lag 1 turn**: skills loaded mid-turn show in NEXT banner |
 | `audit` | grep `^status:` (YAML) OR `**Status:**` (markdown) | filesystem-current | no audits → `-` · `count(id)·N-unchecked` when verified=no rows exist |
 | `⚠️` | DB `wip` vs `.task-current` | n/a | suppressed when consistent |
 
-**Panel-level session-id initialization.** `cos_panel_upgrade_from_payload` writes `$COS_PANEL_DIR/session-id` when missing — seeding from the agent-level legacy `$COS_AGENT_DIR/session-id` if present, else from `$COS_PANEL_ID` itself. Without this, hooks that read `$COS_SESSION_FILE` (panel SSOT) on a resumed panel — where SessionStart:startup never fires — see an empty file, the ownership check rejects every state file, and the banner collapses to `ses=? · task=none · gate=unset` even though valid legacy state exists. The reader pairs this with a dual-id accept (panel-id OR agent-id) so legacy `.task-current` / `.thinking_os-gate` / `.active-skill` written before panel-aware writers shipped stay readable until the next session cycle re-stamps them.
+**Panel-level session-id initialization.** `session-context.sh` (UserPromptSubmit) idempotently seeds `$COS_PANEL_DIR/session-id` when missing, using `$COS_PANEL_ID` as the identity — so a resumed panel that never fired `SessionStart:startup` still ships a non-`?` `ses=` tail on its first prompt. `cos_panel_upgrade_from_payload` further refines `$COS_PANEL_ID` from the runtime's stdin `session_id` when present. The reader is STRICTLY panel-scoped: it never falls back to `$COS_AGENT_DIR/session-id` or to any state file under `$COS_AGENT_DIR/`, because a fossil parked there belongs to a **different panel** of the same agent. Trusting it would leak that panel's task / gate / skill into this panel's banner — the failure mode TASK-035 exists to prevent. Legacy fossils from pre-TASK-035 writers stay invisible until each panel re-stamps its own copy via `write-state.sh` (which routes through `$COS_PANEL_DIR`).
 
 Hardening invariants enforced by `_read_state`:
 - If `_CURRENT_SESSION` cannot be determined (missing `session-id` file), ALL state files are rejected as untrusted.

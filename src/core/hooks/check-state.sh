@@ -34,22 +34,11 @@ check_state() {
   else
     STATE_FILE="$STATE_FILE_INPUT"
   fi
-  # Legacy fallback: if panel-routed path is empty but the caller's
-  # original (or AGENT_DIR-equivalent) location exists, prefer that. Covers
-  # (a) bare basename → agent-dir fossil from pre-migration writers, and
-  # (b) callers that pre-built "$COS_AGENT_DIR/<name>" before cos_state_path
-  # existed and whose target panel hasn't written its own copy yet.
-  if [[ ! -f "$STATE_FILE" ]]; then
-    local _base
-    _base="$(basename "$STATE_FILE_INPUT")"
-    case " ${COS_PER_PANEL_FILES:-} " in
-      *" $_base "*)
-        if [[ -f "${COS_AGENT_DIR}/${_base}" ]]; then
-          STATE_FILE="${COS_AGENT_DIR}/${_base}"
-        fi
-        ;;
-    esac
-  fi
+  # NO AGENT_DIR fallback for per-panel files. Reading another panel's
+  # state via the shared agent dir is cross-panel leak — the failure
+  # mode TASK-035 exists to prevent. Legacy fossils from pre-TASK-035
+  # writers stay invisible until the panel re-stamps its own copy via
+  # write-state.sh (which now routes through $COS_PANEL_DIR).
 
   # Check existence
   if [[ ! -f "$STATE_FILE" ]]; then
@@ -64,14 +53,16 @@ check_state() {
   FILE_SESSION=$(echo "$CONTENT" | awk '{print $1}')
   STATE_VALUE=$(echo "$CONTENT" | cut -d' ' -f2-)
 
-  # Check session match — read panel-private session-id, then legacy flat
-  # $COS_AGENT_DIR/session-id during the migration window.
+  # Check session match — STRICTLY from panel session-id file. No
+  # AGENT_DIR fallback (cross-panel leak protection — see TASK-035).
+  # When the panel session-id file is missing, $COS_PANEL_ID is the
+  # synthesised identity that write-state.sh also uses.
   local SESSION_FILE="$COS_SESSION_FILE"
   local CURRENT_SESSION=""
   if [[ -f "$SESSION_FILE" ]]; then
     CURRENT_SESSION=$(cat "$SESSION_FILE")
-  elif [[ -f "${COS_AGENT_DIR}/session-id" ]]; then
-    CURRENT_SESSION=$(cat "${COS_AGENT_DIR}/session-id")
+  elif [[ -n "${COS_PANEL_ID:-}" ]]; then
+    CURRENT_SESSION="$COS_PANEL_ID"
   fi
 
   if [[ -n "$CURRENT_SESSION" ]] && [[ -n "$FILE_SESSION" ]] && [[ "$FILE_SESSION" != "$CURRENT_SESSION" ]]; then

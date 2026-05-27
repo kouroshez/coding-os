@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [state-files, concurrency, multi-adapter, panel-isolation, enterprise-hardening]
-status: testing
+status: complete
 priority: P1
 appetite: "7d"
 created: 2026-05-26
 started: 2026-05-26
-completed: null
+completed: 2026-05-26
 agent_session: ses-claude-20260526-003648-f813
 depends_on: []
 blocked_by: []
@@ -48,3 +48,12 @@ references: []
   - **F (Docs)**: `docs/engineering/state-files.md` gained S7 multi-panel scenario, P6 persona row, three-tier scope explanation, panel-id resolution section. `docs/engineering/adapter-parity.md` gained `runtime_session_marker` contract section. `src/core/rules/transparency-banner.md` concurrency-model row updated to ✅, worktree workaround paragraph removed. `CLAUDE.md` P2 note deferred (governance task gate; tracked separately).
   - **G (Hub UI)**: deferred per Rule 22 — transparency banner already surfaces per-panel cognitive state to the agent; per-panel column in `SessionsPage.tsx` is nice-to-have, not load-bearing.
   - **Acceptance**: all G/W/T pass; 3-panel smoke covered by `test_two_panels_independent_gate`. Worktree workaround removed (`grep worktree-workaround` returns 0 in transparency-banner + state-files).
+- 2026-05-26 [claude]: committed + verified (was uncommitted in working tree)
+- 2026-05-27: **Hardening pass (cross-panel leak fix).** User observed sibling panel's task/gate surfacing in this panel's banner because AGENT_DIR fossils were honoured as "migration fallback". That fallback was the leak. Fix:
+  - `cos-env.sh::cos_current_session` + `cos_current_task` — strict panel-only read; fall back to `$COS_PANEL_ID` as identity, NEVER to `$COS_AGENT_DIR/session-id`.
+  - `check-state.sh` — removed AGENT_DIR fossil fallback for per-panel basenames; `CURRENT_SESSION` resolves from panel session-id or `$COS_PANEL_ID`, never agent-dir.
+  - `session-context.sh` — removed dual-id accept and AGENT_DIR fallback in `_read_state`, idempotently seeds panel session-id from `$COS_PANEL_ID`. `_panel_or_agent` helper now panel-only.
+  - `write-state.sh` — falls back to `$COS_PANEL_ID` as `SESSION_ID` prefix when no panel session-id file exists yet.
+  - Test: renamed `test_legacy_agent_dir_fallback_on_read` → `test_no_cross_panel_leak_via_agent_dir_fossil` — asserts fossil REJECTED. `TestThinkingOsGate` fixture rewritten for panel dir.
+  - Docs: `transparency-banner.md` accuracy table changed to "STRICT panel-id match (no AGENT_DIR fallback)".
+  - Tests: 134 hooks + 16 isolation + 14 guardian all green.

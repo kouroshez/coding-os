@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, envelope, agent-cost, enterprise]
-status: in_progress
+status: complete
 priority: P0
 appetite: "2h"
 created: 2026-05-26
 started: 2026-05-26
-completed: null
+completed: 2026-05-26
 agent_session: ses-claude-20260526-003648-f813
 depends_on: []
 blocked_by: []
@@ -31,3 +31,4 @@ references: []
 - **Then** response has `summary_mode=true` with `edge_counts` + `top_edges_by_type` (no full `neighbours`), envelope ≤ 6KB, `drill_hint` points caller to cos_graph_references for full lists. UI path (depth=1) shape unchanged.
 
 ## Work Log
+- 2026-05-26 [claude]: summary shape landed + bench verified

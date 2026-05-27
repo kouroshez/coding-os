@@ -320,26 +320,32 @@ class TestStateRoundTrip:
 class TestThinkingOsGate:
     @pytest.fixture
     def gate_env(self, tmp_path: Path) -> tuple[Path, dict[str, str]]:
-        """Set up a temp project with session and agent-scoped state dir."""
+        """Set up a temp project with session + panel-scoped state dir
+        (TASK-035: cognitive state lives at $COS_PANEL_DIR, not $COS_AGENT_DIR)."""
         state_dir = tmp_path / ".coding-os"
         state_dir.mkdir()
         agent_dir = state_dir / "claude"
         agent_dir.mkdir()
-        session_file = agent_dir / "session-id"
+        panel_id = "test-gate-panel"
+        panel_dir = agent_dir / "panels" / panel_id
+        panel_dir.mkdir(parents=True)
         session_id = "ses-claude-20260405-120000-ABCD"
+        session_file = panel_dir / "session-id"
         session_file.write_text(session_id)
         env = {
             **os.environ,
             "COS_STATE_DIR": str(state_dir),
             "COS_AGENT_DIR": str(agent_dir),
+            "COS_PANEL_ID": panel_id,
+            "COS_PANEL_DIR": str(panel_dir),
             "COS_SESSION_FILE": str(session_file),
             "COS_AGENT": "claude",
         }
         return tmp_path, env
 
     def _write_gate(self, state_dir: Path, session_id: str, value: str) -> None:
-        # Gate lives in agent-private dir per docs/engineering/state-files.md.
-        gate_file = state_dir / "claude" / ".thinking_os-gate"
+        # Gate is per-panel (TASK-035). Use the same panel-id as gate_env.
+        gate_file = state_dir / "claude" / "panels" / "test-gate-panel" / ".thinking_os-gate"
         gate_file.write_text(f"{session_id} {value}")
 
     def test_blocks_py_without_gate(self, gate_env: tuple[Path, dict]) -> None:
@@ -358,7 +364,7 @@ class TestThinkingOsGate:
     def test_allows_py_with_valid_gate(self, gate_env: tuple[Path, dict]) -> None:
         tmp_path, env = gate_env
         state_dir = Path(env["COS_STATE_DIR"])
-        session_id = (state_dir / "claude" / "session-id").read_text().strip()
+        session_id = Path(env["COS_SESSION_FILE"]).read_text().strip()
         self._write_gate(state_dir, session_id, "CLEAR 1")
         payload = json.dumps(
             {

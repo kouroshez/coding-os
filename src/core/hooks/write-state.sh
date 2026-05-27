@@ -29,6 +29,12 @@ if [[ -f "$COS_SESSION_FILE" ]]; then
   # and the value lands on line 2, breaking head -1 readers.
   SESSION_ID=$(tr -d '\n\r' < "$COS_SESSION_FILE" 2>/dev/null || true)
 fi
+# Fall back to panel-id when no session-id file exists yet (panel created
+# this turn, SessionStart not yet fired). Guarantees a non-empty prefix so
+# the reader's session-id check has something to compare against.
+if [[ -z "$SESSION_ID" ]] && [[ -n "${COS_PANEL_ID:-}" ]]; then
+  SESSION_ID="$COS_PANEL_ID"
+fi
 
 # Atomic write via tmp+mv (same filesystem → rename is atomic on POSIX).
 # Concurrent writers race on the final rename; whichever wins is intact
