@@ -52,37 +52,80 @@ _FM_KEYS = (
 )
 
 
+# Match `**Key:** value` — colon is INSIDE the bold span. Stop value at
+# next `**`, `·`, or newline so cell continues like `· **Status:** X` chain.
+_MD_BOLD_KV_RE = re.compile(
+    r"\*\*(?P<key>[A-Za-z][\w\s]*?):\*\*\s*(?P<value>[^*·\n]+)",
+)
+
+
+def _parse_markdown_header(text: str, out: dict) -> None:
+    # Lenient markdown-bold form used by historic audits — mirrors the
+    # session-context.sh / inject-resume-prompt.sh fallback so the Hub UI
+    # surfaces the same status the agent banner reads.
+    # Examples we must catch:
+    #   **Status:** in_progress
+    #   **Task:** TASK-032 · **Status:** in_progress
+    # Only scan the doc header (first ~30 lines) so severity-bold table
+    # entries (**CRITICAL** etc.) don't pollute the keys.
+    head = "\n".join(text.splitlines()[:30])
+    for m in _MD_BOLD_KV_RE.finditer(head):
+        key_raw = m.group("key").strip().lower().replace(" ", "_")
+        value = m.group("value").strip()
+        # Normalise to YAML key shape — "Task" → "task_id".
+        if key_raw == "task":
+            key_raw = "task_id"
+        if key_raw in _FM_KEYS and key_raw not in out:
+            # Strip parenthetical suffix on status like
+            # `complete (all 14 fixes landed ...)` so consumers
+            # see the canonical state, not the prose elaboration.
+            if key_raw == "status":
+                value = re.split(r"[\s(]", value, maxsplit=1)[0].strip()
+            out[key_raw] = value
+
+
 def _parse_frontmatter(text: str) -> dict:
     out: dict = {}
-    if not text.startswith("---"):
-        return out
-    end = text.find("\n---", 3)
-    if end == -1:
-        return out
-    fm = text[3:end].strip()
-    for line in fm.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or ":" not in line:
-            continue
-        key, _, value = line.partition(":")
-        key = key.strip()
-        value = value.strip()
-        if key not in _FM_KEYS:
-            continue
-        if value.startswith("[") and value.endswith("]"):
-            inner = value[1:-1]
-            out[key] = [v.strip().strip('"').strip("'") for v in inner.split(",") if v.strip()]
-        else:
-            out[key] = value.strip('"').strip("'")
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            fm = text[3:end].strip()
+            for line in fm.splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or ":" not in line:
+                    continue
+                key, _, value = line.partition(":")
+                key = key.strip()
+                value = value.strip()
+                if key not in _FM_KEYS:
+                    continue
+                if value.startswith("[") and value.endswith("]"):
+                    inner = value[1:-1]
+                    out[key] = [
+                        v.strip().strip('"').strip("'")
+                        for v in inner.split(",")
+                        if v.strip()
+                    ]
+                else:
+                    out[key] = value.strip('"').strip("'")
+    # Markdown fallback for historic audits that lack YAML frontmatter
+    # (e.g. **Status:** in_progress on the second line). Lenient parser
+    # only fills missing keys — YAML stays authoritative when present.
+    _parse_markdown_header(text, out)
     return out
 
 
 def _row_counts(text: str) -> dict:
-    # Audit category tables use two row-ID conventions: bare numeric
-    # (`| 1 |`) and prefixed (`| L1 |`, `| G10 |`). Count both, but only
-    # when the first cell is JUST the ID — so Evidence-Log rows like
-    # `| L1a env-leak |` are not miscounted as category rows.
-    data_rows = re.findall(r"^\|\s*(?:\d+|[A-Za-z]+\d+)\s*\|", text, flags=re.MULTILINE)
+    # Audit category tables carry an ID in the first cell — bare numeric
+    # (`| 1 |`), prefixed (`| L1 |`, `| G10 |`), or prefixed-with-summary
+    # (`| F1/#2 resolve column-order |`). Match when the first cell
+    # STARTS with the ID token, accepting trailing prose. Reject pure
+    # header rows (`| ID | …`) by requiring at least one digit.
+    data_rows = re.findall(
+        r"^\|\s*(?:\d+|[A-Za-z]+\d+[\w/.\-#]*)\b[^|]*\|",
+        text,
+        flags=re.MULTILINE,
+    )
     # "Unchecked" = a status cell still open. Tables use either a yes/no
     # Verified column or a pending/todo/done status column.
     unchecked = re.findall(
@@ -90,7 +133,15 @@ def _row_counts(text: str) -> dict:
         text,
         flags=re.MULTILINE | re.IGNORECASE,
     )
-    return {"total": len(data_rows), "unchecked": len(unchecked)}
+    # Checklist-shaped audits use markdown checkboxes instead of tables.
+    # Surface those so the Hub UI gets a progress signal here too.
+    checkbox_done = re.findall(r"^\s*-\s\[[xX]\]", text, flags=re.MULTILINE)
+    checkbox_todo = re.findall(r"^\s*-\s\[\s\]", text, flags=re.MULTILINE)
+    total = len(data_rows) + len(checkbox_done) + len(checkbox_todo)
+    return {
+        "total": total,
+        "unchecked": len(unchecked) + len(checkbox_todo),
+    }
 
 
 def _scan_audits() -> list[dict]:
