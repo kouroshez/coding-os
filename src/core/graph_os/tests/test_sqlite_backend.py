@@ -138,6 +138,57 @@ def test_upsert_edge_is_idempotent(backend):
     assert len(edges[0].evidence) == 1
 
 
+def _raw_edge_rows(conn, source_uid: str, target_uid: str, edge_type: str) -> int:
+    return conn.execute(
+        """
+        SELECT COUNT(*) FROM graph_edges_v12 e
+        JOIN graph_nodes s ON s.id = e.source_id
+        JOIN graph_nodes t ON t.id = e.target_id
+        WHERE s.uid=? AND t.uid=? AND e.edge_type=?
+        """,
+        (source_uid, target_uid, edge_type),
+    ).fetchone()[0]
+
+
+def test_upsert_contains_dedups_across_extractors(backend, migrated_conn):
+    """W6.10: the folder spine is re-emitted by every extractor that
+    touches a file. `contains` edges must dedup on (source,target) regardless
+    of `extractor`, else a file seen by N extractors yields N raw rows that
+    inflate degree centrality (which counts COUNT(e.id), not DISTINCT)."""
+    backend.upsert_node(_make_node("folder:pkg", kind="folder", label="pkg"))
+    backend.upsert_node(_make_node("code:file:pkg/a.py", kind="code:file", label="a.py"))
+    for ex in ("code_python@v1", "contracts@v1", "task_deps@v1"):
+        backend.upsert_edge(
+            GraphEdge(
+                source_uid="folder:pkg",
+                target_uid="code:file:pkg/a.py",
+                edge_type="contains",
+                extractor=ex,
+                confidence=1.0,
+            )
+        )
+    assert _raw_edge_rows(migrated_conn, "folder:pkg", "code:file:pkg/a.py", "contains") == 1
+
+
+def test_upsert_non_contains_keeps_per_extractor_rows(backend, migrated_conn):
+    """Control for the W6.10 dedup: only `contains` collapses across
+    extractors. Other edge types keep their per-extractor provenance row
+    (UNIQUE is on source,target,type,extractor)."""
+    backend.upsert_node(_make_node("code:function:a"))
+    backend.upsert_node(_make_node("code:function:b"))
+    for ex in ("extractor_one", "extractor_two"):
+        backend.upsert_edge(
+            GraphEdge(
+                source_uid="code:function:a",
+                target_uid="code:function:b",
+                edge_type="calls",
+                extractor=ex,
+                confidence=0.5,
+            )
+        )
+    assert _raw_edge_rows(migrated_conn, "code:function:a", "code:function:b", "calls") == 2
+
+
 def test_upsert_edge_re_resolution_replaces_evidence(backend):
     backend.upsert_node(_make_node("code:function:a"))
     backend.upsert_node(_make_node("code:function:b"))

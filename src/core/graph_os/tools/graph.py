@@ -3590,6 +3590,44 @@ def cos_graph_doctor(
                     }
                 )
 
+            # 3b. W6.10: cross-extractor `contains` duplication. The folder
+            # spine is re-emitted by every extractor that touches a file, so
+            # the rows differ only by `extractor` and slip past the
+            # (…, extractor) check above — yet they inflate degree centrality
+            # (which counts COUNT(e.id), not DISTINCT). Collapse to one row
+            # per (folder, file) pair.
+            contains_dup_rows = sqlite_conn.execute(
+                """
+                SELECT source_id, target_id, COUNT(*) AS cnt
+                FROM graph_edges_v12
+                WHERE edge_type='contains'
+                GROUP BY source_id, target_id
+                HAVING cnt > 1
+                """
+            ).fetchall()
+            contains_extra = sum(int(r[2]) - 1 for r in contains_dup_rows)
+            if contains_extra:
+                issues.append(
+                    {
+                        "category": "duplicate_contains",
+                        "count": contains_extra,
+                        "pair_count": len(contains_dup_rows),
+                    }
+                )
+                if fix:
+                    cur = sqlite_conn.execute(
+                        """
+                        DELETE FROM graph_edges_v12
+                        WHERE edge_type='contains' AND id NOT IN (
+                          SELECT MIN(id) FROM graph_edges_v12
+                          WHERE edge_type='contains'
+                          GROUP BY source_id, target_id
+                        )
+                        """
+                    )
+                    fixed_count += int(cur.rowcount or 0)
+                    sqlite_conn.commit()
+
             # 4. Orphans — split into expected-noise vs real-bug categories.
             # W7.6 / R4-N9: `code:external:unresolved:*` and `cos:identifier:*`
             # are stub-surface, not bugs. Count separately so `healthy=true`
@@ -3857,6 +3895,7 @@ def cos_graph_doctor(
                 "malformed_uid_path",
                 "dangling_source",
                 "dangling_target",
+                "duplicate_contains",
             ],
             "informational_categories": list(_INFORMATIONAL_CATEGORIES),
         },

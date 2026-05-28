@@ -299,13 +299,27 @@ class SqliteBackend:
             cursor = self._conn.cursor()
             try:
                 cursor.execute("BEGIN")
-                row = cursor.execute(
-                    """
-                    SELECT id FROM graph_edges_v12
-                    WHERE source_id=? AND target_id=? AND edge_type=? AND extractor=?
-                    """,
-                    (source_id, target_id, edge.edge_type, edge.extractor),
-                ).fetchone()
+                if edge.edge_type == "contains":
+                    # Structural folder-spine edge — every extractor that
+                    # touches a file re-emits the folder→file spine. Dedup on
+                    # (source,target,type) IGNORING extractor; otherwise a file
+                    # processed by N extractors yields N identical rows that
+                    # inflate degree centrality (COUNT(e.id), not DISTINCT). W6.10.
+                    row = cursor.execute(
+                        """
+                        SELECT id FROM graph_edges_v12
+                        WHERE source_id=? AND target_id=? AND edge_type=?
+                        """,
+                        (source_id, target_id, edge.edge_type),
+                    ).fetchone()
+                else:
+                    row = cursor.execute(
+                        """
+                        SELECT id FROM graph_edges_v12
+                        WHERE source_id=? AND target_id=? AND edge_type=? AND extractor=?
+                        """,
+                        (source_id, target_id, edge.edge_type, edge.extractor),
+                    ).fetchone()
                 if row is None:
                     cursor.execute(
                         """
