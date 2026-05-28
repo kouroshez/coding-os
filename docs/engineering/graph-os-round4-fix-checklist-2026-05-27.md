@@ -148,6 +148,30 @@ Companion to [graph-os-round4-audit-findings-2026-05-27.md](graph-os-round4-audi
 3. **After each W**: targeted pytest matrix command (`uv run --extra graph_os pytest src/core/graph_os/tests/`); reindex if extractor touched.
 4. **Reviewer subagent re-grep**: after all 10 fixes land, run reviewer subagent with the R4 register; predicates verify (counts_after_zero, reviewer_check pass).
 
-## Resume marker
+## Execution status (2026-05-28 — ALL LANDED)
 
-Triage complete. Active waves: 10 (W7.1..W7.10). Drops: 1 (R4-N12). Defers: 3 (R4-10, R4-15, R4-N11). Ready to execute W7.2 (CRITICAL fuzzy-resolve guard).
+| Wave | Commit | Defects collapsed |
+|---|---|---|
+| W7.2 | c567fbe | R4-01 fuzzy-resolve hijack → `meta.resolved_from` |
+| W7.3 | 2a2039c | R4-02 per-kind default kinds |
+| W7.4 | 94487d7 | R4-N5 community: UI click guard |
+| W7.1 | 0944512 | R4-06/07/08/09/19/20/26 validators |
+| W7.10 | 8bb3cec | R4-14/N8 cos_graph stub removed |
+| W7.8 | e70c24d | R4-12 path stub-hub exclude |
+| W7.9 | 8f76c8f | R4-03 communities cache key (min_size) |
+| W7.5 | 1cd6ce1 + 4e08a1a | R4-N7 reindex --prune-stale |
+| W7.6 | 57d35d1 + eb315a3 | R4-N9/N10/13/25 doctor split categories + UI labels |
+| W7.7 | 91c3a17 | R4-N6 dep kind=dependency |
+| extra | 7eb15f6 | symlink-orphan prune → doctor healthy=true |
+| extra | 64f98cf | R4-05 edge_types validation, R4-16 kind validation, R4-21 depth cap |
+| extra | 04efa87 | R4-23 robust label escape, R4-10 contracts dedup |
+| extra | (this) | R4-18 rename_plan no-op (folded into W7.2) |
+
+**Dropped (genuine over-engineering / no value):**
+- R4-N12 (debounce filename) — hygiene only, zero functional impact
+- R4-15 (mixed-script FTS5) — Persian-only works; mixed-script ASCII+RTL is a corner case with a clean empty result (no error)
+- R4-N11 (NodeInspector/ContextPanel shape drift) — works today; consolidate at next UI refactor, not load-bearing
+- R4-11 (entrypoints envelope) — documented known limit for top>50; `envelope_unshrinkable` flag is honest
+- R4-22 (export max_nodes=3 fragmented) — only trips at pathologically-tiny max_nodes; root_uid path is coherent
+
+**Outcome:** doctor `healthy=true` (only informational `orphaned_external_unresolved` remains); all CRITICAL + HIGH + actionable MEDIUM/LOW closed. 696 graph_os tests pass.
