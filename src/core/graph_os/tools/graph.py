@@ -2467,10 +2467,16 @@ def cos_graph_rename_plan(
     )
 
 
+def _is_test_source(uid: str) -> bool:
+    """True when a uid lives under a tests/ tree (R4-10)."""
+    return "/tests/" in uid or ":tests/" in uid or "test_" in uid.rsplit("/", 1)[-1]
+
+
 def cos_graph_contracts(
     *,
     scope: str = "all",
     kinds: Sequence[str] = ("http", "mcp", "grpc", "event", "websocket"),
+    include_test_sources: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """API surface — enumerate every route / tool / event handler."""
@@ -2528,6 +2534,30 @@ def cos_graph_contracts(
                     "confidence": edge.confidence,
                 }
             )
+    # W7 / R4-10: dedupe each bucket by target uid, preferring a
+    # non-test source; and (unless asked) drop entries whose ONLY source
+    # is a test fixture. Pre-fix the same MCP tool appeared once per
+    # source file (production + every test that decorated a fake handler).
+    def _dedupe_bucket(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        by_uid: dict[str, dict[str, Any]] = {}
+        for item in items:
+            uid = item.get("uid", "")
+            src = item.get("source", "") or ""
+            existing = by_uid.get(uid)
+            if existing is None:
+                by_uid[uid] = item
+            elif _is_test_source(existing.get("source", "") or "") and not _is_test_source(src):
+                # Replace a test-sourced entry with a production one.
+                by_uid[uid] = item
+        out = list(by_uid.values())
+        if not include_test_sources:
+            non_test = [it for it in out if not _is_test_source(it.get("source", "") or "")]
+            # Keep test-only contracts only when nothing else defines them.
+            if non_test:
+                out = non_test
+        return out
+
+    buckets = {k: _dedupe_bucket(v) for k, v in buckets.items()}
     result_truncated = any(per_kind_truncated.values())
     return _ok(
         {"scope": scope, **buckets, "count": sum(len(v) for v in buckets.values())},
@@ -2537,6 +2567,7 @@ def cos_graph_contracts(
             "bucket_limit": _CONTRACT_BUCKET_LIMIT,
             "result_truncated": result_truncated,
             "per_edge_type_truncated": per_kind_truncated,
+            "include_test_sources": include_test_sources,
         },
     )
 
@@ -2742,7 +2773,13 @@ def _safe_id(uid: str) -> str:
 
 
 def _escape(text: str) -> str:
-    return text.replace('"', "'")
+    # W7 / R4-23: conservative escape safe for BOTH dot + mermaid quoted
+    # labels. Backslash first (else it double-escapes), then quotes →
+    # single-quote (avoids the dot \" / mermaid #quot; divergence), then
+    # collapse any newline / control char to a space so the one-line
+    # `id["label"]` / `id [label="..."]` syntax never breaks.
+    out = text.replace("\\", "/").replace('"', "'")
+    return "".join(" " if (c == "\n" or c == "\r" or ord(c) < 32) else c for c in out)
 
 
 def cos_graph_entrypoints(

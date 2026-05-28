@@ -2554,11 +2554,13 @@ if _GRAPH_TOOLS_AVAILABLE:
     def cos_graph_contracts_tool(
         scope: str = "all",
         kinds: str = "http,mcp,grpc,event,websocket",
+        include_test_sources: bool = False,
     ) -> str:
         """Enumerate every handler declared in the graph (HTTP / MCP / gRPC / events / WS)."""
         return _graph_tools.cos_graph_contracts(
             scope=str(scope),
             kinds=tuple(_csv(kinds) or ("http", "mcp", "grpc", "event", "websocket")),
+            include_test_sources=bool(include_test_sources),
         )
 
     @mcp.tool(
