@@ -3612,11 +3612,27 @@ def cos_graph_doctor(
                 "(uid LIKE '%`%' OR uid LIKE 'doc:file:../%' OR uid LIKE 'code:file:../%')"
             ).fetchall()
             malformed_uids = [r[0] for r in malformed_uid_rows]
+            # Symlink-backed file nodes — the target is indexed on its own
+            # pass, so the symlink node (e.g. CLAUDE.md -> AGENTS.md) is an
+            # orphan duplicate. walk_local now skips symlinks; this catches
+            # rows from before that fix landed.
+            symlink_paths = [
+                p
+                for p in distinct_paths
+                if not _is_malformed(p)
+                and (repo_root / p).exists()
+                and (repo_root / p).is_symlink()
+            ]
             real_stale_paths = [
                 p
                 for p in distinct_paths
-                if not _is_malformed(p) and not (repo_root / p).exists()
+                if not _is_malformed(p)
+                and p not in symlink_paths
+                and not (repo_root / p).exists()
             ]
+            # Fold symlink paths into the malformed bucket (same fix=True
+            # delete path, same "extractor should not have emitted this").
+            malformed_paths = malformed_paths + symlink_paths
             if malformed_paths or malformed_uids:
                 mp_count = 0
                 if malformed_paths:

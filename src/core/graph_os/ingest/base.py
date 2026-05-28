@@ -129,6 +129,11 @@ def walk_local(
             if not any(fnmatch.fnmatchcase(name, pat) for pat in include_set):
                 continue
             full = Path(dirpath) / name
+            # Skip symlinks — the target is indexed on its own pass, so a
+            # symlink node (e.g. CLAUDE.md -> AGENTS.md) would just be an
+            # orphan duplicate that nothing links to.
+            if full.is_symlink():
+                continue
             try:
                 size = full.stat().st_size
             except OSError:
