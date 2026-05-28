@@ -156,7 +156,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         # Doc references — Source of Truth + Read First sections hold
         # doc paths; emit `references_doc` edges so Researcher/Implementer can jump
         # task → authoritative spec.
-        for doc_ref in _extract_doc_paths(parsed.source_of_truth):
+        for doc_ref in _extract_doc_paths(parsed.source_of_truth, normalised_path):
             result.edges.append(
                 GraphEdge(
                     source_uid=task_node.uid,
@@ -167,7 +167,7 @@ def extract(path: str, content: str) -> ExtractionResult:
                     source_span=f"{normalised_path}:source_of_truth",
                 )
             )
-        for doc_ref in _extract_doc_paths(parsed.read_first):
+        for doc_ref in _extract_doc_paths(parsed.read_first, normalised_path):
             result.edges.append(
                 GraphEdge(
                     source_uid=task_node.uid,
@@ -259,14 +259,47 @@ def _target_uid_for_file(path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _extract_doc_paths(bullets: list[str]) -> list[str]:
+def _resolve_doc_ref(origin_path: str, ref: str) -> str | None:
+    """Resolve a doc ref (possibly `../`-relative) against the task file
+    dir to a clean repo-rooted path.
+
+    Returns None when the ref is malformed (escapes repo root, or holds a
+    backtick / whitespace) so the caller can drop it instead of minting a
+    `doc:file:../…` stub that orphans on every reindex (R4 X7 residual).
+    """
+    ref = ref.strip().strip("`").strip()
+    if not ref or "`" in ref or any(c.isspace() for c in ref):
+        return None
+    if "../" not in ref and "./" not in ref:
+        return _normalize_path(ref)
+    from posixpath import dirname
+
+    origin_dir = dirname(_normalize_path(origin_path))
+    parts: list[str] = []
+    escaped = False
+    for part in f"{origin_dir}/{ref}".split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+            else:
+                escaped = True  # ref points above repo root → malformed
+            continue
+        parts.append(part)
+    if escaped:
+        return None
+    return "/".join(parts)
+
+
+def _extract_doc_paths(bullets: list[str], origin_path: str = "") -> list[str]:
     """Pull `docs/...md` paths out of task-section bullets."""
     paths: list[str] = []
     seen: set[str] = set()
     for item in bullets:
         for match in _DOC_PATH_RE.finditer(item):
-            candidate = _normalize_path(match.group(1))
-            if candidate in seen:
+            candidate = _resolve_doc_ref(origin_path, match.group(1))
+            if candidate is None or candidate in seen:
                 continue
             seen.add(candidate)
             paths.append(candidate)

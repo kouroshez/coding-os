@@ -81,6 +81,32 @@ def _split_read_targets(raw: str) -> list[str]:
     return out
 
 
+# Repo-root prefixes — a read_next target starting with one of these is
+# already repo-rooted and used verbatim; anything else (bare filename or
+# `./`/`../`) is resolved against the source doc's directory.
+_REPO_ROOT_PREFIXES = ("docs/", "src/", "tests/", "infrastructure/", "scripts/")
+
+
+def _resolve_read_target(path: str, target_path: str) -> str | None:
+    """Resolve a read_next / opening-block target to a clean uid.
+
+    Bare filenames + `./`/`../` paths anchor against the source doc dir
+    (R4 follow-up: a bare `accessibility-checklist.md` used to mint a
+    repo-root `doc:file:accessibility-checklist.md` stub that never
+    existed). Repo-rooted `docs/...`/`src/...` targets pass through.
+    """
+    if target_path.startswith(("http://", "https://")):
+        return f"doc:external:{target_path}"
+    if target_path.startswith(("../", "./")):
+        resolved = _resolve_link(path, target_path)
+        return resolved or None
+    if target_path.startswith(_REPO_ROOT_PREFIXES):
+        return f"doc:file:{_normalize_path(target_path)}"
+    # Bare relative name — anchor against the source doc's directory.
+    resolved = _resolve_link(path, target_path)
+    return resolved or None
+
+
 def _emit_read_next_targets(
     path: str,
     raw_value: str,
@@ -90,17 +116,9 @@ def _emit_read_next_targets(
 ) -> None:
     """Emit one ``read_next`` edge per parsed target in ``raw_value``."""
     for target_path in _split_read_targets(raw_value):
-        if target_path.startswith(("http://", "https://")):
-            target_uid = f"doc:external:{target_path}"
-        elif target_path.startswith(("../", "./")):
-            # F13 / Audit #4: anchor relative `../foo.md` paths against
-            # the source doc's directory. Pre-fix emitted
-            # `doc:file:../foo.md` uids that pointed nowhere.
-            target_uid = _resolve_link(path, target_path)
-            if not target_uid:
-                continue
-        else:
-            target_uid = f"doc:file:{_normalize_path(target_path)}"
+        target_uid = _resolve_read_target(path, target_path)
+        if not target_uid:
+            continue
         result.edges.append(
             GraphEdge(
                 source_uid=file_uid(path),
@@ -121,15 +139,9 @@ def _extract_opening_block_reads(path: str, content: str, result: ExtractionResu
             if target_path in seen_targets:
                 continue
             seen_targets.add(target_path)
-            if target_path.startswith(("http://", "https://")):
-                target_uid = f"doc:external:{target_path}"
-            elif target_path.startswith(("../", "./")):
-                # F13: see _emit_read_next_edges — anchor relatives.
-                target_uid = _resolve_link(path, target_path)
-                if not target_uid:
-                    continue
-            else:
-                target_uid = f"doc:file:{_normalize_path(target_path)}"
+            target_uid = _resolve_read_target(path, target_path)
+            if not target_uid:
+                continue
             result.edges.append(
                 GraphEdge(
                     source_uid=file_uid(path),
@@ -223,6 +235,12 @@ def _resolve_link(origin_path: str, target: str) -> str:
     target = target.strip()
     if target.startswith(("http://", "https://", "mailto:")):
         return f"doc:external:{target}"
+    # W6.5 (X7) residual: reject targets carrying regex / markup
+    # metacharacters — a prose regex like `[module](?P<module>[^'"]+)`
+    # matches the inline-link regex and used to mint a garbage
+    # `doc:file:?P<module>...` stub. Real paths never contain these.
+    if any(c in target for c in "<>\"'{}^*|`"):
+        return ""
     # Discard `"title"` suffix after a space.
     target = target.split(" ")[0]
     # Split off `#anchor`.
@@ -532,6 +550,13 @@ def _extract_frontmatter(path: str, content: str, result: ExtractionResult) -> N
             key = key.strip().lower()
             value = value.strip().strip('"').strip("'")
             if not key or not value:
+                continue
+            # Frontmatter keys are simple identifiers. Reject anything
+            # that looks like prose / markdown (heading `#`, backtick,
+            # whitespace, braces) — the HTML-comment scan otherwise
+            # mis-parses a `# `output_format={type|...}`` code line as a
+            # key:value pair and mints a malformed doc:frontmatter node.
+            if not re.fullmatch(r"[a-z0-9_]+", key):
                 continue
             # `reads:[a, b, c]` short-form vector — emit one read_next edge
             # per target instead of a single key node carrying the literal

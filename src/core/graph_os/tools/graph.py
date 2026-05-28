@@ -3686,9 +3686,17 @@ def cos_graph_doctor(
             #   - contains `../` (relative-from-wrong-cwd)
             #   - contains backtick (markdown link regex over-captured
             #     `[text](path)` syntax including trailing backtick)
-            #   - contains whitespace (raw prose fragment captured as path)
+            #   - contains newline / control char (raw prose fragment)
+            # NOTE: a plain space is NOT malformed — legitimate doc files
+            # have spaces in their names (e.g. Roy Fielding's REST
+            # dissertation). Flagging space caused a delete↔reindex churn
+            # of 475 real nodes (R4 follow-up false-positive).
             def _is_malformed(p: str) -> bool:
-                return ("../" in p) or ("`" in p) or any(c.isspace() for c in p)
+                return (
+                    ("../" in p)
+                    or ("`" in p)
+                    or any(c == "\n" or c == "\r" or c == "\t" or ord(c) < 32 for c in p)
+                )
 
             malformed_paths = [p for p in distinct_paths if _is_malformed(p)]
             # Also catch nodes with malformed UIDs but NULL file_path —

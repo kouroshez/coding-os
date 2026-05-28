@@ -200,10 +200,11 @@ class TestOpeningBlockReadNext:
         content = "<!-- domain:DOCS | layer:policy | reads:[a.md, b.md, c.md] -->\n# H\n"
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
+        # Bare names anchor against the source doc dir (docs/demo.md → docs/).
         assert {e.target_uid for e in rn} == {
-            "doc:file:a.md",
-            "doc:file:b.md",
-            "doc:file:c.md",
+            "doc:file:docs/a.md",
+            "doc:file:docs/b.md",
+            "doc:file:docs/c.md",
         }
         # `reads` itself is NOT a frontmatter_key node — it expands into edges.
         assert all(
@@ -223,7 +224,7 @@ class TestOpeningBlockReadNext:
         )
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
-        assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
+        assert {e.target_uid for e in rn} == {"doc:file:docs/a.md", "doc:file:docs/b.md"}
 
     def test_short_form_opening_block_emits_edges(self):
         content = (
@@ -236,7 +237,7 @@ class TestOpeningBlockReadNext:
         )
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
-        assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
+        assert {e.target_uid for e in rn} == {"doc:file:docs/a.md", "doc:file:docs/b.md"}
 
     def test_external_url_targets_become_external_uid(self):
         content = "# H\n\nRead next: https://example.com/spec\n"
@@ -260,8 +261,9 @@ class TestOpeningBlockReadNext:
         r = _extract(content)
         rn = [e for e in r.edges if e.edge_type == "read_next"]
         targets = {e.target_uid for e in rn}
-        assert "doc:file:real.md" in targets
-        assert "doc:file:not-a-real-doc.md" not in targets
+        # Bare names anchor against docs/ (source = docs/demo.md).
+        assert "doc:file:docs/real.md" in targets
+        assert "doc:file:docs/not-a-real-doc.md" not in targets
 
     def test_prose_fragment_rejected_w65(self):
         """W6.5 (X7): `Read next:` followed by prose (no real path) must
@@ -304,7 +306,7 @@ class TestOpeningBlockReadNext:
         # Frontmatter dedupe: 2 unique. Body dedupe inside opening block: 2.
         # Frontmatter and body are independent passes — both emit edges so we
         # expect 4 distinct edges with 2 distinct targets.
-        assert {e.target_uid for e in rn} == {"doc:file:a.md", "doc:file:b.md"}
+        assert {e.target_uid for e in rn} == {"doc:file:docs/a.md", "doc:file:docs/b.md"}
 
 
 # ---------------------------------------------------------------------------
