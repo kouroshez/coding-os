@@ -208,6 +208,8 @@ Meta-repo only (consumer projects under `/tmp` and `tests/golden/` excluded from
 
 ### Stale_paths (339)
 
+> **Correction (2026-05-28, TASK-038):** this table analysed the 339-count baseline. After reindex/prune the moved/deleted rows cleared; the *residual* ~93 are dominated by rendered-location relative-link FALSE POSITIVES (source docs under `src/core/{rules,skills,commands}/` + `src/templates/**` whose `../../docs/…` links resolve correctly only post-render). See [audit-graph-os-round4 § Stale-paths correction](../tasks/audits/audit-graph-os-round4-2026-05-27.md#stale-paths-correction-2026-05-28--task-038). Do NOT sweep these as doc-debt.
+
 | Category | Count | Assessment | Action |
 |---|---|---|---|
 | Moved during refactor (same filename elsewhere) | 227 | **Real bug** | Update `file_path` OR delete + re-index; 2-3h |
@@ -232,7 +234,7 @@ Total ~5-8 hours to reach genuinely-healthy doctor state with no noise.
 | W6.7 (TOML/JSON deps) | ⚠️ PARTIAL — nodes exist `kind=doc_external` (R4-N6); 73 imports edges + 2 declares to deps; under-covered optional-deps | Needs taxonomy fix + complete walk |
 | W6.8 (context depth honesty) | ❌ NOT LANDED — depth=99 echoed verbatim, visit_limit=50 still hard-cap (R4-21 = N4 re-confirmed) | |
 | W6.9 (read-pool pragmas) | ❓ Not re-probed R4 | likely landed (commit a3ec6ba /review nits chore) |
-| W6.10 (dedup folder contains) | ❌ NOT LANDED — `contains` still 35 491 (T7 7× pattern likely intact) | high-volume cleanup pending |
+| W6.10 (dedup folder contains) | ✅ LANDED (TASK-038, 2026-05-28) — cross-extractor `contains` deduped at upsert boundary + `duplicate_contains` doctor cleanup; 703 redundant rows removed | |
 | W6.11 (similar scorer) | ❓ Not re-probed | |
 | W6.12 (builtin TYPE_UIDS) | ❌ NOT LANDED — has_param_type 4 457 (43% still point to unresolved builtins per R3) | X8/X6 active |
 | W6.13 (rename_plan buckets) | ❓ Not re-probed | depends on W6.1 |

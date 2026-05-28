@@ -75,7 +75,7 @@ Companion to [graph-os-round3-audit-findings-2026-05-26.md](graph-os-round3-audi
 - **Verdict**: **KEEP** — 7× row inflation on folder spine pollutes centrality + edge counts.
 - **Diff size**: ~5 lines — drop `extractor` column from UNIQUE key for `edge_type='contains'`. OR emit folder spine from ONE extractor only.
 - **Risk**: schema migration needed if dropping from key.
-- [ ] Single-source folder spine (easier path) · [ ] reindex · [ ] commit
+- [x] **LANDED (TASK-038, 2026-05-28)** — deduped at the `upsert_edge` boundary (`contains` matches on (source,target,type) ignoring `extractor`; no migration) + repeatable `cos_graph_doctor(fix=True)` `duplicate_contains` cleanup. 703 redundant rows removed; `folder:tests` out-degree 148→74.
 
 ### W6.11 — F8/B8 [MEDIUM] Similar scorer — boost same-folder + demote tests when source non-test
 - **Problem**: `similar(cos_graph_doctor)` returns 10 unrelated CLI-doctor tests. Label-only embedding ignores structure.

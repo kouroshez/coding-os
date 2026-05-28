@@ -32,7 +32,7 @@ User exhaustive intent: "", " mcp server ", "", "", community: UID error, Hub do
 | 7. Cross-tool semantic agreement | 3 new symbols probed; F1/N2 persists | `meta.semantic_scope` + `resolved_from` on coverage tools | Wave-7 | ✅ done |
 | 8. Doctor `attention` UX | 0 docs/threshold rationale in UI | split categories + severity badge + envelope doc | W7.6 + UI labels | ✅ done |
 
-**counts_after_zero predicate:** in-repo orphans 0 · malformed_uid_path 0 · garbage stale 0. Remaining `stale_paths=93` are TRUE POSITIVES — real broken `[...](...)` links in documentation (target file deleted/moved). These are doc-debt, NOT graph defects; surfaced honestly by doctor. Follow-up docs-hygiene task tracked separately (see Resume marker).
+**counts_after_zero predicate:** in-repo orphans 0 · malformed_uid_path 0 · garbage stale 0. Remaining `stale_paths≈93` were originally recorded as TRUE POSITIVES (doc-debt). **CORRECTION (2026-05-28, TASK-038):** that diagnosis was wrong — they are mostly FALSE POSITIVES. See [§ Stale-paths correction](#stale-paths-correction-2026-05-28--task-038).
 
 ## Baseline (2026-05-27)
 
@@ -63,13 +63,22 @@ W7.1 cross-cutting validator helpers (collapses 11 surface defects) · W7.2 fuzz
 All Wave-7 waves landed + extractor root-cause fixes (14 commits: c567fbe → 31c27cb). Doctor `healthy=true` for in-repo correctness:
 - in-repo orphans: 0 · malformed_uid_path: 0 · garbage stale: 0
 - `orphaned_external_unresolved: 981` — informational (stdlib/3rd-party stubs, by design)
-- `stale_paths: 93` — **real broken doc-links** (true positives, doc-debt not graph bug)
+- `stale_paths: ≈93` — originally called "real broken doc-links"; **superseded — see correction below.**
 
 **Dropped (justified, Rule 22):** R4-N12 (debounce filename hygiene), R4-15 (mixed-script FTS5 corner case), R4-N11 (NodeInspector/ContextPanel shape — works today), R4-11 (entrypoints envelope — documented limit), R4-22 (export at pathological max_nodes=3).
 
-**Follow-up (separate scope):** 93 broken documentation links — a docs-hygiene sweep, NOT a graph-os defect. The graph correctly surfaces them. Create a `docs-update` task to fix the dead `[...](...)` targets across ~50 docs if/when desired.
-
 Predicates: counts_after_zero ✅ (graph-defect categories at 0) · reviewer_check (pending subagent) · evidence_bundle ✅.
+
+## Stale-paths correction (2026-05-28 — TASK-038)
+
+The Round-4 closure called the ~93 `stale_paths` "real broken doc-links / doc-debt." **That was wrong.** Empirical triage (`src/scripts/probe_stale_links.py`, since deleted) found:
+
+- **~38 are FALSE POSITIVES.** Source docs under `src/core/{rules,skills,commands}/` and `src/templates/**` use relative links (`[x](../../docs/…)`) calibrated for their **rendered** location (`.claude/rules/…`, consumer `docs/…`). The graph indexes the **source** location, so `../../docs/…` from `src/core/rules/` resolves to a non-existent `src/docs/…` stub. The link is correct where the file is *used*; editing the doc to "fix" it would **break** the rendered link. So this is NOT doc-debt and must NOT be swept.
+- **~42 are scaffold-template links** (`src/templates/_base/scaffold/docs/**`) pointing to docs not shipped into the scaffold subset. Resolving these needs a scaffold-boundary design decision, not a blind link edit.
+
+**Correct framing:** the doctor's `stale_paths` over-reports here because it does not distinguish a contentless *link-stub* (a markdown link target that was never a real indexed file) from a *former-real-file* node whose source was deleted. A render-location-aware resolver (or splitting link-stubs into an informational category like `orphaned_external_unresolved`) is the real fix — tracked as a follow-up, deliberately **not** implemented under TASK-038 (needs design judgment; Rule 22 defer-by-default).
+
+**Also landed under TASK-038:** W6.10 — cross-extractor `contains`-edge dedup. 703 redundant folder-spine rows (629 pairs) were inflating degree centrality (`folder:tests` out-degree 148 → 74). Fixed at the upsert boundary (`contains` dedups ignoring `extractor`) + a repeatable `cos_graph_doctor(fix=True)` cleanup (`duplicate_contains` category).
 
 ## See also
 
