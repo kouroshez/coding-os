@@ -139,9 +139,16 @@ class TestCentrality:
         _fail(graph.cos_graph_centrality(metric="eigenvalue"), "validation")
 
     def test_kind_filter(self, seeded):
+        # W7/R4-16: legacy `code:function` normalizes to canonical
+        # `function` before filtering. Result rows carry the canonical kind.
         data = _ok(graph.cos_graph_centrality(kind="code:function"))
         for n in data["nodes"]:
-            assert n["kind"] == "code:function"
+            assert n["kind"] == "function"
+
+    def test_kind_filter_rejects_unknown(self, seeded):
+        # R4-16: a typo'd kind fails validation instead of silently
+        # returning an empty list.
+        _fail(graph.cos_graph_centrality(kind="not_a_real_kind"), "validation")
 
     def test_scores_sum_bounded(self, seeded):
         data = _ok(graph.cos_graph_centrality())

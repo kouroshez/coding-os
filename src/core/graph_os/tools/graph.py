@@ -1113,7 +1113,14 @@ def cos_graph_context(
     #              NodeSummary entries (~50KB) defeats the entire point of
     #              the graph layer. Agent gets actionable summary; if it
     #              needs more, it calls cos_graph_references(target_uid).
-    _depth = max(1, int(depth))
+    # W7 / R4-21: cap depth at a sane ceiling. depth=99 used to be
+    # echoed verbatim into meta while the BFS only ever did ~2 hops
+    # under the SUMMARY visit_limit — a silent lie. Cap + surface
+    # requested-vs-delivered so the agent knows the walk was bounded.
+    _DEPTH_CEILING = 4
+    requested_depth = int(depth)
+    _depth = max(1, min(requested_depth, _DEPTH_CEILING))
+    depth_clamped = requested_depth > _DEPTH_CEILING
     visit_limit = max(1, min(int(visit_limit), 50_000))
     if _depth >= 2 and visit_limit > 50:
         visit_limit = 50
@@ -1207,7 +1214,10 @@ def cos_graph_context(
         payload,
         meta={
             "backend": be.backend_id,
-            "depth": depth,
+            "depth": _depth,
+            "requested_depth": requested_depth,
+            "delivered_depth": _depth,
+            "depth_clamped": depth_clamped,
             "direction": direction,
             "include_spine": include_spine,
             "visit_limit": visit_limit,
@@ -2108,6 +2118,24 @@ def cos_graph_export(
 
     # G3: normalize edge_types + exclude_kinds (wire trap)
     parsed_edge_types = _normalize_kinds(edge_types) or None
+    # W7 / R4-05: reject unknown edge_types instead of silently filtering
+    # to an empty graph (a typo'd edge_type looked identical to "no edges
+    # of this type exist"). Cross-check against the DISTINCT set in the DB.
+    if parsed_edge_types:
+        sqlite_conn = getattr(be, "_conn", None)
+        if sqlite_conn is not None:
+            known = {
+                r[0]
+                for r in sqlite_conn.execute(
+                    "SELECT DISTINCT edge_type FROM graph_edges_v12"
+                ).fetchall()
+            }
+            unknown = [e for e in parsed_edge_types if e not in known]
+            if unknown:
+                return _fail(
+                    "validation",
+                    f"unknown edge_type(s) {unknown}; known: {sorted(known)}",
+                )
     # exclude_kinds None → default noise list; [] explicit → no filter.
     if exclude_kinds is None:
         excluded = _DEFAULT_NOISE_KINDS
@@ -2954,6 +2982,28 @@ def cos_graph_centrality(
 
     sqlite_conn = getattr(be, "_conn", None)
     truncated = False
+
+    # W7 / R4-16: reject an unknown `kind` filter instead of silently
+    # returning [] (a typo'd kind was indistinguishable from "no
+    # high-degree nodes of this kind"). Normalize first so legacy
+    # colon-prefixed kinds (`code:function`) canonicalise to `function`.
+    if kind:
+        try:
+            from ..types import normalize_kind as _normalize_kind_enum
+
+            kind = _normalize_kind_enum(kind).value
+        except Exception:
+            if sqlite_conn is not None:
+                known_kinds = {
+                    r[0]
+                    for r in sqlite_conn.execute(
+                        "SELECT DISTINCT kind FROM graph_nodes"
+                    ).fetchall()
+                }
+                return _fail(
+                    "validation",
+                    f"unknown kind {kind!r}; known: {sorted(known_kinds)}",
+                )
 
     if sqlite_conn is not None:
         try:
