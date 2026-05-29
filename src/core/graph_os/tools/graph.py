@@ -3493,19 +3493,35 @@ def cos_graph_ranking(
         tokens = [t for t in lower_q.split() if len(t) >= 2]
         if not tokens:
             tokens = [lower_q] if lower_q else []
+        # F6 (TASK-040): a generic structural doc_heading (Work Log / Read
+        # First / …) carries no query relevance — but its uid PATH tokens
+        # (e.g. a TASK file path containing "graph") used to seed it as if it
+        # matched the query. Skip these, and weight LABEL hits far above
+        # incidental PATH hits so a node whose NAME matches the query outranks
+        # one that merely lives in a path containing the term.
+        _GENERIC_HEADINGS = {
+            "work log", "read first", "acceptance", "notes", "see also",
+            "overview", "summary", "background", "resume marker",
+            "closing checklist", "source intent",
+        }
         for nid in node_ids:
             meta_entry = int_to_meta.get(nid)
+            kind_n = (meta_entry[0] if meta_entry else "") or ""
             label = (meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))) or ""
+            label_l = label.lower()
+            if "doc_heading" in kind_n and label_l.strip() in _GENERIC_HEADINGS:
+                continue
             uid_str = int_to_uid.get(nid, "")
             uid_content_tokens = [
                 t
                 for t in re.split(r"[^A-Za-z0-9]+", uid_str.lower())
                 if t and t not in _UID_PREFIX_NOISE_TOKENS and len(t) >= 2
             ]
-            hay = label.lower() + " " + " ".join(uid_content_tokens)
-            hits = sum(1 for t in tokens if t in hay)
-            if hits:
-                personalized[nid] = float(hits)
+            label_hits = sum(1 for t in tokens if t in label_l)
+            path_hits = sum(1 for t in tokens if t in " ".join(uid_content_tokens))
+            score = label_hits * 3 + path_hits
+            if score:
+                personalized[nid] = float(score)
         total_p = sum(personalized.values())
         if total_p:
             personalized = {k: v / total_p for k, v in personalized.items()}
