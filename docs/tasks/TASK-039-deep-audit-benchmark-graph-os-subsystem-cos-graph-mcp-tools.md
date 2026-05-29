@@ -35,3 +35,4 @@ references: []
 - 2026-05-28 [claude]: audit started — D1–D3 + root cause complete; see audit doc.
 - 2026-05-29 [claude]: Live re-verification: file coverage 100% (1072/1072), F1/F2 confirmed fixed, impact sound, F5 = stale server (disk corre
 - 2026-05-29 [claude]: Status transitioned to complete via cos task-done.
+- 2026-05-29 [claude]: F5 root cause CORRECTED: not staleness — FastMCP wrapper server.py:2424 did tuple(_csv(kinds)); _csv("")→None→crash. Rea
