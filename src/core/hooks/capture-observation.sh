@@ -41,12 +41,14 @@ fi
 mkdir -p "$COS_STATE_DIR" 2>/dev/null || true
 ERROR_LOG="$COS_STATE_DIR/.capture-errors.log"
 
-# Fire-and-forget with stderr capture. The `2>>` appends any python
-# traceback or exception from the background process so we can later
-# detect a silent death without losing the <1ms hook budget.
-(
-  echo "$INPUT" | python3 "$CAPTURE_PY" 2>>"$ERROR_LOG"
-) > /dev/null 2>&1 &
+# Run capture SYNCHRONOUSLY with embedding skipped. A backgrounded
+# `(...) &` was reaped by the agent hook lifecycle before capture.py's
+# INSERT+commit, so observations never persisted (TASK-048: 6 inserts in
+# 17 days despite the hook firing constantly). capture.py is ~one python
+# startup under COS_CAPTURE_SKIP_EMBED; the FTS5 trigger indexes the row
+# on INSERT so keyword recall works without the embedding. Real failures
+# append a traceback to $ERROR_LOG for check-capture-worked.sh at Stop.
+echo "$INPUT" | COS_CAPTURE_SKIP_EMBED=1 python3 "$CAPTURE_PY" 2>>"$ERROR_LOG" || true
 
 # Visible signal — Claude Code does NOT render PostToolUse `systemMessage`
 # directly in chat UI; route through the per-turn activity log so
@@ -54,6 +56,6 @@ ERROR_LOG="$COS_STATE_DIR/.capture-errors.log"
 # (which IS rendered, mirroring the caveman pattern). systemMessage
 # stays for future agent renderers + SDK consumers.
 cos_record_activity memory "+obs" 2>/dev/null || true
-printf '%s' '{"systemMessage":"[memory] +obs queued"}'
+printf '%s' '{"systemMessage":"[memory] +obs captured"}'
 
 exit 0

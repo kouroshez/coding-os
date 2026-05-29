@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import sys
+import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -318,14 +319,18 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         except Exception:
             pass  # graph table may not exist (pre-v4 DB)
 
-        # Phase B RAG: embed the observation for semantic search (fire-and-forget)
-        try:
-            from embeddings import upsert_embedding
+        # Phase B RAG: embed for semantic search (fire-and-forget). Skipped on
+        # the synchronous hook hot-path (COS_CAPTURE_SKIP_EMBED) so the model
+        # load never blocks an Edit; the FTS5 trigger already indexes the row
+        # on INSERT, so keyword recall works without the embedding.
+        if os.environ.get("COS_CAPTURE_SKIP_EMBED", "") not in ("1", "true"):
+            try:
+                from embeddings import upsert_embedding
 
-            text_to_embed = " ".join(filter(None, [title, narrative, concepts]))
-            upsert_embedding(conn, "observations", cursor.lastrowid, text_to_embed)
-        except Exception:
-            pass  # embeddings module / table may not exist (pre-v5 or no rag extras)
+                text_to_embed = " ".join(filter(None, [title, narrative, concepts]))
+                upsert_embedding(conn, "observations", cursor.lastrowid, text_to_embed)
+            except Exception:
+                pass  # embeddings module / table may not exist (pre-v5 or no rag extras)
 
         return {"status": "captured", "id": cursor.lastrowid}
     finally:
@@ -336,12 +341,22 @@ def main() -> None:
     """Read JSON from stdin, capture observation."""
     try:
         raw = sys.stdin.read()
-        if not raw.strip():
-            sys.exit(0)
+    except Exception:
+        sys.exit(0)
+    if not raw.strip():
+        sys.exit(0)
+    try:
         data = json.loads(raw)
+    except json.JSONDecodeError:
+        sys.exit(0)  # malformed stdin is benign — nothing to capture
+    try:
         capture_observation(data)
-    except (json.JSONDecodeError, KeyError, Exception):
-        # Fire-and-forget: never crash, never output errors
+    except Exception:
+        # Surface the failure instead of swallowing it: the PostToolUse hook
+        # redirects our stderr to .capture-errors.log so check-capture-worked.sh
+        # can report a silent capture death. Still exit 0 — capture is
+        # fire-and-forget and must never fail the agent's tool call.
+        traceback.print_exc(file=sys.stderr)
         sys.exit(0)
 
 
