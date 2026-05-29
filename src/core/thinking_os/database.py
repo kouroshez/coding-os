@@ -57,6 +57,19 @@ DB_FILENAME = "coding-os.db"
 LEGACY_DB_FILENAME = "thinking_os.db"  # rename target for migrate_legacy_db_filename()
 STATE_DIRNAME = ".coding-os"
 
+# A true project root co-locates its `.coding-os/` with at least one of these
+# markers. A stray nested `.coding-os/` (lazy-created from a subdir like
+# src/cli/) has none of them — so preferring a marked ancestor lets us skip
+# strays and anchor on the real root. (TASK-047.)
+_ROOT_MARKERS = (
+    ".git",
+    ".coding-os.yaml",
+    "pyproject.toml",
+    "package.json",
+    "go.mod",
+    "AGENTS.md",
+)
+
 
 def _find_project_root_from_cwd(start: Path | None = None) -> Path:
     """Walk up from cwd to find the enclosing coding-os project root.
@@ -70,13 +83,28 @@ def _find_project_root_from_cwd(start: Path | None = None) -> Path:
     """
     cur = (start or Path.cwd()).resolve()
     candidates = [cur, *cur.parents]
+    first_with_state: Path | None = None
     for parent in candidates:
         try:
-            if (parent / STATE_DIRNAME).is_dir():
+            if not (parent / STATE_DIRNAME).is_dir():
+                continue
+        except OSError:
+            continue
+        if first_with_state is None:
+            first_with_state = parent
+        # Prefer a `.coding-os/` that co-locates with a project-root marker:
+        # this skips a stray nested `.coding-os/` (e.g. src/cli/.coding-os/
+        # lazy-created from a subdir) and anchors on the true root. The walk
+        # stops at the first MARKED root, so a legitimate checkout is never
+        # overridden by an unmarked outer stray (e.g. ~/.coding-os). TASK-047.
+        try:
+            if any((parent / marker).exists() for marker in _ROOT_MARKERS):
                 return parent
         except OSError:
             continue
-    return cur  # fall through — caller creates .coding-os here
+    # No marked root in the chain → innermost `.coding-os/` (TASK-117: never
+    # lazy-create a fresh one at cwd), else cwd.
+    return first_with_state if first_with_state is not None else cur
 
 
 DEFAULT_DB_PATH = Path(
