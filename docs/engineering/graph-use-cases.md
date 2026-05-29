@@ -238,7 +238,11 @@ other than the rest.
 | Refactor planning | move a community together, not file-by-file |
 | Visualisation | colour graph by community in /graph UI |
 
-### H2. `cos_graph_centrality(by="degree"|"betweenness")`
+### H2. `cos_graph_centrality(metric="degree"|"betweenness")`
+
+> Degree counts behavioural edges (calls/imports/constructs/…) by default so
+> code chokepoints surface, not containment hubs (a config file's `contains`
+> children). Pass `include_structural=True` for raw all-edge degree.
 
 | Situation | Outcome |
 |---|---|
