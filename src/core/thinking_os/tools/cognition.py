@@ -950,6 +950,28 @@ def register_cos_compose_chain(mcp, db_path):
                 "preset_id": chain.preset_id,
             },
         )
+        # Persist the composed chain to the agent-scoped state files the Hub
+        # /api/roles/chain endpoint reads (.roles = chain json, .role = lead).
+        # These files had NO writer — only a reader (roles.py) and a GC entry
+        # (auto-brain-decay.sh) — so the /chain fast-path was dead code the
+        # Roles page could never satisfy. TASK-048.
+        try:
+            import json as _json
+            import os as _os
+
+            agent_dir = _os.environ.get("COS_AGENT_DIR") or _os.path.join(
+                _os.environ.get("COS_STATE_DIR", ".coding-os"),
+                _os.environ.get("COS_AGENT", "claude"),
+            )
+            _os.makedirs(agent_dir, exist_ok=True)
+            with open(_os.path.join(agent_dir, ".roles"), "w", encoding="utf-8") as _fh:
+                _json.dump(chain.chain, _fh)
+            if chain.chain:
+                with open(_os.path.join(agent_dir, ".role"), "w", encoding="utf-8") as _fh:
+                    _fh.write(str(chain.chain[0]))
+        except OSError as exc:
+            logger.debug("roles state-file write failed: %s", exc)
+
         # Phase M telemetry — persist the lead persona for the dispatch.
         # Schema (migration v14): one row per compose_chain call.
         try:
