@@ -59,6 +59,45 @@ def test_resolves_relative_import_to_real_symbol():
     assert edges[0].target_uid == real.uid
 
 
+def test_link_no_abort_on_duplicate_rewrite():
+    """TASK-043: a caller reaching the same real symbol via two module
+    spellings must NOT abort the whole linker pass with a UNIQUE
+    IntegrityError. OR IGNORE skips the duplicate rewrite; the real edge
+    from the first spelling survives."""
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+    real = GraphNode(
+        uid="code:function:pkg/tools/_shared.py::fail", kind="code:function",
+        label="fail", file_path="pkg/tools/_shared.py",
+    )
+    caller = GraphNode(
+        uid="code:function:pkg/board.py::handler", kind="code:function",
+        label="handler", file_path="pkg/board.py",
+    )
+    st1 = GraphNode(uid="code:external:tools._shared:fail", kind="code:external",
+                    label="fail", metadata={"stub": True, "extractor": "code_python@v1"})
+    st2 = GraphNode(uid="code:external:pkg.tools._shared:fail", kind="code:external",
+                    label="fail", metadata={"stub": True, "extractor": "code_python@v1"})
+    backend.bulk_upsert(
+        [real, caller, st1, st2],
+        [
+            GraphEdge(source_uid=caller.uid, target_uid=st1.uid, edge_type="calls",
+                      extractor="code_python@v1", confidence=0.4),
+            GraphEdge(source_uid=caller.uid, target_uid=st2.uid, edge_type="calls",
+                      extractor="code_python@v1", confidence=0.4),
+        ],
+    )
+    backend.link_external_stubs()  # must NOT raise IntegrityError
+    n = conn.execute(
+        "SELECT id FROM graph_nodes WHERE uid=?", (real.uid,)
+    ).fetchone()[0]
+    ib = conn.execute(
+        "SELECT COUNT(*) FROM graph_edges_v12 WHERE target_id=? AND edge_type='calls'",
+        (n,),
+    ).fetchone()[0]
+    assert ib == 1  # caller resolves to real exactly once (deduped, not aborted)
+
+
 def test_skips_ambiguous_multi_module_match():
     """TASK-043: when a stub's module suffix matches MORE THAN ONE real file
     (same leaf label in two modules), skip rather than guess a false edge."""

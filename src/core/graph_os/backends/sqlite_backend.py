@@ -526,9 +526,21 @@ class SqliteBackend:
                     # (is_constructor_like + target.startswith('code:class:'))
                     # missed these because the stub uid was `code:external:*`
                     # at the time edges were emitted.
+                    # TASK-043: rewrite stub→real edges with OR IGNORE. A bare
+                    # UPDATE aborts the WHOLE linker pass with an IntegrityError
+                    # when the rewrite would duplicate an existing edge — e.g. a
+                    # caller reaches the same real symbol via two module
+                    # spellings (`tools._shared:fail` + `pkg.tools._shared:fail`)
+                    # so the second rewrite collides on UNIQUE(source,target,
+                    # edge_type,extractor). OR IGNORE skips the (duplicate)
+                    # colliding rows instead of aborting; the real edge from the
+                    # first rewrite already exists, so the leftover stub edge is
+                    # a harmless redundant duplicate (doctor GCs the drained
+                    # stub later). Net: every distinct caller reaches the real
+                    # node and the pass never aborts mid-loop.
                     if matched_real_kind == "class":
                         self._conn.execute(
-                            "UPDATE graph_edges_v12 SET target_id = ?, "
+                            "UPDATE OR IGNORE graph_edges_v12 SET target_id = ?, "
                             "edge_type = CASE WHEN edge_type='calls' "
                             "THEN 'constructs' ELSE edge_type END "
                             "WHERE target_id = ?",
@@ -536,7 +548,8 @@ class SqliteBackend:
                         )
                     else:
                         self._conn.execute(
-                            "UPDATE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
+                            "UPDATE OR IGNORE graph_edges_v12 "
+                            "SET target_id = ? WHERE target_id = ?",
                             (matched_real_id, stub_id),
                         )
                     rewrites += 1
