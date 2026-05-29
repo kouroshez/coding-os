@@ -3853,12 +3853,26 @@ def cos_graph_doctor(
                         fixed_count += int(cur.rowcount or 0)
                     sqlite_conn.commit()
             if stub_orphans:
-                # Informational only — never trips healthy=false.
+                # Informational only — never trips healthy=false. TASK-046:
+                # the aggregate `count` lumps three distinct stub kinds; the
+                # `breakdown` reports the accurate per-prefix split so the
+                # label isn't misread as "all external:unresolved".
+                breakdown = {"external_unresolved": 0, "external_other": 0,
+                             "identifier_stub": 0}
+                for uid_, _kind, _label in stub_orphans:
+                    u = uid_ or ""
+                    if u.startswith("code:external:unresolved:"):
+                        breakdown["external_unresolved"] += 1
+                    elif u.startswith("code:external:"):
+                        breakdown["external_other"] += 1
+                    else:  # cos:identifier:*
+                        breakdown["identifier_stub"] += 1
                 issues.append(
                     {
                         "category": "orphaned_external_unresolved",
                         "count": len(stub_orphans),
                         "severity": "info",
+                        "breakdown": breakdown,
                         "sample": [
                             {"uid": r[0], "kind": r[1], "label": r[2]}
                             for r in stub_orphans[:5]
