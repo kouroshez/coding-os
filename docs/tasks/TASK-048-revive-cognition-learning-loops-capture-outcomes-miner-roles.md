@@ -37,3 +37,4 @@ Actual: every learning/recall/roles loop is plumbed but starved; nothing is lear
 - **Given** the matrix verification per changed layer, **Then** all targeted suites pass.
 
 ## Work Log
+- 2026-05-29 [claude]: G1–G9 landed (8 commits). Capture now synchronous (observations persist, probe 2→3); outcomes carry skills/model/duration + MCP path records; learn_extract mines success → learned_patterns 0→1 LIVE; agent_metrics real model + session_summary digest; routing_weights 0→1; compose_chain writes .roles; doctor surfaces diagnosis + UI banner; enforce-skill panel-first + hook path fixes. Verified: thinking_os 1210/0, board_os 61/0, verify-hooks clean. Deferred: graph code_python@v1 2-edge resolver gap + D1–D5 dormant. See audits/audit-cognition-loops.md. ⚠️ user must restart MCP server for in-memory tool code to update.

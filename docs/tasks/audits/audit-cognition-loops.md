@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: complete
 slug: cognition-loops
 created: 2026-05-29
 owner: claude
@@ -97,5 +97,32 @@ mechanisms / enforcement gates with no current caller) — documented here,
 - [ ] `cos graph-reindex` + restart MCP; re-query `learn_extract` references.
 - [ ] If `server.py:783` + `bootstrap_outcomes.py:160` edges still missing → resolver fix + regression test. Else: staleness only, surface `server_stale` warning.
 
+## Results (verified)
+
+| Loop | Before | After | Commit |
+|---|---|---|---|
+| Observation capture | 6 inserts in 17 days (bg reaped) | synchronous, persists in 0.08s (probe 2→3) | 0151a1d |
+| Outcome quality | success/CLEAR/no-skills/no-model | skills+model+duration auto-resolved; MCP path records | 959832d |
+| Pattern mining | learned_patterns=0 (failure-only miner) | learned_patterns 0→1 LIVE (success-baseline) | 5905cb6 |
+| Telemetry | agent_metrics 389× 'opus' hardcoded; summaries husks | real model; factual completed digest | 2ba7b64 |
+| routing_weights | 0 (model col null) | 0→1 (INFRA/CLEAR/opus 100% ·21) | (G2 code + truthful backfill) |
+| Roles | .roles never written (dead fast-path) | compose_chain persists .roles/.role | 002ac20 |
+| Doctor | counts only; mcp_server_configured false-neg | diagnostics surfaced; key fixed; UI banner | 122bc6b · 379e397 |
+| Hooks | enforce-skill panel/agent mismatch blocked edits; 2 path-skips | panel-first read; src/core & src/scripts candidates | 1c698bd |
+
+Verification: thinking_os 1210/1210 · board_os move/task 61/61 · verify-hooks clean · ui-build clean · live health_check WARN→ (pipeline-gap issue cleared, mcp_server_configured True).
+
+## Deferred (Rule 22 — NOT built this pass)
+
+- **G9 extractor gap (confirmed, not staleness):** `code_python@v1` misses 2 `learn_extract` caller edges (`server.py:783`, `bootstrap_outcomes.py:160`) — closure-nested / function-local-import calls; persists after force-reindex. Needs its own graph_os task (resolver fix + regression test). Treat `cos_graph_references` as a floor for heavy hubs until then.
+- D1–D5 dormant items (experiment_log/doc_audit/ambiguity auto-triggers, backtrack auto-capture, Rule-15 compose enforcement, retrieval-cite auto-detect, full CI data-quality harness) — speculative surface, documented not built.
+- G6 (b)/(c): /chain reading supervise activity would misrepresent (only exhaustive_evidence fires, not F1–F11); UI empty-state reframe — both deferred; the real cause is that semantic role chains aren't invoked (a usage/product decision).
+
+## ⚠️ Action required by user
+
+**Restart the coding-os MCP server** (reconnect in the IDE) so the in-memory tool code picks up these edits. Hooks (capture), the `cos` CLI (task-done), and the nightly job already run fresh on-disk code — but the live MCP server still serves pre-edit `learning.py` / `cognition.py` / `mcp_tools.py` / `record_outcome.py` until restarted.
+
 ## Resume marker
-Not started — checklist authored. Next: G1 (capture, CRIT).
+COMPLETE — G1–G9 landed (8 commits) + verified. G9 extractor + dormant items deferred with rationale above.
+
+status: complete
