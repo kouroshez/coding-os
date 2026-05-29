@@ -134,11 +134,22 @@ def main() -> None:
             age_sec = datetime.now(tz=timezone.utc).timestamp() - sid_path.stat().st_mtime
             duration_ms = int(age_sec * 1000)
 
+        # Real session model, not a hardcoded 'opus' — env first, then the
+        # .model marker, then 'unknown'. Hardcoding made all 389 rows
+        # identical (TASK-048 data-quality fix); domain/complexity/duration
+        # already vary per session.
+        model = os.environ.get("COS_AGENT_MODEL") or os.environ.get("ANTHROPIC_MODEL")
+        if not model:
+            base = os.environ.get("COS_AGENT_DIR") or os.environ.get("COS_STATE_DIR", ".coding-os")
+            marker = Path(base) / ".model"
+            if marker.exists():
+                model = marker.read_text().strip() or None
+        model = model or "unknown"
         conn.execute(
             "INSERT INTO agent_metrics "
             "(task_id, agent_type, model, duration_ms, domain, complexity, outcome) "
-            "VALUES (?, 'session', 'opus', ?, ?, ?, 'success')",
-            (task_id or None, duration_ms, domain, complexity),
+            "VALUES (?, 'session', ?, ?, ?, ?, 'success')",
+            (task_id or None, model, duration_ms, domain, complexity),
         )
         conn.commit()
     except Exception as exc:  # fail-open (Rule 6)

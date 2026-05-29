@@ -131,6 +131,16 @@ def build_session_summary(
                 exc,
             )
 
+        # 3b. Factual completion digest — NOT a reflection (that stays with
+        #     record_review.py). Gives session_startup a non-empty `completed`
+        #     instead of a husk, only when the session actually did work.
+        completed = None
+        if obs_count:
+            n_files = len([r[0] for r in file_rows if r[0]])
+            completed = f"{obs_count} edit(s) across {n_files} file(s)"
+            if breakthrough_ids:
+                completed += f"; breakthroughs: {breakthrough_ids}"
+
         # 4. Find previous session ID for episode chaining
         prev_row = conn.execute(
             "SELECT session_id FROM session_summaries "
@@ -154,6 +164,7 @@ def build_session_summary(
                 "files_touched = ?, "
                 "observations_count = ?, "
                 "breakthrough_ids = ?, "
+                "completed = COALESCE(?, completed), "
                 "duration_minutes = COALESCE(?, duration_minutes) "
                 "WHERE id = ?",
                 (
@@ -162,6 +173,7 @@ def build_session_summary(
                     files_touched,
                     obs_count,
                     breakthrough_ids,
+                    completed,
                     duration_minutes,
                     existing[0],
                 ),
@@ -170,8 +182,8 @@ def build_session_summary(
             conn.execute(
                 "INSERT INTO session_summaries "
                 "(session_id, task_id, previous_session_id, files_touched, "
-                "observations_count, breakthrough_ids, duration_minutes) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "observations_count, breakthrough_ids, completed, duration_minutes) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     session_id,
                     task_id,
@@ -179,6 +191,7 @@ def build_session_summary(
                     files_touched,
                     obs_count,
                     breakthrough_ids,
+                    completed,
                     duration_minutes,
                 ),
             )
