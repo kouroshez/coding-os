@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: []
-status: in_progress
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-28
 started: 2026-05-28
-completed: null
+completed: 2026-05-29
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 ## Work Log
 - 2026-05-28 [claude]: audit started — D1–D3 + root cause complete; see audit doc.
 - 2026-05-29 [claude]: Live re-verification: file coverage 100% (1072/1072), F1/F2 confirmed fixed, impact sound, F5 = stale server (disk corre
+- 2026-05-29 [claude]: Status transitioned to complete via cos task-done.
