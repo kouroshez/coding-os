@@ -122,6 +122,38 @@ event 8 · contract 7 · dependency 2.
 
 **Tool-list audit (L8):** 17 tools, NO over-engineering / NO redundancy warranting removal. `query`/`resolve` overlap (resolve strictly more capable via FTS5 — keep both, route query through FTS5 or document as exact-match); `references`⊂`impact` at depth=1 but distinct roles (keep). One genuine GAP (T9 vocab enumeration). Verdict: tool surface is sound; fixes are accuracy/relevance, not count.
 
+## Round-2 remediation (2026-05-29, cont.) — 9 fixes landed + verified
+
+After the user reconnected MCP + removed strays, the explicit 44–47 task range
+was implemented to completion (+ F2/similar from round-1 + a self-review pass):
+
+| Finding | Fix | Commit | Verify |
+|---|---|---|---|
+| F2 envelope scalar-mauling | trim fits after own markers + scalar floor | 7098bb9 | thinking_os 1207 |
+| T1 similar fixed-pool | CONTAINS-sibling sweep + dedup | f335b3d | graph_os 702; count_edges #1 |
+| (self-review) similar N×get_node | → single get_nodes_bulk | d544471 | TestSimilar 5 |
+| T3 rename_plan string stub | real ripgrep scan + walk fallback | 536be19 | finds registry string keys |
+| db stray-resolution | marker-anchored project root | 1458072 | test_db 83; all subdirs → root |
+| T2 entrypoints test-conflation | exclude kind=test by default | 266ecc3 | total 4671→1093 |
+| T5 centrality contains-domination | behavioural-edge degree default | 92244b2 | top = GraphNode/GraphEdge/server |
+| T7 communities test-flows | production-fraction priority penalty | 9190aab | top = main/get_audit/discover |
+| T4 doctor orphan mislabel | accurate per-prefix breakdown | 1ae6988 | 905 = 438+440+27 |
+
+Full graph_os suite after all changes: **702 passed, 16 skipped** (Go AST tests
+skip — grammar absent). Each fix verified by its matrix suite + a live disk check.
+
+**Deferred to dedicated session (rationale: cross-file resolver rewrite + reindex
+risks edge accuracy — must not be rushed):**
+- **R1–R4 caller-recall (TASK-043 + TASK-041)** — instance-method receiver inference,
+  cross-module import-alias normalization, module-uid canonicalization. The single
+  highest-value graph fix; inherently a linker change needing a full reindex + recall
+  benchmark.
+- **T6 ranking F6 (TASK-040)** — query-personalization relevance.
+
+**Stale-MCP caveat:** all 9 fixes confirmed on disk + pytest. `cos hub restart`
+restarts the web hub, NOT the stdio MCP server Claude Code spawned — so live
+`cos_graph_*` tools keep serving old code until an MCP reconnect / Claude restart.
+
 ## Resume Marker
 
 <!-- last_updated_row: synthesis -->

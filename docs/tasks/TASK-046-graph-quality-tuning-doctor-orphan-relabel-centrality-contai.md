@@ -31,3 +31,4 @@ references: []
 - **Then** ...
 
 ## Work Log
+- 2026-05-29 [claude]: DEFERRED (deliberate, not rushed) — all 3 sub-fixes (doctor orphan re-bucket, centrality contains-exclusion, communities
