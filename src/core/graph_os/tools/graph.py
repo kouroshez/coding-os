@@ -3117,6 +3117,7 @@ def cos_graph_centrality(
     kind: str | None = None,
     metric: str = "degree",
     include_external: bool = False,
+    include_structural: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Hub detection via degree (or betweenness) centrality.
@@ -3125,6 +3126,12 @@ def cos_graph_centrality(
     builtins (`code:external:unresolved:str/int/bool/len`) and stdlib
     stubs (`code:external:pathlib:Path`) do not crowd the top of the
     list. Set True to opt back into the raw ranking.
+
+    TASK-046: `include_structural` defaults to False so degree counts only
+    behavioural edges (calls/imports/constructs/…). Otherwise structural
+    containment (`contains`/doc links) dominates — registry.yaml's 798
+    `contains` children make it the #1 "hub", burying real code chokepoints.
+    Set True for raw all-edge degree.
     """
     err = _validate_positive_int(top, "top")
     if err:
@@ -3179,25 +3186,35 @@ def cos_graph_centrality(
                 params.extend(f"code:module:{name}" for name in _NOISE_MODULE_NAMES)
             kind_clause = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
+            # Degree over behavioural edges only by default (TASK-046). The
+            # edge filter sits in the JOIN ON clause, so its params precede
+            # the WHERE (kind/stdlib) params.
+            edge_params: list[Any] = []
+            edge_join = ""
+            if not include_structural:
+                beh = sorted(_BEHAVIOURAL_EDGE_TYPES)
+                edge_join = f"AND e.edge_type IN ({','.join('?' * len(beh))})"
+                edge_params = beh
+
             in_deg_rows = sqlite_conn.execute(
                 f"""
                 SELECT n.uid, n.kind, n.label, COUNT(e.id) AS cnt
                 FROM graph_nodes n
-                LEFT JOIN graph_edges_v12 e ON e.target_id = n.id
+                LEFT JOIN graph_edges_v12 e ON e.target_id = n.id {edge_join}
                 {kind_clause}
                 GROUP BY n.id
                 """,
-                tuple(params),
+                tuple(edge_params + params),
             ).fetchall()
             out_deg_rows = sqlite_conn.execute(
                 f"""
                 SELECT n.uid, COUNT(e.id) AS cnt
                 FROM graph_nodes n
-                LEFT JOIN graph_edges_v12 e ON e.source_id = n.id
+                LEFT JOIN graph_edges_v12 e ON e.source_id = n.id {edge_join}
                 {kind_clause}
                 GROUP BY n.id
                 """,
-                tuple(params),
+                tuple(edge_params + params),
             ).fetchall()
         except Exception as exc:
             logger.debug("centrality SQL suppressed: %s", exc)
@@ -3228,6 +3245,8 @@ def cos_graph_centrality(
         out_deg: dict[str, int] = {}
         uid_meta: dict[str, tuple[str, str]] = {}  # uid -> (kind, label)
         for edge in be.list_edges(limit=10000):
+            if not include_structural and edge.edge_type not in _BEHAVIOURAL_EDGE_TYPES:
+                continue
             out_deg[edge.source_uid] = out_deg.get(edge.source_uid, 0) + 1
             in_deg[edge.target_uid] = in_deg.get(edge.target_uid, 0) + 1
         all_uids = set(in_deg) | set(out_deg)
