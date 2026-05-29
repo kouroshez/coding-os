@@ -2104,7 +2104,7 @@ except Exception as _cog_exc:  # pragma: no cover
 
 
 # ---------------------------------------------------------------------------
-# Phase I — 11 cos_graph_* MCP tools (knowledge-graph layer).
+# Phase I — 17 cos_graph_* MCP tools (knowledge-graph layer).
 #
 # The implementations live in `core/graph_os/tools/graph.py`; the wrappers
 # here expose them via FastMCP with MCP-friendly parameter types (comma-

@@ -1,4 +1,4 @@
-"""graph_os — the 11 cos_graph_* MCP tools (I.8).
+"""graph_os — the 17 cos_graph_* MCP tools (I.8).
 
 DEPENDS:  graph_os.types, graph_os.backend, graph_os.backends.*.
 """
@@ -971,7 +971,7 @@ def _bulk_nodes(backend: GraphBackend, uids: Sequence[str]) -> dict[str, GraphNo
 
 
 # ---------------------------------------------------------------------------
-# The 11 tools
+# The 17 tools
 # ---------------------------------------------------------------------------
 
 
@@ -1660,7 +1660,13 @@ def cos_graph_similar(
     if root is None:
         return _fail_uid_not_found(uid, tried_uids)
 
-    # B13: use sample_nodes for an unbiased candidate pool.
+    # B13: use sample_nodes for a breadth candidate pool. NOTE: sample_nodes
+    # draws ORDER BY id ASC LIMIT — a fixed prefix of the kind, not a uniform
+    # sample. So a structural near-twin outside that window is never scored
+    # (round-5 audit: count_nodes' twin count_edges, same class, was never a
+    # candidate). Until the sampler is made representative (follow-up task),
+    # we GUARANTEE the root's container-siblings are scored below — they are
+    # the most likely near-twins, so this fixes the dominant failure mode.
     sample_size = 200  # bounded to keep latency predictable
     sampler = getattr(be, "sample_nodes", None)
     if callable(sampler):
@@ -1679,16 +1685,37 @@ def cos_graph_similar(
                 if n is not None:
                     raw_candidates.append(n)
 
-    # G21: drop external/orphan/unresolved stubs from the candidate
-    # pool — they otherwise dominate similarity for any noise-shaped
-    # input (`unresolved:str` returned 120 noise neighbours).
-    candidates = [
-        n
-        for n in raw_candidates
-        if n.uid != uid
-        and not n.uid.startswith("code:external:unresolved:")
-        and n.kind != "identifier"
-    ]
+    # Sibling augmentation: pull every node sharing the root's container
+    # (class / file / module) via the CONTAINS spine so true structural
+    # twins are always in the pool regardless of the sample window.
+    try:
+        for parent_edge in be.list_edges(
+            target_uid=root.uid, edge_types=["contains"], limit=8
+        ):
+            for sib_edge in be.list_edges(
+                source_uid=parent_edge.source_uid,
+                edge_types=["contains"],
+                limit=1000,
+            ):
+                sib = be.get_node(sib_edge.target_uid)
+                if sib is not None:
+                    raw_candidates.append(sib)
+    except Exception as exc:  # fail-open: augmentation is best-effort
+        logger.debug("similar sibling augmentation skipped: %s", exc)
+
+    # G21: drop external/orphan/unresolved stubs from the candidate pool —
+    # they otherwise dominate similarity for any noise-shaped input
+    # (`unresolved:str` returned 120 noise neighbours). Dedup by uid since
+    # the sample and the sibling sweep can overlap.
+    seen_uids: set[str] = set()
+    candidates = []
+    for n in raw_candidates:
+        if n.uid == uid or n.uid in seen_uids:
+            continue
+        if n.uid.startswith("code:external:unresolved:") or n.kind == "identifier":
+            continue
+        seen_uids.add(n.uid)
+        candidates.append(n)
 
     # Phase I.1 — use BGE-M3 embeddings when the model is available;
     # fall back to lexical SequenceMatcher otherwise. Both signals get

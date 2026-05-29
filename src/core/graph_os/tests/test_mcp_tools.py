@@ -364,6 +364,49 @@ class TestSimilar:
         )
         assert all(r["similarity"] >= 0.99 for r in data["results"])
 
+    def test_sibling_augmentation_surfaces_container_twin(
+        self, migrated_conn, monkeypatch
+    ):
+        """Round-5 audit: sample_nodes draws a fixed id-prefix window, so a
+        structural twin outside that window was never even a candidate
+        (count_nodes' twin count_edges, same class). The CONTAINS sibling
+        sweep must guarantee same-container nodes are scored even when the
+        sample omits them entirely."""
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        be = SqliteBackend(conn=migrated_conn)
+        be.bulk_upsert(
+            [
+                GraphNode(uid="code:class:m.py::C", kind="code:class",
+                          label="C", file_path="m.py", start_line=1),
+                GraphNode(uid="code:method:m.py::C.alpha", kind="code:method",
+                          label="alpha", file_path="m.py", start_line=2),
+                GraphNode(uid="code:method:m.py::C.beta", kind="code:method",
+                          label="beta", file_path="m.py", start_line=8),
+            ],
+            [
+                GraphEdge(source_uid="code:class:m.py::C",
+                          target_uid="code:method:m.py::C.alpha",
+                          edge_type="contains", extractor="test", confidence=1.0),
+                GraphEdge(source_uid="code:class:m.py::C",
+                          target_uid="code:method:m.py::C.beta",
+                          edge_type="contains", extractor="test", confidence=1.0),
+            ],
+        )
+        # Force the sample window to EXCLUDE everything — now ONLY the
+        # CONTAINS sibling sweep can surface the twin.
+        monkeypatch.setattr(be, "sample_nodes", lambda kind, limit: [])
+        graph._BACKEND_SINGLETON = be
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: be)
+        data = _assert_ok(
+            graph.cos_graph_similar(
+                "code:method:m.py::C.alpha", confidence_min=0.0, top_k=5
+            )
+        )
+        graph._BACKEND_SINGLETON = None
+        uids = [r["uid"] for r in data["results"]]
+        assert "code:method:m.py::C.beta" in uids
+
 
 class TestReferences:
     def test_happy_path(self, seeded_backend):
