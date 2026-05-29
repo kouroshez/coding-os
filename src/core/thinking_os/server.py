@@ -2421,7 +2421,7 @@ if _GRAPH_TOOLS_AVAILABLE:
                 get ``imports+links_to+references_doc+contains``. R4-02.
             limit: Max edges returned (default 100).
         """
-        parsed = tuple(_csv(kinds))
+        parsed = tuple(_csv(kinds) or ())
         return _graph_tools.cos_graph_references(
             uid,
             kinds=parsed if parsed else None,

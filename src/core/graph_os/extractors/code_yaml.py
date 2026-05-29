@@ -193,7 +193,8 @@ def _emit_hook_registry(
         script = entry.get("script")
         if isinstance(script, str) and script:
             # Resolve bare script name against the registry dir → real file node, not a stub.
-            raw = script.lstrip("./")
+            # removeprefix (not lstrip): lstrip("./") eats a char-set, mangling "..foo"/".hidden".
+            raw = script.removeprefix("./")
             if "/" in raw:
                 script_path = raw
             else:

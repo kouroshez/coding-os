@@ -59,7 +59,7 @@ Node kinds (load-bearing): file 826 · doc_file 350 · folder 232 · function 36
 |---|---|---|---|---|
 | F1 | HIGH | data + code | 131 `file` nodes have NULL file_path/lang/content_hash | live disk bug |
 | F2 | MED-HIGH | code | `detect_changes` multi-file busts 32KB budget unshrinkably; scalars mauled | live disk bug |
-| F5 | HIGH | operational | running MCP server is stale → `cos_graph_references(uid)` crashes | restart + guard |
+| F5 | HIGH | code | `references(uid)` default-kinds crash — `server.py:2424 tuple(_csv(kinds))` on `_csv(None)` | live bug (fixed) |
 | F7 | MED | code | graph misses `calls` edges for dynamic/indirect dispatch | recall gap |
 | F3 | MED | data | task layer not re-synced (TASK-038 absent); audits counted as tasks | sync + classify |
 | F4 | MED | code | 25 phantom `doc_file` nodes pointing at directories | live disk bug |
@@ -80,11 +80,9 @@ Node kinds (load-bearing): file 826 · doc_file 350 · folder 232 · function 36
 
 **Root cause.** The 225-element `symbols` array was **not in `_TRIMMABLE_LIST_KEYS`** (`_shared.py`) → never shrunk → budget unmeetable → last-resort string-trim mauled even `scope`/`risk_level` scalars. **Fix.** Register `symbols` trimmable (verified live: no bust, scalars intact).
 
-### F5 — HIGH (operational) — running MCP server serves stale code → `references` crash
+### F5 — HIGH — `references(uid)` default-kinds crash (server.py wrapper `_csv(None)`)
 
-`cos_graph_references(uid)` with default args returns `internal: TypeError: 'NoneType' object is not iterable` via MCP for function/method/file nodes (reproduced 4×, and independently by a subagent). The **on-disk code returns `ok:true`** for the identical call. `graph.py` mtime 2026-05-28 02:07, tree clean. Conclusion: the long-running thinking_os MCP server loaded `graph.py` before a fix and was never restarted (Python has no hot-reload; CLAUDE.md modularity map even notes "restart MCP client" for `thinking_os/**`).
-
-**Impact.** Any agent in this environment calling the documented primary "who references this?" form (`cos_graph_references(uid)`) crashes right now. **Fix.** Restart the MCP server. Add a staleness guard: server records `graph.py` git-sha/mtime at boot; a hook (sibling of `warn-mcp-down.sh`) warns when disk is newer than the running server.
+`cos_graph_references(uid)` with omitted `kinds` → `TypeError: 'NoneType' object is not iterable`. **Root cause (CORRECTED — not staleness):** the FastMCP wrapper `cos_graph_references_tool` at `server.py:2424` did `tuple(_csv(kinds))`; `_csv("")`/`_csv(None)` returns `None` → `tuple(None)` crashes. My disk tests called `graph.py::cos_graph_references` directly, bypassing the `server.py` wrapper, which masked it (sibling wrappers 2358/2562 were already guarded with `or (...)`). **Fix:** `server.py:2424` → `tuple(_csv(kinds) or ())`; needs one server reload to go live. **Lesson:** test the `server.py` FastMCP wrapper, not only the `graph.py` impl.
 
 ### F7 — MED — graph misses `calls` edges for dynamic/indirect dispatch
 
@@ -135,7 +133,7 @@ Extractors present (`src/core/graph_os/extractors/`): **Python** (`code_python`,
 | F6 | ranking sorts query-seeded nodes before generic hubs | `graph.py::cos_graph_ranking` | **FIXED** |
 | F0a | SQLite-as-"fallback" wording dropped | `graph-explorer/SKILL.md:36` | **FIXED** |
 | F0b | `meta-graph-first.md` Kùzu line | `.claude/rules/` | **BLOCKED** — auto-mode classifier (agent-config self-modification); needs explicit user OK |
-| F5 | `references(uid)` default-kinds crash | disk code already correct | **BLOCKED** — running MCP server is STALE; requires restart |
+| F5 | `references(uid)` default-kinds crash | `server.py:2424` → `tuple(_csv(kinds) or ())` | **FIXED** (was mis-scoped as staleness — real bug in the FastMCP wrapper); needs 1 server reload to go live |
 | F7 | dynamic-dispatch call edges missed | — | documented limitation (static AST); LSP overlay is the path |
 
 **Data rebuild:** 2× `cos graph-reindex --force --prune-stale` (1072 files, 0 errors) + `cos_graph_doctor(fix=True)` → removed 99 dangling edges + 99 `stale_paths` nodes. Node count 31,615 → 31,703.
@@ -155,7 +153,7 @@ Re-ran against the **live MCP server + on-disk code + DB**:
 - **F1 FIXED confirmed** — 37 NULL-path `file` nodes are all `stub=1`; 0 real-file clobbers.
 - **F2 FIXED confirmed live** — `detect_changes(3 files)`: `risk_level:"high"` intact, `truncated:false`, no budget bust.
 - **`impact` SOUND** — `upsert_node` downstream found `bulk_upsert` (conf 1.0) + all 3 test callers via `constructs` at depth 2; `walk_truncated:false`.
-- **F5 still live** — `references(default-kinds)` crashes via MCP; fresh on-disk process returns ok (count=1); explicit `kinds=` works.
+- **F5 root cause (corrected 2026-05-29)** — NOT staleness. Real bug: `server.py:2424 tuple(_csv(kinds))` crashed on `_csv(None)`. Direct `graph.py` calls bypassed the wrapper, masking it. Fixed → `tuple(_csv(kinds) or ())`; needs one server reload. doctor `healthy=true` post-fix.
 
 **F5 mechanism (corrects prior "fully stale" note):** server holds an *intermediate* `graph.py` snapshot (has uncommitted F9+F2, lacks the references-default-kinds fix) → edited across a restart. Genuine stale-server, disk correct, **restart clears it**; boot-staleness guard is the durable fix.
 

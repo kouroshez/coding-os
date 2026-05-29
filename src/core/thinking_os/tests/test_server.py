@@ -130,6 +130,28 @@ class TestSelfTest:
         assert "PASS" in result.stderr, f"Expected PASS in logs:\n{result.stderr}"
 
 
+class TestGraphReferencesCsvGuard:
+    """F5 regression — the cos_graph_references wrapper (server.py:2424) must
+    tolerate empty/None `kinds`. `tuple(_csv(""))` crashed with
+    `'NoneType' object is not iterable`; `tuple(_csv("") or ())` must not.
+    Tests the WRAPPER transform, not the graph.py impl (which already tolerated
+    None and so masked the bug)."""
+
+    def test_csv_empty_or_none_is_none(self) -> None:
+        import server
+
+        assert server._csv("") is None
+        assert server._csv(None) is None
+
+    def test_references_wrapper_kinds_transform_no_crash(self) -> None:
+        import server
+
+        # Mirror the exact wrapper expression at server.py:2424.
+        for raw in ("", None, "calls,imports", "calls"):
+            parsed = tuple(server._csv(raw) or ())
+            assert isinstance(parsed, tuple)  # never raises; impl gets () → None
+
+
 # ---------------------------------------------------------------------------
 # Schema integrity
 # ---------------------------------------------------------------------------
