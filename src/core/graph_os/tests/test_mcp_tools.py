@@ -408,6 +408,22 @@ class TestSimilar:
         assert "code:method:m.py::C.beta" in uids
 
 
+class TestGrepStringLiterals:
+    def test_finds_quoted_name(self, monkeypatch, tmp_path):
+        """TASK-045: the string-literal scan finds the symbol inside a quoted
+        literal — the registry / getattr refs an AST rename pass misses."""
+        (tmp_path / "reg.py").write_text('REG = {"WidgetX": WidgetX}\n')
+        monkeypatch.setattr(graph, "_repo_root_for_paths", lambda: tmp_path)
+        hits = graph._grep_string_literals("WidgetX")
+        assert any(h["file"] == "reg.py" and "WidgetX" in h["text"] for h in hits)
+
+    def test_skips_short_names(self, monkeypatch, tmp_path):
+        """Names < 3 chars are pure noise — never scanned."""
+        (tmp_path / "f.py").write_text('x = "ab"\n')
+        monkeypatch.setattr(graph, "_repo_root_for_paths", lambda: tmp_path)
+        assert graph._grep_string_literals("ab") == []
+
+
 class TestReferences:
     def test_happy_path(self, seeded_backend):
         data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo"))

@@ -378,3 +378,68 @@ class TestServerStaleGuard:
         data = _ok(graph.cos_graph_doctor())
         assert "server_stale" in data["meta"]
         graph._BACKEND_SINGLETON = None
+
+
+def _seed(migrated_conn, monkeypatch, nodes, edges):
+    from graph_os.backends.sqlite_backend import SqliteBackend
+
+    be = SqliteBackend(conn=migrated_conn)
+    be.bulk_upsert(nodes, edges)
+    graph._BACKEND_SINGLETON = be
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: be)
+    return be
+
+
+def test_centrality_excludes_structural_edges_by_default(migrated_conn, monkeypatch):
+    """TASK-046: degree counts behavioural edges by default — a contains-only
+    container scores 0; with include_structural=True it counts its children."""
+    nodes = [
+        GraphNode(uid=f"code:function:m.py::f{i}", kind="code:function",
+                  label=f"f{i}", file_path="m.py", start_line=i)
+        for i in range(6)
+    ]
+    nodes.append(GraphNode(uid="code:file:m.py", kind="code:file",
+                           label="m.py", file_path="m.py"))
+    edges = [
+        GraphEdge(source_uid="code:file:m.py", target_uid=f"code:function:m.py::f{i}",
+                  edge_type="contains", extractor="test", confidence=1.0)
+        for i in range(6)
+    ]
+    edges += [
+        GraphEdge(source_uid=f"code:function:m.py::f{i}",
+                  target_uid="code:function:m.py::f0",
+                  edge_type="calls", extractor="test", confidence=1.0)
+        for i in range(1, 6)
+    ]
+    _seed(migrated_conn, monkeypatch, nodes, edges)
+    try:
+        default = {n["uid"]: n for n in _ok(graph.cos_graph_centrality(top=20))["nodes"]}
+        # the file's 6 outbound edges are all `contains` → 0 behavioural degree
+        assert default.get("code:file:m.py", {}).get("out_degree", 0) == 0
+        assert default["code:function:m.py::f0"]["in_degree"] == 5
+        # raw all-edge degree restores the structural count
+        raw = {n["uid"]: n
+               for n in _ok(graph.cos_graph_centrality(top=20, include_structural=True))["nodes"]}
+        assert raw["code:file:m.py"]["out_degree"] == 6
+    finally:
+        graph._BACKEND_SINGLETON = None
+
+
+def test_doctor_orphan_breakdown_splits_by_prefix(migrated_conn, monkeypatch):
+    """TASK-046: doctor reports an accurate per-prefix split of stub orphans
+    instead of lumping all under the 'external_unresolved' label."""
+    nodes = [
+        GraphNode(uid="code:external:unresolved:foo", kind="identifier", label="foo"),
+        GraphNode(uid="code:external:pathlib:Path", kind="identifier", label="Path"),
+        GraphNode(uid="cos:identifier:skillX", kind="identifier", label="skillX"),
+    ]
+    _seed(migrated_conn, monkeypatch, nodes, [])
+    try:
+        data = _ok(graph.cos_graph_doctor())
+        issue = next(i for i in data["issues"]
+                     if i["category"] == "orphaned_external_unresolved")
+        assert issue["breakdown"] == {
+            "external_unresolved": 1, "external_other": 1, "identifier_stub": 1,
+        }
+    finally:
+        graph._BACKEND_SINGLETON = None

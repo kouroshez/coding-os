@@ -889,3 +889,29 @@ class TestMigrationV9DocsFTS:
         run_migrations(fresh_conn)
         run_migrations(fresh_conn)
         assert get_schema_version(fresh_conn) >= 9
+
+
+def test_find_project_root_prefers_marker_over_stray(tmp_path: Path) -> None:
+    """TASK-047: a subdir holding a STRAY .coding-os must resolve to the
+    marker-co-located project root, not the stray."""
+    from database import _find_project_root_from_cwd
+
+    root = tmp_path / "proj"
+    (root / ".coding-os").mkdir(parents=True)
+    (root / ".git").mkdir()  # root marker
+    sub = root / "src" / "cli"
+    (sub / ".coding-os").mkdir(parents=True)  # stray, NO marker sibling
+    assert _find_project_root_from_cwd(sub).resolve() == root.resolve()
+
+
+def test_find_project_root_falls_back_to_innermost_without_marker(
+    tmp_path: Path,
+) -> None:
+    """No marker anywhere → innermost .coding-os (TASK-117 anti-lazy-create)."""
+    from database import _find_project_root_from_cwd
+
+    root = tmp_path / "bare"
+    (root / ".coding-os").mkdir(parents=True)
+    sub = root / "deep"
+    (sub / ".coding-os").mkdir(parents=True)
+    assert _find_project_root_from_cwd(sub).resolve() == sub.resolve()

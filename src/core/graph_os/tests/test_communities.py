@@ -196,6 +196,28 @@ class TestComputeCommunities:
         for c in communities:
             assert " → " in c.summary or c.member_count == 1
 
+    def test_test_flow_community_down_ranked(self):
+        """TASK-046: an all-test community ranks below an equal-size all-
+        production one (test files' dense intra-file graphs otherwise win)."""
+        prod = [
+            _node(f"code:function:svc/a.py::{n}", file_path="svc/a.py")
+            for n in ("alpha", "beta", "gamma")
+        ]
+        tests = [
+            _node(f"code:function:tests/test_x.py::{n}", file_path="tests/test_x.py")
+            for n in ("test_a", "test_b", "test_c")
+        ]
+        edges = []
+        for cluster in (prod, tests):
+            for i in range(len(cluster) - 1):
+                edges.append(_edge(cluster[i].uid, cluster[i + 1].uid))
+            edges.append(_edge(cluster[0].uid, cluster[-1].uid))
+        comms, _ = compute_communities(_StubBackend(prod + tests, edges), min_size=2)
+        prod_comm = next((c for c in comms if not c.name.startswith("test_")), None)
+        test_comm = next((c for c in comms if c.name.startswith("test_")), None)
+        assert prod_comm and test_comm
+        assert prod_comm.priority > test_comm.priority
+
 
 class TestEdgeCases:
     def test_empty_graph(self):

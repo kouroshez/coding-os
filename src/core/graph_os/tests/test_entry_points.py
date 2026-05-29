@@ -54,6 +54,20 @@ def test_cli_signal_path_cli():
     assert eps and "path_cli" in eps[0].components
 
 
+def test_excludes_test_functions_by_default():
+    """TASK-044: test_* functions are not real entry points — excluded from
+    the default ranking, surfaced only when kind_filter='test' is explicit."""
+    be = _StubBackend([
+        _node("u:t", "function", "test_login", "src/tests/test_auth.py"),
+        _node("u:c", "function", "cli", "src/cli/main.py"),
+    ])
+    default_eps = entry_points.discover(be, min_score=0.0)
+    assert all(e.kind != "test" for e in default_eps)
+    assert any(e.kind == "cli" for e in default_eps)
+    test_eps = entry_points.discover(be, min_score=0.0, kind_filter="test")
+    assert any(e.kind == "test" for e in test_eps)
+
+
 def test_http_route_kind_dominates():
     be = _StubBackend([_node("u:r", "route", "GET /api/x", "core/web/routes/x.py")])
     eps = entry_points.discover(be, min_score=0.0, kind_filter="http")
