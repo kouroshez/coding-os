@@ -2779,9 +2779,79 @@ def _lexical_search(
     return sorted(candidates, key=score, reverse=True)[:limit]
 
 
-def _grep_string_literals(name: str) -> list[dict[str, Any]]:
-    """Stub for the string-scan path. Real implementation lives in CLI layer."""
-    return []
+def _grep_string_literals(name: str, *, limit: int = 100) -> list[dict[str, Any]]:
+    # check_strings path: find the symbol name INSIDE a string literal — the
+    # rename targets an AST pass misses (getattr(o, "name"), config keys,
+    # dynamic dispatch). ripgrep when present (respects .gitignore), bounded
+    # Python walk otherwise. Quote-scoped regex keeps precision; capped at
+    # `limit`. TASK-045: was a permanent [] stub → check_strings was a no-op.
+    if not name or len(name) < 3:
+        return []  # too short → only noise
+    root = _repo_root_for_paths()
+    pattern = rf'''("[^"]*\b{re.escape(name)}\b[^"]*"|'[^']*\b{re.escape(name)}\b[^']*')'''
+    hits: list[dict[str, Any]] = []
+
+    import subprocess
+
+    try:
+        proc = subprocess.run(
+            ["rg", "--line-number", "--no-heading", "--color", "never",
+             "-e", pattern, str(root)],
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+        for raw in proc.stdout.splitlines():
+            parts = raw.split(":", 2)  # <path>:<line>:<text>
+            if len(parts) < 3:
+                continue
+            fp, ln, text = parts
+            try:
+                rel = Path(fp).resolve().relative_to(root).as_posix()
+            except ValueError:
+                rel = fp
+            hits.append({"file": rel, "line": int(ln) if ln.isdigit() else None,
+                         "text": text.strip()[:200]})
+            if len(hits) >= limit:
+                break
+        return hits
+    except (FileNotFoundError, OSError, subprocess.SubprocessError) as exc:
+        logger.debug("rg string-scan unavailable, walking instead: %s", exc)
+
+    # Fallback — bounded Python walk with the same filters as the indexer.
+    try:
+        import fnmatch
+
+        from ..ingest.base import DEFAULT_EXCLUDE, DEFAULT_INCLUDE
+
+        rx = re.compile(pattern)
+        scanned = 0
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d not in DEFAULT_EXCLUDE]
+            for fn in filenames:
+                if not any(fnmatch.fnmatchcase(fn, p) for p in DEFAULT_INCLUDE):
+                    continue
+                full = Path(dirpath) / fn
+                if full.is_symlink():
+                    continue
+                scanned += 1
+                if scanned > 5000:
+                    return hits
+                try:
+                    if full.stat().st_size > 1_000_000:
+                        continue
+                    with full.open(encoding="utf-8", errors="ignore") as fh:
+                        for i, line in enumerate(fh, 1):
+                            if name in line and rx.search(line):
+                                hits.append({
+                                    "file": full.resolve().relative_to(root).as_posix(),
+                                    "line": i, "text": line.strip()[:200],
+                                })
+                                if len(hits) >= limit:
+                                    return hits
+                except OSError:
+                    continue
+    except Exception as exc:  # fail-open — string scan is best-effort
+        logger.debug("string-literal walk failed: %s", exc)
+    return hits
 
 
 def _to_mermaid(nodes: Iterable[GraphNode], edges: Iterable[GraphEdge]) -> str:
