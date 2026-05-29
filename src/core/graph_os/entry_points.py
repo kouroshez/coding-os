@@ -71,6 +71,12 @@ def discover(
         for ep in _score_node(node):
             if kind_filter is not None and ep.kind != kind_filter:
                 continue
+            # Test functions are not real entry points — they otherwise
+            # dominate the default ranking (round-5 audit: ~76% of results,
+            # scored 0.85 ABOVE the real CLI root at 0.6). Surface them only
+            # when the caller explicitly asks for kind="test". TASK-044.
+            if ep.kind == "test" and kind_filter != "test":
+                continue
             if ep.score < min_score:
                 continue
             out.append(ep)
