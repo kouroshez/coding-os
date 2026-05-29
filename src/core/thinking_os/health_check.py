@@ -366,7 +366,12 @@ def check_learning_pipeline() -> dict:
         try:
             mcp_data = json.loads(mcp_config.read_text())
             servers = mcp_data.get("mcpServers", {})
-            result["components"]["mcp_server_configured"] = "thinking_os" in servers
+            # The server is registered as 'coding-os' (the cos_* tool
+            # namespace); 'thinking_os' was the pre-rename key. Accept either
+            # so this check stops false-negative'ing on every modern repo.
+            result["components"]["mcp_server_configured"] = any(
+                key in ("coding-os", "thinking_os") for key in servers
+            )
         except (json.JSONDecodeError, KeyError):
             result["components"]["mcp_server_configured"] = False
     else:

@@ -140,6 +140,38 @@ async def api_health_db():
                 payload["tables"][table] = int(count or 0)
             except sqlite3.Error as exc:
                 payload["tables"][table] = {"error": str(exc)}
+
+        # Surface the self-diagnosis the counts-only view used to hide: the
+        # numbers don't explain WHY a loop is dead. (TASK-048)
+        diagnostics: list[str] = []
+
+        def _n(name: str) -> int:
+            v = payload["tables"].get(name)
+            return v if isinstance(v, int) else 0
+
+        if _n("task_outcomes") >= 3 and _n("learned_patterns") == 0:
+            diagnostics.append(
+                f"Pipeline gap: {_n('task_outcomes')} task_outcomes but 0 learned_patterns "
+                "— learn_extract has no fuel (check capture + outcome quality)."
+            )
+        for tbl in ("observations", "session_summaries"):
+            if tbl in existing and _n(tbl) == 0:
+                diagnostics.append(f"'{tbl}' empty — recall/learning signal missing.")
+        if "agent_metrics" in existing and _n("agent_metrics") > 10:
+            distinct = None
+            try:
+                distinct = conn.execute(
+                    "SELECT COUNT(*) FROM "
+                    "(SELECT DISTINCT agent_type, model, outcome FROM agent_metrics)"
+                ).fetchone()[0]
+            except sqlite3.Error:
+                distinct = None
+            if distinct is not None and distinct <= 1:
+                diagnostics.append(
+                    f"agent_metrics degenerate: {_n('agent_metrics')} rows but 1 distinct "
+                    "(agent_type, model, outcome) — telemetry carries no variance."
+                )
+        payload["diagnostics"] = diagnostics
     finally:
         conn.close()
 
