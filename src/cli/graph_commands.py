@@ -517,6 +517,19 @@ def register(cli: click.Group) -> None:
             f"errors={errors} duration={duration:.2f}s"
         )
 
+        # TASK-043: per-file linking during the walk cannot resolve a stub
+        # whose real target is indexed LATER (file-order dependency), so
+        # cross-module bare-name calls (ok()/fail()/...) leak to external
+        # stubs and references/impact under-report callers. Run the GLOBAL
+        # linker once now that every node exists — same precise module→file
+        # matching as the per-file pass, just applied across the whole graph.
+        try:
+            backend, _ = _open_backend()
+            relinked = backend.link_external_stubs()
+            click.echo(f"[graph-reindex] cross-file link: {relinked} stub(s) resolved")
+        except Exception as exc:
+            click.echo(f"[graph-reindex] cross-file link skipped: {exc}", err=True)
+
     @cli.command(name="graph-index-local")
     @click.argument("path")
     @click.option("--alias", default=None)

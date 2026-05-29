@@ -59,6 +59,38 @@ def test_resolves_relative_import_to_real_symbol():
     assert edges[0].target_uid == real.uid
 
 
+def test_skips_ambiguous_multi_module_match():
+    """TASK-043: when a stub's module suffix matches MORE THAN ONE real file
+    (same leaf label in two modules), skip rather than guess a false edge."""
+    conn = _migrated_conn()
+    backend = SqliteBackend(conn=conn)
+    real_a = GraphNode(
+        uid="code:function:pkg/a/utils.py::helper", kind="code:function",
+        label="helper", file_path="pkg/a/utils.py",
+    )
+    real_b = GraphNode(
+        uid="code:function:pkg/b/utils.py::helper", kind="code:function",
+        label="helper", file_path="pkg/b/utils.py",
+    )
+    caller = GraphNode(
+        uid="code:file:pkg/c/caller.py", kind="code:file",
+        label="caller.py", file_path="pkg/c/caller.py",
+    )
+    stub = GraphNode(
+        uid="code:external:utils:helper", kind="code:external",
+        label="helper", metadata={"stub": True, "extractor": "code_python@v1"},
+    )
+    backend.bulk_upsert(
+        [real_a, real_b, caller, stub],
+        [GraphEdge(source_uid=caller.uid, target_uid=stub.uid, edge_type="calls",
+                   extractor="code_python@v1", confidence=0.4)],
+    )
+    # Both pkg/a/utils.py and pkg/b/utils.py end with /utils.py → ambiguous.
+    assert backend.link_external_stubs() == 0
+    edges = list(backend.list_edges(edge_types=("calls",), limit=10))
+    assert edges[0].target_uid == stub.uid  # left on the stub, no guessed edge
+
+
 def test_skips_unresolvable_stubs():
     conn = _migrated_conn()
     backend = SqliteBackend(conn=conn)

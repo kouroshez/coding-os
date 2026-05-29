@@ -500,20 +500,26 @@ class SqliteBackend:
                     continue
                 for stub_id, module, _stub_uid in candidate_stubs:
                     module_suffix = module.replace(".", "/")
-                    matched_real_id: int | None = None
-                    matched_real_kind: str | None = None
-                    for real_id, real_file, real_kind in real_candidates:
+                    # TASK-043: collect ALL real files whose path matches the
+                    # stub's module, then resolve ONLY when exactly one does.
+                    # First-match-break used to pick an arbitrary candidate
+                    # when several `label`s exist in different modules (e.g. 3
+                    # `fail` functions) — a false-edge risk amplified once the
+                    # global cross-file pass runs. Ambiguous (>1) ⇒ skip, never
+                    # guess.
+                    matches = [
+                        (real_id, real_kind)
+                        for real_id, real_file, real_kind in real_candidates
                         if (
                             real_file == f"{module_suffix}.py"
                             or real_file.endswith(f"/{module_suffix}.py")
                             or real_file == f"{module_suffix}/__init__.py"
                             or real_file.endswith(f"/{module_suffix}/__init__.py")
-                        ):
-                            matched_real_id = real_id
-                            matched_real_kind = real_kind
-                            break
-                    if matched_real_id is None:
+                        )
+                    ]
+                    if len(matches) != 1:
                         continue
+                    matched_real_id, matched_real_kind = matches[0]
                     # N2: when stub resolves to a real CLASS node, promote
                     # any inbound `calls` edges (constructor-shaped) to
                     # `constructs`. The original extract-time gate
