@@ -14,6 +14,8 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -67,12 +69,68 @@ def _detect_domain(task_id: str, msg: str) -> str:
     return "INFRA"
 
 
+def _current_session() -> str:
+    f = os.environ.get("COS_SESSION_FILE")
+    if f and Path(f).exists():
+        return Path(f).read_text().strip()
+    for d in (os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR")):
+        if d and (Path(d) / "session-id").exists():
+            return (Path(d) / "session-id").read_text().strip()
+    return ""
+
+
+def _read_active_skills() -> str | None:
+    sid = _current_session()
+    state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
+    paths = [Path(d) / ".active-skill" for d in (os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR")) if d]
+    agent = os.environ.get("COS_AGENT", "")
+    if agent:
+        paths.append(state_dir / agent / ".active-skill")
+    paths.append(state_dir / ".active-skill")
+    for p in paths:
+        try:
+            if not p.exists():
+                continue
+            parts = p.read_text().strip().split()
+            # Strip a leading session/panel-id token (exact match, or the
+            # ppid-/ses-/c-sess/anon/hex-id shapes) so skills_used groups
+            # cleanly for skill_correlation mining.
+            if parts and (parts[0] == sid or re.match(r"^(ppid-|ses-|c-sess|anon|[0-9a-f]{8})", parts[0])):
+                parts = parts[1:]
+            if parts:
+                return " ".join(parts)
+        except OSError:
+            continue
+    return None
+
+
+def _resolve_model() -> str | None:
+    model = os.environ.get("COS_AGENT_MODEL") or os.environ.get("ANTHROPIC_MODEL")
+    if model:
+        return model
+    for d in (os.environ.get("COS_AGENT_DIR"), os.environ.get("COS_STATE_DIR", ".coding-os")):
+        if not d:
+            continue
+        try:
+            marker = Path(d) / ".model"
+            if marker.exists():
+                val = marker.read_text().strip()
+                if val:
+                    return val
+        except OSError:
+            continue
+    return None
+
+
 def record_outcome(
     *,
     task_id: str,
     task_type: str,
     outcome: str,
     msg: str = "",
+    skills_used: str | None = None,
+    model: str | None = None,
+    duration_min: int | None = None,
     db_path: str | Path | None = None,
 ) -> dict:
     """Write a task outcome to the task_outcomes table.
@@ -99,8 +157,29 @@ def record_outcome(
     complexity, dimensions = _read_gate_file()
     domain = _detect_domain(task_id, msg)
 
+    # Auto-resolve the high-value learning columns when the caller did not
+    # supply them, so every completion path (CLI task-done AND MCP
+    # cos_task_move) feeds skills/model/duration — without these,
+    # skill_correlation mining and routing_weights are permanently starved.
+    if skills_used is None:
+        skills_used = _read_active_skills()
+    if model is None:
+        model = _resolve_model()
+
     conn = get_connection(path)
     try:
+        if duration_min is None:
+            try:
+                drow = conn.execute(
+                    "SELECT CAST((julianday('now') - julianday(started_at)) * 1440 AS INTEGER) "
+                    "FROM tasks WHERE task_id = ? AND started_at IS NOT NULL",
+                    (task_id,),
+                ).fetchone()
+                if drow and drow[0] is not None and drow[0] >= 0:
+                    duration_min = int(drow[0])
+            except sqlite3.Error as exc:
+                logger.debug("duration compute skipped for %s: %s", task_id, exc)
+
         # Read current outcome BEFORE update (for breakthrough detection)
         previous_outcome = None
         existing = conn.execute(
@@ -111,14 +190,22 @@ def record_outcome(
             previous_outcome = existing["outcome"]
             conn.execute(
                 "UPDATE task_outcomes SET outcome = ?, type = ?, domain = ?, "
-                "complexity = ?, dimensions = ? WHERE task_id = ?",
-                (outcome, task_type, domain, complexity, dimensions, task_id),
+                "complexity = ?, dimensions = ?, "
+                "skills_used = COALESCE(?, skills_used), "
+                "model = COALESCE(?, model), "
+                "duration_min = COALESCE(?, duration_min) "
+                "WHERE task_id = ?",
+                (outcome, task_type, domain, complexity, dimensions,
+                 skills_used, model, duration_min, task_id),
             )
         else:
             conn.execute(
-                "INSERT INTO task_outcomes (task_id, type, domain, complexity, dimensions, outcome) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (task_id, task_type, domain, complexity, dimensions, outcome),
+                "INSERT INTO task_outcomes "
+                "(task_id, type, domain, complexity, dimensions, outcome, "
+                "skills_used, model, duration_min) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (task_id, task_type, domain, complexity, dimensions, outcome,
+                 skills_used, model, duration_min),
             )
 
         # Append to outcome_history (append-only transition log)

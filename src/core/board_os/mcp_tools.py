@@ -613,6 +613,35 @@ def cos_task_board(
 # ---------- cos_task_move ----------
 
 
+def _record_completion_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
+    # Fire-and-forget: feed an MCP-driven completion into the learning loop,
+    # mirroring the CLI task-done path. Without this, tasks closed via
+    # cos_task_move never produced a task_outcome row (TASK-048 capture gap).
+    try:
+        from thinking_os.record_outcome import record_outcome
+
+        krow = conn.execute(
+            "SELECT kind FROM tasks WHERE task_id = ?", (task_id,)
+        ).fetchone()
+        kind = (krow[0] if krow else "") or "feature"
+        ttype = {
+            "bug": "fix",
+            "feature": "feat",
+            "refactor": "refactor",
+            "docs": "docs",
+            "test": "test",
+            "chore": "infra",
+            "spike": "spike",
+            "security": "security",
+        }.get(kind, "feat")
+        db_path = os.environ.get(
+            "COS_DB_PATH", str(_project_root() / ".coding-os" / "coding-os.db")
+        )
+        record_outcome(task_id=task_id, task_type=ttype, outcome="success", db_path=db_path)
+    except Exception as exc:
+        logger.debug("MCP completion outcome failed for %s: %s", task_id, exc)
+
+
 @safe_tool
 def cos_task_move(
     conn: sqlite3.Connection,
@@ -665,6 +694,7 @@ def cos_task_move(
         "wip": result.wip_state,
     }
     if result.new_status == "complete":
+        _record_completion_outcome_safe(conn, task_id)
         hint = _reviewer_hint_if_required(task_id)
         if hint is not None:
             data["reviewer_check_required"] = True
