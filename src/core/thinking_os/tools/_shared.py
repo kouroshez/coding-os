@@ -254,6 +254,16 @@ def _trim_list_key(
         meta[f"truncated_{key}_from"] = original_n
         meta[f"truncated_{key}_to"] = best_keep
         body = {**body, key: items[:best_keep]}
+        # The binary search probed fit with `meta` BEFORE these two marker
+        # keys existed; committing them grows the envelope by ~50 bytes and
+        # can push a borderline best_keep back over budget. Re-check the
+        # committed body and shrink one element further until it truly fits,
+        # so the ladder never returns a marginally-over body that then falls
+        # through and mauls load-bearing scalars (scope/risk_level).
+        while best_keep > 0 and _probe_size(body, meta) > TOKEN_BUDGET_CHARS:
+            best_keep -= 1
+            meta[f"truncated_{key}_to"] = best_keep
+            body = {**body, key: items[:best_keep]}
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 
@@ -455,6 +465,13 @@ def _trim_nested_member_lists(
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 
+# Scalars shorter than this are load-bearing (scope, risk_level, status,
+# …) and can never recover meaningful budget — truncating a 4-char "high"
+# is pure signal loss. The F#5 safety-net skips them and only shortens
+# genuinely large scalars (signatures, generated text, big blobs).
+_SCALAR_TRIM_FLOOR_CHARS = 200
+
+
 def _trim_huge_string_fields(
     body: dict, meta: dict
 ) -> tuple[dict, dict, bool]:
@@ -473,6 +490,10 @@ def _trim_huge_string_fields(
             continue
         if not isinstance(v, str):
             # W6.2 (T4/F7): never stringify int/bool/float scalars.
+            continue
+        if len(v) < _SCALAR_TRIM_FLOOR_CHARS:
+            # Tiny load-bearing scalar (scope/risk_level/status) — truncating
+            # it can't recover budget and destroys signal. Leave intact.
             continue
         sizes.append((len(v), k))
     if not sizes:

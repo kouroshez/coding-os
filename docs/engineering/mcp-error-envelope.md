@@ -57,7 +57,7 @@ patterns (zibalvpn R3), the envelope:
 | `truncated` | bool | `True` iff `_apply_token_budget` (or `_trim_coherent_subgraph` for graph-export shape) actually shrank the body. `False` for no-op trims so agents trust the signal. |
 | `truncated_results_from` / `truncated_results_to` | int | Original + kept count when `data.results` was tail-trimmed. Same pattern (`<key>_from` / `<key>_to`) for every key in `_TRIMMABLE_LIST_KEYS` (`neighbours`, `references`, `edges`, `nodes`, `processes`, `call_sites`, `import_sites`, `doc_references`, `test_references`, `string_literals`, `external_targets`, `branches`, `steps`, `http_routes`, `mcp_tools`, `grpc_endpoints`, `event_handlers`, `websocket`, `nodes_top`, `samples`). |
 | `truncated_edges_by_type` | dict | Per-bucket trim record `{kind: {from, to}}` for `edges_by_type` dict-of-lists. |
-| `truncated_string_fields` | list[str] | F#5 final safety-net — names of huge scalar fields shortened with `…[truncated]`. |
+| `truncated_string_fields` | list[str] | F#5 final safety-net — names of **large** scalar fields (≥ `_SCALAR_TRIM_FLOOR_CHARS`, 200) shortened with `…[truncated]`. Small load-bearing scalars (`scope`, `risk_level`, `status`, …) are NEVER trimmed: truncating a 4-char `"high"` cannot recover budget and only destroys signal, so the safety-net skips any string below the floor. |
 | `truncated_subgraph` | bool | Set when `_trim_coherent_subgraph` cut a `{nodes, edges}` body (graph-export shape). Pairs with `truncated_nodes_from/to` + `truncated_edges_from/to` so the agent can detect coherent (proportional) trim vs catastrophic shrink. |
 | `envelope_unshrinkable` | bool | Surfaced when every trim ladder ran and the payload still exceeded budget — caller should log + investigate. |
 | `resolved_from` | str | W7.2 / R4-01. For uid-accepting tools (`context`, `impact`, `references`, `rename_plan`, `trace`, `similar`). One of `"direct"` (exact uid match) / `"path_prefix"` (raw path resolved via `code:file:` / `doc:file:` / `folder:` prefix) / `"fuzzy_fts5"` (FTS5 label fallback — answer may be wrong symbol, agent should verify). For `cos_graph_path` the keys are `source_resolved_from` + `target_resolved_from`. |
@@ -75,7 +75,7 @@ The trimmer strips and re-computes `tokens_estimated`, `truncated`, and every
 
 | Tier | Constant | Trim strategy | Applies to |
 |---|---|---|---|
-| Default (agent context) | `TOKEN_BUDGET_CHARS = 32_000` | `_apply_token_budget` — per-key shrink ladder (results/neighbours/references/…), then `edges_by_type` buckets, then F#5 string truncation | Every `cos_*` tool whose response does NOT have both `nodes:list` and `edges:list` |
+| Default (agent context) | `TOKEN_BUDGET_CHARS = 32_000` | `_apply_token_budget` — per-key shrink ladder (results/neighbours/references/…), then `edges_by_type` buckets, then F#5 string truncation. Each list trim re-checks the **committed** envelope (including the `truncated_<key>_from/to` marker bytes it just added) and shrinks one element further if still over — so the ladder never returns a body that is marginally over budget and falls through to maul scalars. | Every `cos_*` tool whose response does NOT have both `nodes:list` and `edges:list` |
 | Graph subgraph (OOM safety) | `GRAPH_SUBGRAPH_BUDGET_CHARS = 5_000_000` | `_trim_coherent_subgraph` — binary-search top-K nodes by incident degree, keep only edges between kept nodes | `cos_graph_export` and any other tool emitting `{nodes, edges}` |
 
 Rationale for the second tier: `cos_graph_export` describes a whole

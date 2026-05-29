@@ -266,6 +266,45 @@ class TestTokenBudget:
         # Truncation signal present.
         assert d["meta"].get("truncated") is True
 
+    def test_small_scalars_never_mauled_when_list_oversizes_f2(self) -> None:
+        """F2 (round-5 live audit): cos_graph_detect_changes emits a big
+        `symbols` list + tiny load-bearing scalars `scope`/`risk_level`.
+        Pre-fix the list trim left the body marginally over budget (it
+        ignored its own `truncated_*` marker bytes), so the F#5 string-trim
+        ran and mauled `scope`→"w…[truncated]" / `risk_level`→"h…[truncated]"
+        — useless, since 4-char scalars can't recover budget. The trimmer
+        must (a) shrink the list until the COMMITTED envelope fits and
+        (b) never touch sub-floor scalars."""
+        symbols = [
+            {
+                "file": "server.py",
+                "source": "code:file:server.py",
+                "target": f"code:function:server.py::tool_{i}",
+                "edge_type": "contains",
+            }
+            for i in range(400)
+        ]
+        envelope = json.loads(
+            ok({
+                "scope": "working",
+                "files": ["a.py", "b.py", "c.py"],
+                "symbols": symbols,
+                "downstream_tasks": [],
+                "risk_level": "high",
+            })
+        )
+        d = envelope["data"]
+        # (a) envelope actually fits — no unshrinkable fall-through.
+        assert len(json.dumps(envelope, indent=2)) <= TOKEN_BUDGET_CHARS
+        assert "envelope_unshrinkable" not in d["meta"]
+        # (b) tiny load-bearing scalars intact — never mauled.
+        assert d["scope"] == "working"
+        assert d["risk_level"] == "high"
+        assert "truncated_string_fields" not in d["meta"]
+        # The legitimate path (list trim) ran and is signalled.
+        assert d["meta"]["truncated_symbols_from"] == 400
+        assert d["meta"]["truncated_symbols_to"] < 400
+
     def test_caller_cannot_spoof_truncated_meta(self) -> None:
         """TASK-034 reviewer finding: agents must not be able to lie about
         truncation by passing meta={'truncated_neighbours_to': 999}."""
