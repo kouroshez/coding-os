@@ -251,6 +251,63 @@ def learn_extract(
                         )
                     )
 
+    # --- Success baseline patterns (positive-signal mining) ---
+    # A healthy success-only history must still yield learnable patterns —
+    # without this the loop can ONLY learn from failure, so a project that
+    # rarely reworks produces zero patterns forever. Mine per-domain and
+    # per-skill success so cos_learn_suggest has positive anchors to rank.
+    success_domain_rows = conn.execute(
+        "SELECT domain, COUNT(*) AS total, "
+        "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS success_count "
+        "FROM task_outcomes WHERE domain IS NOT NULL AND domain != '' "
+        "GROUP BY domain HAVING success_count >= ?",
+        (min_occurrences,),
+    ).fetchall()
+    for row in success_domain_rows:
+        d = dict(row)
+        rate = d["success_count"] / d["total"] if d["total"] else 0
+        confidence = min(0.85, 0.4 + d["success_count"] / 20.0)
+        pattern_text = (
+            f"{d['domain']} domain succeeds at {rate:.0%} "
+            f"({d['success_count']}/{d['total']} tasks) — reliable baseline"
+        )
+        extracted.append(
+            _upsert_pattern(
+                conn,
+                pattern=pattern_text,
+                memory_type="pattern",
+                domain=d["domain"],
+                source="learn_extract",
+                confidence=confidence,
+                concepts=json.dumps([d["domain"].lower(), "success", "baseline"]),
+            )
+        )
+
+    skill_success_rows = conn.execute(
+        "SELECT skills_used, COUNT(*) AS count "
+        "FROM task_outcomes "
+        "WHERE outcome = 'success' AND skills_used IS NOT NULL AND skills_used != '' "
+        "GROUP BY skills_used HAVING count >= ?",
+        (min_occurrences,),
+    ).fetchall()
+    for row in skill_success_rows:
+        d = dict(row)
+        confidence = min(0.8, 0.4 + d["count"] / 20.0)
+        pattern_text = (
+            f"Skill set '{d['skills_used']}' correlates with success ({d['count']} tasks)"
+        )
+        extracted.append(
+            _upsert_pattern(
+                conn,
+                pattern=pattern_text,
+                memory_type="pattern",
+                domain=None,
+                source="learn_extract",
+                confidence=confidence,
+                concepts=json.dumps(["skill", "success", "correlation"]),
+            )
+        )
+
     # --- Failure anatomy patterns (Phase EVO v25) ---
     # Mine structured backtrack_events for recurring root_cause patterns.
     # Only runs when anatomy columns are present (migration v25).
