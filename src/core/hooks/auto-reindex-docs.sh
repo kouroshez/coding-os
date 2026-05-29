@@ -64,6 +64,7 @@ CORE_DIR=""
 for candidate in \
   "${COS_CORE_DIR:-}" \
   "$(dirname "$0")/.." \
+  "${PROJECT_ROOT}/src/core" \
   "${PROJECT_ROOT}/core"; do
   if [[ -n "$candidate" && -d "${candidate}/graph_os" ]]; then
     CORE_DIR="$(cd "$candidate" && pwd)"

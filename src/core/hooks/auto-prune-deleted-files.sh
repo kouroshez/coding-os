@@ -47,6 +47,7 @@ esac
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}"
 SCRIPT_PATH=""
 for candidate in \
+  "${PROJECT_ROOT}/src/scripts/prune_deleted_path.py" \
   "${PROJECT_ROOT}/scripts/prune_deleted_path.py" \
   "$(dirname "$0")/../../scripts/prune_deleted_path.py"; do
   if [[ -f "$candidate" ]]; then

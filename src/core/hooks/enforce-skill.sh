@@ -32,7 +32,11 @@ if [[ -f "$MODE_FILE" ]]; then
   esac
 fi
 
-SKILL_FILE="${COS_AGENT_DIR}/.active-skill"
+# Panel-first (TASK-035): track-skill.sh writes .active-skill to
+# $COS_PANEL_DIR, but this read used only $COS_AGENT_DIR — so the
+# per-panel marker was never found and every non-CLEAR-1 edit blocked.
+# Mirror the gate read below (which already uses COS_PANEL_DIR).
+SKILL_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-skill"
 
 # Phase M: skip skill gate during formula dispatches other than implementer/reviewer.
 # The supervisor writes .active-formula before each dispatch; implementer
