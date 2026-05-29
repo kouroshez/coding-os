@@ -32,8 +32,23 @@ case "$TOOL_NAME" in
   *) exit 0 ;;
 esac
 
-CAPTURE_PY="$(dirname "$0")/../thinking_os/capture.py"
+# Resolve through the symlink before reaching ../thinking_os: $0 is the
+# .claude/hooks/ symlink, so naive "$(dirname "$0")/../thinking_os" points
+# at the non-existent .claude/thinking_os/ and capture.py was NEVER found —
+# the hook logged "fire" then silently exited every time (TASK-048 real
+# root cause of observations=2). Sibling files like cos-env.sh work only
+# because they ARE symlinked into .claude/hooks/; ../thinking_os/ is not.
+_src="${BASH_SOURCE[0]:-$0}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+HOOK_REAL_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _dir
+CAPTURE_PY="${HOOK_REAL_DIR}/../thinking_os/capture.py"
 if [ ! -f "$CAPTURE_PY" ]; then
+  cos_log_hook capture-observation skip "reason=capture_py_missing path=${CAPTURE_PY}" 2>/dev/null || true
   exit 0
 fi
 
