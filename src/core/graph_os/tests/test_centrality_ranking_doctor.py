@@ -356,3 +356,25 @@ class TestDoctor:
         # Empty graph: zero orphans (no nodes), zero dangling, zero dupes
         assert data["healthy"] is True
         graph._BACKEND_SINGLETON = None
+
+
+class TestServerStaleGuard:
+    """F5 — _server_stale() flags a long-running server older than graph.py."""
+
+    def test_false_in_fresh_process(self):
+        # Disk mtime == captured-at-import mtime → not stale.
+        assert graph._server_stale() is False
+
+    def test_true_when_disk_newer_than_boot(self, monkeypatch):
+        monkeypatch.setattr(graph, "_MODULE_LOADED_MTIME", 1.0)
+        assert graph._server_stale() is True
+
+    def test_doctor_meta_reports_server_stale(self, migrated_conn, monkeypatch):
+        from graph_os.backends.sqlite_backend import SqliteBackend
+
+        backend = SqliteBackend(conn=migrated_conn)
+        graph._BACKEND_SINGLETON = backend
+        monkeypatch.setattr(graph, "_backend", lambda *, backend=None: graph._BACKEND_SINGLETON)
+        data = _ok(graph.cos_graph_doctor())
+        assert "server_stale" in data["meta"]
+        graph._BACKEND_SINGLETON = None

@@ -10,7 +10,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 from ..types import GraphEdge, GraphNode
 
@@ -267,7 +267,10 @@ def _resolve_link(origin_path: str, target: str) -> str:
     # not create a ghost `doc:file` stub that duplicates the real
     # `code:file` node the code extractors emit.
     suffix = PurePosixPath(normalised).suffix.lower()
-    if suffix in {".md", ".mdx", ""}:
+    if suffix == "" and normalised and Path(normalised).is_dir():
+        # Directory target → existing folder node, not a phantom doc:file:<dir>.
+        base = f"folder:{normalised}"
+    elif suffix in {".md", ".mdx", ""}:
         base = f"doc:file:{normalised}"
     elif normalised.startswith("docs/tasks/"):
         base = f"task:file:{normalised}"

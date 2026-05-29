@@ -196,6 +196,9 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     # Common list payloads in other tools.
     "nodes_top",
     "samples",
+    # cos_graph_detect_changes bulk arrays.
+    "symbols",
+    "downstream_tasks",
 )
 
 # W6.2: dict-of-lists buckets (parent_key → {sub_key: [items]}). Trimmer

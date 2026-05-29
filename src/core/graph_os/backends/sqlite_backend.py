@@ -198,7 +198,8 @@ class SqliteBackend:
             kind_value = node.kind
         with self._write_lock:
             row = self._conn.execute(
-                "SELECT id, doc_blob, signature, metadata_json FROM graph_nodes WHERE uid = ?",
+                "SELECT id, doc_blob, signature, metadata_json, file_path, lang, "
+                "content_hash, start_line, end_line FROM graph_nodes WHERE uid = ?",
                 (node.uid,),
             ).fetchone()
             if row is None:
@@ -234,6 +235,11 @@ class SqliteBackend:
             existing_doc_blob = row[1]
             existing_signature = row[2]
             existing_meta_json = row[3]
+            existing_file_path = row[4]
+            existing_lang = row[5]
+            existing_content_hash = row[6]
+            existing_start_line = row[7]
+            existing_end_line = row[8]
             incoming_is_stub = bool(node.metadata.get("stub")) if node.metadata else False
             existing_meta = json.loads(existing_meta_json or "{}")
             existing_is_stub = bool(existing_meta.get("stub"))
@@ -251,6 +257,17 @@ class SqliteBackend:
                 if existing_signature and not node.signature:
                     sig_to_write = existing_signature
 
+            # Preserve existing non-null path/lang/hash; a path-less stub upsert must not clobber them.
+            file_path_to_write = node.file_path if node.file_path is not None else existing_file_path
+            lang_to_write = node.lang if node.lang is not None else existing_lang
+            content_hash_to_write = (
+                node.content_hash if node.content_hash is not None else existing_content_hash
+            )
+            start_line_to_write = (
+                node.start_line if node.start_line is not None else existing_start_line
+            )
+            end_line_to_write = node.end_line if node.end_line is not None else existing_end_line
+
             self._conn.execute(
                 """
                 UPDATE graph_nodes SET
@@ -262,14 +279,14 @@ class SqliteBackend:
                 (
                     kind_value,
                     node.label,
-                    node.file_path,
-                    node.start_line,
-                    node.end_line,
+                    file_path_to_write,
+                    start_line_to_write,
+                    end_line_to_write,
                     sig_to_write,
-                    node.lang,
+                    lang_to_write,
                     doc_blob_to_write,
                     node.ast_hash,
-                    node.content_hash,
+                    content_hash_to_write,
                     meta_to_write,
                     now,
                     node_id,

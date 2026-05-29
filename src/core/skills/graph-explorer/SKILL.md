@@ -33,9 +33,19 @@ self-contained one-file edit with no callers.
 9. **Need a diagram?** → `cos_graph_export(format="mermaid", root_uid=...)`.
 10. **Pre-commit self-review?** → `cos_graph_detect_changes(files=[...])` — call BEFORE `make verify`.
 
+> **Method blast-radius — use `impact`, not bare `references(kinds="calls")`.**
+> Static AST cannot resolve instance-method calls on locally-typed
+> receivers (`backend.upsert_node(...)` — the type of `backend` is
+> unknown), so `references(method, kinds="calls")` under-reports those
+> call sites. `cos_graph_impact` compensates by traversing
+> method→class→`constructs`, so "what breaks if I change this method?"
+> stays complete. Treat `references(calls)` as a lower bound for methods.
+
 Every response carries `data.meta.layer="graph"` and `data.meta.backend`
-so you can confirm which store answered. When `meta.backend_fallback=true`
-the answer came from the SQLite fallback (lower precision on deep walks).
+(`sqlite` — the single store since Kùzu was retired 2026-05-18). The
+`meta.backend_fallback` flag is reserved for a future graph-native
+plug-in; today it is always absent/false, so you never need to treat a
+result as a lower-precision fallback.
 
 ## Coverage contract — never trust a single call blindly
 

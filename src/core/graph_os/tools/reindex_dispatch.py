@@ -49,13 +49,16 @@ _DEFAULT_TASK_PATH_FRAGMENTS = ("/tasks/", "docs/tasks/")
 
 
 def _is_task_path(rel: str) -> bool:
+    needle = rel.replace("\\", "/")
+    # docs/tasks/audits/ holds audit artifacts, not tasks — keep them off task_deps.
+    if "/tasks/audits/" in needle:
+        return False
     raw = os.environ.get("COS_TASK_PATH_FRAGMENTS", "").strip()
     fragments: tuple[str, ...]
     if raw:
         fragments = tuple(p.strip() for p in raw.split(",") if p.strip())
     else:
         fragments = _DEFAULT_TASK_PATH_FRAGMENTS
-    needle = rel.replace("\\", "/")
     return any(frag in needle for frag in fragments)
 
 

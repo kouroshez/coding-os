@@ -22,6 +22,25 @@ from typing import Any
 from ..backend import BackendUnavailable, GraphBackend, get_backend
 from ..types import GraphEdge, GraphNode
 
+# F5 staleness guard — capture this module's mtime at import. A long-running
+# MCP server never hot-reloads; when graph.py on disk is edited after boot the
+# server keeps serving stale code (a primary-tool crash that looks like a graph
+# bug). cos_graph_doctor surfaces _server_stale() so the agent restarts instead
+# of trusting a fossil. Self-contained: catches edits to this file (the F5 case).
+try:
+    _MODULE_LOADED_MTIME = os.path.getmtime(__file__)
+except OSError:
+    _MODULE_LOADED_MTIME = 0.0
+
+
+def _server_stale() -> bool:
+    if not _MODULE_LOADED_MTIME:
+        return False
+    try:
+        return os.path.getmtime(__file__) > _MODULE_LOADED_MTIME + 1.0
+    except OSError:
+        return False
+
 logger = logging.getLogger("graph_os.tools.graph")
 
 
@@ -3395,7 +3414,13 @@ def cos_graph_ranking(
         rank = new_rank
 
     results: list[dict[str, Any]] = []
-    for nid, score in sorted(rank.items(), key=lambda x: x[1], reverse=True)[:top]:
+    # Query-seeded nodes rank above generic PageRank hubs; no query → identical to global.
+    def _rank_sort_key(item: tuple[int, float]) -> tuple[float, float]:
+        nid, score = item
+        seeded = 1.0 if personalized.get(nid, 0.0) > 0.0 else 0.0
+        return (seeded, score)
+
+    for nid, score in sorted(rank.items(), key=_rank_sort_key, reverse=True)[:top]:
         uid = int_to_uid.get(nid, "")
         meta_entry = int_to_meta.get(nid)
         if meta_entry:
@@ -3435,6 +3460,15 @@ def cos_graph_ranking(
             "personalization_reason": personalization_reason,
         },
     )
+
+
+def _is_phantom_orphan(kind: str | None, file_path: str | None) -> bool:
+    # Zero-edge file/doc_file with NULL/extensionless path = stub or dir-phantom.
+    if kind not in ("file", "doc_file"):
+        return False
+    if not file_path:
+        return True
+    return "." not in file_path.rsplit("/", 1)[-1]
 
 
 def cos_graph_doctor(
@@ -3634,7 +3668,7 @@ def cos_graph_doctor(
             # is achievable when only stubs are unconnected.
             orphan_rows = sqlite_conn.execute(
                 """
-                SELECT n.uid, n.kind, n.label
+                SELECT n.uid, n.kind, n.label, n.file_path
                 FROM graph_nodes n
                 LEFT JOIN graph_edges_v12 src ON src.source_id = n.id
                 LEFT JOIN graph_edges_v12 tgt ON tgt.target_id = n.id
@@ -3643,7 +3677,8 @@ def cos_graph_doctor(
             ).fetchall()
             real_orphans: list[tuple[str, str, str]] = []
             stub_orphans: list[tuple[str, str, str]] = []
-            for uid_, kind_, label_ in orphan_rows:
+            phantom_orphans: list[tuple[str, str, str]] = []
+            for uid_, kind_, label_, fp_ in orphan_rows:
                 # W7.6: `code:external:*` (all sub-patterns) are stubs by
                 # definition — they reference symbols outside the indexed
                 # graph, so being unconnected is expected, not a bug.
@@ -3654,11 +3689,15 @@ def cos_graph_doctor(
                     "cos:identifier:"
                 ):
                     stub_orphans.append((uid_, kind_, label_))
+                elif _is_phantom_orphan(kind_, fp_):
+                    # Fixable junk: zero-edge stub / dir-phantom.
+                    phantom_orphans.append((uid_, kind_, label_))
                 else:
                     real_orphans.append((uid_, kind_, label_))
             stats["orphaned_nodes"] = len(orphan_rows)
             stats["orphaned_inrepo"] = len(real_orphans)
             stats["orphaned_external_unresolved"] = len(stub_orphans)
+            stats["orphaned_phantom"] = len(phantom_orphans)
             if real_orphans:
                 issues.append(
                     {
@@ -3670,6 +3709,28 @@ def cos_graph_doctor(
                         ],
                     }
                 )
+            if phantom_orphans:
+                issues.append(
+                    {
+                        "category": "orphaned_phantom",
+                        "count": len(phantom_orphans),
+                        "sample": [
+                            {"uid": r[0], "kind": r[1], "label": r[2]}
+                            for r in phantom_orphans[:5]
+                        ],
+                    }
+                )
+                if fix:
+                    p_uids = [r[0] for r in phantom_orphans]
+                    chunk = 500
+                    for i in range(0, len(p_uids), chunk):
+                        batch = p_uids[i : i + chunk]
+                        cur = sqlite_conn.execute(
+                            f"DELETE FROM graph_nodes WHERE uid IN ({','.join('?' * len(batch))})",
+                            batch,
+                        )
+                        fixed_count += int(cur.rowcount or 0)
+                    sqlite_conn.commit()
             if stub_orphans:
                 # Informational only — never trips healthy=false.
                 issues.append(
@@ -3896,8 +3957,11 @@ def cos_graph_doctor(
                 "dangling_source",
                 "dangling_target",
                 "duplicate_contains",
+                "orphaned_phantom",
             ],
             "informational_categories": list(_INFORMATIONAL_CATEGORIES),
+            # F5: warn when the running server is older than graph.py on disk.
+            "server_stale": _server_stale(),
         },
     )
 

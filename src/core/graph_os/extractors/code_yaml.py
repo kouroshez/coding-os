@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ..types import GraphEdge, GraphNode
@@ -192,10 +192,18 @@ def _emit_hook_registry(
         # Link to the script file when present.
         script = entry.get("script")
         if isinstance(script, str) and script:
+            # Resolve bare script name against the registry dir → real file node, not a stub.
+            raw = script.lstrip("./")
+            if "/" in raw:
+                script_path = raw
+            else:
+                script_path = (PurePosixPath(normalised).parent / raw).as_posix()
+                if not Path(script_path).is_file():
+                    script_path = raw
             result.edges.append(
                 GraphEdge(
                     source_uid=uid,
-                    target_uid=f"code:file:{script}",
+                    target_uid=f"code:file:{script_path}",
                     edge_type="declares",
                     extractor=EXTRACTOR_ID,
                     confidence=0.95,
