@@ -193,6 +193,22 @@ def _load_subgraph(
     return nodes_by_uid, edges
 
 
+def _is_test_member(node: GraphNode) -> bool:
+    # A community member that is test scaffolding rather than production
+    # code. Used to down-rank test-flow clusters (TASK-046).
+    label = (node.label or "").lower()
+    fp = (node.file_path or "").lower()
+    kind = (node.kind or "").lower()
+    return (
+        "test" in kind
+        or label.startswith("test_")
+        or fp.startswith("tests/")
+        or "/tests/" in fp
+        or "_test." in fp
+        or "/test_" in fp
+    )
+
+
 def _detect_communities(
     *,
     nodes_by_uid: dict[str, GraphNode],
@@ -250,6 +266,14 @@ def _detect_communities(
         ordered = _step_order(members, edges_lookup=set(edges), entry_scores=eps)
         anchor = ordered[0] if ordered else members[0]
         priority = _priority_for(ordered, eps)
+        # TASK-046: down-rank test-flow-dominated clusters so production
+        # subsystems surface. Test files have dense intra-file call graphs
+        # that otherwise win on size. Scale by production-member fraction:
+        # all-test → 0.2x, all-production → 1.0x (unchanged).
+        if ordered:
+            n_test = sum(1 for m in ordered if _is_test_member(m))
+            prod_fraction = 1.0 - n_test / len(ordered)
+            priority = round(priority * (0.2 + 0.8 * prod_fraction), 4)
         community = Community(
             community_id=_community_id(ordered),
             name=_community_name(anchor),
