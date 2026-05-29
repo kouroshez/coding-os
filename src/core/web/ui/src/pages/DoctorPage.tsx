@@ -23,6 +23,7 @@ interface DbHealthPayload {
   exists: boolean;
   size_bytes: number;
   tables: Record<string, number | null | { error: string }>;
+  diagnostics?: string[];
   error?: string;
 }
 
@@ -277,6 +278,18 @@ function SqliteTab() {
       <StatTile label="Size" value={db.data.exists ? `${(db.data.size_bytes / 1024).toFixed(1)} kB` : '—'} tone="neutral" />
       <StatTile label="Tables present" value={presentTables.length} tone={presentTables.length > 0 ? 'ok' : 'warn'} />
       <StatTile label="Total rows" value={totalRows} tone="neutral" />
+      {(db.data.diagnostics?.length ?? 0) > 0 && (
+        <Section title="⚠️ Diagnostics — why a loop may be dead" cols="md:col-span-4">
+          <ul className="space-y-1.5 text-[11px] text-amber-200">
+            {db.data.diagnostics!.map((d, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden>•</span>
+                <span>{d}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
       <Section title="Rows by table" cols="md:col-span-4">
         {tables.length === 0 ? (
           <p className="text-[11px] text-[var(--cos-muted)]">no tables reported.</p>
