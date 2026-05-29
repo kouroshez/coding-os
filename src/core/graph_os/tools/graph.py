@@ -1687,19 +1687,24 @@ def cos_graph_similar(
 
     # Sibling augmentation: pull every node sharing the root's container
     # (class / file / module) via the CONTAINS spine so true structural
-    # twins are always in the pool regardless of the sample window.
+    # twins are always in the pool regardless of the sample window. One
+    # bulk fetch on the collected sibling uids — not a per-sibling get_node
+    # round-trip — keeps this a single query.
     try:
+        sibling_uids: list[str] = []
         for parent_edge in be.list_edges(
             target_uid=root.uid, edge_types=["contains"], limit=8
         ):
-            for sib_edge in be.list_edges(
-                source_uid=parent_edge.source_uid,
-                edge_types=["contains"],
-                limit=1000,
-            ):
-                sib = be.get_node(sib_edge.target_uid)
-                if sib is not None:
-                    raw_candidates.append(sib)
+            sibling_uids.extend(
+                e.target_uid
+                for e in be.list_edges(
+                    source_uid=parent_edge.source_uid,
+                    edge_types=["contains"],
+                    limit=1000,
+                )
+            )
+        if sibling_uids:
+            raw_candidates.extend(be.get_nodes_bulk(sibling_uids).values())
     except Exception as exc:  # fail-open: augmentation is best-effort
         logger.debug("similar sibling augmentation skipped: %s", exc)
 
