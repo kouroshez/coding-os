@@ -39,6 +39,49 @@ class TestDispatch:
         assert "graph" in report["layers"]
         assert report["layers"]["graph"]["status"] == "ok"
 
+    def test_link_stubs_false_defers_to_global_pass(self, project, tmp_path):
+        """TASK-043: link_stubs=False leaves a cross-file stub unresolved per
+        file (a later file's prune would otherwise orphan a premature
+        resolution); a single global link_external_stubs() then resolves it."""
+        import sqlite3
+
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "t.db")
+        _write(project / "core" / "util.py", "def helper():\n    return 1\n")
+        dispatch(project / "core" / "util.py", project_root=project, db_path=db)
+        _write(
+            project / "core" / "caller.py",
+            "from core.util import helper\n\n\ndef go():\n    return helper()\n",
+        )
+        dispatch(
+            project / "core" / "caller.py", project_root=project,
+            db_path=db, link_stubs=False,
+        )
+
+        def inbound():
+            c = sqlite3.connect(db)
+            try:
+                row = c.execute(
+                    "SELECT id FROM graph_nodes WHERE uid=?",
+                    ("code:function:core/util.py::helper",),
+                ).fetchone()
+                return c.execute(
+                    "SELECT COUNT(*) FROM graph_edges_v12 "
+                    "WHERE target_id=? AND edge_type='calls'",
+                    (row[0],),
+                ).fetchone()[0]
+            finally:
+                c.close()
+
+        assert inbound() == 0  # deferred — not linked per-file
+        from database import init_db  # type: ignore
+
+        from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
+
+        SqliteBackend(conn=init_db(db)).link_external_stubs()
+        assert inbound() == 1  # global pass resolved the cross-file call
+
     def test_ts_routes_to_graph(self, project, tmp_path):
         src = _write(
             project / "core" / "x.ts",
