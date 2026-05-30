@@ -39,7 +39,9 @@ mkdir -p "$COS_AGENT_DIR" 2>/dev/null || true
 MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 
 # 1. formal — caller already attached a TASK-NNN to this session.
-TASK_FILE="${COS_AGENT_DIR}/.task-current"
+# Panel-first (TASK-035): .task-current is per-panel; reading agent-dir
+# misclassified the mode (and thus which hooks fire) for panel-scoped tasks.
+TASK_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current"
 if [[ -f "$TASK_FILE" ]]; then
   TASK_VAL=$(tr -d '\n\r' < "$TASK_FILE" 2>/dev/null | head -c 256)
   if [[ "$TASK_VAL" == *"TASK-"* ]]; then

@@ -94,7 +94,10 @@ if cos_one_shot_override memory-check 2>/dev/null; then
 fi
 
 # --- The check ------------------------------------------------------
-MARKER="${COS_AGENT_DIR}/.memory-check"
+# Panel-first (TASK-035): write-state.sh routes .memory-check to
+# $COS_PANEL_DIR, but this read used $COS_AGENT_DIR — inconsistent with the
+# gate/task reads at lines 68/80 above, so the memory-check never registered.
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.memory-check"
 
 if type check_state >/dev/null 2>&1; then
   # Session-scoped, 2h freshness.

@@ -34,8 +34,12 @@ if [[ -f "$MODE_FILE" ]]; then
   esac
 fi
 
-GATE_FILE="${COS_AGENT_DIR}/.thinking_os-gate"
-ZOOM_FILE="${COS_AGENT_DIR}/.zoom-checkpoint"
+# Panel-first (TASK-035): these are per-panel markers written by
+# write-state.sh to $COS_PANEL_DIR; reading $COS_AGENT_DIR missed them and
+# blocked COMPLEX edits. Mirror the other gate readers (thinking_os-gate.sh,
+# enforce-task-start.sh, enforce-skill.sh).
+GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
+ZOOM_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.zoom-checkpoint"
 
 # Only enforce for COMPLICATED and COMPLEX
 source "$(dirname "$0")/check-state.sh"

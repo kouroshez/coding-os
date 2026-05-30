@@ -30,8 +30,9 @@ if [ ! -f "$COS_DB_PATH" ]; then
 fi
 
 ACTIVE_TASK=""
-if [ -f "${COS_AGENT_DIR}/.task-current" ]; then
-  ACTIVE_TASK=$(grep -oE 'TASK-[0-9]+' "${COS_AGENT_DIR}/.task-current" 2>/dev/null | head -1 || true)
+_TASK_CURRENT="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current"  # panel-first (TASK-035)
+if [ -f "$_TASK_CURRENT" ]; then
+  ACTIVE_TASK=$(grep -oE 'TASK-[0-9]+' "$_TASK_CURRENT" 2>/dev/null | head -1 || true)
 fi
 
 run_bounded_python() {

@@ -34,7 +34,7 @@ fi
 
 # If the doc-anchor already exists for this session, the agent has already
 # done the right thing — skip silently.
-ANCHOR="${COS_AGENT_DIR}/.doc-anchor"
+ANCHOR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor"  # panel-first (TASK-035): write-state routes .doc-anchor to the panel dir
 if [[ -f "$ANCHOR" ]] && [[ -s "$ANCHOR" ]]; then
   exit 0
 fi
