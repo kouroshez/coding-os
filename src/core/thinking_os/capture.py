@@ -341,8 +341,8 @@ def main() -> None:
     """Read JSON from stdin, capture observation."""
     try:
         raw = sys.stdin.read()
-    except Exception:
-        sys.exit(0)
+    except (EOFError, OSError, UnicodeDecodeError):
+        sys.exit(0)  # benign stdin-acquisition failures — nothing to capture
     if not raw.strip():
         sys.exit(0)
     try:

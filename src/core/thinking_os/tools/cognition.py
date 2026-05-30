@@ -969,8 +969,8 @@ def register_cos_compose_chain(mcp, db_path):
             if chain.chain:
                 with open(_os.path.join(agent_dir, ".role"), "w", encoding="utf-8") as _fh:
                     _fh.write(str(chain.chain[0]))
-        except OSError as exc:
-            logger.debug("roles state-file write failed: %s", exc)
+        except Exception as exc:  # fire-and-forget telemetry — a write/serialize
+            logger.debug("roles state-file write failed: %s", exc)  # error must never fail compose
 
         # Phase M telemetry — persist the lead persona for the dispatch.
         # Schema (migration v14): one row per compose_chain call.

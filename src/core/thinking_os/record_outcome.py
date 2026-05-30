@@ -95,8 +95,8 @@ def _read_active_skills() -> str | None:
             # Strip a leading session/panel-id token (exact match, or the
             # ppid-/ses-/c-sess/anon/hex-id shapes) so skills_used groups
             # cleanly for skill_correlation mining.
-            if parts and (parts[0] == sid or re.match(r"^(ppid-|ses-|c-sess|anon|[0-9a-f]{8})", parts[0])):
-                parts = parts[1:]
+            if parts and (parts[0] == sid or re.match(r"^(ppid-|ses-|c-sess|anon)", parts[0])):
+                parts = parts[1:]  # explicit prefixes only — a bare-hex match could strip a real skill name
             if parts:
                 return " ".join(parts)
         except OSError:

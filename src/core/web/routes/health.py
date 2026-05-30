@@ -164,8 +164,9 @@ async def api_health_db():
                     "SELECT COUNT(*) FROM "
                     "(SELECT DISTINCT agent_type, model, outcome FROM agent_metrics)"
                 ).fetchone()[0]
-            except sqlite3.Error:
+            except sqlite3.Error as exc:
                 distinct = None
+                diagnostics.append(f"degeneracy check skipped (agent_metrics): {exc}")
             if distinct is not None and distinct <= 1:
                 diagnostics.append(
                     f"agent_metrics degenerate: {_n('agent_metrics')} rows but 1 distinct "
