@@ -112,6 +112,15 @@ mechanisms / enforcement gates with no current caller) — documented here,
 
 Verification: thinking_os 1210/1210 · board_os move/task 61/61 · verify-hooks clean · ui-build clean · live health_check WARN→ (pipeline-gap issue cleared, mcp_server_configured True).
 
+## Post-completion corrections (follow-on, same session)
+
+- **G1 root cause CORRECTED (`aa85377`):** the empty `observations` was NOT (only) fire-and-forget reaping — the real bug was `capture-observation.sh` computing `CAPTURE_PY="$(dirname "$0")/../thinking_os/capture.py"`, where `$0` is the `.claude/hooks/` **symlink**, so it resolved to non-existent `.claude/thinking_os/capture.py` and the hook silently exited after logging "fire". capture.py was NEVER found via the hook. Now resolves `BASH_SOURCE` through the symlink (like check-capture-worked.sh) + logs a skip reason. Verified: live hook run **3→4**, and my own edit to the hook captured itself. The synchronous/embed-skip change (`0151a1d`) is complementary hardening, still valid.
+- **TASK-035 panel-read drift swept + fixed (`b11031f`):** 7 production hooks read per-panel markers at `$COS_AGENT_DIR` while `write-state.sh` routes them to `$COS_PANEL_DIR` (enforce-zoom gate+zoom, enforce-memory-check, nudge-docs-first, classify-task-mode, session-end, enforce-skill+enforce-template active-formula). Same class as the enforce-skill fix; proven by intra-file inconsistency. All now panel-first with agent-dir fallback.
+- **Token/cost ledger gap (NOT fixed — needs decision):** coding-os records ZERO token consumption (`observations.cost_tokens` sum 0; all `formula_dispatches` cost/usage NULL; no session-token table). The runtime (Claude Code) meters tokens and never hands them to coding-os. True cost-observability needs a runtime-fed ledger — a product decision, not a defect.
+
+## Learning consumption (load/use) path — verified
+Patterns/observations are consumed by: (1) SessionStart push (`session_startup.py` → "[Memory] N obs, M patterns" + prev `learned`/`next_steps`); (2) **agent pull** in Orient via `cos_search` / `cos_learn_suggest` (primary — relies on agent discipline, nudged by enforce-memory-check + remind-learn-validate); (3) `routing_weights` → `cos_route_model`/`cos_route_skill`; (4) `digest.py` for digests. The memory-check nudge was itself weakened by the panel-read drift (now fixed).
+
 ## Deferred (Rule 22 — NOT built this pass)
 
 - **G9 extractor gap (confirmed, not staleness):** `code_python@v1` misses 2 `learn_extract` caller edges (`server.py:783`, `bootstrap_outcomes.py:160`) — closure-nested / function-local-import calls; persists after force-reindex. Needs its own graph_os task (resolver fix + regression test). Treat `cos_graph_references` as a floor for heavy hubs until then.
