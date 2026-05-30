@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: []
-status: testing
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-29
 started: 2026-05-29
-completed: null
+completed: 2026-05-29
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []

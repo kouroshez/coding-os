@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: []
-status: icebox
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-05-29
 started: null
-completed: null
-agent_session: null
+completed: 2026-05-29
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-045: graph rename_plan: wire real string-literal scan + doc_references (check_strings silent no-op)
 
 **Outcome (one sentence):** cos_graph_rename_plan.string_literals returns real ripgrep hits (currently a permanent [] stub via the MCP path — check_strings=true silently misses runtime-breaking string refs) and doc_references reflects actual doc mentions (currently 0 with result_truncated=false = false 'docs covered'). Evidence: audit-graph-live-round5-2026-05-29.md.

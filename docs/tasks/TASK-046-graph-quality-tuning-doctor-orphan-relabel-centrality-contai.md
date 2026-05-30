@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: []
-status: icebox
+status: complete
 priority: P3
 appetite: "1d"
 created: 2026-05-29
 started: null
-completed: null
-agent_session: null
+completed: 2026-05-29
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-046: graph quality tuning: doctor orphan relabel + centrality contains-filter + communities/ranking de-test
 
 **Outcome (one sentence):** Usefulness fixes: (1) cos_graph_doctor buckets orphans by uid prefix (467/905 mislabeled orphaned_external_unresolved); (2) centrality(degree) default-excludes 'contains' edges so code chokepoints surface; (3) communities/ranking down-rank test_*-dominated clusters so production subsystems are visible (folds F6/TASK-040). Evidence: audit-graph-live-round5-2026-05-29.md.

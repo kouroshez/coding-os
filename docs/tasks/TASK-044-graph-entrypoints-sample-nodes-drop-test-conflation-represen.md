@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: []
-status: icebox
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-29
 started: null
-completed: null
-agent_session: null
+completed: 2026-05-29
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-044: graph entrypoints + sample_nodes: drop test-conflation + representative sampling
 
 **Outcome (one sentence):** cos_graph_entrypoints stops ranking test_* functions (76% of total_count=4671 at 0.85 > real CLI root 0.6) as entry points; sample_nodes draws a representative sample (not ORDER BY id ASC fixed-prefix) so similar/entrypoints see the whole kind population. Shared sampler — verify communities + determinism tests. Evidence: audit-graph-live-round5-2026-05-29.md.
