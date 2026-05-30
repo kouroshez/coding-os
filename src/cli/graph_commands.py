@@ -524,8 +524,15 @@ def register(cli: click.Group) -> None:
         # linker once now that every node exists — same precise module→file
         # matching as the per-file pass, just applied across the whole graph.
         try:
-            backend, _ = _open_backend()
-            relinked = backend.link_external_stubs()
+            _bootstrap_paths()
+            from database import init_db, resolve_db_path  # type: ignore
+
+            from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
+
+            # Scope to the WALKED root's DB, not _open_backend()'s cwd default,
+            # so `graph-reindex --path <other>` links the same DB it indexed.
+            conn = init_db(str(resolve_db_path(target)))
+            relinked = SqliteBackend(conn=conn).link_external_stubs()
             click.echo(f"[graph-reindex] cross-file link: {relinked} stub(s) resolved")
         except Exception as exc:
             click.echo(f"[graph-reindex] cross-file link skipped: {exc}", err=True)

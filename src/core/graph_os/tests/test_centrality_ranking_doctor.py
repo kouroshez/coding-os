@@ -443,3 +443,37 @@ def test_doctor_orphan_breakdown_splits_by_prefix(migrated_conn, monkeypatch):
         }
     finally:
         graph._BACKEND_SINGLETON = None
+
+
+def test_ranking_labels_outrank_incidental_path_match(migrated_conn, monkeypatch):
+    """TASK-040 (F6): a node whose LABEL matches the query must outrank a
+    generic 'Work Log' doc_heading that only matches via its uid PATH (a
+    TASK file path containing the term). The heading is not seeded at all."""
+    nodes = [
+        GraphNode(uid="code:function:g.py::graph_handler", kind="code:function",
+                  label="graph_handler", file_path="g.py", start_line=1),
+        GraphNode(uid="code:function:g.py::caller", kind="code:function",
+                  label="caller", file_path="g.py", start_line=5),
+        # generic heading living in a TASK file path containing "graph"
+        GraphNode(uid="doc:heading:docs/tasks/TASK-029-graph-audit.md#work-log:2",
+                  kind="doc_heading", label="Work Log",
+                  file_path="docs/tasks/TASK-029-graph-audit.md", start_line=2),
+    ]
+    edges = [
+        GraphEdge(source_uid="code:function:g.py::caller",
+                  target_uid="code:function:g.py::graph_handler",
+                  edge_type="calls", extractor="test", confidence=1.0),
+    ]
+    _seed(migrated_conn, monkeypatch, nodes, edges)
+    try:
+        nodes_out = _ok(graph.cos_graph_ranking(query="graph", top=10))["nodes"]
+        order = [n["uid"] for n in nodes_out]
+        handler = "code:function:g.py::graph_handler"
+        worklog = "doc:heading:docs/tasks/TASK-029-graph-audit.md#work-log:2"
+        assert handler in order
+        # the label-match node ranks above the generic heading (or the heading
+        # is absent because it was never seeded)
+        if worklog in order:
+            assert order.index(handler) < order.index(worklog)
+    finally:
+        graph._BACKEND_SINGLETON = None

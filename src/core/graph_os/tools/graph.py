@@ -1711,9 +1711,13 @@ def cos_graph_similar(
     # G21: drop external/orphan/unresolved stubs from the candidate pool —
     # they otherwise dominate similarity for any noise-shaped input
     # (`unresolved:str` returned 120 noise neighbours). Dedup by uid since
-    # the sample and the sibling sweep can overlap.
-    seen_uids: set[str] = set()
-    candidates = []
+    # the sample and the sibling sweep can overlap. Seed with `root.uid`
+    # (not just the raw `uid`): the sibling sweep walks root's container and
+    # always re-includes root itself, and when the input resolved fuzzily
+    # (resolved_from != "direct") root.uid != uid — so excluding only the
+    # raw input would let the queried node score ~1.0 against itself.
+    seen_uids: set[str] = {root.uid}
+    candidates: list[GraphNode] = []
     for n in raw_candidates:
         if n.uid == uid or n.uid in seen_uids:
             continue
@@ -2825,12 +2829,23 @@ def _grep_string_literals(name: str, *, limit: int = 100) -> list[dict[str, Any]
     try:
         import fnmatch
 
-        from ..ingest.base import DEFAULT_EXCLUDE, DEFAULT_INCLUDE
+        from ..ingest.base import (
+            DEFAULT_EXCLUDE,
+            DEFAULT_EXCLUDE_PATHS,
+            DEFAULT_INCLUDE,
+        )
 
         rx = re.compile(pattern)
         scanned = 0
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in DEFAULT_EXCLUDE]
+            # Prune path-segment excludes (tests/golden scaffold mirrors) the
+            # same way walk_local does, so the fallback doesn't surface string
+            # hits from duplicate-spine fixtures.
+            rel_dir = Path(dirpath).resolve().relative_to(root).as_posix()
+            if any(rel_dir == p or rel_dir.startswith(p + "/") for p in DEFAULT_EXCLUDE_PATHS):
+                dirnames[:] = []
+                continue
             for fn in filenames:
                 if not any(fnmatch.fnmatchcase(fn, p) for p in DEFAULT_INCLUDE):
                     continue
@@ -3296,6 +3311,11 @@ def cos_graph_centrality(
                 i = uid_idx[u]
                 edges_out = be.list_edges(source_uid=u, limit=500)
                 for e in edges_out:
+                    # TASK-046: honour include_structural for betweenness too —
+                    # otherwise the path counts traverse the containment
+                    # skeleton (registry.yaml/file-tree) the degree pass excludes.
+                    if not include_structural and e.edge_type not in _BEHAVIOURAL_EDGE_TYPES:
+                        continue
                     j = uid_idx.get(e.target_uid)
                     if j is not None:
                         adj[i].append(j)
@@ -3499,17 +3519,25 @@ def cos_graph_ranking(
         # matched the query. Skip these, and weight LABEL hits far above
         # incidental PATH hits so a node whose NAME matches the query outranks
         # one that merely lives in a path containing the term.
-        _GENERIC_HEADINGS = {
+        # Prefix-match (not exact) so template headings with suffixes match —
+        # e.g. "Acceptance (G/W/T) — *this IS the Definition of Done*".
+        # Skipping only removes the personalisation SEED; a genuinely relevant
+        # heading can still rank via PageRank, so over-skip is cheap.
+        _GENERIC_HEADINGS = (
             "work log", "read first", "acceptance", "notes", "see also",
             "overview", "summary", "background", "resume marker",
-            "closing checklist", "source intent",
-        }
+            "closing checklist", "source intent", "verification",
+            "anti-patterns", "references", "repro steps", "source material",
+            "findings register", "remediation",
+        )
         for nid in node_ids:
             meta_entry = int_to_meta.get(nid)
             kind_n = (meta_entry[0] if meta_entry else "") or ""
             label = (meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))) or ""
-            label_l = label.lower()
-            if "doc_heading" in kind_n and label_l.strip() in _GENERIC_HEADINGS:
+            label_l = label.lower().strip()
+            if "doc_heading" in kind_n and any(
+                label_l.startswith(g) for g in _GENERIC_HEADINGS
+            ):
                 continue
             uid_str = int_to_uid.get(nid, "")
             uid_content_tokens = [

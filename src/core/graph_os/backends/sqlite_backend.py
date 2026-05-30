@@ -534,10 +534,14 @@ class SqliteBackend:
                     # so the second rewrite collides on UNIQUE(source,target,
                     # edge_type,extractor). OR IGNORE skips the (duplicate)
                     # colliding rows instead of aborting; the real edge from the
-                    # first rewrite already exists, so the leftover stub edge is
-                    # a harmless redundant duplicate (doctor GCs the drained
-                    # stub later). Net: every distinct caller reaches the real
-                    # node and the pass never aborts mid-loop.
+                    # first rewrite already exists, so the un-rewritten leftover
+                    # row is a redundant duplicate pointing at the stub. We do
+                    # NOT delete it here (a blanket DELETE on target_id risked
+                    # removing rows OR IGNORE skipped for non-duplicate reasons);
+                    # the stub simply retains it and surfaces as an info-level
+                    # `orphaned_external_unresolved` in doctor. Net: every
+                    # distinct caller reaches the real node and the pass never
+                    # aborts mid-loop.
                     if matched_real_kind == "class":
                         self._conn.execute(
                             "UPDATE OR IGNORE graph_edges_v12 SET target_id = ?, "
