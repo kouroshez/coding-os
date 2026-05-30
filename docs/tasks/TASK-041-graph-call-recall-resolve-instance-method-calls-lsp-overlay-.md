@@ -22,3 +22,4 @@ references: []
 **Outcome (one sentence):** cos_graph_references(method, kinds=calls) captures instance-method calls on locally-typed receivers (e.g. backend.upsert_node), closing the static-AST recall gap via the LSP overlay.
 
 ## Work Log
+- 2026-05-30 [claude]: VERDICT: defer / do-not-build (over-engineering). Instance-method calls on a typed-local receiver (backend.upsert_node()
