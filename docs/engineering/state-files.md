@@ -13,7 +13,7 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 .coding-os/                              ← SHARED root  ($COS_STATE_DIR)
 ├── .agent                                  adapter identity marker (written by install.sh)
 ├── .hooks.log                              append-only hook log (every line tagged agent=X session=Y task=Z)
-├── .capture-errors.log                     background capture.py errors
+├── .capture-errors.log                     capture.py stderr on failure (synchronous since TASK-048)
 ├── .dogfood-reminded                       10-min debounce for remind-dogfood
 ├── .last-decay / .last-verify*             singleton timestamps
 ├── coding-os.db + -shm + -wal              SQLite brain (WAL = shared reader; one writer lock)

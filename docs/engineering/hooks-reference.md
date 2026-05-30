@@ -67,7 +67,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 
 | Hook | Event | What it records |
 |---|---|---|
-| `capture-observation` | PostToolUse Write/Edit | one row in `observations` (async; errors → `.coding-os/.capture-errors.log`) |
+| `capture-observation` | PostToolUse Write/Edit | one row in `observations` (synchronous since TASK-048 — a bg spawn was reaped before commit; resolves capture.py via the symlink; errors → `.coding-os/.capture-errors.log`) |
 | `verify-changed-file` | PostToolUse | quick sanity (syntax, refs) on just-edited file |
 | `track-skill` | PostToolUse | which skill was active when a tool fired |
 | `session-context` | SessionStart + UserPromptSubmit | on `startup`: orphan-recover previous session, clear stale state, new session-id. On `compact`/`resume`: re-inject workflow rules. On `UserPromptSubmit` (Codex): lightweight context refresh only — no new session-id, no state reset |
