@@ -69,6 +69,7 @@ def dispatch(
     db_path: str | None = None,
     include_docs: bool = True,
     force: bool = False,
+    link_stubs: bool = True,
 ) -> dict[str, Any]:
     """Re-index `file_path` in both the docs layer and the graph layer."""
     started = time.monotonic()
@@ -201,6 +202,7 @@ def dispatch(
                         chain=graph_chain[1],
                         db_path=db_path,
                         project_root=project_root,
+                        link_stubs=link_stubs,
                     )
                     last_error = None
                     break
@@ -471,6 +473,7 @@ def _reindex_graph(
     chain: list[str],
     db_path: str | None,
     project_root: Path,
+    link_stubs: bool = True,
 ) -> dict[str, Any]:
     from graph_os.backends.sqlite_backend import SqliteBackend
     from graph_os.extractors import (  # type: ignore
@@ -540,10 +543,17 @@ def _reindex_graph(
             nodes_written += n
             edges_written += e
 
-        try:
-            backend.link_external_stubs(file_path=rel_path)
-        except Exception as exc:
-            logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
+        # TASK-043: a full `cos graph-reindex` passes link_stubs=False and runs
+        # ONE global link_external_stubs() after the whole walk — per-file
+        # linking mid-walk resolves a stub→real edge that a LATER file's
+        # prune-before-reindex then orphans (cross-file edge into a not-yet-
+        # stable node). Single-file auto-reindex keeps link_stubs=True so an
+        # edit resolves immediately without waiting for a global pass.
+        if link_stubs:
+            try:
+                backend.link_external_stubs(file_path=rel_path)
+            except Exception as exc:
+                logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:
         conn.close()
     return {

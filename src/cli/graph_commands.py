@@ -98,11 +98,15 @@ def _parallel_dispatch(
     _bootstrap_paths()
     from graph_os.tools.reindex_dispatch import dispatch  # type: ignore
 
+    # TASK-043: defer per-file stub linking — graph_reindex runs ONE global
+    # link after the whole walk, so mid-walk resolutions aren't orphaned by a
+    # later file's prune-before-reindex.
     return dispatch(
         file_path,
         project_root=project_root,
         include_docs=include_docs,
         force=force,
+        link_stubs=False,
     )
 
 
@@ -502,6 +506,7 @@ def register(cli: click.Group) -> None:
                         project_root=target,
                         include_docs=not no_docs,
                         force=force,
+                        link_stubs=False,  # TASK-043: global link after the walk
                     )
                     if report.get("cache") == "hit":
                         skipped += 1
