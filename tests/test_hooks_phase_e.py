@@ -352,9 +352,12 @@ class TestEnforceDocAnchor:
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "claude"
-        agent_dir.mkdir()
-        (agent_dir / "session-id").write_text("ses-claude-1\n")
-        (agent_dir / ".doc-anchor").write_text("ses-claude-1 task:X\ndocs/prd/01-vision.md § 3\n")
+        # session-id + .doc-anchor are panel-scoped since TASK-035 — the
+        # hook reads them from $COS_PANEL_DIR.
+        panel_dir = agent_dir / "panels" / "da-panel"
+        panel_dir.mkdir(parents=True)
+        (panel_dir / "session-id").write_text("ses-claude-1\n")
+        (panel_dir / ".doc-anchor").write_text("ses-claude-1 task:X\ndocs/prd/01-vision.md § 3\n")
         r = _invoke(
             ENFORCE_DOC_ANCHOR,
             {
@@ -369,6 +372,7 @@ class TestEnforceDocAnchor:
                 "COS_STATE_DIR": str(state),
                 "COS_AGENT_DIR": str(agent_dir),
                 "COS_AGENT": "claude",
+                "COS_PANEL_ID": "da-panel",
             },
         )
         assert r.returncode == 0
@@ -399,8 +403,11 @@ class TestEnforceDocAnchor:
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "claude"
-        agent_dir.mkdir()
-        anchor = agent_dir / ".doc-anchor"
+        # .doc-anchor is panel-scoped since TASK-035 — write it where the
+        # hook reads it ($COS_PANEL_DIR) so the stale-legacy path is exercised.
+        panel_dir = agent_dir / "panels" / "da-panel"
+        panel_dir.mkdir(parents=True)
+        anchor = panel_dir / ".doc-anchor"
         anchor.write_text("docs/prd/01-vision.md § 3\n")
         old = 946684800  # 2000-01-01T00:00:00Z
         os.utime(anchor, (old, old))
@@ -418,6 +425,7 @@ class TestEnforceDocAnchor:
                 "COS_STATE_DIR": str(state),
                 "COS_AGENT_DIR": str(agent_dir),
                 "COS_AGENT": "claude",
+                "COS_PANEL_ID": "da-panel",
             },
         )
         assert r.returncode == 2
@@ -479,13 +487,14 @@ class TestEnforceDocAnchor:
 
     def test_exploratory_task_allowed(self, tmp_path: Path) -> None:
         """Task names with 'exploratory'/'spike' bypass the anchor check.
-        Task marker lives in COS_AGENT_DIR per the agent-scoped design."""
+        Task marker is panel-scoped since TASK-035 — hook reads $COS_PANEL_DIR."""
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "claude"
-        agent_dir.mkdir()
-        (agent_dir / "session-id").write_text("ses-claude-test\n")
-        (agent_dir / ".task-current").write_text("ses-claude-test exploratory-refactor\n")
+        panel_dir = agent_dir / "panels" / "da-panel"
+        panel_dir.mkdir(parents=True)
+        (panel_dir / "session-id").write_text("ses-claude-test\n")
+        (panel_dir / ".task-current").write_text("ses-claude-test exploratory-refactor\n")
         r = _invoke(
             ENFORCE_DOC_ANCHOR,
             {
@@ -496,6 +505,7 @@ class TestEnforceDocAnchor:
                 "COS_STATE_DIR": str(state),
                 "COS_AGENT_DIR": str(agent_dir),
                 "COS_AGENT": "claude",
+                "COS_PANEL_ID": "da-panel",
             },
         )
         assert r.returncode == 0

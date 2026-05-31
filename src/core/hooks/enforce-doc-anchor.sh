@@ -9,7 +9,7 @@
 #
 # Flow:
 #   1. The active task's Source of Truth / Read First paths are
-#      recorded to $COS_AGENT_DIR/.doc-anchor when the task starts.
+#      recorded to ${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor at task start.
 #   2. This hook reads .doc-anchor and verifies it exists + is non-empty.
 #   3. If missing / placeholder → BLOCK with a clear repair path.
 #
@@ -103,7 +103,8 @@ fi
 
 # --- The actual check ------------------------------------------------
 
-ANCHOR_FILE="$COS_AGENT_DIR/.doc-anchor"
+# panel-first (TASK-035): write-state.sh routes .doc-anchor to the panel dir.
+ANCHOR_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor"
 ANCHOR_MAX_AGE=28800  # 8h — same ownership horizon as task-current.
 
 if [[ ! -f "$ANCHOR_FILE" ]]; then

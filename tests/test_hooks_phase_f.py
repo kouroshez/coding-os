@@ -270,12 +270,16 @@ class TestWarnMcpDown:
 
 
 class TestCheckCaptureWorked:
+    PANEL_ID = "cap-panel"
+
     def _setup(self, tmp_path: Path, session_id: str = "ses-claude-test-1") -> Path:
         state = tmp_path / ".coding-os"
         state.mkdir()
-        agent_dir = state / "claude"
-        agent_dir.mkdir()
-        (agent_dir / "session-id").write_text(session_id + "\n")
+        # session-id is panel-scoped since TASK-035 — the hook reads the
+        # current session from $COS_PANEL_DIR to match hooks.log entries.
+        panel_dir = state / "claude" / "panels" / self.PANEL_ID
+        panel_dir.mkdir(parents=True)
+        (panel_dir / "session-id").write_text(session_id + "\n")
         return state
 
     def _env_for(self, state: Path) -> dict:
@@ -283,6 +287,7 @@ class TestCheckCaptureWorked:
             "COS_STATE_DIR": str(state),
             "COS_AGENT_DIR": str(state / "claude"),
             "COS_AGENT": "claude",
+            "COS_PANEL_ID": self.PANEL_ID,
         }
 
     def _init_db(self, db_path: Path) -> None:
@@ -357,21 +362,29 @@ class TestCheckCaptureWorked:
 
 
 class TestEnforceMemoryCheck:
+    PANEL_ID = "mc-panel"
+
     def _setup(self, tmp_path: Path) -> Path:
-        """Return the shared state root; agent-private markers go in
-        state/claude/ per the agent-scoped design."""
+        """Return the shared state root. Per-panel markers (.memory-check,
+        .thinking_os-gate, .task-current, session-id) live in
+        state/claude/panels/<panel-id>/ since TASK-035; the hook reads them
+        from $COS_PANEL_DIR. Use `self._panel(state)` to write them."""
         state = tmp_path / ".coding-os"
         state.mkdir()
-        agent_dir = state / "claude"
-        agent_dir.mkdir()
-        (agent_dir / "session-id").write_text("ses-claude-mc\n")
+        panel_dir = state / "claude" / "panels" / self.PANEL_ID
+        panel_dir.mkdir(parents=True)
+        (panel_dir / "session-id").write_text("ses-claude-mc\n")
         return state
+
+    def _panel(self, state: Path) -> Path:
+        return state / "claude" / "panels" / self.PANEL_ID
 
     def _env(self, state: Path) -> dict:
         return {
             "COS_STATE_DIR": str(state),
             "COS_AGENT_DIR": str(state / "claude"),
             "COS_AGENT": "claude",
+            "COS_PANEL_ID": self.PANEL_ID,
         }
 
     def test_blocks_when_no_marker(self, tmp_path: Path) -> None:
@@ -390,7 +403,7 @@ class TestEnforceMemoryCheck:
 
     def test_allows_when_marker_present(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
-        (state / "claude" / ".memory-check").write_text("ses-claude-mc cos_search:auth\n")
+        (self._panel(state) / ".memory-check").write_text("ses-claude-mc cos_search:auth\n")
         env = self._env(state)
         p = {
             "tool_name": "Write",
@@ -404,7 +417,7 @@ class TestEnforceMemoryCheck:
 
     def test_exempt_on_clear_1(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
-        (state / "claude" / ".thinking_os-gate").write_text("ses-claude-mc CLEAR 1\n")
+        (self._panel(state) / ".thinking_os-gate").write_text("ses-claude-mc CLEAR 1\n")
         env = self._env(state)
         p = {
             "tool_name": "Write",
@@ -418,7 +431,7 @@ class TestEnforceMemoryCheck:
 
     def test_exempt_on_exploratory_task(self, tmp_path: Path) -> None:
         state = self._setup(tmp_path)
-        (state / "claude" / ".task-current").write_text("ses-claude-mc exploratory-refactor\n")
+        (self._panel(state) / ".task-current").write_text("ses-claude-mc exploratory-refactor\n")
         env = self._env(state)
         p = {
             "tool_name": "Write",
@@ -692,18 +705,26 @@ class TestTransparencyBanner:
 
     SESSION_ID = "ses-claude-20990101-000000-abcd"
 
+    PANEL_ID = "test-banner"
+
     def _setup(self, tmp_path: Path, *, mode: str = "formal") -> tuple[Path, dict]:
         state = tmp_path / ".coding-os"
         agent_dir = state / "claude"
-        agent_dir.mkdir(parents=True)
-        (agent_dir / "session-id").write_text(self.SESSION_ID + "\n")
+        panel_dir = agent_dir / "panels" / self.PANEL_ID
+        panel_dir.mkdir(parents=True)
+        # session-id + volatile markers are panel-scoped since TASK-035
+        # (COS_PER_PANEL_FILES); .task-mode stays agent-scoped (shared
+        # across panels of one agent). Pin COS_PANEL_ID so cos-env.sh
+        # resolves a deterministic panel dir for reads/writes.
+        (panel_dir / "session-id").write_text(self.SESSION_ID + "\n")
         (agent_dir / ".task-mode").write_text(mode + "\n")
         env = {
             "COS_STATE_DIR": str(state),
             "COS_AGENT": "claude",
+            "COS_PANEL_ID": self.PANEL_ID,
             "CLAUDE_PROJECT_DIR": str(tmp_path),
         }
-        return agent_dir, env
+        return panel_dir, env
 
     def _emit(self, tmp_path: Path, env: dict) -> str:
         r = subprocess.run(
@@ -731,10 +752,10 @@ class TestTransparencyBanner:
         assert "gate=" not in ctx.split("USER_BANNER")[1]
 
     def test_formal_mode_emits_full_banner(self, tmp_path: Path) -> None:
-        agent_dir, env = self._setup(tmp_path, mode="formal")
-        (agent_dir / ".task-current").write_text(f"{self.SESSION_ID} TASK-999\n")
-        (agent_dir / ".thinking_os-gate").write_text(f"{self.SESSION_ID} COMPLEX 5\n")
-        (agent_dir / ".active-skill").write_text(f"{self.SESSION_ID} graph-explorer\n")
+        panel_dir, env = self._setup(tmp_path, mode="formal")
+        (panel_dir / ".task-current").write_text(f"{self.SESSION_ID} TASK-999\n")
+        (panel_dir / ".thinking_os-gate").write_text(f"{self.SESSION_ID} COMPLEX 5\n")
+        (panel_dir / ".active-skill").write_text(f"{self.SESSION_ID} graph-explorer\n")
         ctx = self._emit(tmp_path, env)
         banner = ctx.split("USER_BANNER", 1)[1]
         assert "mode=formal" in banner
@@ -760,15 +781,18 @@ class TestTransparencyBanner:
         assert "task=none" in banner
         assert "TASK-XXX" not in banner
 
-    def test_missing_session_id_file_rejects_all_state(self, tmp_path: Path) -> None:
-        agent_dir, env = self._setup(tmp_path, mode="formal")
-        (agent_dir / "session-id").unlink()
-        (agent_dir / ".task-current").write_text("anything TASK-Y\n")
+    def test_missing_session_id_file_rejects_foreign_state(self, tmp_path: Path) -> None:
+        # TASK-035: with the panel session-id file absent, COS_PANEL_ID
+        # synthesises the current session — so a state file whose owner
+        # prefix doesn't match is still rejected by the ownership check.
+        # (ses no longer collapses to '?'; the panel id always resolves.)
+        panel_dir, env = self._setup(tmp_path, mode="formal")
+        (panel_dir / "session-id").unlink()
+        (panel_dir / ".task-current").write_text("ses-claude-FAKE-OTHER TASK-Y\n")
         ctx = self._emit(tmp_path, env)
         banner = ctx.split("USER_BANNER", 1)[1]
-        # Without a current session-id we can't verify ownership of any state.
         assert "task=none" in banner
-        assert "ses=?" in banner
+        assert "TASK-Y" not in banner
 
     def test_audit_unchecked_row_count_surfaces(self, tmp_path: Path) -> None:
         agent_dir, env = self._setup(tmp_path, mode="formal")

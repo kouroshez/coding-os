@@ -34,9 +34,13 @@ def test_warns_on_stuck_task(tmp_path: Path) -> None:
     conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
     conn.commit()
     conn.close()
-    (tmp_path / "session-id").write_text("ses-claude-test", encoding="utf-8")
+    # session-id is panel-scoped since TASK-035 — the hook matches the
+    # current panel session against tasks.agent_session.
+    panel = tmp_path / "panels" / "wa-panel"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
 
-    result = _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path)})
+    result = _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"})
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert "TASK-99" in payload["hookSpecificOutput"]["additionalContext"]
@@ -49,9 +53,13 @@ def test_silent_when_no_stuck_task(tmp_path: Path) -> None:
     conn.execute("INSERT INTO tasks VALUES ('TASK-1', 'complete', 'ses-claude-test')")
     conn.commit()
     conn.close()
-    (tmp_path / "session-id").write_text("ses-claude-test", encoding="utf-8")
+    # session-id is panel-scoped since TASK-035 — the hook matches the
+    # current panel session against tasks.agent_session.
+    panel = tmp_path / "panels" / "wa-panel"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
 
-    result = _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path)})
+    result = _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"})
     assert result.returncode == 0
     assert result.stdout.strip() == b""
 
@@ -63,9 +71,13 @@ def test_debounced_after_first_warning(tmp_path: Path) -> None:
     conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
     conn.commit()
     conn.close()
-    (tmp_path / "session-id").write_text("ses-claude-test", encoding="utf-8")
+    # session-id is panel-scoped since TASK-035 — the hook matches the
+    # current panel session against tasks.agent_session.
+    panel = tmp_path / "panels" / "wa-panel"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
 
-    env = {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path)}
+    env = {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
     first = _run(env)
     second = _run(env)
     assert first.stdout.strip() != b""

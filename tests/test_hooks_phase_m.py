@@ -62,34 +62,42 @@ class TestEnforceAntiAmbiguity:
         assert result.returncode == 0
 
     def test_code_file_with_pass_cache_passes(self, tmp_path):
-        (tmp_path / ".ambiguity-cache").write_text("PASS")
+        # .ambiguity-cache + .thinking_os-gate are panel-scoped since TASK-035 —
+        # the hook reads them from $COS_PANEL_DIR.
+        panel = tmp_path / "panels" / "aa-panel"
+        panel.mkdir(parents=True)
+        (panel / ".ambiguity-cache").write_text("PASS")
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
             tmp_path,
-            env={"COS_AGENT_DIR": str(tmp_path)},
+            env={"COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "aa-panel"},
         )
         assert result.returncode == 0
 
     def test_code_file_with_fail_cache_blocks(self, tmp_path):
-        (tmp_path / ".ambiguity-cache").write_text("FAIL:scoped,owned")
+        panel = tmp_path / "panels" / "aa-panel"
+        panel.mkdir(parents=True)
+        (panel / ".ambiguity-cache").write_text("FAIL:scoped,owned")
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
             tmp_path,
-            env={"COS_AGENT_DIR": str(tmp_path)},
+            env={"COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "aa-panel"},
         )
         assert result.returncode == 1
         assert "BLOCKED" in result.stderr
 
     def test_clear_gate_bypasses_fail_cache(self, tmp_path):
-        (tmp_path / ".ambiguity-cache").write_text("FAIL:scoped")
-        (tmp_path / ".thinking_os-gate").write_text("CLEAR 1")
+        panel = tmp_path / "panels" / "aa-panel"
+        panel.mkdir(parents=True)
+        (panel / ".ambiguity-cache").write_text("FAIL:scoped")
+        (panel / ".thinking_os-gate").write_text("CLEAR 1")
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
             tmp_path,
-            env={"COS_AGENT_DIR": str(tmp_path)},
+            env={"COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "aa-panel"},
         )
         assert result.returncode == 0
 
