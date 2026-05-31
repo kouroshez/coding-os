@@ -27,7 +27,7 @@ interface UseSigmaOptions {
 }
 
 interface UseSigmaReturn {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   setGraph: (
     graph: Graph<SigmaNodeAttrs, SigmaEdgeAttrs>,
     options?: { layout?: LayoutMode },

@@ -73,7 +73,7 @@ export default tseslint.config(
       "react-refresh": reactRefresh,
     },
     settings: {
-      react: { version: "18.3" },
+      react: { version: "19.2" },
     },
     rules: {
       // React 18 + JSX runtime: no need to `import React` for JSX.

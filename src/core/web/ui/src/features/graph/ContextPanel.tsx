@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type JSX } from 'react';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 

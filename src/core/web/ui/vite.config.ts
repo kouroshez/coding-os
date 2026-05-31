@@ -40,16 +40,11 @@ export default defineConfig({
         // Cognition / Logs tabs never download it. The chunk loads
         // lazily on first /graph route visit. Saves ~250-350 KB
         // on initial paint for users who don't open the graph.
-        manualChunks: {
-          graph: [
-            'sigma',
-            'graphology',
-            'graphology-layout-forceatlas2',
-            'graphology-layout-forceatlas2/worker',
-            'graphology-layout-noverlap',
-            'graphology-types',
-            '@sigma/node-image',
-          ],
+        // Function form (object form dropped by Vite 8's rolldown bundler).
+        manualChunks(id) {
+          if (/[\\/]node_modules[\\/](sigma|@sigma[\\/]|graphology)/.test(id)) {
+            return 'graph';
+          }
         },
       },
     },
