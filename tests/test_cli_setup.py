@@ -82,13 +82,14 @@ class TestMarkdownParser:
 class TestSkipMode:
     def test_skip_writes_nothing(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
+        prd_dir = project / "docs" / "prd"
+        before = sorted(p.name for p in prd_dir.iterdir())
         runner = CliRunner()
         result = runner.invoke(cos_cli, ["setup", "--mode", "skip", "-d", str(project)])
         assert result.exit_code == 0
         assert "Skipped" in result.output
-        prd_dir = project / "docs" / "prd"
-        # Only 00-index.md from scaffold
-        assert [p.name for p in prd_dir.iterdir()] == ["00-index.md"]
+        # skip mode adds nothing beyond what the scaffold already wrote
+        assert sorted(p.name for p in prd_dir.iterdir()) == before
 
 
 class TestInteractiveMode:

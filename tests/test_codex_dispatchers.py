@@ -60,9 +60,9 @@ def test_codex_pretool_dispatch_propagates_delegate_block(tmp_path: Path) -> Non
 
 
 def test_codex_sessionstart_dispatch_creates_session_id(tmp_path: Path) -> None:
-    """session-id now lives in the agent-private dir (COS_AGENT_DIR) so
-    Claude and Codex never write to the same file. See
-    docs/engineering/state-files.md."""
+    """session-id is panel-scoped since TASK-035 — written under
+    COS_AGENT_DIR/panels/<panel-id>/session-id so two panels of the same
+    agent never collide. See docs/engineering/state-files.md."""
     state = tmp_path / ".coding-os"
     state.mkdir()
     # Pin COS_AGENT so the test runner's env doesn't flip detection.
@@ -77,10 +77,12 @@ def test_codex_sessionstart_dispatch_creates_session_id(tmp_path: Path) -> None:
         cwd=tmp_path,
     )
     assert result.returncode == 0
-    session_file = state / "codex" / "session-id"
-    assert session_file.exists()
+    # panel-id is resolved at runtime (non-deterministic), so locate the
+    # session-id under panels/<panel-id>/ rather than the legacy agent path.
+    session_files = list((state / "codex").glob("panels/*/session-id"))
+    assert session_files, "no panel session-id written"
     # Session-id is agent-prefixed so downstream log lines are self-describing.
-    assert session_file.read_text().strip().startswith("ses-codex-")
+    assert session_files[0].read_text().strip().startswith("ses-codex-")
 
 
 def test_codex_stop_dispatch_returns_valid_json(tmp_path: Path) -> None:

@@ -65,21 +65,21 @@ class TestCaptureObservationMultiEdit:
         assert r.returncode == 0, r.stderr
         # The hook prints a systemMessage envelope only when the case matches.
         # If MultiEdit were dropped, the script would exit 0 BEFORE the print.
-        assert "[memory] +obs queued" in r.stdout
+        assert "[memory] +obs captured" in r.stdout
 
     def test_filter_accepts_write(self, tmp_path: Path) -> None:
         r = self._spawn(
             {"tool_name": "Write", "tool_input": {"file_path": "/tmp/x.txt"}},
             tmp_path,
         )
-        assert "[memory] +obs queued" in r.stdout
+        assert "[memory] +obs captured" in r.stdout
 
     def test_filter_accepts_edit(self, tmp_path: Path) -> None:
         r = self._spawn(
             {"tool_name": "Edit", "tool_input": {"file_path": "/tmp/x.txt"}},
             tmp_path,
         )
-        assert "[memory] +obs queued" in r.stdout
+        assert "[memory] +obs captured" in r.stdout
 
     def test_filter_skips_read(self, tmp_path: Path) -> None:
         """Read must still short-circuit (no observation overhead for queries)."""
@@ -89,7 +89,7 @@ class TestCaptureObservationMultiEdit:
         )
         assert r.returncode == 0
         # Skipped tools never reach the systemMessage print.
-        assert "[memory] +obs queued" not in r.stdout
+        assert "[memory] +obs captured" not in r.stdout
 
     def test_shell_case_string_explicit(self) -> None:
         """Pin the exact case-pattern in source so a regex-shaped revert
