@@ -5,12 +5,12 @@ swimlane: infra
 kind: chore
 epic: null
 labels: []
-status: in_progress
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-05-31
 started: 2026-05-30
-completed: null
+completed: 2026-05-30
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ references: []
 - [ ] Full `pytest tests/ -q` + UI build final sweep green
 
 ## Work Log
+- 2026-05-31 [claude]: Status transitioned to complete via cos task-done.
