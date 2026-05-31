@@ -1,0 +1,653 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-secrets.sh",
+            "statusMessage": "🔒 Scanning command for credentials...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-dangerous-commands.sh",
+            "statusMessage": "🛡️ Checking command safety (rm, force-push, reset)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/branch-guard.sh",
+            "statusMessage": "🌳 Enforcing trunk-based workflow (no branches)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-commit-message.sh",
+            "statusMessage": "📝 Validating commit message contract...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-uv-heredoc.sh",
+            "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-verify.sh",
+            "statusMessage": "✅ Verifying suites before task-done...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/search-enforce-inventory.sh",
+            "statusMessage": "🔎 Running search inventory before bulk replace...",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-secrets.sh",
+            "statusMessage": "🔒 Scanning file content for credentials...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-bad-patterns.sh",
+            "statusMessage": "🚫 Checking for anti-patterns (bare except: pass, …)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-protected-files.sh",
+            "statusMessage": "🔐 Checking protected governance files...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-migration-conflict.sh",
+            "statusMessage": "🗃️ Checking migration version conflicts (rule #10)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-hardcoded-literals.sh",
+            "statusMessage": "🎯 Scanning cli/*.py for hardcoded literals (rule #12)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-template.sh",
+            "statusMessage": "📋 Checking doc templates (task / ADR / PRD / insight)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/thinking_os-gate.sh",
+            "statusMessage": "🧠 Verifying Complexity Gate recorded...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-scaffold-boundary.sh",
+            "statusMessage": "🚧 Checking scaffold-boundary (multi-stack subtree isolation)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-task-start.sh",
+            "statusMessage": "📌 Verifying active task...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-doc-anchor.sh",
+            "statusMessage": "📎 Verifying doc anchor (docs-first principle)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-memory-check.sh",
+            "statusMessage": "🔎 Verifying Memory Check (cos_search) recorded...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-skill.sh",
+            "statusMessage": "🛠️ Verifying domain skill invoked...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-zoom.sh",
+            "statusMessage": "🔍 Verifying Plan checkpoint for COMPLICATED+...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-graph-context.sh",
+            "statusMessage": "🧭 Verifying graph-context marker for load-bearing file...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/validate-task-frontmatter.sh",
+            "statusMessage": "🧾 Validating task frontmatter...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-wip-limit.sh",
+            "statusMessage": "🚦 Checking WIP limit before status change...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-task-body.sh",
+            "statusMessage": "🚦 Validating transition gates (DoR/DoD)...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-template-drift.sh",
+            "statusMessage": "⚠️ Adapter template edits — use registry.yaml...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-anti-ambiguity.sh",
+            "statusMessage": "🔍 Anti-Ambiguity gate check...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-audit-artifact.sh",
+            "statusMessage": "🗒️  Checking audit artifact present (exhaustive intent)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-count-grounding.sh",
+            "statusMessage": "🔢 Checking grep-count grounding (exhaustive intent)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-subagent-delegation.sh",
+            "statusMessage": "🧑‍🤝‍🧑 Checking subagent delegation for large audit...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-graph-first-read.sh",
+            "statusMessage": "🧭 Checking graph-first discipline before Read...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-rename-plan.sh",
+            "statusMessage": "✏️  Verifying rename-plan marker...",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-doc-sync.sh",
+            "statusMessage": "📚 Scanning related docs for drift...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/capture-observation.sh",
+            "statusMessage": "🧠 Recording observation + embedding to memory...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/capture-work-log.sh",
+            "statusMessage": "📝 Appending Work Log entry...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-reindex-docs.sh",
+            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-regen-doc-index.sh",
+            "statusMessage": "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-task-sync.sh",
+            "statusMessage": "♻️ Re-syncing task to DB...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/lint-task.sh",
+            "statusMessage": "📏 Lint task (Rule 15)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-doc-size.sh",
+            "statusMessage": "📐 Checking doc size budget...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/verify-changed-file.sh",
+            "statusMessage": "📊 Analyzing changed file + cross-module impact...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/regen-reminder.sh",
+            "statusMessage": "🔄 Checking if derived artifacts need regeneration...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/test-first-reminder.sh",
+            "statusMessage": "🧪 Checking for companion test file...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/doc-sync-reminder.sh",
+            "statusMessage": "📘 Listing companion docs to keep in sync...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-agents-md-size.sh",
+            "statusMessage": "📏 Checking AGENTS.md size (Codex 32 KiB cap)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-agents-md-refs.sh",
+            "statusMessage": "🔗 Checking AGENTS.md path references are alive...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/remind-dogfood.sh",
+            "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/track-discovery.sh",
+            "statusMessage": "🔍 Scanning for discoveries...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-reindex-shell-ops.sh",
+            "statusMessage": "🔁 Bulk shell op detected — scheduling graph reindex...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-prune-deleted-files.sh",
+            "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/search-verify-remaining.sh",
+            "statusMessage": "✅ Verifying 0 matches remain after replace...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/remind-learn-validate.sh",
+            "statusMessage": "💡 Checking if learn-validate reminder is due...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/verify-rename-callers.sh",
+            "statusMessage": "🔁 Checking for unreplaced rename callers...",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/track-skill.sh",
+            "statusMessage": "🛠️ Tracking skill invocation...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_backtrack_log",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/track-backtrack.sh",
+            "statusMessage": "↩️ Backtrack counter updated...",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-mcp-extras.sh",
+            "statusMessage": "🔌 Checking MCP extras health...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/remind-daily.sh",
+            "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/ensure-hub-up.sh",
+            "statusMessage": "🛰️  Ensuring Coding OS Hub is up...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-context.sh",
+            "statusMessage": "🚀 Loading session context + memory digest...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-mcp-down.sh",
+            "statusMessage": "🩺 Probing MCP coding-os liveness...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-brain-decay.sh",
+            "statusMessage": "📉 Debounced pattern-decay sweep...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-graph-empty.sh",
+            "statusMessage": "🕸️  Checking graph_os index state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/intent-primer.sh",
+            "statusMessage": "🎯 Priming intent-interpretation vocabulary...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-skill-primer.sh",
+            "statusMessage": "🧠 Priming required-skill card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-resume-prompt.sh",
+            "statusMessage": "📋 Scanning for active audits to resume...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/remind-daily.sh",
+            "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "compact|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-context.sh",
+            "statusMessage": "🔄 Recovering workflow context + memory digest...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-mcp-down.sh",
+            "statusMessage": "🩺 Probing MCP coding-os liveness...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-brain-decay.sh",
+            "statusMessage": "📉 Debounced pattern-decay sweep...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-graph-empty.sh",
+            "statusMessage": "🕸️  Checking graph_os index state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/intent-primer.sh",
+            "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-resume-prompt.sh",
+            "statusMessage": "📋 Re-surfacing active audits after compaction...",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-context.sh",
+            "statusMessage": "🔄 Checking workflow state...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-thinking-os.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/classify-task-mode.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-graph-os.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-docs-first.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/detect-exhaustive-intent.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-end.sh",
+            "statusMessage": "📝 Writing turn summary + enrichment to memory...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-abandoned-task.sh",
+            "statusMessage": "🩹 Checking for tasks left in_progress...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-capture-worked.sh",
+            "statusMessage": "📊 Session recap: verifying observations captured...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-trace-rotate.sh",
+            "statusMessage": "🧹 Rotating old trace files...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/verify-completion-claim.sh",
+            "statusMessage": "🔒 Verifying completion evidence (exhaustive intent)...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/prevent-premature-done.sh",
+            "statusMessage": "🧐 Checking for silent category exclusions...",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/capture-tool-failure.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

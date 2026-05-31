@@ -77,6 +77,14 @@ Thumbs.db
 .mcp.json
 changes.log
 
+# Golden test fixtures are committed snapshots, not live output — the bare
+# .claude//.codex//.cursor/ rules above would otherwise leave their adapter
+# subdirs untracked, so they drift per-machine and break test_golden_parity.
+!tests/golden/**/.claude/
+!tests/golden/**/.codex/
+!tests/golden/**/.cursor/
+!tests/golden/**/.mcp.json
+
 # ---- Playwright + screenshots ---------------------------------------
 .playwright-mcp/
 # Ad-hoc hub screenshots captured during UX hardening sessions.
