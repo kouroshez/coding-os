@@ -121,9 +121,8 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "       cos_doc_headers_by(domain=\"<DOMAIN>\", ssot=\"true\")" >&2
   echo "       cos_graph_context \"doc:file:docs/...\"" >&2
   echo "  2. READ it (cos_doc_header first → full read only if relevant)." >&2
-  echo "  3. ANCHOR — populate the task's \"Read First\" section with the doc" >&2
-  echo "     paths you read, then run: cos task-start TASK-NNN" >&2
-  echo "     — this refreshes ${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor." >&2
+  echo "  3. ANCHOR — record the doc path(s) you read for this session:" >&2
+  echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .doc-anchor \"<doc-path> § <section>\"" >&2
   echo "  4. If NO matching doc exists → WRITE THE DOC FIRST" >&2
   echo "     (src/templates/doc-cheat-sheet.md picks the layer), commit it as a" >&2
   echo "     separate change, then return for the code." >&2

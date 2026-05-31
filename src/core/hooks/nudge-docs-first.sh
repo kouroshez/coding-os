@@ -64,7 +64,7 @@ fi
 cos_log_hook nudge-docs-first fire "len=${LEN}"
 touch "$MARKER" 2>/dev/null || true
 
-CONTEXT="[docs-first] Code-edit intent detected — docs are SSOT (Rule 0 + 19). BEFORE touching code: (1) cos_doc_search \"<topic>\" or cos_doc_header(path) to locate the spec, (2) read it, (3) cos task-start TASK=N (populates .doc-anchor from Read First) OR set the anchor by hand. Procedure: docs/governance/docs-first-protocol.md."
+CONTEXT="[docs-first] Code-edit intent detected — docs are SSOT (Rule 0 + 19). BEFORE touching code: (1) cos_doc_search \"<topic>\" or cos_doc_header(path) to locate the spec, (2) read it, (3) record the anchor: write-state.sh .doc-anchor \"<doc-path> § <section>\". Procedure: docs/governance/docs-first-protocol.md."
 
 printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 

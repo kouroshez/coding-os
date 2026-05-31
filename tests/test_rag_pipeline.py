@@ -12,7 +12,9 @@ If any of them regresses, these tests fail with an actionable message.
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -211,24 +213,62 @@ def test_make_session_init_works_outside_repo(tmp_path: Path, agent: str) -> Non
 
 
 @pytest.mark.slow
-def test_task_start_skips_template_placeholder_anchors(tmp_path: Path) -> None:
-    """task-start should record only real refs, not task-template defaults."""
+def test_task_start_blocks_template_placeholder_outcome(tmp_path: Path) -> None:
+    """Current task model: the Definition-of-Ready gate blocks task-start
+    while the Outcome is still a template placeholder, and allows it once a
+    real Outcome is filled. (Replaces the retired REF-template + task-start
+    .doc-anchor-copy workflow — task-start moves the task, it does not write
+    the anchor; `make task-create` is now a usage-only stub, so drive the
+    module CLI directly, matching `_init_project`.)"""
     project = tmp_path / "task-start-proj"
     _init_project(project)
 
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(REPO_ROOT)
+
     created = subprocess.run(
-        ["make", "task-create", "NUM=1", "TITLE=smoke workflow simulation"],
+        [
+            sys.executable, "-m", "cli.main", "task-create",
+            "--title", "smoke workflow simulation",
+            "--swimlane", "infra", "--kind", "chore",
+        ],
         cwd=str(project),
+        env=env,
         capture_output=True,
         text=True,
         timeout=120,
         check=False,
     )
     assert created.returncode == 0, created.stderr or created.stdout
+    task_id = json.loads(created.stdout)["task_id"]
 
-    started = subprocess.run(
-        ["make", "task-start", "TASK=1"],
+    # Placeholder Outcome → DoR gate blocks the start transition.
+    blocked = subprocess.run(
+        [sys.executable, "-m", "cli.main", "task-start", task_id],
         cwd=str(project),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    assert blocked.returncode != 0, "DoR gate should block a placeholder Outcome"
+    assert "placeholder" in (blocked.stdout + blocked.stderr).lower()
+
+    # Fill the Outcome with real content → task-start succeeds.
+    task_file = next((project / "docs" / "tasks").glob(f"{task_id}-*.md"))
+    task_file.write_text(
+        re.sub(
+            r"\(fill in[^\n]*\)",
+            "Real outcome for the task-start smoke test.",
+            task_file.read_text(encoding="utf-8"),
+        ),
+        encoding="utf-8",
+    )
+    started = subprocess.run(
+        [sys.executable, "-m", "cli.main", "task-start", task_id],
+        cwd=str(project),
+        env=env,
         capture_output=True,
         text=True,
         timeout=120,
@@ -237,11 +277,4 @@ def test_task_start_skips_template_placeholder_anchors(tmp_path: Path) -> None:
     assert started.returncode == 0, (
         f"task-start failed:\nstdout: {started.stdout}\nstderr: {started.stderr}"
     )
-    combined_output = started.stdout + started.stderr
-    assert "SyntaxWarning" not in combined_output
-
-    anchor = (project / ".coding-os" / ".doc-anchor").read_text(encoding="utf-8")
-    assert "REF:PLAYBOOK-BACKEND" in anchor
-    assert "**REQUIRED" not in anchor
-    assert "docs/..." not in anchor
-    assert "path/to/code.ext" not in anchor
+    assert "SyntaxWarning" not in (started.stdout + started.stderr)
