@@ -65,15 +65,25 @@ git clone https://github.com/kouroshebra/coding-os.git
 cd coding-os
 uv tool install --editable .          # installs the `cos` CLI globally
 uv sync --extra rag                   # installs Python deps incl. semantic search
+make dogfood                          # wire THIS repo's own .claude/ (hooks + MCP + slash commands)
 cd src/core/web/ui && npm install     # optional, only for Hub UI work
 ```
+
+> **Why `make dogfood`?** coding-os is itself a coding-os project (P5
+> Dogfood). Its `.claude/` — hooks, MCP wiring, slash commands — is
+> **generated** from `src/` and is **gitignored**, so a fresh clone has
+> none. `make dogfood` renders the Claude adapter; `make dogfood-full`
+> renders every adapter (`.claude/` + `.codex/` + `.cursor/`). Re-run it
+> after any change under `src/core/**` or `src/adapters/**`. (Editing a
+> hook *body* in `src/core/hooks/` takes effect immediately — `.claude/`
+> symlinks into it — but registry/template changes need a re-render.)
 
 Smoke test:
 
 ```bash
 cos --version                         # should print cos 0.3.0
 cos doctor                            # should report no critical issues
-uv run pytest src/core/thinking_os/tests/ -q   # ~3 min, 1195 tests
+uv run --extra rag pytest src/core/thinking_os/tests/ -q   # ~3 min, full thinking_os suite
 ```
 
 ### Option B — Docker (zero local Python/Node)
