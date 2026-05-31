@@ -28,7 +28,7 @@ dependencies = [
     # presence.py + cognition.py reading the transcript format directly;
     # promoting the dep finishes that pragmatic decision instead of
     # leaving a half-broken contract.
-    "claude-agent-sdk>=0.1.81,<0.2.0",
+    "claude-agent-sdk>=0.2.87,<0.3.0",
     "anyio>=4.0.0",
 ]
 
@@ -41,8 +41,11 @@ rag = [
 ]
 
 # graph_os — Phase I knowledge graph subsystem.
-# Pinned deliberately (plan P-I-11): grammar upgrades change AST shape
-# and invalidate the graph, so upgrades are their own slice.
+# Grammars bumped to the 0.25 line 2026-05-30 (TASK-049) after the full
+# graph_os parity suite stayed green — the overlay (tree_sitter_overlay.py)
+# uses only stable API (Language(capsule), Parser(language), node.type/
+# byte offsets), so the AST-shape risk flagged by plan P-I-11 did not
+# materialise. Caps held to <0.26 so the next minor is again its own slice.
 # Backend: SQLite only. Kuzu was removed 2026-05-18 after benchmark
 # (10K-1M nodes) showed SQLite with PRAGMA tuning + ANALYZE delivers
 # p99 < 30 ms for 5-hop traversal on 1M nodes — well inside the budget.
@@ -50,10 +53,10 @@ rag = [
 graph_os = [
     "sentence-transformers>=2.7.0",
     "numpy>=1.24.0,<3.0.0",
-    "tree-sitter>=0.22.0,<0.25.0",
-    "tree-sitter-python>=0.21.0,<0.24.0",
-    "tree-sitter-typescript>=0.21.0,<0.24.0",
-    "tree-sitter-bash>=0.21.0,<0.24.0",
+    "tree-sitter>=0.25.0,<0.26.0",
+    "tree-sitter-python>=0.25.0,<0.26.0",
+    "tree-sitter-typescript>=0.23.0,<0.26.0",
+    "tree-sitter-bash>=0.25.0,<0.26.0",
     "tree-sitter-yaml>=0.6.1,<0.8.0",
 ]
 
