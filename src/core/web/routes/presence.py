@@ -42,15 +42,21 @@ def _read_text(p: Path) -> str | None:
 
 
 def _strip_session_prefix(value: str | None, session_id: str | None) -> str | None:
-    """write-state.sh prefixes each value with the session-id — strip it."""
+    """write-state.sh prefixes each value with the writer's session/panel id — strip it."""
     if not value:
         return value
     if session_id and value.startswith(session_id):
         return value[len(session_id) :].strip() or None
-    # Fall-through pattern: any "ses-<agent>-<digits>-<hex>" prefix.
+    # The prefix token is whatever write-state.sh had: a ses-… session id, a
+    # ppid-… panel id, or a raw UUID panel id (the fallback when the panel
+    # session-id file is unseeded — common on Claude, whose per-tool-call hook
+    # subprocesses each resolve a fresh ppid panel). Strip whichever leads.
     import re as _re
 
-    m = _re.match(r"^ses-[^\s]+\s+(.*)$", value)
+    m = _re.match(
+        r"^(?:ses-\S+|ppid-\S+|[0-9a-fA-F]{8}-[0-9a-fA-F-]{27})\s+(.*)$",
+        value,
+    )
     if m:
         return m.group(1).strip() or None
     return value
@@ -90,14 +96,44 @@ def _latest_claude_chat_uuid(project_root: Path) -> str | None:
     return newest.stem
 
 
+def _newest_marker(agent_dir: Path, basename: str) -> str | None:
+    """Newest copy of a per-panel marker across agent_dir + every panels/*/.
+
+    Post-TASK-035 the cognitive-state markers (.task-current,
+    .thinking_os-gate, .active-skill) live under panels/<id>/. The panel id is
+    NOT stable across Claude's per-tool-call hook subprocesses, so one
+    session's markers scatter across many ppid-* panels and the agent-level
+    copy is a stale fossil. The HUD wants the live value, so the newest mtime
+    wins (empty newest → None, i.e. "no current value").
+    """
+    candidates = [agent_dir / basename]
+    panels = agent_dir / "panels"
+    if panels.is_dir():
+        try:
+            candidates.extend(p / basename for p in panels.iterdir() if p.is_dir())
+        except OSError as exc:
+            logger.debug("panel scan failed for %s: %s", agent_dir, exc)
+    best_text: str | None = None
+    best_mtime = -1.0
+    for path in candidates:
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > best_mtime:
+            best_mtime = mtime
+            best_text = _read_text(path)
+    return best_text
+
+
 def _agent_runtime(agent_dir: Path, agent: str) -> dict[str, Any] | None:
     """Best-effort runtime snapshot for one agent."""
     if not agent_dir.is_dir():
         return None
     sid = _read_text(agent_dir / "session-id")
-    task = _strip_session_prefix(_read_text(agent_dir / ".task-current"), sid)
-    skill_active = _strip_session_prefix(_read_text(agent_dir / ".skill-active"), sid)
-    gate = _strip_session_prefix(_read_text(agent_dir / ".thinking_os-gate"), sid)
+    task = _strip_session_prefix(_newest_marker(agent_dir, ".task-current"), sid)
+    skill_active = _strip_session_prefix(_newest_marker(agent_dir, ".active-skill"), sid)
+    gate = _strip_session_prefix(_newest_marker(agent_dir, ".thinking_os-gate"), sid)
     session_payload = None
     if sid:
         session_payload = _read_json(agent_dir / "sessions" / f"{sid}.json")
