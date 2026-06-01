@@ -14,6 +14,7 @@ import LogsPage from './pages/LogsPage';
 import SessionsPage from './pages/SessionsPage';
 import DoctorPage from './pages/DoctorPage';
 import AuditsPage from './pages/AuditsPage';
+import MemoryPage from './pages/MemoryPage';
 import NeedProjectPage from './pages/NeedProjectPage';
 import WorkspacePage from './pages/WorkspacePage';
 import DiagnosticsPage from './pages/DiagnosticsPage';
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="observability" element={<ObservabilityPage />} />
             <Route path="sessions" element={<SessionsPage />} />
             <Route path="audits" element={<AuditsPage />} />
+            <Route path="memory" element={<MemoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
@@ -89,6 +91,7 @@ export default function App() {
             <Route path="observability" element={<ObservabilityPage />} />
             <Route path="sessions" element={<SessionsPage />} />
             <Route path="audits" element={<AuditsPage />} />
+            <Route path="memory" element={<MemoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 

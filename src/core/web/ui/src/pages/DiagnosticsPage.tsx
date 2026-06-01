@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useParams } from 'react-router-dom';
-import { HeartPulse, FileText, Activity, Users, Settings, ShieldCheck } from 'lucide-react';
+import { HeartPulse, FileText, Activity, Users, Settings, ShieldCheck, Brain } from 'lucide-react';
 
 export default function DiagnosticsPage() {
   const { slug } = useParams<{ slug?: string }>();
@@ -13,6 +13,7 @@ export default function DiagnosticsPage() {
     { path: 'observability', label: 'Observability', Icon: Activity },
     { path: 'sessions', label: 'Sessions', Icon: Users },
     { path: 'audits', label: 'Audits', Icon: ShieldCheck },
+    { path: 'memory', label: 'Memory', Icon: Brain },
     { path: 'settings', label: 'Settings', Icon: Settings },
   ];
 

@@ -146,6 +146,7 @@ def create_app() -> FastAPI:
     from web.routes.presence import router as presence_router
     from web.routes.roles import router as roles_router
     from web.routes.scheduled import router as scheduled_router
+    from web.routes.patterns import router as patterns_router
     from web.routes.search import router as search_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
@@ -161,6 +162,7 @@ def create_app() -> FastAPI:
     app.include_router(observability_router)
     app.include_router(presence_router)
     app.include_router(roles_router)
+    app.include_router(patterns_router)
     app.include_router(search_router)
     app.include_router(sessions_router)
     app.include_router(settings_router)
