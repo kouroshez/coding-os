@@ -229,6 +229,11 @@
             "command": "{{HOOKS_DIR}}/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/advance-role.sh",
+            "timeout": 10
           }
         ]
       },
@@ -340,6 +345,11 @@
             "command": "{{HOOKS_DIR}}/search-verify-remaining.sh",
             "statusMessage": "✅ Verifying 0 matches remain after replace...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/advance-role.sh",
+            "timeout": 10
           },
           {
             "type": "command",

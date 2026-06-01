@@ -123,15 +123,15 @@ export default function MemoryPage() {
                     <div className="w-24 h-2 bg-gray-200 rounded">
                       <div
                         className="h-2 bg-blue-500 rounded"
-                        style={{ width: `${Math.round(p.confidence * 100)}%` }}
+                        style={{ width: `${Math.round((p.confidence ?? 0) * 100)}%` }}
                       />
                     </div>
                     <span className="text-xs text-gray-600">
-                      {p.confidence.toFixed(2)}
+                      {(p.confidence ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </td>
-                <td className="py-2 pr-4 text-xs">{p.impact_score.toFixed(2)}</td>
+                <td className="py-2 pr-4 text-xs">{(p.impact_score ?? 0).toFixed(2)}</td>
                 <td className={`py-2 pr-4 text-xs ${tierClass(p.trust_tier)}`}>
                   {p.trust_tier}
                 </td>
@@ -143,7 +143,7 @@ export default function MemoryPage() {
                 </td>
                 <td className="py-2 pr-4 text-xs">{p.access_count}</td>
                 <td className="py-2 pr-4 text-xs text-gray-500">
-                  {p.decay_rate.toFixed(2)}
+                  {(p.decay_rate ?? 0).toFixed(2)}
                 </td>
               </tr>
             ))}

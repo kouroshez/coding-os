@@ -52,6 +52,37 @@ def _roles_dir() -> Path:
     return _CORE_DIR / "thinking_os" / "roles"
 
 
+def _newest_marker(agent_dir: Path, basename: str) -> str | None:
+    """Newest copy of a per-panel marker across agent_dir + every panels/*/.
+
+    Post-TASK-035/057 the role markers (.roles, .role) live under panels/<id>/.
+    The panel id is not stable across hook subprocesses, so one session's
+    markers scatter; the agent-level copy is a stale fossil. The Hub wants the
+    live value, so the newest mtime wins. Mirrors presence.py::_newest_marker.
+    """
+    candidates = [agent_dir / basename]
+    panels = agent_dir / "panels"
+    if panels.is_dir():
+        try:
+            candidates.extend(p / basename for p in panels.iterdir() if p.is_dir())
+        except OSError:
+            pass
+    best_text: str | None = None
+    best_mtime = -1.0
+    for path in candidates:
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > best_mtime:
+            try:
+                best_text = path.read_text(encoding="utf-8")
+                best_mtime = mtime
+            except OSError:
+                continue
+    return best_text
+
+
 def _schema_class(schema_ref: str):
     if not schema_ref or "." not in schema_ref:
         return None
@@ -199,13 +230,17 @@ async def current_chain(
     _m=Depends(make_metrics_dep("roles.chain")),
 ):
     state = _state_dir()
-    chain_file = state / agent / ".roles"
-    active_file = state / agent / ".role"
+    agent_dir = state / agent
     chain: list[str] = []
     active_formula: str | None = None
 
-    if chain_file.exists():
-        raw = chain_file.read_text(encoding="utf-8").strip()
+    # Panel-first (TASK-057 F1.4): .roles/.role are per-panel markers under
+    # panels/<id>/; the agent-level copy is a stale fossil. Read the newest copy
+    # across agent_dir + every panel so the Hub shows the LIVE panel's chain
+    # (mirrors presence.py::_newest_marker).
+    raw = _newest_marker(agent_dir, ".roles")
+    if raw:
+        raw = raw.strip()
         try:
             parsed = json.loads(raw)
             if isinstance(parsed, list):
@@ -213,9 +248,9 @@ async def current_chain(
         except json.JSONDecodeError:
             chain = [x.strip() for x in raw.split(",") if x.strip()]
 
-    if active_file.exists():
-        active_raw = active_file.read_text(encoding="utf-8").strip()
-        active_formula = active_raw or None
+    active_raw = _newest_marker(agent_dir, ".role")
+    if active_raw:
+        active_formula = active_raw.strip() or None
 
     if not chain:
         traces_dir = state / agent / "traces"

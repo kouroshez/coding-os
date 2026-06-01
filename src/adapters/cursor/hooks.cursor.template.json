@@ -53,6 +53,11 @@
             "command": "{{HOOKS_DIR}}/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/advance-role.sh",
+            "timeout": 10
           }
         ]
       },
