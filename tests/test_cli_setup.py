@@ -93,7 +93,7 @@ class TestSkipMode:
 
 
 class TestInteractiveMode:
-    def test_interactive_writes_four_files(self, tmp_path: Path) -> None:
+    def test_interactive_fills_prd_files(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
@@ -110,8 +110,12 @@ class TestInteractiveMode:
             "08-functional-requirements.md",
         ):
             assert (prd / name).exists()
-        vision = (prd / "01-snapshot-vision.md").read_text()
-        assert "my vision" in vision
+        # 01-snapshot-vision.md ships in the scaffold as a guided template, so
+        # setup idempotently skips it (transparent SKIP notice) and the frame
+        # stays authoritative. The files setup creates carry the answers.
+        assert "SKIP existing: docs/prd/01-snapshot-vision.md" in result.output
+        assert "kpi1" in (prd / "02-goals-kpis.md").read_text()
+        assert "artisan" in (prd / "03-users-jobs.md").read_text()
 
     def test_interactive_idempotent(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
@@ -168,9 +172,12 @@ class TestImportPrdMode:
             cos_cli,
             ["setup", "--mode", "import-prd", "--source", str(source), "--yes", "-d", str(project)],
         )
-        vision = (project / "docs/prd/01-snapshot-vision.md").read_text()
-        assert "## Vision" in vision
-        assert "A marketplace." in vision
+        # 01-snapshot-vision.md ships in the scaffold, so import idempotently
+        # skips the "Vision" section; assert heading preservation on a file the
+        # importer actually creates ("## Goals" → 02-goals-kpis.md).
+        goals = (project / "docs/prd/02-goals-kpis.md").read_text()
+        assert "## Goals" in goals
+        assert "3K MAU" in goals
 
     def test_import_missing_source_errors(self, tmp_path: Path) -> None:
         project = _init(tmp_path)
