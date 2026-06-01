@@ -31,7 +31,7 @@ This rule closes that gap with the cheapest possible mechanism: agent literally 
 🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S> · roles=<R> · audit=<A>
 ```
 
-The `roles=<R>` field shows the auto-composed role chain (lead role + count, e.g. `analyst+2`) when `auto-compose-roles.sh` has stamped `.roles` for a COMPLICATED/COMPLEX gate; `-` when no chain is active. See [src/core/hooks/auto-compose-roles.sh](../hooks/auto-compose-roles.sh).
+The `roles=<R>` field shows the ACTIVE role + its position in the composed chain (e.g. `reviewer 2/3`) when `auto-compose-roles.sh` has stamped `.roles` for a COMPLICATED/COMPLEX gate; `-` when no chain is active. The chain itself is composed from rich prompt signals (action/domain/scope via `formula_composer.signals_from_prompt`) so it varies per task — `debug…` → debugger-led, `audit security…` → security_auditor, etc. The active role advances by work phase: `advance-role.sh` (PostToolUse) moves it to `implementer`/`refactorer`/`debugger` on Write/Edit and `reviewer` on a test/verify Bash command — but only ever to a role already in the chain. `.roles`/`.role` are per-panel markers. See [src/core/hooks/auto-compose-roles.sh](../hooks/auto-compose-roles.sh) · [src/core/hooks/advance-role.sh](../hooks/advance-role.sh).
 
 **Hook-internal Bash** (`mode = system`) — banner suppressed entirely.
 
@@ -104,7 +104,7 @@ Full personas × scenarios matrix (P1-P6 × S1-S7), per-file routing rationale, 
 | `task` | `.task-current` via `_read_state` | STRICT panel-id match (no AGENT_DIR fallback) | missing / stale → `none` |
 | `gate` | `.thinking_os-gate` via `_read_state` | STRICT panel-id match | missing / stale → `unset` |
 | `skill` | `.active-skill` via `_read_state` | STRICT panel-id match | missing / stale → `-` · **lag 1 turn**: skills loaded mid-turn show in NEXT banner |
-| `roles` | `.roles` (agent-scoped JSON list, stamped by `auto-compose-roles.sh`) | agent-dir (not session-prefixed) | no chain → `-` · lead+count e.g. `analyst+2` |
+| `roles` | `.role` (active) + `.roles` (chain), per-panel; stamped by `auto-compose-roles.sh`, advanced by `advance-role.sh` | panel-first, agent-dir fallback | no chain → `-` · active+position e.g. `reviewer 2/3` |
 | `audit` | grep `^status:` (YAML) OR `**Status:**` (markdown) | filesystem-current | no audits → `-` · `count(id)·N-unchecked` when verified=no rows exist |
 | `⚠️` | DB `wip` vs `.task-current` | n/a | suppressed when consistent |
 
