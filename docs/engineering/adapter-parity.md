@@ -203,7 +203,8 @@ Each adapter declares how `src/core/hooks/cos-env.sh::_cos_resolve_panel_id` and
 runtime_session_marker:
   stdin_field: session_id      # JSON key the agent's hook payload carries
   env_vars:                    # priority-ordered fallback when stdin missing
-    - CLAUDE_SESSION_ID
+    - CLAUDE_CODE_SESSION_ID   # the var Claude Code actually exports to hooks
+    - CLAUDE_SESSION_ID        # forward-compat alias (the original wrong guess)
     - ANTHROPIC_SESSION_ID
 ```
 
@@ -211,7 +212,7 @@ Resolution order (highest first), implemented once in core:
 
 1. `$COS_PANEL_ID` — explicit caller override (tests, manual debug).
 2. Stdin `session_id` (or `sessionId`) — set by `cos_panel_upgrade_from_payload` after the hook reads stdin. **Strongest signal**; Claude/Codex/Cursor hook specs all carry it.
-3. The adapter's `env_vars` list, probed in declared order. cos-env.sh today probes the union across all adapters (`CLAUDE_SESSION_ID` · `CURSOR_SESSION_ID` · `CURSOR_TRACE_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`) so an env var set by any adapter wins regardless of which adapter currently owns the hook subprocess.
+3. The adapter's `env_vars` list, probed in declared order. cos-env.sh today probes the union across all adapters (`CLAUDE_CODE_SESSION_ID` · `CLAUDE_SESSION_ID` · `CURSOR_SESSION_ID` · `CURSOR_TRACE_ID` · `CODEX_SESSION_ID` · `GEMINI_SESSION_ID` · `ANTHROPIC_SESSION_ID`) so an env var set by any adapter wins regardless of which adapter currently owns the hook subprocess. **(TASK-054: `CLAUDE_CODE_SESSION_ID` is what Claude Code actually exports — the originally-listed `CLAUDE_SESSION_ID` never matched, so Claude hooks fell to the PPID fallback and scattered state; corrected & verified 2026-06-01.)**
 4. PPID-derived hash — last-resort safety net for raw shell tests.
 
 **Adding a new adapter** (e.g. `src/adapters/gemini/`) requires zero code change in `src/core/`: drop a `runtime_session_marker` block into `src/adapters/gemini/adapter.yaml` declaring its env var(s) and stdin field, then the per-panel routing in `cos-env.sh` / `write-state.sh` / `check-state.sh` / `session-context.sh` works for that adapter immediately. The data-drivenness is enforced by Rule 11 — `tests/test_no_hardcoded_anthropic.py` would catch any leak of an adapter-specific session var into `src/core/` or `src/cli/`.
