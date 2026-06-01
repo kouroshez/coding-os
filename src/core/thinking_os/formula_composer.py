@@ -190,7 +190,7 @@ _ACTION_PATTERNS: list[tuple[str, str]] = [
     ("review", r"\b(review|code[- ]?review|critique|assess|بازبینی|مرور)\b"),
     ("research", r"\b(research|investigate|explore|best way|compare|evaluate|spike|تحقیق|بررسی|کاوش)\b"),
     ("refactor", r"\b(refactor|clean ?up|restructure|simplify|deduplicate|ریفکتور|بازنویسی)\b"),
-    ("document", r"\b(document|write docs|readme|changelog|adr|مستند|داکیومنت)\b"),
+    ("document", r"\b(document\w*|write docs|readme|changelog|adr|مستند|داکیومنت)\b"),
     ("deploy", r"\b(deploy|release|ship|rollout|ci/cd|pipeline|دیپلوی|انتشار)\b"),
     ("create", r"\b(add|create|implement|build|new |feature|بساز|اضافه|پیاده)\b"),
     ("modify", r"\b(fix|update|change|modify|edit|adjust|tweak|اصلاح|تغییر|آپدیت)\b"),

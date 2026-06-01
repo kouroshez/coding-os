@@ -32,9 +32,12 @@ _VERIFY_CMD = re.compile(
 )
 
 
-def _phase_for(tool: str, command: str) -> str | None:
+def _phase_for(tool: str, command: str, file_path: str = "") -> str | None:
     if tool in ("Write", "Edit", "MultiEdit"):
-        # A doc/markdown write is a documentation phase; code is build.
+        # A doc/markdown write is a documentation phase; code edits are build.
+        fp = (file_path or "").lower()
+        if fp.endswith((".md", ".mdx", ".rst", ".txt")) or "/docs/" in fp:
+            return "doc"
         return "edit"
     if tool == "Bash" and command and _VERIFY_CMD.search(command):
         return "verify"
@@ -47,8 +50,9 @@ def main(argv: list[str]) -> int:
     tool = argv[1] or ""
     target_dir = argv[2] or None
     command = argv[3] if len(argv) > 3 else ""
+    file_path = argv[4] if len(argv) > 4 else ""
 
-    phase = _phase_for(tool, command)
+    phase = _phase_for(tool, command, file_path)
     if phase is None:
         return 0
 
