@@ -5,18 +5,17 @@ swimlane: thinking_os
 kind: feature
 epic: null
 labels: []
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-01
 started: 2026-06-01
-completed: null
-agent_session: ses-claude-pid40829
+completed: 2026-06-01
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-055: Auto-trigger cognition: compose+recall+validate hooks, metrics variance, memory UI (TASK-048 deferred R1)
 
 **Outcome (one sentence):** The cognition read-arcs fire mechanically: roles auto-compose+surface on COMPLICATED+, recall injects in Orient, validate closes on task-done, metrics carry variance, learned patterns visible in Hub.
