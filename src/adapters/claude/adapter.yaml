@@ -62,6 +62,11 @@ runtime_env_markers:
 runtime_session_marker:
   stdin_field: session_id
   env_vars:
+    # CLAUDE_CODE_SESSION_ID is what Claude Code actually exports to hook
+    # subprocesses (verified 2026-06-01). It must lead — the earlier
+    # CLAUDE_SESSION_ID guess never matched, so panel-id fell through to the
+    # unstable ppid fallback. Kept after it as a forward-compat alias.
+    - CLAUDE_CODE_SESSION_ID
     - CLAUDE_SESSION_ID
     - ANTHROPIC_SESSION_ID
 

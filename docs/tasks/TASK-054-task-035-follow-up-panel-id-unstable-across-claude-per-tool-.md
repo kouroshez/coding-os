@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: []
-status: icebox
+status: in_progress
 priority: P1
 appetite: "1d"
 created: 2026-06-01
-started: null
+started: 2026-06-01
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: ["TASK-035", "TASK-051", "TASK-052"]
 ---
-
 # TASK-054: TASK-035 follow-up: panel-id unstable across Claude per-tool-call hook subprocesses (ppid scatter) + claude/claude double-nest
 
 **Outcome (one sentence):** One Claude session resolves ONE stable `$COS_PANEL_DIR` across every hook invocation, so cognitive-state markers (.task-current/.thinking_os-gate/.active-skill/.doc-anchor/session-id) stop scattering across dozens of ephemeral `ppid-*` panels and the agent-level/`claude/claude` fossils disappear.
