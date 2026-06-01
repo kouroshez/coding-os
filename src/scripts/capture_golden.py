@@ -71,6 +71,10 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
         "--no-git",
         "--force",
         "--no-register",
+        # Golden tracks scaffold structure only; the doc index lives in the
+        # gitignored runtime DB. Skipping it drops the ~15s embedding-model
+        # load per section (8× faster capture, no perceived hang).
+        "--no-index",
         "--today",
         FROZEN_DATE,
     ]

@@ -66,6 +66,10 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
         "--no-git",
         "--force",
         "--no-register",
+        # Parity compares scaffold structure; the doc index lives in the
+        # gitignored runtime DB. Skip it to match capture_golden + drop the
+        # ~15s embedding load per section.
+        "--no-index",
         "--today",
         FROZEN_DATE,
     ]

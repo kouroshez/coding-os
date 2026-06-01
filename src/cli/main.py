@@ -860,6 +860,12 @@ def _refuse_coding_os_self_init(project: Path) -> None:
     default=False,
     help="Skip writing this project to the global ~/.coding-os/registry.json. Used by sandbox fixtures (manifest-regen, golden tests) so disposable temp dirs don't pollute the hub registry.",
 )
+@click.option(
+    "--index/--no-index",
+    "do_index",
+    default=True,
+    help="Seed the doc-search index after scaffold (loads the embedding model, ~15s). --no-index skips it for fast / CI / fixture scaffolds — the index lives in the gitignored runtime DB, so golden captures never need it.",
+)
 def init(
     agent: str | None,
     template: tuple[str, ...],
@@ -872,6 +878,7 @@ def init(
     output_format: str,
     today_override: str | None,
     no_register: bool,
+    do_index: bool,
 ) -> None:
     """Initialize coding-os in a project.
 
@@ -968,7 +975,8 @@ def init(
 
     with _stdout_redirect:
         _run_scaffold_phase(
-            agents, template, project, today=today_override, no_register=no_register
+            agents, template, project, today=today_override, no_register=no_register,
+            do_index=do_index,
         )
 
     git_result = maybe_git_init(target, enabled=git)
@@ -1043,6 +1051,7 @@ def _run_scaffold_phase(
     *,
     today: str | None = None,
     no_register: bool = False,
+    do_index: bool = True,
 ) -> None:
     """Original scaffolding body — extracted so it can be redirected in JSON mode.
 
@@ -1176,7 +1185,13 @@ def _run_scaffold_phase(
     # consumer's document_chunks table is empty until the user runs
     # `make docs-index` manually — Rule 19 (doc-sync) enforcement is
     # also effectively off until something hits the FTS index.
-    _initial_doc_index(project, state)
+    # Skipped under --no-index: the index lives in the gitignored runtime DB,
+    # so fast/CI/fixture scaffolds (e.g. golden capture) don't pay the
+    # ~15s embedding-model load for output they discard.
+    if do_index:
+        _initial_doc_index(project, state)
+    else:
+        click.echo("  Skipped initial doc index (--no-index)")
 
     # 12. Register project in the global ~/.coding-os/registry.json so the
     # Hub web UI (`cos hub`) can enumerate it and serve its sqlite DB.
