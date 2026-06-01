@@ -829,6 +829,24 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: auto-compose-roles
+    script: auto-compose-roles.sh
+    description: |
+      UserPromptSubmit auto-trigger — for the recorded complexity gate
+      (COMPLICATED/COMPLEX): (1) composes the 11-role chain via formula_composer
+      and stamps .roles/.role so the Hub Roles panel + session banner reflect
+      real activity; (2) runs learn_suggest and writes .learn-suggestions so the
+      Orient recall arc fires and remind-learn-validate has input to validate.
+      Closes the dead-trigger + dead-recall gaps (TASK-055) where
+      cos_compose_chain / cos_learn_suggest had no automatic caller. Debounced
+      once per (session, gate-class) via .roles-composed. Fail-open.
+    category: cognition
+    phase: O
+    timeout: 10
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+
   - id: classify-task-mode
     script: classify-task-mode.sh
     description: |

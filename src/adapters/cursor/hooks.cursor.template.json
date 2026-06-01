@@ -153,6 +153,11 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/auto-compose-roles.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/classify-task-mode.sh",
             "timeout": 5
           },

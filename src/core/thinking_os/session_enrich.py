@@ -128,11 +128,21 @@ def main() -> None:
                     else (parts[1] if len(parts) >= 2 else "UNKNOWN")
                 )
 
+        # Duration from the session's observation time-span (earliest→latest
+        # edit). The previous source — session-id file mtime delta — collapsed
+        # to 0 on every row (TASK-055). The span is a real wall-clock signal
+        # already in the DB; falls back to 0 only when <2 observations exist.
         duration_ms = 0
-        sid_path = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/session-id")
-        if sid_path.exists():
-            age_sec = datetime.now(tz=timezone.utc).timestamp() - sid_path.stat().st_mtime
-            duration_ms = int(age_sec * 1000)
+        try:
+            span = conn.execute(
+                "SELECT (julianday(MAX(created_at)) - julianday(MIN(created_at))) * 86400000.0 "
+                "FROM observations WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+            if span and span[0]:
+                duration_ms = int(span[0])
+        except sqlite3.Error as exc:  # fail-open (Rule 6)
+            print(f"session_enrich.py: duration derive failed: {exc}", file=sys.stderr)
 
         # Real session model, not a hardcoded 'opus' — env first, then the
         # .model marker, then 'unknown'. Hardcoding made all 389 rows
@@ -145,11 +155,29 @@ def main() -> None:
             if marker.exists():
                 model = marker.read_text().strip() or None
         model = model or "unknown"
+
+        # Real outcome, not a hardcoded 'success' literal (TASK-055). A session
+        # that recorded any completion_gap observation ended with unmet intent →
+        # 'partial'; otherwise 'success'. This is the only negative-signal
+        # source on the automated session path, so metric trends + the
+        # degeneracy diagnostic finally see variance.
+        outcome = "success"
+        try:
+            gap = conn.execute(
+                "SELECT COUNT(*) FROM observations "
+                "WHERE session_id = ? AND observation_type = 'completion_gap'",
+                (session_id,),
+            ).fetchone()
+            if gap and gap[0]:
+                outcome = "partial"
+        except sqlite3.Error as exc:  # fail-open (Rule 6)
+            print(f"session_enrich.py: outcome derive failed: {exc}", file=sys.stderr)
+
         conn.execute(
             "INSERT INTO agent_metrics "
             "(task_id, agent_type, model, duration_ms, domain, complexity, outcome) "
-            "VALUES (?, 'session', ?, ?, ?, ?, 'success')",
-            (task_id or None, model, duration_ms, domain, complexity),
+            "VALUES (?, 'session', ?, ?, ?, ?, ?)",
+            (task_id or None, model, duration_ms, domain, complexity, outcome),
         )
         conn.commit()
     except Exception as exc:  # fail-open (Rule 6)

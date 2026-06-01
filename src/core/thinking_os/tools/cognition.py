@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -247,6 +248,14 @@ def register_cos_supervise_record_output(mcp, db_path):
         status: str = "ok",
         latency_ms: int = 0,
     ) -> str:
+        # Validate formula_id before any use. A malformed value (e.g. an XML
+        # tool-call fragment leaking the arg boundary —
+        # `exhaustive_evidence</formula_id>...`) once landed verbatim in the
+        # typed column (TASK-055 forensic). Reject non-identifier values up
+        # front rather than persisting garbage.
+        if not formula_id or not re.fullmatch(r"[a-z0-9_]+", formula_id):
+            return fail("validation", "formula_id must match [a-z0-9_]+")
+
         bundle = _load_bundle(session_id, task_marker, persona_id)
         schemas_mod = _schemas()
 
@@ -952,23 +961,14 @@ def register_cos_compose_chain(mcp, db_path):
         )
         # Persist the composed chain to the agent-scoped state files the Hub
         # /api/roles/chain endpoint reads (.roles = chain json, .role = lead).
-        # These files had NO writer — only a reader (roles.py) and a GC entry
-        # (auto-brain-decay.sh) — so the /chain fast-path was dead code the
-        # Roles page could never satisfy. TASK-048.
+        # Shared writer (roles_state.stamp_roles) — the auto-compose hook
+        # (TASK-055) writes the same files, so the logic lives in one place to
+        # stop the two call sites drifting. TASK-048 added the writer; TASK-055
+        # factored it out.
         try:
-            import json as _json
-            import os as _os
+            import roles_state
 
-            agent_dir = _os.environ.get("COS_AGENT_DIR") or _os.path.join(
-                _os.environ.get("COS_STATE_DIR", ".coding-os"),
-                _os.environ.get("COS_AGENT", "claude"),
-            )
-            _os.makedirs(agent_dir, exist_ok=True)
-            with open(_os.path.join(agent_dir, ".roles"), "w", encoding="utf-8") as _fh:
-                _json.dump(chain.chain, _fh)
-            if chain.chain:
-                with open(_os.path.join(agent_dir, ".role"), "w", encoding="utf-8") as _fh:
-                    _fh.write(str(chain.chain[0]))
+            roles_state.stamp_roles(chain.chain)
         except Exception as exc:  # fire-and-forget telemetry — a write/serialize
             logger.debug("roles state-file write failed: %s", exc)  # error must never fail compose
 
