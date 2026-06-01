@@ -84,10 +84,21 @@ esac
 PRESENCE_DIR="${COS_AGENT_DIR}/sessions"
 mkdir -p "$PRESENCE_DIR" 2>/dev/null || exit 0
 
-if [[ ! -f "$COS_SESSION_FILE" ]]; then
+# Presence is an AGENT-LEVEL (shared) signal — the reader
+# (board_os/presence.py, web/routes/presence.py) scans
+# $COS_AGENT_DIR/sessions/ and keys on $COS_AGENT_DIR/session-id.
+# TASK-035 repointed $COS_SESSION_FILE at the per-panel dir, which only
+# session-context.sh seeds (it alone upgrades the panel id from stdin).
+# PreToolUse hooks resolve the ppid-fallback panel and find no session-id
+# there, so the old unconditional exit killed presence for every live
+# session. Fall back to the agent-level session-id so presence keeps
+# writing — this matches where the reader already looks.
+SESSION_ID_FILE="$COS_SESSION_FILE"
+[[ -f "$SESSION_ID_FILE" ]] || SESSION_ID_FILE="${COS_AGENT_DIR}/session-id"
+if [[ ! -f "$SESSION_ID_FILE" ]]; then
   exit 0
 fi
-SESSION_ID="$(cat "$COS_SESSION_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
+SESSION_ID="$(cat "$SESSION_ID_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
 [[ -z "$SESSION_ID" ]] && exit 0
 # Defense-in-depth — the session-id file is one we write, but it lives
 # in a per-agent directory any runtime can touch.  Reject anything that
