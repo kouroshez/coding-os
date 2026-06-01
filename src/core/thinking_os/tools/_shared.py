@@ -155,6 +155,13 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
         body, existing_meta, did_trim = _apply_token_budget(body, existing_meta)
         if did_trim:
             existing_meta["truncated"] = True
+            # Audit fix (TASK-053): a list-dropping token trim makes the
+            # answer incomplete, so the coverage flag must agree. Tools
+            # that publish `result_truncated` (contracts/references/...)
+            # had it stay False while items were silently dropped, so an
+            # agent reading only result_truncated assumed completeness.
+            if "result_truncated" in existing_meta:
+                existing_meta["result_truncated"] = True
             serialized = json.dumps(
                 {"ok": True, "data": {**body, "meta": existing_meta}},
                 indent=2,

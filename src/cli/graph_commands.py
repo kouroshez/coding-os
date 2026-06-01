@@ -458,6 +458,14 @@ def register(cli: click.Group) -> None:
             click.echo(f"[graph-reindex] prune-stale: removed {fixed} stale node(s)")
 
         target = Path(path or Path.cwd()).resolve()
+        # --path is the WALK directory, not the project root. Resolve the
+        # enclosing repo root (nearest ancestor with .coding-os/) so a
+        # sub-dir --path can't spawn a stray <subdir>/.coding-os/ DB or
+        # emit subdir-relative file_paths (TASK-056 D1).
+        project_root = next(
+            (p for p in (target, *target.parents) if (p / ".coding-os").is_dir()),
+            target,
+        )
         plan = walk_local(target, max_files=max_files)
         click.echo(f"[graph-reindex] walking {target}; {len(plan.files)} files (force={force})")
         processed = skipped = errors = 0
@@ -485,7 +493,7 @@ def register(cli: click.Group) -> None:
                     fut = pool.submit(
                         _parallel_dispatch,
                         str(file_path),
-                        str(target),
+                        str(project_root),
                         not no_docs,
                         force,
                     )
@@ -503,7 +511,7 @@ def register(cli: click.Group) -> None:
                 try:
                     report = dispatch(
                         file_path,
-                        project_root=target,
+                        project_root=project_root,
                         include_docs=not no_docs,
                         force=force,
                         link_stubs=False,  # TASK-043: global link after the walk
@@ -534,9 +542,10 @@ def register(cli: click.Group) -> None:
 
             from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
 
-            # Scope to the WALKED root's DB, not _open_backend()'s cwd default,
-            # so `graph-reindex --path <other>` links the same DB it indexed.
-            conn = init_db(str(resolve_db_path(target)))
+            # Link the same DB the walk indexed — the repo-root DB, NOT a
+            # <target>/.coding-os/ stray when --path points at a sub-dir
+            # (TASK-056 D1).
+            conn = init_db(str(resolve_db_path(project_root)))
             relinked = SqliteBackend(conn=conn).link_external_stubs()
             click.echo(f"[graph-reindex] cross-file link: {relinked} stub(s) resolved")
         except Exception as exc:

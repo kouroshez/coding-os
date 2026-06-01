@@ -1126,8 +1126,14 @@ def _resolve_call(
         signals.append(EvidenceSignal("explicit_import", 0.9, note=imp.source_module))
         confidence = 0.9
         tail = ".".join(call.full_expr.split(".")[1:])
-        target_mod = _absolute_module_for(imp.source_module, path=path) or imp.imported
-        resolved = f"code:external:{target_mod}:{tail}"
+        # The alias is a MODULE: `from pkg import mod as g` → module pkg.mod;
+        # `import pkg.mod as g` → module imp.imported. Resolving the attribute
+        # (`g.func`) to <module>:func lets link_external_stubs bind it to the
+        # real function instead of dropping the call on the bare package —
+        # this is what made rename/references miss `g.func()` sites (TASK-056 A1).
+        abs_source = _absolute_module_for(imp.source_module, path=path)
+        root_module = f"{abs_source}.{imp.imported}" if abs_source else imp.imported
+        resolved = f"code:external:{root_module}:{tail}"
     else:
         signals.append(EvidenceSignal("unresolved_call", 0.3))
         confidence = 0.3

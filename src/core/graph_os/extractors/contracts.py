@@ -400,7 +400,15 @@ def _emit(
         )
     )
     if match.handler:
-        handler_uid = f"code:external:unresolved:{match.handler}"
+        # Resolve Python handlers to the real same-file function node
+        # (code_python emits it in the same reindex; _next_def_name yields
+        # a def in THIS file). The old unresolved-stub target left
+        # references/impact/rename empty for every route + MCP handler
+        # (TASK-053). Non-.py handlers keep the stub (no same-file table).
+        if normalised.endswith(".py"):
+            handler_uid = f"code:function:{normalised}::{match.handler}"
+        else:
+            handler_uid = f"code:external:unresolved:{match.handler}"
         result.edges.append(
             GraphEdge(
                 source_uid=target_uid,

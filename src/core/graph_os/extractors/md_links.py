@@ -269,13 +269,22 @@ def _resolve_link(origin_path: str, target: str) -> str:
     suffix = PurePosixPath(normalised).suffix.lower()
     if suffix == "" and normalised and Path(normalised).is_dir():
         # Directory target → existing folder node, not a phantom doc:file:<dir>.
-        base = f"folder:{normalised}"
-    elif suffix in {".md", ".mdx", ""}:
+        return f"folder:{normalised}"
+    if suffix == "" and not Path(normalised).is_file():
+        # Extensionless target that is neither a real dir nor a real file is a
+        # placeholder / prose fragment ('relative/path', 'docs/_meta/path',
+        # unicode-ellipsis truncations) — minting a node for it created
+        # permanent stale/orphan junk invisible to the doctor (TASK-056 B2).
+        return ""
+    if suffix in {".md", ".mdx", ""}:
         base = f"doc:file:{normalised}"
     elif normalised.startswith("docs/tasks/"):
         base = f"task:file:{normalised}"
     else:
-        base = f"code:file:{normalised}"
+        # Code-file nodes carry no line/heading anchor (the uid scheme has no
+        # line numbers): a `foo.py#L954` link resolves to the file node, not a
+        # phantom `code:file:...#L954` that pollutes similarity (TASK-056 B1).
+        return f"code:file:{normalised}"
     return f"{base}#{anchor}" if anchor else base
 
 

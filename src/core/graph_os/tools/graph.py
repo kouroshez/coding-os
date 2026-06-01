@@ -2568,7 +2568,19 @@ def cos_graph_contracts(
             node = be.get_node(edge.target_uid)
             if node is None:
                 continue
-            kind = (node.metadata or {}).get("kind", "http")
+            md = node.metadata or {}
+            kind = md.get("kind")
+            if kind is None:
+                # No contract sub-kind in metadata → infer from the node's
+                # own kind. A node that is not a contract surface (e.g. a
+                # hook reached via a handles_tool edge) is skipped, not
+                # dumped into http_routes via a blind 'http' default
+                # (TASK-056 C1).
+                node_kind = (node.kind or "").replace("cos:", "")
+                kind = {"route": "http", "mcp_tool": "mcp",
+                        "cli_command": "cli"}.get(node_kind)
+                if kind is None:
+                    continue
             if kind not in parsed_kinds:
                 continue
             bucket_key = {
@@ -3381,6 +3393,7 @@ def cos_graph_ranking(
     damping: float = 0.85,
     iterations: int = 30,
     include_external: bool = False,
+    include_tests: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """PageRank-based node ranking with optional query personalisation.
@@ -3423,6 +3436,15 @@ def cos_graph_ranking(
                 stdlib_placeholders = ",".join("?" * len(_NOISE_MODULE_NAMES))
                 where_parts.append(f"uid NOT IN ({stdlib_placeholders})")
                 params_n.extend(f"code:module:{name}" for name in _NOISE_MODULE_NAMES)
+            if not include_tests:
+                # Audit fix: test-fixture nodes (a helper called 60+ times
+                # within one test file) dominated PageRank and buried every
+                # production hub — top-20 was 100% tests/. Drop test-dir
+                # nodes unless the caller explicitly opts in (TASK-053).
+                where_parts.append(
+                    "(file_path IS NULL OR (file_path NOT LIKE 'tests/%' "
+                    "AND file_path NOT LIKE '%/tests/%'))"
+                )
             kind_filter = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
             params_n.append(_NODE_CAP)
             uid_rows = sqlite_conn.execute(
