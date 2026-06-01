@@ -7,7 +7,7 @@ compares the resulting file tree byte-for-byte against `tests/golden/`.
 Any drift fails the test with a diff. If the drift is intentional
 (template change, new stack, etc.), regenerate the goldens:
 
-    uv run python scripts/capture_golden.py
+    uv run python src/scripts/capture_golden.py
 
 Runtime files (SQLite DBs, session markers) are excluded on both sides.
 """
@@ -26,9 +26,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
 FIXTURE_NAME = "cos-golden-fixture"
-FROZEN_DATE = "2026-01-01"  # must match scripts/capture_golden.py
+FROZEN_DATE = "2026-01-01"  # must match src/scripts/capture_golden.py
 
-# Must match scripts/capture_golden.py
+# Must match src/scripts/capture_golden.py
 SECTIONS: list[tuple[str, str, list[str]]] = [
     ("claude_base", "claude", []),
     ("claude_django", "claude", ["django"]),
@@ -106,7 +106,7 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
     if not golden.exists():
         pytest.skip(
             f"golden {section_id} not captured yet — run "
-            f"`uv run python scripts/capture_golden.py --section {section_id}`"
+            f"`make golden-capture SECTION={section_id}`"
         )
 
     sandbox = tmp_path / section_id / FIXTURE_NAME
@@ -124,7 +124,7 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
     assert not extra, (
         f"[{section_id}] extra files (in fresh scaffold, not in golden): "
         f"{extra[:10]} — if intentional, run "
-        f"`uv run python scripts/capture_golden.py --section {section_id}`"
+        f"`make golden-capture SECTION={section_id}`"
     )
 
     # Byte-identical check for every shared file. Some adapters (codex)

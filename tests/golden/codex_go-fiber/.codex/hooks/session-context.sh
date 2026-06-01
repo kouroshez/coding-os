@@ -119,6 +119,7 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.uv-heredoc-override" \
     "${COS_PANEL_DIR}/.zoom-prompt-suggested" \
     "${COS_PANEL_DIR}/.docs-first-nudged" \
+    "${COS_PANEL_DIR}/.roles-composed" \
     "${COS_PANEL_DIR}/.graph-call-seen" \
     "${COS_PANEL_DIR}/.abandoned-task-warned" \
     "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
@@ -223,9 +224,17 @@ if [[ "$SOURCE" == "startup" ]]; then
     fi
   fi
 
-  # Phase G.10 — Agent digest: print the rolling identity snapshot so the
-  # agent inherits its beliefs/preferences across sessions. The file is
-  # refreshed on every task-done; missing file (new project) is fine.
+  # Phase G.10 — Agent digest: the always-active working-memory snapshot
+  # (identity, top domains, beliefs, fading patterns, breakthroughs). The
+  # digest was printed but never regenerated (cos_digest_regenerate had no
+  # hook caller, so digest.md never existed) — regenerate it here first so
+  # the agent inherits a FRESH memory summary each session (TASK-055).
+  if [ -f "$COS_DB_PATH" ]; then
+    DIGEST_REGEN="${_COS_HOOKS_PHYS}/_helpers/digest_regen.py"
+    if [ -f "$DIGEST_REGEN" ]; then
+      python3 "$DIGEST_REGEN" "$COS_DB_PATH" "${COS_PROJECT_ROOT:-$(pwd)}" 2>/dev/null || true
+    fi
+  fi
   DIGEST_PATH="${COS_STATE_DIR:-.coding-os}/digest.md"
   if [ -f "$DIGEST_PATH" ]; then
     echo ""
@@ -348,6 +357,26 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   GATE_STATE=$(_read_state ".thinking_os-gate" 24)
   SKILL_CUR=$(_read_state ".active-skill" 48)
 
+  # Composed role chain (auto-compose-roles.sh stamps $COS_AGENT_DIR/.roles =
+  # JSON list). Surface lead+count so the agent (and user banner) see the
+  # active chain — the chat-inject half of the roles loop (TASK-055). The
+  # .roles file is agent-scoped (written by roles_state.stamp_roles), not
+  # session-prefixed, so read it directly rather than via _read_state.
+  ROLES_LEAD=""
+  _ROLES_FILE="${COS_AGENT_DIR}/.roles"
+  if [ -f "$_ROLES_FILE" ]; then
+    ROLES_LEAD=$(python3 -c '
+import json, sys
+try:
+    c = json.load(open(sys.argv[1]))
+    if isinstance(c, list) and c:
+        rest = len(c) - 1
+        print(f"{c[0]}+{rest}" if rest > 0 else str(c[0]))
+except Exception:
+    pass
+' "$_ROLES_FILE" 2>/dev/null | head -c 32 || true)
+  fi
+
   # Task mode (classify-task-mode.sh writes this on every UserPromptSubmit
   # via a separate hook). NOT session-prefixed — it's a single token per
   # the writer's contract. Values: formal | query | adhoc | chore |
@@ -464,6 +493,7 @@ except OSError:
   [[ -n "$GATE_STATE" ]] && PARTS="${PARTS} gate=${GATE_STATE}" || PARTS="${PARTS} gate=unset"
   [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
+  [[ -n "$ROLES_LEAD" ]] && PARTS="${PARTS} roles=${ROLES_LEAD}"
   [[ -n "$AUDIT_ACTIVE" ]] && PARTS="${PARTS} audit=${AUDIT_ACTIVE}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
 
@@ -502,7 +532,7 @@ except OSError:
       USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE}${WARN}"
       ;;
     *)
-      USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · audit=${AUDIT_ACTIVE:--}${WARN}"
+      USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--} · audit=${AUDIT_ACTIVE:--}${WARN}"
       ;;
   esac
 

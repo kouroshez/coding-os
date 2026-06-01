@@ -28,8 +28,10 @@ This rule closes that gap with the cheapest possible mechanism: agent literally 
 **Formal work** (`mode ∈ {formal, gov-required, propose-formal}` or unset) — full cognitive state:
 
 ```
-🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S> · audit=<A>
+🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S> · roles=<R> · audit=<A>
 ```
+
+The `roles=<R>` field shows the auto-composed role chain (lead role + count, e.g. `analyst+2`) when `auto-compose-roles.sh` has stamped `.roles` for a COMPLICATED/COMPLEX gate; `-` when no chain is active. See [src/core/hooks/auto-compose-roles.sh](../hooks/auto-compose-roles.sh).
 
 **Hook-internal Bash** (`mode = system`) — banner suppressed entirely.
 
@@ -46,13 +48,13 @@ Examples:
 ```
 
 ```
-🔔 ses=648-639f · mode=formal · task=TASK-033 · gate=COMPLICATED 4 · skill=hook-authoring clean-code · audit=1(graph-os-deep-2026-05-25)·3-unchecked
+🔔 ses=648-639f · mode=formal · task=TASK-033 · gate=COMPLICATED 4 · skill=hook-authoring clean-code · roles=analyst+2 · audit=1(graph-os-deep-2026-05-25)·3-unchecked
 
 [doing real work on a tracked task]
 ```
 
 ```
-🔔 ses=648-639f · mode=formal · task=none · gate=unset · skill=- · audit=- ⚠️ wip=1 but task=none — cos task-start <ID>
+🔔 ses=648-639f · mode=formal · task=none · gate=unset · skill=- · roles=- · audit=- ⚠️ wip=1 but task=none — cos task-start <ID>
 
 [banner forces the agent to surface the drift before continuing]
 ```
@@ -102,6 +104,7 @@ Full personas × scenarios matrix (P1-P6 × S1-S7), per-file routing rationale, 
 | `task` | `.task-current` via `_read_state` | STRICT panel-id match (no AGENT_DIR fallback) | missing / stale → `none` |
 | `gate` | `.thinking_os-gate` via `_read_state` | STRICT panel-id match | missing / stale → `unset` |
 | `skill` | `.active-skill` via `_read_state` | STRICT panel-id match | missing / stale → `-` · **lag 1 turn**: skills loaded mid-turn show in NEXT banner |
+| `roles` | `.roles` (agent-scoped JSON list, stamped by `auto-compose-roles.sh`) | agent-dir (not session-prefixed) | no chain → `-` · lead+count e.g. `analyst+2` |
 | `audit` | grep `^status:` (YAML) OR `**Status:**` (markdown) | filesystem-current | no audits → `-` · `count(id)·N-unchecked` when verified=no rows exist |
 | `⚠️` | DB `wip` vs `.task-current` | n/a | suppressed when consistent |
 

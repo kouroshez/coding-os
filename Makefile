@@ -158,6 +158,10 @@ debug-clean: ## Remove only .build/debug/
 manifest-regen: ## Regenerate src/core/scaffold_manifest.json from fresh sandboxes
 	@uv run python src/scripts/generate_manifest.py
 
+.PHONY: golden-capture
+golden-capture: ## Regenerate tests/golden fixtures (all, or SECTION=<id>) — run when test_golden_parity flags drift after a hook/adapter/scaffold change. Needs the uv venv (bare python3 lacks click).
+	@uv run python src/scripts/capture_golden.py $(if $(SECTION),--section $(SECTION),)
+
 .PHONY: regen-rules regen-doctor-schema
 regen-rules: ## Regenerate src/core/rules/{dimension-registry,skill-enforcement}.md from stack yaml
 	@uv run python src/scripts/regen_rules.py

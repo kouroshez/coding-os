@@ -136,7 +136,14 @@ _cos_resolve_panel_id() {
     printf '%s' "$COS_PANEL_ID"
     return
   fi
-  for v in CLAUDE_SESSION_ID CURSOR_SESSION_ID CURSOR_TRACE_ID \
+  # CLAUDE_CODE_SESSION_ID is the real var Claude Code exports to every hook
+  # subprocess (stable per session, distinct per tab). It MUST lead — without
+  # it the resolver fell through to the ppid fallback (#4), which is ephemeral
+  # per tool call on Claude (fresh subprocess each fire) and scattered one
+  # session's state across dozens of panels. Keep the bare CLAUDE_SESSION_ID
+  # after it as a forward-compat alias. Stays in sync with each adapter.yaml
+  # ::runtime_session_marker.env_vars (per-agent SSOT for the var name).
+  for v in CLAUDE_CODE_SESSION_ID CLAUDE_SESSION_ID CURSOR_SESSION_ID CURSOR_TRACE_ID \
            CODEX_SESSION_ID GEMINI_SESSION_ID ANTHROPIC_SESSION_ID; do
     val="$(printenv "$v" 2>/dev/null || true)"
     if [[ -n "$val" ]]; then
@@ -169,7 +176,7 @@ COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
 # .last-decay, .turn-activity.log, .overrides.json, .hooks.log, sessions/,
 # traces/, locks/, heartbeat, coding-os.db. Rationale per file in
 # docs/engineering/state-files.md.
-COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override session-id}"
+COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .roles-composed .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override session-id}"
 
 # Model signal for the routing / learning pipeline. Priority:
 #   1. Caller already exported COS_AGENT_MODEL (test harness / explicit).
