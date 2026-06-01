@@ -118,9 +118,20 @@ def main(section: str | None) -> None:
         click.echo(f"No matching section: {section}", err=True)
         sys.exit(2)
 
+    total = len(targets)
+    click.echo(
+        f"[golden] capturing {total} section(s) — each runs a full `cos init` "
+        f"(~10-20s each, no output while it scaffolds)."
+    )
     with tempfile.TemporaryDirectory(prefix="cos-golden-") as tmp:
         tmp_dir = Path(tmp)
-        for section_id, agent, templates in targets:
+        for i, (section_id, agent, templates) in enumerate(targets, 1):
+            stack = ", ".join(templates) if templates else "base"
+            # Emit BEFORE the slow scaffold so the user sees which section is
+            # running (and that it's not hung). Flush — output is block-buffered
+            # when piped through `make`.
+            click.echo(f"  → [{i}/{total}] {section_id} ({agent}/{stack}) — scaffolding…")
+            sys.stdout.flush()
             sandbox_parent = tmp_dir / section_id
             sandbox_parent.mkdir(parents=True)
             sandbox = sandbox_parent / FIXTURE_NAME
@@ -134,9 +145,10 @@ def main(section: str | None) -> None:
                 sys.exit(1)
             dst = GOLDEN_DIR / section_id
             count = _copy_filtered(sandbox, dst)
-            click.echo(f"[golden] {section_id}: {count} files → {dst.relative_to(REPO_ROOT)}")
+            click.echo(f"  ✓ [{i}/{total}] {section_id}: {count} files → {dst.relative_to(REPO_ROOT)}")
+            sys.stdout.flush()
 
-    click.echo(f"\n[golden] wrote {len(targets)} section(s) to {GOLDEN_DIR.relative_to(REPO_ROOT)}")
+    click.echo(f"[golden] done — wrote {total} section(s) to {GOLDEN_DIR.relative_to(REPO_ROOT)}")
 
 
 if __name__ == "__main__":
