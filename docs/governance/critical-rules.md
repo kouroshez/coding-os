@@ -141,8 +141,8 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 - **Rule:** Call `cos_compose_chain(signals)`; result written to `.coding-os/<agent>/.roles` + `.role`. Roles ARE the 11 formulas, addressed by semantic id: `researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer`.
 - **Why:** Hard problems need a sequenced chain of formulas. Composing once at task start avoids mid-task formula thrash.
-- **How:** Routing yaml at `src/core/thinking_os/roles/`, prompts at `src/core/thinking_os/agents/`. Source spec citation `Formula 1..11` retained only in `formulas-en.md`.
-- **Where:** `src/core/thinking_os/roles/` · `src/core/thinking_os/agents/`
+- **How:** Routing yaml at `src/core/thinking_os/roles/`, prompts at `src/core/thinking_os/agents/`. Source spec citation `Formula 1..11` retained only in `formulas-en.md`. **Auto-enforced (TASK-055):** `auto-compose-roles.sh` (UserPromptSubmit) reads the recorded `.thinking_os-gate`; for COMPLICATED/COMPLEX it auto-fires the composer via `_helpers/auto_compose.py` and stamps `.roles`/`.role` (shared writer `thinking_os/roles_state.py`), so the chain exists even if the agent never calls the tool by hand. The composed lead role surfaces in the session banner (`roles=` field).
+- **Where:** `src/core/thinking_os/roles/` · `src/core/thinking_os/agents/` · `src/core/hooks/auto-compose-roles.sh` · `src/core/thinking_os/roles_state.py`
 
 ## Rule 16 — Formula dispatch produces typed EvidenceBundle
 
