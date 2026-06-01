@@ -44,3 +44,46 @@ def stamp_roles(chain: list[str], agent_dir: str | None = None) -> None:
     except OSError as exc:
         # Fire-and-forget telemetry — a write error must never break compose.
         logger.debug("stamp_roles write failed: %s", exc)
+
+
+# Tool/phase → preferred role. The active role advances as the agent moves
+# through work phases (analyze → build → verify), so the banner reflects what
+# the agent is DOING, not a frozen chain lead (TASK-057 F2.3). Each candidate
+# is chosen only if it's actually IN the composed chain — we never invent a
+# role the composer didn't pick.
+_PHASE_ROLE_CANDIDATES: dict[str, tuple[str, ...]] = {
+    # code edits → the building/fixing roles, best-match first
+    "edit": ("implementer", "refactorer", "debugger", "architect"),
+    # verification / tests → reviewer
+    "verify": ("reviewer", "security_auditor"),
+    # doc writes → documenter
+    "doc": ("documenter",),
+}
+
+
+def advance_role(phase: str, agent_dir: str | None = None) -> str | None:
+    """Set .role to the chain member best matching the current work phase.
+
+    Reads the composed chain from .roles; picks the first phase-candidate role
+    that is present in the chain; writes it to .role. Returns the chosen role
+    (or None if no chain / no match). Never raises — fire-and-forget.
+    """
+    target = agent_dir or resolve_agent_dir()
+    try:
+        roles_path = os.path.join(target, ".roles")
+        if not os.path.exists(roles_path):
+            return None
+        with open(roles_path, encoding="utf-8") as fh:
+            chain = json.load(fh)
+        if not isinstance(chain, list) or not chain:
+            return None
+        chain_str = [str(c) for c in chain]
+        for cand in _PHASE_ROLE_CANDIDATES.get(phase, ()):  # ordered preference
+            if cand in chain_str:
+                with open(os.path.join(target, ".role"), "w", encoding="utf-8") as fh:
+                    fh.write(cand)
+                return cand
+        return None
+    except (OSError, ValueError) as exc:
+        logger.debug("advance_role failed: %s", exc)
+        return None

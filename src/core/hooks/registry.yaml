@@ -429,6 +429,23 @@ hooks:
         matcher: Write|Edit
         status_message: "♻️ Re-syncing task to DB..."
 
+  - id: advance-role
+    script: advance-role.sh
+    description: |
+      PostToolUse — advances the active role (.role) along the composed chain
+      by work phase: Write/Edit/MultiEdit → implementer/refactorer/debugger,
+      test/verify Bash → reviewer. Only ever selects a role already IN the
+      chain (never invents one). Makes the banner roles= field track what the
+      agent is DOING rather than a frozen chain lead (TASK-057 F2.3). Fail-open.
+    category: cognition
+    phase: L
+    timeout: 10
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit|MultiEdit
+      - event: PostToolUse
+        matcher: Bash
+
   - id: check-mcp-extras
     script: check-mcp-extras.sh
     description: SessionStart — verifies global cos binary has required Python extras (graph_os, board_os, rag). If missing, MCP crashes silently and all cos_* tools fail. Emits loud warning with exact fix command before agent uses any MCP tools. Fast (<200ms, no server start). Always non-blocking.

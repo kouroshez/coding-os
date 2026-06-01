@@ -38,17 +38,21 @@ for _p in (_THINKING_OS, _THINKING_OS / "tools"):
 _COMPOSE_CLASSES = {"COMPLICATED", "COMPLEX"}
 
 
-def _compose_roles(gate_class: str, dims: int, agent_dir: str | None) -> str:
-    """Compose + stamp the role chain. Returns a context line ('' on miss)."""
+def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: str) -> str:
+    """Compose + stamp the role chain. Returns a context line ('' on miss).
+
+    Builds a RICH TaskSignals from the prompt (action/domain/scope) so the
+    chain actually varies per task instead of collapsing to ['analyst'] for
+    every COMPLICATED/COMPLEX prompt (TASK-057).
+    """
     try:
         import formula_composer
         import roles_state
-        from cognition_schemas import TaskSignals
     except ImportError as exc:
         logger.debug("auto_compose role imports unavailable: %s", exc)
         return ""
     try:
-        signals = TaskSignals(complexity=gate_class, dimensions=max(1, dims))
+        signals = formula_composer.signals_from_prompt(prompt, gate_class, max(1, dims))
         chain = formula_composer.compose_chain(signals=signals)
     except Exception as exc:  # composer must never break the prompt hook
         logger.debug("compose_chain failed: %s", exc)
@@ -136,11 +140,19 @@ def main(argv: list[str]) -> int:
     except (ValueError, TypeError):
         dims = 1
     agent_dir = argv[3] if len(argv) > 3 and argv[3] else None
+    # Prompt arrives on stdin (the hook pipes the user prompt) so the composer
+    # gets real action/domain signals. Empty stdin → degenerate-but-safe.
+    prompt = ""
+    try:
+        if not sys.stdin.isatty():
+            prompt = sys.stdin.read(8192)
+    except (OSError, ValueError):
+        prompt = ""
 
     out_lines = [
         line
         for line in (
-            _compose_roles(gate_class, dims, agent_dir),
+            _compose_roles(gate_class, dims, agent_dir, prompt),
             _recall_patterns(gate_class, agent_dir),
         )
         if line
