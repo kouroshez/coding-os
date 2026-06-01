@@ -65,18 +65,24 @@ git clone https://github.com/kouroshebra/coding-os.git
 cd coding-os
 uv tool install --editable .          # installs the `cos` CLI globally
 uv sync --extra rag                   # installs Python deps incl. semantic search
-make dogfood                          # wire THIS repo's own .claude/ (hooks + MCP + slash commands)
+make sync                             # wire THIS repo: render every adapter (.claude/ .codex/ .cursor/ + .mcp.json)
 cd src/core/web/ui && npm install     # optional, only for Hub UI work
 ```
 
-> **Why `make dogfood`?** coding-os is itself a coding-os project (P5
-> Dogfood). Its `.claude/` — hooks, MCP wiring, slash commands — is
-> **generated** from `src/` and is **gitignored**, so a fresh clone has
-> none. `make dogfood` renders the Claude adapter; `make dogfood-full`
-> renders every adapter (`.claude/` + `.codex/` + `.cursor/`). Re-run it
-> after any change under `src/core/**` or `src/adapters/**`. (Editing a
-> hook *body* in `src/core/hooks/` takes effect immediately — `.claude/`
-> symlinks into it — but registry/template changes need a re-render.)
+> **Why `make sync`?** coding-os is itself a coding-os project (P5
+> Dogfood). The adapter dirs (`.claude/`, `.codex/`, `.cursor/`) — hooks,
+> MCP wiring, slash commands — are **generated** from `src/` and are
+> **gitignored**, so a fresh clone has none. The targets:
+> - `make sync` — the complete one: regenerates adapter templates from
+>   `registry.yaml`, then renders **every** adapter. Use this for setup
+>   and after any `src/core/hooks/registry.yaml` or `*.template.*` change.
+> - `make dogfood` — fast path, **Claude adapter only** (`.claude/` +
+>   `.mcp.json`); `make dogfood-full` renders all adapters without the
+>   template regen.
+>
+> Editing a hook *body* in `src/core/hooks/` takes effect immediately
+> (`.claude/hooks/*` symlink into it); registry/template changes need a
+> re-render (`make sync`).
 
 Smoke test:
 

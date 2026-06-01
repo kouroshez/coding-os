@@ -3,7 +3,7 @@
 [![version](https://img.shields.io/badge/version-0.3.0-blue)](./CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](./pyproject.toml)
-[![tests](https://img.shields.io/badge/tests-1195%20passing-green)](./tests/)
+[![tests](https://img.shields.io/badge/tests-passing-green)](./tests/)
 [![cli](https://img.shields.io/badge/cli-cos-informational)](./docs/architecture/meta-project.md)
 
 > **Agent-agnostic cognitive operating system for AI coding agents.**
@@ -160,7 +160,7 @@ src/core/  ──►  src/adapters/<agent>/  ──►  src/templates/<stack>/  
 
 | Layer            | What it owns                                                       |
 | ---------------- | ------------------------------------------------------------------ |
-| `src/core/`      | MCP server, hooks (62), rules, skills — **agent-agnostic, stack-agnostic** |
+| `src/core/`      | MCP server, hooks, rules, skills — **agent-agnostic, stack-agnostic** |
 | `src/adapters/`  | Per-agent translation: `.claude/`, `.codex/`, `.cursor/` rendering |
 | `src/templates/` | Per-stack overlays: Django, Next.js, FastAPI, Go, Go+Fiber, React Native, Python, Meta |
 | `src/cli/`       | The `cos` factory CLI that composes the three layers               |
@@ -178,8 +178,9 @@ No Python edits required.
    or COMPLEX.
 3. **Self-learning memory** — SQLite-backed observations, metrics,
    and learned patterns across sessions (`cos_search`, `cos_learn_*`).
-4. **Hook enforcement** — 62 hooks gate writes, edits, prompts,
-   sessions, and stops. Adapter parity matrix in `docs/engineering/`.
+4. **Hook enforcement** — hooks gate writes, edits, prompts,
+   sessions, and stops (exact count in `src/core/hooks/registry.yaml`).
+   Adapter parity matrix in `docs/engineering/`.
 5. **Four-layer retrieval** — agent memory (`cos_search`) · doc RAG
    (`cos_doc_search`) · task graph (`cos_task_*`) · knowledge graph
    (`cos_graph_*`).
@@ -220,9 +221,9 @@ coding-os/
 │   │   ├── skills/         # Universal skills
 │   │   └── scripts/        # Kernel-internal regen tooling
 │   ├── adapters/         # Per-agent translation (mRNA, adapter.yaml manifests)
-│   │   ├── claude/         # Claude Code adapter (58/62 hooks fire)
-│   │   ├── codex/          # OpenAI Codex CLI adapter (21/62 — Bash-only)
-│   │   └── cursor/         # Cursor IDE adapter (59/62 hooks fire)
+│   │   ├── claude/         # Claude Code adapter (most hooks fire)
+│   │   ├── codex/          # OpenAI Codex CLI adapter (Bash-only subset)
+│   │   └── cursor/         # Cursor IDE adapter (most hooks fire)
 │   ├── templates/        # Per-stack scaffolds (phenotype, stack.yaml-driven)
 │   │   ├── _base/          # Generic base + fragments/
 │   │   ├── django/         # Django + DRF + PostgreSQL
@@ -234,7 +235,7 @@ coding-os/
 │   │   ├── python/         # Python library / CLI / MCP server
 │   │   └── meta/           # Meta-stack (for coding-os contributors)
 │   └── scripts/          # Maintenance + regen tooling
-├── tests/              # 743 cross-cutting tests
+├── tests/              # cross-cutting tests
 ├── docs/               # Governance, engineering, playbooks, architecture
 └── .coding-os/         # Per-project runtime state (gitignored)
 ```
@@ -426,10 +427,10 @@ Deep dive: [docs/engineering/graph_os-queries.md](./docs/engineering/graph_os-qu
 
 | Agent           | Hook coverage | Skills              | MCP server | Notes                          |
 | --------------- | ------------- | ------------------- | ---------- | ------------------------------ |
-| Claude Code     | 58/62 ✅       | Native Skill tool   | ✅          | Most complete enforcement.     |
-| Cursor (Agent)  | 59/62 ✅       | Via instructions    | ✅          | Tied with Claude Code.         |
-| Codex CLI       | 21/62 ⚠️       | Via instructions    | ✅          | Bash-only PreToolUse matcher.  |
-| Codex GUI       | 0/62 ❌        | Via instructions    | ✅          | `.codex/hooks.json` ignored upstream — do NOT use for protected work. |
+| Claude Code     | Full ✅        | Native Skill tool   | ✅          | Most complete enforcement.     |
+| Cursor (Agent)  | Full ✅        | Via instructions    | ✅          | Tied with Claude Code.         |
+| Codex CLI       | Partial ⚠️     | Via instructions    | ✅          | Bash-only PreToolUse matcher.  |
+| Codex GUI       | None ❌        | Via instructions    | ✅          | `.codex/hooks.json` ignored upstream — do NOT use for protected work. |
 
 Audit + reasoning: [docs/engineering/workflow-audit-2026-04-25.md](./docs/engineering/workflow-audit-2026-04-25.md).
 
