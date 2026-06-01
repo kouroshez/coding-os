@@ -17,6 +17,12 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 cos_log_hook auto-compose-roles enter || true
 
+# Read the user prompt from stdin so the composer gets real action/domain
+# signals (TASK-057). Without it the chain collapses to ['analyst'] for every
+# COMPLICATED/COMPLEX prompt. Bounded; fail-open to empty.
+INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
+PROMPT="$(printf '%s' "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || true)"
+
 GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
 [[ -f "$GATE_FILE" ]] || exit 0
 
@@ -56,8 +62,10 @@ HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 HELPER="${HSRC}/_helpers/auto_compose.py"
 [[ -f "$HELPER" ]] || exit 0
 
-AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}"
-OUT=$(python3 "$HELPER" "$GATE_CLASS" "${GATE_DIMS:-1}" "$AGENT_DIR" 2>/dev/null || true)
+# Panel-first target so .roles/.role land where the banner + Hub read them
+# (TASK-057 F1: same per-panel scope as every other cognitive marker).
+TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
+OUT=$(printf '%s' "$PROMPT" | python3 "$HELPER" "$GATE_CLASS" "${GATE_DIMS:-1}" "$TARGET_DIR" 2>/dev/null || true)
 
 mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
 printf '%s' "$GATE_CLASS" > "$MARKER" 2>/dev/null || true

@@ -59,7 +59,7 @@ exposes it; the rule below is mandatory before you act on a result.
 
 | Tool | `data.total_count` | Coverage signal in meta | `data.meta.<budget>` |
 |---|---|---|---|
-| `cos_graph_references` | ✓ | `result_truncated` (limit hit) | `limit` |
+| `cos_graph_references` | ✓ | `result_truncated` (limit hit or token-trim) | `limit` |
 | `cos_graph_impact` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
 | `cos_graph_context` | – | `walk_truncated` (BFS cap hit) | `visit_limit` · `depth` |
 | `cos_graph_path` | – | `walk_truncated` (hop saturation) | `hop_limit` |
@@ -68,10 +68,15 @@ exposes it; the rule below is mandatory before you act on a result.
 **`result_truncated == true` or `walk_truncated == true` ⇒ the answer
 is incomplete. Do NOT proceed on it.**
 
-Why two distinct names? The envelope layer writes `data.meta.truncated`
-when *token-budget* trimming kicked in (response too big, tail rows
-dropped). Coverage truncation is a different concept — keep the keys
-distinct so the agent reacts to the right signal.
+Why two names? `result_truncated` / `walk_truncated` flag *coverage*
+truncation (a caller `limit` or BFS cap was hit); `data.meta.truncated`
+flags that the envelope's *token-budget* trimmer ran (response too big,
+tail rows dropped). They are separate causes, but a token-budget trim
+that drops list items now ALSO sets `result_truncated` (TASK-056) — the
+trimmer can silently shorten a `contracts` / `references` payload, and
+the coverage check must catch that too. Net: **`result_truncated == true`
+means this list is incomplete for ANY reason — re-query**; `meta.truncated`
+additionally tells you the cause was the token budget.
 
 ### The mandatory 2-step probe → widen workflow
 

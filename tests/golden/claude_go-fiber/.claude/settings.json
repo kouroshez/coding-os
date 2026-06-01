@@ -229,6 +229,11 @@
             "command": ".claude/hooks/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/advance-role.sh",
+            "timeout": 10
           }
         ]
       },
@@ -340,6 +345,11 @@
             "command": ".claude/hooks/search-verify-remaining.sh",
             "statusMessage": "✅ Verifying 0 matches remain after replace...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/advance-role.sh",
+            "timeout": 10
           },
           {
             "type": "command",

@@ -120,6 +120,8 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.zoom-prompt-suggested" \
     "${COS_PANEL_DIR}/.docs-first-nudged" \
     "${COS_PANEL_DIR}/.roles-composed" \
+    "${COS_PANEL_DIR}/.roles" \
+    "${COS_PANEL_DIR}/.role" \
     "${COS_PANEL_DIR}/.graph-call-seen" \
     "${COS_PANEL_DIR}/.abandoned-task-warned" \
     "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
@@ -357,24 +359,35 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   GATE_STATE=$(_read_state ".thinking_os-gate" 24)
   SKILL_CUR=$(_read_state ".active-skill" 48)
 
-  # Composed role chain (auto-compose-roles.sh stamps $COS_AGENT_DIR/.roles =
-  # JSON list). Surface lead+count so the agent (and user banner) see the
-  # active chain — the chat-inject half of the roles loop (TASK-055). The
-  # .roles file is agent-scoped (written by roles_state.stamp_roles), not
-  # session-prefixed, so read it directly rather than via _read_state.
+  # Composed role chain — surface the ACTIVE role + its position in the chain
+  # so the banner tracks what the agent is DOING, not a frozen lead (TASK-057).
+  # advance-role.sh moves .role along .roles by work phase. Both files are
+  # panel-scoped (written panel-first by roles_state); read panel-first with an
+  # agent-level fallback. Format: "<active> N/M" e.g. "implementer 3/4".
   ROLES_LEAD=""
-  _ROLES_FILE="${COS_AGENT_DIR}/.roles"
+  _ROLES_FILE="${COS_PANEL_DIR}/.roles"
+  [ -f "$_ROLES_FILE" ] || _ROLES_FILE="${COS_AGENT_DIR}/.roles"
+  _ROLE_FILE="${COS_PANEL_DIR}/.role"
+  [ -f "$_ROLE_FILE" ] || _ROLE_FILE="${COS_AGENT_DIR}/.role"
   if [ -f "$_ROLES_FILE" ]; then
     ROLES_LEAD=$(python3 -c '
 import json, sys
 try:
-    c = json.load(open(sys.argv[1]))
-    if isinstance(c, list) and c:
-        rest = len(c) - 1
-        print(f"{c[0]}+{rest}" if rest > 0 else str(c[0]))
+    chain = json.load(open(sys.argv[1]))
+    if not isinstance(chain, list) or not chain:
+        sys.exit(0)
+    active = ""
+    try:
+        active = open(sys.argv[2]).read().strip()
+    except OSError:
+        pass
+    if active not in chain:
+        active = str(chain[0])
+    pos = chain.index(active) + 1
+    print(f"{active} {pos}/{len(chain)}")
 except Exception:
     pass
-' "$_ROLES_FILE" 2>/dev/null | head -c 32 || true)
+' "$_ROLES_FILE" "$_ROLE_FILE" 2>/dev/null | head -c 32 || true)
   fi
 
   # Task mode (classify-task-mode.sh writes this on every UserPromptSubmit
