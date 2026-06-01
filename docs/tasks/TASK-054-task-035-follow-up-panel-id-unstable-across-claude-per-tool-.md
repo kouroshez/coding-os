@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: []
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-01
 started: 2026-06-01
-completed: null
+completed: 2026-06-01
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -45,3 +45,4 @@ Actual: panel id ephemeral-per-call → state scatters; PreToolUse gates block o
 - **Then** all writes land in exactly one `$COS_PANEL_DIR`; PreToolUse gates never block on a sibling-panel marker; no new `claude/claude` nesting; banner + HUD read live (not fossil) state; full hook + state-file test sweep green.
 
 ## Work Log
+- 2026-06-01 [claude]: Status transitioned to complete via cos task-done.
