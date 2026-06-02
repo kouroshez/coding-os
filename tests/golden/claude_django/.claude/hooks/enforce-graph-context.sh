@@ -23,17 +23,9 @@ if [[ "$MODE" == "off" || "$MODE" == "0" ]]; then
   exit 0
 fi
 
-# Accept stdin JSON from Claude / Codex dispatchers.
-PAYLOAD="$(cat 2>/dev/null || true)"
-FILE_PATH="$(printf '%s' "$PAYLOAD" | python3 -c '
-import sys, json
-try:
-    data = json.loads(sys.stdin.read() or "{}")
-except Exception:
-    print("")
-    raise SystemExit(0)
-print(data.get("tool_input", {}).get("file_path", ""))
-' 2>/dev/null || true)"
+# Accept stdin JSON from Claude / Codex dispatchers. jq (the house pattern)
+# is ~30ms cheaper than a python3 spawn — material on the Write|Edit hot path.
+FILE_PATH="$(cos_read_stdin_bounded 2 | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)"
 
 if [[ -z "$FILE_PATH" ]]; then
   cos_log_hook enforce-graph-context no-file || true

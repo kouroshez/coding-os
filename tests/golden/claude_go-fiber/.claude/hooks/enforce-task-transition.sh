@@ -22,13 +22,7 @@ cos_log_hook "enforce-task-transition" "entry" 2>/dev/null || true
 
 payload="$(cos_read_stdin_bounded 5)"
 
-file_path="$(echo "$payload" | python3 -c '
-import json, sys
-try:
-    print(json.load(sys.stdin).get("tool_input", {}).get("file_path", ""))
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
+file_path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")"
 
 # Scope: only task/audit markdown (INCLUDES docs/tasks/audits/).
 if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then

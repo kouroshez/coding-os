@@ -20,15 +20,7 @@ cos_log_hook "validate-task-frontmatter" "entry" 2>/dev/null || true
 payload="$(cos_read_stdin_bounded 5)"
 
 # Only act on docs/tasks/*.md writes.
-file_path="$(echo "$payload" | python3 -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    p = d.get("tool_input", {}).get("file_path", "")
-    print(p)
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
+file_path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")"
 
 if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then
     exit 0
