@@ -27,8 +27,11 @@ if [[ "$TOOL" == "Bash" ]]; then
     exit 2
   fi
 
-  # Block git commit --no-verify (skip hooks) — only match actual git commit commands
-  if echo "$COMMAND" | grep -qE '^git commit\b.*--no-verify'; then
+  # Block git commit --no-verify (skip hooks) — only match actual git commit commands.
+  # Strip quoted -m message values first so a "--no-verify" mentioned inside a commit
+  # message is not a false match (it blocked legitimate docs commits otherwise).
+  COMMAND_NOQUOTES=$(printf '%s' "$COMMAND" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
+  if echo "$COMMAND_NOQUOTES" | grep -qE '^git commit\b.*--no-verify'; then
     cos_log_hook block-secrets block "tool=Bash rule=no-verify"
     echo "BLOCKED: --no-verify skips safety hooks. Fix the underlying issue instead." >&2
     exit 2
