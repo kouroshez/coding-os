@@ -31,10 +31,10 @@ Legend: `[ ]` todo · `[x]` done · **FIX** safe now · **BOUNDED** right-sized 
 - [x] **FIX F1** — added `_trim_lists_balanced`: when ≥2 list buckets share the envelope, shrink the largest round-robin (never below 1) before the sequential ladder. Single-bucket tools unchanged. Live repro: `contracts(http,mcp)` now 32/64 + 33/78 (was 0/70). Markers + `result_truncated` consistent.
 - Verify: ✅ `pytest src/core/thinking_os/tests/` (1266 passed) + repro + `server.py --test`.
 
-## G5 — Over-engineering cuts
-- [ ] **FIX** — delete `enterprise.py::get_logger/_KVLogger/_fmt/_quote` (only genuinely-dead piece; RateLimiter/PrometheusSnapshot are load-bearing — KEEP).
-- [ ] **FIX/gate F-LSP** — `lsp_client.py`+`lsp_overlay.py` (710 LOC) zero prod callers → remove module + tests + `types.py` provenance entry. (Reversible; archived TASK-041 was its wiring.)
-- Verify: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q`
+## G5 — Over-engineering cuts ✅ 683 passed (−33 dead tests), no dangling refs
+- [x] **FIX** — deleted `enterprise.py::get_logger/_KVLogger/_fmt/_quote` + `__all__` entry + stale docstring + orphaned `import logging` + its 2 tests. RateLimiter/PrometheusSnapshot KEPT (load-bearing — power every Hub route).
+- [x] **FIX F-LSP** — deleted `lsp_client.py`+`lsp_overlay.py` (710 LOC, zero prod callers) + `test_lsp_client.py`+`test_lsp_overlay.py` (30 tests) + `types.py` provenance entry + its test param. (Reversible via git; archived TASK-041 was its wiring.)
+- Verify: ✅ `pytest src/core/graph_os/tests/` (683 passed) + import sanity + grep clean.
 
 ## G6 — Packaging (`pyproject.toml`) ✅ 716 passed (4 go tests un-skipped)
 - [x] **FIX** — added `tree-sitter-go>=0.23.0,<0.26.0` to `graph_os` extra + mypy override. Go now uses `code_go@v2` tree-sitter path (returns_type/has_param_type/field_of_type/interface-embedding). Reconciled `test_code_go.py`: the regex-era `skips_inline_func_keyword` proxy → genuine `skips_func_keyword_in_string_literal` (tree-sitter correctly recovers a real func after junk; still skips func inside a string literal).

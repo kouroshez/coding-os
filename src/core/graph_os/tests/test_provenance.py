@@ -60,7 +60,6 @@ class TestExtractorMapping:
             ("contracts@v1", "regex"),
             ("md_links@v1", "parser"),
             ("task_deps@v1", "parser"),
-            ("lsp_overlay@v1", "lsp"),
         ],
     )
     def test_known_ids(self, extractor_id: str, expected: str):

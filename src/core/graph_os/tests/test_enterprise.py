@@ -12,7 +12,6 @@ from graph_os.enterprise import (
     PrometheusSnapshot,
     RateLimiter,
     _percentile,
-    get_logger,
     write_backend_probe,
 )
 
@@ -83,24 +82,6 @@ class TestPrometheusSnapshot:
         assert _percentile([], 0.5) == 0.0
         assert _percentile([1.0, 2.0, 3.0], 0.5) == 2.0
         assert _percentile([1.0, 2.0, 3.0, 4.0], 0.95) == 4.0
-
-
-class TestStructuredLogger:
-    def test_logger_has_expected_methods(self):
-        logger = get_logger("graph_os.test")
-        assert hasattr(logger, "info")
-        assert hasattr(logger, "warning")
-        assert hasattr(logger, "error")
-        assert hasattr(logger, "debug")
-
-    def test_key_value_formatting(self, caplog):
-        import logging
-
-        caplog.set_level(logging.INFO)
-        logger = get_logger("graph_os.kv_test")
-        logger.info("hello", key="value", count=3)
-        # Either structlog OR our KV fallback; both must include "hello".
-        assert any("hello" in record.getMessage() for record in caplog.records)
 
 
 class TestBackendProbe:

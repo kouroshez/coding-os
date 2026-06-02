@@ -8,17 +8,14 @@ Collects the production-grade knobs that MCP tool handlers need:
     - PrometheusSnapshot  — accumulate counters + timings; render as a
                             Prometheus exposition-format string on demand
                             without adding a network dep
-    - structured_logger   — JSON / key=value logger factory; falls back
-                            to stdlib `logging` when structlog is absent
 
-Everything here is stdlib-only by default. If `structlog` / `prometheus
-_client` are installed they're used transparently.
+Everything here is stdlib-only by default. If `prometheus_client` is
+installed it's used transparently.
 """
 
 from __future__ import annotations
 
 import json
-import logging
 import os
 import threading
 import time
@@ -193,48 +190,6 @@ def write_backend_probe(
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class _KVLogger:
-    """Stdlib fallback — emits key=value lines for greppability."""
-
-    logger: logging.Logger
-
-    def info(self, event: str, **fields: Any) -> None:
-        self.logger.info(_fmt(event, fields))
-
-    def warning(self, event: str, **fields: Any) -> None:
-        self.logger.warning(_fmt(event, fields))
-
-    def error(self, event: str, **fields: Any) -> None:
-        self.logger.error(_fmt(event, fields))
-
-    def debug(self, event: str, **fields: Any) -> None:
-        self.logger.debug(_fmt(event, fields))
-
-
-def _fmt(event: str, fields: dict[str, Any]) -> str:
-    if not fields:
-        return event
-    return " ".join([event] + [f"{k}={_quote(v)}" for k, v in sorted(fields.items())])
-
-
-def _quote(value: Any) -> str:
-    text = str(value)
-    if any(ch in text for ch in ' \t\n"='):
-        return json.dumps(text)
-    return text
-
-
-def get_logger(name: str = "graph_os") -> Any:
-    """Return a structured logger — structlog if installed, stdlib otherwise."""
-    try:
-        import structlog  # type: ignore
-
-        return structlog.get_logger(name)
-    except ImportError:
-        return _KVLogger(logging.getLogger(name))
-
-
 # ---------------------------------------------------------------------------
 # Global singletons (opt-in; imported on demand).
 # ---------------------------------------------------------------------------
@@ -257,7 +212,6 @@ def metrics() -> PrometheusSnapshot:
 __all__ = [
     "PrometheusSnapshot",
     "RateLimiter",
-    "get_logger",
     "metrics",
     "rate_limiter",
     "write_backend_probe",

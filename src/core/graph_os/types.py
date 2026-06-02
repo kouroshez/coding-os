@@ -220,7 +220,6 @@ _EXTRACTOR_PROVENANCE: dict[str, str] = {
     "contracts@v1": "regex",
     "md_links@v1": "parser",
     "task_deps@v1": "parser",
-    "lsp_overlay@v1": "lsp",
 }
 
 
