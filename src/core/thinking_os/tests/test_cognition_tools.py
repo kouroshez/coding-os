@@ -243,3 +243,45 @@ class TestCosSituationDetect:
             signals='["legacy_codebase", "no_docs"]',
         )
         assert result["data"]["situation_id"] == "existing-project-takeover"
+
+
+# ---------------------------------------------------------------------------
+# cos_classify_prompt — gate-record correctness (TASK-059 #0b)
+# ---------------------------------------------------------------------------
+
+
+class TestCosClassifyPromptGateRecord:
+    """Gate write must be panel-correct + session-prefixed, or honestly report
+    recorded=false with a shell hint — never a wrong-dir/wrong-format fossil the
+    strict panel reader (check-state.sh) would reject."""
+
+    def test_records_panel_gate_with_session_prefix(self, mcp_tools, tmp_path, monkeypatch):
+        panel = tmp_path / "panels" / "p1"
+        panel.mkdir(parents=True)
+        (panel / "session-id").write_text("ses-classify-1\n", encoding="utf-8")
+        monkeypatch.delenv("COS_PANEL_DIR", raising=False)
+        result = mcp_tools.call(
+            "cos_classify_prompt",
+            prompt="fix typo in readme",
+            record=True,
+            agent_dir=str(panel),
+        )
+        assert result["ok"] is True
+        assert result["data"]["recorded"] is True
+        gate = (panel / ".thinking_os-gate").read_text(encoding="utf-8").strip()
+        parts = gate.split(" ")
+        assert parts[0] == "ses-classify-1"
+        assert parts[1] == result["data"]["complexity"]
+        assert parts[2] == str(result["data"]["dimensions"])
+
+    def test_no_panel_session_returns_hint(self, mcp_tools, monkeypatch):
+        monkeypatch.delenv("COS_PANEL_DIR", raising=False)
+        result = mcp_tools.call(
+            "cos_classify_prompt",
+            prompt="design a multi-service auth and payments integration strategy",
+            record=True,
+            agent_dir="",
+        )
+        assert result["ok"] is True
+        assert result["data"]["recorded"] is False
+        assert "write-state.sh" in result["data"]["record_hint"]

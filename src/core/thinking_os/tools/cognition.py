@@ -1640,15 +1640,55 @@ def register_cos_classify_prompt(mcp, db_path):
             f"dims={dimensions} from domains: {', '.join(hit_domains) or 'none'}"
         )
 
-        # Optionally record the gate so enforce-task-start.sh passes.
+        # Record the gate so enforce-task-start.sh passes — but ONLY when a
+        # panel session is resolvable. The MCP server has no per-call panel
+        # env, so this succeeds mainly when COS_PANEL_DIR is set (or agent_dir
+        # is a real panel dir). It writes the SAME session-prefixed format the
+        # strict panel reader (check-state.sh, TASK-035) requires; a bare
+        # value or an agent-dir write would be silently rejected and leave a
+        # misleading fossil — so we do neither, reporting recorded=false + a
+        # shell hint instead. (TASK-059 fix for the prior wrong-dir/wrong-format
+        # /no-trace bug.)
         recorded = False
+        record_hint = ""
         if record:
-            target_dir = agent_dir or _os.environ.get("COS_AGENT_DIR", "")
-            if target_dir:
-                gate_path = Path(target_dir) / ".thinking_os-gate"
-                gate_path.parent.mkdir(parents=True, exist_ok=True)
-                gate_path.write_text(f"{complexity} {dimensions}\n", encoding="utf-8")
-                recorded = True
+            panel_dir = _os.environ.get("COS_PANEL_DIR") or agent_dir
+            sid = ""
+            if panel_dir:
+                sid_file = Path(panel_dir) / "session-id"
+                if sid_file.exists():
+                    try:
+                        sid = sid_file.read_text(encoding="utf-8").strip().split(" ")[0]
+                    except OSError:
+                        sid = ""
+            if panel_dir and sid:
+                try:
+                    gate_path = Path(panel_dir) / ".thinking_os-gate"
+                    gate_path.parent.mkdir(parents=True, exist_ok=True)
+                    tmp_path = gate_path.with_name(".thinking_os-gate.tmp")
+                    tmp_path.write_text(
+                        f"{sid} {complexity} {dimensions}\n", encoding="utf-8"
+                    )
+                    tmp_path.replace(gate_path)
+                    recorded = True
+                    try:
+                        import tracing
+
+                        tracing.emit(
+                            sid,
+                            "classify",
+                            {"complexity": complexity, "dimensions": dimensions},
+                        )
+                    except Exception:
+                        pass
+                except OSError:
+                    recorded = False
+            if not recorded:
+                record_hint = (
+                    "gate not recorded (no panel session context from MCP); "
+                    'record it in your shell: write-state.sh .thinking_os-gate '
+                    f'"{complexity} {dimensions}"'
+                )
 
         return ok(
             {
@@ -1658,6 +1698,7 @@ def register_cos_classify_prompt(mcp, db_path):
                 "signals": signals,
                 "domains": hit_domains,
                 "recorded": recorded,
+                "record_hint": record_hint,
             },
             meta={"layer": "routing"},
         )
