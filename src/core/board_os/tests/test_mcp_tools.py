@@ -90,6 +90,57 @@ def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
     assert "kind: feature" in content
 
 
+# ---------- cos_task_show ----------
+
+
+def test_task_show_returns_frontmatter_and_body(
+    project: Path, conn: sqlite3.Connection
+):
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Show me",
+            swimlane="core",
+            kind="feature",
+            outcome="A task to display.",
+        )
+    )
+    task_id = created["data"]["task_id"]
+
+    env = _parse(mcp_tools.cos_task_show(conn, task_id=task_id))
+    assert env["ok"] is True
+    data = env["data"]
+    assert data["id"] == task_id
+    assert data["title"] == "Show me"
+    assert data["status"] == "icebox"
+    assert data["body"] is not None
+    assert "Show me" in data["body"]
+    assert data["file_path"].endswith(".md")
+
+
+def test_task_show_omits_body_when_disabled(
+    project: Path, conn: sqlite3.Connection
+):
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn, title="No body", swimlane="core", kind="feature"
+        )
+    )
+    env = _parse(
+        mcp_tools.cos_task_show(
+            conn, task_id=created["data"]["task_id"], include_body=False
+        )
+    )
+    assert env["ok"] is True
+    assert env["data"]["body"] is None
+
+
+def test_task_show_not_found(project: Path, conn: sqlite3.Connection):
+    env = _parse(mcp_tools.cos_task_show(conn, task_id="TASK-999"))
+    assert env["ok"] is False
+    assert env["error"]["category"] == "not_found"
+
+
 def test_create_task_in_progress_stamps_started_and_session(
     project: Path, conn: sqlite3.Connection
 ):

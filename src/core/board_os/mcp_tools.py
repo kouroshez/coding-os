@@ -610,6 +610,40 @@ def cos_task_board(
     )
 
 
+# ---------- cos_task_show ----------
+
+
+def cos_task_show(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    include_body: bool = True,
+) -> str:
+    row = conn.execute(
+        "SELECT task_id, title, status, swimlane, kind, priority, "
+        "appetite, file_path FROM tasks WHERE task_id = ?",
+        (task_id,),
+    ).fetchone()
+    if row is None:
+        return fail("not_found", f"task {task_id} not found")
+    data = {
+        "id": row[0],
+        "title": row[1],
+        "status": row[2],
+        "swimlane": row[3],
+        "kind": row[4],
+        "priority": row[5],
+        "appetite": row[6],
+        "file_path": row[7],
+        "body": None,
+    }
+    if include_body and row[7]:
+        full = _project_root() / row[7]
+        if full.exists():
+            data["body"] = full.read_text(encoding="utf-8")
+    return ok(data, meta={"layer": "tasks", "source": "board_os.cos_task_show"})
+
+
 # ---------- cos_task_move ----------
 
 

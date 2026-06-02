@@ -1677,6 +1677,24 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_show",
+        annotations={
+            "title": "Show Single Task (frontmatter + body)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_show(task_id: str, include_body: bool = True) -> str:
+        """Show a single task's frontmatter fields and full markdown body — in-session alternative to raw ls/grep/Read on docs/tasks."""
+        return _board_mcp.cos_task_show(
+            _db_conn,
+            task_id=task_id,
+            include_body=include_body,
+        )
+
+    @mcp.tool(
         name="cos_presence_query",
         annotations={
             "title": "Live Agent Presence (sessions + states)",

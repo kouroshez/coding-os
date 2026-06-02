@@ -28,7 +28,7 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
 - **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
 - **Docs RAG (3):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`
 - **Graph (17):** `cos_graph_query`, `cos_graph_resolve`, `cos_graph_context`, `cos_graph_communities`, `cos_graph_path`, `cos_graph_impact`, `cos_graph_references`, `cos_graph_rename_plan`, `cos_graph_similar`, `cos_graph_detect_changes`, `cos_graph_entrypoints`, `cos_graph_trace`, `cos_graph_contracts`, `cos_graph_export`, `cos_graph_centrality`, `cos_graph_ranking`, `cos_graph_doctor`
-- **Board / Tasks (13):** `cos_task_board`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
+- **Board / Tasks (14):** `cos_task_board`, `cos_task_show`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
 - **Audit (3):** `cos_audit_log_record`, `cos_audit_log_query`, `cos_audit_log_timeline`
@@ -55,6 +55,7 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - Framework/library docs → context7 first, ref as fallback, WebSearch as last resort
 - Memory search / past patterns → `cos_search`, `cos_timeline`, `cos_learn_suggest`
 - Task board / status → `cos_task_board`, `cos_task_search`, `cos_task_by_filter`
+- Single task lookup (full body) → `cos_task_show` *(in-session; never raw ls/grep/Read on docs/tasks)*
 - Task create/move/complete → `cos_task_create`, `cos_task_move`, `cos_work_log_append`
 - File/concept relationships → `cos_graph_context`, `cos_graph_impact`, `cos_graph_references`
 - Rename planning → `cos_graph_rename_plan` (callers + impact before any rename)
