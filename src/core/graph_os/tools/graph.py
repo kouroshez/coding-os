@@ -1415,6 +1415,7 @@ def cos_graph_detect_changes(
 
     affected_symbols: list[dict[str, Any]] = []
     downstream_tasks: set[str] = set()
+    downstream_consumers: list[dict[str, Any]] = []
     risk = "low"
     _DC_VISIT_LIMIT = 500
     walk_truncated = False
@@ -1495,6 +1496,20 @@ def cos_graph_detect_changes(
                 e for e in deep_edges
                 if e.edge_type in _BEHAVIOURAL_EDGE_TYPES
             ]
+            # F4: expose the computed blast radius (inbound behavioural
+            # consumers). Previously this drove `risk` then was discarded,
+            # so callers saw only contains-children — never the real callers
+            # the walk already found.
+            for e in behavioural:
+                downstream_consumers.append(
+                    {
+                        "file": file_path,
+                        "consumer": e.source_uid,
+                        "target": e.target_uid,
+                        "edge_type": e.edge_type,
+                        "confidence": e.confidence,
+                    }
+                )
             if len(behavioural) > 20:
                 risk = "high"
             elif len(behavioural) > 5 and risk != "high":
@@ -1505,12 +1520,14 @@ def cos_graph_detect_changes(
             "scope": scope,
             "files": list(files),
             "symbols": affected_symbols,
+            "downstream_consumers": downstream_consumers,
             "downstream_tasks": sorted(downstream_tasks),
             "risk_level": risk,
         },
         meta={
             "backend": be.backend_id,
             "analyze_downstream": analyze_downstream,
+            "downstream_consumer_count": len(downstream_consumers),
             "visit_limit": _DC_VISIT_LIMIT,
             "walk_truncated": walk_truncated,
         },
@@ -1707,6 +1724,27 @@ def cos_graph_similar(
             raw_candidates.extend(be.get_nodes_bulk(sibling_uids).values())
     except Exception as exc:  # fail-open: augmentation is best-effort
         logger.debug("similar sibling augmentation skipped: %s", exc)
+
+    # F3: same-label cross-file augmentation. sample_nodes draws a fixed
+    # id-prefix window and the sibling sweep only covers the root's own
+    # container, so structural twins in OTHER files (e.g. the 9 `extract()`
+    # functions across extractor modules) were never candidates. Pull
+    # same-kind nodes sharing the root's label so cross-file near-twins are
+    # always scored. Cheap + deterministic (no RANDOM()).
+    _sim_conn = getattr(be, "_conn", None)
+    if root.label and _sim_conn is not None:
+        try:
+            same_label_uids = [
+                r[0]
+                for r in _sim_conn.execute(
+                    "SELECT uid FROM graph_nodes WHERE kind = ? AND label = ? LIMIT 200",
+                    (root.kind, root.label),
+                ).fetchall()
+            ]
+            if same_label_uids:
+                raw_candidates.extend(be.get_nodes_bulk(same_label_uids).values())
+        except Exception as exc:  # fail-open
+            logger.debug("similar same-label augmentation skipped: %s", exc)
 
     # G21: drop external/orphan/unresolved stubs from the candidate pool —
     # they otherwise dominate similarity for any noise-shaped input
@@ -3177,7 +3215,7 @@ def cos_graph_centrality(
     include_structural: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
-    """Hub detection via degree (or betweenness) centrality.
+    """Hub detection via degree / in_degree / out_degree / betweenness centrality.
 
     F6 / Audit #10: `include_external` defaults to False so unresolved
     builtins (`code:external:unresolved:str/int/bool/len`) and stdlib
@@ -3194,7 +3232,7 @@ def cos_graph_centrality(
     if err:
         return err
     top, _ = _clamp_int(top, min_v=1, max_v=200)
-    err = _validate_enum(metric, ("degree", "betweenness"), "metric")
+    err = _validate_enum(metric, ("degree", "in_degree", "out_degree", "betweenness"), "metric")
     if err:
         return err
     try:
@@ -3337,6 +3375,16 @@ def cos_graph_centrality(
                     "centrality_score": round((ic + oc) / norm, 6),
                 }
             )
+
+    if metric in ("in_degree", "out_degree"):
+        # F7: rank by pure in/out degree. The default `degree` uses
+        # (in+out)/norm, which conflates fan-in with fan-out — a high-fan-OUT
+        # leaf (e.g. a UI page importing many modules) outranks a true
+        # chokepoint. metric=in_degree gives the genuine "most depended-upon"
+        # ranking; out_degree gives "depends on the most".
+        _denom = (N - 1) if N > 1 else 1
+        for r in rows_out:
+            r["centrality_score"] = round(r[metric] / _denom, 6)
 
     if metric == "betweenness" and sqlite_conn is not None:
         _BETWEENNESS_CAP = 300

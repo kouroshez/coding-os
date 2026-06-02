@@ -205,6 +205,7 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "samples",
     # cos_graph_detect_changes bulk arrays.
     "symbols",
+    "downstream_consumers",
     "downstream_tasks",
 )
 

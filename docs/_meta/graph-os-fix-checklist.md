@@ -21,11 +21,12 @@ Legend: `[ ]` todo · `[x]` done · **FIX** safe now · **BOUNDED** right-sized 
 - [x] **FIX F5** — `resolve` confidence rank-decayed (`0.9 − 0.05·idx`, floor 0.4); path_resolve stays 1.0.
 - [x] **FIX F13** — `_lexical_search` tries FTS5 `MATCH` (indexed) before the leading-wildcard `LIKE`; LIKE preserved as fallback so recall holds.
 - [x] **FIX F12** — `communities`: named `_SUBGRAPH_CAP`, `subgraph_input_truncated()` helper → `meta.input_truncated`, warns on cap-hit (was silent partial clustering).
-- [ ] **FIX F4** — `detect_changes`: expose already-computed downstream consumers in output. (G3b)
-- [ ] **BOUNDED F7** — `centrality`: add `metric=in_degree` (true chokepoint). (G3b)
-- [ ] **BOUNDED F3** — `similar`: widen candidate pool to same-kind cross-file. (G3b)
-- [ ] **F8** — phantom `accesses_field` in default-kind tuples: P3 cosmetic (never-matching kind in an IN clause is a no-op). Decide cut vs leave in G3b — low ROI, weigh test churn.
-- Verify: ✅ `pytest src/core/graph_os/tests/` (712) + `server.py --test` (clean)
+### G3b ✅ 683 passed + live smoke
+- [x] **FIX F4** — `detect_changes` now emits `downstream_consumers` (+`meta.downstream_consumer_count`); added to trimmable keys. Live: `_shared.py` → 23 consumers w/ provenance, risk=high (was symbols=contains-children only).
+- [x] **FIX F7** — `centrality` gains `metric=in_degree`/`out_degree` (pure fan-in chokepoint). Live in_degree top: init_db(108)/database(83)/cos-env.sh(78) — not the fan-out UI pages the (in+out) `degree` surfaced.
+- [x] **FIX F3** — `similar` same-label cross-file augmentation (deterministic). Live: `code_python::extract` now surfaces all **9** sibling `extract()` twins across extractor files (was 0).
+- [~] **F8** — phantom `accesses_field` left as-is: P3 cosmetic no-op (a never-emitted kind in an IN-clause matches nothing). Removing it across 7 tuple sites risks default-kind test churn for zero functional gain → intentionally not changed (Rule 22: lowest-ROI, don't churn).
+- Verify: ✅ `pytest src/core/graph_os/tests/` (683) + test_envelope (33) + `server.py --test` + live smoke F3/F4/F7.
 
 ## G4 — Envelope trim (`thinking_os/tools/_shared.py`) ✅ 1266 passed + live repro
 - [x] **FIX F1** — added `_trim_lists_balanced`: when ≥2 list buckets share the envelope, shrink the largest round-robin (never below 1) before the sequential ladder. Single-bucket tools unchanged. Live repro: `contracts(http,mcp)` now 32/64 + 33/78 (was 0/70). Markers + `result_truncated` consistent.
