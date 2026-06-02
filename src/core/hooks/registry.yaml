@@ -959,13 +959,15 @@ hooks:
   - id: nudge-task-discovery
     script: nudge-task-discovery.sh
     description: |
-      Task-discovery nudge — two events, both fail-open + debounced per
-      session. UserPromptSubmit: task-reference intent (TASK-NNN,
+      Task-discovery nudge — three events, all fail-open + debounced per
+      session per leg. UserPromptSubmit: task-reference intent (TASK-NNN,
       check/show/look-at task; bilingual EN + Persian) → additionalContext
       recommending `cos task-show TASK-NNN` / cos_task_search / cos_task_show
       (MCP) over cat/grep on docs/tasks/. PreToolUse Bash: warns (non-blocking)
-      when a command reads docs/tasks/ directly (ls/grep/cat/find/head/tail).
-      Closes the screenshot-2 gap. Mirrors nudge-graph-os mechanism.
+      when a command reads docs/tasks/ directly (ls/grep/cat/find/head/tail/
+      awk/sed/less/more/bat/rg/wc/nl/tac). PreToolUse Read: warns when the Read
+      tool targets a docs/tasks/** path. Closes the screenshot-2 gap. Mirrors
+      nudge-graph-os mechanism.
     category: cognition
     phase: O
     timeout: 10
@@ -975,6 +977,9 @@ hooks:
       - event: PreToolUse
         matcher: Bash
         status_message: "🗂️ Suggesting cos task-show over docs/tasks read..."
+      - event: PreToolUse
+        matcher: Read
+        status_message: "🗂️ Suggesting cos task-show over a docs/tasks Read..."
 
   - id: nudge-docs-first
     script: nudge-docs-first.sh

@@ -83,6 +83,23 @@ def _load_intent(target_dir: Path) -> dict[str, Any] | None:
     return None
 
 
+def _intent_anchor_mtime(target_dir: Path) -> float | None:
+    # mtime of the session's intent.json — used as the "current session"
+    # cutoff for A2 (only audits touched after this anchor are this
+    # session's concern). None when no intent file exists.
+    candidates = [target_dir / ".intent.json"]
+    agent_dir = _agent_dir()
+    if agent_dir != target_dir:
+        candidates.append(agent_dir / ".intent.json")
+    for intent_path in candidates:
+        try:
+            if intent_path.exists():
+                return intent_path.stat().st_mtime
+        except OSError:
+            continue
+    return None
+
+
 def _load_evidence_bundle(target_dir: Path, session_id: str) -> dict[str, Any] | None:
     candidates = [target_dir / f"evidence_bundle_{session_id}.json"]
     agent_dir = _agent_dir()
@@ -158,6 +175,44 @@ def _active_audit_files(repo_root: Path) -> list[Path]:
     return active
 
 
+_EVIDENCE_CHECKBOX = re.compile(
+    r"-\s*\[[xX]\]\s*EvidenceBundle submitted", flags=re.MULTILINE
+)
+_STATUS_COMPLETED = re.compile(
+    r"^status:\s*completed\b|\*\*Status:\*\*\s+completed\b", flags=re.MULTILINE
+)
+
+
+def _audit_claims_completion(text: str) -> bool:
+    # An audit "claims completion" when its frontmatter/body marks it done
+    # OR the Closing Checklist EvidenceBundle box is ticked. Either is an
+    # attestation the Stop guardian must be able to cross-check against a
+    # real cos_supervise_record_output dispatch row.
+    return bool(_STATUS_COMPLETED.search(text) or _EVIDENCE_CHECKBOX.search(text))
+
+
+def _completed_audit_files(repo_root: Path, since_mtime: float) -> list[Path]:
+    # Only audits TOUCHED in the current session (file mtime >= the session
+    # anchor) are this session's concern. This keeps A2 from re-flagging the
+    # dozens of historical status:completed audits every Stop — their mtime
+    # predates the anchor, so they never match. since_mtime is the intent.json
+    # mtime (a per-session file written by detect-exhaustive-intent.sh).
+    audit_dir = repo_root / "docs" / "tasks" / "audits"
+    if not audit_dir.is_dir():
+        return []
+    claimed: list[Path] = []
+    for path in sorted(audit_dir.glob("audit-*.md")):
+        try:
+            if path.stat().st_mtime < since_mtime:
+                continue
+            text = path.read_text()
+        except OSError:
+            continue
+        if _audit_claims_completion(text):
+            claimed.append(path)
+    return claimed
+
+
 def _count_unchecked_rows(text: str) -> int:
     # Mandatory table column 8 = Verified. Unchecked rows have `| no |`.
     return len(re.findall(r"^\|.*\|\s*no\s*\|", text, flags=re.MULTILINE))
@@ -221,7 +276,8 @@ def guard_completion(
     """Return a GuardResult for the current agent state.
 
     status="pass" iff no enforcement applies OR all gaps clean.
-    status="fail" iff exhaustive intent active AND gaps non-empty.
+    status="fail" iff (exhaustive intent active AND gaps non-empty) OR a
+    completed-audit forgery is detected (A2 — runtime-independent).
     """
     agent_dir = _panel_dir()
     repo = repo_root or Path.cwd()
@@ -262,8 +318,33 @@ def guard_completion(
                     f"never ran for session {session_id}"
                 )
 
+    # A2 (TASK-062) — runtime-independent forgery check, fires regardless of
+    # intent.exhaustive. An audit this session marked completed / ticked the
+    # EvidenceBundle box on must be backed by a real cos_supervise_record_output
+    # dispatch row. Unlike the intent-gated check above it reads the audit FILE
+    # (not the bundle), so it also catches the Codex path that writes no bundle.
+    # Scoped to this session via the intent.json mtime anchor + session-keyed
+    # dispatch lookup; fail-open on missing DB / empty session id.
+    forgery_gaps: list[str] = []
+    anchor = _intent_anchor_mtime(agent_dir)
+    if session_id and anchor is not None:
+        completed = _completed_audit_files(repo, anchor)
+        # session-keyed answer — query once, not per audit.
+        if completed and not _evidence_dispatch_recorded(session_id):
+            for audit_path in completed:
+                rel = str(audit_path.relative_to(repo))
+                if rel not in audits_checked:
+                    audits_checked.append(rel)
+                forgery_gaps.append(
+                    f"audit_completion_forged: {audit_path.name} claims completion "
+                    "but no formula_dispatches row — cos_supervise_record_output "
+                    f"never ran for session {session_id}"
+                )
+    gaps.extend(forgery_gaps)
+
+    failed = (intent_exhaustive and gaps) or bool(forgery_gaps)
     result = GuardResult(
-        status="fail" if (intent_exhaustive and gaps) else "pass",
+        status="fail" if failed else "pass",
         gaps=gaps,
         audits_checked=audits_checked,
         intent_exhaustive=intent_exhaustive,

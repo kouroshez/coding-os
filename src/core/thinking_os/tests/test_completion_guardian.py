@@ -385,3 +385,108 @@ class TestEvidenceDispatchCrossCheck:
         result = guard_completion(session_id="s1", repo_root=repo)
         assert result.status == "pass", result.gaps
         assert all("evidence_dispatch_missing" not in g for g in result.gaps)
+
+
+class TestCompletedAuditForgeryA2:
+    """TASK-062 A2 — runtime-independent forgery check. A completed audit
+    (status:completed OR ticked EvidenceBundle box) touched THIS session must
+    be backed by a real formula_dispatches row, even when intent.exhaustive is
+    unset and no evidence bundle file was written (the Codex path)."""
+
+    def _make_dispatches_db(self, repo: Path, rows: list | None = None) -> Path:
+        import sqlite3
+
+        db_path = repo / ".coding-os" / "coding-os.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS formula_dispatches ("
+                " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                " session_id TEXT, task_marker TEXT, persona_id TEXT,"
+                " formula_id TEXT, status TEXT)"
+            )
+            for r in rows or []:
+                conn.execute(
+                    "INSERT INTO formula_dispatches "
+                    "(session_id, task_marker, persona_id, formula_id, status) "
+                    "VALUES (?,?,?,?,?)",
+                    r,
+                )
+        return db_path
+
+    def test_completed_audit_no_dispatch_fails_even_without_exhaustive(
+        self, env, monkeypatch
+    ) -> None:
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(repo, rows=[])
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        # intent.exhaustive UNSET — A2 must still fire (no bundle either).
+        _write_intent(agent_dir, {"exhaustive": False, "predicates": []})
+        _write_audit(repo, "forged", "completed", unchecked_rows=0)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "fail"
+        assert any("audit_completion_forged" in g for g in result.gaps)
+        assert result.intent_exhaustive is False
+
+    def test_completed_audit_with_dispatch_passes(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(
+            repo, rows=[("s1", "TASK-X", "implementer", "exhaustive_evidence", "ok")]
+        )
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        _write_intent(agent_dir, {"exhaustive": False, "predicates": []})
+        _write_audit(repo, "legit", "completed", unchecked_rows=0)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+        assert all("audit_completion_forged" not in g for g in result.gaps)
+
+    def test_ticked_evidence_checkbox_no_dispatch_fails(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(repo, rows=[])
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        _write_intent(agent_dir, {"exhaustive": False, "predicates": []})
+        audit_dir = repo / "docs" / "tasks" / "audits"
+        audit_dir.mkdir(parents=True, exist_ok=True)
+        # status still in_progress but the EvidenceBundle box is hand-ticked.
+        (audit_dir / "audit-tick.md").write_text(
+            "---\nstatus: in_progress\n---\n# audit\n\n"
+            "## Closing Checklist\n\n- [x] EvidenceBundle submitted via `cos_supervise_record_output`\n"
+        )
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "fail"
+        assert any("audit_completion_forged" in g for g in result.gaps)
+
+    def test_missing_db_fail_open(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        monkeypatch.setenv("COS_DB_PATH", str(repo / "nonexistent.db"))
+        _write_intent(agent_dir, {"exhaustive": False, "predicates": []})
+        _write_audit(repo, "nodb", "completed", unchecked_rows=0)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+        assert all("audit_completion_forged" not in g for g in result.gaps)
+
+    def test_historical_audit_before_session_not_flagged(self, env, monkeypatch) -> None:
+        """An audit whose mtime predates this session's intent.json anchor is a
+        prior session's concern — A2 must not re-flag it every Stop."""
+        import os as _os
+
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(repo, rows=[])
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        audit = _write_audit(repo, "historical", "completed", unchecked_rows=0)
+        # Backdate the audit well before the intent anchor.
+        old = 1_000_000.0
+        _os.utime(audit, (old, old))
+        _write_intent(agent_dir, {"exhaustive": False, "predicates": []})
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+        assert all("audit_completion_forged" not in g for g in result.gaps)
+
+    def test_no_session_id_skips_a2(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(repo, rows=[])
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        _write_intent(agent_dir, {"exhaustive": False, "predicates": []})
+        _write_audit(repo, "nosid", "completed", unchecked_rows=0)
+        result = guard_completion(session_id="", repo_root=repo)
+        assert result.status == "pass", result.gaps

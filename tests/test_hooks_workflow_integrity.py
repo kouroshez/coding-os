@@ -112,6 +112,30 @@ class TestEnforceTaskTransition:
         )
         assert rc == 0
 
+    def test_governance_task_still_blocks_audit_evidence_tick(self, tmp_path):
+        # A1 (TASK-062): the governance allow-list must NOT exempt audit
+        # EvidenceBundle ticks — that is evidence forgery, BLOCK regardless.
+        panel = _panel(tmp_path, task_current="governance-docs-update")
+        rc, _, err = _run(
+            self.H,
+            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/audits/audit-x.md", "old_string": "- [ ] EvidenceBundle", "new_string": "- [x] EvidenceBundle"}},
+            panel,
+        )
+        assert rc == 2
+        assert "BLOCKED" in err
+
+    def test_audit_override_env_still_bypasses(self, tmp_path):
+        # COS_ALLOW_TASK_EDIT=1 remains the explicit one-shot escape hatch
+        # even for audit files (rare legitimate large audit-doc refactor).
+        panel = _panel(tmp_path, task_current="governance-docs-update")
+        rc, _, _ = _run(
+            self.H,
+            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/audits/audit-x.md", "old_string": "- [ ] EvidenceBundle", "new_string": "- [x] EvidenceBundle"}},
+            panel,
+            env={"COS_ALLOW_TASK_EDIT": "1"},
+        )
+        assert rc == 0
+
 
 class TestSyncTaskCurrent:
     H = "sync-task-current.sh"
@@ -174,6 +198,40 @@ class TestNudgeTaskDiscovery:
         rc, out, _ = _run(self.H, {"prompt": "check task TASK-058 please"}, panel)
         assert rc == 0
         assert "additionalContext" in out
+
+    def test_bash_leg_warns_on_broadened_readers(self, tmp_path):
+        # A3 (TASK-062): awk/sed/rg etc. now trigger the warning too. Each
+        # reader needs its own panel — the bash leg is debounced once/session.
+        for i, cmd in enumerate(
+            ("rg 058 docs/tasks/", "sed -n 1p docs/tasks/TASK-1.md", "awk '{print}' docs/tasks/x.md")
+        ):
+            panel = tmp_path / f"claude{i}" / "panels" / "p"
+            panel.mkdir(parents=True)
+            (panel / "session-id").write_text("sx\n", encoding="utf-8")
+            rc, _, err = _run(self.H, {"tool_name": "Bash", "tool_input": {"command": cmd}}, panel)
+            assert rc == 0
+            assert "task nudge" in err, cmd
+
+    def test_read_leg_warns_on_docs_tasks_read(self, tmp_path):
+        # A3 (TASK-062): a raw Read of docs/tasks/** warns (never blocks).
+        panel = _panel(tmp_path)
+        rc, _, err = _run(
+            self.H,
+            {"tool_name": "Read", "tool_input": {"file_path": "docs/tasks/TASK-058-x.md"}},
+            panel,
+        )
+        assert rc == 0
+        assert "task nudge" in err
+
+    def test_read_leg_silent_on_non_task_file(self, tmp_path):
+        panel = _panel(tmp_path)
+        rc, _, err = _run(
+            self.H,
+            {"tool_name": "Read", "tool_input": {"file_path": "src/core/foo.py"}},
+            panel,
+        )
+        assert rc == 0
+        assert "task nudge" not in err
 
 
 class TestCaptureAudit:
