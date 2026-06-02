@@ -145,9 +145,14 @@ def test_extract_never_raises_on_garbage():
     assert any(n.label == "Foo" for n in funcs)
 
 
-def test_extract_skips_inline_func_keyword_in_string():
-    # func keyword inside a non-anchored position must not produce a node.
-    src = "(((not go))) func Foo() {}"
+def test_extract_skips_func_keyword_in_string_literal():
+    # A func keyword INSIDE a Go string literal must not produce a node —
+    # tree-sitter parses it as a string_literal, not a declaration.
+    # (Pre-G6 this used a malformed-prefix proxy that the regex extractor
+    # skipped via line-anchoring; the tree-sitter path correctly recovers a
+    # real top-level func after junk tokens, so the genuine string-literal
+    # invariant is asserted directly here.)
+    src = 'package main\n\nvar snippet = "func Foo() {}"\n'
     r = code_go.extract("inline.go", src)
     funcs = _by_kind(r, "code:function")
     assert not any(n.label == "Foo" for n in funcs)

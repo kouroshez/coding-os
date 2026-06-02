@@ -58,6 +58,10 @@ graph_os = [
     "tree-sitter-typescript>=0.23.0,<0.26.0",
     "tree-sitter-bash>=0.25.0,<0.26.0",
     "tree-sitter-yaml>=0.6.1,<0.8.0",
+    # code_go@v2 ships a full tree-sitter Go path; without this grammar it
+    # silently degrades to the regex fallback (loses returns_type /
+    # has_param_type / field_of_type / interface-embedding edges).
+    "tree-sitter-go>=0.23.0,<0.26.0",
 ]
 
 # board_os — Phase L Scrumban web viewer (cos board --web).
@@ -293,6 +297,7 @@ module = [
     "tree_sitter_typescript.*",
     "tree_sitter_bash.*",
     "tree_sitter_yaml.*",
+    "tree_sitter_go.*",
     "sentence_transformers.*",
     "kuzu.*",                   # retired backend; ignored if anything still imports it
 ]

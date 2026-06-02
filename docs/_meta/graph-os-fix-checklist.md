@@ -36,9 +36,9 @@ Legend: `[ ]` todo · `[x]` done · **FIX** safe now · **BOUNDED** right-sized 
 - [ ] **FIX/gate F-LSP** — `lsp_client.py`+`lsp_overlay.py` (710 LOC) zero prod callers → remove module + tests + `types.py` provenance entry. (Reversible; archived TASK-041 was its wiring.)
 - Verify: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q`
 
-## G6 — Packaging (`pyproject.toml`)
-- [ ] **FIX** — add `tree_sitter_go` to `graph_os` extra so Go uses the shipped `code_go@v2` ts path instead of silent regex fallback.
-- Verify: import check.
+## G6 — Packaging (`pyproject.toml`) ✅ 716 passed (4 go tests un-skipped)
+- [x] **FIX** — added `tree-sitter-go>=0.23.0,<0.26.0` to `graph_os` extra + mypy override. Go now uses `code_go@v2` tree-sitter path (returns_type/has_param_type/field_of_type/interface-embedding). Reconciled `test_code_go.py`: the regex-era `skips_inline_func_keyword` proxy → genuine `skips_func_keyword_in_string_literal` (tree-sitter correctly recovers a real func after junk; still skips func inside a string literal).
+- Verify: ✅ import + `pytest src/core/graph_os/tests/` (716 passed, was 712 — 4 go tests now active).
 
 ## DEFER — needs your OK (not over-engineering blindly)
 - **F2** call-graph resolution lift (~28%→higher): self/instance-method type inference. Real design effort, own focused pass.
