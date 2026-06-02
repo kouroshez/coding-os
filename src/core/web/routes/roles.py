@@ -94,11 +94,21 @@ def _schema_class(schema_ref: str):
         return None
 
 
+# Role yamls are static core artifacts; parsing + building Pydantic JSON
+# schemas on every /api/roles + /outputs request is wasted work. Cache keyed
+# on (newest mtime, file count) so an edit/add/delete still invalidates but a
+# polling panel re-uses the parsed defs. Shared safely — _roles_dir() is the
+# core dir, identical across projects (roles are not per-project).
+_ROLE_DEFS_CACHE: dict[str, Any] = {"key": None, "defs": []}
+
+
 def _role_defs() -> list[dict[str, Any]]:
+    paths = sorted(p for p in _roles_dir().glob("*.yaml") if not p.name.startswith("_"))
+    cache_key = (max((p.stat().st_mtime for p in paths), default=0.0), len(paths))
+    if _ROLE_DEFS_CACHE["key"] == cache_key and _ROLE_DEFS_CACHE["defs"]:
+        return _ROLE_DEFS_CACHE["defs"]
     out: list[dict[str, Any]] = []
-    for path in sorted(_roles_dir().glob("*.yaml")):
-        if path.name.startswith("_"):
-            continue
+    for path in paths:
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         except Exception:
@@ -119,6 +129,8 @@ def _role_defs() -> list[dict[str, Any]]:
                 "path": str(path),
             }
         )
+    _ROLE_DEFS_CACHE["key"] = cache_key
+    _ROLE_DEFS_CACHE["defs"] = out
     return out
 
 
