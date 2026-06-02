@@ -29,10 +29,11 @@ This file is the procedural reference both rules point to.
 
 ### 1. Classify
 
-Run the Complexity Gate (Q1 Cynefin × Q2 dimensions). `CLEAR 1` (trivial typo / docstring) is the only path that skips Steps 2–4 — record it via:
+Run the Complexity Gate (Q1 Cynefin × Q2 dimensions). `CLEAR 1` (trivial typo / docstring) is the only path that skips Steps 2–4. Record the gate via the semantic op `cos_classify_prompt` (it classifies AND records — Rule 25); only if it returns `recorded=false` (no panel session resolvable from the MCP server) use the `write-state.sh` fallback it hands back — the low-level contract the gate hook reads:
 
 ```bash
-bash src/core/hooks/write-state.sh .coding-os/<agent>/.thinking_os-gate "CLEAR 1"
+# fallback only — cos_classify_prompt is the primary path
+bash src/core/hooks/write-state.sh .thinking_os-gate "CLEAR 1"
 ```
 
 Anything else → continue.
@@ -65,7 +66,9 @@ If the doc cites other docs via `Read next:` / `> N:` lines, walk **one hop** of
 
 ### 4. Anchor
 
-Record the doc path(s) you actually read into the session anchor:
+The anchor is normally set **for you** — `cos task-start TASK-NNN` derives it from the task file's `Read First` section (Rule 25). Prefer that.
+
+Set it by hand only for ad-hoc work covered by a `*docs-update*` / `*governance*` task marker. The bare basename `.doc-anchor` routes to `$COS_PANEL_DIR/.doc-anchor` via `cos_state_path` (per-panel; see [state-files.md](../engineering/state-files.md)):
 
 ```bash
 bash src/core/hooks/write-state.sh \
@@ -77,10 +80,6 @@ ses-<session-id> task:<task-id>
 EOF
 )"
 ```
-
-The bare basename `.doc-anchor` routes to `$COS_PANEL_DIR/.doc-anchor` via `cos_state_path` (per-panel; see [state-files.md](../engineering/state-files.md)).
-
-`cos task-start TASK-NNN` does this automatically from the task file's `Read First` section. Set the anchor by hand only for ad-hoc work covered by `*docs-update*` / `*governance*` markers.
 
 If the anchor exists but came from a previous session, the hook BLOCKS — re-run `cos task-start TASK-NNN` to refresh.
 
