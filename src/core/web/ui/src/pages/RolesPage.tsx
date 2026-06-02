@@ -13,6 +13,7 @@ interface RoleDef {
 interface RolesPayload {
   roles: RoleDef[];
   count: number;
+  dispatch_available?: boolean;
 }
 
 interface ChainPayload {
@@ -31,6 +32,7 @@ interface RoleOutput {
   output_hash?: string;
   output_json?: unknown;
   schema_ok?: boolean | null;
+  schema_status?: 'ok' | 'fail' | 'no_payload' | 'no_schema' | 'planned';
   schema_errors?: string[];
   chain?: string[];
   preset_id?: string | null;
@@ -59,6 +61,7 @@ export default function RolesPage() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const roles = rolesData?.roles ?? [];
+  const dispatchAvailable = rolesData?.dispatch_available ?? false;
   const selectedRole = useMemo(() => {
     if (!roles.length) return null;
     const target = selected ?? roles[0].formula_id;
@@ -160,6 +163,14 @@ export default function RolesPage() {
           <p className="text-[var(--cos-muted)]">
             {outputData?.planned_count ?? 0} composed (in-session) · {outputData?.executed_count ?? 0} dispatched (sub-agent)
           </p>
+          <p className="mt-1 text-[10px]">
+            <span className="text-[var(--cos-muted)]">Sub-agent dispatch: </span>
+            {dispatchAvailable ? (
+              <span className="text-emerald-300">enabled</span>
+            ) : (
+              <span className="text-[var(--cos-muted)]">disabled — in-session only (Claude SDK extra not installed)</span>
+            )}
+          </p>
         </header>
         {outputLoading && <p className="p-4 text-sm text-[var(--cos-muted)]">loading outputs...</p>}
         {!outputLoading && (outputData?.outputs?.length ?? 0) === 0 && (
@@ -237,9 +248,14 @@ export default function RolesPage() {
                     status: {row.status ?? '-'} · latency: {row.latency_ms ?? 0}ms
                   </div>
                 )}
-                {row.schema_ok === null && !isPlanned && (
+                {row.schema_status === 'no_payload' && !isPlanned && (
                   <div className="mt-1 text-[10px] text-amber-300">
-                    schema n/a: output payload missing from evidence bundle for this session.
+                    schema n/a: output payload missing from the evidence bundle for this session.
+                  </div>
+                )}
+                {row.schema_status === 'no_schema' && !isPlanned && (
+                  <div className="mt-1 text-[10px] text-amber-300">
+                    schema n/a: this role has no registered Output schema.
                   </div>
                 )}
                 {row.schema_errors && row.schema_errors.length > 0 && (

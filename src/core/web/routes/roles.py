@@ -206,6 +206,20 @@ def _role_for_formula(formula_id: str, roles: dict[str, dict]) -> dict:
     return roles.get(_FORMULA_TO_ROLE.get(formula_id, ""), {})
 
 
+def _dispatch_available() -> bool:
+    # Sub-agent dispatch (Path B: cos_dispatch_formula_run → real Claude
+    # sub-sessions that produce "dispatched"/executed evidence) needs the
+    # Claude Agent SDK extra. Without it roles run in-session only ("composed").
+    # Surfacing this lets the panel show "dispatched: 0" as capability-off,
+    # not a bug (TASK-064 option-a).
+    try:
+        import claude_agent_sdk  # type: ignore  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
 @router.get("")
 async def list_roles(
     _rl=Depends(make_rate_limit_dep("roles.list")),
@@ -216,7 +230,11 @@ async def list_roles(
         json.dumps(
             {
                 "ok": True,
-                "data": {"roles": roles, "count": len(roles)},
+                "data": {
+                    "roles": roles,
+                    "count": len(roles),
+                    "dispatch_available": _dispatch_available(),
+                },
                 "meta": {"layer": "cognition"},
             }
         )
@@ -316,12 +334,23 @@ async def formula_outputs(
                     continue
                 schema_ok = None
                 schema_errors: list[str] = []
-                if schema_cls is not None and output_json is not None:
+                # schema_status disambiguates the schema_ok=None cases the UI
+                # used to lump under one ambiguous message (TASK-064):
+                #   no_payload — output never landed in the evidence bundle
+                #   no_schema  — role has no resolvable Output schema class
+                #   ok / fail  — schema validated / failed
+                if output_json is None:
+                    schema_status = "no_payload"
+                elif schema_cls is None:
+                    schema_status = "no_schema"
+                else:
                     try:
                         schema_cls.model_validate(output_json)
                         schema_ok = True
+                        schema_status = "ok"
                     except Exception as exc:
                         schema_ok = False
+                        schema_status = "fail"
                         schema_errors = [str(exc)]
                 outputs.append(
                     {
@@ -334,6 +363,7 @@ async def formula_outputs(
                         "bundle_fields_filled": data.get("bundle_fields_filled"),
                         "output_json": output_json,
                         "schema_ok": schema_ok,
+                        "schema_status": schema_status,
                         "schema_errors": schema_errors,
                     }
                 )
@@ -363,6 +393,7 @@ async def formula_outputs(
                             "bundle_fields_filled": None,
                             "output_json": None,
                             "schema_ok": None,
+                            "schema_status": "planned",
                             "schema_errors": [],
                             "chain": chain,
                             "preset_id": (ev.get("data", {}) or {}).get("preset_id"),

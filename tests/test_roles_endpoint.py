@@ -36,6 +36,7 @@ def test_roles_list_contains_formula_metadata(client):
     assert "data" in body
     assert isinstance(body["data"]["roles"], list)
     assert body["data"]["count"] >= 11
+    assert isinstance(body["data"]["dispatch_available"], bool)
     first = body["data"]["roles"][0]
     assert "formula_id" in first
     assert "output_schema" in first
@@ -100,6 +101,7 @@ def test_roles_outputs_collects_trace_and_bundle(client):
     assert row["session_id"] == "ses-test-1"
     assert row["status"] == "ok"
     assert row["schema_ok"] is True
+    assert row["schema_status"] == "ok"
 
 
 def test_roles_envelope_contract(client):
