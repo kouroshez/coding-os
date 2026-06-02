@@ -133,7 +133,7 @@ export default function RolesPage() {
         <div className="p-3 text-xs">
           {!chainData?.has_active_session && (
             <p className="text-[var(--cos-muted)]">
-              No agent session active - composed chain appears after `cos_compose_chain`.
+              No composed chain yet - appears once a COMPLICATED/COMPLEX task auto-composes a chain (or a `cos_compose_chain` call).
             </p>
           )}
           <ol className="space-y-1">
@@ -158,23 +158,25 @@ export default function RolesPage() {
             Evidence ({selectedRole?.formula_id ?? '-'})
           </h2>
           <p className="text-[var(--cos-muted)]">
-            {outputData?.executed_count ?? 0} executed · {outputData?.planned_count ?? 0} planned
+            {outputData?.planned_count ?? 0} composed (in-session) · {outputData?.executed_count ?? 0} dispatched (sub-agent)
           </p>
         </header>
         {outputLoading && <p className="p-4 text-sm text-[var(--cos-muted)]">loading outputs...</p>}
         {!outputLoading && (outputData?.outputs?.length ?? 0) === 0 && (
           <div className="m-4 rounded border border-dashed border-[var(--cos-border)] bg-[var(--cos-panel)] p-4 text-sm">
             <p className="font-semibold text-[var(--cos-text)]">
-              No traces reference <span className="font-mono">{selectedRole?.formula_id}</span> yet.
+              No composed chain references <span className="font-mono">{selectedRole?.formula_id}</span> yet.
             </p>
             <p className="mt-2 text-[12px] leading-relaxed text-[var(--cos-muted)]">
-              Roles light up when a session calls
-              <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_compose_chain</code>
-              (the chain plan) and then
+              Roles are composed automatically for COMPLICATED/COMPLEX tasks (or via
+              <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_compose_chain</code>).
+              Each chain member then shows here as
+              <span className="mx-1 text-amber-300">composed</span> — in single-agent mode the
+              agent plays the role in-session, so "composed" is the expected state, not a gap. A
+              <span className="mx-1 text-emerald-300">dispatched</span> row with recorded evidence
+              appears only when a role runs as a separate sub-agent via
               <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_supervise_record_output</code>
-              (the per-role evidence). If you see compose events but no
-              outputs, the formula was planned but never recorded — open
-              the trace timeline and look for the gap.
+              (the SDK dispatch path).
             </p>
             <p className="mt-3 text-[11px] text-[var(--cos-muted)]">
               Selected agent: <span className="font-mono">{agent}</span> · switch above to
@@ -203,7 +205,7 @@ export default function RolesPage() {
                   <span className="text-[var(--cos-muted)]">{formatTs(row.ts)}</span>
                   {isPlanned && (
                     <span className="rounded bg-amber-500/15 px-1 text-[10px] text-amber-300">
-                      planned · awaiting record
+                      composed · in-session
                     </span>
                   )}
                   {typeof row.schema_ok === 'boolean' && (
