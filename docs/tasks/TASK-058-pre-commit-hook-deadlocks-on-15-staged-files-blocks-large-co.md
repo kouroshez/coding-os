@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: []
-status: icebox
+status: testing
 priority: P1
 appetite: "1d"
 created: 2026-06-01
-started: null
+started: 2026-06-01
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-058: pre-commit hook deadlocks on ~15+ staged files — blocks large commits + holds index.lock
 
 **Outcome (one sentence):** A multi-file commit (15+ staged files) completes without hanging; .git/hooks/pre-commit → pre_commit_batch.py never deadlocks or holds .git/index.lock indefinitely.
@@ -47,3 +46,4 @@ Observed during TASK-055/057: an 18-file commit (`b6jf1rpe1`) and a 12-file code
 - **Given** the fix, **Then** `make verify-hooks` clean and a real 20-file commit in this repo succeeds end-to-end.
 
 ## Work Log
+- 2026-06-02 [claude]: Root cause = subprocess pipe-inheritance deadlock in _run_hook (hypothesis 1): capture_output pipe held open by backgrou

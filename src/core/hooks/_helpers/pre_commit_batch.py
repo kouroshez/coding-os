@@ -13,7 +13,10 @@ Exit: 0 if every hook passes, 1 if any hook returned 2 (block).
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -50,17 +53,34 @@ def _make_envelope(abs_path: Path, rel_path: str) -> str:
     )
 
 
-def _run_hook(hook_path: Path, envelope: str) -> tuple[int, str]:
-    """Run hook with envelope on stdin. Returns (exit_code, combined_output)."""
-    result = subprocess.run(
+def _run_hook(hook_path: Path, envelope: str, timeout_s: int = 15) -> tuple[int, str]:
+    """Run hook with envelope on stdin. Returns (exit_code, combined_output).
+
+    Runs the delegate in its own process group (start_new_session). A
+    delegate that backgrounds a grandchild (log writer, hub probe) leaves
+    that grandchild holding the stdout/stderr pipe write-end; subprocess
+    timeout SIGKILLs only the direct child, so communicate() would block on
+    the never-closing pipe forever — the 15+-file commit deadlock. On
+    timeout we SIGKILL the whole group so every pipe holder dies and the
+    reaping communicate() returns.
+    """
+    proc = subprocess.Popen(
         ["bash", str(hook_path)],
-        input=envelope,
-        capture_output=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=15,
+        start_new_session=True,
     )
-    out = (result.stdout or "") + (result.stderr or "")
-    return result.returncode, out
+    try:
+        stdout, stderr = proc.communicate(input=envelope, timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        raise
+    out = (stdout or "") + (stderr or "")
+    return proc.returncode, out
 
 
 def main(argv: list[str]) -> int:
