@@ -157,7 +157,7 @@ from tools.retrieve import (
     log_retrieval,
     log_router_decision,
 )
-from tools.routing import failure_pattern_query, route_model, route_skill, routing_drift
+from tools.routing import failure_pattern_query, route_model, route_skill
 from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search
 from tools.trajectory import trajectory_read, trajectory_snapshot
 
@@ -1165,33 +1165,6 @@ def cos_failure_pattern_query(
         domain=domain or None,
         limit=limit,
     )
-    return ok(result, meta={"layer": "routing"})
-
-
-@mcp.tool(
-    name="cos_routing_drift",
-    annotations={
-        "title": "Routing Drift Detection",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    },
-)
-@safe_tool
-def cos_routing_drift() -> str:
-    """Detect whether routing weights are stale relative to task outcomes.
-
-    Reports how many new task outcomes have accumulated since the last
-    recalculate_weights call. When drift_detected=true, routing recommendations
-    are based on outdated success rates — call cos_learn_extract to trigger
-    a refresh.
-
-    Returns:
-        JSON with {drift_detected, new_outcomes_since_recalc, threshold,
-        last_recalc_at, recommendation}.
-    """
-    result = routing_drift(_db_conn)
     return ok(result, meta={"layer": "routing"})
 
 
