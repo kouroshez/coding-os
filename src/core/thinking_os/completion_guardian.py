@@ -99,6 +99,41 @@ def _load_evidence_bundle(target_dir: Path, session_id: str) -> dict[str, Any] |
     return None
 
 
+def _guardian_db_path() -> str:
+    db = os.environ.get("COS_DB_PATH")
+    if db:
+        return db
+    state = os.environ.get("COS_STATE_DIR") or ".coding-os"
+    return str(Path(state) / "coding-os.db")
+
+
+def _evidence_dispatch_recorded(session_id: str) -> bool:
+    # True iff a real cos_supervise_record_output(exhaustive_evidence, ok) row
+    # exists in formula_dispatches for this session. The bundle JSON file alone
+    # is not proof — it can be hand-authored. Fail-open: any DB error (missing
+    # file/table/lock) returns True so the guardian never blocks legit work on
+    # a transient DB read.
+    if not session_id:
+        return True
+    db_path = _guardian_db_path()
+    if not Path(db_path).exists():
+        return True
+    try:
+        import sqlite3
+
+        with sqlite3.connect(db_path) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM formula_dispatches "
+                "WHERE session_id=? AND formula_id='exhaustive_evidence' "
+                "AND status='ok' LIMIT 1",
+                (session_id,),
+            ).fetchone()
+        return row is not None
+    except Exception as exc:
+        sys.stderr.write(f"guardian: dispatch-check failed (fail-open): {exc}\n")
+        return True
+
+
 def _active_audit_files(repo_root: Path) -> list[Path]:
     audit_dir = repo_root / "docs" / "tasks" / "audits"
     if not audit_dir.is_dir():
@@ -213,6 +248,19 @@ def guard_completion(
             audits_checked.append(str(audit_path.relative_to(repo)))
             gaps.extend(_audit_gaps(audit_path))
         gaps.extend(_predicate_gaps(intent, bundle))
+        # Cross-check the file-based bundle against the DB. A bundle that
+        # claims exhaustive_evidence but has no matching ok dispatch row was
+        # never persisted by cos_supervise_record_output — the audit checkbox
+        # "EvidenceBundle submitted" is then a false attestation. Additive:
+        # only fires when a bundle already claims evidence, so legit runs
+        # (which always write the DB row alongside the file) keep passing.
+        if bundle and bundle.get("exhaustive_evidence") is not None:
+            if not _evidence_dispatch_recorded(session_id):
+                gaps.append(
+                    "evidence_dispatch_missing: bundle has exhaustive_evidence "
+                    "but no formula_dispatches row — cos_supervise_record_output "
+                    f"never ran for session {session_id}"
+                )
 
     result = GuardResult(
         status="fail" if (intent_exhaustive and gaps) else "pass",
@@ -230,10 +278,7 @@ def _record_gap_observation_safe(session_id: str, result: GuardResult) -> None:
 
     Fire-and-forget: never propagates a DB error to the hook flow.
     """
-    db_path = os.environ.get("COS_DB_PATH")
-    if not db_path:
-        state = os.environ.get("COS_STATE_DIR") or ".coding-os"
-        db_path = str(Path(state) / "coding-os.db")
+    db_path = _guardian_db_path()
     if not Path(db_path).exists():
         return
     try:

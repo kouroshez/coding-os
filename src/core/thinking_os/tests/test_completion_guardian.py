@@ -305,3 +305,83 @@ class TestGapObservationRecorded:
         assert mem_type == "error"
         assert "completion_gap" in title
         assert sess == "ses-1"
+
+
+class TestEvidenceDispatchCrossCheck:
+    """G4 hardening (TASK-059): a bundle file claiming exhaustive_evidence
+    must be backed by a real formula_dispatches row — otherwise
+    cos_supervise_record_output never ran and the audit checkbox was a
+    false attestation the guardian must not trust."""
+
+    def _full_bundle(self) -> dict:
+        return {
+            "task_marker": "TASK-X",
+            "persona_id": "implementer",
+            "exhaustive_evidence": {
+                "categories_declared": ["c1"],
+                "categories_covered": ["c1"],
+                "counts_before": {"c1": 3},
+                "counts_after": {"c1": 0},
+                "files_searched": ["src/foo.py"],
+                "tests_run": ["pytest"],
+                "gaps_remaining": [],
+                "confidence": 0.9,
+                "reviewer_check": "pass",
+                "audit_artifact_path": "docs/tasks/audits/audit-slug-c.md",
+            },
+        }
+
+    def _make_dispatches_db(self, repo: Path, rows: list | None = None) -> Path:
+        import sqlite3
+
+        db_path = repo / ".coding-os" / "coding-os.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS formula_dispatches ("
+                " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                " session_id TEXT, task_marker TEXT, persona_id TEXT,"
+                " formula_id TEXT, status TEXT)"
+            )
+            for r in rows or []:
+                conn.execute(
+                    "INSERT INTO formula_dispatches "
+                    "(session_id, task_marker, persona_id, formula_id, status) "
+                    "VALUES (?,?,?,?,?)",
+                    r,
+                )
+        return db_path
+
+    def test_bundle_without_dispatch_row_fails(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(repo, rows=[])
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        _write_intent(agent_dir, {"exhaustive": True, "predicates": ["coverage_100"]})
+        _write_audit(repo, "slug-c", "in_progress", unchecked_rows=0)
+        _write_bundle(agent_dir, "s1", self._full_bundle())
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "fail"
+        assert any("evidence_dispatch_missing" in g for g in result.gaps)
+
+    def test_bundle_with_dispatch_row_passes(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        db_path = self._make_dispatches_db(
+            repo, rows=[("s1", "TASK-X", "implementer", "exhaustive_evidence", "ok")]
+        )
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        _write_intent(agent_dir, {"exhaustive": True, "predicates": ["coverage_100"]})
+        _write_audit(repo, "slug-c", "in_progress", unchecked_rows=0)
+        _write_bundle(agent_dir, "s1", self._full_bundle())
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+        assert all("evidence_dispatch_missing" not in g for g in result.gaps)
+
+    def test_missing_db_fail_open(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        monkeypatch.setenv("COS_DB_PATH", str(repo / "nonexistent.db"))
+        _write_intent(agent_dir, {"exhaustive": True, "predicates": ["coverage_100"]})
+        _write_audit(repo, "slug-c", "in_progress", unchecked_rows=0)
+        _write_bundle(agent_dir, "s1", self._full_bundle())
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+        assert all("evidence_dispatch_missing" not in g for g in result.gaps)
