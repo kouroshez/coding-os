@@ -5,12 +5,12 @@ swimlane: thinking_os
 kind: bug
 epic: null
 labels: []
-status: in_progress
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-06-02
 started: 2026-06-02
-completed: null
+completed: 2026-06-02
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ Actual: "0 executed · 0 planned / No traces reference <role> yet" — auto_comp
 - **Then** it emits a `compose_done` trace (via shared `roles_state.record_compose_traces`) to the agent-level traces dir, the Roles panel shows each chain member as "planned", `cos_compose_chain` uses the same shared emitter (no second emit site), the RolesPage empty-state/labels distinguish in-session-planned from SDK-dispatched-executed, CLAUDE.md's roles `presets/registry.yaml` path is corrected, and matrix verification (roles_state/cognition pytest + ui typecheck + docs-lint) is green.
 
 ## Work Log
+- 2026-06-02 [claude]: compose_done emitted by auto-compose via shared roles_state.record_compose_traces; RolesPage copy truthful; AGENTS path 
