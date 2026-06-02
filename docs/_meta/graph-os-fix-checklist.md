@@ -2,7 +2,18 @@
 
 Source: deep audit 2026-06-02 (7-dimension adversarially-verified workflow). This file IS the doc-anchor spec for the fixes below. Execute top-down, matrix-test + commit per group. No Scrumban task — direct trunk commits.
 
-Legend: `[ ]` todo · `[x]` done · **FIX** safe now · **BOUNDED** right-sized slice · **DEFER** needs user OK (feature removal / large redesign).
+Legend: `[ ]` todo · `[x]` done · `[~]` intentionally not changed · **FIX** safe now · **BOUNDED** right-sized slice · **DEFER** needs user OK (feature removal / large redesign).
+
+## STATUS — all groups landed (7 commits on main)
+`6d23326` G1 · `14fe17c` G2 · `aa8af3a` G3a · `675c840` G4 · `b535a0d` G6 · `bbda1a2` G5 · `341cbb8` G3b.
+13 findings fixed + 1 documented-skip (F8). Each group: matrix-tested + live-smoked + committed with explicit paths (concurrent TASK-062 session ran throughout — no collisions).
+
+### Operational follow-ups (NOT code — user/runtime action)
+1. **Restart the MCP server** so the live `cos_graph_*` tools pick up the new code (`cos_graph_doctor` reports `server_stale: true`; tool behaviour changes — FTS5 query, balanced trim, in_degree, similar, detect_changes — load on restart).
+2. **`cos graph-reindex --force`** to realize F17 (clears the 88 stale_paths via the new `_resolve_link`) + index the newly-included `.js/.jsx` + drop newly-excluded build dirs. Until then the on-disk fix is proven by unit repro but the live graph still shows the old nodes.
+
+### DEFER (still need your OK — unchanged)
+F2 call-graph resolution lift · React/Next/RN component+hook modeling · CUT viewer/ + groups/ · split graph.py (4322 LOC).
 
 ## G1 — Coverage / ingest  (`ingest/base.py`, `tools/reindex_dispatch.py`, `hooks/auto-reindex-docs.sh`) ✅ 712 passed, hooks clean
 - [x] **FIX F10** — index plain JS: added `*.js *.jsx *.mjs *.cjs` to `DEFAULT_INCLUDE` + `_EXT_MAP` (→ code_ts chain) + hook matcher.
