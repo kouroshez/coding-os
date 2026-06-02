@@ -46,6 +46,58 @@ def stamp_roles(chain: list[str], agent_dir: str | None = None) -> None:
         logger.debug("stamp_roles write failed: %s", exc)
 
 
+def record_compose_traces(chain, session_id: str, agent_dir: str | None = None) -> None:
+    """Emit the branch + compose_done trace events for a composed chain.
+
+    Shared by the MCP tool ``cos_compose_chain`` and the auto-compose hook
+    (auto_compose.py) so the two call sites never drift on the events the Hub
+    ``/api/roles`` panel reads — ``compose_done`` (chain + planned view) plus
+    the source-specific branch event for trace replay. ``chain`` is a
+    ComposedChain (duck-typed). ``agent_dir`` is None for both callers so the
+    trace lands in the agent-level traces dir (``$COS_AGENT_DIR``) the panel
+    scans — never the per-panel marker dir. Never raises (fire-and-forget).
+    """
+    try:
+        import tracing
+    except ImportError as exc:
+        logger.debug("record_compose_traces: tracing unavailable: %s", exc)
+        return
+    sid = session_id or "anon"
+    target = Path(agent_dir) if agent_dir else None
+    try:
+        source = getattr(chain, "source", "") or ""
+        chain_list = [str(c) for c in (getattr(chain, "chain", None) or [])]
+        if source == "preset":
+            tracing.emit(sid, "preset_matched", {
+                "preset_id": getattr(chain, "preset_id", None),
+                "preset_version": getattr(chain, "preset_version", None),
+                "chain": chain_list,
+                "effective_threshold": getattr(chain, "effective_threshold", None),
+            }, agent_dir=target)
+        elif source == "situation":
+            tracing.emit(sid, "situation_override", {
+                "situation_id": getattr(chain, "situation_id", None),
+                "chain": chain_list,
+            }, agent_dir=target)
+        elif source == "composer":
+            tracing.emit(sid, "composer_fallback", {
+                "chain": chain_list,
+                "activations": [a.model_dump() for a in (getattr(chain, "activations", None) or [])],
+            }, agent_dir=target)
+        else:
+            tracing.emit(sid, "hard_fallback", {
+                "chain": chain_list,
+                "reason": getattr(chain, "reason", None),
+            }, agent_dir=target)
+        tracing.emit(sid, "compose_done", {
+            "chain": chain_list,
+            "source": source,
+            "preset_id": getattr(chain, "preset_id", None),
+        }, agent_dir=target)
+    except Exception as exc:  # fire-and-forget telemetry — never break compose
+        logger.debug("record_compose_traces emit failed: %s", exc)
+
+
 # Tool/phase → preferred role. The active role advances as the agent moves
 # through work phases (analyze → build → verify), so the banner reflects what
 # the agent is DOING, not a frozen chain lead (TASK-057 F2.3). Each candidate

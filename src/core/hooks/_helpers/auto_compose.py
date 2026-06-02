@@ -38,6 +38,26 @@ for _p in (_THINKING_OS, _THINKING_OS / "tools"):
 _COMPOSE_CLASSES = {"COMPLICATED", "COMPLEX"}
 
 
+def _session_id(panel_dir: str | None) -> str:
+    """Resolve the current session id for trace correlation.
+
+    Reads the per-panel ``session-id`` file (panel_dir is the hook's
+    COS_PANEL_DIR), falling back to the env panel/agent dirs then COS_PANEL_ID.
+    """
+    for base in (panel_dir, os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR")):
+        if not base:
+            continue
+        try:
+            p = Path(base) / "session-id"
+            if p.is_file():
+                sid = p.read_text(encoding="utf-8").strip()
+                if sid:
+                    return sid
+        except OSError:
+            continue
+    return os.environ.get("COS_PANEL_ID") or "auto"
+
+
 def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: str) -> str:
     """Compose + stamp the role chain. Returns a context line ('' on miss).
 
@@ -60,6 +80,12 @@ def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: st
     if not chain.chain:
         return ""
     roles_state.stamp_roles(chain.chain, agent_dir)
+    # Emit the compose_done trace the Hub /api/roles panel reads. Markers
+    # (.roles/.role) are per-panel for the banner; the trace goes agent-level
+    # (record_compose_traces passes agent_dir=None → $COS_AGENT_DIR) so the
+    # panel — which scans the agent-level traces dir — actually finds it.
+    # Without this the auto-compose path was invisible to the panel (TASK-063).
+    roles_state.record_compose_traces(chain, _session_id(agent_dir))
     lead = chain.chain[0]
     rest = len(chain.chain) - 1
     suffix = f"+{rest}" if rest > 0 else ""

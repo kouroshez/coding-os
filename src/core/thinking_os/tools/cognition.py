@@ -901,7 +901,6 @@ def register_cos_compose_chain(mcp, db_path):
         session_id: str = "",
     ) -> str:
         import formula_composer  # lazy
-        import tracing
 
         schemas = _schemas()
         signals = schemas.TaskSignals.model_validate_json(signals_json)
@@ -911,66 +910,19 @@ def register_cos_compose_chain(mcp, db_path):
             preset_min_score=None if preset_min_score < 0 else preset_min_score,
         )
         sid = session_id or "anon"
-        # Branch-specific event so replay knows which path fired
-        if chain.source == "preset":
-            tracing.emit(
-                sid,
-                "preset_matched",
-                {
-                    "preset_id": chain.preset_id,
-                    "preset_version": chain.preset_version,
-                    "chain": chain.chain,
-                    "effective_threshold": chain.effective_threshold,
-                },
-            )
-        elif chain.source == "situation":
-            tracing.emit(
-                sid,
-                "situation_override",
-                {
-                    "situation_id": chain.situation_id,
-                    "chain": chain.chain,
-                },
-            )
-        elif chain.source == "composer":
-            tracing.emit(
-                sid,
-                "composer_fallback",
-                {
-                    "chain": chain.chain,
-                    "activations": [a.model_dump() for a in chain.activations],
-                },
-            )
-        else:
-            tracing.emit(
-                sid,
-                "hard_fallback",
-                {
-                    "chain": chain.chain,
-                    "reason": chain.reason,
-                },
-            )
-        tracing.emit(
-            sid,
-            "compose_done",
-            {
-                "chain": chain.chain,
-                "source": chain.source,
-                "preset_id": chain.preset_id,
-            },
-        )
-        # Persist the composed chain to the agent-scoped state files the Hub
-        # /api/roles/chain endpoint reads (.roles = chain json, .role = lead).
-        # Shared writer (roles_state.stamp_roles) — the auto-compose hook
-        # (TASK-055) writes the same files, so the logic lives in one place to
-        # stop the two call sites drifting. TASK-048 added the writer; TASK-055
-        # factored it out.
+        # Emit branch + compose_done traces AND stamp the chain to the
+        # agent-scoped state files the Hub /api/roles panel reads. Both live in
+        # roles_state so this MCP path and the auto-compose hook
+        # (hooks/_helpers/auto_compose.py) never drift on what the panel reads
+        # — the drift that left the panel empty (TASK-063; writer factored out
+        # in TASK-048/055, emit unified in TASK-063).
         try:
             import roles_state
 
+            roles_state.record_compose_traces(chain, sid)
             roles_state.stamp_roles(chain.chain)
         except Exception as exc:  # fire-and-forget telemetry — a write/serialize
-            logger.debug("roles state-file write failed: %s", exc)  # error must never fail compose
+            logger.debug("roles trace/state write failed: %s", exc)  # error must never fail compose
 
         # Phase M telemetry — persist the lead persona for the dispatch.
         # Schema (migration v14): one row per compose_chain call.
