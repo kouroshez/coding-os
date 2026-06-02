@@ -48,8 +48,8 @@ A world-class extractor for language L exhibits ALL of:
               │              │             │
               ├── code_python.py ◄─── tree_sitter_overlay (py grammar)
               ├── code_ts.py     ◄─── tree_sitter_overlay (ts + tsx)
-              ├── code_go.py     ◄─── (no ts grammar today)  ◄── go.mod
-              ├── code_shell.py  ◄─── (regex only today)
+              ├── code_go.py     ◄─── tree_sitter_overlay (ts-go: v2 shipped, dep not installed)  ◄── go.mod
+              ├── code_shell.py  ◄─── tree_sitter_overlay (bash grammar; regex fallback)
               ├── code_yaml.py   ◄─── PyYAML
               ├── md_links.py    ◄─── custom parser
               ├── contracts.py   ◄─── post-pass on code_python/ts/go
@@ -79,12 +79,12 @@ World-class polyglot graph
 ├── Languages (target = Python parity)
 │   ├── Python ......................... DONE ✅ — reference impl (47K LOC, AST + ts overlay)
 │   ├── TypeScript ..................... GOOD — tree-sitter; gap = LSP types
-│   ├── Go ............................. WEAK — regex; gap = ts-go grammar + rewrite
-│   ├── Shell .......................... WEAK — regex; gap = swap to ts-bash (already installed)
+│   ├── Go ............................. code_go@v2 ts rewrite SHIPPED; gap = install tree_sitter_go dep (regex fallback runs until then)
+│   ├── Shell .......................... DONE ✅ — tree-sitter-bash (regex is fallback only)
 │   ├── YAML ........................... GOOD — PyYAML based
 │   ├── Markdown ....................... GOOD — custom parser + task_deps
-│   ├── JSON ........................... ABSENT — config files invisible to graph
-│   ├── TOML ........................... ABSENT — pyproject/Cargo deps invisible
+│   ├── JSON ........................... DONE ✅ — code_json (package.json/tsconfig/mcp.json deps)
+│   ├── TOML ........................... DONE ✅ — code_toml (pyproject/Cargo deps)
 │   ├── Rust ........................... ABSENT — defer, no Rust in this repo
 │   ├── Java/Kotlin .................... ABSENT — defer
 │   └── Ruby/PHP ....................... ABSENT — defer

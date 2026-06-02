@@ -11,21 +11,21 @@ Legend: `[ ]` todo · `[x]` done · **FIX** safe now · **BOUNDED** right-sized 
 - [x] **FIX F14** — per-file size guard in `walk_local`: skip files > `COS_GRAPH_MAX_FILE_BYTES` (default 2MB), debug-log skip.
 - Verify: ✅ `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` (712 passed/16 skip) + `make verify-hooks` (clean)
 
-## G2 — Doc-linking  (`extractors/md_links.py`, `docs/playbooks/polyglot-extractor-roadmap.md`)
-- [ ] **FIX F17** — `_resolve_link` repo-root fallback: when relative collapse → nonexistent path but a repo-rooted variant exists, use it (mirror `_resolve_read_target` bare-name anchoring). Kills 86 stale paths + reindex churn.
-- [ ] **FIX F18** — skip image links (`![alt](x.png|svg|…)`) instead of routing to `code:file:`.
-- [ ] **FIX docs** — un-stale roadmap: Go has ts rewrite (needs dep), Shell IS tree-sitter, JSON/TOML are first-class.
-- Verify: `uv run --extra graph_os pytest src/core/graph_os/tests/test_md_links.py -q` + `make docs-lint`
+## G2 — Doc-linking  (`extractors/md_links.py`, `docs/playbooks/polyglot-extractor-roadmap.md`) ✅ 46 passed + live repro
+- [x] **FIX F17** — `_resolve_link` repo-root fallback: collapse→nonexistent but repo-rooted variant exists → use it. Live: `../../docs/engineering/state-files.md` → `doc:file:docs/engineering/state-files.md` (was `src/docs/…`).
+- [x] **FIX F18** — `_ASSET_SUFFIXES` skip: image/binary links return `''` (no `code:file:` mint). Live: `diagram.png` → `''`.
+- [x] **FIX docs** — un-staled roadmap: Go (v2 ts shipped, dep missing), Shell (DONE tree-sitter), JSON/TOML (DONE first-class) + diagram lines.
+- Verify: ✅ `pytest test_md_links.py` (46) + functional repro (F17/F18/good-link). Stale-path live cleanup deferred to final `graph-reindex --force`.
 
-## G3 — Tool output correctness  (`tools/graph.py`)
-- [ ] **FIX F8** — drop phantom `accesses_field` from references/impact default-kind tuples (zero emitter). Leave the 6 unexercised-on-corpus types (real emitters).
-- [ ] **FIX F5** — `resolve` confidence from rank, not flat 0.7 (FTS5 hits decay by position).
-- [ ] **FIX F13** — `cos_graph_query` `_lexical_search`: try FTS5 `MATCH` before leading-wildcard `LIKE` (mirror resolve strategy-3). Future-proofs scale.
-- [ ] **FIX F12** — Louvain: when input hits `LIMIT 50_000`, set `truncated:true` (coverage-honesty).
-- [ ] **FIX F4** — `detect_changes`: expose the already-computed downstream consumers in output (currently walked then discarded).
-- [ ] **BOUNDED F7** — `centrality`: add `metric=in_degree` (true chokepoint) ; keep `degree` but document fan-in+out conflation.
-- [ ] **BOUNDED F3** — `similar`: widen candidate pool to same-kind cross-file (not just same-container + id-prefix sample).
-- Verify: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` + `python src/core/thinking_os/server.py --test`
+## G3 — Tool output correctness  (`tools/graph.py`, `communities.py`) — G3a ✅ 712 passed + self-test
+- [x] **FIX F5** — `resolve` confidence rank-decayed (`0.9 − 0.05·idx`, floor 0.4); path_resolve stays 1.0.
+- [x] **FIX F13** — `_lexical_search` tries FTS5 `MATCH` (indexed) before the leading-wildcard `LIKE`; LIKE preserved as fallback so recall holds.
+- [x] **FIX F12** — `communities`: named `_SUBGRAPH_CAP`, `subgraph_input_truncated()` helper → `meta.input_truncated`, warns on cap-hit (was silent partial clustering).
+- [ ] **FIX F4** — `detect_changes`: expose already-computed downstream consumers in output. (G3b)
+- [ ] **BOUNDED F7** — `centrality`: add `metric=in_degree` (true chokepoint). (G3b)
+- [ ] **BOUNDED F3** — `similar`: widen candidate pool to same-kind cross-file. (G3b)
+- [ ] **F8** — phantom `accesses_field` in default-kind tuples: P3 cosmetic (never-matching kind in an IN clause is a no-op). Decide cut vs leave in G3b — low ROI, weigh test churn.
+- Verify: ✅ `pytest src/core/graph_os/tests/` (712) + `server.py --test` (clean)
 
 ## G4 — Envelope trim (`thinking_os/tools/_shared.py`)
 - [ ] **FIX F1** — `_apply_token_budget`: proportional/round-robin trim across `_TRIMMABLE_LIST_KEYS` so no earlier bucket is zeroed while a later one keeps items (root cause of `contracts(http,mcp)`→`http_routes=[]`). Blast radius = every tool → careful + test_envelope.

@@ -226,6 +226,12 @@ def _classify_governance_path(normalised: str) -> tuple[str | None, str | None]:
     return (None, None)
 
 
+_ASSET_SUFFIXES = frozenset({
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp",
+    ".pdf", ".mp4", ".mov", ".webm", ".mp3", ".woff", ".woff2", ".ttf", ".eot", ".zip",
+})
+
+
 def _resolve_link(origin_path: str, target: str) -> str:
     """Resolve a link (possibly relative) to an absolute repo-rooted path.
 
@@ -262,11 +268,26 @@ def _resolve_link(origin_path: str, target: str) -> str:
             continue
         parts.append(part)
     normalised = "/".join(parts)
+    # Repo-root fallback (F17): a doc nested deep in the meta-repo can
+    # author a consumer-relative link (`../../docs/x`) that collapses to a
+    # nonexistent `src/docs/x` here while the real file is `docs/x` at repo
+    # root. If the collapsed path is missing but a repo-rooted variant of
+    # the raw target exists, prefer the real file. Mirrors the bare-name
+    # anchoring in _resolve_read_target; kills the stale_paths churn that
+    # doctor --fix can only paper over.
+    if normalised and not Path(normalised).exists():
+        bare = path_part.lstrip("./")
+        if bare and bare != normalised and Path(bare).is_file():
+            normalised = bare
     # Markdown links can target any artefact in the repo; route them to
     # the right uid namespace by extension so a `.md → .py` link does
     # not create a ghost `doc:file` stub that duplicates the real
     # `code:file` node the code extractors emit.
     suffix = PurePosixPath(normalised).suffix.lower()
+    # Image / binary asset links are not code or doc references — drop them
+    # so a relative `![x](diagram.png)` never mints a code:file node.
+    if suffix in _ASSET_SUFFIXES:
+        return ""
     if suffix == "" and normalised and Path(normalised).is_dir():
         # Directory target → existing folder node, not a phantom doc:file:<dir>.
         return f"folder:{normalised}"
