@@ -152,9 +152,9 @@ Every line in a commit message exists forever. Verbose bodies (audit tables, fil
 
 Markdown tables, bullet lists of file paths, `Verification:` / `Tests:` / `Files:` headers all require multiple lines so they hit the 3-line ceiling in practice. They are PR-description / audit-doc / work-log material — keep them out of `git log`.
 
-### Allowed escape hatch
+### `--no-verify` is blocked for agents (no escape hatch)
 
-`git commit --no-verify ...` bypasses the git-level hook for the rare legitimate case (e.g. emergency revert). The PreToolUse hook does NOT honor `--no-verify` — agents always go through the contract.
+`block-secrets.sh` (PreToolUse Bash) BLOCKS any `git commit --no-verify` — agents cannot skip the safety / commit-message hooks, by design. The git-level `commit-msg` / `pre-commit` hooks still honor `--no-verify` for a **human** running git directly in a genuine emergency (e.g. a revert), but that path is unavailable to the agent. A slow commit is no longer a reason to reach for it: the pre-commit batch deadlock is fixed (TASK-058) so large commits complete; under heavy concurrent-session load, split into per-directory commits rather than bypassing hooks.
 
 ### Install (per repo, once)
 
