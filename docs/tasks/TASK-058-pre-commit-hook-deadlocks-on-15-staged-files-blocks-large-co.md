@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: []
-status: testing
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-01
 started: 2026-06-01
-completed: null
+completed: 2026-06-01
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -47,3 +47,4 @@ Observed during TASK-055/057: an 18-file commit (`b6jf1rpe1`) and a 12-file code
 
 ## Work Log
 - 2026-06-02 [claude]: Root cause = subprocess pipe-inheritance deadlock in _run_hook (hypothesis 1): capture_output pipe held open by backgrou
+- 2026-06-02 [claude]: Reviewer hardening: bounded the post-kill proc.communicate(timeout=5) so a daemonized grandchild (setsid/double-fork out

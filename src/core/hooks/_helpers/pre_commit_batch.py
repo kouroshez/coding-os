@@ -77,7 +77,12 @@ def _run_hook(hook_path: Path, envelope: str, timeout_s: int = 15) -> tuple[int,
     except subprocess.TimeoutExpired:
         with contextlib.suppress(ProcessLookupError):
             os.killpg(proc.pid, signal.SIGKILL)
-        proc.communicate()
+        # Bounded drain: SIGKILL frees the group, but a grandchild that
+        # daemonized out of it (setsid / double-fork) would keep the pipe
+        # open and re-hang an unbounded communicate(). Cap the reap so the
+        # commit always returns.
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.communicate(timeout=5)
         raise
     out = (stdout or "") + (stderr or "")
     return proc.returncode, out
