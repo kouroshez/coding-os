@@ -74,6 +74,7 @@ P1 SSOT-first · P2 Agent-agnostic (never hardcode `.claude/` in core; use `$COS
 | 22 | Anti-overengineering — reuse-first · no speculation · diff-minimal · rule-of-three abstraction · defer-by-default. Applies to **every artifact** (code, docs, hooks, skills, templates). | [Rule 22](docs/governance/critical-rules.md#rule-22--anti-overengineering) · [rule body](src/core/rules/anti-overengineering.md) |
 | 23 | Trunk-based git — commit direct to `main`, never create branches/worktrees; `branch-guard.sh` blocks creation in trunk mode. Overrides runtime "branch first". | [Rule 23](docs/governance/critical-rules.md#rule-23--trunk-based-git-workflow) · [rule body](src/core/rules/git-workflow.md) |
 | 24 | Commit message contract — title ≤100 chars · body ≤3 non-empty lines · no agent attribution / `Co-Authored-By` / quoted prompts. Enforced by `enforce-commit-message.sh` (agent) + git `commit-msg` hook (human/GUI). | [git-workflow.md § Commit Message Contract](src/core/rules/git-workflow.md#commit-message-contract-always-active) |
+| 25 | Cognitive-state mutations via semantic ops, never hand-edit — task status → `cos_task_move`/`cos task-done`; audit evidence → `cos_supervise_record_output`; gate → `cos_classify_prompt`; lookup → `cos task-show`/`cos_task_search` (never raw ls/grep). Enforced by `enforce-task-transition.sh` + completion guardian. | [Rule 25](docs/governance/critical-rules.md#rule-25--cognitive-state-mutations-go-through-semantic-ops-never-hand-edit) |
 
 ## Cognition & Tracing
 
@@ -86,7 +87,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 ## Core Loop — Classify · Orient · Plan · Execute · Verify
 
-**Classify (dry, no reads):** Complexity Gate (Q1 Cynefin × Q2 dimensions, record via `bash src/core/hooks/write-state.sh .coding-os/<agent>/.thinking_os-gate "COMPLICATED 3"`) → reconcile task context (existing TASK-IDs / active board items) → domain route → Read List.
+**Classify (dry, no reads):** Complexity Gate (Q1 Cynefin × Q2 dimensions, record via `cos_classify_prompt` — it classifies AND records the gate; if it returns `recorded=false`, run the `write-state.sh .thinking_os-gate "<LEVEL> <dims>"` fallback it hands back) → reconcile task context (existing TASK-IDs / active board items) → domain route → Read List.
 **Orient (targeted reads):** Read List only · `cos_search` for past patterns · grep/glob existing code.
 **Plan:** per dimension → current/target/gap/risk → ordered steps. If no matching task exists, create one and fill Outcome/Read First/Acceptance before coding. COMPLICATED+ loads the `thinking_os` skill for Zoom cycles.
 **Execute:** smallest correct change [P1, P4]. After code: run verification.
@@ -108,7 +109,7 @@ Hook visibility: `cos hooks-log [--follow]`, `cos hooks-list [--agent X] [--cate
 
 ## Tool Routing
 
-**Scrumban (preferred):** `cos board [--web]` · `cos task-show TASK-NNN` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to blocked|testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`.
+**Scrumban — the ONLY way to mutate task/board state (Rule 25):** `cos board [--web]` · `cos task-show TASK-NNN` · `cos task-create --title … --swimlane … --kind …` · `cos task-start TASK-NNN` · `cos task-move TASK-NNN --to blocked|testing` · `cos task-done TASK-NNN` · `cos daily` · `cos retro` · `cos wip` · `cos task-validate`. NEVER hand-Edit a `docs/tasks/**` `status:`/checkbox (`enforce-task-transition` BLOCKs it); look tasks up via `cos task-show` / `cos_task_search`, never raw `ls|grep|Read`.
 **MCP equivalents:** `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex MUST call the last one — no PostToolUse hook).
 **Slash commands:** packaged workflows invoked with `/` — `/board` · `/daily` · `/retro` · `/task` · `/classify` · `/verify` · `/review` · `/diagnose` · `/memory-search` · `/compose` · 11× `/role-*`. Sourced from [src/core/commands/](src/core/commands/) + [src/core/thinking_os/agents/](src/core/thinking_os/agents/); rendered per adapter into `<agent>/commands/`.
 **Deferred tool schemas (Claude only):** every `cos_*` tool is deferred — schemas are NOT loaded at session start. Call `ToolSearch("select:<tool>")` before the first invocation each session or you get `InputValidationError`. Schema traps (TaskSignals field types, envelope format, UID scheme): [docs/engineering/mcp-schema-traps.md](docs/engineering/mcp-schema-traps.md).

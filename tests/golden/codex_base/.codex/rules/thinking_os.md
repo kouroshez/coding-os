@@ -79,7 +79,7 @@ For COMPLICATED/COMPLEX tasks, Zoom In/Out cycles operate WITHIN the Plan phase 
 
 ## Record Gate (Mandatory Before Code Changes)
 
-After running the Complexity Gate, record your classification before any Write/Edit on code files (.py/.ts/.tsx). A programmatic hook will BLOCK code writes until this is done. All state files are **session-scoped** — a new session invalidates previous state.
+After running the Complexity Gate, record your classification before any Write/Edit on code files (.py/.ts/.tsx). A programmatic hook will BLOCK code writes until this is done. **Prefer the semantic op `cos_classify_prompt`** (it classifies AND records the gate, emits a trace, and returns `recorded` + a fallback command); use the raw `write-state.sh` form below only when it returns `recorded=false`. All state files are **session-scoped** — a new session invalidates previous state.
 
 ```bash
 bash .claude/hooks/write-state.sh .thinking_os-gate "CLEAR 1"

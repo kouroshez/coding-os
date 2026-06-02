@@ -1022,6 +1022,29 @@ hooks:
         matcher: startup
         status_message: "🧠 Priming required-skill card..."
 
+  - id: rules-primer
+    script: rules-primer.sh
+    description: |
+      SessionStart prime card — injects a ~200-token workflow-integrity card
+      at every session boundary (startup, compact, resume) so the agent enters
+      turn-1 knowing Critical Rule 25: task/audit status changes go through
+      cos_task_move / cos task-done / cos_supervise_record_output (never a
+      hand-Edit; enforce-task-transition BLOCKs it), task lookup via
+      cos task-show / cos_task_search (never ls/grep on docs/tasks), gate via
+      cos_classify_prompt, and that cos_* tools are deferred (ToolSearch first).
+      Mirrors intent-primer. Full contract: critical-rules.md § Rule 25.
+      Always exits 0.
+    category: cognition
+    phase: P
+    timeout: 10
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "📋 Priming workflow-integrity rules card..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "📋 Re-priming workflow-integrity rules card..."
+
   - id: detect-exhaustive-intent
     script: detect-exhaustive-intent.sh
     description: |

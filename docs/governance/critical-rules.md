@@ -204,6 +204,15 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 ---
 
+## Rule 25 — Cognitive-state mutations go through semantic ops, never hand-edit
+
+- **Rule:** Task/board status, audit evidence, the Cynefin gate, the doc-anchor, and any `.coding-os/**` state file are mutated ONLY through their semantic op — never a raw `Edit`/`Write`. Task status → `cos_task_move` / `cos task-done` / `cos_task_reposition`. Audit evidence → `cos_supervise_record_output` (never hand-tick an `audit-*.md` checkbox). Gate → `cos_classify_prompt` (records when a panel session is resolvable; else use the `write-state.sh` fallback it returns — the low-level contract the gate hook reads). `.task-current` → set automatically by `cos task-start` / `cos_task_move → in_progress`. Task lookup → `cos task-show` / `cos_task_search` / `cos_task_show` (MCP) — NEVER raw `ls`/`grep`/`cat`/`Read` on `docs/tasks/`.
+- **Why:** The markdown task/audit file is the SSOT; the board DB is a cache synced from it. The semantic ops are the only writers that run the transition gates (DoR/DoD), WIP caps, audit log, and reviewer hint — and, critically, leave the `formula_dispatches` row the Stop completion guardian verifies. A raw `Edit` writes the same SSOT ungated: it skips every gate, and on an `audit-*.md` hand-ticking the evidence box defeats the guardian (which trusts the file it reads). A guardrail that reads a file the agent can freely `Edit` is a suggestion, not a guardrail. Raw `ls|grep` lookups waste tokens and read stale files instead of the board-aware view.
+- **How:** `enforce-task-transition.sh` (PreToolUse Write|Edit) BLOCKs a `status:`/`**Status:**`/checkbox transition on `docs/tasks/**/*.md` (incl. `audits/`); allow-listed for `governance`/`docs-update`/`template-update` tasks or `COS_ALLOW_TASK_EDIT=1`. `completion_guardian` cross-checks the bundle against a real `formula_dispatches` row. `nudge-task-discovery.sh` steers `TASK-NNN` prompts + `ls/grep docs/tasks` Bash to `cos task-show`. `sync-task-current.sh` auto-writes `.task-current`. A SessionStart rules-primer loads the prohibition turn-1.
+- **Where:** `src/core/hooks/{enforce-task-transition,nudge-task-discovery,sync-task-current}.sh`, `src/core/thinking_os/completion_guardian.py`, `docs/governance/task-lifecycle.md`.
+
+---
+
 ## Rule Index (quick lookup)
 
 | # | Rule | Hook |
@@ -232,3 +241,5 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 21 | No worktree isolation | (none — convention) |
 | 22 | Anti-overengineering | (none — convention; clean-code skill for tactical) |
 | 23 | Trunk-based git workflow | branch-guard.sh |
+| 24 | Commit message contract | enforce-commit-message.sh + commit-msg hook |
+| 25 | Semantic state ops, no hand-edit | enforce-task-transition.sh + completion_guardian |

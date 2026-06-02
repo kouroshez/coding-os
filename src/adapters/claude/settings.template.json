@@ -481,6 +481,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/rules-primer.sh",
+            "statusMessage": "📋 Priming workflow-integrity rules card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/inject-resume-prompt.sh",
             "statusMessage": "📋 Scanning for active audits to resume...",
             "timeout": 10
@@ -534,6 +540,12 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/intent-primer.sh",
             "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/rules-primer.sh",
+            "statusMessage": "📋 Re-priming workflow-integrity rules card...",
             "timeout": 10
           },
           {

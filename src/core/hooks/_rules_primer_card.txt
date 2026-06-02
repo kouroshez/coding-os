@@ -1,0 +1,14 @@
+[Coding OS — Workflow Integrity Card] (Critical Rule 25 + Core Loop). Read once; applies every turn.
+
+TASK / BOARD / AUDIT STATE — semantic ops ONLY, never a raw Edit/Write:
+  - status change  -> cos_task_move(task_id, to=...)  /  cos task-done   (a hand-Edit of a status:/**Status:**/checkbox on docs/tasks/** is BLOCKED by enforce-task-transition)
+  - audit evidence -> cos_supervise_record_output      (NEVER hand-tick an audit-*.md checkbox — the Stop guardian verifies the real formula_dispatches row, not the file)
+  - task lookup    -> cos task-show TASK-NNN / cos_task_search / cos_task_show (MCP)   — never ls/grep/cat/Read on docs/tasks/
+
+COGNITIVE STATE — set via the op, not raw write-state.sh:
+  - Cynefin gate   -> cos_classify_prompt (records when a panel session is resolvable; else run the write-state.sh fallback it returns)
+  - .task-current  -> automatic on cos task-start / cos_task_move->in_progress (sync-task-current hook) — do not set it by hand
+
+DEFERRED TOOLS (Claude): every cos_* needs ToolSearch("select:<tool>") before first use this session. Load the hot family ONCE up-front (see the [MCP Prime] line).
+
+CORE LOOP: Classify(gate) -> Orient(cos_search + cos_graph_*) -> Plan -> Execute(smallest diff) -> Verify(matrix command) -> cos task-done. Docs are SSOT (Rule 0/19). Trunk-based git, explicit-path commits (Rule 23/24).

@@ -140,11 +140,11 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     '[Session Context Recovery]' \
     '' \
     'CRITICAL WORKFLOW RULES:' \
-    '1. Task management — use make commands, NEVER edit task files directly' \
+    '1. Task lifecycle — cos task-start/move/done (NEVER hand-edit status:/checkboxes; enforce-task-transition BLOCKS it). Look up via cos task-show / cos_task_search, not ls/grep.' \
     '2. Verification Matrix — run domain verification BEFORE marking done' \
     '3. Complexity Gate — record gate before writing code (thinking_os-gate.sh BLOCKS without it)' \
     '4. Domain skill — invoke matching skill before writing code' \
-    '5. MCP tools deferred — call ToolSearch("select:<tool>") before first use each session' \
+    '5. MCP tools deferred — ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output") before first use each session' \
     ''
 
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
@@ -225,6 +225,14 @@ if [[ "$SOURCE" == "startup" ]]; then
       echo "  Commit with EXPLICIT paths only — never a bare 'git commit'."
     fi
   fi
+
+  # Prime the hot task-tool family once. These cos_* tools are deferred
+  # (Claude-harness-side, not repo-controllable — see mcp-schema-traps.md),
+  # so front-loading one ToolSearch avoids mid-task InputValidationError
+  # round-trips that push the agent back to raw Edit/Bash (TASK-059).
+  echo ""
+  echo "[MCP Prime] Hot tools are deferred — load the task family ONCE now so you don't fall back to raw Edit/Bash for task ops:"
+  echo '  ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt")'
 
   # Phase G.10 — Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
