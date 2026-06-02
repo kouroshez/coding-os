@@ -65,3 +65,4 @@ references: []
   - **CLI:** `cli/board_commands.py` + `cli/main.py` error and print messages updated.
   - **Skill:** `src/core/skills/thinking_os/scripts/classify.sh` comment updated.
   - Tests: 136 hooks + 14 guardian green. verify-hooks clean. Functional drift count = 0.
+- 2026-05-28 [claude]: Status transitioned to complete via cos task-done.
