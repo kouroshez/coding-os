@@ -34,6 +34,8 @@ run_delegate() {
 for delegate in \
   remind-learn-validate.sh \
   search-verify-remaining.sh \
+  advance-role.sh \
+  sync-task-current.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done

@@ -173,6 +173,11 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/nudge-task-discovery.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-docs-first.sh",
             "timeout": 10
           },

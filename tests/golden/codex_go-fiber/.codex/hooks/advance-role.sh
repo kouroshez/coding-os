@@ -19,6 +19,7 @@ case "$TOOL" in
   *) exit 0 ;;
 esac
 CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+FILE_PATH="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)"
 
 # Only act when a chain exists (panel-first, matching the writer scope).
 TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
@@ -35,7 +36,7 @@ HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 HELPER="${HSRC}/_helpers/advance_role.py"
 [[ -f "$HELPER" ]] || exit 0
 
-CHOSEN=$(python3 "$HELPER" "$TOOL" "$TARGET_DIR" "$CMD" 2>/dev/null || true)
+CHOSEN=$(python3 "$HELPER" "$TOOL" "$TARGET_DIR" "$CMD" "$FILE_PATH" 2>/dev/null || true)
 if [[ -n "$CHOSEN" ]]; then
   cos_log_hook advance-role ok "tool=${TOOL} role=${CHOSEN}" || true
 fi

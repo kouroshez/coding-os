@@ -58,6 +58,7 @@ for delegate in \
   block-uv-heredoc.sh \
   enforce-verify.sh \
   search-enforce-inventory.sh \
+  nudge-task-discovery.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done

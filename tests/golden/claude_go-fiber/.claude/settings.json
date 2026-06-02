@@ -45,6 +45,12 @@
             "command": ".claude/hooks/search-enforce-inventory.sh",
             "statusMessage": "🔎 Running search inventory before bulk replace...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-task-discovery.sh",
+            "statusMessage": "🗂️ Suggesting cos task-show over docs/tasks read...",
+            "timeout": 10
           }
         ]
       },
@@ -67,6 +73,12 @@
             "type": "command",
             "command": ".claude/hooks/block-protected-files.sh",
             "statusMessage": "🔐 Checking protected governance files...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-task-transition.sh",
+            "statusMessage": "🚦 Checking task/audit status transition...",
             "timeout": 5
           },
           {
@@ -348,6 +360,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/sync-task-current.sh",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/advance-role.sh",
             "timeout": 10
           },
@@ -560,6 +578,11 @@
           {
             "type": "command",
             "command": ".claude/hooks/nudge-graph-os.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-task-discovery.sh",
             "timeout": 10
           },
           {

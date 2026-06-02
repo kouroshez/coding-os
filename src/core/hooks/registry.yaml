@@ -113,6 +113,25 @@ hooks:
         matcher: Write|Edit
         status_message: "🔐 Checking protected governance files..."
 
+  - id: enforce-task-transition
+    script: enforce-task-transition.sh
+    description: |
+      Blocks hand-edits that mutate a task/audit STATUS transition
+      (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md —
+      INCLUDING audits/audit-*.md. Status changes must route through
+      cos_task_move / cos task-done / cos_supervise_record_output so the
+      board DB, WIP caps, DoD gates, and the Stop completion guardian stay
+      consistent; a raw Edit bypasses them and a hand-ticked audit box
+      defeats the guardian. Allow-list: governance/docs-update/template-update
+      active task, or COS_ALLOW_TASK_EDIT=1.
+    category: safety
+    phase: "0"
+    timeout: 5
+    events:
+      - event: PreToolUse
+        matcher: Write|Edit
+        status_message: "🚦 Checking task/audit status transition..."
+
   - id: block-migration-conflict
     script: block-migration-conflict.sh
     description: Detects duplicate migration version numbers in db.py (Rule #10 — append-only migrations).
@@ -428,6 +447,26 @@ hooks:
       - event: PostToolUse
         matcher: Write|Edit
         status_message: "♻️ Re-syncing task to DB..."
+
+  - id: sync-task-current
+    script: sync-task-current.sh
+    description: |
+      PostToolUse fan-out — auto-writes the per-panel .task-current marker
+      when a task transitions to in_progress via cos_task_move (MCP) or
+      `cos task-start` / `cos task-move --to in_progress` (Bash). Panel-env
+      reliable (a hook runs in the session lineage; the MCP server / cos CLI
+      subprocess resolve a stale panel). Removes the manual `write-state.sh
+      .task-current` step (TASK-059). Fire-and-forget; always exits 0.
+    category: task
+    phase: L
+    timeout: 10
+    events:
+      - event: PostToolUse
+        matcher: mcp__coding-os__cos_task_move
+        status_message: "📌 Syncing .task-current..."
+      - event: PostToolUse
+        matcher: Bash
+        status_message: "📌 Syncing .task-current..."
 
   - id: advance-role
     script: advance-role.sh
@@ -899,6 +938,26 @@ hooks:
     events:
       - event: UserPromptSubmit
         matcher: ""
+
+  - id: nudge-task-discovery
+    script: nudge-task-discovery.sh
+    description: |
+      Task-discovery nudge — two events, both fail-open + debounced per
+      session. UserPromptSubmit: task-reference intent (TASK-NNN,
+      check/show/look-at task; bilingual EN + Persian) → additionalContext
+      recommending `cos task-show TASK-NNN` / cos_task_search / cos_task_show
+      (MCP) over cat/grep on docs/tasks/. PreToolUse Bash: warns (non-blocking)
+      when a command reads docs/tasks/ directly (ls/grep/cat/find/head/tail).
+      Closes the screenshot-2 gap. Mirrors nudge-graph-os mechanism.
+    category: cognition
+    phase: O
+    timeout: 10
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+      - event: PreToolUse
+        matcher: Bash
+        status_message: "🗂️ Suggesting cos task-show over docs/tasks read..."
 
   - id: nudge-docs-first
     script: nudge-docs-first.sh
