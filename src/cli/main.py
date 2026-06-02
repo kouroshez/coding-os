@@ -1709,13 +1709,11 @@ except ImportError as _db_reset_exc:  # pragma: no cover — defensive
 
 
 # ---------------------------------------------------------------------------
-# S4 — unified web server CLI (`cos web`).
+# S4/S5 — registry + hub CLI. (`cos web` removed (TASK-060): it duplicated
+# `cos hub start --foreground` — both just call web.server.run_server. Dev
+# auto-reload lives in `make ui-dev`.)
 # ---------------------------------------------------------------------------
 try:
-    from cli.web_commands import web_cmd as _web_cmd
-
-    cli.add_command(_web_cmd)
-
     from cli.registry import registry_cli as _registry_cli
 
     cli.add_command(_registry_cli)
