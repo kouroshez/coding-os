@@ -238,6 +238,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/capture-audit.sh",
+            "statusMessage": "📜 Recording doc audit-trail entry...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 10
