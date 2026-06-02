@@ -19,6 +19,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # Hook → file pattern matcher. Skip files the hook wouldn't act on.
@@ -56,35 +57,36 @@ def _make_envelope(abs_path: Path, rel_path: str) -> str:
 def _run_hook(hook_path: Path, envelope: str, timeout_s: int = 15) -> tuple[int, str]:
     """Run hook with envelope on stdin. Returns (exit_code, combined_output).
 
-    Runs the delegate in its own process group (start_new_session). A
-    delegate that backgrounds a grandchild (log writer, hub probe) leaves
-    that grandchild holding the stdout/stderr pipe write-end; subprocess
-    timeout SIGKILLs only the direct child, so communicate() would block on
-    the never-closing pipe forever — the 15+-file commit deadlock. On
-    timeout we SIGKILL the whole group so every pipe holder dies and the
-    reaping communicate() returns.
+    Redirects the delegate's stdin/stdout/stderr to temp FILES, never OS
+    pipes. A delegate that backgrounds a grandchild (log writer, hub probe)
+    leaves that grandchild holding the inherited stdout fd; reading a pipe to
+    EOF would then block until the grandchild dies, so every staged file paid
+    the full timeout and a 15+-file commit ground on for minutes. A regular
+    file fd has no EOF reader, so wait() returns the instant the direct bash
+    child exits and the lingering grandchild is harmless. The child still gets
+    its own session (start_new_session), so a genuinely-hung DIRECT child is
+    SIGKILLed by group on timeout.
     """
-    proc = subprocess.Popen(
-        ["bash", str(hook_path)],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
-    )
-    try:
-        stdout, stderr = proc.communicate(input=envelope, timeout=timeout_s)
-    except subprocess.TimeoutExpired:
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(proc.pid, signal.SIGKILL)
-        # Bounded drain: SIGKILL frees the group, but a grandchild that
-        # daemonized out of it (setsid / double-fork) would keep the pipe
-        # open and re-hang an unbounded communicate(). Cap the reap so the
-        # commit always returns.
-        with contextlib.suppress(subprocess.TimeoutExpired):
-            proc.communicate(timeout=5)
-        raise
-    out = (stdout or "") + (stderr or "")
+    with tempfile.TemporaryFile() as in_f, tempfile.TemporaryFile() as out_f:
+        in_f.write(envelope.encode())
+        in_f.seek(0)
+        proc = subprocess.Popen(
+            ["bash", str(hook_path)],
+            stdin=in_f,
+            stdout=out_f,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            proc.wait(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGKILL)
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=5)
+            raise
+        out_f.seek(0)
+        out = out_f.read().decode(errors="replace")
     return proc.returncode, out
 
 
