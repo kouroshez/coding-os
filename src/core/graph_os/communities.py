@@ -171,23 +171,41 @@ def _signature(backend: GraphBackend) -> tuple[str, int]:
     return (backend.backend_id, int(edge_count))
 
 
+_SUBGRAPH_CAP = 50_000
+
+
+def subgraph_input_truncated(backend: GraphBackend) -> bool:
+    """True when the Louvain input would hit the per-type cap — i.e. the
+    community map is computed on a partial slice (F12 coverage-honesty)."""
+    return any(backend.count_edges(et) >= _SUBGRAPH_CAP for et in _PROCESS_EDGE_TYPES)
+
+
 def _load_subgraph(
     backend: GraphBackend,
 ) -> tuple[dict[str, GraphNode], list[tuple[str, str]]]:
     """Pull every node + every process edge into memory once.
 
-    The cap (50_000 edges) protects against pathological repos; if a
-    repo exceeds it we degrade to "no communities" rather than blow
-    memory.  Real coding-os graphs sit at ~10k edges.
+    The cap (``_SUBGRAPH_CAP`` per kind / edge-type) protects against
+    pathological repos. Above it the clustering is computed on a partial
+    slice — ``subgraph_input_truncated`` surfaces that to the envelope so
+    the result is never silently incomplete. Real coding-os graphs sit at
+    ~10k edges.
     """
     nodes_by_uid: dict[str, GraphNode] = {}
     edges: list[tuple[str, str]] = []
     for kind in _PROCESS_MEMBER_KINDS:
-        for n in backend.sample_nodes(kind=kind, limit=50_000):
+        for n in backend.sample_nodes(kind=kind, limit=_SUBGRAPH_CAP):
             nodes_by_uid[n.uid] = n
 
     for et in _PROCESS_EDGE_TYPES:
-        for e in backend.list_edges(edge_types=(et,), limit=50_000):
+        batch = backend.list_edges(edge_types=(et,), limit=_SUBGRAPH_CAP)
+        if len(batch) >= _SUBGRAPH_CAP:
+            logger.warning(
+                "community subgraph hit cap (%d) on edge_type=%s — clustering is partial",
+                _SUBGRAPH_CAP,
+                et,
+            )
+        for e in batch:
             if e.source_uid in nodes_by_uid and e.target_uid in nodes_by_uid:
                 edges.append((e.source_uid, e.target_uid))
     return nodes_by_uid, edges

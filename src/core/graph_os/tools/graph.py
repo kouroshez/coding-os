@@ -2710,28 +2710,57 @@ def _lexical_search(
                     tuple(list(kinds) + [int(limit) * 6]),
                 ).fetchall()
             else:
-                like_q = f"%{lower}%"
-                kinds_clause = ""
-                params: list[Any] = [like_q, like_q, like_q]
-                if kinds:
-                    placeholders = ",".join(["?"] * len(kinds))
-                    kinds_clause = f" AND kind IN ({placeholders})"
-                    params.extend(list(kinds))
-                params.append(int(limit) * 6)
-                rows = sqlite_conn.execute(
-                    f"""
-                    SELECT kind, label, uid, file_path, start_line, end_line,
-                           signature, lang, doc_blob, ast_hash, content_hash,
-                           metadata_json
-                    FROM graph_nodes
-                    WHERE (LOWER(label) LIKE ?
-                           OR LOWER(COALESCE(signature, '')) LIKE ?
-                           OR LOWER(COALESCE(doc_blob, '')) LIKE ?)
-                    {kinds_clause}
-                    LIMIT ?
-                    """,
-                    tuple(params),
-                ).fetchall()
+                # F13: try the maintained FTS5 index first (indexed MATCH,
+                # scales to 500k); fall back to the leading-wildcard LIKE
+                # scan only when FTS5 yields nothing so recall is preserved.
+                fts_q = _fts5_safe_query(lower)
+                if fts_q:
+                    try:
+                        fts_kinds_clause = ""
+                        fts_params: list[Any] = [fts_q]
+                        if kinds:
+                            ph = ",".join(["?"] * len(kinds))
+                            fts_kinds_clause = f" AND n.kind IN ({ph})"
+                            fts_params.extend(list(kinds))
+                        fts_params.append(int(limit) * 6)
+                        rows = sqlite_conn.execute(
+                            f"""
+                            SELECT n.kind, n.label, n.uid, n.file_path, n.start_line,
+                                   n.end_line, n.signature, n.lang, n.doc_blob,
+                                   n.ast_hash, n.content_hash, n.metadata_json
+                            FROM graph_nodes_fts
+                            JOIN graph_nodes n ON n.id = graph_nodes_fts.rowid
+                            WHERE graph_nodes_fts MATCH ?{fts_kinds_clause}
+                            LIMIT ?
+                            """,
+                            tuple(fts_params),
+                        ).fetchall()
+                    except Exception as exc:
+                        logger.debug("fts5 lexical search suppressed: %s", exc)
+                        rows = []
+                if not rows:
+                    like_q = f"%{lower}%"
+                    kinds_clause = ""
+                    params: list[Any] = [like_q, like_q, like_q]
+                    if kinds:
+                        placeholders = ",".join(["?"] * len(kinds))
+                        kinds_clause = f" AND kind IN ({placeholders})"
+                        params.extend(list(kinds))
+                    params.append(int(limit) * 6)
+                    rows = sqlite_conn.execute(
+                        f"""
+                        SELECT kind, label, uid, file_path, start_line, end_line,
+                               signature, lang, doc_blob, ast_hash, content_hash,
+                               metadata_json
+                        FROM graph_nodes
+                        WHERE (LOWER(label) LIKE ?
+                               OR LOWER(COALESCE(signature, '')) LIKE ?
+                               OR LOWER(COALESCE(doc_blob, '')) LIKE ?)
+                        {kinds_clause}
+                        LIMIT ?
+                        """,
+                        tuple(params),
+                    ).fetchall()
         except Exception as exc:
             logger.debug("lexical sql search suppressed: %s", exc)
         row_to_node = getattr(backend, "_row_to_node", None)
@@ -3132,6 +3161,7 @@ def cos_graph_communities(
             "max_members_requested": max_members,
             "members_truncated": members_truncated,
             "envelope_truncated": payload_truncated,
+            "input_truncated": comm_mod.subgraph_input_truncated(be),
             "top_effective": projected_top,
             "top_requested": top,
         },
@@ -4265,12 +4295,17 @@ def cos_graph_resolve(
         if candidates:
             strategy = "lexical_like"
 
+    # F5: rank-decayed confidence so FTS5 / lexical hits are discriminated
+    # by position (the obvious answer outranks the 10th) instead of a flat
+    # 0.7. path_resolve stays a certain 1.0.
     results = [
         {
             **NodeSummary.from_node(n).to_dict(),
-            "confidence": 1.0 if strategy == "path_resolve" else 0.7,
+            "confidence": (
+                1.0 if strategy == "path_resolve" else round(max(0.4, 0.9 - 0.05 * idx), 3)
+            ),
         }
-        for n in candidates[:top]
+        for idx, n in enumerate(candidates[:top])
     ]
     return _ok(
         {"results": results, "strategy": strategy or "miss"},
