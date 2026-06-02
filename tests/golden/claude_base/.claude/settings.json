@@ -205,6 +205,12 @@
             "command": ".claude/hooks/enforce-graph-first-read.sh",
             "statusMessage": "🧭 Checking graph-first discipline before Read...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/nudge-task-discovery.sh",
+            "statusMessage": "🗂️ Suggesting cos task-show over a docs/tasks Read...",
+            "timeout": 10
           }
         ]
       },
