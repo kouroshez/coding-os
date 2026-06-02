@@ -523,6 +523,41 @@ def _trim_huge_string_fields(
     return new_body, meta, _probe_size(new_body, meta) <= TOKEN_BUDGET_CHARS
 
 
+def _trim_lists_balanced(body: dict, meta: dict) -> tuple[dict, dict, bool]:
+    # F1: balanced multi-bucket trim. When >=2 trimmable list keys are
+    # present, shrink the LARGEST remaining list repeatedly (never below 1
+    # item) until the envelope fits — so no bucket is silently zeroed while
+    # a sibling bucket keeps items. Root cause of cos_graph_contracts(
+    # kinds=http,mcp) returning http_routes=[] while mcp_tools kept 70:
+    # the sequential ladder drained http_routes (earlier key) to 0 because
+    # mcp_tools (later key) alone exceeded the budget. Uses the same
+    # truncated_<key>_from/to markers as the per-key ladder so coverage
+    # flags stay consistent. No-op (and identical to the old path) when
+    # fewer than two list buckets are present.
+    present = [
+        k for k in _TRIMMABLE_LIST_KEYS
+        if isinstance(body.get(k), list) and len(body[k]) > 0
+    ]
+    if len(present) < 2:
+        return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+    originals = {k: len(body[k]) for k in present}
+    while _probe_size(body, meta) > TOKEN_BUDGET_CHARS:
+        biggest = max(present, key=lambda x: len(body[x]))
+        cur_n = len(body[biggest])
+        if cur_n <= 1:
+            break  # every bucket down to its last survivor — fall through
+        new_n = max(1, int(cur_n * 0.85))
+        if new_n >= cur_n:
+            new_n = cur_n - 1
+        body = {**body, biggest: body[biggest][:new_n]}
+    for k in present:
+        kept = len(body[k])
+        if kept < originals[k]:
+            meta[f"truncated_{k}_from"] = originals[k]
+            meta[f"truncated_{k}_to"] = kept
+    return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
+
+
 def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # Trim every list-shaped field + edges_by_type dict-of-lists + (F#5
     # final safety net) huge non-list scalars. did_trim=True when any
@@ -555,6 +590,20 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
         if f"truncated_{parent_key}" in meta:
             did_any = True
         fits = fits or fits_after
+    # F1: balanced multi-bucket trim BEFORE the sequential per-key ladder,
+    # so an earlier bucket isn't zeroed while a larger later bucket keeps
+    # items. No-op for single-bucket payloads (the ladder below handles
+    # those unchanged).
+    if not fits:
+        _markers_before = sum(
+            1 for k in meta if k.startswith("truncated_") and k.endswith("_to")
+        )
+        body, meta, fits = _trim_lists_balanced(body, meta)
+        _markers_after = sum(
+            1 for k in meta if k.startswith("truncated_") and k.endswith("_to")
+        )
+        if _markers_after > _markers_before:
+            did_any = True
     for key in _TRIMMABLE_LIST_KEYS:
         if fits:
             break

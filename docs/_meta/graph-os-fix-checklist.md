@@ -27,9 +27,9 @@ Legend: `[ ]` todo · `[x]` done · **FIX** safe now · **BOUNDED** right-sized 
 - [ ] **F8** — phantom `accesses_field` in default-kind tuples: P3 cosmetic (never-matching kind in an IN clause is a no-op). Decide cut vs leave in G3b — low ROI, weigh test churn.
 - Verify: ✅ `pytest src/core/graph_os/tests/` (712) + `server.py --test` (clean)
 
-## G4 — Envelope trim (`thinking_os/tools/_shared.py`)
-- [ ] **FIX F1** — `_apply_token_budget`: proportional/round-robin trim across `_TRIMMABLE_LIST_KEYS` so no earlier bucket is zeroed while a later one keeps items (root cause of `contracts(http,mcp)`→`http_routes=[]`). Blast radius = every tool → careful + test_envelope.
-- Verify: `uv run --extra rag pytest src/core/thinking_os/tests/test_envelope.py -q`
+## G4 — Envelope trim (`thinking_os/tools/_shared.py`) ✅ 1266 passed + live repro
+- [x] **FIX F1** — added `_trim_lists_balanced`: when ≥2 list buckets share the envelope, shrink the largest round-robin (never below 1) before the sequential ladder. Single-bucket tools unchanged. Live repro: `contracts(http,mcp)` now 32/64 + 33/78 (was 0/70). Markers + `result_truncated` consistent.
+- Verify: ✅ `pytest src/core/thinking_os/tests/` (1266 passed) + repro + `server.py --test`.
 
 ## G5 — Over-engineering cuts
 - [ ] **FIX** — delete `enterprise.py::get_logger/_KVLogger/_fmt/_quote` (only genuinely-dead piece; RateLimiter/PrometheusSnapshot are load-bearing — KEEP).
