@@ -41,3 +41,4 @@ Actual: the governance allow-list lets the tick through; the guardian only cross
 
 ## Work Log
 - 2026-06-02 [claude]: A1: enforce-task-transition.sh exempts docs/tasks/audits/audit-*.md from the governance allow-list so a hand-ticked Evid
+- 2026-06-02 [claude]: A1/A2/A3 committed 1701f1e + golden 62d0d92.. (per-stack). 50 tests green (43 guardian/workflow + 7 golden). Blocked-the

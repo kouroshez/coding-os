@@ -48,3 +48,4 @@ Observed during TASK-055/057: an 18-file commit (`b6jf1rpe1`) and a 12-file code
 ## Work Log
 - 2026-06-02 [claude]: Root cause = subprocess pipe-inheritance deadlock in _run_hook (hypothesis 1): capture_output pipe held open by backgrou
 - 2026-06-02 [claude]: Reviewer hardening: bounded the post-kill proc.communicate(timeout=5) so a daemonized grandchild (setsid/double-fork out
+- 2026-06-02 [claude]: Fixed real deadlock: pre_commit_batch._run_hook now redirects stdio to temp files + wait() on direct child (was PIPE+com
