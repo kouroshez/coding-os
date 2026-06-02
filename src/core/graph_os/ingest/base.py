@@ -46,6 +46,10 @@ DEFAULT_INCLUDE = (
     "*.go",
     "*.json",
     "*.toml",
+    "*.js",
+    "*.jsx",
+    "*.mjs",
+    "*.cjs",
 )
 DEFAULT_EXCLUDE = (
     ".git",
@@ -63,6 +67,19 @@ DEFAULT_EXCLUDE = (
     ".pytest_cache",
     ".mypy_cache",
     ".ruff_cache",
+    # Build / dependency output dirs for the shipped stacks. Excluded for
+    # the same reason as node_modules: generated artifacts pollute the
+    # graph and are never source. (Mitigates the lack of .gitignore
+    # awareness — see COS_GRAPH_EXCLUDE_PATHS for project-specific extras.)
+    ".next",
+    ".nuxt",
+    ".svelte-kit",
+    ".turbo",
+    ".gradle",
+    ".terraform",
+    "Pods",
+    "vendor",
+    "target",
 )
 
 # Path-segment excludes: pruned when this exact relative-path sequence
@@ -87,17 +104,27 @@ def walk_local(
     exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_PATHS,
     max_files: int = 1_000_000,
     max_size_bytes: int = 50 * 1024 * 1024 * 1024,
+    max_file_bytes: int | None = None,
 ) -> IngestPlan:
     """Walk a local folder → IngestPlan with guard rails.
 
     Defaults sized for monorepo-scale repos (1M files, 50 GB). Callers
-    that want stricter caps should pass them explicitly.
+    that want stricter caps should pass them explicitly. ``max_file_bytes``
+    skips (does NOT abort on) any single file larger than the cap — a
+    vendored multi-MB lockfile/minified asset is dropped, not read whole
+    into memory. Defaults to ``COS_GRAPH_MAX_FILE_BYTES`` env or 2 MB.
 
-    RAISES:       IngestError on caps exceeded.
+    RAISES:       IngestError on aggregate caps exceeded.
     """
     root_path = Path(root).resolve()
     if not root_path.exists() or not root_path.is_dir():
         raise IngestError(f"path not found or not a directory: {root_path}")
+
+    if max_file_bytes is None:
+        try:
+            max_file_bytes = int(os.environ.get("COS_GRAPH_MAX_FILE_BYTES", "") or 2 * 1024 * 1024)
+        except ValueError:
+            max_file_bytes = 2 * 1024 * 1024
 
     include_set = tuple(include)
     exclude_set = set(exclude)
@@ -137,6 +164,13 @@ def walk_local(
             try:
                 size = full.stat().st_size
             except OSError:
+                continue
+            # Per-file cap: skip oversized single files (generated/minified
+            # /vendored) instead of reading them whole into memory.
+            if max_file_bytes and size > max_file_bytes:
+                logger.debug(
+                    "skip oversized file %s (%d > %d bytes)", full, size, max_file_bytes
+                )
                 continue
             total_bytes += size
             if total_bytes > max_size_bytes:

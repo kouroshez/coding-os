@@ -26,6 +26,12 @@ _EXT_MAP = {
     ".go": ("go", ["code_go", "contracts"]),
     ".json": ("json", ["code_json"]),
     ".toml": ("toml", ["code_toml"]),
+    # Plain JavaScript routes through the TS extractor (JS is a syntactic
+    # subset; the regex/tree-sitter passes degrade cleanly on .js).
+    ".js": ("js", ["code_ts", "contracts"]),
+    ".jsx": ("jsx", ["code_ts", "contracts"]),
+    ".mjs": ("js", ["code_ts", "contracts"]),
+    ".cjs": ("js", ["code_ts", "contracts"]),
 }
 
 # Sentinel chain key stored on file_index_state for docs-only rows
