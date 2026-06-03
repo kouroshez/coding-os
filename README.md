@@ -249,13 +249,17 @@ Brain                docs-index · task-sync · reindex · server-start
 Hub                  hub start · hub status · hub stop
 Board                board · task-show · task-create · task-start · task-move · task-done · daily · retro · wip
 Cognition            cognition trace · cognition trace-replay · cognition trace-summary
-Graph (build)        graph-reindex · graph-viz · graph-doctor · graph-stats
-Graph (query)        graph-query · graph-context · graph-references · graph-impact · graph-path · graph-trace · graph-similar
-Graph (audit)        graph-contracts · graph-rename-plan · graph-cycles · graph-test-gap · graph-dead-code · graph-diff · graph-detect-changes
+Graph (build)        graph-reindex · graph-stats · graph-doctor · graph-group · graph-index-{local,github,zip} · graph-viz
+Graph (find)         graph-resolve · graph-query · graph-context · graph-entrypoints
+Graph (deps)         graph-references · graph-impact · graph-path · graph-trace · graph-similar
+Graph (analysis)     graph-centrality · graph-ranking · graph-communities · graph-cycles · graph-test-gap · graph-dead-code
+Graph (review)       graph-contracts · graph-rename-plan · graph-diff · graph-detect-changes · graph-export
 ```
 
-All 24 `graph-*` subcommands mirror a `cos_graph_*` MCP tool one-for-one
-(same envelope) — agents use the MCP tool, humans/CI use the CLI.
+28 `graph-*` subcommands: **21 mirror a `cos_graph_*` MCP tool one-for-one**
+(same envelope — agents use the MCP tool, humans/CI use the CLI), 7 are
+build/ingest-only. A parity test (`tests/test_graph_cli_parity.py`)
+fails CI if the two surfaces ever drift again.
 
 Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
 
