@@ -3463,6 +3463,76 @@ def _betweenness_centrality(adj: dict[int, list[int]], n: int) -> list[float]:
     return [v / norm_factor for v in bet]
 
 
+def cos_graph_cycles(
+    *,
+    scope: str = "imports",
+    top: int = 20,
+    min_size: int = 2,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """Detect circular dependencies — strongly-connected components in the import (or call) graph."""
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
+    top, _ = _clamp_int(top, min_v=1, max_v=200)
+    if scope not in ("imports", "calls"):
+        return _fail("validation", "scope must be 'imports' or 'calls'")
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    sqlite_conn = getattr(be, "_conn", None)
+    if sqlite_conn is None:
+        return _ok(
+            {"cycles": [], "total_count": 0, "scope": scope, "note": "cycle detection requires the sqlite backend"},
+            meta={"backend": be.backend_id, "layer": "graph"},
+        )
+    try:
+        import networkx as nx
+    except ImportError:
+        return _fail("unavailable", "networkx required for cycle detection", retryable=False)
+
+    if scope == "imports":
+        # module->module import edges. Stdlib/external modules are leaves
+        # (no outbound in-repo import) so SCC naturally excludes them — any
+        # SCC of size>=2 is a genuine circular module dependency.
+        rows = sqlite_conn.execute(
+            "SELECT s.uid, t.uid FROM graph_edges_v12 e "
+            "JOIN graph_nodes s ON s.id=e.source_id JOIN graph_nodes t ON t.id=e.target_id "
+            "WHERE e.edge_type='imports' AND s.kind IN ('module','code:module') "
+            "AND t.kind IN ('module','code:module')"
+        ).fetchall()
+    else:
+        rows = sqlite_conn.execute(
+            "SELECT s.uid, t.uid FROM graph_edges_v12 e "
+            "JOIN graph_nodes s ON s.id=e.source_id JOIN graph_nodes t ON t.id=e.target_id "
+            "WHERE e.edge_type='calls' AND s.uid NOT LIKE 'code:external:%' "
+            "AND t.uid NOT LIKE 'code:external:%' AND s.id != t.id"
+        ).fetchall()
+
+    g = nx.DiGraph()
+    g.add_edges_from(rows)
+    sccs = [sorted(c) for c in nx.strongly_connected_components(g) if len(c) >= max(2, int(min_size))]
+    sccs.sort(key=len, reverse=True)
+    cycles = [
+        {"size": len(comp), "members": comp[:15], "members_truncated": len(comp) > 15}
+        for comp in sccs[:top]
+    ]
+    return _ok(
+        {
+            "cycles": cycles,
+            "total_count": len(sccs),
+            "scope": scope,
+            "note": (
+                "each cycle = a strongly-connected component (mutually-reachable nodes); "
+                "size>=2 = circular dependency. scope=imports is the module-level design "
+                "smell; scope=calls includes legitimate mutual recursion."
+            ),
+        },
+        meta={"backend": be.backend_id, "layer": "graph", "scope": scope, "result_truncated": len(sccs) > top},
+    )
+
+
 _DEAD_CODE_SKIP_LABELS = frozenset({"main", "register", "extract", "setup"})
 
 

@@ -2722,6 +2722,39 @@ if _GRAPH_TOOLS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_graph_cycles",
+        annotations={
+            "title": "Graph Circular Dependencies (SCC)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_cycles_tool(
+        scope: str = "imports",
+        top: int = 20,
+        min_size: int = 2,
+    ) -> str:
+        """Detect circular dependencies as strongly-connected components.
+
+        Args:
+            scope: "imports" (module-level circular deps, the design smell) or
+                "calls" (function cycles incl. legitimate mutual recursion).
+            top: Max cycles returned (default 20).
+            min_size: Minimum SCC size to report (default 2).
+
+        Returns:
+            JSON envelope with `cycles` (each {size, members}) + total_count.
+        """
+        return _graph_tools.cos_graph_cycles(
+            scope=str(scope),
+            top=int(top),
+            min_size=int(min_size),
+        )
+
+    @mcp.tool(
         name="cos_graph_dead_code",
         annotations={
             "title": "Graph Dead-Code Candidates",
