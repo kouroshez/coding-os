@@ -320,6 +320,50 @@ def register(cli: click.Group) -> None:
         }
         _json_echo(report, pretty=pretty)
 
+    @cli.command(name="graph-cycles")
+    @click.option("--scope", default="imports", type=click.Choice(["imports", "calls"]))
+    @click.option("--top", default=20, type=int)
+    @click.option("--min-size", default=2, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_cycles(scope, top, min_size, pretty):
+        """Circular dependencies — strongly-connected components."""
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_cycles(scope=scope, top=top, min_size=min_size),
+            pretty=pretty,
+        )
+
+    @cli.command(name="graph-test-gap")
+    @click.option("--kind", default="")
+    @click.option("--top", default=50, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_test_gap(kind, top, pretty):
+        """Untested symbols — prod code with zero inbound test edge."""
+        _, tools = _open_backend()
+        _json_echo(tools.cos_graph_test_gap(kind=kind, top=top), pretty=pretty)
+
+    @cli.command(name="graph-dead-code")
+    @click.option("--kind", default="")
+    @click.option("--top", default=50, type=int)
+    @click.option("--include-tests", is_flag=True)
+    @click.option("--pretty", is_flag=True)
+    def graph_dead_code(kind, top, include_tests, pretty):
+        """Dead-code candidates — in-repo symbols with no non-test caller."""
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_dead_code(kind=kind, top=top, include_tests=include_tests),
+            pretty=pretty,
+        )
+
+    @cli.command(name="graph-diff")
+    @click.option("--base", default="HEAD~1")
+    @click.option("--head", default="HEAD")
+    @click.option("--pretty", is_flag=True)
+    def graph_diff(base, head, pretty):
+        """Blast-radius of a git range — base..head changed symbols + downstream."""
+        _, tools = _open_backend()
+        _json_echo(tools.cos_graph_diff(base=base, head=head), pretty=pretty)
+
     @cli.command(name="graph-reindex")
     @click.option("--path", default=None, help="Directory to reindex (default: repo root).")
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
