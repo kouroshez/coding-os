@@ -581,3 +581,39 @@ class TestDiff:
         data = _ok(graph.cos_graph_diff(base="HEAD", head="HEAD"))
         assert data["file_count"] == 0
         assert data["risk_level"] == "none"
+
+
+# ---------------------------------------------------------------------------
+# _is_phantom_orphan — garbage-orphan classification (doctor --fix pruning)
+# ---------------------------------------------------------------------------
+
+
+class TestPhantomOrphan:
+    def test_task_with_source_line_anchor_is_phantom(self):
+        # Code-line ref mis-noded as a task → prunable garbage.
+        assert graph._is_phantom_orphan(
+            "task", None, "task:file:docs/tasks/audits/src/core/x/graph.py#L2787"
+        )
+
+    def test_real_task_uid_is_not_phantom(self):
+        assert not graph._is_phantom_orphan(
+            "task", "docs/tasks/TASK-001.md", "task:file:TASK-001"
+        )
+
+    def test_edgeless_module_stub_is_phantom(self):
+        assert graph._is_phantom_orphan("module", None, "code:module:itertools")
+
+    def test_edgeless_doc_external_is_phantom(self):
+        assert graph._is_phantom_orphan(
+            "doc_external", None, "doc:external:https://img.shields.io/badge"
+        )
+
+    def test_real_symbol_is_not_phantom(self):
+        assert not graph._is_phantom_orphan(
+            "function", "src/x.py", "code:function:src/x.py::f"
+        )
+
+    def test_inrepo_module_with_path_is_not_phantom(self):
+        assert not graph._is_phantom_orphan(
+            "module", "src/core/x.py", "code:module:core.x"
+        )

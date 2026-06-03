@@ -4072,7 +4072,21 @@ def cos_graph_ranking(
     )
 
 
-def _is_phantom_orphan(kind: str | None, file_path: str | None) -> bool:
+def _is_phantom_orphan(
+    kind: str | None, file_path: str | None, uid: str | None = None
+) -> bool:
+    uid = uid or ""
+    # Code-line ref mis-noded as a task by a superseded extractor — a real
+    # task uid is `task:file:TASK-NNN` / `task:file:unknown:<path.md>`, never
+    # one carrying a `path.py#L1234` source anchor. Zero-edge garbage.
+    if uid.startswith("task:file:") and "#L" in uid:
+        return True
+    # Zero-edge module / external-doc stub with no on-disk path: a dangling
+    # import target (e.g. a stdlib module) or a dead external link left when
+    # the referencing edge moved. Idempotent re-extraction recreates it if
+    # still referenced, so pruning the orphan is safe.
+    if kind in ("module", "doc_external") and not file_path:
+        return True
     # Zero-edge file/doc_file with NULL/extensionless path = stub or dir-phantom.
     if kind not in ("file", "doc_file"):
         return False
@@ -4299,7 +4313,7 @@ def cos_graph_doctor(
                     "cos:identifier:"
                 ):
                     stub_orphans.append((uid_, kind_, label_))
-                elif _is_phantom_orphan(kind_, fp_):
+                elif _is_phantom_orphan(kind_, fp_, uid_):
                     # Fixable junk: zero-edge stub / dir-phantom.
                     phantom_orphans.append((uid_, kind_, label_))
                 else:
