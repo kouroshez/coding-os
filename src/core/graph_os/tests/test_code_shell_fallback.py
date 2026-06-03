@@ -41,10 +41,21 @@ class TestResolveScriptTarget:
         assert out == "code:file:a/b/helper.sh"
 
     def test_dirname_bash_source_idiom(self):
-        # Resolver handles the unbraced $BASH_SOURCE[0] form (not ${...}).
+        # Resolver handles the unbraced $BASH_SOURCE[0] form.
         out = code_shell._resolve_script_target(
             "a/b/x.sh", '$(dirname "$BASH_SOURCE[0]")/lib.sh'
         )
+        assert out == "code:file:a/b/lib.sh"
+
+    def test_dirname_braced_bash_source_idiom(self):
+        # Braced ${BASH_SOURCE[0]} — the common real-world form (was lost).
+        out = code_shell._resolve_script_target(
+            "a/b/x.sh", '$(dirname "${BASH_SOURCE[0]}")/lib.sh'
+        )
+        assert out == "code:file:a/b/lib.sh"
+
+    def test_dirname_braced_zero(self):
+        out = code_shell._resolve_script_target("a/b/x.sh", '$(dirname "${0}")/lib.sh')
         assert out == "code:file:a/b/lib.sh"
 
     def test_still_dynamic_var_returns_empty(self):

@@ -86,7 +86,9 @@ def module_uid(path: str) -> str:
     return f"code:module:{_normalize_path(path)}"
 
 
-_DIRNAME_SELF_RE = re.compile(r"""^\$\(dirname\s+["']?\$(?:0|BASH_SOURCE\[0\])["']?\)/?""")
+_DIRNAME_SELF_RE = re.compile(
+    r"""^\$\(dirname\s+["']?\$\{?(?:0|BASH_SOURCE\[0\])\}?["']?\)/?"""
+)
 
 
 def _resolve_script_target(origin: str, target: str) -> str:
