@@ -9,6 +9,7 @@ import hashlib
 import logging
 import re
 from pathlib import PurePosixPath
+from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from .md_links import (
@@ -183,6 +184,313 @@ def function_uid(path: str, name: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Tree-sitter AST walker (parity path). Used when the TS/TSX grammar is
+# available — emits the SAME node/edge shapes as the regex extractors but
+# AST-accurate: class/interface/function/arrow/method nodes, calls sourced
+# at the enclosing scope (regex can't determine scope), inherits_from /
+# implements, param/return type edges, and JSX component constructs. The
+# regex path (below) stays the fallback for grammar-less installs.
+# ---------------------------------------------------------------------------
+
+
+def _ts_name(node: Any) -> str:
+    if node is None:
+        return ""
+    n = node.child_by_field_name("name")
+    return n.text.decode("utf-8", "replace") if n is not None else ""
+
+
+def _ts_line(node: Any) -> int:
+    return int(node.start_point[0]) + 1
+
+
+def _ts_type_head(type_annotation_node: Any) -> str:
+    if type_annotation_node is None:
+        return ""
+    for c in type_annotation_node.children:
+        if c.type != ":":
+            txt = c.text.decode("utf-8", "replace").strip()
+            return txt.split("<")[0].split("[")[0].split("|")[0].strip()
+    return ""
+
+
+def _ts_method_uid(path: str, cls: str, name: str) -> str:
+    return f"code:method:{path}::{cls}.{name}"
+
+
+def _ts_resolve_type(name: str, imported_names: dict[str, str], local_names: dict[str, str]) -> str:
+    head = name.split("<")[0].split(".")[0].strip()
+    if head in local_names:
+        return local_names[head]
+    if head in imported_names:
+        return f"code:external:{imported_names[head]}:{head}"
+    return f"code:external:unresolved:{head}"
+
+
+def _ts_decorator_name(dec: Any) -> str:
+    for c in dec.children:
+        if c.type in ("identifier", "member_expression"):
+            return c.text.decode("utf-8", "replace")
+        if c.type == "call_expression":
+            fn = c.child_by_field_name("function")
+            if fn is not None:
+                return fn.text.decode("utf-8", "replace")
+    return ""
+
+
+def _ts_enclosing_scope(node: Any, path: str) -> str | None:
+    cur = node.parent
+    while cur is not None:
+        t = cur.type
+        if t in ("function_declaration", "generator_function_declaration"):
+            nm = _ts_name(cur)
+            if nm:
+                return function_uid(path, nm)
+        elif t == "method_definition":
+            mn = _ts_name(cur)
+            cls = cur.parent
+            while cls is not None and cls.type not in ("class_declaration", "class"):
+                cls = cls.parent
+            cn = _ts_name(cls) if cls is not None else ""
+            if mn and cn:
+                return _ts_method_uid(path, cn, mn)
+        elif t in ("arrow_function", "function", "function_expression"):
+            p = cur.parent
+            if p is not None and p.type == "variable_declarator":
+                nm = _ts_name(p)
+                if nm:
+                    return function_uid(path, nm)
+        cur = cur.parent
+    return None
+
+
+def _ts_emit_type_edges(fn_node: Any, *, owner_uid: str, path: str, result: ExtractionResult) -> None:
+    params = fn_node.child_by_field_name("parameters")
+    if params is not None:
+        for p in params.children:
+            if p.type not in ("required_parameter", "optional_parameter"):
+                continue
+            ta = p.child_by_field_name("type")
+            if ta is None:
+                ta = next((c for c in p.children if c.type == "type_annotation"), None)
+            tname = _ts_type_head(ta)
+            if tname and tname[:1].isalpha():
+                result.edges.append(GraphEdge(
+                    source_uid=owner_uid,
+                    target_uid=f"code:external:unresolved:{tname}",
+                    edge_type="has_param_type", extractor=EXTRACTOR_ID_TS, confidence=0.5,
+                    source_span=f"{path}:{_ts_line(p)}",
+                    evidence=(EvidenceSignal("ts_annotation", 0.5),)))
+    rt = fn_node.child_by_field_name("return_type")
+    tname = _ts_type_head(rt)
+    if tname and tname[:1].isalpha() and tname not in ("void", "any", "unknown", "never", "Promise"):
+        result.edges.append(GraphEdge(
+            source_uid=owner_uid,
+            target_uid=f"code:external:unresolved:{tname}",
+            edge_type="returns_type", extractor=EXTRACTOR_ID_TS, confidence=0.5,
+            source_span=f"{path}:{_ts_line(fn_node)}",
+            evidence=(EvidenceSignal("ts_annotation", 0.5),)))
+
+
+def _walk_ts_symbols(
+    root: Any,
+    *,
+    path: str,
+    module_uid_: str,
+    file_uid_: str,
+    lang: str,
+    imported_names: dict[str, str],
+    local_names: dict[str, str],
+    result: ExtractionResult,
+) -> None:
+    """AST-accurate symbol/edge extraction from a tree-sitter TS/TSX tree."""
+    from ..tree_sitter_overlay import iter_nodes
+
+    # ---- Pass A: declarations (populate local_names before resolving calls) ----
+    for fn in iter_nodes(root, {"function_declaration", "generator_function_declaration"}):
+        name = _ts_name(fn)
+        if not name:
+            continue
+        uid = function_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=uid, kind="code:function", label=name, file_path=path,
+            start_line=_ts_line(fn), signature=f"function {name}(…)", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS}))
+        local_names[name] = uid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        _ts_emit_type_edges(fn, owner_uid=uid, path=path, result=result)
+
+    for vd in iter_nodes(root, {"variable_declarator"}):
+        val = vd.child_by_field_name("value")
+        if val is None or val.type not in ("arrow_function", "function", "function_expression"):
+            continue
+        name = _ts_name(vd)
+        if not name or name in local_names:
+            continue
+        uid = function_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=uid, kind="code:function", label=name, file_path=path,
+            start_line=_ts_line(vd), signature=f"const {name} = (…) =>", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS, "arrow": True}))
+        local_names[name] = uid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        _ts_emit_type_edges(val, owner_uid=uid, path=path, result=result)
+
+    for it in iter_nodes(root, {"interface_declaration"}):
+        name = _ts_name(it)
+        if not name:
+            continue
+        uid = interface_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=uid, kind="code:interface", label=name, file_path=path,
+            start_line=_ts_line(it), signature=f"interface {name}", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS}))
+        local_names[name] = uid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        ext = next((c for c in it.children if c.type == "extends_type_clause"), None)
+        if ext is not None:
+            for t in ext.children:
+                if t.type in ("type_identifier", "identifier", "generic_type"):
+                    result.edges.append(GraphEdge(
+                        source_uid=uid,
+                        target_uid=_ts_resolve_type(
+                            t.text.decode("utf-8", "replace"), imported_names, local_names),
+                        edge_type="extends", extractor=EXTRACTOR_ID_TS, confidence=0.8,
+                        source_span=f"{path}:{_ts_line(ext)}"))
+
+    for ta in iter_nodes(root, {"type_alias_declaration"}):
+        name = _ts_name(ta)
+        if not name or name in local_names:
+            continue
+        uid = interface_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=uid, kind="code:interface", label=name, file_path=path,
+            start_line=_ts_line(ta), signature=f"type {name}", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS, "type_alias": True}))
+        local_names[name] = uid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+
+    for cls in iter_nodes(root, {"class_declaration"}):
+        name = _ts_name(cls)
+        if not name:
+            continue
+        cuid = class_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=cuid, kind="code:class", label=name, file_path=path,
+            start_line=_ts_line(cls), signature=f"class {name}", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS}))
+        local_names[name] = cuid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=cuid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        for dec in cls.children:
+            if dec.type != "decorator":
+                continue
+            dname = _ts_decorator_name(dec)
+            if dname:
+                result.edges.append(GraphEdge(
+                    source_uid=cuid,
+                    target_uid=_ts_resolve_type(dname, imported_names, local_names),
+                    edge_type="is_decorated_by", extractor=EXTRACTOR_ID_TS, confidence=0.85,
+                    source_span=f"{path}:{_ts_line(dec)}"))
+        heritage = next((c for c in cls.children if c.type == "class_heritage"), None)
+        if heritage is not None:
+            for clause in heritage.children:
+                etype = "inherits_from" if clause.type == "extends_clause" else (
+                    "implements" if clause.type == "implements_clause" else None)
+                if etype is None:
+                    continue
+                for t in clause.children:
+                    if t.type in ("identifier", "type_identifier", "member_expression", "generic_type"):
+                        base = t.text.decode("utf-8", "replace")
+                        result.edges.append(GraphEdge(
+                            source_uid=cuid,
+                            target_uid=_ts_resolve_type(base, imported_names, local_names),
+                            edge_type=etype, extractor=EXTRACTOR_ID_TS, confidence=0.8,
+                            source_span=f"{path}:{_ts_line(clause)}"))
+        body = next((c for c in cls.children if c.type == "class_body"), None)
+        if body is not None:
+            for m in body.children:
+                if m.type != "method_definition":
+                    continue
+                mname = _ts_name(m)
+                if not mname:
+                    continue
+                muid = _ts_method_uid(path, name, mname)
+                result.nodes.append(GraphNode(
+                    uid=muid, kind="code:method", label=mname, file_path=path,
+                    start_line=_ts_line(m), signature=f"{name}.{mname}(…)", lang=lang,
+                    metadata={"extractor": EXTRACTOR_ID_TS}))
+                result.edges.append(GraphEdge(source_uid=cuid, target_uid=muid,
+                    edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+                for dec in m.children:
+                    if dec.type != "decorator":
+                        continue
+                    dname = _ts_decorator_name(dec)
+                    if dname:
+                        result.edges.append(GraphEdge(
+                            source_uid=muid,
+                            target_uid=_ts_resolve_type(dname, imported_names, local_names),
+                            edge_type="is_decorated_by", extractor=EXTRACTOR_ID_TS,
+                            confidence=0.85, source_span=f"{path}:{_ts_line(dec)}"))
+                _ts_emit_type_edges(m, owner_uid=muid, path=path, result=result)
+
+    # ---- Pass B: calls / constructs sourced at the enclosing scope ----
+    for call in iter_nodes(root, {"call_expression", "new_expression"}):
+        fn_field = call.child_by_field_name("function") or call.child_by_field_name("constructor")
+        if fn_field is None:
+            fn_field = call.children[0] if call.children else None
+        if fn_field is None:
+            continue
+        target = fn_field.text.decode("utf-8", "replace").strip()
+        head = target.split(".")[0].split("(")[0].split("<")[0].strip()
+        if not head or head in _TS_KEYWORDS:
+            continue
+        is_new = call.type == "new_expression"
+        is_ctor = is_new or (target.split(".")[-1][:1].isupper())
+        src = _ts_enclosing_scope(call, path) or module_uid_
+        if target in local_names:
+            resolved, conf, sig = local_names[target], 0.9, EvidenceSignal("same_scope", 0.9)
+        elif head in local_names and "." not in target:
+            resolved, conf, sig = local_names[head], 0.9, EvidenceSignal("same_scope", 0.9)
+        elif head in imported_names:
+            specifier = imported_names[head]
+            tail = ".".join(target.split(".")[1:]) or head
+            resolved, conf = f"code:external:{specifier}:{tail}", 0.9
+            sig = EvidenceSignal("explicit_import", 0.9, note=specifier)
+        else:
+            resolved, conf, sig = f"code:external:unresolved:{target}", 0.3, EvidenceSignal("unresolved_call", 0.3)
+        result.edges.append(GraphEdge(
+            source_uid=src, target_uid=resolved,
+            edge_type="constructs" if is_ctor else "calls",
+            extractor=EXTRACTOR_ID_TS, confidence=conf,
+            source_span=f"{path}:{_ts_line(call)}", evidence=(sig,)))
+
+    # ---- Pass C: JSX component usage (tsx) ----
+    if lang == "tsx":
+        for el in iter_nodes(root, {"jsx_opening_element", "jsx_self_closing_element"}):
+            nm = el.child_by_field_name("name")
+            comp = nm.text.decode("utf-8", "replace") if nm is not None else ""
+            if not comp or not comp[:1].isupper():
+                continue  # lowercase = host element (div / View) — skip
+            head = comp.split(".")[0]
+            if comp in local_names:
+                resolved, conf = local_names[comp], 0.8
+            elif head in imported_names:
+                resolved, conf = f"code:external:{imported_names[head]}:{comp}", 0.7
+            else:
+                resolved, conf = f"code:external:unresolved:{comp}", 0.3
+            result.edges.append(GraphEdge(
+                source_uid=module_uid_, target_uid=resolved, edge_type="constructs",
+                extractor=EXTRACTOR_ID_TS, confidence=conf,
+                source_span=f"{path}:{_ts_line(el)}",
+                evidence=(EvidenceSignal("jsx_component", conf),)))
+
+
 def extract(path: str, content: str) -> ExtractionResult:
     """Parse a TS / TSX file → nodes + edges."""
     # Tree-sitter overlay pass (I.6b) — runs first to enrich AST-level
@@ -191,13 +499,13 @@ def extract(path: str, content: str) -> ExtractionResult:
     try:
         from ..tree_sitter_overlay import parse as _ts_parse
 
-        lang_id = "tsx" if path.endswith(".tsx") else "typescript"
+        lang_id = "tsx" if path.endswith((".tsx", ".jsx")) else "typescript"
         _ts_overlay = _ts_parse(lang_id, content)
     except ImportError:
         _ts_overlay = None
     result = ExtractionResult()
     normalised = _normalize_path(path)
-    lang = "tsx" if normalised.endswith(".tsx") else "ts"
+    lang = "tsx" if normalised.endswith((".tsx", ".jsx")) else "ts"
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
     file_node = GraphNode(
@@ -265,53 +573,69 @@ def extract(path: str, content: str) -> ExtractionResult:
         extractor_override=ts_override,
     )
     local_names: dict[str, str] = {}
-    _extract_classes(
-        path=normalised,
-        module_uid_=module.uid,
-        lang=lang,
-        content=decl_scan,
-        result=result,
-        local_names=local_names,
-    )
-    _extract_interfaces(
-        path=normalised,
-        module_uid_=module.uid,
-        lang=lang,
-        content=decl_scan,
-        result=result,
-        local_names=local_names,
-    )
-    _extract_functions(
-        path=normalised,
-        module_uid_=module.uid,
-        lang=lang,
-        content=decl_scan,
-        result=result,
-        local_names=local_names,
-    )
-    _extract_arrow_fns(
-        path=normalised,
-        module_uid_=module.uid,
-        lang=lang,
-        content=decl_scan,
-        result=result,
-        local_names=local_names,
-    )
-    _extract_calls(
-        path=normalised,
-        content=decl_scan,
-        imported_names=imported_names,
-        local_names=local_names,
-        result=result,
-    )
-    if lang == "tsx":
-        _extract_jsx_components(
+    if _ts_overlay is not None:
+        # Parity path (default when grammar parsed): AST-accurate symbol/edge
+        # extraction. Mirrors Python (ast) and Go (code_go@v2 tree-sitter).
+        # Regex below is the fallback only when the grammar is unavailable.
+        _walk_ts_symbols(
+            _ts_overlay.root,
+            path=normalised,
+            module_uid_=module.uid,
+            file_uid_=file_node.uid,
+            lang=lang,
+            imported_names=imported_names,
+            local_names=local_names,
+            result=result,
+        )
+    else:
+        # Regex fallback (grammar absent) — backwards-compatible.
+        _extract_classes(
+            path=normalised,
+            module_uid_=module.uid,
+            lang=lang,
+            content=decl_scan,
+            result=result,
+            local_names=local_names,
+        )
+        _extract_interfaces(
+            path=normalised,
+            module_uid_=module.uid,
+            lang=lang,
+            content=decl_scan,
+            result=result,
+            local_names=local_names,
+        )
+        _extract_functions(
+            path=normalised,
+            module_uid_=module.uid,
+            lang=lang,
+            content=decl_scan,
+            result=result,
+            local_names=local_names,
+        )
+        _extract_arrow_fns(
+            path=normalised,
+            module_uid_=module.uid,
+            lang=lang,
+            content=decl_scan,
+            result=result,
+            local_names=local_names,
+        )
+        _extract_calls(
             path=normalised,
             content=decl_scan,
             imported_names=imported_names,
             local_names=local_names,
             result=result,
         )
+        if lang == "tsx":
+            _extract_jsx_components(
+                path=normalised,
+                content=decl_scan,
+                imported_names=imported_names,
+                local_names=local_names,
+                result=result,
+            )
 
     # S3: Folder→...→File spine.
     emit_contains_spine(

@@ -12,8 +12,16 @@ Legend: `[ ]` todo · `[x]` done · `[~]` intentionally not changed · **FIX** s
 1. **Restart the MCP server** so the live `cos_graph_*` tools pick up the new code (`cos_graph_doctor` reports `server_stale: true`; tool behaviour changes — FTS5 query, balanced trim, in_degree, similar, detect_changes — load on restart).
 2. **`cos graph-reindex --force`** to realize F17 (clears the 88 stale_paths via the new `_resolve_link`) + index the newly-included `.js/.jsx` + drop newly-excluded build dirs. Until then the on-disk fix is proven by unit repro but the live graph still shows the old nodes.
 
+## G7 — Polyglot parity (TS/JS/React/Next/RN → Python-grade) ✅ 683 + 104 TS tests
+Ground-truth showed `code_ts` was regex-gated behind a never-flipped `COS_EXTRACTOR_PREFERENCE` env var → only ~3/10 (no class/method/calls/type edges). Fix:
+- [x] Built `_walk_ts_symbols` — tree-sitter AST walker (mirrors code_go@v2): class/interface/type-alias/function/arrow/method nodes; **calls sourced at the enclosing scope** (regex couldn't); inherits_from/implements/extends; is_decorated_by (class+method); has_param_type/returns_type; JSX component constructs.
+- [x] Graduated it to the **default** path when the grammar parses (was env-gated). Regex stays as grammar-absent fallback. `.js/.jsx/.mjs/.cjs` + `.jsx`→tsx grammar.
+- [x] Reconciled 2 regex-era tests (interface `extends`, class decorator) by adding those edges to the walker.
+- [x] Framework routes verified via `contracts`: go-fiber (`app.Get/Post`) + Next.js (`export function GET/POST`) → `cos:route` + `handles_route`.
+- Verify: ✅ 104 TS tests + 683 graph_os suite, zero regressions. Live scores after reindex.
+
 ### DEFER (still need your OK — unchanged)
-F2 call-graph resolution lift · React/Next/RN component+hook modeling · CUT viewer/ + groups/ · split graph.py (4322 LOC).
+F2 deep call-graph resolution (cross-file method receiver type-inference) · React hook-dependency graph (useState/useEffect dep edges — beyond Python's rubric) · CUT viewer/ + groups/ · split graph.py (4322 LOC).
 
 ## G1 — Coverage / ingest  (`ingest/base.py`, `tools/reindex_dispatch.py`, `hooks/auto-reindex-docs.sh`) ✅ 712 passed, hooks clean
 - [x] **FIX F10** — index plain JS: added `*.js *.jsx *.mjs *.cjs` to `DEFAULT_INCLUDE` + `_EXT_MAP` (→ code_ts chain) + hook matcher.

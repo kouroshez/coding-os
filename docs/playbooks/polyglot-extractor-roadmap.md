@@ -78,7 +78,8 @@ World-class polyglot graph
 │
 ├── Languages (target = Python parity)
 │   ├── Python ......................... DONE ✅ — reference impl (47K LOC, AST + ts overlay)
-│   ├── TypeScript ..................... GOOD — tree-sitter; gap = LSP types
+│   ├── TypeScript/TSX ................. DONE ✅ — tree-sitter AST walker is DEFAULT (_walk_ts_symbols): class/interface/method/function/arrow nodes, calls scoped to enclosing fn, inherits_from/implements/extends, is_decorated_by, param/return type edges, JSX constructs. Regex = fallback only.
+│   ├── JavaScript/JSX ................. DONE ✅ — same code_ts tree-sitter walker (.js/.jsx/.mjs/.cjs)
 │   ├── Go ............................. code_go@v2 ts rewrite SHIPPED; gap = install tree_sitter_go dep (regex fallback runs until then)
 │   ├── Shell .......................... DONE ✅ — tree-sitter-bash (regex is fallback only)
 │   ├── YAML ........................... GOOD — PyYAML based
