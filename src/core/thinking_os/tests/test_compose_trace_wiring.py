@@ -61,6 +61,7 @@ class TestAutoComposeEmitsTrace:
         line = auto_compose._compose_roles("COMPLICATED", 3, str(panel_dir), "audit all security and auth code")
 
         assert line  # a context line was produced
+        assert "[role:" in line  # lead-role directive injected, not just the chain label (TASK-065)
         assert (panel_dir / ".roles").is_file()  # marker → panel (banner)
         events = _compose_done_events(agent_dir, "ses-auto-1")  # trace → agent-level (panel reads)
         assert len(events) == 1

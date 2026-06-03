@@ -58,6 +58,25 @@ def _session_id(panel_dir: str | None) -> str:
     return os.environ.get("COS_PANEL_ID") or "auto"
 
 
+def _lead_directive(lead: str, max_lines: int = 2) -> str:
+    """First <=max_lines of the lead role's prompt_prefix — real in-session
+    guidance, not just a label. Reuses formula_composer.load_roles (cached).
+    Fail-open to '' so the nudge degrades to the chain label on any error.
+    """
+    try:
+        import formula_composer
+
+        meta = formula_composer.load_roles().get(lead, {})
+        prefix = (meta.get("prompt_prefix") or "").strip()
+        if not prefix:
+            return ""
+        lines = [ln.strip() for ln in prefix.splitlines() if ln.strip()]
+        return " ".join(lines[:max_lines])
+    except Exception as exc:
+        logger.debug("lead directive unavailable: %s", exc)
+        return ""
+
+
 def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: str) -> str:
     """Compose + stamp the role chain. Returns a context line ('' on miss).
 
@@ -89,7 +108,13 @@ def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: st
     lead = chain.chain[0]
     rest = len(chain.chain) - 1
     suffix = f"+{rest}" if rest > 0 else ""
-    return f"[roles] auto-composed: {lead}{suffix} ({chain.source}) → {' → '.join(chain.chain)}"
+    line = f"[roles] auto-composed: {lead}{suffix} ({chain.source}) → {' → '.join(chain.chain)}"
+    # Append the lead role's directive so the nudge actually GUIDES the agent
+    # in-session, not just labels the chain (TASK-065). Token-cheap (lead only).
+    directive = _lead_directive(lead)
+    if directive:
+        line += f"\n[role:{lead}] {directive}"
+    return line
 
 
 def _recall_patterns(gate_class: str, agent_dir: str | None) -> str:
