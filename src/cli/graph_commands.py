@@ -364,6 +364,54 @@ def register(cli: click.Group) -> None:
         _, tools = _open_backend()
         _json_echo(tools.cos_graph_diff(base=base, head=head), pretty=pretty)
 
+    @cli.command(name="graph-resolve")
+    @click.argument("q")
+    @click.option("--kinds", default="")
+    @click.option("--top", default=10, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_resolve(q, kinds, top, pretty):
+        """Resolve a label / path / partial to canonical uids."""
+        _, tools = _open_backend()
+        kset = tuple(k.strip() for k in kinds.split(",") if k.strip())
+        _json_echo(
+            tools.cos_graph_resolve(q, kinds=kset or None, top=top),
+            pretty=pretty,
+        )
+
+    @cli.command(name="graph-centrality")
+    @click.option("--metric", default="degree", type=click.Choice(["degree", "betweenness"]))
+    @click.option("--top", default=20, type=int)
+    @click.option("--kind", default="")
+    @click.option("--pretty", is_flag=True)
+    def graph_centrality(metric, top, kind, pretty):
+        """Hub / chokepoint nodes — degree or betweenness centrality."""
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_centrality(metric=metric, top=top, kind=kind or None),
+            pretty=pretty,
+        )
+
+    @cli.command(name="graph-ranking")
+    @click.option("--query", default="")
+    @click.option("--top", default=20, type=int)
+    @click.option("--kind", default="")
+    @click.option("--pretty", is_flag=True)
+    def graph_ranking(query, top, kind, pretty):
+        """PageRank importance — optionally personalised by query."""
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_ranking(query=query or None, top=top, kind=kind or None),
+            pretty=pretty,
+        )
+
+    @cli.command(name="graph-doctor")
+    @click.option("--fix", is_flag=True, help="Attempt safe repairs (delete dangling/stale).")
+    @click.option("--pretty", is_flag=True)
+    def graph_doctor(fix, pretty):
+        """Graph health — orphans, dangling edges, duplicates, backend status."""
+        _, tools = _open_backend()
+        _json_echo(tools.cos_graph_doctor(fix=fix), pretty=pretty)
+
     @cli.command(name="graph-reindex")
     @click.option("--path", default=None, help="Directory to reindex (default: repo root).")
     @click.option("--no-docs", is_flag=True, help="Skip the docs RAG layer.")
