@@ -1,0 +1,166 @@
+"""Tests for graph_os.extractors.code_shell — regex fallback + path resolver.
+
+The tree-sitter path is exercised by the existing I.7 suite; this file
+targets the genuinely-uncovered code: the regex fallback walker (used on
+lean installs without tree-sitter-bash) and the pure
+``_resolve_script_target`` resolver branches.
+"""
+
+from __future__ import annotations
+
+import textwrap
+
+import pytest
+
+from graph_os.extractors import code_shell
+
+
+@pytest.fixture
+def regex_mode(monkeypatch):
+    # Force the regex fallback path (lean install without tree-sitter-bash).
+    monkeypatch.setattr(code_shell, "_TS_AVAILABLE", False)
+
+
+def _extract(src: str, *, path: str = "src/core/hooks/sample.sh"):
+    return code_shell.extract(path, textwrap.dedent(src).lstrip("\n"))
+
+
+# ---------------------------------------------------------------------------
+# _resolve_script_target — pure resolver
+# ---------------------------------------------------------------------------
+
+
+class TestResolveScriptTarget:
+    def test_empty_target(self):
+        assert code_shell._resolve_script_target("a/b/x.sh", "") == ""
+
+    def test_dirname_self_idiom_rewrites_to_sibling(self):
+        out = code_shell._resolve_script_target(
+            "a/b/x.sh", '$(dirname "$0")/helper.sh'
+        )
+        assert out == "code:file:a/b/helper.sh"
+
+    def test_dirname_bash_source_idiom(self):
+        # Resolver handles the unbraced $BASH_SOURCE[0] form (not ${...}).
+        out = code_shell._resolve_script_target(
+            "a/b/x.sh", '$(dirname "$BASH_SOURCE[0]")/lib.sh'
+        )
+        assert out == "code:file:a/b/lib.sh"
+
+    def test_still_dynamic_var_returns_empty(self):
+        assert code_shell._resolve_script_target("a/b/x.sh", "$HOME/x.sh") == ""
+
+    def test_backtick_dynamic_returns_empty(self):
+        assert code_shell._resolve_script_target("a/b/x.sh", "`pwd`/x.sh") == ""
+
+    def test_absolute_path(self):
+        assert (
+            code_shell._resolve_script_target("a/b/x.sh", "/opt/tools/y.sh")
+            == "code:file:opt/tools/y.sh"
+        )
+
+    def test_relative_parent_traversal(self):
+        assert (
+            code_shell._resolve_script_target("a/b/x.sh", "../helper.sh")
+            == "code:file:a/helper.sh"
+        )
+
+    def test_relative_sibling_dot_slash(self):
+        assert (
+            code_shell._resolve_script_target("a/b/x.sh", "./helper.sh")
+            == "code:file:a/b/helper.sh"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Regex fallback walker
+# ---------------------------------------------------------------------------
+
+
+class TestRegexFallback:
+    def test_file_module_contains_always(self, regex_mode):
+        r = _extract("echo hi")
+        assert any(n.kind == "code:file" for n in r.nodes)
+        assert any(n.kind == "code:module" for n in r.nodes)
+        assert any(e.edge_type == "contains" for e in r.edges)
+
+    def test_function_def_emitted(self, regex_mode):
+        r = _extract(
+            """
+            my_func() {
+              echo hi
+            }
+            """
+        )
+        fns = [n for n in r.nodes if n.kind == "code:function"]
+        assert any(n.label == "my_func" for n in fns)
+
+    def test_function_keyword_form(self, regex_mode):
+        r = _extract("function setup() {\n  :\n}\n")
+        assert any(n.label == "setup" for n in r.nodes if n.kind == "code:function")
+
+    def test_source_emits_imports(self, regex_mode):
+        r = _extract("source ./cos-env.sh\n")
+        assert any(e.edge_type == "imports" for e in r.edges)
+
+    def test_dot_source_form(self, regex_mode):
+        r = _extract(". ./cos-env.sh\n")
+        assert any(e.edge_type == "imports" for e in r.edges)
+
+    def test_call_script_emits_calls(self, regex_mode):
+        r = _extract("bash scripts/deploy.sh\n", path="src/core/hooks/x.sh")
+        assert any(e.edge_type == "calls" for e in r.edges)
+
+    def test_cos_log_hook_handles_tool(self, regex_mode):
+        r = _extract("cos_log_hook my-hook enter\n")
+        assert any(
+            e.edge_type == "handles_tool" and e.target_uid == "cos:hook:my-hook"
+            for e in r.edges
+        )
+
+    def test_heredoc_function_not_matched(self, regex_mode):
+        # E10: a function-looking line INSIDE a heredoc must not spawn a node.
+        r = _extract(
+            """
+            cat <<EOF
+            phantom_func() {
+              echo nope
+            }
+            EOF
+            """
+        )
+        assert not any(n.label == "phantom_func" for n in r.nodes if n.kind == "code:function")
+
+    def test_commented_function_not_matched(self, regex_mode):
+        r = _extract("# ghost() {\nreal() {\n  :\n}\n")
+        labels = {n.label for n in r.nodes if n.kind == "code:function"}
+        assert "ghost" not in labels and "real" in labels
+
+    def test_self_call_skipped(self, regex_mode):
+        # Calling own basename (no slash) must not emit a self calls-edge.
+        r = _extract("bash sample.sh\n", path="src/core/hooks/sample.sh")
+        assert not any(
+            e.edge_type == "calls" and e.target_uid.endswith("sample.sh")
+            for e in r.edges
+        )
+
+    def test_dynamic_source_records_parse_error(self, regex_mode):
+        r = _extract("source $SOME_DIR/x.sh\n")
+        assert any(pe.kind == "dynamic" for pe in r.parse_errors)
+
+
+# ---------------------------------------------------------------------------
+# Determinism (regex path)
+# ---------------------------------------------------------------------------
+
+
+class TestDeterminism:
+    _SRC = "source ./cos-env.sh\nmy_fn() {\n  cos_log_hook h enter\n}\n"
+
+    def test_regex_deterministic(self, regex_mode):
+        a = code_shell.extract("src/core/hooks/x.sh", self._SRC)
+        b = code_shell.extract("src/core/hooks/x.sh", self._SRC)
+        assert [n.uid for n in a.nodes] == [n.uid for n in b.nodes]
+        assert [(e.source_uid, e.target_uid, e.edge_type) for e in a.edges] == [
+            (e.source_uid, e.target_uid, e.edge_type) for e in b.edges
+        ]
