@@ -3536,6 +3536,111 @@ def cos_graph_cycles(
 _DEAD_CODE_SKIP_LABELS = frozenset({"main", "register", "extract", "setup"})
 
 
+def _is_test_file(fp: str) -> bool:
+    return bool(fp) and (
+        fp.startswith("tests/")
+        or "/tests/" in fp
+        or fp.startswith("test_")
+        or "/test_" in fp
+        or "_test." in fp
+    )
+
+
+def cos_graph_test_gap(
+    *,
+    kind: str = "",
+    top: int = 50,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    """List prod function/method/class with zero inbound edge from any test (untested symbols)."""
+    err = _validate_positive_int(top, "top")
+    if err:
+        return err
+    top, _ = _clamp_int(top, min_v=1, max_v=500)
+    try:
+        be = _backend(backend=backend)
+    except BackendUnavailable as exc:
+        return _fail("unavailable", str(exc), retryable=True)
+    sqlite_conn = getattr(be, "_conn", None)
+    if sqlite_conn is None:
+        return _ok(
+            {"untested": [], "total_count": 0, "note": "test-gap scan requires the sqlite backend"},
+            meta={"backend": be.backend_id, "layer": "graph"},
+        )
+    kinds: tuple[str, ...] = (
+        "function", "method", "class",
+        "code:function", "code:method", "code:class",
+    )
+    if kind:
+        from ..types import normalize_kind as _normalize_kind_enum
+
+        try:
+            kn = _normalize_kind_enum(kind).value
+        except Exception:
+            return _fail("validation", f"unknown kind {kind!r}; use function|method|class")
+        kinds = (kn, f"code:{kn}")
+
+    ref_types = sorted(_BEHAVIOURAL_EDGE_TYPES)
+    # Inbound edge counts ONLY when the source is a test file → symbols with
+    # COUNT(s.id)=0 have no test exercising them (the inverse of dead_code).
+    test_src = (
+        "(s.file_path LIKE 'tests/%' OR s.file_path LIKE '%/tests/%' "
+        "OR s.file_path LIKE 'test_%' OR s.file_path LIKE '%/test_%' "
+        "OR s.file_path LIKE '%_test.%')"
+    )
+    edge_ph = ",".join("?" * len(ref_types))
+    kind_ph = ",".join("?" * len(kinds))
+    try:
+        rows = sqlite_conn.execute(
+            f"""
+            SELECT n.uid, n.kind, n.label, n.file_path
+            FROM graph_nodes n
+            LEFT JOIN graph_edges_v12 e
+              ON e.target_id = n.id AND e.edge_type IN ({edge_ph})
+            LEFT JOIN graph_nodes s ON s.id = e.source_id AND {test_src}
+            WHERE n.kind IN ({kind_ph})
+              AND n.uid NOT LIKE 'code:external:%'
+              AND n.file_path IS NOT NULL AND n.file_path != ''
+            GROUP BY n.id
+            HAVING COUNT(s.id) = 0
+            """,
+            (*ref_types, *kinds),
+        ).fetchall()
+    except Exception as exc:
+        return _fail("internal", f"test-gap query failed: {exc}")
+
+    untested: list[dict[str, Any]] = []
+    for uid, nkind, label, fp in rows:
+        lab = label or ""
+        if _is_test_file(fp or ""):
+            continue  # don't report test code itself as "untested"
+        if lab.startswith("__") or lab in _DEAD_CODE_SKIP_LABELS:
+            continue
+        if (fp or "").endswith(".sh"):
+            continue  # shell has no call-graph → cannot infer test coverage
+        untested.append({"uid": uid, "kind": nkind, "label": lab, "file_path": fp})
+
+    untested.sort(key=lambda d: (d["file_path"] or "", d["label"]))
+    total = len(untested)
+    return _ok(
+        {
+            "untested": untested[:top],
+            "total_count": total,
+            "note": (
+                "candidates — symbols with no inbound edge from a test file. "
+                "Indirect exercise (via CLI, fixtures, dynamic dispatch) may not "
+                "show as an edge; shell excluded (no call-graph)."
+            ),
+        },
+        meta={
+            "backend": be.backend_id,
+            "layer": "graph",
+            "kind": kind or "function,method,class",
+            "result_truncated": total > top,
+        },
+    )
+
+
 def cos_graph_dead_code(
     *,
     kind: str = "",

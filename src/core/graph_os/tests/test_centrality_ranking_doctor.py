@@ -536,3 +536,32 @@ class TestCycles:
 
     def test_rejects_bad_scope(self, seeded):
         _fail(graph.cos_graph_cycles(scope="bogus"), "validation")
+
+
+# ---------------------------------------------------------------------------
+# cos_graph_test_gap
+# ---------------------------------------------------------------------------
+
+
+class TestTestGap:
+    def test_flags_untested_excludes_tested_and_testcode(self, migrated_conn, monkeypatch):
+        nodes = [
+            GraphNode(uid="code:function:app.py::prod_tested", kind="code:function", label="prod_tested", file_path="app.py"),
+            GraphNode(uid="code:function:app.py::prod_untested", kind="code:function", label="prod_untested", file_path="app.py"),
+            GraphNode(uid="code:function:tests/test_app.py::test_it", kind="code:function", label="test_it", file_path="tests/test_app.py"),
+        ]
+        edges = [
+            GraphEdge(source_uid="code:function:tests/test_app.py::test_it", target_uid="code:function:app.py::prod_tested", edge_type="calls", extractor="test", confidence=0.9),
+        ]
+        _seed(migrated_conn, monkeypatch, nodes, edges)
+        try:
+            data = _ok(graph.cos_graph_test_gap(kind="function"))
+            labels = {d["label"] for d in data["untested"]}
+            assert "prod_untested" in labels  # no test exercises it
+            assert "prod_tested" not in labels  # called by test_it
+            assert "test_it" not in labels  # test code itself excluded
+        finally:
+            graph._BACKEND_SINGLETON = None
+
+    def test_rejects_unknown_kind(self, seeded):
+        _fail(graph.cos_graph_test_gap(kind="bogus"), "validation")

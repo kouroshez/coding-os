@@ -2793,6 +2793,35 @@ if _GRAPH_TOOLS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_graph_test_gap",
+        annotations={
+            "title": "Graph Test-Gap (untested symbols)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_test_gap_tool(
+        kind: str = "",
+        top: int = 50,
+    ) -> str:
+        """List prod function/method/class with zero inbound edge from any test (untested symbols).
+
+        Candidates only: indirect exercise (CLI / fixtures / dynamic dispatch)
+        may not appear as a graph edge. Shell excluded (no call-graph).
+
+        Args:
+            kind: Optional filter — function | method | class. Empty = all three.
+            top: Max returned (default 50, max 500).
+
+        Returns:
+            JSON envelope with `untested` (list) + total_count.
+        """
+        return _graph_tools.cos_graph_test_gap(kind=kind or "", top=int(top))
+
+    @mcp.tool(
         name="cos_graph_doctor",
         annotations={
             "title": "Graph Health Doctor",
