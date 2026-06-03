@@ -1,5 +1,5 @@
 ---
-description: Always-active rule when editing meta-repo authoring paths. Codifies the "graph before grep, graph before Read" discipline. Lists the 16 cos_graph_* tools and the structural questions that mandate each. Pairs with the graph-explorer skill which has the full decision ladder.
+description: Always-active rule when editing meta-repo authoring paths. Codifies the "graph before grep, graph before Read" discipline. Lists the 21 cos_graph_* tools and the structural questions that mandate each. Pairs with the graph-explorer skill which has the full decision ladder.
 globs: "src/core/**/*.py,src/cli/**/*.py,src/adapters/**/*.py,src/templates/**/stack.yaml,src/core/hooks/registry.yaml"
 alwaysApply: false
 ---
@@ -27,15 +27,20 @@ Decision ladder: [src/core/skills/graph-explorer/SKILL.md](../../../core/skills/
 | subsystems / clusters / map of | `cos_graph_communities()` |
 | context around this file / surrounding | `cos_graph_context(uid_or_path, depth=1)` |
 
-## The remaining 8 (ad-hoc)
+## The remaining 13 (ad-hoc)
 
 | Need | Tool |
 |---|---|
 | Pre-commit blast-radius | `cos_graph_detect_changes(files=[...])` |
+| Blast-radius of a git range (PR review) | `cos_graph_diff(base, head)` |
 | Find symbol by name | `cos_graph_query(q, kind=...)` |
+| NL/path/partial → canonical uid | `cos_graph_resolve(q)` |
 | Entry-point discovery | `cos_graph_entrypoints()` |
 | Hub / chokepoint nodes | `cos_graph_centrality(by="degree"|"betweenness")` |
 | Importance ranking (PageRank) | `cos_graph_ranking(query=...)` |
+| Circular dependencies (SCC) | `cos_graph_cycles(scope="imports"|"calls")` |
+| Untested prod symbols | `cos_graph_test_gap()` |
+| Dead-code candidates | `cos_graph_dead_code()` |
 | Diagram export | `cos_graph_export(format="mermaid", root_uid=...)` |
 | Shortest path between X and Y | `cos_graph_path(src, tgt)` |
 | Graph health snapshot | `cos_graph_doctor()` |
