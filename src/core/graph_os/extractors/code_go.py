@@ -162,12 +162,12 @@ def _parse_receiver(recv: str) -> str:
     if not recv:
         return ""
     raw = recv.strip()
+    # Drop the type-parameter list first — `[K, V]` contains a space that
+    # would otherwise break the whitespace split and leave a "V]" remnant.
+    if "[" in raw:
+        raw = raw[: raw.index("[")]
     parts = raw.split()
-    type_part = parts[-1] if parts else raw
-    type_part = type_part.lstrip("*")
-    if "[" in type_part:
-        type_part = type_part.split("[", 1)[0]
-    return type_part
+    return (parts[-1] if parts else raw).lstrip("*")
 
 
 _TEST_KIND_MAP = {
