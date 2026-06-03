@@ -477,3 +477,27 @@ def test_ranking_labels_outrank_incidental_path_match(migrated_conn, monkeypatch
             assert order.index(handler) < order.index(worklog)
     finally:
         graph._BACKEND_SINGLETON = None
+
+
+# ---------------------------------------------------------------------------
+# cos_graph_dead_code
+# ---------------------------------------------------------------------------
+
+
+class TestDeadCode:
+    def test_flags_unreferenced_symbols(self, seeded):
+        data = _ok(graph.cos_graph_dead_code(kind="function"))
+        labels = {d["label"] for d in data["dead"]}
+        assert "orphan" in labels  # zero inbound edges → dead
+        assert "foo" in labels  # only inbound is `contains` (structural, not behavioural)
+        assert "bar" not in labels  # called by foo
+        assert "baz" not in labels  # called by bar
+        assert data["total_count"] >= 2
+        assert "candidates only" in data["note"]
+
+    def test_rejects_unknown_kind(self, seeded):
+        _fail(graph.cos_graph_dead_code(kind="bogus"), "validation")
+
+    def test_envelope_meta_layer_graph(self, seeded):
+        data = _ok(graph.cos_graph_dead_code())
+        assert data["meta"]["layer"] == "graph"

@@ -2722,6 +2722,44 @@ if _GRAPH_TOOLS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_graph_dead_code",
+        annotations={
+            "title": "Graph Dead-Code Candidates",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_dead_code_tool(
+        kind: str = "",
+        top: int = 50,
+        include_tests: bool = False,
+    ) -> str:
+        """List in-repo symbols with zero non-test inbound references (dead-code candidates).
+
+        Surfaces functions / methods / classes that nothing (outside tests)
+        calls, constructs, subclasses, or type-references — the inverse of
+        centrality. Candidates only: dynamic-dispatch / CLI-registered /
+        externally-called symbols may appear; verify with cos_graph_references
+        before deleting.
+
+        Args:
+            kind: Optional filter — function | method | class. Empty = all three.
+            top: Max candidates returned (default 50, max 500).
+            include_tests: Count test-sourced edges + include test files (default False).
+
+        Returns:
+            JSON envelope with `dead` (list) + `total_count`.
+        """
+        return _graph_tools.cos_graph_dead_code(
+            kind=kind or "",
+            top=int(top),
+            include_tests=bool(include_tests),
+        )
+
+    @mcp.tool(
         name="cos_graph_doctor",
         annotations={
             "title": "Graph Health Doctor",
