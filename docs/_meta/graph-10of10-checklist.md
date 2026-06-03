@@ -29,8 +29,16 @@ Legend: `[ ]` todo · `[x]` done.
 - [ ] Resolve `self.method()` (py) / `this.method()` (ts) to the enclosing class's method uid (scope-aware, no LSP). Raises in-repo call resolution. Bounded — only same-class self/this receiver.
 - Verify: `pytest graph_os` + reindex + resolution-rate before/after.
 
-## FINAL
-- [ ] `cos graph-reindex --force` + `cos_graph_doctor` clean.
-- [ ] Full MCP tool review: every cos_graph_* returns valid envelope (self-test + spot live calls).
-- [ ] `make verify-hooks` if any hook touched (none expected).
-- [ ] Report: scores, per-tool outputs, before/after resolution.
+## STATUS — ALL DONE ✅ (commits: 77aacb1 GA · 195f180 GB · 3eb1fec GC · GD · f44a572 GE)
+- [x] GA cos_graph_cycles — live: 0 import-cycles (repo acyclic). 42 tests.
+- [x] GB cos_graph_test_gap — live: 1828 untested-fn candidates. tests.
+- [x] GC cos_graph_diff — live: HEAD~1..HEAD = 4 files/risk high. tests.
+- [x] GD shell intra-call — live: 0→49 shell call edges. 13 shell tests.
+- [x] GE self/this resolution — live: 232 self_method correct-class resolutions (precision); shell+py reindexed. 695 graph tests.
+- Graph tool count: 18 → **21**.
+
+## FINAL ✅
+- [x] `cos graph-reindex --force` (1124 files, 606 stubs) + `cos_graph_doctor --fix` (deleted 60 fossils) → only INFO issues (orphaned_inrepo 10, external_unresolved 1604).
+- [x] MCP review: server self-test OK; live spot-check of cycles/test_gap/diff/dead_code all return valid envelopes.
+- [x] 695 graph_os tests + full thinking_os suite green.
+- Resolution: py calls 28.0→28.6% (GE = precision: 232 self-calls now correct-class, not coverage); shell 0→49 calls; tsx this_method capability shipped (0 uses in this functional-React repo).
