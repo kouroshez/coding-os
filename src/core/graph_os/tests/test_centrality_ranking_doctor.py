@@ -565,3 +565,19 @@ class TestTestGap:
 
     def test_rejects_unknown_kind(self, seeded):
         _fail(graph.cos_graph_test_gap(kind="bogus"), "validation")
+
+
+# ---------------------------------------------------------------------------
+# cos_graph_diff
+# ---------------------------------------------------------------------------
+
+
+class TestDiff:
+    def test_rejects_injection_ref(self, seeded):
+        _fail(graph.cos_graph_diff(base="x; rm -rf /"), "validation")
+
+    def test_same_ref_is_empty(self, seeded):
+        # HEAD..HEAD has no changed files → empty blast radius (deterministic).
+        data = _ok(graph.cos_graph_diff(base="HEAD", head="HEAD"))
+        assert data["file_count"] == 0
+        assert data["risk_level"] == "none"

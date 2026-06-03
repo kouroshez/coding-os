@@ -2822,6 +2822,41 @@ if _GRAPH_TOOLS_AVAILABLE:
         return _graph_tools.cos_graph_test_gap(kind=kind or "", top=int(top))
 
     @mcp.tool(
+        name="cos_graph_diff",
+        annotations={
+            "title": "Graph Diff (git revision blast-radius)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_diff_tool(
+        base: str = "HEAD~1",
+        head: str = "HEAD",
+        analyze_downstream: bool = True,
+    ) -> str:
+        """Graph blast-radius of a git revision range (base..head).
+
+        Resolves changed files via `git diff --name-only base..head`, then maps
+        them to affected symbols + downstream consumers + risk (PR/review view).
+
+        Args:
+            base: Base git revision (default HEAD~1).
+            head: Head git revision (default HEAD).
+            analyze_downstream: Walk transitive consumers (default True).
+
+        Returns:
+            JSON envelope with range, files, symbols, downstream_consumers, risk_level.
+        """
+        return _graph_tools.cos_graph_diff(
+            base=str(base),
+            head=str(head),
+            analyze_downstream=bool(analyze_downstream),
+        )
+
+    @mcp.tool(
         name="cos_graph_doctor",
         annotations={
             "title": "Graph Health Doctor",
