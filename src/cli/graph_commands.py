@@ -184,16 +184,20 @@ def register(cli: click.Group) -> None:
 
     @cli.command(name="graph-references")
     @click.argument("uid")
-    @click.option("--kinds", default="calls,accesses_field,imports,references_doc")
+    @click.option("--kinds", default="")
     @click.option("--limit", default=100, type=int)
     @click.option("--pretty", is_flag=True)
     def graph_references(uid, kinds, limit, pretty):
         """Inbound edges — who references this."""
         _, tools = _open_backend()
+        # Empty --kinds → None so the tool auto-picks the right default edge
+        # kinds PER node kind (class→constructs/inherits, fn→calls/imports).
+        # A hardcoded CSV default returned 0 for class nodes (MCP parity bug).
+        kset = tuple(k.strip() for k in kinds.split(",") if k.strip())
         _json_echo(
             tools.cos_graph_references(
                 uid,
-                kinds=tuple(k.strip() for k in kinds.split(",") if k.strip()),
+                kinds=kset or None,
                 limit=limit,
             ),
             pretty=pretty,
