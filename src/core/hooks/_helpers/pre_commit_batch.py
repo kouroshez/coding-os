@@ -16,7 +16,9 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import re
 import signal
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -90,6 +92,73 @@ def _run_hook(hook_path: Path, envelope: str, timeout_s: int = 15) -> tuple[int,
     return proc.returncode, out
 
 
+_AUDIT_COMPLETE = re.compile(
+    r"^status:\s*completed\b|\*\*Status:\*\*\s+completed\b|^-\s*\[[xX]\]\s*EvidenceBundle submitted",
+    flags=re.MULTILINE,
+)
+_AUDIT_TASK = re.compile(r"^task_id:\s*(\S+)", flags=re.MULTILINE)
+
+
+def _evidence_dispatch_recorded(db_path: str, task_id: str) -> bool | None:
+    # True/False = found / not-found a real exhaustive_evidence dispatch for the
+    # task. None = indeterminate (no DB, error, or zero evidence history at all,
+    # e.g. a fresh / CI checkout) — caller must fail-open and NOT block.
+    if not db_path or not Path(db_path).is_file():
+        return None
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=2)
+    except sqlite3.Error:
+        return None
+    try:
+        if con.execute(
+            "SELECT 1 FROM formula_dispatches "
+            "WHERE formula_id = 'exhaustive_evidence' AND status = 'ok' LIMIT 1"
+        ).fetchone() is None:
+            return None
+        row = con.execute(
+            "SELECT 1 FROM formula_dispatches "
+            "WHERE task_marker = ? AND formula_id = 'exhaustive_evidence' "
+            "AND status = 'ok' LIMIT 1",
+            (task_id,),
+        ).fetchone()
+    except sqlite3.Error:
+        return None
+    finally:
+        con.close()
+    return row is not None
+
+
+def _check_audit_evidence(abs_path: Path, rel_path: str) -> str | None:
+    # Runtime-independent audit-forgery backstop (fires for human / Codex-GUI /
+    # agent commits alike, since it runs in the git pre-commit). A committed
+    # audit that claims completion must be backed by a real exhaustive_evidence
+    # dispatch — completion comes from cos_supervise_record_output, never a
+    # hand-edit (Rule 25; the Stop guardian trusts the DB row, not the file).
+    # Fail-open everywhere; COS_ALLOW_AUDIT_EDIT=1 is the explicit escape.
+    if os.environ.get("COS_ALLOW_AUDIT_EDIT") == "1":
+        return None
+    try:
+        text = abs_path.read_text(errors="replace")
+    except OSError:
+        return None
+    if not _AUDIT_COMPLETE.search(text):
+        return None
+    m = _AUDIT_TASK.search(text)
+    if not m:
+        return None
+    task_id = m.group(1)
+    if _evidence_dispatch_recorded(os.environ.get("COS_DB_PATH", ""), task_id) is False:
+        return (
+            f"BLOCKED [audit-evidence] {rel_path}: claims completion but no "
+            f"exhaustive_evidence dispatch for {task_id} in formula_dispatches.\n"
+            "  An audit's completion must come from cos_supervise_record_output, "
+            "not a hand-edit (the Stop guardian trusts the DB row, not the file).\n"
+            "  Legit completion: run cos_supervise_record_output first. "
+            "Override: COS_ALLOW_AUDIT_EDIT=1."
+        )
+    return None
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 4:
         print(
@@ -140,6 +209,12 @@ def main(argv: list[str]) -> int:
                     print(f"BLOCKED [task-frontmatter] {rel_path}:", file=sys.stderr)
                     print(out.strip(), file=sys.stderr)
                     failed = True
+
+        if rel_path.startswith("docs/tasks/audits/audit-") and rel_path.endswith(".md"):
+            audit_msg = _check_audit_evidence(abs_path, rel_path)
+            if audit_msg:
+                print(audit_msg, file=sys.stderr)
+                failed = True
 
     return 1 if failed else 0
 
