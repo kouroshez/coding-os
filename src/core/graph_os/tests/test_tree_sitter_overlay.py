@@ -91,3 +91,28 @@ class TestIntegrationWithExtractor:
         assert "ts_ast_nodes" in meta
         assert meta["ts_ast_nodes"] > 0
         assert meta["ts_language"] in {"typescript", "tsx"}
+
+
+class TestDegradation:
+    def test_load_language_none_when_unavailable(self, monkeypatch):
+        # Lean install (tree-sitter absent) → _load_language degrades to None.
+        ts._load_language.cache_clear()
+        monkeypatch.setattr(ts, "is_available", lambda: False)
+        try:
+            assert ts._load_language("python") is None
+        finally:
+            ts._load_language.cache_clear()  # don't poison the lru_cache
+
+    def test_parse_none_when_unavailable(self, monkeypatch):
+        ts._load_language.cache_clear()
+        monkeypatch.setattr(ts, "is_available", lambda: False)
+        try:
+            assert ts.parse("python", "x = 1") is None
+        finally:
+            ts._load_language.cache_clear()
+
+
+class TestNodeTextEdge:
+    def test_node_text_returns_empty_on_bad_node(self):
+        # A node-like object without start_byte/end_byte → "" (not a crash).
+        assert ts.node_text(object(), b"data") == ""
