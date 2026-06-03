@@ -239,6 +239,35 @@ def _ts_decorator_name(dec: Any) -> str:
     return ""
 
 
+def _ts_callee(fn_field: Any) -> tuple[str, str]:
+    """(dotted_target, head_identifier) for a call's function node.
+
+    Reduces chained / multiline expressions (`a().b().join`, `/re/.test`)
+    to a simple ``obj.method`` or bare name so uids never contain newlines
+    or punctuation — the source of the malformed_uid_path regression.
+    """
+    t = fn_field.type
+    if t == "identifier":
+        nm = fn_field.text.decode("utf-8", "replace")
+        return nm, nm
+    if t == "member_expression":
+        prop = fn_field.child_by_field_name("property")
+        propname = prop.text.decode("utf-8", "replace") if prop is not None else ""
+        obj = fn_field.child_by_field_name("object")
+        root = obj
+        while root is not None and root.type == "member_expression":
+            root = root.child_by_field_name("object")
+        headname = (
+            root.text.decode("utf-8", "replace")
+            if (root is not None and root.type == "identifier")
+            else ""
+        )
+        if headname and len(headname) < 40 and "\n" not in headname:
+            return f"{headname}.{propname}", headname
+        return propname, propname
+    return "", ""
+
+
 def _ts_enclosing_scope(node: Any, path: str) -> str | None:
     cur = node.parent
     while cur is not None:
@@ -453,9 +482,8 @@ def _walk_ts_symbols(
             fn_field = call.children[0] if call.children else None
         if fn_field is None:
             continue
-        target = fn_field.text.decode("utf-8", "replace").strip()
-        head = target.split(".")[0].split("(")[0].split("<")[0].strip()
-        if not head or head in _TS_KEYWORDS:
+        target, head = _ts_callee(fn_field)
+        if not target or not re.match(r"^[\w$.]+$", target) or head in _TS_KEYWORDS:
             continue
         is_new = call.type == "new_expression"
         is_ctor = is_new or (target.split(".")[-1][:1].isupper())
