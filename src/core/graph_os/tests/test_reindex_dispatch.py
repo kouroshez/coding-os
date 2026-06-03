@@ -178,3 +178,37 @@ class TestDispatch:
         )
         assert "docs" not in report["layers"]
         assert "graph" in report["layers"]
+
+
+class TestPureHelpers:
+    def test_retryable_lock_error(self):
+        from graph_os.tools.reindex_dispatch import _is_retryable_lock_error
+
+        assert _is_retryable_lock_error(Exception("database is locked"))
+        assert _is_retryable_lock_error(Exception("database is busy"))
+        assert not _is_retryable_lock_error(Exception("syntax error near"))
+
+    def test_task_path_matches_tasks_dir(self):
+        from graph_os.tools.reindex_dispatch import _is_task_path
+
+        assert _is_task_path("docs/tasks/TASK-001.md")
+        assert _is_task_path("repo/tasks/ticket.md")
+
+    def test_task_path_excludes_audits(self):
+        from graph_os.tools.reindex_dispatch import _is_task_path
+
+        # Audit artifacts live under docs/tasks/audits/ — NOT task files.
+        assert not _is_task_path("docs/tasks/audits/audit-x.md")
+
+    def test_task_path_non_task_is_false(self):
+        from graph_os.tools.reindex_dispatch import _is_task_path
+
+        assert not _is_task_path("src/core/foo.py")
+
+    def test_task_path_env_override(self, monkeypatch):
+        from graph_os.tools.reindex_dispatch import _is_task_path
+
+        monkeypatch.setenv("COS_TASK_PATH_FRAGMENTS", "tickets/")
+        assert _is_task_path("docs/tickets/T-1.md")
+        # Default fragments no longer apply once overridden.
+        assert not _is_task_path("docs/tasks/TASK-1.md")
