@@ -18,7 +18,8 @@ Ground-truth showed `code_ts` was regex-gated behind a never-flipped `COS_EXTRAC
 - [x] Graduated it to the **default** path when the grammar parses (was env-gated). Regex stays as grammar-absent fallback. `.js/.jsx/.mjs/.cjs` + `.jsx`→tsx grammar.
 - [x] Reconciled 2 regex-era tests (interface `extends`, class decorator) by adding those edges to the walker.
 - [x] Framework routes verified via `contracts`: go-fiber (`app.Get/Post`) + Next.js (`export function GET/POST`) → `cos:route` + `handles_route`.
-- Verify: ✅ 104 TS tests + 683 graph_os suite, zero regressions. Live scores after reindex.
+- Verify: ✅ 104 TS tests + 683 graph_os suite, zero regressions.
+- **Live (post reindex --force + doctor --fix):** completeness scorecard — Python 12/12·TS/TSX/React **13/13**·JS/Go/Next/RN 10/10 on language-applicable constructs (Go has no decorators/class-inheritance; route files are functions-only — those N/A items aren't gaps). `.js` now indexed. `stale_paths 88→0`, `malformed_uid_path 19→0` (caught+fixed a self-introduced regression: chained-call uids), orphaned_inrepo 45→16. Only INFO `orphaned_external_unresolved` (stdlib stubs) remains.
 
 ### DEFER (still need your OK — unchanged)
 F2 deep call-graph resolution (cross-file method receiver type-inference) · React hook-dependency graph (useState/useEffect dep edges — beyond Python's rubric) · CUT viewer/ + groups/ · split graph.py (4322 LOC).
