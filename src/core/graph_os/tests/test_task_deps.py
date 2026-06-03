@@ -246,3 +246,65 @@ class TestProducesCode:
 
     def test_empty_input_no_edges(self):
         assert task_deps.produces_code_edges(task_id="TASK-1", modified_files=[]) == []
+
+
+# ---------------------------------------------------------------------------
+# Doc-path resolution helpers
+# ---------------------------------------------------------------------------
+
+
+class TestResolveDocRef:
+    def test_plain_path_normalised(self):
+        assert (
+            task_deps._resolve_doc_ref("docs/tasks/T.md", "docs/spec.md")
+            == "docs/spec.md"
+        )
+
+    def test_relative_parent_resolves_against_origin_dir(self):
+        assert (
+            task_deps._resolve_doc_ref("docs/tasks/T.md", "../engineering/x.md")
+            == "docs/engineering/x.md"
+        )
+
+    def test_dot_slash_relative(self):
+        assert (
+            task_deps._resolve_doc_ref("docs/tasks/T.md", "./sibling.md")
+            == "docs/tasks/sibling.md"
+        )
+
+    def test_escapes_repo_root_returns_none(self):
+        assert task_deps._resolve_doc_ref("docs/T.md", "../../../etc/passwd") is None
+
+    def test_backtick_ref_returns_none(self):
+        assert task_deps._resolve_doc_ref("docs/T.md", "some`code`ref") is None
+
+    def test_whitespace_ref_returns_none(self):
+        assert task_deps._resolve_doc_ref("docs/T.md", "a b.md") is None
+
+    def test_empty_ref_returns_none(self):
+        assert task_deps._resolve_doc_ref("docs/T.md", "   ") is None
+
+
+class TestExtractDocPaths:
+    def test_pulls_and_dedups_md_paths(self):
+        out = task_deps._extract_doc_paths(
+            ["see docs/a.md and docs/b.md", "docs/a.md again"],
+            origin_path="docs/tasks/T.md",
+        )
+        assert out == ["docs/a.md", "docs/b.md"]
+
+    def test_drops_root_escaping_ref(self):
+        out = task_deps._extract_doc_paths(
+            ["../../../../outside.md"], origin_path="docs/T.md"
+        )
+        assert out == []
+
+
+class TestExtractScopePaths:
+    def test_pulls_code_paths_and_dedups(self):
+        out = task_deps._extract_scope_paths(["edit src/a.py and src/a.py"])
+        assert out == ["src/a.py"]
+
+    def test_multiple_languages(self):
+        out = task_deps._extract_scope_paths(["touch lib/x.ts and pkg/y.go"])
+        assert set(out) == {"lib/x.ts", "pkg/y.go"}
