@@ -460,6 +460,27 @@ class TestBlockSecrets:
         result = run_hook("block-secrets.sh", stdin=payload)
         assert result.returncode == 0
 
+    def test_blocks_no_verify_flag(self) -> None:
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": 'git commit --no-verify -m "x"'},
+            }
+        )
+        result = run_hook("block-secrets.sh", stdin=payload)
+        assert result.returncode == 2
+
+    def test_allows_no_verify_inside_commit_message(self) -> None:
+        # The flag named inside the -m message must NOT trip the flag block.
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": 'git commit -m "docs: --no-verify is blocked now"'},
+            }
+        )
+        result = run_hook("block-secrets.sh", stdin=payload)
+        assert result.returncode == 0
+
 
 class TestBlockDangerousCommands:
     def test_blocks_force_push_main(self) -> None:
