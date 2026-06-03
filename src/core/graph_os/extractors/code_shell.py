@@ -243,6 +243,18 @@ def _emit_log_hook_edge(
     )
 
 
+def _enclosing_function_uid(node, content_bytes: bytes, path: str) -> str | None:
+    cur = node.parent
+    while cur is not None:
+        if cur.type == "function_definition":
+            for ch in cur.children:
+                if ch.type in ("word", "concatenation"):
+                    nm = _ts_overlay.node_text(ch, content_bytes).strip()
+                    return f"code:function:{_normalize_path(path)}::{nm}" if nm else None
+        cur = cur.parent
+    return None
+
+
 def _walk_ts(
     root,
     content_bytes: bytes,
@@ -253,6 +265,21 @@ def _walk_ts(
 ) -> int:
     """Walk the tree-sitter-bash AST. Returns ERROR-node count."""
     assert _ts_overlay is not None  # _TS_AVAILABLE gate guards caller
+    # Pass 1: collect locally-defined function names so intra-script calls
+    # resolve (a command matching a same-file function = a real call edge).
+    local_funcs: dict[str, str] = {}
+    pre = [root]
+    while pre:
+        n = pre.pop()
+        if n.type == "function_definition":
+            for ch in n.children:
+                if ch.type in ("word", "concatenation"):
+                    nm = _ts_overlay.node_text(ch, content_bytes).strip()
+                    if nm:
+                        local_funcs[nm] = f"code:function:{_normalize_path(path)}::{nm}"
+                    break
+        pre.extend(n.children)
+    seen_calls: set[tuple[str, str]] = set()
     err_count = 0
     stack = [root]
     while stack:
@@ -299,10 +326,29 @@ def _walk_ts(
                     if txt.endswith(".sh"):
                         _emit_call_edge(txt, l, path, normalised, result, mod_uid)
                         break
-            else:
+            elif cmd_name.endswith(".sh"):
                 # Direct `./script.sh` or `script.sh` invocation.
-                if cmd_name.endswith(".sh"):
-                    _emit_call_edge(cmd_name, line, path, normalised, result, mod_uid)
+                _emit_call_edge(cmd_name, line, path, normalised, result, mod_uid)
+            elif cmd_name in local_funcs:
+                # GD: invocation of a function defined in THIS file — a real
+                # intra-script call. Source = enclosing function (tree scope)
+                # or the module when called at top level.
+                tgt = local_funcs[cmd_name]
+                src = _enclosing_function_uid(node, content_bytes, path) or mod_uid
+                key = (src, tgt)
+                if src != tgt and key not in seen_calls:
+                    seen_calls.add(key)
+                    result.edges.append(
+                        GraphEdge(
+                            source_uid=src,
+                            target_uid=tgt,
+                            edge_type="calls",
+                            extractor=EXTRACTOR_ID,
+                            confidence=0.9,
+                            source_span=f"{normalised}:{line}",
+                            evidence=(EvidenceSignal("shell_local_call", 0.9),),
+                        )
+                    )
             stack.extend(reversed(list(node.children)))
             continue
         stack.extend(reversed(list(node.children)))
