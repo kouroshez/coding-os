@@ -319,3 +319,104 @@ class TestPythonExtractorIntegration:
         assert _module_name_for_path("src/myapp/auth.py") == "myapp.auth"
         # core/ prefix is also stripped
         assert _module_name_for_path("core/foo.py") == "foo"
+
+
+# ---------------------------------------------------------------------------
+# Error / edge branches (coverage of the defensive paths)
+# ---------------------------------------------------------------------------
+
+
+class TestGoModEdges:
+    def test_go_mod_without_module_line_is_empty(self, tmp_path: Path):
+        (tmp_path / "go.mod").write_text("go 1.22\nrequire x v1.0.0\n")
+        ctx = load_toolchain(tmp_path)
+        assert ctx.go_module == ""
+
+
+class TestCargoEdges:
+    def test_malformed_cargo_returns_empty(self, tmp_path: Path):
+        (tmp_path / "Cargo.toml").write_text("[package\nname = broken")
+        ctx = load_toolchain(tmp_path)
+        assert ctx.rust_crates == {}
+
+    def test_workspace_member_without_cargo_toml_skipped(self, tmp_path: Path):
+        (tmp_path / "Cargo.toml").write_text(
+            '[workspace]\nmembers = ["crates/real", "crates/ghost"]\n'
+        )
+        (tmp_path / "crates" / "real").mkdir(parents=True)
+        (tmp_path / "crates" / "real" / "Cargo.toml").write_text(
+            '[package]\nname = "real"\nversion = "0.1.0"\n'
+        )
+        # crates/ghost has no Cargo.toml → silently skipped.
+        ctx = load_toolchain(tmp_path)
+        assert ctx.rust_crates == {"real": "crates/real"}
+
+    def test_workspace_member_malformed_cargo_skipped(self, tmp_path: Path):
+        (tmp_path / "Cargo.toml").write_text('[workspace]\nmembers = ["m"]\n')
+        (tmp_path / "m").mkdir()
+        (tmp_path / "m" / "Cargo.toml").write_text("[package broken")
+        ctx = load_toolchain(tmp_path)
+        assert ctx.rust_crates == {}
+
+
+class TestPyprojectEdges:
+    def test_malformed_pyproject_returns_empty(self, tmp_path: Path):
+        (tmp_path / "pyproject.toml").write_text("[project\nname = broken")
+        ctx = load_toolchain(tmp_path)
+        assert ctx.python_packages == {}
+
+    def test_setuptools_package_dir(self, tmp_path: Path):
+        (tmp_path / "pyproject.toml").write_text(
+            textwrap.dedent(
+                """
+                [tool.setuptools]
+                package-dir = {mypkg = "lib/mypkg"}
+                """
+            ).strip()
+        )
+        (tmp_path / "lib" / "mypkg").mkdir(parents=True)
+        ctx = load_toolchain(tmp_path)
+        assert ctx.python_packages["mypkg"] == "lib/mypkg"
+
+    def test_poetry_include_without_from(self, tmp_path: Path):
+        (tmp_path / "pyproject.toml").write_text(
+            textwrap.dedent(
+                """
+                [[tool.poetry.packages]]
+                include = "flatpkg"
+                """
+            ).strip()
+        )
+        (tmp_path / "flatpkg").mkdir()
+        ctx = load_toolchain(tmp_path)
+        assert ctx.python_packages["flatpkg"] == "flatpkg"
+
+    def test_project_name_no_matching_dir_omitted(self, tmp_path: Path):
+        # [project] name present but neither src/<name> nor <name> exists.
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "ghost"\n')
+        ctx = load_toolchain(tmp_path)
+        assert "ghost" not in ctx.python_packages
+
+    def test_cargo_package_without_name_no_root_crate(self, tmp_path: Path):
+        (tmp_path / "Cargo.toml").write_text('[package]\nversion = "0.1.0"\n')
+        ctx = load_toolchain(tmp_path)
+        assert ctx.rust_crates == {}
+
+    def test_poetry_entry_missing_include_skipped(self, tmp_path: Path):
+        (tmp_path / "pyproject.toml").write_text(
+            textwrap.dedent(
+                """
+                [[tool.poetry.packages]]
+                from = "src"
+                """
+            ).strip()
+        )
+        ctx = load_toolchain(tmp_path)
+        assert ctx.python_packages == {}
+
+    def test_setuptools_package_dir_missing_dir_omitted(self, tmp_path: Path):
+        (tmp_path / "pyproject.toml").write_text(
+            '[tool.setuptools]\npackage-dir = {gone = "nope/gone"}\n'
+        )
+        ctx = load_toolchain(tmp_path)
+        assert "gone" not in ctx.python_packages
