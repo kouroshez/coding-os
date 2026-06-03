@@ -240,7 +240,7 @@ coding-os/
 └── .coding-os/         # Per-project runtime state (gitignored)
 ```
 
-## Command index (22 commands)
+## Command index (highlights · 74 `cos` subcommands total)
 
 ```
 Project lifecycle    init · setup · add-adapter · add-stack · update · eject · eject-file
@@ -249,8 +249,13 @@ Brain                docs-index · task-sync · reindex · server-start
 Hub                  hub start · hub status · hub stop
 Board                board · task-show · task-create · task-start · task-move · task-done · daily · retro · wip
 Cognition            cognition trace · cognition trace-replay · cognition trace-summary
-Graph                graph-reindex · graph-viz · graph-doctor
+Graph (build)        graph-reindex · graph-viz · graph-doctor · graph-stats
+Graph (query)        graph-query · graph-context · graph-references · graph-impact · graph-path · graph-trace · graph-similar
+Graph (audit)        graph-contracts · graph-rename-plan · graph-cycles · graph-test-gap · graph-dead-code · graph-diff · graph-detect-changes
 ```
+
+All 24 `graph-*` subcommands mirror a `cos_graph_*` MCP tool one-for-one
+(same envelope) — agents use the MCP tool, humans/CI use the CLI.
 
 Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architecture/meta-project.md).
 
@@ -286,7 +291,7 @@ the 11 `/role-*` commands from [src/core/thinking_os/agents/](./src/core/thinkin
 | Routing      | `cos_route_model` · `cos_route_skill`                             |
 | Docs         | `cos_doc_search` · `cos_doc_header` · `cos_doc_headers_by`        |
 | Tasks        | `cos_task_search` · `cos_task_board` · `cos_task_move` (+ 13 more) |
-| Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` (+ 12 more) |
+| Graph        | `cos_graph_query` · `cos_graph_references` · `cos_graph_impact` · `cos_graph_rename_plan` · `cos_graph_cycles` · `cos_graph_test_gap` (21 total) |
 | Cognition    | `cos_analyze_task` · `cos_compose_chain` · `cos_supervise` · `cos_backtrack_log` |
 | Retrieval    | `cos_retrieve` (auto-router across all layers)                    |
 
@@ -312,25 +317,47 @@ types (`contains`, `calls`, `imports`, `inherits_from`,
 `cos_graph_impact`, `cos_graph_rename_plan` — and gets a small,
 high-confidence JSON envelope back.
 
-### Benchmark — graph vs read-the-file (live repo · 37,606 nodes · 74,319 edges)
+### Most-depended nodes (live `cos_graph_centrality` / `cos_graph_ranking`)
 
-Three representative agent questions, asked against this very codebase.
-Token counts are **measured**, not estimated, against the actual MCP
-response payload and the actual file the Read tool would consume:
+The graph knows its own pressure points. The structural hubs in this
+repo — the nodes a change ripples furthest from:
 
-| Question | Tool | `Read`-the-file tokens | `cos_graph_*` tokens | **Savings** | Latency |
-|---|---|---:|---:|---:|---:|
-| Who calls `cos_graph_query`? | `cos_graph_references` | 23,985 | **140** | **99.4%** | 3 ms |
-| What breaks if `init_db` signature changes? | `cos_graph_impact(depth=2)` | 18,754 | **579** | **96.9%** | 1 ms |
-| Who depends on the `GraphNode` dataclass? | `cos_graph_references` | 1,808 | **140** | **92.3%** | <1 ms |
+| Node | Kind | Inbound deps | Why it's load-bearing |
+|---|---|---:|---|
+| `GraphNode` | class | 118 | data contract every extractor + backend constructs |
+| `init_db` | function | 108 | DB bootstrap — also the #1 *betweenness* chokepoint |
+| `GraphEdge` | class | 106 | the edge half of the node/edge contract |
+| `ok` / `safe_tool` | function | 89 / 84 | MCP envelope wrappers around every `cos_*` tool |
+| `cos-env.sh` | file | 79 | every hook sources it (top file-level hub) |
 
-**Mean: 96.2% token reduction · response in single-digit milliseconds.**
-Numbers reflect the post-`truncated`/`total_count` envelope (a ~6–11
-token coverage tax per call — the price of not silently truncating).
+`cos graph-centrality --metric betweenness` re-ranks the same set by
+*bridge* importance: `init_db` and `_backend` top that list — removing
+either disconnects whole subgraphs. The repo is **acyclic**
+(`cos graph-cycles` → 0 import cycles: clean hexagonal layering).
 
-The savings compound across a session: an agent that asks 50 structural
-questions over a feature spends ~50 KB of context, not ~1 MB of file
-reads — leaving the budget for actual reasoning.
+### Benchmark — graph vs read-the-file (live repo · 33,548 nodes · 72,797 edges)
+
+"What breaks if I change X?" answered two ways — read **every caller
+file** to be *sure* you caught them all (the safe manual path), vs one
+`cos_graph_*` envelope. Token counts are **measured** on this codebase
+(file bytes ÷ 4; tool `tokens_estimated` from the live envelope):
+
+| Question | Graph tool (result) | Manual: read all callers | Graph envelope | **Savings** |
+|---|---|---:|---:|---:|
+| What breaks if `init_db` changes? | `cos_graph_impact` — 508 impacted | 100 files ≈ 456,000 tok | **7,962 tok** | **98.3%** |
+| Who must a `GraphNode` rename touch? | `cos_graph_rename_plan` — 118 sites, risk=high | 26 files ≈ 170,000 tok | **7,519 tok** | **95.6%** |
+| Who sources `cos-env.sh`? | `cos_graph_references` — 79 refs | grep + open each hook | **579 tok** | ~99% |
+
+The exact numbers shift per machine and per tokenizer — the **ratio**
+(roughly 20–100× less context) is what holds. The leanest queries
+(`cos_graph_references(limit=20)`) answer in 140–600 tokens vs 2K–24K
+for even a *single* file Read. Every envelope carries `total_count` +
+`truncated`, so the agent knows when it has the whole answer — no silent
+truncation.
+
+The savings compound: an agent asking 50 structural questions over a
+feature spends ~50–400 KB of context, not the multiple MB an exhaustive
+file sweep would cost — leaving the budget for actual reasoning.
 
 ### Per-kind coverage
 

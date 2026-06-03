@@ -26,7 +26,7 @@ graph instead of grep + Read + guess.
 
 Use file Read **only** for the 1–3 files the graph tells you matter.
 
-## Hallucination → Cure matrix (17 tools)
+## Hallucination → Cure matrix (21 tools)
 
 > **Rule #0 — resolve before querying.** All `cos_graph_*` tools that accept a `uid` parameter
 > require a fully-qualified UID (`code:file:<path>`, `code:function:<path>::<name>`, etc.).
@@ -64,6 +64,10 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | 16 | "Sketch this subsystem." | Mermaid by hand drifts from reality | `cos_graph_export(format="mermaid", root_uid=...)` | Always-fresh diagram, copy-pasteable |
 | 17 | "Is the graph itself healthy / why are answers stale?" | Backend selection / extractor breakage hides | `cos_graph_doctor()` — orphans split into `orphaned_inrepo` (real bugs) vs `orphaned_external_unresolved` (info-only stdlib stubs), `malformed_uid_path` (extractor over-capture: `../`, backtick, whitespace), `stale_paths` (deleted files), dangling edges, duplicates. The `orphaned_external_unresolved` issue carries a per-prefix `breakdown` (`external_unresolved` / `external_other` / `identifier_stub`) so the count isn't misread as all-unresolved. `fix=True` deletes stale + malformed + dangling. | One health snapshot vs. SQL spelunking |
 | 18 | "Where does this npm/pypi/crates dep come from?" | Config files (package.json / pyproject.toml / Cargo.toml / tsconfig.json / mcp.json / settings.json) were invisible to the graph before 9bee865 — agents had to read each file by hand | `cos_graph_query` now finds `npm:package:<n>`, `pypi:package:<n>`, `crates:package:<n>`, `mcp:server:<n>` directly; `cos_graph_references(uid)` traces back to the declaring config file | One graph hop vs. multi-file Read + manual JSON/TOML parse |
+| 19 | "I *think* this symbol is unused — safe to delete." | Eyeballing imports misses reflective / decorator / dynamic callers; grep can't tell test-only from prod use | `cos_graph_dead_code()` — in-repo symbols with zero *non-test* inbound refs; the only authoritative dead-code list | One ranked list vs. per-symbol grep + judgement call |
+| 20 | "Is there a circular import lurking?" | Cycles span ≥3 modules; no single file shows the loop | `cos_graph_cycles(scope="imports")` — strongly-connected components ≥2 (design smell); `scope="calls"` for recursion clusters | One SCC pass vs. manual import-trace across modules |
+| 21 | "What's untested before I refactor?" | Coverage tools need a run; grep can't map test→subject edges | `cos_graph_test_gap()` — prod fn/method/class with zero inbound edge from any test source | One list vs. cross-referencing tests by hand |
+| 22 | "What does this PR/commit-range actually touch?" | `git diff` shows lines, not the blast radius of the changed symbols | `cos_graph_diff(base, head)` — changed files → affected symbols → downstream consumers + risk level | One envelope vs. diff-read + manual impact tracing |
 
 ## Tool by intent
 
