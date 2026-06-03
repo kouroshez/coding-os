@@ -324,10 +324,11 @@ def guard_completion(
     # FILE (not the bundle), catching the Codex-CLI path that writes no bundle.
     # COVERAGE (do not overstate): this runs at the agent Stop event and is
     # anchored on intent.json (a UserPromptSubmit artifact), so it covers
-    # Claude / Cursor / Codex-CLI but NOT Codex-GUI / human-direct (0 hooks) —
-    # closing that hole needs a git-level pre-commit backstop with an
-    # audit->dispatch link (schema work, tracked separately). The dispatch
-    # lookup is session-keyed (any exhaustive_evidence row this session clears
+    # Claude / Cursor / Codex-CLI but NOT Codex-GUI / human-direct (0 hooks).
+    # That cross-runtime hole is closed by the git-level pre-commit backstop
+    # pre_commit_batch._check_audit_evidence (matches audit task_id ->
+    # formula_dispatches.task_marker; no schema change). The dispatch lookup
+    # here is session-keyed (any exhaustive_evidence row this session clears
     # all its completed audits, not per-audit). Fail-open on DB / empty sid.
     forgery_gaps: list[str] = []
     anchor = _intent_anchor_mtime(agent_dir)
