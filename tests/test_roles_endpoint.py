@@ -56,6 +56,26 @@ def test_roles_chain_reads_state_files(client):
     assert data["has_active_session"] is True
 
 
+def test_roles_chain_prefers_trace_over_stale_marker(client):
+    # TASK-065: under concurrent panels the .roles marker can be stale; the
+    # newest agent-level compose_done trace is the consistent source.
+    c, state = client
+    agent_dir = state / "claude"
+    (agent_dir / ".roles").write_text(json.dumps(["analyst"]), encoding="utf-8")  # stale marker
+    (agent_dir / ".role").write_text("reviewer", encoding="utf-8")
+    trace = agent_dir / "traces" / "ses-x.jsonl"
+    trace.write_text(
+        json.dumps(
+            {"kind": "compose_done", "data": {"chain": ["refactorer", "architect", "reviewer"]}, "ts": 9}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    data = c.get("/api/roles/chain", params={"agent": "claude"}).json()["data"]
+    assert data["chain"] == ["refactorer", "architect", "reviewer"]  # trace wins over marker
+    assert data["active_formula"] == "reviewer"  # active still from .role marker
+
+
 def test_roles_outputs_collects_trace_and_bundle(client):
     c, state = client
     trace = state / "claude" / "traces" / "ses-test-1.jsonl"

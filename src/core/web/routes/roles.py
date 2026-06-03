@@ -264,26 +264,18 @@ async def current_chain(
     chain: list[str] = []
     active_formula: str | None = None
 
-    # Panel-first (TASK-057 F1.4): .roles/.role are per-panel markers under
-    # panels/<id>/; the agent-level copy is a stale fossil. Read the newest copy
-    # across agent_dir + every panel so the Hub shows the LIVE panel's chain
-    # (mirrors presence.py::_newest_marker).
-    raw = _newest_marker(agent_dir, ".roles")
-    if raw:
-        raw = raw.strip()
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, list):
-                chain = [str(x) for x in parsed]
-        except json.JSONDecodeError:
-            chain = [x.strip() for x in raw.split(",") if x.strip()]
-
+    # Active role is the freshest per-panel signal (what the agent is DOING).
     active_raw = _newest_marker(agent_dir, ".role")
     if active_raw:
         active_formula = active_raw.strip() or None
 
-    if not chain:
-        traces_dir = state / agent / "traces"
+    # Chain: prefer the newest agent-level compose_done trace — it is the
+    # consistent, cross-panel-safe source the EVIDENCE view also reads
+    # (TASK-065). Scattered per-panel .roles markers can be stale under
+    # concurrent panels (chain showed ['analyst'] while the live composed chain
+    # was refactorer→architect→implementer→reviewer). Trace first, marker fallback.
+    traces_dir = state / agent / "traces"
+    if traces_dir.exists():
         for p in sorted(traces_dir.glob("*.jsonl"), reverse=True):
             events = _read_trace_events(state, agent, p.stem)
             for ev in reversed(events):
@@ -292,6 +284,18 @@ async def current_chain(
                     break
             if chain:
                 break
+
+    # Fallback to the per-panel .roles marker when no trace exists yet.
+    if not chain:
+        raw = _newest_marker(agent_dir, ".roles")
+        if raw:
+            raw = raw.strip()
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, list):
+                    chain = [str(x) for x in parsed]
+            except json.JSONDecodeError:
+                chain = [x.strip() for x in raw.split(",") if x.strip()]
 
     return unwrap(
         json.dumps(
