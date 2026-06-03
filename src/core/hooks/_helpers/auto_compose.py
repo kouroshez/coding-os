@@ -27,13 +27,16 @@ from pathlib import Path
 logger = logging.getLogger("auto_compose")
 
 # formula_composer + cognition_schemas + roles_state live flat under
-# src/core/thinking_os; learning lives under thinking_os/tools. Resolve both
-# through the hook symlink.
+# src/core/thinking_os; learning lives in the thinking_os.tools PACKAGE.
+# Add ONLY thinking_os to sys.path and import learning package-qualified
+# (from tools.learning, below). Adding thinking_os/tools flat would put it
+# AHEAD of thinking_os, so a bare `import cognition` (tools/cognition.py::_cog)
+# could shadow to tools/cognition.py instead of the top-level cognition.py that
+# owns load_situation_registry — the cross-process shadow bug (TASK-066).
 _THIS = Path(__file__).resolve()
 _THINKING_OS = _THIS.parents[2] / "thinking_os"
-for _p in (_THINKING_OS, _THINKING_OS / "tools"):
-    if _p.is_dir() and str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
+if _THINKING_OS.is_dir() and str(_THINKING_OS) not in sys.path:
+    sys.path.insert(0, str(_THINKING_OS))
 
 _COMPOSE_CLASSES = {"COMPLICATED", "COMPLEX"}
 
@@ -133,7 +136,7 @@ def _recall_patterns(gate_class: str, agent_dir: str | None) -> str:
     if not Path(db_path).exists():
         return ""
     try:
-        from learning import learn_suggest
+        from tools.learning import learn_suggest
     except ImportError as exc:
         logger.debug("learn_suggest import unavailable: %s", exc)
         return ""

@@ -30,6 +30,20 @@ def _compose_done_events(agent_dir: Path, session_id: str) -> list[dict]:
     ]
 
 
+def test_auto_compose_import_does_not_shadow_cognition() -> None:
+    """TASK-066: importing auto_compose must not place thinking_os/tools ahead of
+    thinking_os on sys.path — otherwise a bare `import cognition` resolves to
+    tools/cognition.py (no load_situation_registry) and breaks cos_situation_detect.
+    """
+    tos = str(auto_compose._THINKING_OS)
+    tools = str(Path(auto_compose._THINKING_OS) / "tools")
+    if tools in sys.path and tos in sys.path:
+        assert sys.path.index(tos) < sys.path.index(tools)
+    import importlib
+
+    assert hasattr(importlib.import_module("cognition"), "load_situation_registry")
+
+
 class TestRecordComposeTraces:
     def test_emits_compose_done_with_chain(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setenv("COS_AGENT_DIR", str(tmp_path))
