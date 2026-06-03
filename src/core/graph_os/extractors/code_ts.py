@@ -271,7 +271,7 @@ def _ts_callee(fn_field: Any) -> tuple[str, str]:
 def _ts_enclosing_class_uid(node: Any, path: str) -> str | None:
     cur = node.parent
     while cur is not None:
-        if cur.type in ("class_declaration", "class"):
+        if cur.type in ("class_declaration", "abstract_class_declaration", "class"):
             nm = _ts_name(cur)
             return class_uid(path, nm) if nm else None
         cur = cur.parent
@@ -289,7 +289,9 @@ def _ts_enclosing_scope(node: Any, path: str) -> str | None:
         elif t == "method_definition":
             mn = _ts_name(cur)
             cls = cur.parent
-            while cls is not None and cls.type not in ("class_declaration", "class"):
+            while cls is not None and cls.type not in (
+                "class_declaration", "abstract_class_declaration", "class"
+            ):
                 cls = cls.parent
             cn = _ts_name(cls) if cls is not None else ""
             if mn and cn:
@@ -419,7 +421,7 @@ def _walk_ts_symbols(
         result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
             edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
 
-    for cls in iter_nodes(root, {"class_declaration"}):
+    for cls in iter_nodes(root, {"class_declaration", "abstract_class_declaration"}):
         name = _ts_name(cls)
         if not name:
             continue
