@@ -387,11 +387,18 @@ def _walk_ts_symbols(
         local_names[name] = cuid
         result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=cuid,
             edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
-        for dec in cls.children:
+        # Decorators may be children of the class OR of the wrapping
+        # `export_statement` (`@Dec()\nexport class C`). Scan both.
+        _dec_nodes = list(cls.children)
+        if cls.parent is not None and cls.parent.type == "export_statement":
+            _dec_nodes += list(cls.parent.children)
+        _seen_dec: set[str] = set()
+        for dec in _dec_nodes:
             if dec.type != "decorator":
                 continue
             dname = _ts_decorator_name(dec)
-            if dname:
+            if dname and dname not in _seen_dec:
+                _seen_dec.add(dname)
                 result.edges.append(GraphEdge(
                     source_uid=cuid,
                     target_uid=_ts_resolve_type(dname, imported_names, local_names),
