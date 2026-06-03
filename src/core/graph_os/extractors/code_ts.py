@@ -259,13 +259,23 @@ def _ts_callee(fn_field: Any) -> tuple[str, str]:
             root = root.child_by_field_name("object")
         headname = (
             root.text.decode("utf-8", "replace")
-            if (root is not None and root.type == "identifier")
+            if (root is not None and root.type in ("identifier", "this", "super"))
             else ""
         )
         if headname and len(headname) < 40 and "\n" not in headname:
             return f"{headname}.{propname}", headname
         return propname, propname
     return "", ""
+
+
+def _ts_enclosing_class_uid(node: Any, path: str) -> str | None:
+    cur = node.parent
+    while cur is not None:
+        if cur.type in ("class_declaration", "class"):
+            nm = _ts_name(cur)
+            return class_uid(path, nm) if nm else None
+        cur = cur.parent
+    return None
 
 
 def _ts_enclosing_scope(node: Any, path: str) -> str | None:
@@ -335,6 +345,11 @@ def _walk_ts_symbols(
 ) -> None:
     """AST-accurate symbol/edge extraction from a tree-sitter TS/TSX tree."""
     from ..tree_sitter_overlay import iter_nodes
+
+    # GE: per-class method map so `this.method()` resolves to THIS class's
+    # method instead of an unresolved stub (matters for class-heavy TS:
+    # NestJS / Angular). Populated in the class-body method loop below.
+    methods_by_class: dict[str, dict[str, str]] = {}
 
     # ---- Pass A: declarations (populate local_names before resolving calls) ----
     for fn in iter_nodes(root, {"function_declaration", "generator_function_declaration"}):
@@ -457,6 +472,7 @@ def _walk_ts_symbols(
                 if not mname:
                     continue
                 muid = _ts_method_uid(path, name, mname)
+                methods_by_class.setdefault(cuid, {})[mname] = muid
                 result.nodes.append(GraphNode(
                     uid=muid, kind="code:method", label=mname, file_path=path,
                     start_line=_ts_line(m), signature=f"{name}.{mname}(…)", lang=lang,
@@ -488,7 +504,18 @@ def _walk_ts_symbols(
         is_new = call.type == "new_expression"
         is_ctor = is_new or (target.split(".")[-1][:1].isupper())
         src = _ts_enclosing_scope(call, path) or module_uid_
-        if target in local_names:
+        if head == "this" and "." in target:
+            # GE: this.method() → enclosing class's method (else unresolved).
+            encl_cls = _ts_enclosing_class_uid(call, path)
+            mname = target.split(".", 1)[1].split(".")[0]
+            m_uid = methods_by_class.get(encl_cls or "", {}).get(mname)
+            if m_uid:
+                resolved, conf, sig = m_uid, 0.9, EvidenceSignal("this_method", 0.9)
+            else:
+                resolved, conf, sig = (
+                    f"code:external:unresolved:{target}", 0.3, EvidenceSignal("unresolved_call", 0.3),
+                )
+        elif target in local_names:
             resolved, conf, sig = local_names[target], 0.9, EvidenceSignal("same_scope", 0.9)
         elif head in local_names and "." not in target:
             resolved, conf, sig = local_names[head], 0.9, EvidenceSignal("same_scope", 0.9)

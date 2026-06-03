@@ -408,6 +408,7 @@ class _CallSite:
     is_constructor_like: bool  # `Foo()` where Foo looks capitalised
     is_await: bool = False  # E5: `await X()` — emits `awaits` edge
     dispatched_uids: tuple[str, ...] = ()  # E6: known-function uids passed as args
+    enclosing_class_uid: str | None = None  # GE: class scope for self./cls. method resolution
 
 
 @dataclass
@@ -839,6 +840,9 @@ class _PythonVisitor(ast.NodeVisitor):
         self._qualname_stack: list[str] = []
         # Name -> uid map for same-scope lookup (step 1 of 7-step lookup).
         self.symbols_by_name: dict[str, str] = {}
+        # GE: per-class method map so `self.method()` resolves to THIS class's
+        # method, not the last same-named method in the file (bare-name collision).
+        self.methods_by_class: dict[str, dict[str, str]] = {}
         self.imported_local_names: dict[str, _ImportDecl] = {}
 
     # -- import handling ---------------------------------------------------
@@ -969,6 +973,8 @@ class _PythonVisitor(ast.NodeVisitor):
         )
         self.decls.append(decl)
         self.symbols_by_name[name] = uid
+        if in_class:
+            self.methods_by_class.setdefault(parent_uid, {})[name] = uid
 
         for dec in node.decorator_list:  # type: ignore[attr-defined]
             self.decorators_edges.append((uid, _dotted_name(dec)))
@@ -1036,6 +1042,10 @@ class _PythonVisitor(ast.NodeVisitor):
                         resolved = self.symbols_by_name[arg.id]
                         if resolved.startswith(("code:function:", "code:method:")):
                             dispatched.append(resolved)
+                encl_class = next(
+                    (u for u in reversed(self._scope_uid_stack) if u.startswith("code:class:")),
+                    None,
+                )
                 self.calls.append(
                     _CallSite(
                         caller_uid=self._scope_uid_stack[-1],
@@ -1045,6 +1055,7 @@ class _PythonVisitor(ast.NodeVisitor):
                         is_constructor_like=is_ctor,
                         is_await=isinstance(parent, ast.Await),
                         dispatched_uids=tuple(dispatched),
+                        enclosing_class_uid=encl_class,
                     )
                 )
                 for child in ast.iter_child_nodes(sub):
@@ -1109,6 +1120,17 @@ def _resolve_call(
     """
     signals: list[EvidenceSignal] = []
     confidence = 0.0
+
+    # GE: `self.method()` / `cls.method()` → resolve to the ENCLOSING class's
+    # method, not the bare-name match (which picks the last same-named method
+    # in the file — a wrong-target collision). Falls through for inherited /
+    # attribute access not defined on this class.
+    if call.enclosing_class_uid and (
+        call.full_expr.startswith("self.") or call.full_expr.startswith("cls.")
+    ):
+        own_methods = visitor.methods_by_class.get(call.enclosing_class_uid, {})
+        if call.callee_name in own_methods:
+            return (0.95, (EvidenceSignal("self_method", 0.95),), own_methods[call.callee_name])
 
     if call.callee_name in visitor.symbols_by_name:
         signals.append(EvidenceSignal("same_scope", 1.0))

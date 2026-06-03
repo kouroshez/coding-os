@@ -331,3 +331,17 @@ class TestPathAliases:
         )
         imports = [e for e in r.edges if e.edge_type == "imports"]
         assert any(e.target_uid == "code:module:frontend/src/other.ts" for e in imports)
+
+
+def test_this_method_resolves_to_enclosing_class():
+    # GE: this.helper() binds to the enclosing class's method, not unresolved.
+    r = _extract(
+        """
+        export class Svc {
+          run(): void { this.helper() }
+          helper(): void {}
+        }
+        """
+    )
+    calls = [(e.source_uid, e.target_uid) for e in r.edges if e.edge_type == "calls"]
+    assert any(s.endswith("Svc.run") and t.endswith("Svc.helper") for s, t in calls)

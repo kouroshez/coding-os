@@ -496,3 +496,25 @@ class TestEdgeCases:
         # Exactly one call: outer -> inner. No module-level duplicate.
         assert len(calls) == 1
         assert calls[0].source_uid.endswith("::outer")
+
+
+def test_self_method_resolves_to_enclosing_class():
+    # GE: self.helper() must bind to the SAME class's helper, not the last
+    # same-named method in the file (bare-name collision).
+    r = _extract(
+        """
+        class A:
+            def run(self): self.helper()
+            def helper(self): pass
+        class B:
+            def run(self): self.helper()
+            def helper(self): pass
+        """
+    )
+    calls = {
+        (e.source_uid.split("::")[-1], e.target_uid)
+        for e in r.edges
+        if e.edge_type == "calls"
+    }
+    assert ("A.run", "code:method:core/foo.py::A.helper") in calls
+    assert ("B.run", "code:method:core/foo.py::B.helper") in calls
