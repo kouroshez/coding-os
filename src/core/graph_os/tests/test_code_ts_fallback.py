@@ -119,8 +119,7 @@ class TestResolveModuleUid:
 
     def test_bare_specifier_is_npm(self):
         assert (
-            code_ts._resolve_module_uid("frontend/src/foo.ts", "react")
-            == "code:module:npm:react"
+            code_ts._resolve_module_uid("frontend/src/foo.ts", "react") == "code:module:npm:react"
         )
 
 

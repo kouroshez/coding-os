@@ -28,9 +28,7 @@ class TestFileModule:
         mods = [n for n in r.nodes if n.kind == "code:module"]
         assert len(files) == 1 and len(mods) == 1
         assert files[0].lang == "yaml"
-        assert any(
-            e.edge_type == "contains" and e.target_uid == mods[0].uid for e in r.edges
-        )
+        assert any(e.edge_type == "contains" and e.target_uid == mods[0].uid for e in r.edges)
 
     def test_empty_document_no_crash(self):
         # `data is None` branch — file/module still emitted, no parse error.
@@ -79,16 +77,14 @@ class TestHookRegistry:
     def test_hook_contains_edge_from_file(self):
         r = _extract(self._REG, path="src/core/hooks/registry.yaml")
         assert any(
-            e.edge_type == "contains" and e.target_uid == "cos:hook:my-hook"
-            for e in r.edges
+            e.edge_type == "contains" and e.target_uid == "cos:hook:my-hook" for e in r.edges
         )
 
     def test_hook_declares_script_with_slash_kept_verbatim(self):
         r = _extract(self._REG, path="src/core/hooks/registry.yaml")
         # script "sub/dir/nested.sh" has a slash → kept as-is (raw path).
         assert any(
-            e.edge_type == "declares"
-            and e.target_uid == "code:file:sub/dir/nested.sh"
+            e.edge_type == "declares" and e.target_uid == "code:file:sub/dir/nested.sh"
             for e in r.edges
         )
 
@@ -97,8 +93,7 @@ class TestHookRegistry:
         # exist on disk during the test → falls back to the raw name.
         r = _extract(self._REG, path="src/core/hooks/registry.yaml")
         assert any(
-            e.edge_type == "declares" and e.target_uid.endswith("my-hook.sh")
-            for e in r.edges
+            e.edge_type == "declares" and e.target_uid.endswith("my-hook.sh") for e in r.edges
         )
 
     def test_non_dict_entry_skipped(self):
@@ -136,16 +131,14 @@ class TestReferenceKeys:
     def test_read_first_emits_references_doc(self):
         r = _extract("read_first:\n  - docs/spec.md")
         assert any(
-            e.edge_type == "references_doc"
-            and e.target_uid == "doc:file:docs/spec.md"
+            e.edge_type == "references_doc" and e.target_uid == "doc:file:docs/spec.md"
             for e in r.edges
         )
 
     def test_includes_emits_imports(self):
         r = _extract("includes:\n  - shared/base.yaml")
         assert any(
-            e.edge_type == "imports"
-            and e.target_uid == "code:file:shared/base.yaml"
+            e.edge_type == "imports" and e.target_uid == "code:file:shared/base.yaml"
             for e in r.edges
         )
 
@@ -161,9 +154,7 @@ class TestReferenceKeys:
 
     def test_references_key_external_url(self):
         r = _extract("references:\n  - https://example.com/doc")
-        assert any(
-            e.target_uid == "doc:external:https://example.com/doc" for e in r.edges
-        )
+        assert any(e.target_uid == "doc:external:https://example.com/doc" for e in r.edges)
 
 
 # ---------------------------------------------------------------------------

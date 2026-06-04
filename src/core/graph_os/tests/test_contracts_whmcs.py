@@ -32,10 +32,7 @@ class TestAddHook:
 
 class TestModuleFunctions:
     def test_provisioning_module(self):
-        src = (
-            "<?php\nfunction mymod_ConfigOptions() {}\n"
-            "function mymod_CreateAccount($params) {}\n"
-        )
+        src = "<?php\nfunction mymod_ConfigOptions() {}\nfunction mymod_CreateAccount($params) {}\n"
         n = _events(src, "modules/servers/mymod/mymod.php")
         fws = {x.metadata.get("framework") for x in n}
         actions = {x.metadata.get("note") for x in n}

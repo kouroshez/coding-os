@@ -47,12 +47,9 @@ class TestSubtypeAndBasics:
 class TestPyproject:
     def test_project_name_declares_package(self):
         r = _extract('[project]\nname = "myapp"\n', path="pyproject.toml")
+        assert any(n.kind == "dependency" and n.uid == "pypi:package:myapp" for n in r.nodes)
         assert any(
-            n.kind == "dependency" and n.uid == "pypi:package:myapp" for n in r.nodes
-        )
-        assert any(
-            e.edge_type == "declares" and e.target_uid == "pypi:package:myapp"
-            for e in r.edges
+            e.edge_type == "declares" and e.target_uid == "pypi:package:myapp" for e in r.edges
         )
 
     def test_dependencies_with_version_specs_stripped(self):
@@ -84,8 +81,7 @@ class TestPyproject:
             path="pyproject.toml",
         )
         assert any(
-            e.target_uid == "pypi:package:sentence-transformers"
-            and e.edge_type == "imports"
+            e.target_uid == "pypi:package:sentence-transformers" and e.edge_type == "imports"
             for e in r.edges
         )
 
@@ -122,12 +118,8 @@ class TestPyproject:
 
 class TestCargo:
     def test_package_declares_crate(self):
-        r = _extract(
-            '[package]\nname = "mycrate"\nversion = "0.1.0"\n', path="Cargo.toml"
-        )
-        assert any(
-            n.uid == "crates:package:mycrate" and n.kind == "contract" for n in r.nodes
-        )
+        r = _extract('[package]\nname = "mycrate"\nversion = "0.1.0"\n', path="Cargo.toml")
+        assert any(n.uid == "crates:package:mycrate" and n.kind == "contract" for n in r.nodes)
         assert any(e.edge_type == "declares" for e in r.edges)
 
     def test_all_dependency_sections(self):
@@ -152,19 +144,15 @@ class TestCargo:
         } <= targets
 
     def test_workspace_concrete_member(self):
-        r = _extract(
-            '[workspace]\nmembers = ["crates/core"]\n', path="repo/Cargo.toml"
-        )
+        r = _extract('[workspace]\nmembers = ["crates/core"]\n', path="repo/Cargo.toml")
         assert any(
-            e.edge_type == "contains" and e.target_uid == "folder:repo/crates/core"
-            for e in r.edges
+            e.edge_type == "contains" and e.target_uid == "folder:repo/crates/core" for e in r.edges
         )
 
     def test_workspace_glob_member(self):
         r = _extract('[workspace]\nmembers = ["crates/*"]\n', path="repo/Cargo.toml")
         assert any(
-            e.edge_type == "contains" and e.target_uid == "folder:repo/crates"
-            for e in r.edges
+            e.edge_type == "contains" and e.target_uid == "folder:repo/crates" for e in r.edges
         )
 
 

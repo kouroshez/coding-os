@@ -11,7 +11,8 @@ def _nodes(src, path="wp-content/plugins/x/plugin.php"):
 
 def _by_framework(src, fw, path="wp-content/plugins/x/plugin.php"):
     return [
-        n for n in _nodes(src, path)
+        n
+        for n in _nodes(src, path)
         if n.kind in ("cos:route",) and n.metadata.get("framework") == fw
     ]
 
@@ -48,7 +49,9 @@ class TestAjax:
 class TestShortcodeCptRest:
     def test_shortcode(self):
         src = "<?php\nadd_shortcode('my_button', 'render_button');\n"
-        assert any(n.metadata.get("path") == "my_button" for n in _by_framework(src, "wp_shortcode"))
+        assert any(
+            n.metadata.get("path") == "my_button" for n in _by_framework(src, "wp_shortcode")
+        )
 
     def test_register_post_type(self):
         src = "<?php\nregister_post_type('product', array('public' => true));\n"

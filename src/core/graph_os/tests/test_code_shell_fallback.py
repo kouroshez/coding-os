@@ -35,23 +35,17 @@ class TestResolveScriptTarget:
         assert code_shell._resolve_script_target("a/b/x.sh", "") == ""
 
     def test_dirname_self_idiom_rewrites_to_sibling(self):
-        out = code_shell._resolve_script_target(
-            "a/b/x.sh", '$(dirname "$0")/helper.sh'
-        )
+        out = code_shell._resolve_script_target("a/b/x.sh", '$(dirname "$0")/helper.sh')
         assert out == "code:file:a/b/helper.sh"
 
     def test_dirname_bash_source_idiom(self):
         # Resolver handles the unbraced $BASH_SOURCE[0] form.
-        out = code_shell._resolve_script_target(
-            "a/b/x.sh", '$(dirname "$BASH_SOURCE[0]")/lib.sh'
-        )
+        out = code_shell._resolve_script_target("a/b/x.sh", '$(dirname "$BASH_SOURCE[0]")/lib.sh')
         assert out == "code:file:a/b/lib.sh"
 
     def test_dirname_braced_bash_source_idiom(self):
         # Braced ${BASH_SOURCE[0]} — the common real-world form (was lost).
-        out = code_shell._resolve_script_target(
-            "a/b/x.sh", '$(dirname "${BASH_SOURCE[0]}")/lib.sh'
-        )
+        out = code_shell._resolve_script_target("a/b/x.sh", '$(dirname "${BASH_SOURCE[0]}")/lib.sh')
         assert out == "code:file:a/b/lib.sh"
 
     def test_dirname_braced_zero(self):
@@ -72,8 +66,7 @@ class TestResolveScriptTarget:
 
     def test_relative_parent_traversal(self):
         assert (
-            code_shell._resolve_script_target("a/b/x.sh", "../helper.sh")
-            == "code:file:a/helper.sh"
+            code_shell._resolve_script_target("a/b/x.sh", "../helper.sh") == "code:file:a/helper.sh"
         )
 
     def test_relative_sibling_dot_slash(self):
@@ -125,8 +118,7 @@ class TestRegexFallback:
     def test_cos_log_hook_handles_tool(self, regex_mode):
         r = _extract("cos_log_hook my-hook enter\n")
         assert any(
-            e.edge_type == "handles_tool" and e.target_uid == "cos:hook:my-hook"
-            for e in r.edges
+            e.edge_type == "handles_tool" and e.target_uid == "cos:hook:my-hook" for e in r.edges
         )
 
     def test_heredoc_function_not_matched(self, regex_mode):
@@ -151,8 +143,7 @@ class TestRegexFallback:
         # Calling own basename (no slash) must not emit a self calls-edge.
         r = _extract("bash sample.sh\n", path="src/core/hooks/sample.sh")
         assert not any(
-            e.edge_type == "calls" and e.target_uid.endswith("sample.sh")
-            for e in r.edges
+            e.edge_type == "calls" and e.target_uid.endswith("sample.sh") for e in r.edges
         )
 
     def test_dynamic_source_records_parse_error(self, regex_mode):
@@ -163,16 +154,12 @@ class TestRegexFallback:
         # Parity with the tree-sitter path: a same-file function invoked as
         # a command emits a `calls` edge (regex fallback used to miss this).
         r = _extract("helper() {\n  echo hi\n}\nmain() {\n  helper\n}\n")
-        assert any(
-            e.edge_type == "calls" and e.target_uid.endswith("::helper") for e in r.edges
-        )
+        assert any(e.edge_type == "calls" and e.target_uid.endswith("::helper") for e in r.edges)
 
     def test_local_call_forward_reference(self, regex_mode):
         # Function called before it is defined (collected in a pre-pass).
         r = _extract("main() {\n  later\n}\nlater() {\n  :\n}\n")
-        assert any(
-            e.edge_type == "calls" and e.target_uid.endswith("::later") for e in r.edges
-        )
+        assert any(e.edge_type == "calls" and e.target_uid.endswith("::later") for e in r.edges)
 
     def test_non_local_command_no_call_edge(self, regex_mode):
         # `ls` is not a same-file function → no spurious calls edge.

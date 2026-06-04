@@ -36,8 +36,7 @@ class TestLaravelRoutes:
         # Cross-file controller handler → resolvable phproute stub (link_php_handlers
         # binds it to the real method during reindex).
         assert any(
-            e.edge_type == "calls"
-            and e.target_uid == "code:external:phproute:UserController.index"
+            e.edge_type == "calls" and e.target_uid == "code:external:phproute:UserController.index"
             for e in r.edges
         )
 
