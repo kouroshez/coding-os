@@ -307,6 +307,10 @@ def extract(path: str, content: str) -> ExtractionResult:
             matches.extend(_scan_grpc(content))
             matches.extend(_scan_cobra(content))
             matches.extend(_scan_urfave_cli(content))
+        elif normalised.endswith(".php"):
+            matches.extend(_scan_laravel(content))
+            matches.extend(_scan_wordpress(content))
+            matches.extend(_scan_whmcs(content, path=normalised))
     except Exception as exc:
         result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
 
@@ -913,6 +917,126 @@ def _scan_urfave_cli(content: str) -> list[ContractMatch]:
             )
         )
     return hits
+
+
+# ---------------------------------------------------------------------------
+# PHP frameworks — Laravel / WordPress / WHMCS
+# ---------------------------------------------------------------------------
+
+# Laravel: Route::get('/x', handler). `match`/group-closure handled below.
+_LARAVEL_ROUTE_RE = re.compile(
+    rf"""Route::(?P<method>get|post|put|patch|delete|options|any)\s*\(\s*{_STRING_CAPTURE}""",
+    re.VERBOSE,
+)
+_LARAVEL_RESOURCE_RE = re.compile(
+    rf"""Route::(?P<kind>apiResource|resource)\s*\(\s*{_STRING_CAPTURE}\s*,\s*
+        (?P<ctrl>[A-Za-z_\\][\w\\]*)::class
+    """,
+    re.VERBOSE,
+)
+# Handler arg right after the route path string.
+_LARAVEL_H_ARRAY_RE = re.compile(
+    r"""^\s*,\s*\[\s*(?P<ctrl>[A-Za-z_\\][\w\\]*)::class\s*,\s*['"](?P<method>\w+)['"]"""
+)
+_LARAVEL_H_STRING_RE = re.compile(r"""^\s*,\s*['"](?P<ctrl>[A-Za-z_\\][\w]*)@(?P<method>\w+)['"]""")
+_LARAVEL_H_INVOKE_RE = re.compile(r"""^\s*,\s*(?P<ctrl>[A-Za-z_\\][\w\\]*)::class\s*[\),]""")
+_LARAVEL_SIGNATURE_RE = re.compile(r"""\$signature\s*=\s*['"](?P<sig>[^'"]+)['"]""")
+
+# resource → 7 RESTful routes; apiResource → 5 (no create/edit).
+_LARAVEL_RESOURCE_ACTIONS = {
+    "resource": [
+        ("get", "", "index"), ("get", "/create", "create"), ("post", "", "store"),
+        ("get", "/{id}", "show"), ("get", "/{id}/edit", "edit"),
+        ("put", "/{id}", "update"), ("delete", "/{id}", "destroy"),
+    ],
+    "apiResource": [
+        ("get", "", "index"), ("post", "", "store"), ("get", "/{id}", "show"),
+        ("put", "/{id}", "update"), ("delete", "/{id}", "destroy"),
+    ],
+}
+
+
+def _php_short_name(name: str) -> str:
+    return name.replace("/", "\\").split("\\")[-1]
+
+
+def _laravel_handler(content: str, end: int) -> str | None:
+    tail = content[end:]
+    m = _LARAVEL_H_ARRAY_RE.match(tail)
+    if m:
+        return f"{_php_short_name(m.group('ctrl'))}@{m.group('method')}"
+    m = _LARAVEL_H_STRING_RE.match(tail)
+    if m:
+        return f"{_php_short_name(m.group('ctrl'))}@{m.group('method')}"
+    m = _LARAVEL_H_INVOKE_RE.match(tail)
+    if m:
+        return f"{_php_short_name(m.group('ctrl'))}@__invoke"
+    return None
+
+
+def _scan_laravel(content: str) -> list[ContractMatch]:
+    """Laravel routes (facade + resource) + Artisan commands.
+
+    Note: routes nested in `Route::prefix(..)->group(..)` closures are
+    captured at their literal path — the group prefix is NOT auto-joined
+    (closure scoping needs an AST, not regex), so no FALSE prefixes appear.
+    """
+    if "Route::" not in content and "Illuminate\\" not in content and "extends Command" not in content:
+        return []
+    hits: list[ContractMatch] = []
+    for m in _LARAVEL_ROUTE_RE.finditer(content):
+        method = m.group("method").lower()
+        hits.append(
+            ContractMatch(
+                kind="http",
+                framework="laravel",
+                method="any" if method == "any" else method,
+                path=m.group("path"),
+                handler=_laravel_handler(content, m.end()),
+                line=_line_of(content, m.start()),
+            )
+        )
+    for m in _LARAVEL_RESOURCE_RE.finditer(content):
+        name = m.group("path").strip("/")
+        ctrl = _php_short_name(m.group("ctrl"))
+        line = _line_of(content, m.start())
+        for method, suffix, action in _LARAVEL_RESOURCE_ACTIONS[m.group("kind")]:
+            hits.append(
+                ContractMatch(
+                    kind="http",
+                    framework="laravel",
+                    method=method,
+                    path=f"/{name}{suffix}",
+                    handler=f"{ctrl}@{action}",
+                    line=line,
+                    confidence=0.85,
+                    derivation=f"laravel_{m.group('kind')}",
+                )
+            )
+    if "extends Command" in content:
+        for m in _LARAVEL_SIGNATURE_RE.finditer(content):
+            cmd = m.group("sig").split()[0] if m.group("sig") else m.group("sig")
+            hits.append(
+                ContractMatch(
+                    kind="cli",
+                    framework="artisan",
+                    method="command",
+                    path=cmd,
+                    handler=None,
+                    line=_line_of(content, m.start()),
+                )
+            )
+    return hits
+
+
+def _scan_wordpress(content: str) -> list[ContractMatch]:
+    """WordPress hooks/shortcodes/CPT/REST/ajax — implemented in TASK-069 P2."""
+    return []
+
+
+def _scan_whmcs(content: str, *, path: str) -> list[ContractMatch]:
+    """WHMCS add_hook + module-function convention — implemented in TASK-069 P3."""
+    return []
 
 
 _MCP_NOISE_NAMES = {"name", "x", "y", "z", "foo", "bar", "tool", "test"}
