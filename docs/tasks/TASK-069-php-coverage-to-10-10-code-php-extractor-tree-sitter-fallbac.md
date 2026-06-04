@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, extractors, php, laravel, wordpress, whmcs, polyglot]
-status: in_progress
+status: complete
 priority: P2
 appetite: "3d"
 created: 2026-06-04
 started: 2026-06-03
-completed: null
+completed: 2026-06-03
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -36,3 +36,4 @@ references: []
 - **Given** all the above, **When** `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` runs and `cos graph-reindex --force` runs, **Then** tests are green (new adversarial suites incl) and reindex reports `errors=0`.
 
 ## Work Log
+- 2026-06-04 [claude]: PHP to 10/10: new code_php extractor (tree-sitter-php + regex fallback) — namespace/class/interface/trait/method/functio
