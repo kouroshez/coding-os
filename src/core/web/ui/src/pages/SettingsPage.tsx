@@ -129,6 +129,7 @@ interface ScheduledConfig {
   decay_throttle_days: number;
   learn_extract_min_outcomes: number;
   responsive_extract_threshold: number;
+  archive_prune_days: number;
 }
 
 interface ScheduledStatus {
@@ -219,6 +220,17 @@ function ScheduledConfigForm({ slug, initial }: { slug: string; initial: Schedul
           />
           <span className="text-xs text-[var(--cos-muted)]">
             new outcomes before session-end extracts same-day
+          </span>
+        </FieldRow>
+        <FieldRow label="Archive prune (days)">
+          <NumInput
+            value={cfg.archive_prune_days}
+            onChange={(v) => setCfg({ ...cfg, archive_prune_days: Math.max(7, Math.round(v)) })}
+            min={7}
+            disabled={!cfg.enabled}
+          />
+          <span className="text-xs text-[var(--cos-muted)]">
+            hard-delete dormant archived patterns older than this
           </span>
         </FieldRow>
       </div>

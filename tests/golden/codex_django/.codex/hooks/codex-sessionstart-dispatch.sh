@@ -6,11 +6,15 @@
 # write a JSON object to stdout. Plain text — what our upstream dispatches
 # emit for human readability — fails with "invalid session start JSON output".
 # This wrapper:
-#   1. Captures stdout from session-context.sh + warn-mcp-down.sh.
-#   2. Forwards their stderr unchanged (user-visible warnings still show).
+#   1. Runs each delegate (the full Bash-runnable SessionStart set — context,
+#      MCP/extras health, the prime cards, decay, presence), capturing each
+#      delegate's stdout+stderr and unwrapping any Claude-style
+#      {"hookSpecificOutput":{additionalContext}} envelope via
+#      extract_additional_context.py so prime cards render as text.
+#   2. Concatenates the unwrapped output (delegate warnings included) into one
+#      card.
 #   3. Emits `{"hookSpecificOutput": {"hookEventName": "SessionStart",
-#      "additionalContext": "<captured>"}}` so Codex can inject the
-#      captured banner into the agent's prompt.
+#      "additionalContext": "<card>"}}` so Codex injects it into the prompt.
 # Exit 0 always — SessionStart cannot block. Delegate failures become log
 # entries and a stderr warning but never fail the session.
 set -euo pipefail

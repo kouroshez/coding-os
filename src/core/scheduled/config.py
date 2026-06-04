@@ -43,7 +43,10 @@ def config_path(project_root: Path | str) -> Path:
 def _coerce(key: str, value: object) -> object:
     if key == "enabled":
         return bool(value)
-    lo, hi = _INT_BOUNDS[key]
+    bounds = _INT_BOUNDS.get(key)
+    if bounds is None:  # future DEFAULTS key without declared bounds — don't crash
+        return DEFAULTS[key]
+    lo, hi = bounds
     try:
         return max(lo, min(hi, int(value)))  # type: ignore[arg-type]
     except (TypeError, ValueError):
