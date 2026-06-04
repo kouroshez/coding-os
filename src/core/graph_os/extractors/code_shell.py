@@ -390,10 +390,40 @@ def _walk_regex(
         line = stripped[: match.start()].count("\n") + 1
         _emit_call_edge(raw_target, line, path, normalised, result, mod_uid)
 
+    local_funcs: dict[str, str] = {}
     for match in _FUNCTION_DEF_RE.finditer(stripped):
         name = match.group("name")
         line = stripped[: match.start()].count("\n") + 1
         _emit_function(name, line, path, normalised, result, mod_uid)
+        local_funcs[name] = f"code:function:{_normalize_path(path)}::{name}"
+
+    # Intra-file function calls (parity with the tree-sitter `_walk_ts`
+    # path). A line whose first token is a same-file function name — and
+    # is not the `name() {` definition line — is a real call. Gating on
+    # `local_funcs` membership avoids keyword false-positives. Sourced at
+    # the module (the regex path has no scope tree to find the caller fn).
+    if local_funcs:
+        seen_local_calls: set[str] = set()
+        for m in re.finditer(r"(?m)^[ \t]*(?P<cmd>[A-Za-z_][\w-]*)\b", stripped):
+            cmd = m.group("cmd")
+            tgt = local_funcs.get(cmd)
+            if tgt is None or cmd in seen_local_calls:
+                continue
+            if stripped[m.end() :].lstrip()[:2] == "()":
+                continue  # the definition line, not a call
+            line = stripped[: m.start()].count("\n") + 1
+            seen_local_calls.add(cmd)
+            result.edges.append(
+                GraphEdge(
+                    source_uid=mod_uid,
+                    target_uid=tgt,
+                    edge_type="calls",
+                    extractor=EXTRACTOR_ID,
+                    confidence=0.85,
+                    source_span=f"{normalised}:{line}",
+                    evidence=(EvidenceSignal("shell_local_call_regex", 0.85),),
+                )
+            )
 
     for match in _COS_LOG_HOOK_RE.finditer(stripped):
         hook_name = match.group("name")

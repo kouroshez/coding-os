@@ -159,6 +159,31 @@ class TestRegexFallback:
         r = _extract("source $SOME_DIR/x.sh\n")
         assert any(pe.kind == "dynamic" for pe in r.parse_errors)
 
+    def test_local_function_call_edge(self, regex_mode):
+        # Parity with the tree-sitter path: a same-file function invoked as
+        # a command emits a `calls` edge (regex fallback used to miss this).
+        r = _extract("helper() {\n  echo hi\n}\nmain() {\n  helper\n}\n")
+        assert any(
+            e.edge_type == "calls" and e.target_uid.endswith("::helper") for e in r.edges
+        )
+
+    def test_local_call_forward_reference(self, regex_mode):
+        # Function called before it is defined (collected in a pre-pass).
+        r = _extract("main() {\n  later\n}\nlater() {\n  :\n}\n")
+        assert any(
+            e.edge_type == "calls" and e.target_uid.endswith("::later") for e in r.edges
+        )
+
+    def test_non_local_command_no_call_edge(self, regex_mode):
+        # `ls` is not a same-file function → no spurious calls edge.
+        r = _extract("main() {\n  ls -la\n}\n")
+        assert not any(e.edge_type == "calls" for e in r.edges)
+
+    def test_definition_line_is_not_a_self_call(self, regex_mode):
+        # A lone function definition must not emit a calls edge to itself.
+        r = _extract("solo() {\n  echo x\n}\n")
+        assert not any(e.edge_type == "calls" for e in r.edges)
+
 
 # ---------------------------------------------------------------------------
 # Determinism (regex path)
