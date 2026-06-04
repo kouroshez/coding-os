@@ -22,6 +22,69 @@ def _edges(src, et, path="f.ts"):
     ]
 
 
+def _type_targets(src, et, path="f.ts"):
+    return [e.target_uid for e in t.extract(path, src).edges if e.edge_type == et]
+
+
+def _nodes(src, path="f.ts"):
+    return t.extract(path, src).nodes
+
+
+class TestTypeResolution:
+    def test_param_type_resolves_to_local_interface_forward_ref(self):
+        # Foo declared AFTER f — deferred resolution must still bind it.
+        src = "function f(x: Foo) {}\ninterface Foo {}"
+        assert "code:interface:f.ts::Foo" in _type_targets(src, "has_param_type")
+
+    def test_return_type_resolves_to_local_class(self):
+        src = "function g(): Bar { return new Bar() }\nclass Bar {}"
+        assert "code:class:f.ts::Bar" in _type_targets(src, "returns_type")
+
+    def test_param_type_resolves_to_imported_symbol(self):
+        src = "import { Baz } from './m'\nfunction h(x: Baz) {}"
+        assert "code:external:./m:Baz" in _type_targets(src, "has_param_type")
+
+    def test_unresolved_type_falls_back_cleanly(self):
+        src = "function k(x: Unknowny) {}"
+        assert "code:external:unresolved:Unknowny" in _type_targets(src, "has_param_type")
+
+
+class TestAwaits:
+    def test_awaited_call_is_awaits_not_calls(self):
+        src = "async function run() { await fetch('/x') }"
+        awaits = _type_targets(src, "awaits")
+        assert any("fetch" in tgt for tgt in awaits)
+        # The same call must NOT also appear as a plain `calls` edge.
+        assert not any("fetch" in tgt for tgt in _type_targets(src, "calls"))
+
+    def test_non_awaited_call_stays_calls(self):
+        src = "function run() { plain() }\nfunction plain() {}"
+        assert ("run", "plain") in _edges(src, "calls")
+        assert _type_targets(src, "awaits") == []
+
+
+class TestEnumNamespace:
+    def test_enum_emits_node(self):
+        nodes = _nodes("enum Color { Red, Green }")
+        assert any(
+            n.label == "Color" and n.metadata.get("ts_kind") == "enum"
+            for n in nodes
+            if n.kind == "code:class"
+        )
+
+    def test_namespace_emits_node(self):
+        nodes = _nodes("namespace NS { export const x = 1; }")
+        assert any(
+            n.label == "NS" and n.metadata.get("ts_kind") == "namespace"
+            for n in nodes
+            if n.kind == "code:class"
+        )
+
+    def test_enum_used_as_param_type_resolves(self):
+        src = "function f(c: Color) {}\nenum Color { Red, Green }"
+        assert "code:class:f.ts::Color" in _type_targets(src, "has_param_type")
+
+
 class TestAbstractClass:
     def test_abstract_class_extracted(self):
         assert _classes("abstract class W {}") == ["W"]

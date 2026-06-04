@@ -306,7 +306,16 @@ def _ts_enclosing_scope(node: Any, path: str) -> str | None:
     return None
 
 
-def _ts_emit_type_edges(fn_node: Any, *, owner_uid: str, path: str, result: ExtractionResult) -> None:
+def _ts_emit_type_edges(
+    fn_node: Any, *, owner_uid: str, path: str, pending: list[tuple[str, str, str, int]]
+) -> None:
+    """Collect (owner_uid, type_name, edge_type, line) for deferred resolution.
+
+    Resolution is deferred to after Pass A so a param/return type that
+    references a class/interface declared later in the file still binds to
+    the real local uid (Python-parity — code_python resolves annotations
+    against the complete ``symbols_by_name`` at emit time).
+    """
     params = fn_node.child_by_field_name("parameters")
     if params is not None:
         for p in params.children:
@@ -317,21 +326,11 @@ def _ts_emit_type_edges(fn_node: Any, *, owner_uid: str, path: str, result: Extr
                 ta = next((c for c in p.children if c.type == "type_annotation"), None)
             tname = _ts_type_head(ta)
             if tname and tname[:1].isalpha():
-                result.edges.append(GraphEdge(
-                    source_uid=owner_uid,
-                    target_uid=f"code:external:unresolved:{tname}",
-                    edge_type="has_param_type", extractor=EXTRACTOR_ID_TS, confidence=0.5,
-                    source_span=f"{path}:{_ts_line(p)}",
-                    evidence=(EvidenceSignal("ts_annotation", 0.5),)))
+                pending.append((owner_uid, tname, "has_param_type", _ts_line(p)))
     rt = fn_node.child_by_field_name("return_type")
     tname = _ts_type_head(rt)
     if tname and tname[:1].isalpha() and tname not in ("void", "any", "unknown", "never", "Promise"):
-        result.edges.append(GraphEdge(
-            source_uid=owner_uid,
-            target_uid=f"code:external:unresolved:{tname}",
-            edge_type="returns_type", extractor=EXTRACTOR_ID_TS, confidence=0.5,
-            source_span=f"{path}:{_ts_line(fn_node)}",
-            evidence=(EvidenceSignal("ts_annotation", 0.5),)))
+        pending.append((owner_uid, tname, "returns_type", _ts_line(fn_node)))
 
 
 def _walk_ts_symbols(
@@ -352,6 +351,8 @@ def _walk_ts_symbols(
     # method instead of an unresolved stub (matters for class-heavy TS:
     # NestJS / Angular). Populated in the class-body method loop below.
     methods_by_class: dict[str, dict[str, str]] = {}
+    # Deferred type-annotation edges — resolved after Pass A (see below).
+    pending_types: list[tuple[str, str, str, int]] = []
 
     # ---- Pass A: declarations (populate local_names before resolving calls) ----
     for fn in iter_nodes(root, {"function_declaration", "generator_function_declaration"}):
@@ -366,7 +367,7 @@ def _walk_ts_symbols(
         local_names[name] = uid
         result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
             edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
-        _ts_emit_type_edges(fn, owner_uid=uid, path=path, result=result)
+        _ts_emit_type_edges(fn, owner_uid=uid, path=path, pending=pending_types)
 
     for vd in iter_nodes(root, {"variable_declarator"}):
         val = vd.child_by_field_name("value")
@@ -383,7 +384,7 @@ def _walk_ts_symbols(
         local_names[name] = uid
         result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
             edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
-        _ts_emit_type_edges(val, owner_uid=uid, path=path, result=result)
+        _ts_emit_type_edges(val, owner_uid=uid, path=path, pending=pending_types)
 
     for it in iter_nodes(root, {"interface_declaration"}):
         name = _ts_name(it)
@@ -491,7 +492,48 @@ def _walk_ts_symbols(
                             target_uid=_ts_resolve_type(dname, imported_names, local_names),
                             edge_type="is_decorated_by", extractor=EXTRACTOR_ID_TS,
                             confidence=0.85, source_span=f"{path}:{_ts_line(dec)}"))
-                _ts_emit_type_edges(m, owner_uid=muid, path=path, result=result)
+                _ts_emit_type_edges(m, owner_uid=muid, path=path, pending=pending_types)
+
+    # ---- enum / namespace declarations (queryable type-like nodes) ----
+    for en in iter_nodes(root, {"enum_declaration"}):
+        name = _ts_name(en)
+        if not name or name in local_names:
+            continue
+        uid = class_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=uid, kind="code:class", label=name, file_path=path,
+            start_line=_ts_line(en), signature=f"enum {name}", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "enum"}))
+        local_names[name] = uid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+
+    for ns in iter_nodes(root, {"internal_module"}):
+        name = _ts_name(ns)
+        if not name or name in local_names:
+            continue
+        uid = class_uid(path, name)
+        result.nodes.append(GraphNode(
+            uid=uid, kind="code:class", label=name, file_path=path,
+            start_line=_ts_line(ns), signature=f"namespace {name}", lang=lang,
+            metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "namespace"}))
+        local_names[name] = uid
+        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
+            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+
+    # ---- resolve deferred type edges (local_names now complete) ----
+    for owner_uid, tname, etype, line in pending_types:
+        target = _ts_resolve_type(tname, imported_names, local_names)
+        conf = (
+            0.8
+            if target.startswith(("code:class:", "code:interface:", "code:function:"))
+            else 0.5
+        )
+        result.edges.append(GraphEdge(
+            source_uid=owner_uid, target_uid=target, edge_type=etype,
+            extractor=EXTRACTOR_ID_TS, confidence=conf,
+            source_span=f"{path}:{line}",
+            evidence=(EvidenceSignal("ts_annotation", conf),)))
 
     # ---- Pass B: calls / constructs sourced at the enclosing scope ----
     for call in iter_nodes(root, {"call_expression", "new_expression"}):
@@ -505,6 +547,7 @@ def _walk_ts_symbols(
             continue
         is_new = call.type == "new_expression"
         is_ctor = is_new or (target.split(".")[-1][:1].isupper())
+        is_await = call.parent is not None and call.parent.type == "await_expression"
         src = _ts_enclosing_scope(call, path) or module_uid_
         if head == "this" and "." in target:
             # GE: this.method() → enclosing class's method (else unresolved).
@@ -528,9 +571,10 @@ def _walk_ts_symbols(
             sig = EvidenceSignal("explicit_import", 0.9, note=specifier)
         else:
             resolved, conf, sig = f"code:external:unresolved:{target}", 0.3, EvidenceSignal("unresolved_call", 0.3)
+        edge_type = "awaits" if is_await else ("constructs" if is_ctor else "calls")
         result.edges.append(GraphEdge(
             source_uid=src, target_uid=resolved,
-            edge_type="constructs" if is_ctor else "calls",
+            edge_type=edge_type,
             extractor=EXTRACTOR_ID_TS, confidence=conf,
             source_span=f"{path}:{_ts_line(call)}", evidence=(sig,)))
 
