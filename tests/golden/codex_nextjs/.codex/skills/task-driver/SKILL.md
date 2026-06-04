@@ -189,22 +189,36 @@ A task moved to `blocked` is not a finished state. Escalation ladder:
 
 **Never** silently archive without surfacing to the user first. Lost work is worse than visible blocked work.
 
-## Swimlane routing (the 8 canonical lanes)
+## Swimlane routing — discover from config, never hardcode
 
-When `cos_task_create` is missing a swimlane, infer from file paths edited / referenced in the request:
+Swimlanes are **project-specific**, defined ONLY in
+`.coding-os/scrumban-config.yaml` (`swimlanes:`). They differ per stack
+(django: `backend/frontend/ai-service/shared/docs/infra`; nextjs:
+`frontend/api/e2e/design/docs/infra`; the meta-repo:
+`core/thinking_os/graph_os/board_os/adapters/templates/cli/docs/infra`).
+There is **no universal list** — do not memorize or guess one.
 
-| File pattern | Swimlane |
-|---|---|
-| `backend/**`, server routes, DB migrations | `backend` |
-| `frontend/**`, `app/**`, components, pages | `frontend` |
-| `mobile/**`, React Native / Flutter / iOS / Android | `mobile` |
-| `src/core/**`, `src/cli/**`, `src/adapters/**`, `src/templates/**` | `meta` |
-| `docs/**`, `*.md` only changes | `docs` |
-| `.github/**`, `Dockerfile`, `helm/**`, deploy scripts | `ops` |
-| `terraform/**`, `infra/**`, K8s manifests | `infra` |
-| Cross-cutting (refactor across all of above) | `cross` |
+**Discover the valid lanes (don't guess):**
 
-Ambiguous? Default `cross`, the user can re-route.
+- `cos_task_create` with an unknown swimlane fails with `valid: [...]` —
+  that list IS this project's source of truth.
+- `cos board-config` prints the full config (swimlanes + colours).
+
+**Map the work to the closest existing lane by domain concept:**
+server / API / DB → the backend-ish lane · UI / components → the
+frontend-ish lane · `src/core|cli|adapters|templates` in the meta-repo →
+the matching subsystem lane · docs-only → `docs` · CI / deploy / infra →
+`infra` (or `ops`). The lane *names* always come from config, not from a
+fixed table here.
+
+**Need a domain that doesn't exist yet?** Add it to
+`.coding-os/scrumban-config.yaml::swimlanes` (`id` + `label` + `color`).
+Config is re-read live on every call — no restart, and concurrent
+sessions pick it up immediately. Only add a lane when no existing one
+genuinely fits; prefer reuse (anti-overengineering).
+
+Ambiguous? Pick the broadest existing lane (commonly `infra` or `shared`
+when present) — the user can re-route.
 
 ## `kind` (task type) — when to pick which
 
