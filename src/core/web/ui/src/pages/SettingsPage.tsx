@@ -123,6 +123,184 @@ function Toggle({
   );
 }
 
+interface ScheduledConfig {
+  enabled: boolean;
+  hour: number;
+  decay_throttle_days: number;
+  learn_extract_min_outcomes: number;
+  responsive_extract_threshold: number;
+}
+
+interface ScheduledStatus {
+  projects: { slug: string; path: string }[];
+}
+
+interface ScheduledConfigResp {
+  slug: string;
+  config: ScheduledConfig;
+}
+
+// Per-project form. Keyed by slug at the call site so switching projects
+// remounts it with a fresh draft hydrated from the server config.
+function ScheduledConfigForm({ slug, initial }: { slug: string; initial: ScheduledConfig }) {
+  const qc = useQueryClient();
+  const [cfg, setCfg] = useState<ScheduledConfig>(initial);
+  const [saving, setSaving] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = useCallback(async () => {
+    setSaving(true);
+    setNote(null);
+    setErr(null);
+    try {
+      const path = `/api/scheduled/config/${encodeURIComponent(slug)}`;
+      const [res] = await apiPatch<ScheduledConfigResp>(path, cfg);
+      await invalidateApiQueries(qc, path);
+      setCfg(res.config);
+      setNote('Scheduled config saved.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'save failed');
+    } finally {
+      setSaving(false);
+    }
+  }, [slug, cfg, qc]);
+
+  return (
+    <div className="mt-3">
+      <div className="divide-y divide-[var(--cos-border)]">
+        <FieldRow label="Enable maintenance">
+          <Toggle
+            checked={cfg.enabled}
+            onChange={(v) => setCfg({ ...cfg, enabled: v })}
+            label={cfg.enabled ? 'Enabled' : 'Disabled (nightly skips this project)'}
+          />
+        </FieldRow>
+        <FieldRow label="Nightly hour (0–23)">
+          <NumInput
+            value={cfg.hour}
+            onChange={(v) => setCfg({ ...cfg, hour: Math.max(0, Math.min(23, Math.round(v))) })}
+            min={0}
+            max={23}
+            disabled={!cfg.enabled}
+          />
+          <span className="text-xs text-[var(--cos-muted)]">
+            launchd run hour — re-run <code>make cron-install</code> to apply
+          </span>
+        </FieldRow>
+        <FieldRow label="Decay throttle (days)">
+          <NumInput
+            value={cfg.decay_throttle_days}
+            onChange={(v) => setCfg({ ...cfg, decay_throttle_days: Math.max(1, Math.round(v)) })}
+            min={1}
+            disabled={!cfg.enabled}
+          />
+          <span className="text-xs text-[var(--cos-muted)]">skip decay if it ran more recently</span>
+        </FieldRow>
+        <FieldRow label="Extract min outcomes">
+          <NumInput
+            value={cfg.learn_extract_min_outcomes}
+            onChange={(v) =>
+              setCfg({ ...cfg, learn_extract_min_outcomes: Math.max(1, Math.round(v)) })
+            }
+            min={1}
+            disabled={!cfg.enabled}
+          />
+          <span className="text-xs text-[var(--cos-muted)]">total outcomes needed to extract</span>
+        </FieldRow>
+        <FieldRow label="Responsive threshold">
+          <NumInput
+            value={cfg.responsive_extract_threshold}
+            onChange={(v) =>
+              setCfg({ ...cfg, responsive_extract_threshold: Math.max(1, Math.round(v)) })
+            }
+            min={1}
+            disabled={!cfg.enabled}
+          />
+          <span className="text-xs text-[var(--cos-muted)]">
+            new outcomes before session-end extracts same-day
+          </span>
+        </FieldRow>
+      </div>
+      {note && <p className="mt-3 text-[11px] text-emerald-400">{note}</p>}
+      {err && <p className="mt-3 text-[11px] text-rose-400">{err}</p>}
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className={[
+            'rounded border px-4 py-2 font-mono text-xs font-semibold transition-colors',
+            'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]',
+            'hover:bg-[var(--accent)]/20 disabled:cursor-not-allowed disabled:opacity-50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+          ].join(' ')}
+        >
+          {saving ? 'saving…' : 'Save scheduled config'}
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => {
+            setCfg(initial);
+            setNote(null);
+            setErr(null);
+          }}
+          className="rounded border border-[var(--cos-border)] px-4 py-2 font-mono text-xs text-[var(--cos-muted)] transition-colors hover:border-[var(--cos-text)] hover:text-[var(--cos-text)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduledMaintenanceSection() {
+  const { data: status } = useApiGet<ScheduledStatus>(['scheduled-status'], '/api/scheduled/status');
+  const projects = status?.projects ?? [];
+  const [slug, setSlug] = useState('');
+  const activeSlug = slug || projects[0]?.slug || '';
+  const { data: cfgResp } = useApiGet<ScheduledConfigResp>(
+    ['scheduled-config', activeSlug],
+    `/api/scheduled/config/${encodeURIComponent(activeSlug)}`,
+    undefined,
+    { enabled: !!activeSlug },
+  );
+
+  return (
+    <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
+      <SectionHeader
+        title="Scheduled Maintenance"
+        desc="Per-project cron cadence + responsive learning. Stored in .coding-os/scheduled/config.json; read by the nightly daemon and the session-end responsive extractor."
+      />
+      {projects.length === 0 ? (
+        <p className="text-xs text-[var(--cos-muted)]">No registered projects.</p>
+      ) : (
+        <>
+          <FieldRow label="Project">
+            <select
+              value={activeSlug}
+              onChange={(e) => setSlug(e.target.value)}
+              className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1 font-mono text-xs text-[var(--cos-text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            >
+              {projects.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.slug}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+          {cfgResp?.config ? (
+            <ScheduledConfigForm key={activeSlug} slug={activeSlug} initial={cfgResp.config} />
+          ) : (
+            <p className="mt-3 text-xs text-[var(--cos-muted)]">loading config…</p>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useApiGet<SettingsPayload>(
@@ -306,6 +484,9 @@ export default function SettingsPage() {
             <code>export COS_TRACE_DELETE_AGE_DAYS=30</code>.
           </p>
         </section>
+
+        {/* Scheduled Maintenance (per-project cron + responsive learning) */}
+        <ScheduledMaintenanceSection />
 
         <div className="flex items-center gap-3 pt-2">
           <button

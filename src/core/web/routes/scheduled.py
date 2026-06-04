@@ -10,13 +10,17 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 _CORE_DIR = Path(__file__).resolve().parents[3]
-_SCHEDULED_DIR = _CORE_DIR / "core" / "scheduled"
-if str(_SCHEDULED_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCHEDULED_DIR))
+_CORE_PKG = _CORE_DIR / "core"
+_SCHEDULED_DIR = _CORE_PKG / "scheduled"
+for _p in (str(_CORE_PKG), str(_SCHEDULED_DIR)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from _state import read_registry, read_state  # type: ignore  # noqa: E402
+from scheduled.config import DEFAULTS, load_config, save_config  # type: ignore  # noqa: E402
 
 router = APIRouter(prefix="/api/scheduled", tags=["scheduled"])
 logger = logging.getLogger("codingos.web.scheduled")
@@ -106,3 +110,38 @@ async def project_scheduled_status(slug: str):
             state = read_state(root)
             return {"slug": slug, **state}
     return {"error": f"project {slug!r} not found in registry"}
+
+
+def _root_for_slug(slug: str) -> Path | None:
+    for proj in read_registry():
+        if proj.get("slug") == slug:
+            return Path(proj.get("path", ""))
+    return None
+
+
+class ScheduledConfigUpdate(BaseModel):
+    enabled: bool | None = None
+    hour: int | None = None
+    decay_throttle_days: int | None = None
+    learn_extract_min_outcomes: int | None = None
+    responsive_extract_threshold: int | None = None
+
+
+@router.get("/config/{slug}")
+async def get_scheduled_config(slug: str):
+    """Return the editable scheduled-maintenance config for one project."""
+    root = _root_for_slug(slug)
+    if root is None:
+        return {"error": f"project {slug!r} not found in registry"}
+    return {"slug": slug, "config": load_config(root), "defaults": DEFAULTS}
+
+
+@router.patch("/config/{slug}")
+async def patch_scheduled_config(slug: str, update: ScheduledConfigUpdate):
+    """Persist edited scheduled config (cadence + responsive thresholds)."""
+    root = _root_for_slug(slug)
+    if root is None:
+        return {"error": f"project {slug!r} not found in registry"}
+    updates = {k: v for k, v in update.model_dump().items() if v is not None}
+    saved = save_config(root, updates)
+    return {"slug": slug, "config": saved}

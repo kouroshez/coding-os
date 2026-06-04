@@ -127,6 +127,13 @@ Prompt contract: agent calls `cos_learn_narrative` for each active project, writ
 
 `GET /api/scheduled/status` → reads per-project `last_run.json`.
 
+`GET /api/scheduled/config/{slug}` → `{slug, config, defaults}` — the
+editable cadence/threshold config for one project (defaults filled).
+`PATCH /api/scheduled/config/{slug}` (body = any subset of the config
+keys) → validates + persists via `scheduled.config.save_config`,
+returns `{slug, config}`. The Hub **Settings** page renders a
+per-project "Scheduled Maintenance" panel against these two endpoints.
+
 Response shape:
 ```json
 {
