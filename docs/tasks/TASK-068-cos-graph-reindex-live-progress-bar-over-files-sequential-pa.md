@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, cli, ux]
-status: in_progress
+status: complete
 priority: P3
 appetite: "2h"
 created: 2026-06-04
 started: 2026-06-03
-completed: null
+completed: 2026-06-03
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -30,3 +30,4 @@ references: []
 - **Given** the change, **When** `uv run pytest tests/test_cli.py -q` runs, **Then** it is green.
 
 ## Work Log
+- 2026-06-04 [claude]: Added click.progressbar to graph-reindex (sequential + ProcessPoolExecutor paths), auto-hidden on non-TTY; removed per-f
