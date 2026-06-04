@@ -103,8 +103,8 @@ Use short form for high-traffic routing files (`docs/governance/*`, every `00-in
 
 Both forms are accepted by `docs-lint`, parsed by `cos_doc_header`, and emit `read_next` graph edges via `md_links` extractor. Mechanical surface is identical — only the byte count differs.
 
-`domain` values: PRODUCT · BACKEND · FRONTEND · AI · SECURITY · OPS · DOCS · DOMAIN.
-`layer` values: index · playbook · spec · policy · reference · adr · task · runbook · postmortem.
+`domain` values (canonical — SSOT [docs-system.md](../docs-system.md#header-contract), validated by docs-lint): `ALL` · `CORE` · `META` · `ADAPTERS` · `DOCS` · `OPS` · `INFRA` · `SECURITY` (meta-repo) · `PRODUCT` · `BACKEND` · `FRONTEND` · `AI` · `MOBILE` (consumer). `XXX`/`STACK_DOMAIN` = template placeholders.
+`layer` values: `index` · `policy` · `playbook` · `spec` · `adr` · `reference` · `runbook` · `postmortem` · `task` · `engineering` · `architecture` · `template` · `plan` · `contract` · `checklist`.
 `ssot`: `true` if this file is the source of truth on its topic; `ref` if it points elsewhere.
 
 The four `Purpose / Read when / Skip when / Read next` (or `P/R/S/N`) lines are how agents decide in <100 tokens whether to keep reading.

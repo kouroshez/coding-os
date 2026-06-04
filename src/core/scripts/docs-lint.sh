@@ -22,6 +22,15 @@ DOCS_DIR="${DOCS_DIR:-docs}"
 QUIET=0
 TARGETS=()
 
+# Canonical taxonomy enums — SSOT mirror of docs/governance/docs-system.md.
+# Frontmatter domain/layer are validated against these; unknown values are
+# flagged (warn by default; error+gate under COS_DOCS_LINT_STRICT=1). The
+# XXX / STACK_DOMAIN domain values are template fill-in placeholders, kept
+# valid so skeleton templates don't trip the check.
+DOMAIN_ENUM="ALL CORE META ADAPTERS DOCS OPS INFRA SECURITY PRODUCT BACKEND FRONTEND AI MOBILE XXX STACK_DOMAIN"
+LAYER_ENUM="index policy playbook spec adr reference runbook postmortem task engineering architecture template plan contract checklist"
+STRICT="${COS_DOCS_LINT_STRICT:-0}"
+
 for arg in "$@"; do
   case "$arg" in
     --quiet) QUIET=1 ;;
@@ -70,6 +79,21 @@ for file in "${TARGETS[@]}"; do
   if ! echo "$first_line" | grep -qE '^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref|false)( \| [a-z_]+:[^ ]+)* \| updated:[0-9-]+ -->'; then
     err "$rel: missing or malformed front-matter header on line 1"
     ERRORS=$((ERRORS + 1))
+  else
+    # Check 1b: domain + layer must be in the canonical enums (TASK-074).
+    # Warn by default; error + gate under COS_DOCS_LINT_STRICT=1.
+    dom=$(echo "$first_line" | sed -E 's/^<!-- domain:([A-Z_]+) .*/\1/')
+    lay=$(echo "$first_line" | sed -E 's/^.* \| layer:([a-z]+)( \||$).*/\1/')
+    case " $DOMAIN_ENUM " in
+      *" $dom "*) ;;
+      *) if [ "$STRICT" = "1" ]; then err "$rel: domain '$dom' not in canonical enum"; ERRORS=$((ERRORS + 1));
+         else [ "$QUIET" -eq 0 ] && warn "$rel: domain '$dom' not in canonical enum"; WARNINGS=$((WARNINGS + 1)); fi ;;
+    esac
+    case " $LAYER_ENUM " in
+      *" $lay "*) ;;
+      *) if [ "$STRICT" = "1" ]; then err "$rel: layer '$lay' not in canonical enum"; ERRORS=$((ERRORS + 1));
+         else [ "$QUIET" -eq 0 ] && warn "$rel: layer '$lay' not in canonical enum"; WARNINGS=$((WARNINGS + 1)); fi ;;
+    esac
   fi
 
   # Check 2: opening block — accept long form (Purpose:/Read when:) or short
@@ -140,4 +164,10 @@ if [ -x "$STALENESS_CHECK" ]; then
   fi
 fi
 
+# Advisory by default (exit 0) — preserves today's non-gating behaviour so the
+# pre-existing no-frontmatter backlog (G9) doesn't break the build. Flip to
+# gating once that backlog clears: COS_DOCS_LINT_STRICT=1 → exit 1 on errors.
+if [ "$STRICT" = "1" ] && [ "$ERRORS" -gt 0 ]; then
+  exit 1
+fi
 exit 0

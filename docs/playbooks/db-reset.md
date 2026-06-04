@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:playbooks | ssot:true | updated:2026-05-12 -->
+<!-- domain:CORE | layer:playbook | ssot:true | updated:2026-05-12 -->
 # DB Reset Playbook — Wipe & Rebuild coding-os Data
 
 > P: Canonical procedure for wiping the coding-os runtime state (SQLite + optional agent state, plus a legacy `.coding-os/graph_os.kuzu/` dir if a consumer still has one) and verifying the auto-rebuild.

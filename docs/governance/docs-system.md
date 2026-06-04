@@ -43,11 +43,18 @@ If you are about to edit code, stop here and read [docs-first-protocol.md](docs-
 
 ## Header Contract
 
-Every file inside `docs/` starts with:
+Every file inside `docs/` starts with a one-line HTML-comment header:
 
 ```html
-<!-- domain:XXX | layer:index|playbook|spec|policy|reference|adr|task | ssot:true|ref | updated:YYYY-MM-DD -->
+<!-- domain:DOMAIN | layer:LAYER | ssot:true|ref|false | updated:YYYY-MM-DD -->
 ```
+
+`docs-lint.sh` validates `domain` + `layer` against these **canonical enums** (warn by default; `COS_DOCS_LINT_STRICT=1` makes unknown values gate). This block is the SSOT the linter mirrors — keep both in sync (TASK-074).
+
+- **domain** — `ALL` `CORE` `META` `ADAPTERS` `DOCS` `OPS` `INFRA` `SECURITY` (meta-repo) · `PRODUCT` `BACKEND` `FRONTEND` `AI` `MOBILE` (consumer projects). `XXX` / `STACK_DOMAIN` are template fill-in placeholders.
+- **layer** — `index` `policy` `playbook` `spec` `adr` `reference` `runbook` `postmortem` `task` `engineering` `architecture` `template` `plan` `contract` `checklist`.
+- **ssot** — `true` (canonical) · `ref` (pointer/derived) · `false`.
+- **updated** — `YYYY-MM-DD`, the last substantive edit.
 
 ## Opening Block Contract
 
