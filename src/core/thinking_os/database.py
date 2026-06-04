@@ -1425,6 +1425,22 @@ def _migrate_v29_fts5_unicode_tokenizer(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v30_observation_access_signal(conn: sqlite3.Connection) -> None:
+    """Migration v30 — observations gain access_count + last_accessed_at so the
+    5-signal ranker's access + recency-on-use terms apply to raw observations,
+    not just learned_patterns. Closes the ranking asymmetry where an
+    often-retrieved observation could never accrue an access boost."""
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v30 skipped: observations not present yet")
+        return
+    if not _column_exists(conn, "observations", "access_count"):
+        conn.execute("ALTER TABLE observations ADD COLUMN access_count INTEGER DEFAULT 0")
+    if not _column_exists(conn, "observations", "last_accessed_at"):
+        conn.execute("ALTER TABLE observations ADD COLUMN last_accessed_at DATETIME")
+    conn.commit()
+    logger.info("Migration v30 applied: observations gained access_count + last_accessed_at")
+
+
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     row = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
@@ -1770,6 +1786,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         29,
         "G14 FTS5 v29: porter→unicode61 tokenizer so Persian/Arabic body content is indexed",
         _migrate_v29_fts5_unicode_tokenizer,
+    ),
+    (
+        30,
+        "Memory ranking symmetry v30: observations.access_count + last_accessed_at",
+        _migrate_v30_observation_access_signal,
     ),
 ]
 

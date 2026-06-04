@@ -90,8 +90,16 @@ def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
             (row_id,),
         )
     elif table == "observations":
-        # observations don't have access_count/confidence, skip
-        pass
+        # observations have no confidence column (impact_score is the belief
+        # proxy), but since migration v30 they carry access_count +
+        # last_accessed_at so the access/recency-on-use ranking applies.
+        conn.execute(
+            "UPDATE observations SET "
+            "access_count = COALESCE(access_count, 0) + 1, "
+            "last_accessed_at = CURRENT_TIMESTAMP "
+            "WHERE id = ?",
+            (row_id,),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +312,7 @@ def memory_search(
         try:
             obs_rows = conn.execute(
                 "SELECT o.id, o.title, o.memory_type, o.impact_score, o.created_at, "
-                "o.concepts, rank AS fts_rank "
+                "o.concepts, o.access_count, rank AS fts_rank "
                 "FROM observations_fts f "
                 "JOIN observations o ON o.id = f.rowid "
                 "WHERE observations_fts MATCH ? "
@@ -318,7 +326,7 @@ def memory_search(
     if not use_fts5:
         obs_rows = conn.execute(
             "SELECT id, title, memory_type, impact_score, created_at, concepts, "
-            "0.5 AS fts_rank "
+            "access_count, 0.5 AS fts_rank "
             "FROM observations "
             "WHERE (title LIKE ? OR narrative LIKE ? OR concepts LIKE ?)"
             + since_clause
@@ -342,7 +350,7 @@ def memory_search(
             confidence=0.5,  # observations don't have confidence
             recency_days=days,
             impact=row_dict.get("impact_score", 0.5) or 0.5,
-            access_count=0,
+            access_count=row_dict.get("access_count", 0) or 0,
         )
         candidates.append(
             {
