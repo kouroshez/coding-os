@@ -32,12 +32,18 @@ wip_limits:
   testing: 3
   emergency: 2
 
-# State-machine policy gates (both default true — disciplined flow).
+# State-machine policy gates + multi-agent WIP behavior.
 workflow_policy:
   # Require the `ready` label before icebox→in_progress (emergency exempt).
   require_ready_label: true
   # Block in_progress→complete; force routing through `testing`.
   block_in_progress_to_complete: true
+  # Count the in_progress cap per agent_session so concurrent sessions
+  # don't block each other on a global cap (testing/emergency stay global).
+  per_session_wip: true
+  # An in_progress task idle this long whose owner session is inactive is
+  # a zombie-reclaim candidate (cos_task_reclaim → icebox+ready).
+  reclaim_idle_hours: 24
 
 # Optional extra label families (kind colours are fixed, NOT here).
 # Custom labels not in this list still work — they get a deterministic

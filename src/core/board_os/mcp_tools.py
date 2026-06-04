@@ -1081,6 +1081,131 @@ def cos_task_ready(
     )
 
 
+# ---------- cos_task_reclaim (zombie in_progress recovery) ----------
+
+
+def _active_session_ids(now: float, window: int = 1800) -> set[str]:
+    """Session ids with presence activity inside `window` seconds.
+
+    Reads the agent-presence JSON files under
+    `$COS_STATE_DIR/<agent>/sessions/*.json` (written by agent-presence.sh).
+    Missing / unreadable presence is treated as "no active sessions" so
+    reclaim falls back to the idle-only signal.
+    """
+    ids: set[str] = set()
+    state_dir = os.environ.get("COS_STATE_DIR") or str(_project_root() / ".coding-os")
+    base = Path(state_dir)
+    if not base.is_dir():
+        return ids
+    for sess_dir in base.glob("*/sessions"):
+        for jf in sess_dir.glob("*.json"):
+            try:
+                d = json.loads(jf.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if d.get("ended_at"):
+                continue
+            last = 0
+            for key in ("last_tool_at", "last_prompt_at", "started_at"):
+                val = d.get(key)
+                if isinstance(val, (int, float)):
+                    last = max(last, int(val))
+            if last and (now - last) < window:
+                sid = d.get("session_id")
+                if sid:
+                    ids.add(str(sid))
+    return ids
+
+
+@safe_tool
+def cos_task_reclaim(
+    conn: sqlite3.Connection,
+    *,
+    idle_hours: int | None = None,
+    dry_run: bool = False,
+    agent_session: str | None = None,
+) -> str:
+    """Reclaim zombie in_progress tasks (idle + owner session inactive) to icebox+ready."""
+    config = _current_config()
+    threshold_h = idle_hours if idle_hours is not None else (
+        config.workflow_policy.reclaim_idle_hours if config is not None else 24
+    )
+    import time as _t
+
+    now = _t.time()
+    active = _active_session_ids(now)
+    project_root = _project_root()
+
+    rows = conn.execute(
+        "SELECT task_id, agent_session, started_at, file_path FROM tasks "
+        "WHERE status = 'in_progress'"
+    ).fetchall()
+
+    reclaimed: list[dict] = []
+    for task_id, owner, started_at, rel in rows:
+        hist = conn.execute(
+            "SELECT MAX(transitioned_at) FROM task_status_history WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        last_activity = max(
+            int(started_at or 0),
+            int(hist[0]) if hist and hist[0] else 0,
+        )
+        # No activity signal at all → too risky to reclaim; skip.
+        if last_activity == 0:
+            continue
+        idle_s = now - last_activity
+        if idle_s < threshold_h * 3600:
+            continue
+        # Owner still actively present → never reclaim its work.
+        if owner and owner in active:
+            continue
+
+        idle_h = round(idle_s / 3600, 1)
+        if dry_run:
+            reclaimed.append({"task_id": task_id, "previous_owner": owner, "idle_hours": idle_h})
+            continue
+
+        file_path = project_root / rel if rel else None
+        if file_path is not None and file_path.exists():
+            cur_labels = _labels_list_from_json(
+                conn.execute(
+                    "SELECT labels_json FROM tasks WHERE task_id = ?", (task_id,)
+                ).fetchone()[0]
+            )
+            if READY_LABEL not in cur_labels:
+                cur_labels.append(READY_LABEL)
+                try:
+                    _patch_labels_line(file_path, cur_labels)
+                    sync_one(conn, file_path, project_root=project_root)
+                except (OSError, ValueError) as exc:
+                    logger.debug("reclaim label patch failed for %s: %s", task_id, exc)
+
+        result = transition(
+            conn,
+            task_id,
+            "icebox",
+            reason=f"reclaim: idle {idle_h}h, owner session inactive",
+            agent_session=agent_session,
+            force=True,
+            config=config,
+            file_path=file_path,
+        )
+        if result.ok:
+            reclaimed.append({"task_id": task_id, "previous_owner": owner, "idle_hours": idle_h})
+
+    return ok(
+        {
+            "reclaimed": reclaimed,
+            "count": len(reclaimed),
+            "dry_run": dry_run,
+            "idle_hours_threshold": threshold_h,
+            "active_sessions": len(active),
+        },
+        meta={"layer": "tasks", "source": "board_os.cos_task_reclaim"},
+    )
+
+
 # ---------- cos_task_pick ----------
 
 
@@ -1137,6 +1262,17 @@ def cos_task_daily(
     hours = _parse_since(since)
     threshold = int(time.time() - hours * 3600)
 
+    # Self-heal at the session-start ritual: reclaim zombie in_progress
+    # tasks (idle + owner session inactive) before reporting state.
+    # Fire-and-forget — daily must never fail on the reclaim path.
+    reclaimed: list[dict] = []
+    try:
+        rec_env = json.loads(cos_task_reclaim(conn, agent_session=agent_session))
+        if rec_env.get("ok"):
+            reclaimed = rec_env["data"]["reclaimed"]
+    except Exception as exc:  # noqa: BLE001 - fire-and-forget
+        logger.debug("daily reclaim skipped: %s", exc)
+
     recent = conn.execute(
         "SELECT task_id, old_status, new_status, reason, transitioned_at "
         "FROM task_status_history "
@@ -1171,6 +1307,7 @@ def cos_task_daily(
             "in_progress": [_task_card(r) for r in in_progress],
             "blockers": [_task_card(r) for r in blocked],
             "wip": wip,
+            "reclaimed": reclaimed,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_daily"},
     )

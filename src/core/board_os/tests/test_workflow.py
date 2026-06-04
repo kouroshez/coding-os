@@ -53,6 +53,7 @@ def _insert_task(
     swimlane: str = "core",
     depends_on: list[str] | None = None,
     labels: list[str] | None = None,
+    agent_session: str | None = None,
 ) -> None:
     # Default to a `ready`-labelled task: most state-machine/WIP tests
     # need a pullable task, matching the require_ready_label contract.
@@ -60,8 +61,8 @@ def _insert_task(
     labels = ["ready"] if labels is None else labels
     conn.execute(
         "INSERT INTO tasks (task_id, title, status, file_path, content_hash, "
-        "mtime, swimlane, kind, priority, appetite, labels_json, dependencies) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "mtime, swimlane, kind, priority, appetite, labels_json, dependencies, agent_session) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             task_id,
             f"test {task_id}",
@@ -75,6 +76,7 @@ def _insert_task(
             "1h",
             json.dumps(labels),
             json.dumps(depends_on or []),
+            agent_session,
         ),
     )
     conn.commit()
@@ -336,6 +338,54 @@ def test_testing_gate_force_overrides(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-TG3", status="in_progress")
     result = transition(conn, "TASK-TG3", "complete", config=_make_config(), force=True)
     assert result.ok, result.error
+
+
+# ---------- Per-session WIP (concurrent multi-agent) ----------
+
+
+def test_per_session_wip_does_not_block_other_session(conn: sqlite3.Connection):
+    # Session A holds an in_progress task; session B (different
+    # agent_session) must still be able to start its own.
+    _insert_task(conn, "TASK-PA", status="in_progress", agent_session="ses-A")
+    _insert_task(conn, "TASK-PB", status="icebox", agent_session="ses-B")
+    result = transition(
+        conn,
+        "TASK-PB",
+        "in_progress",
+        config=_make_config(in_progress=1),
+        agent_session="ses-B",
+    )
+    assert result.ok, result.error
+
+
+def test_per_session_wip_still_blocks_same_session(conn: sqlite3.Connection):
+    # The same session is still capped at 1 (focus discipline).
+    _insert_task(conn, "TASK-SA1", status="in_progress", agent_session="ses-A")
+    _insert_task(conn, "TASK-SA2", status="icebox", agent_session="ses-A")
+    result = transition(
+        conn,
+        "TASK-SA2",
+        "in_progress",
+        config=_make_config(in_progress=1),
+        agent_session="ses-A",
+    )
+    assert result.ok is False
+    assert "WIP cap" in (result.error or "")
+
+
+def test_global_wip_when_per_session_disabled(conn: sqlite3.Connection):
+    from core.board_os.config import ScrumbanConfig, Swimlane, WipLimits, WorkflowPolicy
+
+    cfg = ScrumbanConfig(
+        swimlanes=(Swimlane(id="core", label="Core", color="#3b82f6"),),
+        wip_limits=WipLimits(in_progress=1),
+        workflow_policy=WorkflowPolicy(per_session_wip=False),
+    )
+    _insert_task(conn, "TASK-GA", status="in_progress", agent_session="ses-A")
+    _insert_task(conn, "TASK-GB", status="icebox", agent_session="ses-B")
+    result = transition(conn, "TASK-GB", "in_progress", config=cfg, agent_session="ses-B")
+    assert result.ok is False
+    assert "WIP cap" in (result.error or "")
 
 
 # ---------- Dependency cycle detection (R-L-29) ----------

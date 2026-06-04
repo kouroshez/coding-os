@@ -147,13 +147,20 @@ class LabelFamily:
 class WorkflowPolicy:
     """Config-driven Scrumban state-machine policy gates.
 
-    Both default True so a fresh project enforces the disciplined flow;
-    a consumer can relax either knob via `workflow_policy:` in
+    Gate defaults are True so a fresh project enforces the disciplined
+    flow; a consumer can relax any knob via `workflow_policy:` in
     scrumban-config.yaml.
+
+    per_session_wip — count the in_progress cap per agent_session so
+        concurrent sessions don't block each other on a global cap.
+    reclaim_idle_hours — an in_progress task idle this long whose owner
+        session is inactive is a zombie-reclaim candidate.
     """
 
     require_ready_label: bool = True
     block_in_progress_to_complete: bool = True
+    per_session_wip: bool = True
+    reclaim_idle_hours: int = 24
 
 
 @dataclass(frozen=True)
@@ -289,14 +296,20 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
     if not isinstance(policy_raw, dict):
         errors.append("workflow_policy must be a mapping")
         policy_raw = {}
-    policy_kwargs: dict[str, bool] = {}
-    for flag in ("require_ready_label", "block_in_progress_to_complete"):
+    policy_kwargs: dict[str, object] = {}
+    for flag in ("require_ready_label", "block_in_progress_to_complete", "per_session_wip"):
         if flag in policy_raw:
             v = policy_raw[flag]
             if not isinstance(v, bool):
                 errors.append(f"workflow_policy.{flag}={v!r} must be a boolean")
             else:
                 policy_kwargs[flag] = v
+    if "reclaim_idle_hours" in policy_raw:
+        v = policy_raw["reclaim_idle_hours"]
+        if not isinstance(v, int) or isinstance(v, bool) or v <= 0:
+            errors.append(f"workflow_policy.reclaim_idle_hours={v!r} must be a positive int")
+        else:
+            policy_kwargs["reclaim_idle_hours"] = v
     workflow_policy = WorkflowPolicy(**policy_kwargs)
 
     if errors:

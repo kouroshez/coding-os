@@ -428,6 +428,25 @@ def task_ready_cmd(task_id, off):
     sys.exit(_print_envelope(envelope))
 
 
+@click.command("task-reclaim", help="Reclaim zombie in_progress tasks (idle + owner inactive) to icebox+ready.")
+@click.option("--idle-hours", type=int, default=0, help="Override the idle threshold (0 = config default).")
+@click.option("--dry-run", is_flag=True, default=False, help="List candidates without moving them.")
+def task_reclaim_cmd(idle_hours, dry_run):
+    from board_os import mcp_tools
+
+    conn = _db_conn()
+    try:
+        envelope = mcp_tools.cos_task_reclaim(
+            conn,
+            idle_hours=idle_hours or None,
+            dry_run=dry_run,
+            agent_session=_agent_session_id(),
+        )
+    finally:
+        conn.close()
+    sys.exit(_print_envelope(envelope))
+
+
 _KIND_TO_OUTCOME_TYPE = {
     "bug": "fix",
     "feature": "feat",
@@ -1007,6 +1026,7 @@ BOARD_COMMANDS = [
     task_move_cmd,
     task_start_cmd,
     task_ready_cmd,
+    task_reclaim_cmd,
     task_done_cmd,
     task_block_cmd,
     task_cancel_cmd,

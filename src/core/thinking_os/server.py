@@ -1825,6 +1825,30 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_reclaim",
+        annotations={
+            "title": "Reclaim Zombie in_progress Tasks",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_reclaim(
+        idle_hours: int = 0,
+        dry_run: bool = False,
+        agent_session: str = "",
+    ) -> str:
+        """Reclaim zombie in_progress tasks (idle + owner session inactive) to icebox+ready."""
+        resolved_session = agent_session or _detect_agent_session_default() or None
+        return _board_mcp.cos_task_reclaim(
+            _db_conn,
+            idle_hours=idle_hours or None,
+            dry_run=dry_run,
+            agent_session=resolved_session,
+        )
+
+    @mcp.tool(
         name="cos_task_pick",
         annotations={
             "title": "Pick Next Task to Work On",

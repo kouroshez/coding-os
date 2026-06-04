@@ -609,3 +609,49 @@ def test_concurrent_create_yields_unique_ids(project: Path, conn: sqlite3.Connec
     assert not errors, errors
     assert len(results) == 12, results
     assert len(set(results)) == 12, f"duplicate ids allocated: {sorted(results)}"
+
+
+# ---------- cos_task_reclaim (zombie recovery, TASK-089) ----------
+
+
+def test_reclaim_moves_idle_in_progress_to_icebox_ready(project: Path, conn: sqlite3.Connection):
+    import time as _t
+
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn, title="zombie", swimlane="core", kind="chore",
+            outcome="zombie reclaim regression guard outcome.", ready=True,
+        )
+    )
+    tid = env["data"]["task_id"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-dead"))["ok"]
+
+    old = int(_t.time()) - 48 * 3600
+    conn.execute("UPDATE tasks SET started_at = ? WHERE task_id = ?", (old, tid))
+    conn.execute("UPDATE task_status_history SET transitioned_at = ? WHERE task_id = ?", (old, tid))
+    conn.commit()
+
+    rec = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert rec["ok"], rec
+    assert tid in [r["task_id"] for r in rec["data"]["reclaimed"]]
+
+    row = conn.execute("SELECT status, labels_json FROM tasks WHERE task_id = ?", (tid,)).fetchone()
+    assert row[0] == "icebox"
+    assert "ready" in (row[1] or "")
+
+
+def test_reclaim_skips_fresh_in_progress(project: Path, conn: sqlite3.Connection):
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn, title="fresh", swimlane="core", kind="chore",
+            outcome="fresh task must not be reclaimed outcome.", ready=True,
+        )
+    )
+    tid = env["data"]["task_id"]
+    assert _parse(mcp_tools.cos_task_move(conn, task_id=tid, to="in_progress", agent_session="ses-x"))["ok"]
+
+    rec = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert rec["ok"], rec
+    assert tid not in [r["task_id"] for r in rec["data"]["reclaimed"]]
+    row = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (tid,)).fetchone()
+    assert row[0] == "in_progress"

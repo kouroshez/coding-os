@@ -36,6 +36,7 @@ Backlog entries that are not yet started may live in `cos board` (icebox status)
 ## Execution Rules
 
 - **Pull from icebox requires the `ready` label.** With `workflow_policy.require_ready_label` (default on), `icebox → in_progress` is blocked until the task is marked pullable — `cos task-ready TASK-NNN` (or create with `--ready`). The `emergency` fast lane is exempt. This separates "groomed idea" from "raw idea": the content DoR gate proves the task is well-formed, the `ready` label proves it was deliberately scheduled.
+- **Concurrent sessions don't block each other.** With `workflow_policy.per_session_wip` (default on), the `in_progress` cap is counted per `agent_session` — each session keeps its own focus limit of 1 while two Claude tabs or a Claude + Codex pair run in parallel. `testing` / `emergency` caps stay board-global. An `in_progress` task whose owning session goes inactive and is idle past `reclaim_idle_hours` (default 24h) is returned to `icebox` + `ready` by `cos task-reclaim` (also run opportunistically by `cos daily`), so a crashed session never strands work.
 - Move the task to `in_progress` before any substantial Write/Edit. Hooks block code edits without an active task marker.
 - Complexity Gate (AGENTS.md § Core Loop) runs in Classify before Orient. The gate's Dimension Map and Read List inform the rest of the loop and are recorded in the task's Notes when non-trivial.
 - Keep Work Log up to date as you go — one bullet per meaningful checkpoint. The CLI's `cos work-log TASK-NNN "note"` is preferred so the DB cache (`work_log_last_5`) stays fresh.
@@ -82,7 +83,9 @@ Optional sections:
 |---|---|---|
 | View board | `cos board` / `cos board --web` | `cos_task_board` |
 | Create | `cos task-create --title "…" --swimlane … --kind …` | `cos_task_create` |
+| Mark ready | `cos task-ready TASK-NNN` | `cos_task_ready` |
 | Start | `cos task-start TASK-NNN` | `cos_task_move` → `in_progress` |
+| Reclaim zombies | `cos task-reclaim` | `cos_task_reclaim` |
 | Move to testing | `cos task-move TASK-NNN --to testing` | `cos_task_move` → `testing` |
 | Complete | `cos task-done TASK-NNN` | `cos_task_move` → `complete` |
 | Block | `cos task-move TASK-NNN --to blocked` | `cos_task_move` → `blocked` |

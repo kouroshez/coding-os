@@ -108,10 +108,28 @@ class TransitionError(ValueError):
 # ---------- Public API ----------
 
 
-def check_wip(conn: sqlite3.Connection, config: ScrumbanConfig) -> WipState:
+def check_wip(
+    conn: sqlite3.Connection,
+    config: ScrumbanConfig,
+    *,
+    agent_session: str | None = None,
+) -> WipState:
+    # in_progress is a per-worker focus cap: when per_session_wip is on
+    # and a session is known, count only that session's in_progress
+    # tasks so concurrent sessions don't block each other on a global
+    # cap. testing / emergency stay board-global (queue / SEV limits).
+    per_session = bool(config.workflow_policy.per_session_wip and agent_session)
     counts: dict[str, int] = {}
     for status in _WIP_COLUMN_MAP.values():
-        row = conn.execute("SELECT COUNT(*) FROM tasks WHERE status = ?", (status,)).fetchone()
+        if per_session and status == "in_progress":
+            row = conn.execute(
+                "SELECT COUNT(*) FROM tasks WHERE status = ? AND agent_session = ?",
+                (status, agent_session),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM tasks WHERE status = ?", (status,)
+            ).fetchone()
         counts[status] = int(row[0]) if row else 0
     caps = {
         "in_progress": config.wip_limits.in_progress,
@@ -324,7 +342,7 @@ def transition(
     if config is not None and not bypass_wip:
         target_col = _WIP_COLUMN_MAP.get(to_status)
         if target_col:
-            state = check_wip(conn, config)
+            state = check_wip(conn, config, agent_session=agent_session)
             wip_state = dict(state.counts)
             cap = state.caps.get(target_col)
             if cap is not None and state.counts.get(target_col, 0) >= cap:

@@ -32,7 +32,7 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
   - `cos_graph_cycles` = circular dependencies as strongly-connected components (scope=imports module-level design smell | calls)
   - `cos_graph_test_gap` = prod function/method/class with zero inbound edge from a test source (untested symbols)
   - `cos_graph_diff` = graph blast-radius of a git revision range (base..head → changed files → affected symbols + downstream)
-- **Board / Tasks (15):** `cos_task_board`, `cos_task_show`, `cos_task_create`, `cos_task_move`, `cos_task_ready`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
+- **Board / Tasks (16):** `cos_task_board`, `cos_task_show`, `cos_task_create`, `cos_task_move`, `cos_task_ready`, `cos_task_reclaim`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
 - **Audit (3):** `cos_audit_log_record`, `cos_audit_log_query`, `cos_audit_log_timeline`
