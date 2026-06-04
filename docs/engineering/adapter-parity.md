@@ -17,6 +17,20 @@ Read when: Codex behavior differs from Claude · evaluating whether a new hook w
 
 ## Parity matrix (as of 2026-04-18)
 
+> **Stale-capability notice (2026-06-04):** Codex CLI 0.135.0 has since
+> expanded its hook surface well beyond the Bash-only matchers declared in
+> `src/adapters/codex/adapter.yaml`. It now supports `PreToolUse`/`PostToolUse`
+> matchers `apply_patch` / `Edit` / `Write` + MCP tool names (with blocking via
+> `permissionDecision:"deny"` / exit 2 / `updatedInput`), SessionStart source
+> `compact`, and new events `PreCompact` / `PostCompact` / `PermissionRequest` /
+> `SubagentStart` / `SubagentStop`. Two new caveats: a **hook-trust** model
+> (non-managed hooks are hash-trusted and skipped until trusted via `/hooks`)
+> and a different edit `tool_input` shape (apply_patch uses `tool_input.command`,
+> not `.file_path`). Adopting this surface — the real path to Codex enforcement
+> parity, superseding the obsolete server-side backstop — is tracked in
+> **TASK-083**. The table below still reflects the *current, un-updated*
+> adapter.yaml until that task lands.
+
 The renderer at [src/cli/hook_renderer.py](../../src/cli/hook_renderer.py) reads [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) and **filters every (event, matcher) pair** against each adapter's capabilities declared in [src/adapters/<id>/adapter.yaml](../../src/adapters/claude/adapter.yaml). A pair the runtime cannot trigger is skipped silently.
 
 Run the live audit yourself:
