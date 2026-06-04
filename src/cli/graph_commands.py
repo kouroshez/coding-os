@@ -575,6 +575,10 @@ def register(cli: click.Group) -> None:
             else:
                 processed += 1
 
+        # Live per-file progress bar — click.progressbar auto-hides when
+        # stdout is not a TTY (pipes / CI), so non-interactive runs keep
+        # the summary-only output. Replaces the per-file cache-hit echo.
+        bar = click.progressbar(length=len(plan.files), label="[graph-reindex] indexing")
         if workers and workers > 1:
             # ProcessPoolExecutor parallelism for monorepo-scale walks. Each
             # worker opens its own SQLite connection via init_db() inside
@@ -584,7 +588,7 @@ def register(cli: click.Group) -> None:
 
             click.echo(f"[graph-reindex] parallel workers={workers}")
             futures = {}
-            with ProcessPoolExecutor(max_workers=workers) as pool:
+            with ProcessPoolExecutor(max_workers=workers) as pool, bar:
                 for file_path in plan.files:
                     fut = pool.submit(
                         _parallel_dispatch,
@@ -602,24 +606,26 @@ def register(cli: click.Group) -> None:
                     except Exception as exc:
                         errors += 1
                         click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
+                    bar.update(1)
         else:
-            for file_path in plan.files:
-                try:
-                    report = dispatch(
-                        file_path,
-                        project_root=project_root,
-                        include_docs=not no_docs,
-                        force=force,
-                        link_stubs=False,  # TASK-043: global link after the walk
-                    )
-                    if report.get("cache") == "hit":
-                        skipped += 1
-                        click.echo(f"[graph-reindex]   · cache-hit {report['path']}")
-                    else:
-                        processed += 1
-                except Exception as exc:
-                    errors += 1
-                    click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
+            with bar:
+                for file_path in plan.files:
+                    try:
+                        report = dispatch(
+                            file_path,
+                            project_root=project_root,
+                            include_docs=not no_docs,
+                            force=force,
+                            link_stubs=False,  # TASK-043: global link after the walk
+                        )
+                        if report.get("cache") == "hit":
+                            skipped += 1
+                        else:
+                            processed += 1
+                    except Exception as exc:
+                        errors += 1
+                        click.echo(f"[graph-reindex]   ! {file_path}: {exc}", err=True)
+                    bar.update(1)
         duration = _time.monotonic() - started
         click.echo(
             f"[graph-reindex] processed={processed} skipped={skipped} "

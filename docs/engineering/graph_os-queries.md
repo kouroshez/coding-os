@@ -83,7 +83,11 @@ that mentions a graph has a specific `cos_graph_*` call behind it:
 
 ## Commands
 
-- `cos graph-reindex` — rebuild the graph from scratch.
+- `cos graph-reindex` — rebuild the graph from scratch. Shows a live
+  per-file progress bar on an interactive terminal (auto-hidden when
+  stdout is piped/CI); `--workers N` parallelises and `--force` bypasses
+  the content-hash cache. The final line reports
+  `processed/skipped/errors/duration`.
 - `cos graph-query "<phrase>"` — convenience CLI wrapper over
   `cos_graph_query`.
 - `cos graph-viz [--root <uid>]` — produce the HTML viewer (plan
