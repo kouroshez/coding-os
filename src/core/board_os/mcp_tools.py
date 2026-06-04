@@ -72,15 +72,14 @@ def _slugify(title: str, *, max_len: int = 60) -> str:
 
 
 def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
-    # DB is authoritative for synced tasks; filesystem catches unsynced files.
-    # Taking max of both eliminates the window where two agents both read the
-    # same filesystem max before either writes, each computing the same ID.
-    row = conn.execute(
-        "SELECT MAX(CAST(SUBSTR(task_id, 6) AS INTEGER)) FROM tasks "
-        "WHERE task_id LIKE 'TASK-%' AND SUBSTR(task_id, 6) GLOB '[0-9]*'"
-    ).fetchone()
-    db_max = int(row[0]) if row and row[0] is not None else 0
-
+    # Allocate the next TASK-NNN atomically. The old code read SELECT MAX
+    # then returned — two concurrent creators read the same max before
+    # either wrote, producing a duplicate id. Here a single INSERT…SELECT
+    # computes max(db, filesystem)+1 AND reserves the row in one
+    # statement, so SQLite's write lock serializes contenders: the loser
+    # blocks (busy_timeout=5s), then reads the winner's reserved row and
+    # picks the next integer. sync_one's upsert later overwrites the stub
+    # (title/file_path/content_hash/mtime) with the real task fields.
     tasks_dir = project_root / "docs" / "tasks"
     fs_max = 0
     if tasks_dir.exists():
@@ -89,8 +88,40 @@ def _next_task_id(conn: sqlite3.Connection, project_root: Path) -> str:
             if m:
                 fs_max = max(fs_max, int(m.group(1)))
 
-    next_num = max(db_max, fs_max) + 1
-    return f"TASK-{next_num:03d}"
+    import time as _t
+
+    last_exc: Exception | None = None
+    for attempt in range(8):
+        try:
+            cur = conn.execute(
+                """
+                INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime)
+                SELECT printf('TASK-%03d', MAX(n) + 1),
+                       '(reserving)', 'icebox',
+                       printf('docs/tasks/.reserve-%d.tmp', MAX(n) + 1), '', 0
+                FROM (
+                    SELECT COALESCE(MAX(CAST(SUBSTR(task_id, 6) AS INTEGER)), 0) AS n
+                    FROM tasks
+                    WHERE task_id LIKE 'TASK-%' AND SUBSTR(task_id, 6) GLOB '[0-9]*'
+                    UNION ALL SELECT ? AS n
+                )
+                """,
+                (fs_max,),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT task_id FROM tasks WHERE rowid = ?", (cur.lastrowid,)
+            ).fetchone()
+            if row and row[0]:
+                return str(row[0])
+            raise sqlite3.OperationalError("reservation row not found after insert")
+        except sqlite3.OperationalError as exc:
+            last_exc = exc
+            if "locked" in str(exc).lower() and attempt < 7:
+                _t.sleep(0.05 * (attempt + 1))
+                continue
+            raise
+    raise last_exc or sqlite3.OperationalError("task id allocation failed")
 
 
 def _render_lean_frontmatter(fields: dict) -> str:

@@ -563,3 +563,49 @@ def test_retro_shape(project: Path, conn: sqlite3.Connection):
     assert env["ok"] is True
     assert "completed_count" in env["data"]
     assert "swimlane_throughput" in env["data"]
+
+
+# ---------- concurrent id allocation (TASK-088) ----------
+
+
+def test_concurrent_create_yields_unique_ids(project: Path, conn: sqlite3.Connection):
+    """N threads each open their own connection to the SAME db file and
+    create a task at once — every allocated TASK-NNN must be unique
+    (atomic INSERT…SELECT reservation, not read-then-write)."""
+    import threading
+
+    db_path = project / "coding-os.db"
+    results: list[str] = []
+    errors: list[dict] = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(12)
+
+    def worker(i: int) -> None:
+        c = sqlite3.connect(str(db_path), timeout=5)
+        try:
+            barrier.wait()  # maximize collision pressure
+            env = json.loads(
+                mcp_tools.cos_task_create(
+                    c,
+                    title=f"concurrent {i}",
+                    swimlane="core",
+                    kind="chore",
+                    outcome="concurrent allocation regression guard outcome.",
+                )
+            )
+            with lock:
+                (results if env["ok"] else errors).append(
+                    env["data"]["task_id"] if env["ok"] else env
+                )
+        finally:
+            c.close()
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(12)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, errors
+    assert len(results) == 12, results
+    assert len(set(results)) == 12, f"duplicate ids allocated: {sorted(results)}"
