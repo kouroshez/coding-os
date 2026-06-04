@@ -284,6 +284,14 @@ docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (T
 docs-index-regen-dry: ## Preview docs-index-regen output without writing
 	@python3 src/scripts/regen_doc_index.py docs --all --dry-run
 
+.PHONY: skills-refresh-versions
+skills-refresh-versions: ## Rewrite drifted versions in every skill versions.json from registries
+	@python3 src/scripts/refresh_skill_versions.py --root src --write
+
+.PHONY: skills-check-versions
+skills-check-versions: ## CI gate — fail if any skill versions.json is stale
+	@python3 src/scripts/refresh_skill_versions.py --root src --check
+
 # ── Scheduled Jobs (CRON A + B) ─────────────────────────────────────
 _PLIST_SRC  := $(COS_ROOT)/src/core/scheduled/launchd/com.codingos.nightly.plist.template
 _PLIST_DEST := $(HOME)/Library/LaunchAgents/com.codingos.nightly.plist
