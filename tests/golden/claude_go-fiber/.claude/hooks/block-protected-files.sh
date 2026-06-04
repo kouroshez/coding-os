@@ -40,7 +40,10 @@ if [[ "$FILE_PATH" == *"/scaffold/docs/governance/"* ]]; then
   TASK_NAME=""
   if [ -f "$TASK_FILE" ]; then
     TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
-    TASK_NAME="${TASK_VALUE##* }"
+    # Strip ONLY the leading session-id token; keep the rest of the value.
+    # `##* ` would drop everything but the LAST word, so a multi-word marker
+    # (`<sid> docs-update TASK-096 align-docs`) lost the governance keyword.
+    TASK_NAME="${TASK_VALUE#* }"
   fi
   case "$TASK_NAME" in
     *template-update*|*docs-update*|*docs-sync*|*governance*|*claude-md-update*|*agents-md-update*)
@@ -100,7 +103,10 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
   if [ -f "$TASK_FILE" ]; then
     TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
     # The task marker is "session-id value" — extract the value
-    TASK_NAME="${TASK_VALUE##* }"
+    # Strip ONLY the leading session-id token; keep the rest of the value.
+    # `##* ` would drop everything but the LAST word, so a multi-word marker
+    # (`<sid> docs-update TASK-096 align-docs`) lost the governance keyword.
+    TASK_NAME="${TASK_VALUE#* }"
     # Allow when the task name clearly signals governance/docs work.
     case "$TASK_NAME" in
       *docs-update*|*docs-sync*|*governance*|*claude-md-update*|*agents-md-update*)

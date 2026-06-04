@@ -638,6 +638,33 @@ class TestBlockProtectedFilesGovernanceEscape:
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 0
 
+    def test_allows_agents_md_with_multiword_governance_marker(self, tmp_path: Path) -> None:
+        """Regression (TASK-097): a multi-word marker whose governance keyword
+        is NOT the last token must still be recognised. The old `${VALUE##* }`
+        extraction kept only the last word ('align-docs') and false-blocked."""
+        env = self._make_task_state(tmp_path, "docs-update TASK-096 align-docs")
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "/repo/AGENTS.md", "old_string": "x", "new_string": "y"},
+            }
+        )
+        result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
+        assert result.returncode == 0
+
+    def test_blocks_multiword_nongovernance_marker(self, tmp_path: Path) -> None:
+        """The wider match must NOT leak: a multi-word non-governance marker
+        still blocks governance edits."""
+        env = self._make_task_state(tmp_path, "implement TASK-100 feature-auth")
+        payload = json.dumps(
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "/repo/AGENTS.md", "old_string": "x", "new_string": "y"},
+            }
+        )
+        result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
+        assert result.returncode == 2
+
 
 # ---------------------------------------------------------------------------
 # Regression: hook scripts must reference the current thinking_os/ module
