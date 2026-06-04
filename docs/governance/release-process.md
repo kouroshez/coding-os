@@ -81,6 +81,48 @@ malformed type silently dropped a change from the changelog.
   criteria — frozen `cos init` output + `cos_*` MCP signatures — are
   tracked in TASK-079.
 
+## Publishing & package metadata (pre-public-launch — TASK-077)
+
+Goal: make `cos` publicly installable —
+
+```bash
+pip install coding-os      # or: pipx install coding-os · uvx coding-os
+```
+
+All three resolve from **PyPI** — publish once, all three work. **Do NOT wire
+this until the repo goes public:** publishing uploads the wheel publicly even
+while the repo is private. Sequence it with the first public release.
+
+**Channel:** PyPI (the Python-CLI standard). uvx-from-git is a fallback; GHCR
+(container) is the wrong fit for a local dev tool.
+
+### Two pieces, landed together
+
+**1. Publish job** — a job in `release-please.yml` gated on `releases_created`,
+using **Trusted Publishing** (OIDC, no token):
+- `pypa/gh-action-pypi-publish` + `permissions: id-token: write`;
+- register the repo as a trusted publisher on the PyPI project first;
+- result: every merged release auto-publishes to PyPI.
+
+**2. Complete `pyproject.toml` `[project]` metadata** — currently MISSING, needed
+for a professional PyPI page (per the [official tutorial](https://packaging.python.org/en/latest/tutorials/packaging-projects/)):
+- `authors` (name + email)
+- `license` (SPDX, from the existing LICENSE) + `license-files = ["LICENSE"]`
+- `classifiers` (Python 3.10–3.12 · License · OS Independent · Development Status :: 4 - Beta · Intended Audience :: Developers)
+- `keywords` (ai · coding-agent · mcp · llm · cli · hexagonal · claude · codex)
+- `[project.urls]` (Homepage / Repository / Issues → github.com/kouroshez/coding-os)
+
+Already publish-ready (do not touch): `name` · `version` · `description` ·
+`readme` · `requires-python` · `dependencies` · `[project.scripts]`
+(`cos = cli.main:cli`) · `build-system` (setuptools.build_meta) · src-layout.
+
+**Gotcha:** SPDX `license = "MIT"` + `license-files` needs `setuptools>=77`
+(build-system pins `>=68`) — bump it, or use legacy `license = {file = "LICENSE"}`.
+
+### Verify
+`uv build` (clean wheel + sdist) · `twine check dist/*` · dry-run on **TestPyPI**
+(`pip install -i https://test.pypi.org/simple/ coding-os`) before the real index.
+
 ## 1.0.0 cut criteria (TASK-079)
 
 `0.x` gives consumers **no stability guarantee** (semver). Cut `1.0.0` only when
