@@ -37,14 +37,11 @@ interface Highlight {
 interface BoardStats {
   throughput: number | null;
   throughputLast7: number | null;
-  leadTime: number | null;
-  leadTimeP90: number | null;
   cycleTime: number | null;
   wipTotal: number;
   wipCap: number;
   wipOver: number;
   blocked: number | null;
-  stale: number | null;
   p0: number;
   emergency: number;
 }
@@ -450,14 +447,11 @@ export default function CosBoardPage() {
     return {
       throughput: retroThroughput,
       throughputLast7: retroThroughput,
-      leadTime: null,
-      leadTimeP90: null,
       cycleTime: retroCycleDays,
       wipTotal,
       wipCap: wipCap || 6,
       wipOver,
       blocked: cards.filter((t) => t.status === 'blocked').length,
-      stale: null,
       p0: cards.filter((t) => t.priority === 'P0' && !['complete', 'archive'].includes(t.status)).length,
       emergency: cards.filter((t) => t.status === 'emergency').length,
     };
@@ -1062,12 +1056,6 @@ function TopBar({
           unit="/wk"
           hint={stats.throughputLast7 != null ? `last 7d: ${stats.throughputLast7}` : 'retro metrics unavailable'}
         />
-        <StatCell
-          label="LEAD TIME"
-          value={stats.leadTime}
-          unit="d p50"
-          hint={stats.leadTimeP90 != null ? `p90 ${stats.leadTimeP90}d` : 'not tracked yet'}
-        />
         <StatCell label="CYCLE" value={stats.cycleTime} unit="d p50" hint={stats.cycleTime != null ? '' : 'from retro'} />
         <StatCell
           label="WIP"
@@ -1077,7 +1065,6 @@ function TopBar({
           hint={stats.wipOver ? `${stats.wipOver} col over cap` : 'within caps'}
         />
         <StatCell label="BLOCKED" value={stats.blocked} unit="" tone={(stats.blocked ?? 0) > 0 ? 'amber' : null} />
-        <StatCell label="STALE" value={stats.stale} unit="" hint=">3d idle" />
         <StatCell label="P0" value={stats.p0} unit="open" tone={stats.p0 > 0 ? 'red' : null} />
         <StatCell label="EMERG" value={stats.emergency} unit="" tone={stats.emergency > 0 ? 'red' : null} last />
       </div>
