@@ -11,7 +11,8 @@
 #     owns the scope check + per-suffix extractor chain; shell just
 #     routes paths.
 #   - Scoped: docs layer handles only .md; graph layer handles every
-#     suffix the extractor map knows (.py/.ts/.tsx/.sh/.yaml/.md/.go).
+#     suffix the extractor map knows
+#     (.py/.ts/.tsx/.js/.jsx/.mjs/.cjs/.sh/.yaml/.yml/.md/.go/.json/.toml).
 #   - Fail-open: any missing dep is a silent skip. Errors land in
 #     $COS_STATE_DIR/.reindex-errors.log (bounded, ~200 lines).
 #   - Adapter-agnostic: reads COS_STATE_DIR / COS_DB_PATH from cos-env.sh.
@@ -33,7 +34,7 @@ if [[ -z "$FILE_PATH" ]]; then
 fi
 
 case "$FILE_PATH" in
-  *.md|*.py|*.ts|*.tsx|*.sh|*.yaml|*.yml|*.go) ;;
+  *.md|*.py|*.ts|*.tsx|*.sh|*.yaml|*.yml|*.go|*.json|*.toml|*.js|*.jsx|*.mjs|*.cjs) ;;
   *) exit 0 ;;
 esac
 
