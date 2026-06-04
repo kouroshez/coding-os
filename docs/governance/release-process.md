@@ -81,6 +81,24 @@ malformed type silently dropped a change from the changelog.
   criteria — frozen `cos init` output + `cos_*` MCP signatures — are
   tracked in TASK-079.
 
+## 1.0.0 cut criteria (TASK-079)
+
+`0.x` gives consumers **no stability guarantee** (semver). Cut `1.0.0` only when
+the contracts below are frozen — it is a set of gates, not a date. All must hold:
+
+| # | Criterion | Signal it's met |
+|---|---|---|
+| 1 | `cos init` scaffold output shape frozen | `tests/golden/**` stable across ≥2 minors; no planned skeleton change |
+| 2 | `cos_*` MCP tool signatures frozen | `cos_graph_contracts` / tool inventory stable; `ok`/`fail` envelope unchanged |
+| 3 | Hook contract frozen | `$COS_*` env + `registry.yaml` shape stable; no consumer-visible hook renames |
+| 4 | Adapter contract frozen | `adapter.yaml` schema stable across claude / codex / cursor |
+| 5 | Quality gates promoted to required | ruff / mypy / eslint flipped from advisory to hard-fail in CI; baseline cleared |
+| 6 | Deprecation policy published | post-1.0 breaks follow deprecate → warn → remove over ≥2 minors, documented here |
+
+When all six hold, bump to `1.0.0` (a `feat!:` commit, or merge the release PR
+after a manual manifest bump). Until then stay on `0.x` and flag every breaking
+change with `!` so `^0.x` pinners are never surprised.
+
 ## See also
 
 - [src/core/rules/git-workflow.md](../../src/core/rules/git-workflow.md) — commit-message contract + trunk discipline.
