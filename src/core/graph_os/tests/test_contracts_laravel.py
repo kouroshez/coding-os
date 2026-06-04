@@ -33,8 +33,12 @@ class TestLaravelRoutes:
             for n in r.nodes
             if n.kind == "cos:route"
         )
+        # Cross-file controller handler → resolvable phproute stub (link_php_handlers
+        # binds it to the real method during reindex).
         assert any(
-            e.edge_type == "calls" and "UserController@index" in e.target_uid for e in r.edges
+            e.edge_type == "calls"
+            and e.target_uid == "code:external:phproute:UserController.index"
+            for e in r.edges
         )
 
     def test_handler_string_form(self):
@@ -55,14 +59,61 @@ class TestLaravelRoutes:
             if n.kind == "cos:route"
         )
 
-    def test_routes_inside_group_closure_captured(self):
-        # Group prefix is NOT auto-joined, but the inner routes ARE captured.
+    def test_middleware_only_group_no_prefix(self):
+        # A group with middleware but no prefix leaves the inner path as-is.
         src = (
             "<?php\nRoute::middleware('auth')->group(function () {\n"
             "    Route::get('/profile', [ProfileController::class, 'show']);\n"
             "});\n"
         )
         assert "GET /profile" in _labels(src)
+
+
+class TestLaravelGroupPrefix:
+    def test_fluent_prefix_group(self):
+        src = (
+            "<?php\nRoute::prefix('api')->group(function () {\n"
+            "    Route::get('/users', [UserController::class, 'index']);\n"
+            "});\n"
+        )
+        assert "GET /api/users" in _labels(src, "routes/api.php")
+
+    def test_array_prefix_group(self):
+        src = (
+            "<?php\nRoute::group(['prefix' => 'admin'], function () {\n"
+            "    Route::get('/dash', [DashController::class, 'index']);\n"
+            "});\n"
+        )
+        assert "GET /admin/dash" in _labels(src)
+
+    def test_nested_group_prefix(self):
+        src = (
+            "<?php\nRoute::prefix('api')->group(function () {\n"
+            "    Route::prefix('v1')->group(function () {\n"
+            "        Route::get('/users', [UserController::class, 'index']);\n"
+            "    });\n"
+            "});\n"
+        )
+        assert "GET /api/v1/users" in _labels(src, "routes/api.php")
+
+    def test_route_outside_group_not_prefixed(self):
+        src = (
+            "<?php\nRoute::get('/health', [HealthController::class, 'check']);\n"
+            "Route::prefix('api')->group(function () {\n"
+            "    Route::get('/users', [UserController::class, 'index']);\n"
+            "});\n"
+        )
+        labels = _labels(src, "routes/api.php")
+        assert "GET /health" in labels  # not /api/health
+        assert "GET /api/users" in labels
+
+    def test_resource_in_group_prefixed(self):
+        src = (
+            "<?php\nRoute::prefix('api')->group(function () {\n"
+            "    Route::apiResource('posts', PostController::class);\n"
+            "});\n"
+        )
+        assert "GET /api/posts" in _labels(src, "routes/api.php")
 
 
 class TestLaravelResource:

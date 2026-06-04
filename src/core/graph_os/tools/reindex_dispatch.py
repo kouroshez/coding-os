@@ -561,6 +561,8 @@ def _reindex_graph(
         if link_stubs:
             try:
                 backend.link_external_stubs(file_path=rel_path)
+                if rel_path.endswith(".php"):
+                    backend.link_php_handlers()
             except Exception as exc:
                 logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:

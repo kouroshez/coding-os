@@ -560,6 +560,37 @@ class SqliteBackend:
             self._conn.commit()
             return rewrites
 
+    def link_php_handlers(self) -> int:
+        """Resolve Laravel controller-handler stubs to real method nodes.
+
+        Contracts emits a route→`code:external:phproute:Ctrl.method` stub
+        because the controller lives in another file. After the global walk
+        every method node exists, so bind each stub to the unique
+        `code:method:…::Ctrl.method` node (skip when 0 or >1 match — never
+        guess). Mirrors `link_external_stubs` but for the PHP class-method
+        uid shape, which the Python-`.py` matcher there does not handle.
+        """
+        with self._write_lock:
+            stub_rows = self._conn.execute(
+                "SELECT id, uid FROM graph_nodes WHERE uid LIKE 'code:external:phproute:%'"
+            ).fetchall()
+            rewrites = 0
+            for stub_id, stub_uid in stub_rows:
+                key = stub_uid[len("code:external:phproute:") :]  # Ctrl.method
+                matches = self._conn.execute(
+                    "SELECT id FROM graph_nodes WHERE kind='method' AND uid LIKE ?",
+                    (f"%::{key}",),
+                ).fetchall()
+                if len(matches) != 1:
+                    continue
+                self._conn.execute(
+                    "UPDATE OR IGNORE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
+                    (int(matches[0][0]), int(stub_id)),
+                )
+                rewrites += 1
+            self._conn.commit()
+            return rewrites
+
     # -- Read path ---------------------------------------------------------
 
     def get_node(self, uid: str) -> GraphNode | None:

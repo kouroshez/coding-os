@@ -429,15 +429,17 @@ def _emit(
         # (TASK-053). Non-.py handlers keep the stub (no same-file table).
         if normalised.endswith(".py"):
             handler_uid = f"code:function:{normalised}::{match.handler}"
-        elif (
-            normalised.endswith(".php")
-            and "@" not in match.handler
-            and "::" not in match.handler
-        ):
-            # Bare same-file handler (WP callback / WHMCS module fn) → the real
-            # function node. Laravel `Ctrl@method` / `Class::method` are
-            # cross-file → keep the unresolved stub.
-            handler_uid = f"code:function:{normalised}::{match.handler}"
+        elif normalised.endswith(".php"):
+            if "@" in match.handler:
+                # Laravel controller handler `Ctrl@method` — cross-file. Emit a
+                # resolvable stub the `link_php_handlers` post-pass binds to the
+                # real code:method node (uid …::Ctrl.method).
+                handler_uid = f"code:external:phproute:{match.handler.replace('@', '.')}"
+            elif "::" not in match.handler:
+                # Bare same-file handler (WP callback / WHMCS module fn).
+                handler_uid = f"code:function:{normalised}::{match.handler}"
+            else:
+                handler_uid = f"code:external:unresolved:{match.handler}"
         else:
             handler_uid = f"code:external:unresolved:{match.handler}"
         result.edges.append(
@@ -969,6 +971,81 @@ def _php_short_name(name: str) -> str:
     return name.replace("/", "\\").split("\\")[-1]
 
 
+# Group-closure scoping — fluent `Route::prefix('x')->group(function(){...})`
+# and array `Route::group(['prefix'=>'x'], function(){...})`.
+_LARAVEL_GROUP_FLUENT_RE = re.compile(
+    r"""Route::(?P<chain>[^;]*?)->group\s*\(\s*(?:function|fn)\b[^{]*\{""", re.VERBOSE
+)
+_LARAVEL_GROUP_ARRAY_RE = re.compile(
+    r"""Route::group\s*\(\s*\[(?P<arr>[^\]]*)\][^{]*\{""", re.VERBOSE
+)
+_LARAVEL_PREFIX_IN_CHAIN_RE = re.compile(r"""prefix\(\s*['"](?P<p>[^'"]+)['"]""")
+_LARAVEL_PREFIX_IN_ARRAY_RE = re.compile(r"""['"]prefix['"]\s*=>\s*['"](?P<p>[^'"]+)['"]""")
+
+
+def _match_brace(content: str, open_idx: int) -> int:
+    """Index of the `}` matching the `{` at open_idx, skipping strings/comments."""
+    depth = 0
+    i = open_idx
+    n = len(content)
+    while i < n:
+        c = content[i]
+        if c in "'\"":
+            q = c
+            i += 1
+            while i < n and content[i] != q:
+                if content[i] == "\\":
+                    i += 1
+                i += 1
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and content[i + 1] == "/":
+            while i < n and content[i] != "\n":
+                i += 1
+            continue
+        if c == "#":
+            while i < n and content[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and content[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (content[i] == "*" and content[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return n
+
+
+def _laravel_group_spans(content: str) -> list[tuple[int, int, str]]:
+    """(open_brace_idx, close_brace_idx, prefix) for every Route group closure."""
+    spans: list[tuple[int, int, str]] = []
+    for m in _LARAVEL_GROUP_FLUENT_RE.finditer(content):
+        pm = _LARAVEL_PREFIX_IN_CHAIN_RE.search(m.group("chain"))
+        open_idx = m.end() - 1
+        spans.append((open_idx, _match_brace(content, open_idx), pm.group("p") if pm else ""))
+    for m in _LARAVEL_GROUP_ARRAY_RE.finditer(content):
+        pm = _LARAVEL_PREFIX_IN_ARRAY_RE.search(m.group("arr"))
+        open_idx = m.end() - 1
+        spans.append((open_idx, _match_brace(content, open_idx), pm.group("p") if pm else ""))
+    return spans
+
+
+def _laravel_group_prefix(spans: list[tuple[int, int, str]], pos: int) -> str:
+    """Joined prefix of all group closures containing pos (outer→inner)."""
+    containing = sorted((s for s in spans if s[0] < pos < s[1] and s[2]), key=lambda s: s[0])
+    prefix = ""
+    for _, _, p in containing:
+        prefix = _join_paths(prefix, p) if prefix else "/" + p.strip("/")
+    return prefix
+
+
 def _laravel_handler(content: str, end: int) -> str | None:
     tail = content[end:]
     m = _LARAVEL_H_ARRAY_RE.match(tail)
@@ -993,14 +1070,17 @@ def _scan_laravel(content: str) -> list[ContractMatch]:
     if "Route::" not in content and "Illuminate\\" not in content and "extends Command" not in content:
         return []
     hits: list[ContractMatch] = []
+    spans = _laravel_group_spans(content)
     for m in _LARAVEL_ROUTE_RE.finditer(content):
         method = m.group("method").lower()
+        prefix = _laravel_group_prefix(spans, m.start())
+        path = _join_paths(prefix, m.group("path")) if prefix else m.group("path")
         hits.append(
             ContractMatch(
                 kind="http",
                 framework="laravel",
                 method="any" if method == "any" else method,
-                path=m.group("path"),
+                path=path,
                 handler=_laravel_handler(content, m.end()),
                 line=_line_of(content, m.start()),
             )
@@ -1009,13 +1089,15 @@ def _scan_laravel(content: str) -> list[ContractMatch]:
         name = m.group("path").strip("/")
         ctrl = _php_short_name(m.group("ctrl"))
         line = _line_of(content, m.start())
+        prefix = _laravel_group_prefix(spans, m.start())
         for method, suffix, action in _LARAVEL_RESOURCE_ACTIONS[m.group("kind")]:
+            base = _join_paths(prefix, f"/{name}{suffix}") if prefix else f"/{name}{suffix}"
             hits.append(
                 ContractMatch(
                     kind="http",
                     framework="laravel",
                     method=method,
-                    path=f"/{name}{suffix}",
+                    path=base,
                     handler=f"{ctrl}@{action}",
                     line=line,
                     confidence=0.85,
