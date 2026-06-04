@@ -654,9 +654,7 @@ def _record_completion_outcome_safe(conn: sqlite3.Connection, task_id: str) -> N
     try:
         from thinking_os.record_outcome import record_outcome
 
-        krow = conn.execute(
-            "SELECT kind FROM tasks WHERE task_id = ?", (task_id,)
-        ).fetchone()
+        krow = conn.execute("SELECT kind FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
         kind = (krow[0] if krow else "") or "feature"
         ttype = {
             "bug": "fix",

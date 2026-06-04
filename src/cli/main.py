@@ -977,7 +977,11 @@ def init(
 
     with _stdout_redirect:
         _run_scaffold_phase(
-            agents, template, project, today=today_override, no_register=no_register,
+            agents,
+            template,
+            project,
+            today=today_override,
+            no_register=no_register,
             do_index=do_index,
         )
 
