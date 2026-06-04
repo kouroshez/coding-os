@@ -231,6 +231,25 @@ Targets: `pyproject.toml`, `Cargo.toml`, `*.toml` configs.
 **Workstream TOML-2:** workspace member resolution (2h)
 **Workstream TOML-3:** fixtures (1h)
 
+### 4.8 Parity-closure to Python-gold (TASK-067)
+
+The tree-sitter migrations (A1/GO-2) landed the parsers; this workstream
+closes the remaining *knowledge + accuracy* gaps so Go/TS/Shell and the
+framework contracts reach Python-gold parity. Each item is a real edge /
+node / correctness fix — not feature-padding (Rule 22).
+
+| Lang / layer | Gap (pre-067) | Target edge / node (post-067) |
+|---|---|---|
+| **Go** `code_go.py` | calls are regex-only, sourced at the module, conf 0.5; NO same-file function/method call resolution | AST `calls` edge sourced at the enclosing func/method uid; a same-file `func B()` / `(r *T) M()` invocation resolves to B's real `code:function`/`code:method` uid at conf 0.9 (mirrors Python `same_scope`). Cross-package `pkg.Fn()` stays the conf-0.5 external edge. |
+| **TS** `code_ts.py` | `has_param_type`/`returns_type` always target `code:external:unresolved:<T>`; `await fn()` emits `calls`; `enum`/`namespace` invisible | type edges resolve through `local_names`/`imported_names` (unresolved only as last resort, like Python); `await`-ed call emits an `awaits` edge; `enum_declaration` → `code:class` node (metadata.ts_kind=enum), `internal_module`/`module` (namespace) → `code:module`-style node with contained members |
+| **Shell** `code_shell.py` | regex fallback emits only script-file calls + `cos_log_hook`; intra-file function calls missing (tree-sitter path has them) | regex fallback resolves a command matching a same-file function name → `calls` edge (parity with `_walk_ts`) |
+| **Go contracts** `contracts.py` `_scan_fiber`/`_scan_gin`/`_scan_echo` | `groups[-1]` ("last group seen") prefixes EVERY route regardless of the receiver variable → wrong paths when ≥2 groups or a bare-app route coexists; `handler=None` always | track `var → prefix` from `g := app.Group("/x")`; a route on `g.Get(...)` gets `g`'s prefix, a route on bare `app.Get(...)` gets none; capture the handler arg → `cos:route → handler` `calls` edge |
+| **Next.js contracts** `_scan_nextjs` | only app-router named exports (`export function GET`) detected; pages-router (`export default function handler`) + `page.tsx` page-routes invisible | detect pages-router default-export handler under `pages/api/**` (method `any`); detect `page.tsx`/`page.ts` as a `get` route at the derived URL |
+| **React** `code_ts.py` | function components indistinguishable from plain functions | PascalCase function/arrow whose body contains JSX → `metadata.component=true` on the `code:function` node (makes "list components" queryable; reuses the existing node, no new edge type) |
+
+Verification: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q`
+(new adversarial tests per group) + `cos graph-reindex` smoke on this repo.
+
 ## 5. Implementation checklist (grouped, ordered)
 
 ### Epic A — Fix the broken (highest immediate value)
