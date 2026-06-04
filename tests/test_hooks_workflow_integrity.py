@@ -60,7 +60,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="TASK-1")
         rc, _, err = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/TASK-1-x.md", "old_string": "status: in_progress", "new_string": "status: complete"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/TASK-1-x.md",
+                    "old_string": "status: in_progress",
+                    "new_string": "status: complete",
+                },
+            },
             panel,
         )
         assert rc == 2
@@ -70,7 +77,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="TASK-1")
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/audits/audit-x.md", "old_string": "- [ ] EvidenceBundle", "new_string": "- [x] EvidenceBundle"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/audits/audit-x.md",
+                    "old_string": "- [ ] EvidenceBundle",
+                    "new_string": "- [x] EvidenceBundle",
+                },
+            },
             panel,
         )
         assert rc == 2
@@ -79,7 +93,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="TASK-1")
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/TASK-1-x.md", "old_string": "## Work Log", "new_string": "## Work Log\n- 2026-06-02 note"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/TASK-1-x.md",
+                    "old_string": "## Work Log",
+                    "new_string": "## Work Log\n- 2026-06-02 note",
+                },
+            },
             panel,
         )
         assert rc == 0
@@ -88,7 +109,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="TASK-1")
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "src/core/foo.py", "old_string": "status: in_progress", "new_string": "status: complete"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "src/core/foo.py",
+                    "old_string": "status: in_progress",
+                    "new_string": "status: complete",
+                },
+            },
             panel,
         )
         assert rc == 0
@@ -97,7 +125,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="TASK-1")
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/TASK-1-x.md", "old_string": "status: in_progress", "new_string": "status: complete"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/TASK-1-x.md",
+                    "old_string": "status: in_progress",
+                    "new_string": "status: complete",
+                },
+            },
             panel,
             env={"COS_ALLOW_TASK_EDIT": "1"},
         )
@@ -107,7 +142,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="governance-docs-update")
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/TASK-1-x.md", "old_string": "status: in_progress", "new_string": "status: complete"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/TASK-1-x.md",
+                    "old_string": "status: in_progress",
+                    "new_string": "status: complete",
+                },
+            },
             panel,
         )
         assert rc == 0
@@ -118,7 +160,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="governance-docs-update")
         rc, _, err = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/audits/audit-x.md", "old_string": "- [ ] EvidenceBundle", "new_string": "- [x] EvidenceBundle"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/audits/audit-x.md",
+                    "old_string": "- [ ] EvidenceBundle",
+                    "new_string": "- [x] EvidenceBundle",
+                },
+            },
             panel,
         )
         assert rc == 2
@@ -130,7 +179,14 @@ class TestEnforceTaskTransition:
         panel = _panel(tmp_path, task_current="governance-docs-update")
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "docs/tasks/audits/audit-x.md", "old_string": "- [ ] EvidenceBundle", "new_string": "- [x] EvidenceBundle"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "docs/tasks/audits/audit-x.md",
+                    "old_string": "- [ ] EvidenceBundle",
+                    "new_string": "- [x] EvidenceBundle",
+                },
+            },
             panel,
             env={"COS_ALLOW_TASK_EDIT": "1"},
         )
@@ -144,7 +200,10 @@ class TestSyncTaskCurrent:
         panel = _panel(tmp_path)
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "mcp__coding-os__cos_task_move", "tool_input": {"task_id": "TASK-7", "to": "in_progress"}},
+            {
+                "tool_name": "mcp__coding-os__cos_task_move",
+                "tool_input": {"task_id": "TASK-7", "to": "in_progress"},
+            },
             panel,
         )
         assert rc == 0
@@ -152,14 +211,19 @@ class TestSyncTaskCurrent:
 
     def test_writes_on_bash_task_start(self, tmp_path):
         panel = _panel(tmp_path)
-        _run(self.H, {"tool_name": "Bash", "tool_input": {"command": "cos task-start TASK-8"}}, panel)
+        _run(
+            self.H, {"tool_name": "Bash", "tool_input": {"command": "cos task-start TASK-8"}}, panel
+        )
         assert (panel / ".task-current").read_text(encoding="utf-8").strip().endswith("TASK-8")
 
     def test_no_write_on_complete(self, tmp_path):
         panel = _panel(tmp_path)
         _run(
             self.H,
-            {"tool_name": "mcp__coding-os__cos_task_move", "tool_input": {"task_id": "TASK-7", "to": "complete"}},
+            {
+                "tool_name": "mcp__coding-os__cos_task_move",
+                "tool_input": {"task_id": "TASK-7", "to": "complete"},
+            },
             panel,
         )
         assert not (panel / ".task-current").exists()
@@ -203,7 +267,11 @@ class TestNudgeTaskDiscovery:
         # A3 (TASK-062): awk/sed/rg etc. now trigger the warning too. Each
         # reader needs its own panel — the bash leg is debounced once/session.
         for i, cmd in enumerate(
-            ("rg 058 docs/tasks/", "sed -n 1p docs/tasks/TASK-1.md", "awk '{print}' docs/tasks/x.md")
+            (
+                "rg 058 docs/tasks/",
+                "sed -n 1p docs/tasks/TASK-1.md",
+                "awk '{print}' docs/tasks/x.md",
+            )
         ):
             panel = tmp_path / f"claude{i}" / "panels" / "p"
             panel.mkdir(parents=True)
@@ -254,12 +322,17 @@ class TestCaptureAudit:
         db = self._seed_db(tmp_path)
         rc, _, _ = _run(
             self.H,
-            {"tool_name": "Write", "tool_input": {"file_path": "docs/engineering/foo.md", "content": "x"}},
+            {
+                "tool_name": "Write",
+                "tool_input": {"file_path": "docs/engineering/foo.md", "content": "x"},
+            },
             panel,
             env={"COS_DB_PATH": str(db)},
         )
         assert rc == 0
-        rows = sqlite3.connect(db).execute("SELECT doc_path, action FROM doc_audit_trail").fetchall()
+        rows = (
+            sqlite3.connect(db).execute("SELECT doc_path, action FROM doc_audit_trail").fetchall()
+        )
         assert rows == [("docs/engineering/foo.md", "created")]
 
     def test_non_docs_edit_no_row(self, tmp_path):
@@ -269,7 +342,10 @@ class TestCaptureAudit:
         db = self._seed_db(tmp_path)
         _run(
             self.H,
-            {"tool_name": "Edit", "tool_input": {"file_path": "src/x.py", "old_string": "a", "new_string": "b"}},
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "src/x.py", "old_string": "a", "new_string": "b"},
+            },
             panel,
             env={"COS_DB_PATH": str(db)},
         )

@@ -863,5 +863,7 @@ class TestTransparencyBanner:
         regex `^🔔 ses=` is a reliable detector. Don't break this prefix."""
         _, env = self._setup(tmp_path, mode="query")
         ctx = self._emit(tmp_path, env)
-        line = ctx.split("USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ", 1)[1].split("\n")[0]
+        line = ctx.split(
+            "USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ", 1
+        )[1].split("\n")[0]
         assert line.startswith("🔔 ses="), f"banner prefix changed: {line!r}"

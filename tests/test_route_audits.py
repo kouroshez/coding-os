@@ -75,13 +75,7 @@ class TestParseFrontmatter:
     def test_yaml_wins_over_markdown(self):
         """YAML frontmatter is canonical — markdown body must not
         overwrite a key the YAML already set."""
-        text = (
-            "---\n"
-            "status: completed\n"
-            "---\n"
-            "# Body\n\n"
-            "**Status:** in_progress\n"
-        )
+        text = "---\nstatus: completed\n---\n# Body\n\n**Status:** in_progress\n"
         fm = _parse_frontmatter(text)
         assert fm["status"] == "completed"
 
@@ -89,11 +83,7 @@ class TestParseFrontmatter:
         """Bug 1 root cause: regex picked up `**CRITICAL**` cells in the
         defect tables. Only scan the doc header (first 30 lines)."""
         body_lines = ["| **CRITICAL** | resolve | description |"] * 50
-        text = (
-            "# Audit\n\n"
-            "**Status:** in_progress\n\n"
-            "## Defects\n\n" + "\n".join(body_lines) + "\n"
-        )
+        text = "# Audit\n\n**Status:** in_progress\n\n## Defects\n\n" + "\n".join(body_lines) + "\n"
         fm = _parse_frontmatter(text)
         # No spurious "critical" key — only header keys land.
         assert "critical" not in fm
@@ -140,12 +130,7 @@ class TestRowCounts:
         assert c["unchecked"] == 3
 
     def test_mixed_table_plus_checkboxes(self):
-        text = (
-            "| 1 | row |\n"
-            "| 2 | row |\n"
-            "- [x] done\n"
-            "- [ ] pending\n"
-        )
+        text = "| 1 | row |\n| 2 | row |\n- [x] done\n- [ ] pending\n"
         c = _row_counts(text)
         assert c["total"] == 4
         assert c["unchecked"] == 1
@@ -176,13 +161,7 @@ class TestRowCounts:
         assert c["unchecked"] == 0
 
     def test_skipped_section_also_excluded(self):
-        text = (
-            "## Active\n\n"
-            "- [x] A done\n"
-            "- [ ] B pending\n\n"
-            "## Skipped\n\n"
-            "- [ ] X out-of-scope\n"
-        )
+        text = "## Active\n\n- [x] A done\n- [ ] B pending\n\n## Skipped\n\n- [ ] X out-of-scope\n"
         c = _row_counts(text)
         assert c["total"] == 2
         assert c["unchecked"] == 1  # only B from Active
@@ -190,12 +169,7 @@ class TestRowCounts:
     def test_non_work_section_ends_at_next_heading(self):
         """Skip block must terminate at the next same-depth heading so
         later sections still count."""
-        text = (
-            "## Deferred\n\n"
-            "- [ ] dropped\n\n"
-            "## Open work\n\n"
-            "- [ ] still-pending\n"
-        )
+        text = "## Deferred\n\n- [ ] dropped\n\n## Open work\n\n- [ ] still-pending\n"
         c = _row_counts(text)
         assert c["total"] == 1
         assert c["unchecked"] == 1

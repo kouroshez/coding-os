@@ -228,9 +228,16 @@ def test_task_start_blocks_template_placeholder_outcome(tmp_path: Path) -> None:
 
     created = subprocess.run(
         [
-            sys.executable, "-m", "cli.main", "task-create",
-            "--title", "smoke workflow simulation",
-            "--swimlane", "infra", "--kind", "chore",
+            sys.executable,
+            "-m",
+            "cli.main",
+            "task-create",
+            "--title",
+            "smoke workflow simulation",
+            "--swimlane",
+            "infra",
+            "--kind",
+            "chore",
         ],
         cwd=str(project),
         env=env,

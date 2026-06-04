@@ -106,10 +106,12 @@ def test_panel_cognitive_files_route_to_panel_dir(tmp_path: Path) -> None:
     ]
     for name in per_panel:
         _write(env, name, "v")
-        assert (Path(env["COS_PANEL_DIR"]) / name).exists(), \
+        assert (Path(env["COS_PANEL_DIR"]) / name).exists(), (
             f"{name} should live in panel dir, not agent dir"
-        assert not (Path(env["COS_AGENT_DIR"]) / name).exists(), \
+        )
+        assert not (Path(env["COS_AGENT_DIR"]) / name).exists(), (
             f"{name} must NOT spill into shared agent dir"
+        )
 
 
 def test_shared_files_stay_shared(tmp_path: Path) -> None:
@@ -118,10 +120,12 @@ def test_shared_files_stay_shared(tmp_path: Path) -> None:
     shared = [".task-mode", ".model", ".swimlane"]
     for name in shared:
         _write(env, name, "v")
-        assert (Path(env["COS_AGENT_DIR"]) / name).exists(), \
+        assert (Path(env["COS_AGENT_DIR"]) / name).exists(), (
             f"{name} must remain in agent dir (panel-agnostic by design)"
-        assert not (Path(env["COS_PANEL_DIR"]) / name).exists(), \
+        )
+        assert not (Path(env["COS_PANEL_DIR"]) / name).exists(), (
             f"{name} must NOT route to panel dir"
+        )
 
 
 def test_cos_current_session_never_falls_back_to_agent_session_id(tmp_path: Path) -> None:
@@ -152,9 +156,7 @@ def test_cos_current_session_never_falls_back_to_agent_session_id(tmp_path: Path
         "cos_current_session leaked agent-dir fossil into this panel "
         "(cross-panel identity leak — TASK-035 regression)"
     )
-    assert out == env["COS_PANEL_ID"], (
-        f"expected fallback to COS_PANEL_ID, got {out!r}"
-    )
+    assert out == env["COS_PANEL_ID"], f"expected fallback to COS_PANEL_ID, got {out!r}"
 
 
 def test_cos_current_task_never_falls_back_to_agent_dir(tmp_path: Path) -> None:
@@ -206,9 +208,7 @@ def test_no_cross_panel_leak_via_agent_dir_fossil(tmp_path: Path) -> None:
 def test_panel_dir_takes_precedence_over_legacy(tmp_path: Path) -> None:
     env = _panel_env(tmp_path, "panel-precedence")
     session_id = (Path(env["COS_PANEL_DIR"]) / "session-id").read_text().strip()
-    (Path(env["COS_AGENT_DIR"]) / ".thinking_os-gate").write_text(
-        f"{session_id} STALE_LEGACY 9\n"
-    )
+    (Path(env["COS_AGENT_DIR"]) / ".thinking_os-gate").write_text(f"{session_id} STALE_LEGACY 9\n")
     _write(env, ".thinking_os-gate", "FRESH_PANEL 2")
 
     ok, val = _read(env, ".thinking_os-gate")
@@ -252,7 +252,7 @@ def test_gc_reaps_orphan_panel_without_session_id(tmp_path: Path) -> None:
     # No session-id; backdate heartbeat to 2 h old.
     hb = orphan / "heartbeat"
     hb.write_text("0\n")
-    old = (Path(__file__).stat().st_mtime - 7200)
+    old = Path(__file__).stat().st_mtime - 7200
     os.utime(str(hb), (old, old))
     os.utime(str(orphan), (old, old))
 
@@ -286,6 +286,7 @@ def test_gc_keeps_real_panel_with_recent_heartbeat(tmp_path: Path) -> None:
     live.mkdir()
     (live / "session-id").write_text("ses-claude-live-test\n")
     import time
+
     (live / "heartbeat").write_text(f"{int(time.time())}\n")
 
     _run_gc(env, "current-panel-3")

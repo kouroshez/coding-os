@@ -66,7 +66,11 @@ def test_roles_chain_prefers_trace_over_stale_marker(client):
     trace = agent_dir / "traces" / "ses-x.jsonl"
     trace.write_text(
         json.dumps(
-            {"kind": "compose_done", "data": {"chain": ["refactorer", "architect", "reviewer"]}, "ts": 9}
+            {
+                "kind": "compose_done",
+                "data": {"chain": ["refactorer", "architect", "reviewer"]},
+                "ts": 9,
+            }
         )
         + "\n",
         encoding="utf-8",

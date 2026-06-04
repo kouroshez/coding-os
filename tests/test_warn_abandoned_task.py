@@ -40,7 +40,9 @@ def test_warns_on_stuck_task(tmp_path: Path) -> None:
     panel.mkdir(parents=True)
     (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
 
-    result = _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"})
+    result = _run(
+        {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+    )
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert "TASK-99" in payload["hookSpecificOutput"]["additionalContext"]
@@ -59,7 +61,9 @@ def test_silent_when_no_stuck_task(tmp_path: Path) -> None:
     panel.mkdir(parents=True)
     (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
 
-    result = _run({"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"})
+    result = _run(
+        {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+    )
     assert result.returncode == 0
     assert result.stdout.strip() == b""
 

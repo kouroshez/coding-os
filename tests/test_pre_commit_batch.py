@@ -22,7 +22,11 @@ import pytest
 
 _HELPER = (
     Path(__file__).resolve().parent.parent
-    / "src" / "core" / "hooks" / "_helpers" / "pre_commit_batch.py"
+    / "src"
+    / "core"
+    / "hooks"
+    / "_helpers"
+    / "pre_commit_batch.py"
 )
 
 _spec = importlib.util.spec_from_file_location("pre_commit_batch", _HELPER)
@@ -38,14 +42,14 @@ def _write_hook(tmp_path: Path, name: str, body: str) -> Path:
 
 
 def test_fast_hook_returns_exit_code_and_output(tmp_path: Path) -> None:
-    hook = _write_hook(tmp_path, "ok.sh", 'echo hello; exit 0\n')
+    hook = _write_hook(tmp_path, "ok.sh", "echo hello; exit 0\n")
     code, out = pre_commit_batch._run_hook(hook, "{}")
     assert code == 0
     assert "hello" in out
 
 
 def test_blocking_hook_propagates_exit_2(tmp_path: Path) -> None:
-    hook = _write_hook(tmp_path, "block.sh", 'echo nope >&2; exit 2\n')
+    hook = _write_hook(tmp_path, "block.sh", "echo nope >&2; exit 2\n")
     code, out = pre_commit_batch._run_hook(hook, "{}")
     assert code == 2
     assert "nope" in out
@@ -89,9 +93,7 @@ _COMPLETED = "---\ntask_id: TASK-058\nstatus: completed\n---\n"
 def _make_db(tmp_path: Path, rows: list[tuple[str, str, str]]) -> Path:
     db = tmp_path / "coding-os.db"
     con = sqlite3.connect(str(db))
-    con.execute(
-        "CREATE TABLE formula_dispatches (task_marker TEXT, formula_id TEXT, status TEXT)"
-    )
+    con.execute("CREATE TABLE formula_dispatches (task_marker TEXT, formula_id TEXT, status TEXT)")
     con.executemany(
         "INSERT INTO formula_dispatches (task_marker, formula_id, status) VALUES (?, ?, ?)",
         rows,
