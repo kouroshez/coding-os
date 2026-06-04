@@ -224,9 +224,7 @@ _TRIMMABLE_NESTED_BUCKETS: tuple[str, ...] = (
 # (parent_key, member_list_key) — e.g. ("processes", "members") for
 # cos_graph_communities so we shrink members per-process before dropping
 # whole processes.
-_TRIMMABLE_NESTED_MEMBERS: tuple[tuple[str, str], ...] = (
-    ("processes", "members"),
-)
+_TRIMMABLE_NESTED_MEMBERS: tuple[tuple[str, str], ...] = (("processes", "members"),)
 
 
 def _probe_size(body: dict, meta: dict) -> int:
@@ -239,9 +237,7 @@ def _probe_size(body: dict, meta: dict) -> int:
     )
 
 
-def _trim_list_key(
-    body: dict, meta: dict, key: str
-) -> tuple[dict, dict, bool]:
+def _trim_list_key(body: dict, meta: dict, key: str) -> tuple[dict, dict, bool]:
     # Binary-search shrink the list at body[key] until envelope ≤ budget.
     # Returns (body, meta, fits). O(log N) probes.
     items = body.get(key)
@@ -325,7 +321,8 @@ def _trim_coherent_subgraph(
         kept_nodes = nodes_sorted[:k_nodes]
         kept_uids = {_uid_of(n) for n in kept_nodes if _uid_of(n)}
         kept_edges = [
-            e for e in edges
+            e
+            for e in edges
             if isinstance(e, dict)
             and (
                 (e.get("source_uid") or e.get("src_uid") or e.get("source")) in kept_uids
@@ -369,9 +366,10 @@ def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     if not list_buckets:
         return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
     trim_record: dict[str, dict[str, int]] = {}
-    while _probe_size(
-        {**body, "edges_by_type": {**non_list, **list_buckets}}, meta
-    ) > TOKEN_BUDGET_CHARS:
+    while (
+        _probe_size({**body, "edges_by_type": {**non_list, **list_buckets}}, meta)
+        > TOKEN_BUDGET_CHARS
+    ):
         biggest = max(list_buckets, key=lambda k: len(list_buckets[k]), default=None)
         if biggest is None or not list_buckets[biggest]:
             break
@@ -387,9 +385,7 @@ def _trim_edges_by_type(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
 
 
-def _trim_nested_buckets(
-    body: dict, meta: dict, parent_key: str
-) -> tuple[dict, dict, bool]:
+def _trim_nested_buckets(body: dict, meta: dict, parent_key: str) -> tuple[dict, dict, bool]:
     # W6.2: parent_key holds a dict mapping sub_key → list[items]
     # (impact.tiers, contracts.http_routes_by_method, etc). Same halve-
     # biggest strategy as _trim_edges_by_type.
@@ -402,9 +398,9 @@ def _trim_nested_buckets(
         return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
     trim_record: dict[str, dict[str, int]] = {}
     original_lens = {k: len(v) for k, v in list_buckets.items()}
-    while _probe_size(
-        {**body, parent_key: {**non_list, **list_buckets}}, meta
-    ) > TOKEN_BUDGET_CHARS:
+    while (
+        _probe_size({**body, parent_key: {**non_list, **list_buckets}}, meta) > TOKEN_BUDGET_CHARS
+    ):
         biggest = max(list_buckets, key=lambda k: len(list_buckets[k]), default=None)
         if biggest is None or not list_buckets[biggest]:
             break
@@ -480,9 +476,7 @@ def _trim_nested_member_lists(
 _SCALAR_TRIM_FLOOR_CHARS = 200
 
 
-def _trim_huge_string_fields(
-    body: dict, meta: dict
-) -> tuple[dict, dict, bool]:
+def _trim_huge_string_fields(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # F#5 safety net: after list trims, if envelope still over budget the
     # culprit is a huge top-level scalar (large signature, generated text).
     # Truncate biggest scalars first until envelope fits. Never touch
@@ -536,8 +530,7 @@ def _trim_lists_balanced(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # flags stay consistent. No-op (and identical to the old path) when
     # fewer than two list buckets are present.
     present = [
-        k for k in _TRIMMABLE_LIST_KEYS
-        if isinstance(body.get(k), list) and len(body[k]) > 0
+        k for k in _TRIMMABLE_LIST_KEYS if isinstance(body.get(k), list) and len(body[k]) > 0
     ]
     if len(present) < 2:
         return body, meta, _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
@@ -575,9 +568,7 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     for parent_key, member_key in _TRIMMABLE_NESTED_MEMBERS:
         if fits:
             break
-        body, meta, fits_after = _trim_nested_member_lists(
-            body, meta, parent_key, member_key
-        )
+        body, meta, fits_after = _trim_nested_member_lists(body, meta, parent_key, member_key)
         if f"truncated_{parent_key}_{member_key}" in meta:
             did_any = True
         fits = fits or fits_after
@@ -596,13 +587,9 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # items. No-op for single-bucket payloads (the ladder below handles
     # those unchanged).
     if not fits:
-        _markers_before = sum(
-            1 for k in meta if k.startswith("truncated_") and k.endswith("_to")
-        )
+        _markers_before = sum(1 for k in meta if k.startswith("truncated_") and k.endswith("_to"))
         body, meta, fits = _trim_lists_balanced(body, meta)
-        _markers_after = sum(
-            1 for k in meta if k.startswith("truncated_") and k.endswith("_to")
-        )
+        _markers_after = sum(1 for k in meta if k.startswith("truncated_") and k.endswith("_to"))
         if _markers_after > _markers_before:
             did_any = True
     for key in _TRIMMABLE_LIST_KEYS:

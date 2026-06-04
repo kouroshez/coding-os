@@ -167,17 +167,13 @@ def _active_audit_files(repo_root: Path) -> list[Path]:
         # so the guardian never under-counts active audits and lets a
         # markdown-form audit slip through as "no gaps detected".
         yaml_form = re.search(r"^status:\s*in_progress\b", text, flags=re.MULTILINE)
-        md_form = re.search(
-            r"\*\*Status:\*\*\s+in_progress\b", text, flags=re.MULTILINE
-        )
+        md_form = re.search(r"\*\*Status:\*\*\s+in_progress\b", text, flags=re.MULTILINE)
         if yaml_form or md_form:
             active.append(path)
     return active
 
 
-_EVIDENCE_CHECKBOX = re.compile(
-    r"-\s*\[[xX]\]\s*EvidenceBundle submitted", flags=re.MULTILINE
-)
+_EVIDENCE_CHECKBOX = re.compile(r"-\s*\[[xX]\]\s*EvidenceBundle submitted", flags=re.MULTILINE)
 _STATUS_COMPLETED = re.compile(
     r"^status:\s*completed\b|\*\*Status:\*\*\s+completed\b", flags=re.MULTILINE
 )

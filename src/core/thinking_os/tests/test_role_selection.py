@@ -109,7 +109,9 @@ class TestChainVariesPerTask:
         assert self._chain("refactor the migration module")[0] == "refactorer"
 
     def test_research_prompt_selects_researcher(self) -> None:
-        assert "researcher" in self._chain("research the best way to optimize traversal", "COMPLEX", 3)
+        assert "researcher" in self._chain(
+            "research the best way to optimize traversal", "COMPLEX", 3
+        )
 
     def test_distinct_prompts_yield_distinct_chains(self) -> None:
         # The whole point of TASK-057: not every task collapses to ['analyst'].

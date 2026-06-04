@@ -181,9 +181,7 @@ class TestTokenBudget:
         scalar must be truncated so the envelope still fits. Pre-fix the
         function set truncated=true but returned an over-budget body."""
         big_string = "z" * 60_000  # 60KB single string field
-        envelope = json.loads(
-            ok({"results": [], "report": big_string})
-        )
+        envelope = json.loads(ok({"results": [], "report": big_string}))
         meta = envelope["data"]["meta"]
         assert meta["truncated"] is True
         assert "truncated_string_fields" in meta
@@ -207,8 +205,14 @@ class TestTokenBudget:
             "context": [{"uid": f"c:{i}", "label": "z" * 400} for i in range(80)],
         }
         envelope = json.loads(
-            ok({"root": {"uid": "n:1"}, "direction": "downstream",
-                "tiers": tiers, "impacted_count": 240})
+            ok(
+                {
+                    "root": {"uid": "n:1"},
+                    "direction": "downstream",
+                    "tiers": tiers,
+                    "impacted_count": 240,
+                }
+            )
         )
         d = envelope["data"]
         meta = d["meta"]
@@ -227,13 +231,15 @@ class TestTokenBudget:
         breaking every typed consumer."""
         big_string = "z" * 60_000
         envelope = json.loads(
-            ok({
-                "results": [],
-                "count": 12345,
-                "ratio": 0.987,
-                "ok_flag": True,
-                "report": big_string,
-            })
+            ok(
+                {
+                    "results": [],
+                    "count": 12345,
+                    "ratio": 0.987,
+                    "ok_flag": True,
+                    "report": big_string,
+                }
+            )
         )
         d = envelope["data"]
         # All numeric/bool scalars preserved typed.
@@ -285,13 +291,15 @@ class TestTokenBudget:
             for i in range(400)
         ]
         envelope = json.loads(
-            ok({
-                "scope": "working",
-                "files": ["a.py", "b.py", "c.py"],
-                "symbols": symbols,
-                "downstream_tasks": [],
-                "risk_level": "high",
-            })
+            ok(
+                {
+                    "scope": "working",
+                    "files": ["a.py", "b.py", "c.py"],
+                    "symbols": symbols,
+                    "downstream_tasks": [],
+                    "risk_level": "high",
+                }
+            )
         )
         d = envelope["data"]
         # (a) envelope actually fits — no unshrinkable fall-through.

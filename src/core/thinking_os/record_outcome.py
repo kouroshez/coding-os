@@ -82,7 +82,11 @@ def _current_session() -> str:
 def _read_active_skills() -> str | None:
     sid = _current_session()
     state_dir = Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
-    paths = [Path(d) / ".active-skill" for d in (os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR")) if d]
+    paths = [
+        Path(d) / ".active-skill"
+        for d in (os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR"))
+        if d
+    ]
     agent = os.environ.get("COS_AGENT", "")
     if agent:
         paths.append(state_dir / agent / ".active-skill")
@@ -96,7 +100,9 @@ def _read_active_skills() -> str | None:
             # ppid-/ses-/c-sess/anon/hex-id shapes) so skills_used groups
             # cleanly for skill_correlation mining.
             if parts and (parts[0] == sid or re.match(r"^(ppid-|ses-|c-sess|anon)", parts[0])):
-                parts = parts[1:]  # explicit prefixes only — a bare-hex match could strip a real skill name
+                parts = parts[
+                    1:
+                ]  # explicit prefixes only — a bare-hex match could strip a real skill name
             if parts:
                 return " ".join(parts)
         except OSError:
@@ -195,8 +201,17 @@ def record_outcome(
                 "model = COALESCE(?, model), "
                 "duration_min = COALESCE(?, duration_min) "
                 "WHERE task_id = ?",
-                (outcome, task_type, domain, complexity, dimensions,
-                 skills_used, model, duration_min, task_id),
+                (
+                    outcome,
+                    task_type,
+                    domain,
+                    complexity,
+                    dimensions,
+                    skills_used,
+                    model,
+                    duration_min,
+                    task_id,
+                ),
             )
         else:
             conn.execute(
@@ -204,8 +219,17 @@ def record_outcome(
                 "(task_id, type, domain, complexity, dimensions, outcome, "
                 "skills_used, model, duration_min) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (task_id, task_type, domain, complexity, dimensions, outcome,
-                 skills_used, model, duration_min),
+                (
+                    task_id,
+                    task_type,
+                    domain,
+                    complexity,
+                    dimensions,
+                    outcome,
+                    skills_used,
+                    model,
+                    duration_min,
+                ),
             )
 
         # Append to outcome_history (append-only transition log)

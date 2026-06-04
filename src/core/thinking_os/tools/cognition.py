@@ -1618,9 +1618,7 @@ def register_cos_classify_prompt(mcp, db_path):
                     gate_path = Path(panel_dir) / ".thinking_os-gate"
                     gate_path.parent.mkdir(parents=True, exist_ok=True)
                     tmp_path = gate_path.with_name(".thinking_os-gate.tmp")
-                    tmp_path.write_text(
-                        f"{sid} {complexity} {dimensions}\n", encoding="utf-8"
-                    )
+                    tmp_path.write_text(f"{sid} {complexity} {dimensions}\n", encoding="utf-8")
                     tmp_path.replace(gate_path)
                     recorded = True
                     try:
@@ -1638,7 +1636,7 @@ def register_cos_classify_prompt(mcp, db_path):
             if not recorded:
                 record_hint = (
                     "gate not recorded (no panel session context from MCP); "
-                    'record it in your shell: write-state.sh .thinking_os-gate '
+                    "record it in your shell: write-state.sh .thinking_os-gate "
                     f'"{complexity} {dimensions}"'
                 )
 

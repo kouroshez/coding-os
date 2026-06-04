@@ -147,8 +147,7 @@ class TestMarkdownStatusForm:
         audit_dir = repo_root / "docs" / "tasks" / "audits"
         audit_dir.mkdir(parents=True, exist_ok=True)
         rows = "\n".join(
-            f"| {i + 1} | c{i + 1} | p | 1 | 1 | yes | 0 | no | x |"
-            for i in range(unchecked_rows)
+            f"| {i + 1} | c{i + 1} | p | 1 | 1 | yes | 0 | no | x |" for i in range(unchecked_rows)
         )
         # NO YAML frontmatter — only markdown bold metadata. This is the
         # historic form (audit-graph-os-*.md, TASK-029/032).

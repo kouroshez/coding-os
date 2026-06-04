@@ -1420,7 +1420,9 @@ def _migrate_v29_fts5_unicode_tokenizer(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
-    logger.info("Migration v29 applied: FTS5 tokenizer porter→unicode61 (Persian/Arabic/CJK now indexed)")
+    logger.info(
+        "Migration v29 applied: FTS5 tokenizer porter→unicode61 (Persian/Arabic/CJK now indexed)"
+    )
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:

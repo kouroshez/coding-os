@@ -64,7 +64,9 @@ class TestRecordComposeTraces:
 
 
 class TestAutoComposeEmitsTrace:
-    def test_compose_roles_stamps_markers_and_emits_trace(self, tmp_path: Path, monkeypatch) -> None:
+    def test_compose_roles_stamps_markers_and_emits_trace(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         agent_dir = tmp_path / "agent"
         panel_dir = agent_dir / "panels" / "p1"
         panel_dir.mkdir(parents=True)
@@ -72,7 +74,9 @@ class TestAutoComposeEmitsTrace:
         # Traces resolve via COS_AGENT_DIR (agent-level); markers go to panel_dir.
         monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
 
-        line = auto_compose._compose_roles("COMPLICATED", 3, str(panel_dir), "audit all security and auth code")
+        line = auto_compose._compose_roles(
+            "COMPLICATED", 3, str(panel_dir), "audit all security and auth code"
+        )
 
         assert line  # a context line was produced
         assert "[role:" in line  # lead-role directive injected, not just the chain label (TASK-065)
