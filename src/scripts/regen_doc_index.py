@@ -8,9 +8,10 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
-# Match how server.py composes sys.path so `tools.docs` resolves identically.
+# This script lives at src/scripts/; the package lives at src/core/thinking_os.
+# Resolve it explicitly so `tools.docs` imports under bare python3 (no PYTHONPATH).
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_THINKING_OS = _REPO_ROOT / "core" / "thinking_os"
+_THINKING_OS = _REPO_ROOT / "src" / "core" / "thinking_os"
 sys.path.insert(0, str(_THINKING_OS))
 sys.path.insert(0, str(_THINKING_OS.parent))
 

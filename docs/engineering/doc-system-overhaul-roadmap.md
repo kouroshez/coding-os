@@ -13,6 +13,14 @@
 
 The doc system has strong bones (header contract, anchor-to-doc tracing Rule 0/19, immutable `doc_audit_trail`, auto-index regen). The gaps are **specific and verified**, not systemic. Core architectural finding: the system has **two retrieval planes that don't talk** — graph_os (structure: `links_to`/`read_next`/`cites_heading`) and RAG (`cos_doc_search`: embeddings + metadata) — and the **highest-value content (always-active rules + playbooks) lives in neither search index**. It is reachable only by always-on loading or by an explicit markdown link.
 
+## Session progress (2026-06-03)
+
+Shipped + verified: **G1** (TASK-070, committed `a690f2c`) — governance + playbooks now indexed in RAG (`cos_doc_search`), closing F1. **TASK-072** — `regen_doc_index.py` `src/`-path fix; `make docs-index-regen` + the auto-regen hook work again under bare `python3`. **G3** (TASK-074) — `docs-lint` validates domain/layer against canonical enums (advisory + `COS_DOCS_LINT_STRICT=1` gate), enums are SSOT in docs-system.md + cheat-sheet, `playbooks→playbook` typo normalized.
+
+Graph doc-indexing (verified via `graph-doctor` + direct SQL): docs ARE comprehensively indexed — 382 `doc_file` · 5365 `doc_heading` · 5725 `doc_frontmatter` · 47 `doc_external` · 20 `skill` · 13 `rule` nodes; `contains` / `links_to` / `read_next` / `cites_heading` edges. Cleaned ~60 zombie `doc_file` nodes (stale paths from past file moves + 1 malformed symlink + 1 phantom) via `graph-doctor --fix` → healthy. Zombie accumulation root cause: `auto-prune-deleted-files` only fires on `rm`/`git rm`/`mv` (failure F4) — recurrence-prevention is a follow-up under G5/F4.
+
+Remaining: G4 · G5 (incl. F4 prune coverage) · G6 · G8 · G9 (clears the no-frontmatter backlog → flip docs-lint strict) · G11 · all stacks.
+
 ## Verified gap register
 
 All evidence checked against source (not agent inference).
