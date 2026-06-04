@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [graph_os, kuzu, alignment]
-status: in_progress
+status: complete
 priority: P3
 appetite: "2h"
 created: 2026-06-04
 started: 2026-06-03
-completed: null
+completed: 2026-06-03
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -26,3 +26,4 @@ references: []
 - docs/engineering/graph_os-queries.md
 
 ## Work Log
+- 2026-06-04 [claude]: Aligned all living-doc stale Kùzu refs to SQLite-only: graph_os-queries (backend_fallback reserved/always-false), graph-

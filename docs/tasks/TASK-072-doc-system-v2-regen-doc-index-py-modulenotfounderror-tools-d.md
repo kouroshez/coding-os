@@ -5,12 +5,12 @@ swimlane: docs
 kind: bug
 epic: doc-system-v2
 labels: [doc-index, regen, nav]
-status: testing
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-06-04
 started: 2026-06-03
-completed: null
+completed: 2026-06-04
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Actual: `ModuleNotFoundError: No module named 'tools'` at import (line 17), exit
 - **Then** `make docs-index-regen` and bare `python3 src/scripts/regen_doc_index.py <dir>` exit 0 and regenerate every `docs/<dir>/00-index.md` with no PYTHONPATH, so the auto-regen-doc-index hook stops failing silently; `make docs-lint` stays EXIT 0. (Docs lacking canonical frontmatter — e.g. logging_os.md, doctor-checks.md — remain correctly skipped; adding their frontmatter is a separate G3 enforcement concern, not this import bug.)
 
 ## Work Log
+- 2026-06-04 [claude]: Status transitioned to complete via cos task-done.

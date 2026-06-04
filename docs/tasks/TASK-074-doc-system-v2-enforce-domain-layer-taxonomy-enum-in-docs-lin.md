@@ -5,12 +5,12 @@ swimlane: docs
 kind: feature
 epic: doc-system-v2
 labels: [taxonomy, lint, doc-system]
-status: testing
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-04
 started: 2026-06-03
-completed: null
+completed: 2026-06-04
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,4 @@ references: []
 - **Then** docs-lint reports any out-of-enum domain/layer; `make docs-lint` stays EXIT 0 across all existing docs (advisory default — no false breakage); a deliberately-bad value (`layer:bogus`) IS flagged; a `COS_DOCS_LINT_STRICT=1` toggle gates (exit 1) so enforcement flips on once the G9 frontmatter backlog clears.
 
 ## Work Log
+- 2026-06-04 [claude]: Status transitioned to complete via cos task-done.
