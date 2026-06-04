@@ -328,18 +328,50 @@ class TestContractsEvents:
 
 
 class TestContractsGoFiber:
-    def test_group_prefix(self):
+    def test_group_prefix_per_variable(self):
+        # A route on bare `app` must NOT inherit a sibling group's prefix
+        # (the old `groups[-1]` bug). A route on `v1` must get `/v1`.
         src = textwrap.dedent(
             """
             import "github.com/gofiber/fiber/v2"
             app := fiber.New()
             v1 := app.Group("/v1")
+            app.Get("/health", checkHealth)
+            v1.Get("/users", listUsers)
+            """
+        )
+        r = contracts.extract("backend/routes.go", src)
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert "GET /health" in labels
+        assert "GET /v1/users" in labels
+        assert "GET /v1/health" not in labels  # old last-group-seen bug
+
+    def test_route_handler_edge(self):
+        src = textwrap.dedent(
+            """
+            import "github.com/gofiber/fiber/v2"
+            app := fiber.New()
             app.Get("/users", listUsers)
             """
         )
         r = contracts.extract("backend/routes.go", src)
-        routes = [n for n in r.nodes if n.kind == "cos:route"]
-        assert routes
+        assert any(
+            e.edge_type == "calls" and e.target_uid.endswith("listUsers") for e in r.edges
+        )
+
+    def test_nested_group_prefix(self):
+        src = textwrap.dedent(
+            """
+            import "github.com/gofiber/fiber/v2"
+            app := fiber.New()
+            api := app.Group("/api")
+            v2 := api.Group("/v2")
+            v2.Post("/items", createItem)
+            """
+        )
+        r = contracts.extract("backend/routes.go", src)
+        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        assert "POST /api/v2/items" in labels
 
 
 class TestContractsGeneric:
@@ -653,7 +685,9 @@ func main() {
         )
         routes = [n for n in r.nodes if n.kind == "cos:route"]
         labels = {n.label for n in routes}
-        assert "GET /health" in labels or "GET /v1/health" in labels
+        # Per-variable prefix: bare-r route stays /health, group route gets /v1.
+        assert "GET /health" in labels
+        assert "GET /v1/health" not in labels
         assert "POST /v1/items" in labels
 
     def test_chi(self):

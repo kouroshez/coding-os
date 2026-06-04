@@ -127,6 +127,18 @@ _GIN_GROUP_RE = re.compile(
     re.VERBOSE,
 )
 
+# Shared across fiber/gin/echo: `v1 := app.Group("/api")` — captures the
+# assigned variable so a route registered on THAT variable gets THAT
+# group's prefix (fixes the "last group seen prefixes every route" bug).
+_GO_GROUP_ASSIGN_RE = re.compile(
+    rf"""(?P<var>[A-Za-z_]\w*)\s*:?=\s*(?P<app>[A-Za-z_][\w.]*)\.Group\s*\(\s*{_STRING_CAPTURE}""",
+    re.VERBOSE,
+)
+# The handler is the first identifier argument after the route path string:
+# `app.Get("/x", handlers.List)` → `handlers.List`. Inline funcs / no second
+# arg yield no handler.
+_GO_ROUTE_HANDLER_RE = re.compile(r"""\s*,\s*(?P<handler>[A-Za-z_][\w.]*)""", re.VERBOSE)
+
 # Go Echo: e.GET("/x", handler) — matches the same method-case as Gin.
 
 # Go Chi: r.Get / r.Post / r.Route("/x", func(r chi.Router) { ... })
@@ -625,22 +637,22 @@ def _scan_fiber(content: str) -> list[ContractMatch]:
     if "gofiber" not in content and "fiber.App" not in content and "fiber.New" not in content:
         return []
     hits: list[ContractMatch] = []
-    groups: list[str] = []
-    for match in _FIBER_GROUP_RE.finditer(content):
-        groups.append(match.group("path"))
+    prefixes = _go_group_prefixes(content)
     for match in _FIBER_ROUTE_RE.finditer(content):
-        if match.group("app").lower() in _FIBER_CTX_FALSE_POS:
+        app_var = match.group("app")
+        if app_var.lower() in _FIBER_CTX_FALSE_POS:
             continue
         path = match.group("path")
-        if groups:
-            path = _join_paths(groups[-1], path)
+        prefix = prefixes.get(app_var, "")
+        if prefix:
+            path = _join_paths(prefix, path)
         hits.append(
             ContractMatch(
                 kind="http",
                 framework="fiber",
                 method=match.group("method").lower(),
                 path=path,
-                handler=None,
+                handler=_go_route_handler(content, match.end()),
                 line=_line_of(content, match.start()),
             )
         )
@@ -651,23 +663,22 @@ def _scan_gin(content: str) -> list[ContractMatch]:
     if "gin." not in content and "gin-gonic" not in content:
         return []
     hits: list[ContractMatch] = []
-    groups: list[str] = []
-    for match in _GIN_GROUP_RE.finditer(content):
-        groups.append(match.group("path"))
+    prefixes = _go_group_prefixes(content)
     for match in _GIN_ROUTE_RE.finditer(content):
+        app_var = match.group("app")
+        if app_var.lower() in _FIBER_CTX_FALSE_POS:
+            continue
         path = match.group("path")
-        if groups:
-            path = _join_paths(groups[-1], path)
-        method = match.group("method").lower()
-        if method == "any":
-            method = "any"
+        prefix = prefixes.get(app_var, "")
+        if prefix:
+            path = _join_paths(prefix, path)
         hits.append(
             ContractMatch(
                 kind="http",
                 framework="gin",
-                method=method,
+                method=match.group("method").lower(),
                 path=path,
-                handler=None,
+                handler=_go_route_handler(content, match.end()),
                 line=_line_of(content, match.start()),
             )
         )
@@ -678,14 +689,22 @@ def _scan_echo(content: str) -> list[ContractMatch]:
     if "echo." not in content and "labstack/echo" not in content:
         return []
     hits: list[ContractMatch] = []
+    prefixes = _go_group_prefixes(content)
     for match in _GIN_ROUTE_RE.finditer(content):
+        app_var = match.group("app")
+        if app_var.lower() in _FIBER_CTX_FALSE_POS:
+            continue
+        path = match.group("path")
+        prefix = prefixes.get(app_var, "")
+        if prefix:
+            path = _join_paths(prefix, path)
         hits.append(
             ContractMatch(
                 kind="http",
                 framework="echo",
                 method=match.group("method").lower(),
-                path=match.group("path"),
-                handler=None,
+                path=path,
+                handler=_go_route_handler(content, match.end()),
                 line=_line_of(content, match.start()),
             )
         )
@@ -1026,6 +1045,28 @@ def _join_paths(a: str, b: str) -> str:
     if not b.startswith("/"):
         b = "/" + b
     return f"{a}{b}"
+
+
+def _go_group_prefixes(content: str) -> dict[str, str]:
+    """Map a Go group variable → its full route prefix.
+
+    Resolves nesting when the parent group is declared first
+    (`v1 := app.Group("/api"); v2 := v1.Group("/v2")` → v2 = /api/v2).
+    """
+    prefixes: dict[str, str] = {}
+    for m in _GO_GROUP_ASSIGN_RE.finditer(content):
+        var = m.group("var")
+        parent = m.group("app")
+        seg = m.group("path")
+        base = prefixes.get(parent, "")
+        prefixes[var] = _join_paths(base, seg) if base else seg
+    return prefixes
+
+
+def _go_route_handler(content: str, end_idx: int) -> str | None:
+    """Return the handler identifier passed after a route's path string."""
+    m = _GO_ROUTE_HANDLER_RE.match(content[end_idx:])
+    return m.group("handler") if m else None
 
 
 def _nextjs_route_path(file_path: str) -> str:
