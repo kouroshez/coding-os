@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [graph_os, extractors, completeness, polyglot]
-status: in_progress
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-06-04
 started: 2026-06-03
-completed: null
+completed: 2026-06-03
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ references: []
 - **Given** all the above, **When** `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` runs, **Then** it is green (new adversarial tests included) and `cos graph-reindex` on the repo completes without regression.
 
 ## Work Log
+- 2026-06-04 [claude]: Extractors to 10/10: Go same-file AST calls (func+receiver-method @0.9), TS type-edge resolution+awaits+enum/namespace, 
