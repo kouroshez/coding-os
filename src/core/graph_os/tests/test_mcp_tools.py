@@ -364,9 +364,7 @@ class TestSimilar:
         )
         assert all(r["similarity"] >= 0.99 for r in data["results"])
 
-    def test_sibling_augmentation_surfaces_container_twin(
-        self, migrated_conn, monkeypatch
-    ):
+    def test_sibling_augmentation_surfaces_container_twin(self, migrated_conn, monkeypatch):
         """Round-5 audit: sample_nodes draws a fixed id-prefix window, so a
         structural twin outside that window was never even a candidate
         (count_nodes' twin count_edges, same class). The CONTAINS sibling
@@ -377,20 +375,43 @@ class TestSimilar:
         be = SqliteBackend(conn=migrated_conn)
         be.bulk_upsert(
             [
-                GraphNode(uid="code:class:m.py::C", kind="code:class",
-                          label="C", file_path="m.py", start_line=1),
-                GraphNode(uid="code:method:m.py::C.alpha", kind="code:method",
-                          label="alpha", file_path="m.py", start_line=2),
-                GraphNode(uid="code:method:m.py::C.beta", kind="code:method",
-                          label="beta", file_path="m.py", start_line=8),
+                GraphNode(
+                    uid="code:class:m.py::C",
+                    kind="code:class",
+                    label="C",
+                    file_path="m.py",
+                    start_line=1,
+                ),
+                GraphNode(
+                    uid="code:method:m.py::C.alpha",
+                    kind="code:method",
+                    label="alpha",
+                    file_path="m.py",
+                    start_line=2,
+                ),
+                GraphNode(
+                    uid="code:method:m.py::C.beta",
+                    kind="code:method",
+                    label="beta",
+                    file_path="m.py",
+                    start_line=8,
+                ),
             ],
             [
-                GraphEdge(source_uid="code:class:m.py::C",
-                          target_uid="code:method:m.py::C.alpha",
-                          edge_type="contains", extractor="test", confidence=1.0),
-                GraphEdge(source_uid="code:class:m.py::C",
-                          target_uid="code:method:m.py::C.beta",
-                          edge_type="contains", extractor="test", confidence=1.0),
+                GraphEdge(
+                    source_uid="code:class:m.py::C",
+                    target_uid="code:method:m.py::C.alpha",
+                    edge_type="contains",
+                    extractor="test",
+                    confidence=1.0,
+                ),
+                GraphEdge(
+                    source_uid="code:class:m.py::C",
+                    target_uid="code:method:m.py::C.beta",
+                    edge_type="contains",
+                    extractor="test",
+                    confidence=1.0,
+                ),
             ],
         )
         # Force the sample window to EXCLUDE everything — now ONLY the
@@ -399,9 +420,7 @@ class TestSimilar:
         graph._BACKEND_SINGLETON = be
         monkeypatch.setattr(graph, "_backend", lambda *, backend=None: be)
         data = _assert_ok(
-            graph.cos_graph_similar(
-                "code:method:m.py::C.alpha", confidence_min=0.0, top_k=5
-            )
+            graph.cos_graph_similar("code:method:m.py::C.alpha", confidence_min=0.0, top_k=5)
         )
         graph._BACKEND_SINGLETON = None
         uids = [r["uid"] for r in data["results"]]
@@ -454,9 +473,7 @@ class TestReferences:
         assert full_data["count"] == total
         assert full_data["meta"]["result_truncated"] is False
         if total > 1:
-            tight_data = _assert_ok(
-                graph.cos_graph_references("code:function:a.py::foo", limit=1)
-            )
+            tight_data = _assert_ok(graph.cos_graph_references("code:function:a.py::foo", limit=1))
             assert tight_data["count"] == 1
             assert tight_data["total_count"] == total
             assert tight_data["meta"]["result_truncated"] is True
@@ -488,9 +505,7 @@ class TestContextTruncation:
     def test_visit_limit_one_walk_truncates(self, seeded_backend):
         """Tightening visit_limit to a value smaller than the reachable
         frontier must flip walk_truncated=true."""
-        data = _assert_ok(
-            graph.cos_graph_context("code:function:a.py::foo", visit_limit=1)
-        )
+        data = _assert_ok(graph.cos_graph_context("code:function:a.py::foo", visit_limit=1))
         assert data["meta"]["walk_truncated"] is True
         assert data["meta"]["visit_limit"] == 1
 
@@ -519,9 +534,7 @@ class TestSweepCoverageSignals:
         assert "top_k" in data["meta"]
 
     def test_rename_plan_emits_per_bucket_totals(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_rename_plan("code:function:a.py::foo", "renamed_foo")
-        )
+        data = _assert_ok(graph.cos_graph_rename_plan("code:function:a.py::foo", "renamed_foo"))
         assert "call_sites_total_count" in data
         assert "doc_references_total_count" in data
         assert "test_references_total_count" in data
@@ -568,9 +581,7 @@ class TestSweepCoverageSignals:
         assert "external_count" in data["meta"]
 
     def test_trace_walk_truncated_fires_under_tight_max_steps(self, seeded_backend):
-        data = _assert_ok(
-            graph.cos_graph_trace("code:function:a.py::foo", max_steps=1)
-        )
+        data = _assert_ok(graph.cos_graph_trace("code:function:a.py::foo", max_steps=1))
         # max_steps=1 stops after the root if the stack still has work.
         if data["meta"]["step_count"] == 1:
             # walk_truncated should be True iff the walk could have continued.
@@ -636,9 +647,7 @@ class TestPath:
         # edges in seeded fixture). Without the filter a path could bridge
         # foo → unresolved:str ← baz.
         data = _assert_ok(
-            graph.cos_graph_path(
-                "code:function:a.py::foo", "code:function:a.py::baz"
-            )
+            graph.cos_graph_path("code:function:a.py::foo", "code:function:a.py::baz")
         )
         if data["path"]:
             # No intermediate hop should be an external stub.
@@ -652,9 +661,7 @@ class TestPath:
         `traversal_direction` field (forward|reverse) so callers can
         distinguish semantic-direction edges from reverse-walk bridges."""
         data = _assert_ok(
-            graph.cos_graph_path(
-                "code:function:a.py::foo", "code:function:a.py::baz"
-            )
+            graph.cos_graph_path("code:function:a.py::foo", "code:function:a.py::baz")
         )
         if data["edges"]:
             for e in data["edges"]:
@@ -724,9 +731,7 @@ class TestExport:
         # When >=2 files have entrypoints in the seed, default mode must
         # surface both files within the top-4.
         if len({f for f in files if f}) >= 2:
-            assert len({f for f in files[:4] if f}) >= 2, (
-                f"diversify failed — top-4 files: {files}"
-            )
+            assert len({f for f in files[:4] if f}) >= 2, f"diversify failed — top-4 files: {files}"
 
     def test_communities_caps_members_per_process(self, seeded_backend):
         """F8 / Audit #9: each process truncates its members to
@@ -749,8 +754,9 @@ class TestExport:
         personalized_uids = [n["uid"] for n in personalized["nodes"]]
         assert baseline_uids != personalized_uids, "personalization had no effect"
         targets = {"code:function:a.py::make_widget", "code:class:a.py::Widget"}
-        assert any(u in targets for u in personalized_uids[:3]), \
+        assert any(u in targets for u in personalized_uids[:3]), (
             "make_widget / Widget should be in top-3 with query='make widget'"
+        )
 
     def test_ranking_default_excludes_external(self, seeded_backend):
         """F6 / Audit #11: PageRank top must not be polluted by
@@ -772,24 +778,19 @@ class TestExport:
         # baseline because every function would seed. With the fix
         # there are no labels containing 'function', so personalisation
         # collapses to uniform → identical baseline ordering.
-        assert [n["uid"] for n in personalized["nodes"]] == [
-            n["uid"] for n in baseline["nodes"]
-        ], "prefix-noise token 'function' polluted personalisation"
+        assert [n["uid"] for n in personalized["nodes"]] == [n["uid"] for n in baseline["nodes"]], (
+            "prefix-noise token 'function' polluted personalisation"
+        )
 
-    def test_rename_plan_uses_same_behavioural_edge_ssot_as_impact(
-        self, seeded_backend
-    ):
+    def test_rename_plan_uses_same_behavioural_edge_ssot_as_impact(self, seeded_backend):
         """DRY: rename_plan + impact share _BEHAVIOURAL_EDGE_TYPES.
         Pin the contract — both surface the same `constructs` edge for
         a class-consumer site."""
         impact = _assert_ok(graph.cos_graph_impact("code:class:a.py::Widget"))
         impact_types = {
-            e["edge_type"]
-            for e in impact["tiers"]["will_break"] + impact["tiers"]["should_review"]
+            e["edge_type"] for e in impact["tiers"]["will_break"] + impact["tiers"]["should_review"]
         }
-        rename = _assert_ok(
-            graph.cos_graph_rename_plan("code:class:a.py::Widget", "Gadget")
-        )
+        rename = _assert_ok(graph.cos_graph_rename_plan("code:class:a.py::Widget", "Gadget"))
         rename_types = {e["edge_type"] for e in rename["call_sites"]}
         # Both tools must agree on constructs being a behavioural site.
         assert "constructs" in impact_types
@@ -801,12 +802,10 @@ class TestExport:
         directly so the contract is pinned regardless of fixture
         graph contents."""
         uid_a = (
-            "code:method:src/core/graph_os/backends/sqlite_backend.py::"
-            "SqliteBackend.upsert_node"
+            "code:method:src/core/graph_os/backends/sqlite_backend.py::SqliteBackend.upsert_node"
         )
         uid_b = (
-            "code:method:src/core/graph_os/backends/sqlite_backend.py::"
-            "SqliteBackend.delete_node"
+            "code:method:src/core/graph_os/backends/sqlite_backend.py::SqliteBackend.delete_node"
         )
         assert graph._safe_id(uid_a) != graph._safe_id(uid_b)
 
@@ -964,9 +963,7 @@ def test_context_envelope_token_budget(seeded_backend):
 # (was silently exceeding max_nodes=5 by 4.4× when no root_uid given).
 def test_export_max_nodes_hard_cap(seeded_backend):
     data = _assert_ok(graph.cos_graph_export(format="json", max_nodes=5))
-    assert len(data["nodes"]) <= 5, (
-        f"export breached max_nodes — got {len(data['nodes'])} nodes"
-    )
+    assert len(data["nodes"]) <= 5, f"export breached max_nodes — got {len(data['nodes'])} nodes"
 
 
 # G14: FTS5 tokenizer must index non-English (Persian/Arabic) labels.

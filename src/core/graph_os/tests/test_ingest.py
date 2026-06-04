@@ -70,9 +70,7 @@ class TestLocal:
         paths = [str(p.relative_to(tmp_path)) for p in plan.files]
         assert "src/real.py" in paths
         assert "tests/real_test.py" in paths
-        assert not any("tests/golden" in p for p in paths), (
-            f"tests/golden survived prune: {paths}"
-        )
+        assert not any("tests/golden" in p for p in paths), f"tests/golden survived prune: {paths}"
 
     def test_exclude_paths_does_not_match_partial_segment(self, tmp_path):
         """A folder named `golden_clone` next to `golden` must NOT be pruned —

@@ -28,12 +28,20 @@ def _setup(method_uids):
     nodes = [route, stub]
     for muid in method_uids:
         nodes.append(
-            GraphNode(uid=muid, kind="code:method", label=muid.split(".")[-1], file_path=muid.split("::")[0][len("code:method:"):])
+            GraphNode(
+                uid=muid,
+                kind="code:method",
+                label=muid.split(".")[-1],
+                file_path=muid.split("::")[0][len("code:method:") :],
+            )
         )
     edges = [
         GraphEdge(
-            source_uid=route.uid, target_uid=stub.uid, edge_type="calls",
-            extractor="contracts@v1", confidence=0.8,
+            source_uid=route.uid,
+            target_uid=stub.uid,
+            edge_type="calls",
+            extractor="contracts@v1",
+            confidence=0.8,
         )
     ]
     backend.bulk_upsert(nodes, edges)

@@ -55,8 +55,10 @@ class TestDispatch:
             "from core.util import helper\n\n\ndef go():\n    return helper()\n",
         )
         dispatch(
-            project / "core" / "caller.py", project_root=project,
-            db_path=db, link_stubs=False,
+            project / "core" / "caller.py",
+            project_root=project,
+            db_path=db,
+            link_stubs=False,
         )
 
         def inbound():
@@ -67,8 +69,7 @@ class TestDispatch:
                     ("code:function:core/util.py::helper",),
                 ).fetchone()
                 return c.execute(
-                    "SELECT COUNT(*) FROM graph_edges_v12 "
-                    "WHERE target_id=? AND edge_type='calls'",
+                    "SELECT COUNT(*) FROM graph_edges_v12 WHERE target_id=? AND edge_type='calls'",
                     (row[0],),
                 ).fetchone()[0]
             finally:

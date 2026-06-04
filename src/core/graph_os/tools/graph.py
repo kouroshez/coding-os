@@ -41,6 +41,7 @@ def _server_stale() -> bool:
     except OSError:
         return False
 
+
 logger = logging.getLogger("graph_os.tools.graph")
 
 
@@ -355,9 +356,23 @@ _UID_FORMAT_HINT = (
 # spuriously match every node. Lowercase comparison.
 _UID_PREFIX_NOISE_TOKENS: frozenset[str] = frozenset(
     {
-        "code", "doc", "folder", "cos", "external", "unresolved",
-        "file", "function", "class", "method", "module", "heading",
-        "mcp_tool", "route", "frontmatter", "interface", "variable",
+        "code",
+        "doc",
+        "folder",
+        "cos",
+        "external",
+        "unresolved",
+        "file",
+        "function",
+        "class",
+        "method",
+        "module",
+        "heading",
+        "mcp_tool",
+        "route",
+        "frontmatter",
+        "interface",
+        "variable",
         "src",
     }
 )
@@ -396,21 +411,82 @@ _BEHAVIOURAL_EDGE_TYPES: frozenset[str] = frozenset(
 # modules (`core.thinking_os.server` etc.) stay in scope.
 _NOISE_MODULE_NAMES: frozenset[str] = frozenset(
     {
-        "__future__", "abc", "argparse", "ast", "asyncio", "base64",
-        "builtins", "collections", "concurrent", "contextlib", "copy",
-        "csv", "dataclasses", "datetime", "decimal", "difflib", "enum",
-        "functools", "glob", "hashlib", "heapq", "http", "importlib",
-        "inspect", "io", "ipaddress", "itertools", "json", "logging",
-        "math", "multiprocessing", "operator", "os", "pathlib", "pickle",
-        "platform", "pprint", "queue", "random", "re", "secrets",
-        "select", "shutil", "signal", "socket", "sqlite3", "stat",
-        "string", "struct", "subprocess", "sys", "tempfile", "textwrap",
-        "threading", "time", "tomllib", "traceback", "types", "typing",
-        "unittest", "urllib", "uuid", "warnings", "weakref", "xml",
-        "yaml", "zipfile",
+        "__future__",
+        "abc",
+        "argparse",
+        "ast",
+        "asyncio",
+        "base64",
+        "builtins",
+        "collections",
+        "concurrent",
+        "contextlib",
+        "copy",
+        "csv",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "difflib",
+        "enum",
+        "functools",
+        "glob",
+        "hashlib",
+        "heapq",
+        "http",
+        "importlib",
+        "inspect",
+        "io",
+        "ipaddress",
+        "itertools",
+        "json",
+        "logging",
+        "math",
+        "multiprocessing",
+        "operator",
+        "os",
+        "pathlib",
+        "pickle",
+        "platform",
+        "pprint",
+        "queue",
+        "random",
+        "re",
+        "secrets",
+        "select",
+        "shutil",
+        "signal",
+        "socket",
+        "sqlite3",
+        "stat",
+        "string",
+        "struct",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "textwrap",
+        "threading",
+        "time",
+        "tomllib",
+        "traceback",
+        "types",
+        "typing",
+        "unittest",
+        "urllib",
+        "uuid",
+        "warnings",
+        "weakref",
+        "xml",
+        "yaml",
+        "zipfile",
         # very common third-party that pollutes hubs
-        "pytest", "click", "anyio", "httpx", "pydantic", "fastapi",
-        "requests", "numpy",
+        "pytest",
+        "click",
+        "anyio",
+        "httpx",
+        "pydantic",
+        "fastapi",
+        "requests",
+        "numpy",
     }
 )
 
@@ -418,15 +494,28 @@ _NOISE_MODULE_NAMES: frozenset[str] = frozenset(
 # G8/G9/G39: kind-weighting for resolve / context / query — real
 # symbols rank above imports + external stubs at the same FTS5 score.
 _KIND_RESOLVE_WEIGHT: dict[str, int] = {
-    "class": 1, "code:class": 1,
-    "function": 2, "code:function": 2,
-    "method": 3, "code:method": 3,
-    "interface": 4, "code:interface": 4,
-    "variable": 5, "code:variable": 5,
-    "mcp_tool": 6, "hook": 6, "tool": 6, "route": 6,
-    "module": 10, "code:module": 10,
-    "file": 11, "code:file": 11, "doc:file": 12, "doc:heading": 13,
-    "import_": 20, "code:import": 20,
+    "class": 1,
+    "code:class": 1,
+    "function": 2,
+    "code:function": 2,
+    "method": 3,
+    "code:method": 3,
+    "interface": 4,
+    "code:interface": 4,
+    "variable": 5,
+    "code:variable": 5,
+    "mcp_tool": 6,
+    "hook": 6,
+    "tool": 6,
+    "route": 6,
+    "module": 10,
+    "code:module": 10,
+    "file": 11,
+    "code:file": 11,
+    "doc:file": 12,
+    "doc:heading": 13,
+    "import_": 20,
+    "code:import": 20,
     "identifier": 30,  # `code:external:unresolved:*` lives here
 }
 
@@ -591,9 +680,7 @@ def _looks_prefixed(raw: str) -> bool:
     return ":" in head
 
 
-def _resolve_uid(
-    backend: GraphBackend, raw_uid: str
-) -> tuple[GraphNode | None, list[str], str]:
+def _resolve_uid(backend: GraphBackend, raw_uid: str) -> tuple[GraphNode | None, list[str], str]:
     """Look up a node uid, with path-prefix fallback for raw paths.
 
     Returns ``(node, tried, source)`` where ``tried`` is the ordered list
@@ -791,9 +878,7 @@ def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[st
     return out
 
 
-def _file_contained_symbols(
-    backend: GraphBackend, file_uid: str, *, limit: int = 500
-) -> list[str]:
+def _file_contained_symbols(backend: GraphBackend, file_uid: str, *, limit: int = 500) -> list[str]:
     # W6.3 (F6/B15/N1): when caller hands us a `code:file:*` uid the
     # interesting blast radius lives on the SYMBOLS the file contains
     # (class/function/method), not on the file node itself. Return the
@@ -801,9 +886,7 @@ def _file_contained_symbols(
     # so impact + detect_changes can roll the file-level answer up from
     # the contained symbols.
     try:
-        edges = backend.list_edges(
-            source_uid=file_uid, edge_types=("contains",), limit=limit
-        )
+        edges = backend.list_edges(source_uid=file_uid, edge_types=("contains",), limit=limit)
     except (BackendUnavailable, sqlite3.Error):
         # Read-fallback only — caller already has a valid root node;
         # missing contained-symbol expansion degrades to file-only walk.
@@ -1492,10 +1575,7 @@ def cos_graph_detect_changes(
             # G19: risk reflects BLAST RADIUS (callers / behavioural
             # consumers), not contains-children inside the file. A new
             # file with 30 functions but zero callers is "low", not "high".
-            behavioural = [
-                e for e in deep_edges
-                if e.edge_type in _BEHAVIOURAL_EDGE_TYPES
-            ]
+            behavioural = [e for e in deep_edges if e.edge_type in _BEHAVIOURAL_EDGE_TYPES]
             # F4: expose the computed blast radius (inbound behavioural
             # consumers). Previously this drove `risk` then was discarded,
             # so callers saw only contains-children — never the real callers
@@ -1709,9 +1789,7 @@ def cos_graph_similar(
     # round-trip — keeps this a single query.
     try:
         sibling_uids: list[str] = []
-        for parent_edge in be.list_edges(
-            target_uid=root.uid, edge_types=["contains"], limit=8
-        ):
+        for parent_edge in be.list_edges(target_uid=root.uid, edge_types=["contains"], limit=8):
             sibling_uids.extend(
                 e.target_uid
                 for e in be.list_edges(
@@ -1888,9 +1966,7 @@ def cos_graph_references(
     # True total — separate count query so the caller knows if `edges`
     # is a complete picture or a slice. Uses the same kinds filter
     # because the backend's list_edges does the same filtering.
-    total = _count_edges_for(
-        be, target_uid=canonical_uid, edge_types=parsed_kinds
-    )
+    total = _count_edges_for(be, target_uid=canonical_uid, edge_types=parsed_kinds)
     truncated = total > len(edges)
 
     return _ok(
@@ -2019,11 +2095,7 @@ def cos_graph_path(
             # W6.4 (T1) + W7.8 (R4-12): skip external stubs AND in-repo
             # stub-hub modules (__future__, typing, __init__, …) which
             # bridge unrelated nodes. Target uid always exempt.
-            if (
-                not allow_external_intermediates
-                and _is_stub_hub_uid(nxt)
-                and nxt != target_uid
-            ):
+            if not allow_external_intermediates and _is_stub_hub_uid(nxt) and nxt != target_uid:
                 continue
             if nxt not in parents:
                 parents[nxt] = (uid, edge, "forward")
@@ -2033,11 +2105,7 @@ def cos_graph_path(
             frontier_saturated = True
         for edge in in_edges:
             nxt = edge.source_uid
-            if (
-                not allow_external_intermediates
-                and _is_stub_hub_uid(nxt)
-                and nxt != target_uid
-            ):
+            if not allow_external_intermediates and _is_stub_hub_uid(nxt) and nxt != target_uid:
                 continue
             if nxt not in parents:
                 parents[nxt] = (uid, edge, "reverse")
@@ -2497,9 +2565,7 @@ def cos_graph_rename_plan(
     # minus `references_doc` which is counted under doc_edge_types
     # below to avoid double-counting.
     _RENAME_BUCKET_LIMIT = 500
-    call_edge_types = tuple(
-        sorted(_BEHAVIOURAL_EDGE_TYPES - {"references_doc"})
-    )
+    call_edge_types = tuple(sorted(_BEHAVIOURAL_EDGE_TYPES - {"references_doc"}))
     doc_edge_types = ("links_to", "cites_heading", "references_doc")
     test_edge_types = ("tested_by",)
     call_sites = [
@@ -2524,9 +2590,7 @@ def cos_graph_rename_plan(
     doc_total = _count_edges_for(be, target_uid=uid, edge_types=doc_edge_types)
     test_total = _count_edges_for(be, target_uid=uid, edge_types=test_edge_types)
     result_truncated = (
-        call_total > len(call_sites)
-        or doc_total > len(doc_refs)
-        or test_total > len(test_refs)
+        call_total > len(call_sites) or doc_total > len(doc_refs) or test_total > len(test_refs)
     )
     risk = "high" if len(call_sites) > 20 else "medium" if call_sites else "low"
 
@@ -2615,8 +2679,7 @@ def cos_graph_contracts(
                 # dumped into http_routes via a blind 'http' default
                 # (TASK-056 C1).
                 node_kind = (node.kind or "").replace("cos:", "")
-                kind = {"route": "http", "mcp_tool": "mcp",
-                        "cli_command": "cli"}.get(node_kind)
+                kind = {"route": "http", "mcp_tool": "mcp", "cli_command": "cli"}.get(node_kind)
                 if kind is None:
                     continue
             if kind not in parsed_kinds:
@@ -2639,6 +2702,7 @@ def cos_graph_contracts(
                     "confidence": edge.confidence,
                 }
             )
+
     # W7 / R4-10: dedupe each bucket by target uid, preferring a
     # non-test source; and (unless asked) drop entries whose ONLY source
     # is a test fixture. Pre-fix the same MCP tool appeared once per
@@ -2876,16 +2940,18 @@ def _grep_string_literals(name: str, *, limit: int = 100) -> list[dict[str, Any]
     if not name or len(name) < 3:
         return []  # too short → only noise
     root = _repo_root_for_paths()
-    pattern = rf'''("[^"]*\b{re.escape(name)}\b[^"]*"|'[^']*\b{re.escape(name)}\b[^']*')'''
+    pattern = rf"""("[^"]*\b{re.escape(name)}\b[^"]*"|'[^']*\b{re.escape(name)}\b[^']*')"""
     hits: list[dict[str, Any]] = []
 
     import subprocess
 
     try:
         proc = subprocess.run(
-            ["rg", "--line-number", "--no-heading", "--color", "never",
-             "-e", pattern, str(root)],
-            capture_output=True, text=True, timeout=20, check=False,
+            ["rg", "--line-number", "--no-heading", "--color", "never", "-e", pattern, str(root)],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
         )
         for raw in proc.stdout.splitlines():
             parts = raw.split(":", 2)  # <path>:<line>:<text>
@@ -2896,8 +2962,9 @@ def _grep_string_literals(name: str, *, limit: int = 100) -> list[dict[str, Any]
                 rel = Path(fp).resolve().relative_to(root).as_posix()
             except ValueError:
                 rel = fp
-            hits.append({"file": rel, "line": int(ln) if ln.isdigit() else None,
-                         "text": text.strip()[:200]})
+            hits.append(
+                {"file": rel, "line": int(ln) if ln.isdigit() else None, "text": text.strip()[:200]}
+            )
             if len(hits) >= limit:
                 break
         return hits
@@ -2940,10 +3007,13 @@ def _grep_string_literals(name: str, *, limit: int = 100) -> list[dict[str, Any]
                     with full.open(encoding="utf-8", errors="ignore") as fh:
                         for i, line in enumerate(fh, 1):
                             if name in line and rx.search(line):
-                                hits.append({
-                                    "file": full.resolve().relative_to(root).as_posix(),
-                                    "line": i, "text": line.strip()[:200],
-                                })
+                                hits.append(
+                                    {
+                                        "file": full.resolve().relative_to(root).as_posix(),
+                                        "line": i,
+                                        "text": line.strip()[:200],
+                                    }
+                                )
                                 if len(hits) >= limit:
                                     return hits
                 except OSError:
@@ -3040,7 +3110,11 @@ def cos_graph_entrypoints(
     # G20: rank cli/http/mcp/cron above tests. Audit showed top-10
     # ALL tests at the 0.85 tied score, with main()/CLI never visible.
     _KIND_PRIORITY = {
-        "main": 4, "cli": 4, "http": 3, "cron": 2, "test": 1,
+        "main": 4,
+        "cli": 4,
+        "http": 3,
+        "cron": 2,
+        "test": 1,
     }
     eps = sorted(
         eps,
@@ -3153,17 +3227,14 @@ def cos_graph_communities(
         if projected_top > 0:
             effective_max_members = max(
                 _MEMBER_FLOOR,
-                budget_per_process_for_members
-                // (projected_top * _TOKENS_PER_MEMBER),
+                budget_per_process_for_members // (projected_top * _TOKENS_PER_MEMBER),
             )
         effective_max_members = min(effective_max_members, max_members)
         # Step 2: if still over budget, drop tail communities.
         while (
             projected_top > 1
-            and projected_top * (
-                _TOKENS_PER_PROCESS_HEADER
-                + effective_max_members * _TOKENS_PER_MEMBER
-            )
+            and projected_top
+            * (_TOKENS_PER_PROCESS_HEADER + effective_max_members * _TOKENS_PER_MEMBER)
             > _TOKEN_TARGET
         ):
             projected_top -= 1
@@ -3171,10 +3242,8 @@ def cos_graph_communities(
         # Lower the floor (1 member is still better than 0 communities).
         while (
             projected_top > 0
-            and projected_top * (
-                _TOKENS_PER_PROCESS_HEADER
-                + effective_max_members * _TOKENS_PER_MEMBER
-            )
+            and projected_top
+            * (_TOKENS_PER_PROCESS_HEADER + effective_max_members * _TOKENS_PER_MEMBER)
             > _TOKEN_TARGET
             and effective_max_members > 1
         ):
@@ -3256,9 +3325,7 @@ def cos_graph_centrality(
             if sqlite_conn is not None:
                 known_kinds = {
                     r[0]
-                    for r in sqlite_conn.execute(
-                        "SELECT DISTINCT kind FROM graph_nodes"
-                    ).fetchall()
+                    for r in sqlite_conn.execute("SELECT DISTINCT kind FROM graph_nodes").fetchall()
                 }
                 return _fail(
                     "validation",
@@ -3484,7 +3551,12 @@ def cos_graph_cycles(
     sqlite_conn = getattr(be, "_conn", None)
     if sqlite_conn is None:
         return _ok(
-            {"cycles": [], "total_count": 0, "scope": scope, "note": "cycle detection requires the sqlite backend"},
+            {
+                "cycles": [],
+                "total_count": 0,
+                "scope": scope,
+                "note": "cycle detection requires the sqlite backend",
+            },
             meta={"backend": be.backend_id, "layer": "graph"},
         )
     try:
@@ -3512,7 +3584,9 @@ def cos_graph_cycles(
 
     g = nx.DiGraph()
     g.add_edges_from(rows)
-    sccs = [sorted(c) for c in nx.strongly_connected_components(g) if len(c) >= max(2, int(min_size))]
+    sccs = [
+        sorted(c) for c in nx.strongly_connected_components(g) if len(c) >= max(2, int(min_size))
+    ]
     sccs.sort(key=len, reverse=True)
     cycles = [
         {"size": len(comp), "members": comp[:15], "members_truncated": len(comp) > 15}
@@ -3529,7 +3603,12 @@ def cos_graph_cycles(
                 "smell; scope=calls includes legitimate mutual recursion."
             ),
         },
-        meta={"backend": be.backend_id, "layer": "graph", "scope": scope, "result_truncated": len(sccs) > top},
+        meta={
+            "backend": be.backend_id,
+            "layer": "graph",
+            "scope": scope,
+            "result_truncated": len(sccs) > top,
+        },
     )
 
 
@@ -3568,8 +3647,12 @@ def cos_graph_test_gap(
             meta={"backend": be.backend_id, "layer": "graph"},
         )
     kinds: tuple[str, ...] = (
-        "function", "method", "class",
-        "code:function", "code:method", "code:class",
+        "function",
+        "method",
+        "class",
+        "code:function",
+        "code:method",
+        "code:class",
     )
     if kind:
         from ..types import normalize_kind as _normalize_kind_enum
@@ -3665,8 +3748,12 @@ def cos_graph_dead_code(
         )
 
     kinds: tuple[str, ...] = (
-        "function", "method", "class",
-        "code:function", "code:method", "code:class",
+        "function",
+        "method",
+        "class",
+        "code:function",
+        "code:method",
+        "code:class",
     )
     if kind:
         from ..types import normalize_kind as _normalize_kind_enum
@@ -3682,11 +3769,15 @@ def cos_graph_dead_code(
     # entry-point handler → not dead. Test-sourced edges are excluded so a
     # symbol used only by its own tests still surfaces as dead.
     ref_types = sorted(_BEHAVIOURAL_EDGE_TYPES)
-    test_pred = "" if include_tests else (
-        " AND s.file_path IS NOT NULL"
-        " AND s.file_path NOT LIKE 'tests/%' AND s.file_path NOT LIKE '%/tests/%'"
-        " AND s.file_path NOT LIKE 'test_%' AND s.file_path NOT LIKE '%/test_%'"
-        " AND s.file_path NOT LIKE '%_test.%'"
+    test_pred = (
+        ""
+        if include_tests
+        else (
+            " AND s.file_path IS NOT NULL"
+            " AND s.file_path NOT LIKE 'tests/%' AND s.file_path NOT LIKE '%/tests/%'"
+            " AND s.file_path NOT LIKE 'test_%' AND s.file_path NOT LIKE '%/test_%'"
+            " AND s.file_path NOT LIKE '%_test.%'"
+        )
     )
     edge_ph = ",".join("?" * len(ref_types))
     kind_ph = ",".join("?" * len(kinds))
@@ -3969,20 +4060,31 @@ def cos_graph_ranking(
         # Skipping only removes the personalisation SEED; a genuinely relevant
         # heading can still rank via PageRank, so over-skip is cheap.
         _GENERIC_HEADINGS = (
-            "work log", "read first", "acceptance", "notes", "see also",
-            "overview", "summary", "background", "resume marker",
-            "closing checklist", "source intent", "verification",
-            "anti-patterns", "references", "repro steps", "source material",
-            "findings register", "remediation",
+            "work log",
+            "read first",
+            "acceptance",
+            "notes",
+            "see also",
+            "overview",
+            "summary",
+            "background",
+            "resume marker",
+            "closing checklist",
+            "source intent",
+            "verification",
+            "anti-patterns",
+            "references",
+            "repro steps",
+            "source material",
+            "findings register",
+            "remediation",
         )
         for nid in node_ids:
             meta_entry = int_to_meta.get(nid)
             kind_n = (meta_entry[0] if meta_entry else "") or ""
             label = (meta_entry[1] if meta_entry else (int_to_uid.get(nid, ""))) or ""
             label_l = label.lower().strip()
-            if "doc_heading" in kind_n and any(
-                label_l.startswith(g) for g in _GENERIC_HEADINGS
-            ):
+            if "doc_heading" in kind_n and any(label_l.startswith(g) for g in _GENERIC_HEADINGS):
                 continue
             uid_str = int_to_uid.get(nid, "")
             uid_content_tokens = [
@@ -4015,7 +4117,9 @@ def cos_graph_ranking(
         new_rank: dict[int, float] = {}
         for nid in node_ids:
             inbound = in_links.get(nid, [])
-            push = sum(rank[src] / out_link_count[src] for src in inbound if out_link_count.get(src))
+            push = sum(
+                rank[src] / out_link_count[src] for src in inbound if out_link_count.get(src)
+            )
             if personalized:
                 teleport = personalized.get(nid, 0.0)
             else:
@@ -4024,6 +4128,7 @@ def cos_graph_ranking(
         rank = new_rank
 
     results: list[dict[str, Any]] = []
+
     # Query-seeded nodes rank above generic PageRank hubs; no query → identical to global.
     def _rank_sort_key(item: tuple[int, float]) -> tuple[float, float]:
         nid, score = item
@@ -4072,9 +4177,7 @@ def cos_graph_ranking(
     )
 
 
-def _is_phantom_orphan(
-    kind: str | None, file_path: str | None, uid: str | None = None
-) -> bool:
+def _is_phantom_orphan(kind: str | None, file_path: str | None, uid: str | None = None) -> bool:
     uid = uid or ""
     # Code-line ref mis-noded as a task by a superseded extractor — a real
     # task uid is `task:file:TASK-NNN` / `task:file:unknown:<path.md>`, never
@@ -4309,9 +4412,7 @@ def cos_graph_doctor(
                 # Same for `cos:identifier:*` (skill/adapter reference
                 # singletons that the extractor emits for completeness).
                 uid_str = uid_ or ""
-                if uid_str.startswith("code:external:") or uid_str.startswith(
-                    "cos:identifier:"
-                ):
+                if uid_str.startswith("code:external:") or uid_str.startswith("cos:identifier:"):
                     stub_orphans.append((uid_, kind_, label_))
                 elif _is_phantom_orphan(kind_, fp_, uid_):
                     # Fixable junk: zero-edge stub / dir-phantom.
@@ -4328,8 +4429,7 @@ def cos_graph_doctor(
                         "category": "orphaned_inrepo",
                         "count": len(real_orphans),
                         "sample": [
-                            {"uid": r[0], "kind": r[1], "label": r[2]}
-                            for r in real_orphans[:5]
+                            {"uid": r[0], "kind": r[1], "label": r[2]} for r in real_orphans[:5]
                         ],
                     }
                 )
@@ -4339,8 +4439,7 @@ def cos_graph_doctor(
                         "category": "orphaned_phantom",
                         "count": len(phantom_orphans),
                         "sample": [
-                            {"uid": r[0], "kind": r[1], "label": r[2]}
-                            for r in phantom_orphans[:5]
+                            {"uid": r[0], "kind": r[1], "label": r[2]} for r in phantom_orphans[:5]
                         ],
                     }
                 )
@@ -4360,8 +4459,7 @@ def cos_graph_doctor(
                 # the aggregate `count` lumps three distinct stub kinds; the
                 # `breakdown` reports the accurate per-prefix split so the
                 # label isn't misread as "all external:unresolved".
-                breakdown = {"external_unresolved": 0, "external_other": 0,
-                             "identifier_stub": 0}
+                breakdown = {"external_unresolved": 0, "external_other": 0, "identifier_stub": 0}
                 for uid_, _kind, _label in stub_orphans:
                     u = uid_ or ""
                     if u.startswith("code:external:unresolved:"):
@@ -4377,8 +4475,7 @@ def cos_graph_doctor(
                         "severity": "info",
                         "breakdown": breakdown,
                         "sample": [
-                            {"uid": r[0], "kind": r[1], "label": r[2]}
-                            for r in stub_orphans[:5]
+                            {"uid": r[0], "kind": r[1], "label": r[2]} for r in stub_orphans[:5]
                         ],
                     }
                 )
@@ -4416,6 +4513,7 @@ def cos_graph_doctor(
                 ).fetchall()
             ]
             repo_root = _repo_root_for_paths()
+
             # W7.6 / R4-25 + R4-X7-residual: split malformed paths from
             # genuine stale paths. Malformed paths are extractor bugs —
             # they can never resolve from repo root regardless of fs state.
@@ -4458,9 +4556,7 @@ def cos_graph_doctor(
             real_stale_paths = [
                 p
                 for p in distinct_paths
-                if not _is_malformed(p)
-                and p not in symlink_paths
-                and not (repo_root / p).exists()
+                if not _is_malformed(p) and p not in symlink_paths and not (repo_root / p).exists()
             ]
             # Stub doc nodes (doc:heading / doc:file) created only as edge
             # TARGETS carry their path in the uid, not file_path (NULL), so
@@ -4511,7 +4607,8 @@ def cos_graph_doctor(
                         "count": mp_count,
                         "path_count": len(malformed_paths) + len(malformed_uids),
                         "sample": [
-                            {"uid": r[0], "kind": r[1], "file_path": r[2]} for r in mp_sample_rows[:5]
+                            {"uid": r[0], "kind": r[1], "file_path": r[2]}
+                            for r in mp_sample_rows[:5]
                         ],
                     }
                 )
@@ -4546,10 +4643,13 @@ def cos_graph_doctor(
                         stale_paths,
                     ).fetchall()
                 if len(sp_sample) < 5 and stale_uid_stubs:
-                    sp_sample = list(sp_sample) + sqlite_conn.execute(
-                        f"SELECT uid, kind, file_path FROM graph_nodes WHERE uid IN ({','.join('?' * len(stale_uid_stubs[:5]))}) LIMIT ?",
-                        (*stale_uid_stubs[:5], 5 - len(sp_sample)),
-                    ).fetchall()
+                    sp_sample = (
+                        list(sp_sample)
+                        + sqlite_conn.execute(
+                            f"SELECT uid, kind, file_path FROM graph_nodes WHERE uid IN ({','.join('?' * len(stale_uid_stubs[:5]))}) LIMIT ?",
+                            (*stale_uid_stubs[:5], 5 - len(sp_sample)),
+                        ).fetchall()
+                    )
                 issues.append(
                     {
                         "category": "stale_paths",
@@ -4607,9 +4707,7 @@ def cos_graph_doctor(
     # W7.6 / R4-N9: informational categories (orphaned_external_unresolved)
     # do NOT trip healthy=false. Real issues = anything else.
     _INFORMATIONAL_CATEGORIES = {"orphaned_external_unresolved"}
-    real_issues = [
-        i for i in issues if i.get("category") not in _INFORMATIONAL_CATEGORIES
-    ]
+    real_issues = [i for i in issues if i.get("category") not in _INFORMATIONAL_CATEGORIES]
     healthy = len(real_issues) == 0
     return _ok(
         {"healthy": healthy, "issues": issues, "stats": stats},

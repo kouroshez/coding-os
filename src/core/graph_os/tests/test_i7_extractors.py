@@ -400,9 +400,7 @@ class TestContractsGoFiber:
             """
         )
         r = contracts.extract("backend/routes.go", src)
-        assert any(
-            e.edge_type == "calls" and e.target_uid.endswith("listUsers") for e in r.edges
-        )
+        assert any(e.edge_type == "calls" and e.target_uid.endswith("listUsers") for e in r.edges)
 
     def test_nested_group_prefix(self):
         src = textwrap.dedent(

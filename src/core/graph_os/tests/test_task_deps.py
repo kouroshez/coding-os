@@ -255,10 +255,7 @@ class TestProducesCode:
 
 class TestResolveDocRef:
     def test_plain_path_normalised(self):
-        assert (
-            task_deps._resolve_doc_ref("docs/tasks/T.md", "docs/spec.md")
-            == "docs/spec.md"
-        )
+        assert task_deps._resolve_doc_ref("docs/tasks/T.md", "docs/spec.md") == "docs/spec.md"
 
     def test_relative_parent_resolves_against_origin_dir(self):
         assert (
@@ -268,8 +265,7 @@ class TestResolveDocRef:
 
     def test_dot_slash_relative(self):
         assert (
-            task_deps._resolve_doc_ref("docs/tasks/T.md", "./sibling.md")
-            == "docs/tasks/sibling.md"
+            task_deps._resolve_doc_ref("docs/tasks/T.md", "./sibling.md") == "docs/tasks/sibling.md"
         )
 
     def test_escapes_repo_root_returns_none(self):
@@ -294,9 +290,7 @@ class TestExtractDocPaths:
         assert out == ["docs/a.md", "docs/b.md"]
 
     def test_drops_root_escaping_ref(self):
-        out = task_deps._extract_doc_paths(
-            ["../../../../outside.md"], origin_path="docs/T.md"
-        )
+        out = task_deps._extract_doc_paths(["../../../../outside.md"], origin_path="docs/T.md")
         assert out == []
 
 
