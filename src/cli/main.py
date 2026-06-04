@@ -42,6 +42,7 @@ from cli.brain_commands import (
     reindex as reindex_cmd,
     task_sync as task_sync_cmd,
 )
+from cli.core_version import stamp_core_version
 from cli.doctor import doctor as doctor_cmd
 from cli.eject_file import eject_file as eject_file_cmd
 from cli.list_adapters import list_adapters as list_adapters_cmd
@@ -1073,6 +1074,7 @@ def _run_scaffold_phase(
     state = project / STATE_DIR
     state.mkdir(parents=True, exist_ok=True)
     click.echo(f"  Created {STATE_DIR}/")
+    stamp_core_version(state)
 
     # 2. Initialize DB directory
     db_path = state / "coding-os.db"

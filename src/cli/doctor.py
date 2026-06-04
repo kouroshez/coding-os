@@ -39,6 +39,8 @@ from typing import Any
 import click
 import yaml
 
+from cli.core_version import current_core_version, read_stamped_version
+
 logger = logging.getLogger(__name__)
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -323,6 +325,34 @@ def _check_database(state: Path, report: DoctorReport) -> sqlite3.Connection | N
             )
         )
     return conn
+
+
+def _check_core_version(state: Path, report: DoctorReport) -> None:
+    """core.version_stamp — consumer's stamped core version vs the installed core (D6 drift)."""
+    current = current_core_version()
+    stamped = read_stamped_version(state)
+    if stamped is None:
+        report.checks.append(
+            CheckResult(
+                "core.version_stamp",
+                SEV_WARN,
+                "no core-version stamp — scaffolded before stamping; run `cos update`",
+                {"current": current},
+            )
+        )
+    elif stamped != current:
+        report.checks.append(
+            CheckResult(
+                "core.version_stamp",
+                SEV_WARN,
+                f"core drift — scaffolded by {stamped}, current core {current}; run `cos update`",
+                {"stamped": stamped, "current": current},
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult("core.version_stamp", SEV_PASS, f"core {current}", {"stamped": stamped})
+        )
 
 
 def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
@@ -792,6 +822,7 @@ def run_doctor(
         if conn is not None:
             with contextlib.closing(conn):
                 pass
+        _check_core_version(state, report)
         # Open a second short-lived connection for Phase I graph checks so
         # the first handle's contextlib.closing is not disturbed.
         try:

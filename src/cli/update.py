@@ -28,6 +28,7 @@ import yaml
 from cli._init_helpers import ensure_agents_md
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
+from cli.core_version import stamp_core_version
 from cli.stack_registry import load_base_profile, load_stack_registry
 
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -367,6 +368,7 @@ def _write_installed_manifest(
     state.mkdir(parents=True, exist_ok=True)
     out = state / INSTALLED_MANIFEST
     out.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    stamp_core_version(state)
     return out
 
 
