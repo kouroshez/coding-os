@@ -29,10 +29,14 @@ Install: `make cron-install` → writes plist to `~/Library/LaunchAgents/`, load
 
 ### Tasks (ordered, per project)
 
-1. **decay** — `run_decay(db_path)` from `src/core/thinking_os/decay.py`
-   - Gate: `.last-decay` marker < 7 days → skip (session_enrich already ran)
+1. **decay + consolidate** — `run_decay(db_path, archive_prune_days=...)` from `src/core/thinking_os/decay.py`
+   - Gate: `.last-decay` marker < `decay_throttle_days` (config, default 7) → skip
    - Flock: `fcntl.flock` on marker → prevents double-decay race with session_enrich
-   - Output: `{patterns_decayed, patterns_archived, skipped}`
+   - Consolidation (caps unbounded `learned_patterns` growth, runs every decay):
+     - **merge** exact `(pattern, domain)` duplicates — fold losers' `access_count` / `times_validated` into the highest-confidence keeper, delete the rest.
+     - **prune** patterns archived in a PRIOR run that are at-floor, lightly-validated (`times_validated < 5`), and dormant > `archive_prune_days` (config, default 90). Deeply-validated archived patterns survive. Pruning runs BEFORE this run's archiving so freshly-archived patterns get a full grace window.
+   - Semantic summarisation stays in CRON B (`cos_learn_narrative`) — this is the non-LLM cap.
+   - Output: `{decayed, archived, unchanged, working_memory_cleaned, merged, pruned}`
 
 2. **learn_extract** — `learn_extract(conn)` from `src/core/thinking_os/tools/learning.py`
    - Gate: `< 3` task_outcomes → skip; 0 new outcomes since `.last-extract` → skip
@@ -90,6 +94,7 @@ absent file behaves exactly as before.
 | `decay_throttle_days` | `7` | Replaces the `_DECAY_THROTTLE_DAYS` constant — decay skips if `.last-decay` is younger. |
 | `learn_extract_min_outcomes` | `3` | Replaces `_MIN_OUTCOMES` — extract needs at least this many total outcomes. |
 | `responsive_extract_threshold` | `5` | Session-end fires `learn_extract` once this many NEW outcomes accrue since `.last-extract`. |
+| `archive_prune_days` | `90` | Dormancy window before a prior-run-archived, lightly-validated pattern is hard-deleted by the decay consolidation pass. |
 
 **Responsive extraction** closes the "patterns from today don't exist
 until 03:00 tomorrow" lag. The Stop hook `session-end.sh` runs

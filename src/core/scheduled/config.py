@@ -23,6 +23,7 @@ DEFAULTS: dict[str, object] = {
     "decay_throttle_days": 7,
     "learn_extract_min_outcomes": 3,
     "responsive_extract_threshold": 5,
+    "archive_prune_days": 90,
 }
 
 # (key, lo, hi) bounds for integer fields — values are clamped on save.
@@ -31,6 +32,7 @@ _INT_BOUNDS: dict[str, tuple[int, int]] = {
     "decay_throttle_days": (1, 365),
     "learn_extract_min_outcomes": (1, 1000),
     "responsive_extract_threshold": (1, 1000),
+    "archive_prune_days": (7, 3650),
 }
 
 

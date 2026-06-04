@@ -99,6 +99,7 @@ def _run_decay(
     *,
     dry_run: bool,
     throttle_days: int = _DECAY_THROTTLE_DAYS,
+    prune_days: int = 90,
 ) -> dict:
     """Run confidence decay, flock-protected against session_enrich race."""
     marker = project_root / ".coding-os" / ".last-decay"
@@ -125,7 +126,7 @@ def _run_decay(
 
                 from decay import run_decay as do_decay
 
-                result = do_decay(db_path)
+                result = do_decay(db_path, archive_prune_days=prune_days)
                 touch_marker(marker)
                 return {"status": "ok", **result}
             finally:
@@ -322,6 +323,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
             project_root,
             dry_run=dry_run,
             throttle_days=int(cfg["decay_throttle_days"]),
+            prune_days=int(cfg["archive_prune_days"]),
         )
         run["tasks"]["decay"] = t
         logger.info("[%s] decay → %s", slug, t.get("status"))

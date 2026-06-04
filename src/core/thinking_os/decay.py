@@ -114,15 +114,24 @@ def _days_since(dt_str: str | None) -> float | None:
         return None
 
 
-def run_decay(db_path: str | Path | None = None, *, dry_run: bool = False) -> dict:
-    """Run confidence decay on all learned_patterns.
+def run_decay(
+    db_path: str | Path | None = None,
+    *,
+    dry_run: bool = False,
+    archive_prune_days: int = 90,
+) -> dict:
+    """Run confidence decay + consolidation on all learned_patterns.
 
     Args:
         db_path: Path to SQLite DB. Defaults to DEFAULT_DB_PATH.
         dry_run: If True, compute but don't write changes.
+        archive_prune_days: Hard-delete archived, at-floor, lightly-validated
+            patterns not accessed within this window — caps unbounded growth
+            without touching deeply-validated (times_validated>=5) memory.
 
     Returns:
-        Dict with stats: total_patterns, decayed, archived, unchanged, working_memory_cleaned.
+        Dict with stats: total_patterns, decayed, archived, unchanged,
+        working_memory_cleaned, merged, pruned.
     """
     path = Path(db_path or DEFAULT_DB_PATH)
 
@@ -138,7 +147,27 @@ def run_decay(db_path: str | Path | None = None, *, dry_run: bool = False) -> di
             "archived": 0,
             "unchanged": 0,
             "working_memory_cleaned": 0,
+            "merged": 0,
+            "pruned": 0,
         }
+
+        # --- Prune long-dead archived patterns (caps unbounded growth) ---
+        # Runs BEFORE this run's archiving so a freshly-archived pattern gets a
+        # full grace window. Targets only patterns archived in a PRIOR run that
+        # are at-floor, lightly-validated, and dormant (no access / validation /
+        # creation within archive_prune_days). Deeply-validated patterns
+        # (times_validated>=5) survive even when archived — they may resurface.
+        if not dry_run:
+            pruned = conn.execute(
+                "DELETE FROM learned_patterns "
+                "WHERE promoted_to = 'archived' "
+                "AND confidence <= ? "
+                "AND COALESCE(times_validated, 0) < 5 "
+                "AND COALESCE(last_accessed_at, last_validated, created_at) "
+                "    < datetime('now', ?)",
+                (CONFIDENCE_FLOOR + 0.001, f"-{int(archive_prune_days)} days"),
+            )
+            stats["pruned"] = pruned.rowcount
 
         # --- Decay learned_patterns ---
         rows = conn.execute(
@@ -198,6 +227,41 @@ def run_decay(db_path: str | Path | None = None, *, dry_run: bool = False) -> di
             )
             stats["working_memory_cleaned"] = cursor.rowcount
 
+        # --- Consolidate: merge exact (pattern, domain) duplicates ---
+        # learn_extract upserts by (pattern, domain), so dups are rare — this
+        # is defensive: fold losers' access_count/times_validated into the
+        # highest-confidence keeper so no signal is lost, then delete them.
+        dup_groups = conn.execute(
+            "SELECT pattern, COALESCE(domain, '') AS dom FROM learned_patterns "
+            "GROUP BY pattern, COALESCE(domain, '') HAVING COUNT(*) > 1"
+        ).fetchall()
+        for g in dup_groups:
+            members = conn.execute(
+                "SELECT id, access_count, times_validated FROM learned_patterns "
+                "WHERE pattern = ? AND COALESCE(domain, '') = ? "
+                "ORDER BY confidence DESC, id DESC",
+                (g["pattern"], g["dom"]),
+            ).fetchall()
+            losers = members[1:]
+            if not losers:
+                continue
+            if not dry_run:
+                conn.execute(
+                    "UPDATE learned_patterns SET "
+                    "access_count = COALESCE(access_count, 0) + ?, "
+                    "times_validated = COALESCE(times_validated, 0) + ? WHERE id = ?",
+                    (
+                        sum((m["access_count"] or 0) for m in losers),
+                        sum((m["times_validated"] or 0) for m in losers),
+                        members[0]["id"],
+                    ),
+                )
+                conn.executemany(
+                    "DELETE FROM learned_patterns WHERE id = ?",
+                    [(m["id"],) for m in losers],
+                )
+            stats["merged"] += len(losers)
+
         if not dry_run:
             conn.commit()
 
@@ -225,12 +289,15 @@ def main() -> None:
         sys.exit(0)
 
     logger.info(
-        "Summary: %d patterns processed, %d decayed, %d archived, %d unchanged, %d working memory cleaned",
+        "Summary: %d patterns processed, %d decayed, %d archived, %d unchanged, "
+        "%d working memory cleaned, %d merged, %d pruned",
         stats["total_patterns"],
         stats["decayed"],
         stats["archived"],
         stats["unchanged"],
         stats["working_memory_cleaned"],
+        stats.get("merged", 0),
+        stats.get("pruned", 0),
     )
 
 

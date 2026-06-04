@@ -313,3 +313,102 @@ class TestRunDecay:
             assert count == 2  # active + permanent remain
         finally:
             conn.close()
+
+
+class TestConsolidation:
+    """G7 — merge exact duplicates + prune long-dead archived patterns."""
+
+    def _insert(self, conn: sqlite3.Connection, **kw: object) -> None:
+        cols = ", ".join(kw.keys())
+        ph = ", ".join("?" for _ in kw)
+        conn.execute(f"INSERT INTO learned_patterns ({cols}) VALUES ({ph})", tuple(kw.values()))
+
+    def test_merges_exact_duplicates(self, db_path: Path) -> None:
+        conn = init_db(db_path)
+        try:
+            self._insert(
+                conn, pattern="Dup", domain="X", confidence=0.8, decay_rate=0.1,
+                last_validated="now", times_validated=1, impact_score=0.5, access_count=3,
+            )
+            self._insert(
+                conn, pattern="Dup", domain="X", confidence=0.6, decay_rate=0.1,
+                last_validated="now", times_validated=2, impact_score=0.5, access_count=5,
+            )
+            conn.execute("UPDATE learned_patterns SET last_validated = datetime('now')")
+            conn.commit()
+        finally:
+            conn.close()
+
+        result = run_decay(db_path)
+        assert result["merged"] == 1
+
+        conn = init_db(db_path)
+        try:
+            rows = conn.execute(
+                "SELECT access_count, times_validated FROM learned_patterns WHERE pattern='Dup'"
+            ).fetchall()
+            assert len(rows) == 1  # one survivor
+            assert rows[0][0] == 8  # 3 + 5 access folded in
+            assert rows[0][1] == 3  # 1 + 2 validations folded in
+        finally:
+            conn.close()
+
+    def test_prunes_dead_archived(self, db_path: Path) -> None:
+        conn = init_db(db_path)
+        try:
+            self._insert(
+                conn, pattern="Dead", domain="X", confidence=0.10, decay_rate=0.1,
+                last_validated="now", times_validated=0, impact_score=0.5,
+                promoted_to="archived",
+            )
+            conn.execute(
+                "UPDATE learned_patterns SET last_accessed_at = datetime('now','-120 days')"
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        result = run_decay(db_path, archive_prune_days=90)
+        assert result["pruned"] == 1
+
+        conn = init_db(db_path)
+        try:
+            assert conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0] == 0
+        finally:
+            conn.close()
+
+    def test_keeps_deeply_validated_archived(self, db_path: Path) -> None:
+        conn = init_db(db_path)
+        try:
+            self._insert(
+                conn, pattern="Important", domain="X", confidence=0.10, decay_rate=0.1,
+                last_validated="now", times_validated=7, impact_score=0.9,
+                promoted_to="archived",
+            )
+            conn.execute(
+                "UPDATE learned_patterns SET last_accessed_at = datetime('now','-200 days')"
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        result = run_decay(db_path, archive_prune_days=90)
+        assert result["pruned"] == 0  # times_validated>=5 survives
+
+    def test_keeps_recently_accessed_archived(self, db_path: Path) -> None:
+        conn = init_db(db_path)
+        try:
+            self._insert(
+                conn, pattern="Recent", domain="X", confidence=0.10, decay_rate=0.1,
+                last_validated="now", times_validated=0, impact_score=0.5,
+                promoted_to="archived",
+            )
+            conn.execute(
+                "UPDATE learned_patterns SET last_accessed_at = datetime('now','-2 days')"
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        result = run_decay(db_path, archive_prune_days=90)
+        assert result["pruned"] == 0  # accessed within window survives
