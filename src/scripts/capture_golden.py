@@ -149,7 +149,9 @@ def main(section: str | None) -> None:
                 sys.exit(1)
             dst = GOLDEN_DIR / section_id
             count = _copy_filtered(sandbox, dst)
-            click.echo(f"  ✓ [{i}/{total}] {section_id}: {count} files → {dst.relative_to(REPO_ROOT)}")
+            click.echo(
+                f"  ✓ [{i}/{total}] {section_id}: {count} files → {dst.relative_to(REPO_ROOT)}"
+            )
             sys.stdout.flush()
 
     click.echo(f"[golden] done — wrote {total} section(s) to {GOLDEN_DIR.relative_to(REPO_ROOT)}")

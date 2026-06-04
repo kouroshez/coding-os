@@ -110,10 +110,13 @@ def _evidence_dispatch_recorded(db_path: str, task_id: str) -> bool | None:
     except sqlite3.Error:
         return None
     try:
-        if con.execute(
-            "SELECT 1 FROM formula_dispatches "
-            "WHERE formula_id = 'exhaustive_evidence' AND status = 'ok' LIMIT 1"
-        ).fetchone() is None:
+        if (
+            con.execute(
+                "SELECT 1 FROM formula_dispatches "
+                "WHERE formula_id = 'exhaustive_evidence' AND status = 'ok' LIMIT 1"
+            ).fetchone()
+            is None
+        ):
             return None
         row = con.execute(
             "SELECT 1 FROM formula_dispatches "

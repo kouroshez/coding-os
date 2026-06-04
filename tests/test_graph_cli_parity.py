@@ -54,6 +54,5 @@ def test_no_orphan_graph_cli_command() -> None:
     mirrors = {_cli_name_for(t) for t in _mcp_tool_names()}
     orphans = sorted(_graph_cli_commands() - mirrors - _CLI_ONLY)
     assert not orphans, (
-        f"graph CLI commands with neither an MCP tool nor a build-only "
-        f"allowlist entry: {orphans}"
+        f"graph CLI commands with neither an MCP tool nor a build-only allowlist entry: {orphans}"
     )

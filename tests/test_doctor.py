@@ -318,6 +318,5 @@ def test_makefile_no_duplicate_target_warnings() -> None:
     ]
     assert not offenders, (
         "Makefile target redefinition warnings detected — guard with "
-        "`ifndef COS_META_REPO` in Makefile.base or rename the duplicate.\n"
-        + "\n".join(offenders)
+        "`ifndef COS_META_REPO` in Makefile.base or rename the duplicate.\n" + "\n".join(offenders)
     )

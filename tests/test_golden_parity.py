@@ -109,8 +109,7 @@ def test_parity(section_id: str, agent: str, templates: list[str], tmp_path: Pat
     golden = GOLDEN_DIR / section_id
     if not golden.exists():
         pytest.skip(
-            f"golden {section_id} not captured yet — run "
-            f"`make golden-capture SECTION={section_id}`"
+            f"golden {section_id} not captured yet — run `make golden-capture SECTION={section_id}`"
         )
 
     sandbox = tmp_path / section_id / FIXTURE_NAME

@@ -124,9 +124,7 @@ def _parse_frontmatter(text: str) -> dict:
                 if value.startswith("[") and value.endswith("]"):
                     inner = value[1:-1]
                     out[key] = [
-                        v.strip().strip('"').strip("'")
-                        for v in inner.split(",")
-                        if v.strip()
+                        v.strip().strip('"').strip("'") for v in inner.split(",") if v.strip()
                     ]
                 else:
                     out[key] = value.strip('"').strip("'")

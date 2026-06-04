@@ -49,9 +49,7 @@ def check_message(text: str) -> list[str]:
         chunk = m.group(1)
         persian = sum(1 for c in chunk if "؀" <= c <= "ۿ")
         if persian > MAX_PERSIAN_QUOTED_CHARS:
-            errors.append(
-                f"forbidden quoted Persian/Arabic text ({persian} chars) — prompt leak"
-            )
+            errors.append(f"forbidden quoted Persian/Arabic text ({persian} chars) — prompt leak")
             break
 
     return errors

@@ -155,9 +155,13 @@ def _recall_patterns(gate_class: str, agent_dir: str | None) -> str:
     if not suggestions:
         return ""
 
-    target_dir = agent_dir or os.environ.get("COS_AGENT_DIR") or str(
-        Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
-        / os.environ.get("COS_AGENT", "claude")
+    target_dir = (
+        agent_dir
+        or os.environ.get("COS_AGENT_DIR")
+        or str(
+            Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
+            / os.environ.get("COS_AGENT", "claude")
+        )
     )
     lines: list[str] = []
     for s in suggestions:
