@@ -429,6 +429,15 @@ def _emit(
         # (TASK-053). Non-.py handlers keep the stub (no same-file table).
         if normalised.endswith(".py"):
             handler_uid = f"code:function:{normalised}::{match.handler}"
+        elif (
+            normalised.endswith(".php")
+            and "@" not in match.handler
+            and "::" not in match.handler
+        ):
+            # Bare same-file handler (WP callback / WHMCS module fn) → the real
+            # function node. Laravel `Ctrl@method` / `Class::method` are
+            # cross-file → keep the unresolved stub.
+            handler_uid = f"code:function:{normalised}::{match.handler}"
         else:
             handler_uid = f"code:external:unresolved:{match.handler}"
         result.edges.append(
@@ -1113,9 +1122,53 @@ def _scan_wordpress(content: str) -> list[ContractMatch]:
     return hits
 
 
+_WHMCS_ADD_HOOK_RE = re.compile(
+    rf"""\badd_hook\s*\(\s*{_STRING_CAPTURE}\s*,\s*\d+
+        (?:\s*,\s*['"]?(?P<cb>[A-Za-z_][\w]*)['"]?)?
+    """,
+    re.VERBOSE,
+)
+_WHMCS_DIRS = {
+    "modules/servers/": "provisioning",
+    "modules/registrars/": "registrar",
+    "modules/addons/": "addon",
+    "modules/gateways/": "gateway",
+}
+
+
 def _scan_whmcs(content: str, *, path: str) -> list[ContractMatch]:
-    """WHMCS add_hook + module-function convention — implemented in TASK-069 P3."""
-    return []
+    """WHMCS `add_hook(...)` + module-function convention `{module}_{Action}`."""
+    module_type = next((mt for d, mt in _WHMCS_DIRS.items() if d in path), "")
+    has_hook = "add_hook(" in content
+    if not module_type and not has_hook:
+        return []
+    hits: list[ContractMatch] = []
+    for m in _WHMCS_ADD_HOOK_RE.finditer(content):
+        hits.append(
+            ContractMatch(
+                kind="event", framework="whmcs_hook", method="hook",
+                path=m.group("path"), handler=m.group("cb"),
+                line=_line_of(content, m.start()), derivation="whmcs_hook",
+            )
+        )
+    # Module-function convention: only inside a recognised module path, where
+    # `{module}` == the file stem (servers/registrars/addons → {name}/{name}.php;
+    # gateways → {name}.php). Avoids false-matching `prefix_foo` elsewhere.
+    if module_type:
+        module = PurePosixPath(path).stem
+        if module:
+            fn_re = re.compile(rf"\bfunction\s+(?P<fn>{re.escape(module)}_\w+)\s*\(")
+            for m in fn_re.finditer(content):
+                fn = m.group("fn")
+                action = fn[len(module) + 1 :]
+                hits.append(
+                    ContractMatch(
+                        kind="event", framework=f"whmcs_{module_type}", method="module_fn",
+                        path=fn, handler=fn, line=_line_of(content, m.start()),
+                        derivation="whmcs_module", note=action,
+                    )
+                )
+    return hits
 
 
 _MCP_NOISE_NAMES = {"name", "x", "y", "z", "foo", "bar", "tool", "test"}
