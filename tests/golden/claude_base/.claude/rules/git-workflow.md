@@ -141,6 +141,7 @@ Every line in a commit message exists forever. Verbose bodies (audit tables, fil
 
 ### Hard fails (will BLOCK — enforced by `check_commit_message.py`)
 
+- Title not a Conventional Commit — `<type>(scope)?!: subject`, type ∈ feat/fix/docs/perf/refactor/build/ci/test/chore/style/revert. release-please parses the title to derive the version bump; an unparseable type silently drops the change from `CHANGELOG.md`. `Merge `/`Revert `/`fixup!`/`squash!` auto-subjects are exempt. See [release-process.md](../../docs/governance/release-process.md).
 - Title >100 chars.
 - Body with >3 non-empty lines.
 - `Co-Authored-By:` trailers of any kind (agent attribution belongs nowhere in history).
@@ -168,6 +169,7 @@ bash src/scripts/install-git-hooks.sh
 - `git checkout -b feature/...` "to keep main clean" — no, commit to main.
 - Bare `git commit` / `git commit -am` — sweeps concurrent WIP.
 - `git push --force` to `main` — blocked by `block-dangerous-commands.sh`.
+- Hand-editing `CHANGELOG.md` or running `git tag` for a release — release-please owns both; a manual edit rots the standing release PR. See [release-process.md](../../docs/governance/release-process.md).
 - `git reset --hard HEAD~N` to "redo" a bad commit — blocked twice
   (`block-dangerous-commands` and `branch-guard`). Use `git revert`.
 - `git reset --soft HEAD~N` to "squash before push" — blocked. Push the

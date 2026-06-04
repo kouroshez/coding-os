@@ -5,12 +5,12 @@ swimlane: docs
 kind: docs
 epic: null
 labels: [skill, swimlane, drift, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-04
 started: 2026-06-04
-completed: null
+completed: 2026-06-04
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -25,3 +25,4 @@ references: []
 - src/core/board_os/config.py
 
 ## Work Log
+- 2026-06-04 [claude]: Replaced the hardcoded swimlane routing table (meta/ops/cross — matched no config) with config-driven discovery guidance
