@@ -29,9 +29,7 @@ class TestRegexFallback:
     def test_interface_and_trait(self, regex_mode):
         r = _ex("<?php\ninterface I {}\ntrait T {}")
         assert "I" in _labels(r, "code:interface")
-        assert any(
-            n.label == "T" and n.metadata.get("php_kind") == "trait" for n in r.nodes
-        )
+        assert any(n.label == "T" and n.metadata.get("php_kind") == "trait" for n in r.nodes)
 
     def test_use_import_edge(self, regex_mode):
         r = _ex("<?php\nuse App\\Models\\User;")

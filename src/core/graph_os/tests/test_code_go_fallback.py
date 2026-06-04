@@ -53,9 +53,7 @@ class TestRegexFallback:
             func (c *Container[K, V]) Get() {}
             """
         )
-        assert any(
-            n.kind == "code:method" and n.label == "Container.Get" for n in r.nodes
-        )
+        assert any(n.kind == "code:method" and n.label == "Container.Get" for n in r.nodes)
 
     def test_type_struct_is_class(self, regex_mode):
         r = _extract("package m\ntype Widget struct {}\n")
@@ -68,8 +66,7 @@ class TestRegexFallback:
     def test_single_import(self, regex_mode):
         r = _extract('package m\nimport "fmt"\n')
         assert any(
-            e.edge_type == "imports" and e.target_uid == "code:external:fmt"
-            for e in r.edges
+            e.edge_type == "imports" and e.target_uid == "code:external:fmt" for e in r.edges
         )
 
     def test_import_block_with_alias_blank_dot(self, regex_mode):

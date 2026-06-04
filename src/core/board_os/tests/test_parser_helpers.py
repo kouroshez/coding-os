@@ -92,9 +92,10 @@ class TestReadFirstPaths:
 
 class TestValidateFrontmatter:
     def test_clean_frontmatter_no_warnings(self):
-        assert _validate_frontmatter(
-            {"status": "in_progress", "kind": "feature", "priority": "P2"}
-        ) == []
+        assert (
+            _validate_frontmatter({"status": "in_progress", "kind": "feature", "priority": "P2"})
+            == []
+        )
 
     def test_bad_status(self):
         w = _validate_frontmatter({"status": "bogus"})

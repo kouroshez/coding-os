@@ -44,10 +44,7 @@ class TestSameScopeCalls:
         assert ("C.run", "C.t") in _edges(r, "calls")
 
     def test_class_scoped_call(self):
-        r = _ex(
-            "<?php\nclass C { static function s(){} }\n"
-            "class D { function run(){ C::s(); } }"
-        )
+        r = _ex("<?php\nclass C { static function s(){} }\nclass D { function run(){ C::s(); } }")
         assert ("D.run", "C.s") in _edges(r, "calls")
 
     def test_recursive_self_call_no_loop(self):
@@ -61,10 +58,7 @@ class TestConstructs:
         assert ("C.run", "User") in _edges(r, "constructs")
 
     def test_new_imported_class(self):
-        r = _ex(
-            "<?php\nuse App\\Models\\User;\n"
-            "class C { function run(){ $x = new User(); } }"
-        )
+        r = _ex("<?php\nuse App\\Models\\User;\nclass C { function run(){ $x = new User(); } }")
         assert any("User" in t for _, t in _edges(r, "constructs"))
 
 

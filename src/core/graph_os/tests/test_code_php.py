@@ -30,9 +30,7 @@ class TestDeclarations:
         r = _ex("<?php\nclass C {}\ninterface I {}\ntrait T {}")
         assert {"C", "T"} <= _labels(r, "code:class")
         assert "I" in _labels(r, "code:interface")
-        assert any(
-            n.label == "T" and n.metadata.get("php_kind") == "trait" for n in r.nodes
-        )
+        assert any(n.label == "T" and n.metadata.get("php_kind") == "trait" for n in r.nodes)
 
     def test_method_and_function(self):
         r = _ex("<?php\nclass C { public function m() {} }\nfunction f() {}")

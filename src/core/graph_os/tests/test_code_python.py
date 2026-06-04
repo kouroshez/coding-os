@@ -512,9 +512,7 @@ def test_self_method_resolves_to_enclosing_class():
         """
     )
     calls = {
-        (e.source_uid.split("::")[-1], e.target_uid)
-        for e in r.edges
-        if e.edge_type == "calls"
+        (e.source_uid.split("::")[-1], e.target_uid) for e in r.edges if e.edge_type == "calls"
     }
     assert ("A.run", "code:method:core/foo.py::A.helper") in calls
     assert ("B.run", "code:method:core/foo.py::B.helper") in calls

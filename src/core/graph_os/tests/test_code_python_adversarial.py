@@ -41,9 +41,7 @@ class TestDecorators:
 
 class TestSelfMethod:
     def test_sync_self_call_resolves(self):
-        e = _edges(
-            "class S:\n  def run(self): self.helper()\n  def helper(self): pass", "calls"
-        )
+        e = _edges("class S:\n  def run(self): self.helper()\n  def helper(self): pass", "calls")
         assert ("S.run", "S.helper") in e
 
 

@@ -93,9 +93,7 @@ def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
 # ---------- cos_task_show ----------
 
 
-def test_task_show_returns_frontmatter_and_body(
-    project: Path, conn: sqlite3.Connection
-):
+def test_task_show_returns_frontmatter_and_body(project: Path, conn: sqlite3.Connection):
     created = _parse(
         mcp_tools.cos_task_create(
             conn,
@@ -118,18 +116,12 @@ def test_task_show_returns_frontmatter_and_body(
     assert data["file_path"].endswith(".md")
 
 
-def test_task_show_omits_body_when_disabled(
-    project: Path, conn: sqlite3.Connection
-):
+def test_task_show_omits_body_when_disabled(project: Path, conn: sqlite3.Connection):
     created = _parse(
-        mcp_tools.cos_task_create(
-            conn, title="No body", swimlane="core", kind="feature"
-        )
+        mcp_tools.cos_task_create(conn, title="No body", swimlane="core", kind="feature")
     )
     env = _parse(
-        mcp_tools.cos_task_show(
-            conn, task_id=created["data"]["task_id"], include_body=False
-        )
+        mcp_tools.cos_task_show(conn, task_id=created["data"]["task_id"], include_body=False)
     )
     assert env["ok"] is True
     assert env["data"]["body"] is None
@@ -166,9 +158,7 @@ def test_create_task_in_progress_stamps_started_and_session(
     assert "ses-test-lifecycle-1" in content
 
 
-def test_create_task_testing_does_not_stamp_started(
-    project: Path, conn: sqlite3.Connection
-):
+def test_create_task_testing_does_not_stamp_started(project: Path, conn: sqlite3.Connection):
     """F17b: only `in_progress` stamps `started` at create-time to
     match `workflow.transition` semantics. Tasks created directly in
     `testing` / `emergency` are unusual and should reach those states
