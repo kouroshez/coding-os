@@ -47,10 +47,21 @@ sources:
     type: workflow
     priority: 0.6      # SSOT references for src/core/rules/*.md (thinking_os, etc.)
 
+  - path: docs/governance/
+    type: governance
+    priority: 0.6      # Always-active rules — ALSO indexed so an agent can DISCOVER
+    exclude:           # a relevant rule via cos_doc_search even with no explicit link.
+      - _templates/    # doc skeletons, not knowledge
+      - archive/       # superseded historical docs
+
+  - path: docs/playbooks/
+    type: playbook
+    priority: 0.5      # Routing playbooks — also skill-loaded; indexed for discoverability.
+
 # Project-level excludes — paths under here are NEVER indexed regardless of source.
+# (governance + playbooks are now INDEXED above for searchability — their
+#  always-active / skill loading is unchanged; indexing only adds discovery.)
 exclude:
-  - docs/playbooks/      # Playbooks are routing logic — full-read as skill
-  - docs/governance/     # Always-active rules
   - docs/tasks/          # Task files surfaced via cos_task_* family
   - docs/00-index.md     # Navigation hub
   - docs/_meta/          # Nav/index meta — not content
