@@ -160,9 +160,7 @@ class SqliteBackend:
         conn = getattr(self._read_conn_pool, "conn", None)
         if conn is not None:
             return conn
-        conn = sqlite3.connect(
-            self._db_path, timeout=10, check_same_thread=False
-        )
+        conn = sqlite3.connect(self._db_path, timeout=10, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         # Read connections need WAL so they see committed writes
         # immediately. Foreign keys + query_only enforce read-only
@@ -258,7 +256,9 @@ class SqliteBackend:
                     sig_to_write = existing_signature
 
             # Preserve existing non-null path/lang/hash; a path-less stub upsert must not clobber them.
-            file_path_to_write = node.file_path if node.file_path is not None else existing_file_path
+            file_path_to_write = (
+                node.file_path if node.file_path is not None else existing_file_path
+            )
             lang_to_write = node.lang if node.lang is not None else existing_lang
             content_hash_to_write = (
                 node.content_hash if node.content_hash is not None else existing_content_hash
@@ -307,7 +307,9 @@ class SqliteBackend:
         fix covers every extractor.
         """
         if edge.source_uid == edge.target_uid:
-            logger.debug("self-loop dropped at upsert_edge: uid=%s type=%s", edge.source_uid, edge.edge_type)
+            logger.debug(
+                "self-loop dropped at upsert_edge: uid=%s type=%s", edge.source_uid, edge.edge_type
+            )
             return -1
         now = int(time.time())
         with self._write_lock:
@@ -599,15 +601,19 @@ class SqliteBackend:
         # in-flight write for no correctness benefit.
         # P6: thread-local read connection so parallel get_node calls
         # don't serialise behind the primary conn's mutex+GIL.
-        row = self._get_read_conn().execute(
-            """
+        row = (
+            self._get_read_conn()
+            .execute(
+                """
             SELECT kind, label, uid, file_path, start_line, end_line,
                    signature, lang, doc_blob, ast_hash, content_hash,
                    metadata_json
             FROM graph_nodes WHERE uid=?
             """,
-            (uid,),
-        ).fetchone()
+                (uid,),
+            )
+            .fetchone()
+        )
         if row is None:
             return None
         return self._row_to_node(row)

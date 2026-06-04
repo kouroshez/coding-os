@@ -67,8 +67,23 @@ except Exception:  # pragma: no cover - lean install path
 
 
 _PHP_PRIMITIVES = {
-    "int", "float", "string", "bool", "array", "object", "callable", "iterable",
-    "void", "null", "mixed", "never", "false", "true", "self", "static", "parent",
+    "int",
+    "float",
+    "string",
+    "bool",
+    "array",
+    "object",
+    "callable",
+    "iterable",
+    "void",
+    "null",
+    "mixed",
+    "never",
+    "false",
+    "true",
+    "self",
+    "static",
+    "parent",
 }
 
 
@@ -77,9 +92,7 @@ _PHP_PRIMITIVES = {
 # ---------------------------------------------------------------------------
 
 _RE_NAMESPACE = re.compile(r"^\s*namespace\s+(?P<name>[\w\\]+)\s*;", re.MULTILINE)
-_RE_USE = re.compile(
-    r"^\s*use\s+(?P<fqn>[\w\\]+)(?:\s+as\s+(?P<alias>\w+))?\s*;", re.MULTILINE
-)
+_RE_USE = re.compile(r"^\s*use\s+(?P<fqn>[\w\\]+)(?:\s+as\s+(?P<alias>\w+))?\s*;", re.MULTILINE)
 _RE_TYPE = re.compile(
     r"^\s*(?:abstract\s+|final\s+)*(?P<kind>class|interface|trait)\s+(?P<name>\w+)",
     re.MULTILINE,
@@ -146,9 +159,7 @@ def _php_short(name: str) -> str:
     return name.replace("/", "\\").split("\\")[-1].strip()
 
 
-def _resolve_php_type(
-    name: str, local_names: dict[str, str], imported: dict[str, str]
-) -> str:
+def _resolve_php_type(name: str, local_names: dict[str, str], imported: dict[str, str]) -> str:
     short = _php_short(name)
     if short in local_names:
         return local_names[short]
@@ -240,7 +251,9 @@ def _collect_php_callables(
     return funcs, methods, classes
 
 
-def _enclosing_php_scope(node: Any, content_bytes: bytes, path: str) -> tuple[str | None, str | None]:
+def _enclosing_php_scope(
+    node: Any, content_bytes: bytes, path: str
+) -> tuple[str | None, str | None]:
     """Return (enclosing_uid, enclosing_class_name) for a call node."""
     cur = node.parent
     while cur is not None:
@@ -249,7 +262,9 @@ def _enclosing_php_scope(node: Any, content_bytes: bytes, path: str) -> tuple[st
             mname = _node_text(nm, content_bytes) if nm is not None else ""
             cls = cur.parent
             while cls is not None and cls.type not in (
-                "class_declaration", "interface_declaration", "trait_declaration"
+                "class_declaration",
+                "interface_declaration",
+                "trait_declaration",
             ):
                 cls = cls.parent
             cname = ""
@@ -284,7 +299,12 @@ def _walk_php_calls(
     while stack:
         node = stack.pop()
         t = node.type
-        if t in ("function_call_expression", "member_call_expression", "scoped_call_expression", "object_creation_expression"):
+        if t in (
+            "function_call_expression",
+            "member_call_expression",
+            "scoped_call_expression",
+            "object_creation_expression",
+        ):
             src_uid, enc_class = _enclosing_php_scope(node, content_bytes, path)
             src = src_uid or module_uid_str
             target: str | None = None
@@ -371,7 +391,11 @@ def _walk_php_symbols(
         params = _find_field(fn_node, "parameters")
         if params is not None:
             for p in params.children:
-                if p.type not in ("simple_parameter", "variadic_parameter", "property_promotion_parameter"):
+                if p.type not in (
+                    "simple_parameter",
+                    "variadic_parameter",
+                    "property_promotion_parameter",
+                ):
                     continue
                 type_node = _find_field(p, "type") or next(
                     (c for c in p.children if c.type.endswith("_type")), None
@@ -396,15 +420,22 @@ def _walk_php_symbols(
         puid = variable_uid(path, f"{cls_name}.{pname}")
         result.nodes.append(
             GraphNode(
-                uid=puid, kind="code:variable", label=pname, file_path=normalised,
-                start_line=param.start_point[0] + 1, lang="php",
+                uid=puid,
+                kind="code:variable",
+                label=pname,
+                file_path=normalised,
+                start_line=param.start_point[0] + 1,
+                lang="php",
                 metadata={"extractor": EXTRACTOR_ID, "php_kind": "promoted_property"},
             )
         )
         result.edges.append(
             GraphEdge(
-                source_uid=f"{cls_prefix}::{cls_name}", target_uid=puid,
-                edge_type="contains", extractor=EXTRACTOR_ID, confidence=1.0,
+                source_uid=f"{cls_prefix}::{cls_name}",
+                target_uid=puid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
             )
         )
         for tname in _php_collect_type_names(type_node, content_bytes):
@@ -423,14 +454,24 @@ def _walk_php_symbols(
             meta["php_kind"] = "trait"
         result.nodes.append(
             GraphNode(
-                uid=uid, kind=node_kind, label=name, file_path=normalised,
-                start_line=node.start_point[0] + 1, lang="php", metadata=meta,
+                uid=uid,
+                kind=node_kind,
+                label=name,
+                file_path=normalised,
+                start_line=node.start_point[0] + 1,
+                lang="php",
+                metadata=meta,
             )
         )
         local_names[name] = uid
         result.edges.append(
-            GraphEdge(source_uid=module_uid_str, target_uid=uid,
-                      edge_type="contains", extractor=EXTRACTOR_ID, confidence=1.0)
+            GraphEdge(
+                source_uid=module_uid_str,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
         )
         # extends
         base = _find_field(node, "base_clause") or next(
@@ -485,14 +526,23 @@ def _walk_php_symbols(
             puid = variable_uid(path, f"{class_name}.{pname}")
             result.nodes.append(
                 GraphNode(
-                    uid=puid, kind="code:variable", label=pname, file_path=normalised,
-                    start_line=el.start_point[0] + 1, lang="php",
+                    uid=puid,
+                    kind="code:variable",
+                    label=pname,
+                    file_path=normalised,
+                    start_line=el.start_point[0] + 1,
+                    lang="php",
                     metadata={"extractor": EXTRACTOR_ID, "php_kind": "property"},
                 )
             )
             result.edges.append(
-                GraphEdge(source_uid=class_uid_str, target_uid=puid,
-                          edge_type="contains", extractor=EXTRACTOR_ID, confidence=1.0)
+                GraphEdge(
+                    source_uid=class_uid_str,
+                    target_uid=puid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
             )
             for tname in _php_collect_type_names(type_node, content_bytes):
                 pending_types.append((puid, tname, "field_of_type"))
@@ -508,14 +558,23 @@ def _walk_php_symbols(
             cuid = variable_uid(path, f"{class_name}.{cname}")
             result.nodes.append(
                 GraphNode(
-                    uid=cuid, kind="code:variable", label=cname, file_path=normalised,
-                    start_line=el.start_point[0] + 1, lang="php",
+                    uid=cuid,
+                    kind="code:variable",
+                    label=cname,
+                    file_path=normalised,
+                    start_line=el.start_point[0] + 1,
+                    lang="php",
                     metadata={"extractor": EXTRACTOR_ID, "php_kind": "const"},
                 )
             )
             result.edges.append(
-                GraphEdge(source_uid=class_uid_str, target_uid=cuid,
-                          edge_type="contains", extractor=EXTRACTOR_ID, confidence=1.0)
+                GraphEdge(
+                    source_uid=class_uid_str,
+                    target_uid=cuid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
             )
 
     def emit_method(class_uid_str: str, class_name: str, node: Any) -> None:
@@ -526,15 +585,24 @@ def _walk_php_symbols(
         uid = method_uid(path, class_name, name)
         result.nodes.append(
             GraphNode(
-                uid=uid, kind="code:method", label=name, file_path=normalised,
+                uid=uid,
+                kind="code:method",
+                label=name,
+                file_path=normalised,
                 start_line=node.start_point[0] + 1,
-                signature=f"{class_name}.{name}()", lang="php",
+                signature=f"{class_name}.{name}()",
+                lang="php",
                 metadata={"extractor": EXTRACTOR_ID},
             )
         )
         result.edges.append(
-            GraphEdge(source_uid=class_uid_str, target_uid=uid,
-                      edge_type="contains", extractor=EXTRACTOR_ID, confidence=1.0)
+            GraphEdge(
+                source_uid=class_uid_str,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
         )
         for c in node.children:
             if c.type == "attribute_list":
@@ -550,16 +618,25 @@ def _walk_php_symbols(
         uid = func_uid(path, name)
         result.nodes.append(
             GraphNode(
-                uid=uid, kind="code:function", label=name, file_path=normalised,
+                uid=uid,
+                kind="code:function",
+                label=name,
+                file_path=normalised,
                 start_line=node.start_point[0] + 1,
-                signature=f"function {name}()", lang="php",
+                signature=f"function {name}()",
+                lang="php",
                 metadata={"extractor": EXTRACTOR_ID},
             )
         )
         local_names[name] = uid
         result.edges.append(
-            GraphEdge(source_uid=module_uid_str, target_uid=uid,
-                      edge_type="contains", extractor=EXTRACTOR_ID, confidence=1.0)
+            GraphEdge(
+                source_uid=module_uid_str,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
         )
         emit_type_edges(uid, node)
 
@@ -589,7 +666,8 @@ def _walk_php_symbols(
             GraphEdge(
                 source_uid=owner_uid,
                 target_uid=_resolve_php_type(name, local_names, imported),
-                edge_type=edge_type, extractor=EXTRACTOR_ID,
+                edge_type=edge_type,
+                extractor=EXTRACTOR_ID,
                 confidence=0.9 if etype != "implements" else 0.8,
                 evidence=(EvidenceSignal(signal, 0.9),),
             )
@@ -599,8 +677,11 @@ def _walk_php_symbols(
         conf = 0.8 if target.startswith(("code:class:", "code:interface:")) else 0.5
         result.edges.append(
             GraphEdge(
-                source_uid=owner_uid, target_uid=target, edge_type=etype,
-                extractor=EXTRACTOR_ID, confidence=conf,
+                source_uid=owner_uid,
+                target_uid=target,
+                edge_type=etype,
+                extractor=EXTRACTOR_ID,
+                confidence=conf,
                 evidence=(EvidenceSignal("php_type", conf),),
             )
         )
@@ -609,7 +690,9 @@ def _walk_php_symbols(
             GraphEdge(
                 source_uid=owner_uid,
                 target_uid=_resolve_php_type(attr, local_names, imported),
-                edge_type="is_decorated_by", extractor=EXTRACTOR_ID, confidence=0.85,
+                edge_type="is_decorated_by",
+                extractor=EXTRACTOR_ID,
+                confidence=0.85,
                 evidence=(EvidenceSignal("php_attribute", 0.85),),
             )
         )
@@ -677,8 +760,11 @@ def _emit_use_clause(
     )
     result.edges.append(
         GraphEdge(
-            source_uid=module_uid_str, target_uid=target, edge_type="imports",
-            extractor=EXTRACTOR_ID, confidence=0.95,
+            source_uid=module_uid_str,
+            target_uid=target,
+            edge_type="imports",
+            extractor=EXTRACTOR_ID,
+            confidence=0.95,
             evidence=(EvidenceSignal("php_use", 0.95),),
         )
     )
@@ -702,12 +788,22 @@ def _walk_regex(
             continue
         seen.add(target)
         result.nodes.append(
-            GraphNode(uid=target, kind="code:external", label=fqn, lang="php",
-                      metadata={"extractor": EXTRACTOR_ID, "external_kind": "php_use"})
+            GraphNode(
+                uid=target,
+                kind="code:external",
+                label=fqn,
+                lang="php",
+                metadata={"extractor": EXTRACTOR_ID, "external_kind": "php_use"},
+            )
         )
         result.edges.append(
-            GraphEdge(source_uid=module_uid_str, target_uid=target, edge_type="imports",
-                      extractor=EXTRACTOR_ID, confidence=0.9)
+            GraphEdge(
+                source_uid=module_uid_str,
+                target_uid=target,
+                edge_type="imports",
+                extractor=EXTRACTOR_ID,
+                confidence=0.9,
+            )
         )
     for match in _RE_TYPE.finditer(content):
         name = match.group("name")
@@ -721,14 +817,23 @@ def _walk_regex(
             meta["php_kind"] = "trait"
         result.nodes.append(
             GraphNode(
-                uid=uid, kind="code:interface" if kind == "interface" else "code:class",
-                label=name, file_path=normalised,
-                start_line=content.count("\n", 0, match.start()) + 1, lang="php", metadata=meta,
+                uid=uid,
+                kind="code:interface" if kind == "interface" else "code:class",
+                label=name,
+                file_path=normalised,
+                start_line=content.count("\n", 0, match.start()) + 1,
+                lang="php",
+                metadata=meta,
             )
         )
         result.edges.append(
-            GraphEdge(source_uid=module_uid_str, target_uid=uid, edge_type="contains",
-                      extractor=EXTRACTOR_ID, confidence=1.0)
+            GraphEdge(
+                source_uid=module_uid_str,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
         )
     for match in _RE_FUNC.finditer(content):
         name = match.group("name")
@@ -737,13 +842,24 @@ def _walk_regex(
             continue
         seen.add(uid)
         result.nodes.append(
-            GraphNode(uid=uid, kind="code:function", label=name, file_path=normalised,
-                      start_line=content.count("\n", 0, match.start()) + 1, lang="php",
-                      metadata={"extractor": EXTRACTOR_ID})
+            GraphNode(
+                uid=uid,
+                kind="code:function",
+                label=name,
+                file_path=normalised,
+                start_line=content.count("\n", 0, match.start()) + 1,
+                lang="php",
+                metadata={"extractor": EXTRACTOR_ID},
+            )
         )
         result.edges.append(
-            GraphEdge(source_uid=module_uid_str, target_uid=uid, edge_type="contains",
-                      extractor=EXTRACTOR_ID, confidence=1.0)
+            GraphEdge(
+                source_uid=module_uid_str,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID,
+                confidence=1.0,
+            )
         )
     return namespace
 
@@ -770,16 +886,27 @@ def extract(path: str, content: str) -> ExtractionResult:
             tree = parser.parse(content_bytes)
             used_ts = True
             namespace, _local, _imp = _walk_php_symbols(
-                tree.root_node, content_bytes, path=path, normalised=normalised,
-                module_uid_str=module_uid_str, result=result,
+                tree.root_node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
+                module_uid_str=module_uid_str,
+                result=result,
             )
             _walk_php_calls(
-                tree.root_node, content_bytes, path=path, normalised=normalised,
-                module_uid_str=module_uid_str, imported=_imp, result=result,
+                tree.root_node,
+                content_bytes,
+                path=path,
+                normalised=normalised,
+                module_uid_str=module_uid_str,
+                imported=_imp,
+                result=result,
             )
             if _has_error(tree.root_node):
                 result.parse_errors.append(
-                    ParseError(kind="tree_sitter_error", detail="tree-sitter recorded ERROR node(s)")
+                    ParseError(
+                        kind="tree_sitter_error", detail="tree-sitter recorded ERROR node(s)"
+                    )
                 )
         except Exception as exc:  # pragma: no cover - defensive
             result.parse_errors.append(ParseError(kind="fatal", detail=str(exc)))
@@ -791,8 +918,12 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
 
     file_node = GraphNode(
-        uid=file_uid_str, kind="code:file", label=PurePosixPath(normalised).name,
-        file_path=normalised, lang="php", content_hash=content_hash,
+        uid=file_uid_str,
+        kind="code:file",
+        label=PurePosixPath(normalised).name,
+        file_path=normalised,
+        lang="php",
+        content_hash=content_hash,
         metadata={"extractor": EXTRACTOR_ID, "namespace": namespace},
     )
     result.nodes.insert(0, file_node)
@@ -800,13 +931,22 @@ def extract(path: str, content: str) -> ExtractionResult:
     module_label = namespace or PurePosixPath(normalised).stem
     result.nodes.append(
         GraphNode(
-            uid=module_uid_str, kind="code:module", label=module_label, file_path=normalised,
-            lang="php", metadata={"extractor": EXTRACTOR_ID, "namespace": namespace},
+            uid=module_uid_str,
+            kind="code:module",
+            label=module_label,
+            file_path=normalised,
+            lang="php",
+            metadata={"extractor": EXTRACTOR_ID, "namespace": namespace},
         )
     )
     result.edges.append(
-        GraphEdge(source_uid=file_uid_str, target_uid=module_uid_str, edge_type="contains",
-                  extractor=EXTRACTOR_ID, confidence=1.0)
+        GraphEdge(
+            source_uid=file_uid_str,
+            target_uid=module_uid_str,
+            edge_type="contains",
+            extractor=EXTRACTOR_ID,
+            confidence=1.0,
+        )
     )
 
     emit_contains_spine(

@@ -81,6 +81,7 @@ def _emit_pyproject(
                     confidence=1.0,
                 )
             )
+
         # E9: emit deps from main + optional-dependencies (PEP 621) +
         # dependency-groups (PEP 735). Was only walking main deps.
         def _emit_dep_list(dep_list: Any, evidence_name: str) -> None:

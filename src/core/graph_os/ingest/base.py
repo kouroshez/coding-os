@@ -91,9 +91,7 @@ DEFAULT_EXCLUDE = (
 # literally named "golden" in a consumer project. 6.1k nodes / 16 % of
 # graph were coming from these mirrors and surfacing as duplicate spine
 # entries in the Hub UI.
-DEFAULT_EXCLUDE_PATHS = (
-    "tests/golden",
-)
+DEFAULT_EXCLUDE_PATHS = ("tests/golden",)
 
 
 def walk_local(
@@ -147,10 +145,7 @@ def walk_local(
             # rel == "." at the root; segment substring match works for
             # nested matches like "src/old/tests/golden/...". The "/"
             # suffix avoids matching "tests/golden_clone" by accident.
-            if any(
-                rel == p or rel.startswith(p + "/")
-                for p in exclude_paths_set
-            ):
+            if any(rel == p or rel.startswith(p + "/") for p in exclude_paths_set):
                 dirnames.clear()
                 continue
         for name in filenames:
@@ -169,9 +164,7 @@ def walk_local(
             # Per-file cap: skip oversized single files (generated/minified
             # /vendored) instead of reading them whole into memory.
             if max_file_bytes and size > max_file_bytes:
-                logger.debug(
-                    "skip oversized file %s (%d > %d bytes)", full, size, max_file_bytes
-                )
+                logger.debug("skip oversized file %s (%d > %d bytes)", full, size, max_file_bytes)
                 continue
             total_bytes += size
             if total_bytes > max_size_bytes:

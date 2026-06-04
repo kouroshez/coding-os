@@ -115,9 +115,7 @@ def compute_communities(
 
     nodes_by_uid, edges = _load_subgraph(backend)
     if not nodes_by_uid or not edges:
-        _CACHE[backend.backend_id] = _CacheEntry(
-            signature, min_size, max_communities, [], {}
-        )
+        _CACHE[backend.backend_id] = _CacheEntry(signature, min_size, max_communities, [], {})
         return [], {}
 
     communities = _detect_communities(

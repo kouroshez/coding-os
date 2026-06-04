@@ -394,21 +394,34 @@ def test_centrality_excludes_structural_edges_by_default(migrated_conn, monkeypa
     """TASK-046: degree counts behavioural edges by default — a contains-only
     container scores 0; with include_structural=True it counts its children."""
     nodes = [
-        GraphNode(uid=f"code:function:m.py::f{i}", kind="code:function",
-                  label=f"f{i}", file_path="m.py", start_line=i)
+        GraphNode(
+            uid=f"code:function:m.py::f{i}",
+            kind="code:function",
+            label=f"f{i}",
+            file_path="m.py",
+            start_line=i,
+        )
         for i in range(6)
     ]
-    nodes.append(GraphNode(uid="code:file:m.py", kind="code:file",
-                           label="m.py", file_path="m.py"))
+    nodes.append(GraphNode(uid="code:file:m.py", kind="code:file", label="m.py", file_path="m.py"))
     edges = [
-        GraphEdge(source_uid="code:file:m.py", target_uid=f"code:function:m.py::f{i}",
-                  edge_type="contains", extractor="test", confidence=1.0)
+        GraphEdge(
+            source_uid="code:file:m.py",
+            target_uid=f"code:function:m.py::f{i}",
+            edge_type="contains",
+            extractor="test",
+            confidence=1.0,
+        )
         for i in range(6)
     ]
     edges += [
-        GraphEdge(source_uid=f"code:function:m.py::f{i}",
-                  target_uid="code:function:m.py::f0",
-                  edge_type="calls", extractor="test", confidence=1.0)
+        GraphEdge(
+            source_uid=f"code:function:m.py::f{i}",
+            target_uid="code:function:m.py::f0",
+            edge_type="calls",
+            extractor="test",
+            confidence=1.0,
+        )
         for i in range(1, 6)
     ]
     _seed(migrated_conn, monkeypatch, nodes, edges)
@@ -418,8 +431,10 @@ def test_centrality_excludes_structural_edges_by_default(migrated_conn, monkeypa
         assert default.get("code:file:m.py", {}).get("out_degree", 0) == 0
         assert default["code:function:m.py::f0"]["in_degree"] == 5
         # raw all-edge degree restores the structural count
-        raw = {n["uid"]: n
-               for n in _ok(graph.cos_graph_centrality(top=20, include_structural=True))["nodes"]}
+        raw = {
+            n["uid"]: n
+            for n in _ok(graph.cos_graph_centrality(top=20, include_structural=True))["nodes"]
+        }
         assert raw["code:file:m.py"]["out_degree"] == 6
     finally:
         graph._BACKEND_SINGLETON = None
@@ -436,10 +451,11 @@ def test_doctor_orphan_breakdown_splits_by_prefix(migrated_conn, monkeypatch):
     _seed(migrated_conn, monkeypatch, nodes, [])
     try:
         data = _ok(graph.cos_graph_doctor())
-        issue = next(i for i in data["issues"]
-                     if i["category"] == "orphaned_external_unresolved")
+        issue = next(i for i in data["issues"] if i["category"] == "orphaned_external_unresolved")
         assert issue["breakdown"] == {
-            "external_unresolved": 1, "external_other": 1, "identifier_stub": 1,
+            "external_unresolved": 1,
+            "external_other": 1,
+            "identifier_stub": 1,
         }
     finally:
         graph._BACKEND_SINGLETON = None
@@ -450,19 +466,37 @@ def test_ranking_labels_outrank_incidental_path_match(migrated_conn, monkeypatch
     generic 'Work Log' doc_heading that only matches via its uid PATH (a
     TASK file path containing the term). The heading is not seeded at all."""
     nodes = [
-        GraphNode(uid="code:function:g.py::graph_handler", kind="code:function",
-                  label="graph_handler", file_path="g.py", start_line=1),
-        GraphNode(uid="code:function:g.py::caller", kind="code:function",
-                  label="caller", file_path="g.py", start_line=5),
+        GraphNode(
+            uid="code:function:g.py::graph_handler",
+            kind="code:function",
+            label="graph_handler",
+            file_path="g.py",
+            start_line=1,
+        ),
+        GraphNode(
+            uid="code:function:g.py::caller",
+            kind="code:function",
+            label="caller",
+            file_path="g.py",
+            start_line=5,
+        ),
         # generic heading living in a TASK file path containing "graph"
-        GraphNode(uid="doc:heading:docs/tasks/TASK-029-graph-audit.md#work-log:2",
-                  kind="doc_heading", label="Work Log",
-                  file_path="docs/tasks/TASK-029-graph-audit.md", start_line=2),
+        GraphNode(
+            uid="doc:heading:docs/tasks/TASK-029-graph-audit.md#work-log:2",
+            kind="doc_heading",
+            label="Work Log",
+            file_path="docs/tasks/TASK-029-graph-audit.md",
+            start_line=2,
+        ),
     ]
     edges = [
-        GraphEdge(source_uid="code:function:g.py::caller",
-                  target_uid="code:function:g.py::graph_handler",
-                  edge_type="calls", extractor="test", confidence=1.0),
+        GraphEdge(
+            source_uid="code:function:g.py::caller",
+            target_uid="code:function:g.py::graph_handler",
+            edge_type="calls",
+            extractor="test",
+            confidence=1.0,
+        ),
     ]
     _seed(migrated_conn, monkeypatch, nodes, edges)
     try:
@@ -516,9 +550,27 @@ class TestCycles:
             GraphNode(uid="code:module:c", kind="code:module", label="c", file_path="c.py"),
         ]
         edges = [
-            GraphEdge(source_uid="code:module:a", target_uid="code:module:b", edge_type="imports", extractor="test", confidence=0.9),
-            GraphEdge(source_uid="code:module:b", target_uid="code:module:a", edge_type="imports", extractor="test", confidence=0.9),
-            GraphEdge(source_uid="code:module:b", target_uid="code:module:c", edge_type="imports", extractor="test", confidence=0.9),
+            GraphEdge(
+                source_uid="code:module:a",
+                target_uid="code:module:b",
+                edge_type="imports",
+                extractor="test",
+                confidence=0.9,
+            ),
+            GraphEdge(
+                source_uid="code:module:b",
+                target_uid="code:module:a",
+                edge_type="imports",
+                extractor="test",
+                confidence=0.9,
+            ),
+            GraphEdge(
+                source_uid="code:module:b",
+                target_uid="code:module:c",
+                edge_type="imports",
+                extractor="test",
+                confidence=0.9,
+            ),
         ]
         _seed(migrated_conn, monkeypatch, nodes, edges)
         try:
@@ -546,12 +598,33 @@ class TestCycles:
 class TestTestGap:
     def test_flags_untested_excludes_tested_and_testcode(self, migrated_conn, monkeypatch):
         nodes = [
-            GraphNode(uid="code:function:app.py::prod_tested", kind="code:function", label="prod_tested", file_path="app.py"),
-            GraphNode(uid="code:function:app.py::prod_untested", kind="code:function", label="prod_untested", file_path="app.py"),
-            GraphNode(uid="code:function:tests/test_app.py::test_it", kind="code:function", label="test_it", file_path="tests/test_app.py"),
+            GraphNode(
+                uid="code:function:app.py::prod_tested",
+                kind="code:function",
+                label="prod_tested",
+                file_path="app.py",
+            ),
+            GraphNode(
+                uid="code:function:app.py::prod_untested",
+                kind="code:function",
+                label="prod_untested",
+                file_path="app.py",
+            ),
+            GraphNode(
+                uid="code:function:tests/test_app.py::test_it",
+                kind="code:function",
+                label="test_it",
+                file_path="tests/test_app.py",
+            ),
         ]
         edges = [
-            GraphEdge(source_uid="code:function:tests/test_app.py::test_it", target_uid="code:function:app.py::prod_tested", edge_type="calls", extractor="test", confidence=0.9),
+            GraphEdge(
+                source_uid="code:function:tests/test_app.py::test_it",
+                target_uid="code:function:app.py::prod_tested",
+                edge_type="calls",
+                extractor="test",
+                confidence=0.9,
+            ),
         ]
         _seed(migrated_conn, monkeypatch, nodes, edges)
         try:
@@ -596,9 +669,7 @@ class TestPhantomOrphan:
         )
 
     def test_real_task_uid_is_not_phantom(self):
-        assert not graph._is_phantom_orphan(
-            "task", "docs/tasks/TASK-001.md", "task:file:TASK-001"
-        )
+        assert not graph._is_phantom_orphan("task", "docs/tasks/TASK-001.md", "task:file:TASK-001")
 
     def test_edgeless_module_stub_is_phantom(self):
         assert graph._is_phantom_orphan("module", None, "code:module:itertools")
@@ -609,11 +680,7 @@ class TestPhantomOrphan:
         )
 
     def test_real_symbol_is_not_phantom(self):
-        assert not graph._is_phantom_orphan(
-            "function", "src/x.py", "code:function:src/x.py::f"
-        )
+        assert not graph._is_phantom_orphan("function", "src/x.py", "code:function:src/x.py::f")
 
     def test_inrepo_module_with_path_is_not_phantom(self):
-        assert not graph._is_phantom_orphan(
-            "module", "src/core/x.py", "code:module:core.x"
-        )
+        assert not graph._is_phantom_orphan("module", "src/core/x.py", "code:module:core.x")

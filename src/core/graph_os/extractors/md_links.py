@@ -226,10 +226,28 @@ def _classify_governance_path(normalised: str) -> tuple[str | None, str | None]:
     return (None, None)
 
 
-_ASSET_SUFFIXES = frozenset({
-    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp",
-    ".pdf", ".mp4", ".mov", ".webm", ".mp3", ".woff", ".woff2", ".ttf", ".eot", ".zip",
-})
+_ASSET_SUFFIXES = frozenset(
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".svg",
+        ".webp",
+        ".ico",
+        ".bmp",
+        ".pdf",
+        ".mp4",
+        ".mov",
+        ".webm",
+        ".mp3",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".eot",
+        ".zip",
+    }
+)
 
 
 def _resolve_link(origin_path: str, target: str) -> str:

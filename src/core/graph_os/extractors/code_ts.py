@@ -314,7 +314,9 @@ def _ts_enclosing_scope(node: Any, path: str) -> str | None:
             mn = _ts_name(cur)
             cls = cur.parent
             while cls is not None and cls.type not in (
-                "class_declaration", "abstract_class_declaration", "class"
+                "class_declaration",
+                "abstract_class_declaration",
+                "class",
             ):
                 cls = cls.parent
             cn = _ts_name(cls) if cls is not None else ""
@@ -353,7 +355,11 @@ def _ts_emit_type_edges(
                 pending.append((owner_uid, tname, "has_param_type", _ts_line(p)))
     rt = fn_node.child_by_field_name("return_type")
     tname = _ts_type_head(rt)
-    if tname and tname[:1].isalpha() and tname not in ("void", "any", "unknown", "never", "Promise"):
+    if (
+        tname
+        and tname[:1].isalpha()
+        and tname not in ("void", "any", "unknown", "never", "Promise")
+    ):
         pending.append((owner_uid, tname, "returns_type", _ts_line(fn_node)))
 
 
@@ -384,13 +390,28 @@ def _walk_ts_symbols(
         if not name:
             continue
         uid = function_uid(path, name)
-        result.nodes.append(GraphNode(
-            uid=uid, kind="code:function", label=name, file_path=path,
-            start_line=_ts_line(fn), signature=f"function {name}(…)", lang=lang,
-            metadata=_ts_component_meta(name, fn, lang)))
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="code:function",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(fn),
+                signature=f"function {name}(…)",
+                lang=lang,
+                metadata=_ts_component_meta(name, fn, lang),
+            )
+        )
         local_names[name] = uid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
         _ts_emit_type_edges(fn, owner_uid=uid, path=path, pending=pending_types)
 
     for vd in iter_nodes(root, {"variable_declarator"}):
@@ -403,13 +424,28 @@ def _walk_ts_symbols(
         uid = function_uid(path, name)
         _arrow_meta = _ts_component_meta(name, val, lang)
         _arrow_meta["arrow"] = True
-        result.nodes.append(GraphNode(
-            uid=uid, kind="code:function", label=name, file_path=path,
-            start_line=_ts_line(vd), signature=f"const {name} = (…) =>", lang=lang,
-            metadata=_arrow_meta))
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="code:function",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(vd),
+                signature=f"const {name} = (…) =>",
+                lang=lang,
+                metadata=_arrow_meta,
+            )
+        )
         local_names[name] = uid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
         _ts_emit_type_edges(val, owner_uid=uid, path=path, pending=pending_types)
 
     for it in iter_nodes(root, {"interface_declaration"}):
@@ -417,49 +453,100 @@ def _walk_ts_symbols(
         if not name:
             continue
         uid = interface_uid(path, name)
-        result.nodes.append(GraphNode(
-            uid=uid, kind="code:interface", label=name, file_path=path,
-            start_line=_ts_line(it), signature=f"interface {name}", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS}))
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="code:interface",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(it),
+                signature=f"interface {name}",
+                lang=lang,
+                metadata={"extractor": EXTRACTOR_ID_TS},
+            )
+        )
         local_names[name] = uid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
         ext = next((c for c in it.children if c.type == "extends_type_clause"), None)
         if ext is not None:
             for t in ext.children:
                 if t.type in ("type_identifier", "identifier", "generic_type"):
-                    result.edges.append(GraphEdge(
-                        source_uid=uid,
-                        target_uid=_ts_resolve_type(
-                            t.text.decode("utf-8", "replace"), imported_names, local_names),
-                        edge_type="extends", extractor=EXTRACTOR_ID_TS, confidence=0.8,
-                        source_span=f"{path}:{_ts_line(ext)}"))
+                    result.edges.append(
+                        GraphEdge(
+                            source_uid=uid,
+                            target_uid=_ts_resolve_type(
+                                t.text.decode("utf-8", "replace"), imported_names, local_names
+                            ),
+                            edge_type="extends",
+                            extractor=EXTRACTOR_ID_TS,
+                            confidence=0.8,
+                            source_span=f"{path}:{_ts_line(ext)}",
+                        )
+                    )
 
     for ta in iter_nodes(root, {"type_alias_declaration"}):
         name = _ts_name(ta)
         if not name or name in local_names:
             continue
         uid = interface_uid(path, name)
-        result.nodes.append(GraphNode(
-            uid=uid, kind="code:interface", label=name, file_path=path,
-            start_line=_ts_line(ta), signature=f"type {name}", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS, "type_alias": True}))
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="code:interface",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(ta),
+                signature=f"type {name}",
+                lang=lang,
+                metadata={"extractor": EXTRACTOR_ID_TS, "type_alias": True},
+            )
+        )
         local_names[name] = uid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
 
     for cls in iter_nodes(root, {"class_declaration", "abstract_class_declaration"}):
         name = _ts_name(cls)
         if not name:
             continue
         cuid = class_uid(path, name)
-        result.nodes.append(GraphNode(
-            uid=cuid, kind="code:class", label=name, file_path=path,
-            start_line=_ts_line(cls), signature=f"class {name}", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS}))
+        result.nodes.append(
+            GraphNode(
+                uid=cuid,
+                kind="code:class",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(cls),
+                signature=f"class {name}",
+                lang=lang,
+                metadata={"extractor": EXTRACTOR_ID_TS},
+            )
+        )
         local_names[name] = cuid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=cuid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=cuid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
         # Decorators may be children of the class OR of the wrapping
         # `export_statement` (`@Dec()\nexport class C`). Scan both.
         _dec_nodes = list(cls.children)
@@ -472,26 +559,44 @@ def _walk_ts_symbols(
             dname = _ts_decorator_name(dec)
             if dname and dname not in _seen_dec:
                 _seen_dec.add(dname)
-                result.edges.append(GraphEdge(
-                    source_uid=cuid,
-                    target_uid=_ts_resolve_type(dname, imported_names, local_names),
-                    edge_type="is_decorated_by", extractor=EXTRACTOR_ID_TS, confidence=0.85,
-                    source_span=f"{path}:{_ts_line(dec)}"))
+                result.edges.append(
+                    GraphEdge(
+                        source_uid=cuid,
+                        target_uid=_ts_resolve_type(dname, imported_names, local_names),
+                        edge_type="is_decorated_by",
+                        extractor=EXTRACTOR_ID_TS,
+                        confidence=0.85,
+                        source_span=f"{path}:{_ts_line(dec)}",
+                    )
+                )
         heritage = next((c for c in cls.children if c.type == "class_heritage"), None)
         if heritage is not None:
             for clause in heritage.children:
-                etype = "inherits_from" if clause.type == "extends_clause" else (
-                    "implements" if clause.type == "implements_clause" else None)
+                etype = (
+                    "inherits_from"
+                    if clause.type == "extends_clause"
+                    else ("implements" if clause.type == "implements_clause" else None)
+                )
                 if etype is None:
                     continue
                 for t in clause.children:
-                    if t.type in ("identifier", "type_identifier", "member_expression", "generic_type"):
+                    if t.type in (
+                        "identifier",
+                        "type_identifier",
+                        "member_expression",
+                        "generic_type",
+                    ):
                         base = t.text.decode("utf-8", "replace")
-                        result.edges.append(GraphEdge(
-                            source_uid=cuid,
-                            target_uid=_ts_resolve_type(base, imported_names, local_names),
-                            edge_type=etype, extractor=EXTRACTOR_ID_TS, confidence=0.8,
-                            source_span=f"{path}:{_ts_line(clause)}"))
+                        result.edges.append(
+                            GraphEdge(
+                                source_uid=cuid,
+                                target_uid=_ts_resolve_type(base, imported_names, local_names),
+                                edge_type=etype,
+                                extractor=EXTRACTOR_ID_TS,
+                                confidence=0.8,
+                                source_span=f"{path}:{_ts_line(clause)}",
+                            )
+                        )
         body = next((c for c in cls.children if c.type == "class_body"), None)
         if body is not None:
             for m in body.children:
@@ -502,22 +607,42 @@ def _walk_ts_symbols(
                     continue
                 muid = _ts_method_uid(path, name, mname)
                 methods_by_class.setdefault(cuid, {})[mname] = muid
-                result.nodes.append(GraphNode(
-                    uid=muid, kind="code:method", label=mname, file_path=path,
-                    start_line=_ts_line(m), signature=f"{name}.{mname}(…)", lang=lang,
-                    metadata={"extractor": EXTRACTOR_ID_TS}))
-                result.edges.append(GraphEdge(source_uid=cuid, target_uid=muid,
-                    edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+                result.nodes.append(
+                    GraphNode(
+                        uid=muid,
+                        kind="code:method",
+                        label=mname,
+                        file_path=path,
+                        start_line=_ts_line(m),
+                        signature=f"{name}.{mname}(…)",
+                        lang=lang,
+                        metadata={"extractor": EXTRACTOR_ID_TS},
+                    )
+                )
+                result.edges.append(
+                    GraphEdge(
+                        source_uid=cuid,
+                        target_uid=muid,
+                        edge_type="contains",
+                        extractor=EXTRACTOR_ID_TS,
+                        confidence=1.0,
+                    )
+                )
                 for dec in m.children:
                     if dec.type != "decorator":
                         continue
                     dname = _ts_decorator_name(dec)
                     if dname:
-                        result.edges.append(GraphEdge(
-                            source_uid=muid,
-                            target_uid=_ts_resolve_type(dname, imported_names, local_names),
-                            edge_type="is_decorated_by", extractor=EXTRACTOR_ID_TS,
-                            confidence=0.85, source_span=f"{path}:{_ts_line(dec)}"))
+                        result.edges.append(
+                            GraphEdge(
+                                source_uid=muid,
+                                target_uid=_ts_resolve_type(dname, imported_names, local_names),
+                                edge_type="is_decorated_by",
+                                extractor=EXTRACTOR_ID_TS,
+                                confidence=0.85,
+                                source_span=f"{path}:{_ts_line(dec)}",
+                            )
+                        )
                 _ts_emit_type_edges(m, owner_uid=muid, path=path, pending=pending_types)
 
     # ---- enum / namespace declarations (queryable type-like nodes) ----
@@ -526,40 +651,74 @@ def _walk_ts_symbols(
         if not name or name in local_names:
             continue
         uid = class_uid(path, name)
-        result.nodes.append(GraphNode(
-            uid=uid, kind="code:class", label=name, file_path=path,
-            start_line=_ts_line(en), signature=f"enum {name}", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "enum"}))
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="code:class",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(en),
+                signature=f"enum {name}",
+                lang=lang,
+                metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "enum"},
+            )
+        )
         local_names[name] = uid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
 
     for ns in iter_nodes(root, {"internal_module"}):
         name = _ts_name(ns)
         if not name or name in local_names:
             continue
         uid = class_uid(path, name)
-        result.nodes.append(GraphNode(
-            uid=uid, kind="code:class", label=name, file_path=path,
-            start_line=_ts_line(ns), signature=f"namespace {name}", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "namespace"}))
+        result.nodes.append(
+            GraphNode(
+                uid=uid,
+                kind="code:class",
+                label=name,
+                file_path=path,
+                start_line=_ts_line(ns),
+                signature=f"namespace {name}",
+                lang=lang,
+                metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "namespace"},
+            )
+        )
         local_names[name] = uid
-        result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
-            edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=uid,
+                edge_type="contains",
+                extractor=EXTRACTOR_ID_TS,
+                confidence=1.0,
+            )
+        )
 
     # ---- resolve deferred type edges (local_names now complete) ----
     for owner_uid, tname, etype, line in pending_types:
         target = _ts_resolve_type(tname, imported_names, local_names)
         conf = (
-            0.8
-            if target.startswith(("code:class:", "code:interface:", "code:function:"))
-            else 0.5
+            0.8 if target.startswith(("code:class:", "code:interface:", "code:function:")) else 0.5
         )
-        result.edges.append(GraphEdge(
-            source_uid=owner_uid, target_uid=target, edge_type=etype,
-            extractor=EXTRACTOR_ID_TS, confidence=conf,
-            source_span=f"{path}:{line}",
-            evidence=(EvidenceSignal("ts_annotation", conf),)))
+        result.edges.append(
+            GraphEdge(
+                source_uid=owner_uid,
+                target_uid=target,
+                edge_type=etype,
+                extractor=EXTRACTOR_ID_TS,
+                confidence=conf,
+                source_span=f"{path}:{line}",
+                evidence=(EvidenceSignal("ts_annotation", conf),),
+            )
+        )
 
     # ---- Pass B: calls / constructs sourced at the enclosing scope ----
     for call in iter_nodes(root, {"call_expression", "new_expression"}):
@@ -584,7 +743,9 @@ def _walk_ts_symbols(
                 resolved, conf, sig = m_uid, 0.9, EvidenceSignal("this_method", 0.9)
             else:
                 resolved, conf, sig = (
-                    f"code:external:unresolved:{target}", 0.3, EvidenceSignal("unresolved_call", 0.3),
+                    f"code:external:unresolved:{target}",
+                    0.3,
+                    EvidenceSignal("unresolved_call", 0.3),
                 )
         elif target in local_names:
             resolved, conf, sig = local_names[target], 0.9, EvidenceSignal("same_scope", 0.9)
@@ -596,13 +757,23 @@ def _walk_ts_symbols(
             resolved, conf = f"code:external:{specifier}:{tail}", 0.9
             sig = EvidenceSignal("explicit_import", 0.9, note=specifier)
         else:
-            resolved, conf, sig = f"code:external:unresolved:{target}", 0.3, EvidenceSignal("unresolved_call", 0.3)
+            resolved, conf, sig = (
+                f"code:external:unresolved:{target}",
+                0.3,
+                EvidenceSignal("unresolved_call", 0.3),
+            )
         edge_type = "awaits" if is_await else ("constructs" if is_ctor else "calls")
-        result.edges.append(GraphEdge(
-            source_uid=src, target_uid=resolved,
-            edge_type=edge_type,
-            extractor=EXTRACTOR_ID_TS, confidence=conf,
-            source_span=f"{path}:{_ts_line(call)}", evidence=(sig,)))
+        result.edges.append(
+            GraphEdge(
+                source_uid=src,
+                target_uid=resolved,
+                edge_type=edge_type,
+                extractor=EXTRACTOR_ID_TS,
+                confidence=conf,
+                source_span=f"{path}:{_ts_line(call)}",
+                evidence=(sig,),
+            )
+        )
 
     # ---- Pass C: JSX component usage (tsx) ----
     if lang == "tsx":
@@ -618,11 +789,17 @@ def _walk_ts_symbols(
                 resolved, conf = f"code:external:{imported_names[head]}:{comp}", 0.7
             else:
                 resolved, conf = f"code:external:unresolved:{comp}", 0.3
-            result.edges.append(GraphEdge(
-                source_uid=module_uid_, target_uid=resolved, edge_type="constructs",
-                extractor=EXTRACTOR_ID_TS, confidence=conf,
-                source_span=f"{path}:{_ts_line(el)}",
-                evidence=(EvidenceSignal("jsx_component", conf),)))
+            result.edges.append(
+                GraphEdge(
+                    source_uid=module_uid_,
+                    target_uid=resolved,
+                    edge_type="constructs",
+                    extractor=EXTRACTOR_ID_TS,
+                    confidence=conf,
+                    source_span=f"{path}:{_ts_line(el)}",
+                    evidence=(EvidenceSignal("jsx_component", conf),),
+                )
+            )
 
 
 def extract(path: str, content: str) -> ExtractionResult:

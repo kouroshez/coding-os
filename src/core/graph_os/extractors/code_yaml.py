@@ -283,6 +283,7 @@ def _emit_key_node(
 
     if key not in _REFERENCE_KEYS or scalar is None:
         return
+
     # E12: gate emission on value-shape — the target must LOOK like a
     # path or doc reference. Generic CI workflows with `rules:` keys
     # holding string lists like ["allow_pr_label"] should NOT emit
@@ -293,10 +294,10 @@ def _emit_key_node(
         s = target.strip()
         if not s:
             return False
-        return (
-            "/" in s
-            or s.endswith((".md", ".yaml", ".yml", ".py", ".ts", ".tsx", ".sh", ".json", ".toml"))
+        return "/" in s or s.endswith(
+            (".md", ".yaml", ".yml", ".py", ".ts", ".tsx", ".sh", ".json", ".toml")
         )
+
     # If none of the values look path-shaped, skip the whole emission.
     if not any(_looks_like_target(t) for t in _iter_targets(value)):
         return

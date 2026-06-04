@@ -956,13 +956,20 @@ _LARAVEL_SIGNATURE_RE = re.compile(r"""\$signature\s*=\s*['"](?P<sig>[^'"]+)['"]
 # resource → 7 RESTful routes; apiResource → 5 (no create/edit).
 _LARAVEL_RESOURCE_ACTIONS = {
     "resource": [
-        ("get", "", "index"), ("get", "/create", "create"), ("post", "", "store"),
-        ("get", "/{id}", "show"), ("get", "/{id}/edit", "edit"),
-        ("put", "/{id}", "update"), ("delete", "/{id}", "destroy"),
+        ("get", "", "index"),
+        ("get", "/create", "create"),
+        ("post", "", "store"),
+        ("get", "/{id}", "show"),
+        ("get", "/{id}/edit", "edit"),
+        ("put", "/{id}", "update"),
+        ("delete", "/{id}", "destroy"),
     ],
     "apiResource": [
-        ("get", "", "index"), ("post", "", "store"), ("get", "/{id}", "show"),
-        ("put", "/{id}", "update"), ("delete", "/{id}", "destroy"),
+        ("get", "", "index"),
+        ("post", "", "store"),
+        ("get", "/{id}", "show"),
+        ("put", "/{id}", "update"),
+        ("delete", "/{id}", "destroy"),
     ],
 }
 
@@ -1067,7 +1074,11 @@ def _scan_laravel(content: str) -> list[ContractMatch]:
     captured at their literal path — the group prefix is NOT auto-joined
     (closure scoping needs an AST, not regex), so no FALSE prefixes appear.
     """
-    if "Route::" not in content and "Illuminate\\" not in content and "extends Command" not in content:
+    if (
+        "Route::" not in content
+        and "Illuminate\\" not in content
+        and "extends Command" not in content
+    ):
         return []
     hits: list[ContractMatch] = []
     spans = _laravel_group_spans(content)
@@ -1138,8 +1149,13 @@ _WP_REST_RE = re.compile(
     re.VERBOSE | re.DOTALL,
 )
 _WP_MARKERS = (
-    "add_action", "add_filter", "add_shortcode", "register_post_type",
-    "register_rest_route", "do_action", "apply_filters",
+    "add_action",
+    "add_filter",
+    "add_shortcode",
+    "register_post_type",
+    "register_rest_route",
+    "do_action",
+    "apply_filters",
 )
 
 
@@ -1155,41 +1171,65 @@ def _scan_wordpress(content: str) -> list[ContractMatch]:
             cb = None  # array($this,'m') / closure — not a bare function handler
         line = _line_of(content, m.start())
         if hook.startswith("wp_ajax_"):
-            action = hook[len("wp_ajax_nopriv_"):] if hook.startswith("wp_ajax_nopriv_") else hook[len("wp_ajax_"):]
+            action = (
+                hook[len("wp_ajax_nopriv_") :]
+                if hook.startswith("wp_ajax_nopriv_")
+                else hook[len("wp_ajax_") :]
+            )
             hits.append(
                 ContractMatch(
-                    kind="http", framework="wp_ajax", method="post",
+                    kind="http",
+                    framework="wp_ajax",
+                    method="post",
                     path=f"/wp-admin/admin-ajax.php?action={action}",
-                    handler=cb, line=line, derivation="wp_ajax",
+                    handler=cb,
+                    line=line,
+                    derivation="wp_ajax",
                 )
             )
         else:
             hits.append(
                 ContractMatch(
-                    kind="event", framework=f"wp_{m.group('typ')}", method=m.group("typ"),
-                    path=hook, handler=cb, line=line,
+                    kind="event",
+                    framework=f"wp_{m.group('typ')}",
+                    method=m.group("typ"),
+                    path=hook,
+                    handler=cb,
+                    line=line,
                 )
             )
     for m in _WP_FIRE_RE.finditer(content):
         hits.append(
             ContractMatch(
-                kind="event", framework="wp_emit", method=m.group("typ"),
-                path=m.group("path"), handler=None, line=_line_of(content, m.start()),
+                kind="event",
+                framework="wp_emit",
+                method=m.group("typ"),
+                path=m.group("path"),
+                handler=None,
+                line=_line_of(content, m.start()),
                 derivation="wp_fire",
             )
         )
     for m in _WP_SHORTCODE_RE.finditer(content):
         hits.append(
             ContractMatch(
-                kind="event", framework="wp_shortcode", method="shortcode",
-                path=m.group("path"), handler=None, line=_line_of(content, m.start()),
+                kind="event",
+                framework="wp_shortcode",
+                method="shortcode",
+                path=m.group("path"),
+                handler=None,
+                line=_line_of(content, m.start()),
             )
         )
     for m in _WP_CPT_RE.finditer(content):
         hits.append(
             ContractMatch(
-                kind="event", framework="wp_cpt", method="post_type",
-                path=m.group("path"), handler=None, line=_line_of(content, m.start()),
+                kind="event",
+                framework="wp_cpt",
+                method="post_type",
+                path=m.group("path"),
+                handler=None,
+                line=_line_of(content, m.start()),
             )
         )
     for m in _WP_REST_RE.finditer(content):
@@ -1198,9 +1238,13 @@ def _scan_wordpress(content: str) -> list[ContractMatch]:
         method = (m.group("methods") or "any").split(",")[0].strip().lower()
         hits.append(
             ContractMatch(
-                kind="http", framework="wp_rest", method=method,
-                path=_join_paths(f"/wp-json/{ns}", route), handler=None,
-                line=_line_of(content, m.start()), derivation="wp_rest",
+                kind="http",
+                framework="wp_rest",
+                method=method,
+                path=_join_paths(f"/wp-json/{ns}", route),
+                handler=None,
+                line=_line_of(content, m.start()),
+                derivation="wp_rest",
             )
         )
     return hits
@@ -1230,9 +1274,13 @@ def _scan_whmcs(content: str, *, path: str) -> list[ContractMatch]:
     for m in _WHMCS_ADD_HOOK_RE.finditer(content):
         hits.append(
             ContractMatch(
-                kind="event", framework="whmcs_hook", method="hook",
-                path=m.group("path"), handler=m.group("cb"),
-                line=_line_of(content, m.start()), derivation="whmcs_hook",
+                kind="event",
+                framework="whmcs_hook",
+                method="hook",
+                path=m.group("path"),
+                handler=m.group("cb"),
+                line=_line_of(content, m.start()),
+                derivation="whmcs_hook",
             )
         )
     # Module-function convention: only inside a recognised module path, where
@@ -1247,9 +1295,14 @@ def _scan_whmcs(content: str, *, path: str) -> list[ContractMatch]:
                 action = fn[len(module) + 1 :]
                 hits.append(
                     ContractMatch(
-                        kind="event", framework=f"whmcs_{module_type}", method="module_fn",
-                        path=fn, handler=fn, line=_line_of(content, m.start()),
-                        derivation="whmcs_module", note=action,
+                        kind="event",
+                        framework=f"whmcs_{module_type}",
+                        method="module_fn",
+                        path=fn,
+                        handler=fn,
+                        line=_line_of(content, m.start()),
+                        derivation="whmcs_module",
+                        note=action,
                     )
                 )
     return hits
@@ -1507,8 +1560,14 @@ def _nextjs_route_path(file_path: str) -> str:
     segments = parts[idx + 1 :]
     if router == "app":
         if segments and segments[-1] in (
-            "route.ts", "route.tsx", "route.js", "route.jsx",
-            "page.ts", "page.tsx", "page.js", "page.jsx",
+            "route.ts",
+            "route.tsx",
+            "route.js",
+            "route.jsx",
+            "page.ts",
+            "page.tsx",
+            "page.js",
+            "page.jsx",
         ):
             segments = segments[:-1]
     elif segments:  # pages-router — the file itself is the route
