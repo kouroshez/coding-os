@@ -269,13 +269,13 @@ ContractMatch → handles_route / handles_event / handles_command pipeline:**
 
 | Framework | Patterns → graph |
 |---|---|
-| **Laravel** | `Route::{get,post,put,patch,delete,any,match}('/p', handler)` → http; `Route::resource/apiResource('users', Ctrl::class)` → 7/4 synthesised routes (DRF-style); `Route::prefix()->middleware()->group()` → per-variable prefix join (reuse `_go_group_prefixes` idea); handler `[Ctrl::class,'m']`/`'Ctrl@m'` → route→handler `calls`; `extends Model`→model, `extends Command`+`$signature`→cli, Jobs/Events/Listeners/FormRequests → metadata |
+| **Laravel** | `Route::{get,post,put,patch,delete,any}('/p', handler)` → http; `Route::resource/apiResource('users', Ctrl::class)` → 7/5 synthesised routes (DRF-style); **group-closure prefix join** (TASK-071) — `Route::prefix('api')->group(fn)` + `Route::group(['prefix'=>'api'], fn)`, brace-matched + nesting-aware, routes outside a group keep their literal path; handler `[Ctrl::class,'m']`/`'Ctrl@m'`/invokable → route→handler `calls`, **resolved cross-file** to the real `code:method` via the `link_php_handlers` post-pass (TASK-071); `extends Command`+`$signature`→cli |
 | **WordPress** | `add_action`/`add_filter('hook', cb)` → `handles_event` (cb→handler); `do_action`/`apply_filters` → event fire-site; `add_shortcode`; `register_post_type` → CPT; `register_rest_route('ns','/r',[methods])` → http; `wp_ajax_{action}`/`wp_ajax_nopriv_*` → ajax route |
 | **WHMCS** | `add_hook('Point', prio, cb)` → `handles_event`; `{module}_{Action}` functions where `{module}` == file/dir stem (`_CreateAccount`, `_ConfigOptions`, `_ClientArea`, …) → module-function tag + module-type (provisioning/registrar/addon/gateway) from action set + `modules/{servers,registrars,addons,gateways}/` path |
 
 Wiring: `pyproject [graph_os] += tree-sitter-php`; `code_php` self-loads
 `tree-sitter-php` via `language_php()` (no `tree_sitter_overlay` loader —
-no other consumer); `_EXT_MAP[".php"] = ("php", ["code_php","contracts"])`;
+no other consumer); `_EXT_MAP[".php"] = ("php", ["code_php","contracts"])` + `ingest/base.py::DEFAULT_INCLUDE += *.php` (bulk walk — TASK-071);
 `types.py` provenance `code_php@v1`/`code_php_ts@v1`. Verification:
 `uv run --extra graph_os pytest src/core/graph_os/tests/ -q` + per-framework
 adversarial suites + `cos graph-reindex --force` errors=0. A `src/templates/php/`
