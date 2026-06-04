@@ -329,7 +329,8 @@ def _render_board_ascii(envelope: str) -> None:
 @click.option("--labels", default="", help="Comma-separated free tags")
 @click.option("--outcome", default=None)
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
-def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels, outcome, depends_on):
+@click.option("--ready", is_flag=True, default=False, help="Mark the task pullable in one shot.")
+def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels, outcome, depends_on, ready):
     from board_os import mcp_tools
 
     conn = _db_conn()
@@ -345,6 +346,7 @@ def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels, out
             labels=[l.strip() for l in labels.split(",") if l.strip()],
             outcome=outcome,
             depends_on=[d.strip() for d in depends_on.split(",") if d.strip()],
+            ready=ready,
             agent_session=_agent_session_id(),
         )
     finally:
@@ -405,6 +407,25 @@ def _simple_move(task_id: str, to: str, *, reason: str | None = None, force: boo
 @click.option("--force", is_flag=True, default=False)
 def task_start_cmd(task_id, force):
     _simple_move(task_id, "in_progress", force=force)
+
+
+@click.command("task-ready", help="Toggle the 'ready' label that gates icebox→in_progress.")
+@click.argument("task_id")
+@click.option("--off", is_flag=True, default=False, help="Remove the ready label instead of adding it.")
+def task_ready_cmd(task_id, off):
+    from board_os import mcp_tools
+
+    conn = _db_conn()
+    try:
+        envelope = mcp_tools.cos_task_ready(
+            conn,
+            task_id=task_id,
+            ready=not off,
+            agent_session=_agent_session_id(),
+        )
+    finally:
+        conn.close()
+    sys.exit(_print_envelope(envelope))
 
 
 _KIND_TO_OUTCOME_TYPE = {
@@ -985,6 +1006,7 @@ BOARD_COMMANDS = [
     task_create_cmd,
     task_move_cmd,
     task_start_cmd,
+    task_ready_cmd,
     task_done_cmd,
     task_block_cmd,
     task_cancel_cmd,

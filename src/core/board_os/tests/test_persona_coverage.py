@@ -266,6 +266,8 @@ def test_persona_full_lifecycle_to_complete(
     task_id = env["data"]["task_id"]
     file_path = project / env["data"]["file_path"]
     _fill_body_for_kind(file_path, kind, outcome)
+    # Mark pullable — require_ready_label gates icebox→in_progress.
+    assert json.loads(mcp_tools.cos_task_ready(conn, task_id=task_id))["ok"] is True
 
     # icebox → in_progress
     move_env = json.loads(
@@ -368,6 +370,7 @@ def test_f8_releaser_audit_trail_on_override(
         "feature",
         "Ship the new feature flag rollout to canary fleet.",
     )
+    mcp_tools.cos_task_ready(conn, task_id=task_id)
 
     # Drive the lifecycle.
     mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress")

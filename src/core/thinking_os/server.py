@@ -1599,11 +1599,13 @@ if _BOARD_OS_AVAILABLE:
         read_first: list[str] | None = None,
         depends_on: list[str] | None = None,
         status: str = "icebox",
+        ready: bool = False,
     ) -> str:
         """Create a new Scrumban task file + sync to DB.
 
         Prefer this over hand-writing YAML. Validates swimlane against
-        scrumban-config.yaml and kind against the 8-value enum.
+        scrumban-config.yaml and kind against the 8-value enum. Pass
+        ready=True to mark the task pullable in one shot.
         """
         return _board_mcp.cos_task_create(
             _db_conn,
@@ -1618,6 +1620,7 @@ if _BOARD_OS_AVAILABLE:
             read_first=read_first or [],
             depends_on=depends_on or [],
             status=status,
+            ready=ready,
         )
 
     @mcp.tool(
@@ -1794,6 +1797,30 @@ if _BOARD_OS_AVAILABLE:
             to=to or None,
             reason=reason or None,
             bypass_wip=bypass_wip,
+            agent_session=resolved_session,
+        )
+
+    @mcp.tool(
+        name="cos_task_ready",
+        annotations={
+            "title": "Mark Task Ready (toggle pull-gate label)",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_ready(
+        task_id: str,
+        ready: bool = True,
+        agent_session: str = "",
+    ) -> str:
+        """Add or remove the 'ready' label that gates icebox→in_progress."""
+        resolved_session = agent_session or _detect_agent_session_default() or None
+        return _board_mcp.cos_task_ready(
+            _db_conn,
+            task_id=task_id,
+            ready=ready,
             agent_session=resolved_session,
         )
 

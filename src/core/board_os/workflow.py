@@ -28,7 +28,7 @@ from pathlib import Path
 
 import yaml
 
-from board_os.config import STATUS_ENUM, ScrumbanConfig
+from board_os.config import READY_LABEL, STATUS_ENUM, ScrumbanConfig
 
 logger = logging.getLogger("coding_os.board_os.workflow")
 
@@ -201,7 +201,7 @@ def transition(
         )
 
     row = conn.execute(
-        "SELECT status, file_path, agent_session FROM tasks WHERE task_id = ?",
+        "SELECT status, file_path, agent_session, labels_json FROM tasks WHERE task_id = ?",
         (task_id,),
     ).fetchone()
     if row is None:
@@ -216,6 +216,7 @@ def transition(
 
     current_status = str(row[0])
     current_file_path = row[1]
+    current_labels = _parse_labels(row[3] if len(row) > 3 else None)
 
     # Optimistic concurrency — R-L-29.
     if expected_from and current_status != expected_from:
@@ -260,13 +261,57 @@ def transition(
             f"(state machine disallows this; recorded in history)"
         )
 
-    # Soft convention warning: CLAUDE.md Core Loop says "Verify & Close:
-    # move task to testing → run verification → cos task-done". The state
-    # machine permits in_progress→complete directly (legal for trivial
-    # work), but the shortcut bypasses the verification matrix gate.
-    # Emit a warning the caller surfaces — never block (trust the human).
+    # ── Workflow-policy gates (config-driven, Phase L state machine) ──
+    # Both default-on; a consumer relaxes them via scrumban-config.yaml
+    # `workflow_policy:`. Policy runs only when a config is supplied
+    # (the live MCP/CLI path) and gates aren't explicitly bypassed —
+    # DB-only test/migration calls (config=None) are unaffected.
+    policy = config.workflow_policy if config is not None else None
+
+    # Ready hard-gate: a task must be deliberately marked `ready` before
+    # it can be pulled from the backlog. icebox→in_progress is the only
+    # pull edge; emergency→in_progress (the fast lane) stays exempt.
+    if (
+        policy is not None
+        and policy.require_ready_label
+        and not bypass_gates
+        and current_status == "icebox"
+        and to_status == "in_progress"
+        and READY_LABEL not in current_labels
+    ):
+        return TransitionResult(
+            ok=False,
+            task_id=task_id,
+            previous_status=current_status,
+            new_status=to_status,
+            error=(
+                f"task not ready: add the '{READY_LABEL}' label before pulling "
+                f"it into in_progress — `cos task-ready {task_id}` "
+                f"(or escalate via emergency). Override: force=True."
+            ),
+            error_category="validation",
+        )
+
+    # Testing-before-complete gate: in_progress→complete must route
+    # through `testing` so the verification choreography runs. The edge
+    # stays legal in the state machine (testing→complete and forced
+    # paths work); policy just blocks the shortcut.
     skip_testing_warning: str | None = None
     if current_status == "in_progress" and to_status == "complete":
+        if policy is not None and policy.block_in_progress_to_complete and not bypass_gates:
+            return TransitionResult(
+                ok=False,
+                task_id=task_id,
+                previous_status=current_status,
+                new_status=to_status,
+                error=(
+                    "must pass through testing: move in_progress→testing, run "
+                    f"the verification matrix, then testing→complete — "
+                    f"`cos task-move {task_id} --to testing`. Override: force=True."
+                ),
+                error_category="validation",
+            )
+        # config=None path (tests/migrations): keep the soft warning.
         skip_testing_warning = (
             "convention: in_progress→complete skipped 'testing' — "
             "Core Loop expects move-to-testing → run verification matrix → "
@@ -470,6 +515,28 @@ def transition(
 
 
 # ---------- Helpers ----------
+
+
+def _parse_labels(raw: object) -> set[str]:
+    """Normalize a task's labels_json column into a set of label strings.
+
+    Accepts the JSON-array string the DB stores, a real list, or None.
+    """
+    if not raw:
+        return set()
+    if isinstance(raw, (list, tuple)):
+        return {str(x) for x in raw}
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return set()
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return {t.strip() for t in text.split(",") if t.strip()}
+        if isinstance(parsed, list):
+            return {str(x) for x in parsed}
+    return set()
 
 
 def _extract_kind_from_frontmatter(content: str) -> str | None:

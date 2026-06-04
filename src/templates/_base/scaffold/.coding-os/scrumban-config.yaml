@@ -32,6 +32,13 @@ wip_limits:
   testing: 3
   emergency: 2
 
+# State-machine policy gates (both default true — disciplined flow).
+workflow_policy:
+  # Require the `ready` label before icebox→in_progress (emergency exempt).
+  require_ready_label: true
+  # Block in_progress→complete; force routing through `testing`.
+  block_in_progress_to_complete: true
+
 # Optional extra label families (kind colours are fixed, NOT here).
 # Custom labels not in this list still work — they get a deterministic
 # hash-based colour, but no emoji.

@@ -144,10 +144,24 @@ class LabelFamily:
 
 
 @dataclass(frozen=True)
+class WorkflowPolicy:
+    """Config-driven Scrumban state-machine policy gates.
+
+    Both default True so a fresh project enforces the disciplined flow;
+    a consumer can relax either knob via `workflow_policy:` in
+    scrumban-config.yaml.
+    """
+
+    require_ready_label: bool = True
+    block_in_progress_to_complete: bool = True
+
+
+@dataclass(frozen=True)
 class ScrumbanConfig:
     swimlanes: tuple[Swimlane, ...]
     wip_limits: WipLimits = field(default_factory=WipLimits)
     label_families: tuple[LabelFamily, ...] = field(default_factory=tuple)
+    workflow_policy: WorkflowPolicy = field(default_factory=WorkflowPolicy)
     source_path: Path | None = None
 
     @property
@@ -270,6 +284,21 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
         if isinstance(name, str) and isinstance(color, str):
             label_families.append(LabelFamily(name=name, color=color, emoji=emoji))
 
+    # workflow_policy (optional) — both gates default True (enforce).
+    policy_raw = data.get("workflow_policy", {}) or {}
+    if not isinstance(policy_raw, dict):
+        errors.append("workflow_policy must be a mapping")
+        policy_raw = {}
+    policy_kwargs: dict[str, bool] = {}
+    for flag in ("require_ready_label", "block_in_progress_to_complete"):
+        if flag in policy_raw:
+            v = policy_raw[flag]
+            if not isinstance(v, bool):
+                errors.append(f"workflow_policy.{flag}={v!r} must be a boolean")
+            else:
+                policy_kwargs[flag] = v
+    workflow_policy = WorkflowPolicy(**policy_kwargs)
+
     if errors:
         raise ConfigValidationError(errors, path=source_path)
 
@@ -277,6 +306,7 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
         swimlanes=tuple(swimlanes),
         wip_limits=wip_limits,
         label_families=tuple(label_families),
+        workflow_policy=workflow_policy,
         source_path=source_path,
     )
 

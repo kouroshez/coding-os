@@ -32,6 +32,7 @@ from board_os.config import (
     APPETITE_RE,
     KIND_ENUM,
     PRIORITY_ENUM,
+    READY_LABEL,
     STATUS_ENUM,
     load_config,
 )
@@ -386,6 +387,7 @@ def cos_task_create(
     read_first: list[str] | None = None,
     depends_on: list[str] | None = None,
     status: str = "icebox",
+    ready: bool = False,
     agent_session: str | None = None,
 ) -> str:
     """Create a new task MD file + sync into DB. Returns envelope."""
@@ -404,13 +406,18 @@ def cos_task_create(
     if status not in STATUS_ENUM:
         return fail("validation", f"status {status!r} not in {sorted(STATUS_ENUM)}")
 
-    labels = labels or []
+    labels = list(labels or [])
     for lbl in labels:
         if lbl in KIND_ENUM:
             return fail(
                 "validation",
                 f"label {lbl!r} collides with KIND_ENUM — use kind, not labels",
             )
+    # `ready=True` is the one-shot path: create a groomed task already
+    # marked pullable, so the require_ready_label gate passes without a
+    # separate cos_task_ready call.
+    if ready and READY_LABEL not in labels:
+        labels.append(READY_LABEL)
 
     # Auto-attribute the create event to the running agent's session
     # when the caller didn't pass one. Skipping this leaves NULL in
@@ -941,6 +948,105 @@ def cos_task_reposition(
             "warnings": warnings,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_reposition"},
+    )
+
+
+# ---------- cos_task_ready ----------
+
+
+def _labels_list_from_json(raw: object) -> list[str]:
+    if not raw:
+        return []
+    if isinstance(raw, (list, tuple)):
+        return [str(x) for x in raw]
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return [t.strip() for t in raw.split(",") if t.strip()]
+        if isinstance(parsed, list):
+            return [str(x) for x in parsed]
+    return []
+
+
+def _patch_labels_line(file_path: Path, labels: list[str]) -> None:
+    """Rewrite the frontmatter `labels:` flow-list in place (atomic)."""
+    content = file_path.read_text(encoding="utf-8")
+    flow = "[" + ", ".join(labels) + "]"
+    fm_re = re.compile(r"^(---\s*\n.*?\n---\s*\n)", re.DOTALL)
+    m = fm_re.match(content)
+    if not m:
+        raise ValueError(f"{file_path}: no frontmatter to patch")
+    head = m.group(1)
+    label_re = re.compile(r"^labels:.*$", re.MULTILINE)
+    if label_re.search(head):
+        new_head = label_re.sub(f"labels: {flow}", head, count=1)
+    else:
+        new_head = head.replace("---\n", f"---\nlabels: {flow}\n", 1)
+    new_content = new_head + content[m.end() :]
+    tmp = file_path.with_suffix(file_path.suffix + ".tmp")
+    tmp.write_text(new_content, encoding="utf-8")
+    os.replace(tmp, file_path)
+
+
+@safe_tool
+def cos_task_ready(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    ready: bool = True,
+    agent_session: str | None = None,
+) -> str:
+    """Add or remove the 'ready' label that gates icebox→in_progress."""
+    row = conn.execute(
+        "SELECT status, file_path, labels_json FROM tasks WHERE task_id = ?",
+        (task_id,),
+    ).fetchone()
+    if row is None:
+        return fail("not_found", f"task {task_id} not found")
+
+    labels = _labels_list_from_json(row[2])
+    has_ready = READY_LABEL in labels
+    if ready == has_ready:
+        return ok(
+            {
+                "task_id": task_id,
+                "ready": ready,
+                "labels": labels,
+                "warnings": [f"no-op (label '{READY_LABEL}' already {'set' if ready else 'absent'})"],
+            },
+            meta={"layer": "tasks", "source": "board_os.cos_task_ready"},
+        )
+
+    if ready:
+        labels.append(READY_LABEL)
+    else:
+        labels = [lbl for lbl in labels if lbl != READY_LABEL]
+
+    project_root = _project_root()
+    rel_path = row[1]
+    file_path = project_root / rel_path if rel_path else None
+    if file_path is not None and file_path.exists():
+        try:
+            _patch_labels_line(file_path, labels)
+        except (OSError, ValueError) as exc:
+            return fail("validation", f"labels patch failed: {exc}")
+        sync_one(conn, file_path, project_root=project_root)
+    else:
+        conn.execute(
+            "UPDATE tasks SET labels_json = ? WHERE task_id = ?",
+            (json.dumps(labels), task_id),
+        )
+        conn.commit()
+
+    return ok(
+        {
+            "task_id": task_id,
+            "ready": ready,
+            "labels": labels,
+            "status": str(row[0]),
+        },
+        meta={"layer": "tasks", "source": "board_os.cos_task_ready"},
     )
 
 

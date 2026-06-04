@@ -35,12 +35,13 @@ Backlog entries that are not yet started may live in `cos board` (icebox status)
 
 ## Execution Rules
 
+- **Pull from icebox requires the `ready` label.** With `workflow_policy.require_ready_label` (default on), `icebox → in_progress` is blocked until the task is marked pullable — `cos task-ready TASK-NNN` (or create with `--ready`). The `emergency` fast lane is exempt. This separates "groomed idea" from "raw idea": the content DoR gate proves the task is well-formed, the `ready` label proves it was deliberately scheduled.
 - Move the task to `in_progress` before any substantial Write/Edit. Hooks block code edits without an active task marker.
 - Complexity Gate (AGENTS.md § Core Loop) runs in Classify before Orient. The gate's Dimension Map and Read List inform the rest of the loop and are recorded in the task's Notes when non-trivial.
 - Keep Work Log up to date as you go — one bullet per meaningful checkpoint. The CLI's `cos work-log TASK-NNN "note"` is preferred so the DB cache (`work_log_last_5`) stays fresh.
 - Use `Given / When / Then` for Acceptance criteria.
 - Move to `complete` only after Verification Matrix tests for the changed surface pass. Untested error paths fail the gate.
-- **Direct `in_progress → complete` is legal but unconventional.** `workflow.transition` emits a soft warning (`convention: in_progress→complete skipped 'testing'…`) when the shortcut is taken. The state machine permits it for trivial work, but skipping `testing` bypasses the Verification Matrix gate — record verification in the Work Log if the shortcut is intentional, otherwise route through `testing` first.
+- **Direct `in_progress → complete` is blocked by default.** With `workflow_policy.block_in_progress_to_complete` (default on), the shortcut is rejected — route `in_progress → testing → complete` so the Verification Matrix runs. The state-machine edge stays legal (`force=True` / `cos task-move --force` overrides for genuine trivial work, and is audited). When the policy knob is off, `workflow.transition` falls back to the legacy soft warning instead of blocking.
 - Search the repo and the graph before creating any new file, pattern, or rule. Reuse beats reinvention.
 
 ## Primary Task File Contract

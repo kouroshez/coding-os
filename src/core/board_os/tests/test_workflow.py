@@ -52,11 +52,16 @@ def _insert_task(
     status: str = "icebox",
     swimlane: str = "core",
     depends_on: list[str] | None = None,
+    labels: list[str] | None = None,
 ) -> None:
+    # Default to a `ready`-labelled task: most state-machine/WIP tests
+    # need a pullable task, matching the require_ready_label contract.
+    # Pass labels=[] to exercise the not-ready path.
+    labels = ["ready"] if labels is None else labels
     conn.execute(
         "INSERT INTO tasks (task_id, title, status, file_path, content_hash, "
         "mtime, swimlane, kind, priority, appetite, labels_json, dependencies) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)",
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             task_id,
             f"test {task_id}",
@@ -68,6 +73,7 @@ def _insert_task(
             "chore",
             "P2",
             "1h",
+            json.dumps(labels),
             json.dumps(depends_on or []),
         ),
     )
@@ -107,11 +113,14 @@ def conn(tmp_path: Path) -> sqlite3.Connection:
 )
 def test_transition_valid(conn: sqlite3.Connection, from_status, to_status):
     _insert_task(conn, "TASK-001", status=from_status)
+    # bypass_gates isolates this to pure state-machine edge validity —
+    # the ready / testing policy gates are covered by their own tests.
     result = transition(
         conn,
         "TASK-001",
         to_status,
         config=_make_config(in_progress=10, testing=10, emergency=10),
+        bypass_gates=True,
     )
     assert result.ok, result.error
     assert result.previous_status == from_status
@@ -278,6 +287,57 @@ def test_check_wip_reports_counts_and_caps(conn: sqlite3.Connection):
     assert state.caps["testing"] == 3
 
 
+# ---------- Workflow-policy gates (ready + testing-before-complete) ----------
+
+
+def test_ready_gate_blocks_unready_icebox(conn: sqlite3.Connection):
+    _insert_task(conn, "TASK-RG1", status="icebox", labels=[])
+    result = transition(conn, "TASK-RG1", "in_progress", config=_make_config(in_progress=10))
+    assert result.ok is False
+    assert result.error_category == "validation"
+    assert "not ready" in (result.error or "")
+
+
+def test_ready_gate_allows_ready_icebox(conn: sqlite3.Connection):
+    _insert_task(conn, "TASK-RG2", status="icebox", labels=["ready"])
+    result = transition(conn, "TASK-RG2", "in_progress", config=_make_config(in_progress=10))
+    assert result.ok, result.error
+
+
+def test_ready_gate_exempts_emergency_path(conn: sqlite3.Connection):
+    # emergency→in_progress is the fast lane — no ready label required.
+    _insert_task(conn, "TASK-RG3", status="emergency", labels=[])
+    result = transition(conn, "TASK-RG3", "in_progress", config=_make_config(in_progress=10))
+    assert result.ok, result.error
+
+
+def test_ready_gate_skipped_without_config(conn: sqlite3.Connection):
+    # DB-only path (config=None) must not enforce policy.
+    _insert_task(conn, "TASK-RG4", status="icebox", labels=[])
+    result = transition(conn, "TASK-RG4", "in_progress")
+    assert result.ok, result.error
+
+
+def test_testing_gate_blocks_in_progress_to_complete(conn: sqlite3.Connection):
+    _insert_task(conn, "TASK-TG1", status="in_progress")
+    result = transition(conn, "TASK-TG1", "complete", config=_make_config())
+    assert result.ok is False
+    assert result.error_category == "validation"
+    assert "through testing" in (result.error or "")
+
+
+def test_testing_gate_allows_testing_to_complete(conn: sqlite3.Connection):
+    _insert_task(conn, "TASK-TG2", status="testing")
+    result = transition(conn, "TASK-TG2", "complete", config=_make_config())
+    assert result.ok, result.error
+
+
+def test_testing_gate_force_overrides(conn: sqlite3.Connection):
+    _insert_task(conn, "TASK-TG3", status="in_progress")
+    result = transition(conn, "TASK-TG3", "complete", config=_make_config(), force=True)
+    assert result.ok, result.error
+
+
 # ---------- Dependency cycle detection (R-L-29) ----------
 
 
@@ -319,6 +379,7 @@ def test_transition_updates_md_frontmatter(tmp_path: Path, conn: sqlite3.Connect
         "status: icebox\n"
         "priority: P2\n"
         'appetite: "30m"\n'
+        "labels: [ready]\n"
         "---\n\n"
         "# TASK-099: integration\n\n"
         "**Outcome (one sentence):** frontmatter round-trips.\n\n"
