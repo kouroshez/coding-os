@@ -1,7 +1,7 @@
 <!-- domain:CORE | layer:playbooks | ssot:true | updated:2026-05-12 -->
 # DB Reset Playbook — Wipe & Rebuild coding-os Data
 
-> P: Canonical procedure for wiping the coding-os runtime state (SQLite + Kùzu + optional agent state) and verifying the auto-rebuild.
+> P: Canonical procedure for wiping the coding-os runtime state (SQLite + optional agent state, plus a legacy `.coding-os/graph_os.kuzu/` dir if a consumer still has one) and verifying the auto-rebuild.
 > R: An agent or operator needs to reset a corrupted DB, start a clean experiment, or recover from schema drift between deployments.
 > S: Single-row corrections (use targeted UPDATE / `cos task-validate`). Don't nuke for a single bad observation.
 > N: [docs/engineering/state-files.md](../engineering/state-files.md), [docs/engineering/mcp-fast-path-entry.md](../engineering/mcp-fast-path-entry.md)

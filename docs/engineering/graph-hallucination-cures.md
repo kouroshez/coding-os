@@ -115,8 +115,9 @@ forced to compact.
   not in the graph** (comments, error messages). For symbols, graph is canonical.
 - **Use only one tool family.** Graph for "what connects?", `cos_doc_search`
   for "what's the spec?", `cos_search` (memory) for "have I solved this?".
-- **Ignore `meta.backend_fallback=true`.** SQLite walk-results are deeper but
-  may be incomplete on dim-mismatched embeddings. Rerun with Kùzu when feasible.
+- **`meta.backend_fallback` is informational only.** SQLite is the sole
+  backend (Kùzu retired 2026-05-18, ADR-0002); the flag is reserved for a
+  future graph-native store and is currently always false — treat it as a no-op.
 
 ## Hook-level enforcement
 

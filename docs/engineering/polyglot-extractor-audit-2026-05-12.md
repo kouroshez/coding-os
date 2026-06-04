@@ -1,6 +1,12 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-12 -->
 # Polyglot Extractor — Post-Ship Audit (2026-05-12)
 
+> **Superseded note (backend):** This snapshot predates the Kùzu retirement.
+> Kùzu was removed 2026-05-18 (ADR-0002) — SQLite is now the sole backend.
+> Any "Kùzu secondary / Kùzu-primary swap" below is historical context, not a
+> current option. The PHP/Laravel/WordPress/WHMCS extractors (TASK-069/071)
+> also landed after this audit.
+
 > P: Verify the polyglot extractor upgrade (commit 9bee865) landed correctly,
 > map the dependency graph + decision points + edge cases + personas, surface
 > remaining optimisation gaps, and route the doc-propagation work.

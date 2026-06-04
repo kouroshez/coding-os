@@ -52,8 +52,9 @@ layer answered.
   Retry after `cos graph-reindex` / server restart.
 - `meta.dim_mismatch_skipped>0` (embedding-aware tools) — BGE-M3
   migration still in progress; fallback search may be degraded.
-- `meta.backend_fallback=true` — Kùzu was configured but offline; we
-  used SQLite. Deep walks will be slower; consider retrying Kùzu.
+- `meta.backend_fallback` — reserved for a future graph-native store;
+  currently always absent/false. SQLite is the sole backend (Kùzu retired
+  2026-05-18, ADR-0002), so this is a no-op signal today.
 
 ## Formula linkage
 
