@@ -289,6 +289,51 @@ class TestContractsNextjs:
         r = contracts.extract("frontend/src/client.ts", src)
         assert any(p.kind == "opaque_route" for p in r.parse_errors)
 
+    def test_pages_router_api_handler(self):
+        # pages-router API: default-export handler → /api/users (method any).
+        src = "export default function handler(req, res) { res.json({}); }\n"
+        r = contracts.extract("frontend/pages/api/users.ts", src)
+        routes = [n for n in r.nodes if n.kind == "cos:route"]
+        assert any(
+            n.metadata.get("path") == "/api/users"
+            and n.metadata.get("derivation") == "pages_router_api"
+            for n in routes
+        )
+
+    def test_app_router_page_is_get_route(self):
+        src = "export default function Page() { return <div>Dashboard</div>; }\n"
+        r = contracts.extract("frontend/app/dashboard/page.tsx", src)
+        routes = [n for n in r.nodes if n.kind == "cos:route"]
+        assert any(
+            n.metadata.get("path") == "/dashboard"
+            and n.metadata.get("method") == "get"
+            and n.metadata.get("derivation") == "nextjs_page"
+            for n in routes
+        )
+
+    def test_pages_router_page_and_index(self):
+        about = contracts.extract(
+            "frontend/pages/about.tsx", "export default function About() { return null; }\n"
+        )
+        assert any(n.metadata.get("path") == "/about" for n in about.nodes if n.kind == "cos:route")
+        index = contracts.extract(
+            "frontend/pages/index.tsx", "export default function Home() { return null; }\n"
+        )
+        assert any(n.metadata.get("path") == "/" for n in index.nodes if n.kind == "cos:route")
+
+    def test_pages_dynamic_segment(self):
+        src = "export default function Post() { return null; }\n"
+        r = contracts.extract("frontend/pages/blog/[slug].tsx", src)
+        assert any(
+            n.metadata.get("path") == "/blog/{slug}" for n in r.nodes if n.kind == "cos:route"
+        )
+
+    def test_plain_component_is_not_a_route(self):
+        # A default-export component outside app/ or pages/ is NOT a route.
+        src = "export default function Button() { return <button/>; }\n"
+        r = contracts.extract("frontend/src/components/Button.tsx", src)
+        assert [n for n in r.nodes if n.kind == "cos:route"] == []
+
 
 class TestContractsMCP:
     def test_mcp_tool_decorator(self):
