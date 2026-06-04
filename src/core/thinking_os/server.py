@@ -175,19 +175,31 @@ def _detect_agent_session_default() -> str | None:
     if explicit:
         return explicit
 
-    # Priority 1 — operator pinned $COS_AGENT_DIR (matches the shell
-    # contract in core/hooks/cos-env.sh). Avoids the runtime/state-dir
-    # dance entirely when the caller is a hook subprocess.
+    def _first_line(p: "_P") -> str:
+        try:
+            return p.read_text(encoding="utf-8", errors="ignore").strip() if p.is_file() else ""
+        except OSError:
+            return ""
+
+    # Priority 0 — the calling panel's own session-id, when a panel dir is
+    # in the environment (hook-driven CLI calls). Most accurate signal.
+    panel_dir_env = _os.environ.get("COS_PANEL_DIR")
+    if panel_dir_env:
+        sid = _first_line(_P(panel_dir_env) / "session-id")
+        if sid:
+            return sid
+
+    # Priority 1 — the agent-level ".active-session" pointer that
+    # session-context.sh refreshes every prompt. The long-lived MCP server
+    # has no $COS_PANEL_DIR, so this is the freshest signal it can read;
+    # the flat "session-id" file is a stale fossil kept only as a last
+    # resort (see docs/engineering/state-files.md, TASK-094).
     agent_dir_env = _os.environ.get("COS_AGENT_DIR")
     if agent_dir_env:
-        sid_path = _P(agent_dir_env) / "session-id"
-        try:
-            if sid_path.is_file():
-                raw = sid_path.read_text(encoding="utf-8", errors="ignore").strip()
-                if raw:
-                    return raw
-        except OSError:
-            pass
+        for _fname in (".active-session", "session-id"):
+            sid = _first_line(_P(agent_dir_env) / _fname)
+            if sid:
+                return sid
 
     # Priority 2 — vendor env markers. Data-driven from
     # adapters/<id>/adapter.yaml::runtime_env_markers (rule #11 — no

@@ -69,6 +69,18 @@ if [[ -n "${COS_AGENT:-}" ]] && [[ "$COS_AGENT" != "unknown" ]]; then
   unset _AGENT_MARKER
 fi
 
+# Refresh the agent-level "latest active session" pointer that the
+# long-lived MCP server reads for attribution (it has no $COS_PANEL_DIR,
+# so it cannot read the strict per-panel session-id). On a non-startup
+# prompt the panel session-id already exists; mirror it here so a task
+# created via MCP this turn is attributed to the live session, not a
+# stale fossil. Last-writer-wins across concurrent panels — documented
+# approximation in docs/engineering/state-files.md. Startup writes it
+# after id generation below.
+if [[ "$SOURCE" != "startup" ]] && [[ -n "${COS_SESSION_FILE:-}" ]] && [[ -f "$COS_SESSION_FILE" ]]; then
+  tr -d '\n\r' < "$COS_SESSION_FILE" > "$COS_AGENT_DIR/.active-session" 2>/dev/null || true
+fi
+
 # Generate session ID ONLY on fresh startup — NOT on compact or resume.
 if [[ "$SOURCE" == "startup" ]]; then
   # Orphan recovery: if the PREVIOUS session in THIS PANEL had observations
@@ -99,6 +111,9 @@ if [[ "$SOURCE" == "startup" ]]; then
   # (which now lives in $COS_PANEL_DIR, not $COS_AGENT_DIR).
   SESSION_ID="ses-${COS_AGENT}-$(date +%Y%m%d-%H%M%S)-$(head -c 4 /dev/urandom | xxd -p | head -c 4)"
   echo "$SESSION_ID" > "$COS_SESSION_FILE"
+  # Seed the agent-level active-session pointer for the MCP server (see
+  # the non-startup refresh above for rationale).
+  printf '%s' "$SESSION_ID" > "$COS_AGENT_DIR/.active-session" 2>/dev/null || true
 
   # Clear volatile markers from previous sessions. Scope is THIS PANEL's
   # private dir — sibling panels of the same agent are untouched, and the

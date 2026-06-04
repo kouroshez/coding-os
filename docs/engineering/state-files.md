@@ -25,6 +25,7 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 ├── claude/                              ← AGENT-PRIVATE  ($COS_AGENT_DIR for Claude)
 │   ├── .agent · .model · .task-mode        ┐
 │   ├── .swimlane · .turn-activity.log      ├ SHARED across panels of this agent
+│   ├── .active-session                     │ fresh "latest active session" pointer
 │   ├── sessions/<sid>.json                 │ (presence, panel-id-agnostic by design)
 │   ├── traces/<sid>.jsonl                  ┘
 │   │
@@ -50,6 +51,31 @@ Read when: Adding a new session-scoped marker · debugging a "session mismatch" 
 - If two *agents* (Claude + Codex) attached to the same repo could have DIFFERENT answers, the file is **agent-private** → lives at `$COS_AGENT_DIR/`.
 - If two *panels of the same agent* (two Claude tabs) could have DIFFERENT answers, the file is **panel-private** → lives at `$COS_PANEL_DIR/` (`$COS_AGENT_DIR/panels/<panel-id>/`).
 - If there's only one correct answer (DB row, install manifest, log stream, runtime model, task-mode classifier output), it's **shared** → lives at `$COS_STATE_DIR/` or `$COS_AGENT_DIR/` per scope.
+
+### `.active-session` — attribution for the long-lived MCP server (TASK-094)
+
+Task `agent_session` attribution faces an architectural seam: the MCP
+server is a long-lived process that has **no `$COS_PANEL_DIR`**, so it
+cannot read the strict per-panel `session-id`. Reading the flat
+agent-level `session-id` is wrong — that file is a stale fossil from
+whichever panel last wrote it (the shell reader at `cos-env.sh` refuses
+it for the same reason).
+
+`session-context.sh` therefore refreshes `$COS_AGENT_DIR/.active-session`
+with the current panel's session-id on **every prompt**. The resolvers
+(`server.py::_detect_agent_session_default`, `board_commands.py::_agent_session_id`)
+read, in order: (0) `$COS_PANEL_DIR/session-id` when a panel dir is in
+env (hook/CLI callers — exact), (1) `$COS_AGENT_DIR/.active-session`
+(fresh, MCP-server path), (2) the legacy `session-id` fossil, (3) a
+`ses-<agent>-mcp-<pid>` synth.
+
+**Concurrent-panel caveat:** `.active-session` is last-writer-wins, so a
+task created via MCP is attributed to the *most recently active* panel.
+For the common single-active-panel case this is exact; for genuinely
+simultaneous panels it is an approximation. A fully exact fix needs the
+calling panel's session threaded through the MCP tool arguments (a
+protocol change) or a per-session MCP server — deferred until a real
+multi-panel-MCP workload demands it.
 
 The single source of truth for which cognitive markers are panel-private is `$COS_PER_PANEL_FILES` in [src/core/hooks/cos-env.sh](../../src/core/hooks/cos-env.sh) — appending a basename to that list makes the writer (`write-state.sh`) and reader (`check-state.sh`) auto-route from then on; no per-hook edits needed.
 

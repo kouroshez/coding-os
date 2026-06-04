@@ -122,21 +122,30 @@ def _agent_session_id() -> str | None:
     if sid:
         return sid.strip() or None
 
-    # Honor $COS_AGENT_DIR set by hook subprocesses. Mirrors the shell
-    # `cos_read_session_id` contract from src/core/hooks/cos-env.sh — without
-    # this priority a Claude hook calling `cos task-move` would fall
-    # through to the runtime+state-dir lookup and miss its own session id.
+    def _first(p: Path) -> str | None:
+        if not p.is_absolute():
+            p = _project_root() / p
+        if not p.is_file():
+            return None
+        try:
+            raw = p.read_text(encoding="utf-8", errors="ignore").strip()
+        except OSError:
+            return None
+        return raw or None
+
+    # Panel-first (most accurate when a hook set $COS_PANEL_DIR), then the
+    # agent-level fresh `.active-session` pointer session-context.sh keeps
+    # current, then the legacy flat session-id fossil. Mirrors the MCP
+    # server's _detect_agent_session_default (TASK-094).
+    panel_dir_env = os.environ.get("COS_PANEL_DIR")
+    if panel_dir_env:
+        raw = _first(Path(panel_dir_env) / "session-id")
+        if raw:
+            return raw
     agent_dir_env = os.environ.get("COS_AGENT_DIR")
     if agent_dir_env:
-        agent_dir_path = Path(agent_dir_env)
-        if not agent_dir_path.is_absolute():
-            agent_dir_path = _project_root() / agent_dir_path
-        sid_file = agent_dir_path / "session-id"
-        if sid_file.is_file():
-            try:
-                raw = sid_file.read_text(encoding="utf-8", errors="ignore").strip()
-            except OSError:
-                raw = ""
+        for _fname in (".active-session", "session-id"):
+            raw = _first(Path(agent_dir_env) / _fname)
             if raw:
                 return raw
 
