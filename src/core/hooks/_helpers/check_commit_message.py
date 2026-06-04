@@ -17,6 +17,19 @@ ATTRIBUTION_PATTERNS = [
 
 USER_PROMPT_RE = re.compile(r"^USER\b", re.IGNORECASE | re.MULTILINE)
 
+# Conventional Commit grammar — the title release-please parses to derive
+# the version bump. A type it cannot parse silently drops the change from
+# CHANGELOG, so the title type prefix is validated here.
+CONVENTIONAL_TYPES = (
+    "feat", "fix", "docs", "perf", "refactor",
+    "build", "ci", "test", "chore", "style", "revert",
+)
+CONVENTIONAL_TITLE_RE = re.compile(
+    r"^(?:" + "|".join(CONVENTIONAL_TYPES) + r")(?:\([^)]+\))?!?: .+"
+)
+# git's own auto-generated subjects are exempt (merge / revert / rebase fixups).
+AUTO_COMMIT_RE = re.compile(r"^(?:Merge |Revert |fixup! |squash! )")
+
 
 def check_message(text: str) -> list[str]:
     errors: list[str] = []
@@ -31,6 +44,12 @@ def check_message(text: str) -> list[str]:
 
     if len(title) > MAX_TITLE_CHARS:
         errors.append(f"title is {len(title)} chars; max {MAX_TITLE_CHARS}")
+
+    if not AUTO_COMMIT_RE.match(title) and not CONVENTIONAL_TITLE_RE.match(title):
+        errors.append(
+            "title is not a Conventional Commit '<type>(scope)?!: subject' "
+            f"(type one of: {', '.join(CONVENTIONAL_TYPES)}) — release-please cannot parse it"
+        )
 
     body_nonempty = [l for l in body_lines if l.strip()]
     if len(body_nonempty) > MAX_BODY_LINES:
@@ -66,7 +85,8 @@ def main() -> None:
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         print(
-            "\nContract: title ≤100 chars · body ≤3 non-empty lines · "
+            "\nContract: Conventional Commit title (feat/fix/docs/…: subject) · "
+            "title ≤100 chars · body ≤3 non-empty lines · "
             "no attribution / USER prompts / Persian quotes.",
             file=sys.stderr,
         )
