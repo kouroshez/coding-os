@@ -1029,9 +1029,88 @@ def _scan_laravel(content: str) -> list[ContractMatch]:
     return hits
 
 
+_WP_HOOK_RE = re.compile(
+    rf"""\badd_(?P<typ>action|filter)\s*\(\s*{_STRING_CAPTURE}
+        (?:\s*,\s*['"]?(?P<cb>[A-Za-z_][\w]*)['"]?)?
+    """,
+    re.VERBOSE,
+)
+_WP_FIRE_RE = re.compile(
+    rf"""\b(?P<typ>do_action|apply_filters)\s*\(\s*{_STRING_CAPTURE}""", re.VERBOSE
+)
+_WP_SHORTCODE_RE = re.compile(rf"""\badd_shortcode\s*\(\s*{_STRING_CAPTURE}""", re.VERBOSE)
+_WP_CPT_RE = re.compile(rf"""\bregister_post_type\s*\(\s*{_STRING_CAPTURE}""", re.VERBOSE)
+_WP_REST_RE = re.compile(
+    r"""\bregister_rest_route\s*\(\s*['"](?P<ns>[^'"]+)['"]\s*,\s*['"](?P<route>[^'"]+)['"]
+        (?:[^)]*?['"]methods['"]\s*=>\s*['"](?P<methods>[^'"]+)['"])?
+    """,
+    re.VERBOSE | re.DOTALL,
+)
+_WP_MARKERS = (
+    "add_action", "add_filter", "add_shortcode", "register_post_type",
+    "register_rest_route", "do_action", "apply_filters",
+)
+
+
 def _scan_wordpress(content: str) -> list[ContractMatch]:
-    """WordPress hooks/shortcodes/CPT/REST/ajax — implemented in TASK-069 P2."""
-    return []
+    """WordPress hooks (action/filter + fire sites), shortcodes, CPT, REST, ajax."""
+    if not any(tok in content for tok in _WP_MARKERS):
+        return []
+    hits: list[ContractMatch] = []
+    for m in _WP_HOOK_RE.finditer(content):
+        hook = m.group("path")
+        cb = m.group("cb")
+        line = _line_of(content, m.start())
+        if hook.startswith("wp_ajax_"):
+            action = hook[len("wp_ajax_nopriv_"):] if hook.startswith("wp_ajax_nopriv_") else hook[len("wp_ajax_"):]
+            hits.append(
+                ContractMatch(
+                    kind="http", framework="wp_ajax", method="post",
+                    path=f"/wp-admin/admin-ajax.php?action={action}",
+                    handler=cb, line=line, derivation="wp_ajax",
+                )
+            )
+        else:
+            hits.append(
+                ContractMatch(
+                    kind="event", framework=f"wp_{m.group('typ')}", method=m.group("typ"),
+                    path=hook, handler=cb, line=line,
+                )
+            )
+    for m in _WP_FIRE_RE.finditer(content):
+        hits.append(
+            ContractMatch(
+                kind="event", framework="wp_emit", method=m.group("typ"),
+                path=m.group("path"), handler=None, line=_line_of(content, m.start()),
+                derivation="wp_fire",
+            )
+        )
+    for m in _WP_SHORTCODE_RE.finditer(content):
+        hits.append(
+            ContractMatch(
+                kind="event", framework="wp_shortcode", method="shortcode",
+                path=m.group("path"), handler=None, line=_line_of(content, m.start()),
+            )
+        )
+    for m in _WP_CPT_RE.finditer(content):
+        hits.append(
+            ContractMatch(
+                kind="event", framework="wp_cpt", method="post_type",
+                path=m.group("path"), handler=None, line=_line_of(content, m.start()),
+            )
+        )
+    for m in _WP_REST_RE.finditer(content):
+        ns = m.group("ns").strip("/")
+        route = m.group("route")
+        method = (m.group("methods") or "any").split(",")[0].strip().lower()
+        hits.append(
+            ContractMatch(
+                kind="http", framework="wp_rest", method=method,
+                path=_join_paths(f"/wp-json/{ns}", route), handler=None,
+                line=_line_of(content, m.start()), derivation="wp_rest",
+            )
+        )
+    return hits
 
 
 def _scan_whmcs(content: str, *, path: str) -> list[ContractMatch]:
