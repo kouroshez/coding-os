@@ -69,14 +69,38 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(skip_e2e)
 
 
+# Runtime session-identity vars an agent runtime (Claude Code, Codex, Cursor)
+# exports into every child process. When pytest runs INSIDE a live agent
+# session these leak into test subprocesses — cos-env.sh's panel resolver
+# checks them (CLAUDE_CODE_SESSION_ID first), so a test's own fixture session
+# id loses to the ambient one and scaffold/doctor/panel tests fail. CI has
+# none of these set, so the leak is invisible there. Scrubbing them makes the
+# suite hermetic in-session too. (TASK-098)
+_LEAKY_SESSION_ENV = (
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_SESSION_ID",
+    "CURSOR_SESSION_ID",
+    "CURSOR_TRACE_ID",
+    "CODEX_SESSION_ID",
+    "GEMINI_SESSION_ID",
+    "ANTHROPIC_SESSION_ID",
+    "COS_PANEL_ID",
+    "COS_AGENT_SESSION_ID",
+)
+
+
 @pytest.fixture(autouse=True)
 def _isolate_registry(
     tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Redirect global registry to a temp file for every test.
+    """Redirect global registry to a temp file + scrub ambient session ids.
 
-    Prevents cos init / add_project() from writing to ~/.coding-os/registry.json.
-    The env var COS_REGISTRY_PATH is honoured by cli.registry.registry_path().
+    Prevents cos init / add_project() from writing to ~/.coding-os/registry.json
+    (COS_REGISTRY_PATH is honoured by cli.registry.registry_path()), and removes
+    the agent-runtime session-identity vars so tests stay hermetic when run
+    inside a live Claude/Codex/Cursor session.
     """
     tmp_reg = tmp_path_factory.mktemp("registry", numbered=True) / "registry.json"
     monkeypatch.setenv("COS_REGISTRY_PATH", str(tmp_reg))
+    for _var in _LEAKY_SESSION_ENV:
+        monkeypatch.delenv(_var, raising=False)
