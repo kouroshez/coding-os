@@ -527,6 +527,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/session-skill-primer.sh",
+            "statusMessage": "🧠 Re-priming required-skill card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/rules-primer.sh",
             "statusMessage": "📋 Re-priming workflow-integrity rules card...",
             "timeout": 10

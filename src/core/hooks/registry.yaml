@@ -1029,13 +1029,16 @@ hooks:
     script: session-skill-primer.sh
     description: |
       SessionStart prime card — emits a compact additionalContext block
-      at fresh-startup listing the skills that enforce-skill.sh
-      (PreToolUse Write/Edit) will BLOCK without. Reads SSOT:
+      listing the skills that enforce-skill.sh (PreToolUse Write/Edit)
+      will BLOCK without. Reads SSOT:
       $COS_STATE_DIR/installed-manifest.json::templates → active stacks;
       src/templates/<stack>/stack.yaml → primary_skill + skill_enforcement
       table. Closes the gap where the agent only discovers required
-      skills reactively after the first block. Per-session debounced via
-      $COS_AGENT_DIR/.session-skill-primer-fired. Always exits 0.
+      skills reactively after the first block. Fires on startup AND on
+      compact|resume — in a multi-hour session a compaction can outlive
+      the 120-min .active-skill marker, so the card must re-prime after
+      context loss (mirrors intent-primer / rules-primer). SessionStart
+      fires once per boundary, so no debounce is needed. Always exits 0.
     category: cognition
     phase: P
     timeout: 10
@@ -1043,6 +1046,9 @@ hooks:
       - event: SessionStart
         matcher: startup
         status_message: "🧠 Priming required-skill card..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "🧠 Re-priming required-skill card..."
 
   - id: rules-primer
     script: rules-primer.sh
