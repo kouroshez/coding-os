@@ -249,6 +249,19 @@ def test_task_start_blocks_template_placeholder_outcome(tmp_path: Path) -> None:
     assert created.returncode == 0, created.stderr or created.stdout
     task_id = json.loads(created.stdout)["task_id"]
 
+    # Mark ready first so the require_ready_label gate passes and the
+    # start transition reaches the DoR content gate we're exercising.
+    readied = subprocess.run(
+        [sys.executable, "-m", "cli.main", "task-ready", task_id],
+        cwd=str(project),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    assert readied.returncode == 0, readied.stderr or readied.stdout
+
     # Placeholder Outcome → DoR gate blocks the start transition.
     blocked = subprocess.run(
         [sys.executable, "-m", "cli.main", "task-start", task_id],
