@@ -136,6 +136,7 @@ hook_dispatchers:
       - warn-abandoned-task.sh
       - check-capture-worked.sh
       - auto-trace-rotate.sh
+      - snapshot-transcript.sh
       - agent-presence.sh
   - event: PostToolUse
     matcher: Bash

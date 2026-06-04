@@ -885,6 +885,23 @@ hooks:
         matcher: ""
         status_message: "🧹 Rotating old trace files..."
 
+  - id: snapshot-transcript
+    script: snapshot-transcript.sh
+    description: |
+      Stop hook — snapshot the live session transcript (transcript_path from
+      the Stop payload) into $COS_AGENT_DIR/sessions/transcripts/<session-id>.jsonl
+      so a workflow session is auditable in-tree, not only in the agent
+      runtime's global store (~/.claude/projects/...). Copies only when the
+      source grew (Stop fires per turn); fail-open when transcript_path is
+      absent. The task↔session link is the existing tasks.agent_session id.
+    category: observability
+    phase: O
+    timeout: 30
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "📑 Snapshotting session transcript..."
+
   - id: nudge-thinking-os
     script: nudge-thinking-os.sh
     description: |

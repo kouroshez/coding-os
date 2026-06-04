@@ -672,6 +672,12 @@
             "command": ".claude/hooks/auto-trace-rotate.sh",
             "statusMessage": "🧹 Rotating old trace files...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/snapshot-transcript.sh",
+            "statusMessage": "📑 Snapshotting session transcript...",
+            "timeout": 30
           }
         ]
       }

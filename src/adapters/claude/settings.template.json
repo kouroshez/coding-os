@@ -672,6 +672,12 @@
             "command": "{{HOOKS_DIR}}/auto-trace-rotate.sh",
             "statusMessage": "🧹 Rotating old trace files...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/snapshot-transcript.sh",
+            "statusMessage": "📑 Snapshotting session transcript...",
+            "timeout": 30
           }
         ]
       }
