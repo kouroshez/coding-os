@@ -74,6 +74,14 @@ if [ -f "$AUTOSNAP_PY" ]; then
   run_bounded_python "$AUTOSNAP_PY" 2
 fi
 
+# Responsive learning — extract patterns same-day once enough new task_outcomes
+# accrue (scheduled config threshold) instead of waiting for the nightly cron.
+# Shares the .last-extract marker with nightly.py so the paths stay idempotent.
+RESPONSIVE_PY="${_COS_HOOKS_PHYS}/../scheduled/responsive_extract.py"
+if [ -f "$RESPONSIVE_PY" ]; then
+  run_bounded_python "$RESPONSIVE_PY" 3
+fi
+
 # End-of-turn visible recap — Stop hooks accept hookSpecificOutput JSON, which
 # Claude Code surfaces as a labeled additionalContext block between turns.
 # Mirrors the always-on caveman pattern so the operator never sees a silent

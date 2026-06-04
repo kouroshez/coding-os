@@ -40,6 +40,7 @@ from scheduled._state import (  # noqa: E402
     touch_marker,
     write_state,
 )
+from scheduled.config import load_config  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Logging — global rotating log + stderr for foreground runs
@@ -92,7 +93,13 @@ def _schema_ok(db_path: Path) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+def _run_decay(
+    db_path: Path,
+    project_root: Path,
+    *,
+    dry_run: bool,
+    throttle_days: int = _DECAY_THROTTLE_DAYS,
+) -> dict:
     """Run confidence decay, flock-protected against session_enrich race."""
     marker = project_root / ".coding-os" / ".last-decay"
     lock_path = marker.with_suffix(".lock")
@@ -107,10 +114,10 @@ def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
 
             try:
                 age = days_since_marker(marker)
-                if age is not None and age < _DECAY_THROTTLE_DAYS:
+                if age is not None and age < throttle_days:
                     return {
                         "status": "skipped",
-                        "reason": f"ran {age:.1f}d ago (threshold {_DECAY_THROTTLE_DAYS}d)",
+                        "reason": f"ran {age:.1f}d ago (threshold {throttle_days}d)",
                     }
 
                 if dry_run:
@@ -140,7 +147,13 @@ def _run_decay(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _run_learn_extract(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+def _run_learn_extract(
+    db_path: Path,
+    project_root: Path,
+    *,
+    dry_run: bool,
+    min_outcomes: int = _MIN_OUTCOMES,
+) -> dict:
     """Mine patterns from task_outcomes; gated on new outcomes since last run."""
     marker = state_dir(project_root) / ".last-extract"
 
@@ -152,10 +165,10 @@ def _run_learn_extract(db_path: Path, project_root: Path, *, dry_run: bool) -> d
         with sqlite3.connect(str(db_path), timeout=10) as conn:
             conn.row_factory = sqlite3.Row
             total = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
-            if total < _MIN_OUTCOMES:
+            if total < min_outcomes:
                 return {
                     "status": "skipped",
-                    "reason": f"insufficient_data (need {_MIN_OUTCOMES}, have {total})",
+                    "reason": f"insufficient_data (need {min_outcomes}, have {total})",
                 }
 
     except sqlite3.Error as exc:
@@ -281,6 +294,12 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         logger.warning("[%s] schema too old — skip all", slug)
         return run
 
+    cfg = load_config(project_root)
+    if not cfg["enabled"]:
+        run["tasks"]["all"] = {"status": "skipped", "reason": "disabled in scheduled config"}
+        logger.info("[%s] scheduled maintenance disabled in config — skip all", slug)
+        return run
+
     prev_state = read_state(project_root)
     consecutive_failures = prev_state.get("consecutive_failures", 0)
 
@@ -298,7 +317,12 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
 
     # Task 1: decay
     try:
-        t = _run_decay(db_path, project_root, dry_run=dry_run)
+        t = _run_decay(
+            db_path,
+            project_root,
+            dry_run=dry_run,
+            throttle_days=int(cfg["decay_throttle_days"]),
+        )
         run["tasks"]["decay"] = t
         logger.info("[%s] decay → %s", slug, t.get("status"))
         if t.get("status") == "error":
@@ -310,7 +334,12 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
 
     # Task 2: learn_extract
     try:
-        t = _run_learn_extract(db_path, project_root, dry_run=dry_run)
+        t = _run_learn_extract(
+            db_path,
+            project_root,
+            dry_run=dry_run,
+            min_outcomes=int(cfg["learn_extract_min_outcomes"]),
+        )
         run["tasks"]["learn_extract"] = t
         logger.info("[%s] learn_extract → %s", slug, t.get("status"))
         if t.get("status") == "error":

@@ -74,6 +74,34 @@ Fallback when registry missing: `COS_PROJECT_ROOT` env → cwd.
 | `<proj>/.coding-os/scheduled/last_run.json` | per-project | Full run report; read by hub API |
 | `~/.coding-os/scheduled/nightly.log` | global | Rotating log (10 × 100KB) |
 
+### Configurable cadence + responsive extraction
+
+Cadence and thresholds are no longer hardcoded constants. Each project
+carries `<proj>/.coding-os/scheduled/config.json`, read by the nightly
+daemon, the responsive session-end trigger, and the Hub
+(`GET`/`PUT /api/scheduled/config`). `src/core/scheduled/config.py`
+owns the schema + validation; missing keys fall back to defaults so an
+absent file behaves exactly as before.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `true` | When `false`, nightly skips every task for the project (decay/extract/routing all SKIP). |
+| `hour` | `3` | Desired launchd hour (0–23). Display + `make cron-install` (`COS_CRON_HOUR`); changing it requires a re-install. |
+| `decay_throttle_days` | `7` | Replaces the `_DECAY_THROTTLE_DAYS` constant — decay skips if `.last-decay` is younger. |
+| `learn_extract_min_outcomes` | `3` | Replaces `_MIN_OUTCOMES` — extract needs at least this many total outcomes. |
+| `responsive_extract_threshold` | `5` | Session-end fires `learn_extract` once this many NEW outcomes accrue since `.last-extract`. |
+
+**Responsive extraction** closes the "patterns from today don't exist
+until 03:00 tomorrow" lag. The Stop hook `session-end.sh` runs
+`scheduled/responsive_extract.py` (bounded, fire-and-forget): it loads
+the config, and when `outcomes_since_marker(.last-extract) >=
+responsive_extract_threshold` it runs `learn_extract` + touches the
+marker — so same-day patterns become available to `cos_learn_suggest`
+in the next session without waiting for the nightly daemon. The shared
+`.last-extract` marker keeps the responsive path and the nightly path
+idempotent (whichever runs first resets the counter). When
+`enabled=false` the responsive trigger is a no-op.
+
 ### Error handling
 
 - Per-project `try/except` — one failed project never aborts the run
