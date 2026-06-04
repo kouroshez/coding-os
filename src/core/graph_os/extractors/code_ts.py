@@ -268,6 +268,30 @@ def _ts_callee(fn_field: Any) -> tuple[str, str]:
     return "", ""
 
 
+def _ts_has_jsx(node: Any) -> bool:
+    """True when the subtree contains a JSX element — marks React components."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        if n.type in ("jsx_element", "jsx_self_closing_element", "jsx_fragment"):
+            return True
+        stack.extend(n.children)
+    return False
+
+
+def _ts_component_meta(name: str, body_node: Any, lang: str) -> dict[str, Any]:
+    """Metadata for a function/arrow node — flags React components.
+
+    A PascalCase function returning JSX (in a .tsx/.jsx file) is a React
+    component; the flag makes "list components" queryable without a new
+    node kind (Rule 22 — reuse the existing code:function node).
+    """
+    meta: dict[str, Any] = {"extractor": EXTRACTOR_ID_TS}
+    if lang == "tsx" and name[:1].isupper() and _ts_has_jsx(body_node):
+        meta["component"] = True
+    return meta
+
+
 def _ts_enclosing_class_uid(node: Any, path: str) -> str | None:
     cur = node.parent
     while cur is not None:
@@ -363,7 +387,7 @@ def _walk_ts_symbols(
         result.nodes.append(GraphNode(
             uid=uid, kind="code:function", label=name, file_path=path,
             start_line=_ts_line(fn), signature=f"function {name}(…)", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS}))
+            metadata=_ts_component_meta(name, fn, lang)))
         local_names[name] = uid
         result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
             edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))
@@ -377,10 +401,12 @@ def _walk_ts_symbols(
         if not name or name in local_names:
             continue
         uid = function_uid(path, name)
+        _arrow_meta = _ts_component_meta(name, val, lang)
+        _arrow_meta["arrow"] = True
         result.nodes.append(GraphNode(
             uid=uid, kind="code:function", label=name, file_path=path,
             start_line=_ts_line(vd), signature=f"const {name} = (…) =>", lang=lang,
-            metadata={"extractor": EXTRACTOR_ID_TS, "arrow": True}))
+            metadata=_arrow_meta))
         local_names[name] = uid
         result.edges.append(GraphEdge(source_uid=module_uid_, target_uid=uid,
             edge_type="contains", extractor=EXTRACTOR_ID_TS, confidence=1.0))

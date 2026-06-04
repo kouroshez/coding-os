@@ -85,6 +85,34 @@ class TestEnumNamespace:
         assert "code:class:f.ts::Color" in _type_targets(src, "has_param_type")
 
 
+def _component_labels(src, path="f.tsx"):
+    return {
+        n.label
+        for n in t.extract(path, src).nodes
+        if n.kind == "code:function" and n.metadata.get("component")
+    }
+
+
+class TestReactComponent:
+    def test_function_component_marked(self):
+        assert "Card" in _component_labels("function Card() { return <div>hi</div> }")
+
+    def test_arrow_component_marked(self):
+        assert "Btn" in _component_labels("const Btn = () => <button>x</button>")
+
+    def test_lowercase_not_component(self):
+        # lowercase name = not a component even if it returns JSX.
+        assert "helper" not in _component_labels("function helper() { return <div/> }")
+
+    def test_pascal_without_jsx_not_component(self):
+        # PascalCase but no JSX = plain function (factory/class-like), not a component.
+        assert "Factory" not in _component_labels("function Factory() { return 42 }")
+
+    def test_no_component_flag_in_plain_ts(self):
+        # JSX can't appear in .ts; component detection is gated on tsx.
+        assert _component_labels("function Card() { return 1 }", path="f.ts") == set()
+
+
 class TestAbstractClass:
     def test_abstract_class_extracted(self):
         assert _classes("abstract class W {}") == ["W"]
