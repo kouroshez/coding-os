@@ -247,7 +247,7 @@ Project lifecycle    init · setup · add-adapter · add-stack · update · ejec
 Diagnostics          doctor · health · list-stacks · list-adapters · hooks-dir · hooks-log
 Brain                docs-index · task-sync · reindex · server-start
 Hub                  hub start · hub status · hub stop
-Board                board · task-show · task-create · task-start · task-move · task-done · daily · retro · wip
+Board                board · task-show · task-create · task-start · task-ready · task-move · task-done · task-reclaim · daily · retro · wip
 Cognition            cognition trace · cognition trace-replay · cognition trace-summary
 Graph (build)        graph-reindex · graph-stats · graph-doctor · graph-group · graph-index-{local,github,zip} · graph-viz
 Graph (find)         graph-resolve · graph-query · graph-context · graph-entrypoints

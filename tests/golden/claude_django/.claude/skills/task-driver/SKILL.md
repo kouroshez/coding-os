@@ -44,10 +44,14 @@ You are in task-management mode. Apply these rules mechanically.
 4. **One Outcome sentence — measurable, concrete.** Bad: "improve auth".
    Good: "users log in with email+OTP, P95 <500ms, on iOS+Android+web".
 
-5. **WIP=1 by default.** If you need a second `in_progress` task, ask the
-   user first. Never silently `COS_WIP_OVERRIDE=1`.
-6. **Do not finish directly from `in_progress` when testing is required.**
-   Move to `testing`, run checks, then complete.
+5. **WIP=1 per session by default.** The `in_progress` cap is counted per
+   `agent_session` (`workflow_policy.per_session_wip`) — concurrent sessions
+   don't block each other, but YOUR session still does one task at a time.
+   Need a second `in_progress` in the same session? Ask first. Never
+   silently `COS_WIP_OVERRIDE=1`.
+6. **`in_progress → complete` is blocked.** Route through `testing` so the
+   verification matrix runs (`workflow_policy.block_in_progress_to_complete`).
+   `force` is the only override and is audited.
 
 ## The four axes (memorize)
 
@@ -66,10 +70,15 @@ the bug unless the user asks.
 
 ## Required status choreography
 
+0. **Mark ready** — a task needs the `ready` label before it can leave
+   `icebox`: `cos task-ready TASK-NNN` (or create with `--ready` / `ready=True`).
+   `icebox → in_progress` is BLOCKED otherwise (the `emergency` lane is exempt).
 1. `cos task-start TASK-NNN` before substantive edits.
 2. If dependency/policy/tooling blocks progress:
    `cos_task_move(task_id=..., to="blocked")` and log the blocker.
-3. After implementation: `cos_task_move(task_id=..., to="testing")`.
+3. After implementation: `cos_task_move(task_id=..., to="testing")` —
+   move to `testing` FIRST, then run verification. `in_progress → complete`
+   is BLOCKED, so don't run tests while still `in_progress`.
 4. Run verification commands tied to changed files.
 5. If green: append one short work-log note (token-lean), then `cos task-done`.
 6. If red: keep in `testing` or move back to `in_progress` with a short reason.
@@ -115,9 +124,9 @@ they care.
 
 | Status | Cap | What happens if exceeded |
 |---|---|---|
-| `in_progress` | 1 (configurable via `.coding-os.yaml::wip.in_progress`) | `cos task-start` refuses; user must `task-move` something out first |
-| `testing` | 3 | Warns; doesn't block (testing can stack while verification runs) |
-| `emergency` | 2 | Hard block — emergency lane only for SEV-1/2 incidents |
+| `in_progress` | 1 **per agent_session** (configurable via `scrumban-config.yaml::wip_limits.in_progress`) | `cos task-start` refuses for THIS session; other sessions are unaffected (`per_session_wip`). Idle in_progress tasks of dead sessions are freed by `cos task-reclaim` |
+| `testing` | 3 (board-global) | Warns; doesn't block (testing can stack while verification runs) |
+| `emergency` | 2 (board-global) | Hard block — emergency lane only for SEV-1/2 incidents |
 
 Override is by the user via `--wip-override` flag, never by the agent silently. Document why the override is justified in the work log of the over-cap task.
 
