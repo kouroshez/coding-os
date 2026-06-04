@@ -140,7 +140,11 @@ fi
 # Session-aware anchors use the first line as "<session-id> task:<id>".
 # Legacy anchors (pre-session prefix) are allowed only while fresh.
 ANCHOR_HEADER=$(head -1 "$ANCHOR_FILE" 2>/dev/null || true)
-if echo "$ANCHOR_HEADER" | grep -qE '^ses-[^[:space:]]+[[:space:]]+task:'; then
+# Require a non-empty task id after `task:` so a header alone proves an
+# anchor (it names a task whose Read First lists the docs). This lets a
+# one-line anchor written by write-state.sh (`ses-… task:TASK-NNN <ref>`)
+# pass, not just the multi-line form cos-task-start writes.
+if echo "$ANCHOR_HEADER" | grep -qE '^ses-[^[:space:]]+[[:space:]]+task:[A-Za-z0-9_-]+'; then
   if type check_state >/dev/null 2>&1; then
     check_state "$ANCHOR_FILE" "$ANCHOR_MAX_AGE"
     if [[ "${STATE_VALID:-}" != "true" ]]; then
@@ -151,7 +155,11 @@ if echo "$ANCHOR_HEADER" | grep -qE '^ses-[^[:space:]]+[[:space:]]+task:'; then
       exit 2
     fi
   fi
-  ANCHOR_CONTENT=$(tail -n +2 "$ANCHOR_FILE" | head -20)
+  # Content = the header's own `task:<id> <ref>` (minus the session token)
+  # PLUS any continuation lines. A one-line anchor keeps its task ref;
+  # a multi-line cos-task-start anchor adds the Read First doc paths.
+  HEADER_CONTENT=$(printf '%s' "$ANCHOR_HEADER" | sed -E 's/^ses-[^[:space:]]+[[:space:]]+//')
+  ANCHOR_CONTENT=$(printf '%s\n%s' "$HEADER_CONTENT" "$(tail -n +2 "$ANCHOR_FILE" | head -20)")
 else
   FILE_AGE=$(file_age_seconds "$ANCHOR_FILE")
   if [[ "$FILE_AGE" -gt "$ANCHOR_MAX_AGE" ]]; then
