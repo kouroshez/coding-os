@@ -41,6 +41,7 @@ DEFAULT_INCLUDE = (
     "*.tsx",
     "*.md",
     "*.sh",
+    "*.php",
     "*.yaml",
     "*.yml",
     "*.go",

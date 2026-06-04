@@ -31,6 +31,17 @@ class TestLocal:
         assert plan.alias == tmp_path.name
         assert len(plan.files) == 2
 
+    def test_walk_collects_php(self, tmp_path):
+        # TASK-071: .php must be in DEFAULT_INCLUDE so bulk reindex picks up
+        # PHP/Laravel/WordPress/WHMCS files (the auto-reindex single-file path
+        # already routed .php via _EXT_MAP; the walk did not collect them).
+        (tmp_path / "plugin.php").write_text("<?php\nadd_action('init', 'x');")
+        (tmp_path / "nested").mkdir()
+        (tmp_path / "nested" / "ctrl.php").write_text("<?php\nclass C {}")
+        plan = walk_local(tmp_path)
+        php = [p for p in plan.files if str(p).endswith(".php")]
+        assert len(php) == 2
+
     def test_exclude_dirs(self, tmp_path):
         (tmp_path / "src").mkdir()
         (tmp_path / "src" / "a.py").write_text("")

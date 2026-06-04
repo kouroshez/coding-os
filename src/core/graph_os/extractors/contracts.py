@@ -1151,6 +1151,8 @@ def _scan_wordpress(content: str) -> list[ContractMatch]:
     for m in _WP_HOOK_RE.finditer(content):
         hook = m.group("path")
         cb = m.group("cb")
+        if cb in ("array", "function", "fn"):
+            cb = None  # array($this,'m') / closure — not a bare function handler
         line = _line_of(content, m.start())
         if hook.startswith("wp_ajax_"):
             action = hook[len("wp_ajax_nopriv_"):] if hook.startswith("wp_ajax_nopriv_") else hook[len("wp_ajax_"):]
