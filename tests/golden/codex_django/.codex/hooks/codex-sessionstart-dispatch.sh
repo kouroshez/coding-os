@@ -34,17 +34,49 @@ delegate_path() {
   fi
 }
 
-# Collect delegate stdout into a temp file; stderr flows through so the
-# user still sees warnings (e.g. MCP-down banner). We never let a delegate
-# fault bubble into the wrapper — SessionStart must exit 0.
+# Collect delegate output into a temp file. Many delegates are the SAME
+# scripts Claude runs and emit a Claude-style JSON envelope
+# ({"hookSpecificOutput":{"additionalContext": "<card>"}}) on stdout —
+# concatenating that raw would surface literal JSON to the agent, so each
+# delegate's output is piped through extract_additional_context.py which
+# unwraps the envelope (and passes plain-text / stderr warnings through
+# unchanged). We never let a delegate fault bubble into the wrapper —
+# SessionStart must exit 0.
 CAPTURED_FILE="$(mktemp "${TMPDIR:-/tmp}/codex-sessionstart.XXXXXX")"
 trap 'rm -f "$CAPTURED_FILE"' EXIT
 
-for delegate in session-context.sh warn-mcp-down.sh check-mcp-extras.sh remind-daily.sh agent-presence.sh; do
+EXTRACT="$HOOK_DIR/../../../core/hooks/_helpers/extract_additional_context.py"
+
+# Delegate order: workflow banner → MCP/extras health → prime cards
+# (intent / rules / required-skill / audit-resume) → daily + graph nudges →
+# memory decay → presence. Prime cards mirror Claude's SessionStart set so a
+# resumed Codex session re-enters with the same workflow-integrity context.
+for delegate in \
+  session-context.sh \
+  warn-mcp-down.sh \
+  check-mcp-extras.sh \
+  intent-primer.sh \
+  rules-primer.sh \
+  session-skill-primer.sh \
+  inject-resume-prompt.sh \
+  remind-daily.sh \
+  warn-graph-empty.sh \
+  auto-brain-decay.sh \
+  agent-presence.sh; do
   DELEGATE_PATH="$(delegate_path "$delegate")"
-  if ! bash "$DELEGATE_PATH" <<< "$INPUT" >>"$CAPTURED_FILE" 2>&1 ; then
+  if DELEGATE_OUT="$(bash "$DELEGATE_PATH" <<< "$INPUT" 2>&1)"; then :; else
     cos_log_hook codex-sessionstart-dispatch warn "delegate=${delegate} source=${SOURCE}"
   fi
+  if [[ -n "${DELEGATE_OUT:-}" ]]; then
+    if [[ -f "$EXTRACT" ]]; then
+      printf '%s' "$DELEGATE_OUT" | python3 "$EXTRACT" >>"$CAPTURED_FILE" 2>/dev/null \
+        || printf '%s' "$DELEGATE_OUT" >>"$CAPTURED_FILE"
+    else
+      printf '%s' "$DELEGATE_OUT" >>"$CAPTURED_FILE"
+    fi
+    printf '\n' >>"$CAPTURED_FILE"
+  fi
+  DELEGATE_OUT=""
 done
 
 # Wrap captured text in the JSON schema Codex expects. Python is the only

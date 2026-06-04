@@ -10,7 +10,8 @@ Read when: Codex behavior differs from Claude · evaluating whether a new hook w
 ## TL;DR
 
 - **All 45 core hook scripts are symlinked into BOTH** `.claude/hooks/` AND `.codex/hooks/`. No file is missing. (36 baseline hooks + 6 Scrumban hooks + 3 dispatcher scripts.)
-- **Only Claude wires most of them as events** (≈39). Codex wires ≈12. The remaining gap is architectural — Codex's runtime supports fewer event/matcher combinations than Claude's.
+- **Only Claude wires most of them as events** (≈39). Codex wires fewer. The remaining gap is architectural — Codex's runtime supports fewer event/matcher combinations than Claude's (no `Write|Edit` / `Skill` / `Read` matcher).
+- **Codex's SessionStart and UserPromptSubmit dispatchers now coalesce the full Bash-runnable set**, not just the original four. SessionStart adds the prime cards (`intent-primer`, `rules-primer`, `session-skill-primer`, `inject-resume-prompt`) plus `check-mcp-extras`, `warn-graph-empty`, `auto-brain-decay`; UserPromptSubmit adds `detect-exhaustive-intent` (writes `.intent.json` so the Stop completion guardian enforces exhaustive intent on Codex) and the previously-declared-but-unwired `nudge-docs-first`. The SessionStart dispatcher pipes each delegate through `extract_additional_context.py` so prime cards that emit a Claude-style `{"hookSpecificOutput":{...}}` envelope are unwrapped instead of surfacing literal JSON. This closes the SessionStart/UserPromptSubmit parity gap that needed **no new runtime matcher** — only the `Write|Edit`-gated enforcement remains Claude-only (deferred; see below).
 - **Installed Codex hook commands are absolute paths.** Relative `.codex/hooks/...` commands break when Codex starts in a nested cwd instead of the project root.
 - **One command to sync:** `make sync`. Runs `regen-adapter-templates` + `dogfood-full` — re-links core, stack, rule, command, skill trees for both adapters and regenerates settings files.
 
