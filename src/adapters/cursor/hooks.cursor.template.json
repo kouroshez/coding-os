@@ -44,6 +44,11 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/advance-role.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/capture-observation.sh",
             "statusMessage": "🧠 Recording observation + embedding to memory...",
             "timeout": 10
@@ -58,11 +63,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/advance-role.sh",
             "timeout": 10
           }
         ]
@@ -148,17 +148,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/session-context.sh",
-            "statusMessage": "🔄 Checking workflow state...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/agent-presence.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/nudge-thinking-os.sh",
             "timeout": 10
           },
@@ -191,6 +180,17 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/detect-exhaustive-intent.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/session-context.sh",
+            "statusMessage": "🔄 Checking workflow state...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-presence.sh",
+            "timeout": 5
           }
         ]
       }

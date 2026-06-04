@@ -18,6 +18,12 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/block-uv-heredoc.sh",
+            "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/branch-guard.sh",
             "statusMessage": "🌳 Enforcing trunk-based workflow (no branches)...",
             "timeout": 5
@@ -26,12 +32,6 @@
             "type": "command",
             "command": ".claude/hooks/enforce-commit-message.sh",
             "statusMessage": "📝 Validating commit message contract...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/block-uv-heredoc.sh",
-            "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)...",
             "timeout": 5
           },
           {
@@ -95,6 +95,18 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/validate-task-frontmatter.sh",
+            "statusMessage": "🧾 Validating task frontmatter...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-wip-limit.sh",
+            "statusMessage": "🚦 Checking WIP limit before status change...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/enforce-template.sh",
             "statusMessage": "📋 Checking doc templates (task / ADR / PRD / insight)...",
             "timeout": 5
@@ -149,33 +161,9 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/validate-task-frontmatter.sh",
-            "statusMessage": "🧾 Validating task frontmatter...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/enforce-wip-limit.sh",
-            "statusMessage": "🚦 Checking WIP limit before status change...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
             "command": ".claude/hooks/enforce-task-body.sh",
             "statusMessage": "🚦 Validating transition gates (DoR/DoD)...",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/warn-template-drift.sh",
-            "statusMessage": "⚠️ Adapter template edits — use registry.yaml...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/enforce-anti-ambiguity.sh",
-            "statusMessage": "🔍 Anti-Ambiguity gate check...",
-            "timeout": 5
           },
           {
             "type": "command",
@@ -193,6 +181,18 @@
             "type": "command",
             "command": ".claude/hooks/enforce-subagent-delegation.sh",
             "statusMessage": "🧑‍🤝‍🧑 Checking subagent delegation for large audit...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-anti-ambiguity.sh",
+            "statusMessage": "🔍 Anti-Ambiguity gate check...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/warn-template-drift.sh",
+            "statusMessage": "⚠️ Adapter template edits — use registry.yaml...",
             "timeout": 5
           }
         ]
@@ -238,6 +238,11 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/advance-role.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/capture-observation.sh",
             "statusMessage": "🧠 Recording observation + embedding to memory...",
             "timeout": 10
@@ -253,17 +258,24 @@
             "command": ".claude/hooks/capture-work-log.sh",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/advance-role.sh",
-            "timeout": 10
           }
         ]
       },
       {
         "matcher": "Write|Edit",
         "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/lint-task.sh",
+            "statusMessage": "📏 Lint task (Rule 15)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/track-discovery.sh",
+            "statusMessage": "🔍 Scanning for discoveries...",
+            "timeout": 5
+          },
           {
             "type": "command",
             "command": ".claude/hooks/auto-reindex-docs.sh",
@@ -284,18 +296,6 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/lint-task.sh",
-            "statusMessage": "📏 Lint task (Rule 15)...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/check-doc-size.sh",
-            "statusMessage": "📐 Checking doc size budget...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": ".claude/hooks/verify-changed-file.sh",
             "statusMessage": "📊 Analyzing changed file + cross-module impact...",
             "timeout": 10
@@ -303,6 +303,12 @@
           {
             "type": "command",
             "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-doc-size.sh",
+            "statusMessage": "📐 Checking doc size budget...",
             "timeout": 5
           },
           {
@@ -340,18 +346,29 @@
             "command": ".claude/hooks/remind-dogfood.sh",
             "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed...",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/track-discovery.sh",
-            "statusMessage": "🔍 Scanning for discoveries...",
-            "timeout": 5
           }
         ]
       },
       {
         "matcher": "Bash",
         "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/search-verify-remaining.sh",
+            "statusMessage": "✅ Verifying 0 matches remain after replace...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/advance-role.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/sync-task-current.sh",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": ".claude/hooks/auto-reindex-shell-ops.sh",
@@ -362,23 +379,6 @@
             "type": "command",
             "command": ".claude/hooks/auto-prune-deleted-files.sh",
             "statusMessage": "🧹 Pruning graph + docs RAG state for deleted files...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/search-verify-remaining.sh",
-            "statusMessage": "✅ Verifying 0 matches remain after replace...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/sync-task-current.sh",
-            "statusMessage": "📌 Syncing .task-current...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/advance-role.sh",
             "timeout": 10
           },
           {
@@ -440,6 +440,30 @@
           },
           {
             "type": "command",
+            "command": ".claude/hooks/intent-primer.sh",
+            "statusMessage": "🎯 Priming intent-interpretation vocabulary...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-skill-primer.sh",
+            "statusMessage": "🧠 Priming required-skill card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/rules-primer.sh",
+            "statusMessage": "📋 Priming workflow-integrity rules card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-resume-prompt.sh",
+            "statusMessage": "📋 Scanning for active audits to resume...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/remind-daily.sh",
             "statusMessage": "🗓️  Checking daily check-in recency...",
             "timeout": 10
@@ -478,30 +502,6 @@
             "command": ".claude/hooks/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/intent-primer.sh",
-            "statusMessage": "🎯 Priming intent-interpretation vocabulary...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/session-skill-primer.sh",
-            "statusMessage": "🧠 Priming required-skill card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/rules-primer.sh",
-            "statusMessage": "📋 Priming workflow-integrity rules card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/inject-resume-prompt.sh",
-            "statusMessage": "📋 Scanning for active audits to resume...",
-            "timeout": 10
           }
         ]
       },
@@ -519,6 +519,24 @@
       {
         "matcher": "compact|resume",
         "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/intent-primer.sh",
+            "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/rules-primer.sh",
+            "statusMessage": "📋 Re-priming workflow-integrity rules card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-resume-prompt.sh",
+            "statusMessage": "📋 Re-surfacing active audits after compaction...",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": ".claude/hooks/session-context.sh",
@@ -547,24 +565,6 @@
             "command": ".claude/hooks/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/intent-primer.sh",
-            "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/rules-primer.sh",
-            "statusMessage": "📋 Re-priming workflow-integrity rules card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/inject-resume-prompt.sh",
-            "statusMessage": "📋 Re-surfacing active audits after compaction...",
-            "timeout": 10
           }
         ]
       }
@@ -573,17 +573,6 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/session-context.sh",
-            "statusMessage": "🔄 Checking workflow state...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/agent-presence.sh",
-            "timeout": 5
-          },
           {
             "type": "command",
             "command": ".claude/hooks/nudge-thinking-os.sh",
@@ -618,6 +607,17 @@
             "type": "command",
             "command": ".claude/hooks/detect-exhaustive-intent.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-context.sh",
+            "statusMessage": "🔄 Checking workflow state...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/agent-presence.sh",
+            "timeout": 5
           }
         ]
       }
@@ -626,6 +626,18 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/verify-completion-claim.sh",
+            "statusMessage": "🔒 Verifying completion evidence (exhaustive intent)...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/prevent-premature-done.sh",
+            "statusMessage": "🧐 Checking for silent category exclusions...",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": ".claude/hooks/session-end.sh",
@@ -654,18 +666,6 @@
             "command": ".claude/hooks/auto-trace-rotate.sh",
             "statusMessage": "🧹 Rotating old trace files...",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/verify-completion-claim.sh",
-            "statusMessage": "🔒 Verifying completion evidence (exhaustive intent)...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/prevent-premature-done.sh",
-            "statusMessage": "🧐 Checking for silent category exclusions...",
-            "timeout": 10
           }
         ]
       }

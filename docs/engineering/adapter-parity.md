@@ -32,6 +32,31 @@ codex  = json.loads((REPO/".codex/hooks.json").read_text()).get("hooks", {})
 PY
 ```
 
+### Execution order within a group (deterministic, category-precedence)
+
+Within a single `(event, matcher)` group multiple hooks fire in sequence,
+and order is **contractual, not incidental** — the first hook to `exit 2`
+blocks the tool call and its message is what the user sees. The renderer
+sorts every group by a fixed **category precedence**, breaking ties by
+registry declaration index (a stable sort), so a hard safety check
+(credential / dangerous-command scan) always runs before a slower
+enforcement gate:
+
+```
+safety (0) → enforcement (10) → cognition (20) → task (25)
+  → retrieval (30) → observability (40) → reminder (50) → meta (60)
+```
+
+The precedence map is `CATEGORY_PRECEDENCE` in
+[src/cli/hook_renderer.py](../../src/cli/hook_renderer.py); an unknown
+category sorts to the tail. This means appending a new hook anywhere in
+`registry.yaml` cannot reorder a `block-*` safety hook behind an
+enforcement gate — the category, not the line number, decides priority.
+Dispatcher-coalesced groups (Codex `codex-*-dispatch.sh`) are replaced
+wholesale after the sort and keep their own delegate order, declared in
+[src/adapters/codex/adapter.yaml](../../src/adapters/codex/adapter.yaml)
+`hook_dispatchers[].delegates`.
+
 ### Hook coverage summary
 
 | Hook | Event | Matcher | Claude | Codex | Why the gap |

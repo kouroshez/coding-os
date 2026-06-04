@@ -34,6 +34,27 @@ import yaml
 
 HOOKS_DIR_PLACEHOLDER = "{{HOOKS_DIR}}"
 
+# Hook execution order within a single (event, matcher) group is contractual,
+# not incidental: hard safety checks (credential / dangerous-command scans)
+# MUST run before slower enforcement gates so a block is reached early and the
+# user sees the most critical reason first. The renderer sorts every group by
+# this category precedence, breaking ties by registry declaration index (a
+# stable sort) so order stays deterministic as hooks are appended. New
+# categories default to the tail. Dispatcher-coalesced groups (Codex) are
+# replaced wholesale afterwards and keep their own delegate order.
+# Contract: docs/engineering/adapter-parity.md § Execution order within a group.
+CATEGORY_PRECEDENCE: dict[str, int] = {
+    "safety": 0,
+    "enforcement": 10,
+    "cognition": 20,
+    "task": 25,
+    "retrieval": 30,
+    "observability": 40,
+    "reminder": 50,
+    "meta": 60,
+}
+_CATEGORY_PRECEDENCE_TAIL = 99
+
 
 @dataclass(frozen=True)
 class HookEntry:
@@ -169,12 +190,16 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
     structure.
     """
     output: dict[str, Any] = {"hooks": {}}
-    for hook in registry:
+    for idx, hook in enumerate(registry):
         # Adapter-scope filter (Phase Q.deep D4): an entry tagged with a
         # specific adapter only renders for that adapter. Untagged
         # entries remain cross-adapter.
         if hook.adapter_scope and hook.adapter_scope != caps.agent_id:
             continue
+        sort_key = (
+            CATEGORY_PRECEDENCE.get(hook.category, _CATEGORY_PRECEDENCE_TAIL),
+            idx,
+        )
         for ev in hook.events:
             event = ev["event"]
             matcher = ev.get("matcher", "")
@@ -199,7 +224,17 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
                 entry["statusMessage"] = ev["status_message"]
             if hook.timeout:
                 entry["timeout"] = hook.timeout
+            entry["_sort"] = sort_key
             group["hooks"].append(entry)
+
+    # Deterministic ordering: sort every group by category precedence (stable
+    # tie-break on registry index) BEFORE dispatcher coalescing replaces a
+    # group wholesale. Strip the temporary sort key from the emitted entries.
+    for groups in output["hooks"].values():
+        for group in groups:
+            group["hooks"].sort(key=lambda e: e["_sort"])
+            for e in group["hooks"]:
+                del e["_sort"]
 
     for (event, matcher), dispatcher in caps.dispatchers.items():
         groups = output["hooks"].setdefault(event, [])
