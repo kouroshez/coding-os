@@ -62,6 +62,9 @@ graph_os = [
     # silently degrades to the regex fallback (loses returns_type /
     # has_param_type / field_of_type / interface-embedding edges).
     "tree-sitter-go>=0.23.0,<0.26.0",
+    # code_php@v1 mirrors code_go (tree-sitter primary + regex fallback).
+    # Provides language_php() (handles <?php … ?> islands in mixed files).
+    "tree-sitter-php>=0.23.0,<0.26.0",
 ]
 
 # board_os — Phase L Scrumban web viewer (cos board --web).

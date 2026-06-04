@@ -24,6 +24,7 @@ _EXT_MAP = {
     ".yaml": ("yaml", ["code_yaml"]),
     ".yml": ("yaml", ["code_yaml"]),
     ".go": ("go", ["code_go", "contracts"]),
+    ".php": ("php", ["code_php", "contracts"]),
     ".json": ("json", ["code_json"]),
     ".toml": ("toml", ["code_toml"]),
     # Plain JavaScript routes through the TS extractor (JS is a syntactic
@@ -485,6 +486,7 @@ def _reindex_graph(
     from graph_os.extractors import (  # type: ignore
         code_go,
         code_json,
+        code_php,
         code_python,
         code_shell,
         code_toml,
@@ -499,6 +501,7 @@ def _reindex_graph(
     extractor_map = {
         "code_go": code_go.extract,
         "code_json": code_json.extract,
+        "code_php": code_php.extract,
         "code_python": code_python.extract,
         "code_ts": code_ts.extract,
         "code_shell": code_shell.extract,

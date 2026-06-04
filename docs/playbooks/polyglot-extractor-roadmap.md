@@ -250,6 +250,37 @@ node / correctness fix — not feature-padding (Rule 22).
 Verification: `uv run --extra graph_os pytest src/core/graph_os/tests/ -q`
 (new adversarial tests per group) + `cos graph-reindex` smoke on this repo.
 
+### 4.9 PHP + Laravel + WordPress + WHMCS (TASK-069)
+
+Net-new language. Mirrors `code_go` (tree-sitter primary + regex fallback)
+because PHP is class-heavy with real type hints — AST is mandatory for
+parity. Grammar: `tree-sitter-php` via `language_php()` (handles
+`<?php … ?>` islands in mixed HTML/PHP files).
+
+**PHP language (`code_php.py`) — Python-gold parity:**
+
+| Emitted | Detail |
+|---|---|
+| nodes | `code:file`, `code:module`(namespace), `code:class`, `code:interface`, trait → `code:class` + `metadata.php_kind=trait`, `code:method`, `code:function`, `code:variable`(typed property + class const), `code:import`(`use`, incl alias + grouped `use A\{B,C}`) |
+| edges | `contains`, `imports`, `inherits_from`(extends), `implements`, `uses_trait`(trait composition; signal on an `inherits_from` edge), `has_param_type`/`returns_type`(incl `?T` nullable, `A\|B` union, `A&B` intersection), `field_of_type`(typed props), `is_decorated_by`(PHP-8 `#[Attr]`), `calls`/`constructs` with **same-file resolution** — bare `B()`, `$this->m()`, `self::m()`/`static::m()`/`ClassName::m()`, `new X()` → real uids @0.9 (the Go `same_scope` analog) |
+
+**Framework contracts (`contracts.py` PHP scanners), via the existing
+ContractMatch → handles_route / handles_event / handles_command pipeline:**
+
+| Framework | Patterns → graph |
+|---|---|
+| **Laravel** | `Route::{get,post,put,patch,delete,any,match}('/p', handler)` → http; `Route::resource/apiResource('users', Ctrl::class)` → 7/4 synthesised routes (DRF-style); `Route::prefix()->middleware()->group()` → per-variable prefix join (reuse `_go_group_prefixes` idea); handler `[Ctrl::class,'m']`/`'Ctrl@m'` → route→handler `calls`; `extends Model`→model, `extends Command`+`$signature`→cli, Jobs/Events/Listeners/FormRequests → metadata |
+| **WordPress** | `add_action`/`add_filter('hook', cb)` → `handles_event` (cb→handler); `do_action`/`apply_filters` → event fire-site; `add_shortcode`; `register_post_type` → CPT; `register_rest_route('ns','/r',[methods])` → http; `wp_ajax_{action}`/`wp_ajax_nopriv_*` → ajax route |
+| **WHMCS** | `add_hook('Point', prio, cb)` → `handles_event`; `{module}_{Action}` functions where `{module}` == file/dir stem (`_CreateAccount`, `_ConfigOptions`, `_ClientArea`, …) → module-function tag + module-type (provisioning/registrar/addon/gateway) from action set + `modules/{servers,registrars,addons,gateways}/` path |
+
+Wiring: `pyproject [graph_os] += tree-sitter-php`; `code_php` self-loads
+`tree-sitter-php` via `language_php()` (no `tree_sitter_overlay` loader —
+no other consumer); `_EXT_MAP[".php"] = ("php", ["code_php","contracts"])`;
+`types.py` provenance `code_php@v1`/`code_php_ts@v1`. Verification:
+`uv run --extra graph_os pytest src/core/graph_os/tests/ -q` + per-framework
+adversarial suites + `cos graph-reindex --force` errors=0. A `src/templates/php/`
+stack for `cos init` is OUT of scope here (separate task).
+
 ## 5. Implementation checklist (grouped, ordered)
 
 ### Epic A — Fix the broken (highest immediate value)

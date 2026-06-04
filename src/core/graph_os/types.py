@@ -215,6 +215,7 @@ _EXTRACTOR_PROVENANCE: dict[str, str] = {
     "code_ts_ts@v1": "tree-sitter",
     "code_go@v1": "regex",
     "code_go_ts@v1": "tree-sitter",
+    "code_php@v1": "tree-sitter",
     "code_shell@v1": "regex",
     "code_yaml@v1": "parser",
     "contracts@v1": "regex",
