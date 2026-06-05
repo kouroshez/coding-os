@@ -208,6 +208,43 @@ class TestCosAmbiguityCheck:
         assert result["data"]["passed"] is False
         assert len(result["data"]["violations"]) > 0
 
+    def test_pass_clears_prior_violations(self, mcp_tools, db_path):
+        # The enforce-anti-ambiguity gate reads ambiguity_violations as the
+        # CURRENT state — a later passing check must clear the session's rows.
+        import sqlite3
+        from pathlib import Path
+
+        from cognition_schemas import AnalystOutput, EvidenceBundle
+
+        agent_dir = Path(".coding-os") / "claude"
+        agent_dir.mkdir(parents=True, exist_ok=True)
+        sid = "ses-amb-clear"
+
+        bad = EvidenceBundle(task_marker="feat-amb", persona_id="p")
+        bad.analyst = AnalystOutput(problem_statement="x", actors=[])
+        (agent_dir / f"evidence_bundle_{sid}.json").write_text(bad.model_dump_json())
+        r1 = mcp_tools.call(
+            "cos_ambiguity_check", session_id=sid, task_marker="feat-amb", persona_id="p"
+        )
+        assert r1["data"]["passed"] is False
+        with sqlite3.connect(db_path) as c:
+            n = c.execute(
+                "SELECT COUNT(*) FROM ambiguity_violations WHERE session_id=?", (sid,)
+            ).fetchone()[0]
+        assert n > 0
+
+        ok_bundle = EvidenceBundle(task_marker="feat-amb", persona_id="p")
+        (agent_dir / f"evidence_bundle_{sid}.json").write_text(ok_bundle.model_dump_json())
+        r2 = mcp_tools.call(
+            "cos_ambiguity_check", session_id=sid, task_marker="feat-amb", persona_id="p"
+        )
+        assert r2["data"]["passed"] is True
+        with sqlite3.connect(db_path) as c:
+            n2 = c.execute(
+                "SELECT COUNT(*) FROM ambiguity_violations WHERE session_id=?", (sid,)
+            ).fetchone()[0]
+        assert n2 == 0, "passing check must clear prior violations"
+
 
 # ---------------------------------------------------------------------------
 # cos_situation_detect

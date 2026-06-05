@@ -412,24 +412,29 @@ def register_cos_ambiguity_check(mcp, db_path):
         bundle = _load_bundle(session_id, task_marker, persona_id)
         violations = cog.ambiguity_check(bundle)
 
-        if violations:
-            try:
-                with sqlite3.connect(db_path) as conn:
-                    for v in violations:
-                        conn.execute(
-                            "INSERT INTO ambiguity_violations "
-                            "(session_id, formula_id, criterion, detail, ts) "
-                            "VALUES (?, ?, ?, ?, ?)",
-                            (
-                                session_id,
-                                v["formula"],
-                                v["criterion"],
-                                v.get("detail", ""),
-                                _now_iso(),
-                            ),
-                        )
-            except Exception as exc:
-                logger.debug("ambiguity_violations insert failed: %s", exc)
+        # The enforce-anti-ambiguity gate reads this table as the CURRENT ambiguity
+        # state for the session, so each check supersedes the prior one: clear old
+        # rows first (a pass leaves none → the gate clears) then record this check's.
+        try:
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "DELETE FROM ambiguity_violations WHERE session_id = ?", (session_id,)
+                )
+                for v in violations:
+                    conn.execute(
+                        "INSERT INTO ambiguity_violations "
+                        "(session_id, formula_id, criterion, detail, ts) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (
+                            session_id,
+                            v["formula"],
+                            v["criterion"],
+                            v.get("detail", ""),
+                            _now_iso(),
+                        ),
+                    )
+        except Exception as exc:
+            logger.debug("ambiguity_violations write failed: %s", exc)
 
         return ok(
             {"violations": violations, "passed": len(violations) == 0},
