@@ -1,0 +1,16 @@
+{
+  "wordpress": {
+    "ecosystem": "wordpress",
+    "package": "wordpress",
+    "version": "7.0",
+    "source": "https://wordpress.org/news/category/releases/",
+    "checked": "2026-06-04"
+  },
+  "php": {
+    "ecosystem": "endoflife",
+    "package": "php",
+    "version": "8.5.7",
+    "source": "https://endoflife.date/php",
+    "checked": "2026-06-04"
+  }
+}
