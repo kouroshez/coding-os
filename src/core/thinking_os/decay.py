@@ -158,12 +158,15 @@ def run_decay(
         # creation within archive_prune_days). Deeply-validated patterns
         # (times_validated>=5) survive even when archived — they may resurface.
         if not dry_run:
+            # Grace window is time-since-archived (archived_at). Legacy rows archived
+            # before v33 have NULL archived_at → fall back to the old COALESCE date so
+            # they stay prunable; new rows get a real archive_prune_days grace.
             pruned = conn.execute(
                 "DELETE FROM learned_patterns "
                 "WHERE promoted_to = 'archived' "
                 "AND confidence <= ? "
                 "AND COALESCE(times_validated, 0) < 5 "
-                "AND COALESCE(last_accessed_at, last_validated, created_at) "
+                "AND COALESCE(archived_at, last_accessed_at, last_validated, created_at) "
                 "    < datetime('now', ?)",
                 (CONFIDENCE_FLOOR + 0.001, f"-{int(archive_prune_days)} days"),
             )
@@ -211,8 +214,12 @@ def run_decay(
             # Archive if at floor
             if new_conf <= CONFIDENCE_FLOOR + 0.001:
                 if not dry_run:
+                    # Stamp archived_at only on first archival (COALESCE keeps the
+                    # original) so the prune grace window measures time-since-archived.
                     conn.execute(
-                        "UPDATE learned_patterns SET promoted_to = 'archived' WHERE id = ?",
+                        "UPDATE learned_patterns SET promoted_to = 'archived', "
+                        "archived_at = COALESCE(archived_at, CURRENT_TIMESTAMP) "
+                        "WHERE id = ?",
                         (d["id"],),
                     )
                 stats["archived"] += 1

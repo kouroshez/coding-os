@@ -83,6 +83,48 @@ class TestFreshPatternSurvivesFirstDecay:
 
 
 # ---------------------------------------------------------------------------
+# Regression — prune grace window measures time-since-archived (audit N1 / 1b)
+# ---------------------------------------------------------------------------
+
+
+class TestArchivedAtPruneGrace:
+    @staticmethod
+    def _insert_archived(c: sqlite3.Connection, archived_offset: str) -> int:
+        cur = c.execute(
+            "INSERT INTO learned_patterns "
+            "(pattern, memory_type, domain, source, confidence, times_validated, "
+            "promoted_to, created_at, last_validated, last_accessed_at, archived_at) "
+            "VALUES (?, 'pattern', 'TEST', 'mined', 0.1, 0, 'archived', "
+            "datetime('now','-200 days'), datetime('now','-200 days'), "
+            "datetime('now','-200 days'), datetime('now', ?))",
+            (f"archived {archived_offset}", archived_offset),
+        )
+        return int(cur.lastrowid)
+
+    def test_recently_archived_survives_prune(self, db_path: Path) -> None:
+        c = init_db(db_path)
+        pid = self._insert_archived(c, "-1 days")
+        c.commit()
+        c.close()
+        run_decay(db_path)
+        c2 = init_db(db_path)
+        row = c2.execute("SELECT id FROM learned_patterns WHERE id = ?", (pid,)).fetchone()
+        c2.close()
+        assert row is not None, "freshly-archived pattern pruned inside the grace window"
+
+    def test_long_archived_is_pruned(self, db_path: Path) -> None:
+        c = init_db(db_path)
+        pid = self._insert_archived(c, "-120 days")
+        c.commit()
+        c.close()
+        run_decay(db_path)
+        c2 = init_db(db_path)
+        row = c2.execute("SELECT id FROM learned_patterns WHERE id = ?", (pid,)).fetchone()
+        c2.close()
+        assert row is None, "long-dormant archived pattern should be pruned"
+
+
+# ---------------------------------------------------------------------------
 # effective_decay_rate
 # ---------------------------------------------------------------------------
 

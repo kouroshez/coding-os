@@ -1588,6 +1588,14 @@ def _migrate_v32_log_events(conn: sqlite3.Connection) -> None:
     logger.info("Migration v32 applied: log_events + log_fingerprints (observability eye durable store)")
 
 
+def _migrate_v33_pattern_archived_at(conn: sqlite3.Connection) -> None:
+    """Migration v33 — learned_patterns.archived_at so the decay prune measures a
+    real time-since-archived grace window (was COALESCE of access/validate/create)."""
+    if not _column_exists(conn, "learned_patterns", "archived_at"):
+        conn.execute("ALTER TABLE learned_patterns ADD COLUMN archived_at DATETIME")
+    logger.info("Migration v33 applied: learned_patterns gained archived_at")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -1637,7 +1645,8 @@ CREATE TABLE IF NOT EXISTS learned_patterns (
     last_accessed_at DATETIME,
     promoted_to     TEXT,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_validated  DATETIME
+    last_validated  DATETIME,
+    archived_at     DATETIME
 );
 
 -- experiment_log: hypothesis tracking per task
@@ -1868,6 +1877,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         32,
         "Observability eye v32: log_events + log_fingerprints durable error store",
         _migrate_v32_log_events,
+    ),
+    (
+        33,
+        "Memory durability v33: learned_patterns.archived_at for prune grace window",
+        _migrate_v33_pattern_archived_at,
     ),
 ]
 

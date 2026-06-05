@@ -417,7 +417,7 @@ def _upsert_pattern(
         # so a pattern a prior decay run archived becomes visible to suggest/digest again.
         conn.execute(
             "UPDATE learned_patterns SET confidence = ?, last_validated = CURRENT_TIMESTAMP, "
-            "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL "
+            "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL, archived_at = NULL "
             "WHERE id = ?",
             (new_conf, existing["id"]),
         )
