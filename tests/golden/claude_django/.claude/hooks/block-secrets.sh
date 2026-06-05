@@ -44,10 +44,16 @@ if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
   CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty' 2>/dev/null || echo "")
   FILE_BASENAME="$(basename "$FILE_PATH" 2>/dev/null || echo "")"
 
-  # Skip .env.example, test files, mock files, and docs
-  if [[ "$FILE_PATH" == *.env.example* ]] || [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *mock* ]] || [[ "$FILE_PATH" == *.md ]]; then
-    exit 0
-  fi
+  # Skip docs + genuine test/mock files. Match path SEGMENTS / basenames, not
+  # bare substrings — `*test*` used to skip ANY path containing "test"
+  # (latest/, contest/), silently disabling secret scanning there.
+  case "$FILE_PATH" in
+    *.env.example*|*.md|*.markdown) exit 0 ;;
+    */tests/*|*/test/*|*/__tests__/*|*/__mocks__/*|*/mocks/*|*/fixtures/*) exit 0 ;;
+  esac
+  case "$FILE_BASENAME" in
+    test_*|*_test.*|*.test.*|*.spec.*|mock_*|*_mock.*|conftest.py) exit 0 ;;
+  esac
 
   # Block live Stripe keys (sk_live_, pk_live_ with real-length values)
   if echo "$CONTENT" | grep -qE 'sk_live_[a-zA-Z0-9]{20,}'; then
@@ -107,9 +113,11 @@ if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
     exit 2
   fi
 
-  # Block OpenAI / Anthropic API keys.
-  # OpenAI: sk-... (≥40 chars body), sk-proj-..., or org keys. Anthropic: sk-ant-...
-  if echo "$CONTENT" | grep -qE 'sk-(ant-)?(proj-)?[A-Za-z0-9_\-]{32,}'; then
+  # Block OpenAI / Anthropic API keys. The discriminator is the SPECIFIC prefix
+  # (sk-ant-api##- / sk-proj- / classic sk-+40 contiguous alnum) — kebab-case
+  # slugs like `sk-product-identifier-x` lack it and no longer false-fire. The
+  # ant/proj bodies still allow base64url `-`/`_` so real keys are caught.
+  if echo "$CONTENT" | grep -qE 'sk-ant-(api|admin)[0-9]{2}-[A-Za-z0-9_-]{80,}|sk-proj-[A-Za-z0-9_-]{40,}|sk-[A-Za-z0-9]{40,}'; then
     echo "BLOCKED: OpenAI/Anthropic API key detected. Use environment variables (OPENAI_API_KEY, ANTHROPIC_API_KEY)." >&2
     exit 2
   fi

@@ -25,7 +25,7 @@ if [[ "$LEN" -lt 80 ]]; then
   exit 0
 fi
 
-MARKER="${COS_AGENT_DIR}/.zoom-prompt-suggested"
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.zoom-prompt-suggested"  # panel-first (TASK-107): session-context clears it at panel scope
 GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
 
 # Check gate validity (not just file existence).

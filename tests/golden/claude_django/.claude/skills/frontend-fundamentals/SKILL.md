@@ -197,10 +197,17 @@ Before opening a PR touching a frontend file:
 
 ## References
 
-Stack-specific specializations extend this skill via `depends_on: [frontend-fundamentals]`:
+Stack-specific specializations extend this skill via `depends_on: [frontend-fundamentals]` — your project's framework skill (nextjs-react / react-native-mobile) is present when that stack is installed.
 
-- [src/templates/nextjs/skills/nextjs-react/SKILL.md](../../../templates/nextjs/skills/nextjs-react/SKILL.md)
-- [src/templates/nextjs/skills/frontend-design/SKILL.md](../../../templates/nextjs/skills/frontend-design/SKILL.md)
-- future: `src/templates/react-native/skills/react-native/SKILL.md`
+## Tooling
+
+Flag React re-render + key smells (inline-ref props, index keys, dangerous HTML):
+`python3 scripts/check_frontend.py src/frontend/**/*.tsx`
+
+## See also
+
+- [references/rendering-and-state.md](references/rendering-and-state.md) — re-renders, keys, state location, data fetching.
+- [assets/frontend-checklist.md](assets/frontend-checklist.md) — the review gate.
+- [frontend-design](../frontend-design/SKILL.md) — visual/UX design principles (any framework) · [state-management](../state-management/SKILL.md) · [a11y](../a11y/SKILL.md) · [performance](../performance/SKILL.md).
 
 Universal principles from [clean-code](../clean-code/SKILL.md) still apply — this skill does not relax any of them.
