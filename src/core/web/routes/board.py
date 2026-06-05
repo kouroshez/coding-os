@@ -451,6 +451,88 @@ async def board_move(
     return unwrap(result)
 
 
+@router.patch("/task/{task_id}")
+async def board_task_edit(
+    task_id: str,
+    title: str | None = Body(None),
+    priority: str | None = Body(None),
+    swimlane: str | None = Body(None),
+    appetite: str | None = Body(None),
+    epic: str | None = Body(None),
+    labels: list[str] | None = Body(None),
+    body: str | None = Body(None),
+    _rl=Depends(make_rate_limit_dep("board.task.edit")),
+    _m=Depends(make_metrics_dep("board.task.edit")),
+):
+    """Edit a task's frontmatter fields and/or body from the panel (human actor)."""
+    bt = _board_tools()
+    if bt is None:
+        return unwrap(_unavailable())
+    from board_os._agent_runtime import human_actor
+
+    actor = human_actor()
+    conn = _db_conn()
+    try:
+        result = bt.cos_task_edit(
+            conn,
+            task_id=task_id,
+            title=title,
+            priority=priority,
+            swimlane=swimlane,
+            appetite=appetite,
+            epic=epic,
+            labels=labels,
+            body=body,
+            actor_type="human",
+            actor_id=actor["id"],
+            source="web",
+        )
+    finally:
+        conn.close()
+    return unwrap(result)
+
+
+@router.post("/task/{task_id}/ready")
+async def board_task_ready(
+    task_id: str,
+    ready: bool = Body(True, embed=True),
+    _rl=Depends(make_rate_limit_dep("board.task.ready")),
+    _m=Depends(make_metrics_dep("board.task.ready")),
+):
+    """Toggle the 'ready' label on a task from the panel (human actor)."""
+    bt = _board_tools()
+    if bt is None:
+        return unwrap(_unavailable())
+    from board_os._agent_runtime import human_actor
+
+    actor = human_actor()
+    conn = _db_conn()
+    try:
+        result = bt.cos_task_ready(conn, task_id=task_id, ready=ready, agent_session=actor["id"])
+    finally:
+        conn.close()
+    return unwrap(result)
+
+
+@router.get("/task/{task_id}/history")
+async def board_task_history(
+    task_id: str,
+    include_commits: bool = Query(True),
+    _rl=Depends(make_rate_limit_dep("board.task.history")),
+    _m=Depends(make_metrics_dep("board.task.history")),
+):
+    """Return the actor-attributed history (create + status + edits + commits) for a task."""
+    bt = _board_tools()
+    if bt is None:
+        return unwrap(_unavailable())
+    conn = _db_conn()
+    try:
+        result = bt.cos_task_history(conn, task_id=task_id, include_commits=include_commits)
+    finally:
+        conn.close()
+    return unwrap(result)
+
+
 @router.get("/config")
 async def board_config(
     _rl=Depends(make_rate_limit_dep("board.config")),
