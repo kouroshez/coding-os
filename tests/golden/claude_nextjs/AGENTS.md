@@ -41,7 +41,7 @@ For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
 ### Orient (targeted reads + memory)
 
 1. **Targeted Read** — ONLY files from Read List. Note findings in task Notes. [P3]
-2. **Memory Check** (500tok max): `thinking_os_search` → `cos_learn_suggest` → `thinking_os_details` if conf>0.7.
+2. **Memory Check** (500tok max): `cos_search` → `cos_learn_suggest` → `cos_details` if conf>0.7.
 3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
 4. **Model Update** — new dimensions? Reframe trigger → back to Classify.
 
@@ -112,7 +112,7 @@ Order of preference when two layers look equally plausible: **Memory → Docs �
 
 ## Skills
 
-`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `nextjs-react`, `frontend-design`. Config: `$COS_STATE_DIR/settings.json`.
+`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `nextjs-react`. Config: `$COS_STATE_DIR/settings.json`.
 
 ## Context Discipline
 

@@ -210,8 +210,15 @@ Runbooks rot fast — quarterly refresh in the on-call rotation handoff.
 - **Skipping the postmortem because "it was small"** — every SEV-1/2 gets one.
 - **Pre-incident testing of the rollback procedure missing** — first time you roll back is in the incident; the rollback fails.
 
+## Tooling
+
+Classify severity deterministically (no 3am debate):
+`python3 scripts/classify_severity.py --core-down --users-affected 70`
+
 ## See also
 
+- [references/severity-and-runbook.md](references/severity-and-runbook.md) — SEV scale, roles, lifecycle, blameless postmortem.
+- [assets/incident-checklist.md](assets/incident-checklist.md) — the during-incident gate.
 - [observability](../observability/SKILL.md) — alerts come from here.
 - [thinking_os](../thinking_os/SKILL.md) — CHAOTIC quadrant routes here (act → stabilize → then diagnose).
 - [deployment-cicd](../deployment-cicd/SKILL.md) — rollback is the most-used incident action.

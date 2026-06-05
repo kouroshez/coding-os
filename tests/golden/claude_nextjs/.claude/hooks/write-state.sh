@@ -9,7 +9,7 @@
 # Path routing — when <state-file> resolves (by basename) to a per-panel
 # file in $COS_PER_PANEL_FILES, the write is redirected to $COS_PANEL_DIR
 # so two panels of the same agent don't trample each other. Files NOT in
-# the allowlist (e.g. .task-mode, .model) keep the legacy $COS_AGENT_DIR
+# the allowlist (e.g. .model, .swimlane) keep the legacy $COS_AGENT_DIR
 # semantics. The routing helper cos_state_path is the SSOT for this
 # decision — see src/core/hooks/cos-env.sh.
 set -euo pipefail

@@ -37,6 +37,12 @@ if [[ "$_FORCE_PUSH_OPT_IN" != "1" ]]; then
     echo "BLOCKED: Force push to main/master is extremely dangerous. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
     exit 2
   fi
+  # Refspec force: `git push origin +main` / `+HEAD:main` rewrites history too.
+  if echo "$COMMAND" | grep -qE 'git push[^|;&]*[[:space:]]\+([^[:space:]]*:)?(main|master)\b'; then
+    cos_log_hook block-dangerous-commands block "rule=force-push-main-refspec"
+    echo "BLOCKED: force-push refspec (+main/+master) rewrites shared history. Use a feature branch instead. (Override: COS_ALLOW_FORCE_PUSH_MAIN=1)" >&2
+    exit 2
+  fi
 fi
 
 # Block dropping database tables
@@ -46,10 +52,13 @@ if echo "$COMMAND" | grep -qiE 'DROP\s+(TABLE|DATABASE)'; then
   exit 2
 fi
 
-# Block rm -rf on project root or critical directories
-if echo "$COMMAND" | grep -qE 'rm -rf\s+(/|\.|\.\.|backend|frontend|docs|infrastructure)\b'; then
-  cos_log_hook block-dangerous-commands block "rule=rm-rf-root"
-  echo "BLOCKED: rm -rf on project directories is destructive. Be specific about which files to remove." >&2
+# Block recursive rm of a critical path (root / cwd / parent / glob / project
+# dirs / top-level absolute). Delegated to a shlex-correct helper so flag-order
+# (-fr, -r -f) and bare /·.·..·* targets can't slip past a regex word-boundary.
+RM_VERDICT=$(echo "$INPUT" | python3 "$(dirname "$0")/_helpers/check_dangerous_rm.py" 2>/dev/null || echo allow)
+if [ "$RM_VERDICT" = "block" ]; then
+  cos_log_hook block-dangerous-commands block "rule=rm-rf-critical"
+  echo "BLOCKED: recursive rm targeting a critical path (/, ., .., *, a project dir, or a top-level directory). Name the exact files to remove, or ask the user to run it manually." >&2
   exit 2
 fi
 

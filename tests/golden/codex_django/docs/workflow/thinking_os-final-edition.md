@@ -1393,11 +1393,11 @@ python3 .claude/thinking_os/bootstrap_outcomes.py --dry-run # preview only
 
 **MCP tools** (available in Orient Memory Check):
 
-- `thinking_os_search` — similarity search across observations
+- `cos_search` — similarity search across observations
 - `cos_learn_suggest` — route task to best agent/model based on learned patterns
 - `cos_learn_extract` — extract patterns from recent task_outcomes
 - `cos_metric_record` — manual metric recording (auto-recorded at session end)
-- `thinking_os_health` — live health status via MCP
+- `cos_health` — live health status via MCP
 
 ---
 

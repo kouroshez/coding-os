@@ -15,6 +15,9 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+# Upgrade panel id from stdin session_id (TASK-107) so the write-state.sh
+# subprocess below resolves THIS panel's dir, not a stale ppid-derived one.
+command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
 TASK_ID=""

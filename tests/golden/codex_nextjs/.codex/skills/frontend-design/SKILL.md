@@ -1,45 +1,76 @@
 ---
 name: frontend-design
-description: Create distinctive, production-grade frontend interfaces with high design quality. Use when building web components, pages, or applications where aesthetic direction matters. Pairs with frontend-fundamentals (technical UI patterns) and a11y (accessibility). frontend-design is the aesthetic-direction skill; frontend-fundamentals is the implementation-pattern skill — load both for UI work.
-last_reviewed: "2026-05-11"
+tier: quality
+domain: [frontend]
+description: Create distinctive, production-grade visual interfaces — design principles that apply to ANY frontend (React, Next.js, Vue, Svelte, plain HTML/CSS, React Native). Use when the aesthetic direction matters: building a component, page, landing site, or app where it must look intentional, not generic "AI slop". Covers visual hierarchy, spacing/rhythm, typography, color + contrast, layout, and design tokens — independent of framework. Triggers — "make this look good", "design", "UI", "landing page", "the spacing feels off", "color palette", "it looks generic/AI". Pairs with frontend-fundamentals (implementation patterns), a11y (accessibility — aesthetic without it is a lawsuit), state-management.
+globs: ""
+paths: []
+last_reviewed: "2026-06-04"
 ---
 
-This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. It is the *aesthetic-direction* counterpart to [frontend-fundamentals](../../../../core/skills/frontend-fundamentals/SKILL.md) (three-state UI, hydration, performance) and [a11y](../../../../core/skills/a11y/SKILL.md) (WCAG 2.2 AA). Always load all three for non-trivial UI work — aesthetic without a11y is a lawsuit; aesthetic without technical patterns is a tech-debt timebomb.
+# Frontend Design
 
-The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
+Good design looks *intentional* — every spacing value, type size, and color is a decision, not a default. This skill is the aesthetic direction, and it is **framework-independent**: the same principles apply whether you write React, Vue, Svelte, React Native, or hand-written HTML/CSS. The implementation patterns are owned by [frontend-fundamentals](../frontend-fundamentals/SKILL.md); accessibility by [a11y](../a11y/SKILL.md) — load all three for real UI work (aesthetic without a11y is a lawsuit; aesthetic without patterns is tech debt).
 
-## Design Thinking
+> Check a color pair against WCAG contrast (design + a11y in one):
+> `python3 scripts/check_contrast.py "#1a1a1a" "#ffffff"`
 
-Before coding, understand the context and commit to a BOLD aesthetic direction:
+## Avoid "AI slop" — the generic look
 
-- **Purpose**: What problem does this interface solve? Who uses it?
-- **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
-- **Constraints**: Technical requirements (framework, performance, accessibility).
-- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
+The default generic interface: even gray borders everywhere, centered everything,
+one font weight, purple-to-blue gradients, emoji as iconography, no hierarchy. It
+reads as "no decisions were made". Distinctive design makes deliberate choices: a
+real type scale, intentional asymmetry, a restrained palette with one accent,
+generous or deliberately tight spacing — consistently applied.
 
-**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work - the key is intentionality, not intensity.
+## The principles (framework-agnostic)
 
-Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
+1. **Hierarchy** — the eye should land on the most important thing first. Achieve
+   it with size, weight, color, and space — not by making everything bold.
+2. **Spacing rhythm** — use a scale (4/8px base: 4, 8, 12, 16, 24, 32, 48, 64),
+   never arbitrary values. Consistent spacing is most of what "looks polished" is.
+3. **Typography** — a type scale (not 14 random sizes); limited weights; line-height
+   ~1.5 for body, tighter for headings; measure (line length) ~45–75 characters.
+4. **Color** — a small palette: a neutral ramp + one or two accents. Define
+   semantic roles (surface, text, primary, danger), not raw hex scattered in code.
+   Every text/background pair must pass contrast — `check_contrast.py`.
+5. **Layout** — align to a grid; respect proximity (related things close, unrelated
+   apart); use whitespace as a tool, not filler.
 
-- Production-grade and functional
-- Visually striking and memorable
-- Cohesive with a clear aesthetic point-of-view
-- Meticulously refined in every detail
+Full treatment → [references/design-principles.md](references/design-principles.md).
 
-## Frontend Aesthetics Guidelines
+## Design tokens — one source of truth
 
-Focus on:
+```
+// tokens (CSS vars / a theme object) — the SSOT for the look
+--space-1: 4px; --space-2: 8px; ... --radius: 8px;
+--color-surface: #fff; --color-text: #1a1a1a; --color-primary: #2563eb;
+```
 
-- **Typography**: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter; opt instead for distinctive choices that elevate the frontend's aesthetics; unexpected, characterful font choices. Pair a distinctive display font with a refined body font.
-- **Color & Theme**: Commit to a cohesive aesthetic. Use CSS variables for consistency. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
-- **Motion**: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
-- **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
-- **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
+Define spacing, color, radius, type as **tokens**, reference them everywhere —
+never hardcode `margin: 13px` or `#3b82f6` inline. Tokens make the design
+consistent and themeable (dark mode = swap the token values). This is the
+api-contract-discipline principle applied to visual values.
 
-NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character.
+## Responsive + state, by default
 
-Interpret creatively and make unexpected choices that feel genuinely designed for the context. No design should be the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices (Space Grotesk, for example) across generations.
+Design mobile-first and scale up; test the real breakpoints, not just a desktop
+width. Every interactive element needs its full state set: default, hover, focus
+(visible — a11y), active, disabled, loading, and the empty/error data states.
+A design that only shows the happy, populated, desktop view is half-designed.
 
-**IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
+## Anti-patterns (reject on sight)
 
-Remember: Claude is capable of extraordinary creative work. Don't hold back, show what can truly be created when thinking outside the box and committing fully to a distinctive vision.
+- Arbitrary spacing (`margin: 13px`, `gap: 7px`) instead of a scale.
+- Raw hex/px scattered in components instead of tokens.
+- One font size/weight for everything → no hierarchy.
+- Centered everything, gray borders, generic gradient → AI slop.
+- Color pairs that fail contrast (looks fine to you, invisible to many).
+- Missing focus styles (removed `outline` with no replacement) → inaccessible.
+- Only the happy/populated/desktop state designed.
+
+## See also
+
+- [references/design-principles.md](references/design-principles.md) — hierarchy, spacing, type, color, layout in depth.
+- [assets/design-checklist.md](assets/design-checklist.md) — the review gate.
+- [frontend-fundamentals](../frontend-fundamentals/SKILL.md) — implementation patterns · [a11y](../a11y/SKILL.md) — accessibility · [performance](../performance/SKILL.md).

@@ -41,9 +41,16 @@ fi
 # exhaustive=true from an earlier prompt persists into later turns where
 # the user moved on to a non-exhaustive ask, and the Stop guardian
 # fires on ghost predicates the current bundle cannot satisfy.
-INTENT_JSON=$(printf '%s' "$INPUT" | python3 "$HELPER" 2>/dev/null || echo "")
-if [[ -z "$INTENT_JSON" ]]; then
-  cos_log_hook detect-exhaustive-intent skip "reason=helper_empty"
+INTENT_ERR=$(mktemp)
+INTENT_RC=0
+INTENT_JSON=$(printf '%s' "$INPUT" | python3 "$HELPER" 2>"$INTENT_ERR") || INTENT_RC=$?
+INTENT_STDERR=$(cat "$INTENT_ERR" 2>/dev/null || true); rm -f "$INTENT_ERR"
+if [[ "$INTENT_RC" -ne 0 || -z "$INTENT_JSON" ]]; then
+  # Helper crash: surface LOUD to the eye (was a silent skip — we never knew
+  # exhaustive-intent detection had broken). Default stays open (no enforcement
+  # this turn) for availability, but it is no longer silent.
+  cos_say error hook.detect_exhaustive_intent "intent helper failed (rc=${INTENT_RC}) — exhaustive detection skipped this turn" detail="${INTENT_STDERR:0:200}" 2>/dev/null || true
+  cos_log_hook detect-exhaustive-intent skip "reason=helper_failed rc=${INTENT_RC}" || true
   exit 0
 fi
 

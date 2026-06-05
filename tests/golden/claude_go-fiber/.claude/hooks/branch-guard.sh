@@ -60,10 +60,27 @@ if [[ ! -f "$HELPER" ]]; then
   exit 0
 fi
 
-# Run the helper with a short timeout — python3 cold-start on macOS is
-# ~50-150ms; the parser itself is microseconds. 5s is generous.
-VERDICT_JSON=$(printf '%s' "$INPUT" | python3 "$HELPER" 2>/dev/null || echo '{"verdict":"allow"}')
-VERDICT=$(echo "$VERDICT_JSON" | jq -r '.verdict // "allow"' 2>/dev/null || echo "allow")
+# Run the helper, capturing BOTH stdout (verdict) and stderr (crash detail).
+# We are past the fast-skip, so the command IS git-related: a guard that
+# cannot evaluate it must NOT silently allow (the old `2>/dev/null || allow`
+# was a fail-OPEN security inversion — the guard silently stopped guarding,
+# crash recorded nowhere). On helper failure we fail CLOSED and surface the
+# crash to the eye. No non-git blast radius: non-git Bash exited at the fast-skip.
+HELPER_ERR=$(mktemp)
+HELPER_RC=0
+VERDICT_JSON=$(printf '%s' "$INPUT" | python3 "$HELPER" 2>"$HELPER_ERR") || HELPER_RC=$?
+HELPER_STDERR=$(cat "$HELPER_ERR" 2>/dev/null || true); rm -f "$HELPER_ERR"
+
+if [[ "$HELPER_RC" -ne 0 || -z "$VERDICT_JSON" ]]; then
+  cos_say error hook.branch_guard "branch-guard helper failed (rc=${HELPER_RC}) — failing closed on git command" detail="${HELPER_STDERR:0:200}" 2>/dev/null || true
+  cos_log_hook branch-guard block "rule=helper-crash rc=${HELPER_RC}" || true
+  echo "BLOCKED: branch-guard helper failed (rc=${HELPER_RC}) — cannot verify this git command; failing closed." >&2
+  echo "  Fix src/core/hooks/_helpers/branch_guard_check.py, or set COS_GIT_WORKFLOW=pr to bypass branch-guard." >&2
+  [[ -n "$HELPER_STDERR" ]] && echo "  helper stderr: ${HELPER_STDERR}" >&2
+  exit 2
+fi
+
+VERDICT=$(echo "$VERDICT_JSON" | jq -r '.verdict // "block"' 2>/dev/null || echo "block")
 
 if [[ "$VERDICT" != "block" ]]; then
   cos_log_hook branch-guard ok || true

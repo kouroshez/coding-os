@@ -55,6 +55,12 @@ run_delegate() {
   return 0
 }
 
+# Set MUST match adapter.yaml::hook_dispatchers[Stop].delegates (asserted by
+# tests/test_adapter_parity.py — TASK-110). verify-completion-claim +
+# prevent-premature-done are intentionally ABSENT: they emit their effect via
+# exit-0 stdout JSON ({"decision":"block"} / additionalContext) which this
+# dispatcher drops, so wiring them would be silent no-ops. Forwarding that
+# stdout is its own scoped task (TASK-153) — until then they stay Claude-only.
 for delegate in session-end.sh warn-abandoned-task.sh check-capture-worked.sh auto-trace-rotate.sh snapshot-transcript.sh agent-presence.sh; do
   run_delegate "$delegate"
 done

@@ -7,13 +7,16 @@
 # benefits from past patterns before implementing. Skipping it reverts
 # every session to zero institutional memory.
 #
-# Mechanism: the agent records "I did the memory check" by calling
-#   bash ".${COS_AGENT}/hooks/write-state.sh" "${COS_AGENT_DIR}/.memory-check" "cos_search:<query>"
-# once per session. This hook validates that marker exists. A future
-# enhancement could auto-write this from inside the MCP server when
-# cos_search is called, but the state-marker pattern keeps the hook
-# layer pure shell (no MCP dependency) and matches existing markers
-# like .thinking_os-gate / .zoom-checkpoint.
+# Mechanism: the marker is a SELF-ATTESTED, good-faith claim — the agent
+# records "I did the memory check" by calling
+#   bash ".${COS_AGENT}/hooks/write-state.sh" .memory-check "cos_search:<query>"
+# once per session, and this hook only validates the marker's presence +
+# freshness, NOT that cos_search actually ran. The authentic upgrade — a
+# PostToolUse hook matched on the cos_search / cos_learn_suggest MCP tool
+# that stamps this marker automatically — is folded into TASK-113 (N9, the
+# Pre/Post dispatcher work) so it ships with one coordinated registry +
+# golden regen instead of a standalone hook. Until then the pure-shell
+# marker keeps this layer MCP-independent and matches .thinking_os-gate.
 #
 # Exemptions (no memory check required):
 #   - CLEAR 1 classification (trivial ad-hoc fix)
@@ -50,7 +53,8 @@ case "$FILE_PATH" in
 esac
 
 # Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
-MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107)
+[[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 if [[ -f "$MODE_FILE" ]]; then
   TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
   case "$TASK_MODE" in
@@ -113,7 +117,7 @@ echo "  Rule: COMPLICATED/COMPLEX tasks must query memory in Orient." >&2
 echo "  File attempted: $FILE_PATH" >&2
 echo "" >&2
 echo "  Repair (pick one):" >&2
-echo "  1. Call cos_search in this session, then mark:" >&2
+echo "  1. Call cos_search in this session, then self-attest the marker:" >&2
 echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .memory-check \"cos_search:<your-query>\"" >&2
 echo "  2. Trivial ad-hoc fix → record CLEAR 1 gate instead:" >&2
 echo "       bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2

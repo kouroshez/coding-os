@@ -22,7 +22,7 @@ fi
 
 # Per-pattern marker — different structural questions get different
 # nudges. Same pattern asked twice in one session stays silent.
-MARKER_DIR="${COS_AGENT_DIR}/.graph-nudge"
+MARKER_DIR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.graph-nudge"  # panel-first (TASK-107): cleared at panel scope each SessionStart
 mkdir -p "$MARKER_DIR" 2>/dev/null || true
 
 # Lowercase, whitespace-collapsed for matching.

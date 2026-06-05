@@ -32,7 +32,8 @@ fi
 # enforcement on incidental edits. `formal` / `propose-formal` /
 # `gov-required` still go through the full block path below.  Fail
 # open if the marker is missing (older sessions, fresh adapter).
-MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107)
+[[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 if [[ -f "$MODE_FILE" ]]; then
   TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
   case "$TASK_MODE" in

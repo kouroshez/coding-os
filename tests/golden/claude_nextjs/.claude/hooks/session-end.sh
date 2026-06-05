@@ -17,9 +17,23 @@ done
 _COS_HOOKS_PHYS="$(cd -P "$(dirname "$_cos_src")" && pwd)"
 unset _cos_src _cos_dir
 
+# Upgrade panel id from the Stop payload's session_id so $COS_SESSION_FILE
+# resolves THIS panel (TASK-107) — without it, a Stop that never saw a
+# SessionStart for the panel reads an empty session-id and every downstream
+# summary/enrich/recap silently no-ops.
+INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
+command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
+
 SESSION_ID=""
 if [ -f "$COS_SESSION_FILE" ]; then
-  SESSION_ID=$(cat "$COS_SESSION_FILE")
+  SESSION_ID=$(cat "$COS_SESSION_FILE" 2>/dev/null || true)
+fi
+# Fallbacks: stdin session_id, then legacy agent-dir session-id.
+if [ -z "$SESSION_ID" ] && [ -n "$INPUT" ] && command -v jq >/dev/null 2>&1; then
+  SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // .sessionId // empty' 2>/dev/null || true)
+fi
+if [ -z "$SESSION_ID" ] && [ -f "${COS_AGENT_DIR}/session-id" ]; then
+  SESSION_ID=$(cat "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)
 fi
 # No extra `session=` in the detail — cos_log_hook already emits the
 # identity triplet (agent=X session=Y task=Z) in the standard prefix.

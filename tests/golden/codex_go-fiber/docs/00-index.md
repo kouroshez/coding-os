@@ -9,7 +9,7 @@ Read next: The relevant playbook or domain doc below.
 ## Core Navigation
 
 - [AGENTS](../AGENTS.md)
-- [Active Tasks](./tasks.md)
+- Active tasks — run `cos board` (Scrumban; task files under `./tasks/`)
 - [Questions Log](./_meta/questions.md)
 - [Change Log](../changes.log)
 - [Foundation Map](./_meta/foundation-map.md)

@@ -75,3 +75,15 @@ source → transform → destination
 ```
 
 Do NOT make any changes. This is read-only exploration.
+
+## Tooling
+
+Get a file's structure in one call (stdlib, no graph/MCP needed):
+`python3 scripts/outline.py src/foo.py`
+
+## See also
+
+- [references/reading-strategies.md](references/reading-strategies.md) — top-down reading, conceptual vs structural, orientation moves.
+- [assets/reading-checklist.md](assets/reading-checklist.md) — the orientation gate.
+- [graph-explorer](../graph-explorer/SKILL.md) — switch here for symbol-precise queries (callers, blast radius, rename).
+- [search](../search/SKILL.md) — grep for literals; [technical-writing](../technical-writing/SKILL.md) — write the model down.

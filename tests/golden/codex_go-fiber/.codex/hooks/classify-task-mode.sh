@@ -25,6 +25,9 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+# Upgrade panel id from the stdin session_id so .task-mode lands in THIS
+# panel's dir (TASK-107) — two panels of the same agent must not share mode.
+command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || echo "")
 
 # Empty prompt → leave previous mode in place (turn is a continuation).
@@ -35,8 +38,8 @@ fi
 PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 LEN=${#PROMPT}
 
-mkdir -p "$COS_AGENT_DIR" 2>/dev/null || true
-MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+mkdir -p "${COS_PANEL_DIR:-$COS_AGENT_DIR}" 2>/dev/null || true
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107): per-panel banner verbosity, no cross-panel leak
 
 # 1. formal — caller already attached a TASK-NNN to this session.
 # Panel-first (TASK-035): .task-current is per-panel; reading agent-dir

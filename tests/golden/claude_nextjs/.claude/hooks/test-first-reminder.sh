@@ -54,6 +54,16 @@ while [[ "$ROOT" != "/" ]]; do
 done
 [[ "$ROOT" == "/" ]] && ROOT="$PWD"
 
+# Debounce: remind at most once per file per session (TASK-113). The find
+# scan below sweeps up to ~6k files under ROOT; repeating it on every edit of
+# the same file is the dominant per-edit cost of this hook. The marker dir is
+# cleared each SessionStart (session-context.sh).
+_TFR_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.test-first-reminded"
+mkdir -p "$_TFR_DIR" 2>/dev/null || true
+_TFR_KEY=$(printf '%s' "$FILE_PATH" | tr -c 'A-Za-z0-9' '_' | cut -c1-80)
+[[ -f "$_TFR_DIR/$_TFR_KEY" ]] && exit 0
+touch "$_TFR_DIR/$_TFR_KEY" 2>/dev/null || true
+
 # Candidate test filenames by extension.
 CANDIDATES=()
 case "$EXT" in

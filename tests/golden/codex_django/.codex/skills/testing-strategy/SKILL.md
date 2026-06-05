@@ -249,8 +249,15 @@ This skill's own examples should pass in coding-os. Verify:
 - `uv run --extra rag pytest src/core/thinking_os/tests/ -q` — matrix command for thinking_os.
 - `uv run pytest tests/test_skill_frontmatter.py -q` — this skill's frontmatter is valid.
 
+## Tooling
+
+Gate coverage in CI (coverage.py JSON or Cobertura XML):
+`python3 scripts/coverage_gate.py coverage.json --min 80`
+
 ## See also
 
+- [references/test-types.md](references/test-types.md) — when each test type pays off + the pyramid.
+- [assets/test-review-checklist.md](assets/test-review-checklist.md) — the review gate.
 - [clean-code](../clean-code/SKILL.md) — error-path test contract.
 - [observability](../observability/SKILL.md) — CI signal hygiene (don't trust a green run with broken telemetry).
 - [search](../search/SKILL.md) — finding existing tests before adding new ones.

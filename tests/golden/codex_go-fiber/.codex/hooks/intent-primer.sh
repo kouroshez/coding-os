@@ -32,12 +32,15 @@ cos_log_hook intent-primer fire
 # after session rotation with "no EvidenceBundle for predicates
 # ['coverage_100']" — the predicates were from a prompt the agent
 # never saw in the new session.
-if [[ -n "${COS_AGENT_DIR:-}" ]]; then
-  rm -f "${COS_AGENT_DIR}/.intent.json" 2>/dev/null || true
-  rm -f "${COS_AGENT_DIR}/.premature-done-nudged" 2>/dev/null || true
-  rm -f "${COS_AGENT_DIR}/.count-grounding-nudged" 2>/dev/null || true
-  rm -f "${COS_AGENT_DIR}/.subagent-delegation-nudged" 2>/dev/null || true
-fi
+# Clear at BOTH panel and agent scope (TASK-107): the markers are now
+# panel-first, but a pre-migration agent-dir copy may still linger.
+for _D in "${COS_PANEL_DIR:-}" "${COS_AGENT_DIR:-}"; do
+  [[ -n "$_D" ]] || continue
+  rm -f "${_D}/.intent.json" 2>/dev/null || true
+  rm -f "${_D}/.premature-done-nudged" 2>/dev/null || true
+  rm -f "${_D}/.count-grounding-nudged" 2>/dev/null || true
+  rm -f "${_D}/.subagent-delegation-nudged" 2>/dev/null || true
+done
 
 # The card text lives next to this script — keeps the bash heredoc out
 # of `CONTEXT=$(cat <<HEREDOC ... HEREDOC)`, which deadlocks bash 5.3.9

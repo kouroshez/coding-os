@@ -3,7 +3,7 @@
 # Non-blocking warning only; respects solo-dev ADHD concerns (R-L-30
 # "Daily streak is observability NOT shame").
 
-set -eu
+set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 

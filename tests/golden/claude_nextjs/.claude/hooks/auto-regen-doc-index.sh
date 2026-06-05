@@ -49,10 +49,25 @@ cos_log_hook auto-regen-doc-index fire "file=${FILE_PATH}"
 # ── Resolve the target dir + the regen script ────────────────────────
 TARGET_DIR=$(dirname "$FILE_PATH")
 SCRIPT_PATH=""
+# Resolve this hook through its (possibly symlinked) install path so a
+# consumer's .claude/hooks/auto-regen-doc-index.sh → meta-repo symlink lands
+# on the meta-repo's own src/scripts/regen_doc_index.py. Platform code runs
+# from the platform; it is never copied into every consumer (TASK-119 — the
+# script was unshipped, so the consumer-root candidates below never matched).
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+HOOK_REAL_DIR="$(cd -P "$(dirname "$_src")" && pwd 2>/dev/null)" || HOOK_REAL_DIR=""
+# Primary: meta-repo script via the resolved hook. Fallbacks: a consumer that
+# vendored the script under its own root (src/scripts or scripts).
 for candidate in \
-  "${PROJECT_ROOT}/scripts/regen_doc_index.py" \
-  "$(dirname "$0")/../../scripts/regen_doc_index.py"; do
-  if [[ -f "$candidate" ]]; then
+  "${HOOK_REAL_DIR:+${HOOK_REAL_DIR}/../../scripts/regen_doc_index.py}" \
+  "${PROJECT_ROOT}/src/scripts/regen_doc_index.py" \
+  "${PROJECT_ROOT}/scripts/regen_doc_index.py"; do
+  if [[ -n "$candidate" && -f "$candidate" ]]; then
     SCRIPT_PATH="$candidate"
     break
   fi

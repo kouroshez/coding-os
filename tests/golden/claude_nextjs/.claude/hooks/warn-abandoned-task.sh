@@ -14,8 +14,17 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_log_hook warn-abandoned-task enter || true
 
 [ -f "${COS_DB_PATH:-}" ] || exit 0
-[ -f "${COS_SESSION_FILE:-}" ] || exit 0
-SESSION_ID="$(cat "$COS_SESSION_FILE" 2>/dev/null || true)"
+# Upgrade panel id from the Stop payload (TASK-107) so $COS_SESSION_FILE
+# resolves THIS panel; fall back to stdin session_id then legacy agent-dir.
+INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
+command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
+SESSION_ID="$(cat "${COS_SESSION_FILE:-}" 2>/dev/null || true)"
+if [ -z "$SESSION_ID" ] && [ -n "$INPUT" ] && command -v jq >/dev/null 2>&1; then
+  SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // .sessionId // empty' 2>/dev/null || true)
+fi
+if [ -z "$SESSION_ID" ] && [ -f "${COS_AGENT_DIR}/session-id" ]; then
+  SESSION_ID=$(cat "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)
+fi
 [ -n "$SESSION_ID" ] || exit 0
 # Session-id is alnum + dash only; reject anything else before it reaches SQL.
 case "$SESSION_ID" in
@@ -23,7 +32,7 @@ case "$SESSION_ID" in
 esac
 
 # Per-session debounce — warn at most once per session-id.
-MARKER="${COS_AGENT_DIR}/.abandoned-task-warned"
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first (TASK-107): matches session-context panel-scope clear
 if [ -f "$MARKER" ] && grep -qF "$SESSION_ID" "$MARKER" 2>/dev/null; then
   exit 0
 fi

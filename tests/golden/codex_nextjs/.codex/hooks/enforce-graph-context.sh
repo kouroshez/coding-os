@@ -4,7 +4,7 @@
 # under .coding-os/rag-config.yaml::graph.enforce_context_on without a
 # matching .graph-context-<uid> marker in $COS_AGENT_DIR.
 
-set -eu
+set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi

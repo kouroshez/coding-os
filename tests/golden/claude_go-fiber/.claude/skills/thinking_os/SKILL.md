@@ -16,7 +16,9 @@ last_reviewed: "2026-05-11"
 
 ## Purpose
 
-Complement the always-active Kernel rule (`.claude/rules/thinking_os.md`) with the complete Zoom cycle, Process Manager, and 10 Thinking Tools. Load this skill when the Complexity Gate returns COMPLICATED or COMPLEX. Source of truth: consumer projects read `docs/workflow/thinking_os-final-edition.md` (copied by `cos init`); the meta-repo canonical lives at `src/core/docs/thinking_os-final-edition.md`.
+Complement the always-active Kernel rule (`thinking_os.md`, in your adapter's rules dir) with the complete Zoom cycle, Process Manager, and 10 Thinking Tools. Load this skill when the Complexity Gate returns COMPLICATED or COMPLEX. Source of truth: consumer projects read `docs/workflow/thinking_os-final-edition.md` (copied by `cos init`); the meta-repo canonical lives at `src/core/docs/thinking_os-final-edition.md`.
+
+> Naming note: the skill slug `thinking_os` intentionally keeps the underscore to mirror the `thinking_os` Python subsystem it fronts (other skills use kebab-case). A deliberate, documented exception to the kebab-case convention — not an oversight.
 
 ---
 
@@ -83,9 +85,9 @@ Orient is a **dedicated phase** in the Core Loop, not just a transition step. It
 
 1. **TARGETED READ** — Read each file from the Classify Read List. After each file, note key findings in task Notes. Don't rely on raw file staying in context. Do NOT read files not in the Read List.
 2. **MEMORY CHECK** (3-layer protocol, max 500tok total):
-   - **Step 1 — Search:** `thinking_os_search(query="{domain} {task_title}", limit=5)` → index-level results (~50tok)
+   - **Step 1 — Search:** `cos_search(query="{domain} {task_title}", limit=5)` → index-level results (~50tok)
    - **Step 2 — Suggest:** `cos_learn_suggest(domain="{domain}", complexity="{complexity}")` → actionable patterns with spaced repetition
-   - **Step 3 — Details (if high-confidence hit):** `thinking_os_details(pattern_id, source)` for patterns with confidence > 0.7 (~500tok)
+   - **Step 3 — Details (if high-confidence hit):** `cos_details(pattern_id, source)` for patterns with confidence > 0.7 (~500tok)
    - **Post-task:** After task-done, call `cos_learn_validate(pattern_id, was_helpful)` for each pattern used
    - **Empty result:** If no patterns found, proceed normally — "No relevant past patterns found"
    - **Token guard:** Drop lowest-confidence results first if budget exceeded
@@ -262,7 +264,7 @@ If dimension spans multiple types → take UNION of tools for all applicable typ
 
 ## Domain Skills Registry
 
-See `.claude/rules/skill-enforcement.md` for the full skill routing table. After Thinking OS analysis, defer to the appropriate domain skill(s) for implementation. Thinking OS provides analysis and thinking structure; domain skills provide implementation patterns.
+See `skill-enforcement.md` (in your adapter's rules dir) for the full skill routing table. After Thinking OS analysis, defer to the appropriate domain skill(s) for implementation. Thinking OS provides analysis and thinking structure; domain skills provide implementation patterns.
 
 ---
 

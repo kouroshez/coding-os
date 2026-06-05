@@ -245,8 +245,15 @@ Pre-merge checks:
 - `make verify` green.
 - No secret regex matches in the diff (`gitleaks detect --staged`).
 
+## Tooling
+
+Lint a GitHub Actions workflow (unpinned actions, echoed secrets, missing timeouts):
+`python3 scripts/lint_workflow.py .github/workflows/*.yml`
+
 ## See also
 
+- [references/pipeline-and-release.md](references/pipeline-and-release.md) — CI stages, deploy strategies, rollback, versioning, migration ordering.
+- [assets/deploy-checklist.md](assets/deploy-checklist.md) — the pipeline gate.
 - [observability](../observability/SKILL.md) — deploy markers in dashboards.
 - [incident-response](../incident-response/SKILL.md) — rollback as runbook step.
 - [security-web](../security-web/SKILL.md) §A05 (Security Misconfig), §A06 (Vulnerable & Outdated Components), §A08 (Software & Data Integrity Failures).

@@ -220,11 +220,17 @@ Before opening a PR touching a backend file:
 
 ## References
 
-Stack-specific specializations extend this skill via `depends_on: [backend-fundamentals]`:
+Stack-specific specializations extend this skill via `depends_on: [backend-fundamentals]` — your project's stack skill (python-django / python-fastapi / go-patterns / go-fiber) is present when that stack is installed.
 
-- [src/templates/django/skills/python-django/SKILL.md](../../../templates/django/skills/python-django/SKILL.md)
-- [src/templates/fastapi/skills/python-fastapi/SKILL.md](../../../templates/fastapi/skills/python-fastapi/SKILL.md)
-- [src/templates/go/skills/go-patterns/SKILL.md](../../../templates/go/skills/go-patterns/SKILL.md)
-- [src/templates/go-fiber/skills/go-fiber/SKILL.md](../../../templates/go-fiber/skills/go-fiber/SKILL.md)
+## Tooling
+
+Flag framework/ORM leakage into domain/service code (keep the core framework-free):
+`python3 scripts/check_layering.py src/backend/services/*.py`
+
+## See also
+
+- [references/backend-patterns.md](references/backend-patterns.md) — layering, idempotency, errors, N+1, migrations.
+- [assets/backend-checklist.md](assets/backend-checklist.md) — the review gate.
+- [hexagonal-architecture](../hexagonal-architecture/SKILL.md) · [api-design](../api-design/SKILL.md) · [sql-authoring](../sql-authoring/SKILL.md).
 
 Universal principles from [clean-code](../clean-code/SKILL.md) still apply — this skill does not relax any of them.

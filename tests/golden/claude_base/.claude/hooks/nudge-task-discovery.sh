@@ -19,7 +19,7 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
-MARKER_DIR="${COS_AGENT_DIR}/.task-nudge"
+MARKER_DIR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-nudge"  # panel-first (TASK-107): cleared at panel scope each SessionStart
 mkdir -p "$MARKER_DIR" 2>/dev/null || true
 
 # ---- PreToolUse Read leg ----

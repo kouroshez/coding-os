@@ -109,7 +109,7 @@ async function fetchUserProfile(userId: string) {
 
 ## 1b. No PII in Logger Calls
 
-Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use the user's UUID instead. If you need to log an email for debugging, use a masked form (`j***@example.com`). See `docs/engineering/logging-standards.md` for the full PII exclusion list.
+Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use the user's UUID instead. If you need to log an email for debugging, use a masked form (`j***@example.com`). PII-exclusion + secret-redaction discipline is owned by the [security-web](../security-web/SKILL.md) and [observability](../observability/SKILL.md) skills (both co-ship).
 
 ```python
 # GOOD

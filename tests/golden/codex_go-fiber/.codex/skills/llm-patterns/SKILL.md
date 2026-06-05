@@ -395,9 +395,16 @@ Feeds into [observability](../observability/SKILL.md) dashboards.
 - **PII into the prompt** — leak risk, compliance risk.
 - **Trusting the model's `stop_reason: max_tokens` output** — it's truncated, may be invalid.
 
+## Tooling
+
+Budget a prompt's tokens + cost before sending (no tokenizer dependency):
+`python3 scripts/estimate_tokens.py prompt.txt --rate 3.00`
+
 ## See also
 
-- [claude-sdk-integration](../../../templates/meta/skills/claude-sdk-integration/SKILL.md) — raw Anthropic SDK + claude-agent-sdk usage in the meta-repo.
+- [references/rag-and-evals.md](references/rag-and-evals.md) — RAG, eval harness, guardrails, cost/latency control.
+- [assets/llm-feature-checklist.md](assets/llm-feature-checklist.md) — the ship gate.
+- the claude-sdk-integration skill — raw Anthropic SDK + claude-agent-sdk usage (present on meta-stack projects).
 - [observability](../observability/SKILL.md) — LLM telemetry pipeline.
 - [security-web](../security-web/SKILL.md) — A03 (Injection) covers prompt injection.
 - [api-design](../api-design/SKILL.md) — LLM endpoint contract design.

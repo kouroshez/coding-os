@@ -44,9 +44,9 @@ Use `cos_observation_record` / `cos_learn_extract` for:
 In the **Orient** phase of the Core Loop, after Classify but before Plan:
 
 ```
-cos_search("query about past patterns / similar work")
-cos_learn_suggest(task_id="...", k=5)   # ranked patterns relevant to this task
-cos_timeline(scope="recent" | "task" | "domain")   # what changed recently
+cos_search("query about past patterns / similar work", min_confidence=0.3, since_days=90)
+cos_learn_suggest(domain="...", complexity="...")   # ranked patterns for the task context
+cos_timeline(days=14)                                # what changed recently
 ```
 
 If `cos_search` returns 0 hits with min_confidence=0.3 + since_days=90, the memory layer has no signal — fall through to docs (`cos_doc_search`) or code (`cos_graph_*`).

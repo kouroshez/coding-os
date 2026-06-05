@@ -26,10 +26,10 @@ STATE_DIR="${COS_STATE_DIR:-$PWD/.coding-os}"
 AGENT_DIR="${COS_AGENT_DIR:-${STATE_DIR}/claude}"
 DB_PATH="${COS_DB_PATH:-${STATE_DIR}/coding-os.db}"
 LOG_FILE="${STATE_DIR}/.warn-graph-empty.log"
-MARKER="${AGENT_DIR}/.graph-empty-warning-shown"
+MARKER="${COS_PANEL_DIR:-$AGENT_DIR}/.graph-empty-warning-shown"  # panel-first (TASK-107): matches session-context panel-scope clear
 
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
-mkdir -p "$AGENT_DIR" 2>/dev/null || true
+mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
 
 # Debounce — if we warned this session already, skip.
 if [[ -f "$MARKER" ]]; then
