@@ -172,5 +172,17 @@ Severity is the post-verification corrected value. Each maps to its remediation 
 - Overlap: TASK-119 (regen ship) intersects existing TASK-113 (another
   session's "fix auto-regen-doc-index dead path") — scope TASK-119 to the
   consumer-delivery gap, coordinate before editing the hook.
+- **Relationship to the completed `doc-system-v2` epic** (the prior run): v2
+  fixed the doc-KB IN THE META-REPO; this audit found the consumer-facing
+  delta v2 left (the dogfood gap). Do NOT redo v2 work:
+  - TASK-070 (done) indexed docs/governance + playbooks + workflow MIRRORS
+    into RAG. Remaining (TASK-122/123): `src/core/rules/*.md` SSOT + skills
+    are still not RAG sources, and the CONSUMER graph has 0 rule/skill nodes.
+  - TASK-072 (done) fixed regen_doc_index's PYTHONPATH/ModuleNotFoundError in
+    the meta-repo. Remaining (TASK-119): the script is not shipped to
+    consumers (scaffold_manifest has 0 refs) — the hook no-ops in every
+    organism. Audit ran on post-072 HEAD; finding is current.
+  - TASK-074 (done) reconciled the docs-lint domain/layer enum. Remaining
+    (TASK-120): scaffold docs still carry 7 domains absent from that enum.
 - Full evidence (file:line per finding) lives in the workflow transcript
   wf_03691e0a-c46; this file is the durable index.
