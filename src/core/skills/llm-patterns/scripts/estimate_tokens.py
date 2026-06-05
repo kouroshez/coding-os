@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 CHARS_PER_TOKEN = 4.0
 TOKENS_PER_WORD = 1.33
@@ -42,7 +43,7 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     target = args.file or args.path
-    text = open(target, encoding="utf-8").read() if target else sys.stdin.read()
+    text = Path(target).read_text(encoding="utf-8") if target else sys.stdin.read()
     if not text:
         print("error: no text (file or stdin)", file=sys.stderr)
         return 2

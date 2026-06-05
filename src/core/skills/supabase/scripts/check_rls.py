@@ -19,6 +19,7 @@ import argparse
 import json
 import re
 import sys
+from pathlib import Path
 
 # create table [if not exists] [schema.]name   — capture optional schema + name
 _CREATE = re.compile(
@@ -65,7 +66,7 @@ def main(argv: list[str]) -> int:
     combined = ""
     for path in args.files:
         try:
-            combined += "\n" + open(path, encoding="utf-8").read()
+            combined += "\n" + Path(path).read_text(encoding="utf-8")
         except FileNotFoundError:
             print(f"error: {path} not found", file=sys.stderr)
             return 2

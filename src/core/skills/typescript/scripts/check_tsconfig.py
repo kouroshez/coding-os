@@ -17,6 +17,7 @@ import argparse
 import json
 import re
 import sys
+from pathlib import Path
 
 # flag -> (required_value, why)
 REQUIRED = {
@@ -68,7 +69,7 @@ def main(argv: list[str]) -> int:
 
     target = args.file or args.path
     try:
-        findings = audit(load_tsconfig(open(target, encoding="utf-8").read()))
+        findings = audit(load_tsconfig(Path(target).read_text(encoding="utf-8")))
     except FileNotFoundError:
         print(f"error: {target} not found", file=sys.stderr)
         return 2

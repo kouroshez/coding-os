@@ -17,6 +17,7 @@ import argparse
 import json
 import re
 import sys
+from pathlib import Path
 
 RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bkey=\{\s*(i|idx|index)\s*\}"),
@@ -55,7 +56,7 @@ def main(argv: list[str]) -> int:
     all_findings: list[str] = []
     for path in args.files:
         try:
-            all_findings.extend(scan_text(open(path, encoding="utf-8").read(), filename=path))
+            all_findings.extend(scan_text(Path(path).read_text(encoding="utf-8"), filename=path))
         except FileNotFoundError:
             print(f"error: {path} not found", file=sys.stderr)
             return 2

@@ -16,6 +16,7 @@ import argparse
 import ast
 import json
 import sys
+from pathlib import Path
 
 
 def _decorator_names(node: ast.FunctionDef) -> set[str]:
@@ -65,7 +66,7 @@ def main(argv: list[str]) -> int:
     all_findings: list[str] = []
     for path in args.files:
         try:
-            all_findings.extend(scan_source(open(path, encoding="utf-8").read(), filename=path))
+            all_findings.extend(scan_source(Path(path).read_text(encoding="utf-8"), filename=path))
         except FileNotFoundError:
             print(f"error: {path} not found", file=sys.stderr)
             return 2

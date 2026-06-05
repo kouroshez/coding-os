@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 
 def _node_findings(node: dict, rows_threshold: int, estimate_ratio: float) -> list[str]:
@@ -71,7 +72,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--json", action="store_true", dest="as_json")
     args = parser.parse_args(argv)
 
-    raw = open(args.file, encoding="utf-8").read() if args.file else sys.stdin.read()
+    raw = Path(args.file).read_text(encoding="utf-8") if args.file else sys.stdin.read()
     if not raw.strip():
         print("error: no EXPLAIN JSON on stdin (or --file)", file=sys.stderr)
         return 2

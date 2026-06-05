@@ -20,6 +20,7 @@ import argparse
 import json
 import re
 import sys
+from pathlib import Path
 
 VALID_TYPES = {"pattern", "workflow", "error", "decision", "discovery"}
 PII = re.compile(r"(?i)\b([\w.+-]+@[\w-]+\.\w+|\d{3}-\d{2}-\d{4}|\b(?:\d[ -]?){13,16}\b)")
@@ -53,7 +54,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--json", action="store_true", dest="as_json")
     args = parser.parse_args(argv)
 
-    raw = open(args.file, encoding="utf-8").read() if args.file else sys.stdin.read()
+    raw = Path(args.file).read_text(encoding="utf-8") if args.file else sys.stdin.read()
     if not raw.strip():
         print("error: no observation JSON (stdin or --file)", file=sys.stderr)
         return 2
