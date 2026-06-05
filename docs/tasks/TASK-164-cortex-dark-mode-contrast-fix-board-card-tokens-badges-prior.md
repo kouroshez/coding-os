@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: ui-design-system
 labels: [ui, dark-mode, contrast, a11y, board, ready]
-status: testing
+status: complete
 priority: P0
 appetite: "1d"
 created: 2026-06-05
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -40,3 +40,4 @@ Actual: title near-invisible (hardcoded `#141210` on a dark card), priority draw
 Spec SSOT: [docs/engineering/design-system.md](../engineering/design-system.md)
 
 ## Work Log
+- 2026-06-05 [claude]: Shipped (commit 64e4647): root cause = every TaskCard color hardcoded for the old light pastel sticky (title #141210 inv
