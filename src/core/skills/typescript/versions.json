@@ -1,0 +1,9 @@
+{
+  "typescript": {
+    "ecosystem": "npm",
+    "package": "typescript",
+    "version": "6.0.3",
+    "source": "https://www.npmjs.com/package/typescript",
+    "checked": "2026-06-04"
+  }
+}
