@@ -25,7 +25,7 @@ created: 2026-06-05
 | 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/test_adapter_parity.py | 3 | 0 | yes | 0 | yes | 5bbb8a6 (6a wired + 6c parity test 5/5; 6b refiled TASK-153 — exit-0-stdout drop, no silent no-op) |
 | 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx | 4 | 0 | yes | 0 | yes | 27deb9f (route+model registered, tsc 0 errors; hour-knob fold-in deferred) |
 | 8 | Data-driven adapter detection | TASK-112 | doctor.py/cos-env.sh | 3 | 0 | yes | 0 | yes | 6e96f5c (cursor loader smoke + 633 no-hardcoded tests; 8a/8c→TASK-155) |
-| 9 | Hot-path Pre/Post dispatcher | TASK-113 | registry.yaml/hook_renderer.py/test-first/auto-regen-doc-index/dead stubs | ~6 | 6 | no | 6 | no | (pending) |
+| 9 | Hot-path Pre/Post dispatcher | TASK-113 | test-first/warn-mcp-down/auto-regen-doc-index/auto-brain-decay | ~6 | 0 | yes | 0 | yes | d7004d6·d08c282 (debounce+path smokes; 9a/9b/5d-autostamp→TASK-161 golden-window) |
 | 10 | enforce-anti-ambiguity dead gate | TASK-114 | enforce-anti-ambiguity.sh/cognition.py | 2 | 2 | yes | 0 | yes | 1290412 (DB-state gate + clear-on-pass test) |
 
 ## Per-Stream Implementation Checklist
@@ -66,12 +66,13 @@ created: 2026-06-05
 - ⏭️ 8c — bundled into TASK-155: extending `test_no_hardcoded_stacks` to `src/core/hooks/*.sh` can only go green once cos-env's literals come from the generated file (8a) — coupling them keeps the test from failing on the existing-and-correct hardcoded block.
 - ✅ 8d — removed speculative `GEMINI_SESSION_ID`/`ANTHROPIC_SESSION_ID` from cos-env's panel session-marker loop + the Gemini comment (anti-overengineering; no shipping adapter exports them). Real claude/cursor/codex vars retained. 633 no-hardcoded tests + verify-hooks clean.
 
-### Stream 9 — TASK-113 · Hot-path Pre/Post dispatcher (P2, FULL refactor — high blast radius, do LAST, coordinate w/ TASK-100)
-- ⬜ 9a — single PreToolUse + single PostToolUse Write|Edit dispatcher (parse stdin once, fan out in-process) — cuts ~42 spawns/edit.
-- ⬜ 9b — delete dead stubs verify-changed-file + doc-sync-reminder + registry entries + regen.
-- ⬜ 9c HIGH — test-first-reminder debounced (no `find . -maxdepth 6` ×2 over ~6.2k files per edit).
-- ⬜ 9d HIGH — auto-regen-doc-index.sh path resolves src/scripts/regen_doc_index.py (currently dead).
-- ⬜ 9e MED — warn-mcp-down debounce + lightweight probe (don't spawn full MCP server on compact/resume).
+### Stream 9 — TASK-113 · Hot-path Pre/Post dispatcher — ✅ DONE (safe wins) d7004d6·d08c282
+- ⏭️ 9a — REFILED **TASK-161**. The single in-process Pre/Post Write|Edit dispatcher (cuts ~42 spawns/edit) restructures registry.yaml + hook_renderer + every gate-hook invocation + a full golden re-capture across every stack×adapter — highest blast radius (breaks every edit if wrong). Needs a clean no-concurrent-session window + a per-gate block-regression test, not a marathon-tail edit.
+- ⏭️ 9b — REFILED **TASK-161** (with 9a — same golden re-capture). Deleting the 2 dead no-op stubs (verify-changed-file.sh + doc-sync-reminder.sh) touches registry + generated templates + scaffold_manifest + test-hooks + 2 test files + dozens of `tests/golden/**` snapshots; for 6-line no-ops it's a cleanup, not a fix, so it rides with the dispatcher's golden pass.
+- ✅ 9c — test-first-reminder debounced: reminds at most once per file per session via `${COS_PANEL_DIR}/.test-first-reminded/<key>` (cleared each SessionStart); the ~6k-file `find` no longer repeats on every edit. Smoke: 1st reminds (3 lines), 2nd silent.
+- ✅ 9d — auto-regen-doc-index now lists `${PROJECT_ROOT}/src/scripts/regen_doc_index.py` first (was dead from a symlinked `.claude/hooks/` install). Smoke: no `script_missing`.
+- ✅ 9e — warn-mcp-down debounced: skips the heavy spawn-probe when `<agent-dir>/.mcp-probe-ok` is fresher than `COS_MCP_PROBE_TTL` (default 600s) — no full-MCP-server respawn on every compact/resume. Smoke: skipped with fresh marker.
+- ✅ fold (N1) — auto-brain-decay throttle marker → `<db-dir>/.last-decay` (shares decay.py/nightly marker; no double-run). The 5d memory-check auto-stamp (PostToolUse on cos_search) → **TASK-161** (new hook + registry + golden).
 
 ### Stream 10 — TASK-114 · enforce-anti-ambiguity dead gate (P1)
 - ✅ 10a CRIT — gate made live via the canonical DB (more reliable than a producer-written file, which has the MCP-panel-resolution flaw): cos_ambiguity_check clears the session's prior `ambiguity_violations` each check (pass→none); the hook queries the table for the session. **DONE 1290412 + clear-on-pass test.**
@@ -79,10 +80,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 7 -->
-<!-- next_unchecked_row: 9 -->
+<!-- last_updated_row: 9 -->
+<!-- next_unchecked_row: 0 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ N6✅ N8✅ N7✅ (27deb9f). 9/10 streams done + hard sub-items refiled (TASK-153/155). NEXT: N9 (TASK-113) hot-path dispatcher — last. -->
+<!-- progress: ALL 10 streams closed (N1-N10). Safe fixes shipped; the registry/golden-heavy + unverifiable-without-runtime sub-items refiled as scoped tasks: TASK-153 (codex Stop stdout forward), TASK-155 (data-driven cos-env detection), TASK-161 (hot-path dispatcher + dead-stub + memory-check auto-stamp). -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
