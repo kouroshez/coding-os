@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPatch } from '@/lib/api-client';
+import { apiPatch, apiPost } from '@/lib/api-client';
 
 interface BudgetCap {
   enabled: boolean;
@@ -132,8 +132,33 @@ interface ScheduledConfig {
   archive_prune_days: number;
 }
 
+interface ScheduledProject {
+  slug: string;
+  path: string;
+  last_run_at?: string | null;
+  tasks?: Record<string, unknown>;
+  consecutive_failures?: number;
+  disabled_reason?: string | null;
+  last_error?: string | null;
+}
+
 interface ScheduledStatus {
-  projects: { slug: string; path: string }[];
+  cron_a?: {
+    installed: boolean;
+    loaded: boolean;
+    last_run_at?: string | null;
+    next_run_at?: string | null;
+    plist_path?: string;
+    log_dir?: string;
+  };
+  projects: ScheduledProject[];
+}
+
+interface RunResult {
+  slug: string;
+  ran: boolean;
+  summary?: Record<string, unknown> | null;
+  error?: string | null;
 }
 
 interface ScheduledConfigResp {
@@ -268,10 +293,31 @@ function ScheduledConfigForm({ slug, initial }: { slug: string; initial: Schedul
 }
 
 function ScheduledMaintenanceSection() {
+  const qc = useQueryClient();
   const { data: status } = useApiGet<ScheduledStatus>(['scheduled-status'], '/api/scheduled/status');
   const projects = status?.projects ?? [];
   const [slug, setSlug] = useState('');
   const activeSlug = slug || projects[0]?.slug || '';
+  const activeProj = projects.find((p) => p.slug === activeSlug);
+  const [running, setRunning] = useState(false);
+  const [runNote, setRunNote] = useState<string | null>(null);
+
+  const runNow = useCallback(async () => {
+    if (!activeSlug) return;
+    setRunning(true);
+    setRunNote(null);
+    try {
+      const [res] = await apiPost<RunResult>(
+        `/api/scheduled/run/${encodeURIComponent(activeSlug)}`,
+      );
+      await invalidateApiQueries(qc, '/api/scheduled/status');
+      setRunNote(res.ran ? 'Learning loop ran.' : `Failed: ${res.error ?? 'unknown'}`);
+    } catch (e) {
+      setRunNote(e instanceof Error ? e.message : 'run failed');
+    } finally {
+      setRunning(false);
+    }
+  }, [activeSlug, qc]);
   const { data: cfgResp } = useApiGet<ScheduledConfigResp>(
     ['scheduled-config', activeSlug],
     `/api/scheduled/config/${encodeURIComponent(activeSlug)}`,
@@ -307,6 +353,32 @@ function ScheduledMaintenanceSection() {
           ) : (
             <p className="mt-3 text-xs text-[var(--cos-muted)]">loading config…</p>
           )}
+
+          <div className="mt-4 flex items-center gap-3 border-t border-[var(--cos-border)] pt-3">
+            <button
+              onClick={runNow}
+              disabled={running || !activeSlug}
+              className="rounded border border-[var(--cos-border)] px-4 py-2 font-mono text-xs text-[var(--cos-text)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {running ? 'running…' : 'Run learning loop now'}
+            </button>
+            <span className="font-mono text-[11px] text-[var(--cos-muted)]">
+              {runNote
+                ? runNote
+                : activeProj?.last_run_at
+                  ? `last run ${activeProj.last_run_at}` +
+                    (activeProj.consecutive_failures
+                      ? ` · ${activeProj.consecutive_failures} fail(s)`
+                      : '')
+                  : 'never run'}
+            </span>
+          </div>
+          {status?.cron_a ? (
+            <p className="mt-2 font-mono text-[11px] text-[var(--cos-muted)]">
+              nightly cron: {status.cron_a.loaded ? 'loaded' : 'not loaded'}
+              {status.cron_a.next_run_at ? ` · next ${status.cron_a.next_run_at}` : ''}
+            </p>
+          ) : null}
         </>
       )}
     </section>

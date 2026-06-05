@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import subprocess
@@ -61,8 +62,32 @@ def _next_run_at() -> str | None:
         return None
 
 
-@router.get("/status")
-async def scheduled_status():
+class CronStatus(BaseModel):
+    installed: bool
+    loaded: bool
+    last_run_at: str | None = None
+    next_run_at: str | None = None
+    plist_path: str
+    log_dir: str
+
+
+class ProjectScheduled(BaseModel):
+    slug: str | None = None
+    path: str | None = None
+    last_run_at: str | None = None
+    tasks: dict = {}
+    consecutive_failures: int = 0
+    disabled_reason: str | None = None
+    last_error: str | None = None
+
+
+class ScheduledStatus(BaseModel):
+    cron_a: CronStatus
+    projects: list[ProjectScheduled]
+
+
+@router.get("/status", response_model=ScheduledStatus)
+async def scheduled_status() -> ScheduledStatus:
     """Return nightly cron status + per-project last_run.json contents."""
     projects_data = []
     for proj in read_registry():
@@ -110,6 +135,30 @@ async def project_scheduled_status(slug: str):
             state = read_state(root)
             return {"slug": slug, **state}
     return {"error": f"project {slug!r} not found in registry"}
+
+
+class RunResult(BaseModel):
+    slug: str
+    ran: bool
+    summary: dict | None = None
+    error: str | None = None
+
+
+@router.post("/run/{slug}", response_model=RunResult)
+async def run_scheduled_now(slug: str) -> RunResult:
+    """Manually trigger the nightly maintenance loop (decay + learn-extract + reindex) for one project."""
+    proj = next((p for p in read_registry() if p.get("slug") == slug), None)
+    if proj is None:
+        return RunResult(slug=slug, ran=False, error=f"project {slug!r} not found in registry")
+    try:
+        from scheduled.nightly import run_project  # type: ignore
+
+        # run_project is blocking (graph reindex etc.) — offload off the event loop.
+        summary = await asyncio.to_thread(run_project, proj, dry_run=False)
+        return RunResult(slug=slug, ran=True, summary=summary)
+    except Exception as exc:  # fail-soft: the button surfaces the error, never 500s the hub
+        logger.warning("manual scheduled run failed for %s: %s", slug, exc)
+        return RunResult(slug=slug, ran=False, error=str(exc))
 
 
 def _root_for_slug(slug: str) -> Path | None:
