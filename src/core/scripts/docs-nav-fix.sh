@@ -39,6 +39,7 @@ fi
 FIXED=0
 SKIPPED=0
 NEEDS_FIX=0
+FIX_PAIRS=()
 
 while IFS= read -r file; do
   base=$(basename "$file")
@@ -78,34 +79,41 @@ while IFS= read -r file; do
     continue
   fi
 
-  # Insert nav line after the H1 (the first line starting with `# `)
-  python3 - "$file" "$nav_line" <<'PY'
-import sys
-path, nav_line = sys.argv[1], sys.argv[2]
-with open(path, 'r', encoding='utf-8') as f:
-    lines = f.readlines()
-out = []
-inserted = False
-for i, line in enumerate(lines):
-    out.append(line)
-    if not inserted and line.startswith('# '):
-        # Insert after the H1 + a blank line
-        if i + 1 < len(lines) and lines[i + 1].strip() == "":
-            out.append("\n")
-            out.append(nav_line + "\n")
-        else:
-            out.append("\n")
-            out.append(nav_line + "\n")
-            out.append("\n")
-        inserted = True
-with open(path, 'w', encoding='utf-8') as f:
-    f.writelines(out)
-PY
-  ok "fixed $rel"
-  FIXED=$((FIXED + 1))
+  # Defer the rewrite: collect (path<TAB>nav_line) and do ONE batched python
+  # pass after the walk instead of forking python3 per file (O(n) → 1 fork).
+  FIX_PAIRS+=("${file}"$'\t'"${nav_line}")
 done < <(find "$DOCS_DIR" -type f -name "*.md" \
   -not -path "*/governance/archive/*" \
   -not -path "*/products-assets/*" | sort)
+
+if [ "$CHECK_ONLY" -eq 0 ] && [ "${#FIX_PAIRS[@]}" -gt 0 ]; then
+  printf '%s\n' "${FIX_PAIRS[@]}" | python3 -c '
+import sys
+
+for raw in sys.stdin:
+    raw = raw.rstrip("\n")
+    if not raw:
+        continue
+    path, _, nav = raw.partition("\t")
+    if not nav:
+        continue
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.readlines()
+    out = []
+    inserted = False
+    for i, line in enumerate(lines):
+        out.append(line)
+        if not inserted and line.startswith("# "):
+            out.append("\n")
+            out.append(nav + "\n")
+            if not (i + 1 < len(lines) and lines[i + 1].strip() == ""):
+                out.append("\n")
+            inserted = True
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.writelines(out)
+' >&2
+  FIXED="${#FIX_PAIRS[@]}"
+fi
 
 echo ""
 if [ $CHECK_ONLY -eq 1 ]; then

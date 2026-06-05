@@ -119,21 +119,49 @@ def transform(text: str) -> tuple[str, str | None]:
     return new_text, input_name.removesuffix("Input").lower()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--root", type=Path, default=AGENTS_DIR, help="Agents dir (default: src/core/thinking_os/agents)."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Report what would change without writing."
+    )
+    args = parser.parse_args(argv)
+
     rewrote: list[str] = []
     skipped: list[str] = []
-    for md in sorted(AGENTS_DIR.glob("*.md")):
+    errors = 0
+    for md in sorted(args.root.glob("*.md")):
         if md.name == "README.md":
             continue
-        original = md.read_text(encoding="utf-8")
+        try:
+            original = md.read_text(encoding="utf-8")
+        except OSError as exc:
+            print(f"ERROR reading {md.name}: {exc}", file=sys.stderr)
+            errors += 1
+            continue
         new_text, role = transform(original)
         if role is None:
             skipped.append(md.name)
             continue
-        md.write_text(new_text, encoding="utf-8")
+        if args.dry_run:
+            rewrote.append(f"{md.name} (dry-run)")
+            continue
+        try:
+            md.write_text(new_text, encoding="utf-8")
+        except OSError as exc:
+            print(f"ERROR writing {md.name}: {exc}", file=sys.stderr)
+            errors += 1
+            continue
         rewrote.append(md.name)
     print(f"rewrote {len(rewrote)}: {', '.join(rewrote) or '(none)'}")
     print(f"skipped {len(skipped)}: {', '.join(skipped) or '(none)'}")
+    if errors:
+        print(f"errors: {errors}", file=sys.stderr)
+        return 1
     return 0
 
 

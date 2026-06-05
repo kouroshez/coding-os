@@ -1,4 +1,9 @@
-"""Comprehensive audit of all 63 cos_* MCP tools via the real FastMCP layer."""
+"""Comprehensive audit of every cos_* MCP tool via the real FastMCP layer.
+
+INPUT:        none (reads the live coding-os.db; COS_DB_PATH override honored).
+OUTPUT:       per-tool PASS/WARN/FAIL report to stdout; exit 0 all-pass else 1.
+DEPENDENCIES: a populated coding-os.db, thinking_os.server (FastMCP).
+"""
 
 from __future__ import annotations
 
@@ -11,8 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "core"))
-sys.path.insert(0, str(ROOT / "core" / "thinking_os"))
+sys.path.insert(0, str(ROOT / "src" / "core"))
+sys.path.insert(0, str(ROOT / "src" / "core" / "thinking_os"))
 
 os.environ.setdefault("COS_DB_PATH", str(ROOT / ".coding-os/coding-os.db"))
 
@@ -80,7 +85,10 @@ async def T(tool: str, **kwargs) -> dict:
 
 from thinking_os.database import init_db
 
-DB = init_db(str(ROOT / ".coding-os/coding-os.db"))
+_DB_PATH = Path(os.environ.get("COS_DB_PATH") or ROOT / ".coding-os/coding-os.db")
+if not _DB_PATH.exists():
+    sys.exit(f"audit_mcp_tools: DB not found at {_DB_PATH} — run `cos init` / `make` first.")
+DB = init_db(str(_DB_PATH))
 _obs = DB.execute("SELECT id FROM observations LIMIT 1").fetchone()
 OBS_ID = _obs["id"] if _obs else 1
 _pat = DB.execute("SELECT id FROM learned_patterns LIMIT 1").fetchone()
