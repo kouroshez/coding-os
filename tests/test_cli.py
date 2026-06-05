@@ -102,6 +102,44 @@ class TestInit:
         agents_md = project_dir / "AGENTS.md"
         assert agents_md.exists()
 
+    def test_creates_gitignore(self, runner: CliRunner, project_dir: Path) -> None:
+        project_dir.mkdir()
+        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
+        assert result.exit_code == 0
+        gitignore = project_dir / ".gitignore"
+        assert gitignore.exists()
+        body = gitignore.read_text()
+        # runtime state ignored, tracked config carved back in
+        assert ".coding-os/*" in body
+        assert "*.db" in body
+        assert "!.coding-os/rag-config.yaml" in body
+
+    def test_baseline_commit_excludes_runtime_db(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        import subprocess
+
+        project_dir.mkdir()
+        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
+        assert result.exit_code == 0
+        if not (project_dir / ".git").exists():
+            pytest.skip("tmp nested in an existing git repo — init skipped git init")
+        log = subprocess.run(
+            ["git", "-C", str(project_dir), "log", "--oneline"],
+            capture_output=True,
+            text=True,
+        )
+        assert log.returncode == 0
+        assert len(log.stdout.strip().splitlines()) == 1  # exactly one baseline commit
+        tracked = subprocess.run(
+            ["git", "-C", str(project_dir), "ls-files"],
+            capture_output=True,
+            text=True,
+        ).stdout
+        assert ".gitignore" in tracked
+        assert "coding-os.db" not in tracked  # mutating runtime DB never committed
+        assert ".coding-os/rag-config.yaml" in tracked  # config IS versioned
+
     def test_claude_adapter_creates_settings(self, runner: CliRunner, project_dir: Path) -> None:
         project_dir.mkdir()
         runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])

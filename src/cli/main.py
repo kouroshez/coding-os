@@ -28,7 +28,9 @@ from cli._data_types import AggregatedWorld
 from cli._init_helpers import (
     InitError,
     ensure_agents_md,
+    ensure_gitignore,
     maybe_git_init,
+    maybe_initial_commit,
     resolve_init_target,
 )
 from cli.adapter_registry import load_adapter_registry
@@ -1012,6 +1014,12 @@ def init(
         )
 
     git_result = maybe_git_init(target, enabled=git)
+    # .gitignore whenever git is in play (fresh or nested repo) so the
+    # mutating runtime DB never gets committed; the baseline commit runs
+    # only when init created the repo — never sweep a parent project's tree.
+    if git:
+        ensure_gitignore(project)
+    commit_result = maybe_initial_commit(target, enabled=git and git_result.ran)
     files_created = sum(1 for _ in project.rglob("*") if _.is_file())
 
     summary: dict[str, object] = {
@@ -1025,6 +1033,8 @@ def init(
             "ran": git_result.ran,
             "skipped_reason": git_result.skipped_reason,
             "error": git_result.error,
+            "initial_commit": commit_result.committed,
+            "commit_error": commit_result.error,
         },
         "files_created": files_created,
         "db_path": str(project / STATE_DIR / "coding-os.db"),
@@ -1043,6 +1053,10 @@ def init(
     # text mode — final summary
     if git_result.ran:
         click.echo("  git: initialized")
+        if commit_result.committed:
+            click.echo("  git: baseline commit created")
+        elif commit_result.error:
+            click.echo(f"  git: WARN baseline commit failed — {commit_result.error}")
     elif git_result.skipped_reason:
         click.echo(f"  git: skipped ({git_result.skipped_reason})")
     elif git_result.error:
