@@ -1,0 +1,16 @@
+{
+  "postgresql": {
+    "ecosystem": "endoflife",
+    "package": "postgresql",
+    "version": "18.4",
+    "source": "https://endoflife.date/postgresql",
+    "checked": "2026-06-04"
+  },
+  "mysql": {
+    "ecosystem": "endoflife",
+    "package": "mysql",
+    "version": "8.4.8",
+    "source": "https://endoflife.date/mysql",
+    "checked": "2026-06-04"
+  }
+}
