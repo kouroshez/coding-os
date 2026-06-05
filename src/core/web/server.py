@@ -83,6 +83,14 @@ TAGS_METADATA = [
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
+    # Observability eye (E1): route every stdlib logger.error and uncaught
+    # route 500 into logging_os so the web process is no longer blind to its
+    # own failures. Idempotent — install_bridge() removes a prior bridge
+    # handler before adding. See docs/engineering/observability-eye.md §1.
+    from logging_os import setup as _logging_os_setup
+
+    _logging_os_setup(level="info")
+
     _host_for_servers = os.environ.get("COS_WEB_HOST", "127.0.0.1")
     _port_for_servers = int(os.environ.get("COS_WEB_PORT", "9188"))
     app = FastAPI(

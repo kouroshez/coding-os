@@ -674,6 +674,19 @@ def _resolve_cli_version() -> str:
 @click.version_option(version=_resolve_cli_version(), prog_name="coding-os")
 def cli() -> None:
     """Coding OS — Agent-agnostic cognitive operating system for AI coding agents."""
+    # Observability eye (E1): route every stdlib logger.error from doctor /
+    # health / any cos command into logging_os so the CLI process is no longer
+    # blind to its own failures. Idempotent — install_bridge() removes a prior
+    # bridge handler before adding. See docs/engineering/observability-eye.md §1.
+    try:
+        from core.logging_os import setup as _logging_os_setup
+
+        _logging_os_setup(level="info")
+    except Exception as _bridge_exc:  # pragma: no cover — never block the CLI on logging setup
+        import logging as _logging
+
+        _logging.getLogger("coding_os.cli").debug("logging_os bridge unavailable: %s", _bridge_exc)
+
     _bootstrap_hub_dir_if_first_run()
 
 
