@@ -49,7 +49,11 @@ cos_log_hook auto-regen-doc-index fire "file=${FILE_PATH}"
 # ── Resolve the target dir + the regen script ────────────────────────
 TARGET_DIR=$(dirname "$FILE_PATH")
 SCRIPT_PATH=""
+# regen_doc_index.py lives at src/scripts/ — the meta-repo path is primary;
+# the others are legacy fallbacks (TASK-113: the old candidates missed it
+# from a symlinked .claude/hooks/ install → the hook was a silent no-op).
 for candidate in \
+  "${PROJECT_ROOT}/src/scripts/regen_doc_index.py" \
   "${PROJECT_ROOT}/scripts/regen_doc_index.py" \
   "$(dirname "$0")/../../scripts/regen_doc_index.py"; do
   if [[ -f "$candidate" ]]; then

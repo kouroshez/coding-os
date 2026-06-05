@@ -153,7 +153,8 @@ if [[ "$SOURCE" == "startup" ]]; then
   # one file per matched pattern/leg, not a single marker.
   for STATE_DIR_MARK in \
     "${COS_PANEL_DIR}/.graph-nudge" \
-    "${COS_PANEL_DIR}/.task-nudge"; do
+    "${COS_PANEL_DIR}/.task-nudge" \
+    "${COS_PANEL_DIR}/.test-first-reminded"; do
     if [ -d "$STATE_DIR_MARK" ]; then
       rm -rf "$STATE_DIR_MARK"
       CLEARED=$((CLEARED + 1))
