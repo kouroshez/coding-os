@@ -283,8 +283,14 @@ make regen-rules
 
 Pre-merge: also `make verify` (full sweep).
 
+## Tooling
+
+Scaffold a compliant `cos_*` tool stub (cos_ prefix, @safe_tool, ok/fail, one-line docstring):
+`python3 scripts/new_tool.py --name widget --layer graph`
+
 ## See also
 
+- [assets/mcp-tool-checklist.md](assets/mcp-tool-checklist.md) — the authoring + registration gate.
 - [Rule 13 — MCP Envelope](../../../docs/governance/critical-rules.md#rule-13--mcp-tool-response-envelope)
 - [MCP Error Envelope contract](../../../docs/engineering/mcp-error-envelope.md)
 - [MCP Tool Inventory (SSOT)](../../../docs/governance/mcp-tool-inventory.md)
