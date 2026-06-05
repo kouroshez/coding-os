@@ -1,0 +1,17 @@
+# coding-os nightly maintenance (CRON A) — systemd user service.
+# Installed by: cos cron install   (Linux)
+# Source: src/core/scheduled/systemd/coding-os-nightly.service.template
+#
+# Placeholders (replaced by cos cron install):
+#   {{EXEC_START}}  absolute nightly invocation (cos-nightly binary or uv run)
+#   {{PATH}}        runtime PATH
+#   {{HOME}}        user home directory
+[Unit]
+Description=coding-os nightly brain maintenance (decay, learn_extract, routing, digest)
+
+[Service]
+Type=oneshot
+ExecStart={{EXEC_START}}
+Environment=PATH={{PATH}}
+StandardOutput=append:{{HOME}}/.coding-os/scheduled/nightly-stdout.log
+StandardError=append:{{HOME}}/.coding-os/scheduled/nightly-stderr.log

@@ -25,6 +25,14 @@ _PLIST_DEST = Path.home() / "Library" / "LaunchAgents" / "com.codingos.nightly.p
 _GLOBAL_SUMMARY = Path.home() / ".coding-os" / "scheduled" / "last_summary.json"
 _NIGHTLY_SCRIPT = CODING_OS_ROOT / "src" / "core" / "scheduled" / "nightly.py"
 
+_SYSTEMD_SRC = CODING_OS_ROOT / "src" / "core" / "scheduled" / "systemd"
+_SERVICE_SRC = _SYSTEMD_SRC / "coding-os-nightly.service.template"
+_TIMER_SRC = _SYSTEMD_SRC / "coding-os-nightly.timer.template"
+_SYSTEMD_USER_DIR = Path.home() / ".config" / "systemd" / "user"
+_SERVICE_DEST = _SYSTEMD_USER_DIR / "coding-os-nightly.service"
+_TIMER_DEST = _SYSTEMD_USER_DIR / "coding-os-nightly.timer"
+_TIMER_UNIT = "coding-os-nightly.timer"
+
 
 def _uv_path() -> str:
     uv = shutil.which("uv")
@@ -39,13 +47,6 @@ def _cos_nightly_path() -> str:
     if installed:
         return installed
     return ""
-
-
-def _assert_macos() -> None:
-    if platform.system() != "Darwin":
-        raise click.ClickException(
-            "cron-install uses launchd — macOS only. On Linux use: crontab -e"
-        )
 
 
 def _render_plist(hour: int) -> str:
@@ -90,6 +91,70 @@ def _render_plist(hour: int) -> str:
     )
 
 
+def _exec_args() -> list[str]:
+    """Nightly invocation — prefer the installed cos-nightly binary, else uv run."""
+    nightly_bin = _cos_nightly_path()
+    if nightly_bin:
+        return [nightly_bin]
+    return [_uv_path(), "run", "--project", str(CODING_OS_ROOT), "python", str(_NIGHTLY_SCRIPT)]
+
+
+def _render_systemd(hour: int) -> tuple[str, str]:
+    if not _SERVICE_SRC.exists() or not _TIMER_SRC.exists():
+        raise click.ClickException(f"systemd templates not found under {_SYSTEMD_SRC}")
+    exec_start = " ".join(_exec_args())
+    service = (
+        _SERVICE_SRC.read_text()
+        .replace("{{EXEC_START}}", exec_start)
+        .replace("{{PATH}}", os.environ.get("PATH", ""))
+        .replace("{{HOME}}", str(Path.home()))
+    )
+    timer = _TIMER_SRC.read_text().replace("{{CRON_HOUR}}", f"{hour:02d}")
+    return service, timer
+
+
+def _systemctl(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["systemctl", "--user", *args], capture_output=True, text=True)
+
+
+def _install_launchd(hour: int) -> str:
+    rendered = _render_plist(hour)
+    _PLIST_DEST.parent.mkdir(parents=True, exist_ok=True)
+    _PLIST_DEST.write_text(rendered)
+    result = subprocess.run(
+        ["launchctl", "load", "-w", str(_PLIST_DEST)], capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise click.ClickException(f"launchctl load failed: {result.stderr.strip()}")
+    return "cos-nightly binary" if _cos_nightly_path() else "uv run (dev mode)"
+
+
+def _install_systemd(hour: int) -> None:
+    if not shutil.which("systemctl"):
+        raise click.ClickException("systemctl not found — install systemd or schedule via crontab.")
+    service, timer = _render_systemd(hour)
+    _SYSTEMD_USER_DIR.mkdir(parents=True, exist_ok=True)
+    _SERVICE_DEST.write_text(service)
+    _TIMER_DEST.write_text(timer)
+    _systemctl("daemon-reload")
+    r = _systemctl("enable", "--now", _TIMER_UNIT)
+    if r.returncode != 0:
+        raise click.ClickException(f"systemctl enable failed: {r.stderr.strip()}")
+
+
+def _uninstall_systemd() -> bool:
+    if shutil.which("systemctl"):
+        _systemctl("disable", "--now", _TIMER_UNIT)
+    removed = False
+    for dest in (_TIMER_DEST, _SERVICE_DEST):
+        if dest.exists():
+            dest.unlink()
+            removed = True
+    if shutil.which("systemctl"):
+        _systemctl("daemon-reload")
+    return removed
+
+
 @click.group("cron")
 def cron_cmd() -> None:
     """Manage the nightly scheduled maintenance job (CRON A)."""
@@ -100,45 +165,48 @@ def cron_cmd() -> None:
     "--hour", default=3, show_default=True, metavar="0-23", help="Hour of day to run (local time)."
 )
 def cron_install(hour: int) -> None:
-    """Install + load the nightly launchd job (macOS)."""
-    _assert_macos()
+    """Install + load the nightly job (macOS launchd / Linux systemd user timer)."""
     if not 0 <= hour <= 23:
         raise click.ClickException("--hour must be 0-23")
 
     log_dir = Path.home() / ".coding-os" / "scheduled"
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    rendered = _render_plist(hour)
-    _PLIST_DEST.parent.mkdir(parents=True, exist_ok=True)
-    _PLIST_DEST.write_text(rendered)
-
-    result = subprocess.run(
-        ["launchctl", "load", "-w", str(_PLIST_DEST)],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise click.ClickException(f"launchctl load failed: {result.stderr.strip()}")
-
-    mode = "cos-nightly binary" if _cos_nightly_path() else "uv run (dev mode)"
-    click.echo(f"✓ cron installed ({mode}) — runs daily at {hour:02d}:00")
-    click.echo(f"  plist: {_PLIST_DEST}")
+    system = platform.system()
+    if system == "Darwin":
+        mode = _install_launchd(hour)
+        click.echo(f"✓ cron installed (launchd, {mode}) — runs daily at {hour:02d}:00")
+        click.echo(f"  plist: {_PLIST_DEST}")
+    elif system == "Linux":
+        _install_systemd(hour)
+        mode = "cos-nightly binary" if _cos_nightly_path() else "uv run (dev mode)"
+        click.echo(f"✓ cron installed (systemd --user timer, {mode}) — runs daily at {hour:02d}:00")
+        click.echo(f"  unit:  {_TIMER_DEST}")
+    else:
+        raise click.ClickException(
+            f"unsupported OS {system!r}; schedule `cos cron run` via crontab instead."
+        )
     click.echo(f"  logs:  {log_dir}")
 
 
 @cron_cmd.command("uninstall")
 def cron_uninstall() -> None:
-    """Unload + remove the nightly launchd job."""
-    _assert_macos()
-    subprocess.run(
-        ["launchctl", "unload", "-w", str(_PLIST_DEST)],
-        capture_output=True,
-    )
-    if _PLIST_DEST.exists():
-        _PLIST_DEST.unlink()
-        click.echo("✓ cron uninstalled")
+    """Unload + remove the nightly job (launchd on macOS / systemd timer on Linux)."""
+    system = platform.system()
+    if system == "Darwin":
+        subprocess.run(["launchctl", "unload", "-w", str(_PLIST_DEST)], capture_output=True)
+        if _PLIST_DEST.exists():
+            _PLIST_DEST.unlink()
+            click.echo("✓ cron uninstalled")
+        else:
+            click.echo("nothing to uninstall (plist not found)")
+    elif system == "Linux":
+        if _uninstall_systemd():
+            click.echo("✓ cron uninstalled")
+        else:
+            click.echo("nothing to uninstall (timer not found)")
     else:
-        click.echo("nothing to uninstall (plist not found)")
+        click.echo(f"nothing to uninstall on {system}")
 
 
 @cron_cmd.command("run")
@@ -174,14 +242,20 @@ def cron_run(dry_run: bool, slug: str | None, verbose: bool, reset_failures: boo
 @cron_cmd.command("status")
 def cron_status() -> None:
     """Show last nightly run summary."""
-    installed = _PLIST_DEST.exists()
-    loaded = False
-    if installed and platform.system() == "Darwin":
-        r = subprocess.run(
-            ["launchctl", "list", "com.codingos.nightly"],
-            capture_output=True,
+    system = platform.system()
+    if system == "Linux":
+        installed = _TIMER_DEST.exists()
+        loaded = bool(installed and shutil.which("systemctl")) and (
+            _systemctl("is-enabled", _TIMER_UNIT).returncode == 0
         )
-        loaded = r.returncode == 0
+    else:
+        installed = _PLIST_DEST.exists()
+        loaded = False
+        if installed and system == "Darwin":
+            r = subprocess.run(
+                ["launchctl", "list", "com.codingos.nightly"], capture_output=True
+            )
+            loaded = r.returncode == 0
 
     click.echo(f"installed : {installed}")
     click.echo(f"loaded    : {loaded}")

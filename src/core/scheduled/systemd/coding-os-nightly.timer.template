@@ -1,0 +1,15 @@
+# coding-os nightly timer (CRON A) — fires the service daily at {{CRON_HOUR}}:00.
+# Installed by: cos cron install   (Linux)
+# Source: src/core/scheduled/systemd/coding-os-nightly.timer.template
+#
+# Persistent=true catches up a missed run if the machine was off (mirrors the
+# launchd missed-run behaviour on macOS).
+[Unit]
+Description=Run coding-os nightly maintenance daily at {{CRON_HOUR}}:00 local
+
+[Timer]
+OnCalendar=*-*-* {{CRON_HOUR}}:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
