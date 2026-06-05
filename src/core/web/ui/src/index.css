@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "highlight.js/styles/github-dark.css";
 
@@ -7,14 +7,31 @@
  * cognition, hub) reads via `var(--cos-*)`.
  */
 :root {
-  --cos-bg: var(--board, #f4efe1);
-  --cos-panel: var(--col-bg, #ffffff);
-  --cos-border: var(--col-border, #b8ad9a);
-  --cos-text: var(--ink, #1a1814);
-  --cos-muted: var(--ink-soft, #6b665e);
-  --cos-faint: var(--ink-faint, #9ea4ae);
-  --cos-grain: var(--board-grain, #ece4cd);
-  --cos-accent: var(--accent, #d96c2c);
+  /* surfaces */
+  --cos-bg:      var(--surface-canvas, #0a0b0e);
+  --cos-panel:   var(--surface-panel, #111317);
+  --cos-raised:  var(--surface-raised, #171a20);
+  --cos-overlay: var(--surface-overlay, #20242c);
+  --cos-inset:   var(--surface-inset, #0c0e12);
+  --cos-grain:   var(--surface-raised, #171a20);
+  /* borders */
+  --cos-border:        var(--border-default, #2c313a);
+  --cos-border-subtle: var(--border-subtle, #20242b);
+  --cos-border-strong: var(--border-strong, #3a4150);
+  /* text */
+  --cos-text:  var(--text-1, #e7eaf0);
+  --cos-muted: var(--text-2, #a4abb8);
+  --cos-faint: var(--text-3, #6c7480);
+  /* brand */
+  --cos-accent:      var(--brand, #7c82f2);
+  --cos-brand-hover: var(--brand-hover, #9296f6);
+  --cos-brand-text:  var(--brand-text, #a7abf8);
+  --cos-brand-tint:  var(--brand-tint, rgba(124, 130, 242, .14));
+  /* status */
+  --cos-ok:   var(--st-ok, #3fb950);   --cos-ok-tint:   var(--st-ok-tint, rgba(63, 185, 80, .14));
+  --cos-warn: var(--st-warn, #e0a227); --cos-warn-tint: var(--st-warn-tint, rgba(224, 162, 39, .14));
+  --cos-err:  var(--st-err, #f2576b);  --cos-err-tint:  var(--st-err-tint, rgba(242, 87, 107, .14));
+  --cos-info: var(--st-info, #4c8dff); --cos-info-tint: var(--st-info-tint, rgba(76, 141, 255, .14));
 }
 
 /* Glassmorphic premium card styles */

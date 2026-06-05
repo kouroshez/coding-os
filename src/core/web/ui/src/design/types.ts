@@ -20,7 +20,7 @@ export interface DesignTweaks {
 }
 
 export const DEFAULT_DESIGN_TWEAKS: DesignTweaks = {
-  theme: 'light',
+  theme: 'dark',
   density: 'cozy',
   aesthetic: 'whiteboard',
   quietMode: false,

@@ -1,56 +1,124 @@
 /* Ported from newdesign/project/cos-board.html — Claude Design handoff */
+/* ============================================================
+ * Cortex design tokens — SSOT: docs/engineering/design-system.md
+ * Layer 1 PRIMITIVES → Layer 2 SEMANTIC → legacy aliases.
+ * :root = LIGHT. html[data-theme="dark"] = DARK (the default).
+ * ============================================================ */
 :root {
-    --paper-h: 40;
-    --paper-s: 28%;
-    --paper-l: 94%;
-    --ink: #1a1814;
-    --ink-soft: #4a4540;
-    --ink-faint: #8a8378;
-    --board: hsl(var(--paper-h) var(--paper-s) var(--paper-l));
-    --board-grain: hsl(30 20% 88%);
-    --line: #2a2621;
-    --line-soft: #6b665e;
-    --red: #c0392b;
-    --red-ink: #8b2318;
-    --blue: #2c5aa0;
-    --green: #3a7a3a;
-    --accent: #d96c2c;
+    /* ---- PRIMITIVES · Graphite (cool neutral) ---- */
+    --graphite-canvas: #f6f7f9;
+    --graphite-panel:  #ffffff;
+    --graphite-raised: #f1f3f6;
+    --graphite-inset:  #eceef2;
+    --graphite-border-subtle: #ebedf1;
+    --graphite-border:        #d8dce3;
+    --graphite-border-strong: #c0c6d0;
+    --graphite-text:     #14161b;
+    --graphite-text-2:   #4a5260;
+    --graphite-text-3:   #717784;
+    --graphite-text-off: #a2a9b5;
+    /* ---- PRIMITIVES · Iris brand ---- */
+    --iris-solid: #5a5fe0;
+    --iris-hover: #4a4fd4;
+    --iris-text:  #4338ca;
+    --iris-tint:  #eeeffe;
+    /* ---- PRIMITIVES · status ---- */
+    --st-ok:   #1a7f37; --st-ok-tint:   #e6f4ea;
+    --st-warn: #9a6700; --st-warn-tint: #fbf3e0;
+    --st-err:  #cf222e; --st-err-tint:  #fce9ea;
+    --st-info: #0969da; --st-info-tint: #e7f0fe;
 
-    /* sticky note pastels */
-    --sticky-yellow: #fde68a;
-    --sticky-yellow-2: #fcd34d;
-    --sticky-pink: #fbcfe8;
-    --sticky-pink-2: #f9a8d4;
-    --sticky-blue: #bfdbfe;
-    --sticky-blue-2: #93c5fd;
-    --sticky-green: #bbf7d0;
-    --sticky-green-2: #86efac;
-    --sticky-purple: #e9d5ff;
-    --sticky-purple-2: #d8b4fe;
-    --sticky-orange: #fed7aa;
-    --sticky-orange-2: #fdba74;
-    --sticky-teal: #99f6e4;
-    --sticky-red: #fecaca;
-    --sticky-red-2: #fca5a5;
+    /* ---- SEMANTIC (the layer components read) ---- */
+    --surface-canvas:  var(--graphite-canvas);
+    --surface-panel:   var(--graphite-panel);
+    --surface-raised:  var(--graphite-raised);
+    --surface-overlay: var(--graphite-panel);
+    --surface-inset:   var(--graphite-inset);
+    --border-subtle:   var(--graphite-border-subtle);
+    --border-default:  var(--graphite-border);
+    --border-strong:   var(--graphite-border-strong);
+    --text-1: var(--graphite-text);
+    --text-2: var(--graphite-text-2);
+    --text-3: var(--graphite-text-3);
+    --text-disabled: var(--graphite-text-off);
+    --brand:       var(--iris-solid);
+    --brand-hover: var(--iris-hover);
+    --brand-text:  var(--iris-text);
+    --brand-tint:  var(--iris-tint);
+    --brand-on:    #ffffff;
+    --focus-ring:  var(--iris-solid);
 
-    --col-bg: hsl(var(--paper-h) var(--paper-s) 96%);
-    --col-border: #b8ad9a;
+    /* ---- LEGACY ALIASES (kept → zero component breakage) ---- */
+    --paper-h: 220; --paper-s: 16%; --paper-l: 97%;
+    --ink:       var(--text-1);
+    --ink-soft:  var(--text-2);
+    --ink-faint: var(--text-3);
+    --board:       var(--surface-canvas);
+    --board-grain: var(--surface-inset);
+    --line:      var(--border-strong);
+    --line-soft: var(--border-default);
+    --red:     var(--st-err);
+    --red-ink: var(--st-err);
+    --blue:    var(--st-info);
+    --green:   var(--st-ok);
+    --accent:  var(--brand);
+    --col-bg:     var(--surface-panel);
+    --col-border: var(--border-default);
+
+    /* ---- task-kind chips (light): soft tints, professional ---- */
+    --sticky-yellow: #fbf3d9;  --sticky-yellow-2: #f5e4b0;
+    --sticky-pink:   #fce7f0;  --sticky-pink-2:   #f7c9de;
+    --sticky-blue:   #e4edfb;  --sticky-blue-2:   #c5d8f5;
+    --sticky-green:  #e3f3e7;  --sticky-green-2:  #c2e3cb;
+    --sticky-purple: #ececfb;  --sticky-purple-2: #d6d7f6;
+    --sticky-orange: #fbead8;  --sticky-orange-2: #f5d2ae;
+    --sticky-teal:   #daf3ef;
+    --sticky-red:    #fbe3e5;  --sticky-red-2:    #f6c6cb;
   }
 
   html[data-theme="dark"] {
-    --paper-h: 224;
-    --paper-s: 71%;
-    --paper-l: 4%;
-    --ink: #f3f4f6;
-    --ink-soft: #9ca3af;
-    --ink-faint: #4b5563;
-    --board: #080a10;
-    --board-grain: #0d111c;
-    --line: #3b82f6;
-    --line-soft: #1e3a8a;
-    --col-bg: #0e111a;
-    --col-border: rgba(255, 255, 255, 0.08);
-    --accent: #f97316;
+    /* ---- PRIMITIVES · Graphite dark ---- */
+    --graphite-canvas: #0a0b0e;
+    --graphite-panel:  #111317;
+    --graphite-raised: #171a20;
+    --graphite-inset:  #0c0e12;
+    --graphite-border-subtle: #20242b;
+    --graphite-border:        #2c313a;
+    --graphite-border-strong: #3a4150;
+    --graphite-text:     #e7eaf0;
+    --graphite-text-2:   #a4abb8;
+    --graphite-text-3:   #6c7480;
+    --graphite-text-off: #474e59;
+    /* ---- PRIMITIVES · Iris brand ---- */
+    --iris-solid: #7c82f2;
+    --iris-hover: #9296f6;
+    --iris-text:  #a7abf8;
+    --iris-tint:  rgba(124, 130, 242, .14);
+    /* ---- PRIMITIVES · status ---- */
+    --st-ok:   #3fb950; --st-ok-tint:   rgba(63, 185, 80, .14);
+    --st-warn: #e0a227; --st-warn-tint: rgba(224, 162, 39, .14);
+    --st-err:  #f2576b; --st-err-tint:  rgba(242, 87, 107, .14);
+    --st-info: #4c8dff; --st-info-tint: rgba(76, 141, 255, .14);
+
+    /* ---- SEMANTIC remaps to dark primitives ---- */
+    --surface-overlay: #20242c;
+
+    /* ---- LEGACY ALIASES (dark) ---- */
+    --board-grain: var(--surface-raised);
+    --line:      var(--border-strong);
+    --line-soft: var(--border-default);
+    --col-bg:     var(--surface-panel);
+    --col-border: var(--border-subtle);
+
+    /* ---- task-kind chips (dark): muted tinted panels ---- */
+    --sticky-yellow: #2a2616;  --sticky-yellow-2: #3a3320;
+    --sticky-pink:   #2e1a24;  --sticky-pink-2:   #3e2331;
+    --sticky-blue:   #16213a;  --sticky-blue-2:   #1e2d4e;
+    --sticky-green:  #16271c;  --sticky-green-2:  #1e3527;
+    --sticky-purple: #1f1d3a;  --sticky-purple-2: #2a274e;
+    --sticky-orange: #2c1f12;  --sticky-orange-2: #3c2a18;
+    --sticky-teal:   #142a28;
+    --sticky-red:    #2e1a1c;  --sticky-red-2:    #3e2326;
   }
 
   * { box-sizing: border-box; }
@@ -66,19 +134,14 @@
   /* whiteboard — default */
   html[data-aesthetic="whiteboard"] body {
     background:
-      radial-gradient(circle at 20% 30%, rgba(139, 90, 43, .06) 0 2px, transparent 3px),
-      radial-gradient(circle at 80% 60%, rgba(139, 90, 43, .05) 0 1.5px, transparent 2px),
-      radial-gradient(circle at 45% 85%, rgba(139, 90, 43, .05) 0 2px, transparent 3px),
-      radial-gradient(circle at 65% 15%, rgba(139, 90, 43, .04) 0 1.5px, transparent 2px),
-      linear-gradient(135deg, var(--board) 0%, var(--board-grain) 100%);
-    background-size: 7px 7px, 11px 11px, 13px 13px, 9px 9px, 100% 100%;
+      radial-gradient(circle at 50% -10%, rgba(90, 95, 224, .05), transparent 55%),
+      var(--surface-canvas);
   }
   html[data-aesthetic="whiteboard"][data-theme="dark"] body {
     background:
-      radial-gradient(circle at 20% 30%, rgba(255,255,255,.02) 0 2px, transparent 3px),
-      radial-gradient(circle at 80% 60%, rgba(255,255,255,.015) 0 1.5px, transparent 2px),
-      linear-gradient(135deg, var(--board) 0%, var(--board-grain) 100%);
-    background-size: 7px 7px, 11px 11px, 100% 100%;
+      radial-gradient(circle at 50% -8%, rgba(124, 130, 242, .10), transparent 55%),
+      radial-gradient(circle at 88% 6%, rgba(124, 130, 242, .05), transparent 45%),
+      var(--surface-canvas);
   }
 
   /* graph paper — technical notebook */
@@ -169,10 +232,8 @@
 
   html[data-theme="dark"] body {
     background:
-      radial-gradient(circle at 20% 30%, rgba(255,255,255,.02) 0 2px, transparent 3px),
-      radial-gradient(circle at 80% 60%, rgba(255,255,255,.015) 0 1.5px, transparent 2px),
-      linear-gradient(135deg, var(--board) 0%, var(--board-grain) 100%);
-    background-size: 7px 7px, 11px 11px, 100% 100%;
+      radial-gradient(circle at 50% -8%, rgba(124, 130, 242, .08), transparent 55%),
+      var(--surface-canvas);
   }
 
   #root { height: 100vh; display: flex; flex-direction: column; }
