@@ -135,8 +135,14 @@ Stop and surface to user when:
 - An MCP tool signature changes without a migration plan.
 - You discover a stack-specific assumption inside `core/`.
 
+## Tooling
+
+Classify a path's layer + how an edit reaches consumers:
+`python3 scripts/which_layer.py src/core/hooks/foo.sh`
+
 ## See also
 
+- [assets/meta-edit-checklist.md](assets/meta-edit-checklist.md) — the pre/post edit gate.
 - [docs/architecture/meta-project.md](../../../docs/architecture/meta-project.md) — full meta-project architecture.
 - [docs/governance/critical-rules.md](../../../docs/governance/critical-rules.md) — all 21 critical rules.
 - [docs/engineering/graph-hallucination-cures.md](../../../docs/engineering/graph-hallucination-cures.md) — why and when to call `cos_graph_*`.
