@@ -35,6 +35,8 @@ def test_public_surface_is_locked() -> None:
         "ok",
         "scoped",
         "setup",
+        "swallow_safe",
+        "swallowed_count",
         "uninstall_bridge",
         "warn",
     }
@@ -140,6 +142,19 @@ def test_error_with_exc_captures_type_and_stack(temp_state: Path) -> None:
     ).fetchone()
     assert row[0] == "ValueError"
     assert row[1] and "deep cause" in row[1]
+
+
+def test_swallow_safe_counts_and_stays_quiet_at_default_level(temp_state: Path) -> None:
+    before = logging_os.swallowed_count()
+    try:
+        raise RuntimeError("oops")
+    except RuntimeError as exc:
+        logging_os.swallow_safe("cli.test", "fire and forget", exc=exc)
+    assert logging_os.swallowed_count() == before + 1
+    # default level=info → the debug emit is dropped (quiet); the counter is the always-on signal
+    jsonl = temp_state / ".cos.log.jsonl"
+    if jsonl.exists():
+        assert "fire and forget" not in jsonl.read_text()
 
 
 def test_session_and_trace_stamped_from_env(

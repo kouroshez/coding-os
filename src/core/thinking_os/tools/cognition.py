@@ -200,8 +200,10 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
                 role=action.formula,
                 phase=state.phase,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            from core.logging_os import swallow_safe
+
+            swallow_safe("thinking_os.cognition", "supervise output trace emit failed", exc=exc)
 
         return ok(
             {
@@ -1634,8 +1636,10 @@ def register_cos_classify_prompt(mcp, db_path):
                             "classify",
                             {"complexity": complexity, "dimensions": dimensions},
                         )
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        from core.logging_os import swallow_safe
+
+                        swallow_safe("thinking_os.cognition", "classify trace emit failed", exc=exc)
                 except OSError:
                     recorded = False
             if not recorded:

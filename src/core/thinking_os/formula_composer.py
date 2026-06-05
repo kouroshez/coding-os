@@ -511,8 +511,12 @@ def _resolve_threshold(override: int | None) -> int:
             val = (data.get("cognition") or {}).get("preset_min_score")
             if val is not None:
                 return max(0, min(15, int(val)))
-        except Exception:
-            pass
+        except Exception as exc:
+            from core.logging_os import swallow_safe
+
+            swallow_safe(
+                "thinking_os.formula_composer", "preset_min_score config read failed", exc=exc
+            )
     return _DEFAULT_PRESET_MIN_SCORE
 
 
