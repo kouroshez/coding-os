@@ -26,7 +26,7 @@ created: 2026-06-05
 | 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx/MemoryPage.tsx/api-types | 4 | 4 | no | 4 | no | (pending) |
 | 8 | Data-driven adapter detection | TASK-112 | cos-env.sh/doctor.py/test_no_hardcoded_stacks.py | 3 | 4 | no | 4 | no | (pending) |
 | 9 | Hot-path Pre/Post dispatcher | TASK-113 | registry.yaml/hook_renderer.py/test-first/auto-regen-doc-index/dead stubs | ~6 | 6 | no | 6 | no | (pending) |
-| 10 | enforce-anti-ambiguity dead gate | TASK-114 | enforce-anti-ambiguity.sh/cognition.py | 2 | 2 | no | 2 | no | (pending) |
+| 10 | enforce-anti-ambiguity dead gate | TASK-114 | enforce-anti-ambiguity.sh/cognition.py | 2 | 2 | yes | 0 | yes | 1290412 (DB-state gate + clear-on-pass test) |
 
 ## Per-Stream Implementation Checklist
 
@@ -92,15 +92,15 @@ created: 2026-06-05
 - ⬜ 9e MED — warn-mcp-down debounce + lightweight probe (don't spawn full MCP server on compact/resume).
 
 ### Stream 10 — TASK-114 · enforce-anti-ambiguity dead gate (P1)
-- ⬜ 10a CRIT — cos_ambiguity_check writes `.ambiguity-cache` (PASS / FAIL:criteria) via panel state path on EXECUTE-phase check.
-- ⬜ 10b HIGH — enforce-anti-ambiguity.sh FAIL branch `exit 2` (not `exit 1`); add `cos_require_or_skip jq`.
+- ✅ 10a CRIT — gate made live via the canonical DB (more reliable than a producer-written file, which has the MCP-panel-resolution flaw): cos_ambiguity_check clears the session's prior `ambiguity_violations` each check (pass→none); the hook queries the table for the session. **DONE 1290412 + clear-on-pass test.**
+- ✅ 10b HIGH — FAIL branch now `exit 2` (was `exit 1`); fail-open guards for missing sqlite3/DB/session. **DONE 1290412.**
 
 ## Resume Marker
 
-<!-- last_updated_row: 2 -->
-<!-- next_unchecked_row: 10 -->
+<!-- last_updated_row: 10 -->
+<!-- next_unchecked_row: 3 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1 COMPLETE (1a-1g). N2 COMPLETE 2a-2d (10d1240·2d6b7de). NEXT: N10 (TASK-114) enforce-anti-ambiguity dead gate → FIX. -->
+<!-- progress: N1✅ N2✅ N10✅ (1290412). NEXT: N3 (TASK-107) per-panel marker-scope drift. Then N5,N4,N6,N8,N7,N9. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
