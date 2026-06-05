@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: hook-remediation
 labels: [memory, decay, learning, critical, audit-n1, ready]
-status: in_progress
+status: complete
 priority: P0
 appetite: "1d"
 created: 2026-06-05
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ Actual: _days_since(NULL)→None → months=(None or 999)/30≈33.3 → decay_co
 
 ## Work Log
 - 2026-06-05 [claude]: 1a+1c DONE (commit d69a52b): _upsert_pattern stamps last_validated/last_accessed_at on INSERT (fresh pattern age 0, no f
+- 2026-06-05 [claude]: N1 COMPLETE 1a-1g: fresh-pattern preservation (d69a52b), archived_at grace v33 (568c4d9), shared run_decay_locked flock+

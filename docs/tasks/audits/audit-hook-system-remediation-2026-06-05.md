@@ -17,7 +17,7 @@ created: 2026-06-05
 
 | # | Category (stream) | Task | Pattern / scope | Files scanned | Hits before | Fixed | Hits after | Verified | Evidence (commit / file:line) |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Learning-loop memory corruption | TASK-104 | decay.py/learning.py/session_enrich.py/nightly.py | 4 | 5 | no | 5 | no | (pending) |
+| 1 | Learning-loop memory corruption | TASK-104 | decay.py/learning.py/session_enrich.py/nightly.py/cron_commands.py | 5 | 7 | yes | 0 | yes | d69a52b·568c4d9·b227b83·d752bd7·7096979 (auto-brain marker→N9, hour knob→N7) |
 | 2 | Danger/secret regex holes | TASK-105 | block-dangerous-commands.sh/block-secrets.sh | 2 | 5 | no | 5 | no | (pending) |
 | 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | no | 8 | no | (pending) |
 | 4 | Board transition atomicity | TASK-108 | workflow.py/mcp_tools.py/4 hook helpers | 6 | 2 | no | 2 | no | (pending) |
@@ -33,13 +33,13 @@ created: 2026-06-05
 > Status markers: ⬜ todo · 🟦 in-progress · ✅ done+verified. Update the category-table `Verified` cell + call `cos_supervise_record_output` on each stream close.
 
 ### Stream 1 — TASK-104 · Learning-loop memory corruption (P0, isolated from concurrent work)
-- ✅ 1a CRIT — `learning.py` `_upsert_pattern` INSERT stamps `last_validated`+`last_accessed_at`=CURRENT_TIMESTAMP so fresh patterns aren't aged to 999d → archived on first decay. **DONE commit d69a52b + regression test (test_decay.py TestFreshPatternSurvivesFirstDecay).**
-- ⬜ 1b HIGH — `decay.py:160-170` hard-delete prune must not erase below-floor knowledge without an `archived_at` grace (add column or gate on archived-duration, not at-floor).
-- ✅ 1c MED — `learning.py` re-extract of an archived pattern resets `promoted_to=NULL` (revive) + refreshes last_accessed_at. **DONE commit d69a52b.**
-- ⬜ 1d HIGH — `session_enrich.py:235-240` decay acquires the same `flock` nightly uses (concurrent-decay race).
-- ⬜ 1e HIGH — unify decay marker path across nightly/auto-brain-decay/session_enrich (project-scoped `.last-decay`, not divergent COS_STATE_DIR vs project_root).
-- ⬜ 1f MED — cron (`nightly.py`) regenerates digest after extract/decay (digest currently SessionStart-only → stale for cron-only projects).
-- ⬜ 1g MED — Linux scheduler path (systemd user timer / documented crontab) OR remove the per-project `hour` knob that one global launchd job ignores.
+- ✅ 1a CRIT — `_upsert_pattern` INSERT stamps `last_validated`+`last_accessed_at` so fresh patterns aren't archived on first decay. **DONE d69a52b + regression test.**
+- ✅ 1b HIGH — `archived_at` (migration v33) — prune gates on time-since-archived so freshly-archived knowledge gets full grace. **DONE 568c4d9 + grace tests.**
+- ✅ 1c MED — re-extract revives archived pattern (`promoted_to=NULL`, `archived_at=NULL`) + refreshes recency. **DONE d69a52b / 568c4d9.**
+- ✅ 1d HIGH — `session_enrich` decay routes through shared `run_decay_locked` (flock). **DONE b227b83 + throttle test.**
+- ✅ 1e HIGH — decay marker unified at `<db-dir>/.last-decay` (mtime throttle, shared lock) for nightly + session_enrich. **DONE b227b83.** ↪ auto-brain-decay.sh marker alignment folded into N9 (avoids live TASK-100 hook collision).
+- ✅ 1f MED — `nightly.run_project` regenerates digest after extract/decay. **DONE d752bd7.**
+- ✅ 1g MED — Linux systemd `--user` .timer/.service scheduler; `cos cron install` dispatches by OS. **DONE 7096979 + tests.** ↪ misleading per-project `hour` knob removal folded into N7 (web layer).
 
 ### Stream 2 — TASK-105 · Danger/secret regex (P0, isolated)
 - ⬜ 2a CRIT — `block-dangerous-commands.sh:50` rm -rf matches `/`,`.`,`..`,`./`,`*` and flag-order (`-fr`,`-r -f`); drop trailing `\b`, anchor on whitespace/EOL.
@@ -97,9 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 0 -->
-<!-- next_unchecked_row: 1 -->
+<!-- last_updated_row: 1 -->
+<!-- next_unchecked_row: 2 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
+<!-- progress: N1 (TASK-104) COMPLETE 1a-1g — d69a52b·568c4d9·b227b83·d752bd7·7096979. NEXT: N2 (TASK-105) safety regex (rm -rf / bypass). -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
