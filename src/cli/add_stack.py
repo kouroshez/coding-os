@@ -247,6 +247,14 @@ def add_stack(
     with _silencer:
         _apply_stack_files(stack_profile, project, agent)
         files_copied = _overlay_stack_scaffold(stack_profile, project, world.substitutions)
+        # Re-compose .coding-os/ configs to fold in the new stack — merge its
+        # overlay onto the existing composed files so the board/RAG gain its
+        # swimlanes/sources, preserving user edits (config-composition.md).
+        from cli.config_composer import recompose_for_added_stack
+
+        recompose_for_added_stack(
+            project, project / STATE_DIR, stack_profile.id, templates_dir=TEMPLATES_DIR
+        )
         # Link the new stack's skills into the adapter's skills_dir.
         # `cos init` does this via _run_scaffold_phase step 5b; `cos add-stack`
         # bypasses that path so we must link here to keep the adapter's
