@@ -48,7 +48,10 @@ fi
 # flooding the hook stream with `enter` rows for every Bash invocation.
 cos_log_hook auto-reindex-shell-ops enter || true
 
-STATE_DIR="${COS_STATE_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}"
+# Agent-agnostic last-resort fallback (Rule 1/P2) — never hardcode an agent
+# name. cos-env.sh normally exports both vars; .coding-os is the shared state
+# root used only if it failed to source.
+STATE_DIR="${COS_STATE_DIR:-${COS_AGENT_DIR:-.coding-os}}"
 SENTINEL="${STATE_DIR}/.reindex-scheduled"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 
