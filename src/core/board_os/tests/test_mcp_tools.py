@@ -861,3 +861,36 @@ def test_start_auto_reclaims_idle_zombie(project: Path, conn: sqlite3.Connection
 
     zrow = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (ztid,)).fetchone()
     assert zrow[0] == "icebox", "idle zombie should be auto-reclaimed on the next start"
+
+
+def test_task_edit_body_preserves_canonical_h1(project: Path, conn: sqlite3.Connection):
+    """The web panel strips the `# TASK-NNN: title` H1 for display and sends an
+    H1-less body; cos_task_edit must restore the canonical H1 so a panel edit
+    never corrupts the file structure."""
+    created = _parse(
+        mcp_tools.cos_task_create(conn, title="H1 task", swimlane="core", kind="chore")
+    )
+    tid = created["data"]["task_id"]
+    env = _parse(
+        mcp_tools.cos_task_edit(
+            conn,
+            task_id=tid,
+            body="**Outcome (one sentence):** edited via panel.\n\n## Work Log\n",
+        )
+    )
+    assert env["ok"] is True
+    content = (project / created["data"]["file_path"]).read_text(encoding="utf-8")
+    assert f"# {tid}: H1 task" in content, "canonical H1 must survive a panel body edit"
+
+
+def test_task_edit_title_updates_h1(project: Path, conn: sqlite3.Connection):
+    """Editing the title must propagate to the body H1 — no stale title left."""
+    created = _parse(
+        mcp_tools.cos_task_create(conn, title="Old title", swimlane="core", kind="chore")
+    )
+    tid = created["data"]["task_id"]
+    env = _parse(mcp_tools.cos_task_edit(conn, task_id=tid, title="New title"))
+    assert env["ok"] is True
+    content = (project / created["data"]["file_path"]).read_text(encoding="utf-8")
+    assert f"# {tid}: New title" in content
+    assert "Old title" not in content, "stale title must not linger in the H1"

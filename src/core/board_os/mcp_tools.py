@@ -1819,7 +1819,18 @@ def cos_task_edit(
             meta={"layer": "tasks", "source": "board_os.cos_task_edit"},
         )
 
-    new_content = _render_lean_frontmatter(fm) + "\n\n" + new_body.strip("\n") + "\n"
+    # Normalise the canonical H1 (`# TASK-NNN: <title>`) from the current
+    # frontmatter title: a panel body edit arrives H1-stripped (the drawer
+    # removes it for display) and a title change must propagate to the H1.
+    # Strip any leading H1 from the incoming body, then prepend the canonical.
+    title_now = str(fm.get("title") or task_id)
+    body_inner = re.sub(r"^\s*#\s+.+\n+", "", new_body.lstrip("\n"))
+    new_content = (
+        _render_lean_frontmatter(fm)
+        + f"\n\n# {task_id}: {title_now}\n\n"
+        + body_inner.strip("\n")
+        + "\n"
+    )
     file_path.write_text(new_content, encoding="utf-8")
     sync_one(conn, file_path, project_root=_project_root())
 
