@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,7 @@ from core.logging_os import sinks
 def temp_log_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
     monkeypatch.delenv("COS_LOG_FILE", raising=False)
+    monkeypatch.delenv("COS_DB_PATH", raising=False)
     return tmp_path
 
 
@@ -62,6 +64,8 @@ def test_dispatch_fails_open_when_file_unwritable(
 ) -> None:
     blocked = tmp_path / "no" / "such" / ".cos.log"
     monkeypatch.setenv("COS_LOG_FILE", str(blocked))
+    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))  # isolate db_path() from the real db
+    monkeypatch.delenv("COS_DB_PATH", raising=False)
 
     def deny_mkdir(self: Path, *args: object, **kwargs: object) -> None:
         raise OSError("denied")
@@ -104,3 +108,63 @@ def test_dispatch_survives_broken_stderr(
     sinks.dispatch(_event())
 
     assert (temp_log_dir / ".cos.log").exists()
+
+
+def _migrated_db(tmp_path: Path) -> Path:
+    try:
+        from core.thinking_os.database import init_db
+    except ImportError:
+        from thinking_os.database import init_db
+    db = tmp_path / "coding-os.db"
+    init_db(db).close()
+    return db
+
+
+def test_db_sink_writes_warn_plus(
+    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+    db = _migrated_db(temp_log_dir)
+    sinks.dispatch(_event())  # WARN
+    rows = (
+        sqlite3.connect(str(db))
+        .execute("SELECT scope, msg, fingerprint FROM log_events")
+        .fetchall()
+    )
+    assert len(rows) == 1
+    assert rows[0][0] == "core.test"
+    assert rows[0][2]  # fingerprint computed at insert
+
+
+def test_db_sink_skips_below_min_level(
+    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+    db = _migrated_db(temp_log_dir)
+    event = _event()
+    event["lvl"] = "INFO"
+    sinks.dispatch(event)
+    count = sqlite3.connect(str(db)).execute("SELECT count(*) FROM log_events").fetchone()[0]
+    assert count == 0
+
+
+def test_db_sink_fail_open_increments_dropped(
+    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+    db = temp_log_dir / "coding-os.db"
+    sqlite3.connect(str(db)).execute("CREATE TABLE placeholder (x)")  # no log_events table
+    before = sinks.dropped_events()
+    sinks.dispatch(_event())  # WARN — table missing → fail-open
+    assert sinks.dropped_events() == before + 1
+    assert (temp_log_dir / ".cos.log.jsonl").exists()  # jsonl tail still captured
+
+
+def test_db_sink_noop_without_db(
+    temp_log_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("COS_LOG_DB_MIN_LEVEL", "WARN")
+    before = sinks.dropped_events()
+    sinks.dispatch(_event())  # WARN — no db file → skipped, not dropped
+    assert sinks.dropped_events() == before
+    assert (temp_log_dir / ".cos.log.jsonl").exists()

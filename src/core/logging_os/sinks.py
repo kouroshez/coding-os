@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 import sys
 from pathlib import Path
 from typing import Any
 
-from .config import detect_render, jsonl_log_path, max_log_lines, text_log_path
+from .config import (
+    Level,
+    db_min_level,
+    db_path,
+    detect_render,
+    jsonl_log_path,
+    max_log_lines,
+    text_log_path,
+)
+from .fingerprint import fingerprint
 from .render import render
+
+_dropped_events = 0
 
 
 def _write_stderr(event: dict[str, Any]) -> None:
@@ -48,7 +61,67 @@ def _write_jsonl_file(event: dict[str, Any]) -> None:
     _append_line(jsonl_log_path(), render("json", event))
 
 
+def _record_dropped() -> None:
+    global _dropped_events
+    _dropped_events += 1
+    # Last-resort notice to raw stderr. MUST NOT route through logging_os — a
+    # sink failure re-entering the producer would recurse (invariant I1).
+    try:
+        sys.stderr.write(f"logging_os: dropped 1 durable log event (total={_dropped_events})\n")
+    except Exception:
+        return
+
+
+def dropped_events() -> int:
+    return _dropped_events
+
+
+def _insert_log_event(path: Path, event: dict[str, Any]) -> None:
+    kv = event.get("kv") or {}
+    exc_type = kv.get("exc")
+    conn = sqlite3.connect(str(path), timeout=2.0)
+    try:
+        conn.execute("PRAGMA busy_timeout=2000")
+        conn.execute(
+            "INSERT INTO log_events "
+            "(ts, lvl, scope, msg, kv, exc_type, stack, session_id, trace_id, fingerprint) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                event["ts"],
+                event["lvl"],
+                event["scope"],
+                event["msg"],
+                json.dumps(kv, ensure_ascii=False) if kv else None,
+                exc_type,
+                event.get("stack"),
+                event.get("session_id"),
+                event.get("trace_id"),
+                fingerprint(event["scope"], exc_type, event["msg"]),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _write_db(event: dict[str, Any]) -> None:
+    try:
+        level = Level.from_name(event.get("lvl", ""))
+    except ValueError:
+        return
+    if level < db_min_level():
+        return  # hot path: debug/info/ok never touch the durable store
+    path = db_path()
+    if not path.exists():
+        return  # no durable store here — the jsonl tail still has the event
+    try:
+        _insert_log_event(path, event)
+    except Exception:
+        _record_dropped()  # fail-open + observable (I1) — never raise to the caller
+
+
 def dispatch(event: dict[str, Any]) -> None:
     _write_stderr(event)
     _write_text_file(event)
     _write_jsonl_file(event)
+    _write_db(event)

@@ -45,8 +45,13 @@ cos_say warn hook.enforce_skill "graph-explorer not loaded" file=src/core/x.py
 | stderr | per-detect | — |
 | text file | `short` | `$COS_LOG_FILE` (default `$COS_STATE_DIR/.cos.log`) |
 | jsonl file | `json` | `$COS_LOG_FILE.jsonl` |
+| sqlite (WARN+) | — | `log_events` in `$COS_DB_PATH` — durable, queryable system-of-record |
 
-Sinks fail-open. Log errors never propagate to the caller.
+Sinks fail-open. Log errors never propagate to the caller. The sqlite sink is
+gated to `$COS_LOG_DB_MIN_LEVEL` (default `WARN`) so the debug/info hot path
+never touches the DB; it no-ops when no DB exists and counts write failures in
+`sinks.dropped_events()`. Durable store + query contract:
+[observability-eye.md](../../../docs/engineering/observability-eye.md).
 
 ## Files
 
@@ -54,7 +59,8 @@ Sinks fail-open. Log errors never propagate to the caller.
 __init__.py     # public API re-export
 api.py          # 6 producer functions + scoped()
 render.py       # 3 pure renderers + EMOJI / COLOR maps
-sinks.py        # fan-out writer
-config.py       # Level enum, env vars, detect_render(), setup()
+sinks.py        # fan-out writer (stderr + text + jsonl + WARN+ sqlite)
+fingerprint.py  # stable error fingerprint (scope + exc + normalized msg)
+config.py       # Level enum, env vars, detect_render(), setup(), db_path()
 tests/          # pytest suite
 ```

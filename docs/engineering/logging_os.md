@@ -1,6 +1,6 @@
 # logging_os — Central Log Helpers
 
-> One producer API. One schema. Three renders. Three sinks. Auto-detected context.
+> One producer API. One schema. Three renders. Four sinks. Auto-detected context.
 > Stdlib only. Agent-agnostic, stack-agnostic — lives in `src/core/logging_os/` (DNA layer).
 
 ## Purpose
@@ -72,15 +72,16 @@ Every log event is the same dict, regardless of producer language:
 - full ISO timestamp
 - `kv` fields flattened to top-level keys
 
-## Three sinks (fan-out per event)
+## Four sinks (fan-out per event)
 
 | Sink | Render | Path | Purpose |
 |---|---|---|---|
 | stderr | per-detect | — | live human / agent capture |
 | text file | always `short` | `$COS_LOG_FILE` (default `$COS_STATE_DIR/.cos.log`) | grep, `tail -f`, CI logs |
 | jsonl file | always `json` | `$COS_LOG_FILE.jsonl` | hub UI, Loki, structured search |
+| sqlite (WARN+) | — | `log_events` in `$COS_DB_PATH` | durable, queryable system-of-record (survives truncation) |
 
-Every `cos_log.<level>` call writes to all three. No producer-side selection. Sinks fail-open: a write error never propagates.
+Every `cos_log.<level>` call writes to the first three sinks. The sqlite sink is gated to `$COS_LOG_DB_MIN_LEVEL` (default `WARN`) so debug/info never touch the DB; it no-ops when no DB exists and counts write failures in `sinks.dropped_events()`. Sinks fail-open: a write error never propagates, and a sink failure never re-enters logging_os. Durable store + query contract: [observability-eye.md](observability-eye.md).
 
 File sinks self-truncate: when a log file exceeds `COS_LOG_MAX_LINES × 2` lines (default 10000), the oldest half is dropped and the most recent `COS_LOG_MAX_LINES` is kept. No external rotation daemon needed.
 
@@ -166,6 +167,8 @@ Level filter is a single floor: events below `COS_LOG_LEVEL` (default `info`) ar
 | `COS_LOG_FILE` | `$COS_STATE_DIR/.cos.log` | text sink path; `.jsonl` is appended for the json sink |
 | `COS_LOG_SCOPE_WIDTH` | `20` | pretty-mode column width for `scope` |
 | `COS_LOG_MAX_LINES` | `5000` | per-file line cap; truncates to last N when file exceeds 2× cap |
+| `COS_LOG_DB_MIN_LEVEL` | `WARN` | severity floor for the durable sqlite sink (debug/info stay tail-only) |
+| `COS_DB_PATH` | `$COS_STATE_DIR/coding-os.db` | durable sink target db (the `log_events` table) |
 | `NO_COLOR` | unset | W3C standard — any value disables ANSI |
 
 ## Module layout (`src/core/logging_os/`)
@@ -174,8 +177,9 @@ Level filter is a single floor: events below `COS_LOG_LEVEL` (default `info`) ar
 __init__.py    # re-export public API only
 api.py         # 6 producer functions + scoped()
 render.py      # 3 pure renderers + EMOJI/COLOR maps
-sinks.py       # fan-out writer (stderr + text file + jsonl file)
-config.py      # Level enum, env vars, detect_render(), setup(), normalize_scope()
+sinks.py       # fan-out writer (stderr + text + jsonl + WARN+ sqlite) + dropped_events()
+fingerprint.py # stable error fingerprint (scope + exc + normalized msg)
+config.py      # Level enum, env vars, detect_render(), setup(), db_path(), normalize_scope()
 README.md      # one-page reference (mirror of this doc, condensed)
 tests/
   test_api.py      # public surface + level filter

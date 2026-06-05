@@ -55,6 +55,21 @@ def current_level() -> Level:
         return Level.INFO
 
 
+def db_path() -> Path:
+    explicit = os.environ.get("COS_DB_PATH")
+    if explicit:
+        return Path(explicit)
+    return state_dir() / "coding-os.db"
+
+
+def db_min_level() -> Level:
+    raw = os.environ.get("COS_LOG_DB_MIN_LEVEL", "WARN")
+    try:
+        return Level.from_name(raw)
+    except ValueError:
+        return Level.WARN
+
+
 def detect_render() -> str:
     if os.environ.get("COS_LOG_JSON") == "1":
         return "json"
