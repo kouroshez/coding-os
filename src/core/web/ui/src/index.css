@@ -113,6 +113,18 @@ body,
   outline-offset: 2px;
 }
 
+/* a11y — respect the user's reduced-motion preference (Cortex Phase 5) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Thin scrollbars in panels */
 .cos-scroll::-webkit-scrollbar {
   width: 8px;

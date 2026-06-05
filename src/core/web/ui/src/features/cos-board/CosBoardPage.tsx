@@ -105,12 +105,6 @@ const EVENT_LABEL: Record<string, string> = {
 };
 
 // ---------- helpers ----------
-function stableRotation(id: string): number {
-  let s = 0;
-  for (let i = 0; i < id.length; i += 1) s += id.charCodeAt(i);
-  return (((s * 13) % 31) / 10) - 1.5;
-}
-
 /** Parse #rgb or #rrggbb into [r, g, b] 0..255, or null. */
 function parseHex(hex: string): [number, number, number] | null {
   const s = hex.replace('#', '').trim();
@@ -1248,13 +1242,13 @@ function TaskStickyCard({
         position: 'relative',
         padding: cozy ? '10px 11px 9px' : '7px 9px 6px',
         margin: cozy ? '0 0 10px' : '0 0 6px',
-        fontFamily: "'Kalam', 'Caveat', cursive",
+        fontFamily: 'inherit',
         fontSize: cozy ? 14 : 12.5,
         lineHeight: 1.25,
-        color: '#1a1814',
+        color: 'var(--cos-text)',
         background: bg,
-        borderRadius: '2px 3px 2px 3px',
-        transform: `rotate(${stableRotation(task.id)}deg)`,
+        borderRadius: '8px',
+        transform: 'none',
         boxShadow: isDragging
           ? '0 18px 26px rgba(0,0,0,.25), 0 3px 6px rgba(0,0,0,.18)'
           : dimmed
@@ -2526,15 +2520,15 @@ function CreateTaskModal({
               style={{
                 width: 200,
                 padding: '10px 11px 9px',
-                fontFamily: "'Kalam', cursive",
+                fontFamily: 'inherit',
                 fontSize: 14,
                 lineHeight: 1.25,
-                color: '#1a1814',
+                color: 'var(--cos-text)',
                 background: previewLane
                   ? `linear-gradient(155deg, ${alpha(previewLane.color, 0.55)} 0%, ${alpha(previewLane.color, 0.32)} 100%)`
-                  : 'linear-gradient(155deg, #f0f0ea 0%, #e4e4db 100%)',
-                borderRadius: '2px 3px 2px 3px',
-                transform: 'rotate(-1.2deg)',
+                  : 'linear-gradient(155deg, var(--cos-raised) 0%, var(--cos-panel) 100%)',
+                borderRadius: '8px',
+                transform: 'none',
                 boxShadow: '0 4px 8px rgba(0,0,0,.15), 0 10px 20px -6px rgba(0,0,0,.2)',
                 borderLeft: `5px solid ${previewLane ? lanePalette(previewLane).accent : '#888'}`,
                 ...priorityStyle(form.priority),

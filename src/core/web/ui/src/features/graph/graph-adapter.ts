@@ -184,38 +184,39 @@ export function buildGraph(
   return graph;
 }
 
-// Edge styling — group edge types into visual families so the canvas
-// reads at a glance. Brand palette: structure = warm browns, calls /
-// dispatch = orange (Mocha primary), types = teal, docs = muted blue.
+// Edge styling (Cortex) — edge families echo the node hue system but
+// dimmer/desaturated so nodes stay the focus: structure=steel,
+// calls/construct=Iris, imports/api=azure, type/docs=teal, inherit=violet,
+// blocks=danger. SSOT: docs/engineering/design-system.md.
 const EDGE_PALETTE: Record<string, { color: string; size: number }> = {
-  contains: { color: '#8B5A2B', size: 1.2 },
-  calls: { color: '#FF7A3D', size: 1.0 },
-  constructs: { color: '#C84B16', size: 1.1 },
-  imports: { color: '#2C5AA0', size: 0.9 },
-  inherits_from: { color: '#7A3A7A', size: 1.3 },
-  implements: { color: '#7A3A7A', size: 1.3 },
-  extends: { color: '#7A3A7A', size: 1.3 },
-  has_param_type: { color: '#3A7A7A', size: 0.7 },
-  returns_type: { color: '#3A7A7A', size: 0.7 },
-  field_of_type: { color: '#3A7A7A', size: 0.7 },
-  is_decorated_by: { color: '#B19A93', size: 0.7 },
-  references_doc: { color: '#5A7CA8', size: 0.8 },
-  cites_heading: { color: '#5A7CA8', size: 0.8 },
-  links_to: { color: '#5A7CA8', size: 0.8 },
-  handles_route: { color: '#D96C2C', size: 1.1 },
-  handles_tool: { color: '#D96C2C', size: 1.1 },
-  handles_event: { color: '#D96C2C', size: 1.1 },
-  dispatches: { color: '#D96C2C', size: 1.1 },
-  defines_route: { color: '#D96C2C', size: 1.1 },
-  awaits: { color: '#FFA468', size: 0.9 },
-  blocks: { color: '#8B2318', size: 1.2 },
-  depends_on: { color: '#6B504A', size: 0.9 },
-  re_exports: { color: '#94a3b8', size: 0.7 },
-  member_of_community: { color: '#C0719B', size: 0.6 },
+  contains: { color: '#3A4150', size: 1.2 },
+  calls: { color: '#7C82F2', size: 1.0 },
+  constructs: { color: '#6E72E8', size: 1.1 },
+  imports: { color: '#3B82F6', size: 0.9 },
+  inherits_from: { color: '#B98AF0', size: 1.3 },
+  implements: { color: '#B98AF0', size: 1.3 },
+  extends: { color: '#B98AF0', size: 1.3 },
+  has_param_type: { color: '#14B8A6', size: 0.7 },
+  returns_type: { color: '#14B8A6', size: 0.7 },
+  field_of_type: { color: '#14B8A6', size: 0.7 },
+  is_decorated_by: { color: '#6E7686', size: 0.7 },
+  references_doc: { color: '#2DD4BF', size: 0.8 },
+  cites_heading: { color: '#2DD4BF', size: 0.8 },
+  links_to: { color: '#2DD4BF', size: 0.8 },
+  handles_route: { color: '#4C9DF0', size: 1.1 },
+  handles_tool: { color: '#4C9DF0', size: 1.1 },
+  handles_event: { color: '#4C9DF0', size: 1.1 },
+  dispatches: { color: '#5FB0F5', size: 1.1 },
+  defines_route: { color: '#4C9DF0', size: 1.1 },
+  awaits: { color: '#A6A9F7', size: 0.9 },
+  blocks: { color: '#F2576B', size: 1.2 },
+  depends_on: { color: '#565E6C', size: 0.9 },
+  re_exports: { color: '#646E7E', size: 0.7 },
+  member_of_community: { color: '#C77DFF', size: 0.6 },
 };
 
 function edgeColor(edgeType: string): string {
-  return EDGE_PALETTE[edgeType]?.color ?? '#8a8378';
+  return EDGE_PALETTE[edgeType]?.color ?? '#3A4150';
 }
 
 function edgeSize(edgeType: string): number {

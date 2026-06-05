@@ -81,8 +81,8 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     // Read brand tokens at mount so labels and edges follow the active
     // theme. Falls back to safe neutrals if the variables are missing.
     const cs = getComputedStyle(containerRef.current);
-    const labelHex = cs.getPropertyValue('--cos-text').trim() || '#1a1814';
-    const edgeHex = cs.getPropertyValue('--cos-border').trim() || '#b8ad9a';
+    const labelHex = cs.getPropertyValue('--cos-text').trim() || '#e7eaf0';
+    const edgeHex = cs.getPropertyValue('--cos-border').trim() || '#2c313a';
     const fallbackNodeHex = cs.getPropertyValue('--cos-muted').trim() || '#6b665e';
 
     // Hover-highlight state. Closed over by the reducers below; mutated
@@ -224,7 +224,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         // Hover highlight state takes precedence
         if (hoveredNode && inboundEdges && outboundEdges) {
           if (outboundEdges.has(edge)) {
-            return { ...data, size: Math.max(data.size * 2, 2), color: '#f97316', zIndex: 10 }; // Outbound (orange)
+            return { ...data, size: Math.max(data.size * 2, 2), color: '#7c82f2', zIndex: 10 }; // Outbound (Iris)
           }
           if (inboundEdges.has(edge)) {
             return { ...data, size: Math.max(data.size * 2, 2), color: '#3b82f6', zIndex: 5 }; // Inbound (blue)
@@ -236,7 +236,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
         const query = useGraphStore.getState().searchQuery.trim().toLowerCase();
         if (query) {
           if (matchedEdges.has(edge)) {
-            return { ...data, size: Math.max(data.size * 2.5, 2.5), color: '#d96c2c', zIndex: 5 };
+            return { ...data, size: Math.max(data.size * 2.5, 2.5), color: '#7c82f2', zIndex: 5 };
           }
           return { ...data, color: '#33415505', size: 0.1, zIndex: 0 };
         }
