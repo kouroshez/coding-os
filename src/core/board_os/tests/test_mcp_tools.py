@@ -90,6 +90,33 @@ def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
     assert "kind: feature" in content
 
 
+def test_create_task_title_with_double_quote_stays_valid_yaml(
+    project: Path, conn: sqlite3.Connection
+):
+    # Regression (TASK-167): a title containing a double-quote must render
+    # valid YAML so the task stays editable through the semantic ops.
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title='Fix "ready" gate',
+            swimlane="core",
+            kind="bug",
+            outcome="Quoted title round-trips through YAML.",
+        )
+    )
+    assert env["ok"] is True
+    task_id = env["data"]["task_id"]
+    content = (project / env["data"]["file_path"]).read_text(encoding="utf-8")
+
+    parsed = yaml.safe_load(content.split("---", 2)[1])
+    assert parsed["title"] == 'Fix "ready" gate'
+
+    # Editable via the semantic op — would fail with 'not in lean frontmatter
+    # format' if the YAML were broken by an unescaped inner quote.
+    edited = _parse(mcp_tools.cos_task_edit(conn, task_id=task_id, priority="P0"))
+    assert edited["ok"] is True
+
+
 # ---------- cos_task_show ----------
 
 

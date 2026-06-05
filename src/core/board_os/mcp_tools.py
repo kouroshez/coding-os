@@ -39,6 +39,7 @@ from board_os.config import (
 from board_os.parser import parse_task
 from board_os.sync import sync_one
 from board_os.workflow import (
+    _format_yaml_scalar_token,
     check_wip,
     patch_task_frontmatter_scalars,
     transition,
@@ -158,9 +159,9 @@ def _render_lean_frontmatter(fields: dict) -> str:
                 inner = ", ".join(str(v) for v in val)
                 lines.append(f"{key}: [{inner}]")
         elif isinstance(val, str):
-            lines.append(
-                f'{key}: "{val}"' if " " in val or key in {"title", "appetite"} else f"{key}: {val}"
-            )
+            # Route every string scalar through the shared YAML-safe quoter so a
+            # title/value containing " or : or other specials stays valid YAML.
+            lines.append(f"{key}: {_format_yaml_scalar_token(val)}")
         else:
             lines.append(f"{key}: {val}")
     lines.append("---")
