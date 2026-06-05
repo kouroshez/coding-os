@@ -1,0 +1,16 @@
+{
+  "go": {
+    "ecosystem": "gotoolchain",
+    "package": "go",
+    "version": "1.26.4",
+    "source": "https://go.dev/dl/",
+    "checked": "2026-06-04"
+  },
+  "testify": {
+    "ecosystem": "go",
+    "package": "github.com/stretchr/testify",
+    "version": "1.11.1",
+    "source": "https://pkg.go.dev/github.com/stretchr/testify",
+    "checked": "2026-06-04"
+  }
+}

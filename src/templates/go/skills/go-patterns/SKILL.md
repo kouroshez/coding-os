@@ -5,7 +5,8 @@ globs: "src/backend/**/*.go"
 depends_on:
   - clean-code
   - backend-fundamentals
-last_reviewed: "2026-05-11"
+last_reviewed: "2026-06-04"
+versions_ref: versions.json
 
 ---
 
@@ -56,3 +57,10 @@ src/backend/
 - `testing.T.TempDir()` for filesystem fixtures.
 - Race detector in CI: `go test -race ./...`.
 - Coverage target: ≥ 80%.
+
+## Deepening + tooling
+
+- [references/go-2026-idioms.md](references/go-2026-idioms.md) — errors, naming, concurrency, generics, tests (per Google's Go Style Guide).
+- [references/anatomy.md](references/anatomy.md) — file map + scaffold; `scripts/new_endpoint.py` to generate one.
+- [assets/go-checklist.md](assets/go-checklist.md) — the review gate.
+- Versions pinned in [versions.json](versions.json) — `make skills-check-versions`.
