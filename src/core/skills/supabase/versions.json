@@ -1,0 +1,9 @@
+{
+  "supabase-cli": {
+    "ecosystem": "npm",
+    "package": "supabase",
+    "version": "2.105.0",
+    "source": "https://www.npmjs.com/package/supabase",
+    "checked": "2026-06-04"
+  }
+}
