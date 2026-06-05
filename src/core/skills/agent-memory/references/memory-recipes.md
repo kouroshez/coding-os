@@ -1,58 +1,58 @@
-<!-- domain:META | layer:reference | ssot:true | updated:2026-06-04 -->
-# Agent-Memory Recipes — Write, Read, Learn Loop
+<!-- domain:META | layer:reference | ssot:true | updated:2026-06-05 -->
+# Agent-Memory Recipes — Read + Learn Loop
 
-> P: The mechanical `cos_*` sequences for writing, recalling, and tuning agent memory.
-> R: Capturing a breakthrough, recalling a past pattern, or running the learn loop.
+> P: The mechanical `cos_*` sequences for recalling memory and running the learn loop.
+> R: Recalling a past pattern in the Orient phase, or reinforcing a pattern after using it.
 > S: The memory *policy* (what belongs in memory, hygiene) — that's the co-shipping rule src/core/rules/memory.md.
 > N: [SKILL.md](../SKILL.md), [memory-checklist.md](../assets/memory-checklist.md)
 
 > Nav: [Skill](../SKILL.md)
 
-The policy (four-layer model, what to store, privacy) is SSOT in
-[memory.md](../../../rules/memory.md) — this is the *how*.
-
-## Write — record an observation
-
-```
-cos_observation_record(
-  summary="schema migration X needed a backfill before the NOT NULL constraint",
-  memory_type="error",          # pattern | workflow | error | decision | discovery
-  confidence=0.5,                # default 0.5; raise to 0.8+ only after a 2nd confirmation
-  impact=0.6,
-)
-```
-
-Validate the payload first: `python3 scripts/check_observation.py --file obs.json`
-(confidence range, required fields, no PII/secrets). Record breakthroughs, failure
-modes, and non-obvious decisions — never recaps, code facts, or git history.
+Writes are automatic (edit-derived capture); the agent mostly **reads**. Every
+signature below is verified against src/core/thinking_os/server.py. Policy (four-layer
+model, what to store, privacy) is SSOT in [memory.md](../../../rules/memory.md).
 
 ## Read — recall in the Orient phase
 
 ```
 cos_search("query about past patterns", min_confidence=0.3, since_days=90)
-cos_learn_suggest(task_id="TASK-NNN", k=5)     # ranked patterns for this task
-cos_timeline(scope="recent")                    # what changed lately
+cos_details(pattern_id=1234, source="learned_patterns")   # source ∈ observations|learned_patterns|task_outcomes
+cos_learn_suggest(domain="BACKEND", complexity="COMPLICATED", limit=5)   # ranked patterns for the task
+cos_timeline(days=14)                                       # what changed lately
 ```
 
 `min_confidence=0.3` drops decayed low-trust rows; `since_days=90` for "recent"
 questions. Zero hits with those filters → fall through to docs (`cos_doc_search`)
 or code (`cos_graph_*`).
 
+## Write — automatic, not freeform
+
+Observations are captured automatically by the PostToolUse hook for every
+Write/Edit/MultiEdit (capture.py derives title/narrative/memory_type/impact,
+sanitizes, dedups, inserts). To force-capture one file where the hook did not
+fire (e.g. Codex):
+
+```
+cos_observation_record(file_path="src/core/X.py", tool_name="Edit")
+```
+
+There is no freeform record — title, confidence and impact are derived, never
+supplied. Record discipline is about WHAT you edit, not a manual call.
+
 ## The learn loop (cross-session compounding)
 
 ```
-cos_learn_extract   → distill observations into a candidate pattern
-cos_learn_suggest   → surface ranked patterns for the active task
-cos_learn_validate  → confirm/deny a pattern (feeds confidence)
-cos_learn_feedback  → reinforce or decay after using it
+cos_learn_extract(min_occurrences=3)                 # corpus scan → mint learned_patterns
+cos_learn_suggest(domain=, complexity=, limit=5)     # surface ranked patterns for the active task
+cos_learn_validate(pattern_id=42, was_helpful=True)  # reinforce (LTP) / decay (LTD) confidence
+cos_learn_feedback(min_rework=3)                      # draft feedback files for human review
 ```
 
-Validating a pattern that held raises its confidence; one that didn't decays it.
-This is how the N-th session gets faster than the 1st — the killer feature.
+Confidence is system-computed: validating a pattern that held raises it, one that
+didn't lowers it. This is how the N-th session gets faster than the 1st.
 
 ## Trust the code over memory
 
 Memory is frozen at write time; code evolves. If recall says "`foo` does X" but a
-`Read` shows it doesn't, the memory is stale — update or delete the observation,
-then trust the code. Every `cos_search` result carries the record timestamp;
-re-verify when it predates the file's last change.
+`Read` shows it doesn't, the memory is stale — trust the code. Every `cos_search`
+result carries the record timestamp; re-verify when it predates the file's last change.

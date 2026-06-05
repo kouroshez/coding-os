@@ -2,17 +2,21 @@
 name: agent-memory
 tier: workflow
 domain: [universal]
-description: Mechanical recipes for writing to and reading from agent memory (cross-session patterns, decisions, failure modes) via the cos_observation_record / cos_search / cos_learn_* tool family. Use when capturing a breakthrough, replaying a past pattern in a new session, tuning confidence scores, or composing the learn-extract → learn-suggest → learn-validate loop. Pairs with src/core/rules/memory.md (policy), thinking_os (when in the Cognitive Cycle to invoke), and search (which retrieval layer to hit first).
-last_reviewed: "2026-05-11"
+description: Mechanical recipes for reading agent memory and running the learning loop (cross-session patterns, decisions, failure modes) via the cos_search / cos_details / cos_timeline / cos_learn_* tool family, plus how observation capture actually works (automatic, edit-derived). Use when recalling a past pattern in a new session, running the extract → suggest → validate loop, or understanding why you cannot hand-author a freeform observation. Pairs with src/core/rules/memory.md (policy), thinking_os (when in the Cognitive Cycle to invoke), and search (which retrieval layer to hit first).
+last_reviewed: "2026-06-05"
 ---
 
 # agent-memory
 
-Purpose: turn the policy in [src/core/rules/memory.md](../../rules/memory.md) into mechanical recipes the agent can execute. The rule answers *when* and *what*; this skill answers *how* — exact tool signatures, argument shapes, when to compose them, what return envelopes look like.
+Purpose: turn the policy in [src/core/rules/memory.md](../../rules/memory.md) into mechanical recipes the agent can execute. The rule answers *when* and *what*; this skill answers *how* — the exact tool signatures, what is automatic vs explicit, and what the return envelopes look like. Every signature here is verified against [src/core/thinking_os/server.py](../../thinking_os/server.py); a CI drift-guard test fails if any drifts.
 
-Read when: writing to memory (`cos_observation_record`, `cos_learn_extract`), reading from memory (`cos_search`, `cos_learn_suggest`, `cos_timeline`, `cos_details`), or running the learning loop. Also read when tuning decay / confidence behavior.
+Read when: recalling from memory (`cos_search`, `cos_details`, `cos_timeline`, `cos_learn_suggest`), running the learning loop (`cos_learn_extract` / `cos_learn_validate` / `cos_learn_feedback`), or understanding how observations get captured.
 
 Skip when: the query target is current code (use [graph-explorer](../graph-explorer/SKILL.md)) or current docs (use `cos_doc_search` per [search](../search/SKILL.md)). Memory is the third-priority retrieval layer.
+
+## The mental model — writes are automatic, you mostly READ
+
+The single most important fact: **you do not hand-author observations.** Memory is written automatically by PostToolUse capture hooks — every `Write`/`Edit`/`MultiEdit` derives a sanitized, deduped, impact-scored observation ([capture.py](../../thinking_os/capture.py)), and separate hooks capture tool failures, completion gaps, and session events. Confidence on learned patterns is **system-computed** by brain-inspired LTP/LTD formulas, not a number you set. The agent's job is to **read** memory in the Orient phase and **reinforce** patterns via the learn loop. There is no freeform `record(title, body, confidence)` tool — by design.
 
 ## The Decision Gate — before any memory call
 
@@ -24,73 +28,14 @@ Question                                  → Layer + Tool
 "What's in flight / blocked?"             → tasks    cos_task_board
 "Have I seen this pattern before?"        → memory   cos_search
 "Why did we choose approach Z?"           → memory   cos_search (memory_type=decision)
-"Which patterns apply to TASK-NNN?"       → memory   cos_learn_suggest(task_id=...)
-"What changed in the last N days?"        → memory   cos_timeline(scope="recent")
+"Which patterns apply to my task?"        → memory   cos_learn_suggest(domain=, complexity=)
+"What changed in the last N days?"        → memory   cos_timeline(days=N)
 "Not sure which layer"                    → router   cos_retrieve(query, hint="auto")
 ```
 
 If the gate routes elsewhere, **stop reading this skill** and go to the right layer. Memory is expensive (decay + confidence ranking); over-use pollutes ranking for everyone.
 
-## Write Recipes
-
-### 1. Record an observation (the most common write)
-
-```python
-# Generic
-cos_observation_record(
-    title="Short, searchable title — 5-10 words",
-    body="Body of the observation. Why does it matter? When does it apply? Anti-pattern? 1-3 short paragraphs max.",
-    memory_type="pattern",         # pattern | workflow | error | decision | discovery
-    domain="BACKEND",              # optional; BACKEND/FRONTEND/META/OPS/...
-    swimlane="meta",               # optional; matches Scrumban swimlanes
-    confidence=0.5,                # 0.0-1.0; default 0.5; raise to 0.7+ only after second confirming use
-    impact_score=0.3,              # 0.0-1.0; "how much does knowing this save?"
-    tags_csv="indexing,migration", # comma-separated, lowercase, kebab-case
-    task_id="TASK-042",            # optional; links observation to the task that surfaced it
-)
-```
-
-### 2. When to pick each `memory_type`
-
-| Type | What it captures | Example title |
-|---|---|---|
-| `pattern` | Reusable approach to a recurring problem | "Expand-contract pattern for adding NOT NULL column" |
-| `workflow` | Sequence of steps, not a one-off insight | "Verify migration safety: write → backfill → switch → drop" |
-| `error` | Bug → root cause → fix | "Cookie SameSite=None requires Secure=true (FastAPI default leaks)" |
-| `decision` | Trade-off chosen + reason | "SQLite + PRAGMA tuning over a second graph store: p99 < 30 ms on 5-hop @ 1M nodes makes the abstraction overhead unjustified" |
-| `discovery` | Surprising fact about the system | "FastMCP doesn't accept `list[str]` args across all runtimes; use CSV" |
-
-### 3. Confidence calibration (the lever that decides ranking)
-
-Default 0.5. **Raise only after evidence**:
-
-| Confidence | When |
-|---|---|
-| 0.5 (default) | First time seeing this pattern; one session of evidence |
-| 0.7 | Two independent sessions confirmed the pattern still applies |
-| 0.85 | Three+ sessions; pattern is load-bearing for the project |
-| 0.95 | Cited in current docs / rules; effectively SSOT |
-
-**Lower** after evidence-against:
-- 0.5 → 0.3 if a session showed the pattern was wrong / no longer applies (also consider deleting via `cos_audit_log_record(action="deleted")`).
-
-Inflated confidence = ranking pollution. Treat 0.7+ as a promise to the next session.
-
-### 4. Learn-extract (post-task auto-extraction)
-
-Use after a non-trivial task completes to harvest patterns automatically:
-
-```python
-cos_learn_extract(
-    task_id="TASK-042",
-    work_log_summary="<one paragraph of what was done>",
-    decisions_made_csv="chose sqlite + PRAGMA tuning over a second graph store; backfill before NOT NULL",
-)
-```
-
-This generates candidate observations (NOT auto-recorded). Review each, then `cos_learn_validate(observation_id=..., status="accepted" | "rejected")` to commit. **Always validate** — auto-extraction without validation = hallucinated patterns in memory.
-
-## Read Recipes
+## Read Recipes (the agent's primary memory interaction)
 
 ### 1. Search by free-text query (most common read)
 
@@ -98,79 +43,104 @@ This generates candidate observations (NOT auto-recorded). Review each, then `co
 cos_search(
     query="cookie samesite",
     limit=5,                       # 1-20, default 5
-    memory_type="",                # optional filter
+    memory_type="",                # optional filter: pattern|workflow|error|decision|discovery
     min_confidence=0.3,            # drop low-trust patterns; 0.3 = floor for useful, 0.0 = include all (noisy)
-    since_days=180,                # cap age; 0 = no cap; 90-180 for "recent" queries
+    since_days=90,                 # cap age; 0 = no cap; 90-180 for "recent" queries
 )
 ```
 
-Returns ranked rows. Iterate, call `cos_details(id=...)` for full body of the top 1-2.
+Returns ranked rows `[{id, title, confidence, impact_score, memory_type, source_table}]`. Drill into the top 1-2 with `cos_details`.
 
-### 2. Task-aware suggestion
-
-```python
-cos_learn_suggest(
-    task_id="TASK-042",            # optional; otherwise uses .task-current
-    k=5,                           # top-K patterns ranked for this task's signals
-)
-```
-
-Rank uses task domain + swimlane + kind + recency + confidence + impact. Better than raw `cos_search` when you have a task in flight.
-
-### 3. Timeline view (what changed recently)
-
-```python
-cos_timeline(
-    scope="recent",                # "recent" | "task" | "domain"
-    since_days=14,
-    limit=20,
-)
-```
-
-Use when the question is "what's new" rather than "what's known about X". Surfaces fresh observations + new task completions + recent failure patterns.
-
-### 4. Drill into one record
+### 2. Drill into one record
 
 ```python
 cos_details(
-    id="obs-1234",                 # from cos_search / cos_learn_suggest results
+    pattern_id=1234,               # the integer id from a cos_search / cos_learn_suggest row
+    source="learned_patterns",     # which table: observations | learned_patterns | task_outcomes
 )
 ```
 
-Returns full body, source task, access count, last verified date.
+Match `source` to the `source_table` field of the row you are drilling into — `cos_search` returns rows from both `observations` and `learned_patterns`.
+
+### 3. Task-aware suggestion
+
+```python
+cos_learn_suggest(
+    domain="BACKEND",              # task domain; optional
+    complexity="COMPLICATED",      # Cynefin classification; optional
+    task_type="feat",             # optional
+    limit=5,                       # top-K, 1-20, default 5
+)
+```
+
+Ranks learned patterns for the current task context and includes spaced repetition — fading patterns (0.2-0.4 confidence) that were once validated resurface for re-validation. Better than raw `cos_search` when you have a task in flight.
+
+### 4. Timeline view (what changed recently)
+
+```python
+cos_timeline(
+    days=14,                       # lookback window, 1-365, default 30
+    domain="",                     # optional domain filter
+    limit=20,                      # 1-50, default 20
+)
+```
+
+Use when the question is "what's new" rather than "what's known about X". Surfaces recent task outcomes + observations.
+
+## How memory is WRITTEN (mostly automatic)
+
+### 1. Automatic capture (the default — you do nothing)
+
+A PostToolUse hook calls [capture.py](../../thinking_os/capture.py) after every `Write`/`Edit`/`MultiEdit`: it derives `title` (`Modified <path>` / `Created <path>`), `narrative`, `memory_type` (auto-detected from the path), `impact_score`, and `concepts` from the file and tool, runs them through the write sanitizer (rejects injection, truncates over-length), dedups within a 30s window, and inserts. Tool failures, completion gaps, and session events are captured by their own hooks. **The agent supplies nothing.**
+
+### 2. Explicit single-file capture (rare)
+
+```python
+cos_observation_record(
+    file_path="src/core/thinking_os/database.py",
+    tool_name="Edit",             # Write | Edit | MultiEdit; default "Edit"
+)
+```
+
+This triggers the **same** auto-capture machinery for one file. Use it only when the PostToolUse hook did not fire — e.g. under a runtime without PostToolUse coverage (Codex), or to force-capture a specific file. It does **not** accept a title, body, confidence, or impact — those are derived. There is no other write path.
+
+### 3. What each `memory_type` means (for reading + filtering)
+
+`memory_type` is auto-detected at capture; this table is for understanding what a stored row represents when you read or filter on it.
+
+| Type | What it captures |
+|---|---|
+| `pattern` | Reusable approach to a recurring problem |
+| `workflow` | Sequence of steps, not a one-off insight |
+| `error` | Bug → root cause → fix |
+| `decision` | Trade-off chosen + reason |
+| `discovery` | Surprising fact about the system |
 
 ## The Learning Loop (extract → suggest → validate → feedback)
 
+The loop distills patterns from the corpus of task outcomes and lets the N-th session reuse them — the killer feature. Confidence moves automatically: a pattern that held gets reinforced (LTP), one that didn't decays (LTD).
+
 ```
-┌─────────────────────────────────────────────────────┐
-│  Task complete                                      │
-│    │                                                │
-│    ▼                                                │
-│  cos_learn_extract(task_id=..., work_log=...)       │
-│    │                                                │
-│    ▼ candidate observations (NOT recorded yet)      │
-│  Agent reviews, decides accept/reject               │
-│    │                                                │
-│    ▼                                                │
-│  cos_learn_validate(obs_id=..., status=...)         │
-│    │                                                │
-│    ▼ committed to memory with confidence=0.5        │
-│  Next session opens similar task                    │
-│    │                                                │
-│    ▼                                                │
-│  cos_learn_suggest(task_id=new_task)                │
-│    │                                                │
-│    ▼ top-K including the new pattern                │
-│  Agent uses pattern, work-log mentions it           │
-│    │                                                │
-│    ▼                                                │
-│  cos_learn_feedback(obs_id=..., outcome="useful")   │
-│    │                                                │
-│    ▼ confidence ticks up 0.5 → 0.6                  │
-└─────────────────────────────────────────────────────┘
+cos_learn_extract(min_occurrences=3)        # scan task_outcomes corpus → mint learned_patterns
+        │                                     #   (domain_rework / skill_correlation / complexity_mismatch)
+        ▼
+cos_learn_suggest(domain=, complexity=)     # surface ranked patterns for the active task
+        │
+        ▼  agent uses a pattern, notes the outcome
+cos_learn_validate(pattern_id, was_helpful) # reinforce (LTP) or decay (LTD) its confidence
+        │
+        ▼  persistent rework on a domain+skill cluster
+cos_learn_feedback(min_rework=3)            # draft feedback files for human review (not auto-applied)
 ```
 
-**The skipped step is always validate.** Agents that call `cos_learn_extract` without `cos_learn_validate` poison memory with hallucinated patterns. Mechanical rule: **never call extract without queuing the validate step in the same response.**
+```python
+cos_learn_extract(min_occurrences=3)               # corpus-wide; NOT per-task
+cos_learn_suggest(domain="BACKEND", complexity="COMPLICATED", limit=5)
+cos_learn_validate(pattern_id=42, was_helpful=True)  # integer id + boolean
+cos_learn_feedback(min_rework=3)                    # returns drafts; caller writes + human confirms
+```
+
+`cos_learn_extract`/`feedback` are corpus scans (no task argument). `cos_learn_validate` is how confidence changes — there is no write-time confidence knob.
 
 ## Cross-session verification
 
@@ -178,19 +148,13 @@ Before recommending an action based on a memory hit, verify the named symbols / 
 
 - Memory says "function `foo` does X" → `cos_graph_query("foo")` to confirm it exists.
 - Memory says "file `src/core/X.py`" → `Read` it to confirm.
-- If gone or renamed: update memory via `cos_audit_log_record(action="deleted")` and re-record under the new name.
+- If gone or renamed: the memory is stale — re-verify against the code and trust the code, not the record.
 
-A memory recommendation that names a vanished symbol is worse than no memory — it's confidently wrong.
+A memory recommendation that names a vanished symbol is worse than no memory — it's confidently wrong. Every `cos_search` row carries the record timestamp; re-verify when it predates the file's last change.
 
 ## Decay + auto-deprioritization
 
-The ranking already factors in:
-- `access_count` (popular patterns surface more)
-- `last_verified_at` (stale patterns sink)
-- `confidence` (trust-weighted)
-- `since_days` filter applied (caller-controlled)
-
-You don't tune these directly. You tune confidence (write side) and pass `min_confidence` + `since_days` (read side). The ranking is the contract.
+Ranking already factors in `access_count` (popular patterns surface), `last_verified_at` (stale sinks), `confidence` (trust-weighted), and the caller's `since_days` filter. You don't tune these at write time — you influence confidence through the learn loop (`cos_learn_validate`) and control reads via `min_confidence` + `since_days`. The ranking is the contract.
 
 ## Audit log boundary
 
@@ -198,41 +162,34 @@ Two separate stores. Don't conflate:
 
 | Concern | Store | Tool |
 |---|---|---|
-| "What did an agent learn?" | Operational memory | `cos_observation_record` |
+| "What did an agent learn?" | Operational memory | automatic capture + `cos_learn_*` |
 | "Who changed what + when (immutable)?" | Audit log | `cos_audit_log_record` |
-| "What patterns emerged from learning?" | Operational memory | `cos_learn_*` |
 | "Forensic trail for compliance" | Audit log | `cos_audit_log_query` / `cos_audit_log_timeline` |
 
 A permission change → audit log. A pattern about reviewing permissions → operational memory.
 
 ## Privacy + Compliance
 
-- **No PII** in observation title/body — emails, names, customer-identifying strings. Hash if context truly needs it.
+The write sanitizer rejects injection and truncates over-length text at capture, but content discipline is still yours:
+
+- **No PII** in files you edit if it would land in a narrative — emails, names, customer-identifying strings.
 - **No secrets** — even masked. Memory is long-lived and replicated.
-- **Sensitive findings** (security incidents, financial decisions) → record metadata + link to the postmortem doc, don't inline.
+- **Sensitive findings** (security incidents, financial decisions) → keep details in the postmortem doc; let capture record only the edit.
 
 ## Anti-patterns (reject in review)
 
-- **Calling `cos_learn_extract` without `cos_learn_validate`** — hallucination farm.
-- **Confidence inflation** at write time to make pattern surface faster — pollutes ranking.
-- **Recording current-session task state** — that's `.task-current` + work log, not memory.
+- **Expecting a freeform `cos_observation_record(title=, body=, confidence=)`** — it does not exist; capture is edit-derived.
+- **Setting confidence by hand** — confidence is computed by the learn loop, not supplied.
+- **Calling `cos_learn_extract` per task with a task_id** — it is a corpus scan keyed by `min_occurrences`.
 - **Recording code facts** — that's the graph (`cos_graph_*`). Memory is for *cross-code* patterns.
-- **Recording PII / secrets** — long-lived store; compliance breach.
 - **Reading without `min_confidence`** — top-K full of decayed noise.
 - **Trusting memory without verification** when the memory names a specific symbol/path.
 
-## Tooling
-
-Validate an observation before recording (confidence range, no PII/secrets):
-`python3 scripts/check_observation.py --file obs.json`
-
 ## Composition pointers
 
-- [references/memory-recipes.md](references/memory-recipes.md) — the `cos_*` write/read/learn-loop sequences.
-- [assets/memory-checklist.md](assets/memory-checklist.md) — the write/read gate.
-
+- [references/memory-recipes.md](references/memory-recipes.md) — the `cos_*` read + learn-loop sequences.
+- [assets/memory-checklist.md](assets/memory-checklist.md) — the read + learn-loop gate.
 - Cognitive cycle entry: [thinking_os](../thinking_os/SKILL.md) — Orient phase routes to memory.
 - Layer routing: [search](../search/SKILL.md) decision gate (memory vs docs vs graph vs file).
 - Policy + 4-layer model: [src/core/rules/memory.md](../../rules/memory.md) — the *why*.
-- Audit log surface: [security-web](../security-web/SKILL.md) §A09, [observability](../observability/SKILL.md) audit-log section.
-- Task linkage: [task-driver](../task-driver/SKILL.md) — task_id stamps observations.
+- Task linkage: [task-driver](../task-driver/SKILL.md) — task outcomes feed the learn loop.
