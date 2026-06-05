@@ -35,21 +35,21 @@ interface TracePayload {
 }
 
 const EVENT_COLORS: Record<string, string> = {
-  dispatch: '#7fd4a0',
-  dispatch_started: '#7fd4a0',
-  dispatch_completed: '#5fc78a',
-  supervise: '#5aa8ff',
-  supervise_record: '#5aa8ff',
-  supervise_record_output: '#5aa8ff',
-  backtrack: '#ef4444',
-  backtrack_log: '#ef4444',
-  compose_chain: '#c68fff',
-  analyze_task: '#fbbf24',
+  dispatch: '#3fb950',
+  dispatch_started: '#3fb950',
+  dispatch_completed: '#2e9e6e',
+  supervise: '#4c8dff',
+  supervise_record: '#4c8dff',
+  supervise_record_output: '#4c8dff',
+  backtrack: '#f2576b',
+  backtrack_log: '#f2576b',
+  compose_chain: '#7c82f2',
+  analyze_task: '#e0a227',
 };
 
 function eventColor(kind: string | undefined): string {
-  if (!kind) return '#9ea4ae';
-  return EVENT_COLORS[kind] ?? '#9ea4ae';
+  if (!kind) return '#6c7480';
+  return EVENT_COLORS[kind] ?? '#6c7480';
 }
 
 function eventKey(e: TraceEvent, i: number): string {

@@ -34,8 +34,8 @@ export const AGENT_PRESENCE_VISUALS: Record<AgentPresence, AgentVisual> = {
   // doesn't read as idle.  Cyan/teal — visually unrelated to any
   // adapter brand color (claude amber, codex cyan-blue, cursor indigo).
   working: {
-    color: '#0ea5e9',
-    ring: 'rgba(14,165,233,.30)',
+    color: '#45d6e8',
+    ring: 'rgba(69,214,232,.30)',
     pulse: true,
     label: 'working',
   },

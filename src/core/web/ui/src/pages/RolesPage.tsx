@@ -139,18 +139,48 @@ export default function RolesPage() {
               No composed chain yet - appears once a COMPLICATED/COMPLEX task auto-composes a chain (or a `cos_compose_chain` call).
             </p>
           )}
-          <ol className="space-y-1">
-            {(chainData?.chain ?? []).map((fid) => (
-              <li
-                key={fid}
-                className={[
-                  'rounded border border-[var(--cos-border)] px-2 py-1 font-mono',
-                  fid === chainData?.active_formula ? 'text-[var(--cos-accent)] bg-[var(--cos-accent)]/10' : '',
-                ].join(' ')}
-              >
-                {fid}
-              </li>
-            ))}
+          <ol className="space-y-0">
+            {(chainData?.chain ?? []).map((fid, i, arr) => {
+              const isActive = fid === chainData?.active_formula;
+              const name = fid.charAt(0).toUpperCase() + fid.slice(1).replace(/_/g, ' ');
+              return (
+                <li key={fid} className="relative flex items-start gap-3 pb-3 last:pb-0">
+                  {i < arr.length - 1 && (
+                    <span
+                      aria-hidden
+                      className="absolute left-[11px] top-6 bottom-0 w-px bg-[var(--cos-border)]"
+                    />
+                  )}
+                  <span
+                    className={[
+                      'relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold',
+                      isActive
+                        ? 'border-[var(--cos-accent)] bg-[var(--cos-accent)] text-[var(--cos-bg)]'
+                        : 'border-[var(--cos-border)] bg-[var(--cos-panel)] text-[var(--cos-muted)]',
+                    ].join(' ')}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="pt-0.5">
+                    <div
+                      className={
+                        isActive
+                          ? 'text-[13px] font-semibold text-[var(--cos-text)]'
+                          : 'text-[13px] text-[var(--cos-muted)]'
+                      }
+                    >
+                      {name}
+                    </div>
+                    {isActive && (
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-[var(--cos-accent)]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-accent)]" />
+                        active · {i + 1}/{arr.length}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </div>
       </section>
@@ -166,7 +196,7 @@ export default function RolesPage() {
           <p className="mt-1 text-[10px]">
             <span className="text-[var(--cos-muted)]">Sub-agent dispatch: </span>
             {dispatchAvailable ? (
-              <span className="text-emerald-300">enabled</span>
+              <span className="text-[var(--cos-ok)]">enabled</span>
             ) : (
               <span className="text-[var(--cos-muted)]">disabled — in-session only (Claude SDK extra not installed)</span>
             )}
@@ -182,9 +212,9 @@ export default function RolesPage() {
               Roles are composed automatically for COMPLICATED/COMPLEX tasks (or via
               <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_compose_chain</code>).
               Each chain member then shows here as
-              <span className="mx-1 text-amber-300">composed</span> — in single-agent mode the
+              <span className="mx-1 text-[var(--cos-warn)]">composed</span> — in single-agent mode the
               agent plays the role in-session, so "composed" is the expected state, not a gap. A
-              <span className="mx-1 text-emerald-300">dispatched</span> row with recorded evidence
+              <span className="mx-1 text-[var(--cos-ok)]">dispatched</span> row with recorded evidence
               appears only when a role runs as a separate sub-agent via
               <code className="mx-1 rounded bg-[var(--cos-bg)] px-1 py-0.5 font-mono text-[11px] text-[var(--cos-accent)]">cos_supervise_record_output</code>
               (the SDK dispatch path).
@@ -207,7 +237,7 @@ export default function RolesPage() {
                 className={[
                   'rounded border p-2',
                   isPlanned
-                    ? 'border-amber-500/40 bg-amber-500/5'
+                    ? 'border-[var(--cos-warn)] bg-[var(--cos-warn-tint)]'
                     : 'border-[var(--cos-border)]',
                 ].join(' ')}
               >
@@ -215,7 +245,7 @@ export default function RolesPage() {
                   <span className="font-mono font-semibold">{row.agent}</span>
                   <span className="text-[var(--cos-muted)]">{formatTs(row.ts)}</span>
                   {isPlanned && (
-                    <span className="rounded bg-amber-500/15 px-1 text-[10px] text-amber-300">
+                    <span className="rounded bg-[var(--cos-warn-tint)] px-1 text-[10px] text-[var(--cos-warn)]">
                       composed · in-session
                     </span>
                   )}
@@ -223,7 +253,7 @@ export default function RolesPage() {
                     <span
                       className={[
                         'rounded px-1 text-[10px]',
-                        row.schema_ok ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300',
+                        row.schema_ok ? 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]' : 'bg-[var(--cos-err-tint)] text-[var(--cos-err)]',
                       ].join(' ')}
                     >
                       {row.schema_ok ? 'schema ok' : 'schema fail'}
@@ -249,17 +279,17 @@ export default function RolesPage() {
                   </div>
                 )}
                 {row.schema_status === 'no_payload' && !isPlanned && (
-                  <div className="mt-1 text-[10px] text-amber-300">
+                  <div className="mt-1 text-[10px] text-[var(--cos-warn)]">
                     schema n/a: output payload missing from the evidence bundle for this session.
                   </div>
                 )}
                 {row.schema_status === 'no_schema' && !isPlanned && (
-                  <div className="mt-1 text-[10px] text-amber-300">
+                  <div className="mt-1 text-[10px] text-[var(--cos-warn)]">
                     schema n/a: this role has no registered Output schema.
                   </div>
                 )}
                 {row.schema_errors && row.schema_errors.length > 0 && (
-                  <pre className="mt-2 overflow-auto rounded bg-[var(--cos-panel)] p-2 text-[10px] text-rose-300 cos-scroll">
+                  <pre className="mt-2 overflow-auto rounded bg-[var(--cos-panel)] p-2 text-[10px] text-[var(--cos-err)] cos-scroll">
                     {row.schema_errors.join('\n')}
                   </pre>
                 )}

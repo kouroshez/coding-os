@@ -99,6 +99,16 @@ only; glow reserved for live/active state.
 | `danger` | `#F2576B` / `rgba(242,87,107,.14)` | `#CF222E` / `#FCE9EA` |
 | `info` | `#4C8DFF` / `rgba(76,141,255,.14)` | `#0969DA` / `#E7F0FE` |
 
+### Live · Signature · Focus (adopted from external review)
+
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `live` | `#45D6E8` | `#0E7490` | SSE / agent-live / connection — distinct from `info` |
+| `signature` | `#FF8A4C` | `#C84E18` | Ember — logo / brand mark ONLY (never primary) |
+| `focus-ring` | `#A78BFA` | `#7C3AED` | violet — distinct from brand so focus pops on brand elements |
+
+Consumers: `*:focus-visible` → `--cos-focus`; agent `working` presence → `--cos-live`; the "Coding OS" wordmark → `--cos-signature`.
+
 ## 4. Domain palettes (harmonized)
 
 **Golden rule — graph node kinds (v2):** across families = a **distinct

@@ -46,7 +46,10 @@
     --brand-text:  var(--iris-text);
     --brand-tint:  var(--iris-tint);
     --brand-on:    #ffffff;
-    --focus-ring:  var(--iris-solid);
+    /* review token ideas: dedicated live + signature + distinct focus */
+    --live:        #0e7490;  /* Pulse Cyan — SSE / agent-live */
+    --signature:   #c84e18;  /* Ember — logo / brand mark only */
+    --focus-ring:  #7c3aed;  /* violet — distinct from brand so focus pops */
 
     /* ---- LEGACY ALIASES (kept → zero component breakage) ---- */
     --paper-h: 220; --paper-s: 16%; --paper-l: 97%;
@@ -99,6 +102,10 @@
     --iris-hover: #9296f6;
     --iris-text:  #a7abf8;
     --iris-tint:  rgba(124, 130, 242, .14);
+    /* review token ideas (dark) */
+    --live:        #45d6e8;
+    --signature:   #ff8a4c;
+    --focus-ring:  #a78bfa;
     /* ---- PRIMITIVES · status ---- */
     --st-ok:   #3fb950; --st-ok-tint:   rgba(63, 185, 80, .14);
     --st-warn: #e0a227; --st-warn-tint: rgba(224, 162, 39, .14);
