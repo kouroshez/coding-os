@@ -399,7 +399,7 @@ function Section({
         {isLoading && <span className="text-[10px] normal-case text-[var(--cos-muted)]">loading…</span>}
       </h2>
       {error && (
-        <p role="alert" className="mb-2 text-xs text-rose-400">
+        <p role="alert" className="mb-2 text-xs text-[var(--cos-err)]">
           {error.message}
         </p>
       )}
@@ -452,12 +452,12 @@ function Tag({ children, muted }: { children: React.ReactNode; muted?: boolean }
 
 function StatusTag({ status }: { status: string }) {
   const palette: Record<string, string> = {
-    open: 'bg-sky-500/15 text-sky-300',
-    wip: 'bg-amber-500/15 text-amber-300',
-    in_progress: 'bg-amber-500/15 text-amber-300',
-    testing: 'bg-violet-500/15 text-violet-300',
-    blocked: 'bg-rose-500/15 text-rose-300',
-    done: 'bg-emerald-500/15 text-emerald-300',
+    open: 'bg-[var(--cos-info-tint)] text-[var(--cos-info)]',
+    wip: 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)]',
+    in_progress: 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)]',
+    testing: 'bg-[var(--cos-brand-tint)] text-[var(--cos-brand-text)]',
+    blocked: 'bg-[var(--cos-err-tint)] text-[var(--cos-err)]',
+    done: 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]',
   };
   const cls = palette[status] ?? 'bg-[var(--cos-border)]/30 text-[var(--cos-muted)]';
   return <span className={['rounded px-1 py-0.5 text-[10px] uppercase tracking-wide', cls].join(' ')}>{status}</span>;

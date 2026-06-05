@@ -27,7 +27,7 @@ interface SettingsPayload {
 function EnvBadge({ varName, value }: { varName: string; value: string }) {
   return (
     <span
-      className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-400"
+      className="ml-2 rounded border border-[var(--cos-warn)] bg-[var(--cos-warn-tint)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--cos-warn)]"
       title={`Overridden by env var: ${varName}=${value}`}
     >
       env: {varName}={value}
@@ -259,8 +259,8 @@ function ScheduledConfigForm({ slug, initial }: { slug: string; initial: Schedul
           </span>
         </FieldRow>
       </div>
-      {note && <p className="mt-3 text-[11px] text-emerald-400">{note}</p>}
-      {err && <p className="mt-3 text-[11px] text-rose-400">{err}</p>}
+      {note && <p className="mt-3 text-[11px] text-[var(--cos-ok)]">{note}</p>}
+      {err && <p className="mt-3 text-[11px] text-[var(--cos-err)]">{err}</p>}
       <div className="mt-4 flex items-center gap-3">
         <button
           type="button"
@@ -436,7 +436,7 @@ export default function SettingsPage() {
 
   if (error) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-rose-400">
+      <div className="flex h-full items-center justify-center text-sm text-[var(--cos-err)]">
         {error.message}
       </div>
     );
@@ -445,7 +445,7 @@ export default function SettingsPage() {
   return (
     <PageShell>
       <PageHeader
-        eyebrow={<StatusPill label="settings · hub config" dotColor="bg-violet-400" />}
+        eyebrow={<StatusPill label="settings · hub config" dotColor="bg-[var(--cos-brand-tint)]" />}
         title="Settings"
         subtitle={
           <>
@@ -458,7 +458,7 @@ export default function SettingsPage() {
       />
 
       {saveNote && (
-        <div className="mb-4 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+        <div className="mb-4 rounded border border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] px-3 py-2 text-xs text-[var(--cos-ok)]">
           {saveNote}
           <button
             type="button"
@@ -470,7 +470,7 @@ export default function SettingsPage() {
         </div>
       )}
       {saveError && (
-        <div className="mb-4 rounded border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+        <div className="mb-4 rounded border border-[var(--cos-err)] bg-[var(--cos-err-tint)] px-3 py-2 text-xs text-[var(--cos-err)]">
           {saveError}
           <button
             type="button"
@@ -510,7 +510,7 @@ export default function SettingsPage() {
               />
               <span className="text-xs text-[var(--cos-muted)]">USD / day</span>
               {envOverrides['COS_DAILY_BUDGET_USD'] && (
-                <span className="text-[10px] text-amber-400">
+                <span className="text-[10px] text-[var(--cos-warn)]">
                   env var overrides this when set
                 </span>
               )}

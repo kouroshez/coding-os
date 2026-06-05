@@ -112,7 +112,7 @@ export default function ChatList({
       <div className="flex-1 overflow-auto cos-scroll">
         {isLoading && <p className="p-4 text-xs text-[var(--cos-muted)]">loading chats…</p>}
         {error && (
-          <p role="alert" className="p-4 text-xs text-rose-400">
+          <p role="alert" className="p-4 text-xs text-[var(--cos-err)]">
             {error.message}
           </p>
         )}

@@ -180,7 +180,7 @@ export default function ContainsTree() {
       <div className="flex-1 overflow-auto p-1 cos-scroll">
         {isLoading && <p className="p-2 text-xs text-[var(--cos-muted)]">loading spine…</p>}
         {error && (
-          <p className="p-2 text-xs text-rose-400" role="alert">
+          <p className="p-2 text-xs text-[var(--cos-err)]" role="alert">
             {error.message}
           </p>
         )}

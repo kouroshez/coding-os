@@ -37,7 +37,7 @@ export default function NeedProjectPage({ feature }: { feature: string }) {
     <div className="flex h-full min-h-0 items-center justify-center p-8">
       <div className="w-full max-w-xl rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-6 shadow-xl">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-bg)] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--cos-muted)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px] shadow-amber-400/60" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-warn-tint)] shadow-[0_0_8px] " />
           project required
         </div>
         <h1 className="mt-3 text-2xl font-bold tracking-tight text-[var(--cos-text)]">
@@ -53,7 +53,7 @@ export default function NeedProjectPage({ feature }: { feature: string }) {
           <div className="mt-6 text-sm text-[var(--cos-muted)]">Loading projects…</div>
         )}
         {error && (
-          <div role="alert" className="mt-6 text-sm text-rose-400">
+          <div role="alert" className="mt-6 text-sm text-[var(--cos-err)]">
             Failed to load projects: {error.message}
           </div>
         )}

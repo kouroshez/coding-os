@@ -24,7 +24,7 @@ export default function FilterBar() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by path/name..."
             dir="auto"
-            className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-2.5 pr-8 text-xs text-[var(--cos-text)] placeholder-white/30 shadow-inner outline-none transition-all duration-300 focus:border-fuchsia-500/50 focus:bg-white/10 focus:shadow-[0_0_8px_rgba(217,70,239,0.25)]"
+            className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-2.5 pr-8 text-xs text-[var(--cos-text)] placeholder-white/30 shadow-inner outline-none transition-all duration-300 focus:border-[var(--cos-accent)] focus:bg-white/10 focus:shadow-[0_0_8px_rgba(217,70,239,0.25)]"
           />
           {searchQuery && (
             <button

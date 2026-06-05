@@ -258,3 +258,29 @@ this foundation, tracked as tasks:
 is itself over-engineering for low-risk flows (Rule 22). Apply deep
 analysis **risk-based** — permissions, destructive/irreversible actions,
 autonomous execution — not uniformly.
+
+## 12. Color-token enforcement — no hardcoded UI colors
+
+**Rule:** no component hardcodes a palette color. Every UI color resolves
+from a `--cos-*` token, so a rebrand = editing `cos-board-tokens.css`
+alone. Enforced by a repeatable codemod (the mapping IS the rule):
+
+| Tailwind named family | Token |
+|---|---|
+| `rose` `red` `pink` | `--cos-err` (bg → `--cos-err-tint`) |
+| `emerald` `green` `lime` | `--cos-ok` / `--cos-ok-tint` |
+| `amber` `yellow` `orange` | `--cos-warn` / `--cos-warn-tint` |
+| `sky` `blue` | `--cos-info` / `--cos-info-tint` |
+| `violet` `fuchsia` `indigo` `purple` | `--cos-brand-text` (border → `--cos-accent`, bg → `--cos-brand-tint`) |
+| `cyan` `teal` | `--cos-live` |
+| `slate` `gray` `zinc` `neutral` `stone` | text→`--cos-text`/`muted`/`faint` by shade; bg→`--cos-panel`/`inset`; border→`--cos-border` |
+
+**Legitimately hex (NOT violations) — centralized single-source maps:**
+
+| Map | Why hex |
+|---|---|
+| `lib/node-colors.ts`, `graph/graph-adapter.ts`, `graph/useSigma.ts` | Sigma/WebGL canvas cannot read CSS vars |
+| `cos-board/agentPresenceVisuals.ts`, `AGENTS` map, `EVENT_COLOR`, `LiveStatus` presence, `LEVEL_COLORS` | external-agent identity / categorical data — change in one place |
+| `#fff` / `#000` on solid accents | theme-neutral contrast anchors, not palette hues |
+
+Sweep (must stay 0 outside the maps above): `grep -rE '(text\|bg\|border\|ring)-(rose\|emerald\|amber\|sky\|violet\|zinc\|gray\|slate\|...)-[0-9]' src/core/web/ui/src --include='*.tsx'`.

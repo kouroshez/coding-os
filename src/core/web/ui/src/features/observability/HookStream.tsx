@@ -128,7 +128,7 @@ export default function HookStream() {
             className={[
               'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] uppercase tracking-wider',
               connected
-                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300'
+                ? 'border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]'
                 : 'border-[var(--cos-border)] text-[var(--cos-muted)]',
             ].join(' ')}
           >
@@ -148,7 +148,7 @@ export default function HookStream() {
             className={[
               'ml-auto rounded border px-2 py-0.5 text-[10px] transition-colors',
               paused
-                ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
+                ? 'border-[var(--cos-warn)] bg-[var(--cos-warn-tint)] text-[var(--cos-warn)]'
                 : 'border-[var(--cos-border)] text-[var(--cos-muted)] hover:border-[var(--cos-accent)]',
             ].join(' ')}
           >

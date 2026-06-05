@@ -86,7 +86,7 @@ export default function ImpactPanel({ uid }: { uid: string }) {
   }
   if (error) {
     return (
-      <div role="alert" className="p-3 text-xs text-rose-400">
+      <div role="alert" className="p-3 text-xs text-[var(--cos-err)]">
         {error.message}
       </div>
     );

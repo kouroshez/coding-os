@@ -68,7 +68,7 @@ export function PageHeader({
 // --------------------------------------------------------------------------
 
 export function StatusPill({
-  label, dotColor = 'bg-emerald-400',
+  label, dotColor = 'bg-[var(--cos-ok-tint)]',
 }: { label: string; dotColor?: string }) {
   return (
     <span className="inline-flex items-center gap-2">
@@ -123,9 +123,9 @@ export function Banner({
   onDismiss?: () => void;
 }) {
   const palette = kind === 'ok'
-    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+    ? 'border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]'
     : kind === 'error'
-    ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
+    ? 'border-[var(--cos-err)] bg-[var(--cos-err-tint)] text-[var(--cos-err)]'
     : 'border-[var(--cos-border)] bg-[var(--cos-panel)]/70 text-[var(--cos-muted)]';
   return (
     <div className={`mb-5 flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${palette}`}>

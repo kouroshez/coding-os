@@ -60,8 +60,8 @@ export default function HealthAlarmBar() {
   // amber for warnings / graph issues otherwise.
   const tone =
     fatalCount > 0
-      ? 'bg-red-900/50 text-red-200 hover:bg-red-900/70'
-      : 'bg-amber-900/40 text-amber-200 hover:bg-amber-900/60';
+      ? 'bg-[var(--cos-err-tint)] text-[var(--cos-err)] hover:bg-[var(--cos-err-tint)]'
+      : 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)] hover:bg-[var(--cos-warn-tint)]';
 
   return (
     <Link

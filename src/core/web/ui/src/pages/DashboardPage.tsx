@@ -137,21 +137,21 @@ const STATE_DOT: Record<string, { color: string; pulse: boolean; label: string }
 };
 
 const ACTION_BADGE: Record<string, { bg: string; text: string }> = {
-  fire: { bg: 'bg-sky-500/15', text: 'text-sky-300' },
-  block: { bg: 'bg-rose-500/15', text: 'text-rose-300' },
-  warn: { bg: 'bg-amber-500/15', text: 'text-amber-300' },
-  'stale-gate': { bg: 'bg-amber-500/15', text: 'text-amber-300' },
-  skip: { bg: 'bg-zinc-500/15', text: 'text-zinc-400' },
-  'skip-not-replace': { bg: 'bg-zinc-500/15', text: 'text-zinc-400' },
-  pass: { bg: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  ok: { bg: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  entry: { bg: 'bg-violet-500/15', text: 'text-violet-300' },
-  enter: { bg: 'bg-violet-500/15', text: 'text-violet-300' },
-  dispatched: { bg: 'bg-cyan-500/15', text: 'text-cyan-300' },
-  'session-end': { bg: 'bg-zinc-500/15', text: 'text-zinc-400' },
-  posttooluse: { bg: 'bg-indigo-500/15', text: 'text-indigo-300' },
-  pretooluse: { bg: 'bg-indigo-500/15', text: 'text-indigo-300' },
-  'non-rename': { bg: 'bg-zinc-500/15', text: 'text-zinc-400' },
+  fire: { bg: 'bg-[var(--cos-info-tint)]', text: 'text-[var(--cos-info)]' },
+  block: { bg: 'bg-[var(--cos-err-tint)]', text: 'text-[var(--cos-err)]' },
+  warn: { bg: 'bg-[var(--cos-warn-tint)]', text: 'text-[var(--cos-warn)]' },
+  'stale-gate': { bg: 'bg-[var(--cos-warn-tint)]', text: 'text-[var(--cos-warn)]' },
+  skip: { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
+  'skip-not-replace': { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
+  pass: { bg: 'bg-[var(--cos-ok-tint)]', text: 'text-[var(--cos-ok)]' },
+  ok: { bg: 'bg-[var(--cos-ok-tint)]', text: 'text-[var(--cos-ok)]' },
+  entry: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
+  enter: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
+  dispatched: { bg: 'bg-[var(--cos-live)]', text: 'text-[var(--cos-live)]' },
+  'session-end': { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
+  posttooluse: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
+  pretooluse: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
+  'non-rename': { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -497,10 +497,10 @@ export default function DashboardPage() {
                   className={[
                     'h-full transition-all',
                     budgetPct > 80
-                      ? 'bg-rose-400'
+                      ? 'bg-[var(--cos-err-tint)]'
                       : budgetPct > 50
-                      ? 'bg-amber-400'
-                      : 'bg-emerald-400',
+                      ? 'bg-[var(--cos-warn-tint)]'
+                      : 'bg-[var(--cos-ok-tint)]',
                   ].join(' ')}
                   style={{ width: `${budgetPct}%` }}
                 />
@@ -664,7 +664,7 @@ function DashboardHeader({
         <p className="mt-0.5 text-xs text-[var(--cos-muted)]">
           {presentCount > 0 ? (
             <>
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 align-middle" />{' '}
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--cos-ok-tint)] align-middle" />{' '}
               {presentCount} agent{presentCount === 1 ? '' : 's'} live · last hook{' '}
               <span className="font-mono text-[var(--cos-text)]">
                 {lastHook?.hook ?? '—'}
@@ -748,16 +748,16 @@ function KpiCard({
 }) {
   const toneClass = {
     neutral: 'text-[var(--cos-text)]',
-    positive: 'text-emerald-400 glow-emerald',
-    warning: 'text-amber-400 glow-amber',
-    danger: 'text-rose-400 glow-rose',
+    positive: 'text-[var(--cos-ok)] glow-emerald',
+    warning: 'text-[var(--cos-warn)] glow-amber',
+    danger: 'text-[var(--cos-err)] glow-rose',
   }[tone];
 
   const borderClass = {
     neutral: 'border-white/5 shadow-white/5',
-    positive: 'border-emerald-500/20 shadow-emerald-500/5 hover:border-emerald-500/40',
-    warning: 'border-amber-500/20 shadow-amber-500/5 hover:border-amber-500/40',
-    danger: 'border-rose-500/20 shadow-rose-500/5 hover:border-rose-500/40',
+    positive: 'border-[var(--cos-ok)]  hover:border-[var(--cos-ok)]',
+    warning: 'border-[var(--cos-warn)]  hover:border-[var(--cos-warn)]',
+    danger: 'border-[var(--cos-err)]  hover:border-[var(--cos-err)]',
   }[tone];
 
   return (
@@ -774,7 +774,7 @@ function KpiCard({
         {bar && (
           <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/5">
             <div
-              className={bar.warn ? 'h-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'h-full bg-[var(--cos-accent)] shadow-[0_0_8px_var(--cos-accent)]'}
+              className={bar.warn ? 'h-full bg-[var(--cos-warn-tint)] shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'h-full bg-[var(--cos-accent)] shadow-[0_0_8px_var(--cos-accent)]'}
               style={{ width: `${Math.min(100, bar.pct)}%` }}
             />
           </div>
@@ -832,7 +832,7 @@ function AgentBadge({ agent, active }: { agent: string; active: boolean }) {
   return (
     <span className="inline-flex items-center gap-1 rounded border border-[var(--cos-border)] px-1 py-0.5 text-[9px] uppercase tracking-wider text-[var(--cos-muted)]">
       {active && (
-        <span aria-hidden className="inline-block h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+        <span aria-hidden className="inline-block h-1 w-1 animate-pulse rounded-full bg-[var(--cos-ok-tint)]" />
       )}
       {agent}
     </span>
@@ -850,7 +850,7 @@ function Badge({
     tone === 'accent'
       ? 'bg-[var(--cos-accent)]/15 text-[var(--cos-accent)]'
       : tone === 'danger'
-      ? 'bg-rose-500/15 text-rose-300'
+      ? 'bg-[var(--cos-err-tint)] text-[var(--cos-err)]'
       : 'bg-[var(--cos-border)]/30 text-[var(--cos-muted)]';
   return (
     <span className={['rounded px-1 py-0.5 text-[9px] uppercase tracking-wider', cls].join(' ')}>{children}</span>
@@ -870,9 +870,9 @@ function StatTile({
 }) {
   const valueClass =
     tone === 'danger' && value > 0
-      ? 'text-rose-300'
+      ? 'text-[var(--cos-err)]'
       : tone === 'warning'
-      ? 'text-amber-300'
+      ? 'text-[var(--cos-warn)]'
       : 'text-[var(--cos-text)]';
   return (
     <div className="rounded-md border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1.5">

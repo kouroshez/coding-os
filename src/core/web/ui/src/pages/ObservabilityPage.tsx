@@ -74,7 +74,7 @@ export default function ObservabilityPage() {
   return (
     <PageShell>
       <PageHeader
-        eyebrow={<StatusPill label="observability · live hook stream" dotColor="bg-amber-400" />}
+        eyebrow={<StatusPill label="observability · live hook stream" dotColor="bg-[var(--cos-warn-tint)]" />}
         title="Observability"
         subtitle="Live hook stream, hook registry, audit timeline, and 7-day stand-up rollup."
       />
@@ -115,7 +115,7 @@ function HookRegistry() {
     <div className="h-full overflow-auto p-3 text-xs">
       <h2 className="mb-2 text-sm font-semibold text-[var(--cos-text)]">Hook registry</h2>
       {q.isLoading && <p className="text-[var(--cos-muted)]">loading…</p>}
-      {q.error && <p className="text-rose-400">{q.error.message}</p>}
+      {q.error && <p className="text-[var(--cos-err)]">{q.error.message}</p>}
       {q.data && (
         <>
           <p className="mb-2 text-[10px] text-[var(--cos-muted)]">{q.data.count} hooks registered.</p>
@@ -169,7 +169,7 @@ function Timeline() {
       </div>
       <ol className="cos-scroll flex-1 overflow-auto p-2 text-[11px]">
         {q.isLoading && <li className="p-4 text-[var(--cos-muted)]">loading…</li>}
-        {q.error && <li className="p-4 text-rose-400">{q.error.message}</li>}
+        {q.error && <li className="p-4 text-[var(--cos-err)]">{q.error.message}</li>}
         {q.data?.events.map((ev, i) => (
           <li
             key={`${ev.iso_ts ?? ev.ts ?? i}-${ev.kind}-${i}`}
@@ -211,13 +211,13 @@ function Standup() {
               return (
                 <li key={col} className="flex items-center justify-between">
                   <span className="font-mono">{col}</span>
-                  <span className={over ? 'text-rose-400' : 'text-[var(--cos-muted)]'}>
+                  <span className={over ? 'text-[var(--cos-err)]' : 'text-[var(--cos-muted)]'}>
                     {n} / {cap}
                   </span>
                 </li>
               );
             })}
-            {wip.data.over_cap && <li className="text-rose-400">⚠ over-cap</li>}
+            {wip.data.over_cap && <li className="text-[var(--cos-err)]">⚠ over-cap</li>}
           </ul>
         )}
       </Card>
@@ -264,7 +264,7 @@ function Card({
     <section className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3 text-xs">
       <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--cos-muted)]">{title}</h3>
       {loading && <p className="text-[var(--cos-muted)]">loading…</p>}
-      {error && <p className="text-rose-400">{error.message}</p>}
+      {error && <p className="text-[var(--cos-err)]">{error.message}</p>}
       {!loading && !error && children}
     </section>
   );

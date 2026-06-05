@@ -268,7 +268,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
   if (isLoading) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading transcript…</p>;
   if (error)
     return (
-      <p role="alert" className="p-4 text-sm text-rose-400">
+      <p role="alert" className="p-4 text-sm text-[var(--cos-err)]">
         {error.message}
       </p>
     );
@@ -311,7 +311,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         )}
 
         {streamErr && (
-          <p role="alert" className="mt-3 text-xs text-rose-400">
+          <p role="alert" className="mt-3 text-xs text-[var(--cos-err)]">
             {streamErr}
           </p>
         )}
@@ -345,7 +345,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
               <button
                 type="button"
                 onClick={cancel}
-                className="rounded-full border border-rose-500/40 px-4 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="rounded-full border border-[var(--cos-err)] px-4 py-1.5 text-xs text-[var(--cos-err)] hover:bg-[var(--cos-err-tint)] transition-colors"
               >
                 cancel
               </button>
@@ -377,7 +377,7 @@ function HumanTurn({ blocks }: { blocks: ContentBlock[] }) {
   return (
     <div className="mb-4 flex flex-col items-end gap-1.5">
       <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)] pr-1 font-mono">you</div>
-      <div className="max-w-[88%] rounded-2xl border border-fuchsia-500/25 bg-gradient-to-br from-fuchsia-950/15 via-purple-950/10 to-transparent dark:from-fuchsia-500/10 dark:via-purple-500/5 dark:to-transparent backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-lg shadow-fuchsia-500/5">
+      <div className="max-w-[88%] rounded-2xl border border-[var(--cos-accent)] bg-gradient-to-br from-[var(--cos-brand-tint)] via-[var(--cos-brand-tint)] to-transparent dark:from-[var(--cos-brand-tint)] dark:via-[var(--cos-brand-tint)] dark:to-transparent backdrop-blur-md px-4 py-3 text-sm text-[var(--cos-text)] shadow-lg ">
         {blocks.map((b, i) => (
           <TextOrImage key={i} block={b} />
         ))}
@@ -535,19 +535,19 @@ function ToolCall({
       className={[
         'my-1 rounded border text-[11px]',
         hasError
-          ? 'border-rose-500/50 bg-rose-500/5'
+          ? 'border-[var(--cos-err)] bg-[var(--cos-err-tint)]'
           : 'border-[var(--cos-border)] bg-[var(--cos-bg)]',
       ].join(' ')}
     >
       <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-2 py-1 font-mono">
-        <span className={hasError ? 'text-rose-400' : 'text-[var(--cos-accent)]'}>
+        <span className={hasError ? 'text-[var(--cos-err)]' : 'text-[var(--cos-accent)]'}>
           {hasError ? '⚠' : '🔧'} {toolUse.name ?? 'tool'}
         </span>
         <span className="text-[10px] text-[var(--cos-muted)]">
           {String(toolUse.id ?? '').slice(0, 8)}
         </span>
         {result ? (
-          <span className={['ml-auto text-[10px]', hasError ? 'text-rose-400' : 'text-emerald-400'].join(' ')}>
+          <span className={['ml-auto text-[10px]', hasError ? 'text-[var(--cos-err)]' : 'text-[var(--cos-ok)]'].join(' ')}>
             ↳ {hasError ? 'error' : 'result'}
           </span>
         ) : (
@@ -565,7 +565,7 @@ function ToolCall({
         {result && resultText != null && (
           <>
             <div className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
-              result {hasError && <span className="text-rose-400">· error</span>}
+              result {hasError && <span className="text-[var(--cos-err)]">· error</span>}
             </div>
             <ToolResultBody text={resultText} />
           </>
@@ -689,7 +689,7 @@ function LiveEventRow({ event }: { event: LiveEvent }) {
     const cost = (payload as { total_cost_usd?: number }).total_cost_usd;
     const dur = (payload as { duration_ms?: number }).duration_ms;
     return (
-      <div className="mb-3 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-300">
+      <div className="mb-3 rounded border border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] px-3 py-2 text-[11px] text-[var(--cos-ok)]">
         ✓ result · {dur != null ? `${dur}ms` : ''} {cost != null ? `· $${cost.toFixed(4)}` : ''}
       </div>
     );
@@ -697,7 +697,7 @@ function LiveEventRow({ event }: { event: LiveEvent }) {
 
   if (kind === 'error') {
     return (
-      <div className="mb-3 rounded border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-300">
+      <div className="mb-3 rounded border border-[var(--cos-err)] bg-[var(--cos-err-tint)] px-3 py-2 text-[11px] text-[var(--cos-err)]">
         ⚠ {String((payload as { message?: string }).message ?? JSON.stringify(payload))}
       </div>
     );

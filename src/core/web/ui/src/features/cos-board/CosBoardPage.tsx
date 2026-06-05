@@ -547,7 +547,7 @@ export default function CosBoardPage() {
   }
   if (error) {
     return (
-      <div style={{ padding: 24, fontFamily: "'JetBrains Mono', monospace", color: '#dc2626' }}>
+      <div style={{ padding: 24, fontFamily: "'JetBrains Mono', monospace", color: 'var(--cos-err)' }}>
         {error.message}
       </div>
     );
@@ -588,7 +588,7 @@ export default function CosBoardPage() {
             padding: '6px 12px',
             background: 'rgba(220,38,38,.12)',
             borderBottom: '1px solid rgba(220,38,38,.35)',
-            color: '#dc2626',
+            color: 'var(--cos-err)',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 11,
           }}
@@ -926,7 +926,7 @@ export default function CosBoardPage() {
             left: '50%',
             transform: 'translateX(-50%)',
             padding: '10px 18px',
-            background: '#16a34a',
+            background: 'var(--cos-ok)',
             color: 'white',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 12,
@@ -1027,7 +1027,7 @@ function TopBar({
           ) : null}
           <span
             style={{
-              color: connected ? '#16a34a' : 'var(--ink-faint)',
+              color: connected ? 'var(--cos-ok)' : 'var(--cos-faint)',
               fontSize: 13,
               fontWeight: 600,
               marginLeft: 4,
@@ -1492,7 +1492,7 @@ function LiveStreamPanel({
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: connected ? '#16a34a' : '#c0392b',
+              background: connected ? 'var(--cos-ok)' : 'var(--cos-err)',
               marginRight: 4,
               animation: connected ? 'pulse 1.5s infinite' : 'none',
             }}
@@ -2313,10 +2313,10 @@ function CreateTaskModal({
     color: v.chip,
   }));
   const priorityOpts = [
-    { value: 'P0', label: 'P0', color: '#c0392b' },
-    { value: 'P1', label: 'P1', color: '#ea580c' },
-    { value: 'P2', label: 'P2', color: '#6b665e' },
-    { value: 'P3', label: 'P3', color: '#b8b0a3' },
+    { value: 'P0', label: 'P0', color: 'var(--cos-err)' },
+    { value: 'P1', label: 'P1', color: 'var(--cos-warn)' },
+    { value: 'P2', label: 'P2', color: 'var(--cos-muted)' },
+    { value: 'P3', label: 'P3', color: 'var(--cos-faint)' },
   ];
   const previewKind = kindStyle(form.kind);
   const previewLane = swimlanes.find((l) => l.id === form.swimlane);
@@ -2877,7 +2877,7 @@ function TaskDetailDrawer({
                     padding: '1px 5px',
                     fontSize: 9,
                     fontWeight: 700,
-                    background: '#ea580c',
+                    background: 'var(--cos-warn)',
                     color: 'white',
                     borderRadius: 2,
                     letterSpacing: '.04em',
@@ -2986,7 +2986,7 @@ function TaskDetailDrawer({
                 padding: 12,
                 border: '1px dashed rgba(220,38,38,.4)',
                 background: 'rgba(220,38,38,.06)',
-                color: '#dc2626',
+                color: 'var(--cos-err)',
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 12,
                 borderRadius: 4,

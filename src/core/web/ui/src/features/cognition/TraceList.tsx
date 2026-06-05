@@ -99,7 +99,7 @@ export default function TraceList({
       <div className="flex-1 overflow-auto cos-scroll">
         {isLoading && <p className="p-3 text-xs text-[var(--cos-muted)]">loading traces…</p>}
         {error && (
-          <p role="alert" className="p-3 text-xs text-rose-400">
+          <p role="alert" className="p-3 text-xs text-[var(--cos-err)]">
             {error.message}
           </p>
         )}

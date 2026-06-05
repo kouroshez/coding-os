@@ -200,7 +200,7 @@ export default function HubHome() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/60 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--cos-muted)] backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/60" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-ok-tint)] shadow-[0_0_8px] " />
                 hub · port 9188
               </div>
               <h1
@@ -314,7 +314,7 @@ export default function HubHome() {
         {/* Loading / error / empty / grid */}
         {isLoading && <SkeletonGrid />}
         {error && (
-          <p role="alert" className="text-sm text-rose-400">
+          <p role="alert" className="text-sm text-[var(--cos-err)]">
             {error.message}
           </p>
         )}
@@ -404,8 +404,8 @@ function Banner({
   onDismiss: () => void;
 }) {
   const palette = kind === 'ok'
-    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-    : 'border-rose-500/30 bg-rose-500/10 text-rose-200';
+    ? 'border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]'
+    : 'border-[var(--cos-err)] bg-[var(--cos-err-tint)] text-[var(--cos-err)]';
   return (
     <div className={`mb-5 flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${palette}`}>
       <span>{children}</span>
@@ -617,7 +617,7 @@ function ProjectCard({
               </span>
               {project.source === 'runtime-cwd' && (
                 <span
-                  className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-[1px] font-mono text-[9px] uppercase tracking-wider text-emerald-300"
+                  className="rounded-full border border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] px-2 py-[1px] font-mono text-[9px] uppercase tracking-wider text-[var(--cos-ok)]"
                   title="Not in registry.json — auto-surfaced from the Hub's cwd."
                 >
                   live cwd
@@ -663,7 +663,7 @@ function ProjectCard({
                   type="button"
                   role="menuitem"
                   onClick={() => { setKebabOpen(false); onRemove(); }}
-                  className="flex w-full items-center gap-2 border-t border-[var(--cos-border)] px-3 py-2.5 text-left text-xs text-rose-400 hover:bg-rose-500/10"
+                  className="flex w-full items-center gap-2 border-t border-[var(--cos-border)] px-3 py-2.5 text-left text-xs text-[var(--cos-err)] hover:bg-[var(--cos-err-tint)]"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke}><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6 18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
                   Unregister from hub
@@ -890,7 +890,7 @@ function ScanDialog({
       </div>
 
       {meta && <div className="mb-2 text-[11px] text-[var(--cos-muted)]">{meta}</div>}
-      {err && <div className="mb-2 text-xs text-rose-400">{err}</div>}
+      {err && <div className="mb-2 text-xs text-[var(--cos-err)]">{err}</div>}
 
       {hits && hits.length === 0 && (
         <p className="text-xs text-[var(--cos-muted)]">

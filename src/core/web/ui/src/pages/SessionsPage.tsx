@@ -117,7 +117,7 @@ export default function SessionsPage() {
           Active presence ({active.data?.sessions.length ?? 0})
         </h3>
         {active.isLoading && <p className="text-xs text-[var(--cos-muted)]">loading…</p>}
-        {active.error && <p className="text-xs text-rose-400">{active.error.message}</p>}
+        {active.error && <p className="text-xs text-[var(--cos-err)]">{active.error.message}</p>}
         {active.data && active.data.sessions.length === 0 && (
           <p className="text-xs text-[var(--cos-muted)]">no agents present.</p>
         )}
@@ -173,7 +173,7 @@ export default function SessionsPage() {
           History ({historyOnly.length})
         </h3>
         {history.isLoading && <p className="text-xs text-[var(--cos-muted)]">loading…</p>}
-        {history.error && <p className="text-xs text-rose-400">{history.error.message}</p>}
+        {history.error && <p className="text-xs text-[var(--cos-err)]">{history.error.message}</p>}
         {history.data && historyOnly.length === 0 && (
           <p className="text-xs text-[var(--cos-muted)]">no past sessions on disk.</p>
         )}

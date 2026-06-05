@@ -89,7 +89,7 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
   if (isLoading) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading events…</p>;
   if (error)
     return (
-      <p role="alert" className="p-4 text-sm text-rose-400">
+      <p role="alert" className="p-4 text-sm text-[var(--cos-err)]">
         {error.message}
       </p>
     );

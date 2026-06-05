@@ -44,7 +44,7 @@ export default function NodeInspector({ uid }: { uid: string }) {
   }
   if (error) {
     return (
-      <div role="alert" className="p-4 text-sm text-rose-400">
+      <div role="alert" className="p-4 text-sm text-[var(--cos-err)]">
         {error.message}
       </div>
     );

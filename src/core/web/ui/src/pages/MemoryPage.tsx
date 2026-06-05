@@ -34,9 +34,9 @@ function api(slug: string | undefined, path: string): string {
 }
 
 function tierClass(tier: string): string {
-  if (tier === 'validated') return 'text-emerald-600';
-  if (tier === 'volatile') return 'text-amber-600';
-  return 'text-gray-500';
+  if (tier === 'validated') return 'text-[var(--cos-ok)]';
+  if (tier === 'volatile') return 'text-[var(--cos-warn)]';
+  return 'text-[var(--cos-muted)]';
 }
 
 export default function MemoryPage() {
@@ -87,12 +87,12 @@ export default function MemoryPage() {
         </select>
       </header>
 
-      {loading && <div className="text-sm text-gray-500">Loading…</div>}
+      {loading && <div className="text-sm text-[var(--cos-muted)]">Loading…</div>}
       {error && (
-        <div className="text-sm text-red-600">Failed to load patterns: {error}</div>
+        <div className="text-sm text-[var(--cos-err)]">Failed to load patterns: {error}</div>
       )}
       {!loading && !error && patterns.length === 0 && (
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-[var(--cos-muted)]">
           No learned patterns yet. They appear once the learning loop extracts
           patterns from task outcomes (cos_learn_extract, nightly or every 10th
           task).
@@ -120,13 +120,13 @@ export default function MemoryPage() {
                 <td className="py-2 pr-4 text-xs">{p.domain ?? '—'}</td>
                 <td className="py-2 pr-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-gray-200 rounded">
+                    <div className="w-24 h-2 bg-[var(--cos-panel)] rounded">
                       <div
-                        className="h-2 bg-blue-500 rounded"
+                        className="h-2 bg-[var(--cos-info-tint)] rounded"
                         style={{ width: `${Math.round((p.confidence ?? 0) * 100)}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-[var(--cos-faint)]">
                       {(p.confidence ?? 0).toFixed(2)}
                     </span>
                   </div>
@@ -138,11 +138,11 @@ export default function MemoryPage() {
                 <td className="py-2 pr-4 text-xs">
                   {p.times_validated}
                   {p.times_violated > 0 && (
-                    <span className="text-red-500"> / -{p.times_violated}</span>
+                    <span className="text-[var(--cos-err)]"> / -{p.times_violated}</span>
                   )}
                 </td>
                 <td className="py-2 pr-4 text-xs">{p.access_count}</td>
-                <td className="py-2 pr-4 text-xs text-gray-500">
+                <td className="py-2 pr-4 text-xs text-[var(--cos-muted)]">
                   {(p.decay_rate ?? 0).toFixed(2)}
                 </td>
               </tr>

@@ -102,7 +102,7 @@ function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode
     <div className="flex shrink-0 items-center justify-between border-b border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-6 py-2.5 backdrop-blur-md">
       <div className="flex items-center gap-6">
         <span className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest text-[var(--cos-muted)] uppercase">
-          <span className="h-2 w-2 rounded-full bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-[var(--cos-brand-tint)] shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse" />
           cognition hub
         </span>
         <div className="flex items-center gap-1 rounded-full border border-white/5 bg-black/15 p-1">
@@ -118,7 +118,7 @@ function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode
                 className={[
                   'inline-flex items-center gap-1.5 rounded-full px-4 py-1.25 text-[11px] font-bold tracking-wide uppercase transition-all duration-300 cursor-pointer',
                   active
-                    ? 'bg-[var(--cos-accent)] text-white shadow-lg shadow-orange-500/10 border border-white/10'
+                    ? 'bg-[var(--cos-accent)] text-white shadow-lg  border border-white/10'
                     : 'text-[var(--cos-muted)] hover:text-[var(--cos-text)] hover:bg-white/5 border border-transparent',
                 ].join(' ')}
               >

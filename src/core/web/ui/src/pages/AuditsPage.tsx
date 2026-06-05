@@ -71,12 +71,12 @@ export default function AuditsPage() {
         </select>
       </header>
 
-      {loading && <div className="text-sm text-gray-500">Loading…</div>}
+      {loading && <div className="text-sm text-[var(--cos-muted)]">Loading…</div>}
       {error && (
-        <div className="text-sm text-red-600">Failed to load audits: {error}</div>
+        <div className="text-sm text-[var(--cos-err)]">Failed to load audits: {error}</div>
       )}
       {!loading && !error && audits.length === 0 && (
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-[var(--cos-muted)]">
           No audits found. They appear when a user prompt triggers exhaustive
           intent and the agent writes a docs/tasks/audits/audit-*.md artifact.
         </div>
@@ -106,10 +106,10 @@ export default function AuditsPage() {
                     <span
                       className={
                         a.status === 'in_progress'
-                          ? 'text-amber-600'
+                          ? 'text-[var(--cos-warn)]'
                           : a.status === 'completed'
-                          ? 'text-emerald-600'
-                          : 'text-gray-500'
+                          ? 'text-[var(--cos-ok)]'
+                          : 'text-[var(--cos-muted)]'
                       }
                     >
                       {a.status}
@@ -117,13 +117,13 @@ export default function AuditsPage() {
                   </td>
                   <td className="py-2 pr-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-200 rounded">
+                      <div className="w-32 h-2 bg-[var(--cos-panel)] rounded">
                         <div
-                          className="h-2 bg-emerald-500 rounded"
+                          className="h-2 bg-[var(--cos-ok-tint)] rounded"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-[var(--cos-faint)]">
                         {done}/{a.rows_total} ({pct}%)
                       </span>
                     </div>

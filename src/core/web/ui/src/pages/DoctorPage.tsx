@@ -73,7 +73,7 @@ export default function DoctorPage() {
         eyebrow={
           <StatusPill
             label={`doctor · ${health.data?.status ?? 'probing…'}`}
-            dotColor={health.data ? doctorDotClass(health.data.status) : 'bg-zinc-400'}
+            dotColor={health.data ? doctorDotClass(health.data.status) : 'bg-[var(--cos-panel)]'}
           />
         }
         title="Doctor"
@@ -159,7 +159,7 @@ function BackendTab() {
     refetchIntervalMs: 10000,
   });
   if (doctor.isLoading) return <p className="text-xs text-[var(--cos-muted)]">probing graph backend…</p>;
-  if (doctor.error) return <p className="text-xs text-rose-400">{doctor.error.message}</p>;
+  if (doctor.error) return <p className="text-xs text-[var(--cos-err)]">{doctor.error.message}</p>;
   const payload = (doctor.data?.data ?? doctor.data ?? {}) as GraphDoctorData;
   if (!payload || Object.keys(payload).length === 0) {
     return <p className="text-xs text-[var(--cos-muted)]">graph_os backend reported no data.</p>;
@@ -204,8 +204,8 @@ function IssueCard({ issue }: { issue: GraphIssue }) {
   const severity = ISSUE_SEVERITY[issue.category] ?? 'real';
   const badgeClass =
     severity === 'info'
-      ? 'rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200'
-      : 'rounded bg-rose-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200';
+      ? 'rounded bg-[var(--cos-warn-tint)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--cos-warn)]'
+      : 'rounded bg-[var(--cos-err-tint)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--cos-err)]';
   return (
     <Section
       title={
@@ -267,7 +267,7 @@ function SqliteTab() {
     refetchIntervalMs: 10000,
   });
   if (db.isLoading) return <p className="text-xs text-[var(--cos-muted)]">reading sqlite…</p>;
-  if (db.error) return <p className="text-xs text-rose-400">{db.error.message}</p>;
+  if (db.error) return <p className="text-xs text-[var(--cos-err)]">{db.error.message}</p>;
   if (!db.data) return null;
   const tables = Object.entries(db.data.tables ?? {});
   const presentTables = tables.filter(([, v]) => typeof v === 'number');
@@ -280,7 +280,7 @@ function SqliteTab() {
       <StatTile label="Total rows" value={totalRows} tone="neutral" />
       {(db.data.diagnostics?.length ?? 0) > 0 && (
         <Section title="⚠️ Diagnostics — why a loop may be dead" cols="md:col-span-4">
-          <ul className="space-y-1.5 text-[11px] text-amber-200">
+          <ul className="space-y-1.5 text-[11px] text-[var(--cos-warn)]">
             {db.data.diagnostics!.map((d, i) => (
               <li key={i} className="flex gap-2">
                 <span aria-hidden>•</span>
@@ -308,7 +308,7 @@ function SqliteTab() {
                 const display = missing
                   ? <span className="text-[var(--cos-faint)]">absent</span>
                   : isError
-                  ? <span className="text-rose-400">{(v as { error: string }).error}</span>
+                  ? <span className="text-[var(--cos-err)]">{(v as { error: string }).error}</span>
                   : <span className="font-mono">{String(v)}</span>;
                 return (
                   <tr key={t}>
@@ -323,7 +323,7 @@ function SqliteTab() {
       </Section>
       <Section title="DB path" cols="md:col-span-4">
         <p dir="ltr" className="break-all font-mono text-[10px] text-[var(--cos-muted)]">{db.data.db_path}</p>
-        {db.data.error && <p className="mt-1 text-[10px] text-rose-400">{db.data.error}</p>}
+        {db.data.error && <p className="mt-1 text-[10px] text-[var(--cos-err)]">{db.data.error}</p>}
       </Section>
     </div>
   );
@@ -331,10 +331,10 @@ function SqliteTab() {
 
 function doctorDotClass(status: string): string {
   switch (status) {
-    case 'ok': return 'bg-emerald-400';
-    case 'degraded': return 'bg-amber-400';
-    case 'error': return 'bg-rose-400';
-    default: return 'bg-zinc-400';
+    case 'ok': return 'bg-[var(--cos-ok-tint)]';
+    case 'degraded': return 'bg-[var(--cos-warn-tint)]';
+    case 'error': return 'bg-[var(--cos-err-tint)]';
+    default: return 'bg-[var(--cos-panel)]';
   }
 }
 
@@ -349,7 +349,7 @@ function OverviewTab({
   error: Error | null;
 }) {
   if (loading) return <p className="text-xs text-[var(--cos-muted)]">probing…</p>;
-  if (error) return <p className="text-xs text-rose-400">{error.message}</p>;
+  if (error) return <p className="text-xs text-[var(--cos-err)]">{error.message}</p>;
   if (!health) return null;
 
   const indexFreshness = health.file_index_state_last_indexed_at ?? null;
@@ -495,7 +495,7 @@ function HealthTab() {
         <span>polling /metrics every 2s · buffer = last {MAX_SAMPLES * 2}s</span>
         <span>·</span>
         <span>real Prometheus counters from FastAPI middleware (cos_web_requests_total) — the numbers move because the SPA itself polls /api in the background</span>
-        {state.err && <span className="text-rose-400">{state.err}</span>}
+        {state.err && <span className="text-[var(--cos-err)]">{state.err}</span>}
       </header>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -685,7 +685,7 @@ function Row({ k, v, danger }: { k: string; v: string; danger?: boolean }) {
   return (
     <div className="flex justify-between items-center py-2 border-b border-[var(--cos-border)] last:border-b-0 text-[11px]">
       <span className="text-[var(--cos-muted)] font-medium">{k}</span>
-      <span className={danger ? 'font-mono text-rose-400 glow-rose font-semibold' : 'font-mono text-[var(--cos-text)] font-semibold'}>{v}</span>
+      <span className={danger ? 'font-mono text-[var(--cos-err)] glow-rose font-semibold' : 'font-mono text-[var(--cos-text)] font-semibold'}>{v}</span>
     </div>
   );
 }

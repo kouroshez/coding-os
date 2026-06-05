@@ -118,7 +118,7 @@ export default function GraphCanvas() {
       {error && (
         <div
           role="alert"
-          className="absolute left-3 top-3 rounded bg-rose-900/80 px-2 py-1 text-xs"
+          className="absolute left-3 top-3 rounded bg-[var(--cos-err-tint)] px-2 py-1 text-xs"
         >
           {error.message}
         </div>
@@ -146,7 +146,7 @@ export default function GraphCanvas() {
                 <span>{fetched}</span>
                 <span> nodes</span>
                 {truncated && (
-                  <span className="ml-1 rounded bg-amber-900/40 px-1 text-amber-300">
+                  <span className="ml-1 rounded bg-[var(--cos-warn-tint)] px-1 text-[var(--cos-warn)]">
                     truncated · raise depth budget
                   </span>
                 )}

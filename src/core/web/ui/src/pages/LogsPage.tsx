@@ -153,7 +153,7 @@ export default function LogsPage() {
   return (
     <PageShell>
       <PageHeader
-        eyebrow={<StatusPill label={liveTail ? 'logs · live tail' : 'logs · tail'} dotColor={liveTail ? 'bg-emerald-400' : 'bg-amber-400'} />}
+        eyebrow={<StatusPill label={liveTail ? 'logs · live tail' : 'logs · tail'} dotColor={liveTail ? 'bg-[var(--cos-ok-tint)]' : 'bg-[var(--cos-warn-tint)]'} />}
         title="Logs"
         subtitle="Structured agent + server activity from .cos.log.jsonl — filter by level, scope (glob), substring, or relative window."
       />
@@ -218,7 +218,7 @@ export default function LogsPage() {
             className={[
               'h-[34px] w-full rounded-xl font-mono text-xs font-semibold transition-all duration-150',
               liveTail
-                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-md shadow-emerald-500/5 hover:bg-emerald-500/30'
+                ? 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)] border border-[var(--cos-ok)] shadow-md  hover:bg-[var(--cos-ok-tint)]'
                 : 'bg-[var(--cos-panel)] text-[var(--cos-text)] border border-[var(--cos-border)]/70 hover:border-[var(--cos-accent)] hover:text-[var(--cos-accent)] hover:-translate-y-px active:translate-y-0',
             ].join(' ')}
           >
@@ -233,7 +233,7 @@ export default function LogsPage() {
           <span className="truncate" title={logPath}>{logPath || '.coding-os/.cos.log.jsonl'}</span>
         </header>
         {recent.isError && !liveTail ? (
-          <p className="px-3 py-4 text-sm text-rose-300">
+          <p className="px-3 py-4 text-sm text-[var(--cos-err)]">
             failed to load logs: {String(recent.error?.message || 'unknown')}
           </p>
         ) : null}

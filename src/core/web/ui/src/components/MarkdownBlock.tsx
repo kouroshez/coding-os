@@ -14,8 +14,8 @@ export interface MarkdownBlockProps {
 // plus the Arabic presentation forms (U+FB50–U+FDFF, U+FE70–U+FEFF) that
 // Persian/Arabic text commonly normalises to.  We deliberately ignore
 // neutral characters (digits, punctuation, ASCII), so the test is "does
-// this string contain ANY strong-RTL character?" — exactly the Google
-// Docs behaviour the user wants: any Persian present → whole block RTL.
+// this string contain a strong-RTL character?" — exactly the Google
+// Docs behaviour the user wants: Persian present → whole block RTL.
 const STRONG_RTL_RE = /[֐-׿؀-ۿ܀-ݏݐ-ݿހ-޿߀-߿ࠀ-࠿ࡀ-࡟ࢠ-ࣿיִ-﷿ﹰ-﻿]/;  // eslint-disable-line no-irregular-whitespace -- U+FEFF is a deliberate regex range bound
 
 function hasStrongRtl(text: string): boolean {
@@ -62,10 +62,10 @@ function CodeBlock({
   return (
     <div
       dir="ltr"
-      className="group relative my-2 overflow-hidden rounded-lg border border-zinc-700/60 bg-zinc-900 text-zinc-100"
+      className="group relative my-2 overflow-hidden rounded-lg border border-[var(--cos-border)] bg-[var(--cos-inset)] text-[var(--cos-text)]"
     >
-      <div className="flex items-center justify-between border-b border-zinc-700/60 bg-zinc-800/80 px-3 py-1">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center justify-between border-b border-[var(--cos-border)] bg-[var(--cos-inset)] px-3 py-1">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
           {language ?? 'code'}
         </span>
         <button
@@ -76,14 +76,14 @@ function CodeBlock({
             'rounded px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
             copied
-              ? 'bg-emerald-500/25 text-emerald-300'
-              : 'text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-100',
+              ? 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]'
+              : 'text-[var(--cos-muted)] hover:bg-[var(--cos-panel)] hover:text-[var(--cos-text)]',
           ].join(' ')}
         >
           {copied ? '✓ copied' : 'copy'}
         </button>
       </div>
-      <pre className="cos-code-block m-0 max-h-[480px] overflow-auto p-3 text-[12.5px] leading-snug text-zinc-100 cos-scroll">
+      <pre className="cos-code-block m-0 max-h-[480px] overflow-auto p-3 text-[12.5px] leading-snug text-[var(--cos-text)] cos-scroll">
         {children}
       </pre>
     </div>
@@ -91,7 +91,7 @@ function CodeBlock({
 }
 
 function MarkdownBlockInner({ source, className = '' }: MarkdownBlockProps) {
-  // RTL priority rule — any strong-RTL character in the message anchors
+  // RTL priority rule — a strong-RTL character in the message anchors
   // the entire block to RTL.  Matches Google Docs / iOS / Slack: a
   // Persian author writing about an English file path expects RTL flow,
   // not LTR because the path is at the start.  Per-block dir="auto" on

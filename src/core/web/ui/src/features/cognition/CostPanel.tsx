@@ -56,7 +56,7 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
       </header>
       <div className="flex-1 overflow-auto cos-scroll p-3 text-xs">
         {cost.isLoading && <p className="text-[var(--cos-muted)]">loading cost…</p>}
-        {cost.error && <p className="text-rose-400">{cost.error.message}</p>}
+        {cost.error && <p className="text-[var(--cos-err)]">{cost.error.message}</p>}
         {!cost.isLoading && !cost.error && (cost.data?.rows.length ?? 0) === 0 && (
           <p className="text-[var(--cos-muted)]">no dispatch cost recorded yet.</p>
         )}
@@ -92,7 +92,7 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
           recent dispatches
         </h3>
         {dispatchers.isLoading && <p className="text-[var(--cos-muted)]">loading dispatches…</p>}
-        {dispatchers.error && <p className="text-rose-400">{dispatchers.error.message}</p>}
+        {dispatchers.error && <p className="text-[var(--cos-err)]">{dispatchers.error.message}</p>}
         {!dispatchers.isLoading && (dispatchers.data?.dispatches.length ?? 0) === 0 && (
           <p className="text-[var(--cos-muted)]">no recent dispatches.</p>
         )}
@@ -131,13 +131,13 @@ export default function CostPanel({ onPick }: { onPick: (sessionId: string) => v
 
 function StatusBadge({ status }: { status: string }) {
   const palette: Record<string, string> = {
-    completed: 'bg-emerald-500/15 text-emerald-300',
-    success: 'bg-emerald-500/15 text-emerald-300',
-    failed: 'bg-rose-500/15 text-rose-300',
-    error: 'bg-rose-500/15 text-rose-300',
-    timeout: 'bg-amber-500/15 text-amber-300',
-    started: 'bg-sky-500/15 text-sky-300',
-    running: 'bg-sky-500/15 text-sky-300',
+    completed: 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]',
+    success: 'bg-[var(--cos-ok-tint)] text-[var(--cos-ok)]',
+    failed: 'bg-[var(--cos-err-tint)] text-[var(--cos-err)]',
+    error: 'bg-[var(--cos-err-tint)] text-[var(--cos-err)]',
+    timeout: 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)]',
+    started: 'bg-[var(--cos-info-tint)] text-[var(--cos-info)]',
+    running: 'bg-[var(--cos-info-tint)] text-[var(--cos-info)]',
   };
   const cls = palette[status] ?? 'bg-[var(--cos-border)]/30 text-[var(--cos-muted)]';
   return (

@@ -96,7 +96,7 @@ export default function ContextPanel({ uid }: { uid: string }) {
   }
   if (error) {
     return (
-      <p role="alert" className="p-3 text-xs text-rose-400">
+      <p role="alert" className="p-3 text-xs text-[var(--cos-err)]">
         {error.message}
       </p>
     );

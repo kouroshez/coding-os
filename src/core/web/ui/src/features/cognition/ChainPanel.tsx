@@ -22,7 +22,7 @@ export default function ChainPanel({ agent = 'claude' }: { agent?: string }) {
       </h2>
       <div className="mt-2 text-xs">
         {isLoading && <p className="text-[var(--cos-muted)]">loading chain…</p>}
-        {error && <p className="text-rose-400">{error.message}</p>}
+        {error && <p className="text-[var(--cos-err)]">{error.message}</p>}
         {!isLoading && !error && (!data || data.chain.length === 0) && (
           <p className="text-[var(--cos-muted)]">
             no chain composed for this agent yet — appears after <code>cos_compose_chain</code>.
