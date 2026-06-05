@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: ui-design-system
 labels: [ui, design-system, tokens, audit, exhaustive, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-05
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -33,3 +33,4 @@ references: []
 Spec SSOT: [docs/engineering/design-system.md](../engineering/design-system.md)
 
 ## Work Log
+- 2026-06-05 [claude]: Shipped (commit 29c565c, 32 files): repeatable codemod (/tmp/color_codemod.py) converted 236 Tailwind named-color utilit
