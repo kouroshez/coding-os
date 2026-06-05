@@ -6,6 +6,10 @@ Batch script that processes raw observations (narrative IS NULL)
 and generates AI-structured summaries using Claude Haiku.
 Runs via `make thinking_os-compress`.
 
+Summaries preserve the observation Title's symbols verbatim and are tagged
+with a `_generated_by` provenance marker; the original Title row is never
+overwritten, so ground-truth memory survives a faulty summary.
+
 Falls back gracefully if:
   - ANTHROPIC_API_KEY not set
   - API call fails
@@ -34,10 +38,44 @@ BATCH_LIMIT = 10
 DELAY_BETWEEN_CALLS = 1.0  # seconds
 
 
-def _call_claude_api(title: str, files_modified: str) -> dict | None:
-    """Call Claude Haiku to generate structured summary.
+def _build_prompt(title: str, files_modified: str) -> str:
+    # Symbol fidelity is non-negotiable: cos_search matches on narrative/concepts,
+    # so a dropped or renamed identifier becomes a silently-wrong memory a future
+    # session trusts. The prompt forbids invention and pins every Title symbol.
+    return (
+        "You are summarising a code-change observation for a developer memory index.\n"
+        f"Title: {title}\n"
+        f"Files: {files_modified}\n\n"
+        "Rules:\n"
+        "- Preserve every identifier, symbol, file path, function and class name from "
+        "the Title VERBATIM. Never rename, abbreviate, translate, or invent them.\n"
+        "- Use ONLY information supported by the Title and Files; do not invent facts.\n"
+        "- If you cannot summarise faithfully, set narrative to the Title unchanged.\n\n"
+        "Return ONLY a JSON object (no markdown):\n"
+        '- "narrative": 1-2 sentence summary of what changed and why, keeping all symbols verbatim\n'
+        '- "facts": JSON object of key/value insights grounded in the Title/Files\n'
+        '- "concepts": array of 3-5 lowercase concept tags drawn from the Title/Files\n'
+    )
 
-    Returns dict with narrative, facts, concepts or None on failure.
+
+def _parse_json(text: str) -> dict | None:
+    text = text.strip()
+    if text.startswith("{"):
+        return json.loads(text)
+    if "```" in text:
+        json_text = text.split("```")[1].strip()
+        if json_text.startswith("json"):
+            json_text = json_text[4:].strip()
+        return json.loads(json_text)
+    return None
+
+
+def _call_claude_api(title: str, files_modified: str) -> dict | None:
+    """Call Claude Haiku for a structured summary that preserves the Title's symbols.
+
+    Returns dict with narrative, facts, concepts or None on failure. Generated
+    facts carry a `_generated_by` provenance marker; the original observation
+    Title row is never overwritten.
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
@@ -49,39 +87,23 @@ def _call_claude_api(title: str, files_modified: str) -> dict | None:
         logger.warning("anthropic SDK not installed. Run: uv add anthropic")
         return None
 
-    prompt = (
-        f"Given this code change observation:\n"
-        f"Title: {title}\n"
-        f"Files: {files_modified}\n\n"
-        f"Generate a JSON object with:\n"
-        f'- "narrative": 1-2 sentence summary of what was done and why (infer from file paths)\n'
-        f'- "facts": key insights as a JSON object (e.g. {{"file_type": "model", "domain": "products"}})\n'
-        f'- "concepts": array of 3-5 concept tags (e.g. ["django", "models", "products"])\n\n'
-        f"Respond with ONLY the JSON object, no markdown."
-    )
-
-    # Model selection — env-overridable for enterprise deployments that
-    # pin to a specific model snapshot. Default is the cheapest model
-    # appropriate for narrative generation.
+    # Model selection — env-overridable for enterprise deployments that pin to a
+    # specific model snapshot. Default is the cheapest model fit for narrative.
     model_id = os.environ.get("COS_COMPRESS_MODEL", "claude-haiku-4-5-20251001")
     try:
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model=model_id,
             max_tokens=300,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": _build_prompt(title, files_modified)}],
         )
-        text = response.content[0].text.strip()
-        # Parse JSON from response
-        if text.startswith("{"):
-            return json.loads(text)
-        # Try to extract JSON from markdown code block
-        if "```" in text:
-            json_text = text.split("```")[1].strip()
-            if json_text.startswith("json"):
-                json_text = json_text[4:].strip()
-            return json.loads(json_text)
-        return None
+        parsed = _parse_json(response.content[0].text)
+        # Provenance: tag generated facts so cos_search consumers can tell a
+        # machine-inferred summary from an authored observation. `facts` is not
+        # in cos_search's WHERE clause, so the marker is non-intrusive.
+        if isinstance(parsed, dict) and isinstance(parsed.get("facts"), dict):
+            parsed["facts"]["_generated_by"] = model_id
+        return parsed
     except Exception as exc:
         logger.warning("API call failed for '%s': %s", title, exc)
         return None
