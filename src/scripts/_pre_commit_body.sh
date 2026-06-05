@@ -49,12 +49,38 @@ while IFS= read -r FILE; do
   FILE_ARGS+=("$FILE")
 done <<< "$STAGED_FILES"
 
-if python3 "$BATCH_HELPER" "$HOOKS_DIR" "$REPO_ROOT" "${FILE_ARGS[@]}"; then
+# Run the batch under a hard wall-clock ceiling so a stuck hook child can
+# never hang this commit (or orphan into the next one). pre_commit_batch.py
+# already kills each hook at 15s; this is the cumulative/python-level backstop.
+COS_PRECOMMIT_TIMEOUT="${COS_PRECOMMIT_TIMEOUT:-180}"
+source "${HOOKS_DIR}/_helpers/run_with_reap_timeout.sh" 2>/dev/null \
+  || source "${REPO_ROOT}/src/core/hooks/_helpers/run_with_reap_timeout.sh" 2>/dev/null || true
+
+set +e
+if command -v cos_run_with_reap_timeout >/dev/null 2>&1; then
+  cos_run_with_reap_timeout "$COS_PRECOMMIT_TIMEOUT" \
+    python3 "$BATCH_HELPER" "$HOOKS_DIR" "$REPO_ROOT" "${FILE_ARGS[@]}"
+else
+  python3 "$BATCH_HELPER" "$HOOKS_DIR" "$REPO_ROOT" "${FILE_ARGS[@]}"
+fi
+BATCH_RC=$?
+set -e
+
+if [[ "$BATCH_RC" -eq 0 ]]; then
   echo "cos pre-commit: OK"
   exit 0
-else
+elif [[ "$BATCH_RC" -eq 1 ]]; then
   echo "" >&2
   echo "cos pre-commit: commit blocked. Fix the issues above and re-stage." >&2
   echo "To skip (NOT recommended): git commit --no-verify" >&2
   exit 1
+else
+  # Non-0/1 == the watchdog reaped a hang (137/143) or the helper crashed.
+  # Fail OPEN with a loud warning: a permanent block would brick commits (the
+  # agent path cannot use --no-verify), and PreToolUse hooks already validated
+  # agent edits. The reap guarantees the next commit starts clean.
+  echo "" >&2
+  echo "cos pre-commit: WARNING — scan exceeded ${COS_PRECOMMIT_TIMEOUT}s and was reaped (orphans killed; rc=${BATCH_RC})." >&2
+  echo "  Commit allowed; re-run for a full scan if needed." >&2
+  exit 0
 fi
