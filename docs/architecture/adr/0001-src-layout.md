@@ -1,3 +1,5 @@
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-04-15 -->
+
 # ADR-0001: Adopt Python src-layout
 
 - **Status:** Accepted (2026-04-15)

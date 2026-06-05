@@ -1,3 +1,5 @@
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-05-01 -->
+
 # ADR-0004: Web Hub is a singleton FastAPI serving every registered project
 
 - **Status:** Accepted (2026-05-01)

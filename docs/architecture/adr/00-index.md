@@ -1,3 +1,5 @@
+<!-- domain:ARCH | layer:index | ssot:true | updated:2026-06-05 -->
+
 # Architecture Decision Records
 
 This directory holds the canonical record of major architectural
@@ -25,8 +27,8 @@ edit. Status values: `Proposed`, `Accepted`, `Deprecated`,
 
 ## Adding a new ADR
 
-1. Take the next number (`ls docs/adr/ | sort | tail -1`).
-2. `cp docs/adr/_template.md docs/adr/NNNN-short-slug.md` (or copy
+1. Take the next number (`ls docs/architecture/adr/ | sort | tail -1`).
+2. `cp docs/architecture/adr/_template.md docs/architecture/adr/NNNN-short-slug.md` (or copy
    an existing ADR — there is no rigid template).
 3. Write under Context → Decision → Consequences → Alternatives.
 4. Set Status to `Proposed`; flip to `Accepted` when merged.

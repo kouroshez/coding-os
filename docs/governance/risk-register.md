@@ -6,7 +6,7 @@ Read when: Planning work, reviewing blind spots, or deciding whether a task can 
 Skip when: The task is tightly scoped and all relevant risks are already captured in the task file.
 Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc.
 
-> Nav: [Docs Index](../00-index.md) | [ADR Index](../adr/0000-index.md)
+> Nav: [Docs Index](../00-index.md) | [ADR Index](../architecture/adr/00-index.md)
 
 ## Active Risks
 

@@ -6,7 +6,7 @@ Read when: A change introduces or depends on a long-lived technical decision.
 Skip when: The task only needs an already-linked ADR and no decision-model update is required.
 Read next: `../architecture/adr/00-index.md`
 
-> Nav: [Docs Index](../00-index.md) | [ADR Index](../adr/0000-index.md)
+> Nav: [Docs Index](../00-index.md) | [ADR Index](../architecture/adr/00-index.md)
 
 ## Rules
 

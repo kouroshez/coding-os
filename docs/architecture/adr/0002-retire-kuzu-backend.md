@@ -1,3 +1,5 @@
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-05-18 -->
+
 # ADR-0002: Retire the Kuzu graph backend; SQLite is the only store
 
 - **Status:** Accepted (2026-05-18)

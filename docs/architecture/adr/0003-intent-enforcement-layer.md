@@ -1,3 +1,5 @@
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-05-12 -->
+
 # ADR-0003: Intent-enforcement layer for exhaustive vocabulary
 
 - **Status:** Accepted (2026-05-12)

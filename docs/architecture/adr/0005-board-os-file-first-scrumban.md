@@ -1,3 +1,5 @@
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-04-20 -->
+
 # ADR-0005: board_os — file-first Scrumban with DB sync, not DB-first
 
 - **Status:** Accepted (2026-04-20)
