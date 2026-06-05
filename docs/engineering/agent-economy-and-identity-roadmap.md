@@ -83,8 +83,8 @@ lifetimes and cannot be merged).
 |---|---|---|---|
 | B1 | `chars/4` token estimate undercounts non-Latin (CJK/Arabic/Cyrillic) ~2-3x | `meta.truncated` (the graph-first coverage signal) silently lies on non-English payloads → agent acts on incomplete data | script-aware conservative estimate in `_shared.py` + `estimate_tokens.py` |
 | B2 | `compress.py` lossily LLM-rewrites ground-truth memory rows, no symbol guard | the RTK failure mode relocated to the memory layer; a future session trusts a model-invented fact | preserve identifiers/symbols + honest labeling + opt-in guard |
-| B3 | Codex `advance-role` never fires on Write/Edit | banner shows a frozen/wrong role through the whole implementation phase — a lying trust signal | adapter-aware advance (Bash-test phase) / suppress stale role on Codex |
-| B4 | `classify-task-mode` ordering + NL-verb governance detection | banner mode can lag a turn; governance detection should be language-agnostic (path-based), not English-verb-based | make governance detection path-robust; document ordering contract |
+| B3 | Codex `advance-role` never fires on Write/Edit | banner shows a frozen/wrong role through implementation | **DEFERRED — Codex-only; verified correct on Claude (Write/Edit PostToolUse fires). Out of scope this Claude-only phase.** |
+| B4 | `classify-task-mode` ordering | banner mode could lag a turn on Codex | **DEFERRED — Codex-only; verified correct on Claude (order is …→classify-task-mode→session-context). Out of scope this phase.** |
 | B5 | `formula_dispatches` has no error column; the one live dispatch path fails ~42% silently | the only exercised multi-agent path is undiagnosable | append-only migration adds `error` / `message` |
 | B6 | Rule 12 index cites a non-existent `lint-function-header.sh` | reader believes comment bloat is hook-enforced | delete the stale citation |
 | B7 | Fresh-panel turn-1 banner renders all-blank (`ses=?`) | looks like a hung agent — worst first impression | graceful placeholder when session-id not yet seeded |
@@ -103,8 +103,8 @@ wiring (most "overnight" jobs call no LLM), build-real-parallel-orchestration
 
 ## Phased roadmap
 
-- **Phase 0 — correctness:** B1 → B2 → B3 → B4 → B5 → B6 → B7. Each a separate
-  commit.
+- **Phase 0 — correctness:** B1 → B2 → B5 → B6 → B7. Each a separate commit.
+  (B3, B4 are Codex-only and verified correct on Claude — deferred this phase.)
 - **Phase 1 — output gap:** A0 (measure real per-mode output distribution from
   on-disk transcripts) → A1 (mode-keyed chat-reply discipline rule, English,
   persona-level) only if the data warrants.
@@ -116,7 +116,8 @@ wiring (most "overnight" jobs call no LLM), build-real-parallel-orchestration
 
 ## Cross-cutting constraints
 
-Single-agent writes (Rule 21 + gate machinery); agent team only for read-only
-review. Trunk-based, explicit-path commits, commit-message contract. English,
-enterprise-grade in every authored artifact. Anti-over-engineering on every
-item.
+**Scope this phase: Claude adapter only** (per product owner) — Codex/Cursor
+parity items are deferred and explicitly marked. Single-agent writes (Rule 21 +
+gate machinery); agent team only for read-only review. Trunk-based, explicit-path
+commits, commit-message contract. English, enterprise-grade in every authored
+artifact. Anti-over-engineering on every item.
