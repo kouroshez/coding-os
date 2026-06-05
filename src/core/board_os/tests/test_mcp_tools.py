@@ -719,3 +719,39 @@ def test_reclaim_skips_fresh_in_progress(project: Path, conn: sqlite3.Connection
     assert tid not in [r["task_id"] for r in rec["data"]["reclaimed"]]
     row = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (tid,)).fetchone()
     assert row[0] == "in_progress"
+
+
+def test_task_history_returns_create_and_status_events(project: Path, conn: sqlite3.Connection):
+    """cos_task_history surfaces the creation event + status transitions,
+    each actor-attributed."""
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="History sample",
+            swimlane="core",
+            kind="chore",
+            outcome="Bump dep X to patched version Y for the security advisory.",
+            ready=True,
+            agent_session="ses-claude-hist",
+        )
+    )
+    task_id = created["data"]["task_id"]
+    assert _parse(
+        mcp_tools.cos_task_move(conn, task_id=task_id, to="in_progress", agent_session="ses-claude-hist")
+    )["ok"]
+
+    env = _parse(mcp_tools.cos_task_history(conn, task_id=task_id, include_commits=False))
+    assert env["ok"] is True
+    types = [e["type"] for e in env["data"]["events"]]
+    assert "created" in types
+    assert "status" in types
+    created_evt = next(e for e in env["data"]["events"] if e["type"] == "created")
+    assert created_evt["actor"]["type"] == "agent"
+    assert created_evt["actor"]["label"] == "claude"
+    assert env["data"]["summary"]["created_by"] == "claude"
+
+
+def test_task_history_not_found(project: Path, conn: sqlite3.Connection):
+    env = _parse(mcp_tools.cos_task_history(conn, task_id="TASK-999", include_commits=False))
+    assert env["ok"] is False
+    assert env["error"]["category"] == "not_found"

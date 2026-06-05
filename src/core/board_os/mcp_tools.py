@@ -1493,6 +1493,166 @@ def cos_work_log_append(
     )
 
 
+# ---------- cos_task_history ----------
+
+
+def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (name,),
+        ).fetchone()
+        is not None
+    )
+
+
+def _actor_view(agent_session: str | None) -> dict:
+    """Structured actor for a stored agent_session string (agent | human)."""
+    from ._agent_runtime import detect_agent
+
+    if not agent_session:
+        return {"type": "human", "id": "human", "label": "human"}
+    label = detect_agent(agent_session)
+    return {
+        "type": "human" if label == "human" else "agent",
+        "id": agent_session,
+        "label": label,
+    }
+
+
+def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
+    """Git log for one task file — the git-backed slice of task history. Fail-open."""
+    import subprocess
+
+    root = _project_root()
+    try:
+        out = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "log",
+                f"-n{limit}",
+                "--format=%H%x1f%ct%x1f%s",
+                "--",
+                rel_path,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("git log failed for %s: %s", rel_path, exc)
+        return []
+    if out.returncode != 0:
+        return []
+    commits: list[dict] = []
+    for raw in out.stdout.splitlines():
+        parts = raw.split("\x1f")
+        if len(parts) != 3:
+            continue
+        sha, ct, subject = parts
+        try:
+            at = int(ct)
+        except ValueError:
+            at = 0
+        commits.append({"sha": sha[:10], "subject": subject, "at": at})
+    return commits
+
+
+@safe_tool
+def cos_task_history(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    include_commits: bool = True,
+    limit: int = 200,
+) -> str:
+    """Full actor-attributed task history — creation, status transitions, field edits, and git commits."""
+    row = conn.execute(
+        "SELECT file_path FROM tasks WHERE task_id = ?",
+        (task_id,),
+    ).fetchone()
+    if row is None:
+        return fail("not_found", f"task {task_id} not found")
+
+    events: list[dict] = []
+
+    for r in conn.execute(
+        "SELECT old_status, new_status, agent_session, reason, transitioned_at, "
+        "override_reason, override_actor FROM task_status_history "
+        "WHERE task_id = ? ORDER BY transitioned_at",
+        (task_id,),
+    ).fetchall():
+        old, new, sess, reason, at, ov_reason, ov_actor = r
+        events.append(
+            {
+                "type": "created" if not old else "status",
+                "from": old or None,
+                "to": new,
+                "actor": _actor_view(sess),
+                "reason": reason,
+                "override_reason": ov_reason,
+                "override_actor": ov_actor,
+                "at": at,
+            }
+        )
+
+    if _has_table(conn, "task_edit_history"):
+        for r in conn.execute(
+            "SELECT field, old_value, new_value, actor_type, actor_id, source, edited_at "
+            "FROM task_edit_history WHERE task_id = ? ORDER BY edited_at",
+            (task_id,),
+        ).fetchall():
+            field, oldv, newv, atype, aid, src, at = r
+            events.append(
+                {
+                    "type": "edit",
+                    "field": field,
+                    "old_value": oldv,
+                    "new_value": newv,
+                    "actor": {"type": atype, "id": aid, "label": aid or atype},
+                    "source": src,
+                    "at": at,
+                }
+            )
+
+    commits: list[dict] = []
+    if include_commits and row[0]:
+        commits = _git_commits_for_path(row[0], limit=limit)
+        for c in commits:
+            events.append(
+                {"type": "commit", "sha": c["sha"], "subject": c["subject"], "at": c["at"]}
+            )
+
+    events.sort(key=lambda e: e.get("at") or 0)
+    if len(events) > limit:
+        events = events[-limit:]
+
+    created = next((e for e in events if e["type"] == "created"), None)
+    edits = [e for e in events if e["type"] == "edit"]
+    contributors = sorted(
+        {
+            e["actor"]["label"]
+            for e in events
+            if e.get("type") in {"created", "status", "edit"} and isinstance(e.get("actor"), dict)
+        }
+    )
+    summary = {
+        "created_by": created["actor"]["label"] if created else None,
+        "created_at": created["at"] if created else None,
+        "last_edited_by": edits[-1]["actor"]["label"] if edits else None,
+        "last_edited_at": edits[-1]["at"] if edits else None,
+        "contributors": contributors,
+        "commit_count": len(commits),
+    }
+
+    return ok(
+        {"task_id": task_id, "events": events, "summary": summary, "count": len(events)},
+        meta={"layer": "tasks", "source": "board_os.cos_task_history"},
+    )
+
+
 # ---------- Helpers ----------
 
 

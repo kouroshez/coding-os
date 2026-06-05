@@ -1683,6 +1683,25 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_history",
+        annotations={
+            "title": "Task History (create + transitions + edits + commits)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_history(task_id: str, include_commits: bool = True, limit: int = 200) -> str:
+        """Full actor-attributed task history — creation, status transitions, field edits, and git commits."""
+        return _board_mcp.cos_task_history(
+            _db_conn,
+            task_id=task_id,
+            include_commits=include_commits,
+            limit=limit,
+        )
+
+    @mcp.tool(
         name="cos_presence_query",
         annotations={
             "title": "Live Agent Presence (sessions + states)",
