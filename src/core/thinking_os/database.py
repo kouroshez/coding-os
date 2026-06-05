@@ -1521,6 +1521,31 @@ def record_audit(
         return None
 
 
+def _migrate_v31_task_edit_history(conn: sqlite3.Connection) -> None:
+    """Migration v31 — append-only, actor-attributed field-edit history for tasks."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS task_edit_history (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id     TEXT    NOT NULL,
+            field       TEXT    NOT NULL,
+            old_value   TEXT,
+            new_value   TEXT,
+            actor_type  TEXT    NOT NULL DEFAULT 'agent',
+            actor_id    TEXT,
+            source      TEXT,
+            edited_at   INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_teh_task
+            ON task_edit_history(task_id, edited_at);
+        CREATE INDEX IF NOT EXISTS idx_teh_actor
+            ON task_edit_history(actor_id, edited_at) WHERE actor_id IS NOT NULL;
+        """
+    )
+    conn.commit()
+    logger.info("Migration v31 applied: task_edit_history (actor-attributed field edits)")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -1791,6 +1816,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         30,
         "Memory ranking symmetry v30: observations.access_count + last_accessed_at",
         _migrate_v30_observation_access_signal,
+    ),
+    (
+        31,
+        "G4 v31: task_edit_history (append-only, actor-attributed field edits)",
+        _migrate_v31_task_edit_history,
     ),
 ]
 
