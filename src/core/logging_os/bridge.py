@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import traceback
 from typing import Any
 
 from .api import _emit
@@ -41,6 +42,7 @@ def _record_extras(record: logging.LogRecord) -> dict[str, Any]:
     extras: dict[str, Any] = {}
     if record.exc_info and record.exc_info[0] is not None:
         extras["exc"] = record.exc_info[0].__name__
+        extras["stack"] = "".join(traceback.format_exception(*record.exc_info))
     return extras
 
 

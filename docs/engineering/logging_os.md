@@ -123,7 +123,7 @@ info("cli.doctor", "starting check sweep")
 ok("cli.doctor", "all 38 checks green", count=38)
 warn("hook.enforce_skill", "graph-explorer not loaded", file="src/core/x.py")
 error("thinking_os.server", "db migration v23 failed", code="DUPCOL")
-fatal("cli.main", "uv not on PATH — abort")        # also sys.exit(1)
+fatal("cli.main", "uv not on PATH — abort")        # emits then raises CosFatalError
 debug("graph_os.indexer", "upserted nodes", count=14)
 
 doctor_log = scoped("cli.doctor")                 # ergonomic pre-binding
@@ -179,7 +179,8 @@ api.py         # 6 producer functions + scoped()
 render.py      # 3 pure renderers + EMOJI/COLOR maps
 sinks.py       # fan-out writer (stderr + text + jsonl + WARN+ sqlite) + dropped_events()
 fingerprint.py # stable error fingerprint (scope + exc + normalized msg)
-config.py      # Level enum, env vars, detect_render(), setup(), db_path(), normalize_scope()
+redact.py      # secret-shape + sensitive-key redaction (runs before every sink)
+config.py      # Level enum, env vars, detect_render(), setup(), db_path(), session_id(), normalize_scope()
 README.md      # one-page reference (mirror of this doc, condensed)
 tests/
   test_api.py      # public surface + level filter

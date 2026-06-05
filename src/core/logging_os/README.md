@@ -15,7 +15,8 @@ info("cli.doctor", "starting check sweep")
 ok("cli.doctor", "all 38 checks green", count=38)
 warn("hook.enforce_skill", "graph-explorer not loaded", file="src/core/x.py")
 error("thinking_os.server", "db migration v23 failed", code="DUPCOL")
-fatal("cli.main", "uv not on PATH — abort")     # also sys.exit(1)
+fatal("cli.main", "uv not on PATH — abort")     # emits then raises CosFatalError
+error("thinking_os.server", "capture failed", exc=e)  # error/fatal take exc= → stack captured
 debug("graph_os.indexer", "upserted nodes", count=14)
 
 doctor = scoped("cli.doctor")
@@ -61,6 +62,7 @@ api.py          # 6 producer functions + scoped()
 render.py       # 3 pure renderers + EMOJI / COLOR maps
 sinks.py        # fan-out writer (stderr + text + jsonl + WARN+ sqlite)
 fingerprint.py  # stable error fingerprint (scope + exc + normalized msg)
-config.py       # Level enum, env vars, detect_render(), setup(), db_path()
+redact.py       # secret-shape + sensitive-key redaction (runs before every sink)
+config.py       # Level enum, env vars, detect_render(), setup(), db_path(), session_id()
 tests/          # pytest suite
 ```

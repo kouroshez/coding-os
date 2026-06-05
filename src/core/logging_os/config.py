@@ -70,6 +70,14 @@ def db_min_level() -> Level:
         return Level.WARN
 
 
+def session_id() -> str:
+    return os.environ.get("COS_SESSION_ID") or os.environ.get("COS_PANEL_ID", "")
+
+
+def trace_id() -> str:
+    return os.environ.get("COS_TRACE_ID", "")
+
+
 def detect_render() -> str:
     if os.environ.get("COS_LOG_JSON") == "1":
         return "json"

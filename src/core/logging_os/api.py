@@ -1,31 +1,54 @@
 from __future__ import annotations
 
-import sys
+import traceback
 from datetime import datetime, timezone
 from typing import Any
 
-from .config import Level, current_level, normalize_scope
+from .config import Level, current_level, normalize_scope, session_id, trace_id
+from .redact import redact_kv, redact_text
 from .sinks import dispatch
+
+
+# Raised by fatal() after emitting — the caller (CLI) decides whether to exit.
+# Never kills a server/MCP worker the way an in-library sys.exit(1) would.
+class CosFatalError(RuntimeError):
+    pass
 
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _emit(level: Level, scope: str, msg: str, kv: dict[str, Any]) -> None:
+def _emit(
+    level: Level, scope: str, msg: str, kv: dict[str, Any], exc: BaseException | None = None
+) -> None:
     if level < current_level():
         return
     canonical, raw_invalid = normalize_scope(scope)
-    extras = dict(kv)
+    extras = redact_kv(dict(kv))
     if raw_invalid is not None and raw_invalid != "":
         extras.setdefault("raw_scope", raw_invalid)
-    event = {
+    # `stack` is a first-class durable column, not a kv field — lift it out.
+    stack = extras.pop("stack", None)
+    if exc is not None:
+        extras.setdefault("exc", type(exc).__name__)
+        if stack is None:
+            stack = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    event: dict[str, Any] = {
         "ts": _now_iso(),
         "lvl": level.label,
         "scope": canonical,
-        "msg": msg,
+        "msg": redact_text(msg),
         "kv": extras,
     }
+    if stack:
+        event["stack"] = redact_text(stack)[-2000:]
+    sid = session_id()
+    if sid:
+        event["session_id"] = sid
+    tid = trace_id()
+    if tid:
+        event["trace_id"] = tid
     dispatch(event)
 
 
@@ -45,13 +68,13 @@ def warn(scope: str, msg: str, **kv: Any) -> None:
     _emit(Level.WARN, scope, msg, kv)
 
 
-def error(scope: str, msg: str, **kv: Any) -> None:
-    _emit(Level.ERROR, scope, msg, kv)
+def error(scope: str, msg: str, exc: BaseException | None = None, **kv: Any) -> None:
+    _emit(Level.ERROR, scope, msg, kv, exc=exc)
 
 
-def fatal(scope: str, msg: str, **kv: Any) -> None:
-    _emit(Level.FATAL, scope, msg, kv)
-    sys.exit(1)
+def fatal(scope: str, msg: str, exc: BaseException | None = None, **kv: Any) -> None:
+    _emit(Level.FATAL, scope, msg, kv, exc=exc)
+    raise CosFatalError(msg)
 
 
 class ScopedLogger:
@@ -72,11 +95,11 @@ class ScopedLogger:
     def warn(self, msg: str, **kv: Any) -> None:
         warn(self.scope, msg, **kv)
 
-    def error(self, msg: str, **kv: Any) -> None:
-        error(self.scope, msg, **kv)
+    def error(self, msg: str, exc: BaseException | None = None, **kv: Any) -> None:
+        error(self.scope, msg, exc=exc, **kv)
 
-    def fatal(self, msg: str, **kv: Any) -> None:
-        fatal(self.scope, msg, **kv)
+    def fatal(self, msg: str, exc: BaseException | None = None, **kv: Any) -> None:
+        fatal(self.scope, msg, exc=exc, **kv)
 
 
 def scoped(scope: str) -> ScopedLogger:
