@@ -146,7 +146,7 @@ fi
 
 echo ""
 if [ $ERRORS -eq 0 ]; then
-  ok "docs-lint markdown pass: $CHECKED file(s) checked, 0 errors, $WARNINGS warning(s)"
+  ok "docs-lint markdown pass: $CHECKED file(s) checked, 0 errors, $WARNINGS warning(s)" >&2
 else
   err "docs-lint markdown pass FAILED: $CHECKED file(s) checked, $ERRORS error(s), $WARNINGS warning(s)"
 fi

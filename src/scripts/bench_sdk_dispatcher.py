@@ -106,13 +106,15 @@ async def run_one(d, scenario) -> dict:
 async def main():
     d = mod.ClaudeSDKDispatcher()
     if not d.available():
-        print("claude-agent-sdk not available; aborting")
+        print("claude-agent-sdk not available; aborting", file=sys.stderr)
         return 1
 
-    print(f"\n=== Benchmark: claude-sdk dispatcher × {len(SCENARIOS)} scenarios ===\n")
+    # Narration → stderr; the final JSON document is the only thing on stdout
+    # so a caller can pipe stdout straight into a JSON parser.
+    print(f"\n=== Benchmark: claude-sdk dispatcher × {len(SCENARIOS)} scenarios ===\n", file=sys.stderr)
     results = []
     for sc in SCENARIOS:
-        print(f"→ running {sc['name']} ...")
+        print(f"→ running {sc['name']} ...", file=sys.stderr)
         try:
             r = await run_one(d, sc)
         except Exception as exc:
@@ -125,16 +127,17 @@ async def main():
         results.append(r)
         print(
             f"  status={r.get('status')} latency={r.get('latency_ms')}ms "
-            f"output_keys={r.get('output_keys')}"
+            f"output_keys={r.get('output_keys')}",
+            file=sys.stderr,
         )
 
-    print("\n=== Sequential summary ===")
+    print("\n=== Sequential summary ===", file=sys.stderr)
     ok = sum(1 for r in results if r["status"] == "ok")
     total_ms = sum(r.get("latency_ms", 0) for r in results)
-    print(f"ok: {ok}/{len(results)}   total_latency: {total_ms}ms")
+    print(f"ok: {ok}/{len(results)}   total_latency: {total_ms}ms", file=sys.stderr)
 
     # ---- Parallel scenario: F7 + F5 concurrently ----
-    print("\n=== Parallel scenario: F7+F5 via asyncio.gather ===")
+    print("\n=== Parallel scenario: F7+F5 via asyncio.gather ===", file=sys.stderr)
     t0 = time.monotonic()
     par_results = await asyncio.gather(
         run_one(d, SCENARIOS[1]),  # F7
@@ -147,10 +150,11 @@ async def main():
     print(
         f"parallel wall: {par_wall_ms}ms   "
         f"vs sequential equivalent: {seq_equivalent}ms   "
-        f"speedup: {seq_equivalent / par_wall_ms:.2f}x"
+        f"speedup: {seq_equivalent / par_wall_ms:.2f}x",
+        file=sys.stderr,
     )
 
-    print("\n=== Full results ===")
+    print("\n=== Full results ===", file=sys.stderr)
     print(
         json.dumps(
             {

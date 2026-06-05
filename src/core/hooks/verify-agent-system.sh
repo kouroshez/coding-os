@@ -18,6 +18,10 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_ROOT" || exit 1
 
+# Narration (the full report) → stderr; the machine-parseable summary line
+# goes to fd3 = the real stdout, so a caller can grep one clean PASS|WARN|FAIL.
+exec 3>&1 1>&2
+
 HOOKS_DIR="$(dirname "$0")"
 PASS=0
 FAIL=0
@@ -218,7 +222,7 @@ echo ""
 
 # ── Summary ──────────────────────────────────────────────────────────
 echo "======================================================"
-echo "  PASS: $PASS  |  WARN: $WARN  |  FAIL: $FAIL"
+echo "  PASS: $PASS  |  WARN: $WARN  |  FAIL: $FAIL" >&3
 echo "======================================================"
 
 if [ "$FAIL" -gt 0 ]; then

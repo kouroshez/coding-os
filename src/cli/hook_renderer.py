@@ -25,6 +25,7 @@ Usage (CLI, via `make regen-adapter-templates`):
 from __future__ import annotations
 
 import json
+import sys
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -316,7 +317,7 @@ def _main() -> None:
     """Entry point for `python -m cli.hook_renderer` (wired into Makefile)."""
     written = render_all()
     for agent_id, path in sorted(written.items()):
-        print(f"[hook-renderer] {agent_id:8s} → {path.relative_to(Path.cwd())}")
+        print(f"[hook-renderer] {agent_id:8s} → {path.relative_to(Path.cwd())}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(ROOT / "core" / "thinking_os"))
+sys.path.insert(0, str(ROOT / "src" / "core" / "thinking_os"))
 
 # Isolate E2E state under a sandbox dir so we don't pollute real session files
 SANDBOX = ROOT / ".coding-os" / "e2e-sdk-test"
@@ -158,7 +158,7 @@ def main():
     filled = verify_bundle()
     rows = verify_db_row(db_path)
 
-    print("\n=== E2E Summary ===")
+    print("\n=== E2E Summary ===", file=sys.stderr)
     single_ok = (
         single["envelope"].get("ok") is True and single["envelope"]["data"].get("status") == "ok"
     )
@@ -168,12 +168,26 @@ def main():
     )
     bundle_ok = "debugger" in filled and "implementer" in filled
     db_ok = len(rows) >= 2
-    print(f"  single dispatch:    {'✓' if single_ok else '✗'}")
-    print(f"  parallel dispatch:  {'✓' if parallel_ok else '✗'}")
-    print(f"  bundle persisted:   {'✓' if bundle_ok else '✗'} ({filled})")
-    print(f"  DB audit row:       {'✓' if db_ok else '✗'} ({len(rows)} rows)")
+    print(f"  single dispatch:    {'✓' if single_ok else '✗'}", file=sys.stderr)
+    print(f"  parallel dispatch:  {'✓' if parallel_ok else '✗'}", file=sys.stderr)
+    print(f"  bundle persisted:   {'✓' if bundle_ok else '✗'} ({filled})", file=sys.stderr)
+    print(f"  DB audit row:       {'✓' if db_ok else '✗'} ({len(rows)} rows)", file=sys.stderr)
     ok = single_ok and parallel_ok and bundle_ok and db_ok
-    print(f"\nE2E: {'PASS' if ok else 'FAIL'}")
+    print(f"\nE2E: {'PASS' if ok else 'FAIL'}", file=sys.stderr)
+    # Machine-readable verdict on stdout (the result a caller scrapes).
+    print(
+        json.dumps(
+            {
+                "result": "pass" if ok else "fail",
+                "single_ok": single_ok,
+                "parallel_ok": parallel_ok,
+                "bundle_ok": bundle_ok,
+                "db_ok": db_ok,
+                "populated_fields": filled,
+                "db_rows": len(rows),
+            }
+        )
+    )
     return 0 if ok else 2
 
 
