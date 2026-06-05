@@ -706,6 +706,18 @@ cli.add_command(eject_file_cmd)
 cli.add_command(tail_cmd)
 cli.add_command(skills_list_cmd)
 
+# Observability eye (E5): durable error/log query CLI (cos errors / cos logs).
+try:
+    from cli.logs_commands import errors_cmd as _errors_cmd
+    from cli.logs_commands import logs_cmd as _logs_cmd
+
+    cli.add_command(_logs_cmd)
+    cli.add_command(_errors_cmd)
+except ImportError as _logs_cli_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug("logs CLI unavailable: %s", _logs_cli_exc)
+
 # Fast scope-aware verification: `cos verify --since-edit`.
 try:
     from cli.verify_since_edit import verify_since_edit_cmd as _verify_cmd
