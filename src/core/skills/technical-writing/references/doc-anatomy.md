@@ -24,30 +24,26 @@ The *rules* (header fields, file naming, where a layer lives) are SSOT in
 | `adr` | justify a decision | context → options → decision → consequences, immutable | edited after the fact; no alternatives |
 | `task` | log one work item | pointer to specs, not inlined content (Rule 14) | a spec pasted into the task |
 
-## Header is load-bearing
+## Header is load-bearing (why it matters)
 
-The `<!-- domain | layer | ssot:true | updated:YYYY-MM-DD -->` comment is parsed by
-`regen_doc_index.py` — a missing or malformed header makes the doc invisible to
-its `00-index.md`. The `Purpose / Read when / Skip when / Read next` block (or
-the compact `> P/R/S/N` form inside skills) tells the *agent* whether to open
-the doc before spending tokens on it. Both are mandatory, not decoration.
+The exact header fields and the navigation contract are **owned by
+[docs-system.md](../../../../docs/governance/docs-system.md)** — do not memorize
+a second copy. The craft point: the header is not decoration. `regen_doc_index.py`
+parses the `<!-- … -->` comment, so a malformed one makes the doc invisible to
+its `00-index.md`; the `Purpose/Read-when/Skip-when` block tells the *agent*
+whether to open the doc before spending tokens. Get either wrong and the doc
+exists but no one finds it.
 
-## Playbook skeleton (the most common authored layer)
+## Skeletons — start from the canonical template
 
-```markdown
-<!-- domain:X | layer:playbook | ssot:true | updated:YYYY-MM-DD -->
-# Playbook — <verb the task>
-
-> P: <one line> · R: <when> · S: <when not> · N: <links>
-> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
-
-## When to use this playbook
-## The model            <- the mental model, briefly
-## Steps                <- ordered, each step = one action + its verify
-## Verification         <- the exact commands that prove done
-## Anti-patterns        <- what to reject on sight
-## See also
-```
+Don't hand-build a layer's structure — every layer has a co-shipping template:
+[playbook-template.md](../../../../docs/governance/_templates/playbook-template.md),
+[task-detail.md](../../../../docs/governance/_templates/task-detail.md),
+[runbook-template.md](../../../../docs/governance/_templates/runbook-template.md),
+[post-mortem-template.md](../../../../docs/governance/_templates/post-mortem-template.md).
+Copy the template, then apply the craft here. The craft the templates *don't*
+carry: keep each section one altitude (a playbook sequences, it doesn't exhaust),
+and let the verification block name the exact commands that prove done.
 
 ## Splitting vs sectioning
 

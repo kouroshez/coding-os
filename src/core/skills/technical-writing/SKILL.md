@@ -31,21 +31,21 @@ Full sentence/paragraph craft → [references/writing-craft.md](references/writi
 
 ## The coding-os doc-header + navigation contract
 
-Every active doc opens with the machine-readable header and a nav block (the renderer + `regen_doc_index.py` depend on it — get it wrong and the doc is invisible to the index):
+Every active doc opens with a machine-readable header + nav block; `regen_doc_index.py` depends on it — malformed, and the doc is invisible to its index. The **canonical field spec is owned by [docs/governance/docs-system.md](../../../docs/governance/docs-system.md)** (it ships to every project); don't carry a second copy. Or scaffold it correctly with `new_doc.py`. Shape, for orientation:
 
 ```markdown
 <!-- domain:BACKEND | layer:playbook | ssot:true | updated:2026-06-04 -->
 # Title
 
-Purpose: <one line — what this doc is for>.
-Read when: <the trigger situation>.
-Skip when: <when another doc is the right one>.
+Purpose: <one line>.
+Read when: <trigger>.
+Skip when: <when another doc is right>.
 Read next: [related](related.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 ```
 
-The compact `> P: / R: / S: / N:` form is the same contract for references/assets inside a skill. Per-layer "what good looks like" → [references/doc-anatomy.md](references/doc-anatomy.md).
+The compact `> P/R/S/N` form is the same contract inside a skill. Per-layer "what good looks like" → [references/doc-anatomy.md](references/doc-anatomy.md).
 
 ## Comments — a comment is a failure signal
 
