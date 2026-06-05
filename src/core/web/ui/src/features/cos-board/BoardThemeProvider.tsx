@@ -13,6 +13,7 @@ import { DEFAULT_TWEAKS } from './types';
  */
 
 import { DesignThemeProvider } from '@/design';
+import { useThemeStore } from '@/store/theme-store';
 
 const BoardThemeContext = createContext<{
   tweaks: BoardTweaks;
@@ -20,7 +21,18 @@ const BoardThemeContext = createContext<{
 } | null>(null);
 
 export function BoardThemeProvider({ children }: { children: ReactNode }) {
-  const [tweaks, setTweaks] = useState<BoardTweaks>(DEFAULT_TWEAKS);
+  const [tweaks, setTweaks] = useState<BoardTweaks>(() => ({
+    ...DEFAULT_TWEAKS,
+    theme: useThemeStore.getState().theme,
+  }));
+
+  // Mirror the global theme-store so the board theme follows the header
+  // toggle (the Theme tweak below writes back to the store) — no divergence.
+  useEffect(() => {
+    return useThemeStore.subscribe((s) =>
+      setTweaks((prev) => (prev.theme === s.theme ? prev : { ...prev, theme: s.theme })),
+    );
+  }, []);
 
   // Keep <html data-*> in sync when filters/density/agentSurface change
   // through the local BoardTweaks surface.  DesignThemeProvider already

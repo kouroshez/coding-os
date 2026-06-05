@@ -51,6 +51,14 @@ export function DesignThemeProvider({
     theme: useThemeStore.getState().theme,
   });
 
+  // Stay in sync with the global theme-store (header toggle / board tweaks)
+  // so tweaks.theme is never stale after a switch — single source of truth.
+  useEffect(() => {
+    return useThemeStore.subscribe((s) =>
+      setTweaks((prev) => (prev.theme === s.theme ? prev : { ...prev, theme: s.theme })),
+    );
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-theme', tweaks.theme);

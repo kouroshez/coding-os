@@ -5,9 +5,13 @@ export type Theme = 'light' | 'dark';
 const STORAGE_KEY = 'cos-theme';
 
 function readInitial(): Theme {
-  if (typeof window === 'undefined') return 'dark';
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  return saved === 'light' || saved === 'dark' ? saved : 'dark';
+  // localStorage can be absent/blocked (SSR, private mode, sandboxed iframe).
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    return saved === 'light' || saved === 'dark' ? saved : 'dark';
+  } catch {
+    return 'dark';
+  }
 }
 
 function applyToDocument(theme: Theme): void {
@@ -25,7 +29,11 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>((set, get) => ({
   theme: readInitial(),
   setTheme: (theme) => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, theme);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      /* storage unavailable — theme still applies for the session */
+    }
     applyToDocument(theme);
     set({ theme });
   },

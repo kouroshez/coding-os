@@ -15,6 +15,7 @@ import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
 import { KIND_COLORS, kindStyle } from './kindColors';
+import { useThemeStore } from '@/store/theme-store';
 import type {
   AgentPresence,
   BoardAgentManifestEntry,
@@ -1705,7 +1706,7 @@ function TweaksPanel({
             { value: 'light', label: 'Light' },
             { value: 'dark', label: 'Dark' },
           ]}
-          onChange={(v) => set('theme', v as BoardTweaks['theme'])}
+          onChange={(v) => useThemeStore.getState().setTheme(v as 'light' | 'dark')}
         />
         <Seg
           label="Aesthetic"
