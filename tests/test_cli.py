@@ -140,6 +140,19 @@ class TestInit:
         assert "coding-os.db" not in tracked  # mutating runtime DB never committed
         assert ".coding-os/rag-config.yaml" in tracked  # config IS versioned
 
+    def test_installs_consumer_git_hooks(self, runner: CliRunner, project_dir: Path) -> None:
+        project_dir.mkdir()
+        result = runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])
+        assert result.exit_code == 0
+        if not (project_dir / ".git").exists():
+            pytest.skip("tmp nested in an existing git repo — init skipped git init")
+        pre = project_dir / ".git" / "hooks" / "pre-commit"
+        msg = project_dir / ".git" / "hooks" / "commit-msg"
+        assert pre.exists() and (pre.stat().st_mode & 0o111)  # executable
+        assert msg.exists()
+        # commit-msg body resolves the consumer's adapter hooks dir
+        assert ".claude" in msg.read_text()
+
     def test_claude_adapter_creates_settings(self, runner: CliRunner, project_dir: Path) -> None:
         project_dir.mkdir()
         runner.invoke(cli, ["init", "--agent", "claude", "-d", str(project_dir)])

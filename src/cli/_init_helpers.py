@@ -391,6 +391,51 @@ def maybe_initial_commit(target: InitTarget, *, enabled: bool) -> InitialCommitR
     return InitialCommitResult(committed=True, skipped_reason=None, error=None)
 
 
+@dataclass(frozen=True)
+class GitHooksResult:
+    installed: tuple[str, ...]
+    skipped_reason: str | None
+    error: str | None
+
+
+def install_consumer_git_hooks(project: Path, *, enabled: bool) -> GitHooksResult:
+    """Copy the human-persona git hooks into the fresh repo's .git/hooks.
+
+    The bodies resolve `.claude/.codex/.cursor` hooks at runtime, so the human
+    / Codex-GUI commit path — which bypasses every PreToolUse hook — still gets
+    the doc-anchor + commit-message backstop. Never clobbers a user's existing
+    hook; fail-open — a missing body / OS error is reported, never fatal.
+    """
+    if not enabled:
+        return GitHooksResult(installed=(), skipped_reason="no fresh repo", error=None)
+    hooks_dir = project / ".git" / "hooks"
+    if not (project / ".git").is_dir():
+        return GitHooksResult(installed=(), skipped_reason="no .git", error=None)
+    pairs = (
+        ("pre-commit", CODING_OS_ROOT / "src" / "scripts" / "_pre_commit_body.sh"),
+        ("commit-msg", CODING_OS_ROOT / "src" / "scripts" / "_commit_msg_body.sh"),
+    )
+    installed: list[str] = []
+    try:
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        for name, src in pairs:
+            if not src.is_file():
+                return GitHooksResult(
+                    installed=tuple(installed),
+                    skipped_reason=None,
+                    error=f"hook body missing: {src.name}",
+                )
+            dst = hooks_dir / name
+            if dst.exists():
+                continue  # never overwrite a user-authored hook
+            shutil.copy2(src, dst)
+            dst.chmod(0o755)
+            installed.append(name)
+    except OSError as exc:
+        return GitHooksResult(installed=tuple(installed), skipped_reason=None, error=str(exc))
+    return GitHooksResult(installed=tuple(installed), skipped_reason=None, error=None)
+
+
 def ensure_agents_md(project: Path, world: AggregatedWorld) -> bool:
     """Generate AGENTS.md from fragments if missing. Idempotent.
 

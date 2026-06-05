@@ -29,6 +29,7 @@ from cli._init_helpers import (
     InitError,
     ensure_agents_md,
     ensure_gitignore,
+    install_consumer_git_hooks,
     maybe_git_init,
     maybe_initial_commit,
     resolve_init_target,
@@ -1020,6 +1021,9 @@ def init(
     if git:
         ensure_gitignore(project)
     commit_result = maybe_initial_commit(target, enabled=git and git_result.ran)
+    # Install the human-persona git hooks AFTER the baseline commit so that
+    # tool-generated commit isn't gated by the freshly-installed pre-commit.
+    hooks_result = install_consumer_git_hooks(project, enabled=git and git_result.ran)
     files_created = sum(1 for _ in project.rglob("*") if _.is_file())
 
     summary: dict[str, object] = {
@@ -1035,6 +1039,8 @@ def init(
             "error": git_result.error,
             "initial_commit": commit_result.committed,
             "commit_error": commit_result.error,
+            "hooks_installed": list(hooks_result.installed),
+            "hooks_error": hooks_result.error,
         },
         "files_created": files_created,
         "db_path": str(project / STATE_DIR / "coding-os.db"),
@@ -1057,6 +1063,10 @@ def init(
             click.echo("  git: baseline commit created")
         elif commit_result.error:
             click.echo(f"  git: WARN baseline commit failed — {commit_result.error}")
+        if hooks_result.installed:
+            click.echo(f"  git: hooks installed ({', '.join(hooks_result.installed)})")
+        elif hooks_result.error:
+            click.echo(f"  git: WARN hooks not installed — {hooks_result.error}")
     elif git_result.skipped_reason:
         click.echo(f"  git: skipped ({git_result.skipped_reason})")
     elif git_result.error:
