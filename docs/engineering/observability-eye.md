@@ -163,6 +163,8 @@ Routed through `scheduled/config.py` DEFAULTS + `_INT_BOUNDS` (zero new route co
 
 Trunk-based, one commit per task, MVP→v1→v2. Each task anchors to the section above.
 
+**Status (2026-06-05):** E0 (this doc) + E1–E10 + E12 **shipped** — 11 commits, the full backend eye (capture → durable store → query MCP+CLI → security → enrichment → drift → doctor → envelope → auto-bug-sweep), each verified. **E11** (Hub Errors view) deferred → TASK-147 (heavier React + ui-build slice; the existing LogsPage already tails the jsonl). **E13** (exhaustive silent-handler conversion + `swallow_safe()`) deferred → TASK-148 (must coordinate with the active TASK-100 output-quality work, not run concurrently). Minor refinements deferred: `cos_say` scope-width (E10), sweep retention/reconcile + FATAL→emergency-status escalation (E12).
+
 | Task | Phase | Anchor | Outcome |
 |---|---|---|---|
 | E1 bridge install (web + cli + mcp) | MVP | §1 | every CLI/web/MCP stdlib error reaches the eye |
