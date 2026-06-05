@@ -229,7 +229,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 9 | Append-only migrations | block-migration-conflict.sh |
 | 10 | Regenerate derived artifacts | regen-reminder.sh + warn-template-drift.sh |
 | 11 | No hardcoded literals in cli/ | block-hardcoded-literals.sh |
-| 12 | Function header convention | lint-function-header.sh |
+| 12 | Comments by exception | (none — convention) |
 | 13 | MCP envelope `ok`/`fail` | test_envelope.py |
 | 14 | Tasks are pointers | lint-task.sh |
 | 15 | Role chain composed | (none — convention) |
