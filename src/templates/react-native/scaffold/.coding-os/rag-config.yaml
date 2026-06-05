@@ -1,67 +1,13 @@
-# RAG indexer configuration for coding-os Phase B.
+# react-native RAG overlay — DELTA only.
 #
-# Edit this file to add or remove indexed paths and tune chunking per source.
-# Run `make docs-index` after edits to apply changes.
-#
-# Source schema:
-#   - path: relative to project root
-#     type: short label used by cos_doc_search filter (prd, architecture, ...)
-#     chunk_size: max chars per chunk (default 2000 ≈ 500 tokens)
-#     chunk_overlap: overlap between adjacent chunks (default 200)
-#     priority: ranking boost in [0.0, 1.0] (default 0.5)
-#     exclude: optional list of subpaths relative to `path`
+# Deep-merged onto the base rag-config by src/cli/config_composer.py at
+# `cos init` (sources union by `path`). Ship ONLY the stack's additions here;
+# base provides prd/architecture/adr/api-contracts/engineering/ops/insights/
+# workflow/governance/playbooks. Duplicating base = drift (config-composition.md).
 
 sources:
-  - path: docs/prd/
-    type: prd
-    chunk_size: 2000
-    chunk_overlap: 200
-
-  - path: docs/architecture/
-    type: architecture
-    exclude:
-      - adr/   # ADRs handled below as their own source
-
-  - path: docs/architecture/adr/
-    type: adr
-    chunk_size: 4000   # ADRs are short — usually one chunk per ADR fits
-
-  - path: docs/api-contracts/
-    type: api_contract
-
   - path: docs/pages-content-spec/
     type: page_spec
 
-  - path: docs/engineering/
-    type: engineering
-    priority: 0.7      # Engineering rules are high-actionability — boost ranking
-
-  - path: docs/ops/
-    type: ops
-
   - path: docs/design/
     type: design
-
-  - path: docs/insights/
-    type: insight
-    priority: 0.8      # High-signal lessons filed back by cos_learn_narrative
-
-  - path: docs/governance/
-    type: governance
-    priority: 0.6      # Always-active rules — ALSO indexed so an agent can DISCOVER
-    exclude:           # a relevant rule via cos_doc_search even with no explicit link.
-      - _templates/    # doc skeletons, not knowledge
-      - archive/       # superseded historical docs
-
-  - path: docs/playbooks/
-    type: playbook
-    priority: 0.5      # Routing playbooks — also skill-loaded; indexed for discoverability.
-
-# Project-level excludes — paths under here are NEVER indexed regardless of source.
-# (governance + playbooks are now INDEXED above for searchability — their
-#  always-active / skill loading is unchanged; indexing only adds discovery.)
-exclude:
-  - docs/tasks/          # Task files (Phase C handles structured task index)
-  - docs/00-index.md     # Navigation hub
-  - docs/_meta/          # Nav/index meta — not content
-  - docs/workflow/       # Reference docs — opt-in: remove this line to index them

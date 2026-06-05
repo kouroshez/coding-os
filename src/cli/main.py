@@ -36,6 +36,7 @@ from cli._init_helpers import (
 )
 from cli.adapter_registry import load_adapter_registry
 from cli.add_stack import add_stack as add_stack_cmd
+from cli.config_composer import COMPOSED_FILENAMES, compose_coding_os_configs
 from cli.aggregator import aggregate, today_iso
 from cli.brain_commands import (
     brain_decay as brain_decay_cmd,
@@ -525,6 +526,11 @@ def _overlay_scaffold(
                 continue
 
             rel = src_file.relative_to(src_root)
+            if rel.parent.name == ".coding-os" and rel.name in COMPOSED_FILENAMES:
+                # These are deep-merged from base + every stack by
+                # compose_coding_os_configs — overlaying base first would
+                # shadow the merge (first-writer-wins). See config-composition.md.
+                continue
             dest = project / rel
             if dest.exists():
                 # Idempotent: never overwrite existing project files.
@@ -1207,6 +1213,15 @@ def _run_scaffold_phase(
     copied = _overlay_scaffold(project, template, substitutions)
     if copied:
         click.echo(f"  Copied {copied} scaffold file(s) (docs/, governance/, playbooks/, ...)")
+
+    # 7b. Compose .coding-os/ configs (rag/scrumban/domain) from base + every
+    # installed stack — deep-merged, multi-stack-correct. The overlay (step 7)
+    # deliberately skips these. SSOT: docs/engineering/config-composition.md.
+    composed = compose_coding_os_configs(
+        project, state, list(template), templates_dir=TEMPLATES_DIR
+    )
+    if composed:
+        click.echo(f"  Composed {len(composed)} .coding-os config(s): {', '.join(composed)}")
 
     # 8. Copy thinking_os reference doc from src/core/docs/
     _copy_workflow_docs(project)

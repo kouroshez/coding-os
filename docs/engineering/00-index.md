@@ -25,7 +25,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (25)
+### Engineering (26)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -52,8 +52,13 @@ Read next: any of the entries below.
 - [Graph-OS — Hallucination Cures & Token Economics](graph-hallucination-cures.md) — `ssot:true` · updated 2026-05-27
 - [Using RTK (Rust Token Killer) with coding-os](rtk-integration.md) — `ssot:true` · updated 2026-05-30
 - [Doc-System Overhaul — Audit & Roadmap (2026-06)](doc-system-overhaul-roadmap.md) — `ssot:true` · updated 2026-06-03
+- [Config Composition — per-stack `.coding-os/` merge at `cos init`](config-composition.md) — `ssot:true` · updated 2026-06-05
 
 <!-- END auto-index -->
+
+
+
+
 
 
 
