@@ -264,6 +264,34 @@ Log results to stderr.
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Task: digest regenerate
+# ---------------------------------------------------------------------------
+
+
+def _run_digest(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+    """Regenerate the always-in-context agent digest so a cron-maintained brain
+    stays fresh without an interactive SessionStart (digest was startup-only)."""
+    if dry_run:
+        return {"status": "dry_run", "would_run": True}
+    try:
+        from digest import regenerate as digest_regenerate
+
+        with sqlite3.connect(str(db_path), timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+            result = digest_regenerate(conn, project_root=project_root)
+        return {"status": result.get("status", "ok"), "size_chars": result.get("size_chars")}
+    except ImportError as exc:
+        logger.warning("digest import error: %s", exc)
+        return {"status": "error", "error": str(exc)}
+    except sqlite3.Error as exc:
+        logger.warning("digest db error: %s", exc)
+        return {"status": "error", "error": str(exc)}
+    except Exception as exc:  # fail-open
+        logger.warning("digest unexpected error: %s", exc)
+        return {"status": "error", "error": str(exc)}
+
+
 def run_project(project: dict, *, dry_run: bool) -> dict:
     """Run all maintenance tasks for one project."""
     slug = project.get("slug", "?")
@@ -361,6 +389,18 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     except Exception as exc:
         run["tasks"]["routing_recalc"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] routing_recalc raised: %s", slug, exc)
+        errors += 1
+
+    # Task 3.5: digest regenerate (after extract/decay so it reflects new patterns)
+    try:
+        t = _run_digest(db_path, project_root, dry_run=dry_run)
+        run["tasks"]["digest"] = t
+        logger.info("[%s] digest → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["digest"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] digest raised: %s", slug, exc)
         errors += 1
 
     # Task 4: graph_reindex_if_stale
