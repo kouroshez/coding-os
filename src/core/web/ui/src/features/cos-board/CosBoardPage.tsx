@@ -451,6 +451,21 @@ export default function CosBoardPage() {
     if (!dragging) return;
     if (dragging.status === colId && dragging.swimlane === laneId) return onDragEnd();
 
+    // Ready-gate pre-flight (mirrors workflow.transition): an icebox task
+    // without the 'ready' label cannot be pulled into in_progress. Surface it
+    // client-side with an actionable message instead of a generic server
+    // "invalid transition" after the round-trip.
+    if (
+      colId === 'in_progress' &&
+      dragging.status === 'icebox' &&
+      !(dragging.labels ?? []).includes('ready')
+    ) {
+      setActionError(
+        `${dragging.id} is not ready — open it and "mark ready" before pulling into in_progress.`,
+      );
+      return onDragEnd();
+    }
+
     const cap = columnWipCap(colId, cfg?.wip_limits);
     const inCol = filtered.filter((t) => t.status === colId && t.id !== dragging.id).length;
     if (cap != null && inCol >= cap && tweaks.showWipViolation) {
