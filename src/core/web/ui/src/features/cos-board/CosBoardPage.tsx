@@ -2944,6 +2944,7 @@ function TaskDetailDrawer({
           {data && data.exists && (
             <div className="md-body">{renderTaskMarkdown(body)}</div>
           )}
+          <TaskHistoryPanel taskId={task.id} />
         </div>
 
         {/* Footer — command hints from the prototype */}
@@ -3004,5 +3005,115 @@ function Pill({
       <span style={{ color: 'var(--ink-faint)' }}>{label}</span>
       <span style={{ color: valueColor ?? 'var(--ink)', fontWeight: strong ? 700 : 500 }}>{value}</span>
     </span>
+  );
+}
+
+// ---------- Task history (create + status + edits + commits) ----------
+
+interface TaskHistoryEvent {
+  type: 'created' | 'status' | 'edit' | 'commit';
+  at: number;
+  actor?: { type: string; id: string; label: string };
+  from?: string | null;
+  to?: string;
+  reason?: string | null;
+  override_reason?: string | null;
+  field?: string;
+  sha?: string;
+  subject?: string;
+}
+
+interface TaskHistoryPayload {
+  task_id: string;
+  events: TaskHistoryEvent[];
+  summary: {
+    created_by: string | null;
+    created_at: number | null;
+    last_edited_by: string | null;
+    last_edited_at: number | null;
+    contributors: string[];
+    commit_count: number;
+  };
+  count: number;
+}
+
+const HISTORY_ICON: Record<TaskHistoryEvent['type'], string> = {
+  created: '✦',
+  status: '→',
+  edit: '✎',
+  commit: '⎇',
+};
+
+function TaskHistoryPanel({ taskId }: { taskId: string }) {
+  const { data, isLoading } = useApiGet<TaskHistoryPayload>(
+    ['board-task-history', taskId],
+    `/api/board/task/${taskId}/history`,
+    { include_commits: true },
+    { enabled: !!taskId },
+  );
+
+  const baseFont = "'JetBrains Mono', monospace";
+  if (isLoading) {
+    return (
+      <div style={{ marginTop: 24, fontFamily: baseFont, fontSize: 11, color: 'var(--ink-faint)' }}>
+        loading history…
+      </div>
+    );
+  }
+  const events = data?.events ?? [];
+  if (!events.length) return null;
+  const s = data?.summary;
+  const fmt = (at: number) => (at ? new Date(at * 1000).toLocaleString() : '');
+
+  const describe = (e: TaskHistoryEvent): string => {
+    const who = e.actor?.label ?? '—';
+    if (e.type === 'created') return `created by ${who}`;
+    if (e.type === 'status') {
+      const reason = e.override_reason || e.reason;
+      return `${e.from ?? ''} → ${e.to} · ${who}${reason ? ` (${reason})` : ''}`;
+    }
+    if (e.type === 'edit') return `edited ${e.field} · ${who}`;
+    return `commit ${e.sha} · ${e.subject}`;
+  };
+
+  return (
+    <div style={{ marginTop: 24, borderTop: '1px solid var(--col-border)', paddingTop: 14 }}>
+      <div
+        style={{
+          fontFamily: baseFont,
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '.08em',
+          color: 'var(--ink-soft)',
+          marginBottom: 8,
+        }}
+      >
+        HISTORY
+      </div>
+      {s && (
+        <div style={{ fontFamily: baseFont, fontSize: 11, color: 'var(--ink-faint)', marginBottom: 10 }}>
+          created by {s.created_by ?? '—'}
+          {s.last_edited_by ? ` · last edit by ${s.last_edited_by}` : ''}
+          {s.contributors?.length ? ` · contributors: ${s.contributors.join(', ')}` : ''}
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {events
+          .slice()
+          .reverse()
+          .map((e, i) => (
+            <div
+              key={`${e.type}-${e.at}-${i}`}
+              style={{ display: 'flex', gap: 8, fontFamily: baseFont, fontSize: 11, alignItems: 'baseline' }}
+            >
+              <span style={{ color: 'var(--accent)', width: 12, flex: '0 0 auto' }}>
+                {HISTORY_ICON[e.type]}
+              </span>
+              <span style={{ color: 'var(--ink-faint)', minWidth: 132, flex: '0 0 auto' }}>{fmt(e.at)}</span>
+              <span style={{ color: 'var(--ink)' }}>{describe(e)}</span>
+            </div>
+          ))}
+      </div>
+    </div>
   );
 }
