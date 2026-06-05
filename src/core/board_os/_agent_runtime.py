@@ -121,6 +121,32 @@ def _read_agent_marker_file() -> str:
         return ""
 
 
+def _read_active_session_pointer() -> str:
+    """Read the agent-level ``.active-session`` pointer (the current panel).
+
+    The long-lived MCP server inherits a frozen/empty ``$COS_SESSION_FILE``,
+    so this disk pointer — refreshed by ``session-context.sh`` on every
+    prompt — is the freshest signal of which panel is calling. Resolved from
+    ``$COS_AGENT_DIR`` if set, else ``$COS_STATE_DIR``/``cwd`` + detected
+    agent. Best-effort: returns ``""`` on any miss.
+    """
+    agent_dir = os.environ.get("COS_AGENT_DIR")
+    if agent_dir:
+        pointer = Path(agent_dir) / ".active-session"
+    else:
+        state_dir = os.environ.get("COS_STATE_DIR")
+        base = Path(state_dir) if state_dir else (Path.cwd() / ".coding-os")
+        agent = (os.environ.get("COS_AGENT") or "").strip().lower() or detect_agent()
+        if not agent or agent == _UNKNOWN_AGENT:
+            return ""
+        pointer = base / agent / ".active-session"
+    try:
+        return pointer.read_text(encoding="utf-8", errors="ignore").strip()
+    except OSError as exc:
+        logger.debug("active-session pointer read failed: %s", exc)
+        return ""
+
+
 def resolve_agent_session(explicit: str | None = None) -> str | None:
     """Return the session id to attribute a board write to.
 
@@ -132,8 +158,11 @@ def resolve_agent_session(explicit: str | None = None) -> str | None:
       2. ``$COS_SESSION_FILE`` — written by ``cos-env.sh`` /
          ``session-context.sh`` at every ``SessionStart startup`` in the
          shape ``ses-<agent>-YYYYMMDD-HHMMSS-xxxx``.
-      3. ``$COS_SESSION_ID`` — direct env override (CI / test harness).
-      4. Synthesised ``ses-<detected-agent>-pid<PID>`` fallback so the
+      3. ``.active-session`` disk pointer — the current panel, refreshed
+         every prompt; the bridge for the long-lived MCP server whose
+         ``$COS_SESSION_FILE`` env is frozen/empty (TASK-168).
+      4. ``$COS_SESSION_ID`` — direct env override (CI / test harness).
+      5. Synthesised ``ses-<detected-agent>-pid<PID>`` fallback so the
          row never lands as ``NULL`` (which the board UI maps to the
          green ``H`` glyph by default — see
          ``core/web/ui/src/features/cos-board/useBoardStream.ts``).
@@ -154,6 +183,15 @@ def resolve_agent_session(explicit: str | None = None) -> str | None:
             value = ""
         if value:
             return value
+
+    # The long-lived MCP server has a frozen/empty $COS_SESSION_FILE; the
+    # agent-level .active-session pointer (refreshed every prompt by
+    # session-context.sh) is the freshest "who is calling" signal. Reading it
+    # here keeps MCP-created board writes attributed to the active panel
+    # instead of the shared ses-<agent>-pid<server-pid> synthetic. (TASK-168)
+    pointer = _read_active_session_pointer()
+    if pointer:
+        return pointer
 
     env_id = (os.environ.get("COS_SESSION_ID") or "").strip()
     if env_id:

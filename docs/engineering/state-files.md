@@ -63,11 +63,16 @@ it for the same reason).
 
 `session-context.sh` therefore refreshes `$COS_AGENT_DIR/.active-session`
 with the current panel's session-id on **every prompt**. The resolvers
-(`server.py::_detect_agent_session_default`, `board_commands.py::_agent_session_id`)
-read, in order: (0) `$COS_PANEL_DIR/session-id` when a panel dir is in
+(`server.py::_detect_agent_session_default`, `board_commands.py::_agent_session_id`,
+and `_agent_runtime.py::resolve_agent_session` — the board-write
+attribution path, aligned in TASK-168) read, in order: (0)
+`$COS_PANEL_DIR/session-id` / `$COS_SESSION_FILE` when a panel dir is in
 env (hook/CLI callers — exact), (1) `$COS_AGENT_DIR/.active-session`
 (fresh, MCP-server path), (2) the legacy `session-id` fossil, (3) a
-`ses-<agent>-mcp-<pid>` synth.
+`ses-<agent>-mcp-<pid>` synth. Before TASK-168 the board-write path
+skipped step (1) and fell straight to the synth, so every MCP-created
+task shared one `ses-<agent>-pid<server-pid>` id — collapsing
+per-session WIP across panels.
 
 **Concurrent-panel caveat:** `.active-session` is last-writer-wins, so a
 task created via MCP is attributed to the *most recently active* panel.

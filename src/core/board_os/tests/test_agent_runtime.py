@@ -112,3 +112,41 @@ def test_human_actor_env_id_and_label(monkeypatch):
     """Future-auth shape: 'id:Label' resolves both fields."""
     monkeypatch.setenv("COS_HUMAN_ACTOR", "u-42:Kourosh")
     assert ar.human_actor() == {"type": "human", "id": "u-42", "label": "Kourosh"}
+
+
+# ---------- resolve_agent_session: MCP-server attribution (TASK-168) ----------
+
+
+def test_resolve_prefers_active_session_pointer_over_synthetic(tmp_path, monkeypatch):
+    """MCP-server context: no per-panel $COS_SESSION_FILE, but the agent-level
+    .active-session pointer names the calling panel — it must win over the
+    ses-<agent>-pid<server-pid> synthetic fallback."""
+    agent_dir = tmp_path / "claude"
+    agent_dir.mkdir()
+    (agent_dir / ".active-session").write_text("ses-claude-20260605-PANEL-A\n")
+    monkeypatch.delenv("COS_SESSION_FILE", raising=False)
+    monkeypatch.delenv("COS_SESSION_ID", raising=False)
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    assert ar.resolve_agent_session(None) == "ses-claude-20260605-PANEL-A"
+
+
+def test_resolve_explicit_beats_active_session_pointer(tmp_path, monkeypatch):
+    agent_dir = tmp_path / "claude"
+    agent_dir.mkdir()
+    (agent_dir / ".active-session").write_text("ses-claude-PANEL-A\n")
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    assert ar.resolve_agent_session("ses-claude-PANEL-B") == "ses-claude-PANEL-B"
+
+
+def test_resolve_session_file_beats_active_session_pointer(tmp_path, monkeypatch):
+    """A real per-panel $COS_SESSION_FILE (hook lineage) still wins over the
+    shared agent-level pointer."""
+    agent_dir = tmp_path / "claude"
+    agent_dir.mkdir()
+    (agent_dir / ".active-session").write_text("ses-claude-PANEL-A\n")
+    session_file = tmp_path / "panels" / "B" / "session-id"
+    session_file.parent.mkdir(parents=True)
+    session_file.write_text("ses-claude-PANEL-B\n")
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    monkeypatch.setenv("COS_SESSION_FILE", str(session_file))
+    assert ar.resolve_agent_session(None) == "ses-claude-PANEL-B"
