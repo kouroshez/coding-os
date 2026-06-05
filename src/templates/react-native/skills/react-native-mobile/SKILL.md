@@ -6,7 +6,8 @@ depends_on:
   - clean-code
   - frontend-fundamentals
   - a11y
-last_reviewed: "2026-05-11"
+last_reviewed: "2026-06-04"
+versions_ref: versions.json
 
 ---
 
@@ -107,3 +108,10 @@ Otherwise: stay in TypeScript.
 `src/mobile/` may import from `src/shared/`. Never from `src/frontend/`, `src/backend/`, or `src/ai-service/`. Cross-stack contracts live in `src/shared/types/` and `src/shared/contracts/`.
 
 Boundary SSOT: [`src/templates/react-native/scaffold-boundary.yaml`](../../scaffold-boundary.yaml).
+
+## Deepening + tooling
+
+- [references/rn-2026-practices.md](references/rn-2026-practices.md) — New Architecture, Hermes, Expo vs bare, navigation/gestures (RN 0.85, 2026).
+- [references/anatomy.md](references/anatomy.md) — file map + scaffold; `scripts/new_screen.py` to generate a screen.
+- [assets/rn-mobile-checklist.md](assets/rn-mobile-checklist.md) — the review gate.
+- Versions pinned in [versions.json](versions.json) — `make skills-check-versions`.

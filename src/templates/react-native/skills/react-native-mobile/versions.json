@@ -1,0 +1,16 @@
+{
+  "react-native": {
+    "ecosystem": "npm",
+    "package": "react-native",
+    "version": "0.85.3",
+    "source": "https://www.npmjs.com/package/react-native",
+    "checked": "2026-06-04"
+  },
+  "expo": {
+    "ecosystem": "npm",
+    "package": "expo",
+    "version": "56.0.8",
+    "source": "https://www.npmjs.com/package/expo",
+    "checked": "2026-06-04"
+  }
+}
