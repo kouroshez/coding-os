@@ -37,7 +37,7 @@ What are you documenting?
 │
 ├─ API/contract for an endpoint or service           →  spec
 │   path: docs/api-contracts/<service>-endpoints.md
-│   template: api-contract-template.md
+│   example: docs/api-contracts/error-format.md
 │   token budget: 1500–4000
 │
 ├─ Engineering rule that constrains future code      →  policy/rule
