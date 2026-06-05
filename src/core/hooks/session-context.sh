@@ -261,7 +261,15 @@ if [[ "$SOURCE" == "startup" ]]; then
   echo ""
   echo "[MCP Prime] Hot tools are deferred — load the task family ONCE now so you don't fall back to raw Edit/Bash for task ops:"
   echo '  ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt")'
+fi
 
+# Agent digest = memory inheritance. Runs on EVERY SessionStart, including a
+# fresh `startup` (TASK-109): a new session must inherit prior learnings, not
+# only recover them after a compaction. The recovery text + state snapshot
+# above stay compact/resume-only — a fresh start has nothing to recover, but
+# it DOES need the working-memory digest. The status message for the startup
+# matcher already promises "Loading … memory digest"; this makes it true.
+if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" ]]; then
   # Phase G.10 — Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
@@ -394,6 +402,18 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   TASK_CUR=$(_read_state ".task-current" 32)
   GATE_STATE=$(_read_state ".thinking_os-gate" 24)
   SKILL_CUR=$(_read_state ".active-skill" 48)
+
+  # The gate carries a 120-min TTL (check-state.sh). _read_state only checks
+  # session-ownership, not age — so a long session would show an EXPIRED gate
+  # as valid, then the next Write/Edit BLOCKs on "gate stale". Flag staleness
+  # here so the banner tells the truth (TASK-109). Override: COS_GATE_TTL_SECONDS.
+  if [ -n "$GATE_STATE" ] && [ -f "${COS_PANEL_DIR}/.thinking_os-gate" ]; then
+    _GATE_MTIME=$(stat -f %m "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || stat -c %Y "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || echo 0)
+    _GATE_AGE=$(( $(date +%s) - _GATE_MTIME ))
+    if [ "$_GATE_AGE" -gt "${COS_GATE_TTL_SECONDS:-7200}" ]; then
+      GATE_STATE="${GATE_STATE} ⌛stale"
+    fi
+  fi
 
   # Composed role chain — surface the ACTIVE role + its position in the chain
   # so the banner tracks what the agent is DOING, not a frozen lead (TASK-057).

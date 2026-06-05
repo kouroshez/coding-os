@@ -594,7 +594,7 @@ def cos_observation_record(
     name="cos_search",
     annotations={
         "title": "Search Thinking OS Memory",
-        "readOnlyHint": False,  # updates access_count
+        "readOnlyHint": False,  # writes retrieval telemetry only — raw search does NOT bump access_count/confidence (TASK-109; that is cos_details)
         "destructiveHint": False,
         "idempotentHint": False,
         "openWorldHint": False,
@@ -605,25 +605,29 @@ def thinking_os_search(
     query: str,
     limit: int = 5,
     memory_type: str = "",
-    min_confidence: float = 0.0,
+    min_confidence: float = 0.3,
     since_days: int = 0,
 ) -> str:
     """Search observations and learned patterns with 5-signal ranking.
 
-    Use during Orient step to find relevant past experience.
-    Updates access_count and confidence on retrieved results.
+    Use during Orient step to find relevant past experience. Read-only over
+    memory rows (writes retrieval telemetry only; reinforcement happens on
+    cos_details, not here — TASK-109).
 
     Stage-1 metadata pre-filter (Phase O):
       - `min_confidence` drops decayed/low-trust patterns BEFORE ranking.
         Stale low-signal patterns can otherwise crowd out fresh hits.
-      - `since_days` caps row age. 0 = no cap.
+        Default 0.3 skips decayed/unvalidated noise (fresh patterns start at
+        0.5, so they still pass); pass 0.0 to include everything.
+      - `since_days` caps row age. 0 = no cap (default) — age is opt-in so a
+        valuable old decision is never silently hidden from default recall.
 
     Args:
         query: Search text (e.g. "backend rework", "django migration").
         limit: Max results (1-20, default 5).
         memory_type: Filter by type (pattern/workflow/error/decision/discovery). Optional.
         min_confidence: Drop learned_patterns with confidence below this
-            value (0.0-1.0). Default 0.0 = no filter. Common: 0.3.
+            value (0.0-1.0). Default 0.3 (skips decayed noise). 0.0 = no filter.
         since_days: Drop rows older than now-`since_days`. 0 = no cap.
             Common: 90 (one quarter) for "recent" queries.
 

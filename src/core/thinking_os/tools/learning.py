@@ -509,12 +509,29 @@ def learn_suggest(
         params.append(domain)
     where = " AND ".join(conditions)
 
+    # Relevance boost (TASK-109): complexity + task_type used to be accepted
+    # then ignored, so recall was relevance-blind. There is no per-pattern
+    # complexity/task_type column, so we BOOST (never exclude) patterns whose
+    # concepts/pattern text mention the term — a matching pattern outranks an
+    # equally-confident non-match. Boost params bind first (SELECT precedes WHERE).
+    boost_terms: list[str] = []
+    boost_params: list = []
+    for term in (complexity, task_type):
+        if term:
+            boost_terms.append(
+                "(CASE WHEN LOWER(COALESCE(concepts,'')) LIKE ? "
+                "OR LOWER(pattern) LIKE ? THEN 1 ELSE 0 END)"
+            )
+            like = f"%{term.lower()}%"
+            boost_params += [like, like]
+    relevance = " + ".join(boost_terms) if boost_terms else "0"
+
     active_rows = conn.execute(
         f"SELECT id, pattern, memory_type, domain, confidence, impact_score, "
-        f"times_validated, times_violated "
+        f"times_validated, times_violated, ({relevance}) AS relevance "
         f"FROM learned_patterns WHERE {where} "
-        "ORDER BY confidence DESC, impact_score DESC LIMIT ?",
-        params + [limit],
+        "ORDER BY relevance DESC, confidence DESC, impact_score DESC LIMIT ?",
+        boost_params + params + [limit],
     ).fetchall()
 
     for row in active_rows:
