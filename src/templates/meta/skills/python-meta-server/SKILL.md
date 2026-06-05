@@ -145,8 +145,14 @@ rel = real.relative_to(REPO_ROOT.resolve())
 
 NEVER run `pytest tests/ -q` mid-task — that's the 6-minute full-sweep gate, pre-merge only.
 
+## Tooling
+
+Lint MCP tools for the envelope contract (Rule 13/2 — @safe_tool, cos_ prefix, ok/fail):
+`python3 scripts/check_envelope.py src/core/thinking_os/tools/*.py`
+
 ## See also
 
+- [assets/meta-server-checklist.md](assets/meta-server-checklist.md) — the kernel-Python gate.
 - [docs/engineering/mcp-error-envelope.md](../../../../docs/engineering/mcp-error-envelope.md)
 - [docs/engineering/graph_os-queries.md](../../../../docs/engineering/graph_os-queries.md)
 - [docs/governance/critical-rules.md](../../../../docs/governance/critical-rules.md)
