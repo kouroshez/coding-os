@@ -660,7 +660,7 @@ export default function CosBoardPage() {
                   >
                     <div
                       style={{
-                        fontFamily: "'Permanent Marker', cursive",
+                        fontFamily: 'inherit',
                         fontSize: 17,
                         letterSpacing: '.08em',
                         color: violated ? 'var(--red-ink)' : 'var(--line)',
@@ -670,7 +670,7 @@ export default function CosBoardPage() {
                     >
                       {meta.label}
                     </div>
-                    <div style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: 'var(--ink-soft)', marginTop: -2 }}>
+                    <div style={{ fontFamily: 'inherit', fontSize: 13, color: 'var(--ink-soft)', marginTop: -2 }}>
                       {meta.sub}
                     </div>
                     <div
@@ -717,7 +717,7 @@ export default function CosBoardPage() {
                     borderLeft: `6px solid ${palette.accent}`,
                     background: alpha(palette.color, 0.06),
                     cursor: 'pointer',
-                    fontFamily: "'Permanent Marker', cursive",
+                    fontFamily: 'inherit',
                     fontSize: 14,
                     color: palette.accent,
                     position: 'sticky',
@@ -802,7 +802,7 @@ export default function CosBoardPage() {
                       {cell.length === 0 && (
                         <div
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: 'inherit',
                             fontSize: 14,
                             color: 'var(--ink-faint)',
                             textAlign: 'center',
@@ -823,7 +823,7 @@ export default function CosBoardPage() {
           <div
             style={{
               padding: '14px 18px 28px',
-              fontFamily: "'Caveat', cursive",
+              fontFamily: 'inherit',
               fontSize: 14,
               color: 'var(--ink-faint)',
               textAlign: 'center',
@@ -1161,7 +1161,7 @@ function SwimlaneLabel({
       </button>
       <div
         style={{
-          fontFamily: "'Permanent Marker', cursive",
+          fontFamily: 'inherit',
           fontSize: 15,
           color: palette.accent,
           letterSpacing: '.02em',
@@ -1227,7 +1227,7 @@ function TaskStickyCard({
   // Core cards look gray, regardless of whether they're bugs or features."
   const bg = quietMode
     ? 'linear-gradient(155deg, var(--board) 0%, var(--col-bg) 100%)'
-    : `linear-gradient(155deg, ${alpha(laneColor, 0.55)} 0%, ${alpha(laneColor, 0.32)} 100%)`;
+    : `linear-gradient(155deg, ${alpha(laneColor, 0.16)} 0%, ${alpha(laneColor, 0.07)} 100%)`;
 
   const agentId = task.agent_session ? agentForSession(task.agent_session) : null;
 
@@ -1354,7 +1354,7 @@ function TaskStickyCard({
           hyphens: 'auto',
           maxWidth: '100%',
           marginBottom: cozy ? 6 : 3,
-          fontFamily: "'Kalam', cursive",
+          fontFamily: 'inherit',
         }}
       >
         {task.title}
@@ -1478,7 +1478,7 @@ function LiveStreamPanel({
       >
         <div
           style={{
-            fontFamily: "'Permanent Marker', cursive",
+            fontFamily: 'inherit',
             fontSize: 14,
             letterSpacing: '.04em',
             color: 'var(--accent)',
@@ -1674,7 +1674,7 @@ function TweaksPanel({
       >
         <div
           style={{
-            fontFamily: "'Permanent Marker', cursive",
+            fontFamily: 'inherit',
             fontSize: 15,
             letterSpacing: '.04em',
             color: 'var(--accent)',
@@ -1898,7 +1898,7 @@ function LegendPanel({
       >
         <div
           style={{
-            fontFamily: "'Permanent Marker', cursive",
+            fontFamily: 'inherit',
             fontSize: 13,
             letterSpacing: '.04em',
             color: 'var(--accent)',
@@ -2379,7 +2379,7 @@ function CreateTaskModal({
           >
             <div
               style={{
-                fontFamily: "'Permanent Marker', cursive",
+                fontFamily: 'inherit',
                 fontSize: 22,
                 letterSpacing: '.02em',
                 color: 'var(--accent)',
@@ -2525,7 +2525,7 @@ function CreateTaskModal({
                 lineHeight: 1.25,
                 color: 'var(--cos-text)',
                 background: previewLane
-                  ? `linear-gradient(155deg, ${alpha(previewLane.color, 0.55)} 0%, ${alpha(previewLane.color, 0.32)} 100%)`
+                  ? `linear-gradient(155deg, ${alpha(previewLane.color, 0.16)} 0%, ${alpha(previewLane.color, 0.07)} 100%)`
                   : 'linear-gradient(155deg, var(--cos-raised) 0%, var(--cos-panel) 100%)',
                 borderRadius: '8px',
                 transform: 'none',
@@ -2580,7 +2580,7 @@ function CreateTaskModal({
 const formInput: CSSProperties = {
   width: '100%',
   padding: '8px 10px',
-  fontFamily: "'Kalam', cursive",
+  fontFamily: 'inherit',
   fontSize: 15,
   background: 'var(--board)',
   color: 'var(--ink)',

@@ -177,3 +177,68 @@ control), with an optional follow-system mode planned.
 | Swimlane / task-kind chips | `src/core/web/ui/src/features/cos-board/kindColors.ts` |
 | Priority / event colors | `src/core/web/ui/src/features/cos-board/CosBoardPage.tsx` |
 | Shared primitives | `src/core/web/ui/src/layout/HubPrimitives.tsx` |
+
+## 11. External review — validated rules + roadmap (2026-06-05)
+
+A source-blind external product/design review independently converged on
+this system's direction (Indigo/Iris primary, orange→signature-only, kill
+handwritten fonts, near-identical neutral+brand palette). The binding
+cross-cutting rules it confirmed:
+
+### Color-namespace separation (BINDING)
+
+Status, domain (swimlane), priority and agent MUST use **disjoint** color
+namespaces — never the same hue scale. A color that means "domain" must
+never also read as "success/warning". Current mapping:
+
+| Axis | Source |
+|---|---|
+| status | `--st-*` / `--cos-ok\|warn\|err\|info` |
+| domain (swimlane) | lane color — rail + ≤16% body tint + chip ONLY |
+| task-kind | `--kind-*` chip |
+| priority | `priorityColor` (P0 danger … P3 muted) |
+| agent presence | `AGENT_PRESENCE_VISUALS` |
+
+### Domain = rail/tint, never full fill (BINDING)
+
+Domain identity = a 3–5px left rail + ≤16% tint + badge. The Phase-4
+follow-up reduced the board card body from 0.55/0.32 → 0.16/0.07
+lane-color alpha and removed the last handwritten fonts (Permanent
+Marker / Caveat / Kalam → Inter).
+
+### Lifecycle vocabularies (TARGET)
+
+- **Task**: Backlog → Ready → Running → Verifying → Review → Done.
+  Priority / Blocker / Risk / SLA are SEPARATE axes (today's columns
+  conflate state + priority + condition).
+- **Memory pattern**: Candidate → Observed → Validated → Trusted →
+  Decaying → Deprecated (today most rows are `volatile`).
+
+### Roadmap (DEFERRED — backlog under epic `ui-design-system`)
+
+Multi-phase product/IA efforts, NOT token tweaks; built incrementally on
+this foundation, tracked as tasks:
+
+1. IA restructure → app shell (Mission / Work / Agents / Graph /
+   Knowledge / System) + global ContextBar.
+2. Mission Control → attention-first (approvals, failed verification,
+   policy violations, budget risk), not a widget grid.
+3. Chat/Trace split → conversation vs execution-trace; collapsed tool
+   calls; sticky run-context; virtualized lists.
+4. Doctor → finding-oriented triage (severity / owner / remediation /
+   release-blocking); fix `Doctor OK` vs `attention` contradiction;
+   human-readable DB size + redacted path.
+5. Memory → lifecycle + evidence drill-down + actions (validate / pin /
+   merge / quarantine / forget).
+6. Graph → semantic zoom / LOD / saved views / query-scoped (never
+   whole-repo default); React Flow for the role/workflow composer,
+   Sigma for large read graphs.
+7. Component system → tokens → headless a11y primitives (Radix behavior,
+   own visual) → base → patterns → domain components.
+8. Board state axes → split lifecycle state from priority / blocker /
+   risk / SLA.
+
+**Honest scope note:** the external review's "10–20 layers per scenario"
+is itself over-engineering for low-risk flows (Rule 22). Apply deep
+analysis **risk-based** — permissions, destructive/irreversible actions,
+autonomous execution — not uniformly.
