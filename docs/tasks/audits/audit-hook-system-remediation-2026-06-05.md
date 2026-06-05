@@ -22,7 +22,7 @@ created: 2026-06-05
 | 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | yes | 0 | yes | 25d38fd (25 files; panel-scope smoke 1-4 pass; 0 new test-hooks failures vs baseline 60/67) |
 | 4 | Board transition atomicity | TASK-108 | workflow.py/4 helpers/consume_override | 6 | 2 | yes | 0 | yes | e937785 (388 board tests + CAS-conflict smoke; expected_from subsumed by under-lock re-verify) |
 | 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/server.py | 4 | 5 | yes | 0 | yes | 863d3d7 (digest-startup + boost smoke + gate-TTL unit + 142 learning/memory tests + MCP self-test) |
-| 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/hook_renderer.py | 3 | 3 | no | 3 | no | (pending) |
+| 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/test_adapter_parity.py | 3 | 0 | yes | 0 | yes | 5bbb8a6 (6a wired + 6c parity test 5/5; 6b refiled TASK-153 — exit-0-stdout drop, no silent no-op) |
 | 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx/MemoryPage.tsx/api-types | 4 | 4 | no | 4 | no | (pending) |
 | 8 | Data-driven adapter detection | TASK-112 | cos-env.sh/doctor.py/test_no_hardcoded_stacks.py | 3 | 4 | no | 4 | no | (pending) |
 | 9 | Hot-path Pre/Post dispatcher | TASK-113 | registry.yaml/hook_renderer.py/test-first/auto-regen-doc-index/dead stubs | ~6 | 6 | no | 6 | no | (pending) |
@@ -67,10 +67,10 @@ created: 2026-06-05
 - ✅ 5d — enforce-memory-check header + block message now state the marker is a SELF-ATTESTED good-faith claim (presence+freshness only, not proof of a real cos_search); the authentic PostToolUse auto-stamp on the cos_search/cos_learn_suggest MCP tool is folded into N9 (one coordinated registry+golden regen).
 - ✅ 5e — cos_search default `min_confidence` 0.0→0.3 (skips decayed noise; fresh patterns at 0.5 still pass); `since_days` stays 0 (age opt-in so a valuable old decision isn't silently hidden — deliberately NOT 180). Confirmed raw search does NOT reinforce (that is `_boost_access` via cos_details); fixed the stale "updates access_count/confidence" docstring+annotation. 142 learning/memory tests + MCP self-test green.
 
-### Stream 6 — TASK-110 · Codex now-fixable parity (P1, infra)
-- ⬜ 6a HIGH — codex-posttool-dispatch.sh adds auto-reindex-shell-ops + auto-prune-deleted-files (drift vs adapter.yaml → graph staleness/zombie rows).
-- ⬜ 6b HIGH — codex-stop-dispatch.sh adds verify-completion-claim + prevent-premature-done (3-layer intent half-wired).
-- ⬜ 6c MED — generate dispatcher for-loops from adapter.yaml::delegates OR parity test asserting set-equality (kills future drift).
+### Stream 6 — TASK-110 · Codex now-fixable parity (P1, infra) — ✅ DONE 5bbb8a6
+- ✅ 6a — codex-posttool-dispatch.sh for-loop now includes `auto-reindex-shell-ops.sh` + `auto-prune-deleted-files.sh` (adapter.yaml already declared them; the for-loop was the drift). These are pure side-effect PostToolUse hooks (emit no stdout) so the dispatcher's stdout-drop is irrelevant — they are fully effective on Codex.
+- ⏭️ 6b — REFILED as TASK-153, not naively wired. verify-completion-claim + prevent-premature-done deliver their ENTIRE effect via exit-0 stdout JSON (`{"decision":"block"}` / `{"hookSpecificOutput":{additionalContext}}`), which codex-stop-dispatch.sh DROPS (logs `dropped_stdout=true`). Wiring them as-is = silent no-ops + false parity (and the existing `test_no_codex_phantom_hooks`/whitelist already marks them Claude-only for exactly this reason). The correct fix is to make the Stop dispatcher forward+merge delegate stdout (the SessionStart dispatcher already does this via `extract_additional_context.py`) AND convert `decision:block`→a Codex Stop block — but that needs a live `codex exec` run to confirm Codex Stop honors additionalContext/block before un-whitelisting. That is its own scoped task (TASK-153), not a blind tail-of-stream edit.
+- ✅ 6c — `tests/test_adapter_parity.py::test_codex_dispatcher_loops_match_adapter_yaml` asserts every `codex-*-dispatch.sh` for-loop set == its `adapter.yaml::hook_dispatchers` delegates — the exact drift (declared-but-unwired) that hid 6a now fails CI. 5/5 parity tests pass.
 
 ### Stream 7 — TASK-111 · Hub learning panel (P1, infra — coordinate w/ TASK-102 logging in web)
 - ⬜ 7a HIGH — SettingsPage `ScheduledStatus` type + render cron_a + per-project run-logs (last_run_at/tasks/failures).
@@ -97,10 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 4 -->
-<!-- next_unchecked_row: 6 -->
+<!-- last_updated_row: 6 -->
+<!-- next_unchecked_row: 8 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ (e937785). NEXT: N6 (TASK-110) codex parity. Then N8,N7,N9. -->
+<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ N6✅ (5bbb8a6; 6b→TASK-153). NEXT: N8 (TASK-112) data-driven adapter detection. Then N7,N9. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
