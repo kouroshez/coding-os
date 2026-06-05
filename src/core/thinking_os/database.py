@@ -1596,6 +1596,17 @@ def _migrate_v33_pattern_archived_at(conn: sqlite3.Connection) -> None:
     logger.info("Migration v33 applied: learned_patterns gained archived_at")
 
 
+def _migrate_v34_dispatch_error(conn: sqlite3.Connection) -> None:
+    """Migration v34 — formula_dispatches.error captures the dispatch failure reason."""
+    if not _table_exists(conn, "formula_dispatches"):
+        logger.info("Migration v34 skipped: formula_dispatches not present yet")
+        return
+    if not _column_exists_table(conn, "formula_dispatches", "error"):
+        conn.execute("ALTER TABLE formula_dispatches ADD COLUMN error TEXT")
+    conn.commit()
+    logger.info("Migration v34 applied: formula_dispatches gained error")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -1882,6 +1893,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         33,
         "Memory durability v33: learned_patterns.archived_at for prune grace window",
         _migrate_v33_pattern_archived_at,
+    ),
+    (
+        34,
+        "formula_dispatches.error captures the dispatch failure reason",
+        _migrate_v34_dispatch_error,
     ),
 ]
 

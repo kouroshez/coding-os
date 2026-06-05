@@ -264,6 +264,7 @@ def register_cos_supervise_record_output(mcp, db_path):
         # Special path: exhaustive intent evidence (TASK-004 G3). Validated
         # by the completion guardian (Stop hook) against the predicate set
         # in $COS_AGENT_DIR/.intent.json. Not a role — has its own field.
+        error_detail: str | None = None
         if formula_id == "exhaustive_evidence" and status == "ok":
             try:
                 parsed_ee = schemas_mod.ExhaustiveEvidence.model_validate_json(output_json)
@@ -272,6 +273,7 @@ def register_cos_supervise_record_output(mcp, db_path):
                 logger.warning("Failed to parse exhaustive evidence: %s", exc)
                 bundle.degraded_formulas.append(formula_id)
                 status = "fail"
+                error_detail = f"exhaustive_evidence parse: {exc}"
         else:
             # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
             field, cls = _resolve_role_persistence(formula_id)
@@ -283,8 +285,15 @@ def register_cos_supervise_record_output(mcp, db_path):
                     logger.warning("Failed to parse %s output: %s", formula_id, exc)
                     bundle.degraded_formulas.append(formula_id)
                     status = "fail"
+                    error_detail = f"{formula_id} parse: {exc}"
             elif status == "timeout":
                 bundle.degraded_formulas.append(formula_id)
+                error_detail = "timeout"
+
+        # Caller-supplied non-ok status (not a parse failure) carries its reason
+        # in output_json — keep a bounded slice so the failure stays diagnosable.
+        if status != "ok" and not error_detail:
+            error_detail = (output_json or "")[:1000]
 
         _save_bundle(session_id, bundle)
 
@@ -296,7 +305,8 @@ def register_cos_supervise_record_output(mcp, db_path):
                 conn.execute(
                     "INSERT INTO formula_dispatches "
                     "(session_id, task_marker, persona_id, formula_id, input_hash, "
-                    "output_hash, latency_ms, status, ts) VALUES (?,?,?,?,?,?,?,?,?)",
+                    "output_hash, latency_ms, status, ts, error) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?)",
                     (
                         session_id,
                         task_marker,
@@ -307,6 +317,7 @@ def register_cos_supervise_record_output(mcp, db_path):
                         latency_ms,
                         status,
                         _now_iso(),
+                        error_detail,
                     ),
                 )
         except Exception as exc:
@@ -1089,8 +1100,8 @@ def _persist_dispatch_output(
                 "output_hash, latency_ms, status, ts, "
                 "cost_usd, budget_usd, usage_jsonb, model_usage_jsonb, "
                 "tool_calls_jsonb, tool_failures_jsonb, "
-                "sub_session_id, model, checkpoints_jsonb) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "sub_session_id, model, checkpoints_jsonb, error) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     session_id,
                     task_marker,
@@ -1110,6 +1121,7 @@ def _persist_dispatch_output(
                     meta.get("session_id"),
                     meta.get("model"),
                     _jsonb(meta.get("checkpoints")),
+                    str(meta.get("error"))[:1000] if meta.get("error") else None,
                 ),
             )
     except Exception as exc:

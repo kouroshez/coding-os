@@ -175,6 +175,16 @@ class TestTableCreation:
         assert "concepts" in cols
         assert "access_count" in cols
 
+    def test_formula_dispatches_has_error_column(self, migrated_conn: sqlite3.Connection) -> None:
+        # B5 (v34): failed dispatches must be diagnosable, not logged-only.
+        cols = [
+            row[1]
+            for row in migrated_conn.execute("PRAGMA table_info(formula_dispatches)").fetchall()
+        ]
+        assert "error" in cols
+        assert "status" in cols
+        assert "cost_usd" in cols
+
 
 # ---------------------------------------------------------------------------
 # Data insertion smoke test
