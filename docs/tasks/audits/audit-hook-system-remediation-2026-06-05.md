@@ -19,7 +19,7 @@ created: 2026-06-05
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | Learning-loop memory corruption | TASK-104 | decay.py/learning.py/session_enrich.py/nightly.py/cron_commands.py | 5 | 7 | yes | 0 | yes | d69a52b·568c4d9·b227b83·d752bd7·7096979 (auto-brain marker→N9, hour knob→N7) |
 | 2 | Danger/secret regex holes | TASK-105 | block-dangerous-commands.sh/block-secrets.sh/_helpers/check_dangerous_rm.py | 3 | 4 | yes | 0 | yes | 10d1240·2d6b7de (25 hook behavior tests) |
-| 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | no | 8 | no | (pending) |
+| 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | yes | 0 | yes | 25d38fd (25 files; panel-scope smoke 1-4 pass; 0 new test-hooks failures vs baseline 60/67) |
 | 4 | Board transition atomicity | TASK-108 | workflow.py/mcp_tools.py/4 hook helpers | 6 | 2 | no | 2 | no | (pending) |
 | 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/memory.py | 4 | 5 | no | 5 | no | (pending) |
 | 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/hook_renderer.py | 3 | 3 | no | 3 | no | (pending) |
@@ -47,13 +47,13 @@ created: 2026-06-05
 - ✅ 2c MED — force-push refspec `+main`/`+HEAD:main` blocked. **DONE 10d1240 + tests.**
 - ✅ 2d MED — secret skip-list matches path segments/basenames not substrings (`latest/`,`contest/` no longer silently unscanned). **DONE 2d6b7de.** ↪ `.env` git-add guard left best-effort by design — the installed git pre-commit hook scans the staged set (the real defense, per audit recommendation).
 
-### Stream 3 — TASK-107 · Per-panel marker-scope drift (P1)
-- ⬜ 3a HIGH — nudge-thinking-os/nudge-docs-first markers write to `${COS_PANEL_DIR:-…}` to match session-context clear (else fire once/agent-lifetime).
-- ⬜ 3b HIGH — nudge-graph-os/.graph-nudge + nudge-task-discovery/.task-nudge + track-discovery → panel-dir + added to session-context startup clear.
-- ⬜ 3c HIGH — session-end + warn-abandoned-task read stdin, `cos_panel_upgrade_from_payload`, agent-dir fallback for session-id (else empty → silent no-op on Claude Stop).
-- ⬜ 3d HIGH — capture-work-log.sh:34 reads `${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current`.
-- ⬜ 3e HIGH — `.intent.json` + 3 `.*-nudged` markers added to COS_PER_PANEL_FILES + routed via cos_state_path; producer/guardian path parity.
-- ⬜ 3f LOW — `.task-mode` → per-panel (banner verbosity cross-panel leak); warn-graph-empty marker path align; sync-task-current upgrades panel id.
+### Stream 3 — TASK-107 · Per-panel marker-scope drift (P1) — ✅ DONE 25d38fd
+- ✅ 3a — nudge-thinking-os/.zoom-prompt-suggested + nudge-docs-first/.docs-first-nudged → `${COS_PANEL_DIR:-$COS_AGENT_DIR}` (matches session-context panel-scope clear).
+- ✅ 3b — nudge-graph-os/.graph-nudge + nudge-task-discovery/.task-nudge + track-discovery/.last-discovery-reminder → panel-dir; `.graph-nudge`/`.task-nudge` dirs + `.last-discovery-reminder` + `.intent.json` added to session-context SessionStart clear.
+- ✅ 3c — session-end + warn-abandoned-task now read stdin → `cos_panel_upgrade_from_payload` → seeded `$COS_SESSION_FILE`, with stdin-session_id + agent-dir fallbacks (no more empty-session silent no-op). Smoke A/B/C/D pass.
+- ✅ 3d — capture-work-log.sh:34 → `${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current`.
+- ✅ 3e — `.intent.json` panel-first in producer (extract_intent.py `_intent_file_path`) + 4 consumers (prevent-premature-done, enforce-count-grounding, enforce-subagent-delegation, enforce-audit-artifact) + task_analyzer.py + intent-primer clears BOTH scopes; `.intent.json` + 3 `.*-nudged` added to COS_PER_PANEL_FILES; guardian already panel-first. Smoke: panel .intent.json written, cos_state_path routes all 4 basenames.
+- ✅ 3f — `.task-mode` per-panel: writer (classify-task-mode upgrades panel id) + 6 readers (session-context banner, nudge-docs-first, enforce-task-start, enforce-zoom, enforce-memory-check, enforce-skill) all panel-first w/ agent fallback; warn-graph-empty marker → panel; sync-task-current upgrades panel id pre-write; write-state.sh comment corrected.
 
 ### Stream 4 — TASK-108 · Board transition atomicity (P1)
 - ⬜ 4a HIGH — `workflow.py:221-471` wrap read+wip+update in `BEGIN IMMEDIATE` + `WHERE task_id=? AND status=?` CAS w/ rowcount check; `mcp_tools.py:809` pass `expected_from`.
@@ -97,10 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 10 -->
-<!-- next_unchecked_row: 3 -->
+<!-- last_updated_row: 3 -->
+<!-- next_unchecked_row: 5 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ (1290412). NEXT: N3 (TASK-107) per-panel marker-scope drift. Then N5,N4,N6,N8,N7,N9. -->
+<!-- progress: N1✅ N2✅ N10✅ N3✅ (25d38fd). NEXT: N5 (TASK-109) memory-load correctness. Then N4,N6,N8,N7,N9. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
