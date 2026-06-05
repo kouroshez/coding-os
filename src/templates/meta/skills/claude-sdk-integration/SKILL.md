@@ -144,8 +144,14 @@ the cognition layer expects the typed shape.
 - `uv run python src/scripts/smoke_sdk_dispatch.py` — end-to-end smoke (real API call, opt-in via env).
 - After signature change to `dispatch()`: re-run cognition smoke — `cos_dispatch_formula_run` shouldn't break.
 
+## Tooling
+
+Flag stale/deprecated Claude model ids (update the map when the family rotates):
+`python3 scripts/check_model_ids.py src/adapters/claude/*.py`
+
 ## See also
 
+- [assets/sdk-checklist.md](assets/sdk-checklist.md) — the SDK integration gate (model/caching/tool-loop/session).
 - [docs/adapters/claude-sdk.md](../../../../docs/adapters/claude-sdk.md)
 - [docs/adapters/claude-deepening-checklist.md](../../../../docs/adapters/claude-deepening-checklist.md)
 - [src/core/thinking_os/dispatcher.py](../../../../core/thinking_os/dispatcher.py)
