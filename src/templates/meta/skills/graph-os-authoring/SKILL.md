@@ -261,8 +261,14 @@ cos_graph_doctor   # check for dangling edges, orphan nodes, hash mismatch
 
 Pre-merge: `make verify` + `cos doctor`.
 
+## Tooling
+
+Scaffold an extractor stub (idempotent uid, content-hash short-circuit, typed Node/Edge):
+`python3 scripts/new_extractor.py --lang python`
+
 ## See also
 
+- [assets/graph-os-checklist.md](assets/graph-os-checklist.md) — the extractor + backend gate.
 - [graph-explorer](../../../core/skills/graph-explorer/SKILL.md) — the query-side counterpart of this skill.
 - [docs/engineering/graph_os-queries.md](../../../docs/engineering/graph_os-queries.md) — query routing + freshness contract.
 - [docs/engineering/graph-hallucination-cures.md](../../../docs/engineering/graph-hallucination-cures.md) — the 16 `cos_graph_*` tools and what each cures.
