@@ -2,15 +2,15 @@
   "docker-engine": {
     "ecosystem": "github",
     "package": "moby/moby",
-    "version": "29.5.2",
+    "version": "docker-v29.5.3",
     "source": "https://github.com/moby/moby/releases",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   },
   "docker-compose": {
     "ecosystem": "github",
     "package": "docker/compose",
     "version": "5.1.4",
     "source": "https://github.com/docker/compose/releases",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   }
 }

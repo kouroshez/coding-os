@@ -4,20 +4,20 @@
     "package": "koalaman/shellcheck",
     "version": "0.11.0",
     "source": "https://github.com/koalaman/shellcheck/releases",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   },
   "shfmt": {
     "ecosystem": "github",
     "package": "mvdan/sh",
-    "version": "3.12.0",
+    "version": "3.13.1",
     "source": "https://github.com/mvdan/sh/releases",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   },
   "python": {
     "ecosystem": "endoflife",
     "package": "python",
     "version": "3.14.5",
     "source": "https://endoflife.date/python",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   }
 }

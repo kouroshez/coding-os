@@ -77,9 +77,19 @@ def _github(repo: str, timeout: float) -> str:
     return _get_json(f"https://api.github.com/repos/{repo}/releases/latest", timeout)["tag_name"].lstrip("v")
 
 
-def _endoflife(product: str, timeout: float) -> str:
-    # Best machine-readable source for LTS/current split; [0] = newest cycle.
-    return str(_get_json(f"https://endoflife.date/api/{product}.json", timeout)[0]["latest"])
+def _endoflife(product: str, timeout: float, track: str | None = None) -> str:
+    # Newest cycle by default; track="lts" returns the newest CURRENTLY-LTS cycle.
+    # endoflife's `lts` field is polymorphic: True/False, or a date the cycle
+    # ENTERS lts — a future date means "not LTS yet", so only True or a past date
+    # counts (else a not-yet-LTS interim like Node 26 would be wrongly picked).
+    cycles = _get_json(f"https://endoflife.date/api/{product}.json", timeout)
+    if track == "lts":
+        today = _today()
+        for cycle in cycles:
+            lts = cycle.get("lts")
+            if lts is True or (isinstance(lts, str) and lts <= today):
+                return str(cycle["latest"])
+    return str(cycles[0]["latest"])
 
 
 def _k8s(_pkg: str, timeout: float) -> str:
@@ -168,7 +178,10 @@ def refresh_manifest(
             rows.append(row)
             continue
         try:
-            latest = FETCHERS[entry["ecosystem"]](entry["package"], timeout)
+            if entry["ecosystem"] == "endoflife":
+                latest = _endoflife(entry["package"], timeout, entry.get("track"))
+            else:
+                latest = FETCHERS[entry["ecosystem"]](entry["package"], timeout)
         except (urllib.error.URLError, KeyError, IndexError, TimeoutError, ValueError) as exc:
             row["status"] = "unreachable"
             row["error"] = f"{type(exc).__name__}: {exc}"

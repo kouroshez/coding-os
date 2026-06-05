@@ -75,7 +75,7 @@ Offset pagination degrades linearly and double-shows rows when the set shifts. K
 
 ## PostgreSQL vs MySQL (the traps that bite on a port)
 
-| | PostgreSQL 18 | MySQL 8.4 |
+| | PostgreSQL | MySQL |
 |---|---|---|
 | upsert | `ON CONFLICT DO UPDATE` | `ON DUPLICATE KEY UPDATE` |
 | returning written row | `RETURNING *` | no `RETURNING` (re-SELECT or `LAST_INSERT_ID()`) |

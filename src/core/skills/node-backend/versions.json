@@ -2,15 +2,16 @@
   "nodejs": {
     "ecosystem": "endoflife",
     "package": "nodejs",
-    "version": "24",
+    "track": "lts",
+    "version": "24.16.0",
     "source": "https://endoflife.date/nodejs",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   },
   "express": {
     "ecosystem": "npm",
     "package": "express",
     "version": "5.2.1",
     "source": "https://www.npmjs.com/package/express",
-    "checked": "2026-06-04"
+    "checked": "2026-06-05"
   }
 }
