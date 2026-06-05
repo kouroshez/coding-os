@@ -117,8 +117,9 @@ if [[ "$SOURCE" == "startup" ]]; then
 
   # Clear volatile markers from previous sessions. Scope is THIS PANEL's
   # private dir — sibling panels of the same agent are untouched, and the
-  # other agent's state is also untouched. Files that intentionally remain
-  # shared (.task-mode, .model, .swimlane, .last-verify) are NOT cleared.
+  # other agent's state is also untouched. NOT cleared: agent-shared
+  # (.model, .swimlane, .last-verify) and self-refreshing (.task-mode is
+  # now per-panel (TASK-107) but rewritten every prompt by classify-task-mode).
   CLEARED=0
   for STATE_FILE in \
     "${COS_PANEL_DIR}/.thinking_os-gate" \
@@ -140,9 +141,21 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.graph-call-seen" \
     "${COS_PANEL_DIR}/.abandoned-task-warned" \
     "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
+    "${COS_PANEL_DIR}/.last-discovery-reminder" \
+    "${COS_PANEL_DIR}/.intent.json" \
     "${COS_STATE_DIR}/.capture-errors.log"; do
     if [ -e "$STATE_FILE" ]; then
       rm -f "$STATE_FILE"
+      CLEARED=$((CLEARED + 1))
+    fi
+  done
+  # Per-panel nudge debounce DIRECTORIES (TASK-107) — rm -rf, they hold
+  # one file per matched pattern/leg, not a single marker.
+  for STATE_DIR_MARK in \
+    "${COS_PANEL_DIR}/.graph-nudge" \
+    "${COS_PANEL_DIR}/.task-nudge"; do
+    if [ -d "$STATE_DIR_MARK" ]; then
+      rm -rf "$STATE_DIR_MARK"
       CLEARED=$((CLEARED + 1))
     fi
   done
@@ -419,8 +432,12 @@ except Exception:
   # system | gov-required | propose-formal. Drives banner verbosity:
   # casual modes get a minimal banner, formal modes get the full one.
   TASK_MODE=""
-  if [ -f "${COS_AGENT_DIR}/.task-mode" ]; then
-    TASK_MODE=$(head -1 "${COS_AGENT_DIR}/.task-mode" 2>/dev/null | tr -d '\n\r' | head -c 16)
+  # panel-first (TASK-107): .task-mode is per-panel; agent-dir is the
+  # back-compat fallback for a panel that hasn't re-written it yet.
+  _TASK_MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"
+  [ -f "$_TASK_MODE_FILE" ] || _TASK_MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+  if [ -f "$_TASK_MODE_FILE" ]; then
+    TASK_MODE=$(head -1 "$_TASK_MODE_FILE" 2>/dev/null | tr -d '\n\r' | head -c 16)
   fi
   WIP_TOTAL=""
   if [ -f "$COS_DB_PATH" ] && command -v python3 >/dev/null 2>&1; then

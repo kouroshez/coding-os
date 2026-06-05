@@ -172,11 +172,14 @@ COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
 # append its basename here; the writer/reader auto-route from then on.
 #
 # Explicitly NOT in this list (intentionally shared across panels of the
-# same agent): .agent, .model, .task-mode, .swimlane, .last-verify*,
-# .last-decay, .turn-activity.log, .overrides.json, .hooks.log, sessions/,
-# traces/, locks/, heartbeat, coding-os.db. Rationale per file in
+# same agent): .agent, .model, .swimlane, .last-verify*, .last-decay,
+# .turn-activity.log, .overrides.json, .hooks.log, sessions/, traces/,
+# locks/, heartbeat, coding-os.db. Rationale per file in
 # docs/engineering/state-files.md.
-COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .roles-composed .roles .role .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override session-id}"
+# TASK-107: .task-mode, .intent.json, and the intent/discovery debounce
+# markers moved to per-panel — two panels of the same agent must not share
+# banner verbosity, exhaustive-intent obligation, or nudge debounce.
+COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .roles-composed .roles .role .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override .task-mode .intent.json .premature-done-nudged .count-grounding-nudged .subagent-delegation-nudged .last-discovery-reminder session-id}"
 
 # Model signal for the routing / learning pipeline. Priority:
 #   1. Caller already exported COS_AGENT_MODEL (test harness / explicit).

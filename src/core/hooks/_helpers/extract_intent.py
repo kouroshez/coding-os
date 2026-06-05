@@ -226,6 +226,13 @@ def _empty_result(prompt: str) -> dict[str, Any]:
 
 
 def _intent_file_path() -> Path | None:
+    # Panel-first (TASK-107): .intent.json is per-panel so two panels of the
+    # same agent don't clobber each other's exhaustive-scope intent. The
+    # completion guardian reads COS_PANEL_DIR first (agent-dir fallback), so
+    # the writer must match. Fall back to COS_AGENT_DIR when no panel is set.
+    panel = os.environ.get("COS_PANEL_DIR")
+    if panel:
+        return Path(panel) / ".intent.json"
     base = os.environ.get("COS_AGENT_DIR")
     if base:
         return Path(base) / ".intent.json"

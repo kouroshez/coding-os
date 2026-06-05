@@ -132,14 +132,23 @@ _PROD_IMPACT_TOKENS = [
 
 
 def _extract_exhaustive(agent_dir: Path | None) -> bool:
-    """Read exhaustive-scope intent from $COS_AGENT_DIR/.intent.json (fail-open)."""
-    if agent_dir is None:
-        return False
-    try:
-        data = json.loads((agent_dir / ".intent.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return False
-    return bool(data.get("exhaustive")) if isinstance(data, dict) else False
+    """Read exhaustive-scope intent from .intent.json (panel-first, fail-open)."""
+    # Panel-first (TASK-107): the marker is per-panel; COS_PANEL_DIR is the
+    # authoritative source, the passed agent_dir is the back-compat fallback.
+    candidates: list[Path] = []
+    panel = os.environ.get("COS_PANEL_DIR")
+    if panel:
+        candidates.append(Path(panel) / ".intent.json")
+    if agent_dir is not None:
+        candidates.append(agent_dir / ".intent.json")
+    for intent_path in candidates:
+        try:
+            data = json.loads(intent_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict):
+            return bool(data.get("exhaustive"))
+    return False
 
 
 def analyze_task(

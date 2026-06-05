@@ -26,7 +26,8 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
 fi
 
 # Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
-MODE_FILE="${COS_AGENT_DIR}/.task-mode"
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107)
+[[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 if [[ -f "$MODE_FILE" ]]; then
   TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
   case "$TASK_MODE" in
