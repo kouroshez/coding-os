@@ -1,0 +1,16 @@
+{
+  "go": {
+    "ecosystem": "gotoolchain",
+    "package": "go",
+    "version": "1.26.4",
+    "source": "https://go.dev/dl/",
+    "checked": "2026-06-04"
+  },
+  "fiber": {
+    "ecosystem": "go",
+    "package": "github.com/gofiber/fiber/v3",
+    "version": "3.0.0",
+    "source": "https://github.com/gofiber/fiber/releases",
+    "checked": "2026-06-04"
+  }
+}

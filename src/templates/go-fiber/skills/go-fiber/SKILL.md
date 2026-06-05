@@ -1,11 +1,12 @@
 ---
 name: go-fiber
-description: Use when creating or modifying Go files under src/backend/ in a Fiber project — handlers, middleware, request validation, graceful shutdown, and table-driven tests with app.Test(). Triggers on any .go file change under src/backend/. Covers idiomatic Fiber v2 patterns plus the Go fundamentals (error wrapping, context propagation, struct tags for validation).
+description: Use when creating or modifying Go files under src/backend/ in a Fiber project — handlers, middleware, request validation, graceful shutdown, and table-driven tests with app.Test(). Triggers on any .go file change under src/backend/. Covers idiomatic Fiber v3 (GA 2026, Go 1.25+) patterns plus the Go fundamentals (error wrapping, context propagation, struct tags for validation); see references/fiber-v3-patterns.md for the v2→v3 changes.
 globs: "src/backend/**/*.go"
 depends_on:
   - clean-code
   - backend-fundamentals
-last_reviewed: "2026-05-11"
+last_reviewed: "2026-06-04"
+versions_ref: versions.json
 
 ---
 
@@ -191,3 +192,10 @@ Never import `handlers` from `services` (back-edge). Services are the leaf of th
 - Using `context.Background()` inside handler scope — always `c.UserContext()`.
 - Mixing goroutines with Fiber without a context-derived cancellation.
 - Global DB pool held in a package-level `var db *sql.DB` — inject it via the service constructor.
+
+## Deepening + tooling
+
+- [references/fiber-v3-patterns.md](references/fiber-v3-patterns.md) — Fiber v3 (2026) handlers, binding, central error handler, middleware order, fasthttp gotchas.
+- [references/anatomy.md](references/anatomy.md) — file map + scaffold; `scripts/new_endpoint.py` to generate one.
+- [assets/fiber-checklist.md](assets/fiber-checklist.md) — the review gate.
+- Versions pinned in [versions.json](versions.json) — `make skills-check-versions`.
