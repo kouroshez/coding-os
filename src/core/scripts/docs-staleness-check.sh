@@ -28,7 +28,10 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_lib.sh"
 
-COS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Repo root is three levels up: scripts → core → src → <root>. The src-layout
+# migration left COS_ROOT one level short, so SERVER_PY/DB_PY resolved by luck
+# while CLAUDE.md / architecture.md (at the real root) silently never matched.
+COS_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 QUIET=0
 
 for arg in "$@"; do
@@ -58,8 +61,8 @@ note_warning() {
 
 # ── Compute expected values from the codebase ───────────────────────────────
 
-SERVER_PY="$COS_ROOT/core/thinking_os/server.py"
-DB_PY="$COS_ROOT/core/thinking_os/database.py"
+SERVER_PY="$COS_ROOT/src/core/thinking_os/server.py"
+DB_PY="$COS_ROOT/src/core/thinking_os/database.py"
 CLAUDE_MD="$COS_ROOT/CLAUDE.md"
 ARCH_MD="$COS_ROOT/docs/architecture.md"
 
@@ -116,11 +119,11 @@ info "  Tables in _TABLES list:                       $TABLE_COUNT"
 if [ -f "$CLAUDE_MD" ]; then
   CHECKED=$((CHECKED + 1))
 
-  # Look for "XX cos_* tools" pattern — capture the number
+  # Look for an "XX cos_* tools" claim. The phrase is OPTIONAL — CLAUDE.md /
+  # AGENTS.md deliberately delegate the live count to mcp-tool-inventory.md, so
+  # absence is the intended state. Only a present-but-wrong number is an error.
   DOC_TOOL_COUNT=$(grep -oE '[0-9]+ cos_\* tools' "$CLAUDE_MD" | head -1 | grep -oE '^[0-9]+')
-  if [ -z "${DOC_TOOL_COUNT:-}" ]; then
-    note_warning "CLAUDE.md: no 'NN cos_* tools' phrase found — cannot cross-check"
-  elif [ "$DOC_TOOL_COUNT" != "$TOOL_COUNT" ]; then
+  if [ -n "${DOC_TOOL_COUNT:-}" ] && [ "$DOC_TOOL_COUNT" != "$TOOL_COUNT" ]; then
     note_error "CLAUDE.md claims '$DOC_TOOL_COUNT cos_* tools' but server.py has $TOOL_COUNT @mcp.tool decorators"
   fi
 
