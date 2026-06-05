@@ -304,11 +304,15 @@ async def board_list(
         # agent_states is the new, richer shape: {agent: "active"|"present"|"offline"}.
         # active_agents preserves the v0.5 contract ("list of ids that are not
         # offline") so older UI builds keep working during the rollout.
+        from board_os._agent_runtime import human_actor
         from board_os.hub_adapter_manifest import list_agent_manifest_rows
 
         adapter_rows = list_agent_manifest_rows()
         agent_ids = [str(r["id"]) for r in adapter_rows]
-        states: dict[str, str] = {"human": "active"}  # human is always considered present
+        human = human_actor()
+        # Human operator is always considered present. Identity is resolved
+        # (not hard-coded) so a future auth layer supplies the real user.
+        states: dict[str, str] = {human["id"]: "active"}
         session_states: list[dict] = []
         session_counts: dict[str, int] = {}
         conn = _db_conn()
@@ -358,11 +362,11 @@ async def board_list(
                 logger.debug("sub-session count failed for %s: %s", agent, exc)
         env["data"]["sub_session_counts"] = sub_counts
         human_row = {
-            "id": "human",
-            "label": "human",
-            "glyph": "H",
+            "id": human["id"],
+            "label": human["label"],
+            "glyph": (human["label"][:1] or "H").upper(),
             "color": "#16a34a",
-            "session": "local-mac",
+            "session": human["id"],
         }
         env["data"]["agent_manifest"] = [*adapter_rows, human_row]
         env["data"]["presence_scope"] = "per_project"

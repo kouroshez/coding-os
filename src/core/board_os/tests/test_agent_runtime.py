@@ -14,6 +14,7 @@ def _scrub_env(tmp_path, monkeypatch):
     """Clear all known env markers + run from a clean cwd."""
     for k in (
         "COS_AGENT",
+        "COS_HUMAN_ACTOR",
         "COS_STATE_DIR",
         "CLAUDECODE",
         "CLAUDE_CODE_SSE_PORT",
@@ -92,3 +93,22 @@ def test_legacy_agent_label_delegates():
     from core.board_os.mcp_tools import _agent_label
 
     assert _agent_label("ses-codex-q") == "codex"
+
+
+def test_human_actor_default():
+    """No auth + no override → the structured 'human' default."""
+    assert ar.human_actor() == {"type": "human", "id": "human", "label": "human"}
+
+
+def test_human_actor_env_id_only(monkeypatch):
+    monkeypatch.setenv("COS_HUMAN_ACTOR", "u-42")
+    actor = ar.human_actor()
+    assert actor["type"] == "human"
+    assert actor["id"] == "u-42"
+    assert actor["label"] == "u-42"
+
+
+def test_human_actor_env_id_and_label(monkeypatch):
+    """Future-auth shape: 'id:Label' resolves both fields."""
+    monkeypatch.setenv("COS_HUMAN_ACTOR", "u-42:Kourosh")
+    assert ar.human_actor() == {"type": "human", "id": "u-42", "label": "Kourosh"}

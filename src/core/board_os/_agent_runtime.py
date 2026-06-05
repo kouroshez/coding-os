@@ -165,9 +165,23 @@ def resolve_agent_session(explicit: str | None = None) -> str | None:
     return None
 
 
+def human_actor() -> dict[str, str]:
+    """Resolve the human operator's actor identity (future-auth-ready).
+
+    No auth yet: the web panel acts as a single local human. Identity is
+    sourced from ``$COS_HUMAN_ACTOR`` (shape ``id`` or ``id:Label``) so a
+    later auth layer can set the authenticated user without touching
+    callers; the ``human`` default keeps the no-auth panel working.
+    """
+    raw = (os.environ.get("COS_HUMAN_ACTOR") or _HUMAN_LITERAL).strip()
+    actor_id, _, label = raw.partition(":")
+    actor_id = actor_id.strip() or _HUMAN_LITERAL
+    return {"type": "human", "id": actor_id, "label": label.strip() or actor_id}
+
+
 def reset_cache() -> None:
     """Test-only: drop the cached registry so tests get fresh adapter data."""
     _known_agent_ids.cache_clear()
 
 
-__all__ = ["detect_agent", "reset_cache", "resolve_agent_session"]
+__all__ = ["detect_agent", "human_actor", "reset_cache", "resolve_agent_session"]
