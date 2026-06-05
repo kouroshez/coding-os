@@ -24,7 +24,7 @@ created: 2026-06-05
 | 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/server.py | 4 | 5 | yes | 0 | yes | 863d3d7 (digest-startup + boost smoke + gate-TTL unit + 142 learning/memory tests + MCP self-test) |
 | 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/test_adapter_parity.py | 3 | 0 | yes | 0 | yes | 5bbb8a6 (6a wired + 6c parity test 5/5; 6b refiled TASK-153 — exit-0-stdout drop, no silent no-op) |
 | 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx/MemoryPage.tsx/api-types | 4 | 4 | no | 4 | no | (pending) |
-| 8 | Data-driven adapter detection | TASK-112 | cos-env.sh/doctor.py/test_no_hardcoded_stacks.py | 3 | 4 | no | 4 | no | (pending) |
+| 8 | Data-driven adapter detection | TASK-112 | doctor.py/cos-env.sh | 3 | 0 | yes | 0 | yes | 6e96f5c (cursor loader smoke + 633 no-hardcoded tests; 8a/8c→TASK-155) |
 | 9 | Hot-path Pre/Post dispatcher | TASK-113 | registry.yaml/hook_renderer.py/test-first/auto-regen-doc-index/dead stubs | ~6 | 6 | no | 6 | no | (pending) |
 | 10 | enforce-anti-ambiguity dead gate | TASK-114 | enforce-anti-ambiguity.sh/cognition.py | 2 | 2 | yes | 0 | yes | 1290412 (DB-state gate + clear-on-pass test) |
 
@@ -78,11 +78,11 @@ created: 2026-06-05
 - ⬜ 7c HIGH — 'Run learning loop now' button wired to the POST.
 - ⬜ 7d MED — scheduled_status Pydantic response_model so api-types isn't `unknown` (structural drift fix).
 
-### Stream 8 — TASK-112 · Data-driven adapter detection (P2, infra)
-- ⬜ 8a HIGH — cos-env.sh:78-96 reads adapter.yaml::runtime_env_markers (not hardcoded if/elif).
-- ⬜ 8b HIGH — doctor.py:1207 loader_fns generalized/registered (Cursor MCP diagnostic silently skipped today).
-- ⬜ 8c MED — test_no_hardcoded_stacks extended to src/core/hooks/*.sh.
-- ⬜ 8d LOW — remove speculative GEMINI_* literals (cos-env.sh:126/146/193); cursor adapter.yaml misleading camelCase comment.
+### Stream 8 — TASK-112 · Data-driven adapter detection (P2, infra) — ✅ DONE 6e96f5c
+- ⏭️ 8a — REFILED as TASK-155. cos-env's agent-detection if/elif (+ panel session-marker loop + model-env resolver) duplicates `adapter.yaml::runtime_env_markers`/`runtime_session_marker` (already the SSOT consumed by `cli/board_commands.py::_detect_agent_runtime`). The correct fix is a REGEN-generated `_agent-detect.generated.sh` sourced by cos-env (fast hot path, no per-hook YAML parse). cos-env.sh is sourced by EVERY hook of EVERY adapter — doing this needs a generator + regen wiring + byte-equivalence diff + per-adapter detection smoke, which is its own task, not a marathon-tail edit on the single most load-bearing file.
+- ✅ 8b — doctor's `loader_fns` now maps `cursor_mcp_json` → `_load_claude_json` (Cursor `.cursor/mcp.json` shares the `mcpServers.coding-os` shape per cursor/install.sh). The Cursor `mcp.actually_launches` diagnostic stopped silently skipping (`spec.loader not in loader_fns`). Smoke: cursor loader resolves `.cursor/mcp.json`.
+- ⏭️ 8c — bundled into TASK-155: extending `test_no_hardcoded_stacks` to `src/core/hooks/*.sh` can only go green once cos-env's literals come from the generated file (8a) — coupling them keeps the test from failing on the existing-and-correct hardcoded block.
+- ✅ 8d — removed speculative `GEMINI_SESSION_ID`/`ANTHROPIC_SESSION_ID` from cos-env's panel session-marker loop + the Gemini comment (anti-overengineering; no shipping adapter exports them). Real claude/cursor/codex vars retained. 633 no-hardcoded tests + verify-hooks clean.
 
 ### Stream 9 — TASK-113 · Hot-path Pre/Post dispatcher (P2, FULL refactor — high blast radius, do LAST, coordinate w/ TASK-100)
 - ⬜ 9a — single PreToolUse + single PostToolUse Write|Edit dispatcher (parse stdin once, fan out in-process) — cuts ~42 spawns/edit.
@@ -97,10 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 6 -->
-<!-- next_unchecked_row: 8 -->
+<!-- last_updated_row: 8 -->
+<!-- next_unchecked_row: 7 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ N6✅ (5bbb8a6; 6b→TASK-153). NEXT: N8 (TASK-112) data-driven adapter detection. Then N7,N9. -->
+<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ N6✅ N8✅ (6e96f5c; 8a/8c→TASK-155). NEXT: N7 (TASK-111) hub learning panel. Then N9. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
