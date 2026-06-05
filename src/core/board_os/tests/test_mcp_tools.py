@@ -147,6 +147,12 @@ def test_create_task_in_progress_stamps_started_and_session(
             swimlane="core",
             kind="feature",
             status="in_progress",
+            outcome="Stamp started + agent_session when a task is created directly in progress.",
+            acceptance=(
+                "- **Given** a task created with status=in_progress\n"
+                "- **When** the create completes\n"
+                "- **Then** started and agent_session are non-null in the file."
+            ),
             agent_session="ses-test-lifecycle-1",
         )
     )
@@ -179,6 +185,64 @@ def test_create_task_testing_does_not_stamp_started(project: Path, conn: sqlite3
     content = md.read_text(encoding="utf-8")
     assert "started: null" in content
     assert "agent_session: null" in content
+
+
+def test_create_in_progress_blocks_without_dor(project: Path, conn: sqlite3.Connection):
+    """Creating directly into in_progress runs the DoR gate (parity with the
+    icebox→in_progress transition). A feature with a placeholder body must be
+    rejected — the agent cannot start undefined work."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Undefined feature started directly",
+            swimlane="core",
+            kind="feature",
+            status="in_progress",
+        )
+    )
+    assert env["ok"] is False
+    assert env["error"]["category"] == "validation"
+    assert "Definition of Ready" in env["error"]["message"]
+
+
+def test_create_in_progress_passes_with_outcome_and_acceptance(
+    project: Path, conn: sqlite3.Connection
+):
+    """One-shot create-and-start works when the caller supplies a real
+    Outcome + Acceptance (G/W/T); the acceptance is threaded into the body."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Well-defined feature",
+            swimlane="core",
+            kind="feature",
+            status="in_progress",
+            outcome="Add OAuth login that issues 24h JWTs with refresh rotation.",
+            acceptance=(
+                "- **Given** a logged-out user with valid credentials\n"
+                "- **When** they sign in\n"
+                "- **Then** a 24h JWT plus refresh token are issued."
+            ),
+        )
+    )
+    assert env["ok"] is True
+    content = (project / env["data"]["file_path"]).read_text(encoding="utf-8")
+    assert "24h JWT plus refresh token" in content
+
+
+def test_create_icebox_lean_capture_allowed(project: Path, conn: sqlite3.Connection):
+    """Lean capture into icebox stays unrestricted — the DoR gate only fires
+    on entry to in_progress, not on backlog capture."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Rough idea captured for later",
+            swimlane="core",
+            kind="feature",
+        )
+    )
+    assert env["ok"] is True
+    assert env["data"]["status"] == "icebox"
 
 
 def test_create_task_rejects_unknown_swimlane(project: Path, conn: sqlite3.Connection):

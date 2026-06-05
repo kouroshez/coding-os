@@ -34,6 +34,9 @@ definition_of_ready:
           - "**Then**"
         forbid_substrings:
           - "(fill in"
+          - "**Given** ..."
+          - "**When** ..."
+          - "**Then** ..."
       "Read First":
         required: true
         min_items: 1
@@ -62,6 +65,7 @@ definition_of_ready:
         Acceptance:
           required: true
           required_subitems: ["**Given**", "**When**", "**Then**"]
+          forbid_substrings: ["(fill in", "**Given** ...", "**When** ...", "**Then** ..."]
     spike:
       sections:
         Outcome:
@@ -96,6 +100,7 @@ definition_of_ready:
         Acceptance:
           required: true
           required_subitems: ["**Given**", "**When**", "**Then**"]
+          forbid_substrings: ["(fill in", "**Given** ...", "**When** ...", "**Then** ..."]
     test:
       sections:
         Outcome:
@@ -105,6 +110,7 @@ definition_of_ready:
         Acceptance:
           required: true
           required_subitems: ["**Given**", "**When**", "**Then**"]
+          forbid_substrings: ["(fill in", "**Given** ...", "**When** ...", "**Then** ..."]
     security:
       sections:
         Outcome:
@@ -117,6 +123,7 @@ definition_of_ready:
         Acceptance:
           required: true
           required_subitems: ["**Given**", "**When**", "**Then**"]
+          forbid_substrings: ["(fill in", "**Given** ...", "**When** ...", "**Then** ..."]
         "Threat Model":
           required: true
           min_chars: 30

@@ -174,6 +174,7 @@ def _render_kind_aware_body(
     kind: str,
     outcome: str | None,
     read_first_block: str,
+    acceptance: str | None = None,
 ) -> str:
     """Render the task body with placeholders that match the kind's DoR.
 
@@ -220,9 +221,13 @@ def _render_kind_aware_body(
         )
 
     if "Acceptance" in active_sections:
+        accept_body = (
+            acceptance.strip()
+            if acceptance and acceptance.strip()
+            else "- **Given** ...\n- **When** ...\n- **Then** ..."
+        )
         sections_to_render["Acceptance"] = (
-            "## Acceptance (G/W/T) — *this IS the Definition of Done*\n"
-            "- **Given** ...\n- **When** ...\n- **Then** ..."
+            "## Acceptance (G/W/T) — *this IS the Definition of Done*\n" + accept_body
         )
 
     sections_to_render["Work Log"] = "## Work Log"
@@ -415,6 +420,7 @@ def cos_task_create(
     epic: str | None = None,
     labels: list[str] | None = None,
     outcome: str | None = None,
+    acceptance: str | None = None,
     read_first: list[str] | None = None,
     depends_on: list[str] | None = None,
     status: str = "icebox",
@@ -449,6 +455,47 @@ def cos_task_create(
     # separate cos_task_ready call.
     if ready and READY_LABEL not in labels:
         labels.append(READY_LABEL)
+
+    # Force Definition of Ready when creating directly into in_progress —
+    # parity with the icebox→in_progress transition gate (workflow.transition),
+    # which the create-path otherwise bypasses. Validate BEFORE allocating a
+    # TASK id so a rejected create never burns an id. Lean capture into
+    # icebox/emergency stays unrestricted; complete stays a retro escape.
+    if status == "in_progress":
+        preview_rf = "\n".join(f"- {p}" for p in (read_first or ["(no doc yet — exploratory)"]))
+        preview_body = _render_kind_aware_body(
+            task_id="TASK-PENDING",
+            title=title,
+            kind=kind,
+            outcome=outcome,
+            read_first_block=preview_rf,
+            acceptance=acceptance,
+        )
+        try:
+            from board_os.transition_gates import GatesConfigError, load_gates_config
+            from board_os.transition_gates_validator import (
+                validate_transition as _gate_validate,
+            )
+
+            gate = _gate_validate(
+                task_id="TASK-PENDING",
+                kind=kind,
+                body=preview_body,
+                new_status="in_progress",
+                config=load_gates_config(),
+                override_reason=os.environ.get("COS_OVERRIDE_REASON"),
+                override_actor=os.environ.get("COS_AGENT") or agent_session,
+            )
+        except GatesConfigError:
+            gate = None
+        if gate is not None and gate.blocked:
+            return fail(
+                "validation",
+                "cannot create directly into in_progress — Definition of Ready not met: "
+                + "; ".join(f"[{m.code}] {m.message}" for m in gate.messages)
+                + ". Fix: create into icebox, fill Outcome + Acceptance, mark ready, "
+                "then cos_task_start — or pass outcome= and acceptance= to one-shot it.",
+            )
 
     # Auto-attribute the create event to the running agent's session
     # when the caller didn't pass one. Skipping this leaves NULL in
@@ -502,6 +549,7 @@ def cos_task_create(
         kind=kind,
         outcome=outcome,
         read_first_block=rf_lines,
+        acceptance=acceptance,
     )
     file_path.write_text(frontmatter + body, encoding="utf-8")
 
