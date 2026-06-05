@@ -136,13 +136,34 @@ per-suite `[done/total] ✓/✗` ticks, handles `TimeoutExpired` → exit 124, `
 3. **Batch 5 + 6 + 7** (P2, 21 items) — hardening + cleanup.
 4. **Batch 8** (P3, ~37 files) — header sweep, single pass.
 
-## Resume marker
+## Resume marker — FINAL
 
-discovery: COMPLETE (61 findings)
-remediation progress:
-- Batch 1 (greenwash gates, 11): DONE — commits f64b857 (make), c358126 (cli), 7222359 (scripts), b8ad03e (tests)
-- Batch 2 (stale src/ paths, 8 + populate/prune extras): DONE — commit ab13480 (8 scripts), 7222359 (populate/prune)
-- Batch 3-8: pending.
-next: Batch 3 (progress on slow ops) — doctor.py, graph_commands.py, link-stack-skills.sh, cron, setup.
+discovery: COMPLETE (61 findings) · remediation: SUBSTANTIALLY COMPLETE
 
-side-discoveries (separate follow-up task, NOT output-quality): `make audit` exposed 6 nako_ + 18 .claude/ refs; verify_dispatchers exposed codex dispatcher drift (prevent-premature-done, verify-completion-claim) + missing `verify-dispatchers` make target; 1 malformed-frontmatter doc + ~53 doc-link advisories.
+| Batch | Status | Commits |
+|---|---|---|
+| 1 greenwash gates (11) | ✅ DONE | f64b857 (make) · c358126 (cli) · 7222359 (scripts) · b8ad03e (tests) |
+| 2 stale src/ paths (8 + populate/prune/e2e/audit_mcp extras) | ✅ DONE | ab13480 · 7222359 · af876ef · 90eb9e4 |
+| 3 progress on slow ops (7) | ✅ DONE | d1516d1 |
+| 4 stdout/stderr discipline (6, board_commands verified already-correct) | ✅ DONE | af876ef |
+| 5 algo efficiency (docs-nav-fix batched) | ✅ DONE | 90eb9e4 |
+| 6 hooks pipefail (8) + refactor_agent --dry-run + audit_mcp guard | ✅ DONE | 71810c4 · 90eb9e4 |
+| 7 dead stubs (2) | ⏸️ DEFERRED | see below |
+| 8 header sweep (surfaced shell + thin-py) | ✅ DONE | 249124a |
+
+### Deferred with rationale (judgment calls — NOT skipped silently)
+
+- **Batch 7 dead stubs** (`verify-changed-file.sh`, `doc-sync-reminder.sh`): deleting registered hooks forces `make regen-adapter-templates` + a global `make golden-capture`, unsafe during the **active concurrent TASK-102 session** (golden-collision risk, prior incident). Stubs are harmless no-ops (exit 0). Do in a clean single-session window.
+- **Batch 5 graph_commands SQLite-per-file**: the per-call `init_db()` inside `dispatch()` is **deliberate** — it enables the process-parallel `_parallel_dispatch` path (each process its own connection). A shared connection would break parallel safety. A serial-only `dispatch(conn=)` overload is a separate optimization, not a bug.
+- **Batch 5 rename_formulas rglob×22**: kept-for-reference one-shot historical migration; O(22n) is acceptable per auditor. Not worth touching.
+- **Batch 4 board_commands `_print_envelope`**: re-verified — text mode already routes error→stderr+exit1, data→stdout+exit0; json mode is correct. Auditor over-flagged (it hedged "minor"). No change (avoid false-positive churn).
+- **Batch 8 prose-docstring modules** (regen_rules, regen_doctor_schema, graph_demo, measure_token_baseline, adapter_registry, core_version, aggregator): already carry adequate multi-line docstrings stating their contract. A rigid P/I/O/D/N stamp over good prose is the churn anti-overengineering forbids.
+
+### Side-discoveries (NEW issues the honest gates surfaced — own follow-up task)
+
+The greenwash-gate fixes exposed real pre-existing drift that was previously hidden:
+- `make audit` → 6 `nako_` + 18 `.claude/` stale refs (content drift).
+- `verify_dispatchers` (now live) → codex dispatcher missing `prevent-premature-done` + `verify-completion-claim`; the `verify-dispatchers` make target doesn't exist (wire it).
+- `cos doctor` → `scaffold.manifest_fresh = WARN` (stale `scaffold_manifest.json`; `make manifest-regen`).
+- 1 malformed-frontmatter doc (`docs/_meta/audits/audit-doctor-diagnostics-sweep.md`) + ~53 doc-link advisories.
+- `smoke_sdk_dispatch` runs past its fixed path to a real-CLI "Invalid session ID (must be UUID)" — an integration-env concern.
