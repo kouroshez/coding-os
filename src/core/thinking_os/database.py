@@ -1546,6 +1546,48 @@ def _migrate_v31_task_edit_history(conn: sqlite3.Connection) -> None:
     logger.info("Migration v31 applied: task_edit_history (actor-attributed field edits)")
 
 
+def _migrate_v32_log_events(conn: sqlite3.Connection) -> None:
+    """Migration v32 — durable WARN+ error store + permanent fingerprint rollup (observability eye)."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS log_events (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts           TEXT    NOT NULL,
+            lvl          TEXT    NOT NULL,
+            scope        TEXT    NOT NULL,
+            msg          TEXT    NOT NULL,
+            kv           TEXT,
+            exc_type     TEXT,
+            stack        TEXT,
+            session_id   TEXT,
+            trace_id     TEXT,
+            fingerprint  TEXT    NOT NULL,
+            created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_log_events_fp  ON log_events(fingerprint);
+        CREATE INDEX IF NOT EXISTS idx_log_events_ts  ON log_events(ts);
+        CREATE INDEX IF NOT EXISTS idx_log_events_lvl ON log_events(lvl);
+
+        CREATE TABLE IF NOT EXISTS log_fingerprints (
+            fingerprint        TEXT    PRIMARY KEY,
+            scope              TEXT    NOT NULL,
+            exc_type           TEXT,
+            sample_msg         TEXT    NOT NULL,
+            max_lvl            TEXT    NOT NULL,
+            first_seen         TEXT    NOT NULL,
+            last_seen          TEXT    NOT NULL,
+            count              INTEGER NOT NULL DEFAULT 0,
+            distinct_sessions  INTEGER NOT NULL DEFAULT 0,
+            task_id            TEXT,
+            status             TEXT    NOT NULL DEFAULT 'open'
+        );
+        CREATE INDEX IF NOT EXISTS idx_log_fp_status ON log_fingerprints(status, last_seen);
+        """
+    )
+    conn.commit()
+    logger.info("Migration v32 applied: log_events + log_fingerprints (observability eye durable store)")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -1821,6 +1863,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         31,
         "G4 v31: task_edit_history (append-only, actor-attributed field edits)",
         _migrate_v31_task_edit_history,
+    ),
+    (
+        32,
+        "Observability eye v32: log_events + log_fingerprints durable error store",
+        _migrate_v32_log_events,
     ),
 ]
 

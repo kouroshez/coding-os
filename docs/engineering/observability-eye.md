@@ -25,7 +25,7 @@ python  except ─cos_log.error(exc=)┐                    ┌ jsonl tail (HOT,
 hooks   shell  ─cos_say error──────┤   _emit            │   (debug/info live here)
 mcp     fail() ────────────────────┼─► +redact   ─► sinks┤
 cli/web 500    ─stdlib bridge──────┤   +trace_id          │ log_events DB (COLD, v32) ─┬ cos_log_query  (MCP)
-nightly sweep  ─(reads store)──────┘   +stack             │   (WARN+, FTS5, retained)  ├ cos errors     (CLI)
+nightly sweep  ─(reads store)──────┘   +stack             │   (WARN+, indexed, retained)  ├ cos errors     (CLI)
                                                           │                            ├ cos doctor runtime check
                                                           └ log_fingerprints (rollup) ─┴ nightly error-sweep
                                                                                           ├ FATAL    → emergency bug task
@@ -105,7 +105,7 @@ CREATE TABLE log_fingerprints (
 
 ## 3. Query surfaces
 
-- **`cos_log_query` (MCP)** — `@safe_tool`, `meta.layer="logs"`. Modeled on `tools/audit.py::audit_log_query` (same WHERE-builder + `total`/`rows` shape). Filters: `level` floor, `scope` glob, `since`, `search` (FTS5 on `msg`), `session_id`/`trace_id`, `fingerprint`. This is how the agent asks *"what is broken right now"*.
+- **`cos_log_query` (MCP)** — `@safe_tool`, `meta.layer="logs"`. Modeled on `tools/audit.py::audit_log_query` (same WHERE-builder + `total`/`rows` shape). Filters: `level` floor, `scope` glob, `since`, `search` (indexed `LIKE` on `msg`; FTS5 deferred — WARN+ rows are low-volume, Rule 22), `session_id`/`trace_id`, `fingerprint`. This is how the agent asks *"what is broken right now"*.
 - **`cos errors` / `cos logs` (CLI)** — human + agent-CLI access; reuses `render.py` for formatting; `cos errors --since 1h --level error`.
 - **`cos doctor` runtime check** — `runtime.recent_errors`: WARN/FAIL when the `WARN+` rate in a window crosses a threshold; feeds the CI exit code so a project actively throwing errors can no longer report `exit=0 healthy`.
 - **Web** — `/api/logs/recent` (existing, repointed to the DB) + `/api/logs/summary` (counts-by-level + top scopes) + SSE live stream; Hub **Errors** view with count rollup + session filter + an "open as bug" affordance; `HealthAlarmBar` turns red on an error storm.
@@ -166,7 +166,7 @@ Trunk-based, one commit per task, MVP→v1→v2. Each task anchors to the sectio
 | Task | Phase | Anchor | Outcome |
 |---|---|---|---|
 | E1 bridge install (web + cli + mcp) | MVP | §1 | every CLI/web/MCP stdlib error reaches the eye |
-| E2 migration v32 `log_events` + `log_fingerprints` | MVP | §2 | durable, FTS5-searchable cold store |
+| E2 migration v32 `log_events` + `log_fingerprints` | MVP | §2 | durable, indexed cold store |
 | E3 WARN+ DB sink + fallback + `dropped_events` | MVP | §1, I1 | WARN+ persists; sink blindness is itself observable |
 | E4 `cos_log_query` MCP | MVP | §3 | agent can ask "what errored since X" |
 | E5 `cos logs` / `cos errors` CLI | MVP | §3 | human + CLI-agent durable error access |

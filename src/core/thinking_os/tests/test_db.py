@@ -129,6 +129,8 @@ EXPECTED_TABLES = [
     "observations",
     "session_summaries",
     "schema_version",
+    "log_events",
+    "log_fingerprints",
 ]
 
 
