@@ -138,4 +138,11 @@ per-suite `[done/total] ✓/✗` ticks, handles `TimeoutExpired` → exit 124, `
 
 ## Resume marker
 
-discovery: COMPLETE (61 findings) · remediation: NOT STARTED · next: Batch 1 item 1 (`make test-mcp`).
+discovery: COMPLETE (61 findings)
+remediation progress:
+- Batch 1 (greenwash gates, 11): DONE — commits f64b857 (make), c358126 (cli), 7222359 (scripts), b8ad03e (tests)
+- Batch 2 (stale src/ paths, 8 + populate/prune extras): DONE — commit ab13480 (8 scripts), 7222359 (populate/prune)
+- Batch 3-8: pending.
+next: Batch 3 (progress on slow ops) — doctor.py, graph_commands.py, link-stack-skills.sh, cron, setup.
+
+side-discoveries (separate follow-up task, NOT output-quality): `make audit` exposed 6 nako_ + 18 .claude/ refs; verify_dispatchers exposed codex dispatcher drift (prevent-premature-done, verify-completion-claim) + missing `verify-dispatchers` make target; 1 malformed-frontmatter doc + ~53 doc-link advisories.
