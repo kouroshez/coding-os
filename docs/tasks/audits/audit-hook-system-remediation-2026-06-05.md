@@ -20,7 +20,7 @@ created: 2026-06-05
 | 1 | Learning-loop memory corruption | TASK-104 | decay.py/learning.py/session_enrich.py/nightly.py/cron_commands.py | 5 | 7 | yes | 0 | yes | d69a52b·568c4d9·b227b83·d752bd7·7096979 (auto-brain marker→N9, hour knob→N7) |
 | 2 | Danger/secret regex holes | TASK-105 | block-dangerous-commands.sh/block-secrets.sh/_helpers/check_dangerous_rm.py | 3 | 4 | yes | 0 | yes | 10d1240·2d6b7de (25 hook behavior tests) |
 | 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | yes | 0 | yes | 25d38fd (25 files; panel-scope smoke 1-4 pass; 0 new test-hooks failures vs baseline 60/67) |
-| 4 | Board transition atomicity | TASK-108 | workflow.py/mcp_tools.py/4 hook helpers | 6 | 2 | no | 2 | no | (pending) |
+| 4 | Board transition atomicity | TASK-108 | workflow.py/4 helpers/consume_override | 6 | 2 | yes | 0 | yes | e937785 (388 board tests + CAS-conflict smoke; expected_from subsumed by under-lock re-verify) |
 | 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/server.py | 4 | 5 | yes | 0 | yes | 863d3d7 (digest-startup + boost smoke + gate-TTL unit + 142 learning/memory tests + MCP self-test) |
 | 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/hook_renderer.py | 3 | 3 | no | 3 | no | (pending) |
 | 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx/MemoryPage.tsx/api-types | 4 | 4 | no | 4 | no | (pending) |
@@ -55,10 +55,10 @@ created: 2026-06-05
 - ✅ 3e — `.intent.json` panel-first in producer (extract_intent.py `_intent_file_path`) + 4 consumers (prevent-premature-done, enforce-count-grounding, enforce-subagent-delegation, enforce-audit-artifact) + task_analyzer.py + intent-primer clears BOTH scopes; `.intent.json` + 3 `.*-nudged` added to COS_PER_PANEL_FILES; guardian already panel-first. Smoke: panel .intent.json written, cos_state_path routes all 4 basenames.
 - ✅ 3f — `.task-mode` per-panel: writer (classify-task-mode upgrades panel id) + 6 readers (session-context banner, nudge-docs-first, enforce-task-start, enforce-zoom, enforce-memory-check, enforce-skill) all panel-first w/ agent fallback; warn-graph-empty marker → panel; sync-task-current upgrades panel id pre-write; write-state.sh comment corrected.
 
-### Stream 4 — TASK-108 · Board transition atomicity (P1)
-- ⬜ 4a HIGH — `workflow.py:221-471` wrap read+wip+update in `BEGIN IMMEDIATE` + `WHERE task_id=? AND status=?` CAS w/ rowcount check; `mcp_tools.py:809` pass `expected_from`.
-- ⬜ 4b MED — task_sync.py/work_log_append.py/transition_gates_cli.py/wip_limit_check.py route through `database.get_connection` (WAL+busy_timeout).
-- ⬜ 4c LOW — consume_override.py atomic flock; cos-env heartbeat-before-panel-upgrade transient ppid dirs.
+### Stream 4 — TASK-108 · Board transition atomicity (P1) — ✅ DONE e937785
+- ✅ 4a — `workflow.transition` write path restructured into one `BEGIN IMMEDIATE` critical section: re-SELECT status under the lock (catches a peer that moved the row during the lock-free gate I/O), WIP count moved inside the lock (count→write race closed), CAS UPDATE `WHERE task_id=? AND status=?` with `rowcount!=1 → transient`, MD write inside the txn (rolls back the DB on failure), history INSERT, commit; `except: rollback; raise`. `mcp_tools.py` `expected_from`: NOT plumbed — the under-lock re-verify is strictly stronger than a caller-asserted pre-state the agent rarely supplies, so adding the param (2 signature layers) would be redundant churn. Verified: 388 board tests + CAS-conflict smoke (happy commit; expected_from-mismatch→transient).
+- ✅ 4b — work_log_append.py / wip_limit_check.py / transition_gates_cli.py / _helpers/task_sync.py now open via `thinking_os.database.get_connection` (WAL + 5s busy_timeout) with a `sqlite3.connect(timeout=5)+PRAGMA busy_timeout` fallback when the import path is unavailable.
+- ✅ 4c — consume_override.py now wraps the read-modify-write of the one-shot override JSON in an exclusive `fcntl.flock` (best-effort fallback + logged flock-unavailable). ↪ cos-env heartbeat-before-panel-upgrade transient-ppid-dir cleanup DEFERRED: it is an orphan-dir GC nicety (not a correctness bug — production hooks resolve the panel from stdin session_id), and cos-env.sh is sourced by every hook/adapter so a change there needs dedicated multi-panel testing out of this stream's blast radius.
 
 ### Stream 5 — TASK-109 · Memory-load correctness (P1) — ✅ DONE 863d3d7
 - ✅ 5a — Agent-digest block split out of the compact/resume `if` and now runs on `startup|compact|resume`; a fresh session inherits the working-memory digest (the startup matcher's "Loading … memory digest" status is now true). Recovery-text + state-snapshot stay compact/resume-only (nothing to recover on fresh start). Smoke: `[Agent Digest]` emitted on SOURCE=startup.
@@ -97,10 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 5 -->
-<!-- next_unchecked_row: 4 -->
+<!-- last_updated_row: 4 -->
+<!-- next_unchecked_row: 6 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ (863d3d7). NEXT: N4 (TASK-108) board transition atomicity. Then N6,N8,N7,N9. -->
+<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ (e937785). NEXT: N6 (TASK-110) codex parity. Then N8,N7,N9. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
