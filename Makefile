@@ -35,9 +35,15 @@ COS_HOOKS := $(COS_ROOT)/src/core/hooks
 .PHONY: test-mcp
 test-mcp: ## Run MCP server self-test
 	@mkdir -p /tmp/cos-test
-	@cd src/core/thinking_os && COS_DB_PATH=/tmp/cos-test/test.db uv run python server.py --test 2>&1 | grep -E "PASS|FAIL"
-	@rm -f /tmp/cos-test/test.db /tmp/cos-test/test.db-shm /tmp/cos-test/test.db-wal
-	@rmdir /tmp/cos-test 2>/dev/null || true
+	@cd src/core/thinking_os && COS_DB_PATH=/tmp/cos-test/test.db uv run python server.py --test > /tmp/cos-test/out.log 2>&1; \
+	  rc=$$?; \
+	  grep -E "PASS|FAIL" /tmp/cos-test/out.log || true; \
+	  if [ $$rc -ne 0 ] || grep -q "FAIL" /tmp/cos-test/out.log; then \
+	    echo "test-mcp: FAILED (server exit=$$rc or FAIL in output)" >&2; \
+	    rm -rf /tmp/cos-test; exit 1; \
+	  fi; \
+	  rm -rf /tmp/cos-test; \
+	  echo "test-mcp: PASS"
 
 .PHONY: test-install-claude test-install
 test-install-claude: ## Claude-specific install smoke test (deeper than verify-install: checks generated files). Renamed from `test-install` to make adapter scope explicit.
@@ -236,10 +242,16 @@ regen-adapter-templates: ## Regenerate src/adapters/*/[settings|hooks].template.
 	@uv run python -m cli.hook_renderer
 
 .PHONY: audit
-audit: ## Run stale reference audit
+audit: ## Run stale reference audit (exits non-zero if any stale reference present)
 	@echo "=== Stale Reference Audit ==="
-	@echo -n "nako_ in code: " && grep -rn "nako_" --include="*.py" --include="*.sh" --include="*.json" 2>/dev/null | grep -v __pycache__ | grep -v .venv | grep -v .git | wc -l | tr -d ' '
-	@echo -n ".claude/ in hooks (non-legit): " && grep -rn '\.claude/' src/core/hooks/ | grep -vE 'cos-env|legacy|fallback|pattern|skip|\.claude/\*|adapter|\.claude/settings|\.claude/skills|\.claude/hooks/test\.sh|\.claude/rules' | wc -l | tr -d ' '
+	@nako=$$(grep -rn "nako_" --include="*.py" --include="*.sh" --include="*.json" 2>/dev/null | grep -v __pycache__ | grep -v .venv | grep -v .git | wc -l | tr -d ' '); \
+	  claude=$$(grep -rn '\.claude/' src/core/hooks/ | grep -vE 'cos-env|legacy|fallback|pattern|skip|\.claude/\*|adapter|\.claude/settings|\.claude/skills|\.claude/hooks/test\.sh|\.claude/rules' | wc -l | tr -d ' '); \
+	  echo "nako_ in code: $$nako"; \
+	  echo ".claude/ in hooks (non-legit): $$claude"; \
+	  if [ "$$nako" -ne 0 ] || [ "$$claude" -ne 0 ]; then \
+	    echo "audit: FAIL — stale references present" >&2; exit 1; \
+	  fi; \
+	  echo "audit: clean"
 
 .PHONY: cos-decay
 cos-decay: ## Run confidence decay on learned patterns
@@ -272,9 +284,13 @@ docs-lint: ## Lint docs/ — internal link + anchor + symlink-dir audit, then SS
 	@uv run python src/scripts/dev/audit_doc_links.py
 	@echo ""
 	@echo "docs-lint: checking SSOT frontmatter contract..."
-	@bash src/core/scripts/docs-lint.sh --quiet || true
-	@echo ""
-	@echo "docs-lint: OK (link audit is the hard gate; frontmatter is advisory)."
+	@bash src/core/scripts/docs-lint.sh --quiet; fm=$$?; \
+	  echo ""; \
+	  if [ $$fm -eq 0 ]; then \
+	    echo "docs-lint: OK (link audit hard-gated; frontmatter clean)."; \
+	  else \
+	    echo "docs-lint: link audit PASSED (hard gate); frontmatter reported issues above — advisory, set COS_DOCS_LINT_STRICT=1 to gate." >&2; \
+	  fi
 
 .PHONY: docs-index-regen
 docs-index-regen: ## Regenerate every docs/<dir>/00-index.md from frontmatter (TASK-157+161)
