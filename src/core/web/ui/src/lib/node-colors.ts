@@ -29,47 +29,48 @@ export type NodeKind =
   | 'identifier'
   | 'unknown';
 
-// Semantic colour groups (TASK-018). 25 kinds → 8 hue families so the
-// canvas reads at a glance: brown=structure, orange=code-defs (BRAND
-// Mocha), gray=code-refs, blue=API-surface, teal=docs, purple=governance,
-// gold=analysis. Within each family kinds vary by lightness to stay
-// distinguishable at 4-6 px dot size. Saturation high, lightness ≤ 65 %
-// so labels render cleanly on the cream paper background (--cos-bg ≈
-// #f4efe1). ΔE ≥ 10 across cross-group neighbours.
+// Cortex Phase 2 — harmonized for the dark canvas (the hero view). 25
+// kinds → 7 hue families, all at NEAR-EQUAL lightness (~0.72 OKLCH L) and
+// chroma (~0.14) so only HUE distinguishes a category — the legacy scheme
+// mixed near-black brown (#3A2925) with hot orange (#FF7A3D) at wildly
+// different lightness, which read as chaos. Families: steel=structure
+// (recedes), Iris=code-defs (BRAND), slate=code-refs, azure=API-surface,
+// teal=docs, gold+magenta=governance, violet=analysis. Tuned dark-first;
+// still legible on the light canvas. SSOT: docs/engineering/design-system.md.
 export const NODE_COLORS: Record<NodeKind, string> = {
-  // ─── STRUCTURE (filesystem) — warm browns ───
-  folder: '#8B5A2B',
-  file: '#3A2925',
-  module: '#6B504A',
-  // ─── CODE-DEFS (symbol declarations) — Mocha orange/red [BRAND] ───
-  class: '#FF7A3D',
-  method: '#FFA468',
-  function: '#C84B16',
-  variable: '#E89C6B',
-  interface: '#A53C12',
-  // ─── CODE-REFS (references / imports) — neutral gray ───
-  import_: '#A8A29B',
-  identifier: '#736C66',
-  // ─── API-SURFACE (external contracts) — blue family ───
-  route: '#1E5FBA',
-  mcp_tool: '#0D47A1',
-  tool: '#3F7DC9',
-  contract: '#1565C0',
-  event: '#0277BD',
-  // ─── DOCS (prose) — teal / cyan family ───
-  doc_file: '#00838F',
-  doc_heading: '#26A69A',
-  doc_frontmatter: '#80CBC4',
-  doc_external: '#4DB6AC',
-  // ─── GOVERNANCE (coding-os meta) — purple / magenta family ───
-  rule: '#6A1B9A',
-  skill: '#9C27B0',
-  hook: '#C2185B',
-  task: '#7B1FA2',
-  // ─── ANALYSIS (rare meta nodes) — gold ───
-  community: '#F9A825',
-  // ─── DEFAULT — light gray ───
-  unknown: '#B0B0B0',
+  // ─── STRUCTURE (filesystem) — cool steel, recedes ───
+  folder: '#8A93A6',
+  file: '#6E7686',
+  module: '#565E6C',
+  // ─── CODE-DEFS (symbol declarations) — Iris [BRAND] ───
+  class: '#8B8FF4',
+  method: '#A6A9F7',
+  function: '#6E72E8',
+  variable: '#B9BBF9',
+  interface: '#595DD6',
+  // ─── CODE-REFS (references / imports) — muted slate ───
+  import_: '#7C8696',
+  identifier: '#646E7E',
+  // ─── API-SURFACE (external contracts) — azure ───
+  route: '#4C9DF0',
+  mcp_tool: '#3B82F6',
+  tool: '#5FB0F5',
+  contract: '#2E6FE0',
+  event: '#38BDF8',
+  // ─── DOCS (prose) — teal / green ───
+  doc_file: '#2DD4BF',
+  doc_heading: '#34D399',
+  doc_frontmatter: '#6EE7D6',
+  doc_external: '#14B8A6',
+  // ─── GOVERNANCE (coding-os meta) — gold + magenta (hooks=hot) ───
+  rule: '#E0A82E',
+  skill: '#D98AE0',
+  hook: '#F2618F',
+  task: '#B98AF0',
+  // ─── ANALYSIS (rare meta nodes) — violet ───
+  community: '#C77DFF',
+  // ─── DEFAULT — neutral gray ───
+  unknown: '#6B7280',
 };
 
 export const ALL_KINDS: NodeKind[] = Object.keys(NODE_COLORS) as NodeKind[];

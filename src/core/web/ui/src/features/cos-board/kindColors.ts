@@ -6,20 +6,23 @@ export interface KindStyle {
   label: string;
 }
 
+// bg/bg2 = card gradient (themed --sticky-* tints); chip = themed --kind-*
+// ink (AA on both the light and dark tint). No hardcoded hex — so a card
+// reads correctly in either theme (Cortex Phase 2).
 export const KIND_COLORS: Record<string, KindStyle> = {
-  bug: { bg: 'var(--sticky-red)', bg2: 'var(--sticky-red-2)', chip: '#b91c1c', label: 'bug' },
+  bug: { bg: 'var(--sticky-red)', bg2: 'var(--sticky-red-2)', chip: 'var(--kind-bug)', label: 'bug' },
   feature: {
     bg: 'var(--sticky-yellow)',
     bg2: 'var(--sticky-yellow-2)',
-    chip: '#a16207',
+    chip: 'var(--kind-feature)',
     label: 'feat',
   },
-  chore: { bg: 'var(--sticky-green)', bg2: 'var(--sticky-green-2)', chip: '#15803d', label: 'chore' },
-  spike: { bg: 'var(--sticky-blue)', bg2: 'var(--sticky-blue-2)', chip: '#1d4ed8', label: 'spike' },
-  docs: { bg: 'var(--sticky-purple)', bg2: 'var(--sticky-purple-2)', chip: '#7e22ce', label: 'docs' },
-  refactor: { bg: 'var(--sticky-teal)', bg2: '#5eead4', chip: '#0f766e', label: 'refactor' },
-  test: { bg: 'var(--sticky-orange)', bg2: 'var(--sticky-orange-2)', chip: '#c2410c', label: 'test' },
-  security: { bg: '#ffd8a8', bg2: '#fdba74', chip: '#9a3412', label: 'sec' },
+  chore: { bg: 'var(--sticky-green)', bg2: 'var(--sticky-green-2)', chip: 'var(--kind-chore)', label: 'chore' },
+  spike: { bg: 'var(--sticky-blue)', bg2: 'var(--sticky-blue-2)', chip: 'var(--kind-spike)', label: 'spike' },
+  docs: { bg: 'var(--sticky-purple)', bg2: 'var(--sticky-purple-2)', chip: 'var(--kind-docs)', label: 'docs' },
+  refactor: { bg: 'var(--sticky-teal)', bg2: 'var(--sticky-teal-2)', chip: 'var(--kind-refactor)', label: 'refactor' },
+  test: { bg: 'var(--sticky-orange)', bg2: 'var(--sticky-orange-2)', chip: 'var(--kind-test)', label: 'test' },
+  security: { bg: 'var(--sticky-orange)', bg2: 'var(--sticky-orange-2)', chip: 'var(--kind-security)', label: 'sec' },
 };
 
 export function kindStyle(kind: string | undefined): KindStyle {

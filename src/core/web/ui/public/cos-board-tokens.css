@@ -72,8 +72,13 @@
     --sticky-green:  #e3f3e7;  --sticky-green-2:  #c2e3cb;
     --sticky-purple: #ececfb;  --sticky-purple-2: #d6d7f6;
     --sticky-orange: #fbead8;  --sticky-orange-2: #f5d2ae;
-    --sticky-teal:   #daf3ef;
+    --sticky-teal:   #daf3ef;  --sticky-teal-2: #b6e6dd;
     --sticky-red:    #fbe3e5;  --sticky-red-2:    #f6c6cb;
+
+    /* ---- task-kind chip ink (themed, AA on the tints above) ---- */
+    --kind-bug: #cf222e;   --kind-feature: #9a6700;  --kind-chore: #1a7f37;
+    --kind-spike: #0969da; --kind-docs: #7e22ce;     --kind-refactor: #0f766e;
+    --kind-test: #c2410c;  --kind-security: #a3155f;
   }
 
   html[data-theme="dark"] {
@@ -117,8 +122,13 @@
     --sticky-green:  #16271c;  --sticky-green-2:  #1e3527;
     --sticky-purple: #1f1d3a;  --sticky-purple-2: #2a274e;
     --sticky-orange: #2c1f12;  --sticky-orange-2: #3c2a18;
-    --sticky-teal:   #142a28;
+    --sticky-teal:   #142a28;  --sticky-teal-2: #1f3a36;
     --sticky-red:    #2e1a1c;  --sticky-red-2:    #3e2326;
+
+    /* ---- task-kind chip ink (dark: bright enough for the dark tints) ---- */
+    --kind-bug: #f2576b;   --kind-feature: #e0a227;  --kind-chore: #3fb950;
+    --kind-spike: #4c8dff; --kind-docs: #c77dff;     --kind-refactor: #2dd4bf;
+    --kind-test: #f0883e;  --kind-security: #f2618f;
   }
 
   * { box-sizing: border-box; }
