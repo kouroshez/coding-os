@@ -107,6 +107,46 @@ This is the **better method** the agent reaches for instead of trusting a frozen
 - When enriching skill A you discover a rule that belongs to B → add it to B and link from A's `N:`/description. Improving one skill lifts the chain.
 - The `description`'s "Pairs with …" clause and each reference's `N:` nav line are the chain edges. Keep them bidirectional where it matters.
 
+## Link vs Duplicate — the co-shipping SSOT rule (mandatory)
+
+A skill reference must never **restate** a fact that a central doc/rule already
+owns and that **co-ships to every project**. Link the owner; the reference adds
+only skill-specific framing. Edit-once then propagates everywhere.
+
+**What co-ships to every consumer (safe to link — the link resolves in every project):**
+
+| Source | Reaches consumer via | Examples a skill should LINK, not restate |
+|---|---|---|
+| `src/core/rules/*.md` | rendered into `<agent>/rules/` | anti-overengineering, clean-code policy, test-discipline, git-workflow, memory, api-contract-discipline, thinking_os, transparency-banner |
+| `docs/governance/**` | base scaffold (`src/templates/_base/scaffold/docs/governance/`) | docs-system, critical-rules, task-lifecycle, docs-first-protocol, agent-workflow, wrapper-derivation, mcp-tool-inventory |
+| `docs/api-contracts/**` | base scaffold | error-format (the `ok`/`fail` envelope, error shapes) |
+| `docs/workflow/**` | base scaffold + `_copy_workflow_docs` | workflow-guide, thinking_os-final-edition |
+| sibling skills | co-shipped under the same scope | any other skill's SKILL.md / references |
+
+**What is META-REPO ONLY (a universal/stack skill must NOT link it — dead link in consumers):**
+
+- `docs/playbooks/**` (this file, hook-authoring, mcp-tool-authoring, …) — they author *the meta-repo*.
+- `docs/engineering/**`, `docs/architecture/meta-project.md`, `src/core/**` source paths.
+
+Only **`meta`-scope skills** (the `src/templates/meta/skills/**` family) may link
+`docs/playbooks/**` and `docs/engineering/**`, because those skills ship only to
+meta-stack projects where the target exists.
+
+**The discriminator — apply to every reference paragraph:**
+
+> Does a co-shipping central doc/rule already own this fact?
+> **Yes →** link it, keep only the skill-specific framing (one sentence + the link).
+> **No →** the skill is the SSOT — write it fully (this is the reference's reason to exist).
+
+Most skill *craft* (how to write good SQL, robust Bash, accessible components)
+has **no** central owner — the skill owns it, so self-contain it. The rule bites
+where a skill restates workflow/governance/contract facts a central doc owns —
+there, link.
+
+This is **not** "make every reference a thin link-stub": that guts progressive
+disclosure (the agent loses in-skill depth) and most references have no central
+owner. It is "never duplicate a co-shipping owner."
+
 ## The 10/10 rubric (review gate)
 
 | # | Criterion | 0 | 1 |
@@ -117,7 +157,7 @@ This is the **better method** the agent reaches for instead of trusting a frozen
 | 4 | Scripts data-driven, fail-closed, idempotent, token-thrifty | improvised | production-grade |
 | 5 | References dated + version-pinned to the current year | stale/undated | pinned + refreshable |
 | 6 | Justified exceptions (a missing dir is argued, not forgotten) | silent gap | reasoned |
-| 7 | Cross-links present; zero duplication with neighbours | drift risk | chained |
+| 7 | Cross-links present; links co-shipping SSOT instead of restating it (§Link vs Duplicate) | drift risk | chained |
 | 8 | Agent-agnostic + data-driven paths (no `.claude/`, no abs path) | hardcoded | portable |
 | 9 | Anti-overengineering — earns every file, rule-of-three for splits | bloat | minimal-correct |
 | 10 | Verifies (`make verify-hooks`/syntax) + regen stays green | red | green |
