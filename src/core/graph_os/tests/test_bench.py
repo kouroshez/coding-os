@@ -71,4 +71,8 @@ class TestHarness:
         backend = SqliteBackend(conn=migrated_conn)
         paths = build_python_corpus(tmp_path / "corpus", count=3)
         result = run_benchmark(backend, paths)
-        json.dumps(result.to_dict())
+        payload = result.to_dict()
+        restored = json.loads(json.dumps(payload))
+        # Teeth: a structurally-wrong-but-serialisable result is caught.
+        assert restored["corpus_size"] == 3
+        assert restored["backend_id"] == "sqlite"

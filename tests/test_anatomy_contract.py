@@ -250,6 +250,13 @@ def test_forbids_writing_in_references_real_subtrees() -> None:
         for root in data.get("roots") or []:
             all_roots.add(root.rstrip("/"))
 
+    # Teeth against a vacuous pass: if boundary-fixture discovery silently
+    # breaks (files moved/renamed), all_roots is empty and the unowned-root
+    # check below becomes a no-op. The unowned-root finding stays advisory
+    # (legit non-stack forbids like .claude/ exist), but discovery working
+    # at all is a hard invariant.
+    assert all_roots, "no stack roots discovered — boundary fixtures missing or renamed"
+
     issues: list[str] = []
     for boundary_path in _stack_boundary_files():
         data = yaml.safe_load(boundary_path.read_text(encoding="utf-8"))
