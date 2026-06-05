@@ -70,7 +70,7 @@ Tailwind components follow automatically — zero component rewrites.
 | `border/strong` | `#3A4150` | `#C0C6D0` | Emphasis / focus edge |
 | `text/primary` | `#E7EAF0` | `#14161B` | Headings / body |
 | `text/secondary` | `#A4ABB8` | `#4A5260` | Secondary text |
-| `text/muted` | `#6C7480` | `#717784` | Labels / metadata |
+| `text/muted` | `#7D8593` | `#646A77` | Labels / metadata (AA-bumped) |
 | `text/disabled` | `#474E59` | `#A2A9B5` | Disabled |
 
 OKLCH anchors: canvas-dark ≈ `oklch(.16 .006 265)`; text-primary-dark ≈
@@ -157,7 +157,8 @@ dark step. Keeps color-coding, kills the kindergarten look.
 
 ## 7. Accessibility + RTL
 
-- Every text/surface pair meets **WCAG 2.2 AA** (≥4.5:1 body, ≥3:1 large).
+- Every text/surface pair meets **WCAG 2.2 AA** (≥4.5:1 body, ≥3:1 large) — **programmatically verified** in both themes (card text, kind badges, status, priority → 0 failures). Board cards must use `--cos-*` tokens, never sticky-era hardcoded hex.
+- A persisted dark/light toggle lives in the **global AppShell header** (zustand `theme-store` → `data-theme` on `<html>`, applied before first paint; default dark).
 - Every interactive element shows `focus-visible` ring (`focus/ring`,
   2px + 2px offset).
 - RTL via **CSS logical properties** (`padding-inline`, `margin-inline`,

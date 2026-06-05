@@ -21,6 +21,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { DEFAULT_DESIGN_TWEAKS, type DesignTweaks } from './types';
+import { useThemeStore } from '@/store/theme-store';
 
 export type FeatureShell = 'cos-board' | 'graph' | 'search' | 'cognition' | 'hub';
 
@@ -46,6 +47,8 @@ export function DesignThemeProvider({
   const [tweaks, setTweaks] = useState<DesignTweaks>({
     ...DEFAULT_DESIGN_TWEAKS,
     ...initialTweaks,
+    // Global header toggle (theme-store) wins for the initial theme.
+    theme: useThemeStore.getState().theme,
   });
 
   useEffect(() => {

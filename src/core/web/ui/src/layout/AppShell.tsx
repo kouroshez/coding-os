@@ -6,6 +6,7 @@ import HealthAlarmBar from '@/layout/HealthAlarmBar';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
+import ThemeToggle from '@/layout/ThemeToggle';
 
 /**
  * Unified application shell.
@@ -102,6 +103,7 @@ export default function AppShell({
             </NavLink>
           ))}
         </nav>
+        <ThemeToggle />
       </header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">

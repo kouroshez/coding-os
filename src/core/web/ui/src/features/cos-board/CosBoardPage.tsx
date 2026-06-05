@@ -168,15 +168,13 @@ function columnWipCap(colId: string, wip: BoardConfigPayload['wip_limits'] | und
 }
 
 function priorityStyle(priority: string): CSSProperties {
+  // Calm + themed: only P0/P1 carry a single thin outline; P2/P3 rely on
+  // the priority text badge so the board isn't a wall of red/orange frames.
   switch (priority) {
     case 'P0':
-      return { outline: '2.5px double #c0392b', outlineOffset: 1 };
+      return { outline: '1.5px solid var(--cos-err)', outlineOffset: 1 };
     case 'P1':
-      return { outline: '1.5px solid #ea580c' };
-    case 'P2':
-      return { outline: '1px dashed #8a8378' };
-    case 'P3':
-      return { outline: '1px dotted #b8b0a3' };
+      return { outline: '1px solid var(--cos-warn)' };
     default:
       return {};
   }
@@ -1302,7 +1300,7 @@ function TaskStickyCard({
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: cozy ? 10 : 9,
             fontWeight: 700,
-            color: '#3a3530',
+            color: 'var(--cos-muted)',
             letterSpacing: '.02em',
           }}
         >
@@ -1313,10 +1311,11 @@ function TaskStickyCard({
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 9,
             fontWeight: 700,
-            color: '#fff',
-            background: kind.chip,
+            color: kind.chip,
+            background: `color-mix(in oklab, ${kind.chip} 20%, transparent)`,
+            border: `1px solid color-mix(in oklab, ${kind.chip} 38%, transparent)`,
             padding: '1px 5px',
-            borderRadius: 2,
+            borderRadius: 3,
             letterSpacing: '.04em',
             textTransform: 'uppercase',
           }}
@@ -1330,10 +1329,10 @@ function TaskStickyCard({
             fontWeight: 700,
             color:
               task.priority === 'P0'
-                ? '#b91c1c'
+                ? 'var(--cos-err)'
                 : task.priority === 'P1'
-                  ? '#c2410c'
-                  : '#6b665e',
+                  ? 'var(--cos-warn)'
+                  : 'var(--cos-muted)',
           }}
         >
           {task.priority}
@@ -1347,7 +1346,7 @@ function TaskStickyCard({
         style={{
           fontWeight: 700,
           fontSize: cozy ? 15 : 13.5,
-          color: '#141210',
+          color: 'var(--cos-text)',
           whiteSpace: 'normal',
           overflowWrap: 'anywhere',
           wordBreak: 'break-word',
@@ -1368,15 +1367,15 @@ function TaskStickyCard({
           alignItems: 'center',
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: 9,
-          color: '#4a4540',
+          color: 'var(--cos-muted)',
           marginBottom: cozy && task.last_log_line ? 5 : 0,
         }}
       >
-        <span style={{ background: 'rgba(0,0,0,.06)', padding: '1px 5px', borderRadius: 2 }}>
+        <span style={{ background: 'var(--cos-inset)', padding: '1px 5px', borderRadius: 2 }}>
           ◷ {task.appetite || '1d'}
         </span>
         {task.epic && (
-          <span style={{ background: 'rgba(0,0,0,.08)', padding: '1px 5px', borderRadius: 2, fontWeight: 600 }}>
+          <span style={{ background: 'var(--cos-inset)', padding: '1px 5px', borderRadius: 2, fontWeight: 600 }}>
             #{task.epic}
           </span>
         )}
@@ -1405,7 +1404,7 @@ function TaskStickyCard({
           .filter((l) => l !== 'ready')
           .slice(0, cozy ? 3 : 2)
           .map((l) => (
-            <span key={l} style={{ color: '#6b665e', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+            <span key={l} style={{ color: 'var(--cos-faint)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
               ·{l}
             </span>
           ))}
@@ -1416,10 +1415,10 @@ function TaskStickyCard({
           style={{
             marginTop: 6,
             paddingTop: 5,
-            borderTop: '1px dashed rgba(0,0,0,.2)',
+            borderTop: '1px dashed var(--cos-border)',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 9.5,
-            color: '#3a3530',
+            color: 'var(--cos-muted)',
             lineHeight: 1.35,
             display: '-webkit-box',
             WebkitLineClamp: 2,
