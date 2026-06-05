@@ -336,10 +336,19 @@ def _render_board_ascii(envelope: str) -> None:
 @click.option("--appetite", default="1d")
 @click.option("--epic", default=None)
 @click.option("--labels", default="", help="Comma-separated free tags")
-@click.option("--outcome", default=None)
+@click.option("--outcome", default=None, help="One measurable sentence — the task's goal.")
+@click.option(
+    "--acceptance",
+    default=None,
+    help="Acceptance G/W/T markdown (e.g. '- **Given** ...\\n- **When** ...\\n- **Then** ...'). "
+    "Required to start feature/bug/refactor/test/security tasks.",
+)
+@click.option("--read-first", default="", help="Comma-separated doc paths for the Read First section.")
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
 @click.option("--ready", is_flag=True, default=False, help="Mark the task pullable in one shot.")
-def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels, outcome, depends_on, ready):
+def task_create_cmd(
+    title, swimlane, kind, priority, appetite, epic, labels, outcome, acceptance, read_first, depends_on, ready
+):
     from board_os import mcp_tools
 
     conn = _db_conn()
@@ -354,6 +363,8 @@ def task_create_cmd(title, swimlane, kind, priority, appetite, epic, labels, out
             epic=epic,
             labels=[l.strip() for l in labels.split(",") if l.strip()],
             outcome=outcome,
+            acceptance=acceptance,
+            read_first=[p.strip() for p in read_first.split(",") if p.strip()] or None,
             depends_on=[d.strip() for d in depends_on.split(",") if d.strip()],
             ready=ready,
             agent_session=_agent_session_id(),
@@ -413,7 +424,13 @@ def _simple_move(task_id: str, to: str, *, reason: str | None = None, force: boo
 
 @click.command("task-start")
 @click.argument("task_id")
-@click.option("--force", is_flag=True, default=False)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Override the WIP cap only. Readiness + Definition-of-Ready stay enforced; "
+    "set COS_DOR_OVERRIDE=1 with COS_OVERRIDE_REASON to bypass the gate.",
+)
 def task_start_cmd(task_id, force):
     _simple_move(task_id, "in_progress", force=force)
 
