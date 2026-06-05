@@ -1702,6 +1702,45 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_edit",
+        annotations={
+            "title": "Edit Task Fields / Body (actor-attributed)",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_edit(
+        task_id: str,
+        title: str = "",
+        priority: str = "",
+        swimlane: str = "",
+        appetite: str = "",
+        epic: str = "",
+        labels_csv: str = "",
+        body: str = "",
+        actor_type: str = "agent",
+        actor_id: str = "",
+        source: str = "mcp",
+    ) -> str:
+        """Edit a task's frontmatter fields and/or body; each change is recorded to the actor-attributed edit history."""
+        return _board_mcp.cos_task_edit(
+            _db_conn,
+            task_id=task_id,
+            title=title or None,
+            priority=priority or None,
+            swimlane=swimlane or None,
+            appetite=appetite or None,
+            epic=epic or None,
+            labels=[s.strip() for s in labels_csv.split(",") if s.strip()] if labels_csv else None,
+            body=body or None,
+            actor_type=actor_type,
+            actor_id=actor_id or None,
+            source=source,
+        )
+
+    @mcp.tool(
         name="cos_presence_query",
         annotations={
             "title": "Live Agent Presence (sessions + states)",

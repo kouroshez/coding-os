@@ -755,3 +755,65 @@ def test_task_history_not_found(project: Path, conn: sqlite3.Connection):
     env = _parse(mcp_tools.cos_task_history(conn, task_id="TASK-999", include_commits=False))
     assert env["ok"] is False
     assert env["error"]["category"] == "not_found"
+
+
+def test_task_edit_updates_field_and_records_history(project: Path, conn: sqlite3.Connection):
+    """A field edit rewrites the file and lands an actor-attributed edit-history row."""
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Edit me",
+            swimlane="core",
+            kind="chore",
+            outcome="Initial outcome long enough for the chore DoR gate.",
+        )
+    )
+    tid = created["data"]["task_id"]
+    env = _parse(
+        mcp_tools.cos_task_edit(
+            conn, task_id=tid, priority="P0", actor_type="human", actor_id="kourosh", source="web"
+        )
+    )
+    assert env["ok"] is True
+    assert "priority" in env["data"]["changed"]
+    content = (project / created["data"]["file_path"]).read_text(encoding="utf-8")
+    assert "priority: P0" in content
+
+    hist = _parse(mcp_tools.cos_task_history(conn, task_id=tid, include_commits=False))
+    edits = [e for e in hist["data"]["events"] if e["type"] == "edit"]
+    assert any(e["field"] == "priority" and e["actor"]["id"] == "kourosh" for e in edits)
+
+
+def test_task_edit_noop_when_unchanged(project: Path, conn: sqlite3.Connection):
+    created = _parse(
+        mcp_tools.cos_task_create(conn, title="Same", swimlane="core", kind="chore")
+    )
+    tid = created["data"]["task_id"]
+    env = _parse(mcp_tools.cos_task_edit(conn, task_id=tid, title="Same"))
+    assert env["ok"] is True
+    assert env["data"]["changed"] == []
+
+
+def test_task_edit_rejects_bad_swimlane(project: Path, conn: sqlite3.Connection):
+    created = _parse(
+        mcp_tools.cos_task_create(conn, title="x", swimlane="core", kind="chore")
+    )
+    tid = created["data"]["task_id"]
+    env = _parse(mcp_tools.cos_task_edit(conn, task_id=tid, swimlane="nope"))
+    assert env["ok"] is False
+    assert env["error"]["category"] == "validation"
+
+
+def test_task_edit_body_rewrites_file(project: Path, conn: sqlite3.Connection):
+    """Editing the body replaces it and preserves frontmatter."""
+    created = _parse(
+        mcp_tools.cos_task_create(conn, title="Body edit", swimlane="core", kind="chore")
+    )
+    tid = created["data"]["task_id"]
+    new_body = f"# {tid}: Body edit\n\n**Outcome (one sentence):** Rewritten outcome via edit.\n\n## Work Log\n"
+    env = _parse(mcp_tools.cos_task_edit(conn, task_id=tid, body=new_body))
+    assert env["ok"] is True
+    assert "body" in env["data"]["changed"]
+    content = (project / created["data"]["file_path"]).read_text(encoding="utf-8")
+    assert "Rewritten outcome via edit." in content
+    assert content.startswith("---")  # frontmatter preserved

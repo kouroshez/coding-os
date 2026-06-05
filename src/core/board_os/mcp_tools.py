@@ -1653,6 +1653,169 @@ def cos_task_history(
     )
 
 
+# ---------- cos_task_edit ----------
+
+
+def _record_task_edit(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    field: str,
+    old: str | None,
+    new: str | None,
+    actor_type: str,
+    actor_id: str | None,
+    source: str,
+) -> None:
+    """Append one actor-attributed field edit. Fail-open — never blocks the edit."""
+    if not _has_table(conn, "task_edit_history"):
+        return
+    try:
+        conn.execute(
+            "INSERT INTO task_edit_history "
+            "(task_id, field, old_value, new_value, actor_type, actor_id, source, edited_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (task_id, field, old, new, actor_type, actor_id, source, int(time.time())),
+        )
+        conn.commit()
+    except sqlite3.Error as exc:
+        logger.debug("task_edit_history insert failed for %s.%s: %s", task_id, field, exc)
+
+
+@safe_tool
+def cos_task_edit(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    title: str | None = None,
+    priority: str | None = None,
+    swimlane: str | None = None,
+    appetite: str | None = None,
+    epic: str | None = None,
+    labels: list[str] | None = None,
+    body: str | None = None,
+    actor_type: str = "agent",
+    actor_id: str | None = None,
+    source: str = "mcp",
+) -> str:
+    """Edit a task's frontmatter fields and/or body, recording each change to the actor-attributed edit history."""
+    from board_os.parser import _FRONTMATTER_RE, extract_frontmatter
+
+    row = conn.execute(
+        "SELECT file_path FROM tasks WHERE task_id = ?",
+        (task_id,),
+    ).fetchone()
+    if row is None or not row[0]:
+        return fail("not_found", f"task {task_id} not found")
+    file_path = _project_root() / row[0]
+    if not file_path.exists():
+        return fail("not_found", f"file missing: {file_path}")
+
+    content = file_path.read_text(encoding="utf-8")
+    m = _FRONTMATTER_RE.match(content)
+    fm = extract_frontmatter(content)
+    if m is None or fm is None:
+        return fail("validation", f"{task_id} is not in lean frontmatter format")
+    current_body = m.group("body")
+
+    config = _current_config()
+    if swimlane is not None and config is not None and swimlane not in config.swimlane_ids:
+        return fail(
+            "validation",
+            f"swimlane {swimlane!r} not in config; valid: {sorted(config.swimlane_ids)}",
+        )
+    if priority is not None and priority not in PRIORITY_ENUM:
+        return fail("validation", f"priority {priority!r} not in {sorted(PRIORITY_ENUM)}")
+    if appetite is not None and not APPETITE_RE.match(appetite):
+        return fail("validation", f"appetite {appetite!r} bad shape")
+    if title is not None and not title.strip():
+        return fail("validation", "title must be non-empty")
+    if labels is not None:
+        for lbl in labels:
+            if lbl in KIND_ENUM:
+                return fail(
+                    "validation",
+                    f"label {lbl!r} collides with KIND_ENUM — use kind, not labels",
+                )
+
+    resolved_actor = actor_id or _resolve_attribution(None)
+    changed: list[str] = []
+
+    def _maybe(field: str, new_val: object) -> None:
+        if new_val is None or new_val == fm.get(field):
+            return
+        old_val = fm.get(field)
+        fm[field] = new_val
+        _record_task_edit(
+            conn,
+            task_id=task_id,
+            field=field,
+            old=None if old_val is None else str(old_val),
+            new=str(new_val),
+            actor_type=actor_type,
+            actor_id=resolved_actor,
+            source=source,
+        )
+        changed.append(field)
+
+    _maybe("title", title)
+    _maybe("priority", priority)
+    _maybe("swimlane", swimlane)
+    _maybe("appetite", appetite)
+    _maybe("epic", epic)
+
+    if labels is not None and list(labels) != list(fm.get("labels") or []):
+        old_labels = fm.get("labels") or []
+        fm["labels"] = list(labels)
+        _record_task_edit(
+            conn,
+            task_id=task_id,
+            field="labels",
+            old=", ".join(str(x) for x in old_labels),
+            new=", ".join(labels),
+            actor_type=actor_type,
+            actor_id=resolved_actor,
+            source=source,
+        )
+        changed.append("labels")
+
+    new_body = current_body
+    if body is not None and body.strip() != current_body.strip():
+        import hashlib
+
+        new_body = body
+        _record_task_edit(
+            conn,
+            task_id=task_id,
+            field="body",
+            old=hashlib.sha1(current_body.encode("utf-8")).hexdigest()[:12],
+            new=hashlib.sha1(body.encode("utf-8")).hexdigest()[:12],
+            actor_type=actor_type,
+            actor_id=resolved_actor,
+            source=source,
+        )
+        changed.append("body")
+
+    if not changed:
+        return ok(
+            {"task_id": task_id, "changed": []},
+            meta={"layer": "tasks", "source": "board_os.cos_task_edit"},
+        )
+
+    new_content = _render_lean_frontmatter(fm) + "\n\n" + new_body.strip("\n") + "\n"
+    file_path.write_text(new_content, encoding="utf-8")
+    sync_one(conn, file_path, project_root=_project_root())
+
+    return ok(
+        {
+            "task_id": task_id,
+            "changed": changed,
+            "actor": {"type": actor_type, "id": resolved_actor},
+        },
+        meta={"layer": "tasks", "source": "board_os.cos_task_edit"},
+    )
+
+
 # ---------- Helpers ----------
 
 
