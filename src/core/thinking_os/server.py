@@ -149,6 +149,7 @@ from tools.learning import (
     learn_suggest,
     learn_validate,
 )
+from tools.logs import log_query
 from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
 from tools.metrics import metric_query, metric_record, metric_trend
 from tools.retrieve import (
@@ -494,6 +495,42 @@ def cos_audit_log_query(
         limit=limit,
     )
     return ok(result, meta={"layer": "audit", "source": "cos_audit_log_query"})
+
+
+@mcp.tool(
+    name="cos_log_query",
+    annotations={
+        "title": "Query Durable Error / Log Store",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+@safe_tool
+def cos_log_query(
+    level: str = "",
+    scope: str = "",
+    since: str = "",
+    search: str = "",
+    session_id: str = "",
+    trace_id: str = "",
+    fingerprint: str = "",
+    limit: int = 50,
+) -> str:
+    """Query the durable log_events store (WARN+), most-recent first — the agent's "what is broken now"."""
+    result = log_query(
+        _db_conn,
+        level=level or None,
+        scope=scope or None,
+        since=since or None,
+        search=search or None,
+        session_id=session_id or None,
+        trace_id=trace_id or None,
+        fingerprint=fingerprint or None,
+        limit=limit,
+    )
+    return ok(result, meta={"layer": "logs", "source": "cos_log_query"})
 
 
 @mcp.tool(

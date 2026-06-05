@@ -36,6 +36,7 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
 - **Audit (3):** `cos_audit_log_record`, `cos_audit_log_query`, `cos_audit_log_timeline`
+- **Logs (1):** `cos_log_query` — durable WARN+ error store query (level floor / scope glob / since / search / session / fingerprint); the agent's "what is broken now"
 - **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
 
 ## Recommended External MCPs
