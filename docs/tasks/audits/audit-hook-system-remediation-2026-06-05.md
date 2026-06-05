@@ -18,7 +18,7 @@ created: 2026-06-05
 | # | Category (stream) | Task | Pattern / scope | Files scanned | Hits before | Fixed | Hits after | Verified | Evidence (commit / file:line) |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | Learning-loop memory corruption | TASK-104 | decay.py/learning.py/session_enrich.py/nightly.py/cron_commands.py | 5 | 7 | yes | 0 | yes | d69a52b·568c4d9·b227b83·d752bd7·7096979 (auto-brain marker→N9, hour knob→N7) |
-| 2 | Danger/secret regex holes | TASK-105 | block-dangerous-commands.sh/block-secrets.sh | 2 | 5 | no | 5 | no | (pending) |
+| 2 | Danger/secret regex holes | TASK-105 | block-dangerous-commands.sh/block-secrets.sh/_helpers/check_dangerous_rm.py | 3 | 4 | yes | 0 | yes | 10d1240·2d6b7de (25 hook behavior tests) |
 | 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | no | 8 | no | (pending) |
 | 4 | Board transition atomicity | TASK-108 | workflow.py/mcp_tools.py/4 hook helpers | 6 | 2 | no | 2 | no | (pending) |
 | 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/memory.py | 4 | 5 | no | 5 | no | (pending) |
@@ -42,10 +42,10 @@ created: 2026-06-05
 - ✅ 1g MED — Linux systemd `--user` .timer/.service scheduler; `cos cron install` dispatches by OS. **DONE 7096979 + tests.** ↪ misleading per-project `hour` knob removal folded into N7 (web layer).
 
 ### Stream 2 — TASK-105 · Danger/secret regex (P0, isolated)
-- ⬜ 2a CRIT — `block-dangerous-commands.sh:50` rm -rf matches `/`,`.`,`..`,`./`,`*` and flag-order (`-fr`,`-r -f`); drop trailing `\b`, anchor on whitespace/EOL.
-- ⬜ 2b HIGH — `block-secrets.sh:112` `sk-` regex tightened so kebab slugs/SKUs don't false-fire.
-- ⬜ 2c MED — `block-dangerous-commands.sh:30` force-push refspec `+main`/`+master`; anchor branch match.
-- ⬜ 2d MED — `block-secrets.sh:17` `.env` add guard for `git add -A`/`.`/dir (or document git-hook is the real defense); `:48` skip-list match path segments not substrings.
+- ✅ 2a CRIT — rm -rf now blocked via shlex-correct helper (`_helpers/check_dangerous_rm.py`) for `/`·`.`·`..`·`./`·`*`·`-fr`·`-r -f`·top-level abs·project dirs. **DONE 10d1240 + 19 tests.**
+- ✅ 2b HIGH — `sk-` regex keyed on specific prefix (sk-ant-api##-/sk-proj-/40+ alnum) — kebab slugs no longer false-fire, real keys still caught. **DONE 2d6b7de + tests.**
+- ✅ 2c MED — force-push refspec `+main`/`+HEAD:main` blocked. **DONE 10d1240 + tests.**
+- ✅ 2d MED — secret skip-list matches path segments/basenames not substrings (`latest/`,`contest/` no longer silently unscanned). **DONE 2d6b7de.** ↪ `.env` git-add guard left best-effort by design — the installed git pre-commit hook scans the staged set (the real defense, per audit recommendation).
 
 ### Stream 3 — TASK-107 · Per-panel marker-scope drift (P1)
 - ⬜ 3a HIGH — nudge-thinking-os/nudge-docs-first markers write to `${COS_PANEL_DIR:-…}` to match session-context clear (else fire once/agent-lifetime).
@@ -97,10 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 1 -->
-<!-- next_unchecked_row: 2 -->
+<!-- last_updated_row: 2 -->
+<!-- next_unchecked_row: 10 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1 (TASK-104) COMPLETE 1a-1g — d69a52b·568c4d9·b227b83·d752bd7·7096979. NEXT: N2 (TASK-105) safety regex (rm -rf / bypass). -->
+<!-- progress: N1 COMPLETE (1a-1g). N2 COMPLETE 2a-2d (10d1240·2d6b7de). NEXT: N10 (TASK-114) enforce-anti-ambiguity dead gate → FIX. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
