@@ -14,6 +14,7 @@ multiple releases.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -139,3 +140,50 @@ def test_template_is_valid_json(template_path: Path) -> None:
     with template_path.open() as f:
         data = json.load(f)
     assert "hooks" in data, f"{template_path.name} missing 'hooks' key"
+
+
+# --- TASK-110 (N6): kill dispatcher ⇄ adapter.yaml drift ----------------
+CODEX_HOOKS_DIR = CODING_OS_ROOT / "src" / "adapters" / "codex" / "hooks"
+
+
+def _dispatcher_script_delegates() -> dict[str, set[str]]:
+    """adapter.yaml → {dispatcher_script: {delegate.sh, ...}} (union over events)."""
+    data = yaml.safe_load(CODEX_ADAPTER.read_text(encoding="utf-8")) or {}
+    result: dict[str, set[str]] = {}
+    for item in data.get("hook_dispatchers") or []:
+        script = str(item.get("script", ""))
+        if script:
+            result.setdefault(script, set()).update(
+                str(d) for d in item.get("delegates") or []
+            )
+    return result
+
+
+def _forloop_delegates(dispatch_sh: Path) -> set[str]:
+    """Extract the `*.sh` set from a dispatcher's `for delegate in … do` block."""
+    text = dispatch_sh.read_text(encoding="utf-8")
+    match = re.search(r"for\s+delegate\s+in\b(.*?)\bdo\b", text, re.DOTALL)
+    if not match:
+        return set()
+    return set(re.findall(r"[\w./-]+\.sh", match.group(1)))
+
+
+def test_codex_dispatcher_loops_match_adapter_yaml() -> None:
+    """Each codex-*-dispatch.sh for-loop set == its adapter.yaml delegates.
+
+    The dispatcher .sh and adapter.yaml::hook_dispatchers are BOTH
+    hand-maintained; this asserts they never drift (the failure mode that
+    left auto-reindex-shell-ops / auto-prune-deleted-files declared but
+    unwired before TASK-110).
+    """
+    declared = _dispatcher_script_delegates()
+    assert declared, "no hook_dispatchers found in codex adapter.yaml"
+    for script, delegates in declared.items():
+        sh = CODEX_HOOKS_DIR / script
+        if not sh.exists():
+            continue
+        loop = _forloop_delegates(sh)
+        assert loop == delegates, (
+            f"{script}: for-loop {sorted(loop)} != adapter.yaml delegates "
+            f"{sorted(delegates)} — sync the dispatcher and adapter.yaml"
+        )
