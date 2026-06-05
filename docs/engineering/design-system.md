@@ -101,18 +101,23 @@ only; glow reserved for live/active state.
 
 ## 4. Domain palettes (harmonized)
 
-**Golden rule — graph node kinds:** all hues at **equal OKLCH lightness
-(~0.72) and chroma (~0.14)**; only hue distinguishes a category. (The
-legacy palette mixed near-black brown with hot orange → visual chaos.)
+**Golden rule — graph node kinds (v2):** across families = a **distinct
+hue region**; within a family = **bold lightness steps** (≥~12 L). v1
+varied hue subtly at equal lightness → class/method/function (and the
+azure API cluster) read as one dot. **Verified:** every common-vs-common
+kind pair is ≥18 ΔE76 apart (pairwise CIE-Lab check); only the
+de-emphasized gray refs (`import_`/`identifier`/`unknown`) cluster, by
+design.
 
-| Category | Nodes | Dark-canvas colors |
-|---|---|---|
-| Structure | folder/file/module | `#8A93A6` · `#6E7686` · `#565E6C` |
-| Code-defs | class/method/function/var/interface | `#8B8FF4` · `#A6A9F7` · `#6E72E8` · `#B9BBF9` · `#595DD6` |
-| API-surface | route/mcp_tool/tool/contract/event | `#4C9DF0` · `#3B82F6` · `#5FB0F5` · `#2E6FE0` · `#38BDF8` |
-| Docs | doc_file/heading/frontmatter/external | `#2DD4BF` · `#34D399` · `#6EE7D6` · `#14B8A6` |
-| Governance | rule/skill/hook/task | `#E0A82E` · `#D98AE0` · `#F2618F` · `#B98AF0` |
-| Analysis | community / unknown | `#C77DFF` / `#6B7280` |
+| Family (hue) | Nodes → dark-canvas colors |
+|---|---|
+| Structure (amber) | folder `#F4B63E` · module `#C0792E` |
+| Refs + file (gray, recede) | file `#C2C9D6` · identifier `#7C8696` · import_ `#4E5666` |
+| Code-defs (indigo→violet) | class `#6D7BF7` · interface `#3B45C8` · variable `#AEB6FF` · function `#B15CF5` · method `#D9A6FF` |
+| API-surface (cyan/teal) | route `#16A6C0` · mcp_tool `#15CBB4` · tool `#79E6D8` · contract `#0E6F8C` · event `#7AD4FF` |
+| Docs (green) | doc_file `#3FB950` · doc_heading `#86E05A` · doc_frontmatter `#BCE8A0` · doc_external `#2E9E6E` |
+| Governance (magenta/pink) | rule `#D070D0` · skill `#F25FBE` · task `#FF85C2` · hook `#FF5C7A` |
+| Analysis | community `#F2761D` · unknown `#6B7280` |
 
 **Swimlane / task-kind chips:** no full pastel fills. A chip = hue tint
 (~10% alpha on panel) + 3px left accent border + chip text in the hue's

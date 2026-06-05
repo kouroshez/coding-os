@@ -29,47 +29,48 @@ export type NodeKind =
   | 'identifier'
   | 'unknown';
 
-// Cortex Phase 2 — harmonized for the dark canvas (the hero view). 25
-// kinds → 7 hue families, all at NEAR-EQUAL lightness (~0.72 OKLCH L) and
-// chroma (~0.14) so only HUE distinguishes a category — the legacy scheme
-// mixed near-black brown (#3A2925) with hot orange (#FF7A3D) at wildly
-// different lightness, which read as chaos. Families: steel=structure
-// (recedes), Iris=code-defs (BRAND), slate=code-refs, azure=API-surface,
-// teal=docs, gold+magenta=governance, violet=analysis. Tuned dark-first;
-// still legible on the light canvas. SSOT: docs/engineering/design-system.md.
+// Cortex graph palette v2 — MAXIMUM DISTINCTION on the dark canvas.
+// Rule: across families = a distinct HUE region; within a family = BOLD
+// LIGHTNESS steps. v1 varied hue subtly at equal lightness, so
+// class/method/function (and the azure API cluster) read as one dot at
+// 4-6 px. 7 hue anchors: structure=amber · code-defs=indigo→violet ·
+// refs=gray (recede) · api=cyan/teal · docs=green · governance=
+// magenta/pink · analysis=orange. Verified: every common-vs-common kind
+// pair ≥18 ΔE76 apart (pairwise CIE-Lab check); only the de-emphasized
+// gray refs cluster, by design. SSOT: docs/engineering/design-system.md §4.
 export const NODE_COLORS: Record<NodeKind, string> = {
-  // ─── STRUCTURE (filesystem) — cool steel, recedes ───
-  folder: '#8A93A6',
-  file: '#6E7686',
-  module: '#565E6C',
-  // ─── CODE-DEFS (symbol declarations) — Iris [BRAND] ───
-  class: '#8B8FF4',
-  method: '#A6A9F7',
-  function: '#6E72E8',
-  variable: '#B9BBF9',
-  interface: '#595DD6',
-  // ─── CODE-REFS (references / imports) — muted slate ───
-  import_: '#7C8696',
-  identifier: '#646E7E',
-  // ─── API-SURFACE (external contracts) — azure ───
-  route: '#4C9DF0',
-  mcp_tool: '#3B82F6',
-  tool: '#5FB0F5',
-  contract: '#2E6FE0',
-  event: '#38BDF8',
-  // ─── DOCS (prose) — teal / green ───
-  doc_file: '#2DD4BF',
-  doc_heading: '#34D399',
-  doc_frontmatter: '#6EE7D6',
-  doc_external: '#14B8A6',
-  // ─── GOVERNANCE (coding-os meta) — gold + magenta (hooks=hot) ───
-  rule: '#E0A82E',
-  skill: '#D98AE0',
-  hook: '#F2618F',
-  task: '#B98AF0',
-  // ─── ANALYSIS (rare meta nodes) — violet ───
-  community: '#C77DFF',
-  // ─── DEFAULT — neutral gray ───
+  // ─── STRUCTURE — amber / gold ───
+  folder: '#F4B63E',
+  module: '#C0792E',
+  // ─── REFS + file — neutral gray (ambient, recede) ───
+  file: '#C2C9D6',
+  identifier: '#7C8696',
+  import_: '#4E5666',
+  // ─── CODE-DEFS — indigo → violet [BRAND] ───
+  class: '#6D7BF7',
+  interface: '#3B45C8',
+  variable: '#AEB6FF',
+  function: '#B15CF5',
+  method: '#D9A6FF',
+  // ─── API-SURFACE — cyan / teal ───
+  route: '#16A6C0',
+  mcp_tool: '#15CBB4',
+  tool: '#79E6D8',
+  contract: '#0E6F8C',
+  event: '#7AD4FF',
+  // ─── DOCS — green ───
+  doc_file: '#3FB950',
+  doc_heading: '#86E05A',
+  doc_frontmatter: '#BCE8A0',
+  doc_external: '#2E9E6E',
+  // ─── GOVERNANCE — magenta / pink / rose ───
+  rule: '#D070D0',
+  skill: '#F25FBE',
+  task: '#FF85C2',
+  hook: '#FF5C7A',
+  // ─── ANALYSIS — orange ───
+  community: '#F2761D',
+  // ─── DEFAULT — gray ───
   unknown: '#6B7280',
 };
 
