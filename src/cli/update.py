@@ -331,15 +331,15 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
                     entry.unlink()
 
 
-def _run_db_migrations(project: Path) -> None:
+def _run_db_migrations(project: Path) -> bool:
     db = project / STATE_DIR / "coding-os.db"
     if not db.exists():
-        return
+        return True
     import subprocess
     import sys
 
     brain = CORE_DIR / "thinking_os"
-    subprocess.run(
+    proc = subprocess.run(
         [
             sys.executable,
             "-c",
@@ -348,7 +348,14 @@ def _run_db_migrations(project: Path) -> None:
         ],
         check=False,
         capture_output=True,
+        text=True,
     )
+    if proc.returncode != 0:
+        click.echo(f"  WARN: DB migration failed (exit {proc.returncode})", err=True)
+        if proc.stderr:
+            click.echo(proc.stderr.strip(), err=True)
+        return False
+    return True
 
 
 def _write_installed_manifest(
@@ -471,7 +478,9 @@ def update(
             except Exception as exc:
                 click.echo(f"  WARN: could not generate AGENTS.md ({exc})", err=True)
 
-        _run_db_migrations(project)
+        if not _run_db_migrations(project):
+            click.echo("  ERROR: schema migration failed — DB may be inconsistent", err=True)
+            raise SystemExit(1)
 
     if output_format == "json":
         click.echo(

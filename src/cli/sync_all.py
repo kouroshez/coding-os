@@ -1,4 +1,14 @@
-"""cli.sync_all — push the meta-repo's current state to every registered project."""
+"""cli.sync_all — push the meta-repo's current state to every registered project.
+
+PURPOSE:      Re-run each registered project's adapter install.sh, apply pending
+              DB migrations, and audit agent-dir symlinks for dangling targets.
+INPUT:        --slug (one project) · --dry-run · --skip-installs.
+OUTPUT:       per-project progress to stdout; exits non-zero when any adapter
+              install failed or any symlink is dangling (so CI/callers can gate).
+DEPENDENCIES: cli.registry, cli.main (_run_adapter_install/_link_stack_skills),
+              thinking_os.database, per-project .coding-os.yaml.
+NOTES:        Idempotent — install.sh re-links are safe to repeat.
+"""
 
 from __future__ import annotations
 
@@ -167,6 +177,7 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
     """
     total = 0
     seen_broken: dict[str, list[str]] = {}
+    install_failures: list[str] = []
     click.echo(f"coding-os sync-all  [meta repo: {_REPO_ROOT}]")
     if dry_run:
         click.echo("  (dry-run — no mutation)")
@@ -184,6 +195,8 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
         elif not skip_installs:
             for note in _re_run_installs(path, agents, templates, dry_run):
                 click.echo(f"    {note}")
+                if note.startswith("FAILED"):
+                    install_failures.append(f"{entry.slug}: {note}")
 
         ok, msg = (True, "skipped (dry-run)") if dry_run else _apply_migrations(path)
         marker = "✓" if ok else "✗"
@@ -206,6 +219,12 @@ def sync_all_cmd(slug: str | None, dry_run: bool, skip_installs: bool) -> None:
             f"{sum(len(v) for v in seen_broken.values())} dangling link(s) across "
             f"{len(seen_broken)} project(s).  Use `cos sync-doctor --repair`."
         )
+    if install_failures:
+        click.echo(f"\n✗ {len(install_failures)} adapter install(s) failed:", err=True)
+        for failure in install_failures:
+            click.echo(f"    {failure}", err=True)
+    if install_failures or seen_broken:
+        sys.exit(1)
 
 
 # ---------------------------------------------------------------------------

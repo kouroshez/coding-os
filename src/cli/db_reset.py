@@ -241,6 +241,10 @@ def register(cli: click.Group) -> None:
                         shutil.copy2(p, dst)
                 except OSError as exc:
                     click.echo(f"  backup failed for {p}: {exc}", err=True)
+                    click.echo(
+                        f"  partial backup left at {bak_root} — remove it before retrying",
+                        err=True,
+                    )
                     sys.exit(1)
             click.echo(f"  backup size: {_bytes(_path_size(bak_root))}")
 
@@ -280,7 +284,12 @@ def register(cli: click.Group) -> None:
         else:
             click.echo("  2. Running `cos graph-reindex`...")
             try:
-                subprocess.run(["cos", "graph-reindex"], check=False, cwd=str(project))
+                proc = subprocess.run(["cos", "graph-reindex"], check=False, cwd=str(project))
+                if proc.returncode != 0:
+                    click.echo(
+                        f"     graph-reindex exited {proc.returncode} — run manually: cos graph-reindex",
+                        err=True,
+                    )
             except FileNotFoundError:
                 click.echo("     `cos` not on PATH; run manually: cos graph-reindex", err=True)
         if not wipe_tasks:

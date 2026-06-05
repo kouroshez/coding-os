@@ -1089,11 +1089,17 @@ def _run_scaffold_phase(
         )
         env = os.environ.copy()
         env["COS_DB_PATH"] = str(db_path)
-        subprocess.run(
+        proc = subprocess.run(
             [sys.executable, "-c", init_code],
             env=env,
             capture_output=True,
+            text=True,
         )
+        if proc.returncode != 0:
+            click.echo("  ERROR: failed to initialize thinking_os database", err=True)
+            if proc.stderr:
+                click.echo(proc.stderr.strip(), err=True)
+            raise SystemExit(1)
         click.echo("  Initialized thinking_os database")
 
     # 3. Generate config
@@ -1443,6 +1449,8 @@ def eject(project_dir: str) -> None:
                     filepath.unlink()
                     shutil.copy2(target, filepath)
                     ejected += 1
+                    if ejected % 50 == 0:
+                        click.echo(f"  … ejected {ejected} symlinks so far", err=True)
 
     click.echo(f"Ejected {ejected} symlinks to real files.")
     click.echo("Project is now self-contained.")
