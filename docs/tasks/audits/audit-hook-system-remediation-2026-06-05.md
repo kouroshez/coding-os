@@ -33,9 +33,9 @@ created: 2026-06-05
 > Status markers: ⬜ todo · 🟦 in-progress · ✅ done+verified. Update the category-table `Verified` cell + call `cos_supervise_record_output` on each stream close.
 
 ### Stream 1 — TASK-104 · Learning-loop memory corruption (P0, isolated from concurrent work)
-- ⬜ 1a CRIT — `learning.py:424` `_upsert_pattern` INSERT stamps `last_validated`(+`last_accessed_at`)=CURRENT_TIMESTAMP so fresh patterns aren't aged to 999d → archived on first decay (`decay.py:186` `months=(None or 999)/30`).
+- ✅ 1a CRIT — `learning.py` `_upsert_pattern` INSERT stamps `last_validated`+`last_accessed_at`=CURRENT_TIMESTAMP so fresh patterns aren't aged to 999d → archived on first decay. **DONE commit d69a52b + regression test (test_decay.py TestFreshPatternSurvivesFirstDecay).**
 - ⬜ 1b HIGH — `decay.py:160-170` hard-delete prune must not erase below-floor knowledge without an `archived_at` grace (add column or gate on archived-duration, not at-floor).
-- ⬜ 1c MED — `learning.py:413-420` re-extract of an archived pattern resets `promoted_to=NULL` (revive) when confidence climbs back active.
+- ✅ 1c MED — `learning.py` re-extract of an archived pattern resets `promoted_to=NULL` (revive) + refreshes last_accessed_at. **DONE commit d69a52b.**
 - ⬜ 1d HIGH — `session_enrich.py:235-240` decay acquires the same `flock` nightly uses (concurrent-decay race).
 - ⬜ 1e HIGH — unify decay marker path across nightly/auto-brain-decay/session_enrich (project-scoped `.last-decay`, not divergent COS_STATE_DIR vs project_root).
 - ⬜ 1f MED — cron (`nightly.py`) regenerates digest after extract/decay (digest currently SessionStart-only → stale for cron-only projects).
