@@ -1,0 +1,9 @@
+{
+  "redis": {
+    "ecosystem": "github",
+    "package": "redis/redis",
+    "version": "8.8.0",
+    "source": "https://github.com/redis/redis/releases",
+    "checked": "2026-06-04"
+  }
+}
