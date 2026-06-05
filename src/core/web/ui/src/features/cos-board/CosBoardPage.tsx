@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPost } from '@/lib/api-client';
+import { apiPost, apiPatch } from '@/lib/api-client';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
@@ -2684,6 +2684,15 @@ interface TaskDetailPayload {
   };
 }
 
+interface TaskEditFormState {
+  title: string;
+  priority: string;
+  swimlane: string;
+  appetite: string;
+  labels: string;
+  body: string;
+}
+
 function TaskDetailDrawer({
   task,
   swimlanes,
@@ -2702,6 +2711,12 @@ function TaskDetailDrawer({
     undefined,
     { enabled: !!task },
   );
+
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [form, setForm] = useState<TaskEditFormState | null>(null);
 
   useEffect(() => {
     if (!task) return undefined;
@@ -2741,6 +2756,52 @@ function TaskDetailDrawer({
     const split = splitFrontmatter(data.content);
     body = split.body.replace(/^\s*#\s+.+\n+/, '');
   }
+
+  const isReady = labels.includes('ready');
+  const refresh = () => {
+    void invalidateApiQueries(qc, '/api/board/list');
+    void invalidateApiQueries(qc, `/api/board/task/${task.id}`);
+    void invalidateApiQueries(qc, `/api/board/task/${task.id}/history`);
+  };
+  const enterEdit = () => {
+    setForm({ title, priority, swimlane, appetite, labels: labels.join(', '), body });
+    setSaveErr(null);
+    setEditing(true);
+  };
+  const cancelEdit = () => {
+    setEditing(false);
+    setForm(null);
+  };
+  const saveEdit = async () => {
+    if (!form) return;
+    setSaving(true);
+    setSaveErr(null);
+    try {
+      await apiPatch(`/api/board/task/${task.id}`, {
+        title: form.title,
+        priority: form.priority,
+        swimlane: form.swimlane,
+        appetite: form.appetite,
+        labels: form.labels.split(',').map((s) => s.trim()).filter(Boolean),
+        body: form.body,
+      });
+      refresh();
+      setEditing(false);
+      setForm(null);
+    } catch (e) {
+      setSaveErr(e instanceof Error ? e.message : 'save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+  const toggleReady = async () => {
+    try {
+      await apiPost(`/api/board/task/${task.id}/ready`, { ready: !isReady });
+      refresh();
+    } catch {
+      /* error surfaces on the next fetch */
+    }
+  };
 
   return (
     <>
@@ -2941,10 +3002,22 @@ function TaskDetailDrawer({
               no file on disk for this task — DB row only.
             </div>
           )}
-          {data && data.exists && (
-            <div className="md-body">{renderTaskMarkdown(body)}</div>
+          {editing && form ? (
+            <TaskEditForm
+              form={form}
+              setForm={setForm}
+              swimlanes={swimlanes}
+              saving={saving}
+              error={saveErr}
+            />
+          ) : (
+            <>
+              {data && data.exists && (
+                <div className="md-body">{renderTaskMarkdown(body)}</div>
+              )}
+              <TaskHistoryPanel taskId={task.id} />
+            </>
           )}
-          <TaskHistoryPanel taskId={task.id} />
         </div>
 
         {/* Footer — command hints from the prototype */}
@@ -2962,12 +3035,83 @@ function TaskDetailDrawer({
             color: 'var(--ink-faint)',
           }}
         >
-          <span style={{ color: 'var(--ink-soft)' }}>$</span>
-          <span>cos edit {task.id}</span>
-          <span style={{ opacity: 0.4, marginLeft: 8 }}>·</span>
-          <span>cos log {task.id} "msg"</span>
-          <span style={{ opacity: 0.4, marginLeft: 8 }}>·</span>
-          <span>cos move {task.id} complete</span>
+          {editing ? (
+            <>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={saving}
+                style={{
+                  background: 'var(--accent)',
+                  border: '1px solid var(--accent)',
+                  color: '#fff',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11,
+                  padding: '3px 12px',
+                  borderRadius: 3,
+                  cursor: saving ? 'default' : 'pointer',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? 'saving…' : '✓ save'}
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                disabled={saving}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--col-border)',
+                  color: 'var(--ink-soft)',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11,
+                  padding: '3px 12px',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                }}
+              >
+                cancel
+              </button>
+              {saveErr && <span style={{ color: '#dc2626' }}>{saveErr}</span>}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={enterEdit}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--col-border)',
+                  color: 'var(--ink-soft)',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11,
+                  padding: '3px 12px',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                }}
+              >
+                ✎ edit
+              </button>
+              {status === 'ICEBOX' && (
+                <button
+                  type="button"
+                  onClick={toggleReady}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--col-border)',
+                    color: isReady ? 'var(--accent)' : 'var(--ink-soft)',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 11,
+                    padding: '3px 12px',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isReady ? '✓ ready · unmark' : '○ mark ready'}
+                </button>
+              )}
+            </>
+          )}
           <span style={{ flex: 1 }} />
           <span style={{ opacity: 0.7 }}>esc close</span>
         </div>
@@ -3114,6 +3258,118 @@ function TaskHistoryPanel({ taskId }: { taskId: string }) {
             </div>
           ))}
       </div>
+    </div>
+  );
+}
+
+// ---------- Task edit form (human-actor panel edit) ----------
+
+function TaskEditForm({
+  form,
+  setForm,
+  swimlanes,
+  saving,
+  error,
+}: {
+  form: TaskEditFormState;
+  setForm: (value: TaskEditFormState | null) => void;
+  swimlanes: SwimlaneDTO[];
+  saving: boolean;
+  error: string | null;
+}) {
+  const mono = "'JetBrains Mono', monospace";
+  const set = (k: keyof TaskEditFormState, v: string) => setForm({ ...form, [k]: v });
+  const inputStyle: CSSProperties = {
+    width: '100%',
+    background: 'var(--board-grain)',
+    border: '1px solid var(--col-border)',
+    color: 'var(--ink)',
+    fontFamily: mono,
+    fontSize: 12,
+    padding: '6px 8px',
+    borderRadius: 3,
+  };
+  const labelStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    fontFamily: mono,
+    fontSize: 10.5,
+    color: 'var(--ink-faint)',
+    letterSpacing: '.04em',
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {error && <div style={{ color: '#dc2626', fontFamily: mono, fontSize: 12 }}>{error}</div>}
+      <label style={labelStyle}>
+        TITLE
+        <input
+          value={form.title}
+          disabled={saving}
+          onChange={(e) => set('title', e.target.value)}
+          style={inputStyle}
+        />
+      </label>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <label style={{ ...labelStyle, flex: 1 }}>
+          PRIORITY
+          <select
+            value={form.priority}
+            disabled={saving}
+            onChange={(e) => set('priority', e.target.value)}
+            style={inputStyle}
+          >
+            {['P0', 'P1', 'P2', 'P3'].map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ ...labelStyle, flex: 2 }}>
+          SWIMLANE
+          <select
+            value={form.swimlane}
+            disabled={saving}
+            onChange={(e) => set('swimlane', e.target.value)}
+            style={inputStyle}
+          >
+            {swimlanes.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label ?? s.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ ...labelStyle, flex: 1 }}>
+          APPETITE
+          <input
+            value={form.appetite}
+            disabled={saving}
+            onChange={(e) => set('appetite', e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+      </div>
+      <label style={labelStyle}>
+        LABELS (comma-separated)
+        <input
+          value={form.labels}
+          disabled={saving}
+          onChange={(e) => set('labels', e.target.value)}
+          style={inputStyle}
+        />
+      </label>
+      <label style={labelStyle}>
+        BODY (markdown)
+        <textarea
+          value={form.body}
+          disabled={saving}
+          onChange={(e) => set('body', e.target.value)}
+          rows={22}
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+        />
+      </label>
     </div>
   );
 }
