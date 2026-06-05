@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -72,9 +73,17 @@ def _go_toolchain(_pkg: str, timeout: float) -> str:
     return data[0]["version"].removeprefix("go")
 
 
+def _tag_version(tag: str) -> str:
+    # GitHub release tags carry project-specific prefixes (v1.2.3, cli-2.6.0,
+    # release-2.6.0). Extract the leading numeric version so the diff compares
+    # apples to apples; fall back to a bare v-strip when no number is present.
+    match = re.search(r"\d[\w.+-]*$", tag)
+    return match.group(0) if match else tag.strip().lstrip("v")
+
+
 def _github(repo: str, timeout: float) -> str:
     # repo == "owner/name"; /releases/latest skips pre-releases (= stable).
-    return _get_json(f"https://api.github.com/repos/{repo}/releases/latest", timeout)["tag_name"].lstrip("v")
+    return _tag_version(_get_json(f"https://api.github.com/repos/{repo}/releases/latest", timeout)["tag_name"])
 
 
 def _endoflife(product: str, timeout: float, track: str | None = None) -> str:

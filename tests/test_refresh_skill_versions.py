@@ -43,6 +43,17 @@ def test_is_drift(pinned: str, latest: str, drift: bool) -> None:
     assert rsv.is_drift(pinned, latest) is drift
 
 
+@pytest.mark.parametrize("tag,expected", [
+    ("v1.2.3", "1.2.3"),
+    ("cli-2.6.0", "2.6.0"),        # maestro tags releases as cli-<ver>
+    ("docker-v29.5.3", "29.5.3"),  # moby tags releases as docker-v<ver>
+    ("3.13.1", "3.13.1"),          # bare version, no prefix
+    ("nightly", "nightly"),        # no number → returned as-is
+])
+def test_tag_version_strips_project_prefixes(tag: str, expected: str) -> None:
+    assert rsv._tag_version(tag) == expected
+
+
 def test_load_manifest_round_trips(tmp_path: Path) -> None:
     p = tmp_path / "versions.json"
     p.write_text(json.dumps({"next": _entry()}), encoding="utf-8")

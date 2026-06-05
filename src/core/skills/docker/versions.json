@@ -2,7 +2,7 @@
   "docker-engine": {
     "ecosystem": "github",
     "package": "moby/moby",
-    "version": "docker-v29.5.3",
+    "version": "29.5.3",
     "source": "https://github.com/moby/moby/releases",
     "checked": "2026-06-05"
   },
