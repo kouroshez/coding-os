@@ -23,7 +23,7 @@ created: 2026-06-05
 | 4 | Board transition atomicity | TASK-108 | workflow.py/4 helpers/consume_override | 6 | 2 | yes | 0 | yes | e937785 (388 board tests + CAS-conflict smoke; expected_from subsumed by under-lock re-verify) |
 | 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/server.py | 4 | 5 | yes | 0 | yes | 863d3d7 (digest-startup + boost smoke + gate-TTL unit + 142 learning/memory tests + MCP self-test) |
 | 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/test_adapter_parity.py | 3 | 0 | yes | 0 | yes | 5bbb8a6 (6a wired + 6c parity test 5/5; 6b refiled TASK-153 — exit-0-stdout drop, no silent no-op) |
-| 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx/MemoryPage.tsx/api-types | 4 | 4 | no | 4 | no | (pending) |
+| 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx | 4 | 0 | yes | 0 | yes | 27deb9f (route+model registered, tsc 0 errors; hour-knob fold-in deferred) |
 | 8 | Data-driven adapter detection | TASK-112 | doctor.py/cos-env.sh | 3 | 0 | yes | 0 | yes | 6e96f5c (cursor loader smoke + 633 no-hardcoded tests; 8a/8c→TASK-155) |
 | 9 | Hot-path Pre/Post dispatcher | TASK-113 | registry.yaml/hook_renderer.py/test-first/auto-regen-doc-index/dead stubs | ~6 | 6 | no | 6 | no | (pending) |
 | 10 | enforce-anti-ambiguity dead gate | TASK-114 | enforce-anti-ambiguity.sh/cognition.py | 2 | 2 | yes | 0 | yes | 1290412 (DB-state gate + clear-on-pass test) |
@@ -54,11 +54,11 @@ created: 2026-06-05
 - ✅ **N6 (TASK-110) 5bbb8a6** — 6a codex posttool dispatcher wires auto-reindex-shell-ops + auto-prune-deleted-files (side-effect hooks); 6c parity test (for-loop == adapter.yaml). 6b (verify-completion-claim/prevent-premature-done) → **TASK-153**: they emit exit-0 stdout the dispatcher drops, so wiring = silent no-ops; needs Stop-dispatcher stdout-forwarding + codex-runtime verify.
 - ✅ **N8 (TASK-112) 6e96f5c** — 8b doctor `loader_fns` maps `cursor_mcp_json`→`_load_claude_json` (Cursor MCP diagnostic no longer skipped); 8d drop speculative GEMINI_/ANTHROPIC_ session vars. 8a (data-driven cos-env detection via regen snippet) + 8c → **TASK-155** (hottest file; needs generator + per-adapter smoke).
 
-### Stream 7 — TASK-111 · Hub learning panel (P1, infra — coordinate w/ TASK-102 logging in web)
-- ⬜ 7a HIGH — SettingsPage `ScheduledStatus` type + render cron_a + per-project run-logs (last_run_at/tasks/failures).
-- ⬜ 7b HIGH — POST `/api/scheduled/run` (calls nightly.run_project / learn_extract) — ~15 lines.
-- ⬜ 7c HIGH — 'Run learning loop now' button wired to the POST.
-- ⬜ 7d MED — scheduled_status Pydantic response_model so api-types isn't `unknown` (structural drift fix).
+### Stream 7 — TASK-111 · Hub learning panel — ✅ DONE 27deb9f
+- ✅ 7a — SettingsPage `ScheduledStatus` enriched (cron_a + per-project `last_run_at`/`tasks`/`consecutive_failures`/errors); renders last-run + nightly-cron-loaded/next-run state. tsc 0 errors.
+- ✅ 7b — `POST /api/scheduled/run/{slug}` → `nightly.run_project(proj, dry_run=False)` via `asyncio.to_thread` (off the event loop); fail-soft `RunResult{ran,error}`. Route registered (verified).
+- ✅ 7c — "Run learning loop now" button in ScheduledMaintenanceSection wired to the POST + invalidates `/status`; shows running/ran/failed note.
+- ✅ 7d — `scheduled_status` now declares `response_model=ScheduledStatus` (CronStatus + ProjectScheduled) — the OpenAPI contract is typed (api-types regen picks it up). ↪ misleading per-project `hour` knob removal DEFERRED: the field lives in ScheduledConfigForm (live Cortex-UI collision zone) + needs config.json migration; small follow-up, not worth the collision for a cosmetic knob.
 
 ### Stream 8 — TASK-112 · Data-driven adapter detection (P2, infra) — ✅ DONE 6e96f5c
 - ⏭️ 8a — REFILED as TASK-155. cos-env's agent-detection if/elif (+ panel session-marker loop + model-env resolver) duplicates `adapter.yaml::runtime_env_markers`/`runtime_session_marker` (already the SSOT consumed by `cli/board_commands.py::_detect_agent_runtime`). The correct fix is a REGEN-generated `_agent-detect.generated.sh` sourced by cos-env (fast hot path, no per-hook YAML parse). cos-env.sh is sourced by EVERY hook of EVERY adapter — doing this needs a generator + regen wiring + byte-equivalence diff + per-adapter detection smoke, which is its own task, not a marathon-tail edit on the single most load-bearing file.
@@ -79,12 +79,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 8 -->
-<!-- next_unchecked_row: 7 -->
+<!-- last_updated_row: 7 -->
+<!-- next_unchecked_row: 9 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ N6✅ N8✅ (6e96f5c; 8a/8c→TASK-155). 8/10 streams done + 3 hard sub-items refiled (TASK-153/155). -->
-<!-- BLOCKED: N7 (TASK-111) hub UI panel — a LIVE concurrent session is mid Cortex UI overhaul (commits de5687c/34eee4c in src/core/web/ui/**, the exact SettingsPage/MemoryPage files N7 edits). Editing now collides with their in-flight work. Resume N7 once the Cortex overhaul settles (clean tree + no fresh hub-ui commits). -->
-<!-- LAST: N9 (TASK-113) hot-path Pre/Post dispatcher — highest blast radius (every Write/Edit), overlaps LIVE TASK-100; do with fresh context after N7. -->
+<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ N4✅ N6✅ N8✅ N7✅ (27deb9f). 9/10 streams done + hard sub-items refiled (TASK-153/155). NEXT: N9 (TASK-113) hot-path dispatcher — last. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
