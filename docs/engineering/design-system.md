@@ -166,10 +166,14 @@ dark step. Keeps color-coding, kills the kindergarten look.
 
 ## 8. Theming mechanism
 
-`data-theme="light|dark"` on `<html>`, synced by `ThemeProvider.tsx` from
-`DesignTweaks.theme`. Default = `dark` (`DEFAULT_DESIGN_TWEAKS`). User
-toggles in Settings; preference persists. Not a media query (explicit
-control), with an optional follow-system mode planned.
+`data-theme="light|dark"` on `<html>`. **Single source of truth = the
+zustand `theme-store`** (`src/store/theme-store.ts`): persists to
+`localStorage` (guarded for absent/blocked storage) and applies
+`data-theme` before first paint (default `dark`). Both the global header
+toggle (`ThemeToggle`) and the board's Theme tweak write the store;
+`DesignThemeProvider` / `BoardThemeProvider` **subscribe** to it so
+`tweaks.theme` never goes stale (no multi-source race). Not a media query
+(explicit control), with an optional follow-system mode planned.
 
 ## 9. Phased rollout (epic ui-design-system / TASK-149)
 
@@ -188,7 +192,8 @@ control), with an optional follow-system mode planned.
 |---|---|
 | Primitive + semantic tokens (light/dark) | `src/core/web/ui/public/cos-board-tokens.css` |
 | `--cos-*` semantic aliases + global CSS | `src/core/web/ui/src/index.css` |
-| Theme default + sync | `src/core/web/ui/src/design/types.ts`, `design/ThemeProvider.tsx` |
+| Theme single source + toggle | `src/core/web/ui/src/store/theme-store.ts` (+ `.test.ts`), `layout/ThemeToggle.tsx`, `design/ThemeProvider.tsx` |
+| Color codemod + verification | `src/core/web/ui/scripts/{color_codemod,contrast_check,deltae_check}.py` |
 | Graph node kind colors | `src/core/web/ui/src/lib/node-colors.ts` |
 | Swimlane / task-kind chips | `src/core/web/ui/src/features/cos-board/kindColors.ts` |
 | Priority / event colors | `src/core/web/ui/src/features/cos-board/CosBoardPage.tsx` |
@@ -263,7 +268,10 @@ autonomous execution — not uniformly.
 
 **Rule:** no component hardcodes a palette color. Every UI color resolves
 from a `--cos-*` token, so a rebrand = editing `cos-board-tokens.css`
-alone. Enforced by a repeatable codemod (the mapping IS the rule):
+alone. Enforced by a repeatable codemod committed at
+`src/core/web/ui/scripts/color_codemod.py` (run from repo root;
+`contrast_check.py` / `deltae_check.py` verify WCAG contrast + ΔE
+distinctness) — the mapping IS the rule:
 
 | Tailwind named family | Token |
 |---|---|
