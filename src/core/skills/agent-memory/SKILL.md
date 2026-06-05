@@ -221,7 +221,15 @@ A permission change → audit log. A pattern about reviewing permissions → ope
 - **Reading without `min_confidence`** — top-K full of decayed noise.
 - **Trusting memory without verification** when the memory names a specific symbol/path.
 
+## Tooling
+
+Validate an observation before recording (confidence range, no PII/secrets):
+`python3 scripts/check_observation.py --file obs.json`
+
 ## Composition pointers
+
+- [references/memory-recipes.md](references/memory-recipes.md) — the `cos_*` write/read/learn-loop sequences.
+- [assets/memory-checklist.md](assets/memory-checklist.md) — the write/read gate.
 
 - Cognitive cycle entry: [thinking_os](../thinking_os/SKILL.md) — Orient phase routes to memory.
 - Layer routing: [search](../search/SKILL.md) decision gate (memory vs docs vs graph vs file).
