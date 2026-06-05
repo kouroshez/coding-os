@@ -34,18 +34,6 @@ interface Highlight {
   value: string;
 }
 
-interface BoardStats {
-  throughput: number | null;
-  throughputLast7: number | null;
-  cycleTime: number | null;
-  wipTotal: number;
-  wipCap: number;
-  wipOver: number;
-  blocked: number | null;
-  p0: number;
-  emergency: number;
-}
-
 interface TaskCounts {
   kind: Record<string, number>;
   swim: Record<string, number>;
@@ -66,11 +54,6 @@ interface CreateTaskForm {
 interface CreateTaskResponse {
   task_id?: string;
   data?: { task_id?: string };
-}
-
-interface RetroMetricsPayload {
-  completed_count?: number;
-  cycle_time_avg_minutes?: number | null;
 }
 
 // ---------- static data (prototype parity) ----------
@@ -315,7 +298,6 @@ export default function CosBoardPage() {
     { limit: 400, include_archive: true },
   );
   const { data: cfg } = useApiGet<BoardConfigPayload>(['board-config'], '/api/board/config');
-  const { data: retro } = useApiGet<RetroMetricsPayload>(['board-retro-7d'], '/api/board/retro', { since: '7d' });
 
   useEffect(() => {
     if (bump > 0) {
@@ -429,33 +411,6 @@ export default function CosBoardPage() {
     }
     return c;
   }, [cards]);
-
-  const stats = useMemo<BoardStats>(() => {
-    const retroThroughput = typeof retro?.completed_count === 'number' ? retro.completed_count : null;
-    const cycleAvgMinutes = retro?.cycle_time_avg_minutes;
-    const retroCycleDays =
-      typeof cycleAvgMinutes === 'number' && Number.isFinite(cycleAvgMinutes)
-        ? Number((cycleAvgMinutes / (60 * 24)).toFixed(1))
-        : null;
-    const wipCols = columns.filter((c) => columnWipCap(c.id, cfg?.wip_limits) != null);
-    const wipTotal = cards.filter((t) => ['in_progress', 'testing', 'emergency'].includes(t.status)).length;
-    const wipCap = wipCols.reduce((a, c) => a + (columnWipCap(c.id, cfg?.wip_limits) || 0), 0);
-    const wipOver = wipCols.filter((c) => {
-      const cap = columnWipCap(c.id, cfg?.wip_limits);
-      return cap != null && cards.filter((t) => t.status === c.id).length > cap;
-    }).length;
-    return {
-      throughput: retroThroughput,
-      throughputLast7: retroThroughput,
-      cycleTime: retroCycleDays,
-      wipTotal,
-      wipCap: wipCap || 6,
-      wipOver,
-      blocked: cards.filter((t) => t.status === 'blocked').length,
-      p0: cards.filter((t) => t.priority === 'P0' && !['complete', 'archive'].includes(t.status)).length,
-      emergency: cards.filter((t) => t.status === 'emergency').length,
-    };
-  }, [cards, columns, cfg?.wip_limits, retro?.completed_count, retro?.cycle_time_avg_minutes]);
 
   const kindOptions = useMemo<{ value: string; label: string }[]>(
     () => [{ value: 'all', label: 'all' }, ...Object.keys(KIND_COLORS).map((k) => ({ value: k, label: kindStyle(k).label }))],
@@ -597,7 +552,6 @@ export default function CosBoardPage() {
     <AgentCatalogContext.Provider value={agentCatalog}>
     <div style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <TopBar
-        stats={stats}
         taskCount={list?.count ?? 0}
         connected={connected}
         cursorModel={list?.cursor_model}
@@ -988,7 +942,6 @@ export default function CosBoardPage() {
 // TopBar
 // ============================================================
 function TopBar({
-  stats,
   taskCount,
   connected,
   cursorModel,
@@ -1003,7 +956,6 @@ function TopBar({
   onToggleTweaks,
   onCreate,
 }: {
-  stats: BoardStats;
   taskCount: number;
   connected: boolean;
   cursorModel?: string | null;
@@ -1035,40 +987,6 @@ function TopBar({
         minHeight: 48,
       }}
     >
-      {/* STATS BAR — primary telemetry, reads left to right */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'stretch',
-          gap: 0,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10.5,
-          border: '1px solid var(--col-border)',
-          borderRadius: 6,
-          background: 'var(--col-bg)',
-          overflow: 'hidden',
-          boxShadow: '0 1px 2px rgba(0,0,0,.05)',
-        }}
-      >
-        <StatCell
-          label="THROUGHPUT"
-          value={stats.throughput}
-          unit="/wk"
-          hint={stats.throughputLast7 != null ? `last 7d: ${stats.throughputLast7}` : 'retro metrics unavailable'}
-        />
-        <StatCell label="CYCLE" value={stats.cycleTime} unit="d p50" hint={stats.cycleTime != null ? '' : 'from retro'} />
-        <StatCell
-          label="WIP"
-          value={stats.wipTotal}
-          unit={`/${stats.wipCap}`}
-          tone={stats.wipOver ? 'red' : null}
-          hint={stats.wipOver ? `${stats.wipOver} col over cap` : 'within caps'}
-        />
-        <StatCell label="BLOCKED" value={stats.blocked} unit="" tone={(stats.blocked ?? 0) > 0 ? 'amber' : null} />
-        <StatCell label="P0" value={stats.p0} unit="open" tone={stats.p0 > 0 ? 'red' : null} />
-        <StatCell label="EMERG" value={stats.emergency} unit="" tone={stats.emergency > 0 ? 'red' : null} last />
-      </div>
-
       <div style={{ flex: 1 }} />
 
       {/* LIVE STATUS + ACTIONS */}
@@ -1174,51 +1092,6 @@ function TopBtn({
     >
       {children}
     </button>
-  );
-}
-
-function StatCell({
-  label,
-  value,
-  unit,
-  hint,
-  tone,
-  last,
-}: {
-  label: string;
-  value: number | string | null;
-  unit?: string;
-  hint?: string;
-  tone?: 'red' | 'amber' | null;
-  last?: boolean;
-}) {
-  const color = tone === 'red' ? '#dc2626' : tone === 'amber' ? '#ea580c' : 'var(--ink)';
-  const isMissing = value == null;
-  const displayValue = isMissing ? '—' : value;
-  const displayUnit = isMissing ? undefined : unit;
-  return (
-    <div
-      title={hint || ''}
-      style={{
-        padding: '4px 12px',
-        borderRight: last ? 'none' : '1px solid var(--col-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: 1,
-        minWidth: 58,
-        background:
-          tone === 'red' ? 'rgba(220,38,38,.06)' : tone === 'amber' ? 'rgba(234,88,12,.06)' : 'transparent',
-      }}
-    >
-      <div style={{ fontSize: 8, letterSpacing: '.1em', fontWeight: 700, color: tone ? color : 'var(--ink-faint)' }}>
-        {label}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1 }}>{displayValue}</span>
-        {displayUnit && <span style={{ fontSize: 9, color: 'var(--ink-faint)' }}>{displayUnit}</span>}
-      </div>
-    </div>
   );
 }
 
