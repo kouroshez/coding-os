@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import click
 import yaml
 
 # Per-file merge spec: top-level key → strategy. Strategies:
@@ -119,7 +120,10 @@ def _load(path: Path, fmt: str) -> dict[str, Any] | None:
     if not path.is_file():
         return None
     text = path.read_text(encoding="utf-8")
-    data = json.loads(text) if fmt == "json" else yaml.safe_load(text)
+    try:
+        data = json.loads(text) if fmt == "json" else yaml.safe_load(text)
+    except (yaml.YAMLError, json.JSONDecodeError) as exc:
+        raise click.ClickException(f"{path} is not valid {fmt.upper()}: {exc}") from exc
     return data if isinstance(data, dict) else None
 
 

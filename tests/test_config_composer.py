@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import click
+import pytest
 import yaml
 
 from cli.config_composer import (
@@ -151,3 +153,15 @@ def test_recompose_added_stack_preserves_prior_and_adds_new(tmp_path: Path) -> N
     merged = yaml.safe_load((state / "scrumban-config.yaml").read_text())
     ids = [s["id"] for s in merged["swimlanes"]]
     assert ids == ["docs", "frontend", "backend"]  # prior lanes kept + new stack appended
+
+
+def test_malformed_config_raises_clear_error(tmp_path: Path) -> None:
+    tdir = tmp_path / "templates"
+    base = tdir / "_base" / "scaffold" / ".coding-os"
+    base.mkdir(parents=True)
+    (base / "rag-config.yaml").write_text("sources: [unclosed\n", encoding="utf-8")  # bad YAML
+    state = tmp_path / "proj" / ".coding-os"
+    state.mkdir(parents=True)
+    with pytest.raises(click.ClickException) as exc_info:
+        compose_coding_os_configs(tmp_path / "proj", state, [], templates_dir=tdir)
+    assert "not valid YAML" in str(exc_info.value)  # clear message, not a raw traceback
