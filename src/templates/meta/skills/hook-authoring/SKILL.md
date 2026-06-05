@@ -273,8 +273,14 @@ make test-install-claude
 
 Pre-merge: `make verify` + `cos doctor`.
 
+## Tooling
+
+Scaffold a registry-compliant hook skeleton (sources cos-env, strict mode, log calls):
+`bash scripts/new_hook.sh --name my-guard --category enforcement`
+
 ## See also
 
+- [assets/hook-checklist.md](assets/hook-checklist.md) — the authoring + registration gate.
 - [Rule 3 — Hooks source cos-env.sh](../../../docs/governance/critical-rules.md#rule-3--hooks-source-cos-envsh)
 - [Rule 10 — Regenerate derived artifacts](../../../docs/governance/critical-rules.md#rule-10--regenerate-derived-artifacts)
 - [src/core/hooks/registry.yaml](../../../core/hooks/registry.yaml) — SSOT.
