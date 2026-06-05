@@ -38,7 +38,14 @@ def main(argv: list[str]) -> int:
     if not Path(db_path).exists():
         return 0
 
-    conn = sqlite3.connect(db_path)
+    # Route through get_connection for WAL + busy_timeout (TASK-108).
+    try:
+        from thinking_os.database import get_connection  # type: ignore
+
+        conn = get_connection(db_path)
+    except Exception:
+        conn = sqlite3.connect(db_path, timeout=5.0)
+        conn.execute("PRAGMA busy_timeout = 5000")
     try:
         sync_one(conn, file_path, project_root=project_root)
     finally:

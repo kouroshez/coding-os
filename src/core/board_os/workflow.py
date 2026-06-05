@@ -337,31 +337,11 @@ def transition(
             "the work log if intentional."
         )
 
-    # WIP enforcement
+    # WIP enforcement, status re-verification, and the row UPDATE all run
+    # together inside the atomic BEGIN IMMEDIATE critical section below
+    # (TASK-108) — the count→write gap and the read→write gap are both inside
+    # one write lock, so no concurrent transition can slip between them.
     wip_state: dict[str, int] = {}
-    if config is not None and not bypass_wip:
-        target_col = _WIP_COLUMN_MAP.get(to_status)
-        if target_col:
-            state = check_wip(conn, config, agent_session=agent_session)
-            wip_state = dict(state.counts)
-            cap = state.caps.get(target_col)
-            if cap is not None and state.counts.get(target_col, 0) >= cap:
-                env_bypass = os.environ.get("COS_WIP_OVERRIDE") == "1"
-                if not env_bypass:
-                    return TransitionResult(
-                        ok=False,
-                        task_id=task_id,
-                        previous_status=current_status,
-                        new_status=to_status,
-                        error=(
-                            f"WIP cap reached for {target_col}: "
-                            f"{state.counts.get(target_col)}/{cap}. "
-                            f"Complete another task first or set "
-                            f"COS_WIP_OVERRIDE=1 to force."
-                        ),
-                        error_category="validation",
-                        wip_state=wip_state,
-                    )
 
     # ── Phase L.10 transition gates (DoR / DoD) ────────────────────
     # Validate the task body against the kind's rules. file_path=None
@@ -437,7 +417,12 @@ def transition(
         except Exception as exc:
             gate_warnings.append(f"transition-gates internal error (skipped): {exc}")
 
-    # MD file write (atomic).
+    # ── Atomic critical section (TASK-108) ──────────────────────────────
+    # All validation + file reads above ran lock-free. BEGIN IMMEDIATE now
+    # takes the write lock up front so the status re-check, WIP count, row
+    # UPDATE, MD write, and history INSERT are isolated from any concurrent
+    # transition. A peer that moved the row during the lock-free gate I/O is
+    # caught by the re-SELECT and the CAS rowcount.
     target_file = file_path or (Path(current_file_path) if current_file_path else None)
     warnings: list[str] = []
     if forced_warning is not None:
@@ -445,82 +430,161 @@ def transition(
     if skip_testing_warning is not None:
         warnings.append(skip_testing_warning)
     warnings.extend(gate_warnings)
-    if target_file is not None:
-        try:
-            _write_status_to_frontmatter(
-                target_file,
-                to_status,
-                agent_session=agent_session,
+    now_epoch = int(time.time())
+
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+    except sqlite3.OperationalError as exc:
+        return TransitionResult(
+            ok=False,
+            task_id=task_id,
+            previous_status=current_status,
+            new_status=to_status,
+            error=f"could not acquire board write lock (busy): {exc}",
+            error_category="transient",
+        )
+
+    try:
+        # Re-verify status under the lock — gate validation did file I/O,
+        # widening the read→write window; a peer may have moved it since.
+        locked_row = conn.execute(
+            "SELECT status FROM tasks WHERE task_id = ?", (task_id,)
+        ).fetchone()
+        locked_status = str(locked_row[0]) if locked_row else None
+        if locked_status != current_status:
+            conn.rollback()
+            return TransitionResult(
+                ok=False,
+                task_id=task_id,
+                previous_status=locked_status,
+                new_status=to_status,
+                error=(
+                    f"status changed under us: expected {current_status!r}, "
+                    f"current {locked_status!r} — re-read and retry"
+                ),
+                error_category="transient",
             )
-        except FileNotFoundError:
-            warnings.append(f"MD file missing: {target_file} — DB-only transition")
-        except Exception as exc:  # pragma: no cover
+
+        # WIP cap, now race-free (count + UPDATE share the write lock).
+        if config is not None and not bypass_wip:
+            target_col = _WIP_COLUMN_MAP.get(to_status)
+            if target_col:
+                state = check_wip(conn, config, agent_session=agent_session)
+                wip_state = dict(state.counts)
+                cap = state.caps.get(target_col)
+                if (
+                    cap is not None
+                    and state.counts.get(target_col, 0) >= cap
+                    and os.environ.get("COS_WIP_OVERRIDE") != "1"
+                ):
+                    conn.rollback()
+                    return TransitionResult(
+                        ok=False,
+                        task_id=task_id,
+                        previous_status=current_status,
+                        new_status=to_status,
+                        error=(
+                            f"WIP cap reached for {target_col}: "
+                            f"{state.counts.get(target_col)}/{cap}. "
+                            f"Complete another task first or set "
+                            f"COS_WIP_OVERRIDE=1 to force."
+                        ),
+                        error_category="validation",
+                        wip_state=wip_state,
+                    )
+
+        # CAS UPDATE — the AND status=? guard is the last-line defense: a
+        # rowcount other than 1 means the expected pre-state vanished.
+        cur = conn.execute(
+            "UPDATE tasks SET status = ?, agent_session = ?, "
+            "started_at = CASE WHEN ? = 'in_progress' AND started_at IS NULL "
+            "                  THEN ? ELSE started_at END, "
+            "completed_at = CASE WHEN ? = 'complete' THEN ? "
+            "                    WHEN ? IN ('ready','in_progress','testing','emergency') "
+            "                    THEN NULL ELSE completed_at END "
+            "WHERE task_id = ? AND status = ?",
+            (
+                to_status,
+                agent_session,
+                to_status,
+                now_epoch,
+                to_status,
+                now_epoch,
+                to_status,
+                task_id,
+                current_status,
+            ),
+        )
+        if cur.rowcount != 1:
+            conn.rollback()
             return TransitionResult(
                 ok=False,
                 task_id=task_id,
                 previous_status=current_status,
                 new_status=to_status,
-                error=f"MD write failed: {exc}",
-                error_category="unavailable",
+                error="status changed under us (CAS miss) — re-read and retry",
+                error_category="transient",
             )
-    else:
-        warnings.append("no file_path — DB-only transition")
 
-    # DB write — atomic via BEGIN/COMMIT on the one conn.
-    now_epoch = int(time.time())
-    conn.execute(
-        "UPDATE tasks SET status = ?, agent_session = ?, "
-        "started_at = CASE WHEN ? = 'in_progress' AND started_at IS NULL "
-        "                  THEN ? ELSE started_at END, "
-        "completed_at = CASE WHEN ? = 'complete' THEN ? "
-        "                    WHEN ? IN ('ready','in_progress','testing','emergency') "
-        "                    THEN NULL ELSE completed_at END "
-        "WHERE task_id = ?",
-        (
-            to_status,
-            agent_session,
-            to_status,
-            now_epoch,
-            to_status,
-            now_epoch,
-            to_status,
-            task_id,
-        ),
-    )
-    # task_status_history gained override_reason/override_actor in
-    # migration v20 (Phase L.10). Detect column presence so this code
-    # works on a DB before v20 has run yet (test fixtures, fresh init).
-    has_override_cols = bool(
-        conn.execute(
-            "SELECT 1 FROM pragma_table_info('task_status_history') "
-            "WHERE name = 'override_reason' LIMIT 1"
-        ).fetchone()
-    )
-    if has_override_cols:
-        conn.execute(
-            "INSERT INTO task_status_history "
-            "(task_id, old_status, new_status, agent_session, reason, "
-            " transitioned_at, override_reason, override_actor) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                task_id,
-                current_status,
-                to_status,
-                agent_session,
-                reason,
-                now_epoch,
-                gate_override_reason,
-                gate_override_actor,
-            ),
+        # MD frontmatter write — inside the txn so a write failure rolls the
+        # DB back too, keeping the board SSOT consistent with the file.
+        if target_file is not None:
+            try:
+                _write_status_to_frontmatter(
+                    target_file, to_status, agent_session=agent_session
+                )
+            except FileNotFoundError:
+                warnings.append(f"MD file missing: {target_file} — DB-only transition")
+            except Exception as exc:  # pragma: no cover
+                conn.rollback()
+                return TransitionResult(
+                    ok=False,
+                    task_id=task_id,
+                    previous_status=current_status,
+                    new_status=to_status,
+                    error=f"MD write failed: {exc}",
+                    error_category="unavailable",
+                )
+        else:
+            warnings.append("no file_path — DB-only transition")
+
+        # task_status_history gained override_reason/override_actor in
+        # migration v20 (Phase L.10). Detect column presence so this code
+        # works on a DB before v20 has run yet (test fixtures, fresh init).
+        has_override_cols = bool(
+            conn.execute(
+                "SELECT 1 FROM pragma_table_info('task_status_history') "
+                "WHERE name = 'override_reason' LIMIT 1"
+            ).fetchone()
         )
-    else:
-        conn.execute(
-            "INSERT INTO task_status_history "
-            "(task_id, old_status, new_status, agent_session, reason, transitioned_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (task_id, current_status, to_status, agent_session, reason, now_epoch),
-        )
-    conn.commit()
+        if has_override_cols:
+            conn.execute(
+                "INSERT INTO task_status_history "
+                "(task_id, old_status, new_status, agent_session, reason, "
+                " transitioned_at, override_reason, override_actor) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    task_id,
+                    current_status,
+                    to_status,
+                    agent_session,
+                    reason,
+                    now_epoch,
+                    gate_override_reason,
+                    gate_override_actor,
+                ),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO task_status_history "
+                "(task_id, old_status, new_status, agent_session, reason, transitioned_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (task_id, current_status, to_status, agent_session, reason, now_epoch),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
     return TransitionResult(
         ok=True,
