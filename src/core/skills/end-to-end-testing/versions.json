@@ -1,0 +1,16 @@
+{
+  "playwright": {
+    "ecosystem": "npm",
+    "package": "playwright",
+    "version": "1.60.0",
+    "source": "https://www.npmjs.com/package/playwright",
+    "checked": "2026-06-04"
+  },
+  "maestro": {
+    "ecosystem": "github",
+    "package": "mobile-dev-inc/maestro",
+    "version": "2.6.0",
+    "source": "https://github.com/mobile-dev-inc/maestro/releases",
+    "checked": "2026-06-04"
+  }
+}
