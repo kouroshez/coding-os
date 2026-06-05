@@ -2829,17 +2829,20 @@ function TaskDetailDrawer({
       <div
         style={{
           position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
           width: 'min(960px, 94vw)',
+          maxHeight: '90vh',
           background: 'var(--col-bg)',
-          borderLeft: '1px solid var(--col-border)',
-          boxShadow: '-30px 0 60px rgba(0,0,0,.3)',
+          border: '1px solid var(--col-border)',
+          borderRadius: 14,
+          boxShadow: '0 30px 80px rgba(0,0,0,.45)',
           zIndex: 81,
           display: 'flex',
           flexDirection: 'column',
-          animation: 'td-slide-in 220ms cubic-bezier(.22,.61,.36,1)',
+          overflow: 'hidden',
+          animation: 'td-fade-in 180ms ease',
         }}
       >
         {/* Header */}
@@ -2975,7 +2978,7 @@ function TaskDetailDrawer({
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '18px 28px 40px', background: 'var(--col-bg)' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '18px 28px 40px', background: 'var(--col-bg)' }}>
           {isLoading && (
             <div style={{ color: 'var(--ink-faint)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
               loading {task.id}.md…
