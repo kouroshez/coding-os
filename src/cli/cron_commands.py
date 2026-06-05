@@ -166,6 +166,7 @@ def cron_run(dry_run: bool, slug: str | None, verbose: bool, reset_failures: boo
     if reset_failures:
         argv.append("--reset-failures")
 
+    click.echo("[cron] running nightly maintenance…", err=True)
     rc = nightly.main(argv)
     sys.exit(rc if rc else 0)
 

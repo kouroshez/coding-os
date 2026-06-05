@@ -318,16 +318,20 @@ def _post_setup(project: Path) -> None:
     if not mk.exists():
         return
     try:
-        subprocess.run(
+        proc = subprocess.run(
             ["make", "docs-index"],
             cwd=str(project),
             check=False,
             capture_output=True,
             timeout=60,
         )
+    except (subprocess.TimeoutExpired, OSError) as exc:  # pragma: no cover
+        click.echo(f"  WARN: `make docs-index` skipped ({exc})", err=True)
+        return
+    if proc.returncode == 0:
         click.echo("  Ran `make docs-index` (best-effort)")
-    except Exception:  # pragma: no cover
-        pass
+    else:
+        click.echo(f"  WARN: `make docs-index` exited {proc.returncode} (non-fatal)", err=True)
 
 
 # ---------------------------------------------------------------------------

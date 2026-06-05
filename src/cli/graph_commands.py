@@ -678,10 +678,11 @@ def register(cli: click.Group) -> None:
         )
         click.echo(f"[local] alias={plan.alias} files={len(plan.files)}")
         indexed = 0
-        for file_path in plan.files:
-            report = dispatch(file_path, project_root=target, include_docs=True)
-            if report.get("status") == "ok":
-                indexed += 1
+        with click.progressbar(plan.files, label="[local] indexing") as bar:
+            for file_path in bar:
+                report = dispatch(file_path, project_root=target, include_docs=True)
+                if report.get("status") == "ok":
+                    indexed += 1
         click.echo(f"[local] indexed {indexed}/{len(plan.files)}")
 
     @cli.command(name="graph-index-github")
@@ -709,10 +710,11 @@ def register(cli: click.Group) -> None:
         )
         click.echo(f"[github] alias={plan.alias} files={len(plan.files)}")
         indexed = 0
-        for file_path in plan.files:
-            report = dispatch(file_path, project_root=plan.root, include_docs=True)
-            if report.get("status") == "ok":
-                indexed += 1
+        with click.progressbar(plan.files, label="[github] indexing") as bar:
+            for file_path in bar:
+                report = dispatch(file_path, project_root=plan.root, include_docs=True)
+                if report.get("status") == "ok":
+                    indexed += 1
         click.echo(f"[github] indexed {indexed}/{len(plan.files)}")
 
     @cli.command(name="graph-index-zip")
@@ -735,10 +737,11 @@ def register(cli: click.Group) -> None:
         )
         click.echo(f"[zip] alias={plan.alias} files={len(plan.files)}")
         indexed = 0
-        for file_path in plan.files:
-            report = dispatch(file_path, project_root=plan.root, include_docs=True)
-            if report.get("status") == "ok":
-                indexed += 1
+        with click.progressbar(plan.files, label="[zip] indexing") as bar:
+            for file_path in bar:
+                report = dispatch(file_path, project_root=plan.root, include_docs=True)
+                if report.get("status") == "ok":
+                    indexed += 1
         click.echo(f"[zip] indexed {indexed}/{len(plan.files)}")
 
     @cli.command(name="graph-detect-changes")

@@ -804,6 +804,12 @@ def _suppress_checks(report: DoctorReport, ignore_globs: list[str]) -> int:
     return before - len(report.checks)
 
 
+def _tick(label: str) -> None:
+    """Stream a per-check progress line to stderr (interactive runs only)."""
+    if sys.stderr.isatty():
+        print(f"  [doctor] {label}…", file=sys.stderr, flush=True)
+
+
 def run_doctor(
     project: Path,
     *,
@@ -818,6 +824,7 @@ def run_doctor(
     state = _check_state_dir(project, config, report)
     graph_conn = None
     if state.is_dir():
+        _tick("database + migrations")
         conn = _check_database(state, report)
         if conn is not None:
             with contextlib.closing(conn):
@@ -836,18 +843,27 @@ def run_doctor(
             logger.debug("graph doctor connection failed: %s", exc)
     _check_scaffold_roots(project, report)
     _check_adapter(project, report.agent, report)
+    _tick("scanning scaffold manifest")
     _check_manifest(project, report, manifest_path or MANIFEST_PATH_DEFAULT)
+    _tick("scanning for placeholders")
     _check_placeholders(project, report)
+    _tick("MCP self-test (up to 30s)")
     _check_mcp_selftest(project, report)
     _check_stack_registry_consistency(report)
     _check_category_balance(report)
+    _tick("stack skills linkage")
     _check_stack_skills_linked(project, report)
+    _tick("MCP portability")
     _check_mcp_portable(project, report)
+    _tick("MCP launch handshake (up to 20s)")
     _check_mcp_actually_launches(project, report)
     _check_agents_md_present(project, report)
+    _tick("cognition registries")
     _check_cognition_registries(project, report)
+    _tick("hook coverage")
     _check_hook_coverage(project, report)
     # Phase I.14 — graph_os health checks.
+    _tick("graph_os health")
     try:
         from cli.doctor_graph import run_graph_checks
 
@@ -863,6 +879,7 @@ def run_doctor(
                 logger = logging.getLogger("coding_os.doctor")
                 logger.debug("graph_conn close suppressed: %s", exc)
     # Phase L.9 — board_os health checks.
+    _tick("board_os health")
     try:
         from cli.doctor_board import run_board_checks
 

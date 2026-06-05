@@ -28,6 +28,7 @@ shift 2
 
 mkdir -p "$AGENT_SKILLS_DIR"
 
+linked=0
 for stack in "$@"; do
   stack_skills_dir="${COS_ROOT}/src/templates/${stack}/skills"
   if [ ! -d "$stack_skills_dir" ]; then
@@ -43,5 +44,9 @@ for stack in "$@"; do
     link_parent="${AGENT_SKILLS_DIR}/${skill_name}"
     mkdir -p "$link_parent"
     ln -sf "$target_skill_md" "${link_parent}/SKILL.md"
+    echo "  linked ${stack}/${skill_name}" >&2
+    linked=$((linked + 1))
   done
 done
+
+echo "[link-stack-skills] linked ${linked} skill(s) across $# stack(s)"
