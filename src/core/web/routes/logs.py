@@ -170,6 +170,53 @@ async def recent_logs(
     )
 
 
+@router.get("/summary")
+async def logs_summary(
+    since: str | None = Query("1h", description="relative duration window: 30s, 10m, 1h, 2d"),
+    _rl=Depends(make_rate_limit_dep("logs.summary")),
+    _m=Depends(make_metrics_dep("logs.summary")),
+):
+    """Counts-by-level + top error scopes over the recent log feed — the 'what is broken now' rollup."""
+    path = _jsonl_log_path()
+    earliest_epoch: float | None = None
+    if since:
+        seconds = _parse_duration_seconds(since)
+        if seconds is not None:
+            earliest_epoch = time.time() - seconds
+
+    by_level: dict[str, int] = {}
+    scopes: dict[str, int] = {}
+    for evt in _read_tail_jsonl(path, max_lines=8000):
+        if not _event_passes(
+            evt, level_floor=10, scope_pattern=None,
+            earliest_epoch=earliest_epoch, search_lower=None,
+        ):
+            continue
+        lvl = str(evt.get("lvl", "INFO")).upper()
+        by_level[lvl] = by_level.get(lvl, 0) + 1
+        if _LEVEL_FLOOR.get(lvl.lower(), 0) >= _LEVEL_FLOOR["error"]:
+            scope = str(evt.get("scope", "?"))
+            scopes[scope] = scopes.get(scope, 0) + 1
+
+    top = sorted(scopes.items(), key=lambda kv: -kv[1])[:10]
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "by_level": by_level,
+                    "error_count": by_level.get("ERROR", 0),
+                    "warn_count": by_level.get("WARN", 0),
+                    "fatal_count": by_level.get("FATAL", 0),
+                    "top_error_scopes": [{"scope": s, "count": c} for s, c in top],
+                    "log_path": str(path),
+                    "meta": {"layer": "logs"},
+                },
+            }
+        )
+    )
+
+
 @router.get("/stream")
 async def stream_logs(
     level: str = Query("debug"),
