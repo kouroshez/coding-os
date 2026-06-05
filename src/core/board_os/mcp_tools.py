@@ -699,6 +699,7 @@ def cos_task_board(
 # ---------- cos_task_show ----------
 
 
+@safe_tool
 def cos_task_show(
     conn: sqlite3.Connection,
     *,
@@ -771,6 +772,7 @@ def _auto_reclaim_zombies_safe(conn: sqlite3.Connection) -> None:
         logger.debug("auto-reclaim before start skipped: %s", exc)
 
 
+@safe_tool
 def cos_task_move(
     conn: sqlite3.Connection,
     *,

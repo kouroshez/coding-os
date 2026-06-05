@@ -810,6 +810,68 @@ def _tick(label: str) -> None:
         print(f"  [doctor] {label}…", file=sys.stderr, flush=True)
 
 
+def _check_runtime_errors(state: Path, report: DoctorReport) -> None:
+    """runtime.recent_errors — WARN/FAIL when the durable error store shows recent ERROR/FATAL."""
+    db_file = state / "coding-os.db"
+    if not db_file.exists():
+        report.checks.append(
+            CheckResult("runtime.recent_errors", SEV_PASS, "no durable error store yet")
+        )
+        return
+    try:
+        import sqlite3
+        from datetime import datetime, timedelta, timezone
+
+        conn = sqlite3.connect(str(db_file))
+        conn.row_factory = sqlite3.Row
+        if conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_events'"
+        ).fetchone() is None:
+            report.checks.append(
+                CheckResult("runtime.recent_errors", SEV_PASS, "log_events not present (pre-v32)")
+            )
+            conn.close()
+            return
+        window_h = int(os.environ.get("COS_DOCTOR_ERROR_WINDOW_HOURS", "24"))
+        since = (datetime.now(timezone.utc) - timedelta(hours=window_h)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        try:
+            from tools.logs import log_query
+        except ImportError:
+            from core.thinking_os.tools.logs import log_query
+        n_err = log_query(conn, level="error", since=since, limit=1)["total"]
+        n_fatal = log_query(conn, level="fatal", since=since, limit=1)["total"]
+        conn.close()
+    except Exception as exc:
+        report.checks.append(
+            CheckResult("runtime.recent_errors", SEV_WARN, f"could not read error store: {exc}")
+        )
+        return
+    threshold = int(os.environ.get("COS_DOCTOR_ERROR_THRESHOLD", "1"))
+    detail = {"errors": n_err, "fatal": n_fatal, "window_hours": window_h}
+    if n_fatal > 0:
+        report.checks.append(
+            CheckResult(
+                "runtime.recent_errors", SEV_FAIL,
+                f"{n_fatal} FATAL + {n_err} ERROR in last {window_h}h — run `cos errors`", detail,
+            )
+        )
+    elif n_err >= threshold:
+        report.checks.append(
+            CheckResult(
+                "runtime.recent_errors", SEV_WARN,
+                f"{n_err} ERROR in last {window_h}h — run `cos errors`", detail,
+            )
+        )
+    else:
+        report.checks.append(
+            CheckResult(
+                "runtime.recent_errors", SEV_PASS, f"{n_err} errors in last {window_h}h", detail
+            )
+        )
+
+
 def run_doctor(
     project: Path,
     *,
@@ -862,6 +924,8 @@ def run_doctor(
     _check_cognition_registries(project, report)
     _tick("hook coverage")
     _check_hook_coverage(project, report)
+    _tick("runtime errors")
+    _check_runtime_errors(state, report)
     # Phase I.14 — graph_os health checks.
     _tick("graph_os health")
     try:
