@@ -125,6 +125,28 @@ class TestArchivedAtPruneGrace:
 
 
 # ---------------------------------------------------------------------------
+# run_decay_locked — shared throttle + flock entry point (audit N1 / 1d+1e)
+# ---------------------------------------------------------------------------
+
+
+class TestRunDecayLocked:
+    def test_throttle_skips_second_run(self, db_path: Path) -> None:
+        from decay import run_decay_locked
+
+        first = run_decay_locked(db_path, throttle_days=7)
+        assert first["status"] == "ok"
+        second = run_decay_locked(db_path, throttle_days=7)
+        assert second["status"] == "skipped"
+
+    def test_zero_throttle_always_runs(self, db_path: Path) -> None:
+        from decay import run_decay_locked
+
+        run_decay_locked(db_path, throttle_days=0)
+        again = run_decay_locked(db_path, throttle_days=0)
+        assert again["status"] == "ok"
+
+
+# ---------------------------------------------------------------------------
 # effective_decay_rate
 # ---------------------------------------------------------------------------
 

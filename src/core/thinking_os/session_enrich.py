@@ -220,24 +220,14 @@ def main() -> None:
         print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 
     # ── Step 6: Run decay if >7 days since last run ──
+    # Delegate to the shared locked + throttled entry point so this Stop hook,
+    # the nightly job, and auto-brain-decay all share ONE marker + exclusive lock
+    # (no double-decay, no race). Marker lives next to the DB (project-shared).
     try:
-        decay_marker = Path(os.environ.get("COS_STATE_DIR", ".coding-os") + "/.last-decay")
-        run_decay = False
-        if not decay_marker.exists():
-            run_decay = True
-        else:
-            age_days = (
-                datetime.now(tz=timezone.utc).timestamp() - decay_marker.stat().st_mtime
-            ) / 86400
-            if age_days > 7:
-                run_decay = True
+        sys.path.insert(0, str(Path(db_path).resolve().parent))
+        from decay import run_decay_locked
 
-        if run_decay:
-            sys.path.insert(0, str(Path(db_path).resolve().parent))
-            from decay import run_decay as do_decay
-
-            do_decay(db_path)
-            decay_marker.write_text(datetime.now(tz=timezone.utc).isoformat())
+        run_decay_locked(db_path, throttle_days=7)
     except Exception as exc:  # fail-open (Rule 6)
         print(f"session_enrich.py: enrichment step failed: {exc}", file=sys.stderr)
 

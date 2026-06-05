@@ -14,6 +14,7 @@ Features:
 
 from __future__ import annotations
 
+import fcntl
 import logging
 import math
 import os
@@ -112,6 +113,56 @@ def _days_since(dt_str: str | None) -> float | None:
         return max(0.0, delta.total_seconds() / 86400.0)
     except (ValueError, TypeError):
         return None
+
+
+def _marker_age_days(marker: Path) -> float | None:
+    try:
+        st = marker.stat()
+    except OSError:
+        return None
+    return max(0.0, (datetime.now(timezone.utc).timestamp() - st.st_mtime) / 86400.0)
+
+
+def run_decay_locked(
+    db_path: str | Path,
+    *,
+    throttle_days: int = 7,
+    archive_prune_days: int = 90,
+    dry_run: bool = False,
+    marker_path: Path | None = None,
+) -> dict:
+    """Throttled + flock-protected decay — the single entry point shared by the
+    nightly job, the session_enrich Stop hook, and auto-brain-decay so they never
+    double-decay (one mtime-throttled marker) or race (one exclusive lock). The
+    throttle is mtime-based, so the marker file's content format is irrelevant.
+    Marker defaults to ``<db-dir>/.last-decay`` (project-shared, next to the DB)."""
+    path = Path(db_path).resolve()
+    marker = marker_path or (path.parent / ".last-decay")
+    lock_path = marker.with_suffix(".lock")
+    try:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        logger.warning("decay lock dir error: %s", exc)
+        return {"status": "error", "error": str(exc)}
+    with open(lock_path, "w") as lock_f:
+        try:
+            fcntl.flock(lock_f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return {"status": "skipped", "reason": "lock_contention"}
+        try:
+            age = _marker_age_days(marker)
+            if age is not None and age < throttle_days:
+                return {"status": "skipped", "reason": f"ran {age:.1f}d ago (threshold {throttle_days}d)"}
+            if dry_run:
+                return {"status": "dry_run", "would_run": True, "marker_age_days": age}
+            result = run_decay(path, archive_prune_days=archive_prune_days)
+            try:
+                marker.write_text(datetime.now(timezone.utc).isoformat())
+            except OSError:
+                pass
+            return {"status": "ok", **result}
+        finally:
+            fcntl.flock(lock_f, fcntl.LOCK_UN)
 
 
 def run_decay(
