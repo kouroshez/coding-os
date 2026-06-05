@@ -413,18 +413,24 @@ def _upsert_pattern(
     if existing:
         # Update confidence (take the higher)
         new_conf = max(existing["confidence"], confidence)
+        # Re-extraction is a positive signal: refresh recency AND revive (promoted_to=NULL)
+        # so a pattern a prior decay run archived becomes visible to suggest/digest again.
         conn.execute(
-            "UPDATE learned_patterns SET confidence = ?, last_validated = CURRENT_TIMESTAMP "
+            "UPDATE learned_patterns SET confidence = ?, last_validated = CURRENT_TIMESTAMP, "
+            "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL "
             "WHERE id = ?",
             (new_conf, existing["id"]),
         )
         pattern_id = existing["id"]
         result = {"id": pattern_id, "pattern": pattern, "confidence": new_conf, "action": "updated"}
     else:
+        # Stamp last_validated/last_accessed_at at creation so a fresh pattern's age is 0.
+        # Otherwise run_decay reads _days_since(NULL)→999d and archives it on the FIRST run.
         cursor = conn.execute(
             "INSERT INTO learned_patterns "
-            "(pattern, memory_type, domain, source, confidence, concepts, provenance) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "(pattern, memory_type, domain, source, confidence, concepts, provenance, "
+            "last_validated, last_accessed_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
             (pattern, memory_type, domain, source, confidence, concepts, provenance),
         )
         pattern_id = cursor.lastrowid

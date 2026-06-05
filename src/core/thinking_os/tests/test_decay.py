@@ -45,6 +45,44 @@ def db_path(tmp_path: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Regression — fresh pattern must survive the first decay run (audit N1 / 1a)
+# ---------------------------------------------------------------------------
+
+
+class TestFreshPatternSurvivesFirstDecay:
+    def test_fresh_pattern_not_archived_on_first_decay(self, db_path: Path) -> None:
+        from tools.learning import _upsert_pattern
+
+        c = init_db(db_path)
+        res = _upsert_pattern(
+            c,
+            pattern="fresh mined pattern that must survive the first decay run",
+            memory_type="pattern",
+            domain="TEST",
+            source="learn_extract",
+            confidence=0.5,
+            concepts="",
+        )
+        c.commit()
+        c.close()
+        pid = res["id"]
+        assert pid is not None
+
+        run_decay(db_path)
+
+        c2 = init_db(db_path)
+        row = c2.execute(
+            "SELECT confidence, promoted_to FROM learned_patterns WHERE id = ?",
+            (pid,),
+        ).fetchone()
+        c2.close()
+        assert row is not None
+        # last_validated stamped at INSERT → age 0 → not aged to 999d → not archived.
+        assert row[1] is None, "fresh pattern was archived on its first decay run"
+        assert row[0] == pytest.approx(0.5, abs=0.05)
+
+
+# ---------------------------------------------------------------------------
 # effective_decay_rate
 # ---------------------------------------------------------------------------
 
