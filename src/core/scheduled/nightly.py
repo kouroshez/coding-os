@@ -292,6 +292,53 @@ def _run_digest(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
         return {"status": "error", "error": str(exc)}
 
 
+def _run_error_sweep(
+    db_path: Path, *, dry_run: bool, occ_threshold: int, session_threshold: int
+) -> dict:
+    """error_sweep — roll up durable errors into log_fingerprints + file board bug tasks (E12)."""
+    with sqlite3.connect(str(db_path), timeout=10) as conn:
+        conn.row_factory = sqlite3.Row
+        if conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='log_fingerprints'"
+        ).fetchone() is None:
+            return {"status": "skipped", "reason": "log_fingerprints not present (pre-v32)"}
+
+        from scheduled.error_sweep import run_error_sweep
+
+        def _create(row: sqlite3.Row, severity: str) -> str | None:
+            from board_os.mcp_tools import cos_task_create
+
+            sample = (row["sample_msg"] or "")[:60].replace('"', "'")
+            outcome = (
+                f"Recurring {row['max_lvl']} from {row['scope']} "
+                f"(count={row['count']}, sessions={row['distinct_sessions']}, exc={row['exc_type']}). "
+                f"First {row['first_seen']}, last {row['last_seen']}. "
+                f"Investigate: cos errors --scope {row['scope']}"
+            )
+            envelope = cos_task_create(
+                conn,
+                title=f"[error] {row['scope']}: {sample}",
+                swimlane="infra",
+                kind="bug",
+                priority="P1" if severity == "fatal" else "P2",
+                status="icebox",
+                ready=True,
+                labels=[f"fp:{row['fingerprint']}", "auto-error", "error-sweep"],
+                outcome=outcome,
+            )
+            parsed = json.loads(envelope)
+            return parsed.get("data", {}).get("task_id") if parsed.get("ok") else None
+
+        result = run_error_sweep(
+            conn,
+            create_bug_task=_create,
+            occ_threshold=occ_threshold,
+            session_threshold=session_threshold,
+            dry_run=dry_run,
+        )
+    return {"status": "ok", **result}
+
+
 def run_project(project: dict, *, dry_run: bool) -> dict:
     """Run all maintenance tasks for one project."""
     slug = project.get("slug", "?")
@@ -389,6 +436,23 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     except Exception as exc:
         run["tasks"]["routing_recalc"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] routing_recalc raised: %s", slug, exc)
+        errors += 1
+
+    # Task 4: error-sweep — recurring durable errors → board bug tasks (observability eye E12)
+    try:
+        t = _run_error_sweep(
+            db_path,
+            dry_run=dry_run,
+            occ_threshold=int(cfg.get("error_sweep_occ_threshold", 3)),
+            session_threshold=int(cfg.get("error_sweep_session_threshold", 2)),
+        )
+        run["tasks"]["error_sweep"] = t
+        logger.info("[%s] error_sweep → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["error_sweep"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] error_sweep raised: %s", slug, exc)
         errors += 1
 
     # Task 3.5: digest regenerate (after extract/decay so it reflects new patterns)

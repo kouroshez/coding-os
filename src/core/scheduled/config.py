@@ -24,6 +24,8 @@ DEFAULTS: dict[str, object] = {
     "learn_extract_min_outcomes": 3,
     "responsive_extract_threshold": 5,
     "archive_prune_days": 90,
+    "error_sweep_occ_threshold": 3,
+    "error_sweep_session_threshold": 2,
 }
 
 # (key, lo, hi) bounds for integer fields — values are clamped on save.
@@ -33,6 +35,8 @@ _INT_BOUNDS: dict[str, tuple[int, int]] = {
     "learn_extract_min_outcomes": (1, 1000),
     "responsive_extract_threshold": (1, 1000),
     "archive_prune_days": (7, 3650),
+    "error_sweep_occ_threshold": (1, 1000),
+    "error_sweep_session_threshold": (1, 1000),
 }
 
 
