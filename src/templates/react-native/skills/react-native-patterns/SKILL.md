@@ -500,3 +500,13 @@ Each addition needs a 1-paragraph justification in the PR.
 - Reanimated 3 + Gesture Handler docs — animation/interaction.
 - Shopify FlashList docs + Restyle — list performance + design system.
 - React Native New Architecture docs (Fabric / TurboModules / JSI).
+
+## Tooling
+
+Flag list/render performance smells (inline renderItem, missing keyExtractor, inline styles):
+`python3 scripts/scan_rn_perf.py src/mobile/**/*.tsx`
+
+## See also
+
+- [references/list-performance.md](references/list-performance.md) — FlatList/FlashList, stable renderItem, StyleSheet, Reanimated.
+- [assets/rn-review-checklist.md](assets/rn-review-checklist.md) — the review gate.
