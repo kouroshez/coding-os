@@ -168,8 +168,10 @@ def get_backend(
             from thinking_os.database import resolve_db_path  # type: ignore
 
             cache_db_key = str(resolve_db_path())
-        except Exception:
-            pass
+        except Exception as exc:
+            from core.logging_os import swallow_safe
+
+            swallow_safe("graph_os.backend", "db path resolve for cache key failed", exc=exc)
     cache_key = (choice, cache_db_key) if cacheable else None
     if cache_key is not None:
         cached = _BACKEND_CACHE.get(cache_key)

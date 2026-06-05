@@ -664,8 +664,8 @@ def _normalize_kinds(kinds: Any) -> tuple[str, ...]:
                 parsed = _json.loads(s)
                 if isinstance(parsed, list):
                     return tuple(str(x).strip() for x in parsed if str(x).strip())
-            except Exception:
-                pass
+            except (_json.JSONDecodeError, TypeError, ValueError):
+                pass  # not JSON → fall through to the CSV split below (intentional)
         return tuple(p.strip() for p in s.split(",") if p.strip())
     if isinstance(kinds, (list, tuple)):
         if len(kinds) == 1 and isinstance(kinds[0], str) and kinds[0].lstrip().startswith("["):

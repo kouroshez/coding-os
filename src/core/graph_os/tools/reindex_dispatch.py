@@ -358,8 +358,10 @@ def _lookup_cache(
     finally:
         try:
             conn.close()
-        except Exception:
-            pass
+        except Exception as close_exc:
+            from core.logging_os import swallow_safe
+
+            swallow_safe("graph_os.reindex", "connection close failed", exc=close_exc)
     return hits
 
 
@@ -424,8 +426,10 @@ def _record_state_safe(
     finally:
         try:
             conn.close()
-        except Exception:
-            pass
+        except Exception as close_exc:
+            from core.logging_os import swallow_safe
+
+            swallow_safe("graph_os.reindex", "connection close failed", exc=close_exc)
 
 
 def _open_conn(*, project_root: Path, db_path: str | None):
