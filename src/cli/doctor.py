@@ -1223,7 +1223,7 @@ def _load_coding_os_mcp_launch(
     project: Path,
     agent: str | None,
 ) -> tuple[str | None, list[str], dict[str, str], str | None, str | None]:
-    """Return the coding-os MCP launch config from Claude or Codex sources."""
+    """Return the coding-os MCP launch config from any adapter (Claude/Codex/Cursor)."""
 
     def _load_claude_json(
         path: Path,
@@ -1288,6 +1288,11 @@ def _load_coding_os_mcp_launch(
     loader_fns = {
         "claude_json": _load_claude_json,
         "codex_toml": _load_codex,
+        # Cursor's .cursor/mcp.json uses the same mcpServers.coding-os JSON
+        # shape as Claude (see src/adapters/cursor/install.sh), so it reuses
+        # the Claude JSON loader. Without this entry the Cursor MCP launch
+        # diagnostic was silently skipped (spec.loader not in loader_fns). TASK-112.
+        "cursor_mcp_json": _load_claude_json,
     }
 
     loaders: list[tuple[str, Path]] = []

@@ -123,8 +123,8 @@ COS_AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR}/${COS_AGENT}}"
 #      src/adapters/<id>/adapter.yaml::runtime_session_marker. Listed
 #      below in fall-through order so any adapter that exports its
 #      session id natively (Claude `CLAUDE_SESSION_ID`, Cursor
-#      `CURSOR_TRACE_ID`, Codex `CODEX_SESSION_ID`, future Gemini
-#      `GEMINI_SESSION_ID`) is picked up without code change.
+#      `CURSOR_TRACE_ID`, Codex `CODEX_SESSION_ID`) is picked up. A new
+#      adapter adds its var here + to its adapter.yaml when it ships.
 #   4. PPID-derived stable token — last resort. The hook's parent process
 #      is the agent runtime process for THIS panel; PIDs differ across
 #      panels of the same agent, so a hash over (PPID, agent) is a
@@ -143,8 +143,12 @@ _cos_resolve_panel_id() {
   # session's state across dozens of panels. Keep the bare CLAUDE_SESSION_ID
   # after it as a forward-compat alias. Stays in sync with each adapter.yaml
   # ::runtime_session_marker.env_vars (per-agent SSOT for the var name).
+  # Real adapter session vars only (claude/cursor/codex) — matches the three
+  # src/adapters/*/adapter.yaml::runtime_session_marker.env_vars. Speculative
+  # GEMINI_*/ANTHROPIC_* removed (TASK-112, anti-overengineering): a future
+  # adapter adds its var here + to its adapter.yaml when it actually ships.
   for v in CLAUDE_CODE_SESSION_ID CLAUDE_SESSION_ID CURSOR_SESSION_ID CURSOR_TRACE_ID \
-           CODEX_SESSION_ID GEMINI_SESSION_ID ANTHROPIC_SESSION_ID; do
+           CODEX_SESSION_ID; do
     val="$(printenv "$v" 2>/dev/null || true)"
     if [[ -n "$val" ]]; then
       id="$val"
