@@ -9,8 +9,6 @@ import sys
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(_REPO_ROOT / "core"))
-sys.path.insert(0, str(_REPO_ROOT / "core" / "thinking_os"))
 
 
 def _resolve_db_path(project_root: Path) -> Path:
@@ -82,7 +80,7 @@ def main(argv: list[str]) -> int:
         print(f"SKIP: no DB at {db_path} (fresh install?)", file=sys.stderr)
         return 0
 
-    pruned = skipped = 0
+    pruned = skipped = errors = 0
     for raw in args.paths:
         rel = _to_rel(raw, project_root)
         abs_path = (
@@ -97,6 +95,7 @@ def main(argv: list[str]) -> int:
             counts = _prune_one(rel, db_path=db_path)
         except sqlite3.Error as exc:
             print(f"ERROR: {rel}: {exc}", file=sys.stderr)
+            errors += 1
             continue
         total = counts["graph_nodes"] + counts["document_chunks"] + counts["file_index_state"]
         if total == 0:
@@ -115,8 +114,8 @@ def main(argv: list[str]) -> int:
             print(f"OK: {rel} ({', '.join(extras)})")
         pruned += 1
 
-    print(f"INFO: {pruned} pruned, {skipped} skipped")
-    return 0
+    print(f"INFO: {pruned} pruned, {skipped} skipped, {errors} error(s)")
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(_REPO_ROOT))
+sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from core.board_os import mcp_tools
 from core.board_os.workflow import transition
@@ -347,99 +347,59 @@ def _set_emergency(conn: sqlite3.Connection, task_id: str) -> bool:
 def main() -> int:
     os.environ.setdefault("COS_PROJECT_ROOT", str(_REPO_ROOT))
     conn = _open_conn()
-    existing = _existing_titles(conn)
-    created = 0
-    skipped = 0
-    emergencies = 0
+    created = skipped = emergencies = failures = 0
+    try:
+        existing = _existing_titles(conn)
 
-    # Phase I
-    for title, lane, kind, prio, app, refs in PHASE_I_TASKS:
-        if title in existing:
-            skipped += 1
-            continue
-        tid = _create(
-            conn,
-            title,
-            lane,
-            kind,
-            prio,
-            app,
-            refs,
-            epic="phase-i",
-            outcome=f"Phase I slice {title.split()[0]} shipped per plan.",
-        )
-        if tid:
-            created += 1
-            print(f"  ✓ {tid}  {title[:70]}  [{lane}/{kind}/{prio}]")
+        for phase_tasks, epic, label in (
+            (PHASE_I_TASKS, "phase-i", "Phase I"),
+            (PHASE_J_TASKS, "phase-j", "Phase J"),
+            (PHASE_K_TASKS, "phase-k", "Phase K"),
+        ):
+            for title, lane, kind, prio, app, refs in phase_tasks:
+                if title in existing:
+                    skipped += 1
+                    continue
+                tid = _create(
+                    conn, title, lane, kind, prio, app, refs,
+                    epic=epic,
+                    outcome=f"{label} slice {title.split()[0]} shipped per plan.",
+                )
+                if tid:
+                    created += 1
+                    print(f"  ✓ {tid}  {title[:70]}  [{lane}/{kind}/{prio}]")
+                else:
+                    failures += 1
 
-    # Phase J
-    for title, lane, kind, prio, app, refs in PHASE_J_TASKS:
-        if title in existing:
-            skipped += 1
-            continue
-        tid = _create(
-            conn,
-            title,
-            lane,
-            kind,
-            prio,
-            app,
-            refs,
-            epic="phase-j",
-            outcome=f"Phase J slice {title.split()[0]} shipped per plan.",
-        )
-        if tid:
-            created += 1
-            print(f"  ✓ {tid}  {title[:70]}  [{lane}/{kind}/{prio}]")
-
-    # Phase K
-    for title, lane, kind, prio, app, refs in PHASE_K_TASKS:
-        if title in existing:
-            skipped += 1
-            continue
-        tid = _create(
-            conn,
-            title,
-            lane,
-            kind,
-            prio,
-            app,
-            refs,
-            epic="phase-k",
-            outcome=f"Phase K slice {title.split()[0]} shipped per plan.",
-        )
-        if tid:
-            created += 1
-            print(f"  ✓ {tid}  {title[:70]}  [{lane}/{kind}/{prio}]")
-
-    # Emergency — create in icebox then transition to emergency.
-    print("\n  === Emergency (known-broken pre-existing bugs) ===")
-    for title, lane, kind, prio, app, refs in EMERGENCY_TASKS:
-        if title in existing:
-            skipped += 1
-            continue
-        tid = _create(
-            conn,
-            title,
-            lane,
-            kind,
-            prio,
-            app,
-            refs,
-            epic="bugs-2026-q2",
-            outcome=f"{title} resolved; failing test passes.",
-        )
-        if tid:
+        # Emergency — create in icebox then transition to emergency.
+        print("\n  === Emergency (known-broken pre-existing bugs) ===")
+        for title, lane, kind, prio, app, refs in EMERGENCY_TASKS:
+            if title in existing:
+                skipped += 1
+                continue
+            tid = _create(
+                conn, title, lane, kind, prio, app, refs,
+                epic="bugs-2026-q2",
+                outcome=f"{title} resolved; failing test passes.",
+            )
+            if not tid:
+                failures += 1
+                continue
             if _set_emergency(conn, tid):
                 emergencies += 1
                 created += 1
                 print(f"  🚨 {tid}  {title[:65]}  [{lane}/{kind}/{prio}]")
             else:
+                failures += 1
                 print(f"  ? {tid}  created in icebox (transition failed)")
+    finally:
+        conn.close()
 
-    conn.close()
-    print(f"\n  Summary: created={created} skipped={skipped} emergencies={emergencies}")
-    return 0
+    print(
+        f"\n  Summary: created={created} skipped={skipped} "
+        f"emergencies={emergencies} failures={failures}"
+    )
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
