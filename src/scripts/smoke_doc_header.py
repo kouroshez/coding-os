@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 # Make tools/ importable the same way server.py does it.
-THINKING_OS = Path(__file__).resolve().parent.parent.parent / "core" / "thinking_os"
+THINKING_OS = Path(__file__).resolve().parent.parent.parent / "src" / "core" / "thinking_os"
 sys.path.insert(0, str(THINKING_OS))
 
 from tools.docs import list_doc_headers, parse_doc_header

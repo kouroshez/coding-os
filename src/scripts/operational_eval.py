@@ -255,7 +255,7 @@ def _step_doctor(
 
 
 def _step_mcp_selftest(snapshot: Snapshot) -> None:
-    cmd = [sys.executable, str(REPO_ROOT / "core" / "thinking_os" / "server.py"), "--test"]
+    cmd = [sys.executable, str(REPO_ROOT / "src" / "core" / "thinking_os" / "server.py"), "--test"]
     log = LOG_DIR / "mcp" / "selftest.log"
     result = _run(cmd, log, cwd=REPO_ROOT, timeout=60)
     snapshot.steps.append(result)

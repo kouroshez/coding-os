@@ -34,14 +34,14 @@ from pathlib import Path
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-REGISTRY = REPO_ROOT / "core" / "hooks" / "registry.yaml"
+SRC_ROOT = Path(__file__).resolve().parent.parent.parent / "src"
+REGISTRY = SRC_ROOT / "core" / "hooks" / "registry.yaml"
 
 # The rendered settings/hooks file we compare against, keyed by adapter.
 RENDERED_TEMPLATE: dict[str, Path] = {
-    "claude": REPO_ROOT / "adapters" / "claude" / "settings.template.json",
-    "codex": REPO_ROOT / "adapters" / "codex" / "hooks.template.json",
-    "cursor": REPO_ROOT / "adapters" / "cursor" / "hooks.cursor.template.json",
+    "claude": SRC_ROOT / "adapters" / "claude" / "settings.template.json",
+    "codex": SRC_ROOT / "adapters" / "codex" / "hooks.template.json",
+    "cursor": SRC_ROOT / "adapters" / "cursor" / "hooks.cursor.template.json",
 }
 
 # Map: (adapter, event, matcher) -> dispatcher script path. Cursor splits
@@ -50,44 +50,44 @@ RENDERED_TEMPLATE: dict[str, Path] = {
 # whose matcher is `Bash` isn't flagged "missing" from the Write|Edit
 # dispatcher and vice versa.
 DISPATCHERS: dict[tuple[str, str, str], Path] = {
-    ("cursor", "SessionStart", "startup"): REPO_ROOT
+    ("cursor", "SessionStart", "startup"): SRC_ROOT
     / "adapters"
     / "cursor"
     / "hooks"
     / "cursor-sessionstart-dispatch.sh",
-    ("cursor", "PreToolUse", "Bash"): REPO_ROOT
+    ("cursor", "PreToolUse", "Bash"): SRC_ROOT
     / "adapters"
     / "cursor"
     / "hooks"
     / "cursor-pretool-dispatch.sh",
-    ("cursor", "PreToolUse", "Write|Edit"): REPO_ROOT
+    ("cursor", "PreToolUse", "Write|Edit"): SRC_ROOT
     / "adapters"
     / "cursor"
     / "hooks"
     / "cursor-pretool-write-dispatch.sh",
-    ("cursor", "PostToolUse", "Write|Edit"): REPO_ROOT
+    ("cursor", "PostToolUse", "Write|Edit"): SRC_ROOT
     / "adapters"
     / "cursor"
     / "hooks"
     / "cursor-posttool-write-dispatch.sh",
-    ("cursor", "Stop", ""): REPO_ROOT / "adapters" / "cursor" / "hooks" / "cursor-stop-dispatch.sh",
-    ("codex", "SessionStart", "startup"): REPO_ROOT
+    ("cursor", "Stop", ""): SRC_ROOT / "adapters" / "cursor" / "hooks" / "cursor-stop-dispatch.sh",
+    ("codex", "SessionStart", "startup"): SRC_ROOT
     / "adapters"
     / "codex"
     / "hooks"
     / "codex-sessionstart-dispatch.sh",
-    ("codex", "PreToolUse", "Bash"): REPO_ROOT
+    ("codex", "PreToolUse", "Bash"): SRC_ROOT
     / "adapters"
     / "codex"
     / "hooks"
     / "codex-pretool-dispatch.sh",
-    ("codex", "PostToolUse", "Bash"): REPO_ROOT
+    ("codex", "PostToolUse", "Bash"): SRC_ROOT
     / "adapters"
     / "codex"
     / "hooks"
     / "codex-posttool-dispatch.sh",
-    ("codex", "Stop", ""): REPO_ROOT / "adapters" / "codex" / "hooks" / "codex-stop-dispatch.sh",
-    ("codex", "UserPromptSubmit", ""): REPO_ROOT
+    ("codex", "Stop", ""): SRC_ROOT / "adapters" / "codex" / "hooks" / "codex-stop-dispatch.sh",
+    ("codex", "UserPromptSubmit", ""): SRC_ROOT
     / "adapters"
     / "codex"
     / "hooks"
@@ -143,7 +143,7 @@ def parse_delegate_list(script: Path) -> set[str]:
 
 
 def adapter_hook_capabilities(adapter: str) -> dict[str, list[str]]:
-    p = REPO_ROOT / "adapters" / adapter / "adapter.yaml"
+    p = SRC_ROOT / "adapters" / adapter / "adapter.yaml"
     data = yaml.safe_load(p.read_text())
     caps: dict[str, list[str]] = {}
     for ev, body in (data.get("hook_capabilities") or {}).items():

@@ -20,7 +20,7 @@ REPO = Path(__file__).resolve().parent.parent.parent
 
 def _load_dispatcher():
     spec = importlib.util.spec_from_file_location(
-        "sdkd", REPO / "adapters" / "claude" / "sdk_dispatcher.py"
+        "sdkd", REPO / "src" / "adapters" / "claude" / "sdk_dispatcher.py"
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -28,7 +28,7 @@ def _load_dispatcher():
 
 
 async def main() -> int:
-    sys.path.insert(0, str(REPO / "core"))
+    sys.path.insert(0, str(REPO / "src" / "core"))
     from thinking_os.dispatcher import DispatchRequest
 
     dispatcher = _load_dispatcher()
@@ -36,7 +36,7 @@ async def main() -> int:
         print("SKIP: claude-agent-sdk not importable")
         return 0
 
-    agent_file = REPO / "core" / "thinking_os" / "agents" / "debugger.md"
+    agent_file = REPO / "src" / "core" / "thinking_os" / "agents" / "debugger.md"
     if not agent_file.exists():
         print(f"FAIL: agent file missing: {agent_file}")
         return 1

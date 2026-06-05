@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "core"))
+sys.path.insert(0, str(ROOT / "src" / "core"))
 
 from graph_os.tools import graph as g
 
