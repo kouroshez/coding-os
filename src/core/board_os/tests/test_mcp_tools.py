@@ -817,3 +817,47 @@ def test_task_edit_body_rewrites_file(project: Path, conn: sqlite3.Connection):
     content = (project / created["data"]["file_path"]).read_text(encoding="utf-8")
     assert "Rewritten outcome via edit." in content
     assert content.startswith("---")  # frontmatter preserved
+
+
+def test_start_auto_reclaims_idle_zombie(project: Path, conn: sqlite3.Connection):
+    """Pulling a task into in_progress auto-frees an idle zombie of a dead
+    session — the board self-heals without a manual cos task-reclaim."""
+    import time as _t
+
+    z = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="zombie auto",
+            swimlane="core",
+            kind="chore",
+            outcome="zombie auto-reclaimed on next start outcome.",
+            ready=True,
+        )
+    )
+    ztid = z["data"]["task_id"]
+    assert _parse(
+        mcp_tools.cos_task_move(conn, task_id=ztid, to="in_progress", agent_session="ses-dead-auto")
+    )["ok"]
+    old = int(_t.time()) - 48 * 3600
+    conn.execute("UPDATE tasks SET started_at = ? WHERE task_id = ?", (old, ztid))
+    conn.execute("UPDATE task_status_history SET transitioned_at = ? WHERE task_id = ?", (old, ztid))
+    conn.commit()
+
+    live = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="live starter",
+            swimlane="core",
+            kind="chore",
+            outcome="live task whose start triggers auto-reclaim outcome.",
+            ready=True,
+        )
+    )
+    ltid = live["data"]["task_id"]
+    started = _parse(
+        mcp_tools.cos_task_move(conn, task_id=ltid, to="in_progress", agent_session="ses-live-auto")
+    )
+    assert started["ok"], started
+
+    zrow = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (ztid,)).fetchone()
+    assert zrow[0] == "icebox", "idle zombie should be auto-reclaimed on the next start"

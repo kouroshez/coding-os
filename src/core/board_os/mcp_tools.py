@@ -761,6 +761,16 @@ def _record_completion_outcome_safe(conn: sqlite3.Connection, task_id: str) -> N
 
 
 @safe_tool
+def _auto_reclaim_zombies_safe(conn: sqlite3.Connection) -> None:
+    """Best-effort zombie reclaim run before an in_progress pull. Frees idle
+    in_progress tasks of inactive sessions so the board self-heals without a
+    manual `cos task-reclaim`. Never raises (cos_task_reclaim is @safe_tool)."""
+    try:
+        cos_task_reclaim(conn)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("auto-reclaim before start skipped: %s", exc)
+
+
 def cos_task_move(
     conn: sqlite3.Connection,
     *,
@@ -788,6 +798,13 @@ def cos_task_move(
     guard = _assign_guard(file_path, agent_session, force)
     if guard is not None:
         return fail("validation", guard)
+
+    # Free zombie in_progress of dead/idle sessions before a pull, so a live
+    # agent isn't blocked by a crashed peer and the board self-heals without a
+    # manual `cos task-reclaim`. Conservative — only idle + owner-inactive
+    # tasks qualify (see cos_task_reclaim). Best-effort; never blocks the move.
+    if to == "in_progress" and not bypass_wip and not force:
+        _auto_reclaim_zombies_safe(conn)
 
     result = transition(
         conn,
