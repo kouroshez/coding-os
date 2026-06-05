@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Write a structured log entry to changes.log.
 # Format: 3 lines per entry (title + impact + files). Always provide WHAT and FILES.
+# INPUT:  [TASK] <TYPE> <MSG> <WHAT> <FILES> | --help.
+# OUTPUT: appends one structured entry to changes.log; confirms on stdout.
+# DEPS:   _lib.sh, python3, $COS_STATE_DIR/changes.log, docs/tasks.md.
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Show the last N log entries from changes.log (default: 1).
 # An "entry" is a line starting with "- " plus any indented continuation lines.
+# INPUT:  optional N (entry count, default 1) | --help.
+# OUTPUT: the N most-recent log entries on stdout.
+# DEPS:   _lib.sh, $COS_STATE_DIR/changes.log.
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 

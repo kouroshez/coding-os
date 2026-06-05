@@ -1,4 +1,9 @@
-"""Regenerate `00-index.md` for a docs directory from frontmatter."""
+"""Regenerate `00-index.md` for a docs directory from frontmatter.
+
+INPUT:        <docs-dir> [--all] [--dry-run].
+OUTPUT:       rewrites each dir's 00-index.md between BEGIN/END markers; exit 1 on bad dir.
+DEPENDENCIES: docs/**/*.md frontmatter.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,9 @@
-"""Prune graph + docs RAG state for a deleted path."""
+"""Prune graph + docs RAG state for a deleted path.
+
+INPUT:        one or more paths [--force] [--quiet]; COS_DB_PATH / COS_PROJECT_ROOT env.
+OUTPUT:       OK/SKIP to stdout, ERROR to stderr; exit 1 if any path errored.
+DEPENDENCIES: $COS_DB_PATH (graph_nodes, document_chunks, file_index_state tables).
+"""
 
 from __future__ import annotations
 

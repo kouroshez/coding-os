@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Resolve REF:* codes from docs/_meta/foundation-map.md.
+# INPUT:  [REF_CODE] [--read] | --help.
+# OUTPUT: the resolved reference (path/summary) on stdout.
+# DEPS:   _lib.sh, python3, docs/_meta/foundation-map.md.
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 

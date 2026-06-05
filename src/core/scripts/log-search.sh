@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Search changes.log for matching entries with date context.
+# INPUT:  <QUERY> [N] | --help.
+# OUTPUT: matching log entries (with date context) on stdout.
+# DEPS:   _lib.sh, python3, $COS_STATE_DIR/changes.log.
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 
