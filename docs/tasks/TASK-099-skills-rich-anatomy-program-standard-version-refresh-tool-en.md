@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [skills, epic, rich-anatomy, ssot, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: "3d"
 created: 2026-06-04
 started: 2026-06-04
-completed: null
+completed: 2026-06-04
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -44,5 +44,12 @@ references: []
 - [ ] S11: merge duplicates (frontend-design→nextjs-react, rn-patterns→rn-mobile)
 
 ## Work Log
+- 2026-06-05 [claude]: S1-S4 shipped (4 commits): rich-skill standard SSOT (docs/playbooks/skill-authoring.md), version-refresh tool (refresh_s
+- 2026-06-05 [claude]: Cross-skill dedup audit done (read-only agent). Result: ZERO real duplication — skills already link co-shipping owners c
+- 2026-06-05 [claude]: CHECKPOINT (resume here). Shipped + committed: S1 standard+Link/Dup rule, S2 version-tool, S3 shell-scripting, S4 techni
+- 2026-06-05 [claude]: SESSION CHECKPOINT — 14 commits, all green. DONE: standard(SSOT)+Link/Dup rule+rubric+taxonomy; version-refresh tool (LT
+- 2026-06-05 [claude]: PROGRESS 20 commits all green. DONE: foundation (standard+Link/Dup+version-tool LTS-aware, gate green); 12 NEW rich skil
+- 2026-06-05 [claude]: COMPLETE. Final review green: 51 skills (37 core + 14 template), 0 thin, 0 duplicate names; 157 skill-script tests pass;
+- 2026-06-05 [claude]: Status transitioned to complete via cos task-done.
 
 ## Work Log
