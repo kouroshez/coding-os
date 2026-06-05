@@ -1,4 +1,12 @@
-"""cli.hub_commands — `cos hub` + `cos service` CLI."""
+"""cli.hub_commands — `cos hub` + `cos service` CLI.
+
+PURPOSE:      Start/stop/status the singleton FastAPI hub (127.0.0.1:9188) that
+              serves every registered project, and manage it as an OS service.
+INPUT:        `cos hub {start,stop,status,restart}` / `cos service ...`.
+OUTPUT:       lifecycle actions + status on stdout; errors to stderr; precise exit.
+DEPENDENCIES: ~/.coding-os/{hub.pid,hub.log}; uvicorn; the web app factory.
+NOTES:        Stale-pid detection via os.kill(pid, 0); SIGTERM→SIGKILL escalation.
+"""
 
 from __future__ import annotations
 

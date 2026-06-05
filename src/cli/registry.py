@@ -1,4 +1,12 @@
-"""cli.registry — global coding-os project registry + `cos registry` CLI."""
+"""cli.registry — global coding-os project registry + `cos registry` CLI.
+
+PURPOSE:      Track every initialized coding-os project (slug → absolute path) in
+              a global registry so `cos hub` / `cos sync-all` can iterate them.
+INPUT:        `cos registry` subcommands; COS_REGISTRY_PATH override.
+OUTPUT:       atomic (tmp+rename) registry-file mutations; listing on stdout.
+DEPENDENCIES: ~/.coding-os/registry.json (or $COS_REGISTRY_PATH).
+NOTES:        Mirrors skills_list/stack_registry shape; ProjectEntry is frozen.
+"""
 
 from __future__ import annotations
 

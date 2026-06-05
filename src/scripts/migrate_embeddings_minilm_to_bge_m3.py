@@ -1,6 +1,10 @@
 """CLI — re-embed the existing `embeddings` table with BGE-M3 (Phase I.1).
 
-DEPENDS:  core/thinking_os/migrator_embeddings.py.
+INPUT:        --batch-size · --max-batches · --status-only · --checkpoint (resume).
+OUTPUT:       per-run JSON report on stdout (rows re-embedded / remaining / status).
+DEPENDENCIES: src/core/thinking_os/migrator_embeddings.py, $COS_DB_PATH.
+NOTES:        Resumable via --checkpoint; per-batch progress delegated to
+              migrator_embeddings.run_until_idle.
 """
 
 from __future__ import annotations
