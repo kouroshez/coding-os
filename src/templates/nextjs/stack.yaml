@@ -3,7 +3,7 @@ id: nextjs
 label: "Next.js + React + TypeScript"
 category: frontend
 primary_skill: nextjs-react
-skills: [nextjs-react, frontend-design]
+skills: [nextjs-react]
 
 # These substitution keys are joined across stacks by the aggregator.
 # VERIFY_FRONTEND_* override the "(none)" defaults from base.yaml.
