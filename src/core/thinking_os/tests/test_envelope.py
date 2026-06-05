@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from tools._shared import (
     TOKEN_BUDGET_CHARS,
     VALID_LAYERS,
+    _estimate_tokens,
     fail,
     ok,
     safe_tool,
@@ -89,6 +90,17 @@ class TestOkEnvelope:
 # ---------------------------------------------------------------------------
 
 
+class TestEstimateTokens:
+    def test_ascii_is_chars_over_four(self) -> None:
+        assert _estimate_tokens("a" * 400) == 100
+
+    def test_non_latin_counted_far_denser_than_chars_over_four(self) -> None:
+        # 400 CJK chars ≈ 400 tokens (~1/char), not 100 — the undercount bug.
+        est = _estimate_tokens("数" * 400)
+        assert est == 400
+        assert est > (400 / 4) * 2
+
+
 class TestTokenBudget:
     def test_under_budget_not_truncated(self) -> None:
         envelope = json.loads(ok({"results": [{"x": i} for i in range(10)]}))
@@ -129,6 +141,20 @@ class TestTokenBudget:
         # After truncation, serialized length fits TOKEN_BUDGET_CHARS
         # ⇒ tokens_estimated ≤ TOKEN_BUDGET_CHARS / 4
         assert envelope["data"]["meta"]["tokens_estimated"] <= TOKEN_BUDGET_CHARS // 4 + 100
+
+    def test_non_latin_payload_respects_token_budget(self) -> None:
+        """B1: a mostly-CJK payload under the 32 KB char budget but over the real
+        ~8 K token budget must still be trimmed. chars/4 used to let it slip
+        through with truncated=False, lying to the graph-first coverage contract."""
+        # 20 rows of 1000 CJK chars ≈ 20 K chars (< 32 K char budget) but
+        # ≈ 20 K tokens (>> 8 K) under the script-aware estimate.
+        rows = [{"text": "数据科学" * 250} for _ in range(20)]
+        envelope = json.loads(ok({"results": rows, "count": 20}))
+        meta = envelope["data"]["meta"]
+        assert meta["truncated"] is True
+        assert meta["truncated_results_to"] < 20
+        # tokens_estimated reflects CJK density, not the naive chars/4 (~5 K).
+        assert meta["tokens_estimated"] > 4_000
 
     def test_neighbours_trimmed_when_over_budget(self) -> None:
         """TASK-034: cos_graph_context emits `neighbours` not `results`.

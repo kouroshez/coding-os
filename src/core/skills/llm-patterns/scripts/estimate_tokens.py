@@ -9,8 +9,9 @@ OUTPUT:       Estimated token range (+ cost) on stderr; midpoint int on stdout.
               Exit 0. Exit 2 on usage.
 DEPENDENCIES: stdlib only — no tokenizer/model download.
 NOTES:        Heuristic: real BPE tokenizers vary ~±15%; this brackets with two
-              independent estimates (chars/4 and words*1.33). Pure estimate()
-              is unit-testable. Spec: docs/playbooks/skill-authoring.md; craft: ../SKILL.md.
+              independent estimates (script-aware char weighting + words*1.33).
+              Non-ASCII chars count ~1 token each so non-Latin isn't undercounted.
+              Pure estimate() is unit-testable. Spec: docs/playbooks/skill-authoring.md.
 """
 
 from __future__ import annotations
@@ -24,12 +25,21 @@ CHARS_PER_TOKEN = 4.0
 TOKENS_PER_WORD = 1.33
 
 
+def _by_script(text: str) -> float:
+    # ASCII ~4 chars/token; non-ASCII (CJK / Arabic / Cyrillic) BPE-splits far
+    # denser, so count each non-ASCII char as ~1 token. Plain chars/4 undercounts
+    # non-Latin text 2-3x — the bug this heuristic exists to avoid.
+    ascii_chars = len(text.encode("ascii", "ignore"))
+    non_ascii = len(text) - ascii_chars
+    return ascii_chars / CHARS_PER_TOKEN + non_ascii
+
+
 def estimate(text: str) -> tuple[int, int, int]:
     """Return (low, mid, high) token estimates from two heuristics."""
-    by_chars = len(text) / CHARS_PER_TOKEN
+    by_script = _by_script(text)
     by_words = len(text.split()) * TOKENS_PER_WORD
-    low = int(min(by_chars, by_words))
-    high = int(max(by_chars, by_words))
+    low = int(min(by_script, by_words))
+    high = int(max(by_script, by_words))
     mid = round((low + high) / 2)
     return low, mid, high
 

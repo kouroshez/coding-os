@@ -11,7 +11,7 @@ Phase G.3 addition — uniform `meta` block:
     Every success payload carries `data.meta` with at minimum:
       - layer             ("memory"|"docs"|"tasks"|"metrics"|"routing"|
                            "graph"|"health"|"learning")
-      - tokens_estimated  (serialized response length ÷ 4)
+      - tokens_estimated  (script-aware token estimate of the serialized response)
       - truncated         (bool — set True when token budget forced a cut)
 
     Callers supply `meta={"layer": ..., "source": ..., "query": ...}` via
@@ -117,7 +117,7 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
         indent=2,
         default=str,
     )
-    existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
+    existing_meta["tokens_estimated"] = _estimate_tokens(serialized)
     existing_meta["truncated"] = False
 
     # Graph-export-shaped responses ({nodes:[...], edges:[...]}) describe a
@@ -150,8 +150,8 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
                     indent=2,
                     default=str,
                 )
-                existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
-    elif len(serialized) > TOKEN_BUDGET_CHARS:
+                existing_meta["tokens_estimated"] = _estimate_tokens(serialized)
+    elif _budget_size(serialized) > TOKEN_BUDGET_CHARS:
         body, existing_meta, did_trim = _apply_token_budget(body, existing_meta)
         if did_trim:
             existing_meta["truncated"] = True
@@ -167,7 +167,7 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
                 indent=2,
                 default=str,
             )
-            existing_meta["tokens_estimated"] = max(1, len(serialized) // 4)
+            existing_meta["tokens_estimated"] = _estimate_tokens(serialized)
 
     payload = {"ok": True, "data": {**body, "meta": existing_meta}}
     return json.dumps(payload, indent=2, default=str)
@@ -227,8 +227,26 @@ _TRIMMABLE_NESTED_BUCKETS: tuple[str, ...] = (
 _TRIMMABLE_NESTED_MEMBERS: tuple[tuple[str, str], ...] = (("processes", "members"),)
 
 
+def _estimate_tokens(text: str) -> int:
+    # chars/4 holds for ASCII but undercounts non-Latin scripts 2-3x — BPE emits
+    # far more tokens per char for CJK / Arabic / Cyrillic. The old chars/4 let
+    # oversized non-Latin payloads slip under the budget with truncated=False,
+    # the coverage signal the graph-first contract trusts. Conservative model:
+    # ASCII ~4 chars/token; every non-ASCII char counts as ~1 token (worst-case).
+    ascii_chars = len(text.encode("ascii", "ignore"))
+    non_ascii = len(text) - ascii_chars
+    return max(1, int(ascii_chars / 4 + non_ascii))
+
+
+def _budget_size(text: str) -> int:
+    # Token-normalised size for the char-denominated budgets: identical to len()
+    # for ASCII (zero behaviour change), inflated for non-Latin so the trimmers
+    # shrink to the real token budget instead of a char proxy.
+    return max(len(text), _estimate_tokens(text) * 4)
+
+
 def _probe_size(body: dict, meta: dict) -> int:
-    return len(
+    return _budget_size(
         json.dumps(
             {"ok": True, "data": {**body, "meta": meta}},
             indent=2,
