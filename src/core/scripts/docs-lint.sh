@@ -27,7 +27,7 @@ TARGETS=()
 # flagged (warn by default; error+gate under COS_DOCS_LINT_STRICT=1). The
 # XXX / STACK_DOMAIN domain values are template fill-in placeholders, kept
 # valid so skeleton templates don't trip the check.
-DOMAIN_ENUM="ALL CORE META ADAPTERS DOCS OPS INFRA SECURITY PRODUCT BACKEND FRONTEND AI MOBILE XXX STACK_DOMAIN"
+DOMAIN_ENUM="ALL CORE META ADAPTERS DOCS OPS INFRA SECURITY PRODUCT BACKEND FRONTEND AI MOBILE API ARCH XXX STACK_DOMAIN"
 LAYER_ENUM="index policy playbook spec adr reference runbook postmortem task engineering architecture template plan contract checklist"
 STRICT="${COS_DOCS_LINT_STRICT:-0}"
 
