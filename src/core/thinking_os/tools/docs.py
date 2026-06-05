@@ -751,8 +751,6 @@ def list_doc_headers(
         if since_iso and (fm.get("updated") or "") < since_iso:
             continue
         rows.append(header)
-        if len(rows) >= limit:
-            break
 
     def _sort_key(h: dict[str, Any]) -> tuple[float, str]:
         fm = h.get("frontmatter") or {}
@@ -764,5 +762,7 @@ def list_doc_headers(
         updated = str(fm.get("updated") or "")
         return (-priority_num, updated)
 
+    # Sort the FULL match set before truncating — otherwise top-N is rglob
+    # (filesystem) order, not priority/recency order (TASK-137).
     rows.sort(key=_sort_key)
-    return rows
+    return rows[:limit]

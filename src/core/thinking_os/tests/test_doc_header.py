@@ -252,6 +252,41 @@ Read next: x.
     assert [r["title"] for r in rows] == ["High", "Low"]
 
 
+def test_list_doc_headers_limit_keeps_top_priority(tmp_path: Path) -> None:
+    # Regression (TASK-137): the limit must apply AFTER the priority sort, not
+    # mid-walk — otherwise the returned top-N is rglob (filesystem) order.
+    for i in range(5):
+        _write(
+            tmp_path,
+            f"doc-{i}.md",
+            f"""\
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-04-01 | priority:0.1 -->
+# Filler {i}
+
+Purpose: x.
+Read when: x.
+Skip when: x.
+Read next: x.
+""",
+        )
+    _write(
+        tmp_path,
+        "winner.md",
+        """\
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-01 | priority:0.9 -->
+# Winner
+
+Purpose: x.
+Read when: x.
+Skip when: x.
+Read next: x.
+""",
+    )
+    rows = list_doc_headers(tmp_path, limit=1)
+    assert len(rows) == 1
+    assert rows[0]["title"] == "Winner"
+
+
 def test_parse_handles_binary(tmp_path: Path) -> None:
     target = tmp_path / "image.md"
     target.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
