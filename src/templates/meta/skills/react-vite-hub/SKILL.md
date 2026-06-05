@@ -124,8 +124,14 @@ server is for iteration only.
 - Modal/dialog components use `@radix-ui/react-dialog` for keyboard trap.
 - Color contrast — verify with Lighthouse; tokens in `cos-board-tokens.css` already pass AA.
 
+## Tooling
+
+Flag Vite client-env footguns (process.env / non-VITE_ vars undefined in the build):
+`python3 scripts/check_vite_env.py src/core/web/ui/src/**/*.tsx`
+
 ## See also
 
+- [assets/hub-ui-checklist.md](assets/hub-ui-checklist.md) — the Hub-UI gate (env, API contract, quality).
 - [src/core/web/ui/README.md](../../../../core/web/ui/README.md) (when present)
 - [docs/engineering/hub-architecture.md](../../../../docs/engineering/hub-architecture.md)
 - [src/core/skills/frontend-fundamentals/SKILL.md](../../../../core/skills/frontend-fundamentals/SKILL.md)
