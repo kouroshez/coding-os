@@ -151,6 +151,23 @@ Severity is the post-verification corrected value. Each maps to its remediation 
 - Idempotent `_overlay_scaffold` (never overwrites user edits); data-driven
   stack discovery (Rule 11); `audit_doc_links.py` hard link audit.
 
+## Re-review (session 2 · 2026-06-05) — build delta + calibration
+
+Original audit filed 22 tasks, shipped 0. Session 2 shipped the clear-cut subset.
+
+**Shipped:** 118 gitignore+commit · 119 regen-reachable · 120 enum · 121
+git-hooks+00-index+staleness · 123+125 ADR move+frontmatter · 130 atomic
+00-index · 132 cheat-sheet · 137 sort-before-truncate · 139 hardcoded-path ·
+golden recapture (fixed RED parity) · RTK removed. Commits `main` 4ad205a..51cf92a.
+
+**Severity overstated:** D3-F2 CRIT→MED (always-active; per-consumer dup =
+overeng → 122 no-build) · D3-F3/F4 HIGH→LOW (meta-local untracked config; root
+fixed by 123+125) · D1-F2 HIGH→LOW (only API+ARCH, fixed by 120).
+
+**Deferred by design:** 126 (roadmap rejected semantic-multi-hop) · 127/128
+(blocking-promotion precondition unmet — clear no-frontmatter backlog first) ·
+131/134/135 (speculative/content) · 136 new-stack + 129/133/138 (separate/queued).
+
 ## Resume Marker
 
 <!-- last_updated_row: 0 -->
