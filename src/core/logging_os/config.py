@@ -32,15 +32,19 @@ class Level(IntEnum):
         return self.name
 
 
+STATE_DIR_NAME = ".coding-os"
+LOG_BASENAME = ".cos.log"
+
+
 def state_dir() -> Path:
-    return Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
+    return Path(os.environ.get("COS_STATE_DIR", STATE_DIR_NAME))
 
 
 def text_log_path() -> Path:
     explicit = os.environ.get("COS_LOG_FILE")
     if explicit:
         return Path(explicit)
-    return state_dir() / ".cos.log"
+    return state_dir() / LOG_BASENAME
 
 
 def jsonl_log_path() -> Path:

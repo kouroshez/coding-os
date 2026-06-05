@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import calendar
 import fnmatch
 import json
 import logging
@@ -40,7 +41,11 @@ def _jsonl_log_path() -> Path:
     override = os.environ.get("COS_LOG_FILE")
     if override:
         return Path(override + ".jsonl").resolve()
-    return current_project_root() / ".coding-os" / ".cos.log.jsonl"
+    # Single-source the dir name + filename from logging_os.config so a rename
+    # there cannot silently desync this reader (api-contract-discipline).
+    from logging_os.config import LOG_BASENAME, STATE_DIR_NAME  # type: ignore
+
+    return current_project_root() / STATE_DIR_NAME / (LOG_BASENAME + ".jsonl")
 
 
 def _parse_duration_seconds(raw: str) -> float | None:
@@ -78,7 +83,7 @@ def _event_passes(
     if earliest_epoch is not None:
         ts_str = str(event.get("ts", ""))
         try:
-            ts_epoch = time.mktime(time.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ"))
+            ts_epoch = calendar.timegm(time.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ"))
         except (ValueError, TypeError):
             ts_epoch = None
         if ts_epoch is not None and ts_epoch < earliest_epoch:

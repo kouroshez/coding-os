@@ -21,6 +21,8 @@ runtime_files:
   - .coding-os/.task-current
   - .coding-os/.zoom-checkpoint
   - .coding-os/.last-verify
+  - .coding-os/.cos.log
+  - .coding-os/.cos.log.jsonl
 
 # Directory prefixes to ignore during scaffold scans — VCS, build output,
 # virtualenvs, node_modules, etc.
