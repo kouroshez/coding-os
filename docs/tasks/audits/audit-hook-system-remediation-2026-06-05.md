@@ -21,7 +21,7 @@ created: 2026-06-05
 | 2 | Danger/secret regex holes | TASK-105 | block-dangerous-commands.sh/block-secrets.sh/_helpers/check_dangerous_rm.py | 3 | 4 | yes | 0 | yes | 10d1240·2d6b7de (25 hook behavior tests) |
 | 3 | Per-panel marker-scope drift | TASK-107 | nudge-*/session-end/warn-abandoned/capture-work-log/cos-env | ~9 | 8 | yes | 0 | yes | 25d38fd (25 files; panel-scope smoke 1-4 pass; 0 new test-hooks failures vs baseline 60/67) |
 | 4 | Board transition atomicity | TASK-108 | workflow.py/mcp_tools.py/4 hook helpers | 6 | 2 | no | 2 | no | (pending) |
-| 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/memory.py | 4 | 5 | no | 5 | no | (pending) |
+| 5 | Memory-load correctness | TASK-109 | session-context.sh/learning.py/enforce-memory-check/server.py | 4 | 5 | yes | 0 | yes | 863d3d7 (digest-startup + boost smoke + gate-TTL unit + 142 learning/memory tests + MCP self-test) |
 | 6 | Codex now-fixable parity | TASK-110 | codex-*-dispatch.sh/adapter.yaml/hook_renderer.py | 3 | 3 | no | 3 | no | (pending) |
 | 7 | Hub learning panel | TASK-111 | scheduled.py/SettingsPage.tsx/MemoryPage.tsx/api-types | 4 | 4 | no | 4 | no | (pending) |
 | 8 | Data-driven adapter detection | TASK-112 | cos-env.sh/doctor.py/test_no_hardcoded_stacks.py | 3 | 4 | no | 4 | no | (pending) |
@@ -60,12 +60,12 @@ created: 2026-06-05
 - ⬜ 4b MED — task_sync.py/work_log_append.py/transition_gates_cli.py/wip_limit_check.py route through `database.get_connection` (WAL+busy_timeout).
 - ⬜ 4c LOW — consume_override.py atomic flock; cos-env heartbeat-before-panel-upgrade transient ppid dirs.
 
-### Stream 5 — TASK-109 · Memory-load correctness (P1)
-- ⬜ 5a HIGH — digest re-injected on compact/resume (currently startup-only → lost after auto-compaction).
-- ⬜ 5b HIGH — `learning.py:472` learn_suggest uses `complexity`+real `domain` (recall is relevance-blind today).
-- ⬜ 5c HIGH — banner `_read_state` (session-context.sh:333) applies 120-min TTL → marks stale skill/gate/task (hallucination window); compact snapshot TTL on task/skill too.
-- ⬜ 5d MED — enforce-memory-check marker stamped by a real cos_search (PostToolUse on the tool) OR downgrade the claim wording.
-- ⬜ 5e LOW — cos_search defaults min_confidence=0.3/since_days=180; split read-reinforce (no confidence bump on raw search).
+### Stream 5 — TASK-109 · Memory-load correctness (P1) — ✅ DONE 863d3d7
+- ✅ 5a — Agent-digest block split out of the compact/resume `if` and now runs on `startup|compact|resume`; a fresh session inherits the working-memory digest (the startup matcher's "Loading … memory digest" status is now true). Recovery-text + state-snapshot stay compact/resume-only (nothing to recover on fresh start). Smoke: `[Agent Digest]` emitted on SOURCE=startup.
+- ✅ 5b — learn_suggest: `complexity`+`task_type` were accepted then ignored (no per-pattern column). Added a CASE-based relevance BOOST (matches concepts/pattern text, never excludes) → matching pattern outranks equally-confident non-match. Smoke: task_type=migration boosts the migration pattern to top.
+- ✅ 5c — banner now applies the gate's 120-min TTL (`COS_GATE_TTL_SECONDS`, default 7200s): an expired gate renders `⌛stale` instead of looking valid. `_read_state` only checked session-ownership; staleness is checked on the gate's mtime. Unit: fresh not flagged, 3h-old flagged, env override honored. (Task/skill keep session-ownership semantics — no fabricated timer.)
+- ✅ 5d — enforce-memory-check header + block message now state the marker is a SELF-ATTESTED good-faith claim (presence+freshness only, not proof of a real cos_search); the authentic PostToolUse auto-stamp on the cos_search/cos_learn_suggest MCP tool is folded into N9 (one coordinated registry+golden regen).
+- ✅ 5e — cos_search default `min_confidence` 0.0→0.3 (skips decayed noise; fresh patterns at 0.5 still pass); `since_days` stays 0 (age opt-in so a valuable old decision isn't silently hidden — deliberately NOT 180). Confirmed raw search does NOT reinforce (that is `_boost_access` via cos_details); fixed the stale "updates access_count/confidence" docstring+annotation. 142 learning/memory tests + MCP self-test green.
 
 ### Stream 6 — TASK-110 · Codex now-fixable parity (P1, infra)
 - ⬜ 6a HIGH — codex-posttool-dispatch.sh adds auto-reindex-shell-ops + auto-prune-deleted-files (drift vs adapter.yaml → graph staleness/zombie rows).
@@ -97,10 +97,10 @@ created: 2026-06-05
 
 ## Resume Marker
 
-<!-- last_updated_row: 3 -->
-<!-- next_unchecked_row: 5 -->
+<!-- last_updated_row: 5 -->
+<!-- next_unchecked_row: 4 -->
 <!-- last_updated_at: 2026-06-05T00:00:00Z -->
-<!-- progress: N1✅ N2✅ N10✅ N3✅ (25d38fd). NEXT: N5 (TASK-109) memory-load correctness. Then N4,N6,N8,N7,N9. -->
+<!-- progress: N1✅ N2✅ N10✅ N3✅ N5✅ (863d3d7). NEXT: N4 (TASK-108) board transition atomicity. Then N6,N8,N7,N9. -->
 <!-- sequence: N1(104) → N2(105) → N10(114) → N3(107) → N5(109) → N4(108) → N6(110) → N8(112) → N7(111) → N9(113-last) -->
 
 ## Notes
