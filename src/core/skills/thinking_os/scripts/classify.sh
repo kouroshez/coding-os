@@ -108,7 +108,7 @@ GATE_FILE="$AGENT_DIR/.thinking_os-gate"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 WRITE_STATE="$REPO_ROOT/src/core/hooks/write-state.sh"
 [[ ! -f "$WRITE_STATE" ]] && WRITE_STATE="$REPO_ROOT/core/hooks/write-state.sh"
-[[ ! -f "$WRITE_STATE" ]] && WRITE_STATE="$REPO_ROOT/.claude/hooks/write-state.sh"
+[[ ! -f "$WRITE_STATE" ]] && WRITE_STATE="$REPO_ROOT/.${COS_AGENT:-claude}/hooks/write-state.sh"
 
 if [ -x "$WRITE_STATE" ] || [ -f "$WRITE_STATE" ]; then
   bash "$WRITE_STATE" "$GATE_FILE" "$CLASSIFICATION" >/dev/null 2>&1 || {
