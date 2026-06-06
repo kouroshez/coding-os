@@ -51,7 +51,7 @@ export interface SigmaEdgeAttrs {
   weight?: number;
 }
 
-// TASK-141 P4: client-side noise filter — keeps the canvas focused on
+// client-side noise filter — keeps the canvas focused on
 // real navigation targets even when the backend returns frontmatter
 // keys / heading-only nodes (e.g. when an old payload is cached or a
 // caller bypassed the server's exclude_kinds default).
@@ -85,7 +85,7 @@ export function buildGraph(
   }
   // Repo-root anchor — extractor emits exactly one of these. Always
   // dominates the canvas (size + label) so the viewer's eye lands on
-  // the centre of importance. (TASK-019)
+  // the centre of importance.
   const ROOT_UIDS = new Set(['folder:.', 'folder:']);
   // Top-K-by-degree get an emphasis tier (label + size bump). K scales
   // with graph size — five labels make sense on a 200-node subgraph;

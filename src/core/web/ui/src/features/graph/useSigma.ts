@@ -432,7 +432,7 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
       const layout: LayoutMode = options.layout ?? 'force';
 
       if (layout === 'dagre') {
-        // TASK-141 P5: top-down hierarchical layout for the
+        // top-down hierarchical layout for the
         // Containment view. Skip force-atlas so we don't wrestle the
         // carefully ranked tree back into a hairball.
         applyDagreLayout(incoming);

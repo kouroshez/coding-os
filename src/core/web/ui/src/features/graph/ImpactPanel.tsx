@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 
-// Edge tier shape returned by /api/graph/impact/{uid} (TASK-074).
+// Edge tier shape returned by /api/graph/impact/{uid}.
 interface ImpactEdge {
   source_uid: string;
   target_uid: string;

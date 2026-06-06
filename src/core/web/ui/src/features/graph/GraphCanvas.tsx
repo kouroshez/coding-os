@@ -4,10 +4,10 @@ import { useApiGet } from '@/lib/hooks';
 import { useSigma } from './useSigma';
 import { buildGraph, bfsSubgraph, type ApiGraphPayload } from './graph-adapter';
 
-// Sigma host. Renders the smart-blend overview by default (TASK-141 P1)
+// Sigma host. Renders the smart-blend overview by default
 // or a depth-bounded BFS subgraph when a root is pinned.  Noise nodes
 // (frontmatter / heading-only) are hidden by both server-side noise
-// filter (TASK-141 P1) and the client-side `visibleKinds` toggles.
+// filter and the client-side `visibleKinds` toggles.
 export default function GraphCanvas() {
   const selectedRootUid = useGraphStore((s) => s.selectedRootUid);
   const viewMode = useGraphStore((s) => s.viewMode);
@@ -86,7 +86,7 @@ export default function GraphCanvas() {
       visibleKinds: new Set(visibleKinds),
       visibleEdgeTypes: new Set(visibleEdgeTypes),
     });
-    // TASK-141 P5: containment view → top-down dagre tree; everything
+    // containment view → top-down dagre tree; everything
     // else stays on ForceAtlas2 with noverlap.
     const layout = viewMode === 'containment' ? 'dagre' : 'force';
     setGraph(graph, { layout });

@@ -112,7 +112,7 @@ export default function DoctorPage() {
 }
 
 // ----- Backend (graph) ----------------------------------------------
-// TASK-020: Render `cos_graph_doctor` output as structured cards instead
+// Render `cos_graph_doctor` output as structured cards instead
 // of a raw JSON dump. The top grid surfaces flat stats (healthy,
 // node/edge counts), and each issue category from `issues[]` becomes
 // its own card with a count badge + sortable sample table.

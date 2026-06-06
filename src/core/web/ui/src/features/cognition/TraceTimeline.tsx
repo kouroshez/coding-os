@@ -57,7 +57,7 @@ function eventKey(e: TraceEvent, i: number): string {
 }
 
 // Plain-language labels for cognition event kinds so a non-developer reads
-// "what the agent did" instead of OTEL-style internals (TASK-193).
+// "what the agent did" instead of OTEL-style internals.
 const KIND_LABEL: Record<string, string> = {
   classify: 'Classified the request',
   analyze_start: 'Started analysing the task',

@@ -25,7 +25,7 @@ export const DEFAULT_EDGE_TYPES = [
 
 export type DepthFilter = 1 | 2 | 3 | 'all';
 
-// TASK-141 P2: view-mode tabs that drive the backend `cos_graph_export`
+// view-mode tabs that drive the backend `cos_graph_export`
 // blend selection — see `_AUTO_BLEND_BUCKETS` in graph_os/tools/graph.py.
 export type ViewMode = 'auto' | 'containment' | 'dependencies' | 'processes';
 
@@ -57,7 +57,7 @@ export const useGraphStore = create<GraphStoreState>((set) => ({
   visibleEdgeTypes: new Set<string>(DEFAULT_EDGE_TYPES),
   searchQuery: '',
 
-  // TASK-141 P3: when a root is picked, mirror it into selectedNodeUid
+  // when a root is picked, mirror it into selectedNodeUid
   // so the right-pane Inspector opens for it.  Previously the inspector
   // stayed on the placeholder until the user separately clicked a node
   // on the canvas — confusing UX, especially when picking from the

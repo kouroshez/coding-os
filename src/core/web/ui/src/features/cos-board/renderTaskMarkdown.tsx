@@ -117,9 +117,9 @@ export function renderTaskMarkdown(md: string): ReactNode[] {
     //
     // Two input shapes we have to support, both in use in real task files:
     //   (1) bare keyword on its own line, as in the Claude Design fixture:
-    //       `GIVEN the repro case from TASK-123`
+    //       `GIVEN the repro case from TASK-NNN`
     //   (2) bold-keyword list item, as in templates/_base/task.template.md:
-    //       `- **Given** the repro case from TASK-123`
+    //       `- **Given** the repro case from TASK-NNN`
     //       `- **When**  the fix lands on \`main\``
     //       `- **Then**  all tests pass`
     //

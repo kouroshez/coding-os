@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
 
-// TASK-024: alarm chip in the top bar. Silent when everything is green;
+// alarm chip in the top bar. Silent when everything is green;
 // surfaces a clickable amber pill the moment graph_os reports issues or
 // the /health probe degrades. One-glance "is the system broken?" signal
-// per the user's Phase-10 ask. Polls every 30 s — light enough to keep
+// Polls every 30 s — light enough to keep
 // running on every page without flooding the API.
 
 interface DoctorResp {
@@ -26,7 +26,7 @@ export default function HealthAlarmBar() {
   const health = useApiGet<HealthResp>(['alarm-health'], '/api/health', undefined, {
     refetchIntervalMs: 30000,
   });
-  // Observability eye (E11): recent ERROR/FATAL from the durable log feed are
+  // recent ERROR/FATAL from the durable log feed are
   // the most direct "system is broken" signal — a green graph + green /health
   // while errors pour in is exactly the blind spot the eye exists to close.
   const logs = useApiGet<LogSummaryResp>(['alarm-logs'], '/api/logs/summary', { since: '1h' }, {
@@ -38,7 +38,7 @@ export default function HealthAlarmBar() {
   const healthOk = (health.data?.status ?? 'ok') === 'ok';
   const errorCount = logs.data?.data?.error_count ?? 0;
   const fatalCount = logs.data?.data?.fatal_count ?? 0;
-  // TASK-027: fetch errors mean the backend is unreachable, which IS the
+  // fetch errors mean the backend is unreachable, which IS the
   // worst kind of degraded state — silently hiding it defeated the bar's
   // whole purpose. Treat any error as alarm-worthy on top of the
   // backend-reported issue checks.

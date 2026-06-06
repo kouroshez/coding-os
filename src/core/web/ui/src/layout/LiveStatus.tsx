@@ -70,7 +70,7 @@ export default function LiveStatus() {
     undefined,
     { refetchIntervalMs: 4000 },
   );
-  // Unified per-agent snapshot adds role/chain/lifecycle (TASK-191).
+  // Unified per-agent snapshot adds role/chain/lifecycle.
   const { data: unified } = useApiGet<UnifiedPayload>(
     ['presence-agents'],
     '/api/presence/agents',

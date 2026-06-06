@@ -2376,7 +2376,7 @@ function AgentTaskModal({
             const payload = data ? JSON.parse(data) : {};
             // Streamed assistant frames carry `content[]`; the GET transcript
             // path carries `blocks[]`. Read content first, blocks as fallback
-            // (TASK-207 — the modal used to read only `blocks` → empty stream).
+            // (the modal used to read only `blocks` → empty stream).
             const blocks: Array<{ type?: string; text?: string }> =
               payload?.content ?? payload?.blocks ?? [];
             const t = blocks

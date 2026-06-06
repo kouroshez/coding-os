@@ -8,7 +8,7 @@ export interface KindStyle {
 
 // bg/bg2 = card gradient (themed --sticky-* tints); chip = themed --kind-*
 // ink (AA on both the light and dark tint). No hardcoded hex — so a card
-// reads correctly in either theme (Cortex Phase 2).
+// reads correctly in either theme.
 export const KIND_COLORS: Record<string, KindStyle> = {
   bug: { bg: 'var(--sticky-red)', bg2: 'var(--sticky-red-2)', chip: 'var(--kind-bug)', label: 'bug' },
   feature: {

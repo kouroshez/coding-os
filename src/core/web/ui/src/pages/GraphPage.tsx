@@ -19,7 +19,7 @@ export default function GraphPage() {
   // click, Clear button, ProjectSwitcher) call useNavigate themselves
   // so we only sync URL -> store here. The previous bidirectional
   // pair of effects produced a render loop after the edge-field bug
-  // was fixed (per TASK-117).
+  // was fixed.
   useEffect(() => {
     setRoot(rootUid ?? null);
   }, [rootUid, setRoot]);

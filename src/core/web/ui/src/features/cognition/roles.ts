@@ -3,7 +3,7 @@ import { useApiGet } from '@/lib/hooks';
 // Loading/offline fallback ONLY — the canonical 11 semantic roles. The
 // /api/cognition/roles endpoint (derived from thinking_os/agents/*.md) is
 // the source of truth; this single list just avoids an empty dropdown on
-// first paint and is the one place a role default lives (TASK-197).
+// first paint and is the one place a role default lives.
 export const ROLE_FALLBACK = [
   'researcher',
   'analyst',
