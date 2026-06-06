@@ -14,9 +14,14 @@ interface TraceRotation {
   delete_age_days: number;
 }
 
+interface TaskClosure {
+  mode: string; // off | warn | strict
+}
+
 interface Settings {
   budget_cap: BudgetCap;
   trace_rotation: TraceRotation;
+  task_closure: TaskClosure;
 }
 
 interface SettingsPayload {
@@ -399,11 +404,13 @@ export default function SettingsPage() {
   // Local draft state — mirrors server; hydrated from API response
   const [budget, setBudget] = useState<BudgetCap | null>(null);
   const [trace, setTrace] = useState<TraceRotation | null>(null);
+  const [closure, setClosure] = useState<TaskClosure | null>(null);
 
   // Sync draft with server data on first load (not on every refetch)
   const serverSettings = data?.settings;
   const localBudget: BudgetCap = budget ?? serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
   const localTrace: TraceRotation = trace ?? serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
+  const localClosure: TaskClosure = closure ?? serverSettings?.task_closure ?? { mode: 'warn' };
   const envOverrides = data?.env_overrides ?? {};
 
   const save = useCallback(async () => {
@@ -414,17 +421,19 @@ export default function SettingsPage() {
       const [result] = await apiPatch<SettingsPayload>('/api/settings', {
         budget_cap: localBudget,
         trace_rotation: localTrace,
+        task_closure: localClosure,
       });
       await invalidateApiQueries(qc, '/api/settings');
       setBudget(result.settings.budget_cap);
       setTrace(result.settings.trace_rotation);
+      setClosure(result.settings.task_closure);
       setSaveNote('Settings saved.');
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'save failed');
     } finally {
       setSaving(false);
     }
-  }, [localBudget, localTrace, qc]);
+  }, [localBudget, localTrace, localClosure, qc]);
 
   if (isLoading) {
     return (
@@ -569,6 +578,45 @@ export default function SettingsPage() {
           </p>
         </section>
 
+        {/* Task-Closure Enforcement */}
+        <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
+          <SectionHeader
+            title="Task-Closure Enforcement"
+            desc="How the Stop guardian reacts when an agent ends a turn with a task it started still open (in_progress/testing) — stops agents abandoning tasks half-done. Read by completion_guardian via hub-settings.json."
+          />
+          <div className="divide-y divide-[var(--cos-border)]">
+            <FieldRow label="Enforcement mode">
+              <select
+                value={localClosure.mode}
+                onChange={(e) => setClosure({ mode: e.target.value })}
+                className="rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1 font-mono text-xs text-[var(--cos-text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              >
+                <option value="off">off — never enforce</option>
+                <option value="warn">warn — nudge only (default)</option>
+                <option value="strict">strict — block 2nd Stop on an open task</option>
+              </select>
+              {envOverrides['COS_ENFORCE_TASK_CLOSURE'] && (
+                <EnvBadge
+                  varName="COS_ENFORCE_TASK_CLOSURE"
+                  value={envOverrides['COS_ENFORCE_TASK_CLOSURE']}
+                />
+              )}
+            </FieldRow>
+          </div>
+          <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
+            <strong className="text-[var(--cos-text)]">off</strong> — the guardian
+            ignores open tasks.{' '}
+            <strong className="text-[var(--cos-text)]">warn</strong> — a one-shot nudge
+            lists the open task (never blocks).{' '}
+            <strong className="text-[var(--cos-text)]">strict</strong> — the first Stop
+            arms a grace turn; a second Stop with the same task still open is blocked
+            until you <code>cos task-done</code>, <code>cos task-move --to blocked</code>,
+            or <code>touch .leave-open</code> for deliberate work-in-progress. Override via
+            shell: <code>export COS_ENFORCE_TASK_CLOSURE=strict</code> — the env var wins
+            over this panel.
+          </p>
+        </section>
+
         {/* Scheduled Maintenance (per-project cron + responsive learning) */}
         <ScheduledMaintenanceSection />
 
@@ -591,6 +639,7 @@ export default function SettingsPage() {
             onClick={() => {
               setBudget(serverSettings?.budget_cap ?? null);
               setTrace(serverSettings?.trace_rotation ?? null);
+              setClosure(serverSettings?.task_closure ?? null);
               setSaveNote(null);
               setSaveError(null);
             }}

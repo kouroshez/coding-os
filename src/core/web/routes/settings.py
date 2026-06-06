@@ -16,7 +16,13 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
+    # Task-closure enforcement mode read by completion_guardian (TASK-216):
+    # off (never enforce) · warn (nudge only) · strict (block 2nd Stop on an
+    # unclosed task). The COS_ENFORCE_TASK_CLOSURE env var overrides this.
+    "task_closure": {"mode": "warn"},
 }
+
+_VALID_CLOSURE_MODES = {"off", "warn", "strict"}
 
 
 def _settings_path() -> Path:
@@ -46,7 +52,12 @@ def _save(data: dict) -> None:
 
 def _env_overrides() -> dict:
     overrides: dict = {}
-    for var in ("COS_DAILY_BUDGET_USD", "COS_TRACE_GZIP_AGE_DAYS", "COS_TRACE_DELETE_AGE_DAYS"):
+    for var in (
+        "COS_DAILY_BUDGET_USD",
+        "COS_TRACE_GZIP_AGE_DAYS",
+        "COS_TRACE_DELETE_AGE_DAYS",
+        "COS_ENFORCE_TASK_CLOSURE",
+    ):
         val = os.environ.get(var)
         if val:
             overrides[var] = val
@@ -68,9 +79,14 @@ class _TraceRotationIn(BaseModel):
     delete_age_days: int
 
 
+class _TaskClosureIn(BaseModel):
+    mode: str  # off | warn | strict
+
+
 class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
     trace_rotation: _TraceRotationIn | None = None
+    task_closure: _TaskClosureIn | None = None
 
 
 @router.patch("")
@@ -80,5 +96,8 @@ async def patch_settings(body: _PatchBody):
         current["budget_cap"] = body.budget_cap.model_dump()
     if body.trace_rotation is not None:
         current["trace_rotation"] = body.trace_rotation.model_dump()
+    if body.task_closure is not None:
+        mode = body.task_closure.mode.strip().lower()
+        current["task_closure"] = {"mode": mode if mode in _VALID_CLOSURE_MODES else "warn"}
     _save(current)
     return {"data": {"settings": current, "env_overrides": _env_overrides()}}

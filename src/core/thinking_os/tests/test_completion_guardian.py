@@ -556,3 +556,32 @@ class TestTaskClosureGuardian:
         monkeypatch.setenv("COS_ENFORCE_TASK_CLOSURE", "strict")
         result = guard_completion(session_id="s1", repo_root=repo)
         assert result.status == "pass", "no .task-current → nothing to enforce"
+
+    # TASK-216 — mode resolvable from hub-settings.json (UI), env wins.
+
+    def _write_hub_settings(self, repo: Path, mode: str) -> None:
+        import json as _json
+
+        sd = repo / ".coding-os"
+        sd.mkdir(parents=True, exist_ok=True)
+        (sd / "hub-settings.json").write_text(_json.dumps({"task_closure": {"mode": mode}}))
+
+    def test_strict_via_hub_settings_file_blocks(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        monkeypatch.delenv("COS_ENFORCE_TASK_CLOSURE", raising=False)  # no shell override
+        self._bind(agent_dir, "TASK-001")
+        self._seed_task(repo, monkeypatch, "TASK-001", "testing")
+        self._write_hub_settings(repo, "strict")  # set from the Hub UI
+        guard_completion(session_id="s1", repo_root=repo)  # arm
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "fail", "strict from hub-settings.json must enforce without an env var"
+
+    def test_env_overrides_file_to_off(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        self._bind(agent_dir, "TASK-001")
+        self._seed_task(repo, monkeypatch, "TASK-001", "testing")
+        self._write_hub_settings(repo, "strict")
+        monkeypatch.setenv("COS_ENFORCE_TASK_CLOSURE", "off")  # shell override wins
+        guard_completion(session_id="s1", repo_root=repo)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", "env var must win over the file setting"

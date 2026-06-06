@@ -297,6 +297,30 @@ def _task_status_from_db(task_id: str) -> str | None:
         return None
 
 
+def _closure_mode() -> str:
+    """Resolve the task-closure enforcement mode (TASK-216).
+
+    Precedence: COS_ENFORCE_TASK_CLOSURE env var (shell override, wins) ->
+    hub-settings.json `task_closure.mode` (set from the Hub Settings page) ->
+    'warn' (default). Lets power users override per-shell while everyone else
+    configures it from the web panel. Fail-soft to 'warn' on any read error.
+    """
+    env = os.environ.get("COS_ENFORCE_TASK_CLOSURE")
+    if env:
+        return env.strip().lower()
+    state_dir = os.environ.get("COS_STATE_DIR") or ".coding-os"
+    settings_path = Path(state_dir) / "hub-settings.json"
+    try:
+        if settings_path.exists():
+            data = json.loads(settings_path.read_text())
+            mode = (data.get("task_closure") or {}).get("mode")
+            if mode:
+                return str(mode).strip().lower()
+    except (json.JSONDecodeError, OSError) as exc:
+        sys.stderr.write(f"guardian: closure-mode read failed (fail-open): {exc}\n")
+    return "warn"
+
+
 def _closure_gaps(target_dir: Path) -> list[str]:
     # TASK-210 RC1/RC2 — ordinary task-closure enforcement, INDEPENDENT of
     # exhaustive intent (the historic guardian only fired for exhaustive
@@ -306,7 +330,7 @@ def _closure_gaps(target_dir: Path) -> list[str]:
     # warn->block: the first Stop with an open bound task ARMS a marker, the
     # next Stop with the SAME task still open blocks. Fail-open throughout so a
     # marker/DB error never wedges a legitimate stop.
-    mode = (os.environ.get("COS_ENFORCE_TASK_CLOSURE") or "warn").strip().lower()
+    mode = _closure_mode()
     if mode != "strict":
         return []
     if (target_dir / ".leave-open").exists():  # deliberate-WIP escape hatch
