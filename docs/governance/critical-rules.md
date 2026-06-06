@@ -108,6 +108,14 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
   good names and small functions remove the need. Add a comment only when
   the WHY is non-obvious: a hidden constraint, subtle invariant, workaround
   for a specific bug, or behavior that would surprise a reader.
+- **No provenance:** A comment states the timeless WHY, never who/what
+  introduced the change. No task IDs (`TASK-123`, `(TASK-123)`, `since TASK-123`),
+  phase/plan labels (`Phase 2`, `Phase G`, `P5:`), or gate/work-item codes
+  (`(G9)`, `(E1)`, `(B4)`) belong in a comment — `git blame` already records
+  provenance, so the ID is meaningless to the next reader and stale the moment
+  the work moves on. The same rule kills `TODO`/`FIXME` in committed code: file a
+  task (`cos task-create`), don't leave a marker. (A domain identifier the code
+  operates on — e.g. a formula id in `hex(F1)` — is not provenance and stays.)
 - **Exception — public MCP tools (`@mcp.tool` decorated functions):**
   ONE-line docstring is permitted because FastMCP exposes it as the tool
   description to the client. Keep it under 80 chars. No multi-section
