@@ -75,12 +75,19 @@ task shared one `ses-<agent>-pid<server-pid>` id — collapsing
 per-session WIP across panels.
 
 **Concurrent-panel caveat:** `.active-session` is last-writer-wins, so a
-task created via MCP is attributed to the *most recently active* panel.
-For the common single-active-panel case this is exact; for genuinely
-simultaneous panels it is an approximation. A fully exact fix needs the
-calling panel's session threaded through the MCP tool arguments (a
-protocol change) or a per-session MCP server — deferred until a real
-multi-panel-MCP workload demands it.
+task mutated via MCP would otherwise be attributed to the *most recently
+active* panel. As of TASK-212 the `inject-mcp-caller-session` PreToolUse
+hook closes this for the attribution-critical tools: it threads the
+calling panel's session into the args of `cos_task_move`,
+`cos_task_create`, and `cos_work_log_append` via
+`hookSpecificOutput.updatedInput`, and `resolve_agent_session` treats the
+injected explicit `agent_session` as its highest-priority signal — so
+those writes are attributed to the REAL calling panel even under genuinely
+simultaneous panels. The `.active-session` pointer remains the fallback
+for MCP tools the hook does not cover and for runtimes without PreToolUse
+argument injection (bounded by adapter hook capability — Claude-first; a
+per-session MCP server would be the alternative for a runtime that cannot
+inject).
 
 The single source of truth for which cognitive markers are panel-private is `$COS_PER_PANEL_FILES` in [src/core/hooks/cos-env.sh](../../src/core/hooks/cos-env.sh) — appending a basename to that list makes the writer (`write-state.sh`) and reader (`check-state.sh`) auto-route from then on; no per-hook edits needed.
 

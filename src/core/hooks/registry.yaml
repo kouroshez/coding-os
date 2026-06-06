@@ -80,6 +80,23 @@ hooks:
         matcher: Bash
         status_message: "📝 Validating commit message contract..."
 
+  - id: inject-mcp-caller-session
+    script: inject-mcp-caller-session.sh
+    description: Injects the calling panel's coding-os session as `agent_session` into MCP task-tool args so the panel-blind MCP server attributes writes to the real caller, not the last-writer-wins .active-session pointer. Fail-open; completes F2.
+    category: task
+    phase: "0"
+    timeout: 5
+    events:
+      - event: PreToolUse
+        matcher: mcp__coding-os__cos_task_move
+        status_message: "🪪 Attributing task move to this panel..."
+      - event: PreToolUse
+        matcher: mcp__coding-os__cos_task_create
+        status_message: "🪪 Attributing task create to this panel..."
+      - event: PreToolUse
+        matcher: mcp__coding-os__cos_work_log_append
+        status_message: "🪪 Attributing work-log to this panel..."
+
   - id: block-uv-heredoc
     script: block-uv-heredoc.sh
     description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).

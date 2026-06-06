@@ -93,7 +93,7 @@ hook_registry_output: settings.template.json
 # Source: per-event matchers observed in the live Claude Code hook spec.
 hook_capabilities:
   PreToolUse:
-    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, Read]
+    matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, Read, "mcp__coding-os__cos_task_move", "mcp__coding-os__cos_task_create", "mcp__coding-os__cos_work_log_append"]
   PostToolUse:
     matchers: [Bash, "Write|Edit", "Write|Edit|MultiEdit", Skill, "mcp__coding-os__cos_backtrack_log"]
   # PostToolUseFailure (SDK 0.1.73): fires when a tool errored. Empty
