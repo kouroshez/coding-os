@@ -5,18 +5,17 @@ swimlane: core
 kind: chore
 epic: agent-hub
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-06-06
-started: null
-completed: null
-agent_session: null
+started: 2026-06-06
+completed: 2026-06-06
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-205: Concurrent edit of a live-symlinked safety hook exposes a half-written wrongly-blocking state to every session
 
 **Outcome (one sentence):** A session editing a live-symlinked `block-*.sh` safety hook across turns must not make other concurrent sessions execute an inconsistent mid-edit version on every tool call (today they do — a peer's in-progress edit transiently made this session's harmless `ls` wrongly BLOCK).
@@ -49,3 +48,4 @@ Deliberate live-symlink design (CLAUDE.md: hooks propagate with "none" rebuild) 
 Same family as [[TASK-201]] (skill-fork panel leak) and F2 (TASK-167 MCP attribution) — all session-isolation gaps in the multi-agent kernel. See docs/engineering/agent-hub-orchestration.md.
 
 ## Work Log
+- 2026-06-06 [claude]: Added atomic-edit + verify-before-yield protocol for live-symlinked block-*/enforce-* safety hooks to git-workflow.md § 
