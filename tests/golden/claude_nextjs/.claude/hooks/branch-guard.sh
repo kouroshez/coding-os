@@ -20,8 +20,12 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Fail-closed: a branch/HEAD-move guard that cannot read the command must DENY
+# (observability-eye I8). python3 fallback keeps it working without jq.
+cos_require_parser branch-guard
+
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
@@ -31,7 +35,7 @@ if [[ "${COS_GIT_WORKFLOW:-trunk}" == "pr" ]]; then
   exit 0
 fi
 
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 [[ -z "$COMMAND" ]] && exit 0
 
 # Fast-skip: no "git" substring → no risk; skip the python startup cost.
@@ -54,10 +58,14 @@ unset _src _dir
 HELPER="${HOOKS_PHYS_DIR}/_helpers/branch_guard_check.py"
 
 if [[ ! -f "$HELPER" ]]; then
-  # Fail-open if the helper is missing — better to under-enforce than to
-  # silently break every Bash call.
-  cos_log_hook branch-guard ok "reason=helper-missing"
-  exit 0
+  # Fail-CLOSED: we are past the fast-skip, so the command IS git-related.
+  # A missing helper (dangling symlink / broken install) means we cannot
+  # verify it — deny rather than silently allow (observability-eye I8/A2).
+  cos_say error hook.branch_guard "branch-guard helper missing — failing closed on git command" 2>/dev/null || true
+  cos_log_hook branch-guard block "rule=helper-missing"
+  echo "BLOCKED: branch-guard helper missing ($HELPER) — cannot verify this git command; failing closed." >&2
+  echo "  Restore src/core/hooks/_helpers/branch_guard_check.py, or set COS_GIT_WORKFLOW=pr to bypass branch-guard." >&2
+  exit 2
 fi
 
 # Run the helper, capturing BOTH stdout (verdict) and stderr (crash detail).

@@ -20,13 +20,19 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+
+# Fail-closed: a duplicate-migration gate that cannot read its input must DENY,
+# not silently allow when jq is absent (observability-eye I8). cos_json_field
+# falls back to python3, so the gate keeps working when only jq is missing.
+cos_require_parser block-migration-conflict
+
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
   exit 0
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 [[ -z "$FILE_PATH" ]] && exit 0
 
 # --- database.py-style registries ------------------------------------------
@@ -37,9 +43,9 @@ BASENAME=$(basename "$FILE_PATH")
 if [[ "$BASENAME" == "database.py" ]]; then
   # Extract proposed new version from the tool input.
   if [[ "$TOOL" == "Write" ]]; then
-    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || echo "")
+    CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.content)
   else
-    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty' 2>/dev/null || echo "")
+    CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string)
   fi
 
   # Find any N in `MIGRATIONS.append((N, ...))` patterns in the new content.
@@ -64,7 +70,7 @@ if [[ "$BASENAME" == "database.py" ]]; then
       # already contain this version (i.e. truly adding a dup, not
       # renaming an existing one).
       if [[ "$TOOL" == "Edit" ]]; then
-        OLD_STRING=$(echo "$INPUT" | jq -r '.tool_input.old_string // empty' 2>/dev/null || echo "")
+        OLD_STRING=$(printf '%s' "$INPUT" | cos_json_field tool_input.old_string)
         if echo "$OLD_STRING" | grep -qE "MIGRATIONS\.append\(\([[:space:]]*${v}[^0-9]"; then
           continue  # this edit is replacing the v entry in-place
         fi

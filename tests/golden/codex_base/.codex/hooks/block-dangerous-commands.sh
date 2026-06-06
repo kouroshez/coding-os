@@ -6,15 +6,19 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Fail-closed: a data-loss gate that cannot read the command must DENY,
+# not silently allow when jq is absent (observability-eye I8).
+cos_require_parser block-dangerous-commands
+
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
 
 cos_log_hook block-dangerous-commands fire "tool=Bash"
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 
 # Block force push to main/master. Opt-in escape hatch for legitimate cases
 # (pre-public history scrub, secret removal, BFG-style cleanup): prefix the
@@ -55,7 +59,31 @@ fi
 # Block recursive rm of a critical path (root / cwd / parent / glob / project
 # dirs / top-level absolute). Delegated to a shlex-correct helper so flag-order
 # (-fr, -r -f) and bare /·.·..·* targets can't slip past a regex word-boundary.
-RM_VERDICT=$(echo "$INPUT" | python3 "$(dirname "$0")/_helpers/check_dangerous_rm.py" 2>/dev/null || echo allow)
+# Resolve the helper through the file's PHYSICAL location so it works through
+# the .claude/hooks/ symlink — `$(dirname "$0")/_helpers` does NOT (the symlink
+# points at the .sh only, not the _helpers tree). Same readlink dance as
+# branch-guard; the old form silently never ran (masked by `|| echo allow`).
+_rm_src="${BASH_SOURCE[0]}"
+while [ -L "$_rm_src" ]; do
+  _rm_dir="$(cd -P "$(dirname "$_rm_src")" && pwd)"
+  _rm_src="$(readlink "$_rm_src")"
+  [[ "$_rm_src" != /* ]] && _rm_src="${_rm_dir}/${_rm_src}"
+done
+RM_HELPER="$(cd -P "$(dirname "$_rm_src")" && pwd)/_helpers/check_dangerous_rm.py"
+unset _rm_src _rm_dir
+
+RM_VERDICT=$(printf '%s' "$INPUT" | python3 "$RM_HELPER" 2>/dev/null || echo error)
+# Fail-closed but SCOPED: a helper crash/absence (RM_VERDICT=error) blocks
+# only when the command actually contains a recursive rm we could not verify —
+# never brick unrelated commands (observability-eye I8/A2).
+if [ "$RM_VERDICT" = "error" ]; then
+  if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])(sudo[[:space:]]+)?rm[[:space:]]+-[A-Za-z]*[rR]'; then
+    cos_say error hook.block_dangerous_commands "check_dangerous_rm helper unavailable — failing closed on a recursive rm" 2>/dev/null || true
+    RM_VERDICT="block"
+  else
+    RM_VERDICT="allow"
+  fi
+fi
 if [ "$RM_VERDICT" = "block" ]; then
   cos_log_hook block-dangerous-commands block "rule=rm-rf-critical"
   echo "BLOCKED: recursive rm targeting a critical path (/, ., .., *, a project dir, or a top-level directory). Name the exact files to remove, or ask the user to run it manually." >&2

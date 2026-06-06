@@ -213,7 +213,14 @@ if [[ -z "${COS_AGENT_MODEL:-}" ]] && [[ -f "${COS_AGENT_DIR}/.model" ]]; then
 fi
 COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 
-export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES
+# Hook latency SLI (B1) — stamp wall-clock entry time when the hook sources
+# this file. cos_log_hook subtracts it to emit dt=<ms>, giving the hook layer
+# a real per-invocation duration without a wrapper. $EPOCHREALTIME is bash 5+
+# (seconds.microseconds, e.g. 1717545600.123456); we keep the raw string and
+# do integer-µs math in cos_log_hook so there is no float/locale dependency.
+COS_HOOK_T0="${COS_HOOK_T0:-${EPOCHREALTIME:-}}"
+
+export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES COS_HOOK_T0
 
 # Activity heartbeat — written on every hook invocation so GC can measure
 # inactivity rather than session age. Per-panel so orphan GC can target
@@ -325,13 +332,34 @@ cos_record_activity() {
   return 0
 }
 
+# Elapsed wall-time (ms) since this hook sourced cos-env.sh. Pure integer-µs
+# math on the two $EPOCHREALTIME strings (sec.usec) — no float, no locale,
+# no awk. Echoes a non-negative integer; empty when T0 / now is unavailable
+# (older bash without $EPOCHREALTIME) so the dt= field is simply omitted.
+cos_hook_elapsed_ms() {
+  local t0="${COS_HOOK_T0:-}" now="${EPOCHREALTIME:-}"
+  [[ -z "$t0" || -z "$now" ]] && return 0
+  # Split sec.usec; pad/truncate the fractional part to exactly 6 digits.
+  local t0_s="${t0%%.*}" t0_f="${t0#*.}" now_s="${now%%.*}" now_f="${now#*.}"
+  [[ "$t0_f" == "$t0" ]] && t0_f="0"
+  [[ "$now_f" == "$now" ]] && now_f="0"
+  t0_f="${t0_f}000000"; t0_f="${t0_f:0:6}"
+  now_f="${now_f}000000"; now_f="${now_f:0:6}"
+  # Strip leading zeros so bash does not read them as octal.
+  local t0_us=$((10#$t0_s * 1000000 + 10#$t0_f))
+  local now_us=$((10#$now_s * 1000000 + 10#$now_f))
+  local dms=$(((now_us - t0_us) / 1000))
+  ((dms < 0)) && dms=0
+  printf '%s' "$dms"
+}
+
 cos_log_hook() {
   local hook_name="${1:-unknown}"
   local action="${2:-fire}"
   shift 2 2>/dev/null || true
   local detail="$*"
 
-  local ts agent session task model_bit
+  local ts agent session task model_bit dt_bit
   ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   agent="${COS_AGENT:-unknown}"
   session="$(cos_current_session)"
@@ -340,14 +368,20 @@ cos_log_hook() {
   if [[ -n "${COS_HOOK_RUNTIME_MODEL:-}" ]]; then
     model_bit=" model=${COS_HOOK_RUNTIME_MODEL}"
   fi
+  dt_bit=""
+  local _dms
+  _dms="$(cos_hook_elapsed_ms 2>/dev/null || true)"
+  if [[ -n "$_dms" ]]; then
+    dt_bit=" dt=${_dms}ms"
+  fi
 
   # Fail-open: never let a logging error abort the hook.
   {
     mkdir -p "$(dirname "$COS_HOOK_LOG")" 2>/dev/null
     if [[ -n "$detail" ]]; then
-      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit} ${detail}" >> "$COS_HOOK_LOG"
+      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit} ${detail}" >> "$COS_HOOK_LOG"
     else
-      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}" >> "$COS_HOOK_LOG"
+      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit}" >> "$COS_HOOK_LOG"
     fi
 
     # Opportunistic truncation — keep only last N lines when file grows past 2x cap.
@@ -432,6 +466,77 @@ cos_require_or_skip() {
     exit 2
   fi
   exit 0
+}
+
+
+# ---------------------------------------------------------------------------
+# cos_require_parser <hook_id> — fail-CLOSED dep guard for harm gates.
+#
+# WHY
+#   An irreversible/integrity-harm gate (block-secrets, block-dangerous-
+#   commands, ...) must be able to read its decision input. The old
+#   `jq -r '...' || echo ""` returned empty when jq was missing → the gate
+#   exited 0 (allow) and silently disabled itself. observability-eye I8:
+#   a guard that cannot evaluate must DENY, not allow.
+#
+# CONTRACT
+#   Run at the TOP of a harm gate, OUTSIDE command-substitution (so the
+#   exit can actually block). Returns 0 when at least one JSON parser
+#   (jq OR python3) is on PATH; otherwise captures + exit 2 (block).
+#   python3 is a hard dep of coding-os, so the realistic degraded case
+#   (jq absent) still passes — cos_json_field falls back to python3.
+#
+# ESCAPE
+#   COS_ALLOW_MISSING_DEPS=1 lets a human bootstrap (install jq/python3)
+#   when both are absent.
+# ---------------------------------------------------------------------------
+cos_require_parser() {
+  local hook_id="${1:-unknown-hook}"
+  if command -v jq >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1; then
+    return 0
+  fi
+  if [[ "${COS_ALLOW_MISSING_DEPS:-0}" == "1" ]]; then
+    cos_log_hook "$hook_id" "skip" "reason=no_parser_override" 2>/dev/null || true
+    return 0
+  fi
+  cos_say error "hook.${hook_id}" "no JSON parser (jq/python3) on PATH — gate fails closed" 2>/dev/null || true
+  cos_log_hook "$hook_id" "block" "rule=no-parser-fail-closed" 2>/dev/null || true
+  echo "BLOCKED: $hook_id needs jq or python3 to evaluate safety — neither found. Install one, or set COS_ALLOW_MISSING_DEPS=1 to bootstrap." >&2
+  exit 2
+}
+
+
+# ---------------------------------------------------------------------------
+# cos_json_field <path...> — extract first non-empty string field from a hook
+# JSON envelope read on stdin. jq fast-path, python3 fallback.
+#
+# Echoes the value (empty if the field is genuinely absent). Does NOT block
+# on a missing parser — that is cos_require_parser's job, which must run
+# outside command-substitution. Replaces the `jq -r '...' || echo ""` idiom
+# whose empty-on-missing-jq result drove the harm-gate fail-open class.
+#
+# USAGE
+#   TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
+#   CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input.content)
+# ---------------------------------------------------------------------------
+cos_json_field() {
+  local input filter="" p
+  input="$(cat)"
+  if command -v jq >/dev/null 2>&1; then
+    for p in "$@"; do
+      [[ -n "$filter" ]] && filter+=" // "
+      filter+=".${p}"
+    done
+    filter+=" // empty"
+    printf '%s' "$input" | jq -r "$filter" 2>/dev/null || true
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    printf '%s' "$input" \
+      | python3 "$(dirname "${BASH_SOURCE[0]}")/_helpers/json_field.py" "$@" 2>/dev/null || true
+    return 0
+  fi
+  return 0
 }
 
 

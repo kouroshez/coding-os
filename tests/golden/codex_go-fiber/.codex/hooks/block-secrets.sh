@@ -5,13 +5,18 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Fail-closed: a secret-scanning gate that cannot read its input must DENY,
+# not silently allow (observability-eye I8). cos_json_field falls back to
+# python3 when only jq is missing, so the gate keeps working.
+cos_require_parser block-secrets
+
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 
 # For Bash tool: block git add of sensitive files
 if [[ "$TOOL" == "Bash" ]]; then
   cos_log_hook block-secrets fire "tool=Bash"
-  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+  COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 
   # Block git add of .env files (but allow .env.example, .env.template)
   if echo "$COMMAND" | grep -qE 'git add.*\.env($|\s)' || echo "$COMMAND" | grep -qE 'git add\s+\.env$'; then
@@ -40,8 +45,8 @@ fi
 
 # For Write/Edit tool: block writing secrets patterns
 if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
-  FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty' 2>/dev/null || echo "")
+  FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
+  CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string tool_input.content)
   FILE_BASENAME="$(basename "$FILE_PATH" 2>/dev/null || echo "")"
 
   # Skip docs + genuine test/mock files. Match path SEGMENTS / basenames, not

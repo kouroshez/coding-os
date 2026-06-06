@@ -737,7 +737,7 @@ except ImportError as _verify_exc:  # pragma: no cover — defensive
 
     _logging.getLogger("coding_os.cli").debug("verify CLI unavailable: %s", _verify_exc)
 
-# Phase O.1 — Hub propagation: push meta-repo edits to every registered
+# Hub propagation: push meta-repo edits to every registered
 # project via symlink re-link + DB migration.  Lives in src/cli/sync_all.py
 # so registry.py stays focused on the JSON CRUD.
 try:
@@ -750,7 +750,7 @@ except ImportError as _e:
 
     _logging.getLogger("cli.main").debug("sync_all unavailable: %s", _e)
 
-# Phase L.6 — board_os CLI surface (16 commands).
+# board_os CLI surface (16 commands).
 try:
     from cli.board_commands import BOARD_COMMANDS
 
@@ -769,7 +769,7 @@ except ImportError as _e:
 
     _logging.getLogger("cli.main").debug("cron CLI unavailable: %s", _e)
 
-# Phase M — cognition CLI (formula dispatches, persona selections, backtracks).
+# cognition CLI (formula dispatches, persona selections, backtracks).
 try:
     from cli.cognition import COGNITION_COMMANDS
 
@@ -1534,6 +1534,14 @@ def hooks_dir() -> None:
 @click.option("--session", type=str, default=None, help="Filter by session id (substring match)")
 @click.option("--task", type=str, default=None, help="Filter by task name (substring match)")
 @click.option("--hook", type=str, default=None, help="Filter by hook name (substring match)")
+@click.option(
+    "--all",
+    "--verbose",
+    "show_all",
+    is_flag=True,
+    default=False,
+    help="Show lifecycle rows (enter/ok) too; default hides them.",
+)
 def hooks_log(
     project_dir: str,
     tail_count: int,
@@ -1542,6 +1550,7 @@ def hooks_log(
     session: str | None,
     task: str | None,
     hook: str | None,
+    show_all: bool,
 ) -> None:
     """Show recent hook activity from .coding-os/.hooks.log.
 
@@ -1553,8 +1562,12 @@ def hooks_log(
         cos hooks-log --session ses-20260418-143638-c769
         cos hooks-log --task governance-mcp-envelope --hook enforce-
         cos hooks-log --agent codex --follow           # live codex stream
+        cos hooks-log --all                            # include enter/ok noise
 
-    Filters are AND-ed together and use substring match (case-sensitive).
+    By default only decision-states (fire/block/warn/paths/reminded/full/
+    debounced/skip/bypass) are shown; lifecycle rows ([enter]/[ok]) are hidden
+    behind --all/--verbose. Filters are AND-ed together (case-sensitive
+    substring match).
     """
     project = _resolve_project_dir(project_dir)
     config = _load_config(project) or {}
@@ -1569,6 +1582,13 @@ def hooks_log(
         )
         return
 
+    # Lifecycle actions are bookkeeping, not decisions — hide them by default
+    # so `cos hooks-log` surfaces signal (fire/block/warn/...) over noise.
+    lifecycle_actions = {"[enter]", "[ok]"}
+
+    def _is_decision_state(line: str) -> bool:
+        return not any(token in line for token in lifecycle_actions)
+
     filters: list[str] = []
     if agent:
         filters.append(f"agent={agent}")
@@ -1579,15 +1599,13 @@ def hooks_log(
     if hook:
         filters.append(f"[{hook}")
 
-    if not filters:
-        cmd = ["tail"] + (["-f"] if follow else []) + ["-n", str(tail_count), str(log_path)]
-        subprocess.run(cmd)
-        return
-
     if follow:
         tail_cmd = f"tail -f -n {tail_count} {shlex.quote(str(log_path))}"
-        grep_chain = " | ".join(f"grep -F --line-buffered {shlex.quote(f)}" for f in filters)
-        subprocess.run(["bash", "-c", f"{tail_cmd} | {grep_chain}"])
+        pipe = [tail_cmd]
+        if not show_all:
+            pipe.append("grep --line-buffered -vE '\\[(enter|ok)\\]'")
+        pipe.extend(f"grep -F --line-buffered {shlex.quote(f)}" for f in filters)
+        subprocess.run(["bash", "-c", " | ".join(pipe)])
         return
 
     try:
@@ -1595,7 +1613,11 @@ def hooks_log(
     except OSError as exc:
         click.echo(f"Could not read {log_path}: {exc}", err=True)
         return
-    matched = [ln for ln in lines if all(f in ln for f in filters)]
+    matched = [
+        ln
+        for ln in lines
+        if all(f in ln for f in filters) and (show_all or _is_decision_state(ln))
+    ]
     for ln in matched[-tail_count:]:
         click.echo(ln)
 
@@ -1760,7 +1782,7 @@ def session_state(project_dir: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase I — graph_os subcommand family (`cos graph-*`).
+# graph_os subcommand family (`cos graph-*`).
 # Registration lives in src/cli/graph_commands.py so the main file stays lean.
 # ---------------------------------------------------------------------------
 try:

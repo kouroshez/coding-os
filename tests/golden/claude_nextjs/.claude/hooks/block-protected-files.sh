@@ -8,8 +8,12 @@ set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
+# Fail-closed: a protected-file gate that cannot read the path must DENY,
+# not silently allow when jq is absent (observability-eye I8).
+cos_require_parser block-protected-files
+
 INPUT="$(cos_read_stdin_bounded 2)"
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 
 # Block direct edits to changes.log
 if [[ "$FILE_PATH" == *"changes.log"* ]]; then

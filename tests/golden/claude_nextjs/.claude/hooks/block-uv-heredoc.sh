@@ -18,13 +18,18 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Fail-closed: a heredoc-deadlock gate that cannot read the command must DENY,
+# not silently allow when jq is absent (observability-eye I8). cos_json_field
+# falls back to python3, so the gate keeps working when only jq is missing.
+cos_require_parser block-uv-heredoc
+
 INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
 if [[ "$TOOL" != "Bash" ]]; then
   exit 0
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+CMD=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
 [[ -z "$CMD" ]] && exit 0
 
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"

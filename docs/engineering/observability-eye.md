@@ -142,6 +142,8 @@ Hosted as a 5th gated task in `scheduled/nightly.py::run_project` (already runs 
 | I5 | One fingerprint = one task forever; re-running the sweep creates no duplicates. | Board-spam protection; idempotency via `log_fingerprints.task_id`. |
 | I6 | `fatal()` raises `CosFatalError`; only the CLI entrypoint may `sys.exit`. | An in-library `sys.exit(1)` from a server/MCP context would kill the uvicorn/FastMCP worker. |
 | I7 | Sink path/format resolves from `logging_os.config` everywhere (no hardcoded `.coding-os`). | On `COS_STATE_DIR` override the writer and the UI must tail the same file (Rule 1/4, api-contract-discipline). |
+| I8 | An irreversible/integrity-harm gate that cannot extract its decision input (no jq **and** no python3) defaults **DENY**. Extraction degrades jq→python3 first (`cos_json_field`); only the no-parser floor blocks (`cos_require_parser`). | Extends I3 from the helper-crash class to the jq-extraction class. The old `jq … \|\| echo ""` returned empty → `exit 0` → the secret/data-loss gate silently disabled itself when jq was absent. python3 is a hard dep, so the realistic degraded case keeps the gate *functioning*; the no-parser case is the only one that blocks. Bootstrap escape: `COS_ALLOW_MISSING_DEPS=1`. |
+| I9 | The hook layer is self-measuring: every `cos_log_hook` line carries `dt=<ms>` (wall-time since hook entry), and PreToolUse Bash fan-out width is capped by a regression test (`tests/test_hook_fanout_budget.py`). | You cannot manage overhead you do not measure. Second-resolution timestamps made per-hook latency underivable; unbounded fan-out is the death-by-a-thousand-hooks creep. |
 
 ## 6. Config keys
 
@@ -180,6 +182,7 @@ Trunk-based, one commit per task, MVP→v1→v2. Each task anchors to the sectio
 | E11 Hub Errors view + `/api/logs/summary` + error-aware alarm bar | v2 | §3 | "what is broken now" at a glance |
 | E12 nightly error→bug-task sweep (fingerprint dedup + retention) | v2 | §4 | recurring errors become pullable bug cards |
 | E13 exhaustive silent-handler conversion + `swallow_safe()` + `cos_say` adoption | v2 | §1 | ~95% adoption; coord TASK-100; audit-tracked |
+| E14 hook hardening: fail-closed parser invariant across all gates + `dt=` latency SLI + fan-out budget + decision-state hooks-log | v1 | I8, I9 | TASK-196 — extends E6 from 2 gates to the full block-\*/enforce-\* set; the hook bus measures + bounds itself |
 
 ## See also
 

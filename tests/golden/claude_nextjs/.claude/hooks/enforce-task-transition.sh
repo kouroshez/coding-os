@@ -24,9 +24,13 @@ cos_log_hook "enforce-task-transition" "entry" 2>/dev/null || true
 # One-shot override (rare, legitimate large refactors of a task doc).
 [[ "${COS_ALLOW_TASK_EDIT:-}" == "1" ]] && exit 0
 
+# Fail-closed: a status-transition guard (Rule 25 trust boundary) that cannot
+# read the edit must DENY (observability-eye I8). The override above bypasses it.
+cos_require_parser enforce-task-transition
+
 payload="$(cos_read_stdin_bounded 5)"
 
-file_path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")"
+file_path="$(printf '%s' "$payload" | cos_json_field tool_input.file_path)"
 
 # Scope: only task/audit markdown (INCLUDES docs/tasks/audits/).
 if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then
@@ -64,7 +68,16 @@ done
 HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 HELPER="${HSRC}/_helpers/detect_status_transition.py"
-[[ -f "$HELPER" ]] || exit 0
+if [[ ! -f "$HELPER" ]]; then
+  # Fail-CLOSED: cannot tell a status hand-edit from a body edit without the
+  # helper, so deny the task-md write rather than let a forged status through
+  # (Rule 25 / observability-eye I8/A2). Escape: COS_ALLOW_TASK_EDIT=1.
+  cos_say error hook.enforce_task_transition "detect_status_transition helper missing — failing closed on task-md edit" 2>/dev/null || true
+  cos_log_hook "enforce-task-transition" "block" "rule=helper-missing" 2>/dev/null || true
+  echo "BLOCKED: enforce-task-transition helper missing ($HELPER) — cannot verify this task edit; failing closed." >&2
+  echo "  Restore src/core/hooks/_helpers/detect_status_transition.py, or set COS_ALLOW_TASK_EDIT=1 for a one-shot bypass." >&2
+  exit 2
+fi
 
 if python3 "$HELPER" "$payload"; then
     exit_code=0
