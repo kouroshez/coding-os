@@ -178,7 +178,7 @@ while IFS=$'\t' read -r tag doc reason; do
       INFO_LINES+=("$reason")
       ;;
   esac
-done <<< "$HELPER_OUT"
+done < <(printf '%s\n' "$HELPER_OUT")  # process-sub, not <<<: no bash heredoc deadlock on large helper output
 if [[ ${#INFO_LINES[@]} -gt 0 ]]; then
   echo "" >&2
   for line in "${INFO_LINES[@]}"; do

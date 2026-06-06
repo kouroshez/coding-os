@@ -2,7 +2,7 @@
 # PreToolUse hook: BLOCK task-done commands unless domain-appropriate
 # verification has been run recently.
 #
-# Phase L.10 / TASK-100 — data-driven via src/core/board_os/verify-suites.yaml.
+# TASK-100 — data-driven via src/core/board_os/verify-suites.yaml.
 # No more hardcoded customer paths (frontend/app/*/checkout/* etc.).
 # Consumer projects extend by writing their own
 # .coding-os/verify-suites.yaml.
@@ -39,7 +39,7 @@ while IFS= read -r segment; do
     "cos task-move"*"--to complete"*)  IS_TASK_DONE=true ;;
     "cos task-move"*"--to=complete"*)  IS_TASK_DONE=true ;;
   esac
-done <<< "$FIRST_TOKEN_OF_EACH"
+done < <(printf '%s\n' "$FIRST_TOKEN_OF_EACH")  # process-sub, not <<<: consistent heredoc-deadlock-safe loop form
 
 if ! $IS_TASK_DONE; then
   # Silent skip — logging [fire] for every Bash floods .hooks.log with

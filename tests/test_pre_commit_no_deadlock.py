@@ -44,3 +44,32 @@ def test_array_build_does_not_deadlock_on_large_list() -> None:
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip() == str(n)
+
+
+def test_no_done_heredoc_readloop_anywhere() -> None:
+    """Repo-wide guard against the deadlock-prone `done <<< "$VAR"` form.
+
+    The pattern recurred in 4 sites (pre-commit + auto-reindex-shell-ops +
+    enforce-doc-sync + enforce-verify); all converted to process substitution.
+    A `while … done <<< "$VAR"` blocks forever once $VAR exceeds the pipe
+    buffer (bash 5.x heredoc deadlock). Single `read`/`awk <<<` on small,
+    bounded values is fine — only the loop-feeding form is banned here.
+    """
+    import re
+
+    repo = _SRC.parents[2]  # src/scripts/_pre_commit_body.sh -> src/scripts -> src -> repo root
+    roots = [
+        repo / "src" / "core" / "hooks",
+        repo / "src" / "core" / "scripts",
+        repo / "src" / "scripts",
+    ]
+    pat = re.compile(r"done\s*<<<")
+    offenders: list[str] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for sh in root.glob("*.sh"):
+            for i, line in enumerate(sh.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+                if pat.search(line):
+                    offenders.append(f"{sh.relative_to(repo)}:{i}: {line.strip()}")
+    assert not offenders, "deadlock-prone `done <<<` read-loop(s):\n" + "\n".join(offenders)

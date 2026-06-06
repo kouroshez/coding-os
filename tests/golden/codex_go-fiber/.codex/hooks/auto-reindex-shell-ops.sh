@@ -97,7 +97,7 @@ sys.path.insert(0, 'src/core/thinking_os')
 from graph_os.tools.reindex_dispatch import dispatch
 dispatch('${path}', project_root='$(pwd)', force=True)
 " >>"$ERR_LOG" 2>&1
-    done <<< "$EXPLICIT_PATHS"
+    done < <(printf '%s\n' "$EXPLICIT_PATHS")  # process-sub, not <<<: no bash heredoc deadlock on large path lists
     rm -f "$SENTINEL" 2>/dev/null || true
   ) &
 ) &
