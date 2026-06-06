@@ -1081,3 +1081,27 @@ def test_reclaim_skips_fresh_testing(project: Path, conn: sqlite3.Connection):
     _backdate_task(conn, "TASK-001", "testing", 1 * 3600)
     env = _parse(mcp_tools.cos_task_reclaim(conn))
     assert not any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"])
+
+
+# ---------- F5a: terminal archive drain — TASK-210 RC6 ----------
+
+
+def test_archive_transition_from_icebox(project: Path, conn: sqlite3.Connection):
+    """icebox->archive is the terminal drain `cos task-archive` relies on."""
+    mcp_tools.cos_task_create(
+        conn, title="Drain me", swimlane="core", kind="chore", status="icebox"
+    )
+    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
+    assert env["ok"] is True, env
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+
+
+def test_archive_rejected_from_in_progress(project: Path, conn: sqlite3.Connection):
+    """No direct in_progress->archive edge — so `cos task-cancel` parks active work to icebox."""
+    mcp_tools.cos_task_create(
+        conn, title="Active", swimlane="core", kind="bug", status="icebox"
+    )
+    conn.execute("UPDATE tasks SET status='in_progress' WHERE task_id='TASK-001'")
+    conn.commit()
+    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
+    assert env["ok"] is False, "in_progress->archive must be rejected (validates cancel's icebox park)"

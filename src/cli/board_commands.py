@@ -1,6 +1,6 @@
 """cos board-* CLI commands.
 
-16 commands:
+Commands:
     cos board [--web] [--port N] [--swimlane] [--kind] [--epic] [--priority]
     cos task-create
     cos task-move
@@ -422,6 +422,15 @@ def _simple_move(task_id: str, to: str, *, reason: str | None = None, force: boo
     sys.exit(_print_envelope(envelope))
 
 
+def _current_status(task_id: str) -> str | None:
+    conn = _db_conn()
+    try:
+        row = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+    finally:
+        conn.close()
+    return row[0] if row else None
+
+
 @click.command("task-start")
 @click.argument("task_id")
 @click.option(
@@ -642,8 +651,34 @@ def task_block_cmd(task_id, reason):
 @click.command("task-cancel")
 @click.argument("task_id")
 @click.option("--reason", default=None)
-def task_cancel_cmd(task_id, reason):
-    _simple_move(task_id, "icebox", reason=f"cancelled: {reason or 'no reason given'}")
+@click.option(
+    "--park",
+    is_flag=True,
+    default=False,
+    help="Soft-cancel: park in icebox instead of archiving (keeps it in the backlog).",
+)
+def task_cancel_cmd(task_id, reason, park):
+    # Default cancel now DRAINS the board: a terminal-eligible task (icebox /
+    # complete) goes to the terminal `archive` sink instead of back to icebox
+    # where it would rot (TASK-210 RC6). Active work (in_progress / testing /
+    # blocked) parks in icebox since the state machine has no direct edge from
+    # those states to archive. --park forces the soft icebox cancel everywhere.
+    note = f"cancelled: {reason or 'no reason given'}"
+    if park:
+        _simple_move(task_id, "icebox", reason=note)
+        return
+    dest = "archive" if _current_status(task_id) in ("icebox", "complete") else "icebox"
+    _simple_move(task_id, dest, reason=note)
+
+
+@click.command(
+    "task-archive",
+    help="Move a task to the terminal `archive` status (drains icebox/complete off the board).",
+)
+@click.argument("task_id")
+@click.option("--reason", default=None)
+def task_archive_cmd(task_id, reason):
+    _simple_move(task_id, "archive", reason=f"archived: {reason or 'no reason given'}")
 
 
 # ---------------------------------------------------------------------------
@@ -1056,6 +1091,7 @@ BOARD_COMMANDS = [
     task_done_cmd,
     task_block_cmd,
     task_cancel_cmd,
+    task_archive_cmd,
     task_pick_cmd,
     daily_cmd,
     retro_cmd,
