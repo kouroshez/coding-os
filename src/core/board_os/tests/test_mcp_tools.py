@@ -1139,3 +1139,28 @@ def test_archive_sweep_archives_aged_icebox_respecting_keep(project: Path, conn:
     assert "TASK-001" in ids and "TASK-002" not in ids
     assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
     assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-002'").fetchone()[0] == "icebox"
+
+
+# ---------- F4: hub/human-actor zombies are reclaimable — TASK-210 MISS-1 ----------
+
+
+def test_reclaim_covers_hub_human_actor_zombie(project: Path, conn: sqlite3.Connection):
+    """A hub drag-to-in_progress (human actor, no agent presence file) is hookless,
+    but the reclaim sweep is actor-agnostic — owner-without-presence counts as
+    inactive, so the zombie is recovered. Locks the MISS-1 coverage that F2a+F2b
+    provide without a parallel hub-side code path."""
+    mcp_tools.cos_task_create(
+        conn, title="Hub-created", swimlane="core", kind="bug", status="icebox"
+    )
+    old = int(time.time()) - 30 * 3600  # > 24h in_progress window
+    conn.execute(
+        "UPDATE tasks SET status='in_progress', agent_session='human:webuser', started_at=? "
+        "WHERE task_id='TASK-001'",
+        (old,),
+    )
+    conn.execute("UPDATE task_status_history SET transitioned_at=? WHERE task_id='TASK-001'", (old,))
+    conn.commit()
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"]), (
+        "a hub/human zombie with no agent presence must be reclaimable"
+    )
