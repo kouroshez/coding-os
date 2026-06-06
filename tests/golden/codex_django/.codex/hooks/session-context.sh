@@ -598,17 +598,26 @@ except OSError:
     WARN=" ⚠️ wip=${WIP_NUM} but task=none — cos task-start <ID>"
   fi
 
-  case "$TASK_MODE" in
-    system)
-      USER_BANNER=""
-      ;;
-    query|adhoc|chore)
-      USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE}${WARN}"
-      ;;
-    *)
-      USER_BANNER="🔔 ses=${SES_TAIL:-?} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--} · audit=${AUDIT_ACTIVE:--}${WARN}"
-      ;;
-  esac
+  if [ -z "${SES_TAIL:-}" ]; then
+    # Fresh/unresolved panel: session-id not seeded yet, so _read_state rejects
+    # every state file. A banner here renders 'ses=? · task=none · gate=unset …',
+    # indistinguishable from a hung agent — the worst possible first impression.
+    # Suppress it; transparency-banner tells the agent to skip the banner when it
+    # is absent (and never fabricate one), which is the correct turn-1 behaviour.
+    USER_BANNER=""
+  else
+    case "$TASK_MODE" in
+      system)
+        USER_BANNER=""
+        ;;
+      query|adhoc|chore)
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE}${WARN}"
+        ;;
+      *)
+        USER_BANNER="🔔 ses=${SES_TAIL} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--} · audit=${AUDIT_ACTIVE:--}${WARN}"
+        ;;
+    esac
+  fi
 
   if [ -n "$USER_BANNER" ]; then
     CONTEXT="[coding-os pulse] ${PARTS}
