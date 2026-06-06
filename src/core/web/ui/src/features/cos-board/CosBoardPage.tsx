@@ -3201,6 +3201,141 @@ const HISTORY_ICON: Record<TaskHistoryEvent['type'], string> = {
   commit: '⎇',
 };
 
+interface CommitFileDTO {
+  path: string;
+  added: number | null;
+  removed: number | null;
+  binary: boolean;
+}
+interface CommitDetailDTO {
+  sha: string;
+  subject: string;
+  author: string;
+  date: string;
+  files: CommitFileDTO[];
+}
+interface FileDiffDTO {
+  sha: string;
+  file: string;
+  diff: string;
+  added: number;
+  removed: number;
+  truncated: boolean;
+}
+
+const linkBtn: CSSProperties = {
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  cursor: 'pointer',
+  textAlign: 'left',
+  color: 'inherit',
+};
+
+function DiffView({ diff }: { diff: string }) {
+  const mono = "'JetBrains Mono', monospace";
+  return (
+    <pre
+      style={{
+        margin: '6px 0 4px',
+        padding: '8px 10px',
+        background: 'var(--board-grain)',
+        border: '1px solid var(--col-border)',
+        borderRadius: 6,
+        fontFamily: mono,
+        fontSize: 10.5,
+        lineHeight: 1.5,
+        overflowX: 'auto',
+        maxHeight: 320,
+      }}
+    >
+      {diff.split('\n').map((ln, i) => {
+        let color = 'var(--ink-soft)';
+        if (ln.startsWith('+') && !ln.startsWith('+++')) color = '#3fb950';
+        else if (ln.startsWith('-') && !ln.startsWith('---')) color = '#f85149';
+        else if (ln.startsWith('@@')) color = 'var(--accent)';
+        return (
+          <div key={i} style={{ color, whiteSpace: 'pre' }}>
+            {ln || ' '}
+          </div>
+        );
+      })}
+    </pre>
+  );
+}
+
+function FileDiffRow({ sha, file }: { sha: string; file: CommitFileDTO }) {
+  const [open, setOpen] = useState(false);
+  const mono = "'JetBrains Mono', monospace";
+  const { data, isLoading } = useApiGet<FileDiffDTO>(
+    ['board-diff', sha, file.path],
+    '/api/board/diff',
+    { sha, file: file.path },
+    { enabled: open },
+  );
+  return (
+    <div style={{ marginLeft: 18 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{ ...linkBtn, fontFamily: mono, fontSize: 10.5, color: 'var(--ink)' }}
+      >
+        <span style={{ color: 'var(--ink-faint)' }}>{open ? '▾' : '▸'}</span> {file.path}
+        {file.added != null && <span style={{ color: '#3fb950', marginLeft: 6 }}>+{file.added}</span>}
+        {file.removed != null && <span style={{ color: '#f85149', marginLeft: 4 }}>−{file.removed}</span>}
+      </button>
+      {open &&
+        (isLoading ? (
+          <div style={{ marginLeft: 18, fontSize: 10.5, color: 'var(--ink-faint)' }}>loading diff…</div>
+        ) : data ? (
+          <DiffView diff={data.diff} />
+        ) : null)}
+    </div>
+  );
+}
+
+function CommitRow({
+  e,
+  fmt,
+  baseFont,
+}: {
+  e: TaskHistoryEvent;
+  fmt: (at: number) => string;
+  baseFont: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const sha = e.sha ?? '';
+  const { data, isLoading } = useApiGet<CommitDetailDTO>(
+    ['board-commit', sha],
+    `/api/board/commit/${sha}`,
+    undefined,
+    { enabled: open && !!sha },
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ display: 'flex', gap: 8, fontFamily: baseFont, fontSize: 11, alignItems: 'baseline' }}>
+        <span style={{ color: 'var(--accent)', width: 12, flex: '0 0 auto' }}>{HISTORY_ICON.commit}</span>
+        <span style={{ color: 'var(--ink-faint)', minWidth: 132, flex: '0 0 auto' }}>{fmt(e.at)}</span>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          style={{ ...linkBtn, color: 'var(--ink)', fontFamily: baseFont, fontSize: 11 }}
+        >
+          <span style={{ color: 'var(--ink-faint)' }}>{open ? '▾' : '▸'}</span> commit {sha.slice(0, 8)} ·{' '}
+          {e.subject}
+        </button>
+      </div>
+      {open && (
+        <div style={{ marginLeft: 152, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {isLoading ? (
+            <div style={{ fontFamily: baseFont, fontSize: 10.5, color: 'var(--ink-faint)' }}>loading files…</div>
+          ) : (
+            (data?.files ?? []).map((f) => <FileDiffRow key={f.path} sha={sha} file={f} />)
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TaskHistoryPanel({ taskId }: { taskId: string }) {
   const { data, isLoading } = useApiGet<TaskHistoryPayload>(
     ['board-task-history', taskId],
@@ -3258,18 +3393,22 @@ function TaskHistoryPanel({ taskId }: { taskId: string }) {
         {events
           .slice()
           .reverse()
-          .map((e, i) => (
-            <div
-              key={`${e.type}-${e.at}-${i}`}
-              style={{ display: 'flex', gap: 8, fontFamily: baseFont, fontSize: 11, alignItems: 'baseline' }}
-            >
-              <span style={{ color: 'var(--accent)', width: 12, flex: '0 0 auto' }}>
-                {HISTORY_ICON[e.type]}
-              </span>
-              <span style={{ color: 'var(--ink-faint)', minWidth: 132, flex: '0 0 auto' }}>{fmt(e.at)}</span>
-              <span style={{ color: 'var(--ink)' }}>{describe(e)}</span>
-            </div>
-          ))}
+          .map((e, i) =>
+            e.type === 'commit' && e.sha ? (
+              <CommitRow key={`commit-${e.sha}-${i}`} e={e} fmt={fmt} baseFont={baseFont} />
+            ) : (
+              <div
+                key={`${e.type}-${e.at}-${i}`}
+                style={{ display: 'flex', gap: 8, fontFamily: baseFont, fontSize: 11, alignItems: 'baseline' }}
+              >
+                <span style={{ color: 'var(--accent)', width: 12, flex: '0 0 auto' }}>
+                  {HISTORY_ICON[e.type]}
+                </span>
+                <span style={{ color: 'var(--ink-faint)', minWidth: 132, flex: '0 0 auto' }}>{fmt(e.at)}</span>
+                <span style={{ color: 'var(--ink)' }}>{describe(e)}</span>
+              </div>
+            ),
+          )}
       </div>
     </div>
   );
