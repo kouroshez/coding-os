@@ -486,17 +486,20 @@ class TestStackSkillLinking:
         assert link.is_symlink()
         assert link.resolve().exists()
 
-    def test_nextjs_links_both_skills(self, project: Path) -> None:
+    def test_nextjs_links_stack_skill(self, project: Path) -> None:
+        # frontend-design moved to core/universal skills (f3dd97d8); it is now
+        # linked for every project by the core-skill linker, NOT by this
+        # per-stack linker — so the stack linker emits only nextjs-react.
         result = self._run_linker(project, "nextjs")
         assert result.returncode == 0, result.stderr
         assert (project / ".claude/skills/nextjs-react/SKILL.md").is_symlink()
-        assert (project / ".claude/skills/frontend-design/SKILL.md").is_symlink()
 
     def test_multiple_stacks_link_all(self, project: Path) -> None:
+        # Only per-stack skills are asserted here; frontend-design is a core
+        # skill (f3dd97d8), linked universally, not by this stack linker.
         self._run_linker(project, "django", "nextjs")
         assert (project / ".claude/skills/python-django/SKILL.md").exists()
         assert (project / ".claude/skills/nextjs-react/SKILL.md").exists()
-        assert (project / ".claude/skills/frontend-design/SKILL.md").exists()
 
     def test_unknown_stack_is_silent_skip(self, project: Path) -> None:
         result = self._run_linker(project, "nonexistent-stack-xyz")
