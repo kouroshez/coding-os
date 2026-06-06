@@ -36,5 +36,5 @@ so the adapter-private file wins by the end of install.
 
 ## Existing scripts
 
-(currently empty — see Phase Q.deep checklist `T4.4`–`T4.5` for
+(currently empty — see checklist `T4.4`–`T4.5` for
 pending Claude-only scripts that move here from src/core/hooks.)

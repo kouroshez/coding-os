@@ -50,7 +50,7 @@ mcp = FastMCP("coding_os_mcp")
 # ---------------------------------------------------------------------------
 _db_conn = init_db()
 
-# Phase G.9 — opt-in continuous indexer. No-op unless COS_BACKGROUND_INDEX=1.
+# Opt-in continuous indexer. No-op unless COS_BACKGROUND_INDEX=1.
 # Wrapped in try/except so a broken indexer never blocks MCP startup.
 try:
     from background import maybe_start_indexer
@@ -88,7 +88,7 @@ def thinking_os_health() -> str:
     """
     stats = get_db_stats(_db_conn)
 
-    # Phase B: surface RAG availability so the agent can decide whether
+    # Surface RAG availability so the agent can decide whether
     # semantic search is wired up before issuing cos_doc_search.
     embeddings_available = False
     try:
@@ -105,13 +105,13 @@ def thinking_os_health() -> str:
         "document_chunks_count": stats["tables"].get("document_chunks") or 0,
     }
 
-    # Phase C: task store status — lets the agent detect whether
+    # Task store status — lets the agent detect whether
     # `cos_task_*` queries will return data before making the call.
     stats["task_store"] = {
         "tasks_count": stats["tables"].get("tasks") or 0,
     }
 
-    # Phase G.9: background indexer status — surfaced even when the loop
+    # Background indexer status — surfaced even when the loop
     # is disabled so `cos doctor` can warn about misconfigured state.
     try:
         from background import get_indexer, is_enabled
@@ -163,7 +163,7 @@ from tools.tasks import task_by_filter, task_dependencies, task_dependents, task
 from tools.trajectory import trajectory_read, trajectory_snapshot
 
 # ---------------------------------------------------------------------------
-# Agent-session resolver — Phase Q.deep fix for AGENT STREAM "H" label
+# Agent-session resolver — fix for AGENT STREAM "H" label
 # ---------------------------------------------------------------------------
 
 
@@ -388,7 +388,7 @@ def cos_metric_trend(
 
 
 # ---------------------------------------------------------------------------
-# Audit-log tools (Phase O — append-only doc + decision history).
+# Audit-log tools — append-only doc + decision history.
 # Backed by migration v21 (db.py::_migrate_v21_doc_audit_trail).
 # ---------------------------------------------------------------------------
 @mcp.tool(
@@ -614,7 +614,7 @@ def thinking_os_search(
     memory rows (writes retrieval telemetry only; reinforcement happens on
     cos_details, not here — TASK-109).
 
-    Stage-1 metadata pre-filter (Phase O):
+    Stage-1 metadata pre-filter:
       - `min_confidence` drops decayed/low-trust patterns BEFORE ranking.
         Stale low-signal patterns can otherwise crowd out fresh hits.
         Default 0.3 skips decayed/unvalidated noise (fresh patterns start at
@@ -645,12 +645,12 @@ def thinking_os_search(
         min_confidence=float(min_confidence),
         since_days=int(since_days) if since_days and since_days > 0 else None,
     )
-    # Phase G.8 — log each returned row for the outcome-feedback loop.
+    # Log each returned row for the outcome-feedback loop.
     rows = (result.get("results") or []) if isinstance(result, dict) else []
     rids = log_retrieval(_db_conn, layer="memory", query=query, rows=rows)
     if isinstance(result, dict):
         result["retrieval_ids"] = rids
-    # Phase J.3 — router-level telemetry.
+    # Router-level telemetry.
     log_router_decision(_db_conn, query=query, chosen_layer="memory", bytes_returned=len(str(rows)))
     return ok(
         result,
@@ -875,7 +875,7 @@ def cos_learn_suggest(
         task_type=task_type or None,
         limit=limit,
     )
-    # Phase G.4 — persist the suggestion set so remind-learn-validate.sh
+    # Persist the suggestion set so remind-learn-validate.sh
     # can prompt the agent to close the loop after task-done. One line
     # per pattern, format "id<TAB>text" — the hook prints a slice.
     _persist_learn_suggestions_safe(result)
@@ -1082,7 +1082,7 @@ def cos_route_skill(
 
 
 # ---------------------------------------------------------------------------
-# Phase EVO — Project Trajectory + Failure Archaeology + Routing Drift
+# Project Trajectory + Failure Archaeology + Routing Drift
 # ---------------------------------------------------------------------------
 
 
@@ -1116,7 +1116,7 @@ def cos_trajectory_snapshot(
 
     Args:
         session_id: Current session identifier.
-        phase: Current development phase (e.g. "Phase N.6 — SDK dispatch").
+        phase: Current development phase (e.g. "v2 hardening").
         current_focus: What the team is focused on right now.
         architectural_decisions: JSON array of {decision, rationale} objects.
         anti_patterns_discovered: JSON array of {pattern, context} objects.
@@ -1222,7 +1222,7 @@ def cos_failure_pattern_query(
 
 
 # ---------------------------------------------------------------------------
-# Document RAG search (Phase B.4)
+# Document RAG search
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_doc_search",
@@ -1248,7 +1248,7 @@ def cos_doc_search(
 ) -> str:
     """Semantic + lexical search over project documentation chunks.
 
-    Stage-1 metadata pre-filter (since migration v22 — Phase O):
+    Stage-1 metadata pre-filter (since migration v22):
     `domain`, `layer`, `since_iso`, and `include_inactive` narrow the
     chunk universe BEFORE vector / FTS ranking. Vector search finds
     meaning; metadata enforces reality (correct era, correct domain,
@@ -1314,9 +1314,9 @@ def cos_doc_search(
         source_label = "+".join(sources_used) if sources_used else mode_clean
     else:
         source_label = "empty"
-    # Phase G.8 — outcome-feedback loop logging.
+    # Outcome-feedback loop logging.
     rids = log_retrieval(_db_conn, layer="docs", query=query, rows=results)
-    # Phase J.3 — router-level telemetry.
+    # Router-level telemetry.
     log_router_decision(
         _db_conn, query=query, chosen_layer="docs", bytes_returned=len(str(results))
     )
@@ -1334,7 +1334,7 @@ def cos_doc_search(
 
 
 # ---------------------------------------------------------------------------
-# Doc header tools (Phase O.4 — TASK-155): header-only lazy load
+# Doc header tools (TASK-155): header-only lazy load
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_doc_header",
@@ -1448,7 +1448,7 @@ def cos_doc_headers_by(
 
 
 # ---------------------------------------------------------------------------
-# Task store tools (Phase C.5)
+# Task store tools
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_task_search",
@@ -1609,7 +1609,7 @@ def cos_task_by_filter(
 
 
 # ---------------------------------------------------------------------------
-# Board-OS MCP tools (Phase L.3) — Scrumban task board
+# Board-OS MCP tools — Scrumban task board
 # ---------------------------------------------------------------------------
 # Imported from core/board_os/mcp_tools.py. Each tool here is a thin
 # @mcp.tool-decorated wrapper that injects the server's shared _db_conn.
@@ -2056,7 +2056,7 @@ if _BOARD_OS_AVAILABLE:
 
 
 # ---------------------------------------------------------------------------
-# Retrieval feedback (Phase G.8)
+# Retrieval feedback
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_retrieval_cite",
@@ -2130,7 +2130,7 @@ def cos_retrieval_learn(lookback_days: int = 7, dry_run: bool = False) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Agent digest (Phase G.10)
+# Agent digest
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_digest_regenerate",
@@ -2168,7 +2168,7 @@ def cos_digest_regenerate(project_root: str = "") -> str:
 
 
 # ---------------------------------------------------------------------------
-# Retrieval quality / enrichment gate (Phase G.11)
+# Retrieval quality / enrichment gate
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_retrieval_quality",
@@ -2241,23 +2241,23 @@ def cos_retrieval_enrichment_check(lookback_days: int = 14) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Phase M — 9 formula-agent supervisor tools.
-# Phase N — 3 role-based routing tools (cos_analyze_task, cos_compose_chain,
+# 9 formula-agent supervisor tools.
+# 3 role-based routing tools (cos_analyze_task, cos_compose_chain,
 #           cos_role_info).
-# Phase N.SDK — 2 dispatch tools.
+# 2 dispatch tools.
 # ---------------------------------------------------------------------------
 try:
     from database import DEFAULT_DB_PATH as _DEFAULT_DB_PATH
     from tools.cognition import register_all as _register_cognition_tools
 
     _register_cognition_tools(mcp, str(_DEFAULT_DB_PATH))
-    logger.info("Cognition tools registered (Phase M: 9 + Phase N: 3 + Phase N.SDK: 2 = 14 tools)")
+    logger.info("Cognition tools registered (9 supervisor + 3 routing + 2 dispatch = 14 tools)")
 except Exception as _cog_exc:  # pragma: no cover
     logger.warning("cognition tools unavailable: %s", _cog_exc)
 
 
 # ---------------------------------------------------------------------------
-# Phase I — 17 cos_graph_* MCP tools (knowledge-graph layer).
+# 17 cos_graph_* MCP tools (knowledge-graph layer).
 #
 # The implementations live in `core/graph_os/tools/graph.py`; the wrappers
 # here expose them via FastMCP with MCP-friendly parameter types (comma-

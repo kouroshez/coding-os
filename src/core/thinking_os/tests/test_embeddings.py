@@ -1,5 +1,5 @@
 """
-Tests for core/thinking_os/embeddings.py — Phase B foundation.
+Tests for core/thinking_os/embeddings.py — embeddings foundation.
 
 Covers:
   - is_available() detection (installed vs not)

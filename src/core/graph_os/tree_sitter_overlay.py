@@ -1,4 +1,4 @@
-"""Tree-sitter overlay (Phase I.4b / I.6b).
+"""Tree-sitter overlay.
 
 DEPENDS:  tree-sitter >= 0.22, tree-sitter-python, tree-sitter-typescript,
           tree-sitter-bash, tree-sitter-yaml (graph_os extra).

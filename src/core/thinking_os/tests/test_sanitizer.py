@@ -1,7 +1,7 @@
 """
 Tests for sanitizer.py — injection detection, length capping, audit wiring.
 
-Phase G.2 — brain hardening. Every write path into agent memory (observations,
+Brain hardening. Every write path into agent memory (observations,
 learned_patterns, outcome_history narratives) must route through
 `sanitize_write` before the INSERT. These tests pin the contract.
 """

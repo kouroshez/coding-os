@@ -1,4 +1,4 @@
-"""CLI — re-embed the existing `embeddings` table with BGE-M3 (Phase I.1).
+"""CLI — re-embed the existing `embeddings` table with BGE-M3.
 
 INPUT:        --batch-size · --max-batches · --status-only · --checkpoint (resume).
 OUTPUT:       per-run JSON report on stdout (rows re-embedded / remaining / status).

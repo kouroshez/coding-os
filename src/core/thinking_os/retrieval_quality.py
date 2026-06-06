@@ -1,5 +1,5 @@
 """
-Coding OS — Retrieval quality tracker + contextual-chunk enrichment stub (Phase G.11).
+Coding OS — Retrieval quality tracker + contextual-chunk enrichment stub.
 
 Two-part pipeline:
   1. QUALITY TRACKING — every retrieval can be scored (1.0 if cited and the

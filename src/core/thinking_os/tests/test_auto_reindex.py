@@ -1,5 +1,5 @@
 """
-Tests for Phase H — auto-sync on writes.
+Tests for auto-sync on writes.
 
 Covers:
   - index_single_file() scope matching, mtime guard, delete signal

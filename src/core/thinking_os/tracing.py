@@ -1,4 +1,4 @@
-"""Phase N — Behavioral tracing (Cognition Trace Stream).
+"""Behavioral tracing (Cognition Trace Stream).
 
 Flowchart nodes emitted correspond to the node IDs in
 `docs/agent-workflow-flowchart-V1.html` so a viewer can animate exactly which

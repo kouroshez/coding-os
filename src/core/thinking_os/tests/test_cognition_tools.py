@@ -1,4 +1,4 @@
-"""Tests for Phase M MCP tools in tools/cognition.py."""
+"""Tests for MCP tools in tools/cognition.py."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-Tests for core/thinking_os/task_parser.py — Phase C.2 pure parser.
+Tests for core/thinking_os/task_parser.py — pure parser.
 
 All tests run without `rag` extras — the parser has zero ML dependencies.
 Coverage:

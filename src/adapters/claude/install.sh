@@ -8,7 +8,7 @@
 #
 # History: prior versions also symlinked role files into .claude/agents/
 # anticipating an AgentDefinition-driven dispatch path. Decision D2 of
-# Phase Q.deep (2026-05-05) keeps `query()`-per-formula because role
+# (2026-05-05) keeps `query()`-per-formula because role
 # sub-sessions need their own permission_mode + MCP + hooks; the
 # AgentDefinition path would force inheritance from the parent.
 # .claude/agents/ symlinks were therefore removed — slash-command

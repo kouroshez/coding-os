@@ -1,4 +1,4 @@
-"""Transition Gates — DoR / DoD / WIP / size / override policy (Phase L.10)."""
+"""Transition Gates — DoR / DoD / WIP / size / override policy."""
 
 from __future__ import annotations
 

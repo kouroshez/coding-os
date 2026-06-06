@@ -1,5 +1,5 @@
 """
-Phase EVO — End-to-end simulation and smoke tests.
+End-to-end simulation and smoke tests.
 
 Simulates realistic agent personas and workflows to verify the full
 evolution pipeline: trajectory → failure anatomy → routing evolution.

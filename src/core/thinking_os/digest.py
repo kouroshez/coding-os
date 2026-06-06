@@ -1,5 +1,5 @@
 """
-Coding OS — Agent digest (Phase G.10).
+Coding OS — Agent digest.
 
 Rolling snapshot of what the agent currently "knows" and "prefers",
 stored at `<project>/.coding-os/digest.md` and refreshed on demand

@@ -1842,7 +1842,7 @@ def cos_graph_similar(
         seen_uids.add(n.uid)
         candidates.append(n)
 
-    # Phase I.1 — use BGE-M3 embeddings when the model is available;
+    # Use BGE-M3 embeddings when the model is available;
     # fall back to lexical SequenceMatcher otherwise. Both signals get
     # combined linearly so partially-loaded environments still rank.
     scorer_name = "difflib-baseline"

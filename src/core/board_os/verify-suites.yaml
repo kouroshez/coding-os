@@ -9,7 +9,7 @@
 #   project_overrides: optional consumer-specific extensions loaded from
 #     `${COS_PROJECT_ROOT}/.coding-os/verify-suites.yaml` if present, deep-merged.
 #
-# Phase L.10 / TASK-100. See docs/phase-l10-plan.md.
+# TASK-100. See docs/phase-l10-plan.md.
 
 version: 1
 

@@ -1,5 +1,5 @@
 """
-Coding OS — Retrieval precision tracker + contextual enrichment stub (Phase G.11).
+Coding OS — Retrieval precision tracker + contextual enrichment stub.
 
 Purpose
 -------
@@ -34,7 +34,7 @@ This module ships:
      swap, not a refactor.
 
 Design guardrail: we are NOT generating AI context in this phase. The cost
-+ dependency implications need explicit user opt-in (separate Phase G.12).
++ dependency implications need explicit user opt-in.
 This module only measures and advertises the gate.
 
 Public API

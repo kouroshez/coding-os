@@ -1,5 +1,5 @@
 """
-Tests for core/thinking_os/tools/tasks.py — Phase C.4.
+Tests for core/thinking_os/tools/tasks.py.
 
 Covers all four tools:
   - task_by_filter (status, domain, combined, limit, empty)

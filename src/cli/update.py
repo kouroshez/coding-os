@@ -208,7 +208,7 @@ def _build_target_assets(agent: str, templates: list[str]) -> dict[str, list[Ass
                         source_path=cmd,
                     )
                 )
-        # Phase N role-agent slash commands installed by install-adapter.sh §8.
+        # Role-agent slash commands installed by install-adapter.sh §8.
         # Each semantic agent (researcher.md, analyst.md, …) is exposed as
         # /role-<name>. README.md is excluded (catalog, not a role).
         agents_src = CORE_DIR / "thinking_os" / "agents"

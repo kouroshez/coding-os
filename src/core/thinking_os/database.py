@@ -299,7 +299,7 @@ CREATE INDEX IF NOT EXISTS idx_concept_graph_type ON concept_graph(edge_type);
 
 
 def _migrate_v5_rag(conn: sqlite3.Connection) -> None:
-    """Migration v5 (Phase B): embeddings + document_chunks for RAG.
+    """Migration v5: embeddings + document_chunks for RAG.
 
     Adds two new tables:
       - embeddings: vector storage for any source row (observations,
@@ -348,7 +348,7 @@ CREATE INDEX IF NOT EXISTS idx_doc_chunks_path
 CREATE INDEX IF NOT EXISTS idx_doc_chunks_type
     ON document_chunks(source_type);
 """)
-    logger.info("Phase B RAG migration v5 applied: embeddings + document_chunks tables created")
+    logger.info("RAG migration v5 applied: embeddings + document_chunks tables created")
 
 
 def has_embeddings_table(conn: sqlite3.Connection) -> bool:
@@ -364,7 +364,7 @@ def has_embeddings_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v6_tasks(conn: sqlite3.Connection) -> None:
-    """Migration v6 (Phase C): tasks table for hybrid task store.
+    """Migration v6: tasks table for hybrid task store.
 
     Mirrors the structure of `docs/tasks/TASK-###-slug.md` files as a
     queryable index. Files remain SSOT — the table is a derived cache
@@ -399,7 +399,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_domain ON tasks(domain);
 CREATE INDEX IF NOT EXISTS idx_tasks_file_path ON tasks(file_path);
 """)
-    logger.info("Phase C tasks migration v6 applied: tasks table created")
+    logger.info("Tasks migration v6 applied: tasks table created")
 
 
 def has_tasks_table(conn: sqlite3.Connection) -> bool:
@@ -415,7 +415,7 @@ def has_tasks_table(conn: sqlite3.Connection) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Phase G brain-hardening validators (shared constants)
+# Brain-hardening validators (shared constants)
 # ---------------------------------------------------------------------------
 
 VALID_TRUST_TIERS: frozenset[str] = frozenset({"volatile", "validated", "locked", "core"})
@@ -438,7 +438,7 @@ def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
 
 
 def _migrate_v7_brain_hardening(conn: sqlite3.Connection) -> None:
-    """Migration v7 (Phase G.1): trust_tier + provenance + memory_audit."""
+    """Migration v7: trust_tier + provenance + memory_audit."""
     # 1. Add trust_tier + provenance to learned_patterns (idempotent per column)
     if not _column_exists(conn, "learned_patterns", "trust_tier"):
         conn.execute(
@@ -504,7 +504,7 @@ CREATE TRIGGER IF NOT EXISTS trg_learned_patterns_protect_delete
     END;
 """)
     logger.info(
-        "Phase G.1 brain-hardening migration v7 applied: trust_tier, provenance, memory_audit"
+        "Brain-hardening migration v7 applied: trust_tier, provenance, memory_audit"
     )
 
 
@@ -530,7 +530,7 @@ def is_pattern_protected(conn: sqlite3.Connection, pattern_id: int) -> bool:
 
 
 def _migrate_v8_validation_throttle(conn: sqlite3.Connection) -> None:
-    """Migration v8 (Phase G.4): pattern_validations table for anti-sycophancy."""
+    """Migration v8: pattern_validations table for anti-sycophancy."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS pattern_validations (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -546,7 +546,7 @@ CREATE INDEX IF NOT EXISTS idx_pattern_validations_session_pattern
 CREATE INDEX IF NOT EXISTS idx_pattern_validations_created
     ON pattern_validations(created_at);
 """)
-    logger.info("Phase G.4 validation-throttle migration v8 applied: pattern_validations")
+    logger.info("Validation-throttle migration v8 applied: pattern_validations")
 
 
 def has_pattern_validations_table(conn: sqlite3.Connection) -> bool:
@@ -558,7 +558,7 @@ def has_pattern_validations_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v9_docs_fts(conn: sqlite3.Connection) -> None:
-    """Migration v9 (Phase G.7.3): FTS5 virtual table over document_chunks."""
+    """Migration v9: FTS5 virtual table over document_chunks."""
     if not has_fts5(conn):
         logger.warning(
             "FTS5 unavailable — skipping document_chunks_fts. doc_search "
@@ -595,7 +595,7 @@ END;
         "SELECT id, heading_path, content FROM document_chunks "
         "WHERE id NOT IN (SELECT rowid FROM document_chunks_fts)"
     )
-    logger.info("Phase G.7.3 FTS5 docs migration v9 applied: document_chunks_fts")
+    logger.info("FTS5 docs migration v9 applied: document_chunks_fts")
 
 
 def has_document_chunks_fts(conn: sqlite3.Connection) -> bool:
@@ -607,7 +607,7 @@ def has_document_chunks_fts(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v10_retrievals(conn: sqlite3.Connection) -> None:
-    """Migration v10 (Phase G.8): retrievals table for outcome-driven priority."""
+    """Migration v10: retrievals table for outcome-driven priority."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS retrievals (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -629,7 +629,7 @@ CREATE INDEX IF NOT EXISTS idx_retrievals_session   ON retrievals(session_id);
 CREATE INDEX IF NOT EXISTS idx_retrievals_source    ON retrievals(source_table, source_id);
 CREATE INDEX IF NOT EXISTS idx_retrievals_outcome   ON retrievals(outcome);
 """)
-    logger.info("Phase G.8 retrievals migration v10 applied")
+    logger.info("Retrievals migration v10 applied")
 
 
 def has_retrievals_table(conn: sqlite3.Connection) -> bool:
@@ -641,7 +641,7 @@ def has_retrievals_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v11_retrieval_quality(conn: sqlite3.Connection) -> None:
-    """Migration v11 (Phase G.11): retrieval precision tracking."""
+    """Migration v11: retrieval precision tracking."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS retrieval_quality (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -669,7 +669,7 @@ CREATE INDEX IF NOT EXISTS idx_retrieval_quality_created
         conn.execute("ALTER TABLE document_chunks ADD COLUMN contextual_prefix TEXT")
     if not _column_exists(conn, "document_chunks", "context_model"):
         conn.execute("ALTER TABLE document_chunks ADD COLUMN context_model TEXT")
-    logger.info("Phase G.11 migration v11 applied: retrieval_quality + contextual chunk columns")
+    logger.info("Migration v11 applied: retrieval_quality + contextual chunk columns")
 
 
 def has_retrieval_quality_table(conn: sqlite3.Connection) -> bool:
@@ -681,7 +681,7 @@ def has_retrieval_quality_table(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v12_graph_os(conn: sqlite3.Connection) -> None:
-    """Migration v12 (Phase I.0): graph_os knowledge-graph tables."""
+    """Migration v12: graph_os knowledge-graph tables."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS graph_nodes (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -762,7 +762,7 @@ END;
         conn.execute("ALTER TABLE embeddings ADD COLUMN embedding_dim INTEGER DEFAULT 384")
 
     logger.info(
-        "Phase I.0 migration v12 applied: graph_nodes + graph_edges_v12 + "
+        "Migration v12 applied: graph_nodes + graph_edges_v12 + "
         "graph_evidence_v12 + graph_nodes_fts; embeddings.embedding_dim added"
     )
 
@@ -800,7 +800,7 @@ def has_graph_nodes_fts(conn: sqlite3.Connection) -> bool:
 
 
 def _migrate_v13_board_os(conn: sqlite3.Connection) -> None:
-    """Migration v13 (Phase L.0): board_os Scrumban task workflow extensions."""
+    """Migration v13: board_os Scrumban task workflow extensions."""
     # Idempotent ADD COLUMN (re-running is safe).
     if not _column_exists(conn, "tasks", "swimlane"):
         conn.execute("ALTER TABLE tasks ADD COLUMN swimlane TEXT")
@@ -851,7 +851,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_priority_status
 """)
 
     logger.info(
-        "Phase L.0 migration v13 applied: tasks +swimlane/kind/epic/"
+        "Migration v13 applied: tasks +swimlane/kind/epic/"
         "priority/appetite/started_at/completed_at/agent_session/"
         "labels_json/work_log_last_5; task_status_history table; "
         "5 new indices"
@@ -859,7 +859,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_priority_status
 
 
 def _migrate_v14_cognition(conn: sqlite3.Connection) -> None:
-    """Migration v14 (Phase M): formula-agent supervisor cognition tables."""
+    """Migration v14: formula-agent supervisor cognition tables."""
     conn.executescript("""\
 CREATE TABLE IF NOT EXISTS backtrack_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -913,7 +913,7 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_session
     ON formula_dispatches(session_id, ts);
 """)
     logger.info(
-        "Phase M migration v14 applied: backtrack_events, persona_selections, "
+        "Migration v14 applied: backtrack_events, persona_selections, "
         "ambiguity_violations, formula_dispatches + 4 indices"
     )
 
@@ -1028,7 +1028,7 @@ CREATE INDEX IF NOT EXISTS idx_file_index_state_hash
 
 
 def _migrate_v18_retrieval_router_log(conn: sqlite3.Connection) -> None:
-    """Migration v18 (Phase J.3): retrieval_router_log append-only table."""
+    """Migration v18: retrieval_router_log append-only table."""
     conn.executescript(
         """
 CREATE TABLE IF NOT EXISTS retrieval_router_log (
@@ -1230,7 +1230,7 @@ def _migrate_v22_doc_chunks_metadata(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v23_dispatch_cost(conn: sqlite3.Connection) -> None:
-    """Migration v23 (Phase Q.deep T2.3) — formula_dispatches cost columns."""
+    """Migration v23 — formula_dispatches cost columns."""
     if not _table_exists(conn, "formula_dispatches"):
         logger.info("Migration v23 skipped: formula_dispatches not present yet")
         return
@@ -1328,7 +1328,7 @@ def _migrate_v26_routing_evolution(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_v27_dispatch_sdk_columns(conn: sqlite3.Connection) -> None:
-    """Migration v27 (Phase Q.deep wave 3) — full SDK telemetry on formula_dispatches."""
+    """Migration v27 — full SDK telemetry on formula_dispatches."""
     if not _table_exists(conn, "formula_dispatches"):
         logger.info("Migration v27 skipped: formula_dispatches not present yet")
         return
@@ -1746,48 +1746,48 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         "Brain features: outcome_history, concept_graph, session_summaries enrichment",
         _migrate_v4_brain_features,
     ),
-    # Phase B: embeddings + document_chunks for RAG vector search
-    (5, "Phase B RAG: embeddings + document_chunks tables", _migrate_v5_rag),
-    # Phase C: tasks table for hybrid task store
-    (6, "Phase C task store: tasks table indexing docs/tasks/*.md", _migrate_v6_tasks),
-    # Phase G.1: brain hardening — trust_tier, provenance, memory_audit
+    # embeddings + document_chunks for RAG vector search
+    (5, "RAG: embeddings + document_chunks tables", _migrate_v5_rag),
+    # tasks table for hybrid task store
+    (6, "Task store: tasks table indexing docs/tasks/*.md", _migrate_v6_tasks),
+    # brain hardening — trust_tier, provenance, memory_audit
     (
         7,
-        "Phase G.1 brain hardening: trust_tier + provenance + memory_audit",
+        "Brain hardening: trust_tier + provenance + memory_audit",
         _migrate_v7_brain_hardening,
     ),
-    # Phase G.4: self-validation throttle
+    # self-validation throttle
     (
         8,
-        "Phase G.4 validation throttle: pattern_validations table",
+        "Validation throttle: pattern_validations table",
         _migrate_v8_validation_throttle,
     ),
-    # Phase G.7.3: FTS5 over document_chunks for lexical doc fallback
-    (9, "Phase G.7.3 docs FTS: document_chunks_fts + triggers", _migrate_v9_docs_fts),
-    # Phase G.8: retrievals table — audit + feedback loop
-    (10, "Phase G.8 retrieval-outcome loop: retrievals table", _migrate_v10_retrievals),
-    # Phase G.11: retrieval quality tracker + contextual-chunk scaffolding
+    # FTS5 over document_chunks for lexical doc fallback
+    (9, "Docs FTS: document_chunks_fts + triggers", _migrate_v9_docs_fts),
+    # retrievals table — audit + feedback loop
+    (10, "Retrieval-outcome loop: retrievals table", _migrate_v10_retrievals),
+    # retrieval quality tracker + contextual-chunk scaffolding
     (
         11,
-        "Phase G.11 retrieval quality: retrieval_quality + contextual chunk columns",
+        "Retrieval quality: retrieval_quality + contextual chunk columns",
         _migrate_v11_retrieval_quality,
     ),
-    # Phase I.0: graph_os knowledge-graph tables + embedding_dim column
+    # graph_os knowledge-graph tables + embedding_dim column
     (
         12,
-        "Phase I.0 graph_os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
+        "graph_os: graph_nodes + graph_edges_v12 + graph_evidence_v12 + graph_nodes_fts + embeddings.embedding_dim",
         _migrate_v12_graph_os,
     ),
-    # Phase L.0: board_os Scrumban — extend tasks + task_status_history
+    # board_os Scrumban — extend tasks + task_status_history
     (
         13,
-        "Phase L.0 board_os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
+        "board_os: tasks +swimlane/kind/epic/priority/appetite/started_at/completed_at/agent_session/labels_json/work_log_last_5; task_status_history",
         _migrate_v13_board_os,
     ),
-    # Phase M: formula-agent supervisor — 4 cognition tables
+    # formula-agent supervisor — 4 cognition tables
     (
         14,
-        "Phase M formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
+        "Formula-agents: backtrack_events + persona_selections + ambiguity_violations + formula_dispatches",
         _migrate_v14_cognition,
     ),
     # graph_os S1 / B17: CHECK(confidence BETWEEN 0 AND 1) triggers on graph_edges_v12
@@ -1808,60 +1808,60 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         "graph_os V1: file_index_state cache table for incremental reindex",
         _migrate_v17_file_index_state,
     ),
-    # Phase J.3: retrieval router telemetry table
+    # retrieval router telemetry table
     (
         18,
-        "Phase J.3 retrieval router telemetry: retrieval_router_log table",
+        "Retrieval router telemetry: retrieval_router_log table",
         _migrate_v18_retrieval_router_log,
     ),
-    # Phase ?.board: drop 'ready' column — fold into icebox + 'ready' label
+    # drop 'ready' column — fold into icebox + 'ready' label
     (
         19,
         "board_os: drop 'ready' status, migrate existing rows to icebox + 'ready' label",
         _migrate_v19_drop_ready_status,
     ),
-    # Phase L.10: override audit — task_status_history.override_reason/actor
-    (20, "Phase L.10: override audit columns on task_status_history", _migrate_v20_override_audit),
-    # Phase O: doc_audit_trail — append-only doc edit + decision history
+    # override audit — task_status_history.override_reason/actor
+    (20, "Override audit columns on task_status_history", _migrate_v20_override_audit),
+    # doc_audit_trail — append-only doc edit + decision history
     (
         21,
-        "Phase O: doc_audit_trail (append-only) for doc edits + decision history",
+        "doc_audit_trail (append-only) for doc edits + decision history",
         _migrate_v21_doc_audit_trail,
     ),
-    # Phase O: document_chunks frontmatter metadata for Stage-1 RAG pre-filter
+    # document_chunks frontmatter metadata for Stage-1 RAG pre-filter
     (
         22,
-        "Phase O: document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
+        "document_chunks frontmatter metadata (domain/layer/ssot/updated_iso/is_active)",
         _migrate_v22_doc_chunks_metadata,
     ),
     (
         23,
-        "Phase Q.deep T2.3: formula_dispatches cost / budget / usage / tool_calls columns",
+        "formula_dispatches cost / budget / usage / tool_calls columns",
         _migrate_v23_dispatch_cost,
     ),
-    # Phase EVO v24: project_trajectory — long-term project intent across sessions
+    # v24: project_trajectory — long-term project intent across sessions
     (
         24,
-        "Phase EVO v24: project_trajectory table for cross-session project intent",
+        "v24: project_trajectory table for cross-session project intent",
         _migrate_v24_project_trajectory,
     ),
-    # Phase EVO v25: structured failure anatomy on backtrack_events
+    # v25: structured failure anatomy on backtrack_events
     (
         25,
-        "Phase EVO v25: backtrack_events failure anatomy (hypothesis/failure_signal/root_cause/corrective_action)",
+        "v25: backtrack_events failure anatomy (hypothesis/failure_signal/root_cause/corrective_action)",
         _migrate_v25_backtrack_failure_anatomy,
     ),
-    # Phase EVO v26: routing_weights staleness tracking for autonomous refresh
+    # v26: routing_weights staleness tracking for autonomous refresh
     (
         26,
-        "Phase EVO v26: routing_weights last_recalc_at + outcomes_at_recalc",
+        "v26: routing_weights last_recalc_at + outcomes_at_recalc",
         _migrate_v26_routing_evolution,
     ),
-    # Phase Q.deep wave 3: formula_dispatches gains sub_session_id (SDK key),
+    # formula_dispatches gains sub_session_id (SDK key),
     # model (claude-opus-4-7 / claude-sonnet-4-6), checkpoints_jsonb (T9.2).
     (
         27,
-        "Phase Q.deep v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
+        "v27: formula_dispatches sub_session_id / model / checkpoints_jsonb",
         _migrate_v27_dispatch_sdk_columns,
     ),
     (
@@ -1946,7 +1946,7 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
 
 
 # ---------------------------------------------------------------------------
-# Phase N.5-A — Thread-local connection pool for multi-agent concurrency
+# Thread-local connection pool for multi-agent concurrency
 # Spec: docs/phase-n-role-based-routing-plan.md §7a-A
 # One cached connection per thread; WAL lets readers run concurrently;
 # busy_timeout=5000 handles writer contention gracefully.

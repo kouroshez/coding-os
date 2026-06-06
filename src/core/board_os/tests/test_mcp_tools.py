@@ -432,7 +432,7 @@ def test_move_happy_path(project: Path, conn: sqlite3.Connection):
         )
     )
     # icebox → in_progress (no dedicated "ready" column any more).
-    # force=True bypasses Phase L.10 DoR body gate; this test exercises
+    # force=True bypasses the DoR body gate; this test exercises
     # transition mechanics, not body validation (covered by
     # test_transition_gates_validator.py).
     env = _parse(

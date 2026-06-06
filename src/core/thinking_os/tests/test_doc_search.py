@@ -1,5 +1,5 @@
 """
-Tests for core/thinking_os/tools/docs.py — Phase B.4 cos_doc_search.
+Tests for core/thinking_os/tools/docs.py — cos_doc_search.
 
 Covers:
   - doc_search returns relevant chunks for semantic queries

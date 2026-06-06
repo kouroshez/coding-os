@@ -151,7 +151,7 @@ else
   err "docs-lint markdown pass FAILED: $CHECKED file(s) checked, $ERRORS error(s), $WARNINGS warning(s)"
 fi
 
-# Phase D: cross-check docs numbers against source of truth (tool count,
+# Cross-check docs numbers against source of truth (tool count,
 # schema version, table count). Keeps CLAUDE.md + architecture.md in sync
 # with the actual state of server.py / db.py.
 STALENESS_CHECK="$SCRIPT_DIR/docs-staleness-check.sh"

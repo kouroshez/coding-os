@@ -265,7 +265,7 @@ class TestContentHashDedup:
 
 
 # ---------------------------------------------------------------------------
-# Phase B: inline embedding side effects
+# inline embedding side effects
 # ---------------------------------------------------------------------------
 
 import embeddings  # noqa: E402

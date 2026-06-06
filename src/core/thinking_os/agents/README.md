@@ -1,4 +1,4 @@
-# Role Prompt Library (Phase M + N)
+# Role Prompt Library
 
 11 role-agent prompts (`researcher.md` … `refactorer.md`). Each file is the
 prompt the dispatched agent sees when its role is fired by the supervisor.

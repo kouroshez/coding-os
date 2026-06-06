@@ -41,7 +41,7 @@ if not is_lean_format(content):
     # Legacy file — allow but warn.
     print(
         "WARN validate-task-frontmatter: no frontmatter detected — "
-        "consider migrating to Phase L lean format (`cos task-migrate`)",
+        "consider migrating to the lean format (`cos task-migrate`)",
         file=sys.stderr,
     )
     sys.exit(0)

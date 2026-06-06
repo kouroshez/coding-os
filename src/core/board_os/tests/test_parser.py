@@ -1,4 +1,4 @@
-"""Tests for core.board_os.parser — Phase L lean + legacy parsing."""
+"""Tests for core.board_os.parser — lean + legacy parsing."""
 
 from __future__ import annotations
 

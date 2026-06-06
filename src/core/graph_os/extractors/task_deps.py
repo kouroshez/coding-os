@@ -1,6 +1,6 @@
 """graph_os — task dependency extractor (I.3).
 
-DEPENDS:  core/thinking_os/task_parser.py (existing Phase C parser).
+DEPENDS:  core/thinking_os/task_parser.py (existing parser).
 """
 
 from __future__ import annotations

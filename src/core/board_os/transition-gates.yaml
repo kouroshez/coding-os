@@ -1,4 +1,4 @@
-# Transition Gates — Definition of Ready / Definition of Done (Phase L.10)
+# Transition Gates — Definition of Ready / Definition of Done
 #
 # SSOT for what a task must satisfy at each status transition.
 # Loaded by core.board_os.transition_gates.load_gates_config().

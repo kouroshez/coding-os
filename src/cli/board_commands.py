@@ -1,4 +1,4 @@
-"""cos board-* CLI commands (Phase L.6).
+"""cos board-* CLI commands.
 
 16 commands:
     cos board [--web] [--port N] [--swimlane] [--kind] [--epic] [--priority]
@@ -868,7 +868,7 @@ def task_validate_cmd(task_id, for_status, as_json):
     """Two modes:
 
     1. No TASK_ID → lint every TASK-*.md file (legacy behavior).
-    2. TASK_ID given → run the Phase L.10 transition gate for the given
+    2. TASK_ID given → run the transition gate for the given
        target status WITHOUT applying it. Same validator as the live
        gate, so the verdict matches what `cos task-start` would do.
     """

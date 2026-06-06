@@ -1,4 +1,4 @@
-"""board_os workflow engine — Phase L.2 state machine + WIP enforcement.
+"""board_os workflow engine — state machine + WIP enforcement.
 
 One module, one SSOT for:
 - Valid status transitions (8-state machine, plan §6.4)
@@ -279,7 +279,7 @@ def transition(
             f"(state machine disallows this; recorded in history)"
         )
 
-    # ── Workflow-policy gates (config-driven, Phase L state machine) ──
+    # ── Workflow-policy gates (config-driven, state machine) ──
     # Both default-on; a consumer relaxes them via scrumban-config.yaml
     # `workflow_policy:`. Policy runs only when a config is supplied
     # (the live MCP/CLI path) and gates aren't explicitly bypassed —
@@ -343,7 +343,7 @@ def transition(
     # one write lock, so no concurrent transition can slip between them.
     wip_state: dict[str, int] = {}
 
-    # ── Phase L.10 transition gates (DoR / DoD) ────────────────────
+    # ── Transition gates (DoR / DoD) ────────────────────
     # Validate the task body against the kind's rules. file_path=None
     # (DB-only mode used by tests/migrations) skips the body gate.
     target_file_for_gate = file_path or (Path(current_file_path) if current_file_path else None)
@@ -549,7 +549,7 @@ def transition(
             warnings.append("no file_path — DB-only transition")
 
         # task_status_history gained override_reason/override_actor in
-        # migration v20 (Phase L.10). Detect column presence so this code
+        # migration v20. Detect column presence so this code
         # works on a DB before v20 has run yet (test fixtures, fresh init).
         has_override_cols = bool(
             conn.execute(

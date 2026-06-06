@@ -892,7 +892,7 @@ def run_doctor(
             with contextlib.closing(conn):
                 pass
         _check_core_version(state, report)
-        # Open a second short-lived connection for Phase I graph checks so
+        # Open a second short-lived connection for graph checks so
         # the first handle's contextlib.closing is not disturbed.
         try:
             import sqlite3 as _sqlite3
@@ -926,7 +926,7 @@ def run_doctor(
     _check_hook_coverage(project, report)
     _tick("runtime errors")
     _check_runtime_errors(state, report)
-    # Phase I.14 — graph_os health checks.
+    # graph_os health checks.
     _tick("graph_os health")
     try:
         from cli.doctor_graph import run_graph_checks
@@ -942,7 +942,7 @@ def run_doctor(
             except Exception as exc:
                 logger = logging.getLogger("coding_os.doctor")
                 logger.debug("graph_conn close suppressed: %s", exc)
-    # Phase L.9 — board_os health checks.
+    # board_os health checks.
     _tick("board_os health")
     try:
         from cli.doctor_board import run_board_checks
@@ -1498,7 +1498,7 @@ def _check_agents_md_present(project: Path, report: DoctorReport) -> None:
 
 
 def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
-    """cognition.registries_present — Cognition registries valid (Phase N).
+    """cognition.registries_present — Cognition registries valid.
 
     - roles/F{1..11}_*.yaml all exist with id + activation + prompt_prefix
     - presets/registry.yaml parses and has ≥8 curated presets
@@ -1531,10 +1531,10 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
         "refactorer",
     ]
 
-    # Phase N — Role registry (primary, semantic names)
+    # Role registry (primary, semantic names)
     roles_dir = thinking_os / "roles"
     if not roles_dir.is_dir():
-        issues.append("roles/ directory missing (Phase N)")
+        issues.append("roles/ directory missing")
     else:
         for role in _EXPECTED_ROLES:
             yaml_file = roles_dir / f"{role}.yaml"
@@ -1558,7 +1558,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
             except Exception as exc:
                 issues.append(f"{yaml_file.name}: invalid YAML: {exc}")
 
-    # Phase N — Preset registry
+    # Preset registry
     preset_reg = thinking_os / "presets" / "registry.yaml"
     if not preset_reg.exists():
         issues.append("presets/registry.yaml missing")
@@ -1580,7 +1580,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
         except Exception as exc:
             issues.append(f"presets/registry.yaml invalid YAML: {exc}")
 
-    # Situation registry (shared Phase M + N)
+    # Situation registry
     situation_reg = thinking_os / "situations" / "registry.yaml"
     if not situation_reg.exists():
         issues.append("situations/registry.yaml missing")
@@ -1626,7 +1626,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
             CheckResult(
                 "cognition.registries_present",
                 SEV_WARN,
-                f"Phase N OK (11 roles, 12+ presets, 6 situations, 11 agents); {'; '.join(warnings)}",
+                f"Roles/presets/situations OK (11 roles, 12+ presets, 6 situations, 11 agents); {'; '.join(warnings)}",
             )
         )
     else:
@@ -1634,7 +1634,7 @@ def _check_cognition_registries(project: Path, report: DoctorReport) -> None:
             CheckResult(
                 "cognition.registries_present",
                 SEV_PASS,
-                "Phase N: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
+                "Cognition registries: 11 roles, 12+ presets, 6 situations, 11 formula-agents — all valid",
             )
         )
 

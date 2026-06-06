@@ -1,4 +1,4 @@
-"""Coding OS — Project Trajectory tools (Phase EVO)."""
+"""Coding OS — Project Trajectory tools."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for `cos task-create` enriched output (Phase L.10 / TASK-110+111).
+"""Tests for `cos task-create` enriched output (TASK-110+111).
 
 Covers:
 - next_steps payload mirrors the kind's DoR rules.

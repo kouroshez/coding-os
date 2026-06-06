@@ -1,4 +1,4 @@
-"""cos doctor checks for board_os (Phase L.9).
+"""cos doctor checks for board_os.
 
 board.wip_within_caps      WIP state within cap (or flagged warning on active violation)
 board.no_stale_tasks       no stale `in_progress` tasks

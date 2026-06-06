@@ -305,7 +305,7 @@ hooks:
 
   - id: auto-reindex-docs
     script: auto-reindex-docs.sh
-    description: Phase H + Phase I freshness — incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph_os extractor; fire-and-forget.
+    description: Incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph_os extractor; fire-and-forget.
     category: retrieval
     phase: H
     timeout: 30
@@ -347,11 +347,11 @@ hooks:
         matcher: Bash
         status_message: "🧹 Pruning graph + docs RAG state for deleted files..."
 
-  # ── graph_os enforcement (Phase I.14) ──────────────────────────────
+  # ── graph_os enforcement ──────────────────────────────
   - id: enforce-graph-first-read
     script: enforce-graph-first-read.sh
     description: |
-      Phase I.15 — PreToolUse Read on a load-bearing meta-repo file
+      PreToolUse Read on a load-bearing meta-repo file
       WARNS (or BLOCKS in strict) when the agent reaches for Read before
       any cos_graph_* tool has been called this session. Reuses the same
       enforce_context_on glob list from .coding-os/rag-config.yaml. Silent
@@ -367,7 +367,7 @@ hooks:
 
   - id: enforce-graph-context
     script: enforce-graph-context.sh
-    description: Phase I — warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
+    description: Warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
     category: enforcement
     phase: I
     timeout: 10
@@ -378,7 +378,7 @@ hooks:
 
   - id: enforce-rename-plan
     script: enforce-rename-plan.sh
-    description: Phase I — warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
+    description: Warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
     category: enforcement
     phase: I
     timeout: 10
@@ -420,10 +420,10 @@ hooks:
         matcher: Bash
         status_message: "✅ Verifying 0 matches remain after replace..."
 
-  # ── board_os Scrumban (Phase L.4) ──────────────────────────────────
+  # ── board_os Scrumban ──────────────────────────────────
   - id: validate-task-frontmatter
     script: validate-task-frontmatter.sh
-    description: Phase L — validates lean frontmatter (swimlane/kind/epic/labels/status/priority/appetite) on task MD writes. Blocks malformed YAML or enum violations.
+    description: Validates lean frontmatter (swimlane/kind/epic/labels/status/priority/appetite) on task MD writes. Blocks malformed YAML or enum violations.
     category: safety
     phase: L
     timeout: 30
@@ -434,7 +434,7 @@ hooks:
 
   - id: enforce-wip-limit
     script: enforce-wip-limit.sh
-    description: Phase L — enforces WIP caps from scrumban-config.yaml when a task transitions to in_progress/emergency. Bypass via COS_WIP_OVERRIDE=1.
+    description: Enforces WIP caps from scrumban-config.yaml when a task transitions to in_progress/emergency. Bypass via COS_WIP_OVERRIDE=1.
     category: safety
     phase: L
     timeout: 30
@@ -445,7 +445,7 @@ hooks:
 
   - id: capture-work-log
     script: capture-work-log.sh
-    description: Phase L — appends one-line Work Log entry to the active task on code Write/Edit. Fire-and-forget; flock-serialized for multi-agent safety.
+    description: Appends one-line Work Log entry to the active task on code Write/Edit. Fire-and-forget; flock-serialized for multi-agent safety.
     category: observability
     phase: L
     timeout: 10
@@ -456,7 +456,7 @@ hooks:
 
   - id: auto-task-sync
     script: auto-task-sync.sh
-    description: Phase L — re-syncs single task file into DB cache on Write/Edit. Fire-and-forget; keeps the board fresh within one hook latency.
+    description: Re-syncs single task file into DB cache on Write/Edit. Fire-and-forget; keeps the board fresh within one hook latency.
     category: retrieval
     phase: L
     timeout: 10
@@ -515,7 +515,7 @@ hooks:
 
   - id: remind-daily
     script: remind-daily.sh
-    description: Phase L — on SessionStart, nags if `cos daily` hasn't run in >24h. Non-blocking banner; ADHD-friendly (no shame).
+    description: On SessionStart, nags if `cos daily` hasn't run in >24h. Non-blocking banner; ADHD-friendly (no shame).
     category: observability
     phase: L
     timeout: 10
@@ -540,7 +540,7 @@ hooks:
 
   - id: lint-task
     script: lint-task.sh
-    description: Phase L.9 — Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.
+    description: Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.
     category: safety
     phase: L
     timeout: 10
@@ -562,7 +562,7 @@ hooks:
 
   - id: enforce-task-body
     script: enforce-task-body.sh
-    description: Phase L.10 — DoR/DoD validator. Blocks transitions to in_progress/complete when task body fails the kind's rules. SSOT in src/core/board_os/transition-gates.yaml.
+    description: DoR/DoD validator. Blocks transitions to in_progress/complete when task body fails the kind's rules. SSOT in src/core/board_os/transition-gates.yaml.
     category: enforcement
     phase: L
     timeout: 30
@@ -686,7 +686,7 @@ hooks:
 
   - id: auto-brain-decay
     script: auto-brain-decay.sh
-    description: Phase G.G1 — SessionStart runs Ebbinghaus confidence decay on learned_patterns once per 24 h. Fire-and-forget, bounded at 10s; debounces via $COS_STATE_DIR/.last-decay.
+    description: SessionStart runs Ebbinghaus confidence decay on learned_patterns once per 24 h. Fire-and-forget, bounded at 10s; debounces via $COS_STATE_DIR/.last-decay.
     category: observability
     phase: G
     timeout: 30
@@ -700,7 +700,7 @@ hooks:
 
   - id: warn-graph-empty
     script: warn-graph-empty.sh
-    description: Phase I.10 — SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
+    description: SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
     category: observability
     phase: I
     timeout: 10
@@ -768,7 +768,7 @@ hooks:
         matcher: Bash
         status_message: "💡 Checking if learn-validate reminder is due..."
 
-  # ── meta (coding-os meta-project specific, Phase G) ────────────────
+  # ── meta (coding-os meta-project specific) ────────────────
   - id: check-agents-md-size
     script: check-agents-md-size.sh
     description: Warns when AGENTS.md approaches Codex's 32 KiB read cap.
@@ -814,7 +814,7 @@ hooks:
         status_message: "⚠️ Adapter template edits — use registry.yaml..."
 
 
-  # ── cognition (Phase M — formula-agent supervisor) ───────────────────
+  # ── cognition (formula-agent supervisor) ───────────────────
   - id: enforce-anti-ambiguity
     script: enforce-anti-ambiguity.sh
     description: Blocks code writes at EXECUTE phase when Anti-Ambiguity gate has failures. Bypassed for CLEAR 1.
@@ -840,7 +840,7 @@ hooks:
   - id: track-discovery
     script: track-discovery.sh
     description: |
-      Phase N — Discovery Protocol auto-trigger. Scans Write/Edit/TodoWrite
+      Discovery Protocol auto-trigger. Scans Write/Edit/TodoWrite
       output for discovery signal phrases (new actor, missing dependency,
       undocumented behavior, etc.). On ≥2 matches, emits a non-blocking
       reminder to call cos_discovery with impact assessment + decision.
@@ -857,7 +857,7 @@ hooks:
   - id: capture-tool-failure
     script: capture-tool-failure.sh
     description: |
-      Phase EVO — Capture meaningful tool failures (especially hook-blocked
+      Capture meaningful tool failures (especially hook-blocked
       events) to the observations table so they feed failure_pattern_query
       and learn_extract. Only captures blocked events and repeated failures —
       transient Bash errors are skipped to avoid noise. This closes the

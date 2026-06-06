@@ -1,4 +1,4 @@
-"""Tests for core.board_os.verify_suites (Phase L.10 / TASK-100)."""
+"""Tests for core.board_os.verify_suites (TASK-100)."""
 
 from __future__ import annotations
 

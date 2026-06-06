@@ -1,4 +1,4 @@
-# Role Registry (Phase N)
+# Role Registry
 
 11 role configs (`researcher.yaml` … `refactorer.yaml`) driving cognitive
 routing. **Not** the agent prompts — those live in [../agents/](../agents/)

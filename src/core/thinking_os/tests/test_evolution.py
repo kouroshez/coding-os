@@ -1,5 +1,5 @@
 """
-Tests for Phase EVO features:
+Tests for evolution features:
   - project_trajectory (DB migration v24 + trajectory.py tools)
   - structured failure anatomy (DB migration v25 + backtrack_events columns)
   - autonomous routing evolution (DB migration v26 + routing staleness)

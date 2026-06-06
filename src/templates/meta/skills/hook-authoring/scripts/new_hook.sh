@@ -38,7 +38,7 @@ fi
 
 {
   printf '#!/usr/bin/env bash\n'
-  printf '# %s.sh (Phase X) — <one-line purpose>.\n' "$name"
+  printf '# %s.sh — <one-line purpose>.\n' "$name"
   printf '#\n# <2-3 line description: events, what it reads/writes, fail-open vs closed.>\n'
   printf 'set -euo pipefail\n\n'
   printf 'source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true\n'

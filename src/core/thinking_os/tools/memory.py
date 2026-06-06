@@ -103,7 +103,7 @@ def _boost_access(conn: sqlite3.Connection, table: str, row_id: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase B: semantic augmentation helpers
+# semantic augmentation helpers
 # ---------------------------------------------------------------------------
 
 
@@ -273,7 +273,7 @@ def memory_search(
 ) -> dict:
     """Search observations and learned_patterns with 5-signal ranking.
 
-    Stage-1 RAG metadata pre-filter (Phase O):
+    Stage-1 RAG metadata pre-filter:
       - `min_confidence` drops learned_patterns whose confidence is below
         the threshold BEFORE ranking. Stale low-confidence patterns can
         otherwise crowd out fresh high-signal hits via raw text overlap.
@@ -403,7 +403,7 @@ def memory_search(
             }
         )
 
-    # --- Phase B: semantic augmentation via embeddings ---
+    # --- semantic augmentation via embeddings ---
     semantic_used = _augment_with_semantic(
         conn=conn,
         query=query,

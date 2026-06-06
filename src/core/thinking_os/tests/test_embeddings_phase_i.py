@@ -1,4 +1,4 @@
-"""Phase I.1 tests — dim-aware cosine + dual-model embeddings + migrator.
+"""Dim-aware cosine + dual-model embeddings + migrator tests.
 
 Ship gate (Section 19, I.1):
   - existing 109 RAG tests still pass with new embeddings

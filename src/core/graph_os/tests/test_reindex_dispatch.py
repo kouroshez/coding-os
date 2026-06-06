@@ -1,4 +1,4 @@
-"""Tests for graph_os.tools.reindex_dispatch (Phase I.14)."""
+"""Tests for graph_os.tools.reindex_dispatch."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-Coding OS — Background continuous indexer (Phase G.9).
+Coding OS — Background continuous indexer.
 
 A thin, opt-in, thread-based loop that keeps the brain fresh without
 requiring the agent to run `make docs-index` / `make task-sync` manually.
@@ -230,7 +230,7 @@ class BackgroundIndexer:
             logger.warning("background task_sync failed: %s", exc)
             err = f"{err + '; ' if err else ''}task_sync: {type(exc).__name__}: {exc}"
 
-        # Phase I.10: graph_os keeps pace with code/doc edits in sessions
+        # graph_os keeps pace with code/doc edits in sessions
         # that don't get PostToolUse (Codex). Runner is content-hash aware
         # so the 99% no-op case is cheap.
         try:

@@ -1,9 +1,9 @@
 """
-Coding OS — Task store sync (Phase C.3).
+Coding OS — Task store sync.
 
 Walks `docs/tasks/*.md`, parses each file via `task_parser`, reads status
 from `docs/tasks.md`, and upserts into the `tasks` table. Embeds the
-result via the existing Phase B `embeddings` pipeline (fire-and-forget,
+result via the existing `embeddings` pipeline (fire-and-forget,
 graceful degradation when sentence-transformers is unavailable).
 
 Files remain SSOT — this module never writes markdown. If the DB is

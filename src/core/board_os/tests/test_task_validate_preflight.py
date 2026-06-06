@@ -1,4 +1,4 @@
-"""Tests for `cos task-validate TASK-NN` pre-flight mode (Phase L.10 / TASK-109).
+"""Tests for `cos task-validate TASK-NN` pre-flight mode (TASK-109).
 
 The CLI wrapper is thin (dispatches to `validate_transition`) — these
 tests exercise the integration: real task file on disk + real DB row

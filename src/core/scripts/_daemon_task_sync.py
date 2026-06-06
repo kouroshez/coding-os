@@ -1,4 +1,4 @@
-"""Daemonised fire-and-forget task sync (Phase C enrichment)."""
+"""Daemonised fire-and-forget task sync (enrichment)."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def _sync() -> None:
         sync_tasks(conn, project_root=Path.cwd())
         conn.close()
     except Exception as exc:
-        # Phase C sync is enrichment only — never block or raise.
+        # Sync is enrichment only — never block or raise.
         # Best-effort log to stderr (daemon stderr is redirected to /dev/null
         # by _daemonize, so this is essentially silent — but the explicit
         # bind keeps the linter + Rule 6 happy).

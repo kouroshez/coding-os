@@ -1,4 +1,4 @@
-# Phase L — Scrumban board configuration (base default).
+# Scrumban board configuration (base default).
 # Per-stack overrides ship in src/templates/<stack>/scaffold/.coding-os/.
 # See docs/phase-l-scrumban-task-system-plan.md §6.1.1 + §17 (Multi-Repo).
 #

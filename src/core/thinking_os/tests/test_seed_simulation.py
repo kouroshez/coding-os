@@ -412,7 +412,7 @@ class TestSeedHealth:
     def test_schema_version(self, seeded_conn: sqlite3.Connection):
         from database import MIGRATIONS, get_schema_version
 
-        # Tracks the latest applied migration — currently v5 (Phase B RAG).
+        # Tracks the latest applied migration — currently v5.
         assert get_schema_version(seeded_conn) == len(MIGRATIONS)
 
 

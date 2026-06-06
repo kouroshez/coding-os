@@ -1,6 +1,6 @@
 """Backfill canonical doc headers (frontmatter + opening block) into docs/**.
 
-The doc header system (Phase O.4) expects every `docs/**/*.md` to start with:
+The doc header system expects every `docs/**/*.md` to start with:
 
     <!-- domain:DOCS | layer:policy | ssot:true | updated:YYYY-MM-DD -->
     # <H1 Title>

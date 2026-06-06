@@ -1,4 +1,4 @@
-"""Tests for tree_sitter_overlay (Phase I.4b / I.6b)."""
+"""Tests for tree_sitter_overlay."""
 
 from __future__ import annotations
 

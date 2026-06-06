@@ -69,7 +69,7 @@ exclude:
   # thinking_os-final-edition.md that src/core/rules/thinking_os.md points to.
   # Remove the file paths from `sources` below to opt-out per-project.
 
-# ── Graph enforcement (Phase I.14) ────────────────────────────────────
+# ── Graph enforcement ─────────────────────────────────────────────────
 # Files matching these globs are "load-bearing" — editing them without a
 # prior cos_graph_context call triggers enforce-graph-context.sh (default
 # warn; promote to block via COS_ENFORCE_GRAPH_CONTEXT=strict). Empty in

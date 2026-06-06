@@ -1,4 +1,4 @@
-# Phase N — Formula-Chain Presets (curated)
+# Formula-Chain Presets (curated)
 # Spec: docs/phase-n-role-based-routing-plan.md §2.4
 # Selection: match_preset() returns the preset with highest `score` among
 # those whose `match` block is fully satisfied by TaskSignals. The

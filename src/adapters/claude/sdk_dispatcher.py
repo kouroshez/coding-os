@@ -264,7 +264,7 @@ class ClaudeSDKDispatcher:
         if request.model in _OPUS_47_MODEL_IDS:
             effort = "max"
 
-        # Structured output (Phase Q.deep T1) — opt-in per role via
+        # Structured output (T1) — opt-in per role via
         # `structured_output: true` frontmatter. SDK enforces the
         # schema and surfaces failures as
         # subtype="error_max_structured_output_retries".
@@ -420,7 +420,7 @@ class ClaudeSDKDispatcher:
         # Implements checkpoint/replay for edit-heavy roles (implementer/refactorer).
         if isinstance(agent_meta, dict) and agent_meta.get("enable_file_checkpointing"):
             opts_kwargs["enable_file_checkpointing"] = True
-        # Programmatic hooks (Phase Q.deep T3) — these run inline in the
+        # Programmatic hooks (T3) — these run inline in the
         # dispatcher process, capturing tool call metadata and failures
         # for the formula_dispatches audit row. Empty matcher = match
         # every tool. PostToolUseFailure surfaces tool errors that the

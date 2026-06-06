@@ -1,5 +1,5 @@
 """
-Tests for tools/retrieve.py — retrieval-outcome feedback loop (Phase G.8).
+Tests for tools/retrieve.py — retrieval-outcome feedback loop.
 
 Covers:
   - log_retrieval: inserts one row per result, idempotent vs pre-v10 DBs

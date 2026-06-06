@@ -8,7 +8,7 @@ last_reviewed: "2026-05-11"
 
 ---
 
-# Task Driver Skill — Phase L Scrumban
+# Task Driver Skill — Scrumban
 
 You are in task-management mode. Apply these rules mechanically.
 

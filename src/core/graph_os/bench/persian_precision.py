@@ -1,4 +1,4 @@
-"""Persian / multilingual retrieval precision harness (Phase I.1 gate).
+"""Persian / multilingual retrieval precision harness.
 
 DEPENDS:  embeddings module + SQLite.
 """

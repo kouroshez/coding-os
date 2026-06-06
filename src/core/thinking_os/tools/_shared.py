@@ -7,7 +7,7 @@ Every `cos_*` tool registered in `server.py` MUST route its return value
 through `ok()` / `fail()` so consuming agents can distinguish success from
 failure, categorize errors, and decide whether to retry.
 
-Phase G.3 addition — uniform `meta` block:
+Uniform `meta` block:
     Every success payload carries `data.meta` with at minimum:
       - layer             ("memory"|"docs"|"tasks"|"metrics"|"routing"|
                            "graph"|"health"|"learning")
@@ -18,7 +18,7 @@ Phase G.3 addition — uniform `meta` block:
     the `ok(data, meta=...)` kwarg. `tokens_estimated` and `truncated` are
     computed by this helper — callers must not set them manually.
 
-Phase G.5 addition — token-budget enforcement:
+Token-budget enforcement:
     Serialized responses above TOKEN_BUDGET_CHARS are trimmed. Strategy:
     shrink `data.results` from the tail until the payload fits. Meta
     records both the original and kept sizes so the agent knows it asked

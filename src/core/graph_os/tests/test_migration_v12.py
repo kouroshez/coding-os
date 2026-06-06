@@ -1,4 +1,4 @@
-"""Tests for migration v12 (Phase I.0 — graph_os tables).
+"""Tests for migration v12 (graph_os tables).
 
 Ship gate from the roadmap (Section 19, I.0):
   - migration round-trip test

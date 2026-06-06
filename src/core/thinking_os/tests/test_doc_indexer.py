@@ -1,5 +1,5 @@
 """
-Tests for core/thinking_os/doc_indexer.py — Phase B.3 document RAG.
+Tests for core/thinking_os/doc_indexer.py — document RAG.
 
 Covers:
   - chunk_markdown: H2/H3 splitting, front-matter stripping, oversized chunks,
@@ -473,7 +473,7 @@ class TestIndexDocs:
 
 
 class TestPathResolutionRegression:
-    """Regression guard for the bug caught during Phase B+C end-to-end
+    """Regression guard for the bug caught during end-to-end
     verification: on macOS `/tmp` is a symlink to `/private/tmp`, so
     `Path('/tmp/x').relative_to(Path('/private/tmp/x'))` raises ValueError.
 

@@ -1,4 +1,4 @@
-"""Data-driven verify-suite resolution (Phase L.10 / TASK-100)."""
+"""Data-driven verify-suite resolution (TASK-100)."""
 
 from __future__ import annotations
 

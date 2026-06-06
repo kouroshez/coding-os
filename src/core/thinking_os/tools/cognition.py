@@ -1,4 +1,4 @@
-"""Coding OS — Formula-agent supervisor MCP tools (Phase M)."""
+"""Coding OS — Formula-agent supervisor MCP tools."""
 
 from __future__ import annotations
 
@@ -172,7 +172,7 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
         bundle = _load_bundle(session_id, task_marker, persona_id)
         action = cog.advance(state, bundle)
 
-        # Phase N — emit trace event for every supervisor transition
+        # emit trace event for every supervisor transition
         try:
             import tracing
 
@@ -324,7 +324,7 @@ def register_cos_supervise_record_output(mcp, db_path):
             logger.debug("formula_dispatches insert failed: %s", exc)
 
         filled = sum(1 for f in _all_bundle_fields() if getattr(bundle, f, None) is not None)
-        # Phase N — emit trace event so the flowchart replay knows a role completed
+        # emit trace event so the flowchart replay knows a role completed
         try:
             import tracing
 
@@ -624,7 +624,7 @@ def register_cos_backtrack_log(mcp, db_path):
         # C2: concrete next step for the supplied root_cause
         suggested_action = _SUGGESTED_ACTIONS.get(root_cause, "") if root_cause else ""
 
-        # Phase N — emit trace event for replay
+        # emit trace event for replay
         try:
             import tracing
 
@@ -830,7 +830,7 @@ def register_cos_takeover(mcp, db_path):
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Phase N — Role-based cognitive routing
+# Role-based cognitive routing
 # Spec: docs/phase-n-role-based-routing-plan.md §2.6
 # ---------------------------------------------------------------------------
 
@@ -841,7 +841,7 @@ def register_cos_analyze_task(mcp, db_path):
         description=(
             "Extract TaskSignals (domain, action, novelty, urgency, scope, "
             "external_dependency, is_takeover, breaking_change, ...) from a "
-            "prompt + optional memory/graph context. Replaces Phase M persona "
+            "prompt + optional memory/graph context. Replaces persona "
             "keyword matching. Under 500ms; cached per task_marker."
         ),
     )
@@ -942,7 +942,7 @@ def register_cos_compose_chain(mcp, db_path):
         except Exception as exc:  # fire-and-forget telemetry — a write/serialize
             logger.debug("roles trace/state write failed: %s", exc)  # error must never fail compose
 
-        # Phase M telemetry — persist the lead persona for the dispatch.
+        # telemetry — persist the lead persona for the dispatch.
         # Schema (migration v14): one row per compose_chain call.
         try:
             import sqlite3 as _sqlite
@@ -1020,7 +1020,7 @@ def register_cos_role_info(mcp, db_path):
 
 
 # ---------------------------------------------------------------------------
-# cos_dispatch_formula_run — Phase N.SDK real-dispatch tool
+# cos_dispatch_formula_run — real-dispatch tool
 # ---------------------------------------------------------------------------
 
 
@@ -1072,7 +1072,7 @@ def _persist_dispatch_output(
     raw = json.dumps(output_json, sort_keys=True, default=str).encode()
     output_hash = hashlib.sha256(raw).hexdigest()[:16]
     input_hash = hashlib.sha256(f"{session_id}:{formula_id}".encode()).hexdigest()[:16]
-    # Phase Q.deep T2.3: pull telemetry the Claude dispatcher stamps
+    # pull telemetry the Claude dispatcher stamps
     # into output_json["_meta"] (cost_usd, usage, model_usage, tool_calls,
     # tool_failures) and persist into the v23 columns. JSON-encoded so
     # the schema migration stays append-only — readers parse on demand.
@@ -1679,7 +1679,6 @@ def register_cos_classify_prompt(mcp, db_path):
 
 def register_all(mcp, db_path: str) -> None:
     """Register all 15 cognition tools with the MCP server."""
-    # Phase M
     register_cos_supervise(mcp, db_path)
     register_cos_supervise_record_output(mcp, db_path)
     register_cos_dispatch_formula(mcp, db_path)
@@ -1689,12 +1688,12 @@ def register_all(mcp, db_path: str) -> None:
     register_cos_discovery(mcp, db_path)
     register_cos_situation_detect(mcp, db_path)
     register_cos_takeover(mcp, db_path)
-    # Phase N additions
+    # Additions
     register_cos_analyze_task(mcp, db_path)
     register_cos_compose_chain(mcp, db_path)
     register_cos_role_info(mcp, db_path)
-    # Phase N.SDK — real dispatch (opt-in, costly)
+    # real dispatch (opt-in, costly)
     register_cos_dispatch_formula_run(mcp, db_path)
     register_cos_dispatch_parallel_run(mcp, db_path)
-    # Phase O — auto-Classify (eliminates manual gate recording)
+    # auto-Classify (eliminates manual gate recording)
     register_cos_classify_prompt(mcp, db_path)

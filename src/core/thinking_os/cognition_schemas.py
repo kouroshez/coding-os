@@ -1,4 +1,4 @@
-"""Coding OS — Cognitive agent IO contracts (Phase M)."""
+"""Coding OS — Cognitive agent IO contracts."""
 
 from __future__ import annotations
 
@@ -514,7 +514,7 @@ class NextAction(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Phase N — Task Signals + Role chain
+# Task Signals + Role chain
 # Spec: docs/phase-n-role-based-routing-plan.md §2.1 and §2.3
 # ---------------------------------------------------------------------------
 

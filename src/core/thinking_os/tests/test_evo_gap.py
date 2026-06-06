@@ -1,5 +1,5 @@
 """
-Tests for Phase EVO II gap closure:
+Tests for evolution gap closure:
   Gap A — auto-trajectory snapshot at session end
   Gap B — tool failure capture → observations → session aggregation
   Gap C — mid-session adaptation (suggested_action in cos_backtrack_log)

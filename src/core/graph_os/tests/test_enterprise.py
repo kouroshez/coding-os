@@ -1,4 +1,4 @@
-"""Tests for the Phase I.14 enterprise hardening layer."""
+"""Tests for the enterprise hardening layer."""
 
 from __future__ import annotations
 

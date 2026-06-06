@@ -1,5 +1,5 @@
 """
-Coding OS — Memory write sanitizer (Phase G.2 brain hardening).
+Coding OS — Memory write sanitizer (brain hardening).
 
 Guards every user/agent-originated text before it reaches learned_patterns,
 observations, or outcome_history. Two defenses:

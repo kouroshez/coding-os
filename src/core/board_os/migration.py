@@ -1,4 +1,4 @@
-"""Phase L.7 — One-shot migration from legacy 12-section to lean frontmatter.
+"""One-shot migration from legacy 12-section to lean frontmatter.
 
 Two-phase atomic (R-L-27):
   Phase 0 — backup all docs/tasks/*.md → tar.gz
@@ -50,7 +50,7 @@ class MigrationReport:
 
 
 def _render_lean_from_legacy(legacy: ParsedTask, domain_map: dict | None) -> str:
-    """Convert a legacy ParsedTask into a Phase L lean MD file string."""
+    """Convert a legacy ParsedTask into a lean MD file string."""
     today = datetime.utcnow().strftime("%Y-%m-%d")
     swimlane = legacy.swimlane or "core"
     kind = "chore"  # safe default; user tunes after migration

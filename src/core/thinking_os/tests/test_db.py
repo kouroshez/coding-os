@@ -320,7 +320,7 @@ class TestInitDb:
 
 
 # ---------------------------------------------------------------------------
-# Migration v5 — Phase B RAG (embeddings + document_chunks)
+# Migration v5 — RAG (embeddings + document_chunks)
 # ---------------------------------------------------------------------------
 
 
@@ -428,7 +428,7 @@ class TestMigrationV5RAG:
 
 
 # ---------------------------------------------------------------------------
-# Migration v6 — Phase C Task Store
+# Migration v6 — Task Store
 # ---------------------------------------------------------------------------
 
 
@@ -511,7 +511,7 @@ class TestMigrationV6Tasks:
 
 
 # ---------------------------------------------------------------------------
-# Migration v7 — Phase G.1 Brain Hardening (trust_tier, provenance, memory_audit)
+# Migration v7 — Brain Hardening (trust_tier, provenance, memory_audit)
 # ---------------------------------------------------------------------------
 
 
@@ -763,7 +763,7 @@ class TestMigrationV7BrainHardening:
         assert get_schema_version(fresh_conn) >= 7
 
     def test_constants_exported(self) -> None:
-        """Phase G.2 (sanitizer) depends on these sets — contract test."""
+        """The sanitizer depends on these sets — contract test."""
         assert "volatile" in VALID_TRUST_TIERS
         assert "validated" in VALID_TRUST_TIERS
         assert "locked" in VALID_TRUST_TIERS
@@ -779,7 +779,7 @@ class TestMigrationV7BrainHardening:
 
 
 # ---------------------------------------------------------------------------
-# Migration v8 — Phase G.4 Validation Throttle (pattern_validations)
+# Migration v8 — Validation Throttle (pattern_validations)
 # ---------------------------------------------------------------------------
 
 
@@ -840,7 +840,7 @@ class TestMigrationV8ValidationThrottle:
 
 
 # ---------------------------------------------------------------------------
-# Migration v9 — Phase G.7.3 FTS5 over document_chunks
+# Migration v9 — FTS5 over document_chunks
 # ---------------------------------------------------------------------------
 
 

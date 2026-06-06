@@ -1,4 +1,4 @@
-"""graph_os + docs unified auto-reindex dispatcher (Phase I.14, V1 cache).
+"""graph_os + docs unified auto-reindex dispatcher (V1 cache).
 
 DEPENDS:  thinking_os/doc_indexer (for md), graph_os.extractors.*,
           graph_os.backends.sqlite_backend.

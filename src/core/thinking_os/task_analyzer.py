@@ -1,4 +1,4 @@
-"""Phase N — Task Analyzer."""
+"""Task Analyzer."""
 
 from __future__ import annotations
 

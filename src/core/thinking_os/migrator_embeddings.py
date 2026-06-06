@@ -1,4 +1,4 @@
-"""thinking_os — background embedding migrator (Phase I.1).
+"""thinking_os — background embedding migrator.
 
 DEPENDS:  embeddings.py (encoder + dim helpers), db.py migration v12
           (`embedding_dim` column).

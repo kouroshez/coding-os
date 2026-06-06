@@ -1,4 +1,4 @@
-"""Tests for migration v13 (Phase L.0) — board_os schema extensions."""
+"""Tests for migration v13 — board_os schema extensions."""
 
 from __future__ import annotations
 

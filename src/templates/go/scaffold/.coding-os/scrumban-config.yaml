@@ -1,4 +1,4 @@
-# Phase L — Scrumban for go stack.
+# Scrumban for go stack.
 
 swimlanes:
   - id: handlers

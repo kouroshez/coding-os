@@ -61,7 +61,7 @@ _CATEGORY_PRECEDENCE_TAIL = 99
 class HookEntry:
     """One hook declaration from registry.yaml.
 
-    `adapter_scope` (added 2026-05-05, Phase Q.deep D4):
+    `adapter_scope` (added 2026-05-05):
         - None / empty → cross-adapter; renderer keeps for every adapter
           whose hook_capabilities allow the event/matcher pair.
         - A specific adapter id (e.g. an entry from adapters/) → renderer ONLY emits
@@ -192,7 +192,7 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
     """
     output: dict[str, Any] = {"hooks": {}}
     for idx, hook in enumerate(registry):
-        # Adapter-scope filter (Phase Q.deep D4): an entry tagged with a
+        # Adapter-scope filter: an entry tagged with a
         # specific adapter only renders for that adapter. Untagged
         # entries remain cross-adapter.
         if hook.adapter_scope and hook.adapter_scope != caps.agent_id:

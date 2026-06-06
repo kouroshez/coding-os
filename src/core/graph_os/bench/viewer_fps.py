@@ -1,4 +1,4 @@
-"""Viewer FPS scale harness (Phase I.10 ship gate)."""
+"""Viewer FPS scale harness."""
 
 from __future__ import annotations
 

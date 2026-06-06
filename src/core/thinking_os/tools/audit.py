@@ -1,4 +1,4 @@
-"""Coding OS — MCP audit-log tools (Phase O)."""
+"""Coding OS — MCP audit-log tools."""
 
 from __future__ import annotations
 

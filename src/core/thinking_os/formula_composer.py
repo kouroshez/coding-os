@@ -1,4 +1,4 @@
-"""Phase N — Formula Composer."""
+"""Formula Composer."""
 
 from __future__ import annotations
 

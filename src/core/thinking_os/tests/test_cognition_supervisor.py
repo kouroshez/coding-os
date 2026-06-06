@@ -1,4 +1,4 @@
-"""Tests for Phase M supervisor state machine (cognition.py)."""
+"""Tests for the supervisor state machine (cognition.py)."""
 
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ class TestSupervisorAdvance:
         assert state.phase == "CLASSIFYING"
 
     def test_routing_builds_queue_and_dispatches(self):
-        # Phase N: persona_id carries a composer-derived chain.
+        # persona_id carries a composer-derived chain.
         state = _make_state(
             phase="ROUTING", persona_id="chain:analyst,architect,implementer,reviewer"
         )

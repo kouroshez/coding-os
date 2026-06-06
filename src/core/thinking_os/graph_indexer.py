@@ -1,4 +1,4 @@
-"""graph_os indexing harness (Phase I.10 — full-hybrid indexing lifecycle)."""
+"""graph_os indexing harness — full-hybrid indexing lifecycle."""
 
 from __future__ import annotations
 

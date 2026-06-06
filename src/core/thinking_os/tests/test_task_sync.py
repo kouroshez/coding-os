@@ -1,5 +1,5 @@
 """
-Tests for core/thinking_os/task_sync.py — Phase C.3.
+Tests for core/thinking_os/task_sync.py.
 
 Covers:
   - parse_task_index (4 status markers, phase headings, missing file)
@@ -409,7 +409,7 @@ class TestCanonicalizeTaskId:
 
 class TestSyncPathResolutionRegression:
     """Guard against the `/tmp` vs `/private/tmp` ValueError that bit
-    doc_indexer during Phase B+C end-to-end verification. sync_tasks must
+    doc_indexer during end-to-end verification. sync_tasks must
     resolve project_root internally so callers can pass either the
     symlinked or the resolved form.
     """

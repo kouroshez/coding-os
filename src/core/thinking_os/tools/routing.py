@@ -1,5 +1,5 @@
 """
-Thinking OS — MCP routing tools (TASK-145 + Phase EVO).
+Thinking OS — MCP routing tools (TASK-145).
 
 Tools for data-driven model and skill selection, failure pattern analysis,
 and autonomous routing evolution:

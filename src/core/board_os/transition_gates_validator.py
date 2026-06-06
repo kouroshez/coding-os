@@ -1,4 +1,4 @@
-"""Transition Gate validator (Phase L.10 — TASK-104)."""
+"""Transition Gate validator (TASK-104)."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-Tests for retrieval_quality.py — Phase G.11 precision tracker + enrichment gate.
+Tests for retrieval_quality.py — precision tracker + enrichment gate.
 
 Covers:
   - migration v11: retrieval_quality table + contextual_prefix/context_model cols

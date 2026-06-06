@@ -1,4 +1,4 @@
-"""Coding OS — Formula-agent supervisor (Phase M)."""
+"""Coding OS — Formula-agent supervisor."""
 
 from __future__ import annotations
 
@@ -238,7 +238,7 @@ def _build_queue(state: SupervisorState) -> list[str]:
     """
     Build the ordered dispatch queue.
 
-    Priority (Phase N composer chain):
+    Priority (composer chain):
       1. If state.pending already set by caller (composer chain) → use as-is.
       2. If state.situation_id set → situation dispatch chain.
       3. If persona_id starts with "chain:" (composer output) → that chain.
@@ -252,7 +252,7 @@ def _build_queue(state: SupervisorState) -> list[str]:
         if chain:
             return chain
 
-    # Phase N — caller passed a composer-derived role chain as persona_id?
+    # Caller passed a composer-derived role chain as persona_id?
     # Format: "chain:analyst,architect,implementer,reviewer" (role-chain persona format)
     if state.persona_id.startswith("chain:"):
         return [r.strip() for r in state.persona_id[6:].split(",") if r.strip()]

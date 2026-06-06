@@ -1,4 +1,4 @@
-"""500k-symbol benchmark harness (Phase I.13).
+"""500k-symbol benchmark harness.
 
 DEPENDS:  graph_os.bench.fixtures + harness, SqliteBackend (or Kuzu
           via COS_GRAPH_BACKEND=kuzu).

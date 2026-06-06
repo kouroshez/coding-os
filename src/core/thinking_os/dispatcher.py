@@ -1,4 +1,4 @@
-"""Coding OS — Agent Dispatcher Protocol (Phase N.SDK)."""
+"""Coding OS — Agent Dispatcher Protocol."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ class DispatchRequest(BaseModel):
     # subtype="error_max_budget_usd" which the dispatcher maps to
     # status="error" with the budget figure in `error`.
     max_budget_usd: float | None = None
-    # Long-context opt-in (Phase Q.deep D6). Adapters that support a
+    # Long-context opt-in. Adapters that support a
     # 1M-token context beta should expand the budget when True.
     long_context: bool = False
 

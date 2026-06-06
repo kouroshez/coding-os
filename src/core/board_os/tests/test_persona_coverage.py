@@ -1,4 +1,4 @@
-"""End-to-end persona coverage for the task system (Phase L.10).
+"""End-to-end persona coverage for the task system.
 
 Verifies that EVERY role persona can:
   1. create a task of the matching kind via cos_task_create
@@ -44,7 +44,7 @@ PERSONAS = [
         "refactor",
         "Extract retry logic into shared decorator with exponential backoff.",
     ),
-    ("documenter", "docs", "Document the Phase L.10 override-audit policy in docs/governance/."),
+    ("documenter", "docs", "Document the override-audit policy in docs/governance/."),
     ("implementer", "bug", "Stop double-charging users on retry of failed payment webhook."),
     ("debugger", "bug", "Cover the OAuth refresh-token edge case at integration level."),
     ("deployer", "chore", "Bump dependency cryptography to v45 for security advisory."),

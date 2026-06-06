@@ -1,4 +1,4 @@
-"""Sync a Phase L Scrumban task file into the thinking_os DB (fire-and-forget).
+"""Sync a Scrumban task file into the thinking_os DB (fire-and-forget).
 
 USAGE
     python3 task_sync.py <task_file_path>

@@ -1,4 +1,4 @@
-"""Phase I demo — index a folder and open the graph_os viewer in a browser.
+"""Demo — index a folder and open the graph_os viewer in a browser.
 
 Usage:
     uv run --extra rag python scripts/graph_demo.py              # index the repo

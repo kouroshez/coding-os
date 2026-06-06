@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# enforce-graph-context.sh (Phase I.14)
+# enforce-graph-context.sh
 # Warn (default) or block (strict) when an Edit targets a file listed
 # under .coding-os/rag-config.yaml::graph.enforce_context_on without a
 # matching .graph-context-<uid> marker in $COS_AGENT_DIR.

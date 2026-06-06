@@ -1,5 +1,5 @@
 """
-Coding OS — Task store query tools (Phase C.4).
+Coding OS — Task store query tools.
 
 Four pure functions over the `tasks` table populated by `task_sync`:
 
@@ -185,7 +185,7 @@ def task_search(
 ) -> list[dict]:
     """Semantic task search with optional status/domain filters.
 
-    Tries semantic search first (via the Phase B embeddings pipeline).
+    Tries semantic search first (via the embeddings pipeline).
     If embeddings are unavailable, the tasks table has no embeddings, or
     zero results cross the threshold, falls back to LIKE on title + goal.
 

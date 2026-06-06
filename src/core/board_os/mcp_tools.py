@@ -1,6 +1,6 @@
-"""board_os MCP tools — Phase L.3 surface (`cos_task_*`).
+"""board_os MCP tools — `cos_task_*` surface.
 
-Implements board MCP tools (Phase L), including:
+Implements board MCP tools, including:
     cos_task_create, cos_task_board, cos_task_move, cos_task_reposition,
     cos_task_pick, cos_task_daily, cos_task_retro, cos_task_wip_check,
     cos_work_log_append
@@ -179,7 +179,7 @@ def _render_kind_aware_body(
 ) -> str:
     """Render the task body with placeholders that match the kind's DoR.
 
-    Phase L.10 / TASK-110+111. Sections that the kind explicitly opts
+    TASK-110+111. Sections that the kind explicitly opts
     out of (e.g. chore drops Acceptance + Read First) are not emitted,
     so the agent doesn't see prompts for fields that won't be required.
 
@@ -263,7 +263,7 @@ def _kind_outcome_placeholder(kind: str) -> str:
 def _next_steps_for_kind(kind: str) -> dict:
     """Return the structured next-steps payload for cos_task_create.
 
-    Phase L.10 / TASK-110. Mirrors the active DoR rules so the agent
+    TASK-110. Mirrors the active DoR rules so the agent
     sees exactly what to fill before `cos task-start TASK-NN`.
     """
     try:

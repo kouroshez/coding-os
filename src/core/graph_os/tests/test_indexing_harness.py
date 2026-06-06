@@ -1,4 +1,4 @@
-"""Phase I.10 — indexing-harness tests (small, safe, bounded).
+"""Indexing-harness tests (small, safe, bounded).
 
 Covers:
   - graph_indexer.index_single_file (incremental + content-hash skip + unsupported suffix + unreadable file)

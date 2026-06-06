@@ -356,8 +356,8 @@ def _write_report(snapshot: Snapshot, snapshot_path: Path) -> Path:
     lines.append("- [ ] `.claude/settings.json` resolved templates correctly?")
     lines.append("- [ ] MCP server boots on sandbox DBs?")
     lines.append("- [ ] Hooks fire on simulated edits?")
-    lines.append("- [ ] RAG index (Phase B) populated?")
-    lines.append("- [ ] Task sync (Phase C) works from docs/tasks/?")
+    lines.append("- [ ] RAG index populated?")
+    lines.append("- [ ] Task sync works from docs/tasks/?")
     lines.append("")
 
     path = REPORT_DIR / "operational-eval.md"

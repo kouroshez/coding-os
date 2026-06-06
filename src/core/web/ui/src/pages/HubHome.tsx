@@ -722,7 +722,7 @@ function ImportDialog({
       <p className="mb-3 text-xs text-[var(--cos-muted)]">
         The folder must already contain <code>.coding-os/</code>.  For a
         brand-new project, run <code>cos init</code> in the folder first
-        (programmatic scaffolding from the panel is Phase O.2 follow-up).
+        (programmatic scaffolding from the panel is a follow-up).
       </p>
       <label className="mb-2 block text-xs">
         <span className="mb-1 block text-[var(--cos-muted)]">Absolute path</span>

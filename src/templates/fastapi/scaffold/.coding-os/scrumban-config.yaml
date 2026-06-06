@@ -1,4 +1,4 @@
-# Phase L — Scrumban for fastapi stack.
+# Scrumban for fastapi stack.
 
 swimlanes:
   - id: api

@@ -1,4 +1,4 @@
-"""graph_os doctor checks (Phase I.14).
+"""graph_os doctor checks.
 
 Implements the graph-category checks (plan §18.3 / §19 I.14):
 

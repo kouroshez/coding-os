@@ -13,7 +13,7 @@ Pattern reference: any existing hook in `src/core/hooks/` (e.g. `enforce-graph-c
 
 ```bash
 #!/usr/bin/env bash
-# <name>.sh (Phase X) — <one-line purpose>.
+# <name>.sh — <one-line purpose>.
 #
 # <2-3 line description: what events fire this, what it does, what
 #  state it reads/writes, debounce strategy, fail-open vs fail-closed.>

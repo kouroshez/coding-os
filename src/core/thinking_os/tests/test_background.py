@@ -1,5 +1,5 @@
 """
-Tests for background.py — Phase G.9 continuous indexer.
+Tests for background.py — continuous indexer.
 
 Focus:
   - is_enabled() and interval parsing env-var handling

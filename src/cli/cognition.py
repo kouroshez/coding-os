@@ -1,5 +1,5 @@
 """
-Phase M — `cos cognition` CLI.
+`cos cognition` CLI.
 
 Provides introspection commands over the v14 cognition tables:
   cos cognition log          — recent formula dispatches + backtracks
@@ -49,7 +49,7 @@ def _parse_since(since: str | None) -> str | None:
 
 @click.group("cognition")
 def cognition_group() -> None:
-    """Phase M cognition introspection (dispatches, personas, backtracks)."""
+    """Cognition introspection (dispatches, personas, backtracks)."""
 
 
 @cognition_group.command("log")
@@ -139,7 +139,7 @@ def _print_dispatches(
             )
         click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
-        click.echo("formula_dispatches table not found — DB may pre-date Phase M.", err=True)
+        click.echo("formula_dispatches table not found — DB may pre-date the cognition tables.", err=True)
 
 
 def _print_backtracks(conn: sqlite3.Connection, cutoff: str | None, limit: int) -> None:
@@ -168,7 +168,7 @@ def _print_backtracks(conn: sqlite3.Connection, cutoff: str | None, limit: int) 
             click.echo(f"  [{r['ts']}] {r['from_formula']} → {r['to_formula']}: {r['reason'][:50]}")
         click.echo(f"{'─' * 72}\n")
     except sqlite3.OperationalError:
-        click.echo("backtrack_events table not found — DB may pre-date Phase M.", err=True)
+        click.echo("backtrack_events table not found — DB may pre-date the cognition tables.", err=True)
 
 
 def _print_persona_selections(
@@ -222,7 +222,7 @@ def _print_persona_selections(
 )
 def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | None) -> None:
     """
-    Phase N — Show the cognition trace for a session (timeline of flowchart nodes).
+    Show the cognition trace for a session (timeline of flowchart nodes).
 
     Spec: docs/phase-n-role-based-routing-plan.md · docs/agent-workflow-flowchart-V1.html
 
@@ -305,7 +305,7 @@ def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | 
 )
 def cognition_trace_replay(session_id: str, audit_mode: bool) -> None:
     """
-    Phase N — Assert a trace covers the canonical flowchart path.
+    Assert a trace covers the canonical flowchart path.
 
     Exits 0 if the trace visited (in order): session_init → gate_recorded →
     analyze_done → compose_done → at least one role_dispatch → task_done.

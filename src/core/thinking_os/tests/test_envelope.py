@@ -1,7 +1,7 @@
 """
 Tests for tools/_shared.py — envelope uniformity, meta merging, token budget.
 
-Phase G.3 / G.5 contract — every success response carries a `data.meta` block
+Contract — every success response carries a `data.meta` block
 with at minimum `layer`, `tokens_estimated`, `truncated`. Oversized payloads
 are trimmed from `data.results` tail with truncation meta recorded.
 """

@@ -1,5 +1,5 @@
 """
-Coding OS — Retrieval audit + outcome feedback loop (Phase G.8).
+Coding OS — Retrieval audit + outcome feedback loop.
 
 Every MCP retrieval tool (`cos_search`, `cos_doc_search`, `cos_task_search`)
 calls `log_retrieval` after producing results. The row sits in `retrievals`

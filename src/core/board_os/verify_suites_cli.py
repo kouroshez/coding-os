@@ -1,4 +1,4 @@
-"""CLI dispatcher for verify-suite enforcement (Phase L.10 / TASK-100)."""
+"""CLI dispatcher for verify-suite enforcement (TASK-100)."""
 
 from __future__ import annotations
 
@@ -124,7 +124,7 @@ def cmd_check(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="verify_suites_cli",
-        description="Phase L.10 verify-suite resolver/checker.",
+        description="Verify-suite resolver/checker.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_check = sub.add_parser("check", help="Read changed paths from stdin and enforce.")

@@ -462,7 +462,7 @@ class TestMemoryPromote:
 
 
 # ---------------------------------------------------------------------------
-# Phase B.5: semantic augmentation of memory_search
+# semantic augmentation of memory_search
 # ---------------------------------------------------------------------------
 
 import embeddings  # noqa: E402

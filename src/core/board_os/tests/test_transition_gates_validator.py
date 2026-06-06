@@ -1,4 +1,4 @@
-"""Validator behavior tests (Phase L.10 — TASK-104).
+"""Validator behavior tests (TASK-104).
 
 Covers DoR, DoD, override audit, and the dispatcher entry point. Every
 kind in the shipped YAML is exercised so adding a new kind requires

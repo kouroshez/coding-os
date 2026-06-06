@@ -1,4 +1,4 @@
-"""Tests for Phase M Pydantic IO contracts (cognition_schemas.py)."""
+"""Tests for Pydantic IO contracts (cognition_schemas.py)."""
 
 from __future__ import annotations
 

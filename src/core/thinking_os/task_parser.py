@@ -1,5 +1,5 @@
 """
-Coding OS — Task detail file parser (Phase C.2).
+Coding OS — Task detail file parser.
 
 Pure, stateless parser for `docs/tasks/TASK-###-slug.md` files produced by
 `cos task-create`. No DB dependency — fully unit-testable without any
@@ -51,7 +51,7 @@ logger = logging.getLogger("coding_os.task_parser")
 # Front-matter header to strip before parsing (same convention as doc_indexer).
 _FRONT_MATTER_RE = re.compile(r"^<!--\s*domain:[^>]*-->\s*\n?", re.MULTILINE)
 
-# YAML front-matter block (Phase M: intensity/persona/situation fields).
+# YAML front-matter block (intensity/persona/situation fields).
 _YAML_FM_RE = re.compile(r"^---\s*\n(?P<yaml>.*?)\n---\s*\n", re.DOTALL)
 
 # Heading detection
@@ -96,7 +96,7 @@ class ParsedTask:
     rabbit_holes: str = ""
     verification: str = ""
     content_hash: str = ""
-    # Phase M: optional cognitive routing fields from YAML frontmatter
+    # Optional cognitive routing fields from YAML frontmatter
     intensity: str | None = None  # light | standard | full
     persona: str | None = None  # e.g. senior-backend, tech-lead
     situation: str | None = None  # e.g. incident-response, onboarding
@@ -108,7 +108,7 @@ class ParsedTask:
 
 
 def _parse_yaml_frontmatter(content: str) -> dict:
-    """Extract Phase M cognitive routing fields from YAML frontmatter.
+    """Extract cognitive routing fields from YAML frontmatter.
 
     Returns a dict with `intensity`, `persona`, `situation` (all Optional[str]).
     Silently returns empty dict if frontmatter absent or yaml import unavailable.
@@ -288,7 +288,7 @@ def parse_task_file(content: str) -> ParsedTask | None:
     if not content or not content.strip():
         return None
 
-    # 0. Extract Phase M routing fields from YAML frontmatter (before stripping)
+    # 0. Extract routing fields from YAML frontmatter (before stripping)
     yaml_fields = _parse_yaml_frontmatter(content)
 
     # 1. Strip front-matter first so H1 detection isn't confused

@@ -262,7 +262,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         if existing:
             return {"status": "deduped", "existing_id": existing[0]}
 
-        # Phase G.2: sanitize user-visible text before it enters memory.
+        # Sanitize user-visible text before it enters memory.
         # Rejects on injection patterns; truncates over-length. Audit is
         # fire-and-forget via the conn — pre-v7 DBs silently no-op.
         from sanitizer import sanitize_write
@@ -319,7 +319,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         except Exception:
             pass  # graph table may not exist (pre-v4 DB)
 
-        # Phase B RAG: embed for semantic search (fire-and-forget). Skipped on
+        # Embed for semantic search (fire-and-forget). Skipped on
         # the synchronous hook hot-path (COS_CAPTURE_SKIP_EMBED) so the model
         # load never blocks an Edit; the FTS5 trigger already indexes the row
         # on INSERT, so keyword recall works without the embedding.

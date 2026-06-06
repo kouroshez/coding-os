@@ -1,5 +1,5 @@
 """
-Coding OS — Document RAG search tool (Phase B.4).
+Coding OS — Document RAG search tool.
 
 Provides `doc_search` — semantic search over the `document_chunks` table
 populated by `doc_indexer`. Returns chunk-level results (300-500 tokens each)
@@ -242,7 +242,7 @@ def doc_search(
             all-MiniLM-L6-v2 on short queries).
         dedupe_per_source: When True, return at most _MAX_PER_SOURCE chunks
             per source_path so a single dominant file doesn't crowd out others.
-        mode: Retrieval mode (Phase G.7.3):
+        mode: Retrieval mode:
             - "auto"     → identifier-looking query → FTS first, else semantic;
                            fall back to the other on empty.
             - "semantic" → embeddings-only (legacy behavior).
@@ -581,7 +581,7 @@ def _like_hydrate(
 
 
 # ---------------------------------------------------------------------------
-# Header-only lazy load — Phase O.4
+# Header-only lazy load
 # ---------------------------------------------------------------------------
 #
 # Pattern mirrors how Anthropic skills surface (frontmatter loads, body lazy):

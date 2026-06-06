@@ -1,5 +1,5 @@
 """
-Coding OS — Vector embeddings module for RAG retrieval (Phase B).
+Coding OS — Vector embeddings module for RAG retrieval.
 
 Provides semantic search via sentence-transformers + numpy cosine similarity
 backed by a single SQLite `embeddings` table. Designed for graceful degradation:
@@ -45,7 +45,7 @@ DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384  # Dimensions of all-MiniLM-L6-v2 output (legacy default)
 EMBEDDING_BYTES = EMBEDDING_DIM * 4  # float32 → 4 bytes per dimension
 
-# I.1 — Phase I: dual-model support during the MiniLM → BGE-M3 migration.
+# Dual-model support during the MiniLM → BGE-M3 migration.
 # Each entry: output dim per model. Callers can opt into BGE-M3 via the
 # COS_EMBEDDING_MODEL env var or an explicit model_name kwarg. The DB
 # remembers the model_name + embedding_dim per row so mixed populations
@@ -151,7 +151,7 @@ def _get_model() -> Any:
     """Legacy shim — returns the active-model encoder.
 
     Kept as an lru_cache'd function so existing tests that call
-    `_get_model.cache_clear()` continue to work after the Phase I
+    `_get_model.cache_clear()` continue to work after the
     refactor. Defers to the multi-model loader.
     """
     return _get_model_by_name(active_model_name())
@@ -226,7 +226,7 @@ def embed_texts(texts: list[str], model_name: str | None = None) -> list[bytes |
 
 
 def cosine_similarity(query_vec: bytes, candidate_vecs: list[bytes]) -> list[float]:
-    """Compute cosine similarity — dim-aware (Phase I contract)."""
+    """Compute cosine similarity — dim-aware."""
     if not query_vec or not candidate_vecs:
         return []
     return cosine_similarity_with_meta(query_vec, candidate_vecs)["scores"]

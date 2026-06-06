@@ -1,4 +1,4 @@
-"""Phase O — Stage-1 metadata pre-filter tests for cos_doc_search.
+"""Stage-1 metadata pre-filter tests for cos_doc_search.
 
 Covers migration v22 columns (domain/layer/ssot/updated_iso/is_active),
 the doc_audit_trail → is_active flip wired into audit_log_record, and
@@ -265,7 +265,7 @@ class TestAuditDeactivation:
             seeded_conn,
             doc_path="docs/a.md",
             action="deleted",
-            reason="superseded by Phase O",
+            reason="superseded by a newer doc",
         )
         assert out["chunks_deactivated"] == 1
 

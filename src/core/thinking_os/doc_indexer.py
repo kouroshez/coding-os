@@ -1,5 +1,5 @@
 """
-Coding OS — Document indexer for RAG retrieval (Phase B.3).
+Coding OS — Document indexer for RAG retrieval.
 
 Walks the project's `docs/` tree, chunks markdown by H2/H3 headings, and
 stores chunks in the `document_chunks` table with embeddings in the

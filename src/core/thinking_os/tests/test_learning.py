@@ -296,7 +296,7 @@ class TestLearnValidate:
 
 
 # ---------------------------------------------------------------------------
-# Phase G.4 — self-validation throttle
+# self-validation throttle
 # ---------------------------------------------------------------------------
 
 
@@ -429,7 +429,7 @@ class TestLearnValidateThrottle:
 
 
 # ---------------------------------------------------------------------------
-# Phase G.6 — evidence-based defaults (learn_narrative + _upsert_pattern)
+# evidence-based defaults (learn_narrative + _upsert_pattern)
 # ---------------------------------------------------------------------------
 
 
@@ -576,7 +576,7 @@ class TestFeedbackDrafts:
 
 
 # ---------------------------------------------------------------------------
-# Phase B: inline embedding side effects
+# inline embedding side effects
 # ---------------------------------------------------------------------------
 
 import embeddings  # noqa: E402

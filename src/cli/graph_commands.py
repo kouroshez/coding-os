@@ -1,4 +1,4 @@
-"""graph_os CLI subcommands (Phase I.14).
+"""graph_os CLI subcommands.
 
 Registers the `cos graph-*` family on the root `cli` group:
 

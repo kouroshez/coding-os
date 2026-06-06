@@ -1,4 +1,4 @@
-"""Thin CLI wrapper around the transition-gates validator (Phase L.10 / TASK-105)."""
+"""Thin CLI wrapper around the transition-gates validator (TASK-105)."""
 
 from __future__ import annotations
 
@@ -236,7 +236,7 @@ def cmd_check_payload(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="transition_gates_cli",
-        description="Phase L.10 transition-gates validator dispatcher.",
+        description="Transition-gates validator dispatcher.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 

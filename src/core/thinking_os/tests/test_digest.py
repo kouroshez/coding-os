@@ -1,5 +1,5 @@
 """
-Tests for digest.py — agent identity snapshot (Phase G.10).
+Tests for digest.py — agent identity snapshot.
 
 Contract:
   - render() is pure: same DB + now → same markdown.

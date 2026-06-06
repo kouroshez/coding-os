@@ -22,7 +22,7 @@ logger = logging.getLogger("thinking_os.learning")
 
 MIN_DATA_THRESHOLD = 3  # minimum task outcomes before extraction
 
-# Phase G.4 — self-validation throttle window. Same (session, pattern)
+# self-validation throttle window. Same (session, pattern)
 # positive validation is ignored within this window. 1h is long enough to
 # cover a continuous task loop but short enough that legitimate re-use
 # across sessions isn't suppressed.
@@ -308,7 +308,7 @@ def learn_extract(
             )
         )
 
-    # --- Failure anatomy patterns (Phase EVO v25) ---
+    # --- Failure anatomy patterns (v25) ---
     # Mine structured backtrack_events for recurring root_cause patterns.
     # Only runs when anatomy columns are present (migration v25).
     try:
@@ -374,12 +374,12 @@ def _upsert_pattern(
 ) -> dict:
     """Insert a new pattern or update existing one's confidence.
 
-    Phase G.2: runs the sanitizer on `pattern` before any DB write. A rejected
+    Runs the sanitizer on `pattern` before any DB write. A rejected
     pattern returns `{"action": "rejected", ...}` and no row is created or
     updated. Truncation is applied transparently (over-cap text is shortened,
     operation proceeds).
 
-    Phase G.6: stamps `provenance` on every new row (derived from `source`
+    Stamps `provenance` on every new row (derived from `source`
     when not supplied). Keeps agent_self writes distinguishable from mined
     data for later sycophancy analysis.
     """
@@ -441,7 +441,7 @@ def _upsert_pattern(
             "action": "created",
         }
 
-    # Phase B RAG: embed the pattern for semantic search.
+    # RAG: embed the pattern for semantic search.
     # Suppressed because embeddings are optional enrichment — the upsert
     # itself must succeed even when rag extras / v5 schema are unavailable.
     _embed_pattern_safe(conn, pattern_id, pattern, concepts)
@@ -639,7 +639,7 @@ def learn_validate(
       - helpful: LTP with diminishing returns + temporal proximity check
       - not helpful: LTD proportional penalty
 
-    Phase G.4 — Self-validation throttle:
+    Self-validation throttle:
       - Every call is logged to `pattern_validations` (INSERT, append-only).
       - If the same (session_id, pattern_id, was_helpful=True) was already
         recorded within THROTTLE_WINDOW_SECONDS, the call is marked
@@ -664,7 +664,7 @@ def learn_validate(
     if row is None:
         return {"error": f"Pattern not found: id={pattern_id}"}
 
-    # Phase G.1 guard: locked/core patterns cannot be mutated via this path
+    # guard: locked/core patterns cannot be mutated via this path
     # even though the trigger would also block it. Return a clean validation
     # error instead of letting SQLite raise.
     trust_tier = row["trust_tier"] if "trust_tier" in row.keys() else "volatile"
@@ -675,7 +675,7 @@ def learn_validate(
             "trust_tier": trust_tier,
         }
 
-    # Phase G.4 throttle — only applies to positive validations
+    # throttle — only applies to positive validations
     throttled = False
     session_id = _read_session_id_for_validate()
     if was_helpful and _has_recent_validation(conn, session_id, pattern_id):
@@ -863,7 +863,7 @@ def learn_narrative(
     if not key_insight:
         return {"error": "key_insight is required — what did you learn?"}
 
-    # Phase G.2: sanitize all narrative fields before they enter memory.
+    # sanitize all narrative fields before they enter memory.
     # Reject on injection patterns; truncate over-length text.
     # Single-pass: compute cleaned values once so audit log records each
     # truncation/reject exactly once.
@@ -938,7 +938,7 @@ def learn_narrative(
     if what_failed:
         pattern_text += f" (failed: {what_failed[:80]})"
 
-    # Phase G.6 — evidence-based auto-promote.
+    # evidence-based auto-promote.
     # Previously this inserted with confidence=0.7 / impact=0.85 /
     # no provenance, letting the agent self-certify a "breakthrough"
     # at high trust after a single call (audit finding A7). Now the
@@ -957,7 +957,7 @@ def learn_narrative(
 
     conn.commit()
 
-    # Phase B RAG: embed both the breakthrough narrative (outcome_history)
+    # RAG: embed both the breakthrough narrative (outcome_history)
     # and the high-impact learned pattern. Errors are intentionally suppressed
     # because embeddings are an optional enrichment — never fail the narrative
     # recording itself if rag extras are not installed or v5 not yet applied.
@@ -1006,7 +1006,7 @@ def _embed_narrative_and_pattern(
     what_failed: str,
     what_worked: str,
 ) -> None:
-    """Embed a breakthrough narrative + its derived pattern (Phase B RAG).
+    """Embed a breakthrough narrative + its derived pattern (RAG).
 
     Fire-and-forget: any failure (missing module, missing table, model load
     failure) is logged at debug level and swallowed. Embeddings are an
