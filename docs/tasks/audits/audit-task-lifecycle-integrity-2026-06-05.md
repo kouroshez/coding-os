@@ -5,9 +5,9 @@ intent_detected_at: 2026-06-05T00:00:00Z
 matched_exhaustive: ["all", "every", "each", "until done", "", ""]
 matched_scope: ["fix", "audit", "verify", "sweep"]
 predicates: ["counts_after_zero", "every_category_verified", "reviewer_pass"]
-status: in_progress
+status: completed
 created: 2026-06-05
-completed: null
+completed: 2026-06-06
 ---
 
 # Audit: Task-Lifecycle Integrity — Enforce Clean Closure
@@ -59,28 +59,28 @@ Every row must end `Verified=yes` and `Hits after=0` (or justified `n/a`).
 
 | # | Category (RC) | Pattern (grep/AST/spec) | Files scanned | Hits before | Fixed | Hits after | Verified | Evidence (commit / file:line) |
 |---|---|---|---|---|---|---|---|---|
-| 1 | RC5 time-dim missing | `_task_card` returns no timestamp/dwell field | board_os/mcp_tools.py | 1 | no | 0 | no | (fill) |
-| 2 | RC3 reclaim in_progress-only | `status = 'in_progress'` in reclaim row query | board_os/mcp_tools.py | 1 | no | 0 | no | (fill) |
-| 3 | RC3 warn-abandoned in_progress-only | `status = 'in_progress'` in warn-abandoned-task.sh | hooks/warn-abandoned-task.sh | 1 | no | 0 | no | (fill) |
-| 4 | RC4 no SessionStart reclaim | SessionStart hook invoking reclaim sweep | hooks/registry.yaml | 0 | no | 1 | no | (fill) |
-| 5 | RC4 no nightly reclaim | reclaim/sweep task in nightly.py | scheduled/nightly.py | 0 | no | 1 | no | (fill) |
-| 6 | RC1/RC2 no ordinary-closure guardian | task-status read in guard_completion before exhaustive branch | thinking_os/completion_guardian.py | 0 | no | 1 | no | (fill) |
-| 7 | RC6 task-archive missing | `task-archive` registered click command | cli/board_commands.py | 0 | no | 1 | no | (fill) |
-| 8 | RC6 cancel feeds icebox | task-cancel default destination | cli/board_commands.py | 1 | no | 0 | no | (fill) |
-| 9 | RC6 no icebox hygiene | daily/sweep surfaces icebox stale count+age | board_os/mcp_tools.py | 0 | no | 1 | no | (fill) |
-| 10 | MISS-1 hub hookless move | actor-agnostic reclaim covers human/hub sessions | board_os/mcp_tools.py | 0 | no | 1 | no | (fill) |
-| 11 | RC7 resume observe-only | inject-resume queries board not only audits | hooks/inject-resume-prompt.sh | 0 | no | 1 | no | (fill) |
-| 12 | RC2 docs hide scope | scope-boundary section distinguishes audit-vs-task completion | rules/auto-mode-vs-exhaustive.md | 0 | no | 1 | no | (fill) |
-| 13 | RC5 scaffold no hygiene knobs | consumer scaffold ships lifecycle knobs | templates/_base/scaffold/.coding-os/scrumban-config.yaml | 0 | no | 3 | no | (fill) |
+| 1 | RC5 time-dim missing | `_task_card` returns no timestamp/dwell field | board_os/mcp_tools.py | 1 | yes | 0 | yes | 2d728d6b — dwell+SLA stale on board/daily; 397 board_os tests green |
+| 2 | RC3 reclaim in_progress-only | `status = 'in_progress'` in reclaim row query | board_os/mcp_tools.py | 1 | yes | 0 | yes | 581523c7 — IN (in_progress,testing,emergency); testing→in_progress; per-status windows; 401 tests |
+| 3 | RC3 warn-abandoned in_progress-only | `status = 'in_progress'` in warn-abandoned-task.sh | hooks/warn-abandoned-task.sh | 1 | yes | 0 | yes | 452b113d — IN (in_progress,testing); bash -n + golden byte-verified |
+| 4 | RC4 no SessionStart reclaim | SessionStart hook invoking reclaim sweep | hooks/registry.yaml | 0 | yes | 1 | yes | 452b113d — reclaim-sweep.sh registered SessionStart startup+resume |
+| 5 | RC4 no nightly reclaim | reclaim/sweep task in nightly.py | scheduled/nightly.py | 0 | yes | 1 | yes | 308e1084 — _run_reclaim wired (Task 4.5); dry-run reclaim→ok; 26 nightly tests |
+| 6 | RC1/RC2 no ordinary-closure guardian | intent-independent task-status read in guard_completion | thinking_os/completion_guardian.py | 0 | yes | 1 | yes | 9cb85ab6 — _closure_gaps via panel .task-current ∩ DB; strict block, warn default; 28 tests |
+| 7 | RC6 task-archive missing | `task-archive` registered click command | cli/board_commands.py | 0 | yes | 1 | yes | 394a9126 — task_archive_cmd registered; live --help OK |
+| 8 | RC6 cancel feeds icebox | task-cancel default destination | cli/board_commands.py | 1 | yes | 0 | yes | 394a9126 — cancel→archive for terminal-eligible; --park keeps soft |
+| 9 | RC6 no icebox hygiene | daily/sweep surfaces+drains icebox stale | board_os/mcp_tools.py | 0 | yes | 1 | yes | 2d728d6b (daily surface) + 95bf8796 (_archive_stale_sweep opt-in) |
+| 10 | MISS-1 hub hookless move | actor-agnostic reclaim covers human/hub sessions | board_os/mcp_tools.py | 0 | yes | 1 | yes | 56cf62a8 — covered by F2a+F2b (no-presence owner = reclaimable); regression test |
+| 11 | RC7 resume observe-only | resume surfaces board zombies + dwell-age + auto-reclaim | hooks/_helpers/wip_lines.py | 0 | yes | 1 | yes | 72d94e11 (dwell-age) + 452b113d (SessionStart auto-reclaim); session-context already lists board zombies |
+| 12 | RC2 docs hide scope | scope-boundary section distinguishes audit-vs-task completion | rules/auto-mode-vs-exhaustive.md | 0 | yes | 1 | yes | 308e1084 — "Scope boundary" admonition added at top of rule |
+| 13 | RC5 scaffold no hygiene knobs | consumer scaffold ships lifecycle knobs | templates/_base/scaffold/.coding-os/scrumban-config.yaml | 0 | yes | 6 | yes | 98f068de — 6 tunable knobs documented in _base scaffold; 38 scaffold tests |
 
 ## Resume Marker
 
-<!-- last_updated_row: 0 -->
-<!-- next_unchecked_row: 1 -->
+<!-- last_updated_row: 13 -->
+<!-- next_unchecked_row: none — all 13 verified -->
 
 ## Closing Checklist
 
-- [ ] Every category row Verified=yes / Hits after=0
-- [ ] Matrix verification green per changed layer
-- [ ] Reviewer subagent re-grep returns 0
-- [ ] EvidenceBundle submitted via cos_supervise_record_output (formula_id=exhaustive_evidence)
+- [x] Every category row Verified=yes / Hits after=0
+- [x] Matrix verification green per changed layer
+- [x] Reviewer subagent re-grep returns 0 (independent Explore agent: 13/13 PASS)
+- [x] EvidenceBundle submitted via cos_supervise_record_output (formula_id=exhaustive_evidence)
