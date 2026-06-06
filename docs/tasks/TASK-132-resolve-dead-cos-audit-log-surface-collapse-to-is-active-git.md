@@ -5,18 +5,17 @@ swimlane: thinking_os
 kind: refactor
 epic: doc-system
 labels: [docs-system, overengineering, audit-trail, audit-d4-f3, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-05
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: [TASK-131]
 blocked_by: []
 references: []
 ---
-
 # TASK-132: Resolve dead cos_audit_log_* surface — collapse to is_active + git history; fix doc-cheat-sheet dangling template refs
 
 **Outcome (one sentence):** No half-built version-history infra: collapse the unread cos_audit_log_query/timeline tools + value-less per-doc-edit auto-capture to just the is_active mechanism cos_doc_search actually uses, and serve version history via cos doc-history (D4-F3); fix the doc-cheat-sheet decision tree's references to template files that don't exist by adding the missing api-contract/adr templates or correcting the refs (D4-F5, D6-F7).
@@ -33,3 +32,4 @@ references: []
 - **Then** ...
 
 ## Work Log
+- 2026-06-06 [claude]: ARCHIVED — collapse premise rejected (graph+grep verified). cos_audit_log_query/timeline are NOT dead: documented compli
