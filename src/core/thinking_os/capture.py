@@ -248,7 +248,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
     cost_tokens = _estimate_tokens(input_data)
     concepts = json.dumps(extract_concepts(file_path=file_path))
 
-    # Content hash dedup (TASK-153): skip duplicate observations within 30s window
+    # Content hash dedup: skip duplicate observations within 30s window
     content_hash = _compute_content_hash(tool_name, file_path)
 
     conn = get_connection(path)

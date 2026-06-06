@@ -588,7 +588,7 @@ class TestG6EvidenceBasedDefaults:
 
 
 # ---------------------------------------------------------------------------
-# Auto-feedback generation (TASK-147)
+# Auto-feedback generation
 # ---------------------------------------------------------------------------
 
 

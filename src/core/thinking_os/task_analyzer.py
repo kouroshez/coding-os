@@ -133,7 +133,7 @@ _PROD_IMPACT_TOKENS = [
 
 def _extract_exhaustive(agent_dir: Path | None) -> bool:
     """Read exhaustive-scope intent from .intent.json (panel-first, fail-open)."""
-    # Panel-first (TASK-107): the marker is per-panel; COS_PANEL_DIR is the
+    # Panel-first: the marker is per-panel; COS_PANEL_DIR is the
     # authoritative source, the passed agent_dir is the back-compat fallback.
     candidates: list[Path] = []
     panel = os.environ.get("COS_PANEL_DIR")

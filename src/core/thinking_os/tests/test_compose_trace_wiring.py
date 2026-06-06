@@ -79,7 +79,7 @@ class TestAutoComposeEmitsTrace:
         )
 
         assert line  # a context line was produced
-        assert "[role:" in line  # lead-role directive injected, not just the chain label (TASK-065)
+        assert "[role:" in line  # lead-role directive injected, not just the chain label
         assert (panel_dir / ".roles").is_file()  # marker → panel (banner)
         events = _compose_done_events(agent_dir, "ses-auto-1")  # trace → agent-level (panel reads)
         assert len(events) == 1

@@ -557,7 +557,7 @@ class TestTaskClosureGuardian:
         result = guard_completion(session_id="s1", repo_root=repo)
         assert result.status == "pass", "no .task-current → nothing to enforce"
 
-    # TASK-216 — mode resolvable from hub-settings.json (UI), env wins.
+    # mode resolvable from hub-settings.json (UI), env wins.
 
     def _write_hub_settings(self, repo: Path, mode: str) -> None:
         import json as _json

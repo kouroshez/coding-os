@@ -213,7 +213,7 @@ class TestTaskDependents:
         wrongly return TASK-199.
         """
         results = task_dependents(seeded_db, "TASK-019")
-        # TASK-019 has no downstream dependents
+        # has no downstream dependents
         assert results == []
 
     def test_dependents_of_task_with_descendant(self, seeded_db: sqlite3.Connection) -> None:
@@ -221,7 +221,7 @@ class TestTaskDependents:
         results = task_dependents(seeded_db, "TASK-195")
         ids = {r["task_id"] for r in results}
         assert ids == {"TASK-199"}
-        # TASK-001 also depends (transitively) but should NOT appear
+        # also depends (transitively) but should NOT appear
         assert "TASK-001" not in ids
 
     def test_leaf_task_returns_empty(self, seeded_db: sqlite3.Connection) -> None:
@@ -289,7 +289,7 @@ class TestTaskSearchSemantic:
         results = task_search(seeded_db, "multi vendor marketplace revenue sharing")
         assert len(results) >= 1
         ids = {r["task_id"] for r in results}
-        # TASK-199 (commission model, payment splitting) should surface
+        # should surface
         assert "TASK-199" in ids or "TASK-195" in ids
 
     @REQUIRES_RAG

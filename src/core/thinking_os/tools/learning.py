@@ -154,7 +154,7 @@ def learn_extract(
     extracted: list[dict] = []
 
     # Heal any legacy count-snapshot duplicates before mining so the upsert
-    # below updates a single survivor row per fact. (TASK-206)
+    # below updates a single survivor row per fact.
     _collapse_duplicate_patterns(conn)
 
     # --- Domain rework patterns ---
@@ -377,7 +377,7 @@ def _pattern_identity(text: str) -> str:
     # Count-agnostic dedup key: strip the running counts / percentages so a
     # re-mined fact ("INFRA succeeds … (40/40)" → "(83/83)") maps to the
     # SAME row. The displayed `pattern` keeps the live numbers; only the
-    # identity ignores them. See TASK-206.
+    # identity ignores them. See
     t = _IDENTITY_COUNT_RE.sub("", text)
     t = _IDENTITY_RATIO_RE.sub("", t)
     t = _IDENTITY_PCT_RE.sub("", t)
@@ -462,7 +462,7 @@ def _upsert_pattern(
     # Match on a count-agnostic identity, not exact text: a re-mined fact
     # whose running count grew ("(40/40)" → "(83/83)") is the SAME pattern
     # and must update its row, not insert a snapshot. The table is small, so
-    # canonicalise candidate rows in the same domain. (TASK-206)
+    # canonicalise candidate rows in the same domain.
     identity = _pattern_identity(pattern)
     existing = None
     for cand in conn.execute(
@@ -576,7 +576,7 @@ def learn_suggest(
         params.append(domain)
     where = " AND ".join(conditions)
 
-    # Relevance boost (TASK-109): complexity + task_type used to be accepted
+    # Relevance boost: complexity + task_type used to be accepted
     # then ignored, so recall was relevance-blind. There is no per-pattern
     # complexity/task_type column, so we BOOST (never exclude) patterns whose
     # concepts/pattern text mention the term — a matching pattern outranks an
@@ -817,7 +817,7 @@ def learn_validate(
 
 
 # ---------------------------------------------------------------------------
-# Auto-feedback generation (TASK-147)
+# Auto-feedback generation
 # ---------------------------------------------------------------------------
 
 FEEDBACK_THRESHOLD = 3  # minimum rework tasks to trigger feedback draft

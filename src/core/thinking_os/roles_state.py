@@ -127,7 +127,7 @@ def record_compose_traces(chain, session_id: str, agent_dir: str | None = None) 
 
 # Tool/phase → preferred role. The active role advances as the agent moves
 # through work phases (analyze → build → verify), so the banner reflects what
-# the agent is DOING, not a frozen chain lead (TASK-057 F2.3). Each candidate
+# the agent is DOING, not a frozen chain lead. Each candidate
 # is chosen only if it's actually IN the composed chain — we never invent a
 # role the composer didn't pick.
 _PHASE_ROLE_CANDIDATES: dict[str, tuple[str, ...]] = {

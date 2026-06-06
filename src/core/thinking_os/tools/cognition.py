@@ -253,7 +253,7 @@ def register_cos_supervise_record_output(mcp, db_path):
         # Validate formula_id before any use. A malformed value (e.g. an XML
         # tool-call fragment leaking the arg boundary —
         # `exhaustive_evidence</formula_id>...`) once landed verbatim in the
-        # typed column (TASK-055 forensic). Reject non-identifier values up
+        # typed column. Reject non-identifier values up
         # front rather than persisting garbage.
         if not formula_id or not re.fullmatch(r"[a-z0-9_]+", formula_id):
             return fail("validation", "formula_id must match [a-z0-9_]+")
@@ -261,7 +261,7 @@ def register_cos_supervise_record_output(mcp, db_path):
         bundle = _load_bundle(session_id, task_marker, persona_id)
         schemas_mod = _schemas()
 
-        # Special path: exhaustive intent evidence (TASK-004 G3). Validated
+        # Special path: exhaustive intent evidence. Validated
         # by the completion guardian (Stop hook) against the predicate set
         # in $COS_AGENT_DIR/.intent.json. Not a role — has its own field.
         error_detail: str | None = None
@@ -932,8 +932,7 @@ def register_cos_compose_chain(mcp, db_path):
         # agent-scoped state files the Hub /api/roles panel reads. Both live in
         # roles_state so this MCP path and the auto-compose hook
         # (hooks/_helpers/auto_compose.py) never drift on what the panel reads
-        # — the drift that left the panel empty (TASK-063; writer factored out
-        # in TASK-048/055, emit unified in TASK-063).
+        # — the drift that left the panel empty.
         try:
             import roles_state
 

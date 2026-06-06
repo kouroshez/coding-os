@@ -155,7 +155,7 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
         body, existing_meta, did_trim = _apply_token_budget(body, existing_meta)
         if did_trim:
             existing_meta["truncated"] = True
-            # Audit fix (TASK-053): a list-dropping token trim makes the
+            # Audit fix: a list-dropping token trim makes the
             # answer incomplete, so the coverage flag must agree. Tools
             # that publish `result_truncated` (contracts/references/...)
             # had it stay False while items were silently dropped, so an
@@ -173,7 +173,7 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     return json.dumps(payload, indent=2, default=str)
 
 
-# TASK-034: keys that hold list payloads across cos_* tools. Trimmer
+# keys that hold list payloads across cos_* tools. Trimmer
 # walks them in order — biggest payload first when there's a choice.
 # `results` stays first for legacy callers; context/references/impact
 # emit the rest. `edges_by_type` is a dict-of-lists handled separately.
@@ -633,7 +633,7 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     if not fits:
         meta["envelope_unshrinkable"] = True
         # Debug-level here; the @safe_tool layer re-logs this at ERROR WITH the
-        # tool name (TASK-209) so the eye gets an actionable, deduplicable row
+        # tool name so the eye gets an actionable, deduplicable row
         # instead of an anonymous one. Tools not wrapped by safe_tool are rare.
         logger.debug(
             "envelope %d chars > budget %d after all trims",
@@ -772,7 +772,7 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
 
         # Name the offending tool when ok() flagged the envelope unshrinkable.
         # ok() logs the size from a context without the tool name, leaving the
-        # eye with an unactionable "something is 265KB" error (TASK-209).
+        # eye with an unactionable "something is 265KB" error.
         if isinstance(result, str) and "envelope_unshrinkable" in result:
             logger.error(
                 "tool %s returned an unshrinkable envelope (%d chars > %d budget)",

@@ -194,7 +194,7 @@ def _detect_agent_session_default() -> str | None:
     # session-context.sh refreshes every prompt. The long-lived MCP server
     # has no $COS_PANEL_DIR, so this is the freshest signal it can read;
     # the flat "session-id" file is a stale fossil kept only as a last
-    # resort (see docs/engineering/state-files.md, TASK-094).
+    # resort (see docs/engineering/state-files.md).
     agent_dir_env = _os.environ.get("COS_AGENT_DIR")
     if agent_dir_env:
         for _fname in (".active-session", "session-id"):
@@ -245,7 +245,7 @@ def _detect_agent_session_default() -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Metrics tools (TASK-143)
+# Metrics tools
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_metric_record",
@@ -560,7 +560,7 @@ def cos_audit_log_timeline(
 
 
 # ---------------------------------------------------------------------------
-# Memory tools (TASK-142)
+# Memory tools
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_observation_record",
@@ -594,7 +594,7 @@ def cos_observation_record(
     name="cos_search",
     annotations={
         "title": "Search Thinking OS Memory",
-        "readOnlyHint": False,  # writes retrieval telemetry only — raw search does NOT bump access_count/confidence (TASK-109; that is cos_details)
+        "readOnlyHint": False,  # writes retrieval telemetry only — raw search does NOT bump access_count/confidence
         "destructiveHint": False,
         "idempotentHint": False,
         "openWorldHint": False,
@@ -769,7 +769,7 @@ def thinking_os_promote_tool(
 
 
 # ---------------------------------------------------------------------------
-# Learning tools (TASK-144)
+# Learning tools
 # ---------------------------------------------------------------------------
 def _persist_learn_suggestions_safe(result: dict) -> None:
     """Append surfaced pattern ids to $COS_AGENT_DIR/.learn-suggestions."""
@@ -1003,7 +1003,7 @@ def cos_learn_narrative(
 
 
 # ---------------------------------------------------------------------------
-# Routing tools (TASK-145)
+# Routing tools
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_route_model",
@@ -1320,7 +1320,7 @@ def cos_doc_search(
     log_router_decision(
         _db_conn, query=query, chosen_layer="docs", bytes_returned=len(str(results))
     )
-    # D7-F4 (TASK-137): when the rag embedding extra is unavailable, retrieval
+    # D7-F4: when the rag embedding extra is unavailable, retrieval
     # silently degrades to FTS-only — surface that as retrieval_mode so the
     # beginner persona is warned, not misled. An explicit lexical request keeps
     # its own mode (intentional, not a degradation).
@@ -1342,7 +1342,7 @@ def cos_doc_search(
 
 
 # ---------------------------------------------------------------------------
-# Doc header tools (TASK-155): header-only lazy load
+# Doc header tools: header-only lazy load
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_doc_header",
@@ -1368,7 +1368,7 @@ def cos_doc_header(path: str) -> str:
             target = target.resolve()
         except OSError as exc:
             return fail("validation", f"cannot resolve path: {exc}")
-    # Path-traversal guard (TASK-162). The MCP server is trusted today,
+    # Path-traversal guard. The MCP server is trusted today,
     # but a future external client must never read files outside the
     # project root via this tool.
     project_root = Path.cwd().resolve()
@@ -1419,7 +1419,7 @@ def cos_doc_headers_by(
             root_path = root_path.resolve()
         except OSError as exc:
             return fail("validation", f"cannot resolve root: {exc}")
-    # Path-traversal guard (TASK-162) — root must stay inside project.
+    # Path-traversal guard — root must stay inside project.
     project_root = Path.cwd().resolve()
     try:
         root_path.relative_to(project_root)

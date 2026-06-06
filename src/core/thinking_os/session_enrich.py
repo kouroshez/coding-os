@@ -130,7 +130,7 @@ def main() -> None:
 
         # Duration from the session's observation time-span (earliest→latest
         # edit). The previous source — session-id file mtime delta — collapsed
-        # to 0 on every row (TASK-055). The span is a real wall-clock signal
+        # to 0 on every row. The span is a real wall-clock signal
         # already in the DB; falls back to 0 only when <2 observations exist.
         duration_ms = 0
         try:
@@ -146,7 +146,7 @@ def main() -> None:
 
         # Real session model, not a hardcoded 'opus' — env first, then the
         # .model marker, then 'unknown'. Hardcoding made all 389 rows
-        # identical (TASK-048 data-quality fix); domain/complexity/duration
+        # identical; domain/complexity/duration
         # already vary per session.
         model = os.environ.get("COS_AGENT_MODEL") or os.environ.get("ANTHROPIC_MODEL")
         if not model:
@@ -156,7 +156,7 @@ def main() -> None:
                 model = marker.read_text().strip() or None
         model = model or "unknown"
 
-        # Real outcome, not a hardcoded 'success' literal (TASK-055). A session
+        # Real outcome, not a hardcoded 'success' literal. A session
         # that recorded any completion_gap observation ended with unmet intent →
         # 'partial'; otherwise 'success'. This is the only negative-signal
         # source on the automated session path, so metric trends + the

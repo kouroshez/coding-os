@@ -60,7 +60,7 @@ STATE_DIRNAME = ".coding-os"
 # A true project root co-locates its `.coding-os/` with at least one of these
 # markers. A stray nested `.coding-os/` (lazy-created from a subdir like
 # src/cli/) has none of them — so preferring a marked ancestor lets us skip
-# strays and anchor on the real root. (TASK-047.)
+# strays and anchor on the real root.
 _ROOT_MARKERS = (
     ".git",
     ".coding-os.yaml",
@@ -96,7 +96,7 @@ def _find_project_root_from_cwd(start: Path | None = None) -> Path:
         # this skips a stray nested `.coding-os/` (e.g. src/cli/.coding-os/
         # lazy-created from a subdir) and anchors on the true root. The walk
         # stops at the first MARKED root, so a legitimate checkout is never
-        # overridden by an unmarked outer stray (e.g. ~/.coding-os). TASK-047.
+        # overridden by an unmarked outer stray (e.g. ~/.coding-os).
         try:
             if any((parent / marker).exists() for marker in _ROOT_MARKERS):
                 return parent
@@ -1716,13 +1716,13 @@ CREATE TABLE IF NOT EXISTS session_summaries (
 );
 """,
     ),
-    # TASK-152: FTS5 full-text search layer (callable migration — needs runtime FTS5 check)
+    # FTS5 full-text search layer (callable migration — needs runtime FTS5 check)
     (
         2,
         "TASK-152: FTS5 observations_fts virtual table + INSERT/UPDATE/DELETE triggers",
         _migrate_v2_fts5,
     ),
-    # TASK-148: routing_weights table for adaptive model/skill routing
+    # routing_weights table for adaptive model/skill routing
     (
         3,
         "TASK-148: routing_weights table for adaptive routing",

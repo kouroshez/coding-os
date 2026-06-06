@@ -254,7 +254,7 @@ def route_skill(
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Router weight recalculation (TASK-148)
+# Router weight recalculation
 # ---------------------------------------------------------------------------
 
 WEIGHT_USE_THRESHOLD = 20  # minimum samples before weights influence routing

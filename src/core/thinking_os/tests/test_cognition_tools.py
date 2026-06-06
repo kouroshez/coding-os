@@ -283,7 +283,7 @@ class TestCosSituationDetect:
 
 
 # ---------------------------------------------------------------------------
-# cos_classify_prompt — gate-record correctness (TASK-059 #0b)
+# cos_classify_prompt — gate-record correctness
 # ---------------------------------------------------------------------------
 
 

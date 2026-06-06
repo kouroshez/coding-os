@@ -253,7 +253,7 @@ Read next: x.
 
 
 def test_list_doc_headers_limit_keeps_top_priority(tmp_path: Path) -> None:
-    # Regression (TASK-137): the limit must apply AFTER the priority sort, not
+    # Regression: the limit must apply AFTER the priority sort, not
     # mid-walk — otherwise the returned top-N is rglob (filesystem) order.
     for i in range(5):
         _write(

@@ -267,7 +267,7 @@ def _import_schemas():
 
 def _read_task_current(target_dir: Path) -> str | None:
     # Panel-local active-task marker (set by sync-task-current). Robust to the
-    # panel-blind MCP attribution bug (TASK-201): it never reads
+    # panel-blind MCP attribution bug: it never reads
     # tasks.agent_session — it trusts what THIS panel bound itself to.
     for path in (target_dir / ".task-current", _agent_dir() / ".task-current"):
         try:
@@ -322,7 +322,7 @@ def _closure_mode() -> str:
 
 
 def _closure_gaps(target_dir: Path) -> list[str]:
-    # TASK-210 RC1/RC2 — ordinary task-closure enforcement, INDEPENDENT of
+    # RC1/RC2 — ordinary task-closure enforcement, INDEPENDENT of
     # exhaustive intent (the historic guardian only fired for exhaustive
     # audits, so an ordinary started-but-unfinished task could stop freely).
     # Only `strict` mode BLOCKS — the per-turn warn nudge is owned by
@@ -414,7 +414,7 @@ def guard_completion(
                     f"never ran for session {session_id}"
                 )
 
-    # A2 (TASK-062) — forgery check independent of intent.exhaustive: an audit
+    # A2 — forgery check independent of intent.exhaustive: an audit
     # this session marked completed / ticked the EvidenceBundle box on must be
     # backed by a real cos_supervise_record_output dispatch row. Reads the audit
     # FILE (not the bundle), catching the Codex-CLI path that writes no bundle.

@@ -247,7 +247,7 @@ class TestSyncTasksHappyPath:
         self, tmp_db: sqlite3.Connection, tmp_project: Path
     ) -> None:
         sync_tasks(tmp_db, project_root=tmp_project)
-        # Delete TASK-003
+        # Delete
         (tmp_project / "docs" / "tasks" / "TASK-003-auth-flow.md").unlink()
         second = sync_tasks(tmp_db, project_root=tmp_project)
         assert second["deleted"] == 1

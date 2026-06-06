@@ -611,7 +611,7 @@ _LONG_OPENING_RE = {
     "read_next": re.compile(r"^Read next:\s*(.+?)\s*$", re.M),
 }
 
-# Short-form (TASK-158) — accept either form. Short form lives inside a
+# Short-form — accept either form. Short form lives inside a
 # blockquote: `> P: …` / `> R: …` / `> S: …` / `> N: …`.
 _SHORT_OPENING_RE = {
     "purpose": re.compile(r"^>\s*P:\s*(.+?)\s*$", re.M),
@@ -763,6 +763,6 @@ def list_doc_headers(
         return (-priority_num, updated)
 
     # Sort the FULL match set before truncating — otherwise top-N is rglob
-    # (filesystem) order, not priority/recency order (TASK-137).
+    # (filesystem) order, not priority/recency order.
     rows.sort(key=_sort_key)
     return rows[:limit]
