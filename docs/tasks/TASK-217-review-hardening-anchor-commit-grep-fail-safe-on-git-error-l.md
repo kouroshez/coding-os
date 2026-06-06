@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: task-lifecycle-integrity
 labels: [workflow-integrity, board, lifecycle, review-fix, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-06
-completed: null
+completed: 2026-06-06
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 - **Then** matrix verification (board_os) green and a reviewer confirms env-error fail-safe direction.
 
 ## Work Log
+- 2026-06-06 [claude]: committed 34483f78: src/cli/board_commands.py, src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py
+- 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
