@@ -102,7 +102,7 @@ def _find_project_root_from_cwd(start: Path | None = None) -> Path:
                 return parent
         except OSError:
             continue
-    # No marked root in the chain → innermost `.coding-os/` (TASK-117: never
+    # No marked root in the chain → innermost `.coding-os/` (never
     # lazy-create a fresh one at cwd), else cwd.
     return first_with_state if first_with_state is not None else cur
 

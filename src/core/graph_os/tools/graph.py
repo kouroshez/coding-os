@@ -2935,7 +2935,7 @@ def _grep_string_literals(name: str, *, limit: int = 100) -> list[dict[str, Any]
     # rename targets an AST pass misses (getattr(o, "name"), config keys,
     # dynamic dispatch). ripgrep when present (respects .gitignore), bounded
     # Python walk otherwise. Quote-scoped regex keeps precision; capped at
-    # `limit`. TASK-045: was a permanent [] stub → check_strings was a no-op.
+    # `limit`. Was a permanent [] stub → check_strings was a no-op.
     if not name or len(name) < 3:
         return []  # too short → only noise
     root = _repo_root_for_paths()
@@ -4454,8 +4454,8 @@ def cos_graph_doctor(
                         fixed_count += int(cur.rowcount or 0)
                     sqlite_conn.commit()
             if stub_orphans:
-                # Informational only — never trips healthy=false. TASK-046:
-                # the aggregate `count` lumps three distinct stub kinds; the
+                # Informational only — never trips healthy=false. The
+                # aggregate `count` lumps three distinct stub kinds; the
                 # `breakdown` reports the accurate per-prefix split so the
                 # label isn't misread as "all external:unresolved".
                 breakdown = {"external_unresolved": 0, "external_other": 0, "identifier_stub": 0}

@@ -363,7 +363,7 @@ def extract(
         # frontmatter so duplicate-href dedupe inside the scan only fires
         # within the body. Frontmatter `reads:[…]` is handled inline via
         # `_emit_read_next_targets` to keep both forms graph-symmetric.
-        # Strip fenced code first — TASK-162 fix #4 — so a `Read next:` line
+        # Strip fenced code first — so a `Read next:` line
         # that lives inside a ```bash``` block does not produce a false edge.
         _opening_block_content = _FENCED_CODE_RE.sub("", content)
         _extract_opening_block_reads(path, _opening_block_content, result)

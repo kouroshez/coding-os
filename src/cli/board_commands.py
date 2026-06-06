@@ -824,7 +824,7 @@ def task_show_cmd(task_id):
                 # write-state.sh stores "<session-id> <value>" on one line.
                 # Split off the session prefix and pull the first TASK-NNN
                 # token out of the remainder (handles slugged values like
-                # "TASK-096-some-slug").
+                # "TASK-NNN-some-slug").
                 content = current_file.read_text(encoding="utf-8").strip()
                 tokens = content.split()
                 value = " ".join(tokens[1:]) if len(tokens) >= 2 else content

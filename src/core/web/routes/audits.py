@@ -87,7 +87,7 @@ def _parse_markdown_header(text: str, out: dict) -> None:
     # surfaces the same status the agent banner reads.
     # Examples we must catch:
     #   **Status:** in_progress
-    #   **Task:** TASK-032 · **Status:** in_progress
+    #   **Task:** TASK-NNN · **Status:** in_progress
     # Only scan the doc header (first ~30 lines) so severity-bold table
     # entries (**CRITICAL** etc.) don't pollute the keys.
     head = "\n".join(text.splitlines()[:30])

@@ -1614,10 +1614,10 @@ def register_cos_classify_prompt(mcp, db_path):
         # panel session is resolvable. The MCP server has no per-call panel
         # env, so this succeeds mainly when COS_PANEL_DIR is set (or agent_dir
         # is a real panel dir). It writes the SAME session-prefixed format the
-        # strict panel reader (check-state.sh, TASK-035) requires; a bare
+        # strict panel reader (check-state.sh) requires; a bare
         # value or an agent-dir write would be silently rejected and leave a
         # misleading fossil — so we do neither, reporting recorded=false + a
-        # shell hint instead. (TASK-059 fix for the prior wrong-dir/wrong-format
+        # shell hint instead. (Fixes the prior wrong-dir/wrong-format
         # /no-trace bug.)
         recorded = False
         record_hint = ""

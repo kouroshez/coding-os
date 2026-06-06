@@ -602,7 +602,7 @@ def cos_task_create(
         "priority": priority,
         "appetite": appetite,
         "created": today,
-        # F17 / TASK-029 task-lifecycle fix: when a task is created
+        # Task-lifecycle fix: when a task is created
         # directly into `in_progress`, stamp started + agent_session
         # so YAML and DB agree. F17b: narrowed to `in_progress` only
         # to match `workflow.transition`'s semantics — testing/emergency
