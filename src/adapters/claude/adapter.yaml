@@ -68,7 +68,10 @@ runtime_session_marker:
     # unstable ppid fallback. Kept after it as a forward-compat alias.
     - CLAUDE_CODE_SESSION_ID
     - CLAUDE_SESSION_ID
-    - ANTHROPIC_SESSION_ID
+    # ANTHROPIC_SESSION_ID intentionally absent: cos-env.sh's probe dropped it
+    # (TASK-112) and the shell kernel never reads it, so declaring it here is a
+    # silently-dead marker. test_adapter_session_marker_probe_parity enforces
+    # env_vars ⊆ the cos-env.sh probe so this cannot drift back (TASK-213).
 
 # MCP launch metadata consumed by cli/doctor.py::_load_coding_os_mcp_launch
 # (C15 check). Data-driven so tests/test_no_hardcoded_stacks.py stays green.
