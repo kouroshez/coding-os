@@ -2,8 +2,8 @@
 # warn-abandoned-task.sh (Phase observability) — Stop hook.
 #
 # Warns once per session when a task this session moved to in_progress
-# is still in_progress at turn-end. Catches the recurring "agent started
-# a task but never moved it to testing/complete" pattern that strands
+# or testing is still open at turn-end. Catches the recurring "agent
+# started a task but never moved it to complete" pattern that strands
 # cards on the board. Fail-open: never blocks the Stop, only nudges via
 # a Stop additionalContext block. Debounced per session-id.
 set -euo pipefail
@@ -37,15 +37,18 @@ if [ -f "$MARKER" ] && grep -qF "$SESSION_ID" "$MARKER" 2>/dev/null; then
   exit 0
 fi
 
+# Widened from in_progress-only (TASK-210 RC3): `testing` is where the
+# testing-first protocol parks near-done work, so it is the status a task most
+# often dies in — yet it was previously invisible to this warning.
 STUCK="$(sqlite3 "$COS_DB_PATH" \
-  "SELECT group_concat(task_id, ', ') FROM tasks
-   WHERE status = 'in_progress' AND agent_session = '$SESSION_ID';" \
+  "SELECT group_concat(task_id || ' (' || status || ')', ', ') FROM tasks
+   WHERE status IN ('in_progress','testing') AND agent_session = '$SESSION_ID';" \
   2>/dev/null || true)"
 
 if [ -n "$STUCK" ]; then
   echo "$SESSION_ID" > "$MARKER"
   cos_log_hook warn-abandoned-task warn || true
-  MSG="[board] Task(s) still in_progress for this session: ${STUCK}. Move each to testing/complete with \`cos task-move\` once done — a task left in in_progress is stranded on the board with no owner action."
+  MSG="[board] Task(s) still open for this session: ${STUCK}. Close each with \`cos task-done\` (or park via \`cos task-move --to blocked\`) — a task left in in_progress/testing is stranded on the board with no owner action."
   printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' \
     "$(printf '%s' "$MSG" | jq -R -s '.')"
 fi

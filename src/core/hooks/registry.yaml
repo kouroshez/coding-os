@@ -698,6 +698,20 @@ hooks:
         matcher: compact|resume
         status_message: "📉 Debounced pattern-decay sweep..."
 
+  - id: reclaim-sweep
+    script: reclaim-sweep.sh
+    description: SessionStart reclaims zombie in_progress/testing tasks of dead predecessor sessions (board_os.cos_task_reclaim). Consumer-robust recovery leg — needs no SessionEnd event or cron. Fire-and-forget, detached, ~30m debounce via $COS_PANEL_DIR/.reclaim-sweep.
+    category: observability
+    phase: G
+    timeout: 15
+    events:
+      - event: SessionStart
+        matcher: startup
+        status_message: "♻️  Reclaiming zombie tasks of dead sessions..."
+      - event: SessionStart
+        matcher: compact|resume
+        status_message: "♻️  Reclaiming zombie tasks of dead sessions..."
+
   - id: warn-graph-empty
     script: warn-graph-empty.sh
     description: SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.

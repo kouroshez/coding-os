@@ -499,6 +499,12 @@
           },
           {
             "type": "command",
+            "command": "{{HOOKS_DIR}}/reclaim-sweep.sh",
+            "statusMessage": "♻️  Reclaiming zombie tasks of dead sessions...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "{{HOOKS_DIR}}/warn-graph-empty.sh",
             "statusMessage": "🕸️  Checking graph_os index state...",
             "timeout": 10
@@ -565,6 +571,12 @@
             "command": "{{HOOKS_DIR}}/auto-brain-decay.sh",
             "statusMessage": "📉 Debounced pattern-decay sweep...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/reclaim-sweep.sh",
+            "statusMessage": "♻️  Reclaiming zombie tasks of dead sessions...",
+            "timeout": 15
           },
           {
             "type": "command",
