@@ -6,6 +6,7 @@ import HealthAlarmBar from '@/layout/HealthAlarmBar';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
+import logoUrl from '@/assets/logo.png';
 import ThemeToggle from '@/layout/ThemeToggle';
 
 /**
@@ -71,8 +72,9 @@ export default function AppShell({
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-[var(--cos-bg)] text-[var(--cos-text)]">
       <header className="flex shrink-0 items-center gap-4 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-2">
-        <div className="text-[15px] font-bold tracking-tight text-[var(--cos-accent)]">
-          Coding OS
+        <div className="flex shrink-0 items-center gap-2">
+          <img src={logoUrl} alt="" aria-hidden="true" className="h-6 w-6 shrink-0" />
+          <span className="text-[15px] font-bold tracking-tight text-[var(--cos-text)]">Coding OS</span>
         </div>
         <ProjectSwitcher />
         <LiveStatus />
