@@ -1105,3 +1105,37 @@ def test_archive_rejected_from_in_progress(project: Path, conn: sqlite3.Connecti
     conn.commit()
     env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
     assert env["ok"] is False, "in_progress->archive must be rejected (validates cancel's icebox park)"
+
+
+# ---------- F5b: icebox auto-archive sweep — TASK-210 RC6 ----------
+
+_SL = [{"id": "core", "label": "Core", "color": "#3b82f6"}]
+
+
+def test_archive_sweep_off_by_default(project: Path, conn: sqlite3.Connection):
+    """Default config (auto_archive_days=0) never deletes backlog."""
+    from board_os.config import parse_config
+
+    mcp_tools.cos_task_create(conn, title="Old idea", swimlane="core", kind="chore", status="icebox")
+    _backdate_task(conn, "TASK-001", "icebox", 100 * 86400)
+    archived = mcp_tools._archive_stale_sweep(conn, parse_config({"swimlanes": _SL}))
+    assert archived == []
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "icebox"
+
+
+def test_archive_sweep_archives_aged_icebox_respecting_keep(project: Path, conn: sqlite3.Connection):
+    """Opt-in: aged icebox cards archive, but a keep/parked label exempts."""
+    from board_os.config import parse_config
+
+    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
+    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)  # > 30d
+    mcp_tools.cos_task_create(
+        conn, title="Keeper", swimlane="core", kind="chore", status="icebox", labels=["keep"]
+    )
+    _backdate_task(conn, "TASK-002", "icebox", 40 * 86400)
+    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
+    archived = mcp_tools._archive_stale_sweep(conn, cfg)
+    ids = [a["task_id"] for a in archived]
+    assert "TASK-001" in ids and "TASK-002" not in ids
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-002'").fetchone()[0] == "icebox"

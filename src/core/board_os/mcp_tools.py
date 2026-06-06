@@ -1376,6 +1376,63 @@ def cos_task_reclaim(
     )
 
 
+_KEEP_LABELS = ("keep", "parked")
+
+
+def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
+    """Auto-archive aged icebox / complete cards — the icebox OUTFLOW (RC6).
+
+    OFF by default: only runs for a status whose ``*_auto_archive_days`` knob is
+    > 0, so a fresh project never silently deletes backlog. A ``keep``/``parked``
+    label always exempts a card, and archive is reversible (archive->icebox is a
+    legal edge). Idempotent + fail-soft per card.
+    """
+    if config is None:
+        return []
+    policy = config.workflow_policy
+    plans: list[tuple[str, int]] = []
+    if getattr(policy, "icebox_auto_archive_days", 0) > 0:
+        plans.append(("icebox", policy.icebox_auto_archive_days * 86400))
+    if getattr(policy, "complete_auto_archive_days", 0) > 0:
+        plans.append(("complete", policy.complete_auto_archive_days * 86400))
+    if not plans:
+        return []
+
+    now = time.time()
+    project_root = _project_root()
+    archived: list[dict] = []
+    for status, threshold_s in plans:
+        rows = conn.execute(
+            "SELECT task_id, started_at, file_path, labels_json, "
+            "  (SELECT MAX(transitioned_at) FROM task_status_history h "
+            "   WHERE h.task_id = tasks.task_id) "
+            "FROM tasks WHERE status = ?",
+            (status,),
+        ).fetchall()
+        for task_id, started_at, rel, labels_json, last_tx in rows:
+            dwell = _status_dwell_seconds(now, started_at, last_tx)
+            if dwell is None or dwell < threshold_s:
+                continue
+            if any(lbl in _KEEP_LABELS for lbl in _labels_list_from_json(labels_json)):
+                continue
+            file_path = project_root / rel if rel else None
+            result = transition(
+                conn,
+                task_id,
+                "archive",
+                reason=f"auto-archive: {status} idle {round(dwell / 86400, 1)}d",
+                agent_session=None,
+                force=True,
+                config=config,
+                file_path=file_path,
+            )
+            if result.ok:
+                archived.append(
+                    {"task_id": task_id, "from_status": status, "age_days": round(dwell / 86400, 1)}
+                )
+    return archived
+
+
 # ---------- cos_task_pick ----------
 
 
@@ -1435,6 +1492,8 @@ def cos_task_daily(
     # Self-heal at the session-start ritual: reclaim zombie in_progress
     # tasks (idle + owner session inactive) before reporting state.
     # Fire-and-forget — daily must never fail on the reclaim path.
+    config = _current_config()
+
     reclaimed: list[dict] = []
     try:
         rec_env = json.loads(cos_task_reclaim(conn, agent_session=agent_session))
@@ -1442,6 +1501,15 @@ def cos_task_daily(
             reclaimed = rec_env["data"]["reclaimed"]
     except Exception as exc:  # noqa: BLE001 - fire-and-forget
         logger.debug("daily reclaim skipped: %s", exc)
+
+    # Icebox outflow — auto-archive aged backlog/complete cards when the project
+    # opted in (default off). Runs before the status queries so archived cards
+    # drop out of the report naturally. Fire-and-forget.
+    auto_archived: list[dict] = []
+    try:
+        auto_archived = _archive_stale_sweep(conn, config)
+    except Exception as exc:  # noqa: BLE001 - fire-and-forget
+        logger.debug("daily archive sweep skipped: %s", exc)
 
     recent = conn.execute(
         "SELECT task_id, old_status, new_status, reason, transitioned_at "
@@ -1463,7 +1531,6 @@ def cos_task_daily(
     blocked = conn.execute(f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority").fetchall()
     icebox = conn.execute(f"{_BOARD_SELECT} WHERE status = 'icebox'").fetchall()
 
-    config = _current_config()
     wip = None
     if config is not None:
         state = check_wip(conn, config)
@@ -1498,6 +1565,7 @@ def cos_task_daily(
             "icebox": icebox_summary,
             "wip": wip,
             "reclaimed": reclaimed,
+            "auto_archived": auto_archived,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_daily"},
     )
