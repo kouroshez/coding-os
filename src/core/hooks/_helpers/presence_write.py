@@ -63,7 +63,7 @@ def main(argv: list[str]) -> int:
         "ended_at": prev.get("ended_at"),
         "model": (model or prev.get("model") or None),
         # Bridges the coding-os session id (this file's name) to the host SDK
-        # transcript uuid so a task can link to the chat that made it (TASK-184).
+        # transcript uuid so a task can link to the chat that made it.
         "sdk_uuid": (sdk_uuid or prev.get("sdk_uuid") or None),
     }
     if event == "start":

@@ -32,7 +32,7 @@ logger = logging.getLogger("auto_compose")
 # (from tools.learning, below). Adding thinking_os/tools flat would put it
 # AHEAD of thinking_os, so a bare `import cognition` (tools/cognition.py::_cog)
 # could shadow to tools/cognition.py instead of the top-level cognition.py that
-# owns load_situation_registry — the cross-process shadow bug (TASK-066).
+# owns load_situation_registry — the cross-process shadow bug.
 _THIS = Path(__file__).resolve()
 _THINKING_OS = _THIS.parents[2] / "thinking_os"
 if _THINKING_OS.is_dir() and str(_THINKING_OS) not in sys.path:
@@ -106,14 +106,14 @@ def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: st
     # (.roles/.role) are per-panel for the banner; the trace goes agent-level
     # (record_compose_traces passes agent_dir=None → $COS_AGENT_DIR) so the
     # panel — which scans the agent-level traces dir — actually finds it.
-    # Without this the auto-compose path was invisible to the panel (TASK-063).
+    # Without this the auto-compose path was invisible to the panel.
     roles_state.record_compose_traces(chain, _session_id(agent_dir))
     lead = chain.chain[0]
     rest = len(chain.chain) - 1
     suffix = f"+{rest}" if rest > 0 else ""
     line = f"[roles] auto-composed: {lead}{suffix} ({chain.source}) → {' → '.join(chain.chain)}"
     # Append the lead role's directive so the nudge actually GUIDES the agent
-    # in-session, not just labels the chain (TASK-065). Token-cheap (lead only).
+    # in-session, not just labels the chain. Token-cheap (lead only).
     directive = _lead_directive(lead)
     if directive:
         line += f"\n[role:{lead}] {directive}"

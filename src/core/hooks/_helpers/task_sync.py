@@ -38,7 +38,7 @@ def main(argv: list[str]) -> int:
     if not Path(db_path).exists():
         return 0
 
-    # Route through get_connection for WAL + busy_timeout (TASK-108).
+    # Route through get_connection for WAL + busy_timeout.
     try:
         from thinking_os.database import get_connection  # type: ignore
 

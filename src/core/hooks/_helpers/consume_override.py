@@ -11,7 +11,7 @@ def main() -> int:
     path = Path(sys.argv[1])
     key = sys.argv[2]
     # Exclusive flock across the whole read-modify-write so two concurrent
-    # hooks can't both consume the same one-shot override (TASK-108). On a
+    # hooks can't both consume the same one-shot override. On a
     # platform without fcntl, or if the file is missing, fall back to the
     # best-effort non-atomic path (the override file rarely contends).
     try:

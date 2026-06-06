@@ -13,7 +13,7 @@ import time
 
 
 def _human(seconds: int | None) -> str:
-    # Compact dwell label so a stranded card screams its age on resume (TASK-210).
+    # Compact dwell label so a stranded card screams its age on resume.
     if seconds is None:
         return "?"
     if seconds < 3600:

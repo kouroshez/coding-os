@@ -37,7 +37,7 @@ def main(argv: list[str]) -> int:
         return 0
 
     # Route through get_connection for WAL + busy_timeout so a concurrent
-    # board write waits instead of failing on a locked DB (TASK-108).
+    # board write waits instead of failing on a locked DB.
     try:
         from thinking_os.database import get_connection  # type: ignore
 

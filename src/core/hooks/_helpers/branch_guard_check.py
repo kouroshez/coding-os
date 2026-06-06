@@ -84,7 +84,7 @@ def _strip_git_globals(tokens: list[str]) -> list[str]:
 # Crude segmenter: split on shell separators that start a new command.
 # Doesn't perfectly respect quoting, but quoted commands are recovered via
 # the `sh -c <quoted>` extractor below — together they cover the cases the
-# TASK-013 reviewer surfaced.
+# reviewer surfaced.
 _SEGMENT_SPLIT_RE = re.compile(r"&&|\|\||[;|()&]")
 
 
