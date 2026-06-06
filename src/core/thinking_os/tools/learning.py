@@ -153,6 +153,10 @@ def learn_extract(
 
     extracted: list[dict] = []
 
+    # Heal any legacy count-snapshot duplicates before mining so the upsert
+    # below updates a single survivor row per fact. (TASK-206)
+    _collapse_duplicate_patterns(conn)
+
     # --- Domain rework patterns ---
     domain_rows = conn.execute(
         "SELECT domain, COUNT(*) AS total, "
@@ -361,6 +365,57 @@ _SOURCE_TO_PROVENANCE: dict[str, str] = {
 }
 
 
+# Volatile counters embedded in mined pattern text — the running task
+# count grows every extraction run, so it must NOT be part of a pattern's
+# identity or each run mints a new snapshot row instead of updating one.
+_IDENTITY_COUNT_RE = re.compile(r"\(\d+(?:/\d+)?\s*(?:tasks?|occurrences?)[^)]*\)", re.IGNORECASE)
+_IDENTITY_RATIO_RE = re.compile(r"\(\d+/\d+\)")
+_IDENTITY_PCT_RE = re.compile(r"\d+(?:\.\d+)?%")
+
+
+def _pattern_identity(text: str) -> str:
+    # Count-agnostic dedup key: strip the running counts / percentages so a
+    # re-mined fact ("INFRA succeeds … (40/40)" → "(83/83)") maps to the
+    # SAME row. The displayed `pattern` keeps the live numbers; only the
+    # identity ignores them. See TASK-206.
+    t = _IDENTITY_COUNT_RE.sub("", text)
+    t = _IDENTITY_RATIO_RE.sub("", t)
+    t = _IDENTITY_PCT_RE.sub("", t)
+    return " ".join(t.split()).lower()
+
+
+def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
+    # Self-healing one-shot: merge legacy count-snapshot duplicates that the
+    # pre-TASK-206 exact-text dedup let accumulate. Idempotent — once each
+    # (identity, domain) group is a single row, this is a no-op. Returns the
+    # number of rows deleted.
+    rows = conn.execute(
+        "SELECT id, pattern, domain, confidence, times_validated FROM learned_patterns"
+    ).fetchall()
+    groups: dict[tuple[str, object], list] = {}
+    for r in rows:
+        groups.setdefault((_pattern_identity(r["pattern"]), r["domain"]), []).append(r)
+    removed = 0
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        survivor = max(members, key=lambda m: (m["times_validated"], m["confidence"], m["id"]))
+        losers = [m["id"] for m in members if m["id"] != survivor["id"]]
+        conn.execute(
+            "UPDATE learned_patterns SET pattern = ?, confidence = ?, "
+            "times_validated = ?, last_validated = CURRENT_TIMESTAMP WHERE id = ?",
+            (
+                survivor["pattern"],
+                max(m["confidence"] for m in members),
+                sum(m["times_validated"] for m in members) + len(losers),
+                survivor["id"],
+            ),
+        )
+        conn.executemany("DELETE FROM learned_patterns WHERE id = ?", [(i,) for i in losers])
+        removed += len(losers)
+    return removed
+
+
 def _upsert_pattern(
     conn: sqlite3.Connection,
     *,
@@ -404,22 +459,34 @@ def _upsert_pattern(
         }
     pattern = p_sr.cleaned
 
-    existing = conn.execute(
-        "SELECT id, confidence, times_validated FROM learned_patterns "
-        "WHERE pattern = ? AND domain IS ?",
-        (pattern, domain),
-    ).fetchone()
+    # Match on a count-agnostic identity, not exact text: a re-mined fact
+    # whose running count grew ("(40/40)" → "(83/83)") is the SAME pattern
+    # and must update its row, not insert a snapshot. The table is small, so
+    # canonicalise candidate rows in the same domain. (TASK-206)
+    identity = _pattern_identity(pattern)
+    existing = None
+    for cand in conn.execute(
+        "SELECT id, pattern, confidence, times_validated FROM learned_patterns WHERE domain IS ?",
+        (domain,),
+    ):
+        if _pattern_identity(cand["pattern"]) == identity:
+            existing = cand
+            break
 
     if existing:
-        # Update confidence (take the higher)
+        # Update confidence (take the higher) and refresh the displayed text
+        # to the latest counts. Each re-mining is a positive re-confirmation,
+        # so bump times_validated — that count IS the consumer-facing signal
+        # that replaced the duplicate snapshot rows.
         new_conf = max(existing["confidence"], confidence)
         # Re-extraction is a positive signal: refresh recency AND revive (promoted_to=NULL)
         # so a pattern a prior decay run archived becomes visible to suggest/digest again.
         conn.execute(
-            "UPDATE learned_patterns SET confidence = ?, last_validated = CURRENT_TIMESTAMP, "
+            "UPDATE learned_patterns SET pattern = ?, confidence = ?, "
+            "times_validated = times_validated + 1, last_validated = CURRENT_TIMESTAMP, "
             "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL, archived_at = NULL "
             "WHERE id = ?",
-            (new_conf, existing["id"]),
+            (pattern, new_conf, existing["id"]),
         )
         pattern_id = existing["id"]
         result = {"id": pattern_id, "pattern": pattern, "confidence": new_conf, "action": "updated"}

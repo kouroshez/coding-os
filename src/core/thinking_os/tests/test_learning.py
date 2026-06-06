@@ -141,6 +141,74 @@ class TestLearnExtract:
         assert result["total_outcomes_analyzed"] == 8
 
 
+class TestPatternIdentityDedup:
+    """TASK-206: the running task count embedded in mined pattern text used
+    to be part of the dedup identity, so every extraction run (count grew)
+    inserted a NEW snapshot row — the Memory page filled with near-identical
+    'INFRA succeeds … (32/32)' / '(40/40)' / '(83/83)' rows. Identity is now
+    count-agnostic so a re-mined fact updates its single row."""
+
+    def test_pattern_identity_strips_counts(self) -> None:
+        from tools.learning import _pattern_identity
+
+        a = _pattern_identity("INFRA domain succeeds at 100% (32/32 tasks) — reliable baseline")
+        b = _pattern_identity("INFRA domain succeeds at 100% (83/83 tasks) — reliable baseline")
+        assert a == b  # same fact, different snapshot count
+        # distinct facts must NOT collide
+        c = _pattern_identity("DOCS domain succeeds at 100% (6/6 tasks) — reliable baseline")
+        assert a != c
+
+    def test_growing_count_updates_not_duplicates(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools.learning import _upsert_pattern
+
+        first = _upsert_pattern(
+            seeded_conn,
+            pattern="INFRA domain succeeds at 100% (40/40 tasks) — reliable baseline",
+            memory_type="pattern",
+            domain="INFRA",
+            source="learn_extract",
+            confidence=0.6,
+            concepts="[]",
+        )
+        assert first["action"] == "created"
+        second = _upsert_pattern(
+            seeded_conn,
+            pattern="INFRA domain succeeds at 100% (83/83 tasks) — reliable baseline",
+            memory_type="pattern",
+            domain="INFRA",
+            source="learn_extract",
+            confidence=0.7,
+            concepts="[]",
+        )
+        assert second["action"] == "updated"
+        assert second["id"] == first["id"]
+        rows = seeded_conn.execute(
+            "SELECT pattern, times_validated FROM learned_patterns WHERE domain = 'INFRA'"
+        ).fetchall()
+        assert len(rows) == 1  # one row, not two snapshots
+        assert "83/83" in rows[0]["pattern"]  # text refreshed to latest count
+        assert rows[0]["times_validated"] == 1  # re-confirmation bumped
+
+    def test_collapse_merges_legacy_snapshots(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools.learning import _collapse_duplicate_patterns
+
+        for n in (22, 29, 31, 32, 40, 83):
+            seeded_conn.execute(
+                "INSERT INTO learned_patterns (pattern, domain, confidence, times_validated) "
+                "VALUES (?, 'INFRA', 0.5, 0)",
+                (f"INFRA domain succeeds at 100% ({n}/{n} tasks) — reliable baseline",),
+            )
+        seeded_conn.commit()
+        removed = _collapse_duplicate_patterns(seeded_conn)
+        assert removed == 5  # 6 snapshots → 1 survivor
+        rows = seeded_conn.execute(
+            "SELECT COUNT(*) FROM learned_patterns WHERE domain = 'INFRA'"
+        ).fetchone()[0]
+        assert rows == 1
+        # second pass is idempotent — nothing left to collapse
+        assert _collapse_duplicate_patterns(seeded_conn) == 0
+
+
 # ---------------------------------------------------------------------------
 # cos_learn_suggest
 # ---------------------------------------------------------------------------

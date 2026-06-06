@@ -33,10 +33,21 @@ function api(slug: string | undefined, path: string): string {
   return `${base}${path}`;
 }
 
-function tierClass(tier: string): string {
-  if (tier === 'validated') return 'text-[var(--cos-ok)]';
-  if (tier === 'volatile') return 'text-[var(--cos-warn)]';
-  return 'text-[var(--cos-muted)]';
+// Confidence drives the bar colour — meaning, not decoration. Solid status
+// tokens stay legible on BOTH the light and dark Hub themes (the old .14
+// tints washed out on light backgrounds).
+function confColor(c: number): string {
+  if (c >= 0.8) return 'var(--cos-ok)';
+  if (c >= 0.5) return 'var(--cos-accent)';
+  return 'var(--cos-warn)';
+}
+
+function tierBadge(tier: string): { label: string; bg: string; fg: string } {
+  if (tier === 'validated')
+    return { label: 'Validated', bg: 'var(--cos-ok-tint)', fg: 'var(--cos-ok)' };
+  if (tier === 'volatile')
+    return { label: 'Forming', bg: 'var(--cos-warn-tint)', fg: 'var(--cos-warn)' };
+  return { label: tier || 'unknown', bg: 'var(--cos-overlay)', fg: 'var(--cos-muted)' };
 }
 
 export default function MemoryPage() {
@@ -73,83 +84,101 @@ export default function MemoryPage() {
   }, [slug, filter]);
 
   return (
-    <div className="p-6 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Learned Patterns (Agent Memory)</h1>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="border rounded px-2 py-1 text-sm"
-        >
-          <option value="">All tiers</option>
-          <option value="validated">Validated</option>
-          <option value="volatile">Volatile</option>
-        </select>
-      </header>
+    <div className="h-full overflow-auto p-6">
+      <div className="mx-auto max-w-3xl space-y-5">
+        <header className="space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-xl font-semibold text-[var(--cos-text)]">Agent Memory</h1>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2.5 py-1 text-sm text-[var(--cos-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-focus)]"
+            >
+              <option value="">All patterns</option>
+              <option value="validated">Validated</option>
+              <option value="volatile">Forming</option>
+            </select>
+          </div>
+          <p className="text-sm text-[var(--cos-muted)]">
+            Patterns the agent has learned across sessions from past task outcomes.
+            Confidence reflects how strongly each is trusted; “confirmed” counts how
+            many times it was re-observed.
+          </p>
+        </header>
 
-      {loading && <div className="text-sm text-[var(--cos-muted)]">Loading…</div>}
-      {error && (
-        <div className="text-sm text-[var(--cos-err)]">Failed to load patterns: {error}</div>
-      )}
-      {!loading && !error && patterns.length === 0 && (
-        <div className="text-sm text-[var(--cos-muted)]">
-          No learned patterns yet. They appear once the learning loop extracts
-          patterns from task outcomes (cos_learn_extract, nightly or every 10th
-          task).
-        </div>
-      )}
+        {loading && <div className="text-sm text-[var(--cos-muted)]">Loading…</div>}
+        {error && (
+          <div className="rounded-md border border-[var(--cos-err)] bg-[var(--cos-err-tint)] px-3 py-2 text-sm text-[var(--cos-err)]">
+            Failed to load patterns: {error}
+          </div>
+        )}
+        {!loading && !error && patterns.length === 0 && (
+          <div className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-6 text-sm text-[var(--cos-muted)]">
+            No learned patterns yet. They appear once the learning loop distils
+            patterns from task outcomes (nightly, or every 10th task).
+          </div>
+        )}
 
-      {patterns.length > 0 && (
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b text-left">
-              <th className="py-2 pr-4">Pattern</th>
-              <th className="py-2 pr-4">Domain</th>
-              <th className="py-2 pr-4">Confidence</th>
-              <th className="py-2 pr-4">Impact</th>
-              <th className="py-2 pr-4">Tier</th>
-              <th className="py-2 pr-4">Validated</th>
-              <th className="py-2 pr-4">Used</th>
-              <th className="py-2 pr-4">Decay</th>
-            </tr>
-          </thead>
-          <tbody>
-            {patterns.map((p) => (
-              <tr key={p.id} className="border-b align-top">
-                <td className="py-2 pr-4 max-w-md">{p.pattern}</td>
-                <td className="py-2 pr-4 text-xs">{p.domain ?? '—'}</td>
-                <td className="py-2 pr-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-[var(--cos-panel)] rounded">
-                      <div
-                        className="h-2 bg-[var(--cos-info-tint)] rounded"
-                        style={{ width: `${Math.round((p.confidence ?? 0) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-[var(--cos-faint)]">
-                      {(p.confidence ?? 0).toFixed(2)}
+        {patterns.length > 0 && (
+          <div className="space-y-2.5">
+            {patterns.map((p) => {
+              const pct = Math.round((p.confidence ?? 0) * 100);
+              const tier = tierBadge(p.trust_tier);
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-3 transition-colors hover:border-[var(--cos-border-strong)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm leading-snug text-[var(--cos-text)]">{p.pattern}</p>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      style={{ backgroundColor: tier.bg, color: tier.fg }}
+                    >
+                      {tier.label}
                     </span>
                   </div>
-                </td>
-                <td className="py-2 pr-4 text-xs">{(p.impact_score ?? 0).toFixed(2)}</td>
-                <td className={`py-2 pr-4 text-xs ${tierClass(p.trust_tier)}`}>
-                  {p.trust_tier}
-                </td>
-                <td className="py-2 pr-4 text-xs">
-                  {p.times_validated}
-                  {p.times_violated > 0 && (
-                    <span className="text-[var(--cos-err)]"> / -{p.times_violated}</span>
-                  )}
-                </td>
-                <td className="py-2 pr-4 text-xs">{p.access_count}</td>
-                <td className="py-2 pr-4 text-xs text-[var(--cos-muted)]">
-                  {(p.decay_rate ?? 0).toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--cos-muted)]">
+                    {p.domain && (
+                      <span
+                        className="rounded px-1.5 py-0.5 font-medium"
+                        style={{
+                          backgroundColor: 'var(--cos-brand-tint)',
+                          color: 'var(--cos-brand-text)',
+                        }}
+                      >
+                        {p.domain}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="h-1.5 w-28 overflow-hidden rounded-full"
+                        style={{ backgroundColor: 'var(--cos-overlay)' }}
+                      >
+                        <span
+                          className="block h-full rounded-full"
+                          style={{ width: `${pct}%`, backgroundColor: confColor(p.confidence ?? 0) }}
+                        />
+                      </span>
+                      <span className="tabular-nums text-[var(--cos-text)]">{pct}%</span>
+                      <span>confidence</span>
+                    </span>
+                    {p.times_validated > 0 && (
+                      <span className="tabular-nums">confirmed {p.times_validated}×</span>
+                    )}
+                    {p.times_violated > 0 && (
+                      <span className="tabular-nums text-[var(--cos-err)]">
+                        contradicted {p.times_violated}×
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
