@@ -666,6 +666,68 @@ async def board_diff(
     )
 
 
+@router.get("/task/{task_id}/chat-ref")
+async def board_task_chat_ref(
+    task_id: str,
+    _rl=Depends(make_rate_limit_dep("board.task.chatref")),
+    _m=Depends(make_metrics_dep("board.task.chatref")),
+):
+    """Resolve a task's originating chat: live SDK uuid + snapshot availability."""
+    if not task_id or not task_id.startswith("TASK-"):
+        return JSONResponse(
+            status_code=400,
+            content={"error": {"category": "validation", "message": "invalid task_id"}},
+        )
+    conn = _db_conn()
+    try:
+        row = conn.execute(
+            "SELECT agent_session FROM tasks WHERE task_id = ?", (task_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"category": "not_found", "message": f"{task_id} not found"}},
+        )
+
+    import glob as _glob
+
+    from web._project_context import current_project_root
+
+    agent_session = (row[0] or "").strip()
+    sdk_uuid = None
+    has_snapshot = False
+    # Only resolve a real, filename-safe agent session (never 'human').
+    if agent_session and agent_session != "human" and re.match(r"^[A-Za-z0-9_-]+$", agent_session):
+        root = current_project_root()
+        for pf in _glob.glob(str(root / ".coding-os" / "*" / "sessions" / f"{agent_session}.json")):
+            try:
+                rec = json.loads(Path(pf).read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if rec.get("sdk_uuid"):
+                sdk_uuid = rec["sdk_uuid"]
+                break
+        snaps = _glob.glob(
+            str(root / ".coding-os" / "*" / "sessions" / "transcripts" / f"{agent_session}.jsonl")
+        )
+        has_snapshot = bool(snaps)
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "data": {
+                "task_id": task_id,
+                "agent_session": agent_session or None,
+                "sdk_uuid": sdk_uuid,
+                "has_snapshot": has_snapshot,
+            },
+            "meta": {"layer": "tasks", "source": "web.board_task_chat_ref"},
+        },
+    )
+
+
 def _transcript_preview_text(obj: dict) -> str:
     msg = obj.get("message")
     if isinstance(msg, dict):

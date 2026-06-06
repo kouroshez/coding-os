@@ -2891,6 +2891,7 @@ function TaskDetailDrawer({
                 </span>
               )}
             </span>
+            <TaskChatLink taskId={task.id} />
             <button
               type="button"
               onClick={onClose}
@@ -3333,6 +3334,57 @@ function CommitRow({
         </div>
       )}
     </div>
+  );
+}
+
+interface ChatRefDTO {
+  task_id: string;
+  agent_session: string | null;
+  sdk_uuid: string | null;
+  has_snapshot: boolean;
+}
+
+function TaskChatLink({ taskId }: { taskId: string }) {
+  const { data } = useApiGet<ChatRefDTO>(
+    ['board-chat-ref', taskId],
+    `/api/board/task/${taskId}/chat-ref`,
+    undefined,
+    { enabled: !!taskId },
+  );
+  const sdkUuid = data?.sdk_uuid ?? null;
+  const hasSnapshot = data?.has_snapshot ?? false;
+  if (!sdkUuid && !hasSnapshot) return null;
+  const open = () => {
+    if (!sdkUuid) return;
+    const m = window.location.pathname.match(/^\/p\/[^/]+/);
+    const prefix = m ? m[0] : '';
+    window.open(`${prefix}/cognition/${encodeURIComponent(sdkUuid)}?view=chat`, '_blank', 'noopener');
+  };
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={!sdkUuid}
+      title={
+        sdkUuid
+          ? 'Open the chat session that created this task'
+          : 'Originating session ended — transcript snapshot is shown below'
+      }
+      style={{
+        background: 'transparent',
+        border: '1px solid var(--col-border)',
+        color: sdkUuid ? 'var(--accent)' : 'var(--ink-faint)',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11,
+        padding: '3px 10px',
+        borderRadius: 3,
+        cursor: sdkUuid ? 'pointer' : 'default',
+        letterSpacing: '.02em',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      ↗ {sdkUuid ? 'originating chat' : 'snapshot below'}
+    </button>
   );
 }
 
