@@ -38,3 +38,5 @@ Findings + plan from the read-only review workflow (wf_5e36d619-026): API-contra
 - 2026-06-06 [claude]: G1 agent-draft stream fixed: _safe_serialize now recurses field-by-field (getattr over dataclasses.fields) so nested Ass
 - 2026-06-06 [claude]: committed c240206b: src/core/web/routes/cognition.py, src/core/web/ui/src/features/cognition/NewChatForm.tsx, src/core/w
 - 2026-06-06 [claude]: G3 modals fluid: AgentTaskModal width clamp(34rem,50vw,60rem), CreateTaskModal clamp(40rem,62vw,80rem) + grid minmax(0,1
+- 2026-06-06 [claude]: committed 5edf1efc: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx
+- 2026-06-06 [claude]: G2 customer-grade create flow: clicking new now shows a plain-language chooser first (✨ Let an AI draft it · recommended

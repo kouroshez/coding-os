@@ -2410,16 +2410,16 @@ function AgentTaskModal({
           padding: '20px 22px',
         }}
       >
-        <div style={{ fontSize: 22, color: 'var(--accent)' }}>✨ agent draft</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>✨ Draft with AI</div>
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: 'var(--ink-faint)',
-            margin: '4px 0 16px',
+            fontSize: '.82rem',
+            color: 'var(--ink-soft)',
+            margin: '6px 0 16px',
+            lineHeight: 1.5,
           }}
         >
-          a headless Claude session researches the codebase (cos_* only — no code edits) and writes one task
+          Describe what you want in plain English — an assistant reads your project and writes the task for you.
         </div>
         <form onSubmit={run} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <textarea
@@ -2450,7 +2450,7 @@ function AgentTaskModal({
                 opacity: busy || !prompt.trim() ? 0.5 : 1,
               }}
             >
-              {busy ? 'researching…' : 'generate task'}
+              {busy ? 'Drafting…' : 'Draft task ▸'}
             </button>
             {finished && !busy && (
               <button
@@ -2467,7 +2467,7 @@ function AgentTaskModal({
                   cursor: 'pointer',
                 }}
               >
-                done — close
+                Done
               </button>
             )}
           </div>
@@ -2495,6 +2495,38 @@ function AgentTaskModal({
     </div>
   );
 }
+
+const chooserCard: CSSProperties = {
+  display: 'flex',
+  gap: '.85rem',
+  alignItems: 'flex-start',
+  textAlign: 'left',
+  width: '100%',
+  padding: '1rem 1.1rem',
+  background: 'var(--board-grain)',
+  border: '1px solid var(--col-border)',
+  borderRadius: 8,
+  cursor: 'pointer',
+  color: 'var(--ink)',
+  transition: 'border-color .12s ease',
+};
+const chooserCardTitle: CSSProperties = {
+  fontSize: '.98rem',
+  fontWeight: 600,
+  color: 'var(--ink)',
+  marginBottom: '.2rem',
+};
+const chooserCardDesc: CSSProperties = { fontSize: '.8rem', color: 'var(--ink-soft)', lineHeight: 1.45 };
+const chooserCancel: CSSProperties = {
+  padding: '.5rem .9rem',
+  fontSize: '.8rem',
+  fontWeight: 600,
+  background: 'transparent',
+  color: 'var(--ink-soft)',
+  border: '1px solid var(--col-border)',
+  borderRadius: 4,
+  cursor: 'pointer',
+};
 
 function CreateTaskModal({
   open,
@@ -2530,6 +2562,8 @@ function CreateTaskModal({
     labels: '',
     outcome: '',
   });
+  // Step 1 is always the mode chooser (agent vs manual); the form is step 2.
+  const [mode, setMode] = useState<'choose' | 'manual'>('choose');
 
   useEffect(() => {
     if (open) {
@@ -2543,10 +2577,94 @@ function CreateTaskModal({
         labels: '',
         outcome: '',
       });
+      setMode('choose');
     }
   }, [open, swimlanes]);
 
   if (!open) return null;
+
+  // Step 1 — plain-language chooser so a non-developer sees the agent path
+  // up front (it used to be a tiny ghost button almost nobody noticed).
+  if (mode === 'choose') {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create a task"
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 200,
+          background: 'rgba(0,0,0,.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+          animation: 'fadeIn .15s ease',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: 'clamp(30rem, 44vw, 46rem)',
+            maxWidth: '94vw',
+            background: 'var(--col-bg)',
+            border: '1px solid var(--col-border)',
+            borderRadius: 10,
+            boxShadow: '0 30px 60px rgba(0,0,0,.4)',
+            padding: '1.75rem',
+          }}
+        >
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '.35rem' }}>
+            Create a task
+          </div>
+          <div style={{ fontSize: '.85rem', color: 'var(--ink-soft)', marginBottom: '1.25rem' }}>
+            How would you like to create it?
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+            {onAgentMode && (
+              <button
+                type="button"
+                onClick={onAgentMode}
+                style={chooserCard}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--col-border)')}
+              >
+                <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>✨</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={chooserCardTitle}>
+                    Let an AI draft it <span style={{ color: 'var(--accent)', fontWeight: 600 }}>· recommended</span>
+                  </div>
+                  <div style={chooserCardDesc}>
+                    Describe your goal in plain English — an assistant reads your project and fills in the task for you.
+                  </div>
+                </div>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              style={chooserCard}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--col-border)')}
+            >
+              <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>✍️</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={chooserCardTitle}>Fill it in myself</div>
+                <div style={chooserCardDesc}>Set the title, lane, and details yourself.</div>
+              </div>
+            </button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+            <button type="button" onClick={onClose} style={chooserCancel}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const kindOpts = Object.entries(KIND_COLORS).map(([k, v]) => ({
     value: k,
@@ -2619,39 +2737,27 @@ function CreateTaskModal({
               borderBottom: '2px dashed var(--col-border)',
             }}
           >
-            <div
+            <button
+              type="button"
+              onClick={() => setMode('choose')}
+              title="Back to the create options"
               style={{
-                fontFamily: 'inherit',
-                fontSize: 22,
-                letterSpacing: '.02em',
-                color: 'var(--accent)',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ink-soft)',
+                cursor: 'pointer',
+                fontSize: '.8rem',
+                padding: 0,
               }}
             >
-              new task
+              ‹ back
+            </button>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '.02em', color: 'var(--ink)' }}>
+              New task
             </div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--ink-faint)' }}>
-              cos_task_create → TASK-{String(nextId).padStart(3, '0')}
+            <div style={{ fontSize: '.72rem', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
+              #{String(nextId).padStart(3, '0')}
             </div>
-            {onAgentMode && (
-              <button
-                type="button"
-                onClick={onAgentMode}
-                title="Let a headless agent research the codebase and draft this task"
-                style={{
-                  marginLeft: 'auto',
-                  background: 'transparent',
-                  color: 'var(--accent)',
-                  border: '1px solid var(--col-border)',
-                  borderRadius: 4,
-                  padding: '3px 10px',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  cursor: 'pointer',
-                }}
-              >
-                ✨ agent draft
-              </button>
-            )}
           </div>
 
           <FormField label="Title" required>
@@ -2673,40 +2779,55 @@ function CreateTaskModal({
             />
           </FormField>
 
-          <FormField label="Kind" required>
-            <ChipRow options={kindOpts} value={form.kind} onChange={(v) => setForm((f) => ({ ...f, kind: v }))} />
-          </FormField>
+          <details style={{ marginTop: 4 }}>
+            <summary
+              style={{
+                cursor: 'pointer',
+                fontSize: '.78rem',
+                color: 'var(--ink-soft)',
+                userSelect: 'none',
+                padding: '.4rem 0',
+              }}
+            >
+              More options
+            </summary>
+            <div style={{ marginTop: 8 }}>
+              <FormField label="Kind">
+                <ChipRow options={kindOpts} value={form.kind} onChange={(v) => setForm((f) => ({ ...f, kind: v }))} />
+              </FormField>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <FormField label="Priority" required>
-              <ChipRow options={priorityOpts} value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))} />
-            </FormField>
-            <FormField label="Appetite" required hint="30m 2h 1d 3d 1w">
-              <input
-                value={form.appetite}
-                onChange={(e) => setForm((f) => ({ ...f, appetite: e.target.value }))}
-                style={monoFormInput}
-              />
-            </FormField>
-          </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <FormField label="Priority">
+                  <ChipRow options={priorityOpts} value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))} />
+                </FormField>
+                <FormField label="Estimated effort" hint="30m 2h 1d 3d 1w">
+                  <input
+                    value={form.appetite}
+                    onChange={(e) => setForm((f) => ({ ...f, appetite: e.target.value }))}
+                    style={monoFormInput}
+                  />
+                </FormField>
+              </div>
 
-          <FormField label="Labels" hint="comma-separated">
-            <input
-              value={form.labels}
-              onChange={(e) => setForm((f) => ({ ...f, labels: e.target.value }))}
-              placeholder="indexing, perf"
-              style={monoFormInput}
-            />
-          </FormField>
+              <FormField label="Labels" hint="comma-separated">
+                <input
+                  value={form.labels}
+                  onChange={(e) => setForm((f) => ({ ...f, labels: e.target.value }))}
+                  placeholder="indexing, perf"
+                  style={monoFormInput}
+                />
+              </FormField>
 
-          <FormField label="Outcome / first work-log line" hint="optional">
-            <textarea
-              value={form.outcome}
-              onChange={(e) => setForm((f) => ({ ...f, outcome: e.target.value }))}
-              rows={2}
-              style={{ ...formInput, resize: 'vertical' }}
-            />
-          </FormField>
+              <FormField label="What does done look like?" hint="optional">
+                <textarea
+                  value={form.outcome}
+                  onChange={(e) => setForm((f) => ({ ...f, outcome: e.target.value }))}
+                  rows={2}
+                  style={{ ...formInput, resize: 'vertical' }}
+                />
+              </FormField>
+            </div>
+          </details>
 
           <div
             style={{
@@ -2733,10 +2854,12 @@ function CreateTaskModal({
                 cursor: 'pointer',
               }}
             >
-              cancel
+              Cancel
             </button>
             <button
               type="submit"
+              disabled={!form.title.trim() || !form.swimlane}
+              title={!form.title.trim() ? 'Add a title first' : !form.swimlane ? 'Pick a lane first' : undefined}
               style={{
                 padding: '8px 18px',
                 fontSize: 12,
@@ -2746,11 +2869,12 @@ function CreateTaskModal({
                 color: 'white',
                 border: '1.5px solid var(--accent)',
                 borderRadius: 3,
-                cursor: 'pointer',
+                cursor: !form.title.trim() || !form.swimlane ? 'not-allowed' : 'pointer',
+                opacity: !form.title.trim() || !form.swimlane ? 0.45 : 1,
                 letterSpacing: '.02em',
               }}
             >
-              create ▸
+              Create task ▸
             </button>
           </div>
         </div>
@@ -2822,16 +2946,14 @@ function CreateTaskModal({
           </div>
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
+              fontSize: '.72rem',
               color: 'var(--ink-faint)',
               marginTop: 12,
-              lineHeight: 1.5,
+              lineHeight: 1.6,
             }}
           >
-            → docs/tasks/TASK-{String(nextId).padStart(3, '0')}-
-            {(form.title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}.md
-            <br />→ lane <b style={{ color: previewLane?.accent }}>{form.swimlane || '…'}</b>
+            Saved as <b>Task #{String(nextId).padStart(3, '0')}</b> in the{' '}
+            <b style={{ color: previewLane?.accent }}>{previewLane?.label || form.swimlane || '…'}</b> lane.
           </div>
         </div>
       </form>
