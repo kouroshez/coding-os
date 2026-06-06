@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: ui-design-system
 labels: [ui, design-system, brand, tokens, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -21,3 +21,5 @@ references: []
 **Outcome (one sentence):** Add the full Iris brand ramp --iris-50..900 as theme-independent primitive tokens in cos-board-tokens.css :root (so custom icons/logo reference one canonical scale; --iris-600 = the logo weight) and document the ramp in design-system.md §3. Remove the now-dead handwriting fonts (Caveat, Kalam, Permanent Marker) from the index.html Google Fonts link — they were de-stickified out of every component, so loading them is wasted payload. make ui-build green.
 
 ## Work Log
+- 2026-06-06 [claude]: committed d2070534: docs/engineering/design-system.md, src/core/web/ui/index.html, src/core/web/ui/public/cos-board-toke
+- 2026-06-06 [claude]: Shipped (commit d2070534): added the full Iris brand ramp --iris-50..900 as theme-independent primitives in cos-board-to
