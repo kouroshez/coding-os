@@ -101,3 +101,52 @@ def test_harm_gate_fails_closed_without_parser(script: str, payload: dict, tmp_p
     # observability-eye I8: no jq AND no python3 → DENY (exit 2), never allow.
     sandbox = _sandbox_without_parsers(tmp_path)
     assert _run(script, payload, path=sandbox) == 2
+
+
+def _run_with_helper_dropped(hook: str, payload: dict, drop_helper: str, tmp_path: Path) -> int:
+    """Copy the hooks tree to tmp, delete one _helpers/*.py, run the hook.
+
+    Isolates COS_STATE_DIR so the gate never reads the real repo's governance
+    markers and reaches the helper-missing branch deterministically (A2).
+    """
+    htmp = tmp_path / "hooks"
+    shutil.copytree(_HOOKS, htmp)
+    (htmp / "_helpers" / drop_helper).unlink(missing_ok=True)
+    state = tmp_path / "state"
+    state.mkdir()
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "HOME": os.environ.get("HOME", ""),
+        "COS_STATE_DIR": str(state),
+        "COS_GIT_WORKFLOW": "trunk",
+    }
+    bash = shutil.which("bash") or "/bin/bash"
+    proc = subprocess.run(
+        [bash, str(htmp / hook)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=20,
+    )
+    return proc.returncode
+
+
+def test_branch_guard_fails_closed_when_helper_missing(tmp_path: Path) -> None:
+    # A git-related command past the fast-skip + helper gone = cannot verify -> DENY (A2).
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git status"}}
+    assert _run_with_helper_dropped("branch-guard.sh", payload, "branch_guard_check.py", tmp_path) == 2
+
+
+def test_enforce_task_transition_fails_closed_when_helper_missing(tmp_path: Path) -> None:
+    # A task-md edit + helper gone = cannot tell a status hand-edit from a body edit -> DENY (A2).
+    payload = {
+        "tool_name": "Edit",
+        "tool_input": {"file_path": "docs/tasks/TASK-001-x.md", "old_string": "x", "new_string": "y"},
+    }
+    assert (
+        _run_with_helper_dropped(
+            "enforce-task-transition.sh", payload, "detect_status_transition.py", tmp_path
+        )
+        == 2
+    )

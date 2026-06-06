@@ -77,7 +77,7 @@ RM_VERDICT=$(printf '%s' "$INPUT" | python3 "$RM_HELPER" 2>/dev/null || echo err
 # only when the command actually contains a recursive rm we could not verify —
 # never brick unrelated commands (observability-eye I8/A2).
 if [ "$RM_VERDICT" = "error" ]; then
-  if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])(sudo[[:space:]]+)?rm[[:space:]]+-[A-Za-z]*[rR]'; then
+  if echo "$COMMAND" | grep -qE '(^|[[:space:];&|])(sudo[[:space:]]+)?rm[[:space:]]+(-[A-Za-z]*[rR]|--recursive)'; then
     cos_say error hook.block_dangerous_commands "check_dangerous_rm helper unavailable — failing closed on a recursive rm" 2>/dev/null || true
     RM_VERDICT="block"
   else
