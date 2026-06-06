@@ -1,4 +1,4 @@
-<!-- domain:REACTNATIVE | layer:policy | ssot:true | updated:2026-04-29 -->
+<!-- domain:MOBILE | layer:policy | ssot:true | updated:2026-04-29 -->
 # Offline-First Patterns
 
 > P: Sync-queue + conflict-resolution patterns every mutating action in the mobile app must follow.

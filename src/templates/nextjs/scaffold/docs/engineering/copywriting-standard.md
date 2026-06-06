@@ -1,4 +1,4 @@
-<!-- domain:CONTENT | layer:policy | ssot:true | updated:2026-03-16 -->
+<!-- domain:PRODUCT | layer:policy | ssot:true | updated:2026-03-16 -->
 
 # Copywriting Standard
 

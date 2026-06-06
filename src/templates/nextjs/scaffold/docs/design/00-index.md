@@ -1,4 +1,4 @@
-<!-- domain:DESIGN | layer:index | ssot:true | updated:{{DATE}} -->
+<!-- domain:FRONTEND | layer:index | ssot:true | updated:{{DATE}} -->
 # Design System — Index
 
 Purpose: Navigation hub for the design system — colors, typography, spacing, components, and motion.

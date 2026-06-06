@@ -1,4 +1,4 @@
-<!-- domain:REACTNATIVE | layer:reference | ssot:true | updated:2026-04-29 -->
+<!-- domain:MOBILE | layer:reference | ssot:true | updated:2026-04-29 -->
 # Mobile Accessibility (a11y) Checklist — WCAG 2.2 AA
 
 > P: Per-screen / per-component a11y bar for every `src/mobile/**/*.{ts,tsx}` change. Tests with VoiceOver (iOS) AND TalkBack (Android).

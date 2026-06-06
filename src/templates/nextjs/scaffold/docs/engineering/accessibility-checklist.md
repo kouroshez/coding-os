@@ -1,4 +1,4 @@
-<!-- domain:ENGINEERING | layer:reference | ssot:true | updated:2026-03-23 -->
+<!-- domain:FRONTEND | layer:reference | ssot:true | updated:2026-03-23 -->
 # Accessibility (a11y) Checklist — WCAG 2.1 AA
 
 Purpose: Living checklist for accessibility compliance across the frontend.

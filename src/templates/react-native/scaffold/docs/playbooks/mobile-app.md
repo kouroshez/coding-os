@@ -1,4 +1,4 @@
-<!-- domain:REACTNATIVE | layer:playbook | ssot:true | updated:2026-04-29 -->
+<!-- domain:MOBILE | layer:playbook | ssot:true | updated:2026-04-29 -->
 # Mobile App Playbook
 
 > P: Routes mobile-specific tasks to anatomy.md, the right rules file, and verification commands.

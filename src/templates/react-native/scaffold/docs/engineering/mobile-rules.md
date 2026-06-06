@@ -1,4 +1,4 @@
-<!-- domain:REACTNATIVE | layer:policy | ssot:true | updated:2026-04-29 -->
+<!-- domain:MOBILE | layer:policy | ssot:true | updated:2026-04-29 -->
 # Mobile Engineering Rules
 
 > P: Rules every `src/mobile/**/*.{ts,tsx}` file must satisfy. Layered on top of clean-code, frontend-fundamentals, and a11y.

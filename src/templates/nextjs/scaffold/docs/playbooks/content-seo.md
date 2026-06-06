@@ -1,4 +1,4 @@
-<!-- domain:CONTENT | layer:playbook | ssot:true | updated:2026-03-17 -->
+<!-- domain:PRODUCT | layer:playbook | ssot:true | updated:2026-03-17 -->
 # Content & SEO Playbook
 
 Purpose: Execute copy, metadata, and AI/SEO tasks with canonical message contracts and route-aware constraints.
