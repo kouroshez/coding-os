@@ -27,21 +27,21 @@ if [[ "$LEN" -lt 15 ]]; then
 fi
 
 # Session-scoped debounce — one nudge per session is enough.
-MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.docs-first-nudged"  # panel-first (TASK-107): matches session-context panel-scope clear
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.docs-first-nudged"  # panel-first: matches session-context panel-scope clear
 if [[ -f "$MARKER" ]]; then
   exit 0
 fi
 
 # If the doc-anchor already exists for this session, the agent has already
 # done the right thing — skip silently.
-ANCHOR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor"  # panel-first (TASK-035): write-state routes .doc-anchor to the panel dir
+ANCHOR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor"  # panel-first: write-state routes .doc-anchor to the panel dir
 if [[ -f "$ANCHOR" ]] && [[ -s "$ANCHOR" ]]; then
   exit 0
 fi
 
 # Skip if task-mode marker says this is a query / chore / adhoc — those
 # bypass the doc-anchor requirement anyway.
-MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107): .task-mode is per-panel
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first: .task-mode is per-panel
 if [[ -f "$MODE_FILE" ]]; then
   MODE=$(cat "$MODE_FILE" 2>/dev/null | head -1 | tr -d '[:space:]')
   case "$MODE" in

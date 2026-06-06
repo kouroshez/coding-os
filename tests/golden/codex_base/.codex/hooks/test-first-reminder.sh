@@ -54,7 +54,7 @@ while [[ "$ROOT" != "/" ]]; do
 done
 [[ "$ROOT" == "/" ]] && ROOT="$PWD"
 
-# Debounce: remind at most once per file per session (TASK-113). The find
+# Debounce: remind at most once per file per session. The find
 # scan below sweeps up to ~6k files under ROOT; repeating it on every edit of
 # the same file is the dominant per-edit cost of this hook. The marker dir is
 # cleared each SessionStart (session-context.sh).

@@ -31,7 +31,7 @@ case "$tool_name" in
 esac
 
 # Resolve active task.
-task_current_file="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.task-current"  # panel-first (TASK-107): .task-current is per-panel
+task_current_file="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.task-current"  # panel-first: .task-current is per-panel
 [[ -f "$task_current_file" ]] || exit 0
 task_current="$(tr -d ' \n' < "$task_current_file" 2>/dev/null)"
 [[ -n "$task_current" ]] || exit 0

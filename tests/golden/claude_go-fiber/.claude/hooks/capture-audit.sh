@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# capture-audit.sh (PostToolUse Write|Edit) — auto doc-audit-log capture (TASK-060).
+# capture-audit.sh (PostToolUse Write|Edit) — auto doc-audit-log capture.
 #
 # For Write/Edit/MultiEdit on docs/** files, appends an immutable
 # doc_audit_trail row via ../thinking_os/capture_audit.py (which calls

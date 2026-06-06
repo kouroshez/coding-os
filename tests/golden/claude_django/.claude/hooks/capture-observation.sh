@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook: fire-and-forget observation recording (TASK-151).
+# PostToolUse hook: fire-and-forget observation recording.
 #
 # Spawns capture.py in background for Write/Edit tools only. Must return
 # in <1ms — all work happens in a background process. If capture.py
@@ -35,7 +35,7 @@ esac
 # Resolve through the symlink before reaching ../thinking_os: $0 is the
 # .claude/hooks/ symlink, so naive "$(dirname "$0")/../thinking_os" points
 # at the non-existent .claude/thinking_os/ and capture.py was NEVER found —
-# the hook logged "fire" then silently exited every time (TASK-048 real
+# the hook logged "fire" then silently exited every time (the real
 # root cause of observations=2). Sibling files like cos-env.sh work only
 # because they ARE symlinked into .claude/hooks/; ../thinking_os/ is not.
 _src="${BASH_SOURCE[0]:-$0}"
@@ -58,7 +58,7 @@ ERROR_LOG="$COS_STATE_DIR/.capture-errors.log"
 
 # Run capture SYNCHRONOUSLY with embedding skipped. A backgrounded
 # `(...) &` was reaped by the agent hook lifecycle before capture.py's
-# INSERT+commit, so observations never persisted (TASK-048: 6 inserts in
+# INSERT+commit, so observations never persisted (6 inserts in
 # 17 days despite the hook firing constantly). capture.py is ~one python
 # startup under COS_CAPTURE_SKIP_EMBED; the FTS5 trigger indexes the row
 # on INSERT so keyword recall works without the embedding. Real failures

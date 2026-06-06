@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# enforce-task-transition.sh (Phase 0) — PreToolUse Write|Edit.
+# enforce-task-transition.sh — PreToolUse Write|Edit.
 #
 # BLOCKS hand-edits that mutate a task/audit STATUS transition
 # (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md —

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PostToolUse hook: Track which skill was invoked by writing to
-# $COS_PANEL_DIR/.active-skill (per-panel since TASK-035 — two Claude tabs
+# $COS_PANEL_DIR/.active-skill (per-panel — two Claude tabs
 # track their own skill stacks independently).
 # Session-scoped: prefixes with current session ID.
 set -euo pipefail

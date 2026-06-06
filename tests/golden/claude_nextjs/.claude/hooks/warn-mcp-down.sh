@@ -27,7 +27,7 @@ fi
 PROJECT_ROOT="$(cd "$HOOK_DIR/../.." && pwd)"
 cos_log_hook warn-mcp-down fire
 
-# Debounce the heavy spawn-probe (TASK-113): this hook fires on every
+# Debounce the heavy spawn-probe: this hook fires on every
 # SessionStart — startup AND compact AND resume. Each probe spawns the full
 # MCP server for one initialize handshake; re-spawning it on every compaction
 # of a long session is wasteful. The MCP server is agent-shared, so a recent
@@ -115,7 +115,7 @@ RESULT=$(
 
 if echo "$RESULT" | command grep -q '"jsonrpc"' && echo "$RESULT" | command grep -q '"result"'; then
   # Server is live — silent success. Stamp the probe marker so the next
-  # compact/resume within COS_MCP_PROBE_TTL skips the heavy re-spawn (TASK-113).
+  # compact/resume within COS_MCP_PROBE_TTL skips the heavy re-spawn.
   mkdir -p "$(dirname "$_PROBE_MARKER")" 2>/dev/null || true
   : > "$_PROBE_MARKER" 2>/dev/null || true
   cos_log_hook warn-mcp-down ok

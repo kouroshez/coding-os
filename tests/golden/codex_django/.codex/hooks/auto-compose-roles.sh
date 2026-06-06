@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # auto-compose-roles.sh (UserPromptSubmit) — auto-fire role composition.
 #
-# Closes the dead-trigger gap (TASK-055): cos_compose_chain had no automatic
+# Closes the dead-trigger gap: cos_compose_chain had no automatic
 # caller, so .roles was never written and the Hub Roles panel was always
 # empty. This hook reads the recorded complexity gate and, for COMPLICATED/
 # COMPLEX classifications, composes a role chain via _helpers/auto_compose.py
@@ -18,7 +18,7 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_log_hook auto-compose-roles enter || true
 
 # Read the user prompt from stdin so the composer gets real action/domain
-# signals (TASK-057). Without it the chain collapses to ['analyst'] for every
+# signals. Without it the chain collapses to ['analyst'] for every
 # COMPLICATED/COMPLEX prompt. Bounded; fail-open to empty.
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
 PROMPT="$(printf '%s' "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || true)"
@@ -63,7 +63,7 @@ HELPER="${HSRC}/_helpers/auto_compose.py"
 [[ -f "$HELPER" ]] || exit 0
 
 # Panel-first target so .roles/.role land where the banner + Hub read them
-# (TASK-057 F1: same per-panel scope as every other cognitive marker).
+# (same per-panel scope as every other cognitive marker).
 TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
 OUT=$(printf '%s' "$PROMPT" | python3 "$HELPER" "$GATE_CLASS" "${GATE_DIMS:-1}" "$TARGET_DIR" 2>/dev/null || true)
 

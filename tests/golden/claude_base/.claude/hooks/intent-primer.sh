@@ -28,11 +28,11 @@ cos_log_hook intent-primer fire
 # satisfy (the EvidenceBundle is keyed on the new session id which
 # never received the prior predicates).
 #
-# Detected during TASK-004 self-review when the guardian blocked Stop
+# Detected during self-review when the guardian blocked Stop
 # after session rotation with "no EvidenceBundle for predicates
 # ['coverage_100']" — the predicates were from a prompt the agent
 # never saw in the new session.
-# Clear at BOTH panel and agent scope (TASK-107): the markers are now
+# Clear at BOTH panel and agent scope: the markers are now
 # panel-first, but a pre-migration agent-dir copy may still linger.
 for _D in "${COS_PANEL_DIR:-}" "${COS_AGENT_DIR:-}"; do
   [[ -n "$_D" ]] || continue

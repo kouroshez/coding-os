@@ -24,7 +24,7 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
 fi
 
 # Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
-MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107)
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first
 [[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 if [[ -f "$MODE_FILE" ]]; then
   TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
@@ -33,7 +33,7 @@ if [[ -f "$MODE_FILE" ]]; then
   esac
 fi
 
-# Panel-first (TASK-035): track-skill.sh writes .active-skill to
+# Panel-first: track-skill.sh writes .active-skill to
 # $COS_PANEL_DIR, but this read used only $COS_AGENT_DIR — so the
 # per-panel marker was never found and every non-CLEAR-1 edit blocked.
 # Mirror the gate read below (which already uses COS_PANEL_DIR).
@@ -42,7 +42,7 @@ SKILL_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-skill"
 # Skip skill gate during formula dispatches other than implementer/reviewer.
 # The supervisor writes .active-formula before each dispatch; implementer
 # and reviewer are the only roles that actually write domain code.
-ACTIVE_FORMULA_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-formula"  # panel-first (TASK-035): written to + cleared from the panel dir
+ACTIVE_FORMULA_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-formula"  # panel-first: written to + cleared from the panel dir
 if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
   ACTIVE_FORMULA=$(cat "$ACTIVE_FORMULA_FILE" 2>/dev/null || echo "")
   if [[ "$ACTIVE_FORMULA" != "implementer" && "$ACTIVE_FORMULA" != "reviewer" && -n "$ACTIVE_FORMULA" ]]; then

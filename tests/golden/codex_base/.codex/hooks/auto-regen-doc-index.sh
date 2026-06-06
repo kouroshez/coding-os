@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook (TASK-161): after Write/Edit on a docs/**/*.md file,
+# PostToolUse hook: after Write/Edit on a docs/**/*.md file,
 # regenerate the affected directory's 00-index.md from frontmatter.
 #
 # Design:
@@ -52,7 +52,7 @@ SCRIPT_PATH=""
 # Resolve this hook through its (possibly symlinked) install path so a
 # consumer's .claude/hooks/auto-regen-doc-index.sh → meta-repo symlink lands
 # on the meta-repo's own src/scripts/regen_doc_index.py. Platform code runs
-# from the platform; it is never copied into every consumer (TASK-119 — the
+# from the platform; it is never copied into every consumer (the
 # script was unshipped, so the consumer-root candidates below never matched).
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do
@@ -103,7 +103,7 @@ mkdir -p "$(dirname "$ERR_LOG")"
 # Failures land in $ERR_LOG (bounded 200 lines). `cos hooks-log --follow`
 # surfaces dispatched / skip lines; ERR_LOG is the place to look when the
 # index stops refreshing. (Per-dir fail-counter removed — over-engineered
-# vs. just tailing the log; TASK-162 audit walked it back.)
+# vs. just tailing the log.)
 (
   "${COS_PYTHON:-python3}" "$SCRIPT_PATH" "$TARGET_DIR" >/dev/null 2>>"$ERR_LOG" &
 ) &

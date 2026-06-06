@@ -26,7 +26,7 @@ if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PAT
 fi
 
 # Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
-MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107)
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first
 [[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 if [[ -f "$MODE_FILE" ]]; then
   TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
@@ -35,7 +35,7 @@ if [[ -f "$MODE_FILE" ]]; then
   esac
 fi
 
-# Panel-first (TASK-035): these are per-panel markers written by
+# Panel-first: these are per-panel markers written by
 # write-state.sh to $COS_PANEL_DIR; reading $COS_AGENT_DIR missed them and
 # blocked COMPLEX edits. Mirror the other gate readers (thinking_os-gate.sh,
 # enforce-task-start.sh, enforce-skill.sh).

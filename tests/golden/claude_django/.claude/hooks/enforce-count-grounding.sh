@@ -50,7 +50,7 @@ case "$FILE_PATH" in
   *) exit 0 ;;
 esac
 
-INTENT_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.intent.json"  # panel-first (TASK-107)
+INTENT_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.intent.json"  # panel-first
 [[ -f "$INTENT_FILE" ]] || INTENT_FILE="${COS_AGENT_DIR}/.intent.json"
 if [[ ! -f "$INTENT_FILE" ]]; then
   exit 0
@@ -61,7 +61,7 @@ if [[ "$EXHAUSTIVE" != "true" ]]; then
 fi
 
 # Per-session debounce — warn once per session.
-MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.count-grounding-nudged"  # panel-first (TASK-107)
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.count-grounding-nudged"  # panel-first
 if [[ -f "$MARKER" ]]; then
   exit 0
 fi

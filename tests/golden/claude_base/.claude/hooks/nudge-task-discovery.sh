@@ -19,7 +19,7 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 INPUT="$(cos_read_stdin_bounded 2)"
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
-MARKER_DIR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-nudge"  # panel-first (TASK-107): cleared at panel scope each SessionStart
+MARKER_DIR="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-nudge"  # panel-first: cleared at panel scope each SessionStart
 mkdir -p "$MARKER_DIR" 2>/dev/null || true
 
 # ---- PreToolUse Read leg ----
@@ -45,7 +45,7 @@ if [[ "$TOOL" == "Bash" ]]; then
   [[ -z "$CMD" ]] && exit 0
   # Match a file-reading command targeting docs/tasks. cos task-show /
   # cos_task_search contain no "docs/tasks" literal, so they never match.
-  # Broadened reader set (TASK-062 A2) — awk/sed/less/more/bat/rg/wc/nl/tac.
+  # Broadened reader set — awk/sed/less/more/bat/rg/wc/nl/tac.
   if printf '%s' "$CMD" | grep -qE '(ls|grep|cat|find|head|tail|awk|sed|less|more|bat|rg|wc|nl|tac)[^|;&]*docs/tasks' 2>/dev/null; then
     BM="${MARKER_DIR}/bash"
     [[ -f "$BM" ]] && exit 0

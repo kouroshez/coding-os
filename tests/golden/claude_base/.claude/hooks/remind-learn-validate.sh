@@ -42,7 +42,7 @@ fi
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 cos_log_hook remind-learn-validate fire "tool=Bash task_done=true"
 
-# Panel-first (TASK-057 F1.3): auto_compose writes .learn-suggestions to the
+# Panel-first: auto_compose writes .learn-suggestions to the
 # panel dir and session-context resets it there, so read panel-first with an
 # agent-level fallback for legacy writers.
 SUGGESTIONS="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.learn-suggestions"

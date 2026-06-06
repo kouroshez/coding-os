@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# warn-abandoned-task.sh (Phase observability) — Stop hook.
+# warn-abandoned-task.sh — Stop hook.
 #
 # Warns once per session when a task this session moved to in_progress
 # or testing is still open at turn-end. Catches the recurring "agent
@@ -14,7 +14,7 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 cos_log_hook warn-abandoned-task enter || true
 
 [ -f "${COS_DB_PATH:-}" ] || exit 0
-# Upgrade panel id from the Stop payload (TASK-107) so $COS_SESSION_FILE
+# Upgrade panel id from the Stop payload so $COS_SESSION_FILE
 # resolves THIS panel; fall back to stdin session_id then legacy agent-dir.
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
 command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
@@ -32,12 +32,12 @@ case "$SESSION_ID" in
 esac
 
 # Per-session debounce — warn at most once per session-id.
-MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first (TASK-107): matches session-context panel-scope clear
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first: matches session-context panel-scope clear
 if [ -f "$MARKER" ] && grep -qF "$SESSION_ID" "$MARKER" 2>/dev/null; then
   exit 0
 fi
 
-# Widened from in_progress-only (TASK-210 RC3): `testing` is where the
+# Widened from in_progress-only: `testing` is where the
 # testing-first protocol parks near-done work, so it is the status a task most
 # often dies in — yet it was previously invisible to this warning.
 STUCK="$(sqlite3 "$COS_DB_PATH" \

@@ -87,7 +87,7 @@ mkdir -p "$PRESENCE_DIR" 2>/dev/null || exit 0
 # Presence is an AGENT-LEVEL (shared) signal — the reader
 # (board_os/presence.py, web/routes/presence.py) scans
 # $COS_AGENT_DIR/sessions/ and keys on $COS_AGENT_DIR/session-id.
-# TASK-035 repointed $COS_SESSION_FILE at the per-panel dir, which only
+# repointed $COS_SESSION_FILE at the per-panel dir, which only
 # session-context.sh seeds (it alone upgrades the panel id from stdin).
 # PreToolUse hooks resolve the ppid-fallback panel and find no session-id
 # there, so the old unconditional exit killed presence for every live
@@ -135,7 +135,7 @@ PRESENCE_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_write.py"
 # helper preserves the previously-stored value.
 HOOK_MODEL=""
 # The host runtime's own session id (the SDK transcript uuid) — the bridge from
-# our coding-os SESSION_ID to the chat transcript (TASK-184).
+# our coding-os SESSION_ID to the chat transcript.
 HOOK_SDK_UUID=""
 if [[ -n "$INPUT" ]]; then
   HOOK_MODEL=$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)

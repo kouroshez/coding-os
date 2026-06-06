@@ -103,7 +103,7 @@ fi
 
 # --- The actual check ------------------------------------------------
 
-# panel-first (TASK-035): write-state.sh routes .doc-anchor to the panel dir.
+# panel-first: write-state.sh routes .doc-anchor to the panel dir.
 ANCHOR_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor"
 ANCHOR_MAX_AGE=28800  # 8h — same ownership horizon as task-current.
 

@@ -8,7 +8,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 # Meta-repo path first; fall back to a consumer's symlinked adapter hooks dir
 # (.claude/.codex/.cursor) so the commit-message contract still fires in a
-# `cos init` project, which has no src/core/ of its own (TASK-121). Mirrors
+# `cos init` project, which has no src/core/ of its own. Mirrors
 # the HOOKS_DIR resolution already in _pre_commit_body.sh.
 HELPER="${REPO_ROOT}/src/core/hooks/_helpers/check_commit_message.py"
 if [[ ! -f "$HELPER" ]]; then

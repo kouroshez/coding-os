@@ -21,7 +21,7 @@ cos_log_hook auto-brain-decay fire
 
 NOW_TS=$(date +%s)
 # Align with decay.py::run_decay_locked, which marks/throttles + flocks on
-# `<db-dir>/.last-decay` (TASK-113). When COS_DB_PATH sits outside
+# `<db-dir>/.last-decay`. When COS_DB_PATH sits outside
 # COS_STATE_DIR the two diverged — this hook would re-run decay the nightly
 # job just throttled. Derive from the DB dir so both share one marker + lock.
 LAST_RUN_FILE="$(dirname "$COS_DB_PATH")/.last-decay"

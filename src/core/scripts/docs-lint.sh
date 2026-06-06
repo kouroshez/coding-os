@@ -80,7 +80,7 @@ for file in "${TARGETS[@]}"; do
     err "$rel: missing or malformed front-matter header on line 1"
     ERRORS=$((ERRORS + 1))
   else
-    # Check 1b: domain + layer must be in the canonical enums (TASK-074).
+    # Check 1b: domain + layer must be in the canonical enums.
     # Warn by default; error + gate under COS_DOCS_LINT_STRICT=1.
     dom=$(echo "$first_line" | sed -E 's/^<!-- domain:([A-Z_]+) .*/\1/')
     lay=$(echo "$first_line" | sed -E 's/^.* \| layer:([a-z]+)( \||$).*/\1/')
@@ -97,7 +97,7 @@ for file in "${TARGETS[@]}"; do
   fi
 
   # Check 2: opening block — accept long form (Purpose:/Read when:) or short
-  # form blockquote (`> P:` / `> R:`). TASK-158 adopted both. Skip task
+  # form blockquote (`> P:` / `> R:`). Skip task
   # index, changelog, README.
   base=$(basename "$file")
   if [[ "$base" != "tasks.md" && "$base" != "questions.md" && "$base" != "changes.log" ]]; then
@@ -165,7 +165,7 @@ if [ -x "$STALENESS_CHECK" ]; then
 fi
 
 # Advisory by default (exit 0) — preserves today's non-gating behaviour so the
-# pre-existing no-frontmatter backlog (G9) doesn't break the build. Flip to
+# pre-existing no-frontmatter backlog doesn't break the build. Flip to
 # gating once that backlog clears: COS_DOCS_LINT_STRICT=1 → exit 1 on errors.
 if [ "$STRICT" = "1" ] && [ "$ERRORS" -gt 0 ]; then
   exit 1

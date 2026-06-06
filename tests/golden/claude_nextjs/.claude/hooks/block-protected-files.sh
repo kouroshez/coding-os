@@ -32,12 +32,12 @@ fi
 # runtime state. They need to be writable so coding-os itself can ship updates
 # to the scaffold (e.g. adding rag-config.yaml under .coding-os/ scaffold).
 # BUT: scaffold/docs/governance/ is the canonical home of governance docs
-# that propagate to every future consumer project — TASK-162 requires the
+# that propagate to every future consumer project require the
 # same template-update / governance / docs-update keyword guard the
 # meta-repo's own governance dir uses. Other scaffold paths still pass.
 if [[ "$FILE_PATH" == *"/scaffold/docs/governance/"* ]]; then
   AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
-  # Panel-aware lookup (TASK-035) — task marker lives in $COS_PANEL_DIR
+  # Panel-aware lookup — task marker lives in $COS_PANEL_DIR
   # since the per-panel split. Falls through cleanly when COS_PANEL_DIR
   # is unset (older hook caller).
   TASK_FILE="${COS_PANEL_DIR:-$AGENT_DIR}/.task-current"
@@ -46,7 +46,7 @@ if [[ "$FILE_PATH" == *"/scaffold/docs/governance/"* ]]; then
     TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
     # Strip ONLY the leading session-id token; keep the rest of the value.
     # `##* ` would drop everything but the LAST word, so a multi-word marker
-    # (`<sid> docs-update TASK-096 align-docs`) lost the governance keyword.
+    # (`<sid> docs-update TASK-NNN align-docs`) lost the governance keyword.
     TASK_NAME="${TASK_VALUE#* }"
   fi
   case "$TASK_NAME" in
@@ -100,7 +100,7 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
   # being blocked by the safety net. The active task marker is session-
   # scoped and set via `cos task-start` or write-state.sh.
   # Task marker lives in the panel-private state dir (COS_PANEL_DIR per
-  # TASK-035); fall back to agent dir only when cos-env.sh hasn't been
+  # ); fall back to agent dir only when cos-env.sh hasn't been
   # sourced. Falls through cleanly during the transition window.
   AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
   TASK_FILE="${COS_PANEL_DIR:-$AGENT_DIR}/.task-current"
@@ -109,7 +109,7 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
     # The task marker is "session-id value" — extract the value
     # Strip ONLY the leading session-id token; keep the rest of the value.
     # `##* ` would drop everything but the LAST word, so a multi-word marker
-    # (`<sid> docs-update TASK-096 align-docs`) lost the governance keyword.
+    # (`<sid> docs-update TASK-NNN align-docs`) lost the governance keyword.
     TASK_NAME="${TASK_VALUE#* }"
     # Allow when the task name clearly signals governance/docs work.
     case "$TASK_NAME" in

@@ -119,7 +119,7 @@ if [[ "$SOURCE" == "startup" ]]; then
   # private dir — sibling panels of the same agent are untouched, and the
   # other agent's state is also untouched. NOT cleared: agent-shared
   # (.model, .swimlane, .last-verify) and self-refreshing (.task-mode is
-  # now per-panel (TASK-107) but rewritten every prompt by classify-task-mode).
+  # now per-panel but rewritten every prompt by classify-task-mode).
   CLEARED=0
   for STATE_FILE in \
     "${COS_PANEL_DIR}/.thinking_os-gate" \
@@ -149,7 +149,7 @@ if [[ "$SOURCE" == "startup" ]]; then
       CLEARED=$((CLEARED + 1))
     fi
   done
-  # Per-panel nudge debounce DIRECTORIES (TASK-107) — rm -rf, they hold
+  # Per-panel nudge debounce DIRECTORIES — rm -rf, they hold
   # one file per matched pattern/leg, not a single marker.
   for STATE_DIR_MARK in \
     "${COS_PANEL_DIR}/.graph-nudge" \
@@ -179,7 +179,7 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
   source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
   # Helper: panel file ONLY. Reading the agent-dir fossil here would leak
-  # another panel's compact/resume snapshot into this panel (TASK-035).
+  # another panel's compact/resume snapshot into this panel.
   _panel_or_agent() {
     local base="$1"
     if [[ -f "${COS_PANEL_DIR}/${base}" ]]; then
@@ -258,14 +258,14 @@ if [[ "$SOURCE" == "startup" ]]; then
   # Prime the hot task-tool family once. These cos_* tools are deferred
   # (Claude-harness-side, not repo-controllable — see mcp-schema-traps.md),
   # so front-loading one ToolSearch avoids mid-task InputValidationError
-  # round-trips that push the agent back to raw Edit/Bash (TASK-059).
+  # round-trips that push the agent back to raw Edit/Bash.
   echo ""
   echo "[MCP Prime] Hot tools are deferred — load the task family ONCE now so you don't fall back to raw Edit/Bash for task ops:"
   echo '  ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt")'
 fi
 
 # Agent digest = memory inheritance. Runs on EVERY SessionStart, including a
-# fresh `startup` (TASK-109): a new session must inherit prior learnings, not
+# fresh `startup`: a new session must inherit prior learnings, not
 # only recover them after a compaction. The recovery text + state snapshot
 # above stay compact/resume-only — a fresh start has nothing to recover, but
 # it DOES need the working-memory digest. The status message for the startup
@@ -275,7 +275,7 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" 
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
   # hook caller, so digest.md never existed) — regenerate it here first so
-  # the agent inherits a FRESH memory summary each session (TASK-055).
+  # the agent inherits a FRESH memory summary each session.
   if [ -f "$COS_DB_PATH" ]; then
     DIGEST_REGEN="${_COS_HOOKS_PHYS}/_helpers/digest_regen.py"
     if [ -f "$DIGEST_REGEN" ]; then
@@ -341,7 +341,7 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   # startup hook hasn't run). Without this, banner collapses to ses=?.
   # NEVER fall back to $COS_AGENT_DIR/session-id — that file is a fossil
   # belonging to a different panel and trusting it leaks state across
-  # panels (TASK-035 regression: cos-env.sh + check-state.sh now reject
+  # panels (cos-env.sh + check-state.sh now reject
   # the legacy file by the same rule).
   if [ -z "$_CURRENT_SESSION" ] && [ -n "${COS_PANEL_ID:-}" ]; then
     _CURRENT_SESSION="$COS_PANEL_ID"
@@ -355,7 +355,7 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   _read_state() {
     local file_input="$1" cap="$2"
     # STRICTLY panel-scoped for files in $COS_PER_PANEL_FILES — never
-    # fall back to $COS_AGENT_DIR (cross-panel leak protection, TASK-035).
+    # fall back to $COS_AGENT_DIR (cross-panel leak protection).
     local file=""
     local base
     base="$(basename "$file_input")"
@@ -407,7 +407,7 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   # The gate carries a 120-min TTL (check-state.sh). _read_state only checks
   # session-ownership, not age — so a long session would show an EXPIRED gate
   # as valid, then the next Write/Edit BLOCKs on "gate stale". Flag staleness
-  # here so the banner tells the truth (TASK-109). Override: COS_GATE_TTL_SECONDS.
+  # here so the banner tells the truth. Override: COS_GATE_TTL_SECONDS.
   if [ -n "$GATE_STATE" ] && [ -f "${COS_PANEL_DIR}/.thinking_os-gate" ]; then
     _GATE_MTIME=$(stat -f %m "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || stat -c %Y "${COS_PANEL_DIR}/.thinking_os-gate" 2>/dev/null || echo 0)
     _GATE_AGE=$(( $(date +%s) - _GATE_MTIME ))
@@ -417,7 +417,7 @@ if [[ "$SOURCE" == "user-prompt-submit" ]]; then
   fi
 
   # Composed role chain — surface the ACTIVE role + its position in the chain
-  # so the banner tracks what the agent is DOING, not a frozen lead (TASK-057).
+  # so the banner tracks what the agent is DOING, not a frozen lead.
   # advance-role.sh moves .role along .roles by work phase. Both files are
   # panel-scoped (written panel-first by roles_state); read panel-first with an
   # agent-level fallback. Format: "<active> N/M" e.g. "implementer 3/4".
@@ -453,7 +453,7 @@ except Exception:
   # system | gov-required | propose-formal. Drives banner verbosity:
   # casual modes get a minimal banner, formal modes get the full one.
   TASK_MODE=""
-  # panel-first (TASK-107): .task-mode is per-panel; agent-dir is the
+  # panel-first: .task-mode is per-panel; agent-dir is the
   # back-compat fallback for a panel that hasn't re-written it yet.
   _TASK_MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"
   [ -f "$_TASK_MODE_FILE" ] || _TASK_MODE_FILE="${COS_AGENT_DIR}/.task-mode"
@@ -496,7 +496,7 @@ except Exception:
     # doesn't kill the whole hook.
     # Pattern: YAML frontmatter requires `^status: in_progress` (line start);
     # markdown bold `**Status:** in_progress` can appear mid-line (e.g.
-    # `**Task:** TASK-032 · **Status:** in_progress`), so no `^` anchor on
+    # `**Task:** TASK-NNN · **Status:** in_progress`), so no `^` anchor on
     # that alternative. `**Status:**` is distinctive enough to avoid false
     # positives from prose mentioning `in_progress`.
     AUDIT_ACTIVE=$({ grep -lE "(^status:[[:space:]]+in_progress|\*\*Status:\*\*[[:space:]]+in_progress)" docs/tasks/audits/audit-*.md 2>/dev/null || true; } \
@@ -575,7 +575,7 @@ except OSError:
   # does not render PostToolUse stdout, so each PostToolUse hook calls
   # `cos_record_activity` (cos-env.sh) which appends to .turn-activity.log.
   # turn_summary.py reads + clears it, returning a compact string like
-  # `memory:5 graph:3 task:TASK-42 skill:clean-code` for inclusion below.
+  # `memory:5 graph:3 task:TASK-NNN skill:clean-code` for inclusion below.
   ACTIVITY=""
   ACTIVITY_HELPER="${_COS_HOOKS_PHYS}/_helpers/turn_summary.py"
   if [ -f "$ACTIVITY_HELPER" ] && command -v python3 >/dev/null 2>&1; then

@@ -42,7 +42,7 @@ case "$FILE_PATH" in
   /tmp/*|*/tmp/*) exit 0 ;;
 esac
 
-INTENT_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.intent.json"  # panel-first (TASK-107)
+INTENT_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.intent.json"  # panel-first
 [[ -f "$INTENT_FILE" ]] || INTENT_FILE="${COS_AGENT_DIR}/.intent.json"
 if [[ ! -f "$INTENT_FILE" ]]; then
   # No intent recorded for this prompt — nothing to enforce.

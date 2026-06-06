@@ -36,7 +36,7 @@ check_state() {
   fi
   # NO AGENT_DIR fallback for per-panel files. Reading another panel's
   # state via the shared agent dir is cross-panel leak — the failure
-  # mode TASK-035 exists to prevent. Legacy fossils from pre-TASK-035
+  # mode this rule exists to prevent. Legacy fossils from earlier
   # writers stay invisible until the panel re-stamps its own copy via
   # write-state.sh (which now routes through $COS_PANEL_DIR).
 
@@ -54,7 +54,7 @@ check_state() {
   STATE_VALUE=$(echo "$CONTENT" | cut -d' ' -f2-)
 
   # Check session match — STRICTLY from panel session-id file. No
-  # AGENT_DIR fallback (cross-panel leak protection — see TASK-035).
+  # AGENT_DIR fallback (cross-panel leak protection).
   # When the panel session-id file is missing, $COS_PANEL_ID is the
   # synthesised identity that write-state.sh also uses.
   local SESSION_FILE="$COS_SESSION_FILE"

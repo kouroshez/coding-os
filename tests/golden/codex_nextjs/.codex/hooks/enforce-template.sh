@@ -43,7 +43,7 @@ COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
 # Formula-agents that write docs (architect/documenter) produce
 # structured output by design — skip template gate when a role dispatch is active.
-ACTIVE_FORMULA_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-formula"  # panel-first (TASK-035): written to + cleared from the panel dir
+ACTIVE_FORMULA_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-formula"  # panel-first: written to + cleared from the panel dir
 if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then
   ACTIVE_FORMULA=$(cat "$ACTIVE_FORMULA_FILE" 2>/dev/null || echo "")
   # architect creates ADRs; documenter creates task/PRD/breakthrough docs.

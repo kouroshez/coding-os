@@ -145,7 +145,7 @@ _cos_resolve_panel_id() {
   # ::runtime_session_marker.env_vars (per-agent SSOT for the var name).
   # Real adapter session vars only (claude/cursor/codex) — matches the three
   # src/adapters/*/adapter.yaml::runtime_session_marker.env_vars. Speculative
-  # GEMINI_*/ANTHROPIC_* removed (TASK-112, anti-overengineering): a future
+  # GEMINI_*/ANTHROPIC_* removed: a future
   # adapter adds its var here + to its adapter.yaml when it actually ships.
   for v in CLAUDE_CODE_SESSION_ID CLAUDE_SESSION_ID CURSOR_SESSION_ID CURSOR_TRACE_ID \
            CODEX_SESSION_ID; do
@@ -180,7 +180,7 @@ COS_SESSION_FILE="${COS_PANEL_DIR}/session-id"
 # .turn-activity.log, .overrides.json, .hooks.log, sessions/, traces/,
 # locks/, heartbeat, coding-os.db. Rationale per file in
 # docs/engineering/state-files.md.
-# TASK-107: .task-mode, .intent.json, and the intent/discovery debounce
+# .task-mode, .intent.json, and the intent/discovery debounce
 # markers moved to per-panel — two panels of the same agent must not share
 # banner verbosity, exhaustive-intent obligation, or nudge debounce.
 COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .roles-composed .roles .role .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override .task-mode .intent.json .premature-done-nudged .count-grounding-nudged .subagent-delegation-nudged .last-discovery-reminder session-id}"
@@ -213,7 +213,7 @@ if [[ -z "${COS_AGENT_MODEL:-}" ]] && [[ -f "${COS_AGENT_DIR}/.model" ]]; then
 fi
 COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 
-# Hook latency SLI (B1) — stamp wall-clock entry time when the hook sources
+# Hook latency SLI — stamp wall-clock entry time when the hook sources
 # this file. cos_log_hook subtracts it to emit dt=<ms>, giving the hook layer
 # a real per-invocation duration without a wrapper. $EPOCHREALTIME is bash 5+
 # (seconds.microseconds, e.g. 1717545600.123456); we keep the raw string and
@@ -256,7 +256,7 @@ cos_current_session() {
 cos_current_task() {
   # Echo current task marker in agent-friendly form:
   #   1. If the marker contains a TASK-### token, return just that (e.g.,
-  #      "TASK-043") so the agent can jump straight to docs/tasks/TASK-043-*.md.
+  #      "TASK-NNN") so the agent can jump straight to docs/tasks/TASK-NNN-*.md.
   #   2. Else if the marker is a governance/docs-update/exploratory slug,
   #      return it truncated to 40 chars (keeps log lines readable).
   #   3. Else return 'none'.

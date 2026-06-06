@@ -20,7 +20,7 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 cos_require_or_skip jq prevent-premature-done
 
-INTENT_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.intent.json"  # panel-first (TASK-107)
+INTENT_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.intent.json"  # panel-first
 [[ -f "$INTENT_FILE" ]] || INTENT_FILE="${COS_AGENT_DIR}/.intent.json"
 if [[ ! -f "$INTENT_FILE" ]]; then
   exit 0
@@ -32,7 +32,7 @@ if [[ "$EXHAUSTIVE" != "true" ]]; then
 fi
 
 # Per-session debounce — only nudge once per session.
-MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.premature-done-nudged"  # panel-first (TASK-107)
+MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.premature-done-nudged"  # panel-first
 if [[ -f "$MARKER" ]]; then
   exit 0
 fi

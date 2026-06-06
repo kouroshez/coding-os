@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# reclaim-sweep.sh (Phase G) — SessionStart hook.
+# reclaim-sweep.sh — SessionStart hook.
 #
-# Event-independent zombie recovery (TASK-210 RC4). Every new session
+# Event-independent zombie recovery. Every new session
 # reclaims the zombie in_progress/testing tasks left by DEAD predecessor
 # sessions before doing any work. This is the consumer-robust recovery
 # leg: it does NOT rely on the dying session running anything (the Claude
@@ -28,7 +28,7 @@ cos_log_hook reclaim-sweep enter || true
 command -v cos >/dev/null 2>&1 || exit 0
 
 # Upgrade panel id from the SessionStart payload so the debounce marker
-# lands in THIS panel (TASK-035 / TASK-107).
+# lands in THIS panel.
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
 command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 \
   && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true

@@ -4,7 +4,7 @@
 # After a tool runs, move .role to the chain member that matches the current
 # work phase (Write/Edit → implementer, test/verify Bash → reviewer) so the
 # session banner's roles= field tracks what the agent is DOING, not a frozen
-# chain lead (TASK-055 stamped only chain[0]; TASK-057 F2.3 makes it advance).
+# chain lead.
 # Only ever picks a role already IN the composed chain. Fail-open.
 set -euo pipefail
 

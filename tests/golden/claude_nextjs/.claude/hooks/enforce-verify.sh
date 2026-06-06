@@ -2,7 +2,7 @@
 # PreToolUse hook: BLOCK task-done commands unless domain-appropriate
 # verification has been run recently.
 #
-# TASK-100 — data-driven via src/core/board_os/verify-suites.yaml.
+# data-driven via src/core/board_os/verify-suites.yaml.
 # No more hardcoded customer paths (frontend/app/*/checkout/* etc.).
 # Consumer projects extend by writing their own
 # .coding-os/verify-suites.yaml.

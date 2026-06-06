@@ -13,8 +13,8 @@
 # once per session, and this hook only validates the marker's presence +
 # freshness, NOT that cos_search actually ran. The authentic upgrade — a
 # PostToolUse hook matched on the cos_search / cos_learn_suggest MCP tool
-# that stamps this marker automatically — is folded into TASK-113 (N9, the
-# Pre/Post dispatcher work) so it ships with one coordinated registry +
+# that stamps this marker automatically — is deferred to the
+# Pre/Post dispatcher work so it ships with one coordinated registry +
 # golden regen instead of a standalone hook. Until then the pure-shell
 # marker keeps this layer MCP-independent and matches .thinking_os-gate.
 #
@@ -53,7 +53,7 @@ case "$FILE_PATH" in
 esac
 
 # Persona-aware skip — see classify-task-mode.sh + docs/engineering/task-mode-matrix.md
-MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first (TASK-107)
+MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first
 [[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
 if [[ -f "$MODE_FILE" ]]; then
   TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
@@ -98,7 +98,7 @@ if cos_one_shot_override memory-check 2>/dev/null; then
 fi
 
 # --- The check ------------------------------------------------------
-# Panel-first (TASK-035): write-state.sh routes .memory-check to
+# Panel-first: write-state.sh routes .memory-check to
 # $COS_PANEL_DIR, but this read used $COS_AGENT_DIR — inconsistent with the
 # gate/task reads at lines 68/80 above, so the memory-check never registered.
 MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.memory-check"

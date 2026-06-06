@@ -8,7 +8,7 @@
 #   - Internal links resolve (relative paths exist)
 #
 # Usage:
-#   bash task-lint.sh docs/tasks/TASK-042-fix-x.md
+#   bash task-lint.sh docs/tasks/TASK-NNN-slug.md
 #   bash task-lint.sh docs/tasks/                  # lint a directory
 #   bash task-lint.sh --json docs/tasks/
 #

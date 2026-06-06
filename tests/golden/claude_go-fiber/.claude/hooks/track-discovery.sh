@@ -89,7 +89,7 @@ if [[ $MATCHES -lt 2 ]]; then
 fi
 
 # Check if agent already called cos_discovery recently (skip to avoid spam)
-MARKER="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.last-discovery-reminder"  # panel-first (TASK-107): per-panel cooldown
+MARKER="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.last-discovery-reminder"  # panel-first: per-panel cooldown
 NOW=$(date +%s)
 if [[ -f "$MARKER" ]]; then
   LAST=$(cat "$MARKER" 2>/dev/null || echo "0")

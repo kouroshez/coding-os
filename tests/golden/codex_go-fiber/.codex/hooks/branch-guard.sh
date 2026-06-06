@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# branch-guard.sh (Phase gate) — enforce trunk-based git integrity.
+# branch-guard.sh — enforce trunk-based git integrity.
 #
 # PreToolUse:Bash hook. In trunk mode (default) it BLOCKs commands that
 # either (a) create a branch / worktree or (b) rewrite shared HEAD —
