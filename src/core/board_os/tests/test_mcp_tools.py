@@ -1030,3 +1030,54 @@ def test_daily_reports_testing_and_icebox_summary(project: Path, conn: sqlite3.C
     assert any(c["id"] == "TASK-001" for c in data["testing"]), "daily must report testing"
     assert data["icebox"]["total"] >= 1
     assert "TASK-002" in data["icebox"]["stale_ids"]
+
+
+# ---------- F2a: reclaim widening — TASK-210 RC3/RC4 ----------
+
+
+def test_reclaim_returns_stale_testing_to_in_progress(project: Path, conn: sqlite3.Connection):
+    """RC3: a stale testing zombie is reclaimed back to in_progress (not icebox)."""
+    mcp_tools.cos_task_create(
+        conn, title="Testing zombie", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "testing", 8 * 3600)  # > testing_reclaim_idle_hours (6h)
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert env["ok"] is True
+    entry = next(r for r in env["data"]["reclaimed"] if r["task_id"] == "TASK-001")
+    assert entry["from_status"] == "testing"
+    assert entry["to_status"] == "in_progress"
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "in_progress"
+
+
+def test_reclaim_in_progress_to_icebox_ready(project: Path, conn: sqlite3.Connection):
+    """An in_progress zombie still drops to icebox and regains the ready label."""
+    mcp_tools.cos_task_create(
+        conn, title="IP zombie", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)  # > 24h
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    entry = next(r for r in env["data"]["reclaimed"] if r["task_id"] == "TASK-001")
+    assert entry["to_status"] == "icebox"
+    row = conn.execute("SELECT status, labels_json FROM tasks WHERE task_id='TASK-001'").fetchone()
+    assert row[0] == "icebox"
+    assert "ready" in (row[1] or "")
+
+
+def test_reclaim_per_status_testing_sooner_than_in_progress(project: Path, conn: sqlite3.Connection):
+    """A 7h testing card reclaims (>6h) though it is under the 24h in_progress floor."""
+    mcp_tools.cos_task_create(
+        conn, title="7h testing", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "testing", 7 * 3600)
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"])
+
+
+def test_reclaim_skips_fresh_testing(project: Path, conn: sqlite3.Connection):
+    """A 1h testing card is left alone (under the 6h testing window)."""
+    mcp_tools.cos_task_create(
+        conn, title="Fresh testing", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "testing", 1 * 3600)
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert not any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"])

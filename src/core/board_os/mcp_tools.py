@@ -1269,24 +1269,37 @@ def cos_task_reclaim(
     dry_run: bool = False,
     agent_session: str | None = None,
 ) -> str:
-    """Reclaim zombie in_progress tasks (idle + owner session inactive) to icebox+ready."""
+    """Reclaim zombie in_progress/testing/emergency tasks (idle + owner inactive); testing->in_progress, else->icebox."""
     config = _current_config()
-    threshold_h = idle_hours if idle_hours is not None else (
+    default_threshold_h = idle_hours if idle_hours is not None else (
         config.workflow_policy.reclaim_idle_hours if config is not None else 24
     )
-    import time as _t
 
-    now = _t.time()
+    def _threshold_for(status: str) -> int:
+        # Per-status idle window. `testing` is mid-flight work funneled there by
+        # the testing-first protocol, so reclaim it sooner than a generic
+        # in_progress zombie. An explicit idle_hours arg overrides all statuses.
+        if idle_hours is not None or config is None:
+            return default_threshold_h
+        if status == "testing":
+            t = config.workflow_policy.testing_reclaim_idle_hours
+            return t if t > 0 else config.workflow_policy.reclaim_idle_hours
+        return config.workflow_policy.reclaim_idle_hours
+
+    now = time.time()
     active = _active_session_ids(now)
     project_root = _project_root()
 
+    # Widened from in_progress-only (RC3): a `testing` zombie was previously
+    # un-reclaimable by every path, which is exactly where the protocol parks
+    # near-done work at the moment of session death (TASK-100, ~9d).
     rows = conn.execute(
-        "SELECT task_id, agent_session, started_at, file_path FROM tasks "
-        "WHERE status = 'in_progress'"
+        "SELECT task_id, agent_session, started_at, file_path, status FROM tasks "
+        "WHERE status IN ('in_progress', 'testing', 'emergency')"
     ).fetchall()
 
     reclaimed: list[dict] = []
-    for task_id, owner, started_at, rel in rows:
+    for task_id, owner, started_at, rel, status in rows:
         hist = conn.execute(
             "SELECT MAX(transitioned_at) FROM task_status_history WHERE task_id = ?",
             (task_id,),
@@ -1298,6 +1311,7 @@ def cos_task_reclaim(
         # No activity signal at all → too risky to reclaim; skip.
         if last_activity == 0:
             continue
+        threshold_h = _threshold_for(status)
         idle_s = now - last_activity
         if idle_s < threshold_h * 3600:
             continue
@@ -1305,13 +1319,22 @@ def cos_task_reclaim(
         if owner and owner in active:
             continue
 
+        # Status-aware destination: a testing zombie is near-done, so return it
+        # to in_progress (a legal unforced edge) to resume the work rather than
+        # dumping it to the backlog; in_progress/emergency zombies go to icebox.
+        dest = "in_progress" if status == "testing" else "icebox"
         idle_h = round(idle_s / 3600, 1)
         if dry_run:
-            reclaimed.append({"task_id": task_id, "previous_owner": owner, "idle_hours": idle_h})
+            reclaimed.append({
+                "task_id": task_id, "previous_owner": owner, "idle_hours": idle_h,
+                "from_status": status, "to_status": dest,
+            })
             continue
 
         file_path = project_root / rel if rel else None
-        if file_path is not None and file_path.exists():
+        # Only a backlog-bound (icebox) reclaim needs the ready label so the
+        # card stays pullable; a testing->in_progress reclaim keeps its labels.
+        if dest == "icebox" and file_path is not None and file_path.exists():
             cur_labels = _labels_list_from_json(
                 conn.execute(
                     "SELECT labels_json FROM tasks WHERE task_id = ?", (task_id,)
@@ -1328,22 +1351,25 @@ def cos_task_reclaim(
         result = transition(
             conn,
             task_id,
-            "icebox",
-            reason=f"reclaim: idle {idle_h}h, owner session inactive",
+            dest,
+            reason=f"reclaim: {status} idle {idle_h}h, owner session inactive -> {dest}",
             agent_session=agent_session,
             force=True,
             config=config,
             file_path=file_path,
         )
         if result.ok:
-            reclaimed.append({"task_id": task_id, "previous_owner": owner, "idle_hours": idle_h})
+            reclaimed.append({
+                "task_id": task_id, "previous_owner": owner, "idle_hours": idle_h,
+                "from_status": status, "to_status": dest,
+            })
 
     return ok(
         {
             "reclaimed": reclaimed,
             "count": len(reclaimed),
             "dry_run": dry_run,
-            "idle_hours_threshold": threshold_h,
+            "idle_hours_threshold": default_threshold_h,
             "active_sessions": len(active),
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_reclaim"},
