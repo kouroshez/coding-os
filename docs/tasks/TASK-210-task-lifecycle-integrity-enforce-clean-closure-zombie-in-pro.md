@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: task-lifecycle-integrity
 labels: [workflow-integrity, board, hooks, lifecycle, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-06
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -43,3 +43,5 @@ Actual: TASK-100 sat in `testing` ~9 days under a dead session; 40/41 tasks rot 
 - **Then** matrix verification is green for every changed layer AND the audit reviewer subagent re-grep returns 0.
 
 ## Work Log
+- 2026-06-06 [claude]: committed 8152c349: docs/tasks/audits/audit-task-lifecycle-integrity-2026-06-05.md
+- 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
