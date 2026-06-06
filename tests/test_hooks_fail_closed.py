@@ -133,13 +133,13 @@ def _run_with_helper_dropped(hook: str, payload: dict, drop_helper: str, tmp_pat
 
 
 def test_branch_guard_fails_closed_when_helper_missing(tmp_path: Path) -> None:
-    # A git-related command past the fast-skip + helper gone = cannot verify -> DENY (A2).
+    # A git-related command past the fast-skip + helper gone = cannot verify -> DENY.
     payload = {"tool_name": "Bash", "tool_input": {"command": "git status"}}
     assert _run_with_helper_dropped("branch-guard.sh", payload, "branch_guard_check.py", tmp_path) == 2
 
 
 def test_enforce_task_transition_fails_closed_when_helper_missing(tmp_path: Path) -> None:
-    # A task-md edit + helper gone = cannot tell a status hand-edit from a body edit -> DENY (A2).
+    # A task-md edit + helper gone = cannot tell a status hand-edit from a body edit -> DENY.
     payload = {
         "tool_name": "Edit",
         "tool_input": {"file_path": "docs/tasks/TASK-001-x.md", "old_string": "x", "new_string": "y"},

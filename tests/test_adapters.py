@@ -367,7 +367,7 @@ class TestCodexAdapter:
 
     def test_symlinks_commands_mirrors_claude(self, project: Path) -> None:
         # Every core/commands/*.md must appear as .codex/commands/<name>.md.
-        # Phase M adds extra formula-f{1..11}.md symlinks (slash commands) —
+        # Codex adds extra formula-f{1..11}.md symlinks (slash commands) —
         # these are codex-specific and should NOT be in core/commands/, so
         # we only assert core commands are a subset of what codex exposes.
         run_adapter_install("codex", project)

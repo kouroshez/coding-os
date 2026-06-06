@@ -683,7 +683,7 @@ def _resolve_cli_version() -> str:
 @click.version_option(version=_resolve_cli_version(), prog_name="coding-os")
 def cli() -> None:
     """Coding OS — Agent-agnostic cognitive operating system for AI coding agents."""
-    # Observability eye (E1): route every stdlib logger.error from doctor /
+    # Route every stdlib logger.error from doctor /
     # health / any cos command into logging_os so the CLI process is no longer
     # blind to its own failures. Idempotent — install_bridge() removes a prior
     # bridge handler before adding. See docs/engineering/observability-eye.md §1.
@@ -715,7 +715,7 @@ cli.add_command(eject_file_cmd)
 cli.add_command(tail_cmd)
 cli.add_command(skills_list_cmd)
 
-# Observability eye (E5): durable error/log query CLI (cos errors / cos logs).
+# Durable error/log query CLI (cos errors / cos logs).
 try:
     from cli.logs_commands import errors_cmd as _errors_cmd
     from cli.logs_commands import logs_cmd as _logs_cmd

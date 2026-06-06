@@ -15,7 +15,7 @@ def test_live_registry_has_claude_and_codex() -> None:
     adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     assert "claude" in adapters
     assert "codex" in adapters
-    # Both adapters now expose a rules directory (Phase G symmetry — Codex
+    # Both adapters now expose a rules directory (Codex
     # gets .codex/rules/ too so consumer projects can resolve path
     # references from AGENTS.md even though Codex CLI does not auto-load
     # them the way Claude Code auto-loads .claude/rules/).
@@ -32,7 +32,7 @@ def test_claude_declares_settings_and_hooks() -> None:
 
 
 def test_codex_declares_symmetric_dirs() -> None:
-    # Post-Phase G: Codex declares the same structural dirs as Claude.
+    # Codex declares the same structural dirs as Claude.
     # Content source (core/) is shared; only the loading mechanism differs.
     adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     codex = adapters["codex"]

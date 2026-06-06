@@ -3214,7 +3214,7 @@ def cos_graph_communities(
         + projected_top * effective_max_members * _TOKENS_PER_MEMBER
     )
     if projected > _TOKEN_TARGET:
-        # W6.6 (B10): never shrink members below 3 — a "community" of 1
+        # Never shrink members below 3 — a "community" of 1
         # member kills the concept. Drop tail communities instead, then
         # only as a last resort shrink members down to 3, then 1.
         _MEMBER_FLOOR = min(3, max_members)

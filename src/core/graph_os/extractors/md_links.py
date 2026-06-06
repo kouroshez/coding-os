@@ -286,7 +286,7 @@ def _resolve_link(origin_path: str, target: str) -> str:
             continue
         parts.append(part)
     normalised = "/".join(parts)
-    # Repo-root fallback (F17): a doc nested deep in the meta-repo can
+    # Repo-root fallback: a doc nested deep in the meta-repo can
     # author a consumer-relative link (`../../docs/x`) that collapses to a
     # nonexistent `src/docs/x` here while the real file is `docs/x` at repo
     # root. If the collapsed path is missing but a repo-rooted variant of

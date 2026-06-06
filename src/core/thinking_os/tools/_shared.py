@@ -126,7 +126,7 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     #      untouched — UI Hub needs full tree to render CONTAINS spine.
     #   2. Over the larger ceiling: coherent-subgraph trim (top-K nodes
     #      by degree + edges between kept nodes). Never zero out edges
-    #      (W6.6 regression) and never return an incoherent slice.
+    #      and never return an incoherent slice.
     # Agent consumers can use max_nodes/max_hops to stay under the agent
     # context window; the envelope is the safety net, not the primary cap.
     _is_graph_subgraph = (
@@ -181,7 +181,7 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "results",
     "neighbours",
     "references",
-    # W6.6 (B4): export-shaped responses — trim `edges` BEFORE `nodes`.
+    # Export-shaped responses — trim `edges` BEFORE `nodes`.
     # Caller asked for nodes; edges are the high-volume tail.
     "edges",
     "nodes",
@@ -581,7 +581,7 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
     # meta.envelope_unshrinkable=True so caller can log/alert.
     # Graph-subgraph shape ({nodes,edges}) is handled by ok() ahead of
     # this call via _trim_coherent_subgraph, so the per-key trim ladder
-    # below never zeroes out edges (W6.6 regression).
+    # below never zeroes out edges.
     did_any = False
     fits = _probe_size(body, meta) <= TOKEN_BUDGET_CHARS
     # W6.2: shrink nested members (processes[*].members) BEFORE dropping

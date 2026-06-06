@@ -26,7 +26,7 @@ import click
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
 
-# Mirrors generate_manifest.SECTIONS for now (Phase 1 will make both dynamic).
+# Mirrors generate_manifest.SECTIONS for now.
 SECTIONS: list[tuple[str, str, list[str]]] = [
     ("claude_base", "claude", []),
     ("claude_django", "claude", ["django"]),

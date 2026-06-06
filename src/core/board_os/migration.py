@@ -118,7 +118,7 @@ def migrate(
         shutil.rmtree(staging_dir)
     staging_dir.mkdir(parents=True, exist_ok=True)
 
-    # Phase 0: backup (skip on dry-run).
+    # Step 0: backup (skip on dry-run).
     if not dry_run:
         ts = time.strftime("%Y-%m-%d-%H%M%S")
         backup_path = project_root / ".coding-os" / f"migration-backup-{ts}.tar.gz"
@@ -128,7 +128,7 @@ def migrate(
                 tar.add(p, arcname=f"docs/tasks/{p.name}")
         logger.info("backup written: %s", backup_path)
 
-    # Phase 1: validate all → staging.
+    # Step 1: validate all → staging.
     files = sorted(tasks_dir.glob("TASK-*.md"))
     for src in files:
         report.scanned += 1
@@ -150,12 +150,12 @@ def migrate(
         return report
 
     if report.errors:
-        # Abort — Phase 1 failure means no writes to final paths.
+        # Abort — step 1 failure means no writes to final paths.
         shutil.rmtree(staging_dir, ignore_errors=True)
         logger.warning("migration aborted: %d errors", len(report.errors))
         return report
 
-    # Phase 2: atomic rename staging → final.
+    # Step 2: atomic rename staging → final.
     archive_dir.mkdir(parents=True, exist_ok=True)
     for src in files:
         staged = staging_dir / src.name

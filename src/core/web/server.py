@@ -83,7 +83,7 @@ TAGS_METADATA = [
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    # Observability eye (E1): route every stdlib logger.error and uncaught
+    # Route every stdlib logger.error and uncaught
     # route 500 into logging_os so the web process is no longer blind to its
     # own failures. Idempotent — install_bridge() removes a prior bridge
     # handler before adding. See docs/engineering/observability-eye.md §1.

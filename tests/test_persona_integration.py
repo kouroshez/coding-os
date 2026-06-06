@@ -130,7 +130,7 @@ class TestPersonaFullStack:
         missing = expected_skills - actual_skills
         assert not missing, f"missing skills: {missing}"
 
-        # All expected hooks symlinked (Phase F set).
+        # All expected hooks symlinked.
         hooks_dir = project / ".claude" / "hooks"
         critical_hooks = {
             "warn-mcp-down.sh",
@@ -352,7 +352,7 @@ class TestPersonaTemplateBlock:
 
 
 # ============================================================
-# Phase M — Formula-agent dispatch scenarios (cognition module)
+# Formula-agent dispatch scenarios (cognition module)
 # ============================================================
 
 import sys as _sys

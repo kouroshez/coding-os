@@ -85,7 +85,7 @@ def _read_session_id() -> str:
             sid = f.read_text().strip()
             if sid:
                 return sid
-    # Priority 3 — pre-Phase-I flat layout (kept for first-run migration only)
+    # Priority 3 — legacy flat layout (kept for first-run migration only)
     flat = state_dir / "session-id"
     if flat.exists():
         sid = flat.read_text().strip()
