@@ -22,13 +22,13 @@ import yaml
 
 _REGISTRY = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "registry.yaml"
 
-# Headroom over the current count (8 PreToolUse Bash hooks as of TASK-196).
+# Headroom over the current count (8 PreToolUse Bash hooks).
 # Raising this is a deliberate decision — bump it AND justify the new latency
 # budget in docs/engineering/observability-eye.md, never as a drive-by.
 PRETOOLUSE_BASH_BUDGET = 12
 
 # Write|Edit only fires on a file write, not on every command, and already
-# carries a deliberate population of enforcement gates (23 as of TASK-196).
+# carries a deliberate population of enforcement gates (23).
 # Its ceiling guards against unbounded growth, not against per-command latency.
 PRETOOLUSE_WRITE_EDIT_BUDGET = 28
 

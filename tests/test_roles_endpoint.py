@@ -57,7 +57,7 @@ def test_roles_chain_reads_state_files(client):
 
 
 def test_roles_chain_prefers_trace_over_stale_marker(client):
-    # TASK-065: under concurrent panels the .roles marker can be stale; the
+    # under concurrent panels the .roles marker can be stale; the
     # newest agent-level compose_done trace is the consistent source.
     c, state = client
     agent_dir = state / "claude"

@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests (TASK-008 L3)
+pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
@@ -712,7 +712,7 @@ class TestTransparencyBanner:
         agent_dir = state / "claude"
         panel_dir = agent_dir / "panels" / self.PANEL_ID
         panel_dir.mkdir(parents=True)
-        # session-id + volatile markers are panel-scoped since TASK-035
+        # session-id + volatile markers are panel-scoped since
         # (COS_PER_PANEL_FILES); .task-mode stays agent-scoped (shared
         # across panels of one agent). Pin COS_PANEL_ID so cos-env.sh
         # resolves a deterministic panel dir for reads/writes.
@@ -782,7 +782,7 @@ class TestTransparencyBanner:
         assert "TASK-XXX" not in banner
 
     def test_missing_session_id_file_rejects_foreign_state(self, tmp_path: Path) -> None:
-        # TASK-035: with the panel session-id file absent, COS_PANEL_ID
+        # with the panel session-id file absent, COS_PANEL_ID
         # synthesises the current session — so a state file whose owner
         # prefix doesn't match is still rejected by the ownership check.
         # (ses no longer collapses to '?'; the panel id always resolves.)

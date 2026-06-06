@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.slow  # every persona runs `cos init` subprocesses (TASK-008 L3)
+pytestmark = pytest.mark.slow  # every persona runs `cos init` subprocesses
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

@@ -155,7 +155,7 @@ class TestEnforceTaskTransition:
         assert rc == 0
 
     def test_governance_task_still_blocks_audit_evidence_tick(self, tmp_path):
-        # A1 (TASK-062): the governance allow-list must NOT exempt audit
+        # A1: the governance allow-list must NOT exempt audit
         # EvidenceBundle ticks — that is evidence forgery, BLOCK regardless.
         panel = _panel(tmp_path, task_current="governance-docs-update")
         rc, _, err = _run(
@@ -264,7 +264,7 @@ class TestNudgeTaskDiscovery:
         assert "additionalContext" in out
 
     def test_bash_leg_warns_on_broadened_readers(self, tmp_path):
-        # A3 (TASK-062): awk/sed/rg etc. now trigger the warning too. Each
+        # A3: awk/sed/rg etc. now trigger the warning too. Each
         # reader needs its own panel — the bash leg is debounced once/session.
         for i, cmd in enumerate(
             (
@@ -281,7 +281,7 @@ class TestNudgeTaskDiscovery:
             assert "task nudge" in err, cmd
 
     def test_read_leg_warns_on_docs_tasks_read(self, tmp_path):
-        # A3 (TASK-062): a raw Read of docs/tasks/** warns (never blocks).
+        # A3: a raw Read of docs/tasks/** warns (never blocks).
         panel = _panel(tmp_path)
         rc, _, err = _run(
             self.H,

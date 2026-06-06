@@ -19,7 +19,7 @@ from click.testing import CliRunner
 
 from cli.main import cli as cos_cli
 
-pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses
 
 
 def _init(tmp_path: Path, *templates: str) -> Path:

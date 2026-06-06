@@ -23,7 +23,7 @@ from cli.setup import (
     _parse_markdown_sections,
 )
 
-pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests (TASK-008 L3)
+pytestmark = pytest.mark.slow  # dominated by cos-init / subprocess tests
 
 
 def _init(tmp_path: Path, *templates: str) -> Path:

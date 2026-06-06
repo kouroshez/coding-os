@@ -81,7 +81,7 @@ def test_hanging_direct_child_times_out(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Audit-evidence forgery backstop (TASK-062 #1 — runtime-independent).
+# Audit-evidence forgery backstop.
 # A committed audit that claims completion must be backed by a real
 # exhaustive_evidence dispatch row; else it is a hand-forgery and is blocked.
 # ---------------------------------------------------------------------------

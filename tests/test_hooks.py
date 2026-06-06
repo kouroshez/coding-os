@@ -344,7 +344,7 @@ class TestThinkingOsGate:
         return tmp_path, env
 
     def _write_gate(self, state_dir: Path, session_id: str, value: str) -> None:
-        # Gate is per-panel (TASK-035). Use the same panel-id as gate_env.
+        # Gate is per-panel. Use the same panel-id as gate_env.
         gate_file = state_dir / "claude" / "panels" / "test-gate-panel" / ".thinking_os-gate"
         gate_file.write_text(f"{session_id} {value}")
 

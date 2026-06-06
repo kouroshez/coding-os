@@ -22,7 +22,7 @@ PRUNE_SCRIPT = REPO_ROOT / "src" / "scripts" / "prune_deleted_path.py"
 
 
 # ---------------------------------------------------------------------------
-# TASK-016 — capture-observation shell filter MUST accept MultiEdit
+# capture-observation shell filter MUST accept MultiEdit
 # ---------------------------------------------------------------------------
 
 
@@ -102,7 +102,7 @@ class TestCaptureObservationMultiEdit:
 
 
 # ---------------------------------------------------------------------------
-# TASK-017 — prune_deleted_path.py MUST enable PRAGMA foreign_keys = ON
+# prune_deleted_path.py MUST enable PRAGMA foreign_keys = ON
 # ---------------------------------------------------------------------------
 
 

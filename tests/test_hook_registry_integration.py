@@ -124,7 +124,7 @@ def test_cursor_dispatcher_includes_every_posttool_write_hook() -> None:
 
     missing = [s for s in expected if s not in delegates]
     # We don't require the full set — only that the cursor dispatcher covers
-    # the auto-* and capture-* observability hooks. Enforce the TASK-161
+    # the auto-* and capture-* observability hooks. Enforce the
     # auto-regen-doc-index addition explicitly.
     assert "auto-regen-doc-index.sh" in delegates, (
         "TASK-161 hook missing from cursor PostToolUse Write dispatch chain"
@@ -156,7 +156,7 @@ def test_hook_ids_are_unique() -> None:
 
 
 # ---------------------------------------------------------------------------
-# stdin → behavior end-to-end (TASK-162 audit follow-up)
+# stdin → behavior end-to-end
 # ---------------------------------------------------------------------------
 
 

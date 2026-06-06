@@ -42,7 +42,7 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     # dispatch.sh, codex-stop-dispatch.sh) route delegate stdout to
     # /dev/null — so wiring these as Codex delegates would run them as
     # no-ops. Effective Codex support needs the dispatchers to forward
-    # delegate stdout — tracked in TASK-009.
+    # delegate stdout — tracked in
     "detect-exhaustive-intent.sh",
     "verify-completion-claim.sh",
     "prevent-premature-done.sh",
@@ -142,7 +142,7 @@ def test_template_is_valid_json(template_path: Path) -> None:
     assert "hooks" in data, f"{template_path.name} missing 'hooks' key"
 
 
-# --- TASK-110 (N6): kill dispatcher ⇄ adapter.yaml drift ----------------
+# --- kill dispatcher ⇄ adapter.yaml drift ----------------
 CODEX_HOOKS_DIR = CODING_OS_ROOT / "src" / "adapters" / "codex" / "hooks"
 
 

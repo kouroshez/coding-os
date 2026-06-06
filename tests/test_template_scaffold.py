@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cli.main import cli
 
-pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses (TASK-008 L3)
+pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses
 
 
 @pytest.fixture

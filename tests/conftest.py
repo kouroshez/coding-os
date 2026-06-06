@@ -75,7 +75,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 # checks them (CLAUDE_CODE_SESSION_ID first), so a test's own fixture session
 # id loses to the ambient one and scaffold/doctor/panel tests fail. CI has
 # none of these set, so the leak is invisible there. Scrubbing them makes the
-# suite hermetic in-session too. (TASK-098)
+# suite hermetic in-session too.
 _LEAKY_SESSION_ENV = (
     "CLAUDE_CODE_SESSION_ID",
     "CLAUDE_SESSION_ID",

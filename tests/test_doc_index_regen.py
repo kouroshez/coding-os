@@ -110,7 +110,7 @@ def test_skips_index_self_reference(tmp_path: Path) -> None:
 
 
 def test_mixed_domain_dir_uses_domain_all_in_new_index(tmp_path: Path) -> None:
-    # TASK-162 fix #7 — first-time index for a dir holding multiple domains
+    # fix #7 — first-time index for a dir holding multiple domains
     # MUST emit `domain:ALL` in its synthesized frontmatter.
     module = _load_module()
     _make_doc(tmp_path / "a.md", title="A", layer="policy", domain="DOCS")

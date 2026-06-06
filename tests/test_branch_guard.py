@@ -82,7 +82,7 @@ def test_allows_non_bash_tool() -> None:
     assert code == 0
 
 
-# --- blocked: HEAD-rewriting ops (TASK-013) -------------------------------
+# --- blocked: HEAD-rewriting ops -------------------------------
 
 
 def test_blocks_reset_head_tilde() -> None:
@@ -192,7 +192,7 @@ def test_pr_mode_allows_reset_head_tilde() -> None:
     assert code == 0
 
 
-# --- TASK-014 hardening: bypass probes (must BLOCK after this task) -------
+# --- hardening: bypass probes (must BLOCK after this task) -------
 
 
 def test_blocks_reset_with_double_space() -> None:
@@ -240,7 +240,7 @@ def test_blocks_with_leading_env_var() -> None:
     assert code == 2
 
 
-# --- TASK-014 hardening: false-positive probes (must ALLOW after this task)
+# --- hardening: false-positive probes (must ALLOW after this task)
 
 
 def test_allows_checkout_dot_for_restore_cwd() -> None:
@@ -281,7 +281,7 @@ def test_allows_git_diff_two_refs() -> None:
     assert code == 0
 
 
-# --- TASK-014 post-review hardening: residual nesting / separators -------
+# --- post-review hardening: residual nesting / separators -------
 
 
 def test_blocks_doubly_nested_sh_c() -> None:
@@ -320,7 +320,7 @@ def test_allows_escaped_backticks_in_commit_message() -> None:
     assert code == 0
 
 
-# --- TASK-015: git rebase blocks (history rewrite on trunk) ----------------
+# --- git rebase blocks (history rewrite on trunk) ----------------
 
 
 def test_blocks_rebase_onto_main() -> None:
