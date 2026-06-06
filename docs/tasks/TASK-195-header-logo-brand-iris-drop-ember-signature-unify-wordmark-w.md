@@ -5,12 +5,12 @@ swimlane: core
 kind: chore
 epic: ui-design-system
 labels: [ui, design-system, brand, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -21,3 +21,4 @@ references: []
 **Outcome (one sentence):** The 'Coding OS' wordmark uses the brand --cos-accent (iris) so the logo matches the buttons/nav instead of the Ember orange that read as a mismatch. Remove the now-unused --signature/--cos-signature token (its only consumer was the wordmark) from cos-board-tokens.css (both themes) + index.css + design-system.md §3, keeping the token system clean (no dead token). make ui-build green.
 
 ## Work Log
+- 2026-06-06 [claude]: Shipped (commit 3492a33): header "Coding OS" wordmark switched from --cos-signature (Ember orange, clashed with iris but
