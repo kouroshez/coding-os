@@ -727,6 +727,20 @@ except ImportError as _logs_cli_exc:  # pragma: no cover — defensive
 
     _logging.getLogger("coding_os.cli").debug("logs CLI unavailable: %s", _logs_cli_exc)
 
+# Doc lifecycle CLI (cos doc-new / doc-history / doc-lint).
+try:
+    from cli.doc_commands import doc_history_cmd as _doc_history_cmd
+    from cli.doc_commands import doc_lint_cmd as _doc_lint_cmd
+    from cli.doc_commands import doc_new_cmd as _doc_new_cmd
+
+    cli.add_command(_doc_new_cmd)
+    cli.add_command(_doc_history_cmd)
+    cli.add_command(_doc_lint_cmd)
+except ImportError as _doc_cli_exc:  # pragma: no cover — defensive
+    import logging as _logging
+
+    _logging.getLogger("coding_os.cli").debug("doc CLI unavailable: %s", _doc_cli_exc)
+
 # Fast scope-aware verification: `cos verify --since-edit`.
 try:
     from cli.verify_since_edit import verify_since_edit_cmd as _verify_cmd
