@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from compress import _build_prompt, _parse_json
+from compress import _build_prompt, _parse_json, _stamp_provenance
 
 
 class TestBuildPrompt:
@@ -40,3 +40,16 @@ class TestParseJson:
 
     def test_non_json_returns_none(self) -> None:
         assert _parse_json("sorry, no json here") is None
+
+
+class TestStampProvenance:
+    def test_stamps_generated_by_into_facts(self) -> None:
+        out = _stamp_provenance({"facts": {"domain": "x"}}, "claude-haiku-4-5")
+        assert out["facts"]["_generated_by"] == "claude-haiku-4-5"
+
+    def test_noop_when_facts_missing_or_non_dict(self) -> None:
+        assert _stamp_provenance({"narrative": "n"}, "m") == {"narrative": "n"}
+        assert _stamp_provenance({"facts": []}, "m") == {"facts": []}
+
+    def test_noop_on_none(self) -> None:
+        assert _stamp_provenance(None, "m") is None

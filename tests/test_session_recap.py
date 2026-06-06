@@ -37,3 +37,16 @@ def test_backtracks_suppress_clean_run() -> None:
 
 def test_empty_session() -> None:
     assert _narrate(0, 0, 0) == "no new cognitive activity this session"
+
+
+def test_role_steps_only_no_clean_run() -> None:
+    # disp-only with no insight: "clean run" would read oddly, so it is omitted.
+    assert _narrate(0, 2, 0) == "2 role steps"
+
+
+def test_plurals_and_clean_run() -> None:
+    assert _narrate(3, 2, 0) == "3 insights captured, 2 role steps, clean run"
+
+
+def test_backtracks_only() -> None:
+    assert _narrate(0, 0, 2) == "2 backtracks"

@@ -1,7 +1,7 @@
-"""Stop-hook recap helper — emit hookSpecificOutput JSON block summarizing
-the just-finished session: observations captured, dispatches fired, backtracks.
+"""Stop-hook recap helper — emit a systemMessage line summarizing the
+just-finished session: observations captured, dispatches fired, backtracks.
 Used by core/hooks/session-end.sh to give the operator a visible end-of-turn
-pulse, mirroring the always-on caveman pattern. Bounded — silent on any error.
+pulse. Bounded — silent on any error.
 """
 
 from __future__ import annotations
@@ -30,7 +30,9 @@ def _narrate(obs: int, disp: int, bt: int) -> str:
         bits.append(f"{disp} role step{'s' if disp != 1 else ''}")
     if bt:
         bits.append(f"{bt} backtrack{'s' if bt != 1 else ''}")
-    elif obs or disp:
+    elif obs:
+        # "clean run" = work captured with no backtracks; not appended for a
+        # role-step-only turn (no insight) where it would read oddly.
         bits.append("clean run")
     return ", ".join(bits) if bits else "no new cognitive activity this session"
 

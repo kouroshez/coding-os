@@ -70,6 +70,15 @@ def _parse_json(text: str) -> dict | None:
     return None
 
 
+def _stamp_provenance(parsed: dict | None, model_id: str) -> dict | None:
+    # Tag generated facts so cos_search consumers can tell a machine-inferred
+    # summary from an authored observation. `facts` is not in cos_search's WHERE
+    # clause, so the marker is non-intrusive. No-op on any non-dict facts shape.
+    if isinstance(parsed, dict) and isinstance(parsed.get("facts"), dict):
+        parsed["facts"]["_generated_by"] = model_id
+    return parsed
+
+
 def _call_claude_api(title: str, files_modified: str) -> dict | None:
     """Call Claude Haiku for a structured summary that preserves the Title's symbols.
 
@@ -98,12 +107,7 @@ def _call_claude_api(title: str, files_modified: str) -> dict | None:
             messages=[{"role": "user", "content": _build_prompt(title, files_modified)}],
         )
         parsed = _parse_json(response.content[0].text)
-        # Provenance: tag generated facts so cos_search consumers can tell a
-        # machine-inferred summary from an authored observation. `facts` is not
-        # in cos_search's WHERE clause, so the marker is non-intrusive.
-        if isinstance(parsed, dict) and isinstance(parsed.get("facts"), dict):
-            parsed["facts"]["_generated_by"] = model_id
-        return parsed
+        return _stamp_provenance(parsed, model_id)
     except Exception as exc:
         logger.warning("API call failed for '%s': %s", title, exc)
         return None

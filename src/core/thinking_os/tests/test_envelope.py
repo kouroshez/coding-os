@@ -95,10 +95,8 @@ class TestEstimateTokens:
         assert _estimate_tokens("a" * 400) == 100
 
     def test_non_latin_counted_far_denser_than_chars_over_four(self) -> None:
-        # 400 CJK chars ≈ 400 tokens (~1/char), not 100 — the undercount bug.
-        est = _estimate_tokens("数" * 400)
-        assert est == 400
-        assert est > (400 / 4) * 2
+        # 400 CJK chars ≈ 400 tokens (~1/char), not the naive chars/4 of 100.
+        assert _estimate_tokens("数" * 400) == 400
 
 
 class TestTokenBudget:
@@ -153,8 +151,10 @@ class TestTokenBudget:
         meta = envelope["data"]["meta"]
         assert meta["truncated"] is True
         assert meta["truncated_results_to"] < 20
-        # tokens_estimated reflects CJK density, not the naive chars/4 (~5 K).
-        assert meta["tokens_estimated"] > 4_000
+        # Band, not a floor: CJK density is counted (~7.6 K post-trim) and the
+        # payload sits just under the 8 K-token budget. A lower floor would also
+        # pass an over-trim regression that wastes budget.
+        assert 7_000 < meta["tokens_estimated"] <= 8_200
 
     def test_neighbours_trimmed_when_over_budget(self) -> None:
         """TASK-034: cos_graph_context emits `neighbours` not `results`.

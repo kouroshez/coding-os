@@ -85,7 +85,7 @@ lifetimes and cannot be merged).
 | B2 | `compress.py` lossily LLM-rewrites ground-truth memory rows, no symbol guard | the RTK failure mode relocated to the memory layer; a future session trusts a model-invented fact | preserve identifiers/symbols + honest labeling + opt-in guard |
 | B3 | Codex `advance-role` never fires on Write/Edit | banner shows a frozen/wrong role through implementation | **DEFERRED — Codex-only; verified correct on Claude (Write/Edit PostToolUse fires). Out of scope this Claude-only phase.** |
 | B4 | `classify-task-mode` ordering | banner mode could lag a turn on Codex | **DEFERRED — Codex-only; verified correct on Claude (order is …→classify-task-mode→session-context). Out of scope this phase.** |
-| B5 | `formula_dispatches` has no error column; the one live dispatch path fails ~42% silently | the only exercised multi-agent path is undiagnosable | append-only migration adds `error` / `message` |
+| B5 | `formula_dispatches` has no error column; the one live dispatch path fails ~42% silently | the only exercised multi-agent path is undiagnosable | append-only migration v34 adds an `error` column; both write sites populate it on non-ok status |
 | B6 | Rule 12 index cites a non-existent `lint-function-header.sh` | reader believes comment bloat is hook-enforced | delete the stale citation |
 | B7 | Fresh-panel turn-1 banner renders all-blank (`ses=?`) | looks like a hung agent — worst first impression | graceful placeholder when session-id not yet seeded |
 

@@ -228,11 +228,14 @@ _TRIMMABLE_NESTED_MEMBERS: tuple[tuple[str, str], ...] = (("processes", "members
 
 
 def _estimate_tokens(text: str) -> int:
-    # chars/4 holds for ASCII but undercounts non-Latin scripts 2-3x — BPE emits
-    # far more tokens per char for CJK / Arabic / Cyrillic. The old chars/4 let
-    # oversized non-Latin payloads slip under the budget with truncated=False,
-    # the coverage signal the graph-first contract trusts. Conservative model:
-    # ASCII ~4 chars/token; every non-ASCII char counts as ~1 token (worst-case).
+    # Heuristic, NOT a tokenizer. chars/4 holds for ASCII but undercounts non-Latin
+    # ~2-3x — BPE emits more tokens per char for CJK / Arabic / Cyrillic, so the old
+    # chars/4 let oversized non-Latin payloads slip under the budget with
+    # truncated=False (the coverage signal the graph-first contract trusts). Model:
+    # ASCII ~4 chars/token; each non-ASCII char weighted ~1 token — heavier than
+    # chars/4, which closes most of the gap. Not exact: dense CJK can still exceed
+    # 1 tok/char (mild residual undercount) and Arabic/Cyrillic run lighter (mild
+    # over-trim). The goal is removing the silent undercount, not matching a tokenizer.
     ascii_chars = len(text.encode("ascii", "ignore"))
     non_ascii = len(text) - ascii_chars
     return max(1, int(ascii_chars / 4 + non_ascii))
