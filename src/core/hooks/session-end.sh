@@ -104,3 +104,14 @@ RECAP_PY="${_COS_HOOKS_PHYS}/_helpers/session_recap.py"
 if [ -f "$RECAP_PY" ] && [ -f "$COS_DB_PATH" ] && [ -n "$SESSION_ID" ]; then
   python3 "$RECAP_PY" "$COS_DB_PATH" "$SESSION_ID" 2>/dev/null || true
 fi
+
+# Uncommitted-doc advisory (TASK-130, D5-F11): surface uncommitted docs/**/*.md at
+# session end so the audit trail can't record doc truth the repo never committed.
+# Fire-and-forget — never blocks (exit stays 0 regardless).
+if command -v git >/dev/null 2>&1; then
+  _uncommitted_docs=$(git status --porcelain -- docs 2>/dev/null | grep -cE '\.md$' 2>/dev/null || true)
+  if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
+    echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2
+  fi
+  unset _uncommitted_docs
+fi

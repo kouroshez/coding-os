@@ -137,6 +137,7 @@ def regenerate(directory: Path, *, write: bool = True) -> str | None:
             "Read when: Locating the canonical doc for the active task.\n"
             "Skip when: A higher-level index already routed you to the target file.\n"
             "Read next: any of the entries below.\n\n"
+            "> Nav: [Docs Index](../00-index.md)\n\n"
             f"{auto_section}"
         )
     if write:
