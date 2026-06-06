@@ -279,7 +279,7 @@ _TASK_REF_RE = re.compile(r"\bTASK[-_]\d+\b", re.IGNORECASE)
 _IDENTIFIER_RE = re.compile(
     r"([a-z_]{3,}\([a-z_]*\))|([A-Z][a-zA-Z0-9_]{2,})|(`[^`]+`)|\b(src/|core/|cli/|docs/|/)\S*",
 )
-_PAST_PATTERN_TOKENS = ("قبلا", "before", "had", "previously", "same as", "prior")
+_PAST_PATTERN_TOKENS = ("before", "had", "previously", "same as", "prior")
 
 
 def classify_query(query: str) -> QueryClassification:

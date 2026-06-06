@@ -2,9 +2,7 @@
 
 Exhaustive markers trigger evidence-required mode when paired with a scope verb (find · fix · audit · migrate · rename · verify · sweep).
 
-FA exhaustive: همه · همگی · کامل · کاملا · تک به تک · تا اخر · تا دونه آخر · هر چی · همه جا · هیچی نپره · بدون استثنا · تمام · صد در صد
-
-EN exhaustive: all · every · everywhere · completely · comprehensive · exhaustive · thorough · until done · none missed · 100% · down to the last one · each and every
+Exhaustive markers: all · every · everywhere · completely · comprehensive · exhaustive · thorough · until done · none missed · 100% · down to the last one · each and every
 
 When triggered, the agent MUST:
 1. Produce docs/tasks/audits/audit-<slug>.md with mandatory category table.

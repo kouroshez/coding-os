@@ -1,17 +1,17 @@
 <!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-16 -->
 # Intent Vocabulary — How the System Understands Human Intent
 
-Purpose: Single source of truth for the FA + EN verbs that humans use to express **exhaustive** scope ("همه", "all", "completely") and the formal predicates the agent must satisfy when those verbs appear. The agent reads natural language — the system must translate that language into measurable contracts.
+Purpose: Single source of truth for the English verbs that humans use to express **exhaustive** scope ("all", "every", "completely") and the formal predicates the agent must satisfy when those verbs appear. The system is English-default; the agent reads natural language and translates it into measurable contracts regardless of the language used.
 
-Read when: authoring a hook that reads user intent · debugging why an exhaustive-intent prompt was not detected · adding a new vocabulary entry · extending intent detection to a new language.
+Read when: authoring a hook that reads user intent · debugging why an exhaustive-intent prompt was not detected · adding a new vocabulary entry.
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
-**SSOT for vocabulary:** this file. Hooks (`detect-exhaustive-intent.sh`, `intent-primer.sh`) and the completion guardian (`completion_guardian.py`) read from `_helpers/extract_intent.py` which mirrors the tables below. When you change a verb or predicate here, also update `src/core/hooks/_helpers/extract_intent.py` — tests in `tests/test_intent_vocabulary_sync.py` enforce the mirror.
+**SSOT for vocabulary:** this file. Hooks (`detect-exhaustive-intent.sh`, `intent-primer.sh`) and the completion guardian (`completion_guardian.py`) read from `_helpers/extract_intent.py` which mirrors the tables below. When you change a verb or predicate here, also update `src/core/hooks/_helpers/extract_intent.py` — tests in `tests/test_intent_classifier.py` enforce the mirror.
 
 ## Why this exists
 
-A class of premature-completion bugs comes from the agent interpreting "fix همه" / "fix all" loosely — fixing 6 of 10 instances and declaring done. The agent's cultural intuition says "I addressed the main cases." The user's cultural intuition says "every single one, until zero remain." Both are valid readings; only one is what the user meant.
+A class of premature-completion bugs comes from the agent interpreting "fix all" loosely — fixing 6 of 10 instances and declaring done. The agent's intuition says "I addressed the main cases." The user's intuition says "every single one, until zero remain." Both are valid readings; only one is what the user meant.
 
 The fix is not to ask the user to write more precise prompts (that's pushing load the wrong way). The fix is to give the system a **canonical interpretation contract**: when these verbs appear, the agent's done-condition is no longer "I judge it sufficient" — it is "predicate P holds and evidence E proves it."
 
@@ -41,30 +41,9 @@ Each predicate is a **measurable** condition the agent must satisfy. No predicat
 | `per_item_evidence` | Each item independently verified, not batch-asserted | per-item row in audit table with own `Verified` cell |
 | `strict_zero_residual` | After fix, an independent re-grep finds zero hits | reviewer subagent re-grep returns 0 |
 
-## Exhaustive verbs — Persian (FA)
+## Exhaustive verbs (English)
 
-These words signal the user wants **every** instance addressed, not a representative sample.
-
-| Verb / phrase | Predicate(s) | Notes |
-|---|---|---|
-| همه (hame) | `coverage_100` + `iterate_until_zero_residual` | "all" — strongest single-word marker |
-| همگی (hamegi) | `coverage_100` | "all of them" |
-| تک به تک (tak be tak) | `per_item_evidence` | "one by one" — implies independent verification |
-| تا اخر (ta akhar) | `iterate_until_zero_residual` | "until end" — temporal exhaustion |
-| تا دونه آخر (ta doone akhar) | `iterate_until_zero_residual` + `strict_zero_residual` | "to the last one" — extremely strong |
-| هر چی (har chi) | `exhaustive_grep` | "every single" — search-side exhaustion |
-| هر چیزی (har chizi) | `exhaustive_grep` | "anything / everything" |
-| همه جا (hame ja) | `exhaustive_grep` | "everywhere" — spatial exhaustion |
-| کامل (kamel) | `all_categories_evidence` | "complete" — coverage-side exhaustion |
-| کاملا (kamelan) | `all_categories_evidence` + `strict_zero_residual` | "completely" |
-| صد در صد (sad dar sad) | `strict_zero_residual` | "100%" — explicit numeric |
-| هیچی نپره (hichi naparre) | `strict_zero_residual` | "nothing slips through" |
-| هیچی جا نمونه (hichi ja namune) | `strict_zero_residual` | "nothing left behind" |
-| بدون استثنا (bedoon-e estesna) | `strict_zero_residual` | "without exception" |
-| تمام (tamam) | `coverage_100` | "all / entire" |
-| تمامی (tamami) | `coverage_100` | "the entirety of" |
-
-## Exhaustive verbs — English (EN)
+These words signal the user wants **every** instance addressed, not a representative sample. English is the default vocabulary — a deterministic pre-classifier; the agent's own comprehension covers prompts in other languages, so the system stays English-default rather than privileging one non-English vocabulary.
 
 | Verb / phrase | Predicate(s) | Notes |
 |---|---|---|
@@ -90,22 +69,22 @@ These words signal the user wants **every** instance addressed, not a representa
 
 Exhaustive vocab alone is not a trigger. Exhaustive vocab **combined with a scope verb** is the trigger — "all my dreams" is not an audit; "fix all the failing tests" is.
 
-| Verb (EN) | Verb (FA) | Action class |
-|---|---|---|
-| find | پیدا کن, جستجو کن | search |
-| fix | فیکس کن, درست کن, اصلاح کن | repair |
-| update | آپدیت کن, به‌روز کن | replace |
-| rename | rename, تغییر نام بده | rename |
-| migrate | migrate, منتقل کن | migrate |
-| audit | audit, بررسی کن | audit |
-| verify | verify, وریفای کن | verify |
-| check | چک کن, بررسی کن | verify |
-| sweep | sweep, جارو کن | search |
-| search | جستجو کن, سرچ کن | search |
-| review | review, بررسی کن | audit |
-| refactor | refactor | restructure |
-| remove | حذف کن, پاک کن | delete |
-| replace | جایگزین کن | replace |
+| Verb | Action class |
+|---|---|
+| find | search |
+| fix | repair |
+| update | replace |
+| rename | rename |
+| migrate | migrate |
+| audit | audit |
+| verify | verify |
+| check | verify |
+| sweep | search |
+| search | search |
+| review | audit |
+| refactor | restructure |
+| remove | delete |
+| replace | replace |
 
 ## Trigger rule (formal)
 
@@ -131,7 +110,7 @@ When `intent.exhaustive=True`, the agent enters "evidence-required mode":
 
 Some phrasings look exhaustive but are not actually scope+verb pairs:
 
-- "همه چیز ok بود" / "all good" → no scope verb. Not exhaustive intent.
+- "all good" → no scope verb. Not exhaustive intent.
 - "all my code is broken" → "all" is descriptive, not imperative. Heuristic: exhaustive verb must precede or follow scope verb within a clause (~20 tokens window).
 - "find me one example" → "find" is scope verb but "one" overrides exhaustive default.
 - "fix the test" (singular, no exhaustive marker) → not triggered.
@@ -142,18 +121,18 @@ The classifier uses a 20-token sliding window for co-occurrence rather than whol
 
 When adding a new verb:
 
-1. Add row to the FA or EN table above with the predicate it implies.
-2. Mirror the addition in `src/core/hooks/_helpers/extract_intent.py::EXHAUSTIVE_VERBS_FA` / `EXHAUSTIVE_VERBS_EN`.
-3. Add a positive test in `tests/test_intent_vocabulary.py` covering the new verb with a scope verb.
+1. Add row to the exhaustive-verbs table above with the predicate it implies.
+2. Mirror the addition in `src/core/hooks/_helpers/extract_intent.py::EXHAUSTIVE_VERBS_EN`.
+3. Add a positive test in `tests/test_intent_classifier.py` covering the new verb with a scope verb.
 4. Add a false-positive test ensuring the new verb without a scope verb does NOT trigger.
 5. Update the SessionStart card in `src/core/hooks/intent-primer.sh` if the verb is one a typical user would say often (keep card under 300 tokens — high-frequency verbs only).
 6. Re-run `make verify-hooks` and `uv run pytest tests/test_intent_*.py -q`.
 
-When extending to a new language: add a new table section, mirror in `extract_intent.py` with a `LANG_<code>` constant, add language detection (or always-on multi-language matching — current design).
+Language: the table is English-default — a deterministic pre-classifier. The agent's own comprehension reads intent in any language, so the system does not hardcode a second vocabulary.
 
-## Cultural note
+## Why English-default
 
-Persian and English speakers express exhaustion differently. Persian leans on doubled markers ("تک به تک" — "one by one" literally "single to single"; "تا دونه آخر" — "until the last seed"). English leans on amplifiers ("every single", "down to the last"). Both are valid. The vocabulary table captures the common surface forms; the predicates capture the underlying invariant the agent must satisfy. The invariant is language-independent — only the surface form differs.
+The keyword table is a deterministic pre-classifier in English — the lingua franca of the consumer base. The agent's own comprehension reads intent in any language, so the table privileges no single non-English vocabulary. The predicates capture the underlying invariant the agent must satisfy; that invariant is language-independent — only the surface form differs.
 
 This is the same principle by which legal contracts work: parties may speak different languages, but the obligations are the same. Intent vocabulary is the system's way of converting natural language into obligations the agent can be held to.
 

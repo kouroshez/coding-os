@@ -64,9 +64,9 @@ if printf '%s' "$PL" | command grep -qiE "$GOV_RE"; then
 fi
 
 # Verb sets — order matters when the prompt mixes signals (rare but real).
-IMPL_RE='(implement|build|fix|add|ship|refactor|migrate|optimi[sz]e|deploy|hotfix|بساز|پیاده ساز|ریفکتور|اصلاح|انجام بده|راه انداز)'
-QUERY_RE='(what is|what does|why|explain|analy[sz]e|look at|review|show|list|describe|بررسی|توضیح|چیست|چرا|نمایش)'
-EXPLORE_RE='(explore|investigate|trace|map |audit|deep dive|بررسی عمقی|ممیز|نقشه|عمیق)'
+IMPL_RE='(implement|build|fix|add|ship|refactor|migrate|optimi[sz]e|deploy|hotfix)'
+QUERY_RE='(what is|what does|why|explain|analy[sz]e|look at|review|show|list|describe)'
+EXPLORE_RE='(explore|investigate|trace|map |audit|deep dive)'
 
 if printf '%s' "$PL" | command grep -qiE "$IMPL_RE"; then
   printf 'propose-formal\n' > "$MODE_FILE"

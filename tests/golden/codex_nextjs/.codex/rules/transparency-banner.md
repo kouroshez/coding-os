@@ -59,6 +59,16 @@ Examples:
 [banner forces the agent to surface the drift before continuing]
 ```
 
+## Reply body — lean by default (the line after the banner)
+
+The banner is line 1; the body follows the blank line. Default to the **minimum that fully answers** — result first, then only the reasoning the user needs to act on. This codifies measured behaviour (median visible reply ~36 tokens, p90 ~128 across real sessions), not a new burden.
+
+- **Casual modes** (`query`/`adhoc`/`chore`): a sentence or two; no preamble/postamble, no "here's what I did" recap.
+- **Formal work**: decision/result first, then the why; push verbose tables, file lists, and verification logs to the artifact that outlives the turn (the task work-log, the audit doc, the PR body) — the same discipline the commit contract (Rule 24) uses to keep them out of `git log`.
+- **Deliberate reports** (the user asked for the full analysis / a design proposal): be as thorough as the request demands. This exemption is the point — never trade a wanted report for brevity.
+
+This is a **convention, not a hook**: a Stop hook fires *after* the reply is already generated and billed, so it cannot save the turn and would only add per-turn cost. The economy lives in how the agent writes, not in an enforcer.
+
 ## When the banner is missing
 
 If `USER_BANNER` is not in the latest `additionalContext` (e.g. SessionStart with no UserPromptSubmit yet, or hook failure), the agent MAY skip the banner for that single turn. It must NOT fabricate a banner from memory — stale values mislead worse than no banner.
@@ -74,7 +84,7 @@ Signals deliberately limited to **cognitive state** (what the agent thinks it's 
 ## Anti-patterns
 
 - Skipping the banner because "nothing changed since last turn" — the user still benefits from continuous confirmation.
-- Translating the banner ("🔔 =… · =…") — keep the literal field names so they match the underlying state files.
+- Translating the banner field names to another language — keep the literal field names so they match the underlying state files.
 - Adding the banner to TOOL CALL descriptions or to the end of the reply — must be FIRST line, plain text.
 - Synthesizing a banner when `USER_BANNER` is absent — accuracy beats coverage.
 - Bundling the banner with code blocks, headers, or tool-call commentary — keep it standalone on line 1.

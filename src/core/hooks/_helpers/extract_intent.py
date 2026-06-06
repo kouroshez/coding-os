@@ -1,7 +1,7 @@
-"""Parse a user prompt for exhaustive-scope intent (FA + EN).
+"""Parse a user prompt for exhaustive-scope intent (English).
 
 Mirror of docs/engineering/intent-vocabulary.md — when that doc changes,
-the constants below MUST be updated. tests/test_intent_vocabulary_sync.py
+the constants below MUST be updated. tests/test_intent_classifier.py
 enforces the mirror.
 
 Triggered by src/core/hooks/detect-exhaustive-intent.sh on UserPromptSubmit.
@@ -13,6 +13,11 @@ prompt instead of re-parsing.
 Decision rule: a prompt has exhaustive intent IFF an exhaustive verb and
 a scope verb co-occur within a 20-token sliding window. The predicates
 inherited from all matched exhaustive verbs are UNIONED in the result.
+
+Heuristic, English-default: these keyword tables are a deterministic
+pre-classifier. The agent's own comprehension covers prompts in any other
+language; the system stays English-default rather than privileging one
+non-English vocabulary.
 """
 
 from __future__ import annotations
@@ -26,29 +31,6 @@ from pathlib import Path
 from typing import Any
 
 WINDOW_TOKENS = 20
-
-EXHAUSTIVE_VERBS_FA: dict[str, list[str]] = {
-    "همه": ["coverage_100", "iterate_until_zero_residual"],
-    "همگی": ["coverage_100"],
-    "تک به تک": ["per_item_evidence"],
-    "تا اخر": ["iterate_until_zero_residual"],
-    "تا آخر": ["iterate_until_zero_residual"],
-    "تا دونه آخر": ["iterate_until_zero_residual", "strict_zero_residual"],
-    "تا دانه آخر": ["iterate_until_zero_residual", "strict_zero_residual"],
-    "هر چی": ["exhaustive_grep"],
-    "هر چیزی": ["exhaustive_grep"],
-    "همه جا": ["exhaustive_grep"],
-    "کامل": ["all_categories_evidence"],
-    "کاملا": ["all_categories_evidence", "strict_zero_residual"],
-    "کاملاً": ["all_categories_evidence", "strict_zero_residual"],
-    "صد در صد": ["strict_zero_residual"],
-    "هیچی نپره": ["strict_zero_residual"],
-    "هیچی جا نمونه": ["strict_zero_residual"],
-    "بدون استثنا": ["strict_zero_residual"],
-    "بدون استثناء": ["strict_zero_residual"],
-    "تمام": ["coverage_100"],
-    "تمامی": ["coverage_100"],
-}
 
 EXHAUSTIVE_VERBS_EN: dict[str, list[str]] = {
     "all": ["coverage_100", "iterate_until_zero_residual"],
@@ -94,26 +76,6 @@ SCOPE_VERBS_EN: set[str] = {
     "repair",
     "address",
     "resolve",
-}
-
-SCOPE_VERBS_FA: set[str] = {
-    "پیدا",
-    "جستجو",
-    "سرچ",
-    "فیکس",
-    "درست",
-    "اصلاح",
-    "آپدیت",
-    "بررسی",
-    "چک",
-    "rename",
-    "منتقل",
-    "جایگزین",
-    "حذف",
-    "پاک",
-    "وریفای",
-    "ریویو",
-    "audit",
 }
 
 
@@ -173,17 +135,15 @@ def extract_intent(prompt: str) -> dict[str, Any]:
 
     tokens = _tokenize(prompt)
 
-    matched_ex_fa = _scan(tokens, EXHAUSTIVE_VERBS_FA)
     matched_ex_en = _scan(tokens, EXHAUSTIVE_VERBS_EN)
     matched_scope_en = _scan_scope(tokens, SCOPE_VERBS_EN)
-    matched_scope_fa = _scan_scope(tokens, SCOPE_VERBS_FA)
 
     all_ex_positions: list[tuple[str, int]] = []
-    for verb, positions in {**matched_ex_fa, **matched_ex_en}.items():
+    for verb, positions in matched_ex_en.items():
         all_ex_positions.extend((verb, p) for p in positions)
 
     all_scope_positions: list[int] = []
-    for positions in {**matched_scope_en, **matched_scope_fa}.values():
+    for positions in matched_scope_en.values():
         all_scope_positions.extend(positions)
 
     matched_ex_within_window: list[str] = []
@@ -196,9 +156,9 @@ def extract_intent(prompt: str) -> dict[str, Any]:
     predicates: set[str] = set()
     if exhaustive:
         for verb in matched_ex_within_window:
-            predicates.update(EXHAUSTIVE_VERBS_FA.get(verb, []) + EXHAUSTIVE_VERBS_EN.get(verb, []))
+            predicates.update(EXHAUSTIVE_VERBS_EN.get(verb, []))
 
-    matched_scope_verbs = sorted(set(matched_scope_en) | set(matched_scope_fa))
+    matched_scope_verbs = sorted(set(matched_scope_en))
 
     return {
         "exhaustive": exhaustive,

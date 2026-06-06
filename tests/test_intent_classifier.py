@@ -64,28 +64,6 @@ class TestExhaustiveEnglish:
         assert "strict_zero_residual" in result["predicates"]
 
 
-class TestExhaustivePersian:
-    def test_hame_with_fix_triggers(self) -> None:
-        result = _run_helper("fix همه the broken hooks")
-        assert result["exhaustive"] is True
-        assert "همه" in result["matched_exhaustive"]
-        assert "coverage_100" in result["predicates"]
-
-    def test_ta_doone_akhar_full_fa(self) -> None:
-        result = _run_helper("تا دونه آخر فیکس کن این رو")
-        assert result["exhaustive"] is True
-        assert "تا دونه آخر" in result["matched_exhaustive"]
-        assert "فیکس" in result["matched_scope"]
-        assert "iterate_until_zero_residual" in result["predicates"]
-        assert "strict_zero_residual" in result["predicates"]
-
-    def test_kamel_with_audit(self) -> None:
-        result = _run_helper("audit بکن کامل پروژه رو")
-        assert result["exhaustive"] is True
-        assert "کامل" in result["matched_exhaustive"]
-        assert "all_categories_evidence" in result["predicates"]
-
-
 class TestFalsePositives:
     def test_all_good_without_scope_verb(self) -> None:
         result = _run_helper("all good thanks")
@@ -136,7 +114,7 @@ class TestPredicateUnion:
 
 class TestHookEnvelope:
     def test_exhaustive_prompt_emits_envelope(self) -> None:
-        code, stdout, _ = _run_hook("fix همه the broken hooks please")
+        code, stdout, _ = _run_hook("fix all the broken hooks please")
         assert code == 0
         payload = json.loads(stdout)
         assert payload["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
@@ -192,23 +170,5 @@ class TestSchemaShape:
 )
 def test_each_en_exhaustive_verb_recognized(verb: str) -> None:
     result = _run_helper(f"fix {verb} broken")
-    assert result["exhaustive"] is True, verb
-    assert verb in result["matched_exhaustive"], verb
-
-
-@pytest.mark.parametrize(
-    "verb",
-    [
-        "همه",
-        "همگی",
-        "کامل",
-        "صد در صد",
-        "هیچی نپره",
-        "بدون استثنا",
-        "تمام",
-    ],
-)
-def test_each_fa_exhaustive_verb_recognized(verb: str) -> None:
-    result = _run_helper(f"فیکس {verb} این")
     assert result["exhaustive"] is True, verb
     assert verb in result["matched_exhaustive"], verb

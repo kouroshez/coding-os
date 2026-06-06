@@ -60,7 +60,7 @@ fi
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || echo "")
 [[ ${#PROMPT} -lt 15 ]] && exit 0
 PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
-if printf '%s' "$PL" | grep -qE '\btask-[0-9]+\b|check task|show task|look at task|open task|status of task|تسک .*(نشون|نشان|چک|باز)|وظیفه .*(نشون|نشان|چک)' 2>/dev/null; then
+if printf '%s' "$PL" | grep -qE '\btask-[0-9]+\b|check task|show task|look at task|open task|status of task' 2>/dev/null; then
   PM="${MARKER_DIR}/prompt"
   [[ -f "$PM" ]] && exit 0
   touch "$PM" 2>/dev/null || true

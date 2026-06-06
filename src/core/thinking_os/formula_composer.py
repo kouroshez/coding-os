@@ -187,19 +187,19 @@ def load_situations() -> dict[str, dict]:
 _ACTION_PATTERNS: list[tuple[str, str]] = [
     (
         "debug",
-        r"\b(debug|diagnose|root[- ]?cause|stack[- ]?trace|failing|broken|crash|باگ|دیباگ|خطا|اشکال)\b",
+        r"\b(debug|diagnose|root[- ]?cause|stack[- ]?trace|failing|broken|crash)\b",
     ),
-    ("audit", r"\b(audit|security review|pentest|vulnerab|cve|threat model|ممیزی|امنیت)\b"),
-    ("review", r"\b(review|code[- ]?review|critique|assess|بازبینی|مرور)\b"),
+    ("audit", r"\b(audit|security review|pentest|vulnerab|cve|threat model)\b"),
+    ("review", r"\b(review|code[- ]?review|critique|assess)\b"),
     (
         "research",
-        r"\b(research|investigate|explore|best way|compare|evaluate|spike|تحقیق|بررسی|کاوش)\b",
+        r"\b(research|investigate|explore|best way|compare|evaluate|spike)\b",
     ),
-    ("refactor", r"\b(refactor|clean ?up|restructure|simplify|deduplicate|ریفکتور|بازنویسی)\b"),
-    ("document", r"\b(document\w*|write docs|readme|changelog|adr|مستند|داکیومنت)\b"),
-    ("deploy", r"\b(deploy|release|ship|rollout|ci/cd|pipeline|دیپلوی|انتشار)\b"),
-    ("create", r"\b(add|create|implement|build|new |feature|بساز|اضافه|پیاده)\b"),
-    ("modify", r"\b(fix|update|change|modify|edit|adjust|tweak|اصلاح|تغییر|آپدیت)\b"),
+    ("refactor", r"\b(refactor|clean ?up|restructure|simplify|deduplicate)\b"),
+    ("document", r"\b(document\w*|write docs|readme|changelog|adr)\b"),
+    ("deploy", r"\b(deploy|release|ship|rollout|ci/cd|pipeline)\b"),
+    ("create", r"\b(add|create|implement|build|new |feature)\b"),
+    ("modify", r"\b(fix|update|change|modify|edit|adjust|tweak)\b"),
 ]
 
 # Domain keyword → TaskSignals.domain entries. Mirrors cos_classify_prompt's
@@ -243,7 +243,7 @@ def signals_from_prompt(
     # scope_size from prompt length + breadth keywords.
     words = len(text.split())
     if (
-        _re.search(r"\b(everywhere|all |every |entire|whole|across|سراسر|همه|تمام)\b", text)
+        _re.search(r"\b(everywhere|all |every |entire|whole|across)\b", text)
         or words > 200
     ):
         scope_size = "large"
@@ -255,16 +255,16 @@ def signals_from_prompt(
     novelty = (
         0.6
         if action == "research"
-        or _re.search(r"\b(novel|unknown|first time|from scratch|greenfield|نامعلوم|جدید)\b", text)
+        or _re.search(r"\b(novel|unknown|first time|from scratch|greenfield)\b", text)
         else 0.0
     )
     urgency = (
         "incident"
-        if _re.search(r"\b(p0|p1|outage|down|emergency|urgent|asap|hotfix|فوری|اضطرار)\b", text)
+        if _re.search(r"\b(p0|p1|outage|down|emergency|urgent|asap|hotfix)\b", text)
         else "normal"
     )
     has_unknowns = bool(
-        _re.search(r"\b(unknown|not sure|unclear|investigate|نامعلوم|مطمئن نیستم)\b", text)
+        _re.search(r"\b(unknown|not sure|unclear|investigate)\b", text)
     )
 
     return TaskSignals(

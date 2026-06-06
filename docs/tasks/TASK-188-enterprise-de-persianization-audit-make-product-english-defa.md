@@ -4,19 +4,18 @@ title: "Enterprise de-Persianization audit make product English-default not Pers
 swimlane: core
 kind: chore
 epic: agent-economy
-labels: []
-status: icebox
+labels: [ready]
+status: complete
 priority: P2
 appetite: "1d"
 created: 2026-06-06
-started: null
-completed: null
-agent_session: null
+started: 2026-06-05
+completed: 2026-06-05
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-188: Enterprise de-Persianization audit make product English-default not Persian-hardcoded
 
 **Outcome (one sentence):** Product layer reads as English-default for a global consumer base — presentation (banners, examples, comments, docs) is English, functional heuristic classifiers are language-neutral, and the commit prompt-leak guard's non-Latin detection is KEPT as a safety feature.
@@ -41,3 +40,6 @@ English-only heuristics (simplest; loses keyword pre-detection for non-English p
 ## Verification (when done)
 
 Per-file matrix for each touched class + `make golden-capture` for hook changes + full `pytest tests/ -q` (audit-class) + grep proves 0 Persian outside the kept safety guard.
+
+## Work Log
+- 2026-06-06 [claude]: Status transitioned to complete via cos task-done.

@@ -84,7 +84,7 @@ Signals deliberately limited to **cognitive state** (what the agent thinks it's 
 ## Anti-patterns
 
 - Skipping the banner because "nothing changed since last turn" — the user still benefits from continuous confirmation.
-- Translating the banner ("🔔 =… · =…") — keep the literal field names so they match the underlying state files.
+- Translating the banner field names to another language — keep the literal field names so they match the underlying state files.
 - Adding the banner to TOOL CALL descriptions or to the end of the reply — must be FIRST line, plain text.
 - Synthesizing a banner when `USER_BANNER` is absent — accuracy beats coverage.
 - Bundling the banner with code blocks, headers, or tool-call commentary — keep it standalone on line 1.

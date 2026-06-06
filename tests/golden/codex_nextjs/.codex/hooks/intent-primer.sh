@@ -3,8 +3,8 @@
 #
 # Purpose: Inject a compact (≤300 token) card at every session boundary
 # (startup, compact, resume) so the agent enters every session already
-# aware of how to read natural-language exhaustive intent — "همه" / "all"
-# / "completely" / "تا دونه آخر" — and what evidence is required when
+# aware of how to read natural-language exhaustive intent — "all" /
+# "every" / "completely" / "down to the last one" — and what evidence is required when
 # such intent is detected.
 #
 # Three-layer architecture (this is layer 1):

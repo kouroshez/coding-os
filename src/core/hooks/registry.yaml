@@ -1024,8 +1024,8 @@ hooks:
       SessionStart prime card — injects ~250-token intent-vocabulary card
       at every session boundary (startup, compact, resume) so the agent
       enters every session pre-primed on how to interpret natural-language
-      exhaustive scope verbs (FA: همه · کامل · تک به تک · تا اخر · هیچی نپره ·
-      EN: all · every · completely · exhaustive · until done · none missed)
+      exhaustive scope verbs (all · every · completely · exhaustive · until
+      done · none missed)
       and the evidence-required behavior they trigger when paired with a
       scope verb (find/fix/audit/migrate/rename/verify). Layer 1 of the
       3-layer intent architecture: SessionStart prime → UserPromptSubmit

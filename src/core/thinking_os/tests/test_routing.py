@@ -136,10 +136,6 @@ class TestClassifyQuery:
         result = classify_query("have we done this before in phase j?")
         assert result["shape"] == "past_pattern"
 
-    def test_past_pattern_fa(self) -> None:
-        result = classify_query("قبلا این مشکل رو داشتیم؟")
-        assert result["shape"] == "past_pattern"
-
     def test_mixed_when_similar_confidence(self) -> None:
         result = classify_query("how do i debug parse_task in core/workflow.py")
         assert result["shape"] == "mixed"

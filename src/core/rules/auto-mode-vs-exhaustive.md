@@ -11,7 +11,7 @@ permission prompts. It naturally rewards two behaviors:
 2. **Stop when the work feels done** so the user sees a result.
 
 Both are correct for ordinary tasks. Both are dangerous for tasks
-where the user said `` / `all` / `completely` / `until done`. In
+where the user said `all` / `every` / `completely` / `until done`. In
 those tasks the user has explicitly bought *coverage*, not
 *judgement-call*. Auto mode without explicit handling of this
 tension would let the agent declare done while the audit has unchecked
@@ -63,7 +63,7 @@ SYSTEM enforces the rule regardless.
 
 ## What auto mode does NOT change
 
-- The exhaustive vocabulary is still authoritative — `` still means *all*.
+- The exhaustive vocabulary is still authoritative — `all` still means *every one*.
 - The predicates from intent-vocabulary.md are still the contract.
 - The audit artifact is still mandatory.
 - The reviewer subagent is still mandatory before "done".

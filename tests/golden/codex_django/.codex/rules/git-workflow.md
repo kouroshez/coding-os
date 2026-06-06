@@ -147,7 +147,7 @@ Every line in a commit message exists forever. Verbose bodies (audit tables, fil
 - `Co-Authored-By:` trailers of any kind (agent attribution belongs nowhere in history).
 - Lines matching `🤖`, `Generated with [Claude`, `noreply@anthropic.com`, `claude.com/claude-code`, `@anthropic.com` (case-insensitive).
 - Any line beginning with `USER` / `User` / `user` (prompt-leak guard — `^USER\b`).
-- Quoted text containing >40 Persian/Arabic characters (user-prompt leak guard: `"..."`).
+- Quoted text containing >40 Persian/Arabic characters — a user-prompt leak guard (keeps non-Latin prompt text out of permanent history).
 
 ### Convention (not enforced — caught indirectly by 3-line limit)
 

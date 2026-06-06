@@ -55,7 +55,7 @@ PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 # Code-edit intent patterns — bilingual EN + Persian. Conservative: only
 # fire on unambiguous mutation verbs paired with code targets. Asking a
 # question or reading code does NOT trigger.
-CODE_INTENT_RE='(\b(refactor|rename|implement|add|fix|change|modify|update|extend|patch|migrate|replace|remove|delete|introduce|wire|integrate)\b.*\b(function|method|class|module|endpoint|route|handler|component|hook|tool|test|adapter|skill|api|schema|migration|config)\b)|(\.(py|ts|tsx|go|js|jsx|rs|sh)\b)|(تغییر|اصلاح|بازنویسی|اضافه|رفع|پیاده|ریفکتور)'
+CODE_INTENT_RE='(\b(refactor|rename|implement|add|fix|change|modify|update|extend|patch|migrate|replace|remove|delete|introduce|wire|integrate)\b.*\b(function|method|class|module|endpoint|route|handler|component|hook|tool|test|adapter|skill|api|schema|migration|config)\b)|(\.(py|ts|tsx|go|js|jsx|rs|sh)\b))'
 
 if ! printf '%s' "$PL" | grep -qE "$CODE_INTENT_RE" 2>/dev/null; then
   exit 0

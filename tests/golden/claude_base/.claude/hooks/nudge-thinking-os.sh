@@ -59,9 +59,9 @@ fi
 PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 
 # Signal words. Persian + English mixed (this repo is bilingual).
-COMPLICATED_RE='design|architect|plan|debug|investigate|refactor|multiple|all of|comprehensive|deep|enterprise|trace|map |dependency|persona|scenario|طراحی|معماری|پلن|دیباگ|ریفکتور|عمیق|سازمان|چندین|همه |تحلیل|نقشه|پرسنا'
-COMPLEX_RE='best way|optimal|optimize|strategy|unknown|research|what if|trade.?off|بهترین راه|بهینه|استراتژی|نامعلوم'
-CHAOTIC_RE='down|broken|crash|outage|urgent|emergency|asap|hotfix|p0|خراب|بحران|فوری|اضطرار'
+COMPLICATED_RE='design|architect|plan|debug|investigate|refactor|multiple|all of|comprehensive|deep|enterprise|trace|map |dependency|persona|scenario'
+COMPLEX_RE='best way|optimal|optimize|strategy|unknown|research|what if|trade.?off'
+CHAOTIC_RE='down|broken|crash|outage|urgent|emergency|asap|hotfix|p0'
 
 count_re() {
   # grep -o returns 1 on no match — swallow it so pipefail does not abort

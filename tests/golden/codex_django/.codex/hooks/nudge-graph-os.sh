@@ -34,33 +34,33 @@ PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 # Persian + English bilingual to match this repo's user.
 declare -a PATTERNS=(
   # graph health / why empty / why broken — must precede generic graph words
-  "graph (empty|broken|stale|down|dead)|why .* graph|graph health|گراف خالی|گراف خراب|سلامت گراف:cos_graph_doctor"
+  "graph (empty|broken|stale|down|dead)|why .* graph|graph health:cos_graph_doctor"
   # detect changes / pre-commit / diff impact / what did i change — before impact
-  "pre.?commit|what did i change|diff impact|since last commit|impact of (my )?change|recent change|recent commit|اثر تغییر|قبل از commit|اخیراً تغییر:cos_graph_detect_changes"
+  "pre.?commit|what did i change|diff impact|since last commit|impact of (my )?change|recent change|recent commit:cos_graph_detect_changes"
   # rename — rename_plan
-  "rename|renaming|تغییر نام|rename plan:cos_graph_rename_plan"
+  "rename|renaming|rename plan:cos_graph_rename_plan"
   # who calls / references / used by — references
-  "who calls|who uses|where (is|are) .* (called|used|referenced)|callers of|references to|used by|چه کسی .*صدا|کجا .*فراخوانی|کجا .*استفاده|^references|usages|call.?sites?:cos_graph_references"
+  "who calls|who uses|where (is|are) .* (called|used|referenced)|callers of|references to|used by|^references|usages|call.?sites?:cos_graph_references"
   # blast radius / impact / what breaks — impact
-  "blast radius|impact|what breaks|what will break|downstream|upstream|affected|چه چیزی .*شکست|چه چیزی .*خراب|تاثیر .*تغییر:cos_graph_impact"
+  "blast radius|impact|what breaks|what will break|downstream|upstream|affected:cos_graph_impact"
   # contracts / api surface / endpoints / mcp tools
-  "api surface|all endpoints|all routes|all mcp tools|all handlers|contract surface|سطح api|همه endpoint|همه route|همه ابزار:cos_graph_contracts"
+  "api surface|all endpoints|all routes|all mcp tools|all handlers|contract surface:cos_graph_contracts"
   # trace / data flow / execution path — before path (trace pattern is more
   # explicit; "from X to Y" appears in both, so put trace first when the
   # word "trace" or "execution path" or "data flow" is present)
-  "^trace |trace the |trace .* execution|execution path|data flow|how does .* flow|step.?by.?step from|پیمایش|جریان داده|مسیر اجرا:cos_graph_trace"
+  "^trace |trace the |trace .* execution|execution path|data flow|how does .* flow|step.?by.?step from:cos_graph_trace"
   # path between / shortest / how connected
-  "shortest path|path from .* to|path between|how .* connected|how .* reach|مسیر کوتاه|چطور .*متصل|کوتاه‌ترین:cos_graph_path"
+  "shortest path|path from .* to|path between|how .* connected|how .* reach:cos_graph_path"
   # similar / duplicate / near-clone
-  "similar|near.?duplicate|clone|equivalent|like .* but|مشابه|نزدیک|تکراری:cos_graph_similar"
+  "similar|near.?duplicate|clone|equivalent|like .* but:cos_graph_similar"
   # subsystems / clusters / communities / map of
-  "subsystem|cluster|community|map of|architecture map|onboard|زیرسیستم|کلاستر|نقشه|پرسنا:cos_graph_communities"
+  "subsystem|cluster|community|map of|architecture map|onboard:cos_graph_communities"
   # context / surrounding / depend on this
-  "context around|surrounding|neighbour|neighbor|depend on this|دور و بر|پیرامون|surrounding context:cos_graph_context"
+  "context around|surrounding|neighbour|neighbor|depend on this|surrounding context:cos_graph_context"
   # entry points / where does it start
-  "entry point|where does .* start|main entry|how do users|نقطه شروع|ورودی برنامه:cos_graph_entrypoints"
+  "entry point|where does .* start|main entry|how do users:cos_graph_entrypoints"
   # diagram / mermaid / dot
-  "diagram|mermaid|dot graph|visualize|نمودار|دیاگرام:cos_graph_export"
+  "diagram|mermaid|dot graph|visualize:cos_graph_export"
 )
 
 MATCHED_TOOL=""
