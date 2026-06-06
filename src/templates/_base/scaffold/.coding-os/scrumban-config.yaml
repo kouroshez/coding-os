@@ -46,7 +46,7 @@ workflow_policy:
   reclaim_idle_hours: 24
   # Per-status reclaim window — `testing` parks near-done work, so a stranded
   # testing zombie is reclaimed sooner than a generic in_progress one and is
-  # routed back to in_progress (0 = fall back to reclaim_idle_hours). TASK-210.
+  # routed back to in_progress (0 = fall back to reclaim_idle_hours).
   testing_reclaim_idle_hours: 6
   # SLA dwell budgets — a card past its budget is flagged `stale` on every
   # board surface (cos board / daily — observability only, no mutation).
@@ -56,7 +56,7 @@ workflow_policy:
   icebox_stale_days: 30
   # Auto-archive aged cards — OFF by default (0). Opt in to drain the backlog
   # on a timer (SessionStart + nightly sweeps); a `keep`/`parked` label always
-  # exempts, and archive is reversible (archive→icebox). TASK-210 RC6.
+  # exempts, and archive is reversible (archive→icebox).
   icebox_auto_archive_days: 0
   complete_auto_archive_days: 0
 
