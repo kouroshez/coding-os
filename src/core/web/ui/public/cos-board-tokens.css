@@ -48,6 +48,7 @@
     --brand-on:    #ffffff;
     /* review token ideas: dedicated live + distinct focus */
     --live:        #0e7490;  /* Pulse Cyan — SSE / agent-live */
+    --live-tint:   rgba(14, 116, 144, .14);
     --focus-ring:  #7c3aed;  /* violet — distinct from brand so focus pops */
 
     /* ---- LEGACY ALIASES (kept → zero component breakage) ---- */
@@ -103,6 +104,7 @@
     --iris-tint:  rgba(124, 130, 242, .14);
     /* review token ideas (dark) */
     --live:        #45d6e8;
+    --live-tint:   rgba(69, 214, 232, .16);
     --focus-ring:  #a78bfa;
     /* ---- PRIMITIVES · status ---- */
     --st-ok:   #3fb950; --st-ok-tint:   rgba(63, 185, 80, .14);

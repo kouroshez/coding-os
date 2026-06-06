@@ -136,22 +136,27 @@ const STATE_DOT: Record<string, { color: string; pulse: boolean; label: string }
   offline: { color: '#6b7280', pulse: false, label: 'offline' },
 };
 
-const ACTION_BADGE: Record<string, { bg: string; text: string }> = {
+// Every badge: a faint themed tint bg + the solid hue as text (AA-verified
+// in both themes via scripts/badge_contrast.py). Neutral statuses get a
+// visible border-tint, never bg=panel. `label` overrides the rendered text
+// so long action names aren't clipped.
+const NEUTRAL_BADGE = { bg: 'bg-[var(--cos-border)]/40', text: 'text-[var(--cos-muted)]' };
+const ACTION_BADGE: Record<string, { bg: string; text: string; label?: string }> = {
   fire: { bg: 'bg-[var(--cos-info-tint)]', text: 'text-[var(--cos-info)]' },
   block: { bg: 'bg-[var(--cos-err-tint)]', text: 'text-[var(--cos-err)]' },
   warn: { bg: 'bg-[var(--cos-warn-tint)]', text: 'text-[var(--cos-warn)]' },
-  'stale-gate': { bg: 'bg-[var(--cos-warn-tint)]', text: 'text-[var(--cos-warn)]' },
-  skip: { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
-  'skip-not-replace': { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
+  'stale-gate': { bg: 'bg-[var(--cos-warn-tint)]', text: 'text-[var(--cos-warn)]', label: 'stale' },
+  skip: { ...NEUTRAL_BADGE },
+  'skip-not-replace': { ...NEUTRAL_BADGE, label: 'skip' },
   pass: { bg: 'bg-[var(--cos-ok-tint)]', text: 'text-[var(--cos-ok)]' },
   ok: { bg: 'bg-[var(--cos-ok-tint)]', text: 'text-[var(--cos-ok)]' },
   entry: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
   enter: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
-  dispatched: { bg: 'bg-[var(--cos-live)]', text: 'text-[var(--cos-live)]' },
-  'session-end': { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
-  posttooluse: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
-  pretooluse: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]' },
-  'non-rename': { bg: 'bg-[var(--cos-panel)]', text: 'text-[var(--cos-muted)]' },
+  dispatched: { bg: 'bg-[var(--cos-live-tint)]', text: 'text-[var(--cos-live)]', label: 'disp' },
+  'session-end': { ...NEUTRAL_BADGE, label: 'end' },
+  posttooluse: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]', label: 'post' },
+  pretooluse: { bg: 'bg-[var(--cos-brand-tint)]', text: 'text-[var(--cos-brand-text)]', label: 'pre' },
+  'non-rename': { ...NEUTRAL_BADGE, label: 'keep' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -817,13 +822,13 @@ function PanelCard({
 
 function ActionBadge({ action }: { action: string }) {
   const norm = action.toLowerCase();
-  const pal = ACTION_BADGE[norm] ?? { bg: 'bg-[var(--cos-border)]/30', text: 'text-[var(--cos-muted)]' };
+  const pal = ACTION_BADGE[norm] ?? NEUTRAL_BADGE;
   return (
     <span
-      className={['w-16 shrink-0 rounded px-1 py-0.5 text-center font-mono text-[9px] font-semibold uppercase tracking-wider', pal.bg, pal.text].join(' ')}
+      className={['inline-block min-w-[3.25rem] shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-center font-mono text-[9px] font-semibold uppercase tracking-wider', pal.bg, pal.text].join(' ')}
       title={action}
     >
-      {norm.slice(0, 9)}
+      {'label' in pal && pal.label ? pal.label : norm}
     </span>
   );
 }
