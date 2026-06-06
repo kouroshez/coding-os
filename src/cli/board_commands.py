@@ -452,9 +452,11 @@ def task_reconcile_cmd(include_active):
         f"likely-abandoned {s['likely_abandoned']} · needs-review {s['needs_review']})"
     )
     for it in data["stranded"]:
+        commits = it["commits_referencing"]
+        commits_str = "?" if commits is None else commits
         click.echo(
             f"\n  {it['task_id']} [{it['status']} {it['status_dwell_human']}] "
-            f"→ {it['classification']}  ({it['commits_referencing']} commit(s))"
+            f"→ {it['classification']}  ({commits_str} commit(s))"
         )
         click.echo(f"      {it['recommendation']}")
     click.echo()

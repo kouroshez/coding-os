@@ -1035,8 +1035,9 @@ def test_daily_reports_testing_and_icebox_summary(project: Path, conn: sqlite3.C
 # ---------- F2a: reclaim widening — TASK-210 RC3/RC4 ----------
 
 
-def test_reclaim_returns_stale_testing_to_in_progress(project: Path, conn: sqlite3.Connection):
+def test_reclaim_returns_stale_testing_to_in_progress(project, conn, monkeypatch):
     """RC3: a stale testing zombie is reclaimed back to in_progress (not icebox)."""
+    monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
     mcp_tools.cos_task_create(
         conn, title="Testing zombie", swimlane="core", kind="bug", status="icebox"
     )
@@ -1063,8 +1064,9 @@ def test_reclaim_in_progress_to_icebox_ready(project: Path, conn: sqlite3.Connec
     assert "ready" in (row[1] or "")
 
 
-def test_reclaim_per_status_testing_sooner_than_in_progress(project: Path, conn: sqlite3.Connection):
+def test_reclaim_per_status_testing_sooner_than_in_progress(project, conn, monkeypatch):
     """A 7h testing card reclaims (>6h) though it is under the 24h in_progress floor."""
+    monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
     mcp_tools.cos_task_create(
         conn, title="7h testing", swimlane="core", kind="bug", status="icebox"
     )
@@ -1180,7 +1182,8 @@ def test_reconcile_classifies_likely_complete_via_worklog(project: Path, conn: s
     assert "task-done" in item["recommendation"]
 
 
-def test_reconcile_classifies_likely_abandoned(project: Path, conn: sqlite3.Connection):
+def test_reconcile_classifies_likely_abandoned(project, conn, monkeypatch):
+    monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
     mcp_tools.cos_task_create(conn, title="Nothing", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)
     conn.execute("UPDATE tasks SET work_log_last_5='[]' WHERE task_id='TASK-001'")
@@ -1189,14 +1192,35 @@ def test_reconcile_classifies_likely_abandoned(project: Path, conn: sqlite3.Conn
     assert item["classification"] == "likely_abandoned"
 
 
+def test_reconcile_fail_safe_when_git_unverifiable(project, conn, monkeypatch):
+    """TASK-217: when commits can't be verified (no git), a testing task is
+    likely_complete (never abandoned) and reclaim must NOT recycle it."""
+    monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: None)  # can't verify
+    mcp_tools.cos_task_create(conn, title="No git", swimlane="core", kind="bug", status="icebox")
+    _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
+    item = next(
+        i for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"]
+        if i["task_id"] == "TASK-001"
+    )
+    assert item["classification"] == "likely_complete"
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert any(s["task_id"] == "TASK-001" for s in env["data"]["skipped_for_review"])
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+
+
 def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
-    """Reconcile is review-first: it must NEVER mutate board state."""
+    """Reconcile is review-first: it must NEVER mutate board state, even called twice."""
     mcp_tools.cos_task_create(conn, title="X", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
     conn.execute("UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'", ('["w"]',))
     conn.commit()
-    mcp_tools.cos_task_reconcile(conn)
-    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+    cols = "SELECT task_id, status, started_at, labels_json, work_log_last_5 FROM tasks ORDER BY task_id"
+    before = conn.execute(cols).fetchall()
+    out1 = mcp_tools.cos_task_reconcile(conn)
+    out2 = mcp_tools.cos_task_reconcile(conn)
+    after = conn.execute(cols).fetchall()
+    assert before == after, "reconcile must not mutate any task row"
+    assert out1 == out2, "reconcile must be deterministic/idempotent"
 
 
 def test_reclaim_skips_likely_complete_testing(project: Path, conn: sqlite3.Connection):

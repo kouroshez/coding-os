@@ -1261,22 +1261,29 @@ def _active_session_ids(now: float, window: int = 1800) -> set[str]:
     return ids
 
 
-def _commits_referencing(task_id: str, project_root: Path) -> int:
+def _commits_referencing(task_id: str, project_root: Path) -> int | None:
     """Count git commits whose message references this TASK-ID — the strongest
-    'work was actually done' signal for reconciliation. Fail-soft to 0."""
+    'work was actually done' signal for reconciliation.
+
+    Returns None when the count CANNOT be verified (no git repo / git missing /
+    error) so callers fail SAFE — they treat 'unverifiable' as 'has evidence'
+    and never auto-reclaim a task on a signal we could not check. The grep is
+    anchored with a trailing non-digit boundary so `TASK-215` does not also
+    match `TASK-2155` (substring over-match)."""
     import subprocess
 
     try:
         out = subprocess.run(
-            ["git", "-C", str(project_root), "log", "--all", "--grep", task_id, "--oneline"],
+            ["git", "-C", str(project_root), "log", "--all", "-E",
+             "--grep", f"{task_id}([^0-9]|$)", "--oneline"],
             capture_output=True,
             text=True,
             timeout=5,
         )
     except (OSError, subprocess.SubprocessError):
-        return 0
+        return None
     if out.returncode != 0:
-        return 0
+        return None
     return sum(1 for line in out.stdout.splitlines() if line.strip())
 
 
@@ -1287,16 +1294,20 @@ def _has_work_log(work_log_json: object) -> bool:
         return False
 
 
-def _classify_stranded(status: str, commits: int, has_work_log: bool) -> str:
+def _classify_stranded(status: str, commits: int | None, has_work_log: bool) -> str:
     """Triage a stranded task by completion evidence (TASK-215).
 
     likely_complete  — reached `testing` AND has committed/logged work: almost
                        certainly finished, just never closed. Review -> done.
-    likely_abandoned — `in_progress` with zero commits and no work-log: nothing
-                       happened. Park or resume.
+    likely_abandoned — `in_progress` with VERIFIED zero commits and no work-log:
+                       nothing happened. Park or resume.
     needs_review     — everything ambiguous.
+
+    `commits is None` means unverifiable (no git / error) — counted as evidence
+    so a task is never called abandoned on a signal we could not check (TASK-217).
     """
-    if status == "testing" and (commits > 0 or has_work_log):
+    has_commit_evidence = commits is None or commits > 0
+    if status == "testing" and (has_commit_evidence or has_work_log):
         return "likely_complete"
     if status == "in_progress" and commits == 0 and not has_work_log:
         return "likely_abandoned"
@@ -1304,9 +1315,10 @@ def _classify_stranded(status: str, commits: int, has_work_log: bool) -> str:
 
 
 def _reconcile_recommendation(task_id: str, classification: str, commits: int) -> str:
+    n = "?" if commits is None else commits
     if classification == "likely_complete":
         return (
-            f"Looks finished ({commits} commit(s) reference it, reached testing). "
+            f"Looks finished ({n} commit(s) reference it, reached testing). "
             f"Review acceptance, then `cos task-done {task_id}`; if not actually "
             f"done, `cos task-start {task_id}` to resume."
         )
@@ -1381,11 +1393,13 @@ def cos_task_reclaim(
         # zombie with committed/logged work is almost certainly done — the agent
         # just forgot task-done. Leave it in testing for review (cos_task_reconcile
         # surfaces it) instead of recycling it to in_progress.
-        if status == "testing" and (
-            _has_work_log(work_log) or _commits_referencing(task_id, project_root) > 0
-        ):
-            skipped_for_review.append({"task_id": task_id, "previous_owner": owner})
-            continue
+        if status == "testing":
+            commits = _commits_referencing(task_id, project_root)
+            # None = unverifiable (no git) → counts as evidence so we never
+            # recycle a testing card on a signal we could not check (TASK-217).
+            if _has_work_log(work_log) or commits is None or commits > 0:
+                skipped_for_review.append({"task_id": task_id, "previous_owner": owner})
+                continue
 
         # Status-aware destination: a testing zombie is near-done, so return it
         # to in_progress (a legal unforced edge) to resume the work rather than
@@ -1548,6 +1562,10 @@ def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
                 archived.append(
                     {"task_id": task_id, "from_status": status, "age_days": round(dwell / 86400, 1)}
                 )
+            else:
+                # Surface per-task failures instead of silently dropping them so
+                # the daily "N archived" count can't hide stranded cards (TASK-217).
+                logger.warning("auto-archive transition failed for %s (%s)", task_id, status)
     return archived
 
 
