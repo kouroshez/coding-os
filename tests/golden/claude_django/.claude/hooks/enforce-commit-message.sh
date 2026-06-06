@@ -17,6 +17,13 @@ TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 echo "$COMMAND" | grep -qE 'git[[:space:]]+commit\b' || exit 0
 
+# Pre-emptively wait out a concurrent commit's index.lock so this commit does
+# not fail under multi-agent contention (TASK-170). Fail-open by contract.
+_GIL="$(dirname "$0")/_helpers/git_index_lock.sh"
+[[ -f "$_GIL" ]] || _GIL="$(git rev-parse --show-toplevel 2>/dev/null)/src/core/hooks/_helpers/git_index_lock.sh"
+# shellcheck source=/dev/null
+[[ -f "$_GIL" ]] && source "$_GIL" 2>/dev/null && cos_wait_for_git_index_lock || true
+
 cos_log_hook enforce-commit-message fire
 
 HELPERS_DIR="$(dirname "$0")/_helpers"
