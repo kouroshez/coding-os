@@ -43,11 +43,17 @@ if [[ ! -f "$BATCH_HELPER" ]]; then
 fi
 
 # Pass file list as positional args (one per arg, no shell-word splits).
+# Feed the loop via process substitution, NOT a `<<<` here-string: `<<<`
+# writes the whole list to a self-pipe before the reader drains it, which
+# deadlocks once the (shared-index) staged set exceeds the pipe buffer — the
+# bash 5.x heredoc deadlock this file's own header warns about (Rule 8). The
+# `< <(printf …)` form is drained line-by-line by read, so it never buffers
+# the whole list and cannot deadlock regardless of staged-set size.
 FILE_ARGS=()
 while IFS= read -r FILE; do
   [[ -z "$FILE" ]] && continue
   FILE_ARGS+=("$FILE")
-done <<< "$STAGED_FILES"
+done < <(printf '%s\n' "$STAGED_FILES")
 
 # Run the batch under a hard wall-clock ceiling so a stuck hook child can
 # never hang this commit (or orphan into the next one). pre_commit_batch.py
