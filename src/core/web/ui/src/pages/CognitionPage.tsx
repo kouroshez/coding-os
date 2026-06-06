@@ -7,6 +7,7 @@ import CostPanel from '@/features/cognition/CostPanel';
 import ChainPanel from '@/features/cognition/ChainPanel';
 import ChatList from '@/features/cognition/ChatList';
 import ChatView from '@/features/cognition/ChatView';
+import NewChatForm from '@/features/cognition/NewChatForm';
 import HookStream from '@/features/observability/HookStream';
 import RolesPage from '@/pages/RolesPage';
 
@@ -135,13 +136,11 @@ function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode
 }
 
 function EmptyState({ view }: { view: ViewMode }) {
+  // Chat view with no session selected = start a fresh one.
+  if (view === 'chat') return <NewChatForm />;
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-[var(--cos-muted)]">
-      <p>
-        {view === 'chat'
-          ? 'pick a chat session to view the transcript'
-          : 'pick a session to view its timeline'}
-      </p>
+      <p>pick a session to view its timeline</p>
       {view === 'trace' && (
         <p className="text-[10px]">or browse cost &amp; chain on the right →</p>
       )}

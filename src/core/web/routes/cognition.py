@@ -742,6 +742,103 @@ def _sse_chunk(event: str, payload: dict) -> bytes:
     return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n".encode()
 
 
+def _role_system_prompt(role: str | None):
+    """Load a role's agent prompt as a claude_code system-prompt append, if valid."""
+    import re as _re
+
+    if not role or not _re.match(r"^[a-z_]+$", role):
+        return None
+    agent_md = Path(__file__).resolve().parents[2] / "thinking_os" / "agents" / f"{role}.md"
+    try:
+        if agent_md.exists():
+            return {
+                "type": "preset",
+                "preset": "claude_code",
+                "append": agent_md.read_text(encoding="utf-8"),
+            }
+    except OSError:
+        pass
+    return None
+
+
+@router.post("/chat")
+async def chat_new(
+    body: dict = Body(...),
+    _rl=Depends(make_rate_limit_dep("cognition.chat_new")),
+    _m=Depends(make_metrics_dep("cognition.chat_new")),
+):
+    """Start a FRESH Claude session from a prompt (no resume); stream SSE.
+
+    Body: ``{"prompt": str, "model": str|null, "role": str|null}``. Emits a
+    ``session`` event with the minted session_id so the UI can open the chat.
+    Claude-only — returns an ``unavailable`` envelope without the SDK.
+    """
+    prompt = str(body.get("prompt") or "").strip()
+    if not prompt:
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "validation",
+                        "retryable": False,
+                        "message": "prompt must be non-empty",
+                    },
+                }
+            )
+        )
+    sdk = _claude_sdk()
+    if sdk is None:
+        return unwrap(_unavailable("claude_agent_sdk not installed"))
+
+    import secrets
+    import time as _time
+
+    model = body.get("model") or None
+    role = (str(body.get("role") or "")).strip() or None
+    system_prompt = _role_system_prompt(role)
+    cwd = _project_cwd()
+    new_session_id = f"ses-claude-ui-{int(_time.time())}-{secrets.token_hex(3)}"
+    opts_kwargs: dict = dict(
+        cwd=cwd,
+        model=model,
+        permission_mode="dontAsk",
+        setting_sources=["project"],
+        session_id=new_session_id,
+    )
+    if system_prompt is not None:
+        opts_kwargs["system_prompt"] = system_prompt
+    options = sdk.ClaudeAgentOptions(**opts_kwargs)
+
+    async def event_gen():
+        yield _sse_chunk(
+            "started",
+            {"session_id": new_session_id, "prompt": prompt[:200], "model": model, "role": role},
+        )
+        # Emit the minted id immediately so the UI can open the chat while it streams.
+        yield _sse_chunk("session", {"session_id": new_session_id})
+        try:
+            async for event in sdk.query(prompt=prompt, options=options):
+                kind = type(event).__name__.lower().replace("message", "") or "event"
+                yield _sse_chunk(kind, _safe_serialize(event))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("chat_new stream failed")
+            yield _sse_chunk("error", {"message": str(exc)})
+        yield _sse_chunk("done", {"session_id": new_session_id})
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 @router.post("/chat/{session_id}/send")
 async def chat_send(
     session_id: str,
