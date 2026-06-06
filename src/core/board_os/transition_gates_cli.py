@@ -50,7 +50,7 @@ def _load_body_for_task(task_id: str, file_path: Path | None) -> tuple[str, str]
         db_path = os.environ.get("COS_DB_PATH") or ""
     if not db_path or not Path(db_path).exists():
         return "", "feature"
-    # Route through get_connection for WAL + busy_timeout (TASK-108).
+    # Route through get_connection for WAL + busy_timeout.
     try:
         from thinking_os.database import get_connection  # type: ignore
 

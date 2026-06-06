@@ -188,7 +188,7 @@ def resolve_agent_session(explicit: str | None = None) -> str | None:
     # agent-level .active-session pointer (refreshed every prompt by
     # session-context.sh) is the freshest "who is calling" signal. Reading it
     # here keeps MCP-created board writes attributed to the active panel
-    # instead of the shared ses-<agent>-pid<server-pid> synthetic. (TASK-168)
+    # instead of the shared ses-<agent>-pid<server-pid> synthetic.
     pointer = _read_active_session_pointer()
     if pointer:
         return pointer

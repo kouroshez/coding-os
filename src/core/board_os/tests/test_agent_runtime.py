@@ -114,7 +114,7 @@ def test_human_actor_env_id_and_label(monkeypatch):
     assert ar.human_actor() == {"type": "human", "id": "u-42", "label": "Kourosh"}
 
 
-# ---------- resolve_agent_session: MCP-server attribution (TASK-168) ----------
+# ---------- resolve_agent_session: MCP-server attribution ----------
 
 
 def test_resolve_prefers_active_session_pointer_over_synthetic(tmp_path, monkeypatch):

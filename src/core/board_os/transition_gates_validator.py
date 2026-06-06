@@ -373,7 +373,7 @@ def validate_transition(
     `task_id` is unused today but accepted so future audit emission can
     correlate with the DB row without an extra parameter.
     """
-    del task_id  # reserved for audit emission — see TASK-107.
+    del task_id  # reserved for audit emission — see
 
     if new_status == "in_progress":
         result = evaluate_dor(kind, body, config)

@@ -339,7 +339,7 @@ def transition(
 
     # WIP enforcement, status re-verification, and the row UPDATE all run
     # together inside the atomic BEGIN IMMEDIATE critical section below
-    # (TASK-108) — the count→write gap and the read→write gap are both inside
+    # — the count→write gap and the read→write gap are both inside
     # one write lock, so no concurrent transition can slip between them.
     wip_state: dict[str, int] = {}
 
@@ -417,7 +417,7 @@ def transition(
         except Exception as exc:
             gate_warnings.append(f"transition-gates internal error (skipped): {exc}")
 
-    # ── Atomic critical section (TASK-108) ──────────────────────────────
+    # ── Atomic critical section ──────────────────────────────
     # All validation + file reads above ran lock-free. BEGIN IMMEDIATE now
     # takes the write lock up front so the status re-check, WIP count, row
     # UPDATE, MD write, and history INSERT are isolated from any concurrent
