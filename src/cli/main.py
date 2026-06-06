@@ -1809,7 +1809,7 @@ except ImportError as _db_reset_exc:  # pragma: no cover — defensive
 
 
 # ---------------------------------------------------------------------------
-# S4/S5 — registry + hub CLI. (`cos web` removed (TASK-060): it duplicated
+# S4/S5 — registry + hub CLI. (`cos web` removed: it duplicated
 # `cos hub start --foreground` — both just call web.server.run_server. Dev
 # auto-reload lives in `make ui-dev`.)
 # ---------------------------------------------------------------------------

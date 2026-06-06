@@ -98,7 +98,7 @@ def _parallel_dispatch(
     _bootstrap_paths()
     from graph_os.tools.reindex_dispatch import dispatch  # type: ignore
 
-    # TASK-043: defer per-file stub linking — graph_reindex runs ONE global
+    # defer per-file stub linking — graph_reindex runs ONE global
     # link after the whole walk, so mid-walk resolutions aren't orphaned by a
     # later file's prune-before-reindex.
     return dispatch(
@@ -487,7 +487,7 @@ def register(cli: click.Group) -> None:
     ):
         """Walk a directory and rebuild the graph via the dispatcher."""
         _bootstrap_paths()
-        # TASK-122: publish the chosen ladder via env so every spawned
+        # publish the chosen ladder via env so every spawned
         # subprocess (incremental indexer, doc indexer, etc.) sees it.
         # Existing call sites that bypass the CLI (e.g. PostToolUse
         # auto-reindex) keep their default behaviour because the env
@@ -557,7 +557,7 @@ def register(cli: click.Group) -> None:
         # --path is the WALK directory, not the project root. Resolve the
         # enclosing repo root (nearest ancestor with .coding-os/) so a
         # sub-dir --path can't spawn a stray <subdir>/.coding-os/ DB or
-        # emit subdir-relative file_paths (TASK-056 D1).
+        # emit subdir-relative file_paths.
         project_root = next(
             (p for p in (target, *target.parents) if (p / ".coding-os").is_dir()),
             target,
@@ -616,7 +616,7 @@ def register(cli: click.Group) -> None:
                             project_root=project_root,
                             include_docs=not no_docs,
                             force=force,
-                            link_stubs=False,  # TASK-043: global link after the walk
+                            link_stubs=False,  # global link after the walk
                         )
                         if report.get("cache") == "hit":
                             skipped += 1
@@ -632,7 +632,7 @@ def register(cli: click.Group) -> None:
             f"errors={errors} duration={duration:.2f}s"
         )
 
-        # TASK-043: per-file linking during the walk cannot resolve a stub
+        # per-file linking during the walk cannot resolve a stub
         # whose real target is indexed LATER (file-order dependency), so
         # cross-module bare-name calls (ok()/fail()/...) leak to external
         # stubs and references/impact under-report callers. Run the GLOBAL
@@ -645,8 +645,7 @@ def register(cli: click.Group) -> None:
             from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
 
             # Link the same DB the walk indexed — the repo-root DB, NOT a
-            # <target>/.coding-os/ stray when --path points at a sub-dir
-            # (TASK-056 D1).
+            # <target>/.coding-os/ stray when --path points at a sub-dir.
             conn = init_db(str(resolve_db_path(project_root)))
             backend = SqliteBackend(conn=conn)
             relinked = backend.link_external_stubs()

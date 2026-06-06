@@ -141,7 +141,7 @@ def regenerate(directory: Path, *, write: bool = True) -> str | None:
             f"{auto_section}"
         )
     if write:
-        # Atomic write (TASK-130): the auto-regen hook fires fire-and-forget, so
+        # Atomic write: the auto-regen hook fires fire-and-forget, so
         # two concurrent regens of one dir could interleave a partial write and
         # corrupt 00-index. tmp-in-same-dir + replace() makes the swap atomic.
         tmp = target.with_name(target.name + ".regen.tmp")
