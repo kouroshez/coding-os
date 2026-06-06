@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -90,7 +91,8 @@ def _schema_class(schema_ref: str):
     try:
         module = importlib.import_module(module_name)
         return getattr(module, class_name, None)
-    except Exception:
+    except Exception as exc:
+        logging.getLogger("coding_os.web.roles").debug("schema import failed: %s", exc)
         return None
 
 
@@ -111,7 +113,8 @@ def _role_defs() -> list[dict[str, Any]]:
     for path in paths:
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:
+        except Exception as exc:
+            logging.getLogger("coding_os.web.roles").debug("role yaml parse failed %s: %s", path, exc)
             continue
         if not isinstance(data, dict) or "id" not in data:
             continue
@@ -253,27 +256,19 @@ async def list_roles(
     )
 
 
-@router.get("/chain")
-async def current_chain(
-    agent: str = Query("claude"),
-    _rl=Depends(make_rate_limit_dep("roles.chain")),
-    _m=Depends(make_metrics_dep("roles.chain")),
-):
-    state = _state_dir()
+def resolve_chain(state: Path, agent: str) -> tuple[list[str], str | None]:
+    """The agent's composed role chain + active role — trace-first, marker
+    fallback. Shared by /api/roles/chain and the unified live-agent endpoint
+    (TASK-191) so both read the chain the same way."""
     agent_dir = state / agent
-    chain: list[str] = []
-    active_formula: str | None = None
-
     # Active role is the freshest per-panel signal (what the agent is DOING).
     active_raw = _newest_marker(agent_dir, ".role")
-    if active_raw:
-        active_formula = active_raw.strip() or None
+    active_formula = (active_raw.strip() or None) if active_raw else None
 
-    # Chain: prefer the newest agent-level compose_done trace — it is the
-    # consistent, cross-panel-safe source the EVIDENCE view also reads
-    # (TASK-065). Scattered per-panel .roles markers can be stale under
-    # concurrent panels (chain showed ['analyst'] while the live composed chain
-    # was refactorer→architect→implementer→reviewer). Trace first, marker fallback.
+    # Chain: prefer the newest agent-level compose_done trace — the
+    # cross-panel-safe source the EVIDENCE view also reads (TASK-065).
+    # Scattered per-panel .roles markers can be stale under concurrent panels.
+    chain: list[str] = []
     traces_dir = state / agent / "traces"
     if traces_dir.exists():
         for p in sorted(traces_dir.glob("*.jsonl"), reverse=True):
@@ -296,7 +291,16 @@ async def current_chain(
                     chain = [str(x) for x in parsed]
             except json.JSONDecodeError:
                 chain = [x.strip() for x in raw.split(",") if x.strip()]
+    return chain, active_formula
 
+
+@router.get("/chain")
+async def current_chain(
+    agent: str = Query("claude"),
+    _rl=Depends(make_rate_limit_dep("roles.chain")),
+    _m=Depends(make_metrics_dep("roles.chain")),
+):
+    chain, active_formula = resolve_chain(_state_dir(), agent)
     return unwrap(
         json.dumps(
             {

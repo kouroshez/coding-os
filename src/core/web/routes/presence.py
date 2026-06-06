@@ -249,3 +249,79 @@ async def presence_now(
             }
         )
     )
+
+
+@router.get("/agents")
+async def presence_agents(
+    _rl=Depends(make_rate_limit_dep("presence.agents")),
+    _m=Depends(make_metrics_dep("presence.agents")),
+):
+    """Unified per-agent live snapshot — model+gate+task+skill+role+chain+lifecycle+sdk_uuid in ONE call."""
+    from web._project_context import current_project_root  # type: ignore
+
+    project = current_project_root()
+    state = _state_dir()
+    canonical = _canonical_agents()
+
+    # Lifecycle state from the same SSOT the board uses.
+    states: dict[str, str] = {}
+    try:
+        from web.routes.board import _agent_state, _db_conn  # type: ignore
+
+        conn = _db_conn()
+        try:
+            for agent_id in canonical:
+                states[agent_id] = _agent_state(conn, agent_id)
+        finally:
+            conn.close()
+    except Exception as exc:
+        logger.debug("agent_state lookup failed: %s", exc)
+
+    try:
+        from web.routes.roles import resolve_chain  # type: ignore
+    except Exception:
+        resolve_chain = None  # type: ignore
+
+    agents: list[dict[str, Any]] = []
+    if state.is_dir():
+        for agent_id in canonical:
+            snap = _agent_runtime(state / agent_id, agent_id)
+            if snap is None:
+                continue
+            chain: list[str] = []
+            role: str | None = None
+            if resolve_chain is not None:
+                try:
+                    chain, role = resolve_chain(state, agent_id)
+                except Exception as exc:
+                    logger.debug("resolve_chain failed for %s: %s", agent_id, exc)
+            sess = snap.get("session")
+            sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
+            agents.append(
+                {
+                    "agent": agent_id,
+                    "session_id": snap.get("session_id"),
+                    "sdk_uuid": sdk_uuid,
+                    "model": snap.get("model"),
+                    "gate": snap.get("gate"),
+                    "task": snap.get("task"),
+                    "skill_active": snap.get("skill_active"),
+                    "role": role,
+                    "chain": chain,
+                    "state": states.get(agent_id, "offline"),
+                }
+            )
+
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "project_root": str(project),
+                    "state_dir": str(state),
+                    "agents": agents,
+                    "meta": {"layer": "presence"},
+                },
+            }
+        )
+    )

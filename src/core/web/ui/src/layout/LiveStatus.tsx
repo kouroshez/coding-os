@@ -13,6 +13,18 @@ interface AgentRuntime {
   gate?: string | null;
 }
 
+interface AgentUnified {
+  agent: string;
+  role?: string | null;
+  chain?: string[];
+  state?: string | null;
+  sdk_uuid?: string | null;
+}
+
+interface UnifiedPayload {
+  agents: AgentUnified[];
+}
+
 interface PresencePayload {
   project_root: string;
   state_dir: string;
@@ -54,6 +66,13 @@ export default function LiveStatus() {
   const { data } = useApiGet<PresencePayload>(
     ['presence-now'],
     '/api/presence/now',
+    undefined,
+    { refetchIntervalMs: 4000 },
+  );
+  // Unified per-agent snapshot adds role/chain/lifecycle (TASK-191).
+  const { data: unified } = useApiGet<UnifiedPayload>(
+    ['presence-agents'],
+    '/api/presence/agents',
     undefined,
     { refetchIntervalMs: 4000 },
   );
@@ -219,16 +238,20 @@ export default function LiveStatus() {
           {liveAgents.map(([agentId]) => {
             const snap = data.agents.find((a) => a.agent === agentId);
             if (!snap) return null;
+            const uni = unified?.agents.find((a) => a.agent === agentId);
             return (
               <div key={agentId} className="border-b border-[var(--cos-border)] px-3 py-2 text-[11px]">
                 <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
                   <span>{snap.agent} runtime</span>
+                  {uni?.state && <span className="text-[var(--cos-faint)]">· {uni.state}</span>}
                 </div>
                 <Row k="session" v={snap.session_id ?? '—'} mono />
                 <Row k="task" v={snap.task ?? '—'} />
                 <Row k="skill" v={snap.skill_active ?? '—'} />
                 <Row k="model" v={snap.model ?? '—'} mono />
                 <Row k="gate" v={snap.gate ?? '—'} />
+                {uni?.role && <Row k="role" v={uni.role} />}
+                {uni?.chain && uni.chain.length > 0 && <Row k="chain" v={uni.chain.join(' → ')} />}
               </div>
             );
           })}
