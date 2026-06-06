@@ -58,7 +58,7 @@ fi
 # Lowercase prompt for matching.
 PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 
-# Signal words. Persian + English mixed (this repo is bilingual).
+# Signal words (English). The agent comprehends other languages itself.
 COMPLICATED_RE='design|architect|plan|debug|investigate|refactor|multiple|all of|comprehensive|deep|enterprise|trace|map |dependency|persona|scenario'
 COMPLEX_RE='best way|optimal|optimize|strategy|unknown|research|what if|trade.?off'
 CHAOTIC_RE='down|broken|crash|outage|urgent|emergency|asap|hotfix|p0'

@@ -85,6 +85,11 @@ Exhaustive vocab alone is not a trigger. Exhaustive vocab **combined with a scop
 | refactor | restructure |
 | remove | delete |
 | replace | replace |
+| delete | delete |
+| patch | repair |
+| repair | repair |
+| address | repair |
+| resolve | repair |
 
 ## Trigger rule (formal)
 

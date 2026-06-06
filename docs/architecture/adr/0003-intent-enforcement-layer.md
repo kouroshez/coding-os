@@ -10,7 +10,7 @@
 
 A recurring failure pattern in AI coding agents (across Claude
 Code, Codex, Cursor) is **premature completion** under exhaustive
-instructions. The user says "" (all) or "until done" or
+instructions. The user says "all" or "until done" or
 "comprehensive", expecting full coverage. The agent does ~60% of
 the work, picks the most visible categories, declares "done", and
 files the rest under unstated assumptions.
@@ -29,7 +29,7 @@ in this specific user's vocabulary. Each session resets.
 Build an enforcement layer (G0–G14) that:
 
 - **Detects exhaustive intent** at prompt time (G1, regex over
-  bilingual FA + EN vocabulary in
+  English exhaustive vocabulary in
   `docs/engineering/intent-vocabulary.md`).
 - **Materializes the contract** as `.coding-os/<agent>/.intent.json`
   with predicates the agent must satisfy (G3).
@@ -62,8 +62,8 @@ does not relax the contract (see
 - Cross-session learning loop (G11): completion-gap observations
   feed the learning layer so future similar prompts trigger the
   audit path automatically.
-- Bilingual vocabulary (FA + EN) handles the project's primary
-  user pair without requiring translation.
+- English-default vocabulary keeps the pre-classifier deterministic;
+  the agent's own comprehension covers prompts in other languages.
 
 **Negative:**
 
@@ -72,9 +72,9 @@ does not relax the contract (see
 - Some legitimate quick edits get nudged into audit mode if the
   prompt happens to contain a trigger word. The reviewer-subagent
   delegation hint can feel heavy for a one-line fix.
-- The intent vocabulary is biased toward the project's primary
-  language pair (FA + EN); adding more languages is per-language
-  vocabulary work.
+- The deterministic pre-classifier is English-only, so a non-English
+  exhaustive prompt loses the automatic trigger (the agent still
+  comprehends the intent; the hook just won't pre-stamp it).
 
 **Mitigations:**
 

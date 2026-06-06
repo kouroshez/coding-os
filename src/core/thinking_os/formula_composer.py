@@ -182,8 +182,8 @@ def load_situations() -> dict[str, dict]:
 
 # Action keyword → TaskSignals.action. Order matters: earlier wins on a tie
 # (debug/audit/review beat the generic create/modify so a "fix the failing
-# test" prompt routes to debugger, not implementer). Bilingual (fa+en) since
-# the repo's prompts are mixed.
+# test" prompt routes to debugger, not implementer). English keyword match;
+# the agent's own comprehension covers prompts in other languages.
 _ACTION_PATTERNS: list[tuple[str, str]] = [
     (
         "debug",

@@ -31,7 +31,7 @@ PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 # Each pattern → recommended cos_graph_* tool. First match wins, so
 # more-specific patterns come BEFORE more-generic siblings (e.g.
 # detect_changes before impact, doctor before export).
-# Persian + English bilingual to match this repo's user.
+# English structural-question patterns (English-default pre-classifier).
 declare -a PATTERNS=(
   # graph health / why empty / why broken — must precede generic graph words
   "graph (empty|broken|stale|down|dead)|why .* graph|graph health:cos_graph_doctor"

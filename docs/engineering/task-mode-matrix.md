@@ -41,7 +41,7 @@ query | adhoc | chore`. `system` is opt-in — set by callers that need to
 suppress all enforcement (background daemons, hook-spawned subshells).
 
 `promote` is reserved for the runtime: `enforce-task-start.sh` flips
-`adhoc` → `formal` when the user accepts a "ok " / "ok build it"
+`adhoc` → `formal` when the user accepts a "ok build it"
 escalation cue.
 
 ## Hook gating contract
