@@ -53,21 +53,26 @@ def _pid_alive(pid: int | None) -> bool:
 
 
 def _classify(presence: dict, now: int) -> str:
-    last_tool = presence.get("last_tool_at") or 0
-    last_prompt = presence.get("last_prompt_at") or 0
-    last_stop = presence.get("last_stop_at") or 0
-    ended = presence.get("ended_at") or 0
-    pid = presence.get("pid")
-    if ended:
+    """Lifecycle verdict for one presence record.
+
+    Delegates the core decision to the single board_os.presence SSOT so the
+    thresholds never diverge from the board / cos_presence_query surfaces
+    (TASK-190), then refines into the dashboard's richer vocabulary —
+    ``ended`` and ``idle`` — which board_os intentionally collapses to
+    ``offline``. Never contradicts the SSOT; only refines its ``offline``.
+    """
+    if presence.get("ended_at"):
         return "ended"
-    if not _pid_alive(pid):
-        return "offline"
-    most_recent = max(last_tool, last_prompt, last_stop)
-    if most_recent and (now - most_recent) <= 30:
+    from board_os.presence import session_presence
+
+    verdict = session_presence(presence, now)
+    if verdict == "working":
+        # A prompt in flight reads as "active" in the lifecycle view.
         return "active"
-    if most_recent and (now - most_recent) <= PRESENCE_TTL_S:
-        return "present"
-    return "idle"
+    if verdict == "offline" and _pid_alive(presence.get("pid")):
+        # pid alive but past the activity windows = idle, not gone.
+        return "idle"
+    return verdict
 
 
 def _load_presence_for_agent(agent_dir: Path, agent: str, now: int) -> list[dict]:
