@@ -1233,3 +1233,46 @@ def test_reclaim_skips_likely_complete_testing(project: Path, conn: sqlite3.Conn
     assert any(s["task_id"] == "TASK-001" for s in env["data"]["skipped_for_review"])
     assert not any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"])
     assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+
+
+# ---------- cos_task_board envelope budget (TASK-209) ----------
+
+
+def test_board_caps_to_envelope_budget(project: Path, conn: sqlite3.Connection):
+    # TASK-209: a large board must never return an unshrinkable >32KB
+    # envelope (the cause of the eye's ERROR flood). The tool caps cards to
+    # the budget, signals truncation, and keeps grouped + cards consistent.
+    from thinking_os.tools._shared import TOKEN_BUDGET_CHARS
+
+    long = "x" * 160
+    for i in range(45):
+        mcp_tools.cos_task_create(
+            conn,
+            title=f"Task {i:02d} {long}",
+            swimlane="core",
+            kind="feature",
+            labels=["alpha", "beta", "gamma"],
+            outcome="o",
+        )
+
+    env_str = mcp_tools.cos_task_board(conn, limit=50)
+    assert len(env_str) <= TOKEN_BUDGET_CHARS  # the whole envelope fits the budget
+
+    data = _parse(env_str)["data"]
+    assert data["truncated"] is True
+    assert data["total_count"] > data["count"]
+    assert not data["meta"].get("envelope_unshrinkable")  # fingerprint gone
+
+    flat = [c for lane in data["grouped"].values() for st in lane.values() for c in st]
+    assert len(flat) == data["count"]  # grouped + cards stay consistent
+
+
+def test_board_small_board_is_not_truncated(project: Path, conn: sqlite3.Connection):
+    # A normal small board passes through untouched — the cap is a safety net.
+    for i in range(3):
+        mcp_tools.cos_task_create(
+            conn, title=f"Small {i}", swimlane="core", kind="feature", outcome="o"
+        )
+    data = _parse(mcp_tools.cos_task_board(conn))["data"]
+    assert data["truncated"] is False
+    assert data["count"] == data["total_count"] == 3

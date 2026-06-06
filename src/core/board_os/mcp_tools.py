@@ -45,7 +45,7 @@ from board_os.workflow import (
     transition,
     validate_dependencies_no_cycle,
 )
-from thinking_os.tools._shared import fail, ok, safe_tool
+from thinking_os.tools._shared import TOKEN_BUDGET_CHARS, _budget_size, fail, ok, safe_tool
 
 logger = logging.getLogger("coding_os.board_os.mcp_tools")
 
@@ -709,6 +709,71 @@ def cos_task_create(
 
 # ---------- cos_task_board ----------
 
+# TASK-209: tiny safety margin below the budget — the probe mirrors the real
+# envelope closely, so only a few bytes of slack are needed.
+_BOARD_BUDGET_HEADROOM = 256
+
+
+def _board_grouped(cards: list[dict]) -> dict[str, dict[str, list[dict]]]:
+    grouped: dict[str, dict[str, list[dict]]] = {}
+    for card in cards:
+        lane = card["swimlane"] or "(none)"
+        grouped.setdefault(lane, {}).setdefault(card["status"], []).append(card)
+    return grouped
+
+
+def _cap_board_to_budget(
+    cards: list[dict], *, budget: int
+) -> tuple[list[dict], dict[str, dict[str, list[dict]]], bool]:
+    # Drop the lowest-priority cards (P9 last) until the serialized
+    # {grouped, cards} body fits `budget`; the kept set preserves original
+    # display order. The board returns grouped + cards (same cards twice) and
+    # neither is in the envelope trim ladder, so a large board produced an
+    # unshrinkable >32KB envelope (TASK-209). Returns (kept, grouped, capped).
+    grouped = _board_grouped(cards)
+
+    def _fits(subset: list[dict], grp: dict) -> bool:
+        # Mirror ok(): pretty-printed full envelope, measured with the same
+        # _budget_size the trimmer uses (inflates non-Latin), so the cap holds
+        # for Persian/Arabic titles too — not just ASCII.
+        probe = json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "grouped": grp,
+                    "cards": subset,
+                    "count": len(subset),
+                    "total_count": len(cards),
+                    "truncated": True,
+                    "wip": {"counts": {}, "caps": {}, "violations": []},
+                    "meta": {
+                        "layer": "tasks",
+                        "source": "board_os.cos_task_board",
+                        "tokens_estimated": 0,
+                        "truncated": True,
+                    },
+                },
+            },
+            indent=2,
+            default=str,
+        )
+        return _budget_size(probe) <= budget
+
+    if _fits(cards, grouped):
+        return cards, grouped, False
+
+    total = len(cards)
+    ranked = sorted(range(total), key=lambda i: (str(cards[i].get("priority", "P9")), i))
+    keep = total
+    while keep > 0:
+        keep = keep - 1 if keep <= 12 else int(keep * 0.85)
+        keep_idx = set(ranked[:keep])
+        subset = [c for i, c in enumerate(cards) if i in keep_idx]
+        grouped = _board_grouped(subset)
+        if _fits(subset, grouped):
+            return subset, grouped, True
+    return [], {}, True
+
 
 @safe_tool
 def cos_task_board(
@@ -747,11 +812,12 @@ def cos_task_board(
     rows = conn.execute(query, params).fetchall()
     cards = [_flag_stale(_task_card(r), config) for r in rows]
 
-    # Group by (swimlane, status) for UX.
-    grouped: dict[str, dict[str, list[dict]]] = {}
-    for card in cards:
-        lane = card["swimlane"] or "(none)"
-        grouped.setdefault(lane, {}).setdefault(card["status"], []).append(card)
+    # Group by (swimlane, status) for UX, capping to the envelope budget so a
+    # large board never returns an unshrinkable >32KB envelope (TASK-209).
+    total_count = len(cards)
+    cards, grouped, board_truncated = _cap_board_to_budget(
+        cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM
+    )
 
     wip_state = None
     if config is not None:
@@ -767,6 +833,8 @@ def cos_task_board(
             "grouped": grouped,
             "cards": cards,
             "count": len(cards),
+            "total_count": total_count,
+            "truncated": board_truncated,
             "wip": wip_state,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_board"},
