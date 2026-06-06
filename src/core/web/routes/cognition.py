@@ -761,6 +761,37 @@ def _role_system_prompt(role: str | None):
     return None
 
 
+def _role_names(agents_dir: Path) -> list[str]:
+    import re as _re
+
+    try:
+        return sorted(
+            p.stem
+            for p in agents_dir.glob("*.md")
+            if _re.match(r"^[a-z_]+$", p.stem) and not p.stem.startswith("_")
+        )
+    except OSError as exc:
+        logger.debug("roles scan skipped %s: %s", agents_dir, exc)
+        return []
+
+
+@router.get("/roles")
+async def list_roles(
+    _rl=Depends(make_rate_limit_dep("cognition.roles")),
+    _m=Depends(make_metrics_dep("cognition.roles")),
+):
+    """List the semantic roles a chat session can adopt (producer: thinking_os/agents/*.md)."""
+    roles = _role_names(Path(__file__).resolve().parents[2] / "thinking_os" / "agents")
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {"roles": roles, "count": len(roles), "meta": {"layer": "cognition"}},
+            }
+        )
+    )
+
+
 @router.post("/chat")
 async def chat_new(
     body: dict = Body(...),

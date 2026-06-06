@@ -1,20 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { resolveApiUrl } from '@/lib/api-client';
+import { useRoles } from './roles';
 
-// The 11 semantic roles (stable set; see src/core/thinking_os/agents/).
-const ROLES = [
-  'researcher',
-  'analyst',
-  'architect',
-  'documenter',
-  'implementer',
-  'reviewer',
-  'debugger',
-  'security_auditor',
-  'deployer',
-  'observer',
-  'refactorer',
-];
 const MODELS = [
   { id: '', label: 'default' },
   { id: 'claude-opus-4-8', label: 'Opus 4.8' },
@@ -35,6 +22,7 @@ export default function NewChatForm() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const roles = useRoles();
 
   const openChat = (sid: string) => {
     const m = window.location.pathname.match(/^\/p\/[^/]+/);
@@ -127,7 +115,7 @@ export default function NewChatForm() {
             role
             <select value={role} onChange={(e) => setRole(e.target.value)} className={sel}>
               <option value="">none</option>
-              {ROLES.map((r) => (
+              {roles.map((r) => (
                 <option key={r} value={r}>
                   {r}
                 </option>

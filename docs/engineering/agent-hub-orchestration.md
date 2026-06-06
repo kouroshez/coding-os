@@ -102,5 +102,12 @@ carries their uncommitted WIP. Therefore:
 - `POST /api/cognition/chat` — `{role?, prompt, model?}` → `{session_id}` (fresh session).
 - `GET /api/presence/agents` — unified `{agent, session_id, sdk_uuid?, model, gate, role, chain, skills, lifecycle, context_pct?}`.
 - Trace summary projection — `{ts, label, role, phase}` (human) vs raw event (dev).
+- `GET /api/cognition/roles` — `{roles: [name,…]}` derived from `thinking_os/agents/*.md` (the role producer that `_role_system_prompt` loads); UI pickers consume this instead of a hardcoded literal.
 
 Every consumer of these reads field names from the producer emit site, never from memory.
+
+## 9. Phase 4 — Hardening (post-epic)
+
+| ID | Outcome | Files | Acceptance |
+|---|---|---|---|
+| **T18** | The chat role picker is data-driven from the role producer, not a hardcoded literal that silently drifts when a role file is added/removed. | New `GET /api/cognition/roles` (lists `thinking_os/agents/*.md`, filtered `^[a-z_]+$`, no `_`-prefixed helpers); `NewChatForm.tsx` consumes it via a `useRoles()` hook. (AgentTaskModal is model-only — no role picker — so it is unaffected.) | Adding/removing a role file changes the picker with no UI edit; the picker reads the producer, not a literal; fixture-backed route test + `tsc` + `ui-build` green. |
