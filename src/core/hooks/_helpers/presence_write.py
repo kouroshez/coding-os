@@ -7,13 +7,17 @@ zombie bash children pile up and starve the agent runtime's auxiliary
 subprocess spawns. Separate .py file = zero heredoc surface = immune.
 
 USAGE
-    python3 presence_write.py <path> <agent> <sid> <pid> <event> <now> [model]
+    python3 presence_write.py <path> <agent> <sid> <pid> <event> <now> [model] [sdk_uuid]
 
 EVENT ∈ {start, prompt, tool, stop, end}. Other values fall through silently.
 MODEL (optional 7th arg) — Claude Code / Cursor / Codex runtime model id
 (e.g. "claude-opus-4-7"). When provided, stored as sessions/<sid>.json::model so
 the Hub UI can attribute live agents to the actual runtime model rather
 than the stale shared $COS_AGENT_DIR/.model file.
+SDK_UUID (optional 8th arg) — the host runtime's own session id (the SDK
+transcript uuid, from the hook payload's `.session_id`). Stored as
+sessions/<sid>.json::sdk_uuid so a task's coding-os agent_session can resolve
+to its chat transcript (the id bridge — TASK-184).
 """
 
 from __future__ import annotations
@@ -24,10 +28,11 @@ import sys
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) not in (7, 8):
+    if len(argv) not in (7, 8, 9):
         return 0  # fail-open: presence is UX, not correctness
     path, agent, sid, pid_s, event, now_s = argv[1:7]
-    model = argv[7].strip() if len(argv) == 8 else ""
+    model = argv[7].strip() if len(argv) >= 8 else ""
+    sdk_uuid = argv[8].strip() if len(argv) == 9 else ""
     try:
         pid = int(pid_s)
         now = int(now_s)
@@ -57,6 +62,9 @@ def main(argv: list[str]) -> int:
         "last_stop_at": prev.get("last_stop_at"),
         "ended_at": prev.get("ended_at"),
         "model": (model or prev.get("model") or None),
+        # Bridges the coding-os session id (this file's name) to the host SDK
+        # transcript uuid so a task can link to the chat that made it (TASK-184).
+        "sdk_uuid": (sdk_uuid or prev.get("sdk_uuid") or None),
     }
     if event == "start":
         # Authoritative session boundary — overwrite even if a prompt

@@ -27,12 +27,17 @@ reads the snapshot — it reads `~/.claude` keyed by the SDK uuid. So
 `tasks.agent_session` can never reach the chat API: task→chat click-through
 404s, and traces cannot be joined to their transcript.
 
-**Decision — the bridge (TASK-T9):** capture the SDK session uuid at
-task-creation / session-start and persist it next to the coding-os id, so a
-task knows BOTH ids. Append-only migration adds `sdk_session_uuid` to the
-`tasks` table (Rule 9). The coding-os id stays the primary key; the SDK uuid
-is the join to the chat transcript. This single bridge unblocks T10, T11, and
-the traces↔chat unification.
+**Decision — the bridge (TASK-184, refined during Plan):** the coding-os↔SDK
+id mapping is a **per-session** fact, not a per-task one — so it lives in the
+per-session presence record, NOT on the `tasks` table. `agent-presence.sh`
+reads the host runtime's `.session_id` (the SDK transcript uuid) from the hook
+payload and `presence_write.py` stores it as `sessions/<coding-os-id>.json::sdk_uuid`,
+alongside the coding-os id that names the file. A task's `agent_session`
+(coding-os id) then resolves to the chat transcript via that record (live), or
+via the in-tree transcript snapshot keyed by the same id (TASK-093) for ended
+sessions. No schema migration — normalized, lower-risk, and written by the hook
+that actually has the uuid (the MCP server, which can't resolve the calling
+panel, never sees it). This single bridge unblocks T10, T11, and traces↔chat.
 
 ## 2. Product decisions (locked 2026-06-05)
 
@@ -75,7 +80,7 @@ carries their uncommitted WIP. Therefore:
 
 | ID | Outcome | Files | Acceptance |
 |---|---|---|---|
-| **T9** | `tasks` rows carry the SDK transcript uuid (the bridge). | `database.py` (append-only migration `sdk_session_uuid`), `_agent_runtime.py`/`session-context.sh` (capture SDK uuid from stdin payload), `mcp_tools.py` (persist on create). | New migration test green; a task created in a real session has both `agent_session` and a resolvable `sdk_session_uuid`. |
+| **T9** | The per-session presence record carries the SDK transcript uuid (the bridge). | `agent-presence.sh` (read `.session_id` from the hook payload), `_helpers/presence_write.py` (store `sdk_uuid`). | `sessions/<coding-os-id>.json` gains `sdk_uuid`, preserved across events, backward-compatible with the 7/8-arg helper; unit tests cover capture + preservation. No schema migration. |
 | **T10** | A task card links to the chat session that created it. | `board.py` task-detail (expose the join), `cos-board` UI (link button → cognition chat). | Click "open originating chat" on a task → ChatView opens the correct transcript; gracefully disabled when no uuid. |
 | **T11** | A new chat/session can be started from the UI (role/prompt/model → start). | New route `POST /api/cognition/chat` (fresh `sdk.query` without `resume`, capture minted session_id, persist), reuse `sdk_dispatcher` query machinery; `cognition` UI create form. | Form submit → new live session appears in the chat list and streams; new session_id captured. Claude-only; non-Claude adapters show disabled. |
 | **T12** | A prompt can launch an agent that researches and writes a TASK autonomously. | New thin runner (fresh headless session, bespoke research+author system prompt, MCP allow-list = `cos_task_create`+`cos_graph_*`+`cos_doc_search`), web trigger in CreateTask flow (agent mode). | "Agent mode" create → headless session researches and calls `cos_task_create`; resulting task is attributed initiator=user, executor=that session. |
@@ -92,7 +97,7 @@ carries their uncommitted WIP. Therefore:
 
 ## 8. Changed/added contracts (track for API-contract-discipline)
 
-- `tasks.sdk_session_uuid` (new column, append-only migration) — the chat join key.
+- `sessions/<coding-os-id>.json::sdk_uuid` (new presence field, no migration) — the per-session chat join key.
 - `GET /api/board/task/{id}/diff` — `{file, sha, diff, added, removed}`.
 - `POST /api/cognition/chat` — `{role?, prompt, model?}` → `{session_id}` (fresh session).
 - `GET /api/presence/agents` — unified `{agent, session_id, sdk_uuid?, model, gate, role, chain, skills, lifecycle, context_pct?}`.
