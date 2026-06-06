@@ -2397,8 +2397,10 @@ function AgentTaskModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 680,
-          maxWidth: '100%',
+          // Fluid: rem responds to browser zoom, vw grows on 4K, capped so a
+          // single-prompt dialog never sprawls; maxWidth lets it use the screen.
+          width: 'clamp(34rem, 50vw, 60rem)',
+          maxWidth: '94vw',
           maxHeight: '90vh',
           overflowY: 'auto',
           background: 'var(--col-bg)',
@@ -2592,8 +2594,10 @@ function CreateTaskModal({
           });
         }}
         style={{
-          width: 720,
-          maxWidth: '100%',
+          // Fluid: grows with screen + browser zoom, capped so the form stays
+          // readable; the side preview column scales instead of a fixed 240px.
+          width: 'clamp(40rem, 62vw, 80rem)',
+          maxWidth: '94vw',
           maxHeight: '90vh',
           overflowY: 'auto',
           background: 'var(--col-bg)',
@@ -2601,7 +2605,7 @@ function CreateTaskModal({
           borderRadius: 6,
           boxShadow: '0 30px 60px rgba(0,0,0,.4)',
           display: 'grid',
-          gridTemplateColumns: '1fr 240px',
+          gridTemplateColumns: 'minmax(0, 1fr) clamp(14rem, 18vw, 22rem)',
         }}
       >
         <div style={{ padding: '20px 22px', borderRight: '1px solid var(--col-border)' }}>
@@ -3090,7 +3094,9 @@ function TaskDetailDrawer({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'min(960px, 94vw)',
+          // rem cap (not px) so a 4K screen yields a much larger drawer and the
+          // panel scales with browser zoom; keep translate centering (no scale).
+          width: 'min(80rem, 94vw)',
           maxHeight: '90vh',
           background: 'var(--col-bg)',
           border: '1px solid var(--col-border)',
