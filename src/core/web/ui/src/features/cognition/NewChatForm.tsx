@@ -74,7 +74,9 @@ export default function NewChatForm() {
           try {
             const payload = data ? JSON.parse(data) : {};
             if (ev === 'session' && payload.session_id) setSessionId(payload.session_id);
-            const blocks: Block[] = payload?.blocks ?? [];
+            // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`
+            // — read content first so inline streaming text renders (TASK-207).
+            const blocks: Block[] = payload?.content ?? payload?.blocks ?? [];
             const t = blocks
               .filter((b) => b?.type === 'text' && b.text)
               .map((b) => b.text)

@@ -719,7 +719,14 @@ def _safe_serialize(obj: Any) -> Any:
     """Best-effort recursive serializer for SDK dataclass events."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         cls_name = type(obj).__name__
-        out: dict[str, Any] = {k: _safe_serialize(v) for k, v in dataclasses.asdict(obj).items()}
+        # Recurse field-by-field via getattr — NOT dataclasses.asdict, which
+        # pre-flattens the whole tree so a nested TextBlock arrives here as a
+        # plain dict and never gets its `type` stamped (the streamed
+        # AssistantMessage.content[] blocks then lack `type` and the UI drops
+        # them → "agent draft shows nothing"). TASK-207.
+        out: dict[str, Any] = {
+            f.name: _safe_serialize(getattr(obj, f.name)) for f in dataclasses.fields(obj)
+        }
         block_type = _BLOCK_TYPE_BY_CLASS.get(cls_name)
         if block_type is not None:
             out["type"] = block_type
