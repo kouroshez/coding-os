@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: agent-hub
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-06
-started: null
-completed: null
-agent_session: null
+started: 2026-06-05
+completed: 2026-06-05
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-201: Skill-fork panel isolation leak: a context:fork skill runs under a sibling panel and mutates its task
 
 **Outcome (one sentence):** A `context: fork` skill (e.g. `clean-code`) invoked by panel A must run under panel A's identity — never a sibling panel's. Observed: panel db30 invoking clean-code produced a forked execution under panel **840b9ff** that drove that panel's task (TASK-196) to complete.
@@ -26,7 +25,7 @@ references: []
 - docs/engineering/state-files.md (per-panel scope)
 - docs/engineering/agent-hub-orchestration.md (§1 id-spaces, F2)
 
-## Repro
+## Repro Steps
 1. Two concurrent same-agent panels: A (`ses=…db30`), B (`ses=…0b9f`, `.task-current=TASK-196`).
 2. From A, invoke `clean-code` (frontmatter `context: fork`).
 3. Observed: a forked execution ran under B's identity (banner `ses=840b9ff`), read B's `.task-current`, did B's work, drove TASK-196 → complete. No data corruption (B's work was correct + attributed to B), but A's action mutated B's panel.
@@ -52,3 +51,4 @@ The fork landed on B's identity only if its `CLAUDE_CODE_SESSION_ID` was B's —
 Same observable family as F2 (TASK-167) and [[TASK-205]], but DIFFERENT layer — F2/205 are in-repo; this one is upstream.
 
 ## Work Log
+- 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
