@@ -4,6 +4,11 @@
 routing. **Not** the agent prompts — those live in [../agents/](../agents/)
 (separation of concerns).
 
+> **What this does by default:** the composed chain is *single-agent role-phase
+> guidance* surfaced in the banner (`roles=`), not parallel orchestration. Real
+> sub-agent dispatch is opt-in and intentionally deferred — see
+> [ADR: Role dispatch deferral](../../../../docs/governance/adr-role-dispatch-deferral.md).
+
 | File           | Owns |
 |----------------|------|
 | `roles/<slug>.yaml` | **Routing**: when this role activates (triggers, deactivators, scoring weights, intensity defaults, prompt_prefix). Read by `cos_compose_chain` to build a chain of roles for a task. |
