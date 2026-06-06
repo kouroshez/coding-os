@@ -15,6 +15,7 @@ import fcntl
 import json
 import logging
 import logging.handlers
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -339,6 +340,47 @@ def _run_error_sweep(
     return {"status": "ok", **result}
 
 
+def _run_reclaim(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
+    """reclaim — recover zombie in_progress/testing tasks of dead sessions and
+    auto-archive aged backlog (TASK-210 RC4). This is the UNATTENDED-TIMER leg:
+    an idle board with no new sessions (so the SessionStart sweep never fires)
+    still heals here. cos_task_reclaim resolves project context from
+    COS_PROJECT_ROOT, so we scope it to this project for the call."""
+    from board_os.config import load_config as _load_board_cfg
+    from board_os.mcp_tools import _archive_stale_sweep, cos_task_reclaim
+
+    prev_root = os.environ.get("COS_PROJECT_ROOT")
+    os.environ["COS_PROJECT_ROOT"] = str(project_root)
+    try:
+        with sqlite3.connect(str(db_path), timeout=10) as conn:
+            if (
+                conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
+                ).fetchone()
+                is None
+            ):
+                return {"status": "skipped", "reason": "tasks table not present"}
+            env = json.loads(cos_task_reclaim(conn, dry_run=dry_run))
+            reclaimed = env.get("data", {}).get("reclaimed", []) if env.get("ok") else []
+            archived: list = []
+            if not dry_run:
+                try:
+                    archived = _archive_stale_sweep(conn, _load_board_cfg(project_root))
+                except Exception as exc:  # noqa: BLE001 - hygiene is best-effort
+                    logger.debug("[reclaim] archive sweep skipped: %s", exc)
+        return {
+            "status": "ok",
+            "reclaimed": len(reclaimed),
+            "auto_archived": len(archived),
+            "dry_run": dry_run,
+        }
+    finally:
+        if prev_root is None:
+            os.environ.pop("COS_PROJECT_ROOT", None)
+        else:
+            os.environ["COS_PROJECT_ROOT"] = prev_root
+
+
 def run_project(project: dict, *, dry_run: bool) -> dict:
     """Run all maintenance tasks for one project."""
     slug = project.get("slug", "?")
@@ -453,6 +495,20 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
     except Exception as exc:
         run["tasks"]["error_sweep"] = {"status": "error", "error": str(exc)}
         logger.error("[%s] error_sweep raised: %s", slug, exc)
+        errors += 1
+
+    # Task 4.5: reclaim — recover zombie in_progress/testing of dead sessions +
+    # auto-archive aged backlog. The unattended-timer leg of TASK-210 RC4: a
+    # stagnant board with no new sessions still heals here.
+    try:
+        t = _run_reclaim(db_path, project_root, dry_run=dry_run)
+        run["tasks"]["reclaim"] = t
+        logger.info("[%s] reclaim → %s", slug, t.get("status"))
+        if t.get("status") == "error":
+            errors += 1
+    except Exception as exc:
+        run["tasks"]["reclaim"] = {"status": "error", "error": str(exc)}
+        logger.error("[%s] reclaim raised: %s", slug, exc)
         errors += 1
 
     # Task 3.5: digest regenerate (after extract/decay so it reflects new patterns)
