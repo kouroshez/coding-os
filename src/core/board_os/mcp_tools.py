@@ -300,8 +300,36 @@ def _next_steps_for_kind(kind: str) -> dict:
     }
 
 
+def _status_dwell_seconds(now: float, started_at, last_transition_at) -> int | None:
+    """Seconds the card has rested in its current status.
+
+    Reuses the reclaim derivation (max of started_at and the last
+    status-history transition) so dwell, reclaim idle, and SLA staleness
+    all agree on one "last activity" definition. None when no timestamp
+    signal exists (never started, no history) — callers render "—".
+    """
+    last = max(int(started_at or 0), int(last_transition_at or 0))
+    if last <= 0:
+        return None
+    return max(0, int(now - last))
+
+
+def _humanize_duration(seconds: int | None) -> str | None:
+    if seconds is None:
+        return None
+    if seconds < 3600:
+        return f"{seconds // 60}m"
+    if seconds < 86400:
+        return f"{seconds // 3600}h"
+    return f"{seconds // 86400}d"
+
+
 def _task_card(row: sqlite3.Row | tuple) -> dict:
     """Shape a DB row into a board card."""
+    started_at = row[11] if len(row) > 11 else None
+    completed_at = row[12] if len(row) > 12 else None
+    last_transition_at = row[13] if len(row) > 13 else None
+    dwell = _status_dwell_seconds(time.time(), started_at, last_transition_at)
     return {
         "id": row[0],
         "title": row[1],
@@ -314,7 +342,48 @@ def _task_card(row: sqlite3.Row | tuple) -> dict:
         "appetite": row[8] or "1d",
         "agent_session": row[9],
         "last_log_line": _last_log_line(row[10]),
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "last_transition_at": last_transition_at,
+        "status_dwell_seconds": dwell,
+        "status_dwell_human": _humanize_duration(dwell),
     }
+
+
+def _sla_threshold_seconds(status: str, config) -> int | None:
+    """SLA dwell budget for a status in seconds, or None when unbounded/disabled."""
+    if config is None:
+        return None
+    policy = config.workflow_policy
+    hours = {
+        "in_progress": policy.in_progress_sla_hours,
+        "testing": policy.testing_sla_hours,
+    }.get(status)
+    if hours is not None:
+        return hours * 3600 if hours > 0 else None
+    if status == "icebox":
+        return policy.icebox_stale_days * 86400 if policy.icebox_stale_days > 0 else None
+    return None
+
+
+def _flag_stale(card: dict, config) -> dict:
+    """Annotate a card with stale=True + stale_reason when dwell exceeds its SLA.
+
+    Observability only — never mutates board state. Mutates the card dict in
+    place and returns it so callers can map over a list.
+    """
+    threshold = _sla_threshold_seconds(card.get("status", ""), config)
+    dwell = card.get("status_dwell_seconds")
+    if threshold is not None and dwell is not None and dwell > threshold:
+        card["stale"] = True
+        card["stale_reason"] = (
+            f"{card['status']} {card.get('status_dwell_human')} > SLA "
+            f"{_humanize_duration(threshold)}"
+        )
+    else:
+        card["stale"] = False
+        card["stale_reason"] = None
+    return card
 
 
 def _last_log_line(work_log_json: str | None) -> str | None:
@@ -401,7 +470,14 @@ def _assign_guard(
 _BOARD_SELECT = (
     "SELECT task_id, title, swimlane, kind, epic, labels_json, "
     "       status, priority, appetite, agent_session, work_log_last_5, "
-    "       started_at, completed_at "
+    "       started_at, completed_at, "
+    # last_transition_at (row[13]): the most recent status-change time from
+    # history. Correlated subquery keeps the column appended LAST so existing
+    # positional readers (retro r[11]/r[12]) are unaffected. Powers the board
+    # time dimension (status_dwell_seconds) — RC5 in
+    # audit-task-lifecycle-integrity-2026-06-05.md.
+    "       (SELECT MAX(h.transitioned_at) FROM task_status_history h "
+    "        WHERE h.task_id = tasks.task_id) AS last_transition_at "
     "FROM tasks"
 )
 
@@ -669,7 +745,7 @@ def cos_task_board(
     query = f"{_BOARD_SELECT} {where} ORDER BY swimlane, status, priority LIMIT ?"
     params.append(limit)
     rows = conn.execute(query, params).fetchall()
-    cards = [_task_card(r) for r in rows]
+    cards = [_flag_stale(_task_card(r), config) for r in rows]
 
     # Group by (swimlane, status) for UX.
     grouped: dict[str, dict[str, list[dict]]] = {}
@@ -1352,13 +1428,31 @@ def cos_task_daily(
     in_progress = conn.execute(
         f"{_BOARD_SELECT} WHERE status = 'in_progress' ORDER BY priority"
     ).fetchall()
+    # `testing` was previously absent from daily — the protocol funnels work
+    # there before completion, so an abandoned card most often rots in testing
+    # (RC3). Report it so a stranded testing zombie is visible at standup.
+    testing = conn.execute(
+        f"{_BOARD_SELECT} WHERE status = 'testing' ORDER BY priority"
+    ).fetchall()
     blocked = conn.execute(f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority").fetchall()
+    icebox = conn.execute(f"{_BOARD_SELECT} WHERE status = 'icebox'").fetchall()
 
     config = _current_config()
     wip = None
     if config is not None:
         state = check_wip(conn, config)
         wip = {"counts": state.counts, "caps": state.caps}
+
+    in_progress_cards = [_flag_stale(_task_card(r), config) for r in in_progress]
+    testing_cards = [_flag_stale(_task_card(r), config) for r in testing]
+    blocker_cards = [_flag_stale(_task_card(r), config) for r in blocked]
+    icebox_cards = [_flag_stale(_task_card(r), config) for r in icebox]
+    icebox_stale = [c for c in icebox_cards if c.get("stale")]
+    icebox_summary = {
+        "total": len(icebox_cards),
+        "stale": len(icebox_stale),
+        "stale_ids": [c["id"] for c in icebox_stale[:20]],
+    }
 
     return ok(
         {
@@ -1372,8 +1466,10 @@ def cos_task_daily(
                 }
                 for r in recent
             ],
-            "in_progress": [_task_card(r) for r in in_progress],
-            "blockers": [_task_card(r) for r in blocked],
+            "in_progress": in_progress_cards,
+            "testing": testing_cards,
+            "blockers": blocker_cards,
+            "icebox": icebox_summary,
             "wip": wip,
             "reclaimed": reclaimed,
         },

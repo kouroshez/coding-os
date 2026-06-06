@@ -161,6 +161,23 @@ class WorkflowPolicy:
     block_in_progress_to_complete: bool = True
     per_session_wip: bool = True
     reclaim_idle_hours: int = 24
+    # Per-status reclaim window. `testing` is where the testing-first
+    # protocol funnels near-done work, so a stranded testing card is
+    # mid-flight, not backlog — reclaim it sooner than a generic
+    # in_progress zombie. 0 falls back to reclaim_idle_hours.
+    testing_reclaim_idle_hours: int = 6
+    # SLA dwell budgets — a card whose time-in-current-status exceeds its
+    # budget is flagged `stale` on every board surface (observability
+    # only; no mutation). 0 disables the flag for that status.
+    in_progress_sla_hours: int = 24
+    testing_sla_hours: int = 6
+    icebox_stale_days: int = 30
+    # Auto-archive — OFF by default (0 = disabled). Opt-in per project;
+    # a `keep`/`parked` label always exempts a card. Archive is reversible
+    # (archive->icebox is a legal edge) but it removes the card from the
+    # working board, so it is never on by default.
+    icebox_auto_archive_days: int = 0
+    complete_auto_archive_days: int = 0
 
 
 @dataclass(frozen=True)
@@ -310,6 +327,22 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
             errors.append(f"workflow_policy.reclaim_idle_hours={v!r} must be a positive int")
         else:
             policy_kwargs["reclaim_idle_hours"] = v
+    # Non-negative int knobs (0 = disabled for SLA/auto-archive; 0 falls
+    # back to reclaim_idle_hours for testing_reclaim_idle_hours).
+    for knob in (
+        "testing_reclaim_idle_hours",
+        "in_progress_sla_hours",
+        "testing_sla_hours",
+        "icebox_stale_days",
+        "icebox_auto_archive_days",
+        "complete_auto_archive_days",
+    ):
+        if knob in policy_raw:
+            v = policy_raw[knob]
+            if not isinstance(v, int) or isinstance(v, bool) or v < 0:
+                errors.append(f"workflow_policy.{knob}={v!r} must be a non-negative int")
+            else:
+                policy_kwargs[knob] = v
     workflow_policy = WorkflowPolicy(**policy_kwargs)
 
     if errors:

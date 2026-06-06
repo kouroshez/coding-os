@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 import sqlite3
+import time
 from pathlib import Path
 
 import pytest
@@ -954,3 +955,78 @@ def test_task_edit_title_updates_h1(project: Path, conn: sqlite3.Connection):
     content = (project / created["data"]["file_path"]).read_text(encoding="utf-8")
     assert f"# {tid}: New title" in content
     assert "Old title" not in content, "stale title must not linger in the H1"
+
+
+# ---------- F1: board time dimension (status_dwell + stale) — TASK-210 RC5 ----------
+
+
+def _backdate_task(conn: sqlite3.Connection, task_id: str, status: str, seconds_ago: int) -> None:
+    old = int(time.time()) - seconds_ago
+    conn.execute("UPDATE tasks SET status=?, started_at=? WHERE task_id=?", (status, old, task_id))
+    conn.execute(
+        "UPDATE task_status_history SET transitioned_at=? WHERE task_id=?", (old, task_id)
+    )
+    conn.commit()
+
+
+def test_task_card_exposes_dwell_and_timestamps(project: Path, conn: sqlite3.Connection):
+    """RC5: _task_card surfaces the time dimension it previously dropped."""
+    mcp_tools.cos_task_create(
+        conn,
+        title="Dwell card",
+        swimlane="core",
+        kind="chore",
+        status="in_progress",
+        outcome="Card carries a dwell signal for every board surface.",
+        acceptance="**Given** a card\n**When** rendered\n**Then** dwell is present",
+        read_first=["docs/governance/task-lifecycle.md"],
+    )
+    env = _parse(mcp_tools.cos_task_board(conn))
+    card = env["data"]["cards"][0]
+    for key in (
+        "started_at",
+        "completed_at",
+        "last_transition_at",
+        "status_dwell_seconds",
+        "status_dwell_human",
+        "stale",
+    ):
+        assert key in card, f"board card missing {key}"
+    # A just-started in_progress card is not stale under the default 24h SLA.
+    assert card["stale"] is False
+
+
+def test_board_flags_stale_testing_card(project: Path, conn: sqlite3.Connection):
+    """RC3: a testing card past its SLA is flagged stale on the board (read-only)."""
+    mcp_tools.cos_task_create(
+        conn, title="Old testing", swimlane="core", kind="bug", status="icebox"
+    )
+    _backdate_task(conn, "TASK-001", "testing", 8 * 3600)  # > testing_sla_hours (6h)
+    env = _parse(mcp_tools.cos_task_board(conn, status_filter=["testing"]))
+    card = next(c for c in env["data"]["cards"] if c["id"] == "TASK-001")
+    assert card["status"] == "testing"
+    assert card["stale"] is True
+    assert card["status_dwell_seconds"] >= 6 * 3600
+
+
+def test_daily_reports_testing_and_icebox_summary(project: Path, conn: sqlite3.Connection):
+    """RC3/RC6: daily surfaces testing cards and icebox depth/staleness."""
+    # Fresh testing card — recent activity so reclaim leaves it; daily must REPORT it.
+    mcp_tools.cos_task_create(
+        conn, title="Active testing", swimlane="core", kind="bug", status="icebox"
+    )
+    conn.execute(
+        "UPDATE tasks SET status='testing', started_at=? WHERE task_id='TASK-001'",
+        (int(time.time()),),
+    )
+    conn.commit()
+    # Stale icebox idea (icebox is never reclaimed, only surfaced).
+    mcp_tools.cos_task_create(
+        conn, title="Old idea", swimlane="core", kind="chore", status="icebox"
+    )
+    _backdate_task(conn, "TASK-002", "icebox", 40 * 86400)  # > icebox_stale_days (30d)
+    env = _parse(mcp_tools.cos_task_daily(conn))
+    data = env["data"]
+    assert any(c["id"] == "TASK-001" for c in data["testing"]), "daily must report testing"
+    assert data["icebox"]["total"] >= 1
+    assert "TASK-002" in data["icebox"]["stale_ids"]
