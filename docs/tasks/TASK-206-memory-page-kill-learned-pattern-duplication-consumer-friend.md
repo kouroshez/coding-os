@@ -5,12 +5,12 @@ swimlane: "thinking_os"
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,5 @@ Actual: 16 rows but only 4 distinct facts. Root cause: pattern TEXT embeds the r
 - **Then** `_upsert_pattern` matches it by a count-agnostic identity and UPDATES the single row (bumping times_validated as a re-confirmation signal) instead of inserting a duplicate; existing duplicates collapse (16→4); and the Memory page renders one readable, high-contrast row per fact without the constant internal-weight columns.
 
 ## Work Log
+- 2026-06-06 [claude]: committed 07dff277: src/core/thinking_os/tests/test_learning.py, src/core/thinking_os/tools/learning.py, src/core/web/ui
+- 2026-06-06 [claude]: learning.py: count-agnostic _pattern_identity + _collapse_duplicate_patterns; live DB 16→4; MemoryPage redesigned (cards
