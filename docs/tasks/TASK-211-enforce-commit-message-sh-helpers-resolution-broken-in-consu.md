@@ -41,3 +41,4 @@ Actual: both silently skip in every consumer; only the meta-repo (which has src/
 
 ## Work Log
 - 2026-06-06 [claude]: Fixed: enforce-commit-message.sh now resolves _helpers/ via the readlink physical-location dance (mirrors branch-guard.s
+- 2026-06-06 [claude]: committed 398d718e: src/core/hooks/enforce-commit-message.sh, tests/test_enforce_commit_message_symlink_resolution.py
