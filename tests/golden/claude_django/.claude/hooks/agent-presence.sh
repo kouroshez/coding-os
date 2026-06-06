@@ -134,12 +134,17 @@ PRESENCE_HELPER="${COS_HOOK_SRC_DIR}/_helpers/presence_write.py"
 # `.model` on every stop/tool event).  Empty string falls through —
 # helper preserves the previously-stored value.
 HOOK_MODEL=""
+# The host runtime's own session id (the SDK transcript uuid) — the bridge from
+# our coding-os SESSION_ID to the chat transcript (TASK-184).
+HOOK_SDK_UUID=""
 if [[ -n "$INPUT" ]]; then
   HOOK_MODEL=$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)
+  HOOK_SDK_UUID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
 fi
 if [[ -f "$PRESENCE_HELPER" ]]; then
   python3 "$PRESENCE_HELPER" \
-    "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" "$HOOK_MODEL" \
+    "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" \
+    "$HOOK_MODEL" "$HOOK_SDK_UUID" \
     2>/dev/null || true
 fi
 
