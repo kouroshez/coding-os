@@ -34,7 +34,7 @@ _YAML_FENCE_RE = re.compile(r"^---\s*\n(?P<body>.*?)\n---\s*", re.DOTALL)
 # Fenced code blocks: ```...``` — stripped before link extraction.
 _FENCED_CODE_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
 
-# Opening-block "Read next:" lines (TASK-156). Long form lives plain in the
+# Opening-block "Read next:" lines. Long form lives plain in the
 # body; short form lives inside a blockquote (`> N: …`). Both produce
 # read_next edges to every comma-separated target.
 _OPENING_READ_NEXT_RE = re.compile(
@@ -313,7 +313,7 @@ def _resolve_link(origin_path: str, target: str) -> str:
         # Extensionless target that is neither a real dir nor a real file is a
         # placeholder / prose fragment ('relative/path', 'docs/_meta/path',
         # unicode-ellipsis truncations) — minting a node for it created
-        # permanent stale/orphan junk invisible to the doctor (TASK-056 B2).
+        # permanent stale/orphan junk invisible to the doctor.
         return ""
     if suffix in {".md", ".mdx", ""}:
         base = f"doc:file:{normalised}"
@@ -322,7 +322,7 @@ def _resolve_link(origin_path: str, target: str) -> str:
     else:
         # Code-file nodes carry no line/heading anchor (the uid scheme has no
         # line numbers): a `foo.py#L954` link resolves to the file node, not a
-        # phantom `code:file:...#L954` that pollutes similarity (TASK-056 B1).
+        # phantom `code:file:...#L954` that pollutes similarity.
         return f"code:file:{normalised}"
     return f"{base}#{anchor}" if anchor else base
 
@@ -443,7 +443,7 @@ def emit_contains_spine(
     # uid stays `folder:.` for stability across rebuilds and idempotency;
     # `label` upgraded from "." to "repo-root" so the graph canvas shows
     # a recognisable anchor instead of a tiny dot — uid is the contract,
-    # label is presentation. (TASK-024)
+    # label is presentation.
     root_uid = folder_uid(".")
     root_node = GraphNode(
         uid=root_uid,

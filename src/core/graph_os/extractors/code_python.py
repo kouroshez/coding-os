@@ -23,7 +23,7 @@ from .md_links import (
 logger = logging.getLogger("graph_os.extractors.code_python")
 
 EXTRACTOR_ID = "code_python@v1"
-# TASK-119: separate ID for the tree-sitter-primary import path so
+# separate ID for the tree-sitter-primary import path so
 # provenance_for() can distinguish ast-emitted edges from
 # tree-sitter-emitted ones.
 EXTRACTOR_ID_TS_IMPORTS = "code_python_ts@v1"
@@ -203,7 +203,7 @@ def _node_text(node, content_bytes: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
-# TASK-120 — tree-sitter primary path for class heritage + decorators
+# tree-sitter primary path for class heritage + decorators
 # ---------------------------------------------------------------------------
 
 
@@ -522,8 +522,8 @@ def extract(path: str, content: str) -> ExtractionResult:
             continue
         visitor._walk_calls(stmt)
 
-    # TASK-119: tree-sitter primary path for imports, opt-in via the
-    # `--extractor=tree-sitter` flag (TASK-122).  When active and the
+    # tree-sitter primary path for imports, opt-in via the
+    # `--extractor=tree-sitter` flag. When active and the
     # grammar parse succeeds, replace the ast-derived import list with
     # the tree-sitter one and tag the emitted edges with
     # `code_python_ts@v1` so `provenance_for(...)` returns
@@ -539,7 +539,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             }
             import_extractor_id = EXTRACTOR_ID_TS_IMPORTS
 
-    # TASK-120: tree-sitter primary path for class heritage + decorators.
+    # tree-sitter primary path for class heritage + decorators.
     # Same activation gate as imports — flips both paths in lock-step.
     heritage_extractor_id = EXTRACTOR_ID
     if _tree_sitter_heritage_active():
@@ -613,7 +613,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             )
         )
 
-    # TASK-083: type annotations — has_param_type / returns_type / field_of_type.
+    # type annotations — has_param_type / returns_type / field_of_type.
     for fn_uid, type_name in visitor.param_types:
         result.edges.append(
             GraphEdge(
@@ -826,7 +826,7 @@ class _PythonVisitor(ast.NodeVisitor):
         self.inherits: list[tuple[str, str]] = []
         self.decorators_edges: list[tuple[str, str]] = []
         self.calls: list[_CallSite] = []
-        # TASK-083: type-annotation edges discovered during the AST walk.
+        # type-annotation edges discovered during the AST walk.
         # `param_types`     : (function_uid, type_name)
         # `return_types`    : (function_uid, type_name)
         # `field_types`     : (field_uid,    type_name) — field_uid is
@@ -907,7 +907,7 @@ class _PythonVisitor(ast.NodeVisitor):
         for dec in node.decorator_list:
             self.decorators_edges.append((uid, _dotted_name(dec)))
 
-        # TASK-083: scan class body for `name: T` and `name: T = default`.
+        # scan class body for `name: T` and `name: T = default`.
         # Each annotated field becomes a real `code:variable` decl so it
         # appears in the contains tree (parent class → field) instead of
         # surfacing as an orphan stub. The stub UID still anchors the
@@ -979,7 +979,7 @@ class _PythonVisitor(ast.NodeVisitor):
         for dec in node.decorator_list:  # type: ignore[attr-defined]
             self.decorators_edges.append((uid, _dotted_name(dec)))
 
-        # TASK-083: collect param + return type annotations.
+        # collect param + return type annotations.
         for ann_name in _function_param_annotations(node):
             self.param_types.append((uid, ann_name))
         ret_ann = _function_return_annotation(node)
@@ -1152,7 +1152,7 @@ def _resolve_call(
         # `import pkg.mod as g` → module imp.imported. Resolving the attribute
         # (`g.func`) to <module>:func lets link_external_stubs bind it to the
         # real function instead of dropping the call on the bare package —
-        # this is what made rename/references miss `g.func()` sites (TASK-056 A1).
+        # this is what made rename/references miss `g.func()` sites.
         abs_source = _absolute_module_for(imp.source_module, path=path)
         root_module = f"{abs_source}.{imp.imported}" if abs_source else imp.imported
         resolved = f"code:external:{root_module}:{tail}"

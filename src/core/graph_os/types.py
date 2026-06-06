@@ -187,7 +187,7 @@ class GraphEdge:
 
 
 # ---------------------------------------------------------------------------
-# Provenance (TASK-122)
+# Provenance
 # ---------------------------------------------------------------------------
 #
 # `provenance` is a single-string label for "what kind of parser produced

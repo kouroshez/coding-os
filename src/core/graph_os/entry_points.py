@@ -74,7 +74,7 @@ def discover(
             # Test functions are not real entry points — they otherwise
             # dominate the default ranking (round-5 audit: ~76% of results,
             # scored 0.85 ABOVE the real CLI root at 0.6). Surface them only
-            # when the caller explicitly asks for kind="test". TASK-044.
+            # when the caller explicitly asks for kind="test".
             if ep.kind == "test" and kind_filter != "test":
                 continue
             if ep.score < min_score:

@@ -556,7 +556,7 @@ def _reindex_graph(
             nodes_written += n
             edges_written += e
 
-        # TASK-043: a full `cos graph-reindex` passes link_stubs=False and runs
+        # a full `cos graph-reindex` passes link_stubs=False and runs
         # ONE global link_external_stubs() after the whole walk — per-file
         # linking mid-walk resolves a stub→real edge that a LATER file's
         # prune-before-reindex then orphans (cross-file edge into a not-yet-

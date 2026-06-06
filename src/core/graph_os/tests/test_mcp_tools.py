@@ -898,7 +898,7 @@ def test_resolve_fts5_preserves_uid_kind_label(seeded_backend):
 # ---------------------------------------------------------------------------
 
 
-# TASK-034: cos_graph_context envelope must stay under TOKEN_BUDGET_CHARS
+# cos_graph_context envelope must stay under TOKEN_BUDGET_CHARS
 # even on high-fan-in hubs at depth=2. Pre-fix _apply_token_budget only
 # trimmed body["results"] — context emits neighbours+edges_by_type so the
 # trimmer never fired, and 150-caller hubs returned 50KB envelopes.
@@ -945,7 +945,7 @@ def test_context_envelope_token_budget(seeded_backend):
     assert serialized_len <= TOKEN_BUDGET_CHARS, (
         f"context envelope blew budget — {serialized_len} > {TOKEN_BUDGET_CHARS}"
     )
-    # TASK-035: depth>=2 returns SUMMARY (counts + top-5 sample). No raw
+    # depth>=2 returns SUMMARY (counts + top-5 sample). No raw
     # neighbours field — agent drills via cos_graph_references.
     assert body.get("summary_mode") is True
     assert "edge_counts" in body

@@ -181,7 +181,7 @@ class TestValidation:
 
 
 # ---------------------------------------------------------------------------
-# Mode: auto (the regression that triggered TASK-141)
+# Mode: auto (export regression guard)
 # ---------------------------------------------------------------------------
 
 

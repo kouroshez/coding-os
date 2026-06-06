@@ -23,7 +23,7 @@ from .md_links import (
 logger = logging.getLogger("graph_os.extractors.code_ts")
 
 EXTRACTOR_ID = "code_ts@v1"
-# TASK-121: tree-sitter primary path for TS/TSX. Activated by
+# tree-sitter primary path for TS/TSX. Activated by
 # COS_EXTRACTOR_PREFERENCE=tree-sitter when the grammar is installed.
 EXTRACTOR_ID_TS = "code_ts_ts@v1"
 
@@ -867,7 +867,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         )
     )
 
-    # TASK-121: tag imports as tree-sitter when the user opted in
+    # tag imports as tree-sitter when the user opted in
     # AND the overlay parsed successfully (we already have a parsed
     # AST in `_ts_overlay`). The regex still extracts; the tag swap
     # signals "this came from grammar-validated TS" so the Hub UI
@@ -1199,7 +1199,7 @@ def _resolve_module_uid(origin: str, specifier: str) -> str:
             resolved += ".ts"
         return f"code:module:{resolved}"
 
-    # TASK-082: tsconfig.paths / baseUrl aliasing.
+    # tsconfig.paths / baseUrl aliasing.
     aliased = _resolve_ts_alias(specifier)
     if aliased:
         return f"code:module:{aliased}"

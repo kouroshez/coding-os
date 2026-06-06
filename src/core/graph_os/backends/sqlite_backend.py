@@ -502,7 +502,7 @@ class SqliteBackend:
                     continue
                 for stub_id, module, _stub_uid in candidate_stubs:
                     module_suffix = module.replace(".", "/")
-                    # TASK-043: collect ALL real files whose path matches the
+                    # collect ALL real files whose path matches the
                     # stub's module, then resolve ONLY when exactly one does.
                     # First-match-break used to pick an arbitrary candidate
                     # when several `label`s exist in different modules (e.g. 3
@@ -528,7 +528,7 @@ class SqliteBackend:
                     # (is_constructor_like + target.startswith('code:class:'))
                     # missed these because the stub uid was `code:external:*`
                     # at the time edges were emitted.
-                    # TASK-043: rewrite stub→real edges with OR IGNORE. A bare
+                    # rewrite stub→real edges with OR IGNORE. A bare
                     # UPDATE aborts the WHOLE linker pass with an IntegrityError
                     # when the rewrite would duplicate an existing edge — e.g. a
                     # caller reaches the same real symbol via two module

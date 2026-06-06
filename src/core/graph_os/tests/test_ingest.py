@@ -32,7 +32,7 @@ class TestLocal:
         assert len(plan.files) == 2
 
     def test_walk_collects_php(self, tmp_path):
-        # TASK-071: .php must be in DEFAULT_INCLUDE so bulk reindex picks up
+        # .php must be in DEFAULT_INCLUDE so bulk reindex picks up
         # PHP/Laravel/WordPress/WHMCS files (the auto-reindex single-file path
         # already routed .php via _EXT_MAP; the walk did not collect them).
         (tmp_path / "plugin.php").write_text("<?php\nadd_action('init', 'x');")

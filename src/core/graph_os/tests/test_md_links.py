@@ -191,7 +191,7 @@ class TestFrontmatter:
 
 
 # ---------------------------------------------------------------------------
-# Opening-block + reads:[…] edges (TASK-156)
+# Opening-block + reads:[…] edges
 # ---------------------------------------------------------------------------
 
 
@@ -246,7 +246,7 @@ class TestOpeningBlockReadNext:
         assert any(e.target_uid == "doc:external:https://example.com/spec" for e in rn)
 
     def test_read_next_inside_fenced_code_ignored(self):
-        # TASK-162 fix #4 — fenced code blocks are stripped before the
+        # fix #4 — fenced code blocks are stripped before the
         # opening-block scan, so a ``Read next:`` line in an example block
         # must NOT emit a graph edge.
         content = (

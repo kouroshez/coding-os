@@ -855,7 +855,7 @@ def _degree_map_for(backend: GraphBackend, uids: Sequence[str]) -> dict[str, int
 
 
 def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[str, Any]:
-    # TASK-122: surface provenance derived from extractor — additive,
+    # surface provenance derived from extractor — additive,
     # never replaces the existing extractor field.  Hub UI consumers
     # (ImpactPanel, ContextPanel) can colour or filter by this label
     # without parsing extractor IDs.
@@ -1136,7 +1136,7 @@ def cos_graph_query(
     _MAX_QUERY_META = 500
     query_meta = q if len(q) <= _MAX_QUERY_META else q[:_MAX_QUERY_META] + "..."
 
-    # TASK-075: process grouping.  Group hit uids by Louvain community
+    # process grouping. Group hit uids by Louvain community
     # so the Search tab can render `LoginFlow` / `RegistrationFlow`
     # buckets.  Communities are computed lazily per backend with a
     # cheap edge-count signature; queries with no clustering signal
@@ -1207,7 +1207,7 @@ def cos_graph_context(
     if root is None:
         return _fail_uid_not_found(uid_or_name, tried_uids, label="uid_or_name")
 
-    # TASK-035: two response shapes by depth.
+    # two response shapes by depth.
     #   depth=1 → full (UI path: ~2KB typical, ContextPanel renders nodes)
     #   depth>=2 → SUMMARY (agent path: counts + top-5 sample per edge_type,
     #              drops full `neighbours`). Graph must be CHEAPER than file
@@ -1642,7 +1642,7 @@ def cos_graph_trace(
     root, tried_entry_uids, resolved_from = _resolve_uid(be, entry_uid)
     start_source = "explicit"
     if root is None:
-        # TASK-081: fall back to the highest-scoring entry point whose
+        # fall back to the highest-scoring entry point whose
         # label / file matches the supplied identifier.  Lets agents
         # call cos_graph_trace("login") without first running a
         # separate query to resolve the uid. The entry_points module
@@ -2174,7 +2174,7 @@ def cos_graph_path(
     )
 
 
-# TASK-141: edge categories that drive the new view modes.
+# edge categories that drive the new view modes.
 _SEMANTIC_EDGES: tuple[str, ...] = (
     "calls",
     "imports",
@@ -2214,7 +2214,7 @@ _DEFAULT_NOISE_KINDS: frozenset[str] = frozenset(
 )
 
 
-# Diversified blend recipe for the auto mode (TASK-141).  Pulling the
+# Diversified blend recipe for the auto mode. Pulling the
 # first N edges by confidence happens to over-represent whichever edge
 # type the SQL ORDER BY surfaces first (in the live graph: handles_tool
 # at 200+ rows).  Allocating per-bucket quotas guarantees every kind of
@@ -2337,7 +2337,7 @@ def cos_graph_export(
         kept_uids = {n.uid for n in nodes}
         edges = [e for e in edges if e.source_uid in kept_uids and e.target_uid in kept_uids]
 
-    # TASK-141: apply noise filter.  Drop nodes whose kind is in
+    # apply noise filter. Drop nodes whose kind is in
     # ``excluded`` AND drop any edges that touch them.
     if excluded:
         nodes = [n for n in nodes if (n.kind or "") not in excluded]
@@ -2676,8 +2676,7 @@ def cos_graph_contracts(
                 # No contract sub-kind in metadata → infer from the node's
                 # own kind. A node that is not a contract surface (e.g. a
                 # hook reached via a handles_tool edge) is skipped, not
-                # dumped into http_routes via a blind 'http' default
-                # (TASK-056 C1).
+                # dumped into http_routes via a blind 'http' default.
                 node_kind = (node.kind or "").replace("cos:", "")
                 kind = {"route": "http", "mcp_tool": "mcp", "cli_command": "cli"}.get(node_kind)
                 if kind is None:
@@ -3348,7 +3347,7 @@ def cos_graph_centrality(
                 params.extend(f"code:module:{name}" for name in _NOISE_MODULE_NAMES)
             kind_clause = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
-            # Degree over behavioural edges only by default (TASK-046). The
+            # Degree over behavioural edges only by default. The
             # edge filter sits in the JOIN ON clause, so its params precede
             # the WHERE (kind/stdlib) params.
             edge_params: list[Any] = []
@@ -3468,7 +3467,7 @@ def cos_graph_centrality(
                 i = uid_idx[u]
                 edges_out = be.list_edges(source_uid=u, limit=500)
                 for e in edges_out:
-                    # TASK-046: honour include_structural for betweenness too —
+                    # honour include_structural for betweenness too —
                     # otherwise the path counts traverse the containment
                     # skeleton (registry.yaml/file-tree) the degree pass excludes.
                     if not include_structural and e.edge_type not in _BEHAVIOURAL_EDGE_TYPES:
@@ -3954,7 +3953,7 @@ def cos_graph_ranking(
                 # Audit fix: test-fixture nodes (a helper called 60+ times
                 # within one test file) dominated PageRank and buried every
                 # production hub — top-20 was 100% tests/. Drop test-dir
-                # nodes unless the caller explicitly opts in (TASK-053).
+                # nodes unless the caller explicitly opts in.
                 where_parts.append(
                     "(file_path IS NULL OR (file_path NOT LIKE 'tests/%' "
                     "AND file_path NOT LIKE '%/tests/%'))"
@@ -4049,7 +4048,7 @@ def cos_graph_ranking(
         tokens = [t for t in lower_q.split() if len(t) >= 2]
         if not tokens:
             tokens = [lower_q] if lower_q else []
-        # F6 (TASK-040): a generic structural doc_heading (Work Log / Read
+        # F6: a generic structural doc_heading (Work Log / Read
         # First / …) carries no query relevance — but its uid PATH tokens
         # (e.g. a TASK file path containing "graph") used to seed it as if it
         # matched the query. Skip these, and weight LABEL hits far above

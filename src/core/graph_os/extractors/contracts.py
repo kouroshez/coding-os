@@ -426,7 +426,7 @@ def _emit(
         # (code_python emits it in the same reindex; _next_def_name yields
         # a def in THIS file). The old unresolved-stub target left
         # references/impact/rename empty for every route + MCP handler
-        # (TASK-053). Non-.py handlers keep the stub (no same-file table).
+        # . Non-.py handlers keep the stub (no same-file table).
         if normalised.endswith(".py"):
             handler_uid = f"code:function:{normalised}::{match.handler}"
         elif normalised.endswith(".php"):
