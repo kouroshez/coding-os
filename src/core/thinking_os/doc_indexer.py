@@ -463,6 +463,7 @@ def index_docs(
         "updated_files": 0,
         "deleted_files": 0,
         "errors": 0,
+        "missing_frontmatter": 0,
     }
 
     seen_paths: set[str] = set()
@@ -501,6 +502,14 @@ def index_docs(
         # strips it. Written to columns added in migration v22 so
         # cos_doc_search can pre-filter by domain/layer/updated.
         fm = _parse_front_matter(content)
+        # D3-F7 (TASK-124): surface files with a body but no parseable
+        # frontmatter — previously a silent logger.debug, invisible in the
+        # index summary. A leading `<!--` that simply didn't match is a
+        # malformed header, not a missing one; both count as a Stage-1 gap.
+        if not fm:
+            _stripped = content.lstrip()
+            if _stripped:
+                stats["missing_frontmatter"] += 1
 
         # Delete previous chunks (and their embeddings)
         _delete_chunks_for_path(conn, rel_path)

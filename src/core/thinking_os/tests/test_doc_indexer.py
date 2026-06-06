@@ -341,6 +341,19 @@ class TestIndexDocs:
         count = tmp_db.execute("SELECT COUNT(*) FROM document_chunks").fetchone()[0]
         assert count >= 4
 
+    def test_counts_missing_frontmatter(
+        self, tmp_db: sqlite3.Connection, tmp_project: Path, tmp_config: Path
+    ) -> None:
+        # TASK-124 (D3-F7): a body without a parseable <!-- domain --> header is
+        # a Stage-1 metadata gap and must surface in the index summary, not just
+        # a silent logger.debug.
+        (tmp_project / "docs" / "engineering" / "no-frontmatter.md").write_text(
+            "# No Header\n\nplain body, no domain comment\n", encoding="utf-8"
+        )
+        stats = index_docs(tmp_db, tmp_config, tmp_project)
+        assert "missing_frontmatter" in stats
+        assert stats["missing_frontmatter"] >= 1
+
     def test_playbook_not_indexed(
         self, tmp_db: sqlite3.Connection, tmp_project: Path, tmp_config: Path
     ) -> None:

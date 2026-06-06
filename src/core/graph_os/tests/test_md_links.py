@@ -432,3 +432,39 @@ class TestPipelineInvariants:
         non_folder = [n for n in r.nodes if n.kind != "folder"]
         assert len(non_folder) == 1
         assert r.parse_errors == []
+
+
+def _file_node(result, path: str):
+    return next((n for n in result.nodes if n.uid == f"doc:file:{path}"), None)
+
+
+class TestGovernanceClassificationDeterminism:
+    # TASK-124 (D3-F5): rule/skill paths must classify to a non-doc_file
+    # governance kind, stably across repeated extraction — guards against the
+    # content-hash skip leaving stale doc_file nodes after a re-index.
+    def test_rule_path_classified_and_deterministic(self):
+        path = "src/core/rules/anti-overengineering.md"
+        content = "# Anti-Overengineering\n\nbody"
+        assert md_links._classify_governance_path(path)[0] is not None  # is governance
+        kinds = {
+            _file_node(md_links.extract(path, content), path).kind for _ in range(3)
+        }
+        assert len(kinds) == 1  # deterministic
+        assert kinds != {"doc:file"}  # classified, not left as a plain doc
+
+    def test_skill_path_classified_and_deterministic(self):
+        path = "src/core/skills/clean-code/SKILL.md"
+        content = "# clean-code\n\nbody"
+        assert md_links._classify_governance_path(path)[0] is not None
+        kinds = {
+            _file_node(md_links.extract(path, content), path).kind for _ in range(3)
+        }
+        assert len(kinds) == 1
+        assert kinds != {"doc:file"}
+
+    def test_plain_doc_stays_doc_file(self):
+        path = "docs/engineering/some-plain-doc.md"
+        content = "# Plain\n\nbody"
+        assert md_links._classify_governance_path(path)[0] is None
+        node = _file_node(md_links.extract(path, content), path)
+        assert node is not None and node.kind == "doc:file"
