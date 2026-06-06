@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
+import LiveAgentsPanel from '@/features/cognition/LiveAgentsPanel';
 import { apiDelete, apiPost } from '@/lib/api-client';
 
 /**
@@ -275,6 +276,8 @@ export default function HubHome() {
             )}
           </div>
         </header>
+
+        <LiveAgentsPanel />
 
         {/* Notes + errors */}
         {actionNote && (
