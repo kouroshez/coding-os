@@ -31,6 +31,21 @@ dependencies = [
     "claude-agent-sdk>=0.2.87,<0.3.0",
     "anyio>=4.0.0",
 ]
+authors = [
+    { name = "Kourosh Ebrahimzadeh", email = "thisiskourosh@gmail.com" },
+]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["ai", "coding-agent", "mcp", "llm", "cli", "hexagonal", "claude", "codex"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+]
 
 [project.optional-dependencies]
 # RAG (Retrieval-Augmented Generation) — semantic search via local embeddings.
@@ -92,6 +107,11 @@ cos = "cli.main:cli"
 coding-os = "cli.main:cli"
 cos-nightly = "scheduled.nightly:main"
 
+[project.urls]
+Homepage = "https://github.com/kouroshez/coding-os"
+Repository = "https://github.com/kouroshez/coding-os"
+Issues = "https://github.com/kouroshez/coding-os/issues"
+
 # All packages live under src/ (Python src-layout — meta-repo P5 dogfood).
 # `cli`, `thinking_os`, etc. are still importable at top level via
 # [tool.setuptools.package-dir] mapping below — code never says
@@ -112,7 +132,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

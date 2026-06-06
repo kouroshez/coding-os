@@ -2,9 +2,9 @@ name: release-please
 
 # Reads Conventional Commits on `main` and maintains a standing
 # "release" PR that bumps the version + updates CHANGELOG.md. Merging
-# that PR tags the release. Publishing (PyPI / GitHub release assets)
-# is intentionally NOT wired here yet — add a `release` job gated on
-# `releases_created` when the project is ready to publish.
+# that PR tags the release, which sets releases_created=true and fires
+# the publish-pypi job (Trusted Publishing). The publish step no-ops on
+# every ordinary push because the gate is false.
 
 on:
   push:
@@ -18,8 +18,12 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           # config + manifest live at the repo root.
           config-file: release-please-config.json
@@ -38,3 +42,25 @@ jobs:
           #       expired / lacks `contents:write` + `pull_requests:write`
           #       scopes. Regenerate the PAT.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+  # Publishes wheel + sdist to PyPI via Trusted Publishing (OIDC, no
+  # token). Fires ONLY when release-please created a release on this push
+  # (releases_created == 'true'). Prerequisite: register this repo as a
+  # trusted publisher on the PyPI 'coding-os' project once. Until the repo
+  # is public AND a release PR is merged the gate is false, so wiring it
+  # now never publishes a private repo.
+  publish-pypi:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # OIDC for Trusted Publishing — no API token stored
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
