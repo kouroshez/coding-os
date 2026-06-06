@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: task-lifecycle-integrity
 labels: [workflow-integrity, hub, ui, lifecycle, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-06
-completed: null
+completed: 2026-06-06
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -33,3 +33,5 @@ references: []
 - **Then** matrix verification green (thinking_os + web + ui-build) and a reviewer confirms env-over-file precedence.
 
 ## Work Log
+- 2026-06-06 [claude]: committed a1578e6c: src/core/thinking_os/completion_guardian.py, src/core/thinking_os/tests/test_completion_guardian.py,
+- 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
