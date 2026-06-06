@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: ui-design-system
 labels: [ui, brand, logo, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -31,3 +31,4 @@ references: []
 - **Then** the trimmed transparent brand logomark (brain + `>_`, 512² square, alpha preserved) shows next to a monochrome `--cos-text` "Coding OS" wordmark in the AppShell header, the same logo is wired as the favicon, the transparent background is intact (no white box), and `make ui-build` is green
 
 ## Work Log
+- 2026-06-06 [claude]: Shipped (commit 9a0175f8): user's brand logo (line-art brain + terminal >_ in iris) trimmed from 1024x1536 with heavy tr
