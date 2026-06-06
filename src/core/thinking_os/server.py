@@ -1320,12 +1320,20 @@ def cos_doc_search(
     log_router_decision(
         _db_conn, query=query, chosen_layer="docs", bytes_returned=len(str(results))
     )
+    # D7-F4 (TASK-137): when the rag embedding extra is unavailable, retrieval
+    # silently degrades to FTS-only — surface that as retrieval_mode so the
+    # beginner persona is warned, not misled. An explicit lexical request keeps
+    # its own mode (intentional, not a degradation).
+    from embeddings import is_available as _emb_available
+
+    retrieval_mode = mode_clean if _emb_available() else "lexical-only"
     return ok(
         {"results": results, "count": len(results), "retrieval_ids": rids},
         meta={
             "layer": "docs",
             "query": query,
             "mode": mode_clean,
+            "retrieval_mode": retrieval_mode,
             "source": source_label,
             "filters_applied": search_meta.get("applied", {}),
             "filter_hints": search_meta.get("filter_hints", {}),
