@@ -1261,6 +1261,63 @@ def _active_session_ids(now: float, window: int = 1800) -> set[str]:
     return ids
 
 
+def _commits_referencing(task_id: str, project_root: Path) -> int:
+    """Count git commits whose message references this TASK-ID — the strongest
+    'work was actually done' signal for reconciliation. Fail-soft to 0."""
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(project_root), "log", "--all", "--grep", task_id, "--oneline"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return 0
+    if out.returncode != 0:
+        return 0
+    return sum(1 for line in out.stdout.splitlines() if line.strip())
+
+
+def _has_work_log(work_log_json: object) -> bool:
+    try:
+        return bool(json.loads(work_log_json or "[]"))
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _classify_stranded(status: str, commits: int, has_work_log: bool) -> str:
+    """Triage a stranded task by completion evidence (TASK-215).
+
+    likely_complete  — reached `testing` AND has committed/logged work: almost
+                       certainly finished, just never closed. Review -> done.
+    likely_abandoned — `in_progress` with zero commits and no work-log: nothing
+                       happened. Park or resume.
+    needs_review     — everything ambiguous.
+    """
+    if status == "testing" and (commits > 0 or has_work_log):
+        return "likely_complete"
+    if status == "in_progress" and commits == 0 and not has_work_log:
+        return "likely_abandoned"
+    return "needs_review"
+
+
+def _reconcile_recommendation(task_id: str, classification: str, commits: int) -> str:
+    if classification == "likely_complete":
+        return (
+            f"Looks finished ({commits} commit(s) reference it, reached testing). "
+            f"Review acceptance, then `cos task-done {task_id}`; if not actually "
+            f"done, `cos task-start {task_id}` to resume."
+        )
+    if classification == "likely_abandoned":
+        return (
+            f"No committed progress — `cos task-cancel {task_id} --park` to shelve, "
+            f"or `cos task-start {task_id}` to resume."
+        )
+    return f"Review with `cos task-show {task_id}` -> complete, resume, or park."
+
+
 @safe_tool
 def cos_task_reclaim(
     conn: sqlite3.Connection,
@@ -1294,12 +1351,13 @@ def cos_task_reclaim(
     # un-reclaimable by every path, which is exactly where the protocol parks
     # near-done work at the moment of session death (TASK-100, ~9d).
     rows = conn.execute(
-        "SELECT task_id, agent_session, started_at, file_path, status FROM tasks "
-        "WHERE status IN ('in_progress', 'testing', 'emergency')"
+        "SELECT task_id, agent_session, started_at, file_path, status, work_log_last_5 "
+        "FROM tasks WHERE status IN ('in_progress', 'testing', 'emergency')"
     ).fetchall()
 
     reclaimed: list[dict] = []
-    for task_id, owner, started_at, rel, status in rows:
+    skipped_for_review: list[dict] = []
+    for task_id, owner, started_at, rel, status, work_log in rows:
         hist = conn.execute(
             "SELECT MAX(transitioned_at) FROM task_status_history WHERE task_id = ?",
             (task_id,),
@@ -1317,6 +1375,16 @@ def cos_task_reclaim(
             continue
         # Owner still actively present → never reclaim its work.
         if owner and owner in active:
+            continue
+
+        # Don't blindly recycle a probably-FINISHED task (TASK-215). A testing
+        # zombie with committed/logged work is almost certainly done — the agent
+        # just forgot task-done. Leave it in testing for review (cos_task_reconcile
+        # surfaces it) instead of recycling it to in_progress.
+        if status == "testing" and (
+            _has_work_log(work_log) or _commits_referencing(task_id, project_root) > 0
+        ):
+            skipped_for_review.append({"task_id": task_id, "previous_owner": owner})
             continue
 
         # Status-aware destination: a testing zombie is near-done, so return it
@@ -1368,11 +1436,61 @@ def cos_task_reclaim(
         {
             "reclaimed": reclaimed,
             "count": len(reclaimed),
+            "skipped_for_review": skipped_for_review,
             "dry_run": dry_run,
             "idle_hours_threshold": default_threshold_h,
             "active_sessions": len(active),
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_reclaim"},
+    )
+
+
+@safe_tool
+def cos_task_reconcile(conn: sqlite3.Connection, *, include_active: bool = False) -> str:
+    """Triage stranded in_progress/testing tasks with completion evidence + a review recommendation (read-only)."""
+    now = time.time()
+    active = _active_session_ids(now)
+    project_root = _project_root()
+    rows = conn.execute(
+        "SELECT task_id, agent_session, status, started_at, work_log_last_5, "
+        "  (SELECT MAX(transitioned_at) FROM task_status_history h "
+        "   WHERE h.task_id = tasks.task_id) "
+        "FROM tasks WHERE status IN ('in_progress', 'testing', 'emergency') "
+        "ORDER BY status DESC, task_id"
+    ).fetchall()
+    items: list[dict] = []
+    for task_id, owner, status, started_at, work_log, last_tx in rows:
+        owner_active = bool(owner and owner in active)
+        # By default reconcile only the STRANDED (dead-owner) tasks; pass
+        # include_active=True to review everything currently open.
+        if owner_active and not include_active:
+            continue
+        commits = _commits_referencing(task_id, project_root)
+        has_wl = _has_work_log(work_log)
+        classification = _classify_stranded(status, commits, has_wl)
+        dwell = _status_dwell_seconds(now, started_at, last_tx)
+        items.append(
+            {
+                "task_id": task_id,
+                "status": status,
+                "previous_owner": owner,
+                "owner_active": owner_active,
+                "commits_referencing": commits,
+                "has_work_log": has_wl,
+                "status_dwell_seconds": dwell,
+                "status_dwell_human": _humanize_duration(dwell),
+                "classification": classification,
+                "recommendation": _reconcile_recommendation(task_id, classification, commits),
+            }
+        )
+    summary = {
+        "likely_complete": sum(1 for i in items if i["classification"] == "likely_complete"),
+        "likely_abandoned": sum(1 for i in items if i["classification"] == "likely_abandoned"),
+        "needs_review": sum(1 for i in items if i["classification"] == "needs_review"),
+    }
+    return ok(
+        {"stranded": items, "count": len(items), "summary": summary},
+        meta={"layer": "tasks", "source": "board_os.cos_task_reconcile"},
     )
 
 

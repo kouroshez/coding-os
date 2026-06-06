@@ -422,6 +422,44 @@ def _simple_move(task_id: str, to: str, *, reason: str | None = None, force: boo
     sys.exit(_print_envelope(envelope))
 
 
+@click.command(
+    "task-reconcile",
+    help="Review stranded tasks with completion evidence — recommends complete/resume/park (read-only).",
+)
+@click.option(
+    "--include-active",
+    is_flag=True,
+    default=False,
+    help="Also review tasks whose owner session is still active.",
+)
+def task_reconcile_cmd(include_active):
+    from board_os import mcp_tools
+
+    conn = _db_conn()
+    try:
+        envelope = mcp_tools.cos_task_reconcile(conn, include_active=include_active)
+    finally:
+        conn.close()
+    env = _parse_envelope(envelope)
+    if not env["ok"]:
+        click.echo(f"ERROR: {env['error']['message']}", err=True)
+        sys.exit(1)
+    data = env["data"]
+    s = data["summary"]
+    click.echo(
+        f"\n  Stranded tasks: {data['count']}  "
+        f"(likely-complete {s['likely_complete']} · "
+        f"likely-abandoned {s['likely_abandoned']} · needs-review {s['needs_review']})"
+    )
+    for it in data["stranded"]:
+        click.echo(
+            f"\n  {it['task_id']} [{it['status']} {it['status_dwell_human']}] "
+            f"→ {it['classification']}  ({it['commits_referencing']} commit(s))"
+        )
+        click.echo(f"      {it['recommendation']}")
+    click.echo()
+
+
 def _current_status(task_id: str) -> str | None:
     conn = _db_conn()
     try:
@@ -1088,6 +1126,7 @@ BOARD_COMMANDS = [
     task_start_cmd,
     task_ready_cmd,
     task_reclaim_cmd,
+    task_reconcile_cmd,
     task_done_cmd,
     task_block_cmd,
     task_cancel_cmd,

@@ -1971,6 +1971,20 @@ if _BOARD_OS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_task_reconcile",
+        annotations={
+            "title": "Reconcile Stranded Tasks (review-first)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def cos_task_reconcile(include_active: bool = False) -> str:
+        """Triage stranded in_progress/testing tasks with completion evidence + a review recommendation (read-only)."""
+        return _board_mcp.cos_task_reconcile(_db_conn, include_active=include_active)
+
+    @mcp.tool(
         name="cos_task_pick",
         annotations={
             "title": "Pick Next Task to Work On",

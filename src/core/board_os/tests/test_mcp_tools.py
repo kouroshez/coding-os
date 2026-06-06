@@ -1164,3 +1164,48 @@ def test_reclaim_covers_hub_human_actor_zombie(project: Path, conn: sqlite3.Conn
     assert any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"]), (
         "a hub/human zombie with no agent presence must be reclaimable"
     )
+
+
+# ---------- TASK-215: reconciliation (review-first triage) ----------
+
+
+def test_reconcile_classifies_likely_complete_via_worklog(project: Path, conn: sqlite3.Connection):
+    """A testing zombie with committed/logged work is likely-complete → review & done, not recycle."""
+    mcp_tools.cos_task_create(conn, title="Done-ish", swimlane="core", kind="bug", status="icebox")
+    _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
+    conn.execute("UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'", ('["implemented + tested"]',))
+    conn.commit()
+    item = next(i for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"] if i["task_id"] == "TASK-001")
+    assert item["classification"] == "likely_complete"
+    assert "task-done" in item["recommendation"]
+
+
+def test_reconcile_classifies_likely_abandoned(project: Path, conn: sqlite3.Connection):
+    mcp_tools.cos_task_create(conn, title="Nothing", swimlane="core", kind="bug", status="icebox")
+    _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)
+    conn.execute("UPDATE tasks SET work_log_last_5='[]' WHERE task_id='TASK-001'")
+    conn.commit()
+    item = next(i for i in _parse(mcp_tools.cos_task_reconcile(conn))["data"]["stranded"] if i["task_id"] == "TASK-001")
+    assert item["classification"] == "likely_abandoned"
+
+
+def test_reconcile_is_read_only(project: Path, conn: sqlite3.Connection):
+    """Reconcile is review-first: it must NEVER mutate board state."""
+    mcp_tools.cos_task_create(conn, title="X", swimlane="core", kind="bug", status="icebox")
+    _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
+    conn.execute("UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'", ('["w"]',))
+    conn.commit()
+    mcp_tools.cos_task_reconcile(conn)
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
+
+
+def test_reclaim_skips_likely_complete_testing(project: Path, conn: sqlite3.Connection):
+    """The auto-reclaim sweep must NOT recycle a likely-complete testing task — leave it for review."""
+    mcp_tools.cos_task_create(conn, title="Finished", swimlane="core", kind="bug", status="icebox")
+    _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
+    conn.execute("UPDATE tasks SET work_log_last_5=? WHERE task_id='TASK-001'", ('["did it"]',))
+    conn.commit()
+    env = _parse(mcp_tools.cos_task_reclaim(conn))
+    assert any(s["task_id"] == "TASK-001" for s in env["data"]["skipped_for_review"])
+    assert not any(r["task_id"] == "TASK-001" for r in env["data"]["reclaimed"])
+    assert conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "testing"
