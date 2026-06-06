@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: agent-hub
 labels: [hooks, concurrency, mcp, attribution, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-06
-completed: null
+completed: 2026-06-06
 agent_session: ses-claude-20260605-233300-41f3
 depends_on: []
 blocked_by: []
@@ -41,3 +41,5 @@ Actual: attributed to the last panel that submitted a prompt.
 - **Then** it emits `hookSpecificOutput.updatedInput` equal to the original tool_input plus `agent_session=ses-claude-…X` (merge, no other field changed); when the caller already passed a non-empty `agent_session` it emits NOTHING (no override); when the panel session cannot be resolved or jq is unavailable it emits NOTHING and exits 0 (fail-open, status quo); the hook is registered in registry.yaml + rendered into the Claude adapter (matchers added to adapter.yaml hook_capabilities + `make regen-adapter-templates`); a unit test covers inject / no-override / fail-open; `make verify-hooks` is green; the deferred-note in state-files.md is updated to reflect the implemented bridge.
 
 ## Work Log
+- 2026-06-06 [claude]: committed f0384989: docs/engineering/state-files.md, src/adapters/claude/adapter.yaml, src/adapters/claude/settings.temp
+- 2026-06-06 [claude]: Shipped (commit f0384989): inject-mcp-caller-session.sh + registry + claude adapter.yaml matchers + settings.template.js
