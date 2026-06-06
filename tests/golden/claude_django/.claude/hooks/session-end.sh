@@ -18,7 +18,7 @@ _COS_HOOKS_PHYS="$(cd -P "$(dirname "$_cos_src")" && pwd)"
 unset _cos_src _cos_dir
 
 # Upgrade panel id from the Stop payload's session_id so $COS_SESSION_FILE
-# resolves THIS panel (TASK-107) — without it, a Stop that never saw a
+# resolves THIS panel — without it, a Stop that never saw a
 # SessionStart for the panel reads an empty session-id and every downstream
 # summary/enrich/recap silently no-ops.
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
@@ -44,7 +44,7 @@ if [ ! -f "$COS_DB_PATH" ]; then
 fi
 
 ACTIVE_TASK=""
-_TASK_CURRENT="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current"  # panel-first (TASK-035)
+_TASK_CURRENT="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current"  # panel-first
 if [ -f "$_TASK_CURRENT" ]; then
   ACTIVE_TASK=$(grep -oE 'TASK-[0-9]+' "$_TASK_CURRENT" 2>/dev/null | head -1 || true)
 fi
@@ -103,4 +103,15 @@ fi
 RECAP_PY="${_COS_HOOKS_PHYS}/_helpers/session_recap.py"
 if [ -f "$RECAP_PY" ] && [ -f "$COS_DB_PATH" ] && [ -n "$SESSION_ID" ]; then
   python3 "$RECAP_PY" "$COS_DB_PATH" "$SESSION_ID" 2>/dev/null || true
+fi
+
+# Uncommitted-doc advisory: surface uncommitted docs/**/*.md at
+# session end so the audit trail can't record doc truth the repo never committed.
+# Fire-and-forget — never blocks (exit stays 0 regardless).
+if command -v git >/dev/null 2>&1; then
+  _uncommitted_docs=$(git status --porcelain -- docs 2>/dev/null | grep -cE '\.md$' 2>/dev/null || true)
+  if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
+    echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2
+  fi
+  unset _uncommitted_docs
 fi

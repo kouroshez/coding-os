@@ -22,7 +22,7 @@ echo "$COMMAND" | grep -qE 'git[[:space:]]+commit\b' || exit 0
 # does not exist (install symlinks each .sh, never the subdir) and the consumer has
 # no src/core/ tree, so the old "$(dirname "$0")/_helpers" + src/core fallback both
 # missed and the index.lock wait AND the commit-message contract silently no-op'd.
-# Mirrors the resolution dance in branch-guard.sh. (TASK-211)
+# Mirrors the resolution dance in branch-guard.sh.
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do
   _dir="$(cd -P "$(dirname "$_src")" && pwd)"
@@ -33,7 +33,7 @@ HELPERS_DIR="$(cd -P "$(dirname "$_src")" && pwd)/_helpers"
 unset _src _dir
 
 # Pre-emptively wait out a concurrent commit's index.lock so this commit does
-# not fail under multi-agent contention (TASK-170). Fail-open by contract.
+# not fail under multi-agent contention. Fail-open by contract.
 _GIL="${HELPERS_DIR}/git_index_lock.sh"
 # shellcheck source=/dev/null
 [[ -f "$_GIL" ]] && source "$_GIL" 2>/dev/null && cos_wait_for_git_index_lock || true

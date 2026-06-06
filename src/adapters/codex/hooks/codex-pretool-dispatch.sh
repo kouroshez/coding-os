@@ -11,7 +11,7 @@ fi
 INPUT=$(cat)
 # Resolve THIS panel from the stdin session_id BEFORE delegating, so the Bash
 # safety hooks (branch-guard / enforce-commit-message) run under the real panel
-# id instead of the ppid fallback that scatters per-panel markers (TASK-213).
+# id instead of the ppid fallback that scatters per-panel markers.
 if command -v cos_panel_upgrade_from_payload >/dev/null 2>&1; then
   cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
 fi
