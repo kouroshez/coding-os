@@ -118,8 +118,13 @@ wiring (most "overnight" jobs call no LLM), build-real-parallel-orchestration
 - **Phase 2 — depth UX:** U1 (narrative, template-based Stop recap).
 - **Phase 3 — multi-agent honesty:** S1 plumbing + honest labeling; defer the
   real-dispatch architecture to a documented decision.
-- **Phase 4 — enterprise i18n:** de-Persianize product-facing artifacts; ensure
-  English, enterprise-grade.
+- **Phase 4 — enterprise i18n:** scoped as a tracked epic (**TASK-188**) — ~24
+  product files across three classes that must NOT be swept uniformly:
+  presentation → English; functional heuristic classifiers → English-default
+  (needs a product decision + golden/test regen); and the commit prompt-leak
+  guard's non-Latin detection is **KEPT** (it keeps Persian out of git history,
+  which serves the goal). Deliberately not rushed at session-tail — that would be
+  the "quick hack now" anti-pattern the owner forbade.
 
 ## Cross-cutting constraints
 
