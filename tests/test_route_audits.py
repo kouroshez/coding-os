@@ -25,6 +25,7 @@ if str(_CORE) not in sys.path:
 
 from web.routes.audits import (  # noqa: E402 — sys.path mutation above
     AUDIT_STATUS_VALUES,
+    _as_str_list,
     _canonical_status,
     _parse_frontmatter,
     _row_counts,
@@ -274,6 +275,43 @@ class TestPromptLeakDetection:
     def test_quote_heuristic_passes_known_good_tokens(self):
         for tok in ("همه", "تمامی", "صد در صد", "all", "comprehensive", "100%"):
             assert not self._looks_like_prompt_quote(tok), tok
+
+
+class TestListFieldCoercion:
+    """predicates / matched_* are list-typed in the Hub UI, which joins
+    them with `.join(', ')`. A frontmatter author can write a free-form
+    prose scalar instead of a YAML list (e.g.
+    audit-hook-system-remediation-2026-06-05.md). The naive line parser
+    then stores a string; the producer must coerce it to an array so the
+    consumer never sees a non-list and crashes the whole page
+    (TypeError: (e.predicates ?? []).join is not a function)."""
+
+    def test_scalar_string_wraps_to_single_element_list(self):
+        assert _as_str_list("every category row verified; per-fix commit") == [
+            "every category row verified; per-fix commit"
+        ]
+
+    def test_list_passes_through_str_coerced(self):
+        assert _as_str_list(["coverage_100", "reviewer_pass"]) == [
+            "coverage_100",
+            "reviewer_pass",
+        ]
+
+    def test_none_and_empty_become_empty_list(self):
+        assert _as_str_list(None) == []
+        assert _as_str_list("") == []
+
+    def test_live_scan_every_list_field_is_a_list(self):
+        """End-to-end regression: no audit row may surface a non-list for
+        predicates / matched_* — that is exactly what blanked the
+        /diagnostics/audits page."""
+        from web.routes.audits import _scan_audits
+
+        for a in _scan_audits():
+            for field in ("predicates", "matched_exhaustive", "matched_scope"):
+                assert isinstance(a[field], list), (
+                    f"{a['audit_id']}.{field} is {type(a[field]).__name__}, not list"
+                )
 
 
 def test_scan_audits_surfaces_real_status_for_graph_os_deep():

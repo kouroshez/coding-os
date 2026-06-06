@@ -195,6 +195,20 @@ def _strip_non_work_sections(text: str) -> str:
     return "".join(out)
 
 
+def _as_str_list(value: object) -> list[str]:
+    # Producer-side contract guard (api-contract-discipline): predicates /
+    # matched_* are list-typed in the Hub UI, but a frontmatter author can
+    # write a free-form prose scalar. The naive line parser then stores a
+    # string, and `or []` only catches None/empty — so a truthy string used
+    # to reach the UI and crash `(a.predicates ?? []).join(...)`. Coerce
+    # here so the producer always emits the array shape the consumer reads.
+    if isinstance(value, list):
+        return [str(v) for v in value]
+    if value in (None, ""):
+        return []
+    return [str(value)]
+
+
 def _scan_audits() -> list[dict]:
     audits: list[dict] = []
     audit_dir = _audits_dir()
@@ -213,9 +227,9 @@ def _scan_audits() -> list[dict]:
                 "task_id": fm.get("task_id"),
                 "status": _canonical_status(fm.get("status")),
                 "status_raw": fm.get("status") or "",
-                "predicates": fm.get("predicates") or [],
-                "matched_exhaustive": fm.get("matched_exhaustive") or [],
-                "matched_scope": fm.get("matched_scope") or [],
+                "predicates": _as_str_list(fm.get("predicates")),
+                "matched_exhaustive": _as_str_list(fm.get("matched_exhaustive")),
+                "matched_scope": _as_str_list(fm.get("matched_scope")),
                 "rows_total": counts["total"],
                 "rows_unchecked": counts["unchecked"],
                 "path": str(path.relative_to(audit_dir.parents[2]))
@@ -269,7 +283,7 @@ async def get_audit(audit_id: str) -> dict:
             "task_id": fm.get("task_id"),
             "status": _canonical_status(fm.get("status")),
             "status_raw": fm.get("status") or "",
-            "predicates": fm.get("predicates") or [],
+            "predicates": _as_str_list(fm.get("predicates")),
             "rows_total": counts["total"],
             "rows_unchecked": counts["unchecked"],
             "markdown": body,
