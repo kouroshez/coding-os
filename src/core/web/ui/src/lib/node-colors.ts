@@ -2,6 +2,8 @@
 // (S3 canonical short forms). Kept in sync with the legacy color
 // scheme from core/graph_os/viewer/template.py for continuity.
 
+import { useThemeStore, type Theme } from '@/store/theme-store';
+
 export type NodeKind =
   | 'folder'
   | 'file'
@@ -29,49 +31,76 @@ export type NodeKind =
   | 'identifier'
   | 'unknown';
 
-// Cortex graph palette v2 — MAXIMUM DISTINCTION on the dark canvas.
-// Rule: across families = a distinct HUE region; within a family = BOLD
-// LIGHTNESS steps. v1 varied hue subtly at equal lightness, so
-// class/method/function (and the azure API cluster) read as one dot at
-// 4-6 px. 7 hue anchors: structure=amber · code-defs=indigo→violet ·
-// refs=gray (recede) · api=cyan/teal · docs=green · governance=
-// magenta/pink · analysis=orange. Verified: every common-vs-common kind
-// pair ≥18 ΔE76 apart (pairwise CIE-Lab check); only the de-emphasized
-// gray refs cluster, by design. SSOT: docs/engineering/design-system.md §4.
+// Cortex graph palette v3 — VIVID + THEME-AWARE. v2 was tuned for the
+// dark canvas (mid-lightness) and read washed/lifeless on the white
+// canvas. Now two palettes: DARK = bright-saturated (pops on near-black),
+// LIGHT = deep-saturated (pops on white), warm structure so the canvas
+// reads alive. Same 7 hue families + bold within-family lightness steps.
+// Both ΔE-verified: every common-vs-common kind pair ≥18 ΔE76
+// (src/core/web/ui/scripts/palette_dual.py). SSOT: design-system.md §4.
 export const NODE_COLORS: Record<NodeKind, string> = {
-  // ─── STRUCTURE — amber / gold ───
-  folder: '#F4B63E',
-  module: '#C0792E',
-  // ─── REFS + file — neutral gray (ambient, recede) ───
-  file: '#C2C9D6',
-  identifier: '#7C8696',
-  import_: '#4E5666',
+  // ─── STRUCTURE — warm amber / bronze / tan (alive) ───
+  folder: '#E8A24A',
+  module: '#B0742C',
+  file: '#B58A6E',
+  // ─── REFS — warm slate (recede) ───
+  import_: '#8A8276',
+  identifier: '#A39A8A',
   // ─── CODE-DEFS — indigo → violet [BRAND] ───
-  class: '#6D7BF7',
-  interface: '#3B45C8',
-  variable: '#AEB6FF',
-  function: '#B15CF5',
-  method: '#D9A6FF',
-  // ─── API-SURFACE — cyan / teal ───
-  route: '#16A6C0',
-  mcp_tool: '#15CBB4',
+  class: '#8B8FF4',
+  interface: '#5B5FE0',
+  variable: '#B9BBF9',
+  function: '#B07CF0',
+  method: '#D0A6FF',
+  // ─── API-SURFACE — azure / cyan ───
+  route: '#4C9DF0',
+  mcp_tool: '#2DD4D4',
   tool: '#79E6D8',
-  contract: '#0E6F8C',
-  event: '#7AD4FF',
-  // ─── DOCS — green ───
-  doc_file: '#3FB950',
+  contract: '#3B82F6',
+  event: '#6FC0FF',
+  // ─── DOCS — green / teal ───
+  doc_file: '#34D399',
   doc_heading: '#86E05A',
   doc_frontmatter: '#BCE8A0',
-  doc_external: '#2E9E6E',
+  doc_external: '#2DD4BF',
   // ─── GOVERNANCE — magenta / pink / rose ───
   rule: '#D070D0',
   skill: '#F25FBE',
   task: '#FF85C2',
   hook: '#FF5C7A',
   // ─── ANALYSIS — orange ───
-  community: '#F2761D',
+  community: '#F2913D',
   // ─── DEFAULT — gray ───
-  unknown: '#6B7280',
+  unknown: '#9AA0A8',
+};
+
+// LIGHT canvas — deep, saturated (ink-on-paper). Same families/order.
+export const NODE_COLORS_LIGHT: Record<NodeKind, string> = {
+  folder: '#D08A28',
+  module: '#7A4E16',
+  file: '#6E5848',
+  import_: '#8B8270',
+  identifier: '#5F5A50',
+  class: '#4B45C8',
+  interface: '#322C9E',
+  variable: '#6258D8',
+  function: '#6A23BE',
+  method: '#A064E0',
+  route: '#1565C0',
+  mcp_tool: '#0E8A9E',
+  tool: '#1A9DB5',
+  contract: '#0C4F8A',
+  event: '#1F7FD0',
+  doc_file: '#0E8A5E',
+  doc_heading: '#4A8C24',
+  doc_frontmatter: '#6B9E36',
+  doc_external: '#0E7E7E',
+  rule: '#A81C9E',
+  skill: '#C21F72',
+  task: '#C44D9E',
+  hook: '#C71F4E',
+  community: '#C26516',
+  unknown: '#8B8270',
 };
 
 export const ALL_KINDS: NodeKind[] = Object.keys(NODE_COLORS) as NodeKind[];
@@ -117,6 +146,11 @@ export const normalizeKind = (kind: string | null | undefined): NodeKind => {
   return LEGACY_KIND_MAP[kind.toLowerCase()] ?? 'unknown';
 };
 
-export const kindColor = (kind: string | null | undefined): string => {
-  return NODE_COLORS[normalizeKind(kind)];
+// Theme-aware: pass a theme, or omit to read the live theme-store (so DOM
+// legends/panels follow the current theme at render). The graph canvas
+// recolors on toggle via the subscription in useSigma.
+export const kindColor = (kind: string | null | undefined, theme?: Theme): string => {
+  const palette =
+    (theme ?? useThemeStore.getState().theme) === 'light' ? NODE_COLORS_LIGHT : NODE_COLORS;
+  return palette[normalizeKind(kind)];
 };

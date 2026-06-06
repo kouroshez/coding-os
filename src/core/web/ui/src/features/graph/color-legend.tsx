@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { ALL_KINDS, kindColor } from '@/lib/node-colors';
+import { useThemeStore } from '@/store/theme-store';
 
 // Floating color legend, collapsible to save canvas real estate.
 export default function ColorLegend() {
   const [open, setOpen] = useState(false);
+  const theme = useThemeStore((s) => s.theme);
 
   return (
     <div className="text-xs">
@@ -22,7 +24,7 @@ export default function ColorLegend() {
             <li key={k} className="flex items-center gap-2 py-0.5">
               <span
                 className="inline-block h-2 w-2 rounded-sm"
-                style={{ background: kindColor(k) }}
+                style={{ background: kindColor(k, theme) }}
                 aria-hidden
               />
               <span>{k}</span>

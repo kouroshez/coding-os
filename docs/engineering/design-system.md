@@ -111,23 +111,23 @@ Consumers: `*:focus-visible` → `--cos-focus`; agent `working` presence → `--
 
 ## 4. Domain palettes (harmonized)
 
-**Golden rule — graph node kinds (v2):** across families = a **distinct
-hue region**; within a family = **bold lightness steps** (≥~12 L). v1
-varied hue subtly at equal lightness → class/method/function (and the
-azure API cluster) read as one dot. **Verified:** every common-vs-common
-kind pair is ≥18 ΔE76 apart (pairwise CIE-Lab check); only the
-de-emphasized gray refs (`import_`/`identifier`/`unknown`) cluster, by
-design.
+**Golden rule — graph node kinds (v3, THEME-AWARE):** across families = a
+**distinct hue region**; within a family = **bold lightness steps**. Two
+palettes — v2's single mid-lightness set read washed/lifeless on the white
+canvas:
 
-| Family (hue) | Nodes → dark-canvas colors |
-|---|---|
-| Structure (amber) | folder `#F4B63E` · module `#C0792E` |
-| Refs + file (gray, recede) | file `#C2C9D6` · identifier `#7C8696` · import_ `#4E5666` |
-| Code-defs (indigo→violet) | class `#6D7BF7` · interface `#3B45C8` · variable `#AEB6FF` · function `#B15CF5` · method `#D9A6FF` |
-| API-surface (cyan/teal) | route `#16A6C0` · mcp_tool `#15CBB4` · tool `#79E6D8` · contract `#0E6F8C` · event `#7AD4FF` |
-| Docs (green) | doc_file `#3FB950` · doc_heading `#86E05A` · doc_frontmatter `#BCE8A0` · doc_external `#2E9E6E` |
-| Governance (magenta/pink) | rule `#D070D0` · skill `#F25FBE` · task `#FF85C2` · hook `#FF5C7A` |
-| Analysis | community `#F2761D` · unknown `#6B7280` |
+- **DARK** (`NODE_COLORS`) — bright-saturated, pops on near-black.
+- **LIGHT** (`NODE_COLORS_LIGHT`) — deep-saturated (ink-on-paper), pops on white.
+
+Both with **warm structure** (amber/bronze/tan, not grey) so the canvas
+reads alive. `kindColor(kind, theme)` picks the palette (defaults to the
+live theme-store theme so DOM legends follow); `useSigma` recolors nodes in
+place on a theme toggle (positions preserved). Families: structure=amber ·
+code-defs=indigo→violet · refs=warm-slate · api=azure/cyan · docs=green/teal
+· governance=magenta/pink · analysis=orange. **Verified:** every
+common-vs-common kind pair ≥18 ΔE76 in BOTH palettes + every node separable
+from its canvas — `src/core/web/ui/scripts/palette_dual.py`. Values SSOT:
+`src/core/web/ui/src/lib/node-colors.ts`.
 
 **Swimlane / task-kind chips:** no full pastel fills. A chip = hue tint
 (~10% alpha on panel) + 3px left accent border + chip text in the hue's

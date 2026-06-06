@@ -8,6 +8,8 @@ import type { SigmaEdgeAttrs, SigmaNodeAttrs } from './graph-adapter';
 import { applyDagreLayout } from './dagre-layout';
 import { NodeImageProgram } from "@sigma/node-image";
 import { useGraphStore } from '@/store/graph-store';
+import { useThemeStore } from '@/store/theme-store';
+import { kindColor } from '@/lib/node-colors';
 
 export type LayoutMode = 'force' | 'dagre';
 
@@ -370,6 +372,26 @@ export function useSigma(options: UseSigmaOptions = {}): UseSigmaReturn {
     // Intentionally run once; callbacks read from the latest options via closure identity
     // (options is used as a ref via the outer scope; re-mount is driven by `setGraph`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recolor nodes in place when the global theme toggles — positions are
+  // preserved (no rebuild, no layout re-run). Node colors are baked at
+  // build time (graph-adapter), so on a light↔dark switch we repaint each
+  // node from the theme's palette and refresh the label color token.
+  useEffect(() => {
+    return useThemeStore.subscribe((s) => {
+      const live = graphRef.current;
+      const sig = sigmaRef.current;
+      if (!live || !sig || !containerRef.current) return;
+      live.forEachNode((n: string, d: SigmaNodeAttrs) => {
+        live.setNodeAttribute(n, 'color', kindColor(d.kind, s.theme));
+      });
+      const cs = getComputedStyle(containerRef.current);
+      sig.setSetting('labelColor', {
+        color: cs.getPropertyValue('--cos-text').trim() || '#e7eaf0',
+      });
+      sig.refresh();
+    });
   }, []);
 
   const setGraph = useCallback(

@@ -1,6 +1,7 @@
 import { useGraphStore } from '@/store/graph-store';
 import { ALL_KINDS, kindColor } from '@/lib/node-colors';
 import { DEFAULT_EDGE_TYPES } from '@/store/graph-store';
+import { useThemeStore } from '@/store/theme-store';
 
 // Two-column filter bar — NodeKind tickboxes and edge-type tickboxes.
 // Both filter the Graphology graph in-memory (see graph-adapter).
@@ -12,6 +13,7 @@ export default function FilterBar() {
   const toggleEdgeType = useGraphStore((s) => s.toggleEdgeType);
   const searchQuery = useGraphStore((s) => s.searchQuery);
   const setSearchQuery = useGraphStore((s) => s.setSearchQuery);
+  const theme = useThemeStore((s) => s.theme);
 
   return (
     <div className="flex flex-col gap-3 text-xs">
@@ -73,7 +75,7 @@ export default function FilterBar() {
                   />
                   <span
                     className="inline-block h-2 w-2 rounded-sm"
-                    style={{ background: kindColor(k) }}
+                    style={{ background: kindColor(k, theme) }}
                     aria-hidden
                   />
                   <span>{k}</span>
