@@ -4,19 +4,18 @@ title: "Codex adapter parity: enforce-commit-message hook + golden snapshot refr
 swimlane: infra
 kind: chore
 epic: null
-labels: [codex, adapter, deferred, parity, golden]
-status: icebox
+labels: [codex, adapter, deferred, parity, golden, ready]
+status: complete
 priority: P3
 appetite: "2h"
 created: 2026-05-25
-started: null
-completed: null
-agent_session: null
+started: 2026-06-05
+completed: 2026-06-05
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-031: Codex adapter parity: enforce-commit-message hook + golden snapshot refresh + role-* dual-mode validation
 
 **Outcome (one sentence):** When the project starts implementing the Codex adapter, fold in these deferred items: add enforce-commit-message.sh to src/adapters/codex/hooks.template.json, refresh tests/golden/codex_* snapshots, verify role-*.md dual-mode renders correctly under Codex CLI matcher rules. Do NOT pick up now — only when adapter work resumes.
@@ -49,3 +48,4 @@ the open icebox task and reconcile against the audit findings below.
 - **Then** the agent auto-detects task_id/scope/stack from repo state and returns Markdown + JSON envelope (same shape as Claude).
 
 ## Work Log
+- 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
