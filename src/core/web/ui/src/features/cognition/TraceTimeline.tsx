@@ -56,6 +56,37 @@ function eventKey(e: TraceEvent, i: number): string {
   return `${i}-${e.kind ?? 'event'}-${e.timestamp ?? e.ts ?? ''}`;
 }
 
+// Plain-language labels for cognition event kinds so a non-developer reads
+// "what the agent did" instead of OTEL-style internals (TASK-193).
+const KIND_LABEL: Record<string, string> = {
+  classify: 'Classified the request',
+  analyze_start: 'Started analysing the task',
+  analyze_done: 'Finished analysing the task',
+  compose_done: 'Composed the role chain',
+  dispatch_started: 'Dispatched a sub-agent',
+  dispatch_completed: 'Sub-agent finished',
+  role_dispatch: 'Ran a role',
+  role_output_recorded: 'Recorded role evidence',
+  supervise_action: 'Supervised a step',
+  parallel_dispatch: 'Ran sub-agents in parallel',
+  backtrack: 'Reconsidered (backtrack)',
+  anti_paralysis_warn: 'Anti-paralysis nudge',
+  task_done: 'Marked the task done',
+};
+
+function humanLabel(kind: string): string {
+  return KIND_LABEL[kind] ?? kind.replace(/_/g, ' ');
+}
+
+function humanDetail(e: TraceEvent): string {
+  if (e.summary) return String(e.summary);
+  const bits: string[] = [];
+  if (e.role) bits.push(`role: ${String(e.role)}`);
+  if (e.phase) bits.push(`phase: ${String(e.phase)}`);
+  if (e.formula_id != null) bits.push(`formula: ${String(e.formula_id)}`);
+  return bits.join(' · ') || 'no further detail recorded';
+}
+
 export default function TraceTimeline({ sessionId }: { sessionId: string }) {
   const { scopedLink } = useScopedLink();
   const { data, isLoading, error } = useApiGet<TracePayload>(
@@ -66,6 +97,8 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
   );
   const [expanded, setExpanded] = useState<string | null>(null);
   const [kindFilter, setKindFilter] = useState<string>('all');
+  // Default to the readable summary; raw cognition internals behind a toggle.
+  const [mode, setMode] = useState<'summary' | 'raw'>('summary');
 
   const events = data?.events ?? [];
   const kinds = useMemo(() => {
@@ -112,20 +145,32 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
           </Link>
         </div>
         <p className="mt-0.5 text-[10px] text-[var(--cos-muted)]">
-          {events.length} event{events.length === 1 ? '' : 's'} · {filtered.length} shown
+          {events.length} event{events.length === 1 ? '' : 's'}
+          {mode === 'raw' ? ` · ${filtered.length} shown` : ''}
         </p>
-        <div className="mt-2 flex flex-wrap gap-1">
-          <FilterChip label={`all (${events.length})`} active={kindFilter === 'all'} onClick={() => setKindFilter('all')} />
-          {kinds.map((k) => (
-            <FilterChip
-              key={k}
-              label={`${k} (${histogram[k]})`}
-              active={kindFilter === k}
-              onClick={() => setKindFilter(k)}
-              color={eventColor(k)}
-            />
-          ))}
+        <div className="mt-1.5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMode(mode === 'summary' ? 'raw' : 'summary')}
+            className="rounded border border-[var(--cos-border)] px-2 py-0.5 text-[10px] text-[var(--cos-muted)] hover:text-[var(--cos-text)]"
+          >
+            {mode === 'summary' ? 'raw events (dev) →' : '← readable summary'}
+          </button>
         </div>
+        {mode === 'raw' && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            <FilterChip label={`all (${events.length})`} active={kindFilter === 'all'} onClick={() => setKindFilter('all')} />
+            {kinds.map((k) => (
+              <FilterChip
+                key={k}
+                label={`${k} (${histogram[k]})`}
+                active={kindFilter === k}
+                onClick={() => setKindFilter(k)}
+                color={eventColor(k)}
+              />
+            ))}
+          </div>
+        )}
       </header>
       <ol className="flex-1 overflow-auto p-3 cos-scroll">
         {filtered.map((e, i) => {
@@ -149,7 +194,7 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
               >
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-2 w-2 rounded-full" style={{ background: dot }} aria-hidden />
-                  <span className="font-semibold">{kind}</span>
+                  <span className="font-semibold">{mode === 'raw' ? kind : humanLabel(kind)}</span>
                   {e.formula_id != null && (
                     <span className="rounded bg-[var(--cos-border)]/40 px-1 text-[10px] text-[var(--cos-text)]">
                       {String(e.formula_id)}
@@ -161,11 +206,16 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
                 </div>
                 {e.summary && <p className="mt-1 text-[var(--cos-text)]">{String(e.summary)}</p>}
               </button>
-              {open && (
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
-                  {JSON.stringify(e, null, 2)}
-                </pre>
-              )}
+              {open &&
+                (mode === 'raw' ? (
+                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
+                    {JSON.stringify(e, null, 2)}
+                  </pre>
+                ) : (
+                  <p className="border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-[11px] text-[var(--cos-text)]">
+                    {humanDetail(e)}
+                  </p>
+                ))}
             </li>
           );
         })}
