@@ -17,7 +17,12 @@
     --graphite-text-2:   #4a5260;
     --graphite-text-3:   #646a77;
     --graphite-text-off: #a2a9b5;
-    /* ---- PRIMITIVES · Iris brand ---- */
+    /* ---- PRIMITIVES · Iris brand scale (theme-independent ramp; logo = --iris-600) ---- */
+    --iris-50:  #eef0fe;  --iris-100: #e0e3fc;  --iris-200: #c6cbf9;
+    --iris-300: #a3abf4;  --iris-400: #7c82f2;  --iris-500: #5a5fe0;
+    --iris-600: #4f46e5;  --iris-700: #4138c4;  --iris-800: #352da0;
+    --iris-900: #2a2480;
+    /* ---- PRIMITIVES · Iris brand (semantic picks from the ramp) ---- */
     --iris-solid: #5a5fe0;
     --iris-hover: #4a4fd4;
     --iris-text:  #4338ca;

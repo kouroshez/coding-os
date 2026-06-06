@@ -90,6 +90,13 @@ OKLCH anchors: canvas-dark ≈ `oklch(.16 .006 265)`; text-primary-dark ≈
 Brand ≈ `oklch(.66 .17 277)`. No purple gradient cliché — solid fills
 only; glow reserved for live/active state.
 
+**Iris ramp (primitive scale, theme-independent — `cos-board-tokens.css`):**
+`--iris-50` `#EEF0FE` · `100` `#E0E3FC` · `200` `#C6CBF9` · `300` `#A3ABF4`
+· `400` `#7C82F2` · `500` `#5A5FE0` · `600` **`#4F46E5`** (logo / brand-mark
+weight) · `700` `#4138C4` · `800` `#352DA0` · `900` `#2A2480`. Custom icons
+and the logomark reference this single scale; the semantic `brand/*` tokens
+above are picks from it (dark accent = 400, light accent = 500).
+
 ### Status (foreground / tint background)
 
 | | Dark fg / tint | Light fg / tint |
