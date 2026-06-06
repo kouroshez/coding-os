@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: ui-design-system
 labels: [ui, dashboard, contrast, a11y, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Actual: `dispatched` is a solid block with INVISIBLE text (bg=text=--cos-live, t
 - **Then** every badge text is legible on its own themed background (≥3:1, programmatically verified both themes = 0 failures), `dispatched` uses --cos-live-tint bg / --cos-live text (no more bg=text), neutral statuses have a visible bg, no label is clipped (short per-action labels, auto-width), and `make ui-build` is green
 
 ## Work Log
+- 2026-06-06 [claude]: Shipped (commit 261acf9): root cause = the color codemod mapped cyan/teal → --cos-live but live had no -tint token, so A
