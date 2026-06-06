@@ -35,7 +35,7 @@ If you are about to edit code, stop here and read [docs-first-protocol.md](docs-
 - Per-file `<file>.INDEX.md` sidecars are NOT canonical — only `00-index.md` and `section-index.md` are recognized index forms.
 - Task SSOT: `docs/tasks/TASK-###-slug.md` (one detail file per active or completed task). Live board view: `cos board` (DB-mirrored from these files). There is no flat `docs/tasks.md` index.
 - Playbooks: `kebab-case.md`
-- ADRs: `ADR-###-kebab-case.md`
+- ADRs: `NNNN-slug.md` (zero-padded sequence + kebab title) under `docs/architecture/adr/`
 - Tasks: `TASK-###-slug.md`
 - Historical archive docs: `YYYY-MM-topic.md` under `governance/archive/`
 - Other active docs: `kebab-case.md`
