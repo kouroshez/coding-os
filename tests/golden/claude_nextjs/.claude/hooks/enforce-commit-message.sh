@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# enforce-commit-message.sh (Phase G) — block `git commit -m` with non-compliant message.
+# enforce-commit-message.sh — block `git commit -m` with non-compliant message.
 #
 # PreToolUse:Bash matcher. Best-effort extracts -m "..." / -m '...' content via
 # _helpers/extract_commit_msg_arg.py, then validates with check_commit_message.py.

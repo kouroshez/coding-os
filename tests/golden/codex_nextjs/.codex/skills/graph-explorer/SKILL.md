@@ -9,7 +9,7 @@ last_reviewed: "2026-05-11"
 
 # graph-explorer
 
-Purpose: Load the Phase I graph_os toolset (`cos_graph_*` MCP tools) and
+Purpose: Load the graph_os toolset (`cos_graph_*` MCP tools) and
 use it deliberately before any non-trivial code edit. The graph is the
 third retrieval layer (CLAUDE.md Three-Layer Retrieval) — use it when
 tree-grep or past-memory searches return noise.
@@ -196,6 +196,6 @@ sharing/embedding.
 
 ## Link-backs
 
-- Phase I plan: [docs/phase-i-knowledge-graph-plan.md](../../../docs/phase-i-knowledge-graph-plan.md)
+- Knowledge-graph plan: [docs/phase-i-knowledge-graph-plan.md](../../../docs/phase-i-knowledge-graph-plan.md)
 - MCP envelope: [docs/engineering/mcp-error-envelope.md](../../../docs/engineering/mcp-error-envelope.md)
 - Rule 14 (envelope): [CLAUDE.md](../../../CLAUDE.md)

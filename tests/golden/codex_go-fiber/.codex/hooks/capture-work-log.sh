@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase L.4 — PostToolUse: after Write/Edit on code files when .task-current is set
+# PostToolUse: after Write/Edit on code files when .task-current is set
 # Appends ONE line to the active task's Work Log with `flock` serialization
 # for multi-agent safety (R-L-26, R-L-3).
 #

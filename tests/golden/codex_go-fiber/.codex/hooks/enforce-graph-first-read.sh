@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# enforce-graph-first-read.sh (Phase I.15)
+# enforce-graph-first-read.sh
 #
 # PreToolUse — Read on a load-bearing meta-repo file.
 # Warn (or block in strict mode) when the agent tries to Read a

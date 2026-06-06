@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase N — Discovery Protocol auto-trigger (PostToolUse).
+# Discovery Protocol auto-trigger (PostToolUse).
 # Spec: docs/phase-n-role-based-routing-plan.md §2.7
 #
 # Scans agent Write/Edit output for discovery signal phrases. If any match,

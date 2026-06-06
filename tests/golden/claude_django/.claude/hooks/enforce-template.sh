@@ -41,7 +41,7 @@ esac
 
 COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
 
-# Phase M: formula-agents that write docs (architect/documenter) produce
+# Formula-agents that write docs (architect/documenter) produce
 # structured output by design — skip template gate when a role dispatch is active.
 ACTIVE_FORMULA_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-formula"  # panel-first (TASK-035): written to + cleared from the panel dir
 if [[ -f "$ACTIVE_FORMULA_FILE" ]]; then

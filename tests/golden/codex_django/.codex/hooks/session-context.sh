@@ -211,7 +211,7 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
   printf '%s\n' ""
 fi
 
-# On startup: show active in-progress tasks (Phase L Scrumban) so the agent
+# On startup: show active in-progress tasks (Scrumban) so the agent
 # inherits open work without having to query the board first.
 if [[ "$SOURCE" == "startup" ]]; then
   if [ -d "docs/tasks" ] && [ -f "$COS_DB_PATH" ]; then
@@ -271,7 +271,7 @@ fi
 # it DOES need the working-memory digest. The status message for the startup
 # matcher already promises "Loading … memory digest"; this makes it true.
 if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" ]]; then
-  # Phase G.10 — Agent digest: the always-active working-memory snapshot
+  # Agent digest: the always-active working-memory snapshot
   # (identity, top domains, beliefs, fading patterns, breakthroughs). The
   # digest was printed but never regenerated (cos_digest_regenerate had no
   # hook caller, so digest.md never existed) — regenerate it here first so
@@ -289,7 +289,7 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" 
     cat "$DIGEST_PATH"
   fi
 
-  # Phase EVO — Project Trajectory: inject latest trajectory snapshot so the
+  # Project Trajectory: inject latest trajectory snapshot so the
   # agent knows WHERE the project is heading (not just what tasks are open).
   # The trajectory section is already embedded in digest.md when present;
   # this helper also surfaces it as a standalone block for emphasis.
@@ -300,7 +300,7 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "compact" || "$SOURCE" == "resume" 
     fi
   fi
 
-  # Phase EVO — Autonomous Routing Evolution: detect stale routing weights
+  # Autonomous Routing Evolution: detect stale routing weights
   # and auto-trigger recalculate_weights when N=15 new outcomes accumulated.
   if [ -f "$COS_DB_PATH" ]; then
     ROUTING_HELPER="${_COS_HOOKS_PHYS}/_helpers/routing_evolution.py"

@@ -28,7 +28,7 @@ codebase-explorer always *consults* graph-explorer for symbol-precise sub-questi
 
 ## Process
 
-1. **Graph gate (Phase I)** — If the query is an identifier-shaped symbol
+1. **Graph gate** — If the query is an identifier-shaped symbol
    (`camelCase`, `snake_case`, `Class.method`, `TASK-NNN`, dotted path),
    try `cos_graph_query` first. It is faster + more accurate than grep
    for named symbols AND returns confidence-scored edges. Fall back to

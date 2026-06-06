@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# search-enforce-inventory.sh — PreToolUse Bash (Phase O)
+# search-enforce-inventory.sh — PreToolUse Bash
 #
 # PURPOSE
 #   When the agent is about to run a bulk text replace (sed -i, xargs sed,

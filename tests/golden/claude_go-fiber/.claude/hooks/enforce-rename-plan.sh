@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# enforce-rename-plan.sh (Phase I.14)
+# enforce-rename-plan.sh
 # Warn when an agent attempts a multi-file rename operation without
 # having consulted cos_graph_rename_plan earlier in the session.
 # Heuristic: we flag Write/Edit to multiple files matching a rename

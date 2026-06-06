@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook (Phase M): Anti-Paralysis backtrack counter.
+# PostToolUse hook: Anti-Paralysis backtrack counter.
 #
 # Fires when cos_backtrack_log is called. Reads the session backtrack
 # count from the tool's output envelope and emits a non-blocking

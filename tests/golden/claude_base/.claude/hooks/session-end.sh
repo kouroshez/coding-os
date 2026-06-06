@@ -81,7 +81,7 @@ if [ -f "$ENRICH_PY" ]; then
   run_bounded_python "$ENRICH_PY" 2
 fi
 
-# Phase EVO — auto-trajectory: derive trajectory snapshot from this session's
+# Auto-trajectory: derive trajectory snapshot from this session's
 # formula_dispatches + backtrack_events → future sessions inherit project intent.
 AUTOSNAP_PY="${_COS_HOOKS_PHYS}/_helpers/trajectory_autosnap.py"
 if [ -f "$AUTOSNAP_PY" ]; then

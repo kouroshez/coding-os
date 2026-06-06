@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# search-verify-remaining.sh — PostToolUse Bash (Phase O)
+# search-verify-remaining.sh — PostToolUse Bash
 #
 # PURPOSE
 #   After a bulk replace (sed -i, xargs sed, xargs python), reads the

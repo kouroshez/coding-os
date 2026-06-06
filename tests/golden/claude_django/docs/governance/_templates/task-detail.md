@@ -1,5 +1,5 @@
 ---
-# Phase L lean task template — see docs/phase-l-scrumban-task-system-plan.md
+# Lean task template — see docs/phase-l-scrumban-task-system-plan.md
 #
 # AGENT: All four categorization axes are required (`epic` optional).
 # `validate-task-frontmatter.sh` will reject this file on Write/Edit if any

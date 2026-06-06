@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase L.4 — PreToolUse: before transition to in_progress/emergency
+# PreToolUse: before transition to in_progress/emergency
 # Checks current WIP count against cap from scrumban-config.yaml.
 # Blocks if cap exceeded; env COS_WIP_OVERRIDE=1 bypasses.
 

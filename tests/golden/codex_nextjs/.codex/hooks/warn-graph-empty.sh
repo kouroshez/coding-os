@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# warn-graph-empty.sh (Phase I.10) — SessionStart.
+# warn-graph-empty.sh — SessionStart.
 #
 # PURPOSE: Surface a one-line warning when graph_os has no data yet so
 #   the agent knows `cos_graph_*` queries will return empty. Never

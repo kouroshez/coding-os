@@ -3,7 +3,7 @@
 # proposed body fails Definition-of-Ready or Definition-of-Done for
 # the task's kind.
 #
-# Phase L.10 — single SSOT (transition-gates.yaml). All real logic
+# Single SSOT (transition-gates.yaml). All real logic
 # lives in src/core/board_os/transition_gates_cli.py; this hook just
 # pipes the Claude Code payload to that CLI.
 #

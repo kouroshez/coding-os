@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PreToolUse Write|Edit hook (Phase M): Anti-Ambiguity gate.
+# PreToolUse Write|Edit hook: Anti-Ambiguity gate.
 #
 # Blocks code writes when the cognitive phase is EXECUTE and the
 # ambiguity cache marks failures from cos_ambiguity_check.

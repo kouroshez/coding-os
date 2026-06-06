@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase L.9 — PostToolUse: Rule 15 — tasks are pointers, not specs.
+# PostToolUse: Rule 15 — tasks are pointers, not specs.
 # Warns task bodies > 1.5k tokens; blocks > 3k tokens.
 # Token estimate: word_count * 1.3.
 

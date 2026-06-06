@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook (Phase H + Phase I): after Write/Edit, re-index the
+# PostToolUse hook: after Write/Edit, re-index the
 # touched file into both the docs RAG layer AND the graph_os structural
 # layer so cos_doc_search and cos_graph_* stay fresh without manual
 # `make docs-index` / `cos graph-reindex` runs.

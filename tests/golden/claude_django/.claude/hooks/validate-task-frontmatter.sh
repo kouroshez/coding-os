@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Phase L.4 — PreToolUse: Write/Edit on docs/tasks/*.md
-# Validates the Phase L lean frontmatter (id/swimlane/kind/epic/labels/
+# PreToolUse: Write/Edit on docs/tasks/*.md
+# Validates the lean frontmatter (id/swimlane/kind/epic/labels/
 # status/priority/appetite/depends_on) before the file is written.
 # Also enforces WIP caps when status transitions to in_progress/emergency,
 # and rejects dependency cycles (R-L-29).

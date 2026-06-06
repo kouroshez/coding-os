@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase L.4 — PostToolUse: Write/Edit on docs/tasks/*.md
+# PostToolUse: Write/Edit on docs/tasks/*.md
 # Re-syncs the single file into the DB cache so the board is fresh
 # within one hook latency (<200ms per §8.2).
 #

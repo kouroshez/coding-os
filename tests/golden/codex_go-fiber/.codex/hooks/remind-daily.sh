@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase L.4 — SessionStart: nag if `cos daily` hasn't run in > 24h.
+# SessionStart: nag if `cos daily` hasn't run in > 24h.
 # Non-blocking warning only; respects solo-dev ADHD concerns (R-L-30
 # "Daily streak is observability NOT shame").
 

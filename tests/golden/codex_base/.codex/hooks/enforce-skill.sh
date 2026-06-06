@@ -39,7 +39,7 @@ fi
 # Mirror the gate read below (which already uses COS_PANEL_DIR).
 SKILL_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-skill"
 
-# Phase M: skip skill gate during formula dispatches other than implementer/reviewer.
+# Skip skill gate during formula dispatches other than implementer/reviewer.
 # The supervisor writes .active-formula before each dispatch; implementer
 # and reviewer are the only roles that actually write domain code.
 ACTIVE_FORMULA_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.active-formula"  # panel-first (TASK-035): written to + cleared from the panel dir
