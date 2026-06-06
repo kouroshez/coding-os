@@ -117,6 +117,39 @@ def test_create_task_title_with_double_quote_stays_valid_yaml(
     assert edited["ok"] is True
 
 
+def test_create_attributes_human_when_session_is_human(project, conn):
+    # The web manual-create path passes agent_session='human' (TASK-173) so a
+    # human-made task is attributed to the human, not the active agent panel.
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Made by a human",
+            swimlane="core",
+            kind="feature",
+            outcome="A human-made task.",
+            agent_session="human",
+        )
+    )
+    hist = _parse(mcp_tools.cos_task_history(conn, task_id=created["data"]["task_id"]))
+    assert hist["ok"] is True
+    assert hist["data"]["summary"]["created_by"] == "human"
+
+
+def test_create_attributes_agent_when_session_is_agent(project, conn):
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Made by an agent",
+            swimlane="core",
+            kind="feature",
+            outcome="An agent-made task.",
+            agent_session="ses-claude-20260605-185000-zzzz",
+        )
+    )
+    hist = _parse(mcp_tools.cos_task_history(conn, task_id=created["data"]["task_id"]))
+    assert hist["data"]["summary"]["created_by"] == "claude"
+
+
 # ---------- cos_task_show ----------
 
 
