@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: ui-design-system
 labels: [ui, graph, palette, theme-aware, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Actual: washed, lifeless, mid-grey-dominated — the v2 palette was tuned for th
 - **Then** each theme uses its own vivid palette (deep-saturated on white / bright-saturated on dark, warm structure so the canvas is alive), every common-kind pair stays ≥18 ΔE distinct (programmatically verified both palettes), nodes recolor in place on toggle without re-running layout, the KINDS legend follows the theme, node-colors.test.ts still passes, and `make ui-build` is green
 
 ## Work Log
+- 2026-06-06 [claude]: Shipped (commit 56f72a2): graph palette v3 — THEME-AWARE. node-colors.ts now exports NODE_COLORS (dark, bright-saturated
