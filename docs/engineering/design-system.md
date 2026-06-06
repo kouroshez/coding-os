@@ -104,10 +104,9 @@ only; glow reserved for live/active state.
 | Token | Dark | Light | Use |
 |---|---|---|---|
 | `live` | `#45D6E8` | `#0E7490` | SSE / agent-live / connection — distinct from `info` |
-| `signature` | `#FF8A4C` | `#C84E18` | Ember — logo / brand mark ONLY (never primary) |
 | `focus-ring` | `#A78BFA` | `#7C3AED` | violet — distinct from brand so focus pops on brand elements |
 
-Consumers: `*:focus-visible` → `--cos-focus`; agent `working` presence → `--cos-live`; the "Coding OS" wordmark → `--cos-signature`.
+Consumers: `*:focus-visible` → `--cos-focus`; agent `working` presence → `--cos-live`. The "Coding OS" wordmark uses the brand `--cos-accent` (iris) for a unified logo (the Ember signature idea was dropped — the brand owner wanted the logo to match the buttons).
 
 ## 4. Domain palettes (harmonized)
 

@@ -71,7 +71,7 @@ export default function AppShell({
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-[var(--cos-bg)] text-[var(--cos-text)]">
       <header className="flex shrink-0 items-center gap-4 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-2">
-        <div className="text-[15px] font-bold tracking-tight text-[var(--cos-signature)]">
+        <div className="text-[15px] font-bold tracking-tight text-[var(--cos-accent)]">
           Coding OS
         </div>
         <ProjectSwitcher />

@@ -28,7 +28,6 @@
   --cos-brand-text:  var(--brand-text, #a7abf8);
   --cos-brand-tint:  var(--brand-tint, rgba(124, 130, 242, .14));
   --cos-live:        var(--live, #45d6e8);
-  --cos-signature:   var(--signature, #ff8a4c);
   --cos-focus:       var(--focus-ring, #a78bfa);
   /* status */
   --cos-ok:   var(--st-ok, #3fb950);   --cos-ok-tint:   var(--st-ok-tint, rgba(63, 185, 80, .14));
