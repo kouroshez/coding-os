@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
@@ -38,3 +38,4 @@ Root cause: audit-hook-system-remediation-2026-06-05.md writes `predicates:` as 
 - **Then** the field is always a JSON array (scalar wrapped as a single-element list, empty → []), so `(a.predicates ?? []).join(', ')` never throws and the page renders
 
 ## Work Log
+- 2026-06-06 [claude]: audits.py: added _as_str_list guard so predicates/matched_* always serialise as arrays; +4 regression tests (28 passed);
