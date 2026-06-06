@@ -94,7 +94,7 @@ def test_create_task_happy_path(project: Path, conn: sqlite3.Connection):
 def test_create_task_title_with_double_quote_stays_valid_yaml(
     project: Path, conn: sqlite3.Connection
 ):
-    # Regression (TASK-167): a title containing a double-quote must render
+    # Regression: a title containing a double-quote must render
     # valid YAML so the task stays editable through the semantic ops.
     env = _parse(
         mcp_tools.cos_task_create(
@@ -119,7 +119,7 @@ def test_create_task_title_with_double_quote_stays_valid_yaml(
 
 
 def test_create_attributes_human_when_session_is_human(project, conn):
-    # The web manual-create path passes agent_session='human' (TASK-173) so a
+    # The web manual-create path passes agent_session='human' so a
     # human-made task is attributed to the human, not the active agent panel.
     created = _parse(
         mcp_tools.cos_task_create(
@@ -690,7 +690,7 @@ def test_retro_shape(project: Path, conn: sqlite3.Connection):
     assert "swimlane_throughput" in env["data"]
 
 
-# ---------- concurrent id allocation (TASK-088) ----------
+# ---------- concurrent id allocation ----------
 
 
 def test_concurrent_create_yields_unique_ids(project: Path, conn: sqlite3.Connection):
@@ -1168,7 +1168,7 @@ def test_reclaim_covers_hub_human_actor_zombie(project: Path, conn: sqlite3.Conn
     )
 
 
-# ---------- TASK-215: reconciliation (review-first triage) ----------
+# ---------- reconciliation (review-first triage) ----------
 
 
 def test_reconcile_classifies_likely_complete_via_worklog(project: Path, conn: sqlite3.Connection):

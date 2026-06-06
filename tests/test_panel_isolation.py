@@ -137,7 +137,7 @@ def test_cos_current_session_never_falls_back_to_agent_session_id(tmp_path: Path
     """
     env = _panel_env(tmp_path, "panel-noleak")
     # Plant a competing session-id at the AGENT_DIR level — what a
-    # pre-TASK-035 session-context.sh:startup would have written.
+    # previously session-context.sh:startup would have written.
     agent_session = Path(env["COS_AGENT_DIR"]) / "session-id"
     agent_session.write_text("ses-claude-from-other-panel-XXX")
     # Wipe the panel-private session-id so the AGENT_DIR fossil is the

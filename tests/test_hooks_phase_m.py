@@ -62,7 +62,7 @@ class TestEnforceAntiAmbiguity:
         assert result.returncode == 0
 
     def test_code_file_with_pass_cache_passes(self, tmp_path):
-        # .ambiguity-cache + .thinking_os-gate are panel-scoped since TASK-035 —
+        # .ambiguity-cache + .thinking_os-gate are panel-scoped —
         # the hook reads them from $COS_PANEL_DIR.
         panel = tmp_path / "panels" / "aa-panel"
         panel.mkdir(parents=True)

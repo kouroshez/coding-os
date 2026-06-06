@@ -498,7 +498,7 @@ def run_project(project: dict, *, dry_run: bool) -> dict:
         errors += 1
 
     # Task 4.5: reclaim — recover zombie in_progress/testing of dead sessions +
-    # auto-archive aged backlog. The unattended-timer leg of TASK-210 RC4: a
+    # auto-archive aged backlog. The unattended-timer: a
     # stagnant board with no new sessions still heals here.
     try:
         t = _run_reclaim(db_path, project_root, dry_run=dry_run)

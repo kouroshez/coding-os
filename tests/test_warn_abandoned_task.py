@@ -34,7 +34,7 @@ def test_warns_on_stuck_task(tmp_path: Path) -> None:
     conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
     conn.commit()
     conn.close()
-    # session-id is panel-scoped since TASK-035 — the hook matches the
+    # session-id is panel-scoped — the hook matches the
     # current panel session against tasks.agent_session.
     panel = tmp_path / "panels" / "wa-panel"
     panel.mkdir(parents=True)
@@ -55,7 +55,7 @@ def test_silent_when_no_stuck_task(tmp_path: Path) -> None:
     conn.execute("INSERT INTO tasks VALUES ('TASK-1', 'complete', 'ses-claude-test')")
     conn.commit()
     conn.close()
-    # session-id is panel-scoped since TASK-035 — the hook matches the
+    # session-id is panel-scoped — the hook matches the
     # current panel session against tasks.agent_session.
     panel = tmp_path / "panels" / "wa-panel"
     panel.mkdir(parents=True)
@@ -75,7 +75,7 @@ def test_debounced_after_first_warning(tmp_path: Path) -> None:
     conn.execute("INSERT INTO tasks VALUES ('TASK-99', 'in_progress', 'ses-claude-test')")
     conn.commit()
     conn.close()
-    # session-id is panel-scoped since TASK-035 — the hook matches the
+    # session-id is panel-scoped — the hook matches the
     # current panel session against tasks.agent_session.
     panel = tmp_path / "panels" / "wa-panel"
     panel.mkdir(parents=True)

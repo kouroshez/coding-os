@@ -275,7 +275,7 @@ class TestCheckCaptureWorked:
     def _setup(self, tmp_path: Path, session_id: str = "ses-claude-test-1") -> Path:
         state = tmp_path / ".coding-os"
         state.mkdir()
-        # session-id is panel-scoped since TASK-035 — the hook reads the
+        # session-id is panel-scoped — the hook reads the
         # current session from $COS_PANEL_DIR to match hooks.log entries.
         panel_dir = state / "claude" / "panels" / self.PANEL_ID
         panel_dir.mkdir(parents=True)

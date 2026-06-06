@@ -136,7 +136,7 @@ def _agent_session_id() -> str | None:
     # Panel-first (most accurate when a hook set $COS_PANEL_DIR), then the
     # agent-level fresh `.active-session` pointer session-context.sh keeps
     # current, then the legacy flat session-id fossil. Mirrors the MCP
-    # server's _detect_agent_session_default (TASK-094).
+    # server's _detect_agent_session_default.
     panel_dir_env = os.environ.get("COS_PANEL_DIR")
     if panel_dir_env:
         raw = _first(Path(panel_dir_env) / "session-id")
@@ -700,7 +700,7 @@ def task_block_cmd(task_id, reason):
 def task_cancel_cmd(task_id, reason, park):
     # Default cancel now DRAINS the board: a terminal-eligible task (icebox /
     # complete) goes to the terminal `archive` sink instead of back to icebox
-    # where it would rot (TASK-210 RC6). Active work (in_progress / testing /
+    # where it would rot. Active work (in_progress / testing /
     # blocked) parks in icebox since the state machine has no direct edge from
     # those states to archive. --park forces the soft icebox cancel everywhere.
     note = f"cancelled: {reason or 'no reason given'}"

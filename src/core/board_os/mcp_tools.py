@@ -814,7 +814,7 @@ def cos_task_show(
 def _record_completion_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     # Fire-and-forget: feed an MCP-driven completion into the learning loop,
     # mirroring the CLI task-done path. Without this, tasks closed via
-    # cos_task_move never produced a task_outcome row (TASK-048 capture gap).
+    # cos_task_move never produced a task_outcome row.
     try:
         from thinking_os.record_outcome import record_outcome
 
@@ -1361,7 +1361,7 @@ def cos_task_reclaim(
 
     # Widened from in_progress-only (RC3): a `testing` zombie was previously
     # un-reclaimable by every path, which is exactly where the protocol parks
-    # near-done work at the moment of session death (TASK-100, ~9d).
+    # near-done work at the moment of session death.
     rows = conn.execute(
         "SELECT task_id, agent_session, started_at, file_path, status, work_log_last_5 "
         "FROM tasks WHERE status IN ('in_progress', 'testing', 'emergency')"
@@ -1389,14 +1389,14 @@ def cos_task_reclaim(
         if owner and owner in active:
             continue
 
-        # Don't blindly recycle a probably-FINISHED task (TASK-215). A testing
+        # Don't blindly recycle a probably-FINISHED task. A testing
         # zombie with committed/logged work is almost certainly done — the agent
         # just forgot task-done. Leave it in testing for review (cos_task_reconcile
         # surfaces it) instead of recycling it to in_progress.
         if status == "testing":
             commits = _commits_referencing(task_id, project_root)
             # None = unverifiable (no git) → counts as evidence so we never
-            # recycle a testing card on a signal we could not check (TASK-217).
+            # recycle a testing card on a signal we could not check.
             if _has_work_log(work_log) or commits is None or commits > 0:
                 skipped_for_review.append({"task_id": task_id, "previous_owner": owner})
                 continue
@@ -1564,7 +1564,7 @@ def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
                 )
             else:
                 # Surface per-task failures instead of silently dropping them so
-                # the daily "N archived" count can't hide stranded cards (TASK-217).
+                # the daily "N archived" count can't hide stranded cards.
                 logger.warning("auto-archive transition failed for %s (%s)", task_id, status)
     return archived
 

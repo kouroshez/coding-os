@@ -386,7 +386,7 @@ def _pattern_identity(text: str) -> str:
 
 def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
     # Self-healing one-shot: merge legacy count-snapshot duplicates that the
-    # pre-TASK-206 exact-text dedup let accumulate. Idempotent — once each
+    # previously exact-text dedup let accumulate. Idempotent — once each
     # (identity, domain) group is a single row, this is a no-op. Returns the
     # number of rows deleted.
     rows = conn.execute(

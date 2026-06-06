@@ -352,7 +352,7 @@ class TestEnforceDocAnchor:
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "claude"
-        # session-id + .doc-anchor are panel-scoped since TASK-035 — the
+        # session-id + .doc-anchor are panel-scoped — the
         # hook reads them from $COS_PANEL_DIR.
         panel_dir = agent_dir / "panels" / "da-panel"
         panel_dir.mkdir(parents=True)
@@ -403,7 +403,7 @@ class TestEnforceDocAnchor:
         state = tmp_path / ".coding-os"
         state.mkdir()
         agent_dir = state / "claude"
-        # .doc-anchor is panel-scoped since TASK-035 — write it where the
+        # .doc-anchor is panel-scoped — write it where the
         # hook reads it ($COS_PANEL_DIR) so the stale-legacy path is exercised.
         panel_dir = agent_dir / "panels" / "da-panel"
         panel_dir.mkdir(parents=True)

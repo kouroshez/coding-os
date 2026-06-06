@@ -122,7 +122,7 @@ def regenerate(directory: Path, *, write: bool = True) -> str | None:
         # First-time index — wrap with a minimal frontmatter so it follows
         # docs-system.md’s Navigation Rules contract. Mixed-domain dirs
         # (e.g. /benchmarks holding ALL + INFRA + CORE files) get
-        # `domain:ALL` per TASK-162 fix #7. A homogeneous dir keeps its
+        # `domain:ALL`. A homogeneous dir keeps its
         # single domain so cos_doc_headers_by(domain=…) routing stays
         # tight.
         domains = {h["frontmatter"].get("domain", "DOCS") for h in headers}

@@ -154,7 +154,7 @@ def hub_start(port: int, foreground: bool) -> None:
     log.touch(exist_ok=True)
     cmd = [_resolve_cos_bin(), "hub", "start", "--foreground", "--port", str(port)]
 
-    # Graph backend default: SQLite until TASK-073 (in-process reindex)
+    # Graph backend default: SQLite (in-process reindex)
     # lands.  Rationale — Kùzu enforces a single-writer lock on its DB
     # directory: when the hub owns the lock, `cos graph-reindex` running
     # from a separate terminal falls back to SQLite and populates *that*
