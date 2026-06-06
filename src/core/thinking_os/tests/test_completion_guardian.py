@@ -489,3 +489,70 @@ class TestCompletedAuditForgeryA2:
         _write_audit(repo, "nosid", "completed", unchecked_rows=0)
         result = guard_completion(session_id="", repo_root=repo)
         assert result.status == "pass", result.gaps
+
+
+class TestTaskClosureGuardian:
+    """TASK-210 RC1/RC2 — ordinary task-closure enforcement (intent-independent)."""
+
+    def _seed_task(self, repo: Path, monkeypatch, task_id: str, status: str) -> None:
+        import sqlite3
+
+        db_path = repo / ".coding-os" / "coding-os.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE IF NOT EXISTS tasks (task_id TEXT PRIMARY KEY, status TEXT)")
+        conn.execute(
+            "INSERT OR REPLACE INTO tasks (task_id, status) VALUES (?, ?)", (task_id, status)
+        )
+        conn.commit()
+        conn.close()
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+
+    def _bind(self, agent_dir: Path, task_id: str) -> None:
+        agent_dir.mkdir(parents=True, exist_ok=True)
+        (agent_dir / ".task-current").write_text(f"s1 {task_id}")
+
+    def test_default_mode_does_not_block_open_task(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        self._bind(agent_dir, "TASK-001")
+        self._seed_task(repo, monkeypatch, "TASK-001", "in_progress")
+        # No COS_ENFORCE_TASK_CLOSURE → warn mode → guardian never blocks.
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+
+    def test_strict_mode_arms_then_blocks(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        self._bind(agent_dir, "TASK-001")
+        self._seed_task(repo, monkeypatch, "TASK-001", "testing")
+        monkeypatch.setenv("COS_ENFORCE_TASK_CLOSURE", "strict")
+        first = guard_completion(session_id="s1", repo_root=repo)
+        assert first.status == "pass", "first stop arms, grants a grace turn"
+        second = guard_completion(session_id="s1", repo_root=repo)
+        assert second.status == "fail"
+        assert any("task_not_closed: TASK-001" in g for g in second.gaps)
+
+    def test_strict_mode_passes_when_task_closed(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        self._bind(agent_dir, "TASK-001")
+        self._seed_task(repo, monkeypatch, "TASK-001", "complete")
+        monkeypatch.setenv("COS_ENFORCE_TASK_CLOSURE", "strict")
+        guard_completion(session_id="s1", repo_root=repo)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", result.gaps
+
+    def test_strict_mode_leave_open_escape(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        self._bind(agent_dir, "TASK-001")
+        (agent_dir / ".leave-open").write_text("")
+        self._seed_task(repo, monkeypatch, "TASK-001", "in_progress")
+        monkeypatch.setenv("COS_ENFORCE_TASK_CLOSURE", "strict")
+        guard_completion(session_id="s1", repo_root=repo)
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", ".leave-open is the deliberate-WIP escape"
+
+    def test_strict_mode_no_bound_task_passes(self, env, monkeypatch) -> None:
+        repo, agent_dir = env
+        agent_dir.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("COS_ENFORCE_TASK_CLOSURE", "strict")
+        result = guard_completion(session_id="s1", repo_root=repo)
+        assert result.status == "pass", "no .task-current → nothing to enforce"

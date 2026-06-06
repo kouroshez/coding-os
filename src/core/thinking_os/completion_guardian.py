@@ -265,6 +265,82 @@ def _import_schemas():
         return None
 
 
+def _read_task_current(target_dir: Path) -> str | None:
+    # Panel-local active-task marker (set by sync-task-current). Robust to the
+    # panel-blind MCP attribution bug (TASK-201): it never reads
+    # tasks.agent_session — it trusts what THIS panel bound itself to.
+    for path in (target_dir / ".task-current", _agent_dir() / ".task-current"):
+        try:
+            if path.exists():
+                match = re.search(r"TASK-\d+", path.read_text())
+                if match:
+                    return match.group(0)
+        except OSError:
+            continue
+    return None
+
+
+def _task_status_from_db(task_id: str) -> str | None:
+    db_path = _guardian_db_path()
+    if not task_id or not Path(db_path).exists():
+        return None
+    try:
+        import sqlite3
+
+        with sqlite3.connect(db_path) as conn:
+            row = conn.execute(
+                "SELECT status FROM tasks WHERE task_id = ?", (task_id,)
+            ).fetchone()
+        return row[0] if row else None
+    except Exception as exc:
+        sys.stderr.write(f"guardian: task-status check failed (fail-open): {exc}\n")
+        return None
+
+
+def _closure_gaps(target_dir: Path) -> list[str]:
+    # TASK-210 RC1/RC2 — ordinary task-closure enforcement, INDEPENDENT of
+    # exhaustive intent (the historic guardian only fired for exhaustive
+    # audits, so an ordinary started-but-unfinished task could stop freely).
+    # Only `strict` mode BLOCKS — the per-turn warn nudge is owned by
+    # warn-abandoned-task.sh, so default keeps the Stop path light. Escalates
+    # warn->block: the first Stop with an open bound task ARMS a marker, the
+    # next Stop with the SAME task still open blocks. Fail-open throughout so a
+    # marker/DB error never wedges a legitimate stop.
+    mode = (os.environ.get("COS_ENFORCE_TASK_CLOSURE") or "warn").strip().lower()
+    if mode != "strict":
+        return []
+    if (target_dir / ".leave-open").exists():  # deliberate-WIP escape hatch
+        return []
+    task_id = _read_task_current(target_dir)
+    if not task_id:
+        return []
+    status = _task_status_from_db(task_id)
+    armed_path = target_dir / ".closure-armed"
+    if status not in ("in_progress", "testing"):
+        # Task reached a terminal / parked state — disarm and pass.
+        try:
+            armed_path.unlink()
+        except OSError:
+            pass
+        return []
+    try:
+        armed = armed_path.read_text().strip() if armed_path.exists() else ""
+    except OSError:
+        armed = ""
+    if armed != task_id:
+        # First Stop with this open task — arm, grant one grace turn, don't block.
+        try:
+            armed_path.write_text(task_id)
+        except OSError:
+            pass
+        return []
+    return [
+        f"task_not_closed: {task_id} is still '{status}' at session end — close it "
+        f"(cos task-done {task_id}), park it (cos task-move {task_id} --to blocked), "
+        "or `touch .leave-open` for deliberate work-in-progress."
+    ]
+
+
 def guard_completion(
     session_id: str = "",
     repo_root: Path | None = None,
@@ -343,7 +419,11 @@ def guard_completion(
                 )
     gaps.extend(forgery_gaps)
 
-    failed = (intent_exhaustive and gaps) or bool(forgery_gaps)
+    # Ordinary task-closure check — fires independently of exhaustive intent.
+    closure_gaps = _closure_gaps(agent_dir)
+
+    failed = (intent_exhaustive and gaps) or bool(forgery_gaps) or bool(closure_gaps)
+    gaps.extend(closure_gaps)
     result = GuardResult(
         status="fail" if failed else "pass",
         gaps=gaps,

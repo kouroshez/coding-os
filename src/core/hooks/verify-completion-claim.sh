@@ -46,6 +46,11 @@ if [[ ! -f "$GUARDIAN" ]]; then
 fi
 
 INPUT="$(cos_read_stdin_bounded 2)"
+# Upgrade panel id from the Stop payload so the guardian's panel-local reads
+# (.task-current / .intent.json / .closure-armed) resolve to THIS panel and
+# not a sibling's (TASK-035 / TASK-210 closure check).
+command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 \
+  && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
 
 RESULT_JSON=$(printf '%s' "$INPUT" | python3 "$GUARDIAN" 2>/dev/null || echo '')
 if [[ -z "$RESULT_JSON" ]]; then
@@ -64,7 +69,12 @@ fi
 
 cos_log_hook verify-completion-claim block "gaps=${GAPS}"
 
-REASON="GAPS detected — cannot stop yet. ${GAPS}. Re-open the active audit artifact, fix the unchecked rows (counts_after must reach 0 and Verified must flip to yes per row), and only after every row is verified may you submit ExhaustiveEvidence via cos_supervise_record_output (formula_id='exhaustive_evidence'). The auto-reviewer subagent (G6) provides the final stamp."
+if [[ "$EXHAUSTIVE" == "true" ]]; then
+  REASON="GAPS detected — cannot stop yet. ${GAPS}. Re-open the active audit artifact, fix the unchecked rows (counts_after must reach 0 and Verified must flip to yes per row), and only after every row is verified may you submit ExhaustiveEvidence via cos_supervise_record_output (formula_id='exhaustive_evidence'). The auto-reviewer subagent (G6) provides the final stamp."
+else
+  # Ordinary task-closure block (TASK-210): the gap text carries the fix verbs.
+  REASON="Cannot stop — ${GAPS}"
+fi
 
 printf '%s' "{\"decision\":\"block\",\"reason\":$(printf '%s' "$REASON" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}"
 
