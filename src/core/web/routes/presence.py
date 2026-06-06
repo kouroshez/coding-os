@@ -251,6 +251,52 @@ async def presence_now(
     )
 
 
+def _context_pct_from_usage(usage: dict, model: str | None) -> float | None:
+    """Pure: context-window percent from a transcript usage block + model.
+
+    1M window for a `[1m]` model id, else 200K. Returns None when there is no
+    usable token count — never a fabricated number (TASK-192)."""
+    if not isinstance(usage, dict):
+        return None
+    used = sum(
+        int(usage.get(k) or 0)
+        for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+    )
+    if used <= 0:
+        return None
+    window = 1_000_000 if (model and "[1m]" in model) else 200_000
+    return round(min(100.0, used / window * 100.0), 1)
+
+
+def _latest_transcript_usage(transcript_path: Path) -> dict | None:
+    """Tail the in-tree snapshot transcript for the most recent usage block.
+
+    Cheap (last 256 KB only), fail-open. Only Claude writes these snapshots,
+    so non-Claude agents naturally yield no usage."""
+    try:
+        with transcript_path.open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            window = min(size, 256 * 1024)
+            fh.seek(-window, os.SEEK_END)
+            tail = fh.read().decode("utf-8", errors="ignore")
+    except OSError:
+        return None
+    for line in reversed(tail.splitlines()):
+        if '"usage"' not in line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        msg = obj.get("message")
+        if isinstance(msg, dict) and isinstance(msg.get("usage"), dict):
+            return msg["usage"]
+        if isinstance(obj.get("usage"), dict):
+            return obj["usage"]
+    return None
+
+
 @router.get("/agents")
 async def presence_agents(
     _rl=Depends(make_rate_limit_dep("presence.agents")),
@@ -297,6 +343,16 @@ async def presence_agents(
                     logger.debug("resolve_chain failed for %s: %s", agent_id, exc)
             sess = snap.get("session")
             sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
+            # Context-window % — Claude-only (only Claude writes transcript
+            # snapshots); honest null for adapters with no usage signal.
+            context_pct: float | None = None
+            sid = snap.get("session_id")
+            if sid:
+                tpath = state / agent_id / "sessions" / "transcripts" / f"{sid}.jsonl"
+                if tpath.exists():
+                    usage = _latest_transcript_usage(tpath)
+                    if usage:
+                        context_pct = _context_pct_from_usage(usage, snap.get("model"))
             agents.append(
                 {
                     "agent": agent_id,
@@ -309,6 +365,7 @@ async def presence_agents(
                     "role": role,
                     "chain": chain,
                     "state": states.get(agent_id, "offline"),
+                    "context_pct": context_pct,
                 }
             )
 

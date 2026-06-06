@@ -19,6 +19,7 @@ interface AgentUnified {
   chain?: string[];
   state?: string | null;
   sdk_uuid?: string | null;
+  context_pct?: number | null;
 }
 
 interface UnifiedPayload {
@@ -252,6 +253,7 @@ export default function LiveStatus() {
                 <Row k="gate" v={snap.gate ?? '—'} />
                 {uni?.role && <Row k="role" v={uni.role} />}
                 {uni?.chain && uni.chain.length > 0 && <Row k="chain" v={uni.chain.join(' → ')} />}
+                <Row k="context" v={uni?.context_pct != null ? `${uni.context_pct}%` : 'N/A'} />
               </div>
             );
           })}
