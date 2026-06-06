@@ -44,6 +44,21 @@ workflow_policy:
   # An in_progress task idle this long whose owner session is inactive is
   # a zombie-reclaim candidate (cos_task_reclaim → icebox+ready).
   reclaim_idle_hours: 24
+  # Per-status reclaim window — `testing` parks near-done work, so a stranded
+  # testing zombie is reclaimed sooner than a generic in_progress one and is
+  # routed back to in_progress (0 = fall back to reclaim_idle_hours). TASK-210.
+  testing_reclaim_idle_hours: 6
+  # SLA dwell budgets — a card past its budget is flagged `stale` on every
+  # board surface (cos board / daily — observability only, no mutation).
+  # 0 disables the flag for that status.
+  in_progress_sla_hours: 24
+  testing_sla_hours: 6
+  icebox_stale_days: 30
+  # Auto-archive aged cards — OFF by default (0). Opt in to drain the backlog
+  # on a timer (SessionStart + nightly sweeps); a `keep`/`parked` label always
+  # exempts, and archive is reversible (archive→icebox). TASK-210 RC6.
+  icebox_auto_archive_days: 0
+  complete_auto_archive_days: 0
 
 # Optional extra label families (kind colours are fixed, NOT here).
 # Custom labels not in this list still work — they get a deterministic
