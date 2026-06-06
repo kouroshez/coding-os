@@ -19,6 +19,22 @@ def _scalar(cursor: sqlite3.Cursor, sql: str, args: tuple) -> int:
         return 0
 
 
+def _narrate(obs: int, disp: int, bt: int) -> str:
+    # Deterministic plain-language line — no LLM, same cheap counts. Reads as a
+    # session accomplishment ("34 insights captured, clean run") instead of the
+    # cryptic obs=N dispatch=N backtrack=N that taught operators to ignore it.
+    bits = []
+    if obs:
+        bits.append(f"{obs} insight{'s' if obs != 1 else ''} captured")
+    if disp:
+        bits.append(f"{disp} role step{'s' if disp != 1 else ''}")
+    if bt:
+        bits.append(f"{bt} backtrack{'s' if bt != 1 else ''}")
+    elif obs or disp:
+        bits.append("clean run")
+    return ", ".join(bits) if bits else "no new cognitive activity this session"
+
+
 def main() -> int:
     if len(sys.argv) < 3:
         return 0
@@ -41,8 +57,10 @@ def main() -> int:
         pass
 
     ses_tail = session_id[-8:]
-    parts = [f"ses={ses_tail}", f"obs={obs}", f"dispatch={disp}", f"backtrack={bt}"]
-    text = "[coding-os recap] " + " ".join(parts) + f" — trace: cos cognition trace {session_id}"
+    text = (
+        f"[coding-os recap] {_narrate(obs, disp, bt)} (ses={ses_tail})"
+        f" — trace: cos cognition trace {session_id}"
+    )
     payload = {"systemMessage": text}
     sys.stdout.write(json.dumps(payload))
     return 0
