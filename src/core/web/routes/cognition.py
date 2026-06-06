@@ -839,6 +839,87 @@ async def chat_new(
     )
 
 
+_TASK_AUTHOR_SYSTEM = (
+    "You are a task-authoring agent for coding-os. Using ONLY cos_* tools, "
+    "research the codebase (cos_graph_query/context, cos_doc_search, "
+    "cos_task_search/board) and then create EXACTLY ONE well-formed Scrumban "
+    "task with cos_task_create: choose the correct swimlane and kind, write a "
+    "one-sentence Outcome and a Given/When/Then Acceptance, and list 1-4 Read "
+    "First files. Reconcile against the existing board first and reuse a task "
+    "instead of duplicating when appropriate. Do NOT write or edit any code or "
+    "files. After creating or identifying the task, state its id and stop."
+)
+
+
+@router.post("/author-task")
+async def author_task(
+    body: dict = Body(...),
+    _rl=Depends(make_rate_limit_dep("cognition.author_task")),
+    _m=Depends(make_metrics_dep("cognition.author_task")),
+):
+    """Headless research+author session that creates one task via cos_task_create. Claude-only."""
+    prompt = str(body.get("prompt") or "").strip()
+    if not prompt:
+        return unwrap(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "category": "validation",
+                        "retryable": False,
+                        "message": "prompt must be non-empty",
+                    },
+                }
+            )
+        )
+    sdk = _claude_sdk()
+    if sdk is None:
+        return unwrap(_unavailable("claude_agent_sdk not installed"))
+
+    import secrets
+    import time as _time
+
+    model = body.get("model") or None
+    cwd = _project_cwd()
+    sid = f"ses-claude-author-{int(_time.time())}-{secrets.token_hex(3)}"
+    options = sdk.ClaudeAgentOptions(
+        cwd=cwd,
+        model=model,
+        permission_mode="dontAsk",
+        setting_sources=["project"],
+        session_id=sid,
+        # cos_* only — no Write/Edit/Bash, so it can research + author but never touch code.
+        allowed_tools=["mcp__coding-os__*"],
+        disallowed_tools=["Write", "Edit", "MultiEdit", "Bash"],
+        system_prompt={"type": "preset", "preset": "claude_code", "append": _TASK_AUTHOR_SYSTEM},
+        max_turns=30,
+    )
+
+    async def event_gen():
+        yield _sse_chunk("started", {"session_id": sid, "prompt": prompt[:200], "model": model})
+        yield _sse_chunk("session", {"session_id": sid})
+        try:
+            async for event in sdk.query(prompt=prompt, options=options):
+                kind = type(event).__name__.lower().replace("message", "") or "event"
+                yield _sse_chunk(kind, _safe_serialize(event))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("author_task stream failed")
+            yield _sse_chunk("error", {"message": str(exc)})
+        yield _sse_chunk("done", {"session_id": sid})
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 @router.post("/chat/{session_id}/send")
 async def chat_send(
     session_id: str,

@@ -58,3 +58,20 @@ def test_role_system_prompt_resolution():
     assert isinstance(sp, dict)
     assert sp["type"] == "preset"
     assert "append" in sp and sp["append"]
+
+
+def test_author_task_empty_prompt_rejected(client):
+    r = client.post("/api/cognition/author-task", json={"prompt": ""})
+    assert r.json()["error"]["category"] == "validation"
+
+
+def test_author_task_unavailable_without_sdk(client, monkeypatch):
+    patched = False
+    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+        mod = sys.modules.get(modname)
+        if mod is not None:
+            monkeypatch.setattr(mod, "_claude_sdk", lambda: None, raising=False)
+            patched = True
+    assert patched
+    r = client.post("/api/cognition/author-task", json={"prompt": "make a task for X"})
+    assert r.json()["error"]["category"] == "unavailable"

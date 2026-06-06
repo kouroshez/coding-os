@@ -6,11 +6,12 @@ import {
   useState,
   type CSSProperties,
   type DragEvent,
+  type FormEvent,
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPost, apiPatch } from '@/lib/api-client';
+import { apiPost, apiPatch, resolveApiUrl } from '@/lib/api-client';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
@@ -318,6 +319,7 @@ export default function CosBoardPage() {
   const [legendOpen, setLegendOpen] = useState<boolean>(false);
   const [tweaksOpen, setTweaksOpen] = useState<boolean>(false);
   const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const [agentOpen, setAgentOpen] = useState<boolean>(false);
   const [detailTask, setDetailTask] = useState<BoardListCard | null>(null);
 
   const [dragging, setDragging] = useState<BoardListCard | null>(null);
@@ -884,9 +886,21 @@ export default function CosBoardPage() {
         epicOptions={epicOptions}
       />
 
+      <AgentTaskModal
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        onDone={() => {
+          void invalidateApiQueries(qc, '/api/board/list');
+        }}
+      />
+
       <CreateTaskModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onAgentMode={() => {
+          setCreateOpen(false);
+          setAgentOpen(true);
+        }}
         swimlanes={swimlanes}
         nextId={
           (cards.reduce((m, t) => Math.max(m, parseInt(String(t.id).replace('TASK-', ''), 10) || 0), 0) || 200) + 1
@@ -2258,18 +2272,238 @@ function ZoomDiv() {
 // ============================================================
 // Create task modal
 // ============================================================
+function AgentTaskModal({
+  open,
+  onClose,
+  onDone,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [prompt, setPrompt] = useState('');
+  const [model, setModel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [text, setText] = useState('');
+  const [finished, setFinished] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setPrompt('');
+      setModel('');
+      setBusy(false);
+      setText('');
+      setFinished(false);
+      setErr(null);
+    }
+  }, [open]);
+  if (!open) return null;
+
+  const fieldStyle: CSSProperties = {
+    width: '100%',
+    background: 'var(--board-grain)',
+    border: '1px solid var(--col-border)',
+    color: 'var(--ink)',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 12,
+    padding: '8px 10px',
+    borderRadius: 4,
+  };
+
+  const run = async (e: FormEvent) => {
+    e.preventDefault();
+    const p = prompt.trim();
+    if (!p || busy) return;
+    setBusy(true);
+    setErr(null);
+    setText('');
+    setFinished(false);
+    try {
+      const res = await fetch(resolveApiUrl('/api/cognition/author-task'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+        body: JSON.stringify({ prompt: p, model: model || null }),
+      });
+      if (!res.ok || !res.body) {
+        const t = await res.text().catch(() => '');
+        let msg = `HTTP ${res.status}`;
+        try {
+          msg = JSON.parse(t)?.error?.message ?? msg;
+        } catch {
+          msg = t.slice(0, 160) || msg;
+        }
+        throw new Error(msg);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx = buffer.indexOf('\n\n');
+        while (idx >= 0) {
+          const frame = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          let ev = 'event';
+          let data = '';
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) ev = line.slice(6).trim();
+            else if (line.startsWith('data:')) data += line.slice(5).trim();
+          }
+          try {
+            const payload = data ? JSON.parse(data) : {};
+            const blocks: Array<{ type?: string; text?: string }> = payload?.blocks ?? [];
+            const t = blocks
+              .filter((b) => b?.type === 'text' && b.text)
+              .map((b) => b.text)
+              .join('');
+            if (t) setText((c) => c + t);
+            if (ev === 'error' && payload?.message) setErr(payload.message);
+          } catch {
+            /* skip unparseable frame */
+          }
+          idx = buffer.indexOf('\n\n');
+        }
+      }
+    } catch (e2) {
+      setErr((e2 as Error).message ?? 'failed to author task');
+    } finally {
+      setBusy(false);
+      setFinished(true);
+      onDone();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: 'rgba(0,0,0,.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 680,
+          maxWidth: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          background: 'var(--col-bg)',
+          border: '1px solid var(--col-border)',
+          borderRadius: 6,
+          boxShadow: '0 30px 60px rgba(0,0,0,.4)',
+          padding: '20px 22px',
+        }}
+      >
+        <div style={{ fontSize: 22, color: 'var(--accent)' }}>✨ agent draft</div>
+        <div
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+            color: 'var(--ink-faint)',
+            margin: '4px 0 16px',
+          }}
+        >
+          a headless Claude session researches the codebase (cos_* only — no code edits) and writes one task
+        </div>
+        <form onSubmit={run} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe what the task should accomplish…"
+            rows={5}
+            style={{ ...fieldStyle, resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select value={model} onChange={(e) => setModel(e.target.value)} style={{ ...fieldStyle, width: 'auto' }}>
+              <option value="">default model</option>
+              <option value="claude-opus-4-8">Opus 4.8</option>
+              <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+            </select>
+            <button
+              type="submit"
+              disabled={busy || !prompt.trim()}
+              style={{
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                padding: '8px 16px',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                cursor: busy ? 'default' : 'pointer',
+                opacity: busy || !prompt.trim() ? 0.5 : 1,
+              }}
+            >
+              {busy ? 'researching…' : 'generate task'}
+            </button>
+            {finished && !busy && (
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: 'transparent',
+                  color: 'var(--ink-soft)',
+                  border: '1px solid var(--col-border)',
+                  borderRadius: 4,
+                  padding: '8px 14px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11,
+                  cursor: 'pointer',
+                }}
+              >
+                done — close
+              </button>
+            )}
+          </div>
+        </form>
+        {err && <p style={{ color: '#f85149', fontSize: 11, marginTop: 10 }}>{err}</p>}
+        {text && (
+          <pre
+            style={{
+              marginTop: 12,
+              padding: '10px 12px',
+              background: 'var(--board-grain)',
+              border: '1px solid var(--col-border)',
+              borderRadius: 6,
+              fontSize: 12,
+              whiteSpace: 'pre-wrap',
+              maxHeight: 300,
+              overflow: 'auto',
+              color: 'var(--ink)',
+            }}
+          >
+            {text}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CreateTaskModal({
   open,
   onClose,
   nextId,
   swimlanes,
   onCreate,
+  onAgentMode,
 }: {
   open: boolean;
   onClose: () => void;
   nextId: number;
   swimlanes: SwimlaneDTO[];
   onCreate: (form: CreateTaskForm) => Promise<void>;
+  onAgentMode?: () => void;
 }) {
   const [form, setForm] = useState<{
     title: string;
@@ -2390,6 +2624,26 @@ function CreateTaskModal({
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--ink-faint)' }}>
               cos_task_create → TASK-{String(nextId).padStart(3, '0')}
             </div>
+            {onAgentMode && (
+              <button
+                type="button"
+                onClick={onAgentMode}
+                title="Let a headless agent research the codebase and draft this task"
+                style={{
+                  marginLeft: 'auto',
+                  background: 'transparent',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--col-border)',
+                  borderRadius: 4,
+                  padding: '3px 10px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11,
+                  cursor: 'pointer',
+                }}
+              >
+                ✨ agent draft
+              </button>
+            )}
           </div>
 
           <FormField label="Title" required>
