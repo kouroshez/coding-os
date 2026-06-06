@@ -39,3 +39,4 @@ Actual: silently dropped; create-path attribution unfixed.
 
 ## Work Log
 - 2026-06-06 [claude]: Fixed: cos_task_create server wrapper now declares agent_session and threads (agent_session or _detect_agent_session_def
+- 2026-06-06 [claude]: committed 5cdf71ae: src/core/thinking_os/server.py

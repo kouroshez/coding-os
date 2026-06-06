@@ -41,3 +41,4 @@ Actual: ANTHROPIC declared-not-probed; codex on ppid fallback; doc overstates.
 
 ## Work Log
 - 2026-06-06 [claude]: Fixed ROOT-5 drift: removed dead ANTHROPIC_SESSION_ID from claude adapter.yaml; added tests/test_adapter_session_marker_
+- 2026-06-06 [claude]: committed 008b240e: docs/engineering/state-files.md, src/adapters/claude/adapter.yaml, src/adapters/codex/hooks/codex-pr
