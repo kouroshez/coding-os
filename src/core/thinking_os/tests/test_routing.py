@@ -133,7 +133,7 @@ class TestClassifyQuery:
         assert result["shape"] == "identifier"
 
     def test_past_pattern_en(self) -> None:
-        result = classify_query("have we done this before in phase j?")
+        result = classify_query("have we done this before in this project?")
         assert result["shape"] == "past_pattern"
 
     def test_mixed_when_similar_confidence(self) -> None:
