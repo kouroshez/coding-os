@@ -105,9 +105,16 @@ wiring (most "overnight" jobs call no LLM), build-real-parallel-orchestration
 
 - **Phase 0 — correctness:** B1 → B2 → B5 → B6 → B7. Each a separate commit.
   (B3, B4 are Codex-only and verified correct on Claude — deferred this phase.)
-- **Phase 1 — output gap:** A0 (measure real per-mode output distribution from
-  on-disk transcripts) → A1 (mode-keyed chat-reply discipline rule, English,
-  persona-level) only if the data warrants.
+- **Phase 1 — output gap:** A0 measured 7,658 real assistant turns from on-disk
+  transcripts: visible-reply median **36 tok**, p90 **128**, only **2-4%** exceed
+  300 tok (and those are the deliberate reports the user wants verbose). Output is
+  **already lean** — an enforcement rule is NOT warranted (it would risk truncating
+  the 2-4% wanted-verbose turns for no real gain; and a Stop hook fires after the
+  reply is already billed). A1 therefore narrows to a **brief codified lean-output
+  principle** (lead with the answer, concise by default, expand for deliberate
+  reports, push tables/logs to artifacts) folded into the existing reply rule
+  (`transparency-banner.md`) — codifying current good behaviour for enterprise
+  durability + consumer propagation, with **no hook**.
 - **Phase 2 — depth UX:** U1 (narrative, template-based Stop recap).
 - **Phase 3 — multi-agent honesty:** S1 plumbing + honest labeling; defer the
   real-dispatch architecture to a documented decision.
