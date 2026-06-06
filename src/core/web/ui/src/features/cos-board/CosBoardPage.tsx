@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type DragEvent,
@@ -2298,6 +2299,22 @@ function AgentTaskModal({
       setErr(null);
     }
   }, [open]);
+
+  // Abort the in-flight draft request when the dialog closes (else the
+  // headless agent session keeps running server-side). ESC also closes.
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        abortRef.current?.abort();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const fieldStyle: CSSProperties = {
@@ -2319,11 +2336,14 @@ function AgentTaskModal({
     setErr(null);
     setText('');
     setFinished(false);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       const res = await fetch(resolveApiUrl('/api/cognition/author-task'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({ prompt: p, model: model || null }),
+        signal: ctrl.signal,
       });
       if (!res.ok || !res.body) {
         const t = await res.text().catch(() => '');
@@ -2372,7 +2392,7 @@ function AgentTaskModal({
         }
       }
     } catch (e2) {
-      setErr((e2 as Error).message ?? 'failed to author task');
+      if ((e2 as Error).name !== 'AbortError') setErr((e2 as Error).message ?? 'failed to author task');
     } finally {
       setBusy(false);
       setFinished(true);
@@ -2382,6 +2402,9 @@ function AgentTaskModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Draft a task with AI"
       style={{
         position: 'fixed',
         inset: 0,
@@ -2392,7 +2415,10 @@ function AgentTaskModal({
         justifyContent: 'center',
         padding: 20,
       }}
-      onClick={onClose}
+      onClick={() => {
+        abortRef.current?.abort();
+        onClose();
+      }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -2423,6 +2449,7 @@ function AgentTaskModal({
         </div>
         <form onSubmit={run} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <textarea
+            autoFocus
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe what the task should accomplish…"
@@ -2472,9 +2499,14 @@ function AgentTaskModal({
             )}
           </div>
         </form>
-        {err && <p style={{ color: '#f85149', fontSize: 11, marginTop: 10 }}>{err}</p>}
+        {err && (
+          <p role="alert" style={{ color: '#f85149', fontSize: 11, marginTop: 10 }}>
+            {err}
+          </p>
+        )}
         {text && (
           <pre
+            aria-live="polite"
             style={{
               marginTop: 12,
               padding: '10px 12px',
@@ -2581,6 +2613,15 @@ function CreateTaskModal({
     }
   }, [open, swimlanes]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   // Step 1 — plain-language chooser so a non-developer sees the agent path
@@ -2682,6 +2723,9 @@ function CreateTaskModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="New task"
       style={{
         position: 'fixed',
         inset: 0,
