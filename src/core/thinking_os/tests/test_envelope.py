@@ -441,3 +441,38 @@ class TestSafeTool:
         envelope = json.loads(needs_dep())
         assert envelope["error"]["category"] == "unavailable"
         assert envelope["error"]["retryable"] is True
+
+
+class TestSafeToolNamesUnshrinkable:
+    """TASK-209 — safe_tool must NAME the tool when ok() flags the envelope
+    unshrinkable, so the observability eye records an actionable error."""
+
+    def test_logs_tool_name_on_unshrinkable_envelope(self, caplog) -> None:
+        import logging
+
+        @safe_tool
+        def cos_fake_unshrinkable() -> str:
+            # Mimic ok()'s output when no trim brings it under budget.
+            return '{"ok": true, "data": {}, "meta": {"envelope_unshrinkable": true}}'
+
+        with caplog.at_level(logging.ERROR):
+            cos_fake_unshrinkable()
+
+        named = [
+            r
+            for r in caplog.records
+            if "cos_fake_unshrinkable" in r.getMessage() and "unshrinkable" in r.getMessage()
+        ]
+        assert named, "safe_tool should log an ERROR naming the tool on an unshrinkable envelope"
+
+    def test_silent_when_envelope_fits(self, caplog) -> None:
+        import logging
+
+        @safe_tool
+        def cos_fake_ok() -> str:
+            return ok({"results": [1, 2, 3], "meta": {"layer": "memory"}})
+
+        with caplog.at_level(logging.ERROR):
+            cos_fake_ok()
+
+        assert not any("unshrinkable" in r.getMessage() for r in caplog.records)

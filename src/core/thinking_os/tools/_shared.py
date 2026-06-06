@@ -632,7 +632,10 @@ def _apply_token_budget(body: dict, meta: dict) -> tuple[dict, dict, bool]:
         fits = fits or fits_after
     if not fits:
         meta["envelope_unshrinkable"] = True
-        logger.error(
+        # Debug-level here; the @safe_tool layer re-logs this at ERROR WITH the
+        # tool name (TASK-209) so the eye gets an actionable, deduplicable row
+        # instead of an anonymous one. Tools not wrapped by safe_tool are rare.
+        logger.debug(
             "envelope %d chars > budget %d after all trims",
             _probe_size(body, meta),
             TOKEN_BUDGET_CHARS,
@@ -747,7 +750,7 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
     @wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> str:
         try:
-            return fn(*args, **kwargs)
+            result = fn(*args, **kwargs)
         except PermissionError as exc:
             logger.exception("tool %s raised PermissionError", fn.__name__)
             return fail("permission", str(exc) or "permission denied", retryable=False)
@@ -766,5 +769,17 @@ def safe_tool(fn: Callable[..., str]) -> Callable[..., str]:
         except Exception as exc:
             logger.exception("tool %s raised unexpected %s", fn.__name__, type(exc).__name__)
             return fail("internal", f"{type(exc).__name__}: {exc}", retryable=False)
+
+        # Name the offending tool when ok() flagged the envelope unshrinkable.
+        # ok() logs the size from a context without the tool name, leaving the
+        # eye with an unactionable "something is 265KB" error (TASK-209).
+        if isinstance(result, str) and "envelope_unshrinkable" in result:
+            logger.error(
+                "tool %s returned an unshrinkable envelope (%d chars > %d budget)",
+                fn.__name__,
+                len(result),
+                TOKEN_BUDGET_CHARS,
+            )
+        return result
 
     return wrapper
