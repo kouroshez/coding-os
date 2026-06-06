@@ -226,7 +226,7 @@ def _dispatch_available() -> bool:
     # sub-sessions that produce "dispatched"/executed evidence) needs the
     # Claude Agent SDK extra. Without it roles run in-session only ("composed").
     # Surfacing this lets the panel show "dispatched: 0" as capability-off,
-    # not a bug (TASK-064 option-a).
+    # not a bug.
     try:
         import claude_agent_sdk  # type: ignore  # noqa: F401
 
@@ -266,7 +266,7 @@ def resolve_chain(state: Path, agent: str) -> tuple[list[str], str | None]:
     active_formula = (active_raw.strip() or None) if active_raw else None
 
     # Chain: prefer the newest agent-level compose_done trace — the
-    # cross-panel-safe source the EVIDENCE view also reads (TASK-065).
+    # cross-panel-safe source the EVIDENCE view also reads.
     # Scattered per-panel .roles markers can be stale under concurrent panels.
     chain: list[str] = []
     traces_dir = state / agent / "traces"
@@ -355,7 +355,7 @@ async def formula_outputs(
                 schema_ok = None
                 schema_errors: list[str] = []
                 # schema_status disambiguates the schema_ok=None cases the UI
-                # used to lump under one ambiguous message (TASK-064):
+                # used to lump under one ambiguous message:
                 #   no_payload — output never landed in the evidence bundle
                 #   no_schema  — role has no resolvable Output schema class
                 #   ok / fail  — schema validated / failed

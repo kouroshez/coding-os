@@ -85,7 +85,7 @@ async def api_health():
 # files). Earlier this list referenced legacy names (`metrics`,
 # `patterns`, `audit_log`) that never existed in any migration — they
 # rendered as "absent" forever, masking the actual table state. Fixed
-# 2026-05-23 (TASK-024).
+# 2026-05-23.
 _DB_TABLES_OF_INTEREST = (
     "tasks",
     "observations",
@@ -142,7 +142,7 @@ async def api_health_db():
                 payload["tables"][table] = {"error": str(exc)}
 
         # Surface the self-diagnosis the counts-only view used to hide: the
-        # numbers don't explain WHY a loop is dead. (TASK-048)
+        # numbers don't explain WHY a loop is dead.
         diagnostics: list[str] = []
 
         def _n(name: str) -> int:

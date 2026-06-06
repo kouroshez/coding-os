@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
     "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
-    # Task-closure enforcement mode read by completion_guardian (TASK-216):
+    # Task-closure enforcement mode read by completion_guardian:
     # off (never enforce) · warn (nudge only) · strict (block 2nd Stop on an
     # unclosed task). The COS_ENFORCE_TASK_CLOSURE env var overrides this.
     "task_closure": {"mode": "warn"},

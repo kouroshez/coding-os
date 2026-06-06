@@ -225,7 +225,7 @@ async def graph_export(
     if g is None:
         return unwrap(_unavailable())
     et = [e.strip() for e in edge_types.split(",") if e.strip()] if edge_types else None
-    # TASK-141: treat empty-string root_uid as "no root" (the SPA can
+    # treat empty-string root_uid as "no root" (the SPA can
     # send `root_uid=` when no root is pinned).  Otherwise the BFS
     # walks from "" → empty result.
     normalised_root = root_uid.strip() if root_uid else None

@@ -723,7 +723,7 @@ def _safe_serialize(obj: Any) -> Any:
         # pre-flattens the whole tree so a nested TextBlock arrives here as a
         # plain dict and never gets its `type` stamped (the streamed
         # AssistantMessage.content[] blocks then lack `type` and the UI drops
-        # them → "agent draft shows nothing"). TASK-207.
+        # them → "agent draft shows nothing").
         out: dict[str, Any] = {
             f.name: _safe_serialize(getattr(obj, f.name)) for f in dataclasses.fields(obj)
         }

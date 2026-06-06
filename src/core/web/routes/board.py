@@ -401,9 +401,9 @@ async def board_create(
         return unwrap(_unavailable())
     # Manual panel creates are human-INITIATED. Only attribute to an agent
     # session when the caller explicitly provides one (agent-mode authoring,
-    # TASK-175/T12) — otherwise _resolve_attribution would tag the create to
+    # /T12) — otherwise _resolve_attribution would tag the create to
     # whatever agent panel is active (the .active-session pointer), making a
-    # human-made task look agent-led. (TASK-173)
+    # human-made task look agent-led.
     if not agent_session:
         from board_os._agent_runtime import human_actor
 
