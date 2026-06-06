@@ -1661,6 +1661,7 @@ if _BOARD_OS_AVAILABLE:
         depends_on: list[str] | None = None,
         status: str = "icebox",
         ready: bool = False,
+        agent_session: str = "",
     ) -> str:
         """Create a new Scrumban task file + sync to DB.
 
@@ -1668,6 +1669,7 @@ if _BOARD_OS_AVAILABLE:
         scrumban-config.yaml and kind against the 8-value enum. Pass
         ready=True to mark the task pullable in one shot.
         """
+        resolved_session = agent_session or _detect_agent_session_default() or None
         return _board_mcp.cos_task_create(
             _db_conn,
             title=title,
@@ -1682,6 +1684,7 @@ if _BOARD_OS_AVAILABLE:
             depends_on=depends_on or [],
             status=status,
             ready=ready,
+            agent_session=resolved_session,
         )
 
     @mcp.tool(
