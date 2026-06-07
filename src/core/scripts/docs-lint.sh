@@ -20,6 +20,7 @@ source "$SCRIPT_DIR/_lib.sh"
 
 DOCS_DIR="${DOCS_DIR:-docs}"
 QUIET=0
+CHANGED=0
 TARGETS=()
 
 # Canonical taxonomy enums — SSOT mirror of docs/governance/docs-system.md.
@@ -34,14 +35,32 @@ STRICT="${COS_DOCS_LINT_STRICT:-0}"
 for arg in "$@"; do
   case "$arg" in
     --quiet) QUIET=1 ;;
+    --changed) CHANGED=1 ;;
     --help|-h)
-      echo "Usage: $0 [--quiet] [file...]"
+      echo "Usage: $0 [--quiet] [--changed] [file...]"
       echo "Lint markdown files in $DOCS_DIR/ for SSOT contract compliance."
+      echo "  --changed  lint only docs/*.md changed vs \$COS_DOCS_LINT_BASE (default HEAD)"
       exit 0
       ;;
     *) TARGETS+=("$arg") ;;
   esac
 done
+
+# --changed: lint only docs/*.md changed vs the base (CI runs this strict on the
+# PR diff; locally it defaults to the working tree). Same exclusions as the
+# default-all scan. New/changed docs gate (strict in CI); legacy stays advisory.
+if [ "$CHANGED" -eq 1 ] && [ ${#TARGETS[@]} -eq 0 ]; then
+  base="${COS_DOCS_LINT_BASE:-HEAD}"
+  while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$f" ] && TARGETS+=("$f")
+  done < <(git diff --name-only --diff-filter=ACMR "$base" -- "$DOCS_DIR" 2>/dev/null \
+    | grep -E '\.md$' \
+    | grep -vE '/(governance/archive|products-assets|code-os-core-docs|tasks)/' || true)
+  if [ ${#TARGETS[@]} -eq 0 ]; then
+    [ "$QUIET" -eq 0 ] && ok "docs-lint --changed: no changed docs/*.md to lint" >&2
+    exit 0
+  fi
+fi
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
   if [ ! -d "$DOCS_DIR" ]; then

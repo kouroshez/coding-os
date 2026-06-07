@@ -170,6 +170,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so docs-lint --changed can diff vs the PR base
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -183,6 +185,17 @@ jobs:
         # hard gate (a broken doc link or a symlinked docs/ subdir fails
         # CI). The SSOT frontmatter sub-check inside the target stays
         # advisory until that baseline is cleared.
+      - name: docs-lint strict on changed docs
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          [ -n "$base" ] || base="${{ github.event.before }}"
+          if [ -n "$base" ] && [ "$base" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$base" 2>/dev/null; then
+            COS_DOCS_LINT_STRICT=1 COS_DOCS_LINT_BASE="$base" bash src/core/scripts/docs-lint.sh --changed
+          else
+            echo "docs-lint --changed: no resolvable base; skipping strict changed-docs gate"
+          fi
+        # NEW/CHANGED docs must satisfy the full SSOT header contract (strict);
+        # the pre-existing backlog stays advisory via the make docs-lint step above.
       - name: OpenAPI snapshot in sync
         run: uv run python src/scripts/dump_openapi.py --check
         # Required: a drifted Hub API contract must regenerate the

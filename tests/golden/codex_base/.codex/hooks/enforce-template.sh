@@ -124,5 +124,20 @@ if [[ "$FILE_PATH" == *docs/insights/*.md ]]; then
   exit 2
 fi
 
-# Freeform .md paths (playbooks, engineering rules, ad-hoc notes) are allowed.
+# Freeform .md paths (playbooks, engineering rules, ad-hoc notes) are allowed,
+# but a NEW docs/*.md should carry the SSOT front-matter header. WARN (never
+# block) at write time so the author sees the doc-cheat-sheet contract early —
+# the CI `docs-lint --changed` strict step is the hard gate. TASK-127.
+case "$FILE_PATH" in
+  */docs/tasks/*) ;;  # task files have their own template flow above
+  *docs/*.md)
+    CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || echo "")
+    FIRST_LINE=$(printf '%s\n' "$CONTENT" | head -1)
+    if ! printf '%s' "$FIRST_LINE" | grep -qE '^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref|false)'; then
+      echo "warning: new doc $FILE_PATH is missing the SSOT front-matter header" >&2
+      echo "  line 1 should be: <!-- domain:X | layer:Y | ssot:true|ref|false | updated:YYYY-MM-DD -->" >&2
+      echo "  see docs/governance/docs-system.md (doc-cheat-sheet). Advisory — not blocking." >&2
+    fi
+    ;;
+esac
 exit 0

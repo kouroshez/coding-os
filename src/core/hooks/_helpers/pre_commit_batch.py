@@ -39,6 +39,11 @@ def _hook_applies(hook: str, file_path: str) -> bool:
     return any(p in file_path or file_path.endswith(p) for p in patterns)
 
 
+# Mirror of docs-lint.sh Check 1 — the SSOT front-matter header on line 1.
+# Drives a commit-time WARN on changed docs/*.md (TASK-127); advisory only.
+_DOC_HEADER_RE = re.compile(r"^<!-- domain:[A-Z_]+ \| layer:[a-z]+ \| ssot:(true|ref|false)")
+
+
 def _make_envelope(abs_path: Path, rel_path: str) -> str:
     try:
         content = abs_path.read_text(errors="replace")
@@ -218,6 +223,28 @@ def main(argv: list[str]) -> int:
             if audit_msg:
                 print(audit_msg, file=sys.stderr)
                 failed = True
+
+        # Doc-header contract (TASK-127): WARN — never block — when a changed
+        # docs/*.md lacks the SSOT front-matter header. Only staged docs are
+        # seen here, so this naturally scopes to new/changed docs; the CI
+        # `docs-lint --changed` strict step is the hard gate.
+        if (
+            rel_path.startswith("docs/")
+            and rel_path.endswith(".md")
+            and not rel_path.startswith("docs/tasks/")
+            and "/governance/archive/" not in rel_path
+        ):
+            try:
+                lines = abs_path.read_text(errors="replace").splitlines()
+            except OSError:
+                lines = []
+            if not (lines and _DOC_HEADER_RE.match(lines[0])):
+                print(
+                    f"WARN [doc-header] {rel_path}: missing SSOT front-matter header "
+                    "(<!-- domain:X | layer:Y | ssot:true|ref|false | updated:DATE -->) "
+                    "— see docs/governance/docs-system.md (advisory, not blocking)",
+                    file=sys.stderr,
+                )
 
     return 1 if failed else 0
 
