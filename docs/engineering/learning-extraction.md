@@ -124,6 +124,23 @@ by default.
   button wired to `POST /api/scheduled/run/{slug}`.
 - A one-paragraph beginner explainer of how the agent learns.
 
+## Known limitation — hook BLOCKs are not captured on Claude (yet)
+
+The richest friction signal is a **hook BLOCK** (a PreToolUse hook exiting 2).
+`capture-tool-failure.sh` is wired only to the `PostToolUseFailure` event,
+which **Claude Code does not emit** (it is rendered into `.claude/settings.json`
+but never fires — `.hooks.log` shows zero `capture-tool-failure` runs). And a
+PreToolUse block cancels the tool, so no `PostToolUse` fires either. Net: today
+the friction miner sees tool failures + completion gaps, but **not** the
+block events — so `memory_type='hook_block'` rows are absent on Claude.
+
+Fix path (a dedicated, separately-tested change — NOT bolted onto a learning
+sweep, because it touches load-bearing safety infra): record the block at
+block-time. Either (a) have the shared `cos_log_hook <id> block` path in
+`cos-env.sh` write a fire-and-forget `hook_block` observation, or (b) add a
+`Stop`-event hook that scans the session `.hooks.log` for `block` entries and
+records recurring ones. Both feed the existing friction miner unchanged.
+
 ## Anti-overengineering boundary
 No new table, scheduler, or store. `memory_type` is free-text, so the
 `lesson`/`stat` classes need no migration. The three existing triggers
