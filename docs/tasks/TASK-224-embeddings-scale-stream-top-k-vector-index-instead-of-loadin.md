@@ -5,13 +5,13 @@ swimlane: "thinking_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, embeddings, rag, memory, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 3d
 created: 2026-06-07
 started: 2026-06-07
-completed: null
-agent_session: ses-claude-20260607-001830-03d2
+completed: 2026-06-07
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -30,3 +30,6 @@ references: []
 - **Then** search uses a vector index OR a chunked streaming top-K heap with a bounded memory ceiling (no fetchall of all vectors into RAM), and reindex_all batches via embed_texts; verified by a 1M-embedding search + full reindex staying under a fixed memory ceiling and acceptable latency.
 
 ## Work Log
+- 2026-06-07 [claude]: committed 733a05d2: src/core/thinking_os/embeddings.py
+- 2026-06-07 [claude]: committed 733a05d2: search_similar streams 4096-row batches into a top-K heap (bounded memory, exact match to brute-forc
+- 2026-06-07 [claude]: Status transitioned to complete via cos task-done.
