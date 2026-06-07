@@ -240,6 +240,34 @@ class TestRankingFormula:
 
 
 class TestMemorySearch:
+    def test_re_verify_flag_true_when_file_newer(
+        self, conn: sqlite3.Connection, tmp_path: Path
+    ) -> None:
+        target = tmp_path / "drift_target.py"
+        target.write_text("x = 1\n")
+        conn.execute(
+            "INSERT INTO observations (session_id, tool_name, observation_type, memory_type, "
+            "impact_score, title, narrative, files_modified, content_hash, created_at) "
+            "VALUES ('s','Edit','edit','discovery',0.5,'drift target observation','x',?, "
+            "'driftc1', datetime('now','-10 days'))",
+            (str(target),),
+        )
+        conn.commit()
+        result = memory_search(conn, query="drift target")
+        obs = [r for r in result["results"] if r["source_table"] == "observations"]
+        assert obs and obs[0]["re_verify_recommended"] is True
+
+    def test_re_verify_flag_false_without_file(self, conn: sqlite3.Connection) -> None:
+        conn.execute(
+            "INSERT INTO observations (session_id, tool_name, observation_type, memory_type, "
+            "impact_score, title, narrative, content_hash) "
+            "VALUES ('s','Edit','edit','discovery',0.5,'nofile drift observation','y','driftc2')"
+        )
+        conn.commit()
+        result = memory_search(conn, query="nofile drift")
+        obs = [r for r in result["results"] if r["source_table"] == "observations"]
+        assert obs and obs[0]["re_verify_recommended"] is False
+
     def test_empty_db(self, conn: sqlite3.Connection) -> None:
         result = memory_search(conn, query="anything")
         assert result["count"] == 0

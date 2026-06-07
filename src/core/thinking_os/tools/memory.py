@@ -61,6 +61,30 @@ def _access_score(count: int) -> float:
     return min(1.0, (count or 0) / 10.0)
 
 
+def _re_verify_recommended(files_modified: str | None, created_at: str | None) -> bool:
+    """True when the referenced file changed after the record was written.
+
+    A drift signal — the recalled memory may describe code that has since
+    changed, so the agent should Read the current file before trusting it.
+    See docs/engineering/learning-extraction.md (drift contract).
+    """
+    if not files_modified or not created_at:
+        return False
+    from pathlib import Path
+
+    try:
+        path = Path(files_modified.split(",")[0].strip())
+        if not path.exists():
+            return True  # file gone/renamed → the memory is certainly stale
+        created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        return mtime > created
+    except (ValueError, OSError, TypeError):
+        return False
+
+
 def _compute_score(
     relevance: float,
     confidence: float,
@@ -312,7 +336,7 @@ def memory_search(
         try:
             obs_rows = conn.execute(
                 "SELECT o.id, o.title, o.memory_type, o.impact_score, o.created_at, "
-                "o.concepts, o.access_count, rank AS fts_rank "
+                "o.concepts, o.access_count, o.files_modified, rank AS fts_rank "
                 "FROM observations_fts f "
                 "JOIN observations o ON o.id = f.rowid "
                 "WHERE observations_fts MATCH ? "
@@ -326,7 +350,7 @@ def memory_search(
     if not use_fts5:
         obs_rows = conn.execute(
             "SELECT id, title, memory_type, impact_score, created_at, concepts, "
-            "access_count, 0.5 AS fts_rank "
+            "access_count, files_modified, 0.5 AS fts_rank "
             "FROM observations "
             "WHERE (title LIKE ? OR narrative LIKE ? OR concepts LIKE ?)"
             + since_clause
@@ -362,6 +386,9 @@ def memory_search(
                 "source_table": "observations",
                 "score": score,
                 "semantic_score": 0.0,
+                "re_verify_recommended": _re_verify_recommended(
+                    row_dict.get("files_modified"), row_dict.get("created_at")
+                ),
             }
         )
 
@@ -459,6 +486,11 @@ def memory_search(
                         break
         except Exception:
             pass  # graph may not exist (pre-v4)
+
+    # Drift contract: every result carries the flag (accurate for observations;
+    # patterns/graph/semantic-only hits default False — they have no file ref).
+    for r in results:
+        r.setdefault("re_verify_recommended", False)
 
     # --- Boost access on returned results ---
     for r in results:
