@@ -547,6 +547,14 @@ async def board_task_history(
 
 
 _SHA_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
+_TASK_FILE_RE = re.compile(r"docs/tasks/(TASK-\d+)-")
+
+
+def _is_other_task_file(path: str, for_task: str) -> bool:
+    # A docs/tasks/TASK-NNN-*.md belonging to a DIFFERENT task than for_task — so
+    # one task's HISTORY never shows a batched commit's sibling-task files.
+    m = _TASK_FILE_RE.search(path)
+    return bool(m) and m.group(1) != for_task
 
 
 def _run_git(args: list[str], cwd: Path, timeout: float = 8.0) -> tuple[int, str]:
@@ -566,6 +574,7 @@ def _run_git(args: list[str], cwd: Path, timeout: float = 8.0) -> tuple[int, str
 @router.get("/commit/{sha}")
 async def board_commit(
     sha: str,
+    for_task: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("board.commit")),
     _m=Depends(make_metrics_dep("board.commit")),
 ):
@@ -603,6 +612,10 @@ async def board_commit(
                 "binary": added == "-" and removed == "-",
             }
         )
+    # Under one task's HISTORY, drop OTHER tasks' TASK-*.md so a batched commit
+    # doesn't leak sibling-task files into this task's view (keeps own + code).
+    if for_task and re.fullmatch(r"TASK-\d+", for_task):
+        files = [f for f in files if not _is_other_task_file(f["path"], for_task)]
     return JSONResponse(
         status_code=200,
         content={

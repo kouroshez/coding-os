@@ -3728,17 +3728,21 @@ function CommitRow({
   e,
   fmt,
   baseFont,
+  taskId,
 }: {
   e: TaskHistoryEvent;
   fmt: (at: number) => string;
   baseFont: string;
+  taskId: string;
 }) {
   const [open, setOpen] = useState(false);
   const sha = e.sha ?? '';
+  // for_task scopes the commit's file list to THIS task — a batched commit
+  // (many TASK-*.md in one) no longer leaks sibling files into this history.
   const { data, isLoading } = useApiGet<CommitDetailDTO>(
-    ['board-commit', sha],
+    ['board-commit', sha, taskId],
     `/api/board/commit/${sha}`,
-    undefined,
+    { for_task: taskId },
     { enabled: open && !!sha },
   );
   return (
@@ -3877,7 +3881,7 @@ function TaskHistoryPanel({ taskId }: { taskId: string }) {
           .reverse()
           .map((e, i) =>
             e.type === 'commit' && e.sha ? (
-              <CommitRow key={`commit-${e.sha}-${i}`} e={e} fmt={fmt} baseFont={baseFont} />
+              <CommitRow key={`commit-${e.sha}-${i}`} e={e} fmt={fmt} baseFont={baseFont} taskId={taskId} />
             ) : (
               <div
                 key={`${e.type}-${e.at}-${i}`}
