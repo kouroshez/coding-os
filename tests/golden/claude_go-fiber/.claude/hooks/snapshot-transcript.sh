@@ -11,6 +11,14 @@ if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 cos_log_hook snapshot-transcript enter || true
 
+# Opt-in only: snapshotting the full chat transcript is OFF by default — the
+# conversation is NOT saved into the repo unless explicitly enabled (privacy).
+# Set COS_SNAPSHOT_TRANSCRIPT=1 to re-enable (e.g. for cognition trace-replay).
+if [[ "${COS_SNAPSHOT_TRANSCRIPT:-0}" != "1" ]]; then
+  cos_log_hook snapshot-transcript skip || true
+  exit 0
+fi
+
 INPUT="$(cos_read_stdin_bounded 2)"
 
 # transcript_path is provided by the agent runtime in the Stop payload.
