@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 # Make cli module importable
@@ -302,7 +303,7 @@ class TestNextjsOverlay:
             "copywriting-standard.md",
             "formatting-rules.md",
             "i18n-policy.md",
-            "accessibility-checklist.md",
+            "accessibility-web.md",
         ):
             assert (eng / required).exists(), f"missing {required}"
 
@@ -407,3 +408,54 @@ class TestIdempotency:
         assert "not empty" in result.output or "--force" in result.output
         # User edit must survive
         assert roadmap.read_text() == "# CUSTOM USER ROADMAP\n"
+
+
+# ── Scaffold self-consistency guards (TASK-133) ──────────────────────
+_TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "src" / "templates"
+
+
+def _stack_dirs() -> list[Path]:
+    return [
+        d
+        for d in sorted(_TEMPLATES_DIR.iterdir())
+        if d.is_dir() and d.name != "_base" and (d / "stack.yaml").exists()
+    ]
+
+
+def test_every_dimension_read_file_resolves() -> None:
+    # D2-F1: a stack's dimensions[].read_files must resolve in that stack's
+    # scaffold OR _base's scaffold — no dangling Read List entries (the
+    # go-fiber security-review.md class of bug).
+    base_scaffold = _TEMPLATES_DIR / "_base" / "scaffold"
+    repo_root = _TEMPLATES_DIR.parent.parent
+    dangling: list[str] = []
+    for stack in _stack_dirs():
+        spec = yaml.safe_load((stack / "stack.yaml").read_text(encoding="utf-8")) or {}
+        # `meta` is the dogfood stack — its read_files point at the live repo
+        # (docs/, src/core/), not a scaffold tree; resolve those at repo root.
+        bases = [repo_root] if stack.name == "meta" else [stack / "scaffold", base_scaffold]
+        for dim in spec.get("dimensions", []) or []:
+            for rf in dim.get("read_files", []) or []:
+                if not any((b / rf).exists() for b in bases):
+                    dangling.append(f"{stack.name}:{dim.get('name')} -> {rf}")
+    assert not dangling, "Dangling dimension read_files:\n" + "\n".join(dangling)
+
+
+def test_no_engineering_doc_filename_collision_across_stacks() -> None:
+    # D2-F4: two stacks must not ship the same docs/engineering/*.md filename —
+    # `cos add-stack` of a second stack would overwrite the first's copy
+    # (the accessibility-checklist.md collision). Shared docs belong in _base.
+    seen: dict[str, str] = {}
+    collisions: list[str] = []
+    for stack in _stack_dirs():
+        eng = stack / "scaffold" / "docs" / "engineering"
+        if not eng.is_dir():
+            continue
+        for md in sorted(eng.glob("*.md")):
+            if md.name in seen:
+                collisions.append(f"{md.name}: {seen[md.name]} vs {stack.name}")
+            else:
+                seen[md.name] = stack.name
+    assert not collisions, (
+        "Colliding engineering doc filenames across stacks:\n" + "\n".join(collisions)
+    )

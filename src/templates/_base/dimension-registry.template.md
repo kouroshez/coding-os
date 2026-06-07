@@ -35,7 +35,7 @@ Use during Classify phase to build your Read List. Each file must have a REASON 
 - Error states → `engineering/frontend-rules.md` § Error Handling
 - Responsive → `engineering/frontend-rules.md`
 - i18n → `engineering/i18n-policy.md`
-- Accessibility → `engineering/accessibility-checklist.md`
+- Accessibility → `engineering/accessibility-web.md`
 - Rendering → `engineering/frontend-rendering-rules.md`
 - Testing → `engineering/frontend-rules.md` § Edge Case Testing
 

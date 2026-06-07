@@ -11,7 +11,7 @@ skills: [react-native-mobile, react-native-patterns]
 substitutions:
   DOMAIN_ROUTES: "Mobile→`docs/playbooks/mobile-app.md`"
   SKILL_ROUTES: "Mobile→`react-native-mobile`"
-  ENGINEERING_RULE_ROUTING: "Mobile→`docs/engineering/mobile-rules.md`, Offline→`docs/engineering/offline-first.md`, a11y→`docs/engineering/accessibility-checklist.md`"
+  ENGINEERING_RULE_ROUTING: "Mobile→`docs/engineering/mobile-rules.md`, Offline→`docs/engineering/offline-first.md`, a11y→`docs/engineering/accessibility-mobile.md`"
   TOOL_ROUTING_IMPL: "`lint-mobile`, `test-mobile`, `build-mobile`"
   VERIFY_MOBILE_GLOB: "`src/mobile/`"
   VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
@@ -24,13 +24,13 @@ substitutions:
     - `REF:PLAYBOOK-MOBILE` → `./playbooks/mobile-app.md`
     - `REF:MOBILE-RULES` → `./engineering/mobile-rules.md`
     - `REF:OFFLINE-FIRST` → `./engineering/offline-first.md`
-    - `REF:A11Y` → `./engineering/accessibility-checklist.md`
+    - `REF:A11Y` → `./engineering/accessibility-mobile.md`
 
 ref_codes:
   - {code: "REF:PLAYBOOK-MOBILE", path: "./playbooks/mobile-app.md",            desc: "Mobile app playbook"}
   - {code: "REF:MOBILE-RULES",    path: "./engineering/mobile-rules.md",        desc: "Mobile engineering rules"}
   - {code: "REF:OFFLINE-FIRST",   path: "./engineering/offline-first.md",       desc: "Offline-first patterns"}
-  - {code: "REF:A11Y",            path: "./engineering/accessibility-checklist.md", desc: "Accessibility checklist"}
+  - {code: "REF:A11Y",            path: "./engineering/accessibility-mobile.md", desc: "Accessibility checklist"}
 
 routing_entries:
   - "Mobile screen / component task → [Mobile App Playbook](./playbooks/mobile-app.md)"
@@ -44,7 +44,7 @@ dimensions:
   - {name: "RN component",      read_files: ["docs/engineering/mobile-rules.md"]}
   - {name: "Offline / sync",    read_files: ["docs/engineering/offline-first.md", "docs/playbooks/mobile-app.md"]}
   - {name: "Native bridge",     read_files: ["docs/playbooks/mobile-app.md"]}
-  - {name: "Accessibility",     read_files: ["docs/engineering/accessibility-checklist.md"]}
+  - {name: "Accessibility",     read_files: ["docs/engineering/accessibility-mobile.md"]}
 
 skill_enforcement:
   - {globs: ["src/mobile/**/*.{ts,tsx}"], primary: react-native-mobile, secondary: [clean-code, frontend-fundamentals, mobile-fundamentals, a11y]}

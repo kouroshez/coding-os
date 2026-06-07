@@ -77,7 +77,7 @@ Pattern source: `docs/engineering/offline-first.md`.
 - Every interactive element MUST carry `accessibilityRole`, `accessibilityLabel`, and `accessibilityState`.
 - Test with VoiceOver (iOS) AND TalkBack (Android). Both ship in CI.
 - Focus management on screen change: use `AccessibilityInfo.announceForAccessibility(...)`.
-- Color contrast ≥ WCAG 2.2 AA — see `docs/engineering/accessibility-checklist.md`.
+- Color contrast ≥ WCAG 2.2 AA — see `docs/engineering/accessibility-mobile.md`.
 
 ## 6. Performance budgets
 

@@ -19,5 +19,5 @@ Read next: The specific design doc relevant to your task.
 
 - Design tokens are SSOT. Tailwind config / CSS variables import from these docs.
 - Components defined here have a single canonical implementation in `src/frontend/src/components/`.
-- Accessibility is non-negotiable. See `../engineering/accessibility-checklist.md`.
+- Accessibility is non-negotiable. See `../engineering/accessibility-web.md`.
 - When the design system evolves, update the doc and components in the same PR.

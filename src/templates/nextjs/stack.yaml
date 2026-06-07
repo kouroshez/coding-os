@@ -10,7 +10,7 @@ skills: [nextjs-react]
 substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/frontend-ui.md`, Content→`docs/playbooks/content-seo.md`"
   SKILL_ROUTES: "Frontend→`nextjs-react`"
-  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-checklist.md`, Format→`docs/engineering/formatting-rules.md`"
+  ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-web.md`, Format→`docs/engineering/formatting-rules.md`"
   TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend"
@@ -27,7 +27,7 @@ substitutions:
     - `REF:FRONTEND-RENDER` → `./engineering/frontend-rendering-rules.md`
     - `REF:I18N-POLICY` → `./engineering/i18n-policy.md`
     - `REF:COPYWRITING` → `./engineering/copywriting-standard.md`
-    - `REF:A11Y` → `./engineering/accessibility-checklist.md`
+    - `REF:A11Y` → `./engineering/accessibility-web.md`
     - `REF:DESIGN-INDEX` → `./design/00-index.md`
     - `REF:CONTENT-INDEX` → `./pages-content-spec/00-index.md`
 
@@ -39,7 +39,7 @@ ref_codes:
   - {code: "REF:FRONTEND-RENDER",   path: "./engineering/frontend-rendering-rules.md", desc: "Frontend rendering rules"}
   - {code: "REF:I18N-POLICY",       path: "./engineering/i18n-policy.md",          desc: "i18n policy"}
   - {code: "REF:COPYWRITING",       path: "./engineering/copywriting-standard.md", desc: "Copywriting standard"}
-  - {code: "REF:A11Y",              path: "./engineering/accessibility-checklist.md", desc: "Accessibility checklist"}
+  - {code: "REF:A11Y",              path: "./engineering/accessibility-web.md", desc: "Accessibility checklist"}
   - {code: "REF:DESIGN-INDEX",      path: "./design/00-index.md",                  desc: "Design index"}
   - {code: "REF:CONTENT-INDEX",     path: "./pages-content-spec/00-index.md",      desc: "Content spec index"}
 
@@ -56,7 +56,7 @@ dimensions:
   - {name: "Page / route",      read_files: ["docs/engineering/frontend-rendering-rules.md", "docs/playbooks/frontend-ui.md"]}
   - {name: "Content / SEO",     read_files: ["docs/playbooks/content-seo.md", "docs/engineering/copywriting-standard.md"]}
   - {name: "i18n",              read_files: ["docs/engineering/i18n-policy.md"]}
-  - {name: "Accessibility",     read_files: ["docs/engineering/accessibility-checklist.md"]}
+  - {name: "Accessibility",     read_files: ["docs/engineering/accessibility-web.md"]}
 
 skill_enforcement:
   - {globs: ["src/frontend/**/*.{ts,tsx}"], primary: nextjs-react, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy]}

@@ -4,7 +4,7 @@
 > P: Routes mobile-specific tasks to anatomy.md, the right rules file, and verification commands.
 > R: Picking up any task whose primary work happens in `src/mobile/`.
 > S: Working on web / backend / ai-service code.
-> N: [../engineering/mobile-rules.md](../engineering/mobile-rules.md), [../engineering/offline-first.md](../engineering/offline-first.md), [../engineering/accessibility-checklist.md](../engineering/accessibility-checklist.md)
+> N: [../engineering/mobile-rules.md](../engineering/mobile-rules.md), [../engineering/offline-first.md](../engineering/offline-first.md), [../engineering/accessibility-mobile.md](../engineering/accessibility-mobile.md)
 
 ## When to use
 
@@ -16,7 +16,7 @@ For typical tasks, read in this order:
 
 1. The active task file — `docs/tasks/TASK-NNN-*.md`.
 2. [`anatomy.md`](../../skills/react-native-mobile/references/anatomy.md) — file map + entity recipe for the action you're about to take.
-3. The matching rule file (`mobile-rules.md` for general, `offline-first.md` for sync, `accessibility-checklist.md` for a11y).
+3. The matching rule file (`mobile-rules.md` for general, `offline-first.md` for sync, `accessibility-mobile.md` for a11y).
 4. The existing parent screen/component/hook the change relates to.
 5. `src/shared/contracts/<resource>.ts` if you're adding an API call.
 6. `src/mobile/store/<slice>.ts` if you're touching shared state.

@@ -4,7 +4,7 @@
 > P: Rules every `src/mobile/**/*.{ts,tsx}` file must satisfy. Layered on top of clean-code, frontend-fundamentals, and a11y.
 > R: Reviewing or writing any mobile source file.
 > S: Touching the web frontend or backend.
-> N: [offline-first.md](offline-first.md), [accessibility-checklist.md](accessibility-checklist.md), [../playbooks/mobile-app.md](../playbooks/mobile-app.md)
+> N: [offline-first.md](offline-first.md), [accessibility-mobile.md](accessibility-mobile.md), [../playbooks/mobile-app.md](../playbooks/mobile-app.md)
 
 ## 1. Architecture
 
@@ -49,7 +49,7 @@
 
 ## 7. Accessibility
 
-See [accessibility-checklist.md](accessibility-checklist.md). Every interactive element MUST carry `accessibilityRole`, `accessibilityLabel`, and `accessibilityState`. Test with VoiceOver + TalkBack before merge.
+See [accessibility-mobile.md](accessibility-mobile.md). Every interactive element MUST carry `accessibilityRole`, `accessibilityLabel`, and `accessibilityState`. Test with VoiceOver + TalkBack before merge.
 
 ## 8. Boundary
 

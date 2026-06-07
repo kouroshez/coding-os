@@ -38,7 +38,7 @@ makefile_targets:
 
 dimensions:
   - {name: "Fiber handler",    read_files: ["docs/playbooks/fiber-service.md", "docs/engineering/fiber-rules.md"]}
-  - {name: "Middleware / auth", read_files: ["docs/engineering/fiber-rules.md", "docs/playbooks/security-review.md"]}
+  - {name: "Middleware / auth", read_files: ["docs/engineering/fiber-rules.md"]}
   - {name: "Request validation / DTO", read_files: ["docs/engineering/fiber-rules.md", "docs/api-contracts/error-format.md"]}
 
 skill_enforcement:
