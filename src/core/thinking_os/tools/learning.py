@@ -279,11 +279,14 @@ def learn_extract(
             _upsert_pattern(
                 conn,
                 pattern=pattern_text,
-                memory_type="pattern",
+                # 'stat' (not a belief): a success rate is observability, not a
+                # lesson — excluded from the digest + cos_learn_suggest so it
+                # never masquerades as a learning. See learning-extraction.md.
+                memory_type="stat",
                 domain=d["domain"],
                 source="learn_extract",
                 confidence=confidence,
-                concepts=json.dumps([d["domain"].lower(), "success", "baseline"]),
+                concepts=json.dumps([d["domain"].lower(), "success", "baseline", "stat"]),
             )
         )
 
@@ -304,11 +307,11 @@ def learn_extract(
             _upsert_pattern(
                 conn,
                 pattern=pattern_text,
-                memory_type="pattern",
+                memory_type="stat",  # observability, not a belief — see above
                 domain=None,
                 source="learn_extract",
                 confidence=confidence,
-                concepts=json.dumps(["skill", "success", "correlation"]),
+                concepts=json.dumps(["skill", "success", "correlation", "stat"]),
             )
         )
 
@@ -490,11 +493,14 @@ def _upsert_pattern(
         # Re-extraction is a positive signal: refresh recency AND revive (promoted_to=NULL)
         # so a pattern a prior decay run archived becomes visible to suggest/digest again.
         conn.execute(
-            "UPDATE learned_patterns SET pattern = ?, confidence = ?, "
+            # Refresh memory_type too: a re-mine reclassifies a row whose class
+            # changed (e.g. a legacy success baseline minted as 'pattern' becomes
+            # 'stat'), so old garbage reclassifies on the next loop run.
+            "UPDATE learned_patterns SET pattern = ?, memory_type = ?, confidence = ?, "
             "times_validated = times_validated + 1, last_validated = CURRENT_TIMESTAMP, "
             "last_accessed_at = CURRENT_TIMESTAMP, promoted_to = NULL, archived_at = NULL "
             "WHERE id = ?",
-            (pattern, new_conf, existing["id"]),
+            (pattern, memory_type, new_conf, existing["id"]),
         )
         pattern_id = existing["id"]
         result = {"id": pattern_id, "pattern": pattern, "confidence": new_conf, "action": "updated"}

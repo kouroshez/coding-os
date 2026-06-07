@@ -208,6 +208,63 @@ class TestFrictionLessons:
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
 
+class TestStatClassification:
+    """Success correlations are STATS, not beliefs. They must be minted with
+    memory_type='stat' (excluded from digest + suggest), while failure signals
+    (rework) stay beliefs. Re-mining reclassifies legacy 'pattern' baselines."""
+
+    def test_success_baselines_are_stat(self, conn: sqlite3.Connection) -> None:
+        for i in range(3):
+            conn.execute(
+                "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, skills_used) "
+                "VALUES (?, 'feat', 'INFRA', 'CLEAR', 'success', 'graph-explorer')",
+                (f"TASK-S{i}",),
+            )
+        conn.commit()
+        learn_extract(conn, min_occurrences=3)
+        rows = conn.execute(
+            "SELECT memory_type FROM learned_patterns "
+            "WHERE pattern LIKE '%succeeds at%' OR pattern LIKE '%correlates with success%'"
+        ).fetchall()
+        assert rows
+        assert all(r["memory_type"] == "stat" for r in rows)
+
+    def test_rework_pattern_stays_belief(self, seeded_conn: sqlite3.Connection) -> None:
+        learn_extract(seeded_conn, min_occurrences=3)
+        rows = seeded_conn.execute(
+            "SELECT memory_type FROM learned_patterns WHERE pattern LIKE '%rework rate%'"
+        ).fetchall()
+        assert rows  # BACKEND has 3 reworks in the seeded corpus
+        assert all(r["memory_type"] != "stat" for r in rows)
+
+    def test_remine_reclassifies_legacy_pattern_to_stat(
+        self, seeded_conn: sqlite3.Connection
+    ) -> None:
+        from tools.learning import _upsert_pattern
+
+        # legacy garbage row minted (pre-fix) as a generic 'pattern'
+        seeded_conn.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, domain, source, confidence) "
+            "VALUES ('INFRA domain succeeds at 100% (40/40 tasks) — reliable baseline', "
+            "'pattern', 'INFRA', 'learn_extract', 0.8)"
+        )
+        seeded_conn.commit()
+        _upsert_pattern(
+            seeded_conn,
+            pattern="INFRA domain succeeds at 100% (83/83 tasks) — reliable baseline",
+            memory_type="stat",
+            domain="INFRA",
+            source="learn_extract",
+            confidence=0.85,
+            concepts="[]",
+        )
+        rows = seeded_conn.execute(
+            "SELECT memory_type FROM learned_patterns WHERE domain='INFRA'"
+        ).fetchall()
+        assert len(rows) == 1  # still one row (count-agnostic identity)
+        assert rows[0]["memory_type"] == "stat"  # reclassified on re-mine
+
+
 class TestPatternIdentityDedup:
     """TASK-206: the running task count embedded in mined pattern text used
     to be part of the dedup identity, so every extraction run (count grew)
