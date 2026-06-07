@@ -525,6 +525,43 @@ def test_board_include_archive_returns_active_and_paged(project: Path, conn: sql
     assert env["data"]["columns"]["complete"]["total_count"] == 1
 
 
+def test_commits_referencing_batch_attributes_per_task(tmp_path: Path):
+    import subprocess
+
+    root = tmp_path / "repo"
+    root.mkdir()
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+
+    git("init")
+    git("config", "user.email", "t@t.t")
+    git("config", "user.name", "t")
+    (root / "a.txt").write_text("1")
+    git("add", "a.txt")
+    git("commit", "-m", "feat: work on TASK-100")
+    (root / "b.txt").write_text("2")
+    git("add", "b.txt")
+    git("commit", "-m", "fix: TASK-100 followup and TASK-200")
+    (root / "c.txt").write_text("3")
+    git("add", "c.txt")
+    git("commit", "-m", "chore: TASK-1000 only")
+
+    counts = mcp_tools._commits_referencing_batch(
+        ["TASK-100", "TASK-200", "TASK-300", "TASK-1000"], root
+    )
+    assert counts["TASK-100"] == 2  # boundary: NOT bumped by TASK-1000
+    assert counts["TASK-200"] == 1
+    assert counts["TASK-300"] == 0
+    assert counts["TASK-1000"] == 1
+
+
+def test_commits_referencing_batch_no_git_fails_safe(tmp_path: Path):
+    # No git repo → every id maps to None so callers treat as "has evidence".
+    counts = mcp_tools._commits_referencing_batch(["TASK-1", "TASK-2"], tmp_path)
+    assert counts == {"TASK-1": None, "TASK-2": None}
+
+
 # ---------- cos_task_move ----------
 
 
@@ -1143,6 +1180,9 @@ def test_daily_reports_testing_and_icebox_summary(project: Path, conn: sqlite3.C
 def test_reclaim_returns_stale_testing_to_in_progress(project, conn, monkeypatch):
     """RC3: a stale testing zombie is reclaimed back to in_progress (not icebox)."""
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
+    monkeypatch.setattr(
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 0 for t in ids}
+    )
     mcp_tools.cos_task_create(
         conn, title="Testing zombie", swimlane="core", kind="bug", status="icebox"
     )
@@ -1172,6 +1212,9 @@ def test_reclaim_in_progress_to_icebox_ready(project: Path, conn: sqlite3.Connec
 def test_reclaim_per_status_testing_sooner_than_in_progress(project, conn, monkeypatch):
     """A 7h testing card reclaims (>6h) though it is under the 24h in_progress floor."""
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
+    monkeypatch.setattr(
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 0 for t in ids}
+    )
     mcp_tools.cos_task_create(
         conn, title="7h testing", swimlane="core", kind="bug", status="icebox"
     )
@@ -1289,6 +1332,9 @@ def test_reconcile_classifies_likely_complete_via_worklog(project: Path, conn: s
 
 def test_reconcile_classifies_likely_abandoned(project, conn, monkeypatch):
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: 0)  # git-verified zero
+    monkeypatch.setattr(
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: 0 for t in ids}
+    )
     mcp_tools.cos_task_create(conn, title="Nothing", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "in_progress", 30 * 3600)
     conn.execute("UPDATE tasks SET work_log_last_5='[]' WHERE task_id='TASK-001'")
@@ -1301,6 +1347,9 @@ def test_reconcile_fail_safe_when_git_unverifiable(project, conn, monkeypatch):
     """TASK-217: when commits can't be verified (no git), a testing task is
     likely_complete (never abandoned) and reclaim must NOT recycle it."""
     monkeypatch.setattr(mcp_tools, "_commits_referencing", lambda *a, **k: None)  # can't verify
+    monkeypatch.setattr(
+        mcp_tools, "_commits_referencing_batch", lambda ids, *a, **k: {t: None for t in ids}
+    )
     mcp_tools.cos_task_create(conn, title="No git", swimlane="core", kind="bug", status="icebox")
     _backdate_task(conn, "TASK-001", "testing", 8 * 3600)
     item = next(

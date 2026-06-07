@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, board, cli, git, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 3d
 created: 2026-06-07
-started: null
+started: 2026-06-07
 completed: null
-agent_session: null
+agent_session: ses-claude-20260607-001830-03d2
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-227: board_os + CLI bounded queries & git batching (daily/retro/pick/reclaim/reconcile/doctor/history)
 
 **Outcome (one sentence):** No board/CLI path loads or git-scans unboundedly at 100K tasks/1M commits: cos_task_daily/retro/pick return counts + top-N (LIMIT), not full card lists; cos_task_reclaim/reconcile batch task-ids into ONE git log --all --grep (not per-task subprocess) and cap concurrency (ProcessPoolExecutor); cos_task_history + _commits_referencing bound git with --max-count; cos doctor replaces full-tree rglob with find -prune. Verified by a 100K-task/100K-commit fixture staying bounded in time + memory. See audit-enterprise-scale-2026-06-07.md (board_os + cli findings).

@@ -79,6 +79,34 @@ def _load_doctor_config() -> dict[str, Any]:
 RUNTIME_PATHS, IGNORED_PREFIXES = _load_runtime_paths()
 _DOCTOR_CFG = _load_doctor_config()
 
+
+def _scan_project_files(project: Path) -> set[str]:
+    """Project file set, pruning ignored top-level subtrees in place.
+
+    os.walk lets us drop .git/.venv/node_modules/.build from `dirnames` so we
+    never descend into them — a full rglob walked those heavy trees before
+    filtering, the dominant cost on a 100K-file repo. TASK-227.
+    """
+    proot = project.resolve()
+    actual: set[str] = set()
+
+    def _ignored_dir(rel_dir: str, name: str) -> bool:
+        child = f"{rel_dir}/{name}/" if rel_dir else f"{name}/"
+        return any(child.startswith(p) for p in IGNORED_PREFIXES)
+
+    for dirpath, dirnames, filenames in os.walk(proot):
+        rel_dir = os.path.relpath(dirpath, proot)
+        rel_dir = "" if rel_dir == "." else rel_dir.replace(os.sep, "/")
+        dirnames[:] = [d for d in dirnames if not _ignored_dir(rel_dir, d)]
+        for fn in filenames:
+            rel = f"{rel_dir}/{fn}" if rel_dir else fn
+            if rel in RUNTIME_PATHS:
+                continue
+            if any(rel.startswith(p) for p in IGNORED_PREFIXES):
+                continue
+            actual.add(rel)
+    return actual
+
 CONFIG_FILE = ".coding-os.yaml"
 STATE_DIR_DEFAULT = ".coding-os"
 
@@ -672,16 +700,7 @@ def _check_manifest(
         return
 
     expected = set(section.get("paths", []))
-    actual = set()
-    for f in project.rglob("*"):
-        if not f.is_file():
-            continue
-        rel = f.relative_to(project).as_posix()
-        if rel in RUNTIME_PATHS:
-            continue
-        if any(rel.startswith(p) for p in IGNORED_PREFIXES):
-            continue
-        actual.add(rel)
+    actual = _scan_project_files(project)
 
     missing = sorted(expected - actual)
     extras = sorted(actual - expected)

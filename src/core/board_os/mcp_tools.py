@@ -1471,6 +1471,7 @@ def _commits_referencing(task_id: str, project_root: Path) -> int | None:
     try:
         out = subprocess.run(
             ["git", "-C", str(project_root), "log", "--all", "-E",
+             f"--max-count={_COMMIT_SCAN_CAP}",
              "--grep", f"{task_id}([^0-9]|$)", "--oneline"],
             capture_output=True,
             text=True,
@@ -1481,6 +1482,53 @@ def _commits_referencing(task_id: str, project_root: Path) -> int | None:
     if out.returncode != 0:
         return None
     return sum(1 for line in out.stdout.splitlines() if line.strip())
+
+
+# Cap on how many matching commits git enumerates per scan — bounds the history
+# walk at 1M+ commits. Reconciliation only needs "0 vs >0" evidence, so a count
+# capped at this value is sufficient (and reported as "at least N"). TASK-227.
+_COMMIT_SCAN_CAP = 500
+# Cap on a single reclaim/reconcile sweep — the rest drains on the next run.
+_STRANDED_SCAN_LIMIT = 1000
+
+
+def _commits_referencing_batch(
+    task_ids: list[str], project_root: Path
+) -> dict[str, int | None]:
+    """One `git log --all --grep(OR ...)` for many task-ids → {task_id: count}.
+
+    Replaces N per-task subprocesses that each walk the full history. Values are
+    None (for every id) when git is unavailable so callers fail SAFE (treat
+    'unverifiable' as 'has evidence'). Counts are capped at _COMMIT_SCAN_CAP.
+    """
+    import re
+    import subprocess
+
+    ids = [t for t in dict.fromkeys(task_ids) if t]
+    if not ids:
+        return {}
+    counts: dict[str, int | None] = {tid: 0 for tid in ids}
+    grep_args: list[str] = []
+    for tid in ids:
+        grep_args += ["--grep", f"{tid}([^0-9]|$)"]
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(project_root), "log", "--all", "-E",
+             f"--max-count={_COMMIT_SCAN_CAP}", *grep_args, "--format=%s"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {tid: None for tid in ids}
+    if out.returncode != 0:
+        return {tid: None for tid in ids}
+    patterns = {tid: re.compile(re.escape(tid) + r"([^0-9]|$)") for tid in ids}
+    for line in out.stdout.splitlines():
+        for tid, pat in patterns.items():
+            if pat.search(line):
+                counts[tid] += 1
+    return counts
 
 
 def _has_work_log(work_log_json: object) -> bool:
@@ -1560,8 +1608,15 @@ def cos_task_reclaim(
     # near-done work at the moment of session death.
     rows = conn.execute(
         "SELECT task_id, agent_session, started_at, file_path, status, work_log_last_5 "
-        "FROM tasks WHERE status IN ('in_progress', 'testing', 'emergency')"
+        "FROM tasks WHERE status IN ('in_progress', 'testing', 'emergency') "
+        "ORDER BY started_at LIMIT ?",
+        (_STRANDED_SCAN_LIMIT,),
     ).fetchall()
+    # Batch the per-testing-task git lookup into ONE history walk (was N
+    # subprocesses, each O(history) at 1M commits). TASK-227.
+    commits_by_task = _commits_referencing_batch(
+        [r[0] for r in rows if r[4] == "testing"], project_root
+    )
 
     reclaimed: list[dict] = []
     skipped_for_review: list[dict] = []
@@ -1590,7 +1645,7 @@ def cos_task_reclaim(
         # just forgot task-done. Leave it in testing for review (cos_task_reconcile
         # surfaces it) instead of recycling it to in_progress.
         if status == "testing":
-            commits = _commits_referencing(task_id, project_root)
+            commits = commits_by_task.get(task_id)
             # None = unverifiable (no git) → counts as evidence so we never
             # recycle a testing card on a signal we could not check.
             if _has_work_log(work_log) or commits is None or commits > 0:
@@ -1666,16 +1721,18 @@ def cos_task_reconcile(conn: sqlite3.Connection, *, include_active: bool = False
         "  (SELECT MAX(transitioned_at) FROM task_status_history h "
         "   WHERE h.task_id = tasks.task_id) "
         "FROM tasks WHERE status IN ('in_progress', 'testing', 'emergency') "
-        "ORDER BY status DESC, task_id"
+        "ORDER BY status DESC, task_id LIMIT ?",
+        (_STRANDED_SCAN_LIMIT,),
     ).fetchall()
+    # Pre-filter to the rows we'll actually triage (default = stranded only),
+    # then batch the git lookup into ONE history walk instead of one subprocess
+    # per row. TASK-227.
+    triaged = [r for r in rows if include_active or not (r[1] and r[1] in active)]
+    commits_by_task = _commits_referencing_batch([r[0] for r in triaged], project_root)
     items: list[dict] = []
-    for task_id, owner, status, started_at, work_log, last_tx in rows:
+    for task_id, owner, status, started_at, work_log, last_tx in triaged:
         owner_active = bool(owner and owner in active)
-        # By default reconcile only the STRANDED (dead-owner) tasks; pass
-        # include_active=True to review everything currently open.
-        if owner_active and not include_active:
-            continue
-        commits = _commits_referencing(task_id, project_root)
+        commits = commits_by_task.get(task_id)
         has_wl = _has_work_log(work_log)
         classification = _classify_stranded(status, commits, has_wl)
         dwell = _status_dwell_seconds(now, started_at, last_tx)
@@ -1734,8 +1791,9 @@ def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
             "SELECT task_id, started_at, file_path, labels_json, "
             "  (SELECT MAX(transitioned_at) FROM task_status_history h "
             "   WHERE h.task_id = tasks.task_id) "
-            "FROM tasks WHERE status = ?",
-            (status,),
+            "FROM tasks WHERE status = ? "
+            "ORDER BY started_at ASC LIMIT ?",  # oldest first; rest drains next run
+            (status, _STRANDED_SCAN_LIMIT),
         ).fetchall()
         for task_id, started_at, rel, labels_json, last_tx in rows:
             dwell = _status_dwell_seconds(now, started_at, last_tx)
@@ -1788,7 +1846,9 @@ def cos_task_pick(
     if swimlane:
         clauses.append("swimlane = ?")
         params.append(swimlane)
-    query = f"{_BOARD_SELECT} WHERE {' AND '.join(clauses)}"
+    # Bounded: highest-priority candidates first, capped — pick only needs the
+    # top max_candidates, and the cap keeps a 10K-ready icebox from a full load.
+    query = f"{_BOARD_SELECT} WHERE {' AND '.join(clauses)} ORDER BY priority LIMIT 1000"
     rows = conn.execute(query, params).fetchall()
 
     scored: list[tuple[int, dict]] = []
@@ -1843,25 +1903,37 @@ def cos_task_daily(
     except Exception as exc:  # noqa: BLE001 - fire-and-forget
         logger.debug("daily archive sweep skipped: %s", exc)
 
+    # Bounded standup queries (TASK-227): a 24h window or a runaway icebox must
+    # not fetchall unboundedly. Active columns are WIP-small; icebox uses an
+    # accurate COUNT + a bounded oldest-first sample for the stale preview.
+    # Standup highlights only — most-recent N transitions, not the full window
+    # (an unbounded list both OOMs at scale and blows the 32KB agent envelope).
     recent = conn.execute(
         "SELECT task_id, old_status, new_status, reason, transitioned_at "
         "FROM task_status_history "
         "WHERE transitioned_at >= ? "
-        "ORDER BY transitioned_at",
+        "ORDER BY transitioned_at DESC LIMIT 50",
         (threshold,),
     ).fetchall()
 
     in_progress = conn.execute(
-        f"{_BOARD_SELECT} WHERE status = 'in_progress' ORDER BY priority"
+        f"{_BOARD_SELECT} WHERE status = 'in_progress' ORDER BY priority LIMIT 200"
     ).fetchall()
     # `testing` was previously absent from daily — the protocol funnels work
     # there before completion, so an abandoned card most often rots in testing
     # (RC3). Report it so a stranded testing zombie is visible at standup.
     testing = conn.execute(
-        f"{_BOARD_SELECT} WHERE status = 'testing' ORDER BY priority"
+        f"{_BOARD_SELECT} WHERE status = 'testing' ORDER BY priority LIMIT 200"
     ).fetchall()
-    blocked = conn.execute(f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority").fetchall()
-    icebox = conn.execute(f"{_BOARD_SELECT} WHERE status = 'icebox'").fetchall()
+    blocked = conn.execute(
+        f"{_BOARD_SELECT} WHERE status = 'blocked' ORDER BY priority LIMIT 200"
+    ).fetchall()
+    icebox_total = conn.execute(
+        "SELECT COUNT(*) FROM tasks WHERE status = 'icebox'"
+    ).fetchone()[0]
+    icebox = conn.execute(
+        f"{_BOARD_SELECT} WHERE status = 'icebox' ORDER BY last_transition_at ASC LIMIT 500"
+    ).fetchall()
 
     wip = None
     if config is not None:
@@ -1874,7 +1946,7 @@ def cos_task_daily(
     icebox_cards = [_flag_stale(_task_card(r), config) for r in icebox]
     icebox_stale = [c for c in icebox_cards if c.get("stale")]
     icebox_summary = {
-        "total": len(icebox_cards),
+        "total": icebox_total,  # accurate count; cards below are a bounded sample
         "stale": len(icebox_stale),
         "stale_ids": [c["id"] for c in icebox_stale[:20]],
     }
@@ -1912,7 +1984,8 @@ def cos_task_retro(conn: sqlite3.Connection, *, since: str = "7d") -> str:
     threshold = int(time.time() - hours * 3600)
 
     completed = conn.execute(
-        f"{_BOARD_SELECT} WHERE status = 'complete' AND completed_at >= ?",
+        f"{_BOARD_SELECT} WHERE status = 'complete' AND completed_at >= ? "
+        "ORDER BY completed_at DESC LIMIT 1000",
         (threshold,),
     ).fetchall()
     cards = [_task_card(r) for r in completed]
