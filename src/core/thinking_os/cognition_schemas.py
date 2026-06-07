@@ -356,6 +356,9 @@ class ExhaustiveEvidence(BaseModel):
     gaps_remaining: list[str] = Field(default_factory=list)
     confidence: float = 0.0
     reviewer_check: Literal["pending", "pass", "fail"] = "pending"
+    # Free-text reviewer narrative — keep reviewer_check a strict literal so the
+    # completion guardian can gate on it; prose belongs here, never there.
+    reviewer_notes: str = ""
     audit_artifact_path: str | None = None
 
 

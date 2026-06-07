@@ -273,7 +273,11 @@ def register_cos_supervise_record_output(mcp, db_path):
                 logger.warning("Failed to parse exhaustive evidence: %s", exc)
                 bundle.degraded_formulas.append(formula_id)
                 status = "fail"
-                error_detail = f"exhaustive_evidence parse: {exc}"
+                error_detail = (
+                    "exhaustive_evidence rejected: reviewer_check must be exactly "
+                    "'pending' | 'pass' | 'fail' — put any narrative in the "
+                    f"reviewer_notes field, not reviewer_check. (parse: {exc})"
+                )
         else:
             # Data-driven role → bundle-field + Pydantic class (frontmatter SSOT).
             field, cls = _resolve_role_persistence(formula_id)

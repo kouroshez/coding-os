@@ -34,11 +34,21 @@ from __future__ import annotations
 import functools
 import hashlib
 import logging
+import os
 import sqlite3
 import sys
 from typing import Any
 
 logger = logging.getLogger("coding_os.embeddings")
+
+# Enterprise: never make unauthenticated HuggingFace Hub requests at runtime.
+# Default to offline (use the locally-cached model only). A first-time vendoring
+# download is explicit opt-in via COS_ALLOW_MODEL_DOWNLOAD=1, so the agent
+# runtime never phones home without consent. setdefault respects an operator's
+# own HF_HUB_OFFLINE choice.
+if os.environ.get("COS_ALLOW_MODEL_DOWNLOAD") != "1":
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 # Default model — small, fast, MIT license. ~22MB download.
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
@@ -126,7 +136,14 @@ def _get_model_by_name(name: str) -> Any:
         logger.info("Loading embedding model: %s", name)
         return SentenceTransformer(name)
     except Exception as exc:
-        logger.warning("Failed to load embedding model %s: %s", name, exc)
+        if os.environ.get("COS_ALLOW_MODEL_DOWNLOAD") != "1":
+            logger.warning(
+                "Embedding model %s not in local cache; runtime downloads are "
+                "disabled — set COS_ALLOW_MODEL_DOWNLOAD=1 once to vendor it. "
+                "Falling back to lexical search. (%s)", name, exc
+            )
+        else:
+            logger.warning("Failed to load embedding model %s: %s", name, exc)
         return None
 
 

@@ -1022,8 +1022,9 @@ def _reviewer_hint_if_required(task_id: str) -> dict | None:
         "expected_output_schema": "ExhaustiveEvidence.reviewer_check",
         "post_action": (
             "Submit reviewer findings via cos_supervise_record_output "
-            "(formula_id='exhaustive_evidence') with reviewer_check set "
-            "to 'pass' or 'fail'."
+            "(formula_id='exhaustive_evidence'). reviewer_check MUST be the "
+            "literal 'pass' or 'fail' (never prose) — put any narrative in the "
+            "reviewer_notes field, else the evidence bundle is rejected."
         ),
     }
 
