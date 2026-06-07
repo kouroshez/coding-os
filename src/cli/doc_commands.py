@@ -62,8 +62,8 @@ def doc_new_cmd(layer: str, target: str, title: str, domain: str, ssot: bool, fo
         click.echo(f"ERROR: {path} already exists (use --force to overwrite)", err=True)
         sys.exit(1)
     body = _HEADER_TEMPLATE.format(
-        domain=domain,
-        layer=layer,
+        domain=domain.upper(),
+        layer=layer.lower(),
         ssot=str(ssot).lower(),
         updated=date.today().isoformat(),
         title=title or _title_from_path(path),
