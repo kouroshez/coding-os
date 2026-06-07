@@ -28,6 +28,7 @@ ALLOWED_MODEL_PATHS: set[str] = {
     "src/core/thinking_os/database.py",  # migration docstring example
     "src/core/hooks/_helpers/presence_write.py",  # docstring example of the model arg
     "src/core/thinking_os/compress.py",  # COS_COMPRESS_MODEL env default
+    "src/core/thinking_os/tests/test_compress.py",  # asserts _stamp_provenance echoes the model id
     "src/core/thinking_os/agents/researcher.md",  # role frontmatter
     "src/core/thinking_os/agents/implementer.md",
     "src/core/thinking_os/agents/reviewer.md",
