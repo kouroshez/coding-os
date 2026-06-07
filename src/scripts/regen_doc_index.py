@@ -95,12 +95,23 @@ def _render_index(directory: Path, headers: list[dict]) -> str:
 
 
 def _splice_into_existing(existing: str, regenerated: str) -> str:
-    """Replace the auto-index fence inside `existing`, keep the rest."""
+    """Replace the auto-index fence inside `existing`, keep the rest.
+
+    Idempotent: the boundary newlines are normalised (one blank line before the
+    fence, the post-fence tail preserved) so repeated regens never accumulate
+    blank lines at the splice seams — the old `pre + regenerated + post` form
+    grew one trailing newline per run because both `regenerated` and `post`
+    carried the post-END_MARKER newline.
+    """
     if BEGIN_MARKER not in existing or END_MARKER not in existing:
         return regenerated
-    pre = existing.split(BEGIN_MARKER, 1)[0]
-    post = existing.split(END_MARKER, 1)[1]
-    return f"{pre}{regenerated}{post}"
+    pre = existing.split(BEGIN_MARKER, 1)[0].rstrip("\n")
+    post = existing.split(END_MARKER, 1)[1].strip("\n")
+    block = regenerated.strip("\n")
+    out = f"{pre}\n\n{block}\n"
+    if post:
+        out += f"\n{post}\n"
+    return out
 
 
 def regenerate(directory: Path, *, write: bool = True) -> str | None:
