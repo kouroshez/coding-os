@@ -4,7 +4,7 @@ title: "Observability/trace scale: bounded tail-reads (256KB windows, max-N file
 swimlane: core
 kind: feature
 epic: enterprise-scale
-labels: [scale, web, observability, traces]
+labels: [scale, web, observability, traces, ready]
 status: icebox
 priority: P0
 appetite: 2d
@@ -27,8 +27,8 @@ references: []
 - src/core/web/routes/cognition.py
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** a 1GB trace jsonl and a directory with 10K session/trace files.
+- **When** the observability + cognition endpoints read hook events, cognition events, a trace, or scan sessions.
+- **Then** reads are bounded (last ~256KB window / last N files by mtime) with offset/cursor pagination, no whole-file load and no full-dir glob; verified by fast, bounded-memory responses on the 1GB/10K fixture (no OOM, flat latency as files grow).
 
 ## Work Log

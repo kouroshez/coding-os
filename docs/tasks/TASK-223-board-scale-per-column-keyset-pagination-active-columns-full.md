@@ -4,7 +4,7 @@ title: "Board scale: per-column keyset pagination (active columns full; complete
 swimlane: "board_os"
 kind: feature
 epic: enterprise-scale
-labels: [scale, board, web, pagination]
+labels: [scale, board, web, pagination, ready]
 status: icebox
 priority: P0
 appetite: 3d
@@ -27,8 +27,8 @@ references: []
 - src/core/web/ui/src/features/cos-board/CosBoardPage.tsx
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** a board with far more complete/archive cards than one page (e.g. 50K complete).
+- **When** cos_task_board / board_list returns a column and the SPA renders it.
+- **Then** active columns return in full (WIP-bounded) while complete/archive return ONE keyset page (cursor + per-column total_count, no apply_budget return-all), the kanban + graph virtual-scroll with load-more, and a 50K-task soak yields bounded payloads (each page << prior 398KB) with honest truncated/total — replacing the TASK-220 interim fix.
 
 ## Work Log

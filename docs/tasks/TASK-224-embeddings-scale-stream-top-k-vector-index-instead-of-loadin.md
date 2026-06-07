@@ -4,7 +4,7 @@ title: "Embeddings scale: stream top-K / vector index instead of loading all emb
 swimlane: "thinking_os"
 kind: feature
 epic: enterprise-scale
-labels: [scale, embeddings, rag, memory]
+labels: [scale, embeddings, rag, memory, ready]
 status: icebox
 priority: P0
 appetite: 3d
@@ -26,8 +26,8 @@ references: []
 - src/core/thinking_os/embeddings.py
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
-- **Given** ...
-- **When** ...
-- **Then** ...
+- **Given** ~1M rows in the embeddings table.
+- **When** search_similar(query) and reindex_all() run.
+- **Then** search uses a vector index OR a chunked streaming top-K heap with a bounded memory ceiling (no fetchall of all vectors into RAM), and reindex_all batches via embed_texts; verified by a 1M-embedding search + full reindex staying under a fixed memory ceiling and acceptable latency.
 
 ## Work Log
