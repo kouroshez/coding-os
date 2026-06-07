@@ -67,20 +67,22 @@ Contract:
 
 ## SPA pages — primary nav
 
+The SPA is organized into two nested hubs, each served at a global path and a
+`/p/:slug/` project-scoped path. Legacy flat routes (`/dashboard`, `/board`,
+`/search`, `/doctor`, `/logs`, `/observability`, `/sessions`, `/audits`,
+`/settings`) redirect into the hubs (see `App.tsx`).
+
 | Route | Component | Backend endpoints |
 |---|---|---|
 | `/` | `HubHome` | `/api/hub/*` |
-| `/dashboard`, `/p/:slug/dashboard` | `DashboardPage` | aggregates board + presence |
-| `/board`, `/p/:slug/board` | `CosBoardPage` | `/api/board/*` |
-| `/graph`, `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
-| `/search`, `/p/:slug/search` | `SearchPage` → `UnifiedSearch` | `/api/search/*` |
-| `/cognition[/:sessionId]`, `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
-| `/observability`, `/p/:slug/observability` | `ObservabilityPage` | `/api/hooks/{recent,stream,list}`, `/api/observability/timeline`, `/api/board/{daily,wip,retro}` |
-| `/sessions`, `/p/:slug/sessions` | `SessionsPage` | `/api/sessions/active`, `/api/observability/sessions` |
-| `/doctor` (global, not scoped) | `DoctorPage` (Overview · Health & charts · Maintenance) | `/health`, `/metrics` (client-side Prometheus parse) |
-| `/settings` (global) | `SettingsPage` | `/api/settings` |
+| `/workspace` · `/p/:slug/workspace` → `dashboard` / `board` / `search` | `WorkspacePage` → `DashboardPage` / `CosBoardPage` / `SearchPage` | board+presence · `/api/board/*` · `/api/search/*` |
+| `/diagnostics` · `/p/:slug/diagnostics` → `doctor` / `logs` / `observability` / `sessions` / `audits` / `memory` / `settings` | `DiagnosticsPage` → `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` / `AuditsPage` / `MemoryPage` / `SettingsPage` | `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` · `/api/audits/*` · `/api/settings` |
+| `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
+| `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
 
-`Doctor` is intentionally **global**, like `Settings` — backend health is per-uvicorn, not per-project. Every other nav item is project-scoped via the `/p/<slug>/` middleware rewrite.
+Both hubs render at a global (unscoped) path and a `/p/:slug/` project-scoped
+path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
+`/api/health` + `/api/health/db` (per-uvicorn) and parses Prometheus client-side.
 
 Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core/web/ui/src/lib/charts.tsx](../../src/core/web/ui/src/lib/charts.tsx) — hand-rolled inline SVG, no chart library dependency. Prometheus text parser at [src/core/web/ui/src/lib/prometheus-parse.ts](../../src/core/web/ui/src/lib/prometheus-parse.ts).
 
