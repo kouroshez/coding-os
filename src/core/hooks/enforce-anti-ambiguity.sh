@@ -55,13 +55,13 @@ SESSION_ID=$(cos_current_session 2>/dev/null || true)
 SID_ESC=${SESSION_ID//\'/\'\'}
 
 COUNT=$(sqlite3 "$COS_DB_PATH" \
-  "SELECT COUNT(*) FROM ambiguity_violations WHERE session_id='${SID_ESC}' AND ts > datetime('now','-120 minutes');" \
+  "SELECT COUNT(*) FROM ambiguity_violations WHERE session_id='${SID_ESC}' AND datetime(ts) > datetime('now','-120 minutes');" \
   2>/dev/null || echo 0)
 [[ "$COUNT" =~ ^[0-9]+$ ]] || COUNT=0
 
 if [[ "$COUNT" -gt 0 ]]; then
   CRITERIA=$(sqlite3 "$COS_DB_PATH" \
-    "SELECT group_concat(criterion, ', ') FROM ambiguity_violations WHERE session_id='${SID_ESC}' AND ts > datetime('now','-120 minutes');" \
+    "SELECT group_concat(criterion, ', ') FROM ambiguity_violations WHERE session_id='${SID_ESC}' AND datetime(ts) > datetime('now','-120 minutes');" \
     2>/dev/null || echo "")
   cos_log_hook "enforce-anti-ambiguity" "BLOCKED" "$CRITERIA"
   echo "BLOCKED: Anti-Ambiguity gate failed ($COUNT unresolved criteria)." >&2
