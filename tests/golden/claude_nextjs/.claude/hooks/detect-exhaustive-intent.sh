@@ -30,7 +30,7 @@ fi
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || echo "")
 LEN=${#PROMPT}
 
-HELPER="$(dirname "$0")/_helpers/extract_intent.py"
+HELPER="$(_cos_helpers_dir 2>/dev/null)/extract_intent.py"
 if [[ ! -f "$HELPER" ]]; then
   cos_log_hook detect-exhaustive-intent skip "reason=helper_missing"
   exit 0

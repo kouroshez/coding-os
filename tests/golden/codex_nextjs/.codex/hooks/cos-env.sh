@@ -310,6 +310,24 @@ cos_current_task() {
 # the only reliable way to surface PostToolUse activity in the chat UI.
 # Fail-open: never aborts the parent hook on logging failure.
 # ---------------------------------------------------------------------------
+# _cos_helpers_dir — physical path to _helpers/, resolved through this file's
+# own symlink chain. Consumers (and the meta-repo's own .claude/hooks/) symlink
+# cos-env.sh but NOT _helpers/, so a $(dirname)-relative path lands in a dir
+# with no helpers and the python fallbacks silently no-op — a fail-OPEN gap for
+# cos_json_field. readlink to the real file's dir finds _helpers/. On demand.
+# ---------------------------------------------------------------------------
+_cos_helpers_dir() {
+  local src dir
+  src="${BASH_SOURCE[0]}"
+  while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="${dir}/${src}"
+  done
+  printf '%s' "$(cd -P "$(dirname "$src")" && pwd)/_helpers"
+}
+
+# ---------------------------------------------------------------------------
 cos_record_activity() {
   local category="${1:-}"
   local detail="${2:-}"
@@ -533,7 +551,7 @@ cos_json_field() {
   fi
   if command -v python3 >/dev/null 2>&1; then
     printf '%s' "$input" \
-      | python3 "$(dirname "${BASH_SOURCE[0]}")/_helpers/json_field.py" "$@" 2>/dev/null || true
+      | python3 "$(_cos_helpers_dir)/json_field.py" "$@" 2>/dev/null || true
     return 0
   fi
   return 0
@@ -620,7 +638,7 @@ cos_one_shot_override() {
   }
 
   local consume_helper
-  consume_helper="$(dirname "${BASH_SOURCE[0]}")/_helpers/consume_override.py"
+  consume_helper="$(_cos_helpers_dir)/consume_override.py"
   if [[ -f "$reg" ]] && command -v python3 >/dev/null 2>&1 && [[ -f "$consume_helper" ]]; then
     if python3 "$consume_helper" "$reg" "$key" >/dev/null 2>&1; then
       _audit "registry"
@@ -724,7 +742,7 @@ cos_say() {
   [[ -n "$kv" ]] && short_line="${short_line} ${kv}"
 
   local helper
-  helper="$(dirname "${BASH_SOURCE[0]}")/_helpers/cos_say_json.py"
+  helper="$(_cos_helpers_dir)/cos_say_json.py"
   local json_line=""
   if command -v python3 >/dev/null 2>&1 && [[ -f "$helper" ]]; then
     json_line="$(python3 "$helper" "$ts_iso" "$level" "$scope" "$msg" "$kv" 2>/dev/null || true)"

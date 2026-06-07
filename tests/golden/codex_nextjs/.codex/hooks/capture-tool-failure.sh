@@ -16,7 +16,7 @@ if [[ -z "$SESSION_ID" || -z "${COS_DB_PATH:-}" || ! -f "$COS_DB_PATH" ]]; then
   exit 0
 fi
 
-CAPTURE_PY="$(dirname "$0")/_helpers/tool_failure_capture.py"
+CAPTURE_PY="$(_cos_helpers_dir 2>/dev/null)/tool_failure_capture.py"
 if [[ ! -f "$CAPTURE_PY" ]]; then
   exit 0
 fi
