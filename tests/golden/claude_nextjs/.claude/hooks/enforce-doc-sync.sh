@@ -131,21 +131,20 @@ if [[ -z "$HELPER_OUT" ]]; then
       ;;
     *core/thinking_os/server.py|*core/thinking_os/tools/*.py)
       COMPANION_DOCS=(
-        "docs/architecture.md (§ MCP Tools)"
+        "docs/governance/mcp-tool-inventory.md"
         "docs/engineering/mcp-error-envelope.md"
       )
       ;;
     *core/thinking_os/database.py)
-      COMPANION_DOCS=("docs/architecture.md (§ Database Schema)")
+      COMPANION_DOCS=("docs/architecture/meta-project.md (§ schema/migrations)")
       ;;
     *cli/*.py)
       COMPANION_DOCS=(
-        "README.md (§ Command Index)"
-        "docs/features.md (§ Command Catalog)"
+        "docs/architecture/meta-project.md (§ CLI)"
       )
       ;;
     *adapters/*/adapter.yaml|*adapters/*/install.sh)
-      COMPANION_DOCS=("docs/architecture.md (§ Adapters / Portability)")
+      COMPANION_DOCS=("docs/engineering/adapter-parity.md")
       ;;
   esac
   if [[ ${#COMPANION_DOCS[@]} -gt 0 ]]; then
