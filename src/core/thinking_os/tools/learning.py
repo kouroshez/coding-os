@@ -377,7 +377,7 @@ def _pattern_identity(text: str) -> str:
     # Count-agnostic dedup key: strip the running counts / percentages so a
     # re-mined fact ("INFRA succeeds … (40/40)" → "(83/83)") maps to the
     # SAME row. The displayed `pattern` keeps the live numbers; only the
-    # identity ignores them. See
+    # identity ignores them.
     t = _IDENTITY_COUNT_RE.sub("", text)
     t = _IDENTITY_RATIO_RE.sub("", t)
     t = _IDENTITY_PCT_RE.sub("", t)

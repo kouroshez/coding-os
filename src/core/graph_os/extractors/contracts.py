@@ -425,8 +425,8 @@ def _emit(
         # Resolve Python handlers to the real same-file function node
         # (code_python emits it in the same reindex; _next_def_name yields
         # a def in THIS file). The old unresolved-stub target left
-        # references/impact/rename empty for every route + MCP handler
-        # . Non-.py handlers keep the stub (no same-file table).
+        # references/impact/rename empty for every route + MCP handler.
+        # Non-.py handlers keep the stub (no same-file table).
         if normalised.endswith(".py"):
             handler_uid = f"code:function:{normalised}::{match.handler}"
         elif normalised.endswith(".php"):
