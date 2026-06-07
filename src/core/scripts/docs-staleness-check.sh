@@ -64,7 +64,6 @@ note_warning() {
 SERVER_PY="$COS_ROOT/src/core/thinking_os/server.py"
 DB_PY="$COS_ROOT/src/core/thinking_os/database.py"
 CLAUDE_MD="$COS_ROOT/CLAUDE.md"
-ARCH_MD="$COS_ROOT/docs/architecture.md"
 
 if [ ! -f "$SERVER_PY" ]; then
   err "server.py not found at $SERVER_PY"
@@ -139,37 +138,10 @@ if [ -f "$CLAUDE_MD" ]; then
   fi
 fi
 
-# ── Cross-check docs/architecture.md ────────────────────────────────────────
-
-if [ -f "$ARCH_MD" ]; then
-  CHECKED=$((CHECKED + 1))
-
-  # "MCP Tools (XX tools, `cos_*` prefix)" heading
-  ARCH_TOOL_COUNT=$(grep -oE 'MCP Tools \([0-9]+ tools' "$ARCH_MD" | head -1 | grep -oE '[0-9]+')
-  if [ -z "${ARCH_TOOL_COUNT:-}" ]; then
-    note_warning "architecture.md: no 'MCP Tools (NN tools' heading found"
-  elif [ "$ARCH_TOOL_COUNT" != "$TOOL_COUNT" ]; then
-    note_error "architecture.md claims '$ARCH_TOOL_COUNT tools' but server.py has $TOOL_COUNT"
-  fi
-
-  # "Database Schema (vXX)" heading
-  ARCH_SCHEMA=$(grep -oE 'Database Schema \(v[0-9]+\)' "$ARCH_MD" | head -1 | grep -oE '[0-9]+')
-  if [ -z "${ARCH_SCHEMA:-}" ]; then
-    note_warning "architecture.md: no 'Database Schema (vN)' heading found"
-  elif [ "$ARCH_SCHEMA" != "$SCHEMA_VERSION" ]; then
-    note_error "architecture.md claims schema v$ARCH_SCHEMA but db.py has v$SCHEMA_VERSION"
-  fi
-
-  # "XX tables in SQLite" phrase
-  ARCH_TABLE_COUNT=$(grep -oE '[0-9]+ tables in SQLite' "$ARCH_MD" | head -1 | grep -oE '^[0-9]+')
-  if [ -n "${ARCH_TABLE_COUNT:-}" ] && [ "$ARCH_TABLE_COUNT" != "$TABLE_COUNT" ]; then
-    note_error "architecture.md claims '$ARCH_TABLE_COUNT tables in SQLite' but _TABLES has $TABLE_COUNT"
-  fi
-
-  if grep -q '\bnako_' "$ARCH_MD"; then
-    note_error "architecture.md contains legacy 'nako_*' references"
-  fi
-fi
+# Note: the old docs/architecture.md cross-check was removed — that file no
+# longer exists (architecture is a directory now) and no doc currently carries
+# the "MCP Tools (NN)" / "Database Schema (vN)" headings, so the block only ever
+# evaluated a missing-file no-op. CLAUDE.md remains the live cross-check above.
 
 # ── Summary ─────────────────────────────────────────────────────────────────
 
