@@ -87,7 +87,7 @@ done < <(find "$DOCS_DIR" -type f -name "*.md" \
   -not -path "*/products-assets/*" | sort)
 
 if [ "$CHECK_ONLY" -eq 0 ] && [ "${#FIX_PAIRS[@]}" -gt 0 ]; then
-  printf '%s\n' "${FIX_PAIRS[@]}" | python3 -c '
+  if printf '%s\n' "${FIX_PAIRS[@]}" | python3 -c '
 import sys
 
 for raw in sys.stdin:
@@ -111,8 +111,12 @@ for raw in sys.stdin:
             inserted = True
     with open(path, "w", encoding="utf-8") as fh:
         fh.writelines(out)
-' >&2
-  FIXED="${#FIX_PAIRS[@]}"
+' >&2; then
+    FIXED="${#FIX_PAIRS[@]}"
+  else
+    echo "docs-nav-fix: ERROR — batch rewrite failed; some files may be unfixed. Re-run." >&2
+    exit 1
+  fi
 fi
 
 echo ""
