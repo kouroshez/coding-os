@@ -84,8 +84,11 @@ ship with the source, not the wheel).
 - A repeated `make manifest-regen` + `make regen-rules` step is now
   part of the post-edit workflow for any change that touches
   scaffold templates.
-- The CI matrix runs both editable and wheel installs so future
-  drift surfaces immediately.
+- CI runs an editable/source install (`uv sync --extra rag`) only — there is
+  no wheel build-and-install step, so package-data omissions do not surface in
+  CI by themselves (this is how the H1 wheel-data gap shipped). The regression
+  guard is `tests/test_wheel_packaging.py`: it asserts every runtime data tree
+  the installed `cos` reads is declared in `[tool.setuptools.package-data]`.
 
 ## Alternatives considered
 

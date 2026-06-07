@@ -74,14 +74,15 @@ malformed type silently dropped a change from the changelog.
 - A `GITHUB_TOKEN`-created release PR does **not** trigger downstream CI.
   To CI-gate the release PR, add a `RELEASE_PLEASE_TOKEN` PAT — tracked in
   TASK-076.
-- Publishing (PyPI / `uvx` / GHCR) is **intentionally not wired** — add a
-  `release` job gated on `releases_created` once a channel is chosen
-  (TASK-077).
+- Publishing (PyPI via Trusted Publishing) **is wired** — a `publish-pypi` job
+  in `release-please.yml` gated on `releases_created`. It stays dormant on every
+  push and only fires once the repo is public and a release PR merges (TASK-077,
+  complete).
 - `0.x` carries **no stability guarantee** (semver). The 1.0.0 cut
   criteria — frozen `cos init` output + `cos_*` MCP signatures — are
   tracked in TASK-079.
 
-## Publishing & package metadata (pre-public-launch — TASK-077)
+## Publishing & package metadata (as-built — TASK-077/219)
 
 Goal: make `cos` publicly installable —
 
@@ -104,20 +105,24 @@ using **Trusted Publishing** (OIDC, no token):
 - register the repo as a trusted publisher on the PyPI project first;
 - result: every merged release auto-publishes to PyPI.
 
-**2. Complete `pyproject.toml` `[project]` metadata** — currently MISSING, needed
-for a professional PyPI page (per the [official tutorial](https://packaging.python.org/en/latest/tutorials/packaging-projects/)):
-- `authors` (name + email)
-- `license` (SPDX, from the existing LICENSE) + `license-files = ["LICENSE"]`
-- `classifiers` (Python 3.10–3.12 · License · OS Independent · Development Status :: 4 - Beta · Intended Audience :: Developers)
-- `keywords` (ai · coding-agent · mcp · llm · cli · hexagonal · claude · codex)
-- `[project.urls]` (Homepage / Repository / Issues → github.com/kouroshez/coding-os)
+**2. `pyproject.toml` `[project]` metadata** — COMPLETE (landed in TASK-077/219):
+`authors`, `license = "Apache-2.0"` (SPDX) + `license-files`, `classifiers`,
+`keywords`, and `[project.urls]` are all present, alongside `name` · `version` ·
+`description` · `readme` · `requires-python` · `dependencies` ·
+`[project.scripts]` (`cos = cli.main:cli`) · `build-system` (setuptools.build_meta)
+· src-layout.
 
-Already publish-ready (do not touch): `name` · `version` · `description` ·
-`readme` · `requires-python` · `dependencies` · `[project.scripts]`
-(`cos = cli.main:cli`) · `build-system` (setuptools.build_meta) · src-layout.
+**3. Runtime data must ship as package-data** — the installed `cos` reads
+non-Python data trees at runtime; a wheel that omits them degrades **silently**.
+`[tool.setuptools.package-data].core` MUST include: `hooks/*.sh`,
+`hooks/_helpers/*.py`, `hooks/registry.yaml`, `commands/**`, `skills/**`,
+`rules/*.md`, `schemas/*.json`, `thinking_os/agents/**`,
+`thinking_os/{presets,situations,roles}/*.yaml`, `board_os/*.yaml`. (TASK-219 +
+the H1 follow-up added presets/situations/roles/registry — a wheel install
+otherwise silently dropped them, breaking compose-chain + situations.)
 
-**Gotcha:** SPDX `license = "MIT"` + `license-files` needs `setuptools>=77`
-(build-system pins `>=68`) — bump it, or use legacy `license = {file = "LICENSE"}`.
+**Gotcha (resolved):** SPDX `license = "Apache-2.0"` + `license-files` needs
+`setuptools>=77`; build-system now pins `>=77`.
 
 ### Verify
 `uv build` (clean wheel + sdist) · `twine check dist/*` · dry-run on **TestPyPI**
