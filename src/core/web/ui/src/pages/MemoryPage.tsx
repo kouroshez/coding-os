@@ -111,6 +111,10 @@ export default function MemoryPage() {
   const [filter, setFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [reloadCounter, setReloadCounter] = useState<number>(0);
+  const [lastRun, setLastRun] = useState<string | null>(null);
+  const [running, setRunning] = useState<boolean>(false);
+  const [runMsg, setRunMsg] = useState<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -136,7 +140,52 @@ export default function MemoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, filter]);
+  }, [slug, filter, reloadCounter]);
+
+  // When the loop last ran (read-only) — drives the "Last run" label.
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    fetch(`/api/scheduled/project/${encodeURIComponent(slug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setLastRun((d.run_at as string) ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, reloadCounter]);
+
+  // Manual trigger — runs the same nightly loop (decay + learn-extract + digest)
+  // and refetches so the freshly-distilled lessons appear immediately.
+  async function runLoop(): Promise<void> {
+    if (!slug || running) return;
+    setRunning(true);
+    setRunMsg('');
+    try {
+      const r = await fetch(`/api/scheduled/run/${encodeURIComponent(slug)}`, { method: 'POST' });
+      const d = await r.json();
+      const lx = d?.summary?.tasks?.learn_extract;
+      if (d?.ran && lx?.status === 'ok') {
+        const n = Array.isArray(lx.extracted) ? lx.extracted.length : 0;
+        setRunMsg(
+          `Done — distilled ${n} pattern${n === 1 ? '' : 's'} from ${lx.total_outcomes_analyzed ?? 0} outcomes.`,
+        );
+      } else if (d?.ran && lx?.status === 'skipped') {
+        setRunMsg('Done — no new outcomes to learn from yet.');
+      } else if (d?.ran) {
+        setRunMsg('Done.');
+      } else {
+        setRunMsg(`Failed: ${d?.error ?? 'unknown error'}`);
+      }
+      setReloadCounter((c) => c + 1);
+    } catch (e) {
+      setRunMsg(`Failed: ${String(e)}`);
+    } finally {
+      setRunning(false);
+    }
+  }
 
   const lessons = patterns.filter((p) => !isStat(p));
   const stats = patterns.filter(isStat);
@@ -164,6 +213,26 @@ export default function MemoryPage() {
             <strong className="text-[var(--cos-text)]">Project stats</strong> below are
             success rates, shown for context — not lessons.
           </p>
+          {slug && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-2 text-xs text-[var(--cos-muted)]">
+              <button
+                type="button"
+                onClick={runLoop}
+                disabled={running}
+                className="rounded-md px-2.5 py-1 font-medium disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-focus)]"
+                style={{ backgroundColor: 'var(--cos-brand-tint)', color: 'var(--cos-brand-text)' }}
+              >
+                {running ? 'Running…' : 'Run learning loop now'}
+              </button>
+              <span>
+                Last run:{' '}
+                <span className="text-[var(--cos-text)]">
+                  {lastRun ? new Date(lastRun).toLocaleString() : 'never'}
+                </span>
+              </span>
+              {runMsg && <span className="text-[var(--cos-text)]">{runMsg}</span>}
+            </div>
+          )}
         </header>
 
         {loading && <div className="text-sm text-[var(--cos-muted)]">Loading…</div>}
