@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, board, cli, git, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 3d
 created: 2026-06-07
 started: 2026-06-07
-completed: null
-agent_session: ses-claude-20260607-001830-03d2
+completed: 2026-06-07
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -31,3 +31,6 @@ references: []
 - **Then** daily/retro/pick return counts + top-N (LIMIT, no full fetchall); reclaim/reconcile issue ONE batched git log --all --grep with capped concurrency (no per-task subprocess); history + _commits_referencing pass --max-count; doctor uses find -prune (no full rglob); all verified bounded in wall-time + memory on the fixture.
 
 ## Work Log
+- 2026-06-07 [claude]: committed a9f7eef1: src/cli/doctor.py, src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py
+- 2026-06-07 [claude]: committed a9f7eef1: daily/pick/retro/reclaim/reconcile/archive LIMIT scans (daily 36KB->11KB envelope); _commits_referen
+- 2026-06-07 [claude]: Status transitioned to complete via cos task-done.
