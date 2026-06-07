@@ -5,18 +5,17 @@ swimlane: "graph_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, graph, performance, ready]
-status: icebox
+status: testing
 priority: P1
 appetite: 3d
 created: 2026-06-07
-started: null
+started: 2026-06-07
 completed: null
-agent_session: null
+agent_session: ses-claude-20260607-001830-03d2
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-228: graph_os scale: batch edge lookups (IN-clause) + uid index + bounded scans + honest truncation in centrality/ranking/export
 
 **Outcome (one sentence):** graph_os stays responsive at 100K-1M nodes: per-node list_edges loops in centrality/betweenness become a single batched IN-clause / JOIN; degree_map_for stops the OR-join that bypasses indexes; an index on graph_nodes(uid) backs resolve/lookups; ranking's unbounded edge enumeration is bounded; every coverage tool sets truncated honestly (no silent drop). Verified by a 200K-node graph keeping export/query/centrality under a fixed latency budget. See audit-enterprise-scale-2026-06-07.md (graph_os findings, graph.py:3466).

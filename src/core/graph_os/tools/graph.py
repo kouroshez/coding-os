@@ -838,20 +838,55 @@ def _degree_map_for(backend: GraphBackend, uids: Sequence[str]) -> dict[str, int
         return {}
     placeholders = ",".join("?" * len(uids))
     try:
+        # Split the OR-join into two index-friendly halves (the OR forced a full
+        # edge scan, bypassing idx_graph_edges_source/target). UNION ALL + outer
+        # GROUP BY sums in- and out-degree per uid. TASK-228.
         rows = sqlite_conn.execute(
             f"""
-            SELECT n.uid, COUNT(*)
-            FROM graph_edges_v12 e
-            JOIN graph_nodes n ON n.id = e.source_id OR n.id = e.target_id
-            WHERE n.uid IN ({placeholders})
-            GROUP BY n.uid
+            SELECT uid, SUM(cnt) FROM (
+                SELECT n.uid AS uid, COUNT(*) AS cnt
+                FROM graph_edges_v12 e JOIN graph_nodes n ON n.id = e.source_id
+                WHERE n.uid IN ({placeholders}) GROUP BY n.uid
+                UNION ALL
+                SELECT n.uid AS uid, COUNT(*) AS cnt
+                FROM graph_edges_v12 e JOIN graph_nodes n ON n.id = e.target_id
+                WHERE n.uid IN ({placeholders}) GROUP BY n.uid
+            ) GROUP BY uid
             """,
-            tuple(uids),
+            tuple(uids) + tuple(uids),
         ).fetchall()
     except Exception as exc:
         logger.debug("degree query suppressed: %s", exc)
         return {}
     return {row[0]: int(row[1]) for row in rows}
+
+
+# Largest IN-list chunk — stays well under SQLite's default variable cap so the
+# batched edge scans below work on every SQLite build.
+_EDGE_SCAN_CHUNK = 900
+
+
+def _edges_among(sqlite_conn, node_ids: Sequence[int]) -> list[tuple[int, int, str]]:
+    """All edges whose SOURCE id is in node_ids, fetched in indexed chunks.
+
+    Returns (source_id, target_id, edge_type) rows. Target-side filtering (both
+    endpoints in the set) is left to the caller. Replaces both the betweenness
+    per-node query storm and ranking's unscoped LIMIT scan with one indexed
+    query per chunk. TASK-228.
+    """
+    ids = list(node_ids)
+    out: list[tuple[int, int, str]] = []
+    for i in range(0, len(ids), _EDGE_SCAN_CHUNK):
+        chunk = ids[i : i + _EDGE_SCAN_CHUNK]
+        ph = ",".join("?" * len(chunk))
+        out.extend(
+            sqlite_conn.execute(
+                f"SELECT source_id, target_id, edge_type FROM graph_edges_v12 "
+                f"WHERE source_id IN ({ph})",
+                tuple(chunk),
+            ).fetchall()
+        )
+    return out
 
 
 def _edge_to_dict(edge: GraphEdge, *, include_evidence: bool = False) -> dict[str, Any]:
@@ -3463,18 +3498,23 @@ def cos_graph_centrality(
                 truncated = True
             uid_idx = {u: i for i, u in enumerate(all_uids_list)}
             adj: dict[int, list[int]] = {i: [] for i in range(len(all_uids_list))}
-            for u in all_uids_list:
-                i = uid_idx[u]
-                edges_out = be.list_edges(source_uid=u, limit=500)
-                for e in edges_out:
-                    # honour include_structural for betweenness too —
-                    # otherwise the path counts traverse the containment
-                    # skeleton (registry.yaml/file-tree) the degree pass excludes.
-                    if not include_structural and e.edge_type not in _BEHAVIOURAL_EDGE_TYPES:
-                        continue
-                    j = uid_idx.get(e.target_uid)
-                    if j is not None:
-                        adj[i].append(j)
+            # Batch every edge among the capped node set via chunked indexed
+            # queries instead of one list_edges per node (was O(n) queries at
+            # scale). honour include_structural so path counts skip the
+            # containment skeleton the degree pass excludes. TASK-228.
+            id_ph = ",".join("?" * len(all_uids_list))
+            id_rows = sqlite_conn.execute(
+                f"SELECT id, uid FROM graph_nodes WHERE uid IN ({id_ph})",
+                tuple(all_uids_list),
+            ).fetchall()
+            id_to_uid = {nid: uid for nid, uid in id_rows}
+            for s_id, t_id, etype in _edges_among(sqlite_conn, list(id_to_uid)):
+                if not include_structural and etype not in _BEHAVIOURAL_EDGE_TYPES:
+                    continue
+                i = uid_idx.get(id_to_uid.get(s_id))
+                j = uid_idx.get(id_to_uid.get(t_id))
+                if i is not None and j is not None:
+                    adj[i].append(j)
             betweenness = _betweenness_centrality(adj, len(all_uids_list))
             bt_map = {all_uids_list[i]: v for i, v in enumerate(betweenness)}
             for r in rows_out:
@@ -3563,6 +3603,9 @@ def cos_graph_cycles(
     except ImportError:
         return _fail("unavailable", "networkx required for cycle detection", retryable=False)
 
+    # Bound the edge scan so cycle detection on a 1M+ call-edge graph stays in
+    # memory; honest truncation flag tells the caller it was a bounded sample.
+    _CYCLE_EDGE_CAP = 50000
     if scope == "imports":
         # module->module import edges. Stdlib/external modules are leaves
         # (no outbound in-repo import) so SCC naturally excludes them — any
@@ -3571,15 +3614,18 @@ def cos_graph_cycles(
             "SELECT s.uid, t.uid FROM graph_edges_v12 e "
             "JOIN graph_nodes s ON s.id=e.source_id JOIN graph_nodes t ON t.id=e.target_id "
             "WHERE e.edge_type='imports' AND s.kind IN ('module','code:module') "
-            "AND t.kind IN ('module','code:module')"
+            "AND t.kind IN ('module','code:module') LIMIT ?",
+            (_CYCLE_EDGE_CAP,),
         ).fetchall()
     else:
         rows = sqlite_conn.execute(
             "SELECT s.uid, t.uid FROM graph_edges_v12 e "
             "JOIN graph_nodes s ON s.id=e.source_id JOIN graph_nodes t ON t.id=e.target_id "
             "WHERE e.edge_type='calls' AND s.uid NOT LIKE 'code:external:%' "
-            "AND t.uid NOT LIKE 'code:external:%' AND s.id != t.id"
+            "AND t.uid NOT LIKE 'code:external:%' AND s.id != t.id LIMIT ?",
+            (_CYCLE_EDGE_CAP,),
         ).fetchall()
+    edges_truncated = len(rows) >= _CYCLE_EDGE_CAP
 
     g = nx.DiGraph()
     g.add_edges_from(rows)
@@ -3606,7 +3652,7 @@ def cos_graph_cycles(
             "backend": be.backend_id,
             "layer": "graph",
             "scope": scope,
-            "result_truncated": len(sccs) > top,
+            "result_truncated": len(sccs) > top or edges_truncated,
         },
     )
 
@@ -3967,10 +4013,10 @@ def cos_graph_ranking(
             ).fetchall()
             if len(uid_rows) >= _NODE_CAP:
                 truncated = True
-            edge_rows = sqlite_conn.execute(
-                "SELECT source_id, target_id FROM graph_edges_v12 LIMIT ?",
-                (_NODE_CAP * 20,),
-            ).fetchall()
+            # Scope the edge scan to the selected node set (chunked, indexed)
+            # rather than a blunt unscoped LIMIT that both over-fetched
+            # irrelevant edges and could miss in-set ones past the cap. TASK-228.
+            edge_rows = _edges_among(sqlite_conn, [row[0] for row in uid_rows])
         except Exception as exc:
             logger.debug("ranking SQL suppressed: %s", exc)
             uid_rows = []
@@ -3982,7 +4028,7 @@ def cos_graph_ranking(
         uid_to_int: dict[str, int] = {row[1]: row[0] for row in uid_rows}
         valid_ids = set(int_to_uid)
         out_links: dict[int, list[int]] = {i: [] for i in valid_ids}
-        for src, tgt in edge_rows:
+        for src, tgt, _etype in edge_rows:
             if src in valid_ids and tgt in valid_ids:
                 out_links[src].append(tgt)
         N = len(valid_ids)
