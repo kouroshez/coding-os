@@ -142,11 +142,15 @@ build-backend = "setuptools.build_meta"
 # after `uv sync` without sys.path hacks. `core` and `adapters` are also
 # importable as packages because some legacy modules use `from core.X` /
 # `from adapters.X` — keep those working until callers migrate.
+# NOTE: data-only dirs (core/commands = .md slash-commands, core/hooks =
+# .sh hooks; no __init__.py) are intentionally NOT listed — listing a dir
+# with no importable package errors the wheel-from-sdist build. Shipping
+# their files as wheel data (+ runtime resource resolution) is the
+# publish-readiness concern tracked in TASK-077.
 packages = [
     "cli",
     "core",
     "core.board_os",
-    "core.commands",
     "core.logging_os",
     "core.graph_os",
     "core.graph_os.backends",
@@ -156,7 +160,6 @@ packages = [
     "core.graph_os.ingest",
     "core.graph_os.tools",
     "core.graph_os.viewer",
-    "core.hooks",
     "core.scheduled",
     "core.thinking_os",
     "core.thinking_os.dispatchers",
