@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, db, index, migration, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-06-07
 started: 2026-06-07
-completed: null
-agent_session: ses-claude-20260607-001830-03d2
+completed: 2026-06-07
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -31,3 +31,6 @@ references: []
 - **Then** indexes exist on tasks(status, completed_at) + (swimlane, status, priority), task_status_history(task_id, transitioned_at); an FTS5 table backs cos_task_search; a task_dependencies junction replaces the depends_on LIKE scan; EXPLAIN QUERY PLAN shows index/FTS use (no full scan) and migration tests are green (no edit to past migrations).
 
 ## Work Log
+- 2026-06-07 [claude]: committed 44285ff6: src/core/board_os/sync.py, src/core/thinking_os/database.py, src/core/thinking_os/tests/test_db.py,
+- 2026-06-07 [claude]: committed 44285ff6: v35 (keyset indexes + regular FTS5 + task_dependencies junction via triggers off dependencies column
+- 2026-06-07 [claude]: Status transitioned to complete via cos task-done.
