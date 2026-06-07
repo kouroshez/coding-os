@@ -5,13 +5,13 @@ swimlane: core
 kind: chore
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 30m
 created: 2026-06-07
 started: 2026-06-07
-completed: null
-agent_session: ses-claude-20260607-001830-03d2
+completed: 2026-06-07
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -21,3 +21,5 @@ references: []
 **Outcome (one sentence):** tests/test_no_hardcoded_anthropic.py allowlists src/core/thinking_os/tests/test_compress.py (it legitimately asserts _stamp_provenance echoes the model id 'claude-haiku-4-5'), so the parametrized scan is green — mirroring the existing compress.py allowlist entry.
 
 ## Work Log
+- 2026-06-07 [claude]: committed 8db4db2e: tests/test_no_hardcoded_anthropic.py
+- 2026-06-07 [claude]: Status transitioned to complete via cos task-done.
