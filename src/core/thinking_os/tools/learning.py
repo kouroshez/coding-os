@@ -349,6 +349,13 @@ def learn_extract(
     except Exception as exc:  # backtrack_events or anatomy columns absent — fire-and-forget
         logger.debug("learn_extract: failure anatomy skipped: %s", exc)
 
+    # --- Friction lessons ---
+    # The abundant, automatic learning signal: hook BLOCKs, tool failures, and
+    # completion gaps the agent emits every session. Mined into actionable
+    # `lesson` patterns so the loop learns from mistakes — not just success
+    # statistics. Contract: docs/engineering/learning-extraction.md.
+    extracted.extend(_mine_friction_lessons(conn, min_occurrences=min_occurrences))
+
     conn.commit()
     return {
         "status": "ok",
@@ -359,6 +366,7 @@ def learn_extract(
 
 _SOURCE_TO_PROVENANCE: dict[str, str] = {
     "learn_extract": "extracted_from_outcome",
+    "friction": "extracted_from_observation",
     "breakthrough": "agent_self",
     "manual": "user_directive",
     "import": "imported",
@@ -535,6 +543,119 @@ def _embed_pattern_safe(
         logger.debug("Skipping pattern embedding (table missing): %s", exc)
     except Exception as exc:  # pragma: no cover
         logger.debug("Skipping pattern embedding (unexpected): %s", exc)
+
+
+# ---------------------------------------------------------------------------
+# Friction lesson mining (the real learning signal)
+# ---------------------------------------------------------------------------
+
+# A friction event seen this many times is already worth a rule. Lower than the
+# stat threshold (3) because each failure is individually high-value, and never
+# higher than the caller's floor.
+_FRICTION_MIN_OCCURRENCES = 2
+
+# Plain-language corrective hint per friction kind — kept beginner-readable.
+_FRICTION_HINTS: dict[str, str] = {
+    "hook_block": "satisfy the blocked rule before retrying the action",
+    "completion_gap": "resolve the gap (close/park the task or submit evidence) before ending the session",
+    "schema_mismatch": "match the required output schema exactly before resubmitting",
+    "error": "fix the failing precondition before retrying",
+}
+
+# Normalisers that turn a volatile failure message into a stable cluster key:
+# absolute paths → basename, TASK ids and long hashes → placeholders.
+_ABS_PATH_RE = re.compile(r"(?:/[^\s'\":,]+)+/([^\s'\":/,]+)")
+_TASKID_RE = re.compile(r"TASK-\d+", re.IGNORECASE)
+_LONGHEX_RE = re.compile(r"\b[0-9a-f]{8,}\b", re.IGNORECASE)
+_NONWORD_RE = re.compile(r"[^a-z0-9<>_.-]+")
+
+
+def _friction_kind(title: str, narrative: str, memory_type: str) -> str:
+    # Most-specific signal first. hook_block is detected by the capture's
+    # memory_type or a leading "BLOCKED" — NOT a loose "blocked" substring,
+    # which appears in unrelated remediation text (e.g. "--to blocked").
+    title_l = (title or "").lower()
+    narr_l = (narrative or "").lower()
+    if title_l.startswith("completion_gap") or "completion_gap" in title_l:
+        return "completion_gap"
+    if "does not match required schema" in narr_l or ("schema" in narr_l and "property" in narr_l):
+        return "schema_mismatch"
+    if memory_type == "hook_block" or narr_l.startswith("blocked") or "[blocked]" in title_l:
+        return "hook_block"
+    return "error"
+
+
+def _clean_failure_text(text: str) -> str:
+    """First line of a failure message with paths/ids stripped — human-readable."""
+    line = (text or "").strip().split("\n", 1)[0]
+    line = _ABS_PATH_RE.sub(r"\1", line)
+    line = _TASKID_RE.sub("TASK-N", line)
+    line = _LONGHEX_RE.sub("<hash>", line)
+    return " ".join(line.split())[:200]
+
+
+def _failure_cluster_key(display: str) -> str:
+    """Count-agnostic key: lowercased, numbers→N, first 8 tokens of the message."""
+    norm = re.sub(r"\d+", "N", display.lower())
+    words = [w for w in _NONWORD_RE.split(norm) if w]
+    return " ".join(words[:8])
+
+
+def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
+    """Mine actionable `lesson` patterns from recurring failure observations.
+
+    Reads `observations` rows captured for hook BLOCKs, tool failures, and
+    completion gaps (memory_type in 'hook_block'/'error'), clusters them by a
+    normalised signature, and upserts one lesson per cluster that recurs at
+    least `floor` times. Fire-and-forget: a missing table or column never
+    breaks extraction.
+    """
+    floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
+    try:
+        rows = conn.execute(
+            "SELECT title, narrative, memory_type FROM observations "
+            "WHERE memory_type IN ('hook_block', 'error') AND COALESCE(narrative, '') != ''"
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        logger.debug("friction mining skipped: %s", exc)
+        return []
+
+    clusters: dict[str, dict] = {}
+    for row in rows:
+        d = dict(row)
+        display = _clean_failure_text(d["narrative"] or d["title"] or "")
+        key = _failure_cluster_key(display)
+        if not key:
+            continue
+        cluster = clusters.setdefault(
+            key,
+            {"count": 0, "display": display, "kind": _friction_kind(d["title"], d["narrative"], d["memory_type"])},
+        )
+        cluster["count"] += 1
+
+    lessons: list[dict] = []
+    for cluster in clusters.values():
+        if cluster["count"] < floor:
+            continue
+        hint = _FRICTION_HINTS.get(cluster["kind"], _FRICTION_HINTS["error"])
+        # Count rendered as "(N occurrences)" so _pattern_identity strips it and
+        # a re-mined cluster UPDATES its row instead of inserting a snapshot.
+        pattern_text = (
+            f"Recurring {cluster['kind'].replace('_', ' ')} "
+            f"({cluster['count']} occurrences): {cluster['display']} → {hint}"
+        )
+        lessons.append(
+            _upsert_pattern(
+                conn,
+                pattern=pattern_text,
+                memory_type="lesson",
+                domain=None,
+                source="friction",
+                confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
+                concepts=json.dumps(["lesson", cluster["kind"], "friction"]),
+            )
+        )
+    return lessons
 
 
 # ---------------------------------------------------------------------------

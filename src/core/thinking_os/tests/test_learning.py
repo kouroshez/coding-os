@@ -141,6 +141,73 @@ class TestLearnExtract:
         assert result["total_outcomes_analyzed"] == 8
 
 
+class TestFrictionLessons:
+    """The real learning signal: actionable lessons mined from recurring
+    failure observations (hook BLOCKs, tool failures, completion gaps) —
+    not aggregate success statistics. Contract: learning-extraction.md."""
+
+    @staticmethod
+    def _seed_failures(conn, n, narrative, memory_type="hook_block", session="ses-f"):
+        for i in range(n):
+            conn.execute(
+                "INSERT INTO observations (session_id, tool_name, observation_type, "
+                "memory_type, impact_score, title, narrative, content_hash) "
+                "VALUES (?, 'Edit', 'tool_failure', ?, 0.6, ?, ?, ?)",
+                (session, memory_type, "[BLOCKED] Tool failure: Edit", narrative,
+                 f"h-{memory_type}-{session}-{i}"),
+            )
+        conn.commit()
+
+    def test_mines_lesson_from_recurring_block(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools.learning import _mine_friction_lessons
+
+        self._seed_failures(
+            seeded_conn, 3,
+            "BLOCKED: editing src/core/x.py without the graph-explorer skill loaded",
+        )
+        lessons = _mine_friction_lessons(seeded_conn, min_occurrences=3)
+        assert any(le["action"] in ("created", "updated") for le in lessons)
+        rows = seeded_conn.execute(
+            "SELECT pattern, source FROM learned_patterns WHERE memory_type='lesson'"
+        ).fetchall()
+        assert len(rows) >= 1
+        assert rows[0]["source"] == "friction"
+        assert "occurrences" in rows[0]["pattern"]
+
+    def test_one_off_failure_not_minted(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools.learning import _mine_friction_lessons
+
+        self._seed_failures(seeded_conn, 1, "BLOCKED: a unique one-off thing", session="ses-one")
+        lessons = _mine_friction_lessons(seeded_conn, min_occurrences=3)
+        assert lessons == []  # floor=2 — a single occurrence never becomes a rule
+
+    def test_re_mine_updates_not_duplicates(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools.learning import _mine_friction_lessons
+
+        self._seed_failures(seeded_conn, 2, "BLOCKED: write through symlink CLAUDE.md", session="ses-a")
+        _mine_friction_lessons(seeded_conn, min_occurrences=3)
+        # one more occurrence of the SAME failure (count grows 2 -> 3)
+        self._seed_failures(seeded_conn, 1, "BLOCKED: write through symlink CLAUDE.md", session="ses-b")
+        _mine_friction_lessons(seeded_conn, min_occurrences=3)
+        rows = seeded_conn.execute(
+            "SELECT pattern FROM learned_patterns WHERE memory_type='lesson'"
+        ).fetchall()
+        assert len(rows) == 1  # count-agnostic identity → single row, not a snapshot per run
+
+    def test_learn_extract_includes_friction(self, seeded_conn: sqlite3.Connection) -> None:
+        self._seed_failures(seeded_conn, 2, "BLOCKED: missing doc anchor for this session", session="ses-x")
+        learn_extract(seeded_conn, min_occurrences=3)
+        lesson_count = seeded_conn.execute(
+            "SELECT COUNT(*) FROM learned_patterns WHERE memory_type='lesson'"
+        ).fetchone()[0]
+        assert lesson_count >= 1
+
+    def test_no_observations_no_lessons(self, seeded_conn: sqlite3.Connection) -> None:
+        from tools.learning import _mine_friction_lessons
+
+        assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
+
+
 class TestPatternIdentityDedup:
     """TASK-206: the running task count embedded in mined pattern text used
     to be part of the dedup identity, so every extraction run (count grew)
