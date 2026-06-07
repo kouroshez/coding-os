@@ -17,6 +17,11 @@ from fastapi.responses import StreamingResponse
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from ._bounded_read import tail_lines
+
+# A trace jsonl can reach GBs (e.g. a long run_await loop). Read only the tail
+# so the viewer shows the most-recent events without OOMing the server. TASK-225.
+_MAX_TRACE_EVENTS = 2000
 
 logger = logging.getLogger(__name__)
 
@@ -231,18 +236,19 @@ async def get_trace(
         )
 
     events: list[dict] = []
+    trace_truncated = False
     if target is not None:
-        try:
-            for line in target.read_text(encoding="utf-8").splitlines():
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                try:
-                    events.append(json.loads(stripped))
-                except json.JSONDecodeError:
-                    events.append({"raw": stripped})
-        except OSError as exc:
-            logger.debug("trace read failed %s: %s", target, exc)
+        # Tail-read only the last _MAX_TRACE_EVENTS lines (≤256KB window) so a
+        # multi-GB trace cannot OOM the server or the response.
+        lines, trace_truncated = tail_lines(target, max_lines=_MAX_TRACE_EVENTS)
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                events.append(json.loads(stripped))
+            except json.JSONDecodeError:
+                events.append({"raw": stripped})
 
     return unwrap(
         json.dumps(
@@ -253,6 +259,7 @@ async def get_trace(
                     "agent": resolved_agent or meta_agent,
                     "events": events,
                     "count": len(events),
+                    "truncated": trace_truncated,
                     "session": session_meta,
                     "has_trace": target is not None,
                     "source": "trace+session"

@@ -20,6 +20,10 @@ from fastapi import APIRouter, Depends, Query
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
+from ._bounded_read import newest_files, tail_lines
+
+# Scale guards (TASK-225): never glob every trace file or read a whole log.
+_MAX_TRACE_FILES = 100  # newest-N trace files to scan per directory
 
 router = APIRouter(
     prefix="/api/observability", tags=["observability"], responses=ENVELOPE_ERROR_RESPONSES
@@ -97,7 +101,7 @@ def _scan_sessions(state: Path, agent_filter: str | None = None) -> list[dict[st
     def _scan_agent_dir(agent_dir: Path, agent_name: str) -> None:
         traces_dir = agent_dir / "traces"
         if traces_dir.exists():
-            for f in traces_dir.glob("*.jsonl"):
+            for f in newest_files(traces_dir, "*.jsonl", _MAX_TRACE_FILES):
                 st = f.stat()
                 traces_by_key[(agent_name, f.stem)] = {
                     "agent": agent_name,
@@ -110,7 +114,7 @@ def _scan_sessions(state: Path, agent_filter: str | None = None) -> list[dict[st
         sessions_dir = agent_dir / "sessions"
         if not sessions_dir.exists():
             return
-        for meta in sessions_dir.glob("ses-*.json"):
+        for meta in newest_files(sessions_dir, "ses-*.json", _MAX_TRACE_FILES):
             try:
                 payload = json.loads(meta.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
@@ -207,7 +211,8 @@ def _read_hook_events(state: Path, session_id: str | None, limit: int) -> list[d
     if not hook_log.exists():
         return []
     events: list[dict[str, Any]] = []
-    for line in hook_log.read_text(encoding="utf-8").splitlines():
+    lines, _ = tail_lines(hook_log)  # bounded tail — never load a multi-GB hook log
+    for line in lines:
         m = _HOOK_RE.match(line.strip())
         if not m:
             continue
@@ -262,12 +267,13 @@ def _read_cognition_events(state: Path, session_id: str | None, limit: int) -> l
             trace_dir = agent_dir / "traces"
             if not trace_dir.exists():
                 continue
-            files.extend(trace_dir.glob("*.jsonl"))
+            files.extend(newest_files(trace_dir, "*.jsonl", _MAX_TRACE_FILES))
 
     for trace_file in files:
         agent = trace_file.parent.parent.name
         sid = trace_file.stem
-        for line in trace_file.read_text(encoding="utf-8").splitlines():
+        trace_lines, _ = tail_lines(trace_file)
+        for line in trace_lines:
             line = line.strip()
             if not line:
                 continue
