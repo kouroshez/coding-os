@@ -5,13 +5,13 @@ swimlane: "board_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, board, web, pagination, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 3d
 created: 2026-06-07
 started: 2026-06-07
-completed: null
-agent_session: ses-claude-20260607-001830-03d2
+completed: 2026-06-07
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -31,3 +31,6 @@ references: []
 - **Then** active columns return in full (WIP-bounded) while complete/archive return ONE keyset page (cursor + per-column total_count, no apply_budget return-all), the kanban + graph virtual-scroll with load-more, and a 50K-task soak yields bounded payloads (each page << prior 398KB) with honest truncated/total — replacing the TASK-220 interim fix.
 
 ## Work Log
+- 2026-06-07 [claude]: committed b82d7c3b: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py, src/core/thinking_os/serv
+- 2026-06-07 [claude]: committed b82d7c3b: cos_task_board per-column keyset pagination (complete/archive over idx_tasks_status_completed, curso
+- 2026-06-07 [claude]: Status transitioned to complete via cos task-done.
