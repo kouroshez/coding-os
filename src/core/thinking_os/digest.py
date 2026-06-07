@@ -244,6 +244,7 @@ def _collect_fading(conn: sqlite3.Connection, *, limit: int) -> list[dict]:
             "FROM learned_patterns "
             "WHERE confidence BETWEEN ? AND ? "
             "  AND times_validated >= 1 "
+            "  AND COALESCE(memory_type, '') != 'stat' "
             "ORDER BY confidence ASC LIMIT ?",
             (_FADING_MIN, _FADING_MAX, limit),
         ).fetchall()

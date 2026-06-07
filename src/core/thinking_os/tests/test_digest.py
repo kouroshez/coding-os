@@ -150,6 +150,25 @@ class TestSectionSelection:
         # Not in fading section (outside window or never validated)
         assert "fading-never-validated" not in body
 
+    def test_stat_excluded_from_fading(
+        self, conn: sqlite3.Connection, fixed_now: datetime
+    ) -> None:
+        # a 'stat' sitting in the fading window must NOT surface as a fading lesson
+        conn.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_validated) "
+            "VALUES ('FRONTEND domain succeeds at 90% — reliable baseline', 'stat', ?, 2)",
+            (_FADING_MIN + 0.05,),
+        )
+        conn.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, times_validated) "
+            "VALUES ('fading real lesson', 'lesson', ?, 2)",
+            (_FADING_MIN + 0.05,),
+        )
+        conn.commit()
+        body = render(conn, now=fixed_now)
+        assert "fading real lesson" in body
+        assert "succeeds at 90%" not in body.split("## Project Stats")[0]
+
     def test_breakthroughs_last_7_days_only(
         self, conn: sqlite3.Connection, fixed_now: datetime
     ) -> None:
