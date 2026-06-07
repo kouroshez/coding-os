@@ -187,10 +187,31 @@ def dispatch(
         if "graph" in cache_hits:
             result["layers"]["graph"] = cache_hits["graph"]
         elif read_error is not None:
-            result["layers"]["graph"] = {
-                "status": "error",
-                "reason": f"read_failed: {read_error}",
-            }
+            # D7-F1 (TASK-129): a read error on a path that no longer exists is
+            # a DELETION, not a transient failure — still prune the file's graph
+            # nodes so a deleted file doesn't leave orphans. A read error on a
+            # path that DOES exist is transient (locked/encoding); keep the
+            # error and leave its nodes intact.
+            if not file_path.exists():
+                try:
+                    pruned = _prune_graph_for_deleted_file(
+                        rel, db_path=db_path, project_root=project_root
+                    )
+                    result["layers"]["graph"] = {
+                        "status": "pruned",
+                        "reason": "deleted",
+                        "nodes_pruned": pruned,
+                    }
+                except Exception as exc:
+                    result["layers"]["graph"] = {
+                        "status": "error",
+                        "reason": f"prune_failed: {exc}",
+                    }
+            else:
+                result["layers"]["graph"] = {
+                    "status": "error",
+                    "reason": f"read_failed: {read_error}",
+                }
         else:
             graph_result: dict[str, Any] | None = None
             last_error: Exception | None = None
@@ -475,6 +496,21 @@ def _reindex_docs(
         )
     finally:
         conn.close()
+
+
+def _prune_graph_for_deleted_file(
+    rel_path: str, *, db_path: str | None, project_root: Path
+) -> int:
+    # D7-F1 (TASK-129): prune ALL graph nodes for a path that was deleted on
+    # disk (extractors=None deletes every node for the file, cascading to its
+    # edges/evidence). Used by the read_error branch when the file is gone.
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from thinking_os.database import init_db, resolve_db_path  # type: ignore
+
+    effective_db = db_path or str(resolve_db_path(project_root))
+    conn = init_db(effective_db)
+    backend = SqliteBackend(conn=conn)
+    return backend.delete_nodes_for_file(rel_path)
 
 
 def _reindex_graph(

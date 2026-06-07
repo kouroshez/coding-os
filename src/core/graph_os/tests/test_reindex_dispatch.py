@@ -39,6 +39,59 @@ class TestDispatch:
         assert "graph" in report["layers"]
         assert report["layers"]["graph"]["status"] == "ok"
 
+    def test_read_error_on_deleted_file_prunes_graph(self, project, tmp_path):
+        # D7-F1 (TASK-129): reindex on a path whose file was deleted must PRUNE
+        # its graph nodes, not short-circuit on read_error — else deleted files
+        # leave orphan nodes.
+        import sqlite3
+
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "del.db")
+        src = _write(project / "core" / "gone.py", "def doomed():\n    return 1\n")
+        dispatch(src, project_root=project, db_path=db)
+
+        def node_count() -> int:
+            c = sqlite3.connect(db)
+            try:
+                return c.execute(
+                    "SELECT COUNT(*) FROM graph_nodes WHERE file_path=?", ("core/gone.py",)
+                ).fetchone()[0]
+            finally:
+                c.close()
+
+        assert node_count() > 0  # indexed
+        src.unlink()  # delete the file on disk
+        report = dispatch(src, project_root=project, db_path=db)
+        assert report["layers"]["graph"]["status"] == "pruned"
+        assert node_count() == 0  # orphans pruned
+
+    def test_read_error_on_existing_file_keeps_nodes(self, project, tmp_path):
+        # A transient read error on a path that STILL EXISTS must NOT prune.
+        import sqlite3
+
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "tr.db")
+        src = project / "core" / "keep.py"
+        _write(src, "def keeper():\n    return 1\n")
+        dispatch(src, project_root=project, db_path=db)
+
+        def node_count() -> int:
+            c = sqlite3.connect(db)
+            try:
+                return c.execute(
+                    "SELECT COUNT(*) FROM graph_nodes WHERE file_path=?", ("core/keep.py",)
+                ).fetchone()[0]
+            finally:
+                c.close()
+
+        assert node_count() > 0
+        src.write_bytes(b"\xff\xfe invalid \x80 utf8")  # exists, but unreadable as utf-8
+        report = dispatch(src, project_root=project, db_path=db)
+        assert report["layers"]["graph"]["status"] == "error"
+        assert node_count() > 0  # NOT pruned — file still exists
+
     def test_link_stubs_false_defers_to_global_pass(self, project, tmp_path):
         """TASK-043: link_stubs=False leaves a cross-file stub unresolved per
         file (a later file's prune would otherwise orphan a premature
@@ -157,6 +210,10 @@ class TestDispatch:
         assert report["duration_ms"] >= 0
 
     def test_missing_file_handled(self, project, tmp_path):
+        # D7-F1 (TASK-129): a path that doesn't exist on disk is a deletion, not
+        # an error — dispatch prunes (0 nodes for a never-indexed path) rather
+        # than returning status=error, so reindexing a since-deleted path is
+        # self-healing.
         from graph_os.tools.reindex_dispatch import dispatch
 
         report = dispatch(
@@ -165,7 +222,8 @@ class TestDispatch:
             db_path=str(tmp_path / "t.db"),
         )
         assert "graph" in report["layers"]
-        assert report["layers"]["graph"]["status"] == "error"
+        assert report["layers"]["graph"]["status"] == "pruned"
+        assert report["layers"]["graph"]["nodes_pruned"] == 0
 
     def test_include_docs_false_skips_rag(self, project, tmp_path):
         src = _write(project / "docs" / "x.md", "# hi\n")

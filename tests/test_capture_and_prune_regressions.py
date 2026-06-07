@@ -152,6 +152,62 @@ class TestPruneDeletedPathPragma:
             "Likely PRAGMA foreign_keys = ON was removed from prune script."
         )
 
+    @staticmethod
+    def _load_pruner(name: str):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(name, PRUNE_SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_doc_delete_writes_audit_row(self, tmp_path: Path) -> None:
+        # D5-F2 (TASK-129): deleting a doc appends an action='deleted'
+        # doc_audit_trail row so the rm is auditable, not a silent erase.
+        db = tmp_path / "audit.db"
+        conn = sqlite3.connect(str(db))
+        conn.executescript(
+            """
+            CREATE TABLE doc_audit_trail (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              doc_path TEXT NOT NULL, session_id TEXT, agent TEXT,
+              action TEXT NOT NULL, old_frontmatter TEXT, new_frontmatter TEXT,
+              old_content_hash TEXT, new_content_hash TEXT, reason TEXT,
+              supersedes_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
+        conn.commit()
+        conn.close()
+
+        mod = self._load_pruner("prune_deleted_path_doc")
+        counts = mod._prune_one("docs/governance/gone.md", db_path=db)
+        assert counts["audit_rows"] == 1
+
+        conn = sqlite3.connect(str(db))
+        row = conn.execute(
+            "SELECT doc_path, action FROM doc_audit_trail WHERE doc_path=?",
+            ("docs/governance/gone.md",),
+        ).fetchone()
+        conn.close()
+        assert row == ("docs/governance/gone.md", "deleted")
+
+    def test_non_doc_delete_writes_no_audit_row(self, tmp_path: Path) -> None:
+        # A code-file delete must NOT write a doc audit row — the trail is doc-scoped.
+        db = tmp_path / "audit2.db"
+        conn = sqlite3.connect(str(db))
+        conn.executescript(
+            "CREATE TABLE doc_audit_trail (id INTEGER PRIMARY KEY, doc_path TEXT NOT NULL, "
+            "action TEXT NOT NULL, agent TEXT, reason TEXT, "
+            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP);"
+        )
+        conn.commit()
+        conn.close()
+
+        mod = self._load_pruner("prune_deleted_path_code")
+        counts = mod._prune_one("src/core/foo.py", db_path=db)
+        assert counts["audit_rows"] == 0
+
     def test_script_imports_cleanly(self) -> None:
         """The script must remain importable so the regression test stays
         self-contained even if pruner internals refactor."""

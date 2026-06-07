@@ -36,7 +36,7 @@ def _delete_where(conn: sqlite3.Connection, table: str, column: str, value: str)
 
 def _prune_one(rel_path: str, *, db_path: Path) -> dict:
     """Run all DELETEs for one path. Returns counts per layer."""
-    counts = {"graph_nodes": 0, "document_chunks": 0, "file_index_state": 0}
+    counts = {"graph_nodes": 0, "document_chunks": 0, "file_index_state": 0, "audit_rows": 0}
     conn = sqlite3.connect(str(db_path))
     # Per-connection PRAGMA — without this the ON DELETE CASCADE declared
     # on graph_edges_v12.{source,target}_id is silently skipped (sqlite3
@@ -54,6 +54,16 @@ def _prune_one(rel_path: str, *, db_path: Path) -> dict:
         counts["document_chunks"] = _delete_where(conn, "document_chunks", "source_path", rel_path)
         # reindex cache
         counts["file_index_state"] = _delete_where(conn, "file_index_state", "file_path", rel_path)
+        # D5-F2 (TASK-129): record doc deletions in the append-only audit trail
+        # so an rm leaves a forensic row, not a silent erase. Docs only — the
+        # trail is doc-scoped.
+        if rel_path.endswith(".md") and _table_exists(conn, "doc_audit_trail"):
+            conn.execute(
+                "INSERT INTO doc_audit_trail (doc_path, agent, action, reason) "
+                "VALUES (?, ?, 'deleted', ?)",
+                (rel_path, os.environ.get("COS_AGENT", "system"), "pruned via prune_deleted_path"),
+            )
+            counts["audit_rows"] = 1
         conn.commit()
     finally:
         conn.close()
