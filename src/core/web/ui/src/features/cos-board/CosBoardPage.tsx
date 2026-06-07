@@ -3459,7 +3459,6 @@ function TaskDetailDrawer({
                 <div className="md-body">{renderTaskMarkdown(body)}</div>
               )}
               <TaskHistoryPanel taskId={task.id} />
-              <TaskTranscriptPanel taskId={task.id} />
             </>
           )}
         </div>
@@ -4012,80 +4011,3 @@ function TaskEditForm({
   );
 }
 
-// ---------- Session transcript (snapshot link + preview) ----------
-
-interface TaskTranscriptPayload {
-  task_id: string;
-  session_id: string | null;
-  agent: string | null;
-  exists: boolean;
-  relpath: string | null;
-  size: number;
-  line_count: number;
-  recent: { role: string; preview: string; ts: string | null }[];
-}
-
-function TaskTranscriptPanel({ taskId }: { taskId: string }) {
-  const { data } = useApiGet<TaskTranscriptPayload>(
-    ['board-task-transcript', taskId],
-    `/api/board/task/${taskId}/transcript`,
-    { limit: 20 },
-    { enabled: !!taskId },
-  );
-  const mono = "'JetBrains Mono', monospace";
-  if (!data || !data.session_id) return null;
-  return (
-    <div style={{ marginTop: 20, borderTop: '1px solid var(--col-border)', paddingTop: 14 }}>
-      <div
-        style={{
-          fontFamily: mono,
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '.08em',
-          color: 'var(--ink-soft)',
-          marginBottom: 8,
-        }}
-      >
-        SESSION
-      </div>
-      <div style={{ fontFamily: mono, fontSize: 11, color: 'var(--ink-faint)', marginBottom: 8 }}>
-        {data.agent ? `${data.agent} · ` : ''}
-        {data.session_id}
-        {data.exists
-          ? ` · transcript: ${data.line_count} lines (${data.relpath})`
-          : ' · no snapshot on disk'}
-      </div>
-      {data.exists && data.recent.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            maxHeight: 240,
-            overflow: 'auto',
-            padding: '8px 10px',
-            background: 'var(--board-grain)',
-            border: '1px solid var(--col-border)',
-            borderRadius: 4,
-          }}
-        >
-          {data.recent.map((m, i) => (
-            <div key={`${m.ts ?? ''}-${i}`} style={{ fontFamily: mono, fontSize: 11, lineHeight: 1.4 }}>
-              <span
-                style={{
-                  color: m.role === 'assistant' ? 'var(--accent)' : 'var(--ink-soft)',
-                  fontWeight: 700,
-                }}
-              >
-                {m.role}
-              </span>
-              <span style={{ color: 'var(--ink)', marginLeft: 6 }}>
-                {m.preview.length > 180 ? `${m.preview.slice(0, 180)}…` : m.preview}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
