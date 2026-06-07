@@ -1,4 +1,4 @@
-<!-- domain:CONTENT | layer:index | ssot:true | updated:2026-01-01 -->
+<!-- domain:PRODUCT | layer:index | ssot:true | updated:2026-01-01 -->
 # Pages & Content Specs — Index
 
 Purpose: Navigation hub for per-page content specifications (copy, layout, validation, error states).
@@ -25,7 +25,7 @@ Page specs follow the convention `NN-page-name.md` and are numbered roughly by u
 Each page spec follows this structure:
 
 ```markdown
-<!-- domain:CONTENT | layer:spec | ssot:true | updated:YYYY-MM-DD -->
+<!-- domain:PRODUCT | layer:spec | ssot:true | updated:YYYY-MM-DD -->
 # NN. Page Name
 
 > Nav: [Content Index](./00-index.md)

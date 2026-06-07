@@ -22,7 +22,7 @@ phase to build your Read List.
 ## go-fiber
 
 - **Fiber handler** (M) → `docs/playbooks/fiber-service.md`, `docs/engineering/fiber-rules.md`
-- **Middleware / auth** (M) → `docs/engineering/fiber-rules.md`, `docs/playbooks/security-review.md`
+- **Middleware / auth** (M) → `docs/engineering/fiber-rules.md`
 - **Request validation / DTO** (M) → `docs/engineering/fiber-rules.md`, `docs/api-contracts/error-format.md`
 
 ## meta
@@ -45,7 +45,7 @@ phase to build your Read List.
 - **Page / route** (M) → `docs/engineering/frontend-rendering-rules.md`, `docs/playbooks/frontend-ui.md`
 - **Content / SEO** (M) → `docs/playbooks/content-seo.md`, `docs/engineering/copywriting-standard.md`
 - **i18n** (M) → `docs/engineering/i18n-policy.md`
-- **Accessibility** (M) → `docs/engineering/accessibility-checklist.md`
+- **Accessibility** (M) → `docs/engineering/accessibility-web.md`
 
 ## react-native
 
@@ -53,4 +53,4 @@ phase to build your Read List.
 - **RN component** (M) → `docs/engineering/mobile-rules.md`
 - **Offline / sync** (M) → `docs/engineering/offline-first.md`, `docs/playbooks/mobile-app.md`
 - **Native bridge** (M) → `docs/playbooks/mobile-app.md`
-- **Accessibility** (M) → `docs/engineering/accessibility-checklist.md`
+- **Accessibility** (M) → `docs/engineering/accessibility-mobile.md`

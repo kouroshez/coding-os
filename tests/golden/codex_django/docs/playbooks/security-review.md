@@ -1,4 +1,4 @@
-<!-- domain:AUTH | layer:playbook | ssot:true | updated:2026-03-17 -->
+<!-- domain:SECURITY | layer:playbook | ssot:true | updated:2026-03-17 -->
 # Security Review Playbook
 
 Purpose: Apply a consistent security review path for risky changes before code or docs are considered complete.

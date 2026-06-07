@@ -80,7 +80,7 @@ Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. 
 
 ## Engineering Rule Routing
 
-Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-checklist.md`, Format→`docs/engineering/formatting-rules.md`
+Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-web.md`, Format→`docs/engineering/formatting-rules.md`
 
 ## Tool Routing
 

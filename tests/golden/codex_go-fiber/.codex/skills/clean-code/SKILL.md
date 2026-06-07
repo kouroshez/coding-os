@@ -456,15 +456,44 @@ idempotency_key = f"order-{order.id}-{attempt}"
 idempotency_key = f"order-{order.id}-{attempt}"
 ```
 
-### TODOs Must Reference Tasks
+### No Provenance in Comments
+
+A comment explains *why the code is the way it is* in timeless terms. It MUST
+NOT record *who/what introduced the change* — no task IDs, no phase/plan
+labels, no gate or work-item codes. Version control (`git blame` / `git log`)
+already records provenance with perfect fidelity; duplicating it in a comment
+just rots — the number is meaningless to the next reader and stale the moment
+the work moves on.
 
 ```python
-# GOOD
-# TODO: TASK-042 — add rate limiting to download endpoint
+# GOOD: timeless reason
+# Panel-scoped so two concurrent sessions never overwrite each other's marker.
+marker = panel_dir / ".active"
 
-# BAD — bare TODOs are forbidden
+# BAD: provenance noise — strip the TASK-/Phase/gate ref, keep the reason
+# TASK-035: panel-scoped so two concurrent sessions never overwrite ...
+# Panel-scoped since TASK-035 (Phase G) — ... (E1) closure check
+```
+
+Forbidden in any comment: `TASK-123`, `(TASK-123)`, `since/per/as-of TASK-123`,
+`Phase 2` / `Phase G` / `(Cortex Phase 2)`, plan-step prefixes like `P5:`, and
+gate/work-item codes like `(G9)` / `(E1)` / `(B4)`. If the *reason* is worth a
+comment, write the reason; drop the ID. (Domain identifiers that name the thing
+the code operates on — e.g. a formula id in `hex(F1)` — are not provenance and
+stay.)
+
+### Don't Commit TODOs — File a Task
+
+The project has a task board; use it. A `TODO`/`FIXME` in committed code is
+untracked work that rots in place, and a `TODO: TASK-042` is the provenance
+anti-pattern above. Prefer `cos task-create` over a code marker. If a marker is
+unavoidable mid-development, remove it before you commit — it should never reach
+`main`.
+
+```python
+# BAD — both forms reach main and rot
+# TODO: TASK-042 — add rate limiting
 # TODO: add rate limiting later
-# TODO: fix this
 # FIXME: hack
 ```
 
@@ -580,12 +609,12 @@ After writing code, verify all eight points before committing:
 - [ ] **Fail-closed:** Every error path rejects/denies/fails — no silent swallowing
 - [ ] **No leaks:** No `str(exc)`, DB names, or stack traces in API responses
 - [ ] **Typed errors:** All raised exceptions use domain-specific classes
-- [ ] **Self-documenting:** Names reveal intent; comments explain why, not what
+- [ ] **Self-documenting:** Names reveal intent; comments explain why, not what; no task/phase/gate provenance in comments — see §4 "No Provenance in Comments"
 - [ ] **No abbreviations:** No `usr`/`prd`/`qty`/cryptic shortenings; only the allow-list (`id`, `url`, `http`, loop `i`/`j`) and team-domain terms — see §4 "No Abbreviations"
 - [ ] **No magic numbers/strings:** Every business-meaning literal extracted to a named constant or enum — see §4 "No Magic Numbers / Strings"
 - [ ] **No bare booleans at call sites:** Keyword-only args, enums, or split functions — never positional `foo(true, false)` — see §4 "Boolean Parameters"
 - [ ] **Nesting depth ≤ 2:** Guard-clause out preconditions; extract the inner block when a third level appears — see §4 "Nesting Depth"
-- [ ] **No bare TODOs:** Every TODO references a TASK-### number
+- [ ] **No TODOs in committed code:** No `TODO`/`FIXME` and no task/phase/gate IDs in comments — file a task instead — see §4 "Don't Commit TODOs"
 - [ ] **Function hygiene:** Functions are ~20 lines, 3-4 params, guard clauses first
 - [ ] **Edge cases:** None, empty, boundary, service-down, and concurrency considered
 - [ ] **Error path tests:** Every except/catch branch has a corresponding test case

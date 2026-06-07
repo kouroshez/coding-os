@@ -2,6 +2,19 @@
 
 > **Rule:** Auto mode means autonomous execution to **completeness**, not autonomous **declaration** of done. When the active prompt triggers exhaustive intent (intent.json::exhaustive=true), the auto-mode harness does NOT relax the evidence contract — it intensifies it.
 
+> **Scope boundary (read first).** This layer (the G0–G14 gates,
+> `completion_guardian`'s exhaustive branch, `verify-completion-claim`,
+> `prevent-premature-done`) enforces **audit-evidence completeness** for
+> prompts that used exhaustive vocabulary — a narrow special case. It does
+> NOT, by itself, enforce **ordinary task-lifecycle closure** (don't leave a
+> started task stranded in `in_progress`/`testing`). That is a SEPARATE
+> contract owned by: the intent-independent task-closure check in
+> `completion_guardian._closure_gaps` (`COS_ENFORCE_TASK_CLOSURE=strict` to
+> block; warn by default), `warn-abandoned-task.sh` (per-turn nudge), and the
+> `reclaim-sweep`/nightly recovery sweeps (TASK-210). Do not assume the
+> exhaustive layer covers task closure — the names ("completion") historically
+> implied it but only ever guarded audit evidence.
+
 ## Why this rule exists
 
 Auto mode is designed to keep the agent moving without per-step

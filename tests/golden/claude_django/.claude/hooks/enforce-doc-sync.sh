@@ -195,5 +195,13 @@ if [[ -n "$_VERIFY_HINT" ]]; then
 fi
 echo "" >&2
 
+# D5-F5 (TASK-128): opt-in strict mode turns the WARN into a BLOCK so a CI or
+# careful session can gate on stale docs. Default stays warn (exit 0).
+if [[ "${COS_ENFORCE_DOC_SYNC:-warn}" == "strict" && "$STALE_COUNT" -gt 0 ]]; then
+  echo "  COS_ENFORCE_DOC_SYNC=strict → blocking until docs and code are reconciled." >&2
+  cos_log_hook enforce-doc-sync block "file=${FILE_PATH##*/} stale=${STALE_COUNT}"
+  exit 2
+fi
+
 cos_log_hook enforce-doc-sync warn "file=${FILE_PATH##*/} stale=${STALE_COUNT}"
 exit 0

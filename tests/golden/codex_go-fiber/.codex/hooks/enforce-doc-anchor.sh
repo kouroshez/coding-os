@@ -137,6 +137,30 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   exit 2
 fi
 
+# D5-F3 (TASK-128): if the anchor names explicit docs/ path(s), at least one
+# must resolve on disk — catches typos + hallucinated anchors. A task-based
+# anchor (task:TASK-NNN, no direct docs/ path) is proven by the task's Read
+# First, so skip the disk check when no docs/ token is present.
+_ANCHOR_DOC_PATHS=$(grep -oE 'docs/[A-Za-z0-9._/-]+\.md' "$ANCHOR_FILE" 2>/dev/null | sort -u || true)
+if [[ -n "$_ANCHOR_DOC_PATHS" ]]; then
+  _ANCHOR_RESOLVED=0
+  for _p in $_ANCHOR_DOC_PATHS; do
+    if [[ -f "${COS_PROJECT_ROOT:-.}/$_p" || -f "$_p" ]]; then
+      _ANCHOR_RESOLVED=1
+      break
+    fi
+  done
+  if [[ "$_ANCHOR_RESOLVED" -eq 0 ]]; then
+    echo "BLOCKED: doc-anchor references docs/ path(s) that do not exist on disk:" >&2
+    for _p in $_ANCHOR_DOC_PATHS; do echo "    $_p" >&2; done
+    echo "  A hallucinated or mistyped anchor does not prove a spec exists (Rule 0)." >&2
+    echo "  Re-anchor to a real doc:" >&2
+    echo "    bash \".${COS_AGENT}/hooks/write-state.sh\" .doc-anchor \"<docs/ path> § <section>\"" >&2
+    cos_log_hook enforce-doc-anchor block "anchor_path_missing" || true
+    exit 2
+  fi
+fi
+
 # Session-aware anchors use the first line as "<session-id> task:<id>".
 # Legacy anchors (pre-session prefix) are allowed only while fresh.
 ANCHOR_HEADER=$(head -1 "$ANCHOR_FILE" 2>/dev/null || true)

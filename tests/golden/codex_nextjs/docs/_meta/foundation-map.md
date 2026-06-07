@@ -60,6 +60,6 @@ Read next: The target doc referenced by the shortcode you need.
 - `REF:FRONTEND-RENDER` → `./engineering/frontend-rendering-rules.md`
 - `REF:I18N-POLICY` → `./engineering/i18n-policy.md`
 - `REF:COPYWRITING` → `./engineering/copywriting-standard.md`
-- `REF:A11Y` → `./engineering/accessibility-checklist.md`
+- `REF:A11Y` → `./engineering/accessibility-web.md`
 - `REF:DESIGN-INDEX` → `./design/00-index.md`
 - `REF:CONTENT-INDEX` → `./pages-content-spec/00-index.md`

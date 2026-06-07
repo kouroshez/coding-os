@@ -66,11 +66,42 @@ correct and simpler.
 | 2 sessions commit the same instant | ✅ | git `index.lock` rejects one → retry |
 | 2 sessions push the same instant | ✅ | non-fast-forward reject → `pull --rebase` → retry |
 | 2 sessions edit the **same file** | ⚠️ | Last write wins. Rare for one user; surfaced by the dirty-tree notice at SessionStart |
+| 1 session mid-editing a `block-*` safety hook | ⚠️ | Hooks are live symlinks — a half-written hook propagates instantly to every session. Follow the atomic-edit protocol below |
 | Session abandoned mid-task | ✅ | Committed work is on `main`; uncommitted work stays in the tree and is surfaced next SessionStart |
 
 There is intentionally **no custom write-lock hook** — git's `index.lock`
 plus explicit-path commits cover the real collisions. A custom lock
 would reinvent `index.lock` and add a crash-deadlock failure mode.
+
+## Editing a live-symlinked safety hook (atomic-edit protocol)
+
+`src/core/hooks/*.sh` are **live symlinks** into every consumer project
+(Modularity Map — propagation "none", instant). A multi-turn edit of a
+`block-*` / `enforce-*` safety hook is therefore visible to every
+concurrent session at *every intermediate save*: a hook that is briefly
+syntactically valid but semantically wrong is executed by sibling
+sessions on every tool call — a peer's in-progress edit once made a
+harmless `ls` wrongly BLOCK. Never leave a safety hook half-edited across
+a turn boundary:
+
+- **Prefer a single atomic `Edit`** that moves the hook from one correct
+  state directly to the next. Don't split one logical change of a
+  `block-*` / `enforce-*` hook across multiple turns.
+- **For a larger rewrite, edit out-of-tree then swap** — write to a temp
+  file, run `bash -n <file>` + `make verify-hooks`, then `mv` it into
+  place, so the symlink target flips from one valid version straight to
+  the next.
+- **Verify before yield** — a turn that edited a safety hook runs
+  `make verify-hooks` (at minimum `bash -n` on the changed hook) before
+  ending, so the version left live at the turn boundary is known-good.
+
+Snapshot isolation (sessions run a committed/staged snapshot of the hooks
+instead of the live working tree) is **deferred**: it would remove the
+hazard entirely but breaks the "instant propagation, no rebuild" property
+that makes the symlink design valuable, and adds a sync step. The
+atomic-edit protocol above is sufficient for the single-user /
+multi-session reality; revisit snapshotting only if concurrent
+multi-developer hook editing becomes routine.
 
 ## Publish-mode seam (`COS_GIT_WORKFLOW`)
 

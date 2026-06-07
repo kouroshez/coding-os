@@ -1,4 +1,4 @@
-<!-- domain:DESIGN | layer:index | ssot:true | updated:2026-01-01 -->
+<!-- domain:FRONTEND | layer:index | ssot:true | updated:2026-01-01 -->
 # Design System — Index
 
 Purpose: Navigation hub for the design system — colors, typography, spacing, components, and motion.
@@ -19,5 +19,5 @@ Read next: The specific design doc relevant to your task.
 
 - Design tokens are SSOT. Tailwind config / CSS variables import from these docs.
 - Components defined here have a single canonical implementation in `src/frontend/src/components/`.
-- Accessibility is non-negotiable. See `../engineering/accessibility-checklist.md`.
+- Accessibility is non-negotiable. See `../engineering/accessibility-web.md`.
 - When the design system evolves, update the doc and components in the same PR.

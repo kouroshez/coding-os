@@ -198,6 +198,39 @@
         ]
       },
       {
+        "matcher": "mcp__coding-os__cos_task_move",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-mcp-caller-session.sh",
+            "statusMessage": "🪪 Attributing task move to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_create",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-mcp-caller-session.sh",
+            "statusMessage": "🪪 Attributing task create to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_work_log_append",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-mcp-caller-session.sh",
+            "statusMessage": "🪪 Attributing work-log to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {

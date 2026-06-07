@@ -60,6 +60,8 @@ i += 1   # skip the sentinel row the loader prepends (see loader.py:42)
 Rule 12: comments by exception, not default. If a comment explains *what*, delete it and rename until the code says what. Keep comments that explain *why* — a constraint, a workaround, a non-obvious invariant. The best comment is a better name.
 Clean code should be readable enough not to need comments.
 
+A comment never carries provenance — no task IDs (`TASK-123`), phase/plan labels (`Phase 2`, `P5:`), or gate codes (`(G9)`, `(E1)`). `git blame` records who/what; the comment records the timeless *why*. Strip the ID, keep the reason. Same rule kills `TODO`/`FIXME` in committed code: file a task, don't leave a marker.
+
 ## Commit & PR prose
 
 Commit title ≤100 chars, body ≤3 lines explaining *why* (Rule 24 — enforced). Verbose audit tables, file lists, and verification logs belong in the PR description, the audit doc, or the work-log — never `git log`. A PR body carries the *what changed and why it's safe*; a commit carries the *one-line intent*.
@@ -70,6 +72,7 @@ Commit title ≤100 chars, body ≤3 lines explaining *why* (Rule 24 — enforce
 - "This document describes…" preamble — start with the point.
 - Reference tables inside a playbook (wrong altitude) — link a reference.
 - A comment that restates the line below it.
+- A comment tagging the task/phase/gate that introduced the change (`# TASK-123`, `# Phase 2`) — provenance lives in `git blame`, not the source.
 - "Should", "appropriately", "as needed", "various", "etc." carrying real meaning — be specific.
 - Duplicating policy that already lives in `docs-system.md` — link it.
 - A new doc when an existing one has the right scope — add a section.
