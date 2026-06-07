@@ -785,6 +785,7 @@ def cos_task_board(
     status_filter: list[str] | None = None,
     include_archive: bool = False,
     limit: int = 50,
+    apply_budget: bool = True,
 ) -> str:
     config = _current_config()
     clauses: list[str] = []
@@ -812,12 +813,18 @@ def cos_task_board(
     rows = conn.execute(query, params).fetchall()
     cards = [_flag_stale(_task_card(r), config) for r in rows]
 
-    # Group by (swimlane, status) for UX, capping to the envelope budget so a
-    # large board never returns an unshrinkable >32KB envelope (TASK-209).
+    # Group by (swimlane, status) for UX. The 32KB cap is an AGENT token-budget
+    # guard (a board read must never flood an agent's context). A browser is not
+    # token-limited, so the web route passes apply_budget=False to get every
+    # card — capping it there silently truncates the kanban to a handful.
     total_count = len(cards)
-    cards, grouped, board_truncated = _cap_board_to_budget(
-        cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM
-    )
+    if apply_budget:
+        cards, grouped, board_truncated = _cap_board_to_budget(
+            cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM
+        )
+    else:
+        grouped = _board_grouped(cards)
+        board_truncated = False
 
     wip_state = None
     if config is not None:

@@ -278,7 +278,7 @@ async def board_list(
     kind: str | None = Query(None),
     epic: str | None = Query(None),
     include_archive: bool = Query(False),
-    limit: int = Query(50),
+    limit: int = Query(2000),
     _rl=Depends(make_rate_limit_dep("board.list")),
     _m=Depends(make_metrics_dep("board.list")),
 ):
@@ -296,6 +296,9 @@ async def board_list(
             status_filter=None,
             include_archive=include_archive,
             limit=limit,
+            # The browser is not token-limited — return the whole board, never
+            # the 32KB agent-context slice (which truncated the kanban to ~14).
+            apply_budget=False,
         )
     finally:
         conn.close()
