@@ -278,11 +278,19 @@ async def board_list(
     kind: str | None = Query(None),
     epic: str | None = Query(None),
     include_archive: bool = Query(False),
-    limit: int = Query(2000),
+    limit: int = Query(500),
+    status: str | None = Query(None),
+    page_size: int = Query(50),
+    cursor: str | None = Query(None),
     _rl=Depends(make_rate_limit_dep("board.list")),
     _m=Depends(make_metrics_dep("board.list")),
 ):
-    """Return the board state grouped by (swimlane, status)."""
+    """Return the board state grouped by (swimlane, status).
+
+    Active columns return in full (capped); complete/archive are keyset-paged.
+    A per-column "load more" passes `status=<complete|archive>&cursor=<next>`
+    to fetch that column's next page (TASK-223).
+    """
     bt = _board_tools()
     if bt is None:
         return unwrap(_unavailable())
@@ -293,11 +301,14 @@ async def board_list(
             swimlane=swimlane,
             kind=kind,
             epic=epic,
-            status_filter=None,
+            status_filter=[status] if status else None,
             include_archive=include_archive,
             limit=limit,
-            # The browser is not token-limited — return the whole board, never
-            # the 32KB agent-context slice (which truncated the kanban to ~14).
+            page_size=page_size,
+            cursor=cursor,
+            # The browser is not token-limited, so skip the 32KB agent-context
+            # slice. Safe now that every column is bounded per-column (active
+            # capped, complete/archive keyset-paged) — no return-all.
             apply_budget=False,
         )
     finally:

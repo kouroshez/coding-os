@@ -1704,8 +1704,10 @@ if _BOARD_OS_AVAILABLE:
         status_filter: list[str] | None = None,
         include_archive: bool = False,
         limit: int = 50,
+        page_size: int = 50,
+        cursor: str = "",
     ) -> str:
-        """Return the board state grouped by (swimlane, status) with WIP info."""
+        """Return the board state grouped by (swimlane, status) with WIP info. Complete/archive columns are keyset-paginated (pass cursor + status_filter to load more)."""
         return _board_mcp.cos_task_board(
             _db_conn,
             swimlane=swimlane or None,
@@ -1714,6 +1716,8 @@ if _BOARD_OS_AVAILABLE:
             status_filter=status_filter,
             include_archive=include_archive,
             limit=limit,
+            page_size=page_size,
+            cursor=cursor or None,
         )
 
     @mcp.tool(

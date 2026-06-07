@@ -19,6 +19,7 @@ Stateless from the caller's perspective:
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import os
@@ -775,6 +776,87 @@ def _cap_board_to_budget(
     return [], {}, True
 
 
+# Columns whose row count grows without bound (finished work accumulates
+# forever). These are keyset-paginated; every other column is "active" and
+# returned in full up to a safety cap. TASK-223.
+_PAGED_STATUSES = ("complete", "archive")
+# Safety cap on each active board read so even a runaway icebox can't OOM the
+# response. Honest truncation is signalled via columns["_active"].
+_ACTIVE_COLUMN_HARD_MAX = 2000
+# Hard ceiling on one keyset page of a paged column.
+_PAGE_SIZE_HARD_MAX = 200
+
+
+def _encode_board_cursor(completed_at: int | None, task_id: str) -> str:
+    """Opaque keyset cursor over (completed_at, task_id)."""
+    raw = json.dumps([completed_at, task_id]).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii")
+
+
+def _decode_board_cursor(cursor: str | None) -> tuple[int | None, str] | None:
+    if not cursor:
+        return None
+    try:
+        completed_at, task_id = json.loads(base64.urlsafe_b64decode(cursor.encode("ascii")))
+        return completed_at, str(task_id)
+    except Exception:
+        return None
+
+
+def _keyset_filter(cursor: str | None) -> tuple[str, list]:
+    """SQL clause + params selecting rows strictly AFTER the cursor in
+    (completed_at DESC, task_id DESC) order. Handles NULL completed_at
+    (archive rows) which sort last."""
+    decoded = _decode_board_cursor(cursor)
+    if decoded is None:
+        return "", []
+    completed_at, task_id = decoded
+    if completed_at is None:
+        # Inside the NULL-completed tail (archive): tiebreak by task_id only.
+        return "completed_at IS NULL AND task_id < ?", [task_id]
+    # Lower completed_at, or same completed_at + lower task_id, or the NULL tail.
+    return (
+        "(completed_at < ? OR (completed_at = ? AND task_id < ?) OR completed_at IS NULL)",
+        [completed_at, completed_at, task_id],
+    )
+
+
+def _keyset_column_page(
+    conn: sqlite3.Connection,
+    status: str,
+    base_clauses: list[str],
+    base_params: list,
+    cursor: str | None,
+    page_size: int,
+    config,
+) -> tuple[list[dict], str | None, int]:
+    """One keyset page of a paged column. Returns (cards, next_cursor, total)."""
+    page_size = max(1, min(int(page_size), _PAGE_SIZE_HARD_MAX))
+    col_clauses = list(base_clauses) + ["status = ?"]
+    col_params = list(base_params) + [status]
+
+    total = conn.execute(
+        f"SELECT COUNT(*) FROM tasks WHERE {' AND '.join(col_clauses)}", col_params
+    ).fetchone()[0]
+
+    ks_clause, ks_params = _keyset_filter(cursor)
+    where = " AND ".join(col_clauses + ([ks_clause] if ks_clause else []))
+    query = (
+        f"{_BOARD_SELECT} WHERE {where} "
+        "ORDER BY completed_at DESC, task_id DESC LIMIT ?"
+    )
+    rows = conn.execute(query, col_params + ks_params + [page_size + 1]).fetchall()
+    has_more = len(rows) > page_size
+    rows = rows[:page_size]
+    cards = [_flag_stale(_task_card(r), config) for r in rows]
+
+    next_cursor = None
+    if has_more and rows:
+        last = rows[-1]
+        next_cursor = _encode_board_cursor(last["completed_at"], last["task_id"])
+    return cards, next_cursor, total
+
+
 @safe_tool
 def cos_task_board(
     conn: sqlite3.Connection,
@@ -785,42 +867,79 @@ def cos_task_board(
     status_filter: list[str] | None = None,
     include_archive: bool = False,
     limit: int = 50,
+    page_size: int = 50,
+    cursor: str | None = None,
     apply_budget: bool = True,
 ) -> str:
     config = _current_config()
-    clauses: list[str] = []
-    params: list = []
-    if swimlane:
-        clauses.append("swimlane = ?")
-        params.append(swimlane)
-    if kind:
-        clauses.append("kind = ?")
-        params.append(kind)
-    if epic:
-        clauses.append("epic = ?")
-        params.append(epic)
+
+    base_clauses: list[str] = []
+    base_params: list = []
+    for col, val in (("swimlane", swimlane), ("kind", kind), ("epic", epic)):
+        if val:
+            base_clauses.append(f"{col} = ?")
+            base_params.append(val)
+
+    # Split requested columns into ACTIVE (returned in full, capped) and PAGED
+    # (complete/archive — keyset-paginated so a 50K-deep column never floods the
+    # payload). Supersedes the interim apply_budget return-all (TASK-220/223).
+    paged_set = set(_PAGED_STATUSES)
     if status_filter:
-        placeholders = ",".join("?" for _ in status_filter)
-        clauses.append(f"status IN ({placeholders})")
-        params.extend(status_filter)
-    elif not include_archive:
-        clauses.append("status != 'archive'")
-        clauses.append("status != 'complete'")
+        active_statuses = [s for s in status_filter if s not in paged_set]
+        paged_statuses = [s for s in status_filter if s in paged_set]
+        want_active = bool(active_statuses)
+    else:
+        active_statuses = None  # all non-paged statuses, single query
+        paged_statuses = list(_PAGED_STATUSES) if include_archive else []
+        want_active = True
 
-    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-    query = f"{_BOARD_SELECT} {where} ORDER BY swimlane, status, priority LIMIT ?"
-    params.append(limit)
-    rows = conn.execute(query, params).fetchall()
-    cards = [_flag_stale(_task_card(r), config) for r in rows]
+    columns_meta: dict = {}
+    cards: list[dict] = []
 
-    # Group by (swimlane, status) for UX. The 32KB cap is an AGENT token-budget
-    # guard (a board read must never flood an agent's context). A browser is not
-    # token-limited, so the web route passes apply_budget=False to get every
-    # card — capping it there silently truncates the kanban to a handful.
+    # ---- Active columns: full, bounded by a safety cap ----
+    if want_active:
+        active_cap = max(1, min(int(limit), _ACTIVE_COLUMN_HARD_MAX))
+        a_clauses = list(base_clauses)
+        a_params = list(base_params)
+        if active_statuses:
+            ph = ",".join("?" for _ in active_statuses)
+            a_clauses.append(f"status IN ({ph})")
+            a_params.extend(active_statuses)
+        else:
+            a_clauses.append("status NOT IN ('complete', 'archive')")
+        where = f"WHERE {' AND '.join(a_clauses)}" if a_clauses else ""
+        query = f"{_BOARD_SELECT} {where} ORDER BY swimlane, status, priority LIMIT ?"
+        a_rows = conn.execute(query, a_params + [active_cap + 1]).fetchall()
+        active_truncated = len(a_rows) > active_cap
+        a_rows = a_rows[:active_cap]
+        cards.extend(_flag_stale(_task_card(r), config) for r in a_rows)
+        if active_truncated:
+            columns_meta["_active"] = {"truncated": True, "cap": active_cap}
+
+    # ---- Paged columns: one keyset page each (cursor + per-column total) ----
+    for status in paged_statuses:
+        page_cards, next_cursor, col_total = _keyset_column_page(
+            conn, status, base_clauses, base_params, cursor, page_size, config
+        )
+        cards.extend(page_cards)
+        columns_meta[status] = {
+            "total_count": col_total,
+            "returned": len(page_cards),
+            "next_cursor": next_cursor,
+            "truncated": next_cursor is not None,
+        }
+
+    # Per-column queries make the payload inherently bounded. apply_budget still
+    # applies the 32KB agent-context cap (a board read must never flood an
+    # agent's context); the browser passes apply_budget=False and is safe now
+    # that no single column returns more than its cap/page.
     total_count = len(cards)
     if apply_budget:
+        # Account for the columns meta (not in _cap_board_to_budget's probe) so
+        # the 32KB agent-envelope guarantee (TASK-209) holds even with paging.
+        columns_overhead = len(json.dumps(columns_meta, default=str)) if columns_meta else 0
         cards, grouped, board_truncated = _cap_board_to_budget(
-            cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM
+            cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM - columns_overhead
         )
     else:
         grouped = _board_grouped(cards)
@@ -839,6 +958,7 @@ def cos_task_board(
         {
             "grouped": grouped,
             "cards": cards,
+            "columns": columns_meta,
             "count": len(cards),
             "total_count": total_count,
             "truncated": board_truncated,

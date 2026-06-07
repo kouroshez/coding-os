@@ -420,6 +420,111 @@ def test_board_filters_by_swimlane(project: Path, conn: sqlite3.Connection):
     assert env["data"]["cards"][0]["swimlane"] == "core"
 
 
+# ---------- cos_task_board keyset pagination (TASK-223) ----------
+
+
+def _insert_complete(
+    conn: sqlite3.Connection,
+    task_id: str,
+    completed_at: int | None,
+    *,
+    status: str = "complete",
+    swimlane: str = "core",
+) -> None:
+    conn.execute(
+        "INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime, "
+        "swimlane, priority, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (task_id, task_id, status, f"docs/tasks/{task_id}.md", "h", 0, swimlane, "P2", completed_at),
+    )
+    conn.commit()
+
+
+def test_board_keyset_paginates_complete(project: Path, conn: sqlite3.Connection):
+    for i in range(7):
+        _insert_complete(conn, f"TASK-9{i:02d}", completed_at=1000 + i)
+
+    env = _parse(
+        mcp_tools.cos_task_board(
+            conn, status_filter=["complete"], page_size=3, apply_budget=False
+        )
+    )
+    col = env["data"]["columns"]["complete"]
+    assert col["total_count"] == 7
+    assert col["returned"] == 3
+    assert col["next_cursor"]
+    page1 = [c["id"] for c in env["data"]["cards"]]
+    assert page1 == ["TASK-906", "TASK-905", "TASK-904"]  # newest completed first
+
+    env2 = _parse(
+        mcp_tools.cos_task_board(
+            conn,
+            status_filter=["complete"],
+            page_size=3,
+            cursor=col["next_cursor"],
+            apply_budget=False,
+        )
+    )
+    page2 = [c["id"] for c in env2["data"]["cards"]]
+    assert page2 == ["TASK-903", "TASK-902", "TASK-901"]
+    assert not set(page1) & set(page2)  # no overlap across pages
+
+
+def test_board_keyset_full_walk_no_dupes(project: Path, conn: sqlite3.Connection):
+    for i in range(10):
+        _insert_complete(conn, f"TASK-8{i:02d}", completed_at=500 + i)
+    seen: list[str] = []
+    cursor = None
+    for _ in range(20):
+        env = _parse(
+            mcp_tools.cos_task_board(
+                conn, status_filter=["complete"], page_size=4, cursor=cursor, apply_budget=False
+            )
+        )
+        seen.extend(c["id"] for c in env["data"]["cards"])
+        cursor = env["data"]["columns"]["complete"]["next_cursor"]
+        if not cursor:
+            break
+    assert len(seen) == 10
+    assert len(set(seen)) == 10  # every row exactly once
+
+
+def test_board_archive_keyset_null_completed(project: Path, conn: sqlite3.Connection):
+    # Archive rows have NULL completed_at — keyset must still paginate them.
+    for i in range(5):
+        _insert_complete(conn, f"TASK-7{i:02d}", completed_at=None, status="archive")
+    seen: list[str] = []
+    cursor = None
+    for _ in range(10):
+        env = _parse(
+            mcp_tools.cos_task_board(
+                conn, status_filter=["archive"], page_size=2, cursor=cursor, apply_budget=False
+            )
+        )
+        seen.extend(c["id"] for c in env["data"]["cards"])
+        cursor = env["data"]["columns"]["archive"]["next_cursor"]
+        if not cursor:
+            break
+    assert len(set(seen)) == 5
+
+
+def test_board_default_excludes_complete(project: Path, conn: sqlite3.Connection):
+    _insert_complete(conn, "TASK-960", completed_at=1)
+    env = _parse(mcp_tools.cos_task_board(conn))  # no include_archive
+    statuses = {c["status"] for c in env["data"]["cards"]}
+    assert "complete" not in statuses
+    assert "complete" not in env["data"]["columns"]
+
+
+def test_board_include_archive_returns_active_and_paged(project: Path, conn: sqlite3.Connection):
+    mcp_tools.cos_task_create(conn, title="active", swimlane="core", kind="feature")
+    _insert_complete(conn, "TASK-950", completed_at=1)
+    env = _parse(mcp_tools.cos_task_board(conn, include_archive=True, apply_budget=False))
+    statuses = {c["status"] for c in env["data"]["cards"]}
+    assert "icebox" in statuses  # active column in full
+    assert "complete" in statuses  # paged column first page
+    assert env["data"]["columns"]["complete"]["total_count"] == 1
+
+
 # ---------- cos_task_move ----------
 
 

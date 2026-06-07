@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiPost, apiPatch, resolveApiUrl } from '@/lib/api-client';
+import { apiGet, apiPost, apiPatch, resolveApiUrl } from '@/lib/api-client';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
@@ -294,8 +294,41 @@ export default function CosBoardPage() {
   );
   const { data: cfg } = useApiGet<BoardConfigPayload>(['board-config'], '/api/board/config');
 
+  // Per-column "load more" for the keyset-paged columns (complete/archive).
+  // The first page arrives in `list`; each extra page is fetched on demand and
+  // accumulated here, then merged into `cards` below. Reset on SSE bump so a
+  // refreshed first page never duplicates accumulated rows. TASK-223.
+  const [extra, setExtra] = useState<Record<string, { cards: BoardListCard[]; cursor: string | null }>>({});
+  const [loadingMore, setLoadingMore] = useState<string | null>(null);
+
+  async function loadMore(status: string) {
+    const cur = extra[status]?.cursor ?? list?.columns?.[status]?.next_cursor ?? null;
+    if (!cur || loadingMore) return;
+    setLoadingMore(status);
+    try {
+      const [page] = await apiGet<BoardListPayload>('/api/board/list', {
+        status,
+        cursor: cur,
+        page_size: 50,
+        include_archive: true,
+      });
+      setExtra((prev) => ({
+        ...prev,
+        [status]: {
+          cards: [...(prev[status]?.cards ?? []), ...(page.cards ?? [])],
+          cursor: page.columns?.[status]?.next_cursor ?? null,
+        },
+      }));
+    } finally {
+      setLoadingMore(null);
+    }
+  }
+
   useEffect(() => {
     if (bump > 0) {
+      // A fresh first page would otherwise duplicate accumulated load-more
+      // rows — drop the extra pages and let the user re-expand.
+      setExtra({});
       // queryKey prefix is ['cos-scope', slug, path, ...] — a plain-path
       // queryKey no longer matches.  `invalidateApiQueries` uses a
       // predicate so both scoped and unscoped entries with the given
@@ -361,7 +394,13 @@ export default function CosBoardPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const cards: BoardListCard[] = list?.cards ?? [];
+  const cards: BoardListCard[] = useMemo(() => {
+    const base = list?.cards ?? [];
+    const extras = Object.values(extra).flatMap((e) => e.cards);
+    if (extras.length === 0) return base;
+    const seen = new Set(base.map((c) => c.id));
+    return [...base, ...extras.filter((c) => !seen.has(c.id))];
+  }, [list, extra]);
   const swimlanes: SwimlaneDTO[] = cfg?.swimlanes ?? [];
   // Filter archive out of the visible column list unless the user opts
   // in via the header toggle — archive is a soft-terminal cold store and
@@ -689,6 +728,45 @@ export default function CosBoardPage() {
                       {violated && ' ⚠'}
                       {flashWip === col.id && <span style={{ marginLeft: 6 }}>WIP</span>}
                     </div>
+                    {(() => {
+                      // Keyset-paged columns (complete/archive) show rendered /
+                      // total + a "load more" affordance. TASK-223.
+                      const colMeta = list?.columns?.[col.id];
+                      if (!colMeta || colMeta.total_count == null) return null;
+                      const rendered = filtered.filter((t) => t.status === col.id).length;
+                      const more = extra[col.id]?.cursor ?? colMeta.next_cursor;
+                      return (
+                        <div
+                          style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: 10,
+                            color: 'var(--ink-faint)',
+                            marginTop: 1,
+                          }}
+                        >
+                          {rendered} / {colMeta.total_count}
+                          {more && (
+                            <button
+                              type="button"
+                              onClick={() => void loadMore(col.id)}
+                              disabled={loadingMore === col.id}
+                              style={{
+                                marginLeft: 6,
+                                cursor: loadingMore === col.id ? 'wait' : 'pointer',
+                                font: 'inherit',
+                                border: '1px solid var(--col-border)',
+                                borderRadius: 4,
+                                background: 'transparent',
+                                color: 'var(--ink-soft)',
+                                padding: '0 5px',
+                              }}
+                            >
+                              {loadingMore === col.id ? '…' : '+ more'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );

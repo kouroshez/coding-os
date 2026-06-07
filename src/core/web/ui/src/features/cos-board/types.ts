@@ -24,10 +24,28 @@ export interface BoardAgentManifestEntry {
   session: string;
 }
 
+/** Per-column keyset pagination meta for paged columns (complete/archive). */
+export interface BoardColumnMeta {
+  total_count?: number;
+  returned?: number;
+  next_cursor?: string | null;
+  truncated?: boolean;
+  /** Present on the synthetic `_active` key when active columns were capped. */
+  cap?: number;
+}
+
 export interface BoardListPayload {
   grouped: Record<string, Record<string, BoardListCard[]>>;
   cards: BoardListCard[];
   count: number;
+  /** Total cards across all returned columns (TASK-223). */
+  total_count?: number;
+  /** True when the agent token-budget cap dropped cards (apply_budget path). */
+  truncated?: boolean;
+  /** Per-column pagination meta keyed by status; complete/archive carry
+   *  next_cursor + total_count for "load more". `_active` carries the
+   *  active-columns truncation flag. TASK-223. */
+  columns?: Record<string, BoardColumnMeta>;
   wip?: {
     counts: Record<string, number>;
     caps: Record<string, number>;
