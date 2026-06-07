@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: doc-system
 labels: [docs-system, dogfood, enforcement, ci, audit-d5-f6, ready]
-status: icebox
+status: archive
 priority: P1
 appetite: "1d"
 created: 2026-06-05
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260606-135311-dd32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-121: Consumer doc-governance backstop — install git hooks on init + ship docs-lint CI + consumer-aware staleness-check + fix master-index dead link
 
 **Outcome (one sentence):** Every cos init consumer gets git pre-commit/commit-msg installed (idempotent), a minimal docs-lint CI workflow in scaffold/.github/, a docs-staleness-check that audits the CONSUMER's docs not the meta-repo internals (D6-F6), and a docs/00-index.md without the retired ./tasks.md dead link (D6-F2) — so human/Codex-GUI doc edits are governed from day one (D5-F6, D7-F7).
@@ -33,3 +32,4 @@ references: []
 - **Then** ...
 
 ## Work Log
+- 2026-06-07 [claude]: Archived (2 shipped + 2 premature). Triage verified: (1) install git hooks on init = DONE (install_consumer_git_hooks _i
