@@ -30,7 +30,7 @@ mkdir -p "$AGENT_SKILLS_DIR"
 
 linked=0
 for stack in "$@"; do
-  stack_skills_dir="${COS_ROOT}/src/templates/${stack}/skills"
+  stack_skills_dir="${COS_ROOT}/templates/${stack}/skills"
   if [ ! -d "$stack_skills_dir" ]; then
     continue
   fi

@@ -19,6 +19,7 @@ from pathlib import Path
 import yaml
 
 from cli._data_types import AdapterProfile, McpLaunchConfigPath, McpLaunchSpec
+from cli._resources import core_dir
 
 try:
     from jsonschema import Draft202012Validator
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 ADAPTER_MANIFEST_NAME = "adapter.yaml"
 SUPPORTED_VERSION = 1
 
-_SCHEMA_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "core" / "schemas"
+_SCHEMA_DIR = core_dir("schemas")
 _ADAPTER_SCHEMA_PATH = _SCHEMA_DIR / "adapter.schema.json"
 
 

@@ -7,7 +7,7 @@
 set -euo pipefail
 shopt -s nullglob
 
-CODING_OS_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+CODING_OS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_ROOT="${PWD}"
 
 echo "⚙️  Installing coding-os Cursor adapter..."
@@ -15,12 +15,12 @@ echo "  Project: $PROJECT_ROOT"
 echo "  coding-os: $CODING_OS_ROOT"
 
 # 1-8. Common install steps (shared with claude / codex).
-bash "${CODING_OS_ROOT}/src/core/scripts/install-adapter.sh" \
+bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
   --adapter cursor --agent-dir .cursor \
   --coding-os-root "$CODING_OS_ROOT" --project-root "$PROJECT_ROOT"
 
 # 9. .cursor/hooks.json from registry-rendered template.
-TEMPLATE="${CODING_OS_ROOT}/src/adapters/cursor/hooks.cursor.template.json"
+TEMPLATE="${CODING_OS_ROOT}/adapters/cursor/hooks.cursor.template.json"
 HOOKS_ABS="${PROJECT_ROOT}/.cursor/hooks"
 HOOKS_ESCAPED=$(printf '%s' "$HOOKS_ABS" | sed 's/[&|]/\\&/g')
 sed "s|{{HOOKS_DIR}}|${HOOKS_ESCAPED}|g" "$TEMPLATE" > "${PROJECT_ROOT}/.cursor/hooks.json"
@@ -51,7 +51,7 @@ if cos_bin:
 else:
     data['mcpServers']['coding-os'] = {
         'command': 'uv',
-        'args': ['run', '--directory', f'{cos_root}/src/core/thinking_os', 'python', 'server.py'],
+        'args': ['run', '--directory', f'{cos_root}/core/thinking_os', 'python', 'server.py'],
         'cwd': '\${workspaceFolder}'
     }
 with open(mcp_path, 'w') as f:

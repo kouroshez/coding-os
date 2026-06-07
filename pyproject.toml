@@ -136,6 +136,10 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+# Ship ONLY the explicit package-data globs below — never auto-include the whole
+# package tree (that dragged core/web/ui/node_modules, ~3.8k files, into the
+# wheel). TASK-219.
+include-package-data = false
 # Src-layout: all importable code lives under src/. The three OS subsystems
 # (thinking_os, graph_os, board_os) plus web and scheduled live under
 # src/core/. Listed explicitly so `from thinking_os.database import X` works
@@ -183,6 +187,11 @@ packages = [
     "adapters",
     "adapters.claude",
     "adapters.codex",
+    # Data-only trees made into packages so their non-Python files ship as
+    # wheel package-data (their data subdirs are NOT listed as packages — that
+    # is the TASK-218 wheel-from-sdist trap). TASK-219.
+    "templates",
+    "scripts",
 ]
 
 [tool.setuptools.package-dir]
@@ -194,6 +203,41 @@ packages = [
 "board_os" = "src/core/board_os"
 "web" = "src/core/web"
 "scheduled" = "src/core/scheduled"
+"templates" = "src/templates"
+"scripts" = "src/scripts"
+
+# Ship the non-Python data trees a pip/uvx-installed `cos` resolves at runtime
+# via cli/_resources.py (hooks, commands, skills, rules, schemas, agents, board
+# configs, workflow docs, adapter templates, stack scaffolds, git-hook bodies).
+# TASK-219.
+[tool.setuptools.package-data]
+# Targeted to the runtime data dirs only — a blanket `**/*.md` would drag in
+# core/web/ui/node_modules (thousands of files) and bloat the wheel.
+core = [
+    "*.json",
+    "*.yaml",
+    "hooks/*.sh",
+    "hooks/_helpers/*.py",
+    "commands/**/*.md",
+    "skills/**/*",
+    "rules/*.md",
+    "scripts/*.sh",
+    "schemas/*.json",
+    "docs/**/*.md",
+    "thinking_os/agents/**/*",
+    "board_os/*.yaml",
+]
+adapters = ["**/*"]
+templates = ["**/*"]
+scripts = ["**/*"]
+
+[tool.setuptools.exclude-package-data]
+# The Hub UI tree (node_modules ~3.8k files, dist build output, TS source) is a
+# build-time concern, never needed by a pip/uvx-installed `cos init`. Exclude it
+# wholesale so the wheel stays lean. TASK-219.
+"*" = ["**/node_modules/**", "**/__pycache__/**", "**/*.pyc", "**/dist/**"]
+core = ["web/ui/**"]
+web = ["ui/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["src/core/thinking_os/tests", "src/core/graph_os/tests", "src/core/board_os/tests", "src/core/logging_os/tests", "tests"]

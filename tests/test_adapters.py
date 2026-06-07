@@ -471,7 +471,9 @@ class TestStackSkillLinking:
                 "bash",
                 str(LINK_STACK_SKILLS),
                 agent_skills,
-                str(CODING_OS_ROOT),
+                # link-stack-skills.sh now takes the DATA root (dir containing
+                # templates/), not the repo root — wheel-compatible (TASK-219).
+                str(CODING_OS_ROOT / "src"),
                 *stacks,
             ],
             capture_output=True,

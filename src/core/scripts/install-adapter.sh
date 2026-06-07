@@ -104,7 +104,7 @@ echo "$ADAPTER" > "${PROJECT_ROOT}/.coding-os/.agent" 2>/dev/null || true
 # ---------------------------------------------------------------------------
 # 3. Core hooks
 # ---------------------------------------------------------------------------
-for hook in "${CODING_OS_ROOT}/src/core/hooks/"*.sh; do
+for hook in "${CODING_OS_ROOT}/core/hooks/"*.sh; do
   name=$(basename "$hook")
   ln -sf "$hook" "${PROJECT_ROOT}/${AGENT_DIR}/hooks/${name}"
 done
@@ -112,8 +112,8 @@ done
 # ---------------------------------------------------------------------------
 # 4. Adapter-specific dispatcher hooks (optional)
 # ---------------------------------------------------------------------------
-if [[ -d "${CODING_OS_ROOT}/src/adapters/${ADAPTER}/hooks" ]]; then
-  for hook in "${CODING_OS_ROOT}/src/adapters/${ADAPTER}/hooks/"*.sh; do
+if [[ -d "${CODING_OS_ROOT}/adapters/${ADAPTER}/hooks" ]]; then
+  for hook in "${CODING_OS_ROOT}/adapters/${ADAPTER}/hooks/"*.sh; do
     name=$(basename "$hook")
     ln -sf "$hook" "${PROJECT_ROOT}/${AGENT_DIR}/hooks/${name}"
   done
@@ -122,7 +122,7 @@ fi
 # ---------------------------------------------------------------------------
 # 5. Core rules
 # ---------------------------------------------------------------------------
-for rule in "${CODING_OS_ROOT}/src/core/rules/"*.md; do
+for rule in "${CODING_OS_ROOT}/core/rules/"*.md; do
   name=$(basename "$rule")
   ln -sf "$rule" "${PROJECT_ROOT}/${AGENT_DIR}/rules/${name}"
 done
@@ -130,7 +130,7 @@ done
 # ---------------------------------------------------------------------------
 # 6. Core skills (one dir per skill; SKILL.md is the entry point)
 # ---------------------------------------------------------------------------
-for skill_dir in "${CODING_OS_ROOT}/src/core/skills/"*/; do
+for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   name=$(basename "$skill_dir")
   mkdir -p "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}"
   if [[ -f "${skill_dir}SKILL.md" ]]; then
@@ -141,9 +141,9 @@ done
 # 6b. Re-link stack-specific skills declared in installed-manifest.json.
 # Idempotent: link-stack-skills.sh uses `ln -sf` and skips missing dirs.
 MANIFEST="${PROJECT_ROOT}/.coding-os/installed-manifest.json"
-LINKER="${CODING_OS_ROOT}/src/core/scripts/link-stack-skills.sh"
+LINKER="${CODING_OS_ROOT}/core/scripts/link-stack-skills.sh"
 if [[ -f "$MANIFEST" && -x "$LINKER" ]]; then
-  STACKS_HELPER="${CODING_OS_ROOT}/src/adapters/${ADAPTER}/_install_helpers/extract_stacks.py"
+  STACKS_HELPER="${CODING_OS_ROOT}/adapters/${ADAPTER}/_install_helpers/extract_stacks.py"
   if [[ ! -f "$STACKS_HELPER" ]]; then
     # Fallback: inline parse via python3 — bash 5.3.9 heredoc-deadlock-safe
     # because we don't use a heredoc here, just a -c arg.
@@ -160,7 +160,7 @@ fi
 # ---------------------------------------------------------------------------
 # 7. Core commands (slash commands)
 # ---------------------------------------------------------------------------
-COMMANDS_DIR="${CODING_OS_ROOT}/src/core/commands"
+COMMANDS_DIR="${CODING_OS_ROOT}/core/commands"
 if [[ -d "$COMMANDS_DIR" ]]; then
   for cmd in "${COMMANDS_DIR}/"*.md; do
     name=$(basename "$cmd")
@@ -173,7 +173,7 @@ fi
 #    /role-<name> across all three adapters. README.md is excluded (it
 #    documents the catalog, not a role).
 # ---------------------------------------------------------------------------
-AGENTS_DIR="${CODING_OS_ROOT}/src/core/thinking_os/agents"
+AGENTS_DIR="${CODING_OS_ROOT}/core/thinking_os/agents"
 if [[ -d "$AGENTS_DIR" ]]; then
   for agent in "${AGENTS_DIR}/"*.md; do
     base=$(basename "$agent")

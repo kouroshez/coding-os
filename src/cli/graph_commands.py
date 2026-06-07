@@ -45,10 +45,11 @@ import click
 
 
 def _bootstrap_paths() -> None:
-    here = Path(__file__).resolve()
-    core_dir = here.parent.parent.parent / "src" / "core"
-    tos_dir = core_dir / "thinking_os"
-    for candidate in (core_dir, tos_dir):
+    from cli._resources import core_dir as _core_dir
+
+    core_path = _core_dir()
+    tos_dir = core_path / "thinking_os"
+    for candidate in (core_path, tos_dir):
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))
 

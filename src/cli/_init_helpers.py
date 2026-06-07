@@ -13,6 +13,8 @@ from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from cli._resources import scripts_dir
+
 if TYPE_CHECKING:
     from cli._data_types import AggregatedWorld
 
@@ -412,8 +414,8 @@ def install_consumer_git_hooks(project: Path, *, enabled: bool) -> GitHooksResul
     if not (project / ".git").is_dir():
         return GitHooksResult(installed=(), skipped_reason="no .git", error=None)
     pairs = (
-        ("pre-commit", CODING_OS_ROOT / "src" / "scripts" / "_pre_commit_body.sh"),
-        ("commit-msg", CODING_OS_ROOT / "src" / "scripts" / "_commit_msg_body.sh"),
+        ("pre-commit", scripts_dir("_pre_commit_body.sh")),
+        ("commit-msg", scripts_dir("_commit_msg_body.sh")),
     )
     installed: list[str] = []
     try:

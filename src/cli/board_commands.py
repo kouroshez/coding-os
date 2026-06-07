@@ -51,7 +51,9 @@ def _db_conn() -> sqlite3.Connection:
 
 def _known_agent_ids() -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
     """Load adapter ids + their runtime env markers from adapter registry."""
-    adapters_dir = Path(__file__).resolve().parent.parent.parent / "src" / "adapters"
+    from cli._resources import adapters_dir as _adapters_root
+
+    adapters_dir = _adapters_root()
     try:
         from cli.adapter_registry import load_adapter_registry
 

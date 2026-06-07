@@ -16,7 +16,7 @@
 set -euo pipefail
 shopt -s nullglob
 
-CODING_OS_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+CODING_OS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_ROOT="${PWD}"
 
 echo "⚙️  Installing coding-os Claude adapter..."
@@ -24,12 +24,12 @@ echo "  Project: $PROJECT_ROOT"
 echo "  coding-os: $CODING_OS_ROOT"
 
 # 1-8. Common install steps (shared with codex / cursor).
-bash "${CODING_OS_ROOT}/src/core/scripts/install-adapter.sh" \
+bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
   --adapter claude --agent-dir .claude \
   --coding-os-root "$CODING_OS_ROOT" --project-root "$PROJECT_ROOT"
 
 # 9. settings.json from registry-rendered template.
-TEMPLATE="${CODING_OS_ROOT}/src/adapters/claude/settings.template.json"
+TEMPLATE="${CODING_OS_ROOT}/adapters/claude/settings.template.json"
 HOOKS_REL=".claude/hooks"
 sed "s|{{HOOKS_DIR}}|${HOOKS_REL}|g" "$TEMPLATE" > "${PROJECT_ROOT}/.claude/settings.json"
 
@@ -42,7 +42,7 @@ if [[ ! -f "$MCP_FILE" ]]; then
 }
 MCPEOF
 fi
-MCP_HELPER="${CODING_OS_ROOT}/src/adapters/claude/_install_helpers/update_mcp_json.py"
+MCP_HELPER="${CODING_OS_ROOT}/adapters/claude/_install_helpers/update_mcp_json.py"
 if [[ -f "$MCP_HELPER" ]]; then
   python3 "$MCP_HELPER" "$MCP_FILE" "$CODING_OS_ROOT" \
     || echo "  WARN: Could not update .mcp.json automatically (see error above)"
@@ -61,7 +61,7 @@ if [[ -d "${PROJECT_ROOT}/.claude/agents" ]]; then
 fi
 
 # 12. Local permission overrides — copy template once if not present.
-LOCAL_TEMPLATE="${CODING_OS_ROOT}/src/adapters/claude/settings.local.template.json"
+LOCAL_TEMPLATE="${CODING_OS_ROOT}/adapters/claude/settings.local.template.json"
 LOCAL_TARGET="${PROJECT_ROOT}/.claude/settings.local.json"
 if [[ ! -f "$LOCAL_TARGET" && -f "$LOCAL_TEMPLATE" ]]; then
   cp "$LOCAL_TEMPLATE" "$LOCAL_TARGET"

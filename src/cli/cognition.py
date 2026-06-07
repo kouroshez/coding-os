@@ -234,7 +234,9 @@ def cognition_trace(session_id: str, raw: bool, summary: bool, agent_dir: str | 
     from pathlib import Path as _Path
 
     # tracing lives next to the MCP server — add it to path if not already
-    core = _Path(__file__).resolve().parent.parent.parent / "src" / "core" / "thinking_os"
+    from cli._resources import core_dir
+
+    core = core_dir("thinking_os")
     if str(core) not in sys.path:
         sys.path.insert(0, str(core))
     import tracing

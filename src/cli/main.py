@@ -25,6 +25,7 @@ import click
 import yaml
 
 from cli._data_types import AggregatedWorld
+from cli._resources import adapters_dir, core_dir, data_root, templates_dir
 from cli._init_helpers import (
     InitError,
     ensure_agents_md,
@@ -57,11 +58,13 @@ from cli.stack_registry import load_base_profile, load_stack_registry
 from cli.tail_command import tail_cmd
 from cli.update import update as update_cmd
 
-# Src-layout: src/cli/main.py → walk up two levels (cli → src → repo root).
+# CODING_OS_ROOT is the source-checkout root — kept for dev-only operations; it
+# is meaningless under a wheel install. The bundled DATA trees resolve via
+# importlib so they are found under both src-layout and wheel installs (TASK-219).
 CODING_OS_ROOT = Path(__file__).resolve().parent.parent.parent
-ADAPTERS_DIR = CODING_OS_ROOT / "src" / "adapters"
-CORE_DIR = CODING_OS_ROOT / "src" / "core"
-TEMPLATES_DIR = CODING_OS_ROOT / "src" / "templates"
+ADAPTERS_DIR = adapters_dir()
+CORE_DIR = core_dir()
+TEMPLATES_DIR = templates_dir()
 
 CONFIG_FILE = ".coding-os.yaml"
 STATE_DIR = ".coding-os"
@@ -366,7 +369,7 @@ def _link_stack_skills(
         return
     agent_skills_abs = str(project_dir / skills_dir)
     result = subprocess.run(
-        ["bash", str(linker), agent_skills_abs, str(CODING_OS_ROOT), *templates],
+        ["bash", str(linker), agent_skills_abs, str(data_root()), *templates],
         capture_output=True,
         text=True,
     )
@@ -378,7 +381,7 @@ def _link_stack_skills(
         return
     linked = []
     for t in templates:
-        stack_skills = CODING_OS_ROOT / "src" / "templates" / t / "skills"
+        stack_skills = templates_dir(t, "skills")
         if stack_skills.exists():
             linked.extend(sorted(p.name for p in stack_skills.iterdir() if p.is_dir()))
     if linked:
@@ -1418,7 +1421,7 @@ def codex_mcp_install(config_path: str | None, global_scope: bool, dry_run: bool
         command = "cos"
         args = ["server-start"]
     else:
-        server_py = (CODING_OS_ROOT / "src" / "core" / "thinking_os" / "server.py").as_posix()
+        server_py = core_dir("thinking_os", "server.py").as_posix()
         python = sys.executable
         snippet = f'\n[mcp_servers.coding-os]\ncommand = "{python}"\nargs = ["{server_py}"]\n'
         command = python

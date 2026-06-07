@@ -17,13 +17,13 @@
 set -euo pipefail
 shopt -s nullglob
 
-CODING_OS_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+CODING_OS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_ROOT="${PWD}"
 
 echo "⚙️  Installing coding-os Codex adapter..."
 
 # 1-8. Common install steps (shared with claude / cursor).
-bash "${CODING_OS_ROOT}/src/core/scripts/install-adapter.sh" \
+bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
   --adapter codex --agent-dir .codex \
   --coding-os-root "$CODING_OS_ROOT" --project-root "$PROJECT_ROOT"
 
@@ -31,7 +31,7 @@ bash "${CODING_OS_ROOT}/src/core/scripts/install-adapter.sh" \
 # Use absolute hook paths so a Codex session launched in a nested cwd
 # still resolves the script. (Codex runs `sh -c <command>` with the
 # session cwd, not the project root.)
-TEMPLATE="${CODING_OS_ROOT}/src/adapters/codex/hooks.template.json"
+TEMPLATE="${CODING_OS_ROOT}/adapters/codex/hooks.template.json"
 HOOKS_ABS="${PROJECT_ROOT}/.codex/hooks"
 HOOKS_ESCAPED=$(printf '%s' "$HOOKS_ABS" | sed 's/[&|]/\\&/g')
 sed "s|{{HOOKS_DIR}}|${HOOKS_ESCAPED}|g" "$TEMPLATE" > "${PROJECT_ROOT}/.codex/hooks.json"
@@ -47,14 +47,14 @@ fi
 CODEX_CONFIG="${PROJECT_ROOT}/.codex/config.toml"
 mkdir -p "${PROJECT_ROOT}/.codex"
 
-ENABLE_HELPER="${CODING_OS_ROOT}/src/adapters/codex/enable_codex_hooks.py"
+ENABLE_HELPER="${CODING_OS_ROOT}/adapters/codex/enable_codex_hooks.py"
 if [[ -x "$ENABLE_HELPER" || -f "$ENABLE_HELPER" ]]; then
   HOOKS_STATUS="$(python3 "$ENABLE_HELPER" "$CODEX_CONFIG" 2>&1 || echo 'failed to enable codex_hooks (see stderr)')"
 else
   HOOKS_STATUS="helper missing at $ENABLE_HELPER"
 fi
 
-MCP_HELPER="${CODING_OS_ROOT}/src/adapters/codex/ensure_codex_mcp.py"
+MCP_HELPER="${CODING_OS_ROOT}/adapters/codex/ensure_codex_mcp.py"
 if command -v cos >/dev/null 2>&1; then
   MCP_CMD="cos"
   MCP_ARGS=("server-start")
@@ -63,7 +63,7 @@ else
   # MCP startup does not depend on uv cache access inside Codex's sandbox.
   PYTHON_BIN="$(python3 -c 'import sys; print(sys.executable)')"
   MCP_CMD="$PYTHON_BIN"
-  MCP_ARGS=("${CODING_OS_ROOT}/src/core/thinking_os/server.py")
+  MCP_ARGS=("${CODING_OS_ROOT}/core/thinking_os/server.py")
 fi
 
 if [[ -x "$MCP_HELPER" || -f "$MCP_HELPER" ]]; then
