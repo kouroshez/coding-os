@@ -17,6 +17,14 @@ fi
 
 source "${HOOKS_DIR}/cos-env.sh" 2>/dev/null || true
 
+# _helpers/ is NOT symlinked into a consumer's .claude/hooks/, so resolve it
+# through cos-env.sh's own symlink chain (then fall back to the meta tree).
+HELPERS_DIR="${HOOKS_DIR}/_helpers"
+if command -v _cos_helpers_dir >/dev/null 2>&1; then
+  HELPERS_DIR="$(_cos_helpers_dir)"
+fi
+[[ -d "$HELPERS_DIR" ]] || HELPERS_DIR="${REPO_ROOT}/src/core/hooks/_helpers"
+
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
 
 if [[ -z "$STAGED_FILES" ]]; then
@@ -31,10 +39,7 @@ echo "cos pre-commit: checking ${FILE_COUNT} staged file(s)..."
 # hook environment beyond ~15 staged files — bash 5.x fork-bombs and
 # loses pipe synchronization. The Python helper does the same work in
 # one process: no nested subshells, no per-file fork-bomb.
-BATCH_HELPER="${HOOKS_DIR}/_helpers/pre_commit_batch.py"
-if [[ ! -f "$BATCH_HELPER" ]]; then
-  BATCH_HELPER="${REPO_ROOT}/src/core/hooks/_helpers/pre_commit_batch.py"
-fi
+BATCH_HELPER="${HELPERS_DIR}/pre_commit_batch.py"
 
 if [[ ! -f "$BATCH_HELPER" ]]; then
   echo "cos pre-commit: WARNING — batch helper missing; skipping hook scan." >&2
@@ -59,8 +64,7 @@ done < <(printf '%s\n' "$STAGED_FILES")
 # never hang this commit (or orphan into the next one). pre_commit_batch.py
 # already kills each hook at 15s; this is the cumulative/python-level backstop.
 COS_PRECOMMIT_TIMEOUT="${COS_PRECOMMIT_TIMEOUT:-180}"
-source "${HOOKS_DIR}/_helpers/run_with_reap_timeout.sh" 2>/dev/null \
-  || source "${REPO_ROOT}/src/core/hooks/_helpers/run_with_reap_timeout.sh" 2>/dev/null || true
+source "${HELPERS_DIR}/run_with_reap_timeout.sh" 2>/dev/null || true
 
 set +e
 if command -v cos_run_with_reap_timeout >/dev/null 2>&1; then
@@ -81,12 +85,18 @@ elif [[ "$BATCH_RC" -eq 1 ]]; then
   echo "To skip (NOT recommended): git commit --no-verify" >&2
   exit 1
 else
-  # Non-0/1 == the watchdog reaped a hang (137/143) or the helper crashed.
-  # Fail OPEN with a loud warning: a permanent block would brick commits (the
-  # agent path cannot use --no-verify), and PreToolUse hooks already validated
-  # agent edits. The reap guarantees the next commit starts clean.
+  # Non-0/1: the watchdog reaped a hang (SIGKILL 137 / SIGTERM 143 / timeout
+  # 124) OR the batch helper itself crashed. Fail OPEN either way — a permanent
+  # block would brick commits (the agent path cannot use --no-verify) and
+  # PreToolUse hooks already validated agent edits — but distinguish the two so
+  # a real crash is not misreported as a benign timeout.
   echo "" >&2
-  echo "cos pre-commit: WARNING — scan exceeded ${COS_PRECOMMIT_TIMEOUT}s and was reaped (orphans killed; rc=${BATCH_RC})." >&2
+  case "$BATCH_RC" in
+    124|137|143)
+      echo "cos pre-commit: WARNING — scan exceeded ${COS_PRECOMMIT_TIMEOUT}s and was reaped (orphans killed; rc=${BATCH_RC})." >&2 ;;
+    *)
+      echo "cos pre-commit: WARNING — scan helper crashed (rc=${BATCH_RC}); commit allowed but hooks did NOT fully run." >&2 ;;
+  esac
   echo "  Commit allowed; re-run for a full scan if needed." >&2
   exit 0
 fi
