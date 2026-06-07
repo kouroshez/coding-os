@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: feature
 epic: enterprise-scale
 labels: [scale, graph, performance, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 3d
 created: 2026-06-07
 started: 2026-06-07
-completed: null
-agent_session: ses-claude-20260607-001830-03d2
+completed: 2026-06-07
+agent_session: ses-claude-20260527-151803-0b9f
 depends_on: []
 blocked_by: []
 references: []
@@ -31,3 +31,6 @@ references: []
 - **Then** per-node list_edges loops are replaced by one batched IN-clause/JOIN; degree_map_for avoids the index-bypassing OR-join; graph_nodes(uid) is indexed; edge scans are bounded; coverage tools set truncated honestly; verified under a fixed latency budget at 200K nodes (no per-node query storm).
 
 ## Work Log
+- 2026-06-07 [claude]: committed 72cf92c1: src/core/graph_os/tools/graph.py
+- 2026-06-07 [claude]: committed 72cf92c1: _degree_map_for OR->UNION; _edges_among chunked indexed batch powers betweenness + ranking (replaced
+- 2026-06-07 [claude]: Status transitioned to complete via cos task-done.
