@@ -48,4 +48,5 @@ Deliberate live-symlink design (CLAUDE.md: hooks propagate with "none" rebuild) 
 Same family as [[TASK-201]] (skill-fork panel leak) and F2 (TASK-167 MCP attribution) — all session-isolation gaps in the multi-agent kernel. See docs/engineering/agent-hub-orchestration.md.
 
 ## Work Log
-- 2026-06-06 [claude]: Added atomic-edit + verify-before-yield protocol for live-symlinked block-*/enforce-* safety hooks to git-workflow.md § 
+- 2026-06-06 [claude]: Added atomic-edit + verify-before-yield protocol for live-symlinked block-*/enforce-* safety hooks to git-workflow.md §
+- 2026-06-06 [claude]: committed c139c782: src/core/rules/git-workflow.md

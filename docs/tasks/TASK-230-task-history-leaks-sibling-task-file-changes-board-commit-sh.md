@@ -37,3 +37,4 @@ Actual: all 7 sibling task files are listed under the one task's history (cross-
 
 ## Work Log
 - 2026-06-07 [claude]: Fixed cross-task history leak. board_commit gained for_task query param; when set (validated TASK-\d+) it drops OTHER ta
+- 2026-06-07 [claude]: committed 890c695c: src/core/web/routes/board.py, src/core/web/ui/src/features/cos-board/CosBoardPage.tsx

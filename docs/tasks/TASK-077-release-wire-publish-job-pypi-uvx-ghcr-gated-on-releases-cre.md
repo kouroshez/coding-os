@@ -21,4 +21,5 @@ references: []
 **Outcome (one sentence):** Make coding-os publicly installable (`pip` / `pipx` / `uvx install coding-os`) before the first public release — wire a PyPI publish job (Trusted Publishing, gated on `releases_created`) AND complete `pyproject.toml` metadata (authors · license · classifiers · keywords · urls). **Full spec:** [docs/governance/release-process.md § Publishing & package metadata](../governance/release-process.md#publishing--package-metadata-pre-public-launch--task-077). Deferred — repo still private; do at public-launch alongside the first release tag (companion of TASK-079 1.0.0 criteria).
 
 ## Work Log
-- 2026-06-06 [claude]: Wired publish-pypi job (Trusted Publishing/OIDC, gated on releases_created) in release-please.yml + completed pyproject 
+- 2026-06-06 [claude]: Wired publish-pypi job (Trusted Publishing/OIDC, gated on releases_created) in release-please.yml + completed pyproject
+- 2026-06-06 [claude]: committed 360bb98e: .github/workflows/release-please.yml, pyproject.toml

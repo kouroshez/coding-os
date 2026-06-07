@@ -39,3 +39,4 @@ Actual: marker-string presence alone passes; docs-lint has no nav-breadcrumb che
 
 ## Work Log
 - 2026-06-06 [claude]: D5-F3: enforce-doc-anchor now extracts docs/*.md tokens from the anchor and BLOCKs when none resolve on disk (task-based
+- 2026-06-06 [claude]: committed e65aafe8: src/core/hooks/enforce-doc-anchor.sh, src/core/hooks/enforce-doc-sync.sh, src/core/scripts/docs-lint

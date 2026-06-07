@@ -38,3 +38,4 @@ Actual: is_active hardcoded to 1; routing target dirs missing.
 
 ## Work Log
 - 2026-06-07 [claude]: D7-F9: doc_indexer now flips is_active=0 when a doc header declares superseded_by (both insert sites; superseded_by is a
+- 2026-06-07 [claude]: committed 37f90663: src/core/thinking_os/doc_indexer.py, src/core/thinking_os/tests/test_doc_indexer.py, src/templates/_

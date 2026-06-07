@@ -21,4 +21,5 @@ references: []
 **Outcome (one sentence):** Every make target, cos CLI command, standalone script, hook, and test obeys the 7 script-output non-negotiables (runtime args, fail-closed, idempotent, observable progress, stdout=result/stderr=narration, algo-honest, header). Headline bugs fixed first: make-verify greenwash + the src/-reorg stale-path cluster.
 
 ## Work Log
-- 2026-06-07 [claude]: Completion review (reclaimed zombie): 7/8 batches verified real — greenwash gates (test-mcp now exit-gated), stale src/ 
+- 2026-06-07 [claude]: Completion review (reclaimed zombie): 7/8 batches verified real — greenwash gates (test-mcp now exit-gated), stale src/
+- 2026-06-07 [claude]: committed c30a593d: docs/tasks/audits/audit-output-quality.md

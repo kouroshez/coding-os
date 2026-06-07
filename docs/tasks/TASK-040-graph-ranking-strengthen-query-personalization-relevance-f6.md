@@ -4,7 +4,7 @@ title: "graph ranking: strengthen query-personalization relevance (F6)"
 swimlane: infra
 kind: chore
 epic: null
-labels: []
+labels: [ready]
 status: complete
 priority: P3
 appetite: "1d"
@@ -16,6 +16,7 @@ depends_on: []
 blocked_by: []
 references: []
 ---
+
 # TASK-040: graph ranking: strengthen query-personalization relevance (F6)
 
 **Outcome (one sentence):** cos_graph_ranking(query=...) returns query-relevant nodes, not generic PageRank hubs; backed by a relevance eval fixture.

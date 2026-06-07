@@ -37,3 +37,4 @@ Actual (before fix): wheel-from-sdist aborts with `error: package directory 'src
 
 ## Work Log
 - 2026-06-07 [claude]: Dropped data-only dirs core.commands + core.hooks from pyproject [tool.setuptools.packages] (verified nothing imports th
+- 2026-06-07 [claude]: committed 8d0dbba7: pyproject.toml

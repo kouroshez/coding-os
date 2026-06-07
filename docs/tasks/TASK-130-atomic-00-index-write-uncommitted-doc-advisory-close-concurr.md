@@ -38,3 +38,4 @@ Actual (pre-fix): no `> Nav:` line in the generated body; no Stop/SessionEnd adv
 
 ## Work Log
 - 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-06 [claude]: committed 40a7b150: src/core/hooks/session-end.sh, src/scripts/regen_doc_index.py

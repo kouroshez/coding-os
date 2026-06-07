@@ -38,3 +38,4 @@ Actual: only ~14 cards render; hub.log shows `cos_task_board returned an unshrin
 
 ## Work Log
 - 2026-06-07 [claude]: Root cause: web board_list called cos_task_board which applies the 32KB MCP token-budget cap (_cap_board_to_budget) — an
+- 2026-06-07 [claude]: committed ebb8fd76: src/core/board_os/mcp_tools.py, src/core/web/routes/board.py

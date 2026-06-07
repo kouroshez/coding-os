@@ -32,4 +32,5 @@ references: []
 - **Then** doc-new writes a file carrying the canonical header + opening block + nav breadcrumb; doc-history prints the git revision list (and full diffs with --show); doc-lint runs docs-lint.sh in single-file mode and exits non-zero on lint errors — all three registered on the `cos` CLI, reusing docs-lint.sh with no new parser.
 
 ## Work Log
-- 2026-06-06 [claude]: Added src/cli/doc_commands.py (doc-new scaffolds canonical header+opening-block+nav; doc-history wraps git log --follow 
+- 2026-06-06 [claude]: Added src/cli/doc_commands.py (doc-new scaffolds canonical header+opening-block+nav; doc-history wraps git log --follow
+- 2026-06-06 [claude]: committed 27e94114: src/cli/doc_commands.py, src/cli/main.py

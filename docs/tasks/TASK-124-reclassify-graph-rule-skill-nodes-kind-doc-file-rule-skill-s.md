@@ -37,4 +37,5 @@ Actual: missing-frontmatter count invisible; classification determinism unguarde
 - **Then** the index stats include a `missing_frontmatter` count; src/core/rules/*.md and skills/**/SKILL.md classify to a non-doc_file governance kind, stable across repeated extraction (guarded by a test in test_md_links); a plain docs/ file stays doc_file — verified by test-graph_os + test-thinking_os.
 
 ## Work Log
-- 2026-06-06 [claude]: Reclassification verified ALREADY-correct in the live graph (cos_graph_query: git-workflow=rule, clean-code=skill, conf 
+- 2026-06-06 [claude]: Reclassification verified ALREADY-correct in the live graph (cos_graph_query: git-workflow=rule, clean-code=skill, conf
+- 2026-06-06 [claude]: committed 44778daa: src/core/graph_os/tests/test_md_links.py, src/core/thinking_os/doc_indexer.py, src/core/thinking_os/

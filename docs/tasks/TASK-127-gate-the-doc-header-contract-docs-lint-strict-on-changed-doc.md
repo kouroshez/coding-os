@@ -33,3 +33,4 @@ references: []
 
 ## Work Log
 - 2026-06-07 [claude]: Shipped 3 additive WARN/gate surfaces for the doc-header contract (reusing docs-lint Check-1, no new lint logic): (a) do
+- 2026-06-07 [claude]: committed 12e875ce: .github/workflows/ci.yml, src/core/hooks/_helpers/pre_commit_batch.py, src/core/hooks/enforce-templa

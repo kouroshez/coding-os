@@ -37,4 +37,5 @@ Actual: go-fiber ref dangles; a11y filenames collide.
 - **Then** each read_file resolves in that stack's or _base's scaffold (go-fiber's dangling security-review ref removed); accessibility-checklist.md is renamed accessibility-web.md (nextjs) / accessibility-mobile.md (react-native) with all stack.yaml refs updated; a co-install collision test passes — verified by test-template-scaffold + regen-rules.
 
 ## Work Log
-- 2026-06-07 [claude]: D2-F2: dropped go-fiber's dangling docs/playbooks/security-review.md from the Middleware/auth dimension (fiber-rules.md 
+- 2026-06-07 [claude]: D2-F2: dropped go-fiber's dangling docs/playbooks/security-review.md from the Middleware/auth dimension (fiber-rules.md
+- 2026-06-07 [claude]: committed 0c9adc96: src/core/rules/dimension-registry.md, src/templates/_base/dimension-registry.template.md, src/templa

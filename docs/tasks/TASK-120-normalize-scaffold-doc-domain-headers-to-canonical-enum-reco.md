@@ -38,3 +38,4 @@ Actual (pre-fix): django emits `AUTH`, react-native emits 4× `REACTNATIVE`, nex
 
 ## Work Log
 - 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-06 [claude]: committed 91d68596: src/templates/django/scaffold/docs/playbooks/security-review.md, src/templates/nextjs/scaffold/docs/

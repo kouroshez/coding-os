@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-07 [claude]: Batch-7 done: deleted dead no-op stubs verify-changed-file.sh + doc-sync-reminder.sh (MERGED into enforce-doc-sync.sh) f
+- 2026-06-07 [claude]: committed 10fb07e4: src/adapters/claude/settings.template.json, src/adapters/cursor/adapter.yaml, src/adapters/cursor/ho

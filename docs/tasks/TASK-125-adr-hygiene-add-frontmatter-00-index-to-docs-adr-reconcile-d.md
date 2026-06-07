@@ -32,3 +32,4 @@ references: []
 
 ## Work Log
 - 2026-06-06 [claude]: Status transitioned to complete via cos task-done.
+- 2026-06-06 [claude]: committed 2f7acfb7: docs/governance/docs-system.md

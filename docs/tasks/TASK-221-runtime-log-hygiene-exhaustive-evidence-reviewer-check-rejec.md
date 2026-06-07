@@ -38,3 +38,4 @@ Actual: (1) silent bundle drop on a Literal mismatch; (2) the agent runtime phon
 
 ## Work Log
 - 2026-06-07 [claude]: Both fixes shipped + 190 thinking_os tests pass. (1) ExhaustiveEvidence gained reviewer_notes (str); cos_supervise_recor
+- 2026-06-07 [claude]: committed d46f45a3: src/core/board_os/mcp_tools.py, src/core/thinking_os/cognition_schemas.py, src/core/thinking_os/embe

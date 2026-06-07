@@ -39,3 +39,4 @@ Actual: orphan graph nodes after a read-error delete; no audit row on doc delete
 
 ## Work Log
 - 2026-06-07 [claude]: D7-F1: reindex_dispatch read_error branch now distinguishes deletion from transient — a path gone from disk is pruned (_
+- 2026-06-07 [claude]: committed c3267406: src/core/graph_os/tests/test_reindex_dispatch.py, src/core/graph_os/tools/reindex_dispatch.py, src/s

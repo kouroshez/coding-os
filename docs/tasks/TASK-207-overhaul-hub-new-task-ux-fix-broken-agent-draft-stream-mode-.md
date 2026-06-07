@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: agent-hub
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: "1d"
 created: 2026-06-06
 started: 2026-06-05
-completed: null
+completed: 2026-06-05
 agent_session: ses-claude-20260605-183120-db30
 depends_on: []
 blocked_by: []
@@ -42,3 +42,4 @@ Findings + plan from the read-only review workflow (wf_5e36d619-026): API-contra
 - 2026-06-06 [claude]: G2 customer-grade create flow: clicking new now shows a plain-language chooser first (✨ Let an AI draft it · recommended
 - 2026-06-06 [claude]: committed eaa071b7: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx
 - 2026-06-06 [claude]: G4 a11y/robustness: all three create/agent modals get role=dialog + aria-modal + aria-label; ESC now closes CreateTaskMo
+- 2026-06-06 [claude]: committed 83f1873b: src/core/web/ui/src/features/cos-board/CosBoardPage.tsx

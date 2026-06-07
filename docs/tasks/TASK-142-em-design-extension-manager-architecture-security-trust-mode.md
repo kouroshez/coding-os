@@ -22,3 +22,4 @@ references: []
 
 ## Work Log
 - 2026-06-06 [claude]: Authored docs/engineering/extension-manager.md SSOT design doc: CatalogUnit model, extensions.json manifest, fail-closed
+- 2026-06-06 [claude]: committed b16dfbed: docs/engineering/extension-manager.md

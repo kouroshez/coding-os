@@ -39,3 +39,4 @@ Actual: the response is unshrinkable (grouped is a nested dict + cards duplicate
 ## Work Log
 - 2026-06-06 [claude]: Diagnosability done (commit 6f1cab46): safe_tool now names the tool on unshrinkable envelope; 1335+38 tests green.
 - 2026-06-06 [claude]: Identified culprit = cos_task_board (returns grouped + cards = same cards twice, neither in the envelope trim ladder → u
+- 2026-06-06 [claude]: committed 3575051f: src/core/board_os/mcp_tools.py, src/core/board_os/tests/test_mcp_tools.py
