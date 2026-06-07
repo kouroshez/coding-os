@@ -33,11 +33,17 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import heapq
 import logging
 import os
 import sqlite3
 import sys
 from typing import Any
+
+# Streaming batch sizes — bound peak memory regardless of table size (TASK-224).
+# search streams candidate vectors; reindex streams + batch-embeds source rows.
+_SEARCH_BATCH = 4096
+_REINDEX_BATCH = 64
 
 logger = logging.getLogger("coding_os.embeddings")
 
@@ -378,45 +384,69 @@ def upsert_embedding(
     vector = embed_text(text, model_name=name)
     if vector is None:
         return {"status": "skipped", "reason": "embed_failed"}
-    dim = bytes_to_dim(vector) or model_dim(name) or EMBEDDING_DIM
 
     try:
-        # Use embedding_dim column when the v12 migration is applied;
-        # fall back to the three-column insert for pre-v12 DBs.
-        has_dim_col = _has_embedding_dim_column(conn)
-        if existing:
-            if has_dim_col:
-                conn.execute(
-                    "UPDATE embeddings SET text_hash = ?, embedding = ?, "
-                    "model_name = ?, embedding_dim = ?, created_at = CURRENT_TIMESTAMP "
-                    "WHERE id = ?",
-                    (text_hash, vector, name, dim, existing[0]),
-                )
-            else:
-                conn.execute(
-                    "UPDATE embeddings SET text_hash = ?, embedding = ?, "
-                    "model_name = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    (text_hash, vector, name, existing[0]),
-                )
-            conn.commit()
-            return {"status": "updated", "id": existing[0], "dim": dim, "model_name": name}
-
-        if has_dim_col:
-            cursor = conn.execute(
-                "INSERT INTO embeddings (source_table, source_id, text_hash, "
-                "embedding, model_name, embedding_dim) VALUES (?, ?, ?, ?, ?, ?)",
-                (source_table, source_id, text_hash, vector, name, dim),
-            )
-        else:
-            cursor = conn.execute(
-                "INSERT INTO embeddings (source_table, source_id, text_hash, "
-                "embedding, model_name) VALUES (?, ?, ?, ?, ?)",
-                (source_table, source_id, text_hash, vector, name),
-            )
+        status, row_id, dim = _persist_embedding(
+            conn,
+            source_table,
+            source_id,
+            text_hash,
+            vector,
+            name,
+            existing[0] if existing else None,
+            _has_embedding_dim_column(conn),
+        )
         conn.commit()
-        return {"status": "inserted", "id": cursor.lastrowid, "dim": dim, "model_name": name}
+        return {"status": status, "id": row_id, "dim": dim, "model_name": name}
     except sqlite3.OperationalError as exc:
         return {"status": "error", "reason": str(exc)}
+
+
+def _persist_embedding(
+    conn: sqlite3.Connection,
+    source_table: str,
+    source_id: int,
+    text_hash: str,
+    vector: bytes,
+    name: str,
+    existing_id: int | None,
+    has_dim_col: bool,
+) -> tuple[str, int, int]:
+    """Write one embedding row (INSERT or UPDATE). Caller commits.
+
+    Shared by upsert_embedding (single) and reindex_all (batched). Returns
+    (status, row_id, dim). `has_dim_col` tolerates pre-v12 DBs missing the
+    embedding_dim column.
+    """
+    dim = bytes_to_dim(vector) or model_dim(name) or EMBEDDING_DIM
+    if existing_id is not None:
+        if has_dim_col:
+            conn.execute(
+                "UPDATE embeddings SET text_hash = ?, embedding = ?, model_name = ?, "
+                "embedding_dim = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (text_hash, vector, name, dim, existing_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE embeddings SET text_hash = ?, embedding = ?, model_name = ?, "
+                "created_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (text_hash, vector, name, existing_id),
+            )
+        return "updated", existing_id, dim
+
+    if has_dim_col:
+        cursor = conn.execute(
+            "INSERT INTO embeddings (source_table, source_id, text_hash, "
+            "embedding, model_name, embedding_dim) VALUES (?, ?, ?, ?, ?, ?)",
+            (source_table, source_id, text_hash, vector, name, dim),
+        )
+    else:
+        cursor = conn.execute(
+            "INSERT INTO embeddings (source_table, source_id, text_hash, "
+            "embedding, model_name) VALUES (?, ?, ?, ?, ?)",
+            (source_table, source_id, text_hash, vector, name),
+        )
+    return "inserted", int(cursor.lastrowid), dim
 
 
 def _has_embedding_dim_column(conn: sqlite3.Connection) -> bool:
@@ -478,27 +508,38 @@ def search_similar(
         params.extend(source_tables)
 
     try:
-        rows = conn.execute(sql, params).fetchall()
+        cursor = conn.execute(sql, params)
     except sqlite3.OperationalError as exc:
         logger.warning("search_similar query failed: %s", exc)
         return []
 
-    if not rows:
-        return []
+    # Stream candidates in batches and keep only a top-`limit` min-heap, so peak
+    # memory is one batch of vectors + `limit` results — never the whole table
+    # (1M embeddings fetched at once would be ~1.5 GB of RAM). TASK-224.
+    heap: list[tuple[float, int, dict]] = []
+    seq = 0
+    while True:
+        batch = cursor.fetchmany(_SEARCH_BATCH)
+        if not batch:
+            break
+        scores = cosine_similarity(query_vec, [r[2] for r in batch])
+        for i, score in enumerate(scores):
+            if score < threshold:
+                continue
+            entry = (
+                score,
+                seq,
+                {"source_table": batch[i][0], "source_id": batch[i][1], "score": score},
+            )
+            if len(heap) < limit:
+                heapq.heappush(heap, entry)
+            elif score > heap[0][0]:
+                heapq.heapreplace(heap, entry)
+            seq += 1
 
-    candidate_vecs = [r[2] for r in rows]
-    scores = cosine_similarity(query_vec, candidate_vecs)
-    if not scores:
-        return []
-
-    # Build (row, score) pairs, filter by threshold, sort, take top N
-    scored = [
-        {"source_table": rows[i][0], "source_id": rows[i][1], "score": scores[i]}
-        for i in range(len(rows))
-        if scores[i] >= threshold
-    ]
-    scored.sort(key=lambda d: d["score"], reverse=True)
-    return scored[:limit]
+    results = [item for _, _, item in heap]
+    results.sort(key=lambda d: d["score"], reverse=True)
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -556,27 +597,59 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
         ),
     ]
 
+    name = active_model_name()
+    has_dim_col = _has_embedding_dim_column(conn)
+
     for table, query, text_builder in handlers:
         stats = {"processed": 0, "inserted": 0, "updated": 0, "unchanged": 0, "skipped": 0}
         try:
-            rows = conn.execute(query).fetchall()
+            cursor = conn.execute(query)
         except sqlite3.OperationalError:
             # Table doesn't exist yet (e.g. document_chunks before v5)
             report[table] = stats
             continue
-        for row in rows:
-            stats["processed"] += 1
-            text = text_builder(row)
-            result = upsert_embedding(conn, table, row["id"], text)
-            status = result.get("status", "skipped")
-            if status == "inserted":
-                stats["inserted"] += 1
-            elif status == "updated":
-                stats["updated"] += 1
-            elif status == "unchanged":
-                stats["unchanged"] += 1
-            else:
-                stats["skipped"] += 1
+        # Stream source rows in batches; embed only changed/new rows in one
+        # embed_texts() call per batch instead of one model.encode per row.
+        # Peak memory = one batch, not the whole table. TASK-224.
+        while True:
+            src_rows = cursor.fetchmany(_REINDEX_BATCH)
+            if not src_rows:
+                break
+            pending: list[tuple[int, str, int | None]] = []  # (source_id, text_hash, existing_id)
+            texts: list[str] = []
+            for row in src_rows:
+                stats["processed"] += 1
+                text = text_builder(row)
+                if not text or not text.strip():
+                    stats["skipped"] += 1
+                    continue
+                text_hash = _compute_text_hash(text)
+                existing = conn.execute(
+                    "SELECT id, text_hash, model_name FROM embeddings "
+                    "WHERE source_table = ? AND source_id = ?",
+                    (table, row["id"]),
+                ).fetchone()
+                if existing and existing[1] == text_hash and existing[2] == name:
+                    stats["unchanged"] += 1
+                    continue
+                pending.append((row["id"], text_hash, existing[0] if existing else None))
+                texts.append(text)
+            if not texts:
+                continue
+            vectors = embed_texts(texts, model_name=name)
+            for (source_id, text_hash, existing_id), vector in zip(pending, vectors):
+                if vector is None:
+                    stats["skipped"] += 1
+                    continue
+                try:
+                    status, _, _ = _persist_embedding(
+                        conn, table, source_id, text_hash, vector, name, existing_id, has_dim_col
+                    )
+                except sqlite3.OperationalError:
+                    stats["skipped"] += 1
+                    continue
+                stats[status] += 1
+            conn.commit()
         report[table] = stats
 
     return report
