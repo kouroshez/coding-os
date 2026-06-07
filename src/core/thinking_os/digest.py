@@ -52,6 +52,7 @@ _TOP_BELIEFS = 5
 _TOP_FADING = 3
 _TOP_BREAKTHROUGHS = 3
 _TOP_PREFERENCES = 4
+_TOP_STATS = 3
 
 # Confidence windows
 _FADING_MIN = 0.2
@@ -99,6 +100,7 @@ def render(
     fading = _collect_fading(conn, limit=_TOP_FADING)
     breakthroughs = _collect_breakthroughs(conn, limit=_TOP_BREAKTHROUGHS)
     preferences = _collect_preferences(conn, limit=_TOP_PREFERENCES)
+    stats = _collect_stats(conn, limit=_TOP_STATS)
 
     lines: list[str] = [f"# Agent Digest — {date_str}", ""]
 
@@ -133,6 +135,14 @@ def render(
         lines.append("## Preferences")
         for p in preferences:
             lines.append(f"- {p['text']}")
+        lines.append("")
+
+    # Stats last + lowest priority — honest success rates, NOT learnings. Placed
+    # at the end so they are first to drop under the budget cap (bury the noise).
+    if stats:
+        lines.append("## Project Stats (success rates — not lessons)")
+        for s in stats:
+            lines.append(f"- {s['text']}")
         lines.append("")
 
     body = "\n".join(lines).rstrip() + "\n"
@@ -182,14 +192,19 @@ def _top_domains(conn: sqlite3.Connection, k: int = 3) -> list[tuple[str, int]]:
 
 
 def _collect_beliefs(conn: sqlite3.Connection, *, limit: int) -> list[dict]:
-    """Top learned_patterns by (confidence × impact), confidence ≥ _ACTIVE_MIN."""
+    """Top belief patterns by (confidence × impact), confidence ≥ _ACTIVE_MIN.
+
+    Excludes memory_type='stat' (success-rate baselines) — a statistic is not
+    a learned lesson. See docs/engineering/learning-extraction.md.
+    """
     try:
         rows = conn.execute(
             "SELECT pattern, confidence, impact_score "
             "FROM learned_patterns "
             "WHERE confidence >= ? "
+            "  AND COALESCE(memory_type, '') != 'stat' "
             "ORDER BY (confidence * COALESCE(impact_score, 0.5)) DESC, "
-            "         confidence DESC "
+            "         last_validated DESC, confidence DESC "
             "LIMIT ?",
             (_ACTIVE_MIN, limit),
         ).fetchall()
@@ -204,6 +219,21 @@ def _collect_beliefs(conn: sqlite3.Connection, *, limit: int) -> list[dict]:
         for r in rows
         if r["pattern"]
     ]
+
+
+def _collect_stats(conn: sqlite3.Connection, *, limit: int) -> list[dict]:
+    """Success-rate baselines (memory_type='stat') — shown as honest project
+    stats, clearly separated from learned lessons (never ranked as beliefs)."""
+    try:
+        rows = conn.execute(
+            "SELECT pattern FROM learned_patterns "
+            "WHERE memory_type = 'stat' "
+            "ORDER BY confidence DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    return [{"text": (r["pattern"] or "")[:120]} for r in rows if r["pattern"]]
 
 
 def _collect_fading(conn: sqlite3.Connection, *, limit: int) -> list[dict]:

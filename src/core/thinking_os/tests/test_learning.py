@@ -384,6 +384,16 @@ class TestLearnSuggest:
         result = learn_suggest(seeded_conn, domain="BACKEND", limit=3)
         assert result["count"] <= 3
 
+    def test_excludes_stat_patterns(self, seeded_conn: sqlite3.Connection) -> None:
+        seeded_conn.execute(
+            "INSERT INTO learned_patterns (pattern, memory_type, domain, confidence) "
+            "VALUES ('BACKEND domain succeeds at 100% — reliable baseline', 'stat', 'BACKEND', 0.85)"
+        )
+        seeded_conn.commit()
+        result = learn_suggest(seeded_conn, domain="BACKEND")
+        patterns = [s["pattern"] for s in result["suggestions"]]
+        assert all("succeeds at 100%" not in p for p in patterns)
+
 
 # ---------------------------------------------------------------------------
 # cos_learn_validate

@@ -187,6 +187,26 @@ class TestSectionSelection:
         assert "workflow-commit-often" in body
         # Preferences section only includes workflow/decision memory_types
 
+    def test_stats_excluded_from_beliefs_shown_separately(
+        self, conn: sqlite3.Connection, fixed_now: datetime
+    ) -> None:
+        conn.executemany(
+            "INSERT INTO learned_patterns (pattern, memory_type, confidence, impact_score) "
+            "VALUES (?, ?, ?, ?)",
+            [
+                ("INFRA domain succeeds at 100% (40/40 tasks) — reliable baseline", "stat", 0.85, 0.5),
+                ("Recurring hook block: load graph-explorer first", "lesson", 0.6, 0.5),
+            ],
+        )
+        conn.commit()
+        body = render(conn, now=fixed_now)
+        assert "Recurring hook block" in body  # the lesson IS a belief
+        assert "## Project Stats" in body
+        # the stat appears ONLY under Project Stats — never as a belief
+        before_stats = body.split("## Project Stats")[0]
+        assert "succeeds at 100%" not in before_stats
+        assert "succeeds at 100%" in body
+
 
 # ---------------------------------------------------------------------------
 # Determinism

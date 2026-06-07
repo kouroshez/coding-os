@@ -97,11 +97,15 @@ separate, clearly-labelled "Project Stats" section, never as "Lessons".
 - Stats are never ranked into beliefs, so their confidence is informational.
 
 ## Digest & recall contract
-- `digest._collect_beliefs` selects **beliefs only**
-  (`memory_type IN ('lesson','anatomy','breakthrough')` OR `times_validated>0`),
-  ranked by recency × impact, with a friendly empty state for new projects.
-- A separate one-line "Project Stats" summary may be rendered from `stat` rows.
-- `cos_learn_suggest` excludes `stat` and prioritizes `lesson` + fading.
+- A **belief** is any pattern whose `memory_type` is NOT `stat`
+  (`COALESCE(memory_type,'') != 'stat'`) — lessons, anatomy, breakthroughs,
+  rework/complexity signals, and manual/user patterns all qualify; only
+  success-rate baselines are excluded.
+- `digest._collect_beliefs` selects beliefs at `confidence ≥ 0.5`, ranked by
+  (confidence × impact) then recency, with a friendly empty state for new
+  projects. A separate, lowest-priority "Project Stats" section renders the
+  `stat` rows so success rates stay visible but never read as learnings.
+- `cos_learn_suggest` excludes `stat` from both its active and fading queries.
 
 ## Drift contract
 Memory is frozen at write time; code evolves ([memory.md](../../src/core/rules/memory.md)).

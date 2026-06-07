@@ -696,7 +696,9 @@ def learn_suggest(
     suggestions: list[dict] = []
 
     # --- Active patterns (confidence > 0.3) ---
-    conditions = ["confidence >= 0.3"]
+    # Exclude stats — a success-rate baseline is observability, never a
+    # suggestion to act on. See docs/engineering/learning-extraction.md.
+    conditions = ["confidence >= 0.3", "COALESCE(memory_type, '') != 'stat'"]
     params: list = []
     if domain:
         conditions.append("(domain = ? OR domain IS NULL)")
@@ -745,6 +747,7 @@ def learn_suggest(
     fading_conditions = [
         "confidence BETWEEN 0.2 AND 0.4",
         "times_validated >= 1",
+        "COALESCE(memory_type, '') != 'stat'",
     ]
     fading_params: list = []
     if domain:
