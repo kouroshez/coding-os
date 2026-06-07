@@ -588,17 +588,6 @@ hooks:
         matcher: Write|Edit
         status_message: "🚦 Validating transition gates (DoR/DoD)..."
 
-  - id: verify-changed-file
-    script: verify-changed-file.sh
-    description: Analyzes changed file + cross-module impact after each write.
-    category: observability
-    phase: "0"
-    timeout: 10
-    events:
-      - event: PostToolUse
-        matcher: Write|Edit
-        status_message: "📊 Analyzing changed file + cross-module impact..."
-
   - id: track-skill
     script: track-skill.sh
     description: Tracks which skills have been invoked this session.
@@ -776,17 +765,6 @@ hooks:
       - event: PostToolUse
         matcher: Write|Edit
         status_message: "🧪 Checking for companion test file..."
-
-  - id: doc-sync-reminder
-    script: doc-sync-reminder.sh
-    description: Lists companion docs to keep in sync when code changes.
-    category: reminder
-    phase: "0"
-    timeout: 5
-    events:
-      - event: PostToolUse
-        matcher: Write|Edit
-        status_message: "📘 Listing companion docs to keep in sync..."
 
   - id: remind-learn-validate
     script: remind-learn-validate.sh

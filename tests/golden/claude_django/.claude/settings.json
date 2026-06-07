@@ -329,12 +329,6 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/verify-changed-file.sh",
-            "statusMessage": "📊 Analyzing changed file + cross-module impact...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": ".claude/hooks/agent-presence.sh",
             "timeout": 5
           },
@@ -354,12 +348,6 @@
             "type": "command",
             "command": ".claude/hooks/test-first-reminder.sh",
             "statusMessage": "🧪 Checking for companion test file...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/doc-sync-reminder.sh",
-            "statusMessage": "📘 Listing companion docs to keep in sync...",
             "timeout": 5
           },
           {

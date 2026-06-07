@@ -329,12 +329,6 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/verify-changed-file.sh",
-            "statusMessage": "📊 Analyzing changed file + cross-module impact...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/agent-presence.sh",
             "timeout": 5
           },
@@ -354,12 +348,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/test-first-reminder.sh",
             "statusMessage": "🧪 Checking for companion test file...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/doc-sync-reminder.sh",
-            "statusMessage": "📘 Listing companion docs to keep in sync...",
             "timeout": 5
           },
           {

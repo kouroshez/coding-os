@@ -167,24 +167,6 @@ run_test "Allow RunPython with reverse" "$H" \
 
 echo ""
 
-# ---- verify-changed-file.sh ----
-echo "--- verify-changed-file.sh ---"
-H="${HOOKS_DIR}/verify-changed-file.sh"
-
-run_test "Fires for docs file" "$H" \
-  '{"tool_name":"Edit","tool_input":{"file_path":"docs/roadmap.md"}}' 0
-
-run_test "Fires for backend .py" "$H" \
-  '{"tool_name":"Edit","tool_input":{"file_path":"backend/apps/catalog/services.py"}}' 0
-
-run_test "Fires for frontend .tsx" "$H" \
-  '{"tool_name":"Edit","tool_input":{"file_path":"frontend/src/app/page.tsx"}}' 0
-
-run_test "Silent for non-code" "$H" \
-  '{"tool_name":"Edit","tool_input":{"file_path":"README.md"}}' 0
-
-echo ""
-
 # ---- session-context.sh ----
 echo "--- session-context.sh ---"
 H="${HOOKS_DIR}/session-context.sh"

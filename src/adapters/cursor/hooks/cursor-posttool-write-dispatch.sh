@@ -54,10 +54,8 @@ for delegate in \
   capture-work-log.sh \
   auto-task-sync.sh \
   lint-task.sh \
-  verify-changed-file.sh \
   regen-reminder.sh \
   test-first-reminder.sh \
-  doc-sync-reminder.sh \
   check-agents-md-size.sh \
   check-agents-md-refs.sh \
   remind-dogfood.sh \

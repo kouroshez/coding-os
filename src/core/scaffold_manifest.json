@@ -58,7 +58,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -111,7 +110,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -218,7 +216,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 211
+      "count": 209
     },
     "claude_django": {
       "agent": "claude",
@@ -278,7 +276,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -331,7 +328,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -454,7 +450,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 225
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -514,7 +510,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -567,7 +562,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -683,7 +677,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 220
+      "count": 218
     },
     "claude_go": {
       "agent": "claude",
@@ -743,7 +737,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -796,7 +789,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -915,7 +907,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 221
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -975,7 +967,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -1028,7 +1019,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -1147,7 +1137,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 221
     },
     "claude_meta": {
       "agent": "claude",
@@ -1207,7 +1197,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -1260,7 +1249,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -1410,7 +1398,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 252
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -1470,7 +1458,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -1523,7 +1510,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -1652,7 +1638,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 231
     },
     "claude_python": {
       "agent": "claude",
@@ -1712,7 +1698,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -1765,7 +1750,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -1872,7 +1856,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 211
+      "count": 209
     },
     "claude_react-native": {
       "agent": "claude",
@@ -1932,7 +1916,6 @@
         ".claude/hooks/classify-task-mode.sh",
         ".claude/hooks/cos-env.sh",
         ".claude/hooks/detect-exhaustive-intent.sh",
-        ".claude/hooks/doc-sync-reminder.sh",
         ".claude/hooks/enforce-anti-ambiguity.sh",
         ".claude/hooks/enforce-audit-artifact.sh",
         ".claude/hooks/enforce-commit-message.sh",
@@ -1985,7 +1968,6 @@
         ".claude/hooks/track-skill.sh",
         ".claude/hooks/validate-task-frontmatter.sh",
         ".claude/hooks/verify-agent-system.sh",
-        ".claude/hooks/verify-changed-file.sh",
         ".claude/hooks/verify-completion-claim.sh",
         ".claude/hooks/verify-rename-callers.sh",
         ".claude/hooks/warn-abandoned-task.sh",
@@ -2114,7 +2096,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 233
+      "count": 231
     },
     "codex_base": {
       "agent": "codex",
@@ -2179,7 +2161,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -2232,7 +2213,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -2336,7 +2316,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 215
+      "count": 213
     },
     "codex_django": {
       "agent": "codex",
@@ -2403,7 +2383,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -2456,7 +2435,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -2576,7 +2554,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 229
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -2643,7 +2621,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -2696,7 +2673,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -2809,7 +2785,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 224
+      "count": 222
     },
     "codex_go": {
       "agent": "codex",
@@ -2876,7 +2852,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -2929,7 +2904,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -3045,7 +3019,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 225
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -3112,7 +3086,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -3165,7 +3138,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -3281,7 +3253,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 227
+      "count": 225
     },
     "codex_meta": {
       "agent": "codex",
@@ -3348,7 +3320,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -3401,7 +3372,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -3548,7 +3518,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 258
+      "count": 256
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -3615,7 +3585,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -3668,7 +3637,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -3794,7 +3762,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 235
     },
     "codex_python": {
       "agent": "codex",
@@ -3861,7 +3829,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -3914,7 +3881,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -4018,7 +3984,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 215
+      "count": 213
     },
     "codex_react-native": {
       "agent": "codex",
@@ -4085,7 +4051,6 @@
         ".codex/hooks/codex-userpromptsubmit-dispatch.sh",
         ".codex/hooks/cos-env.sh",
         ".codex/hooks/detect-exhaustive-intent.sh",
-        ".codex/hooks/doc-sync-reminder.sh",
         ".codex/hooks/enforce-anti-ambiguity.sh",
         ".codex/hooks/enforce-audit-artifact.sh",
         ".codex/hooks/enforce-commit-message.sh",
@@ -4138,7 +4103,6 @@
         ".codex/hooks/track-skill.sh",
         ".codex/hooks/validate-task-frontmatter.sh",
         ".codex/hooks/verify-agent-system.sh",
-        ".codex/hooks/verify-changed-file.sh",
         ".codex/hooks/verify-completion-claim.sh",
         ".codex/hooks/verify-rename-callers.sh",
         ".codex/hooks/warn-abandoned-task.sh",
@@ -4264,7 +4228,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 235
     },
     "cursor_base": {
       "agent": "cursor",
@@ -4336,7 +4300,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -4389,7 +4352,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -4487,7 +4449,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 216
+      "count": 214
     },
     "cursor_django": {
       "agent": "cursor",
@@ -4566,7 +4528,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -4619,7 +4580,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -4728,7 +4688,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 230
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -4807,7 +4767,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -4860,7 +4819,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -4962,7 +4920,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 223
     },
     "cursor_go": {
       "agent": "cursor",
@@ -5044,7 +5002,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -5097,7 +5054,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -5199,7 +5155,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 226
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -5281,7 +5237,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -5334,7 +5289,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -5436,7 +5390,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 228
+      "count": 226
     },
     "cursor_meta": {
       "agent": "cursor",
@@ -5542,7 +5496,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -5595,7 +5548,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -5704,7 +5656,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 259
+      "count": 257
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -5783,7 +5735,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -5836,7 +5787,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -5951,7 +5901,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 236
     },
     "cursor_python": {
       "agent": "cursor",
@@ -6025,7 +5975,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -6078,7 +6027,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -6176,7 +6124,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 216
+      "count": 214
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -6263,7 +6211,6 @@
         ".cursor/hooks/cursor-sessionstart-dispatch.sh",
         ".cursor/hooks/cursor-stop-dispatch.sh",
         ".cursor/hooks/detect-exhaustive-intent.sh",
-        ".cursor/hooks/doc-sync-reminder.sh",
         ".cursor/hooks/enforce-anti-ambiguity.sh",
         ".cursor/hooks/enforce-audit-artifact.sh",
         ".cursor/hooks/enforce-commit-message.sh",
@@ -6316,7 +6263,6 @@
         ".cursor/hooks/track-skill.sh",
         ".cursor/hooks/validate-task-frontmatter.sh",
         ".cursor/hooks/verify-agent-system.sh",
-        ".cursor/hooks/verify-changed-file.sh",
         ".cursor/hooks/verify-completion-claim.sh",
         ".cursor/hooks/verify-rename-callers.sh",
         ".cursor/hooks/warn-abandoned-task.sh",
@@ -6423,7 +6369,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 238
+      "count": 236
     }
   }
 }
