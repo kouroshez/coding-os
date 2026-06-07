@@ -138,7 +138,7 @@ per-suite `[done/total] ✓/✗` ticks, handles `TimeoutExpired` → exit 124, `
 
 ## Resume marker — FINAL
 
-discovery: COMPLETE (61 findings) · remediation: SUBSTANTIALLY COMPLETE
+discovery: COMPLETE (61 findings) · remediation: COMPLETE — 7/8 batches shipped; Batch 7 dead-stub removal tracked in TASK-106 (parent TASK-100 closed 2026-06-07)
 
 | Batch | Status | Commits |
 |---|---|---|
