@@ -104,6 +104,46 @@ INJECTION_PATTERNS: list[tuple[re.Pattern, str]] = [
 
 _TRUNCATION_MARKER = "\n\n…[truncated]"
 
+# Secret / PII redaction — high-precision patterns so legitimate narrative text
+# is never mangled. Redaction REPLACES the match (it does NOT reject the write).
+# Order matters: multi-line private keys first, then specific token shapes, then
+# a conservative key=value form gated on a digit (entropy) to avoid false hits.
+_SECRET_SPECS: list[tuple[str, str, str]] = [
+    (r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----",
+     "<redacted-private-key>", "private_key"),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "<redacted-email>", "email"),
+    (r"\bBearer\s+[A-Za-z0-9._\-]{8,}", "Bearer <redacted-token>", "bearer_token"),
+    (r"\bAKIA[0-9A-Z]{16}\b", "<redacted-aws-key>", "aws_key"),
+    (r"\bgh[pousr]_[A-Za-z0-9]{20,}\b", "<redacted-token>", "github_token"),
+    (r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b", "<redacted-token>", "slack_token"),
+    (r"\b(?:sk|pk|rk)_(?:live|test|prod)_[A-Za-z0-9]{12,}\b", "<redacted-key>", "stripe_key"),
+    (r"\bsk-[A-Za-z0-9]{20,}\b", "<redacted-key>", "sk_key"),
+    (r"(?i)\b(api[_-]?key|secret|token|password|passwd|access[_-]?key)\b(\s*[=:]\s*)(?=\S*\d)\S{8,}",
+     r"\1\2<redacted-secret>", "secret_assignment"),
+]
+_SECRET_PATTERNS: list[tuple[re.Pattern, str, str]] = [
+    (re.compile(pattern), repl, label) for pattern, repl, label in _SECRET_SPECS
+]
+
+
+def redact_secrets(text: str) -> tuple[str, list[str]]:
+    """Replace emails/API-keys/tokens/private-keys in `text`.
+
+    Returns (redacted_text, labels_of_what_was_redacted). Never raises; never
+    rejects — memory must not silently lose a write because it had a secret,
+    but it MUST NOT persist the secret. The labels feed the audit log (NOT the
+    secret value itself).
+    """
+    if not text:
+        return text, []
+    labels: list[str] = []
+    for compiled, repl, label in _SECRET_PATTERNS:
+        new_text, count = compiled.subn(repl, text)
+        if count:
+            labels.append(label)
+            text = new_text
+    return text, labels
+
 
 # ---------------------------------------------------------------------------
 # Result shape
@@ -195,9 +235,25 @@ def sanitize_write(
             cleaned_len=0,
         )
 
+    # Redact secrets/PII BEFORE truncation. Redaction cleans (never rejects) so
+    # a write is preserved without ever persisting the secret.
+    redacted, redaction_labels = redact_secrets(original)
+    was_redacted = bool(redaction_labels)
+
     cap = FIELD_CAPS.get(field)
-    cleaned = original if cap is None else _truncate(original, cap)
-    was_truncated = cleaned is not original
+    cleaned = redacted if cap is None else _truncate(redacted, cap)
+    was_truncated = cleaned is not redacted
+
+    if was_redacted and conn is not None:
+        # Log the LABELS only — never the secret value.
+        record_audit(
+            conn,
+            actor=actor,
+            action="redact",
+            source_table=source_table,
+            source_id=source_id,
+            reason=f"redacted:{','.join(redaction_labels)}",
+        )
 
     if was_truncated and conn is not None:
         record_audit(
@@ -211,10 +267,17 @@ def sanitize_write(
             reason=f"truncated:{field}:cap={cap}",
         )
 
+    reason_parts = []
+    if was_redacted:
+        reason_parts.append("redacted")
+    if was_truncated:
+        reason_parts.append("truncated")
+    reason = ";".join(reason_parts) if reason_parts else "ok"
+
     return SanitizeResult(
         ok=True,
         cleaned=cleaned,
-        reason="truncated" if was_truncated else "ok",
+        reason=reason,
         original_len=original_len,
         cleaned_len=len(cleaned),
     )
