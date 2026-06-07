@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -358,6 +359,9 @@ def learn_extract(
     # `lesson` patterns so the loop learns from mistakes — not just success
     # statistics. Contract: docs/engineering/learning-extraction.md.
     extracted.extend(_mine_friction_lessons(conn, min_occurrences=min_occurrences))
+    # Hook BLOCKs live in the activity log (not observations) on Claude — mine
+    # them too so the richest friction signal becomes a lesson.
+    extracted.extend(_mine_hook_block_lessons(conn, min_occurrences=min_occurrences))
 
     conn.commit()
     return {
@@ -659,6 +663,82 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
                 source="friction",
                 confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
                 concepts=json.dumps(["lesson", cluster["kind"], "friction"]),
+            )
+        )
+    return lessons
+
+
+# A hook-log block line: "[<ts>] [<hook>] [block] … rule=<rule> …".
+_BLOCK_LINE_RE = re.compile(r"^\[(?P<ts>[^\]]+)\]\s+\[(?P<hook>[^\]]+)\]\s+\[block\]\s*(?P<rest>.*)$")
+_BLOCK_RULE_RE = re.compile(r"\brule=(\S+)")
+_BLOCK_WINDOW_DAYS = 30
+
+
+def _hook_log_path(conn: sqlite3.Connection) -> Path | None:
+    env = os.environ.get("COS_HOOK_LOG")
+    if env:
+        return Path(env)
+    root = _derive_project_root(conn)
+    return (root / ".coding-os" / ".hooks.log") if root else None
+
+
+def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
+    """Mine recurring hook BLOCKs from the activity log into `lesson` patterns.
+
+    Hook BLOCKs (a PreToolUse hook exiting 2) are the richest friction signal
+    but never reach the observations table on Claude (PostToolUseFailure does
+    not fire). They ARE recorded in the append-only hook log as
+    ``[ts] [<hook>] [block] … rule=<rule>``, so we cluster recent ones here.
+    Fire-and-forget: a missing/garbled log never breaks extraction.
+    """
+    floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
+    log_path = _hook_log_path(conn)
+    if not log_path or not log_path.exists():
+        return []
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:
+        logger.debug("hook-block mining skipped (read): %s", exc)
+        return []
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=_BLOCK_WINDOW_DAYS)
+    clusters: dict[str, dict] = {}
+    for line in lines:
+        match = _BLOCK_LINE_RE.match(line)
+        if not match:
+            continue
+        try:
+            ts = datetime.fromisoformat(match.group("ts").replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts < cutoff:
+                continue
+        except ValueError:
+            continue  # unparseable timestamp — skip, don't guess
+        hook = match.group("hook").strip()
+        rule_match = _BLOCK_RULE_RE.search(match.group("rest") or "")
+        rule = rule_match.group(1) if rule_match else ""
+        key = f"{hook}:{rule}"
+        clusters.setdefault(key, {"count": 0, "hook": hook, "rule": rule})["count"] += 1
+
+    lessons: list[dict] = []
+    for cluster in clusters.values():
+        if cluster["count"] < floor:
+            continue
+        subject = f"{cluster['hook']} — {cluster['rule']}" if cluster["rule"] else cluster["hook"]
+        pattern_text = (
+            f"Recurring block ({cluster['count']} occurrences): {subject} "
+            f"→ satisfy the blocked rule before retrying the action"
+        )
+        lessons.append(
+            _upsert_pattern(
+                conn,
+                pattern=pattern_text,
+                memory_type="lesson",
+                domain=None,
+                source="friction",
+                confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
+                concepts=json.dumps(["lesson", "hook_block", cluster["hook"]]),
             )
         )
     return lessons

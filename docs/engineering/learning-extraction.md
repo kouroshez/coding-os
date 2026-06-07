@@ -124,22 +124,23 @@ by default.
   button wired to `POST /api/scheduled/run/{slug}`.
 - A one-paragraph beginner explainer of how the agent learns.
 
-## Known limitation — hook BLOCKs are not captured on Claude (yet)
+## Hook BLOCK lessons (mined from the activity log)
 
 The richest friction signal is a **hook BLOCK** (a PreToolUse hook exiting 2).
-`capture-tool-failure.sh` is wired only to the `PostToolUseFailure` event,
-which **Claude Code does not emit** (it is rendered into `.claude/settings.json`
-but never fires — `.hooks.log` shows zero `capture-tool-failure` runs). And a
-PreToolUse block cancels the tool, so no `PostToolUse` fires either. Net: today
-the friction miner sees tool failures + completion gaps, but **not** the
-block events — so `memory_type='hook_block'` rows are absent on Claude.
+It never reaches the `observations` table: a PreToolUse block cancels the tool,
+so no `PostToolUse` fires — and `PostToolUseFailure` is not reliably emitted on
+Claude regardless (it renders into settings but `.hooks.log` shows zero
+`capture-tool-failure` runs). A `PostToolUseFailure` hook also could not see a
+*block* anyway — the tool never ran.
 
-Fix path (a dedicated, separately-tested change — NOT bolted onto a learning
-sweep, because it touches load-bearing safety infra): record the block at
-block-time. Either (a) have the shared `cos_log_hook <id> block` path in
-`cos-env.sh` write a fire-and-forget `hook_block` observation, or (b) add a
-`Stop`-event hook that scans the session `.hooks.log` for `block` entries and
-records recurring ones. Both feed the existing friction miner unchanged.
+But every block IS recorded in the append-only activity log as
+`[<ts>] [<hook>] [block] … rule=<rule>` (via `cos_log_hook <id> block`).
+`_mine_hook_block_lessons` reads that log (`$COS_HOOK_LOG`, else
+`<root>/.coding-os/.hooks.log`), clusters blocks from the last 30 days by
+`<hook>:<rule>`, and mints one `lesson` per cluster that recurs ≥2×. This needs
+no change to the hot path or to any safety hook, and works for every adapter
+because the log is the agent-agnostic SSOT for block events. The log is
+self-rotating (`COS_HOOK_LOG_MAX_LINES`), so the read is bounded.
 
 ## Anti-overengineering boundary
 No new table, scheduler, or store. `memory_type` is free-text, so the

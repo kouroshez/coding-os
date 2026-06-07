@@ -208,6 +208,59 @@ class TestFrictionLessons:
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
 
+class TestHookBlockLessons:
+    """Hook BLOCKs never reach the observations table on Claude, but they ARE
+    in the activity log. _mine_hook_block_lessons clusters recurring blocks
+    (by hook + rule) into actionable lessons. Contract: learning-extraction.md."""
+
+    @staticmethod
+    def _write_log(path, lines):
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    @staticmethod
+    def _block_line(hook, rule, *, days_ago=0):
+        from datetime import datetime, timedelta, timezone
+
+        ts = (datetime.now(timezone.utc) - timedelta(days=days_ago)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return f"[{ts}] [{hook}] [block] agent=claude session=s task=t rule={rule}"
+
+    def test_mines_recurring_block(self, conn, tmp_path, monkeypatch):
+        from tools.learning import _mine_hook_block_lessons
+
+        log = tmp_path / ".hooks.log"
+        self._write_log(log, [self._block_line("enforce-skill", "graph-explorer") for _ in range(3)])
+        monkeypatch.setenv("COS_HOOK_LOG", str(log))
+        lessons = _mine_hook_block_lessons(conn, min_occurrences=3)
+        rows = conn.execute(
+            "SELECT pattern FROM learned_patterns WHERE memory_type='lesson'"
+        ).fetchall()
+        assert lessons and rows
+        assert "Recurring block" in rows[0]["pattern"]
+        assert "enforce-skill" in rows[0]["pattern"]
+
+    def test_one_off_block_not_minted(self, conn, tmp_path, monkeypatch):
+        from tools.learning import _mine_hook_block_lessons
+
+        log = tmp_path / ".hooks.log"
+        self._write_log(log, [self._block_line("enforce-skill", "only-once")])
+        monkeypatch.setenv("COS_HOOK_LOG", str(log))
+        assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
+
+    def test_old_blocks_ignored(self, conn, tmp_path, monkeypatch):
+        from tools.learning import _mine_hook_block_lessons
+
+        log = tmp_path / ".hooks.log"
+        self._write_log(log, [self._block_line("enforce-skill", "stale", days_ago=40) for _ in range(5)])
+        monkeypatch.setenv("COS_HOOK_LOG", str(log))
+        assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
+
+    def test_missing_log_is_safe(self, conn, tmp_path, monkeypatch):
+        from tools.learning import _mine_hook_block_lessons
+
+        monkeypatch.setenv("COS_HOOK_LOG", str(tmp_path / "does-not-exist.log"))
+        assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
+
+
 class TestStatClassification:
     """Success correlations are STATS, not beliefs. They must be minted with
     memory_type='stat' (excluded from digest + suggest), while failure signals
