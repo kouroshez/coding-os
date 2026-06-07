@@ -102,6 +102,23 @@ def task_dependencies(conn: sqlite3.Connection, task_id: str) -> list[dict]:
         List of dependency dicts. Empty list for unknown task or task with
         no dependencies.
     """
+    from database import has_task_dependencies_table
+
+    # v35: indexed junction lookup (PK on task_id) replaces reading + parsing
+    # the JSON column. Falls back to the JSON column on a pre-v35 DB.
+    if has_task_dependencies_table(conn):
+        try:
+            dep_rows = conn.execute(
+                "SELECT t.task_id, t.title, t.domain, t.status, t.file_path, "
+                "t.goal_text, t.dependencies "
+                "FROM task_dependencies d JOIN tasks t ON t.task_id = d.depends_on "
+                "WHERE d.task_id = ? ORDER BY t.task_id ASC",
+                (task_id,),
+            ).fetchall()
+            return [_row_to_dict(row) for row in dep_rows]
+        except sqlite3.OperationalError as exc:
+            logger.debug("task_dependencies junction failed, JSON fallback: %s", exc)
+
     try:
         row = conn.execute(
             "SELECT dependencies FROM tasks WHERE task_id = ?", (task_id,)
@@ -151,6 +168,24 @@ def task_dependents(conn: sqlite3.Connection, task_id: str) -> list[dict]:
     Returns:
         List of dependent task dicts, sorted by task_id ascending.
     """
+    from database import has_task_dependencies_table
+
+    # v35: indexed junction lookup (idx on depends_on) replaces the O(n)
+    # `dependencies LIKE '%"TASK-NNN"%'` full-table scan. Falls back to the
+    # LIKE scan on a pre-v35 DB.
+    if has_task_dependencies_table(conn):
+        try:
+            rows = conn.execute(
+                "SELECT t.task_id, t.title, t.domain, t.status, t.file_path, "
+                "t.goal_text, t.dependencies "
+                "FROM task_dependencies d JOIN tasks t ON t.task_id = d.task_id "
+                "WHERE d.depends_on = ? ORDER BY t.task_id ASC",
+                (task_id,),
+            ).fetchall()
+            return [_row_to_dict(row) for row in rows]
+        except sqlite3.OperationalError as exc:
+            logger.debug("task_dependents junction failed, LIKE fallback: %s", exc)
+
     # Build the JSON-quoted search pattern. dependencies is stored as
     # json.dumps([...]) so individual task IDs appear as "TASK-NNN"
     # (with quotes). Searching for the quoted form eliminates substring
@@ -298,6 +333,39 @@ def _hydrate_and_filter(
     return hydrated[:limit]
 
 
+def _fts_fallback(
+    conn: sqlite3.Connection,
+    query: str,
+    status: str | None,
+    domain: str | None,
+    limit: int,
+) -> list[dict]:
+    """FTS5 MATCH over tasks_fts(title, goal_text), joined back to tasks."""
+    sql = (
+        "SELECT t.task_id, t.title, t.domain, t.status, t.file_path, "
+        "t.goal_text, t.dependencies "
+        "FROM tasks_fts f JOIN tasks t ON t.rowid = f.rowid "
+        "WHERE tasks_fts MATCH ?"
+    )
+    params: list[Any] = [query]
+    if status:
+        sql += " AND t.status = ?"
+        params.append(status)
+    if domain:
+        sql += " AND t.domain = ?"
+        params.append(domain)
+    sql += " ORDER BY f.rank LIMIT ?"
+    params.append(limit)
+
+    rows = conn.execute(sql, params).fetchall()
+    results = []
+    for row in rows:
+        result = _row_to_dict(row)
+        result["score"] = 0.6
+        results.append(result)
+    return results
+
+
 def _like_fallback(
     conn: sqlite3.Connection,
     query: str,
@@ -305,7 +373,19 @@ def _like_fallback(
     domain: str | None,
     limit: int,
 ) -> list[dict]:
-    """LIKE-based fallback search when embeddings aren't available."""
+    """Lexical fallback when embeddings aren't available.
+
+    Uses the FTS5 tasks_fts index (v35) when present; degrades to a LIKE
+    scan only when FTS5 is unavailable or the query trips FTS5 MATCH syntax.
+    """
+    from database import has_tasks_fts
+
+    if has_tasks_fts(conn):
+        try:
+            return _fts_fallback(conn, query, status, domain, limit)
+        except sqlite3.OperationalError as exc:
+            logger.debug("task_search FTS failed, LIKE fallback: %s", exc)
+
     like_pattern = f"%{query}%"
     sql = (
         "SELECT task_id, title, domain, status, file_path, goal_text, dependencies "

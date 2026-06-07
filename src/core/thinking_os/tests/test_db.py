@@ -131,6 +131,7 @@ EXPECTED_TABLES = [
     "schema_version",
     "log_events",
     "log_fingerprints",
+    "task_dependencies",
 ]
 
 
@@ -927,3 +928,144 @@ def test_find_project_root_falls_back_to_innermost_without_marker(
     sub = root / "deep"
     (sub / ".coding-os").mkdir(parents=True)
     assert _find_project_root_from_cwd(sub).resolve() == sub.resolve()
+
+
+# ---------------------------------------------------------------------------
+# Migration v35 — scale foundation (TASK-226)
+# ---------------------------------------------------------------------------
+
+
+def _seed_task(
+    conn: sqlite3.Connection,
+    task_id: str,
+    *,
+    title: str = "t",
+    goal: str = "",
+    status: str = "icebox",
+    swimlane: str = "core",
+    priority: str = "P2",
+    completed_at: int | None = None,
+    dependencies: str | None = None,
+) -> None:
+    conn.execute(
+        "INSERT INTO tasks (task_id, title, status, file_path, content_hash, mtime, "
+        "goal_text, swimlane, priority, completed_at, dependencies) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            task_id,
+            title,
+            status,
+            f"docs/tasks/{task_id}.md",
+            "hash",
+            0,
+            goal,
+            swimlane,
+            priority,
+            completed_at,
+            dependencies,
+        ),
+    )
+
+
+def _plan(conn: sqlite3.Connection, sql: str, params: tuple = ()) -> str:
+    rows = conn.execute("EXPLAIN QUERY PLAN " + sql, params).fetchall()
+    return " ".join(str(r[3]) for r in rows)
+
+
+class TestMigrationV35ScaleFoundation:
+    def test_indexes_exist(self, migrated_conn: sqlite3.Connection) -> None:
+        idx = {
+            r[0]
+            for r in migrated_conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='index'"
+            ).fetchall()
+        }
+        assert "idx_tasks_status_completed" in idx
+        assert "idx_tasks_swimlane_status_priority" in idx
+        assert "idx_task_deps_depends_on" in idx
+        # v13 history index the audit asked for already exists.
+        assert "idx_tsh_task" in idx
+
+    def test_keyset_query_uses_index(self, migrated_conn: sqlite3.Connection) -> None:
+        plan = _plan(
+            migrated_conn,
+            "SELECT task_id FROM tasks WHERE status = ? "
+            "ORDER BY completed_at DESC LIMIT 10",
+            ("complete",),
+        )
+        assert "idx_tasks_status_completed" in plan, plan
+
+    def test_fts_table_exists_and_matches(self, migrated_conn: sqlite3.Connection) -> None:
+        _seed_task(migrated_conn, "TASK-901", title="pagination keyset", goal="board scale")
+        hits = migrated_conn.execute(
+            "SELECT rowid FROM tasks_fts WHERE tasks_fts MATCH ?", ("keyset",)
+        ).fetchall()
+        assert len(hits) == 1
+
+    def test_fts_query_uses_virtual_index(self, migrated_conn: sqlite3.Connection) -> None:
+        plan = _plan(
+            migrated_conn,
+            "SELECT rowid FROM tasks_fts WHERE tasks_fts MATCH ?",
+            ("keyset",),
+        )
+        assert "tasks_fts" in plan and "VIRTUAL TABLE INDEX" in plan, plan
+
+    def test_dependents_query_uses_index(self, migrated_conn: sqlite3.Connection) -> None:
+        plan = _plan(
+            migrated_conn,
+            "SELECT t.task_id FROM task_dependencies d "
+            "JOIN tasks t ON t.task_id = d.task_id WHERE d.depends_on = ?",
+            ("TASK-1",),
+        )
+        assert "idx_task_deps_depends_on" in plan, plan
+
+    def test_trigger_maintains_junction_on_insert(
+        self, migrated_conn: sqlite3.Connection
+    ) -> None:
+        _seed_task(
+            migrated_conn, "TASK-902", dependencies='["TASK-1", "TASK-2"]'
+        )
+        deps = {
+            r[0]
+            for r in migrated_conn.execute(
+                "SELECT depends_on FROM task_dependencies WHERE task_id = ?",
+                ("TASK-902",),
+            ).fetchall()
+        }
+        assert deps == {"TASK-1", "TASK-2"}
+
+    def test_trigger_maintains_junction_on_update_and_delete(
+        self, migrated_conn: sqlite3.Connection
+    ) -> None:
+        _seed_task(migrated_conn, "TASK-903", dependencies='["TASK-1"]')
+        migrated_conn.execute(
+            "UPDATE tasks SET dependencies = ? WHERE task_id = ?",
+            ('["TASK-7", "TASK-8"]', "TASK-903"),
+        )
+        deps = {
+            r[0]
+            for r in migrated_conn.execute(
+                "SELECT depends_on FROM task_dependencies WHERE task_id = ?",
+                ("TASK-903",),
+            ).fetchall()
+        }
+        assert deps == {"TASK-7", "TASK-8"}
+
+        migrated_conn.execute("DELETE FROM tasks WHERE task_id = ?", ("TASK-903",))
+        remaining = migrated_conn.execute(
+            "SELECT COUNT(*) FROM task_dependencies WHERE task_id = ?", ("TASK-903",)
+        ).fetchone()[0]
+        assert remaining == 0
+
+    def test_trigger_tolerates_empty_and_null_dependencies(
+        self, migrated_conn: sqlite3.Connection
+    ) -> None:
+        # Neither NULL nor '' nor '[]' may break the json_each trigger.
+        _seed_task(migrated_conn, "TASK-904", dependencies=None)
+        _seed_task(migrated_conn, "TASK-905", dependencies="")
+        _seed_task(migrated_conn, "TASK-906", dependencies="[]")
+        count = migrated_conn.execute(
+            "SELECT COUNT(*) FROM task_dependencies "
+            "WHERE task_id IN ('TASK-904', 'TASK-905', 'TASK-906')"
+        ).fetchone()[0]
+        assert count == 0

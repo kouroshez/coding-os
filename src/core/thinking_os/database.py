@@ -9,6 +9,7 @@ Agent-agnostic: DB path is configurable via COS_DB_PATH env var.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sqlite3
@@ -602,6 +603,22 @@ def has_document_chunks_fts(conn: sqlite3.Connection) -> bool:
     """Check whether document_chunks_fts exists (v9 + FTS5 available)."""
     row = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='document_chunks_fts'"
+    ).fetchone()
+    return row is not None
+
+
+def has_tasks_fts(conn: sqlite3.Connection) -> bool:
+    """Check whether tasks_fts exists (v35 + FTS5 available)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='tasks_fts'"
+    ).fetchone()
+    return row is not None
+
+
+def has_task_dependencies_table(conn: sqlite3.Connection) -> bool:
+    """Check whether the task_dependencies junction exists (v35 applied)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='task_dependencies'"
     ).fetchone()
     return row is not None
 
@@ -1607,6 +1624,127 @@ def _migrate_v34_dispatch_error(conn: sqlite3.Connection) -> None:
     logger.info("Migration v34 applied: formula_dispatches gained error")
 
 
+def _migrate_v35_scale_foundation(conn: sqlite3.Connection) -> None:
+    """Migration v35 — scale foundation for 100K+ tasks (TASK-226).
+
+    Adds the keyset/board indexes pagination + bounded queries need at
+    scale, an FTS5 table so task_search stops full-scanning title/goal, and
+    a task_dependencies junction that replaces the O(n) `dependencies LIKE
+    '%"TASK-NNN"%'` scan with indexed lookups in both directions.
+    """
+    if not has_tasks_table(conn):
+        logger.info("Migration v35 skipped: tasks table not present yet")
+        return
+
+    # 1. Keyset/board indexes. (task_status_history(task_id, transitioned_at)
+    #    already exists as idx_tsh_task from v13 — no duplicate needed.)
+    conn.executescript(
+        """
+CREATE INDEX IF NOT EXISTS idx_tasks_status_completed
+    ON tasks(status, completed_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_swimlane_status_priority
+    ON tasks(swimlane, status, priority);
+"""
+    )
+
+    # 2. task_dependencies junction. PK(task_id, depends_on) indexes the
+    #    dependencies() direction; idx on depends_on indexes dependents().
+    #    Triggers derive it from the tasks.dependencies JSON column so EVERY
+    #    writer (board_os sync, legacy task_sync, orphan-delete) keeps it in
+    #    step with zero per-writer code. json_each is built into SQLite 3.38+
+    #    (the repo already floors at 3.27+ for FTS5 remove_diacritics 2).
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS task_dependencies (
+    task_id    TEXT NOT NULL,
+    depends_on TEXT NOT NULL,
+    PRIMARY KEY (task_id, depends_on)
+);
+CREATE INDEX IF NOT EXISTS idx_task_deps_depends_on
+    ON task_dependencies(depends_on);
+
+CREATE TRIGGER IF NOT EXISTS tasks_deps_ai AFTER INSERT ON tasks BEGIN
+    INSERT OR IGNORE INTO task_dependencies(task_id, depends_on)
+        SELECT new.task_id, je.value
+        FROM json_each(COALESCE(NULLIF(new.dependencies, ''), '[]')) je;
+END;
+CREATE TRIGGER IF NOT EXISTS tasks_deps_au AFTER UPDATE OF dependencies ON tasks BEGIN
+    DELETE FROM task_dependencies WHERE task_id = new.task_id;
+    INSERT OR IGNORE INTO task_dependencies(task_id, depends_on)
+        SELECT new.task_id, je.value
+        FROM json_each(COALESCE(NULLIF(new.dependencies, ''), '[]')) je;
+END;
+CREATE TRIGGER IF NOT EXISTS tasks_deps_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM task_dependencies WHERE task_id = old.task_id;
+END;
+"""
+    )
+    # Backfill from any populated dependencies JSON (idempotent; the live
+    # column is normally empty — sync.py populates the junction going forward).
+    for task_id, deps_json in conn.execute(
+        "SELECT task_id, dependencies FROM tasks "
+        "WHERE dependencies IS NOT NULL AND dependencies NOT IN ('', '[]')"
+    ).fetchall():
+        try:
+            dep_ids = json.loads(deps_json)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for dep in dep_ids:
+            if isinstance(dep, str) and dep:
+                conn.execute(
+                    "INSERT OR IGNORE INTO task_dependencies (task_id, depends_on) "
+                    "VALUES (?, ?)",
+                    (task_id, dep),
+                )
+
+    # 3. FTS5 over tasks(title, goal_text). A regular (own-content) table,
+    #    NOT external-content: external-content FTS5 raises "database disk
+    #    image is malformed" when its 'delete' trigger runs against rows that
+    #    were backfilled rather than trigger-inserted (the delete tokens can't
+    #    be reconciled). Own-content deletes by rowid and is corruption-safe.
+    #    DROP-first heals any partially-applied earlier build of this table.
+    #    unicode61 matches v29 so Persian/Arabic/CJK task text is indexed.
+    if has_fts5(conn):
+        conn.executescript(
+            """
+DROP TRIGGER IF EXISTS tasks_fts_ai;
+DROP TRIGGER IF EXISTS tasks_fts_ad;
+DROP TRIGGER IF EXISTS tasks_fts_au;
+DROP TABLE IF EXISTS tasks_fts;
+CREATE VIRTUAL TABLE tasks_fts USING fts5(
+    title, goal_text,
+    tokenize='unicode61 remove_diacritics 2'
+);
+CREATE TRIGGER tasks_fts_ai AFTER INSERT ON tasks BEGIN
+    INSERT INTO tasks_fts(rowid, title, goal_text)
+        VALUES (new.rowid, new.title, COALESCE(new.goal_text, ''));
+END;
+CREATE TRIGGER tasks_fts_ad AFTER DELETE ON tasks BEGIN
+    DELETE FROM tasks_fts WHERE rowid = old.rowid;
+END;
+CREATE TRIGGER tasks_fts_au AFTER UPDATE ON tasks BEGIN
+    DELETE FROM tasks_fts WHERE rowid = new.rowid;
+    INSERT INTO tasks_fts(rowid, title, goal_text)
+        VALUES (new.rowid, new.title, COALESCE(new.goal_text, ''));
+END;
+"""
+        )
+        conn.execute(
+            "INSERT INTO tasks_fts(rowid, title, goal_text) "
+            "SELECT rowid, title, COALESCE(goal_text, '') FROM tasks"
+        )
+    else:
+        logger.warning(
+            "Migration v35: FTS5 unavailable — tasks_fts skipped (LIKE fallback active)"
+        )
+
+    conn.commit()
+    logger.info(
+        "Migration v35 applied: idx_tasks_status_completed + "
+        "idx_tasks_swimlane_status_priority, task_dependencies junction, tasks_fts"
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -1898,6 +2036,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         34,
         "formula_dispatches.error captures the dispatch failure reason",
         _migrate_v34_dispatch_error,
+    ),
+    (
+        35,
+        "Scale foundation: keyset indexes + tasks_fts + task_dependencies junction",
+        _migrate_v35_scale_foundation,
     ),
 ]
 

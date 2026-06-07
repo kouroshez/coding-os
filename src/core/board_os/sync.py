@@ -61,14 +61,15 @@ def _upsert_task(
     content_hash: str,
 ) -> None:
     labels_json = json.dumps(list(parsed.labels))
+    deps_json = json.dumps(list(parsed.depends_on))
     now = int(time.time())
     conn.execute(
         """
         INSERT INTO tasks (
             task_id, title, domain, status, file_path, content_hash, mtime,
             swimlane, kind, epic, labels_json, priority, appetite,
-            started_at, completed_at, agent_session
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            started_at, completed_at, agent_session, dependencies
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(task_id) DO UPDATE SET
             title           = excluded.title,
             domain          = excluded.domain,
@@ -85,6 +86,7 @@ def _upsert_task(
             started_at      = COALESCE(excluded.started_at, tasks.started_at),
             completed_at    = COALESCE(excluded.completed_at, tasks.completed_at),
             agent_session   = excluded.agent_session,
+            dependencies    = excluded.dependencies,
             updated_at      = CURRENT_TIMESTAMP
         """,
         (
@@ -104,6 +106,7 @@ def _upsert_task(
             _iso_to_epoch(parsed.started),
             _iso_to_epoch(parsed.completed),
             parsed.agent_session,
+            deps_json,
         ),
     )
 
@@ -114,6 +117,8 @@ def _upsert_task(
         "UPDATE tasks SET work_log_last_5 = ? WHERE task_id = ?",
         (json.dumps(last_5), parsed.task_id),
     )
+    # The task_dependencies junction (v35) is maintained by DB triggers off
+    # the dependencies column written above — no per-writer code needed.
 
 
 def _record_status_change(
