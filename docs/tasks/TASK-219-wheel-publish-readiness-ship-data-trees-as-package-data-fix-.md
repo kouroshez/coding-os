@@ -4,7 +4,7 @@ title: "Wheel publish-readiness: ship data trees as package-data + fix runtime r
 swimlane: infra
 kind: chore
 epic: null
-labels: [packaging, release, follow-up-TASK-218, pre-publish-gate]
+labels: [packaging, release, follow-up-TASK-218, pre-publish-gate, ready]
 status: icebox
 priority: P2
 appetite: 1d
