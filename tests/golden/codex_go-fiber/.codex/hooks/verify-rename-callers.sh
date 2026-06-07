@@ -77,8 +77,11 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 cd "$REPO_ROOT" || exit 0
 
 # Search for unreplaced references. Word-regex prevents `frob` matching
-# `frobnicate`. Limit -l to file list, then -n on hits, capped at 10.
-HITS="$(git grep -l --word-regexp -- "$OLD" 2>/dev/null | grep -v "${FILE_PATH#$REPO_ROOT/}" | head -10 || true)"
+# `frobnicate`. Limit -l to file list, then -n on hits, capped at 10. The
+# git grep is wrapped in a 5s perl alarm (macOS lacks timeout(1)) so a
+# 100K-file working tree can never hang the edit — fail-open to no warning,
+# since cos_graph_rename_plan is the authoritative caller-finder. TASK-229.
+HITS="$(perl -e 'alarm shift; exec @ARGV' 5 git grep -l --word-regexp -- "$OLD" 2>/dev/null | grep -v "${FILE_PATH#$REPO_ROOT/}" | head -10 || true)"
 [[ -z "$HITS" ]] && {
   cos_log_hook verify-rename-callers ok "all call sites updated" 2>/dev/null || true
   exit 0
