@@ -5,18 +5,17 @@ swimlane: core
 kind: feature
 epic: enterprise-scale
 labels: [scale, hooks, performance, ready]
-status: icebox
+status: testing
 priority: P2
 appetite: 2d
 created: 2026-06-07
-started: null
+started: 2026-06-07
 completed: null
-agent_session: null
+agent_session: ses-claude-20260607-001830-03d2
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-229: Hooks per-call overhead at scale: no full-dir/all-task/all-commit scan on every tool call
 
 **Outcome (one sentence):** No PreToolUse/PostToolUse hook does an O(all-tasks)/O(all-commits)/full-tree scan on every agent tool call (which at 100K tasks adds seconds of latency per edit): audit every registered hook for ls docs/tasks/*, git log, rglob, or full-table DB reads on the hot path and replace with cached/indexed/debounced lookups. Verified by per-tool-call hook latency staying flat as task count grows. See audit-enterprise-scale-2026-06-07.md (hooks findings).

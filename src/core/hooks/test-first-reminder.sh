@@ -73,10 +73,20 @@ case "$EXT" in
     CANDIDATES+=("${BASE}.test.${EXT}" "${BASE}.spec.${EXT}") ;;
 esac
 
+# Build a session-cached index of every test file ONCE, then look candidates
+# up by grep. Replaces a full `find` per edited file — at 100K files that walk
+# was the dominant per-edit cost. The cache lives in the panel dir and is
+# cleared each SessionStart with the other markers. TASK-229.
+_TEST_CACHE="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.test-locations.cache"
+if [[ ! -s "$_TEST_CACHE" ]]; then
+  find "$ROOT" -maxdepth 6 -type f \
+    \( -name 'test_*' -o -name '*_test.*' -o -name '*.test.*' -o -name '*.spec.*' \) \
+    -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/.git/*' \
+    > "$_TEST_CACHE" 2>/dev/null || true
+fi
 FOUND=""
 for name in "${CANDIDATES[@]}"; do
-  # find up to 2 matches anywhere under ROOT (shallow limit)
-  match=$(find "$ROOT" -maxdepth 6 -name "$name" -not -path "*/node_modules/*" -not -path "*/.venv/*" 2>/dev/null | head -1)
+  match=$(grep -F "/$name" "$_TEST_CACHE" 2>/dev/null | head -1)
   if [[ -n "$match" ]]; then
     FOUND="$match"
     break

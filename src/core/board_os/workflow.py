@@ -140,14 +140,63 @@ def check_wip(
     return WipState(counts=counts, caps=caps, violations=violations)
 
 
+def _has_task_dependencies_table(conn: sqlite3.Connection) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_dependencies'"
+        ).fetchone()
+        is not None
+    )
+
+
 def validate_dependencies_no_cycle(
     conn: sqlite3.Connection, task_id: str, new_deps: list[str]
 ) -> list[str]:
-    """DFS on existing dependency graph + proposed new deps. R-L-29.
+    """Detect cycles a proposed task_id -> new_deps edge set would create. R-L-29.
 
-    Returns a list of cycle paths (empty if no cycle). Caller decides
-    whether to reject the edit (hook does).
+    On a v35 DB this runs a targeted recursive CTE over the task_dependencies
+    junction — for each proposed dep it asks whether that dep can already reach
+    task_id, traversing only the reachable subgraph instead of loading every
+    task row (TASK-229). Falls back to the full-scan DFS on a pre-v35 DB.
+    Returns a list of cycle paths (empty if no cycle).
     """
+    if not new_deps:
+        return []
+    if not _has_task_dependencies_table(conn):
+        return _validate_dependencies_no_cycle_fallback(conn, task_id, new_deps)
+
+    cycles: list[str] = []
+    if task_id in new_deps:
+        cycles.append(f"{task_id} → {task_id}")  # trivial self-cycle
+    for dep in new_deps:
+        if dep == task_id:
+            continue
+        # Can `dep` already reach task_id (excluding task_id's own edges, which
+        # this edit replaces)? If so, task_id -> dep closes a cycle. depth guard
+        # terminates on any pre-existing cycle in the data.
+        row = conn.execute(
+            """
+            WITH RECURSIVE reachable(tid, path, depth) AS (
+                SELECT ?, ?, 0
+                UNION ALL
+                SELECT td.depends_on, r.path || ' → ' || td.depends_on, r.depth + 1
+                FROM task_dependencies td
+                JOIN reachable r ON td.task_id = r.tid
+                WHERE td.task_id != ? AND r.depth < 1000
+            )
+            SELECT path FROM reachable WHERE tid = ? AND depth > 0 LIMIT 1
+            """,
+            (dep, dep, task_id, task_id),
+        ).fetchone()
+        if row:
+            cycles.append(f"{task_id} → {row[0]}")
+    return cycles
+
+
+def _validate_dependencies_no_cycle_fallback(
+    conn: sqlite3.Connection, task_id: str, new_deps: list[str]
+) -> list[str]:
+    """Pre-v35 fallback: DFS over the full dependency graph (loads all rows)."""
     deps_by_task: dict[str, list[str]] = {}
     for row in conn.execute("SELECT task_id, dependencies FROM tasks"):
         if row[0] == task_id:
