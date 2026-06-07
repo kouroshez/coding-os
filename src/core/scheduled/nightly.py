@@ -11,7 +11,6 @@ See docs/engineering/scheduled-jobs.md for full contract.
 from __future__ import annotations
 
 import argparse
-import fcntl
 import json
 import logging
 import logging.handlers
@@ -29,11 +28,9 @@ if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
 from scheduled._activity import (  # noqa: E402
-    observations_since_marker,
     outcomes_since_marker,
 )
 from scheduled._state import (  # noqa: E402
-    days_since_marker,
     now_iso,
     read_registry,
     read_state,
@@ -102,40 +99,19 @@ def _run_decay(
     throttle_days: int = _DECAY_THROTTLE_DAYS,
     prune_days: int = 90,
 ) -> dict:
-    """Run confidence decay, flock-protected against session_enrich race."""
+    """Run confidence decay via decay.run_decay_locked — the shared throttle+flock
+    entry point so nightly never double-decays or races session_enrich."""
     marker = project_root / ".coding-os" / ".last-decay"
-    lock_path = marker.with_suffix(".lock")
-
     try:
-        lock_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(lock_path, "w") as lock_f:
-            try:
-                fcntl.flock(lock_f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return {"status": "skipped", "reason": "lock_contention"}
+        from decay import run_decay_locked
 
-            try:
-                age = days_since_marker(marker)
-                if age is not None and age < throttle_days:
-                    return {
-                        "status": "skipped",
-                        "reason": f"ran {age:.1f}d ago (threshold {throttle_days}d)",
-                    }
-
-                if dry_run:
-                    return {"status": "dry_run", "would_run": True, "marker_age_days": age}
-
-                from decay import run_decay as do_decay
-
-                result = do_decay(db_path, archive_prune_days=prune_days)
-                touch_marker(marker)
-                return {"status": "ok", **result}
-            finally:
-                fcntl.flock(lock_f, fcntl.LOCK_UN)
-
-    except OSError as exc:
-        logger.warning("decay task os error: %s", exc)
-        return {"status": "error", "error": str(exc)}
+        return run_decay_locked(
+            db_path,
+            throttle_days=throttle_days,
+            archive_prune_days=prune_days,
+            dry_run=dry_run,
+            marker_path=marker,
+        )
     except ImportError as exc:
         logger.warning("decay task import error (decay.py missing?): %s", exc)
         return {"status": "error", "error": str(exc)}
@@ -366,7 +342,7 @@ def _run_reclaim(db_path: Path, project_root: Path, *, dry_run: bool) -> dict:
             if not dry_run:
                 try:
                     archived = _archive_stale_sweep(conn, _load_board_cfg(project_root))
-                except Exception as exc:  # noqa: BLE001 - hygiene is best-effort
+                except Exception as exc:
                     logger.debug("[reclaim] archive sweep skipped: %s", exc)
         return {
             "status": "ok",
