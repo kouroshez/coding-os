@@ -174,22 +174,26 @@ def validate_dependencies_no_cycle(
         # Can `dep` already reach task_id (excluding task_id's own edges, which
         # this edit replaces)? If so, task_id -> dep closes a cycle. depth guard
         # terminates on any pre-existing cycle in the data.
+        # UNION (not UNION ALL) dedups on tid, so a dense DAG with many distinct
+        # paths to the same node is bounded to O(reachable nodes) instead of
+        # enumerating every path — and the dedup makes any pre-existing data
+        # cycle terminate without needing a depth guard.
         row = conn.execute(
             """
-            WITH RECURSIVE reachable(tid, path, depth) AS (
-                SELECT ?, ?, 0
-                UNION ALL
-                SELECT td.depends_on, r.path || ' → ' || td.depends_on, r.depth + 1
+            WITH RECURSIVE reachable(tid) AS (
+                SELECT ?
+                UNION
+                SELECT td.depends_on
                 FROM task_dependencies td
                 JOIN reachable r ON td.task_id = r.tid
-                WHERE td.task_id != ? AND r.depth < 1000
+                WHERE td.task_id != ?
             )
-            SELECT path FROM reachable WHERE tid = ? AND depth > 0 LIMIT 1
+            SELECT 1 FROM reachable WHERE tid = ? LIMIT 1
             """,
-            (dep, dep, task_id, task_id),
+            (dep, task_id, task_id),
         ).fetchone()
         if row:
-            cycles.append(f"{task_id} → {row[0]}")
+            cycles.append(f"{task_id} → {dep} → … → {task_id}")
     return cycles
 
 
