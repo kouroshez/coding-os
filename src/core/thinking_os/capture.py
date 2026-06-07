@@ -210,6 +210,32 @@ def _estimate_tokens(input_data: dict) -> int:
     return len(text) // 4
 
 
+def _display_path(file_path: str, db_path: str | Path) -> str:
+    """Repo-relative display path — never leak the absolute project root (and
+    thus the local username) into long-lived memory titles.
+
+    In-repo absolute path → relative to the project root (parent of the
+    `.coding-os/` dir holding the DB). Absolute path under $HOME but outside
+    the repo → `~/…`. Absolute elsewhere → basename. Already-relative → as-is.
+    """
+    try:
+        p = Path(file_path)
+        dbp = Path(db_path).resolve()
+        if dbp.parent.name == ".coding-os":
+            root = dbp.parent.parent
+            rp = p.resolve()
+            if rp == root or root in rp.parents:
+                return str(rp.relative_to(root))
+        if p.is_absolute():
+            home = Path.home()
+            if home in p.parents:
+                return "~/" + str(p.relative_to(home))
+            return p.name
+    except (ValueError, OSError, RuntimeError):
+        return Path(file_path).name
+    return file_path
+
+
 def capture_observation(input_data: dict, db_path: str | Path | None = None) -> dict:
     """Process a tool call and write an observation to the DB.
 
@@ -238,8 +264,11 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
     # Generate structured fields. MultiEdit always targets an existing
     # file (single file_path with multiple hunks) so we treat it as an
     # Edit for narrative purposes — the hunk count lives in edits[].
+    display_path = _display_path(file_path, path)
     title = (
-        f"Modified {file_path}" if tool_name in ("Edit", "MultiEdit") else f"Created {file_path}"
+        f"Modified {display_path}"
+        if tool_name in ("Edit", "MultiEdit")
+        else f"Created {display_path}"
     )
     narrative = _build_narrative(tool_name, file_path)
     memory_type = _detect_memory_type(file_path)

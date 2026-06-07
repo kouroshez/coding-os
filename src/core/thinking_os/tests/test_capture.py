@@ -186,6 +186,24 @@ class TestDataIntegrity:
         assert row["impact_score"] >= 0.6
         assert row["cost_tokens"] > 0
 
+    def test_title_uses_repo_relative_path(self, tmp_path: Path) -> None:
+        # real <root>/.coding-os/coding-os.db layout so root derivation works
+        root = tmp_path
+        (root / ".coding-os").mkdir()
+        db = root / ".coding-os" / "coding-os.db"
+        init_db(db).close()
+        abs_file = root / "src" / "core" / "thing.py"
+        capture_observation(
+            {"tool_name": "Edit", "tool_input": {"file_path": str(abs_file)}},
+            db_path=db,
+        )
+        conn = sqlite3.connect(str(db))
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT title FROM observations ORDER BY id DESC LIMIT 1").fetchone()
+        conn.close()
+        assert row["title"] == "Modified src/core/thing.py"
+        assert str(root) not in row["title"]  # no absolute prefix / username leak
+
     def test_title_format_write(self, db_path: Path) -> None:
         capture_observation(
             {"tool_name": "Write", "tool_input": {"file_path": "new_file.py"}},
