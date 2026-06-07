@@ -26,8 +26,9 @@ def _is_dangerous_target(tok: str) -> bool:
     base = t.rstrip("/")
     if base in _DANGEROUS_DIRS or base in {f"./{d}" for d in _DANGEROUS_DIRS}:
         return True
-    # Top-level absolute dir (e.g. /etc, /usr) — one slash, more than just "/".
-    if t.startswith("/") and t.count("/") == 1 and len(t) > 1:
+    # Top-level absolute dir (e.g. /etc, /usr, /etc/) — one slash after the
+    # trailing-slash strip so the slash variant can't bypass the check.
+    if base.startswith("/") and base.count("/") == 1 and len(base) > 1:
         return True
     return False
 
