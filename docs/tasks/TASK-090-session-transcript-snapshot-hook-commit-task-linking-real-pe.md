@@ -5,18 +5,17 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [board, hooks, session, transcript, attribution, ready]
-status: icebox
+status: archive
 priority: P2
 appetite: "1d"
 created: 2026-06-04
 started: null
 completed: null
-agent_session: null
+agent_session: ses-claude-20260606-135311-dd32
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-090: Session transcript snapshot hook + commit↔task linking + real per-panel attribution
 
 **Outcome (one sentence):** Each workflow session's chat transcript is snapshotted into .coding-os/<agent>/sessions/transcripts/ and linked to its task; commits referencing a task append to its work log; tasks are attributed to the real per-panel session id.
@@ -45,3 +44,4 @@ Approach (3 parts, each its own commit):
 3. **Real attribution** — the long-lived MCP server can't see the calling panel; have hook-driven `cos task-*` calls pass the panel `session-id`, and/or thread a session arg through the MCP tool wrappers so `_resolve_attribution` stops falling back to PPID.
 
 ## Work Log
+- 2026-06-07 [claude]: Archived. Triage + deeper check: part 1 (transcript snapshot) shipped as TASK-093 (snapshot-transcript.sh, registry L919
