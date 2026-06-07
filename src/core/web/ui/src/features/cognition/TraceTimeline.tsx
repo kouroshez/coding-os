@@ -151,7 +151,11 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
         <div className="mt-1.5 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setMode(mode === 'summary' ? 'raw' : 'summary')}
+            onClick={() => {
+              const next = mode === 'summary' ? 'raw' : 'summary';
+              setMode(next);
+              if (next === 'summary') setKindFilter('all');
+            }}
             className="rounded border border-[var(--cos-border)] px-2 py-0.5 text-[10px] text-[var(--cos-muted)] hover:text-[var(--cos-text)]"
           >
             {mode === 'summary' ? 'raw events (dev) →' : '← readable summary'}
