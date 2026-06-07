@@ -289,7 +289,9 @@ docs-lint: ## Lint docs/ — internal link + anchor + symlink-dir audit, then SS
 	  if [ $$fm -eq 0 ]; then \
 	    echo "docs-lint: OK (link audit hard-gated; frontmatter clean)."; \
 	  else \
-	    echo "docs-lint: link audit PASSED (hard gate); frontmatter reported issues above — advisory, set COS_DOCS_LINT_STRICT=1 to gate." >&2; \
+	    echo "docs-lint: link audit PASSED (hard gate); frontmatter reported issues above." >&2; \
+	    if [ "$${COS_DOCS_LINT_STRICT:-0}" = 1 ]; then exit $$fm; \
+	    else echo "  (advisory; set COS_DOCS_LINT_STRICT=1 to gate)" >&2; fi; \
 	  fi
 
 .PHONY: docs-index-regen
