@@ -354,6 +354,39 @@ class TestIndexDocs:
         assert "missing_frontmatter" in stats
         assert stats["missing_frontmatter"] >= 1
 
+    def test_superseded_doc_indexed_inactive(
+        self, tmp_db: sqlite3.Connection, tmp_project: Path, tmp_config: Path
+    ) -> None:
+        # D7-F9 (TASK-138): a doc with superseded_by in its header indexes
+        # is_active=0 so cos_doc_search hides the past era by default; a normal
+        # doc stays is_active=1.
+        eng = tmp_project / "docs" / "engineering"
+        (eng / "old-era.md").write_text(
+            "<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-01-01 | "
+            "superseded_by:docs/engineering/new-era.md -->\n# Old Era\n\nsuperseded\n",
+            encoding="utf-8",
+        )
+        (eng / "new-era.md").write_text(
+            "<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-01 -->\n"
+            "# New Era\n\ncurrent\n",
+            encoding="utf-8",
+        )
+        index_docs(tmp_db, tmp_config, tmp_project)
+        old = [
+            r[0]
+            for r in tmp_db.execute(
+                "SELECT DISTINCT is_active FROM document_chunks WHERE source_path LIKE '%old-era.md'"
+            ).fetchall()
+        ]
+        new = [
+            r[0]
+            for r in tmp_db.execute(
+                "SELECT DISTINCT is_active FROM document_chunks WHERE source_path LIKE '%new-era.md'"
+            ).fetchall()
+        ]
+        assert old == [0]  # superseded → inactive
+        assert new == [1]  # current → active
+
     def test_playbook_not_indexed(
         self, tmp_db: sqlite3.Connection, tmp_project: Path, tmp_config: Path
     ) -> None:

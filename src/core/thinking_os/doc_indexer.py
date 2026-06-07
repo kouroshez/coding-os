@@ -520,13 +520,16 @@ def index_docs(
 
         source_type = source_config.get("type", "doc")
         priority = float(source_config.get("priority", 0.5))
+        # D7-F9 (TASK-138): a doc that declares superseded_by in its header is a
+        # past era — index it inactive so cos_doc_search hides it by default.
+        doc_is_active = 0 if fm.get("superseded_by") else 1
 
         for chunk in chunks:
             cursor = conn.execute(
                 "INSERT INTO document_chunks "
                 "(source_path, source_type, chunk_index, heading_path, content, content_hash, priority, mtime, "
                 " domain, layer, ssot, updated_iso, is_active) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     rel_path,
                     source_type,
@@ -540,6 +543,7 @@ def index_docs(
                     fm.get("layer"),
                     fm.get("ssot"),
                     fm.get("updated_iso"),
+                    doc_is_active,
                 ),
             )
             stats["new_chunks"] += 1
@@ -743,6 +747,8 @@ def index_single_file(
     source_type = source_config.get("type", "doc")
     priority = float(source_config.get("priority", 0.5))
     new_chunk_count = 0
+    # D7-F9 (TASK-138): superseded docs index inactive (hidden by default).
+    doc_is_active = 0 if fm.get("superseded_by") else 1
 
     for chunk in chunks:
         cursor = conn.execute(
@@ -750,7 +756,7 @@ def index_single_file(
             "(source_path, source_type, chunk_index, heading_path, content, "
             " content_hash, priority, mtime, "
             " domain, layer, ssot, updated_iso, is_active) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 rel_path,
                 source_type,
@@ -764,6 +770,7 @@ def index_single_file(
                 fm.get("layer"),
                 fm.get("ssot"),
                 fm.get("updated_iso"),
+                doc_is_active,
             ),
         )
         new_chunk_count += 1
