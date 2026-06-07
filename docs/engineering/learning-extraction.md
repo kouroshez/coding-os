@@ -136,8 +136,11 @@ Claude regardless (it renders into settings but `.hooks.log` shows zero
 But every block IS recorded in the append-only activity log as
 `[<ts>] [<hook>] [block] … rule=<rule>` (via `cos_log_hook <id> block`).
 `_mine_hook_block_lessons` reads that log (`$COS_HOOK_LOG`, else
-`<root>/.coding-os/.hooks.log`), clusters blocks from the last 30 days by
-`<hook>:<rule>`, and mints one `lesson` per cluster that recurs ≥2×. This needs
+`<root>/.coding-os/.hooks.log`), clusters blocks from the last
+`_LESSON_WINDOW_DAYS` (90) by `<hook>:<rule>`, and mints one `lesson` per
+cluster that recurs ≥2×. Both friction miners share that recency window, so a
+resolved or renamed-rule failure ages out (stops being re-confirmed) and
+decays instead of lingering forever. This needs
 no change to the hot path or to any safety hook, and works for every adapter
 because the log is the agent-agnostic SSOT for block events. The log is
 self-rotating (`COS_HOOK_LOG_MAX_LINES`), so the read is bounded.

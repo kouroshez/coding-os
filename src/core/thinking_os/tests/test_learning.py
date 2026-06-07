@@ -147,12 +147,13 @@ class TestFrictionLessons:
     not aggregate success statistics. Contract: learning-extraction.md."""
 
     @staticmethod
-    def _seed_failures(conn, n, narrative, memory_type="hook_block", session="ses-f"):
+    def _seed_failures(conn, n, narrative, memory_type="hook_block", session="ses-f", days_ago=0):
+        created = f"datetime('now', '-{int(days_ago)} days')" if days_ago else "CURRENT_TIMESTAMP"
         for i in range(n):
             conn.execute(
                 "INSERT INTO observations (session_id, tool_name, observation_type, "
-                "memory_type, impact_score, title, narrative, content_hash) "
-                "VALUES (?, 'Edit', 'tool_failure', ?, 0.6, ?, ?, ?)",
+                "memory_type, impact_score, title, narrative, content_hash, created_at) "
+                f"VALUES (?, 'Edit', 'tool_failure', ?, 0.6, ?, ?, ?, {created})",
                 (session, memory_type, "[BLOCKED] Tool failure: Edit", narrative,
                  f"h-{memory_type}-{session}-{i}"),
             )
@@ -207,6 +208,15 @@ class TestFrictionLessons:
 
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
+    def test_old_observations_age_out(self, seeded_conn: sqlite3.Connection) -> None:
+        # failures older than the recency window must NOT be re-minted as lessons
+        from tools.learning import _mine_friction_lessons
+
+        self._seed_failures(
+            seeded_conn, 3, "BLOCKED: ancient resolved trap", session="ses-old", days_ago=120
+        )
+        assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
+
 
 class TestHookBlockLessons:
     """Hook BLOCKs never reach the observations table on Claude, but they ARE
@@ -250,7 +260,7 @@ class TestHookBlockLessons:
         from tools.learning import _mine_hook_block_lessons
 
         log = tmp_path / ".hooks.log"
-        self._write_log(log, [self._block_line("enforce-skill", "stale", days_ago=40) for _ in range(5)])
+        self._write_log(log, [self._block_line("enforce-skill", "stale", days_ago=120) for _ in range(5)])
         monkeypatch.setenv("COS_HOOK_LOG", str(log))
         assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
 

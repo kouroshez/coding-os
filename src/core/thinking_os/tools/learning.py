@@ -624,7 +624,9 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
     try:
         rows = conn.execute(
             "SELECT title, narrative, memory_type FROM observations "
-            "WHERE memory_type IN ('hook_block', 'error') AND COALESCE(narrative, '') != ''"
+            "WHERE memory_type IN ('hook_block', 'error') AND COALESCE(narrative, '') != '' "
+            "  AND created_at >= datetime('now', '-' || ? || ' days')",
+            (_LESSON_WINDOW_DAYS,),
         ).fetchall()
     except sqlite3.OperationalError as exc:
         logger.debug("friction mining skipped: %s", exc)
@@ -671,7 +673,10 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
 # A hook-log block line: "[<ts>] [<hook>] [block] … rule=<rule> …".
 _BLOCK_LINE_RE = re.compile(r"^\[(?P<ts>[^\]]+)\]\s+\[(?P<hook>[^\]]+)\]\s+\[block\]\s*(?P<rest>.*)$")
 _BLOCK_RULE_RE = re.compile(r"\brule=(\S+)")
-_BLOCK_WINDOW_DAYS = 30
+# Recency window shared by both friction miners: a failure/block only counts as
+# a recurring lesson if it recurs within this window. Old/resolved/renamed-rule
+# failures age out (stop being re-confirmed) and decay instead of persisting.
+_LESSON_WINDOW_DAYS = 90
 
 
 def _hook_log_path(conn: sqlite3.Connection) -> Path | None:
@@ -701,7 +706,7 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
         logger.debug("hook-block mining skipped (read): %s", exc)
         return []
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=_BLOCK_WINDOW_DAYS)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=_LESSON_WINDOW_DAYS)
     clusters: dict[str, dict] = {}
     for line in lines:
         match = _BLOCK_LINE_RE.match(line)
