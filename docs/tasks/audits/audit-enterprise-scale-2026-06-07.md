@@ -1,7 +1,7 @@
 <!-- domain:META | layer:audit | ssot:true | updated:2026-06-07 -->
 # Audit — Enterprise Scale Hardening (10K-100K+ tasks / commits / nodes)
 
-> Nav: [docs/tasks/audits/](./00-index.md) · epic [TASK-222](../TASK-222-enterprise-scale-hardening-epic.md)
+> Nav: [docs/tasks/audits/](./00-index.md) · epic [TASK-222](../TASK-222-epic-enterprise-scale-hardening-system-must-not-break-agent-.md)
 
 status: in_progress
 phase: discovery-complete · remediation-pending
