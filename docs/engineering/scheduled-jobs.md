@@ -29,7 +29,7 @@ Install: `make cron-install` → writes plist to `~/Library/LaunchAgents/`, load
 
 ### Tasks (ordered, per project)
 
-1. **decay + consolidate** — `run_decay(db_path, archive_prune_days=...)` from `src/core/thinking_os/decay.py`
+1. **decay + consolidate** — `run_decay_locked(db_path, archive_prune_days=...)` from `src/core/thinking_os/decay.py` (the shared throttle+flock wrapper around `run_decay`)
    - Gate: `.last-decay` marker < `decay_throttle_days` (config, default 7) → skip
    - Flock: `fcntl.flock` on marker → prevents double-decay race with session_enrich
    - Consolidation (caps unbounded `learned_patterns` growth, runs every decay):

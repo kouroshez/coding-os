@@ -70,11 +70,11 @@ PY
 ### Safe form B — extract to `_helpers/<name>.py`
 
 ```bash
-HELPER="$(dirname "$0")/_helpers/<name>.py"
+HELPER="$(_cos_helpers_dir)/<name>.py"   # resolver sourced from cos-env.sh
 python3 "$HELPER" "$arg1" "$arg2"
 ```
 
-Best for hot-path hooks (agent-presence, session-context). The Python file lives in `src/core/hooks/_helpers/` and is invoked as a normal subprocess. Symlinks need a readlink-walk to resolve to the source dir — see `agent-presence.sh:53-65` for the canonical idiom.
+Best for hot-path hooks (agent-presence, session-context). The Python file lives in `src/core/hooks/_helpers/` and is invoked as a normal subprocess. Resolve the dir with the shared `_cos_helpers_dir` (in `cos-env.sh`) — it readlink-walks the symlink chain to the source tree. Do NOT use a bare `$(dirname "$0")/_helpers/`: consumer installs symlink each hook `.sh` but not the `_helpers/` subdir, so that path lands in `.claude/hooks/` (no `_helpers/` there) and the helper silently no-ops.
 
 ### Why not `python3 -c "literal string"`?
 

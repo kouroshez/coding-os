@@ -43,7 +43,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | Hook | Fires on | What it blocks |
 |---|---|---|
 | `block-secrets` | Bash, Write/Edit | AWS keys, tokens, `.env` leaks in commands or file content |
-| `block-dangerous-commands` | Bash | `rm -rf`, `git push --force` to main, `git reset --hard` without flag |
+| `block-dangerous-commands` | Bash | recursive `rm` of critical paths (root/cwd/parent/glob/`$HOME`, project dirs, any top-level absolute dir incl. trailing-slash `/etc/` — via `_helpers/check_dangerous_rm.py`), `git push --force` / `+main` refspec to main/master, `git reset --hard`, SQL `DROP TABLE`/`DROP DATABASE` |
 | `block-uv-heredoc` | Bash | `uv run ... <<EOF` pattern (Rule 9 — silently hangs) |
 | `block-bad-patterns` | Write/Edit | bare `except: pass`, mock-where-real-needed, known anti-patterns |
 | `block-protected-files` | Write/Edit | edits to `CLAUDE.md`, `AGENTS.md`, `.coding-os/`, `src/core/rules/`, `src/core/hooks/` unless active task name contains `governance` / `docs-update` (Rule 8) |

@@ -131,11 +131,12 @@ def run_decay_locked(
     dry_run: bool = False,
     marker_path: Path | None = None,
 ) -> dict:
-    """Throttled + flock-protected decay — the single entry point shared by the
-    nightly job, the session_enrich Stop hook, and auto-brain-decay so they never
-    double-decay (one mtime-throttled marker) or race (one exclusive lock). The
-    throttle is mtime-based, so the marker file's content format is irrelevant.
-    Marker defaults to ``<db-dir>/.last-decay`` (project-shared, next to the DB)."""
+    """Throttled + flock-protected decay — the entry point shared by the nightly
+    job and the session_enrich Stop hook so they never double-decay (one
+    mtime-throttled marker) or race (one exclusive lock). auto-brain-decay
+    debounces on the same ``.last-decay`` marker. The throttle is mtime-based, so
+    the marker file's content format is irrelevant. Marker defaults to
+    ``<db-dir>/.last-decay`` (project-shared, next to the DB)."""
     path = Path(db_path).resolve()
     marker = marker_path or (path.parent / ".last-decay")
     lock_path = marker.with_suffix(".lock")
