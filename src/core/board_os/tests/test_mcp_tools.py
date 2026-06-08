@@ -1526,3 +1526,59 @@ def test_board_browser_path_skips_envelope_cap(project: Path, conn: sqlite3.Conn
     assert data["meta"]["truncated"] is False
     assert data["truncated"] is False
     assert data["count"] == data["total_count"] == 45  # every card returned
+
+
+# ---------- cos_task_show output contract (TASK-271) ----------
+# Codifies what every caller (hub drawer, agents) relies on, so output quality
+# is asserted in CI — not just eyeballed. A future refactor that silently drops
+# a field (the TASK-271 regression) now fails here.
+
+
+def test_task_show_returns_full_field_contract(project: Path, conn: sqlite3.Connection):
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Contract probe",
+            swimlane="core",
+            kind="feature",
+            epic="hub-redesign",
+            labels=["ready", "mcp"],
+            outcome="cos_task_show exposes its stored fields.",
+        )
+    )
+    tid = created["data"]["task_id"]
+
+    env = _parse(mcp_tools.cos_task_show(conn, task_id=tid))
+    assert env["ok"] is True
+    data = env["data"]
+
+    required = {
+        "id",
+        "title",
+        "status",
+        "swimlane",
+        "kind",
+        "priority",
+        "appetite",
+        "file_path",
+        "epic",
+        "labels",
+        "agent_session",
+        "started_at",
+        "completed_at",
+        "body",
+    }
+    missing = required - set(data)
+    assert not missing, f"cos_task_show dropped fields: {missing}"
+
+    assert data["id"] == tid
+    assert data["epic"] == "hub-redesign"
+    assert data["labels"] == ["ready", "mcp"]
+    assert isinstance(data["labels"], list)
+    assert data["meta"]["layer"] == "tasks"
+
+
+def test_task_show_not_found_returns_fail_envelope(project: Path, conn: sqlite3.Connection):
+    env = _parse(mcp_tools.cos_task_show(conn, task_id="TASK-999"))
+    assert env["ok"] is False
+    assert env["error"]["category"] == "not_found"
