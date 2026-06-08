@@ -35,7 +35,6 @@ export interface BoardColumnMeta {
 }
 
 export interface BoardListPayload {
-  grouped: Record<string, Record<string, BoardListCard[]>>;
   cards: BoardListCard[];
   count: number;
   /** Total cards across all returned columns (TASK-223). */

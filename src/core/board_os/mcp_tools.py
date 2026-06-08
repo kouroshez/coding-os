@@ -715,25 +715,15 @@ def cos_task_create(
 _BOARD_BUDGET_HEADROOM = 256
 
 
-def _board_grouped(cards: list[dict]) -> dict[str, dict[str, list[dict]]]:
-    grouped: dict[str, dict[str, list[dict]]] = {}
-    for card in cards:
-        lane = card["swimlane"] or "(none)"
-        grouped.setdefault(lane, {}).setdefault(card["status"], []).append(card)
-    return grouped
-
-
-def _cap_board_to_budget(
-    cards: list[dict], *, budget: int
-) -> tuple[list[dict], dict[str, dict[str, list[dict]]], bool]:
-    # Drop the lowest-priority cards (P9 last) until the serialized
-    # {grouped, cards} body fits `budget`; the kept set preserves original
-    # display order. The board returns grouped + cards (same cards twice) and
-    # neither is in the envelope trim ladder, so a large board produced an
-    # unshrinkable >32KB envelope (TASK-209). Returns (kept, grouped, capped).
-    grouped = _board_grouped(cards)
-
-    def _fits(subset: list[dict], grp: dict) -> bool:
+def _cap_board_to_budget(cards: list[dict], *, budget: int) -> tuple[list[dict], bool]:
+    # Drop the lowest-priority cards (P9 last) until the serialized board body
+    # fits `budget` (agent path only — the browser opts out via apply_budget=False).
+    # The kept set preserves original display order. `cards` is outside the
+    # envelope trim ladder, so without this cap a large board produced an
+    # unshrinkable >32KB envelope (TASK-209). Returns (kept, capped). The board no
+    # longer emits a duplicate `grouped` view (TASK-259) — clients group cards by
+    # swimlane×status themselves, halving the payload on both the agent and wire.
+    def _fits(subset: list[dict]) -> bool:
         # Mirror ok(): pretty-printed full envelope, measured with the same
         # _budget_size the trimmer uses (inflates non-Latin), so the cap holds
         # for Persian/Arabic titles too — not just ASCII.
@@ -741,7 +731,6 @@ def _cap_board_to_budget(
             {
                 "ok": True,
                 "data": {
-                    "grouped": grp,
                     "cards": subset,
                     "count": len(subset),
                     "total_count": len(cards),
@@ -760,8 +749,8 @@ def _cap_board_to_budget(
         )
         return _budget_size(probe) <= budget
 
-    if _fits(cards, grouped):
-        return cards, grouped, False
+    if _fits(cards):
+        return cards, False
 
     total = len(cards)
     ranked = sorted(range(total), key=lambda i: (str(cards[i].get("priority", "P9")), i))
@@ -770,10 +759,9 @@ def _cap_board_to_budget(
         keep = keep - 1 if keep <= 12 else int(keep * 0.85)
         keep_idx = set(ranked[:keep])
         subset = [c for i, c in enumerate(cards) if i in keep_idx]
-        grouped = _board_grouped(subset)
-        if _fits(subset, grouped):
-            return subset, grouped, True
-    return [], {}, True
+        if _fits(subset):
+            return subset, True
+    return [], True
 
 
 # Columns whose row count grows without bound (finished work accumulates
@@ -941,11 +929,10 @@ def cos_task_board(
         # Account for the columns meta (not in _cap_board_to_budget's probe) so
         # the 32KB agent-envelope guarantee (TASK-209) holds even with paging.
         columns_overhead = len(json.dumps(columns_meta, default=str)) if columns_meta else 0
-        cards, grouped, board_truncated = _cap_board_to_budget(
+        cards, board_truncated = _cap_board_to_budget(
             cards, budget=TOKEN_BUDGET_CHARS - _BOARD_BUDGET_HEADROOM - columns_overhead
         )
     else:
-        grouped = _board_grouped(cards)
         board_truncated = False
 
     wip_state = None
@@ -959,7 +946,6 @@ def cos_task_board(
 
     return ok(
         {
-            "grouped": grouped,
             "cards": cards,
             "columns": columns_meta,
             "count": len(cards),

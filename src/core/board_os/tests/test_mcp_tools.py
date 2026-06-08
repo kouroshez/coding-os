@@ -378,7 +378,7 @@ def test_board_empty(project: Path, conn: sqlite3.Connection):
     env = _parse(mcp_tools.cos_task_board(conn))
     assert env["ok"] is True
     assert env["data"]["count"] == 0
-    assert env["data"]["grouped"] == {}
+    assert env["data"]["cards"] == []
     assert env["data"]["wip"]["counts"]["in_progress"] == 0
 
 
@@ -398,8 +398,9 @@ def test_board_with_tasks(project: Path, conn: sqlite3.Connection):
     env = _parse(mcp_tools.cos_task_board(conn))
     assert env["ok"] is True
     assert env["data"]["count"] == 2
-    assert "core" in env["data"]["grouped"]
-    assert "docs" in env["data"]["grouped"]
+    swimlanes = {c["swimlane"] for c in env["data"]["cards"]}
+    assert "core" in swimlanes
+    assert "docs" in swimlanes
 
 
 def test_board_filters_by_swimlane(project: Path, conn: sqlite3.Connection):
@@ -1444,8 +1445,7 @@ def test_board_caps_to_envelope_budget(project: Path, conn: sqlite3.Connection):
     assert data["total_count"] > data["count"]
     assert not data["meta"].get("envelope_unshrinkable")  # fingerprint gone
 
-    flat = [c for lane in data["grouped"].values() for st in lane.values() for c in st]
-    assert len(flat) == data["count"]  # grouped + cards stay consistent
+    assert len(data["cards"]) == data["count"]  # cards list matches the count (no grouped dupe)
 
 
 def test_board_small_board_is_not_truncated(project: Path, conn: sqlite3.Connection):
