@@ -103,6 +103,7 @@ def test_panel_cognitive_files_route_to_panel_dir(tmp_path: Path) -> None:
         ".zoom-checkpoint",
         ".active-formula",
         ".learn-suggestions",
+        ".task-mode",
     ]
     for name in per_panel:
         _write(env, name, "v")
@@ -117,7 +118,9 @@ def test_panel_cognitive_files_route_to_panel_dir(tmp_path: Path) -> None:
 def test_shared_files_stay_shared(tmp_path: Path) -> None:
     env = _panel_env(tmp_path, "panel-shared")
     # Files explicitly designed shared (intentionally NOT in COS_PER_PANEL_FILES).
-    shared = [".task-mode", ".model", ".swimlane"]
+    # .task-mode moved to per-panel (cos-env.sh COS_PER_PANEL_FILES) — banner
+    # verbosity must not bleed across panels of the same agent.
+    shared = [".model", ".swimlane"]
     for name in shared:
         _write(env, name, "v")
         assert (Path(env["COS_AGENT_DIR"]) / name).exists(), (
