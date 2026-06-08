@@ -65,6 +65,13 @@ export default function NewChatForm({
     setPrompt(initialPrompt);
   }, [initialPrompt]);
 
+  // A suggestion that carries a role (e.g. 'onboarder') seeds it the same way —
+  // no remount, so the picked model / effort survive. The onboarder role also
+  // routes the turn to the docs-confined /onboard endpoint (see start()).
+  useEffect(() => {
+    setRole(initialRole);
+  }, [initialRole]);
+
   const start = async (e?: FormEvent) => {
     e?.preventDefault();
     const p = prompt.trim();
@@ -85,7 +92,9 @@ export default function NewChatForm({
     let gotDelta = false;
     try {
       await consumeSse(
-        endpoint,
+        // The onboarder role confines writes to docs/ via its own endpoint;
+        // every other role rides the default chat endpoint with role in the body.
+        role === 'onboarder' ? '/api/cognition/onboard' : endpoint,
         { prompt: p, role: role || null, model: model || null, effort: effort || null },
         (ev, payload) => {
           if (ev === 'session' && typeof payload.session_id === 'string') capturedId = payload.session_id;

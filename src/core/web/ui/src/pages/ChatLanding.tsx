@@ -22,7 +22,7 @@ import OnboardingCard from '@/features/cognition/OnboardingCard';
 const ONBOARD_PROMPT =
   'Help me set up my product docs — interview me briefly, then draft the minimum docs under docs/.';
 
-const SUGGESTIONS: { icon: typeof ListTodo; label: string; prompt: string; onboard?: boolean }[] = [
+const SUGGESTIONS: { icon: typeof ListTodo; label: string; prompt: string; role?: string }[] = [
   { icon: ListTodo, label: 'Start a task', prompt: 'Help me start a new task: ' },
   { icon: Search, label: 'Ask the codebase', prompt: 'Explain how ' },
   {
@@ -46,7 +46,7 @@ const SUGGESTIONS: { icon: typeof ListTodo; label: string; prompt: string; onboa
     label: 'Map the subsystems',
     prompt: 'Map the codebase — what are the main subsystems and how do they connect?',
   },
-  { icon: FileText, label: 'Onboard my product docs', prompt: ONBOARD_PROMPT, onboard: true },
+  { icon: FileText, label: 'Onboard my product docs', prompt: ONBOARD_PROMPT, role: 'onboarder' },
 ];
 
 /**
@@ -60,8 +60,8 @@ const SUGGESTIONS: { icon: typeof ListTodo; label: string; prompt: string; onboa
 export default function ChatLanding() {
   const { slug, sessionId } = useParams<{ slug?: string; sessionId?: string }>();
   const navigate = useNavigate();
-  const [onboardMode, setOnboardMode] = useState(false);
   const [seed, setSeed] = useState('');
+  const [seedRole, setSeedRole] = useState('');
   const [showTrace, setShowTrace] = useState(false);
   const [turnActive, setTurnActive] = useState(false);
   const base = slug ? `/p/${encodeURIComponent(slug)}/workspace/chat` : '/workspace/chat';
@@ -86,8 +86,8 @@ export default function ChatLanding() {
   }
 
   const newChat = () => {
-    setOnboardMode(false);
     setSeed('');
+    setSeedRole('');
     setTurnActive(false);
     navigate(base);
   };
@@ -138,7 +138,14 @@ export default function ChatLanding() {
                 turnActive ? 'py-8' : 'min-h-full justify-center py-10'
               }`}
             >
-              {!onboardMode && !turnActive && <OnboardingCard onStart={() => setOnboardMode(true)} />}
+              {!turnActive && (
+                <OnboardingCard
+                  onStart={() => {
+                    setSeed(ONBOARD_PROMPT);
+                    setSeedRole('onboarder');
+                  }}
+                />
+              )}
               {!turnActive && (
                 <h1 className="text-center text-[30px] leading-tight font-semibold tracking-tight text-[var(--cos-text)]">
                   What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
@@ -146,15 +153,13 @@ export default function ChatLanding() {
               )}
 
               <NewChatForm
-                key={onboardMode ? 'onboard' : 'chat'}
                 onComplete={openSession}
                 onActive={setTurnActive}
-                initialRole={onboardMode ? 'onboarder' : ''}
-                initialPrompt={onboardMode ? ONBOARD_PROMPT : seed}
-                endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
+                initialRole={seedRole}
+                initialPrompt={seed}
               />
 
-              {!onboardMode && !turnActive && (
+              {!turnActive && (
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {SUGGESTIONS.map((s) => {
                     const Icon = s.icon;
@@ -162,7 +167,10 @@ export default function ChatLanding() {
                       <button
                         key={s.label}
                         type="button"
-                        onClick={() => (s.onboard ? setOnboardMode(true) : setSeed(s.prompt))}
+                        onClick={() => {
+                          setSeed(s.prompt);
+                          setSeedRole(s.role ?? '');
+                        }}
                         className="flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-[13px] text-[var(--cos-muted)] transition hover:border-[var(--cos-border)] hover:bg-white/[0.03] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
                       >
                         <Icon size={15} aria-hidden className="shrink-0 text-[var(--cos-faint)]" />
