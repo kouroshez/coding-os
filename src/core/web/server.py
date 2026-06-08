@@ -226,8 +226,15 @@ def create_app() -> FastAPI:
                     raise HTTPException(status_code=404, detail="Not Found")
                 if candidate.is_file():
                     return FileResponse(candidate)
-            # Default — hand control to the React SPA.
-            return FileResponse(_SPA_DIST / "index.html")
+            # Default — hand control to the React SPA. index.html must NOT be
+            # cached: it names the hashed JS/CSS bundles, so a stale copy pins
+            # the browser to old code after every rebuild (the recurring "I
+            # refreshed but it didn't change"). The hashed /assets/* stay
+            # immutable-cacheable; only this pointer revalidates each load.
+            return FileResponse(
+                _SPA_DIST / "index.html",
+                headers={"Cache-Control": "no-cache, must-revalidate"},
+            )
     else:
 
         @app.get("/", response_class=HTMLResponse, include_in_schema=False)
