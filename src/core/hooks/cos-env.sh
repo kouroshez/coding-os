@@ -52,6 +52,26 @@ COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
 # extraction window. Mined by learning._mine_hook_block_lessons.
 COS_HOOK_BLOCK_LOG="${COS_HOOK_BLOCK_LOG:-${COS_STATE_DIR}/.hook-blocks.log}"
 
+# ---------------------------------------------------------------------------
+# Per-project hook override (TASK-256) — a disabled NON-safety hook self-skips
+# for THIS project. `$COS_STATE_DIR/disabled-hook-scripts` (one script basename
+# per line) is the derived allowlist written by cli.project_overrides, which
+# NEVER lists a safety-category hook — so a safety hook can never be disabled.
+# Guarded + fail-open: when the file is absent (the common case) this costs a
+# single stat; any error continues normally. Skip == `exit 0` (this file is
+# SOURCED, so the exit ends the calling hook before its body runs). Set
+# COS_SKIP_OVERRIDE_CHECK=1 to bypass (used by non-hook sourcers / tests).
+# ---------------------------------------------------------------------------
+if [[ -z "${COS_SKIP_OVERRIDE_CHECK:-}" && -f "${COS_STATE_DIR}/disabled-hook-scripts" ]]; then
+  _cos_self="$(basename "${BASH_SOURCE[1]:-${0:-}}" 2>/dev/null || echo "")"
+  if [[ -n "$_cos_self" ]] \
+       && grep -qxF -- "$_cos_self" "${COS_STATE_DIR}/disabled-hook-scripts" 2>/dev/null; then
+    unset _cos_self
+    exit 0
+  fi
+  unset _cos_self
+fi
+
 # Cap the log at 500 lines so `cos hooks-log` stays snappy and the file
 # never blooms into a multi-MB artifact that would be tempting to open.
 # Truncation runs when the file passes 2× the cap (=1000 lines) and keeps

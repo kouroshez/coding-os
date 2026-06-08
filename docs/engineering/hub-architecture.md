@@ -169,6 +169,27 @@ is treated as complete (nothing to onboard). `ChatLanding` renders a dismissible
 onboarder session (`/api/cognition/onboard`, TASK-246) so authoring is confined
 to `docs/`.
 
+## Per-project hook/skill overrides (Config toggles)
+
+Hooks are **live symlinks** shared by every project, so a per-project enable/
+disable cannot live in the global `registry.yaml` (editing it de-armours every
+consumer). Instead each project carries `.coding-os/hook-overrides.json` /
+`.coding-os/skill-overrides.json` (`{"disabled": ["<id>", …]}`).
+
+The SSOT is [src/cli/project_overrides.py](../../src/cli/project_overrides.py):
+it reads the override, drops any **safety-category** hook (safety hooks are
+NON-disableable — the Config UI greys them and the primitive refuses them), maps
+the remaining ids → script basenames, and writes the derived runtime allowlist
+`.coding-os/disabled-hook-scripts` (one safe-to-skip basename per line).
+
+Enforcement is at **runtime** — the architecturally correct point for a shared
+symlink (the same physical script serves all projects, so only a runtime check
+can vary per project): `cos-env.sh`, sourced at the top of every hook, sees the
+calling hook's basename in `disabled-hook-scripts` and `exit 0`s the hook before
+its body runs. The check is a single `stat` when no override file exists (the
+common case), and a safety hook can never appear in the derived list, so it can
+never be skipped. Toggling a hook is instant — no re-render, no re-install.
+
 ## Create a project from the UI (init route + wizard)
 
 A user can scaffold a brand-new project from the Hub without the CLI. Two
