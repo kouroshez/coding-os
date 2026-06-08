@@ -28,6 +28,36 @@ interface PatternsEnvelope {
   data: { patterns: PatternRow[]; count: number; total_count: number };
 }
 
+// Field names mirror src/core/web/routes/patterns.py::learning_roi exactly.
+interface RoiSession {
+  session_id: string;
+  friction: number;
+  total: number;
+  rate: number;
+  started: string;
+}
+interface RoiData {
+  sessions: RoiSession[];
+  count: number;
+  trend: string;
+  delta_pct: number;
+}
+interface RoiEnvelope {
+  ok: boolean;
+  data: RoiData;
+}
+
+function roiColor(trend: string): string {
+  if (trend === 'improving') return 'var(--cos-ok)';
+  if (trend === 'worsening') return 'var(--cos-err)';
+  return 'var(--cos-muted)';
+}
+function roiLabel(trend: string): string {
+  if (trend === 'improving') return '↓ improving';
+  if (trend === 'worsening') return '↑ worsening';
+  return '→ flat';
+}
+
 function api(slug: string | undefined, path: string): string {
   const base = slug ? `/api/p/${slug}` : '/api';
   return `${base}${path}`;
@@ -115,6 +145,7 @@ export default function MemoryPage() {
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [running, setRunning] = useState<boolean>(false);
   const [runMsg, setRunMsg] = useState<string>('');
+  const [roi, setRoi] = useState<RoiData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,6 +181,20 @@ export default function MemoryPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!cancelled && d) setLastRun((d.run_at as string) ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, reloadCounter]);
+
+  // Learning effectiveness: friction-per-session trend (does it go down over time?).
+  useEffect(() => {
+    let cancelled = false;
+    fetch(api(slug, '/patterns/roi'))
+      .then((r) => (r.ok ? (r.json() as Promise<RoiEnvelope>) : null))
+      .then((env) => {
+        if (!cancelled && env?.data) setRoi(env.data);
       })
       .catch(() => {});
     return () => {
@@ -246,6 +291,36 @@ export default function MemoryPage() {
             No lessons yet. The agent distils lessons from friction (blocked actions,
             failures, reworks) when the learning loop runs — nightly or every 10th task.
           </div>
+        )}
+
+        {roi && roi.sessions.length >= 2 && (
+          <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-[var(--cos-text)]">Learning effectiveness</h2>
+              <span className="text-xs font-medium" style={{ color: roiColor(roi.trend) }}>
+                {roiLabel(roi.trend)}
+                {roi.delta_pct ? ` ${roi.delta_pct > 0 ? '+' : ''}${roi.delta_pct}%` : ''}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[var(--cos-muted)]">
+              Friction (blocks + errors) per session — lower is better. Last{' '}
+              {roi.sessions.length} sessions.
+            </p>
+            <div className="mt-2 flex h-10 items-end gap-0.5">
+              {roi.sessions.map((s, i) => {
+                const max = Math.max(...roi.sessions.map((x) => x.rate), 0.01);
+                const h = Math.max(6, Math.round((s.rate / max) * 100));
+                return (
+                  <span
+                    key={`${s.session_id}-${i}`}
+                    title={`${(s.rate * 100).toFixed(0)}% friction (${s.friction}/${s.total})`}
+                    className="flex-1 rounded-sm"
+                    style={{ height: `${h}%`, backgroundColor: roiColor(roi.trend) }}
+                  />
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {lessons.length > 0 && (

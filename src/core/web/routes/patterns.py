@@ -76,3 +76,70 @@ async def list_patterns(
             }
         )
     )
+
+
+def _roi_trend(sessions: list[dict]) -> tuple[str, float]:
+    """Improving when the recent half's mean friction rate is meaningfully below
+    the older half's. Returns (trend, delta_pct) — delta<0 means improving."""
+    if len(sessions) < 2:
+        return ("insufficient", 0.0)
+    mid = len(sessions) // 2
+    older = [s["rate"] for s in sessions[:mid]] or [0.0]
+    recent = [s["rate"] for s in sessions[mid:]] or [0.0]
+    older_mean = sum(older) / len(older)
+    recent_mean = sum(recent) / len(recent)
+    if older_mean == 0:
+        return ("flat", 0.0)
+    delta_pct = round((recent_mean - older_mean) / older_mean * 100, 1)
+    if recent_mean < older_mean * 0.9:
+        return ("improving", delta_pct)
+    if recent_mean > older_mean * 1.1:
+        return ("worsening", delta_pct)
+    return ("flat", delta_pct)
+
+
+@router.get("/roi")
+async def learning_roi(
+    limit: int = Query(20, ge=2, le=100),
+    _rl=Depends(make_rate_limit_dep("patterns.roi")),
+    _m=Depends(make_metrics_dep("patterns.roi")),
+):
+    """Per-session friction rate over recent sessions — does friction trend down (learning works)?"""
+    conn = _db_conn()
+    try:
+        rows = conn.execute(
+            "SELECT session_id, "
+            "SUM(CASE WHEN memory_type IN ('hook_block', 'error') THEN 1 ELSE 0 END) AS friction, "
+            "COUNT(*) AS total, MIN(created_at) AS started "
+            "FROM observations WHERE session_id IS NOT NULL "
+            "GROUP BY session_id HAVING total >= 1 "
+            "ORDER BY started DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    finally:
+        conn.close()
+    sessions = [
+        {
+            "session_id": r["session_id"],
+            "friction": r["friction"] or 0,
+            "total": r["total"],
+            "rate": round((r["friction"] or 0) / r["total"], 3) if r["total"] else 0.0,
+            "started": r["started"],
+        }
+        for r in reversed(rows)  # chronological for the sparkline
+    ]
+    trend, delta_pct = _roi_trend(sessions)
+    return unwrap(
+        json.dumps(
+            {
+                "ok": True,
+                "data": {
+                    "sessions": sessions,
+                    "count": len(sessions),
+                    "trend": trend,
+                    "delta_pct": delta_pct,
+                    "meta": {"layer": "learning"},
+                },
+            }
+        )
+    )

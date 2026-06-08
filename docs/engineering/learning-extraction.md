@@ -127,6 +127,9 @@ by default.
 - **Learning-loop runs**: an execution log from `.coding-os/scheduled/last_run.json`
   (when it ran, how many lessons minted) + an inline **Run learning loop now**
   button wired to `POST /api/scheduled/run/{slug}`.
+- **Learning effectiveness**: a friction-per-session sparkline (`GET
+  /api/patterns/roi`) showing whether blocks+errors trend down across sessions —
+  the proof that recall is working (computed on-the-fly, no new table).
 - A one-paragraph beginner explainer of how the agent learns.
 
 ## Hook BLOCK lessons (mined from the activity log)
