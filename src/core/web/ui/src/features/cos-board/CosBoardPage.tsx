@@ -7,14 +7,12 @@ import {
   useState,
   type CSSProperties,
   type DragEvent,
-  type FormEvent,
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiGet, apiPost, apiPatch } from '@/lib/api-client';
-import { consumeSse } from '@/lib/chat-stream';
-import { MarkdownBlock } from '@/components/MarkdownBlock';
+import NewChatForm from '@/features/cognition/NewChatForm';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
@@ -2455,87 +2453,21 @@ function AgentTaskModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [text, setText] = useState('');
-  const [finished, setFinished] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      setPrompt('');
-      setModel('');
-      setBusy(false);
-      setText('');
-      setFinished(false);
-      setErr(null);
-    }
-  }, [open]);
-
-  // Abort the in-flight draft request when the dialog closes (else the
-  // headless agent session keeps running server-side). ESC also closes.
-  const abortRef = useRef<AbortController | null>(null);
+  // ESC / overlay click closes and refreshes the board so a just-drafted task
+  // appears. The draft itself is owned by the shared chat composer below.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        abortRef.current?.abort();
+        onDone();
         onClose();
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onDone, onClose]);
 
   if (!open) return null;
-
-  const fieldStyle: CSSProperties = {
-    width: '100%',
-    background: 'var(--board-grain)',
-    border: '1px solid var(--col-border)',
-    color: 'var(--ink)',
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: 12,
-    padding: '8px 10px',
-    borderRadius: 4,
-  };
-
-  const run = async (e: FormEvent) => {
-    e.preventDefault();
-    const p = prompt.trim();
-    if (!p || busy) return;
-    setBusy(true);
-    setErr(null);
-    setText('');
-    setFinished(false);
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    try {
-      await consumeSse(
-        '/api/cognition/author-task',
-        { prompt: p, model: model || null },
-        (ev, payload) => {
-          // Streamed assistant frames carry `content[]`; the GET transcript path
-          // carries `blocks[]`.
-          const blocks = payload.content ?? payload.blocks ?? [];
-          const t = blocks
-            .filter((b) => b?.type === 'text' && b.text)
-            .map((b) => b.text)
-            .join('');
-          if (t) setText((c) => c + t);
-          if (ev === 'error' && typeof payload.message === 'string') setErr(payload.message);
-        },
-        ctrl.signal,
-      );
-    } catch (e2) {
-      if ((e2 as Error).name !== 'AbortError') setErr((e2 as Error).message ?? 'failed to author task');
-    } finally {
-      setBusy(false);
-      setFinished(true);
-      onDone();
-    }
-  };
 
   return (
     <div
@@ -2553,7 +2485,7 @@ function AgentTaskModal({
         padding: 20,
       }}
       onClick={() => {
-        abortRef.current?.abort();
+        onDone();
         onClose();
       }}
     >
@@ -2562,18 +2494,39 @@ function AgentTaskModal({
         style={{
           // Fluid: rem responds to browser zoom, vw grows on 4K, capped so a
           // single-prompt dialog never sprawls; maxWidth lets it use the screen.
-          width: 'clamp(34rem, 50vw, 60rem)',
+          width: 'clamp(34rem, 52vw, 60rem)',
           maxWidth: '94vw',
           maxHeight: '90vh',
           overflowY: 'auto',
           background: 'var(--col-bg)',
           border: '1px solid var(--col-border)',
-          borderRadius: 6,
+          borderRadius: 10,
           boxShadow: '0 30px 60px rgba(0,0,0,.4)',
           padding: '20px 22px',
         }}
       >
-        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>✨ Draft with AI</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>✨ Draft with AI</div>
+          <button
+            type="button"
+            onClick={() => {
+              onDone();
+              onClose();
+            }}
+            aria-label="Close"
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--col-border)',
+              borderRadius: 6,
+              color: 'var(--ink-soft)',
+              fontSize: 11,
+              padding: '3px 9px',
+              cursor: 'pointer',
+            }}
+          >
+            esc
+          </button>
+        </div>
         <div
           style={{
             fontSize: '.82rem',
@@ -2582,86 +2535,12 @@ function AgentTaskModal({
             lineHeight: 1.5,
           }}
         >
-          Describe what you want in plain English — an assistant reads your project and writes the task for you.
+          Describe what you want in plain English — the assistant reads your project and writes the task for
+          you. This is the same chat used everywhere else in the Hub.
         </div>
-        <form onSubmit={run} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <textarea
-            autoFocus
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe what the task should accomplish…"
-            rows={5}
-            style={{ ...fieldStyle, resize: 'vertical' }}
-          />
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select value={model} onChange={(e) => setModel(e.target.value)} style={{ ...fieldStyle, width: 'auto' }}>
-              <option value="">default model</option>
-              <option value="claude-opus-4-8">Opus 4.8</option>
-              <option value="claude-sonnet-4-6">Sonnet 4.6</option>
-            </select>
-            <button
-              type="submit"
-              disabled={busy || !prompt.trim()}
-              style={{
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 4,
-                padding: '8px 16px',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
-                cursor: busy ? 'default' : 'pointer',
-                opacity: busy || !prompt.trim() ? 0.5 : 1,
-              }}
-            >
-              {busy ? 'Drafting…' : 'Draft task ▸'}
-            </button>
-            {finished && !busy && (
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  background: 'transparent',
-                  color: 'var(--ink-soft)',
-                  border: '1px solid var(--col-border)',
-                  borderRadius: 4,
-                  padding: '8px 14px',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  cursor: 'pointer',
-                }}
-              >
-                Done
-              </button>
-            )}
-          </div>
-        </form>
-        {err && (
-          <p role="alert" style={{ color: '#f85149', fontSize: 11, marginTop: 10 }}>
-            {err}
-          </p>
-        )}
-        {text && (
-          <div
-            aria-live="polite"
-            style={{
-              marginTop: 12,
-              padding: '10px 14px',
-              background: 'var(--board-grain)',
-              border: '1px solid var(--col-border)',
-              borderRadius: 6,
-              fontSize: 13,
-              lineHeight: 1.5,
-              maxHeight: 320,
-              overflow: 'auto',
-              color: 'var(--ink)',
-            }}
-          >
-            {/* Same Markdown rendering the chat surfaces use, so the AI draft
-                reads like a chat reply rather than a raw code dump. */}
-            <MarkdownBlock source={text} />
-          </div>
-        )}
+        {/* The ONE global chat composer + live stream (NewChatForm), pointed at
+            the task-authoring endpoint. One chat surface, edited in one place. */}
+        <NewChatForm endpoint="/api/cognition/author-task" onComplete={() => onDone()} />
       </div>
     </div>
   );
