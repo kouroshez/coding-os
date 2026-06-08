@@ -924,6 +924,48 @@ class TestPatternEmbeddingIntegration:
         assert result["action"] == "created"
 
 
+class TestSemanticConsolidation:
+    """B5 — merge semantically near-duplicate lessons; keep distinct ones."""
+
+    def test_no_op_without_rag(self, conn: sqlite3.Connection, monkeypatch) -> None:
+        monkeypatch.setattr(embeddings, "is_available", lambda: False)
+        from tools.learning import _consolidate_semantic_duplicates
+
+        assert _consolidate_semantic_duplicates(conn) == 0
+
+    @REQUIRES_RAG
+    def test_merges_near_duplicates(self, conn: sqlite3.Connection) -> None:
+        from tools.learning import _consolidate_semantic_duplicates
+
+        _upsert_pattern(
+            conn, pattern="Always parametrize SQL queries to prevent injection",
+            memory_type="lesson", domain=None, source="friction", confidence=0.6, concepts="[]",
+        )
+        _upsert_pattern(
+            conn, pattern="Always use parametrized SQL queries to avoid injection attacks",
+            memory_type="lesson", domain="BACKEND", source="friction", confidence=0.5, concepts="[]",
+        )
+        before = conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0]
+        merged = _consolidate_semantic_duplicates(conn, threshold=0.75)
+        after = conn.execute("SELECT COUNT(*) FROM learned_patterns").fetchone()[0]
+        assert merged >= 1
+        assert after == before - merged
+
+    @REQUIRES_RAG
+    def test_keeps_distinct_lessons(self, conn: sqlite3.Connection) -> None:
+        from tools.learning import _consolidate_semantic_duplicates
+
+        _upsert_pattern(
+            conn, pattern="Load the graph-explorer skill before editing core Python",
+            memory_type="lesson", domain=None, source="friction", confidence=0.6, concepts="[]",
+        )
+        _upsert_pattern(
+            conn, pattern="Use Decimal not float for money calculations",
+            memory_type="lesson", domain=None, source="friction", confidence=0.6, concepts="[]",
+        )
+        assert _consolidate_semantic_duplicates(conn, threshold=0.85) == 0
+
+
 class TestLearnNarrativeEmbedding:
     @REQUIRES_RAG
     def test_narrative_embeds_outcome_history_and_pattern(self, conn: sqlite3.Connection) -> None:

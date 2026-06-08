@@ -95,6 +95,11 @@ separate, clearly-labelled "Project Stats" section, never as "Lessons".
 - `times_validated` rises on re-mine (re-confirmation) and on explicit
   `cos_learn_validate`; `times_violated` rises on negative validation.
 - Stats are never ranked into beliefs, so their confidence is informational.
+- **Consolidation:** the nightly decay run merges semantically near-duplicate
+  lessons (embeddings cosine ≥ `COS_CONSOLIDATION_THRESHOLD`, default 0.85) into
+  the strongest survivor (highest confidence → times_validated → oldest), folding
+  the loser's counts — so the corpus stays sharp instead of fragmenting into
+  micro-variants. No-op when embeddings are unavailable.
 
 ## Digest & recall contract
 - A **belief** is any pattern whose `memory_type` is NOT `stat`

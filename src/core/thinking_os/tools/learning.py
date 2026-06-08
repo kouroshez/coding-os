@@ -431,6 +431,66 @@ def _collapse_duplicate_patterns(conn: sqlite3.Connection) -> int:
     return removed
 
 
+def _consolidate_semantic_duplicates(
+    conn: sqlite3.Connection, *, threshold: float = 0.85, dry_run: bool = False
+) -> int:
+    """Merge semantically near-duplicate learned patterns so the corpus stays
+    sharp. Survivor = highest (confidence, times_validated, oldest id); the
+    loser's access_count + times_validated fold in, then it is deleted. Reuses
+    embeddings (dim-aware cosine skips mismatched-dim vectors); no-op when
+    embeddings are unavailable. Returns the number of merged (deleted) rows.
+    """
+    try:
+        from embeddings import cosine_similarity, is_available
+    except ImportError:
+        return 0
+    if not is_available():
+        return 0
+    try:
+        rows = conn.execute(
+            "SELECT lp.id, lp.confidence, lp.times_validated, lp.access_count, e.embedding "
+            "FROM learned_patterns lp JOIN embeddings e "
+            "  ON e.source_table = 'learned_patterns' AND e.source_id = lp.id "
+            "WHERE lp.promoted_to IS NULL AND lp.archived_at IS NULL"
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        logger.debug("semantic consolidation skipped: %s", exc)
+        return 0
+
+    items = [dict(r) for r in rows if r["embedding"]]
+    if len(items) < 2:
+        return 0
+    # Stronger row first → it becomes the survivor of any similar pair.
+    items.sort(key=lambda x: (-(x["confidence"] or 0.0), -(x["times_validated"] or 0), x["id"]))
+
+    removed: set[int] = set()
+    merged = 0
+    for i, survivor in enumerate(items):
+        if survivor["id"] in removed:
+            continue
+        cands = [c for c in items[i + 1 :] if c["id"] not in removed]
+        if not cands:
+            continue
+        scores = cosine_similarity(survivor["embedding"], [c["embedding"] for c in cands])
+        for cand, score in zip(cands, scores):
+            if score < threshold:
+                continue
+            if not dry_run:
+                conn.execute(
+                    "UPDATE learned_patterns SET access_count = COALESCE(access_count, 0) + ?, "
+                    "times_validated = COALESCE(times_validated, 0) + ? WHERE id = ?",
+                    (cand["access_count"] or 0, cand["times_validated"] or 0, survivor["id"]),
+                )
+                conn.execute("DELETE FROM learned_patterns WHERE id = ?", (cand["id"],))
+                conn.execute(
+                    "DELETE FROM embeddings WHERE source_table = 'learned_patterns' AND source_id = ?",
+                    (cand["id"],),
+                )
+            removed.add(cand["id"])
+            merged += 1
+    return merged
+
+
 def _upsert_pattern(
     conn: sqlite3.Connection,
     *,

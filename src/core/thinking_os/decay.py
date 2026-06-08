@@ -321,6 +321,21 @@ def run_decay(
                 )
             stats["merged"] += len(losers)
 
+        # --- Consolidate: merge SEMANTIC near-duplicates (B5) ---
+        # Exact-dedup above only catches identical text; this folds patterns that
+        # MEAN the same thing (embeddings cosine >= threshold) so the corpus stays
+        # sharp. No-op without embeddings. Lazy import avoids a load cycle.
+        try:
+            from tools.learning import _consolidate_semantic_duplicates
+
+            threshold = float(os.environ.get("COS_CONSOLIDATION_THRESHOLD", "0.85"))
+            stats["semantic_merged"] = _consolidate_semantic_duplicates(
+                conn, threshold=threshold, dry_run=dry_run
+            )
+            stats["merged"] += stats["semantic_merged"]
+        except Exception as exc:  # consolidation is best-effort — never break decay
+            logger.debug("semantic consolidation skipped: %s", exc)
+
         if not dry_run:
             conn.commit()
 
