@@ -1,6 +1,7 @@
 import { FormEvent, KeyboardEvent, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
+import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
 
@@ -11,13 +12,17 @@ interface Block {
 
 export default function NewChatForm({
   onComplete,
+  onActive,
   initialRole = '',
   initialPrompt = '',
   endpoint = '/api/cognition/chat',
 }: {
-  /** Called with the SDK-resolved session id once the first turn finishes
-   *  streaming, so the parent can hand off to the rich ChatView in place. */
+  /** Called with the SDK-resolved session id once the first turn finishes, so
+   *  the parent hands off to the rich ChatView (persisted history + follow-ups). */
   onComplete?: (sessionId: string) => void;
+  /** Fired true when a turn starts so the parent can hide the hero/suggestions;
+   *  false if it failed before starting (composer is restored). */
+  onActive?: (active: boolean) => void;
   /** Preselect a role (e.g. 'onboarder' for the docs-scoped setup flow). */
   initialRole?: string;
   /** Prefill the composer (e.g. the onboarding kickoff prompt). */
@@ -31,6 +36,10 @@ export default function NewChatForm({
   const [streaming, setStreaming] = useState(false);
   const [text, setText] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  // The submitted prompt. The moment it's set the composer is REPLACED by a live
+  // conversation (user bubble + streaming reply) — so the chat "opens" instantly
+  // instead of leaving the user staring at a "thinking…" box in the composer.
+  const [sent, setSent] = useState<string | null>(null);
   const roles = useRoles();
 
   const start = async (e?: FormEvent) => {
@@ -40,9 +49,10 @@ export default function NewChatForm({
     setStreaming(true);
     setErr(null);
     setText('');
+    setSent(p);
+    onActive?.(true);
     let capturedId: string | null = null;
     let failed = false;
-    let handedOff = false;
     try {
       const res = await fetch(resolveApiUrl(endpoint), {
         method: 'POST',
@@ -78,20 +88,8 @@ export default function NewChatForm({
           }
           try {
             const payload = data ? JSON.parse(data) : {};
-            if (ev === 'session' && payload.session_id) {
-              capturedId = payload.session_id;
-              // Hand off to the rich ChatView the INSTANT the session id is
-              // known — the user sees their message + the reply build in a real
-              // conversation instead of waiting in the composer. The fetch loop
-              // keeps running after this component unmounts (no AbortController),
-              // so the turn completes server-side and ChatView tails the jsonl.
-              if (!handedOff && capturedId && onComplete) {
-                handedOff = true;
-                onComplete(capturedId);
-              }
-            }
-            // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`
-            // — read content first so inline streaming text renders.
+            if (ev === 'session' && payload.session_id) capturedId = payload.session_id;
+            // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`.
             const blocks: Block[] = payload?.content ?? payload?.blocks ?? [];
             const t = blocks
               .filter((b) => b?.type === 'text' && b.text)
@@ -111,10 +109,15 @@ export default function NewChatForm({
     } finally {
       setStreaming(false);
     }
-    // Fallback: hand off at end-of-stream only if the `session` event never
-    // fired (early handoff above is the normal path). Errors BEFORE a session
-    // id stay in the composer so the user sees them instead of an empty view.
-    if (!handedOff && !failed && capturedId && onComplete) onComplete(capturedId);
+    if (!failed && capturedId && onComplete) {
+      // Turn done — hand off to the rich ChatView (persisted history + the
+      // follow-up composer) under the real session URL.
+      onComplete(capturedId);
+    } else if (failed && !capturedId) {
+      // Never started (e.g. network/CSRF) — return to the composer to retry.
+      setSent(null);
+      onActive?.(false);
+    }
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -124,6 +127,31 @@ export default function NewChatForm({
     }
   };
 
+  // ── Live conversation (after send) ──────────────────────────────────────
+  if (sent) {
+    return (
+      <div className="flex w-full flex-col gap-4">
+        <div
+          dir="auto"
+          className="max-w-[85%] self-end rounded-2xl rounded-br-sm bg-[var(--cos-accent)]/15 px-4 py-2.5 text-[14px] leading-relaxed text-[var(--cos-text)]"
+        >
+          {sent}
+        </div>
+        <div dir="auto" className="max-w-[92%] text-[14px] leading-relaxed text-[var(--cos-text)]">
+          {text ? (
+            <MarkdownBlock source={text} />
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[var(--cos-faint)]">
+              <Loader2 size={13} className="animate-spin" /> thinking…
+            </span>
+          )}
+          {err && <p className="mt-2 text-[12px] text-[#f85149]">{err}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Composer (before send) ──────────────────────────────────────────────
   return (
     <div className="flex w-full flex-col gap-3">
       <form onSubmit={start}>
@@ -168,15 +196,6 @@ export default function NewChatForm({
           </div>
         </div>
       </form>
-      {err && <p className="px-1 text-[12px] text-[#f85149]">{err}</p>}
-      {(streaming || text) && (
-        <div
-          dir="auto"
-          className="rounded-xl border border-[var(--cos-border)] bg-black/15 p-4 text-[13px] leading-relaxed whitespace-pre-wrap text-[var(--cos-text)]"
-        >
-          {text || <span className="text-[var(--cos-faint)]">thinking…</span>}
-        </div>
-      )}
     </div>
   );
 }

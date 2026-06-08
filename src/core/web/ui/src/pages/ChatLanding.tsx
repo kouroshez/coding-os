@@ -64,6 +64,7 @@ export default function ChatLanding() {
   const [onboardMode, setOnboardMode] = useState(false);
   const [seed, setSeed] = useState('');
   const [showTrace, setShowTrace] = useState(false);
+  const [turnActive, setTurnActive] = useState(false);
   const base = slug ? `/p/${encodeURIComponent(slug)}/workspace/chat` : '/workspace/chat';
   const openSession = (sid: string) => navigate(`${base}/${encodeURIComponent(sid)}`);
   const project = slug ?? 'coding-os';
@@ -88,6 +89,7 @@ export default function ChatLanding() {
   const newChat = () => {
     setOnboardMode(false);
     setSeed('');
+    setTurnActive(false);
     navigate(base);
   };
 
@@ -148,20 +150,23 @@ export default function ChatLanding() {
           <div className="h-full overflow-auto">
             <div className="flex min-h-full items-center justify-center px-6 py-10">
               <div className="flex w-full max-w-3xl flex-col gap-6">
-                {!onboardMode && <OnboardingCard onStart={() => setOnboardMode(true)} />}
-                <h1 className="text-center text-[30px] leading-tight font-semibold tracking-tight text-[var(--cos-text)]">
-                  What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
-                </h1>
+                {!onboardMode && !turnActive && <OnboardingCard onStart={() => setOnboardMode(true)} />}
+                {!turnActive && (
+                  <h1 className="text-center text-[30px] leading-tight font-semibold tracking-tight text-[var(--cos-text)]">
+                    What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
+                  </h1>
+                )}
 
                 <NewChatForm
                   key={`${onboardMode ? 'onboard' : 'chat'}:${seed}`}
                   onComplete={openSession}
+                  onActive={setTurnActive}
                   initialRole={onboardMode ? 'onboarder' : ''}
                   initialPrompt={onboardMode ? ONBOARD_PROMPT : seed}
                   endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
                 />
 
-                {!onboardMode && (
+                {!onboardMode && !turnActive && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                     {SUGGESTIONS.map((s) => {
                       const Icon = s.icon;
