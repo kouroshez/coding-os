@@ -665,7 +665,7 @@ function DashboardHeader({
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-2">
       <div>
-        <h1 className="text-xl font-semibold text-[var(--cos-text)]">Mission Control</h1>
+        <h1 className="text-xl font-semibold text-[var(--cos-text)]">Overview</h1>
         <p className="mt-0.5 text-xs text-[var(--cos-muted)]">
           {presentCount > 0 ? (
             <>

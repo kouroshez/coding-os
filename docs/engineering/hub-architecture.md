@@ -90,8 +90,14 @@ The SPA is organized into two nested hubs, each served at a global path and a
 | Route | Component | Backend endpoints |
 |---|---|---|
 | `/` | `HubHome` | `/api/hub/*` |
-| `/workspace` · `/p/:slug/workspace` → `dashboard` / `board` / `search` | `WorkspacePage` → `DashboardPage` / `CosBoardPage` / `SearchPage` | board+presence · `/api/board/*` · `/api/search/*` |
-| `/diagnostics` · `/p/:slug/diagnostics` → `doctor` / `logs` / `observability` / `sessions` / `audits` / `memory` / `settings` | `DiagnosticsPage` → `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` / `AuditsPage` / `MemoryPage` / `SettingsPage` | `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` · `/api/audits/*` · `/api/settings` |
+| `/workspace` · `/p/:slug/workspace` → `chat` / `board` / `search` | `WorkspacePage` → `ChatLanding` / `CosBoardPage` / `SearchPage` | cognition+board · `/api/cognition/*` · `/api/board/*` · `/api/search/*` |
+| `/diagnostics` · `/p/:slug/diagnostics` → `overview` / `doctor` / `logs` / `observability` / `sessions` / `audits` / `memory` / `settings` | `DiagnosticsPage` → `DashboardPage` (Overview) / `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` / `AuditsPage` / `MemoryPage` / `SettingsPage` | telemetry (cost/board/traces/agents) · `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` · `/api/audits/*` · `/api/settings` |
+
+The chat-first landing replaced the Mission-Control dashboard at `/workspace`;
+the dashboard's telemetry widgets were re-homed to **Diagnostics › Overview**
+(`DashboardPage` now serves that route) and the orphan `/workspace/dashboard`
+route was removed (TASK-250). Legacy `…/dashboard` deep-links redirect to
+Diagnostics › Overview; a bare `/p/:slug` redirects to the chat landing.
 | `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
 | `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
 
