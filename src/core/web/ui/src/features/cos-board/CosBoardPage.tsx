@@ -12,7 +12,9 @@ import {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
-import { apiGet, apiPost, apiPatch, resolveApiUrl } from '@/lib/api-client';
+import { apiGet, apiPost, apiPatch } from '@/lib/api-client';
+import { consumeSse } from '@/lib/chat-stream';
+import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
@@ -2510,58 +2512,22 @@ function AgentTaskModal({
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
-      const res = await fetch(resolveApiUrl('/api/cognition/author-task'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-        body: JSON.stringify({ prompt: p, model: model || null }),
-        signal: ctrl.signal,
-      });
-      if (!res.ok || !res.body) {
-        const t = await res.text().catch(() => '');
-        let msg = `HTTP ${res.status}`;
-        try {
-          msg = JSON.parse(t)?.error?.message ?? msg;
-        } catch {
-          msg = t.slice(0, 160) || msg;
-        }
-        throw new Error(msg);
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let idx = buffer.indexOf('\n\n');
-        while (idx >= 0) {
-          const frame = buffer.slice(0, idx);
-          buffer = buffer.slice(idx + 2);
-          let ev = 'event';
-          let data = '';
-          for (const line of frame.split('\n')) {
-            if (line.startsWith('event:')) ev = line.slice(6).trim();
-            else if (line.startsWith('data:')) data += line.slice(5).trim();
-          }
-          try {
-            const payload = data ? JSON.parse(data) : {};
-            // Streamed assistant frames carry `content[]`; the GET transcript
-            // path carries `blocks[]`. Read content first, blocks as fallback
-            // (the modal used to read only `blocks` → empty stream).
-            const blocks: Array<{ type?: string; text?: string }> =
-              payload?.content ?? payload?.blocks ?? [];
-            const t = blocks
-              .filter((b) => b?.type === 'text' && b.text)
-              .map((b) => b.text)
-              .join('');
-            if (t) setText((c) => c + t);
-            if (ev === 'error' && payload?.message) setErr(payload.message);
-          } catch {
-            /* skip unparseable frame */
-          }
-          idx = buffer.indexOf('\n\n');
-        }
-      }
+      await consumeSse(
+        '/api/cognition/author-task',
+        { prompt: p, model: model || null },
+        (ev, payload) => {
+          // Streamed assistant frames carry `content[]`; the GET transcript path
+          // carries `blocks[]`.
+          const blocks = payload.content ?? payload.blocks ?? [];
+          const t = blocks
+            .filter((b) => b?.type === 'text' && b.text)
+            .map((b) => b.text)
+            .join('');
+          if (t) setText((c) => c + t);
+          if (ev === 'error' && typeof payload.message === 'string') setErr(payload.message);
+        },
+        ctrl.signal,
+      );
     } catch (e2) {
       if ((e2 as Error).name !== 'AbortError') setErr((e2 as Error).message ?? 'failed to author task');
     } finally {
@@ -2676,23 +2642,25 @@ function AgentTaskModal({
           </p>
         )}
         {text && (
-          <pre
+          <div
             aria-live="polite"
             style={{
               marginTop: 12,
-              padding: '10px 12px',
+              padding: '10px 14px',
               background: 'var(--board-grain)',
               border: '1px solid var(--col-border)',
               borderRadius: 6,
-              fontSize: 12,
-              whiteSpace: 'pre-wrap',
-              maxHeight: 300,
+              fontSize: 13,
+              lineHeight: 1.5,
+              maxHeight: 320,
               overflow: 'auto',
               color: 'var(--ink)',
             }}
           >
-            {text}
-          </pre>
+            {/* Same Markdown rendering the chat surfaces use, so the AI draft
+                reads like a chat reply rather than a raw code dump. */}
+            <MarkdownBlock source={text} />
+          </div>
         )}
       </div>
     </div>

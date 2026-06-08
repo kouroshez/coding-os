@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
-import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
+import { consumeSse } from '@/lib/chat-stream';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
@@ -184,59 +184,22 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
       abortRef.current = controller;
 
       try {
-        const res = await fetch(
-          resolveApiUrl(`/api/cognition/chat/${encodeURIComponent(sessionId)}/send`),
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...csrfHeader() },
-            body: JSON.stringify({ prompt, fork }),
-            signal: controller.signal,
-          },
-        );
-        if (!res.ok || !res.body) {
-          const txt = await res.text().catch(() => '');
-          throw new Error(`stream HTTP ${res.status}: ${txt.slice(0, 200)}`);
-        }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
         let counter = 0;
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          let idx = buffer.indexOf('\n\n');
-          while (idx >= 0) {
-            const frame = buffer.slice(0, idx);
-            buffer = buffer.slice(idx + 2);
-            const lines = frame.split('\n');
-            let eventName = 'event';
-            let dataStr = '';
-            for (const l of lines) {
-              if (l.startsWith('event:')) eventName = l.slice(6).trim();
-              else if (l.startsWith('data:')) dataStr += l.slice(5).trim();
-            }
-            try {
-              const payload = dataStr ? JSON.parse(dataStr) : {};
-              counter += 1;
-              setLiveEvents((cur) => [
-                ...cur,
-                { id: `live-${Date.now()}-${counter}`, kind: eventName, payload, ts: Date.now() },
-              ]);
-            } catch (parseErr) {
-              setLiveEvents((cur) => [
-                ...cur,
-                {
-                  id: `raw-${Date.now()}-${counter++}`,
-                  kind: eventName,
-                  payload: { raw: dataStr.slice(0, 500), parse_error: String(parseErr) },
-                  ts: Date.now(),
-                },
-              ]);
-            }
-            idx = buffer.indexOf('\n\n');
-          }
-        }
+        await consumeSse(
+          `/api/cognition/chat/${encodeURIComponent(sessionId)}/send`,
+          { prompt, fork },
+          (eventName, payload) => {
+            // consumeSse already JSON-parses each frame (and hands back
+            // {raw, parse_error} for unparseable ones), so the viewer just
+            // accumulates the raw {kind, payload} events it renders.
+            counter += 1;
+            setLiveEvents((cur) => [
+              ...cur,
+              { id: `live-${Date.now()}-${counter}`, kind: eventName, payload, ts: Date.now() },
+            ]);
+          },
+          controller.signal,
+        );
       } catch (err) {
         if ((err as Error).name === 'AbortError') setStreamErr('cancelled');
         else setStreamErr((err as Error).message ?? 'stream failed');

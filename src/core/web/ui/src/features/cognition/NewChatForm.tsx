@@ -1,6 +1,6 @@
 import { FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
-import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
+import { consumeSse } from '@/lib/chat-stream';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
@@ -77,63 +77,31 @@ export default function NewChatForm({
     let capturedId: string | null = null;
     let failed = false;
     try {
-      const res = await fetch(resolveApiUrl(endpoint), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...csrfHeader() },
-        body: JSON.stringify({ prompt: p, role: role || null, model: model || null, effort: effort || null }),
-      });
-      if (!res.ok || !res.body) {
-        const t = await res.text().catch(() => '');
-        let msg = `HTTP ${res.status}`;
-        try {
-          msg = JSON.parse(t)?.error?.message ?? msg;
-        } catch {
-          msg = t.slice(0, 160) || msg;
-        }
-        throw new Error(msg);
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let idx = buffer.indexOf('\n\n');
-        while (idx >= 0) {
-          const frame = buffer.slice(0, idx);
-          buffer = buffer.slice(idx + 2);
-          let ev = 'event';
-          let data = '';
-          for (const line of frame.split('\n')) {
-            if (line.startsWith('event:')) ev = line.slice(6).trim();
-            else if (line.startsWith('data:')) data += line.slice(5).trim();
-          }
-          try {
-            const payload = data ? JSON.parse(data) : {};
-            if (ev === 'session' && payload.session_id) capturedId = payload.session_id;
-            // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`.
-            const blocks: Block[] = payload?.content ?? payload?.blocks ?? [];
-            const t = blocks
-              .filter((b) => b?.type === 'text' && b.text)
-              .map((b) => b.text)
-              .join('');
-            if (t) setText((cur) => cur + t);
-            const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
-            if (tool?.name) setActivity(tool.name);
-            // Model + usage live (matches the persisted assistant header).
-            const msg = payload?.message ?? payload;
-            if (typeof msg?.model === 'string' && msg.model) setRespModel(msg.model);
-            const usage = msg?.usage ?? payload?.usage;
-            if (usage?.input_tokens != null) setInTokens((c) => Math.max(c, usage.input_tokens));
-            if (usage?.output_tokens != null) setOutTokens((c) => Math.max(c, usage.output_tokens));
-            if (ev === 'error' && payload?.message) setErr(payload.message);
-          } catch {
-            /* skip unparseable frame */
-          }
-          idx = buffer.indexOf('\n\n');
-        }
-      }
+      await consumeSse(
+        endpoint,
+        { prompt: p, role: role || null, model: model || null, effort: effort || null },
+        (ev, payload) => {
+          if (ev === 'session' && typeof payload.session_id === 'string') capturedId = payload.session_id;
+          // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`.
+          const blocks: Block[] = payload.content ?? payload.blocks ?? [];
+          const t = blocks
+            .filter((b) => b?.type === 'text' && b.text)
+            .map((b) => b.text)
+            .join('');
+          if (t) setText((cur) => cur + t);
+          const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
+          if (tool?.name) setActivity(tool.name);
+          // Model + usage live (matches the persisted assistant header). Assistant
+          // frames carry message as an object; error frames carry it as a string.
+          const msgObj = payload.message && typeof payload.message === 'object' ? payload.message : undefined;
+          const respM = msgObj?.model ?? payload.model;
+          if (typeof respM === 'string' && respM) setRespModel(respM);
+          const usage = msgObj?.usage ?? payload.usage;
+          if (usage?.input_tokens != null) setInTokens((c) => Math.max(c, usage.input_tokens ?? 0));
+          if (usage?.output_tokens != null) setOutTokens((c) => Math.max(c, usage.output_tokens ?? 0));
+          if (ev === 'error' && typeof payload.message === 'string') setErr(payload.message);
+        },
+      );
     } catch (e2) {
       failed = true;
       setErr((e2 as Error).message ?? 'failed to start session');
