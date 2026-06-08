@@ -172,12 +172,14 @@ class WorkflowPolicy:
     in_progress_sla_hours: int = 24
     testing_sla_hours: int = 6
     icebox_stale_days: int = 30
-    # Auto-archive — OFF by default (0 = disabled). Opt-in per project;
-    # a `keep`/`parked` label always exempts a card. Archive is reversible
-    # (archive->icebox is a legal edge) but it removes the card from the
-    # working board, so it is never on by default.
+    # Auto-archive aged cards. A `keep`/`parked` label always exempts a card and
+    # archive is reversible (archive->icebox is a legal edge).
+    #   icebox  — OFF by default (0): never silently retire *unstarted* backlog.
+    #   complete — 30d default: finished work older than a month is history, so it
+    #     auto-archives to keep the COMPLETE column bounded to recent work. Safe
+    #     because the work is done and the move is reversible/hidden, not deleted.
     icebox_auto_archive_days: int = 0
-    complete_auto_archive_days: int = 0
+    complete_auto_archive_days: int = 30
 
 
 @dataclass(frozen=True)

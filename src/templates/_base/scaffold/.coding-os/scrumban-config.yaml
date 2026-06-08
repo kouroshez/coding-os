@@ -54,11 +54,13 @@ workflow_policy:
   in_progress_sla_hours: 24
   testing_sla_hours: 6
   icebox_stale_days: 30
-  # Auto-archive aged cards — OFF by default (0). Opt in to drain the backlog
-  # on a timer (SessionStart + nightly sweeps); a `keep`/`parked` label always
-  # exempts, and archive is reversible (archive→icebox).
+  # Auto-archive aged cards on a timer (SessionStart + nightly sweeps); a
+  # `keep`/`parked` label always exempts, and archive is reversible (archive→icebox).
+  #   icebox  = 0 (OFF): never silently retire unstarted backlog.
+  #   complete = 30: finished work older than a month auto-archives so the COMPLETE
+  #              column stays bounded to recent work (done + reversible = safe).
   icebox_auto_archive_days: 0
-  complete_auto_archive_days: 0
+  complete_auto_archive_days: 30
 
 # Optional extra label families (kind colours are fixed, NOT here).
 # Custom labels not in this list still work — they get a deterministic
