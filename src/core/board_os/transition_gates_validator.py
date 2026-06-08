@@ -94,6 +94,7 @@ def _evaluate_section(
     rule: SectionRule,
     body: str,
     result: ValidationResult,
+    project_root: str | None = None,
 ) -> None:
     """Apply one SectionRule and append messages on violation."""
     text = _section_text_or_none(body, name)
@@ -191,6 +192,57 @@ def _evaluate_section(
                 ),
             )
 
+    if name == "Read First" and project_root:
+        missing = _read_first_missing_paths(stripped, project_root)
+        if missing:
+            shown = ", ".join(missing[:5])
+            more = f" (+{len(missing) - 5} more)" if len(missing) > 5 else ""
+            result.add(
+                ValidationMessage(
+                    code="DOR_READ_FIRST_DEAD_LINK",
+                    severity=Verdict.WARN,
+                    field=name,
+                    message=(
+                        f"Read First references {len(missing)} path(s) that don't exist: "
+                        f"{shown}{more}. Fix or drop them — a bogus Read First misleads the implementer."
+                    ),
+                ),
+            )
+
+
+# Repo-path shapes worth existence-checking: a markdown link target, or a bare
+# path rooted at a known top dir. Prose, URLs, globs, #anchors and :line suffixes
+# are ignored / normalised so only real files are stat'd (the check is WARN-only,
+# so a CWD mismatch never blocks legitimate work).
+_READ_FIRST_PATH_RE = re.compile(
+    r"\]\(([^)]+)\)"
+    r"|((?:src|docs|tests|infrastructure|scripts|\.github)/[\w./-]+)"
+)
+
+
+def _read_first_missing_paths(text: str, project_root: str) -> list[str]:
+    from pathlib import Path
+
+    root = Path(project_root)
+    missing: list[str] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        if not line.lstrip().startswith("- "):
+            continue
+        for m in _READ_FIRST_PATH_RE.finditer(line):
+            raw = (m.group(1) or m.group(2) or "").strip()
+            if not raw or raw in seen:
+                continue
+            if raw.startswith(("http://", "https://", "#", "mailto:")) or "*" in raw:
+                continue
+            cand = raw.split("#", 1)[0].split(":", 1)[0].strip().rstrip("),.")
+            if "/" not in cand:
+                continue
+            seen.add(raw)
+            if not (root / cand).exists():
+                missing.append(cand)
+    return missing
+
 
 def _slug(name: str) -> str:
     """Section name → uppercase ASCII tag for error codes."""
@@ -206,14 +258,20 @@ def evaluate_dor(
     kind: str,
     body: str,
     config: GatesConfig,
+    project_root: str | None = None,
 ) -> ValidationResult:
-    """Check a task body against Definition-of-Ready for its kind."""
+    """Check a task body against Definition-of-Ready for its kind.
+
+    `project_root`, when given, enables the Read First dead-link check (paths
+    are stat'd against it). Pure unit tests omit it and skip the filesystem
+    touch; the real transition path passes the task's repo root.
+    """
     result = ValidationResult()
     rules: DoRKindRules = config.definition_of_ready.for_kind(kind)
     for name, rule in rules.sections.items():
         if rule is None:
             continue
-        _evaluate_section(name, rule, body, result)
+        _evaluate_section(name, rule, body, result, project_root)
     return result
 
 
@@ -362,6 +420,7 @@ def validate_transition(
     has_work_log: bool = False,
     override_reason: str | None = None,
     override_actor: str | None = None,
+    project_root: str | None = None,
 ) -> ValidationResult:
     """Single dispatch: route to the right evaluator based on `new_status`.
 
@@ -376,7 +435,7 @@ def validate_transition(
     del task_id  # reserved for audit emission — see
 
     if new_status == "in_progress":
-        result = evaluate_dor(kind, body, config)
+        result = evaluate_dor(kind, body, config, project_root=project_root)
         gate_name = "dor"
         env_flag = "COS_DOR_OVERRIDE"
     elif new_status == "complete":

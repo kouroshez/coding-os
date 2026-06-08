@@ -442,6 +442,10 @@ def transition(
                     has_work_log=has_work_log,
                     override_reason=os.environ.get("COS_OVERRIDE_REASON"),
                     override_actor=os.environ.get("COS_AGENT") or agent_session,
+                    # Task files live at <root>/docs/tasks/<file>; the repo root is
+                    # three parents up. Passing it enables the Read First dead-link
+                    # check (WARN) — pure validator tests omit it and skip the stat.
+                    project_root=str(target_file_for_gate.resolve().parent.parent.parent),
                 )
 
                 if gate_result.blocked:
