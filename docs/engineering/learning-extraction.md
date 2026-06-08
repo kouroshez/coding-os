@@ -176,6 +176,16 @@ calls `_helpers/auto_validate_lessons.py`:
 over the auto one, and the LTP/LTD formulas + decay bound any over-boost.
 Fire-and-forget: any error leaves the reminder behaviour intact.
 
+## Generalization — episodic → semantic (human-gated)
+
+When several lessons recur on a shared theme, `generalize_lessons` (called at the
+end of `learn_extract`) greedily clusters them by embeddings cosine and, for a
+cluster of ≥3, writes a **human-review draft** to `.coding-os/memory/drafts/`
+suggesting one general rule. It NEVER calls an LLM and NEVER writes to
+`src/core/rules/` or docs — abstraction is surfaced for a human to promote
+(`cos_promote`), never auto-applied. Deduped by cluster signature; no-op without
+embeddings.
+
 ## Anti-overengineering boundary
 No new table, scheduler, or store. `memory_type` is free-text, so the
 `lesson`/`stat` classes need no migration. The three existing triggers

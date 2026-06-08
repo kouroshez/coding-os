@@ -10,6 +10,7 @@ Thinking OS — MCP learning tools (TASK-144, TASK-147).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -363,6 +364,13 @@ def learn_extract(
     # them too so the richest friction signal becomes a lesson.
     extracted.extend(_mine_hook_block_lessons(conn, min_occurrences=min_occurrences))
 
+    # Generalize related lessons into human-review drafts (B3). Fire-and-forget;
+    # writes only when a NEW cluster forms (deduped). Never blocks extraction.
+    try:
+        generalize_lessons(conn)
+    except Exception as exc:
+        logger.debug("generalize_lessons skipped: %s", exc)
+
     conn.commit()
     return {
         "status": "ok",
@@ -489,6 +497,95 @@ def _consolidate_semantic_duplicates(
             removed.add(cand["id"])
             merged += 1
     return merged
+
+
+def _format_generalize_draft(cluster: list[dict]) -> str:
+    lines = [
+        "---",
+        "type: feedback",
+        "status: draft",
+        f"lessons: {len(cluster)}",
+        "---",
+        "",
+        f"# Generalize {len(cluster)} related lessons",
+        "",
+        "These lessons recur on a shared theme. Consider distilling ONE general",
+        "rule and promoting it — this is a HUMAN-REVIEW draft; the system never",
+        "auto-writes rules.",
+        "",
+        "## Member lessons",
+    ]
+    lines += [f"- (#{c['id']}) {c['pattern']}" for c in cluster]
+    lines += [
+        "",
+        "## Suggested action",
+        "- If they share a root cause, write one rule that covers all of them.",
+        "- Then `cos_promote(pattern_id=<strongest>, target='feedback'|'rule')`.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def generalize_lessons(
+    conn: sqlite3.Connection, *, min_cluster: int = 3, sim_threshold: float = 0.6
+) -> dict:
+    """Surface generalizable lesson clusters as human-review drafts (B3).
+
+    Greedily clusters `lesson` patterns by embeddings cosine; when >= min_cluster
+    related lessons share a theme, writes a feedback draft to
+    `.coding-os/memory/drafts/` suggesting one general rule. NO LLM, NEVER writes
+    to rules/docs — abstraction stays human-gated. Deduped by cluster signature.
+    Returns {"drafts": [filenames]}. No-op without embeddings / project root.
+    """
+    try:
+        from embeddings import cosine_similarity, is_available
+    except ImportError:
+        return {"drafts": []}
+    if not is_available():
+        return {"drafts": []}
+    root = _derive_project_root(conn)
+    if root is None:
+        return {"drafts": []}
+    try:
+        rows = conn.execute(
+            "SELECT lp.id, lp.pattern, e.embedding FROM learned_patterns lp "
+            "JOIN embeddings e ON e.source_table = 'learned_patterns' AND e.source_id = lp.id "
+            "WHERE lp.memory_type = 'lesson' AND lp.archived_at IS NULL AND lp.promoted_to IS NULL"
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        logger.debug("generalize_lessons skipped: %s", exc)
+        return {"drafts": []}
+
+    items = [dict(r) for r in rows if r["embedding"]]
+    if len(items) < min_cluster:
+        return {"drafts": []}
+
+    drafts_dir = root / ".coding-os" / "memory" / "drafts"
+    clustered: set[int] = set()
+    drafts: list[str] = []
+    for seed in items:
+        if seed["id"] in clustered:
+            continue
+        rest = [c for c in items if c["id"] != seed["id"] and c["id"] not in clustered]
+        if not rest:
+            break
+        scores = cosine_similarity(seed["embedding"], [c["embedding"] for c in rest])
+        cluster = [seed] + [c for c, s in zip(rest, scores) if s >= sim_threshold]
+        if len(cluster) < min_cluster:
+            continue
+        for c in cluster:
+            clustered.add(c["id"])
+        sig = "-".join(str(c["id"]) for c in sorted(cluster, key=lambda x: x["id"]))
+        fname = f"generalize-{hashlib.sha1(sig.encode()).hexdigest()[:10]}.md"
+        target = drafts_dir / fname
+        if target.exists():
+            continue
+        try:
+            drafts_dir.mkdir(parents=True, exist_ok=True)
+            target.write_text(_format_generalize_draft(cluster), encoding="utf-8")
+            drafts.append(fname)
+        except OSError as exc:
+            logger.debug("generalize draft write failed: %s", exc)
+    return {"drafts": drafts}
 
 
 def _upsert_pattern(

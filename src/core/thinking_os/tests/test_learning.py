@@ -966,6 +966,47 @@ class TestSemanticConsolidation:
         assert _consolidate_semantic_duplicates(conn, threshold=0.85) == 0
 
 
+class TestGeneralizeLessons:
+    """B3 — cluster related lessons into a human-review draft; never auto-write rules."""
+
+    def test_no_op_without_rag(self, project_conn: sqlite3.Connection, monkeypatch) -> None:
+        monkeypatch.setattr(embeddings, "is_available", lambda: False)
+        from tools.learning import generalize_lessons
+
+        assert generalize_lessons(project_conn)["drafts"] == []
+
+    @REQUIRES_RAG
+    def test_writes_draft_for_cluster(
+        self, project_conn: sqlite3.Connection, tmp_path: Path
+    ) -> None:
+        from tools.learning import generalize_lessons
+
+        for p in (
+            "Parametrize SQL queries to prevent injection",
+            "Use parametrized SQL to avoid injection attacks",
+            "Bind SQL parameters instead of string building to stop injection",
+        ):
+            _upsert_pattern(
+                project_conn, pattern=p, memory_type="lesson", domain=None,
+                source="friction", confidence=0.6, concepts="[]",
+            )
+        res = generalize_lessons(project_conn, min_cluster=3, sim_threshold=0.4)
+        assert len(res["drafts"]) >= 1
+        draft = tmp_path / ".coding-os" / "memory" / "drafts" / res["drafts"][0]
+        assert draft.exists()
+        assert "Generalize" in draft.read_text(encoding="utf-8")
+
+    @REQUIRES_RAG
+    def test_below_min_cluster_no_draft(self, project_conn: sqlite3.Connection) -> None:
+        from tools.learning import generalize_lessons
+
+        _upsert_pattern(
+            project_conn, pattern="Use Decimal for money calculations", memory_type="lesson",
+            domain=None, source="friction", confidence=0.6, concepts="[]",
+        )
+        assert generalize_lessons(project_conn, min_cluster=3)["drafts"] == []
+
+
 class TestLearnNarrativeEmbedding:
     @REQUIRES_RAG
     def test_narrative_embeds_outcome_history_and_pattern(self, conn: sqlite3.Connection) -> None:
