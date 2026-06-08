@@ -200,14 +200,12 @@ export default function HubHome() {
         <header className="mb-8">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="min-w-0">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/60 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--cos-muted)] backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-ok-tint)] shadow-[0_0_8px] " />
-                hub · port 9188
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/60 px-3 py-1 text-[11px] tracking-wide text-[var(--cos-muted)] backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--cos-ok-tint)] shadow-[0_0_8px]" />
+                Hub live on port 9188
               </div>
-              <h1
-                className="bg-gradient-to-br from-[var(--cos-text)] via-[var(--cos-text)] to-[color-mix(in_oklab,var(--accent)_60%,var(--cos-text))] bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl"
-              >
-                Your coding-os projects
+              <h1 className="text-3xl font-semibold tracking-tight text-[var(--cos-text)] sm:text-4xl">
+                Your projects
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--cos-muted)]">
                 Pick a project to open its board, graph, search, or cognition.
@@ -220,8 +218,8 @@ export default function HubHome() {
                 <div className="text-2xl font-semibold tabular-nums text-[var(--accent)]">
                   {projectCount}
                 </div>
-                <div className="text-[9px] font-mono uppercase tracking-wider text-[var(--cos-muted)]">
-                  registered
+                <div className="text-[10px] tracking-wide text-[var(--cos-muted)]">
+                  {projectCount === 1 ? 'project' : 'projects'}
                 </div>
               </div>
             </div>
@@ -321,7 +319,12 @@ export default function HubHome() {
             {error.message}
           </p>
         )}
-        {!isLoading && !error && projectCount === 0 && <EmptyState />}
+        {!isLoading && !error && projectCount === 0 && (
+          <EmptyState
+            onImport={() => { setImportOpen(true); setScanOpen(false); }}
+            onScan={() => { setScanOpen(true); setImportOpen(false); }}
+          />
+        )}
         {!isLoading && !error && projectCount > 0 && (
           <>
             {query && (
@@ -436,26 +439,22 @@ function SkeletonGrid() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ onImport, onScan }: { onImport: () => void; onScan: () => void }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-gradient-to-br from-[var(--cos-panel)] to-[var(--cos-panel)]/40 p-10">
       <div className="mx-auto max-w-xl text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-bg)]/60 text-[var(--accent)]">
           <IconBox />
         </div>
-        <h2 className="mb-2 text-lg font-semibold text-[var(--cos-text)]">
-          No projects registered yet
-        </h2>
-        <p className="mb-1 text-sm text-[var(--cos-muted)]">
-          Click <strong className="text-[var(--cos-text)]">Import existing</strong> to
-          register a directory that already has <code>.coding-os/</code>, or{' '}
-          <strong className="text-[var(--cos-text)]">Scan folder</strong> to pick up
-          everything under <code>~/code</code> / <code>~/Projects</code> at once.
+        <h2 className="mb-2 text-lg font-semibold text-[var(--cos-text)]">No projects yet</h2>
+        <p className="mb-5 text-sm text-[var(--cos-muted)]">
+          Register a folder that already has coding-os set up, or scan a directory to add
+          several at once.
         </p>
-        <p className="text-xs text-[var(--cos-muted)]">
-          Starting a brand-new project still goes through the CLI:{' '}
-          <code className="rounded bg-[var(--cos-bg)] px-1.5 py-0.5">cos init</code>.
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <ActionPill icon={<IconPlus />} label="Import existing" onClick={onImport} primary />
+          <ActionPill icon={<IconFolderSearch />} label="Scan folder" onClick={onScan} />
+        </div>
       </div>
     </div>
   );
@@ -590,15 +589,12 @@ function ProjectCard({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [kebabOpen]);
 
-  // Deterministic gradient seed from slug → consistent card accent.
-  const hue = Array.from(project.slug).reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
-  const accentBar = `linear-gradient(90deg, hsl(${hue} 70% 60%), hsl(${(hue + 40) % 360} 75% 55%))`;
   const initial = project.slug.charAt(0).toUpperCase();
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60 hover:shadow-xl hover:shadow-black/10">
       {/* Top accent bar */}
-      <div className="h-1" style={{ background: accentBar }} aria-hidden="true" />
+      <div className="h-1 bg-[var(--accent)]/70" aria-hidden="true" />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3 px-4 pb-3 pt-4">
@@ -607,8 +603,7 @@ function ProjectCard({
           className="flex min-w-0 flex-1 items-center gap-3"
         >
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-mono text-base font-semibold text-white shadow-inner"
-            style={{ background: accentBar }}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/15 text-base font-semibold text-[var(--accent)]"
             aria-hidden="true"
           >
             {initial}
@@ -620,14 +615,14 @@ function ProjectCard({
               </span>
               {project.source === 'runtime-cwd' && (
                 <span
-                  className="rounded-full border border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] px-2 py-[1px] font-mono text-[9px] uppercase tracking-wider text-[var(--cos-ok)]"
+                  className="rounded-full border border-[var(--cos-ok)] bg-[var(--cos-ok-tint)] px-2 py-[1px] text-[9px] font-medium tracking-wide text-[var(--cos-ok)]"
                   title="Not in registry.json — auto-surfaced from the Hub's cwd."
                 >
                   live cwd
                 </span>
               )}
             </div>
-            <div className="truncate font-mono text-[11px] text-[var(--cos-muted)]" title={project.path}>
+            <div className="truncate text-[11px] text-[var(--cos-muted)]" title={project.path}>
               {project.path}
             </div>
           </div>
@@ -684,7 +679,7 @@ function ProjectCard({
             key={feat}
             type="button"
             onClick={() => onOpen(feat)}
-            className="group/feat flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-mono uppercase tracking-wider text-[var(--cos-muted)] transition-all hover:bg-[var(--cos-panel)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="group/feat flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium capitalize text-[var(--cos-muted)] transition-all hover:bg-[var(--cos-panel)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <span className="opacity-70 group-hover/feat:opacity-100">
               <FeatureIcon name={feat} />
@@ -695,8 +690,8 @@ function ProjectCard({
       </div>
 
       {project.created_at && (
-        <div className="border-t border-[var(--cos-border)] px-4 py-1.5 text-[9px] font-mono uppercase tracking-[0.18em] text-[var(--cos-muted)]/80">
-          registered {project.created_at.slice(0, 10)}
+        <div className="border-t border-[var(--cos-border)] px-4 py-1.5 text-[10px] tracking-wide text-[var(--cos-muted)]/80">
+          Registered {project.created_at.slice(0, 10)}
         </div>
       )}
     </div>
