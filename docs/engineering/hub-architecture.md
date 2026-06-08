@@ -118,6 +118,19 @@ Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## Attention model (tab badge + Notification API)
+
+An autonomous agent runs long and then finishes or stalls — the human must not
+have to stare at the tab. `AttentionBell` (mounted in `AppShell`) subscribes via
+`useEventStream` to `dispatch-completed` / `agent-blocked` / `needs-input` and,
+when the tab is **unfocused** (`document.hidden`), raises an unread count that
+drives a tab-title badge (`(N) Coding OS Hub`), a favicon dot, and — once the
+user has opted in — a `Notification`. A bell dropdown keeps an in-app activity
+feed. The count clears on refocus (`focus` / `visibilitychange`). Only
+`dispatch-completed` has a producer today; `agent-blocked` / `needs-input` are
+subscribed forward-compatibly (dormant until the Stop/PreToolUse path emits
+them — a fast-follow backend producer), so no event name is invented client-side.
+
 ## RTL readiness (app-level dir seam)
 
 The Hub is LTR by default but RTL-ready (the owner authors Persian). A single

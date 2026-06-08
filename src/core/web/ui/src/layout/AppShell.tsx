@@ -6,6 +6,7 @@ import HealthAlarmBar from '@/layout/HealthAlarmBar';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
 import ProjectSwitcher from '@/layout/ProjectSwitcher';
+import AttentionBell from '@/features/attention/AttentionBell';
 import logoUrl from '@/assets/logo.png';
 import ThemeToggle from '@/layout/ThemeToggle';
 
@@ -106,6 +107,7 @@ export default function AppShell({
             </NavLink>
           ))}
         </nav>
+        <AttentionBell />
         <ThemeToggle />
       </header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
