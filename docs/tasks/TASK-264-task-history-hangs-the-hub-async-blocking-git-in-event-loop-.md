@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: hub-redesign
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-06-08
 started: 2026-06-08
-completed: null
+completed: 2026-06-08
 agent_session: ses-claude-618-2ab7
 depends_on: []
 blocked_by: []
@@ -39,3 +39,4 @@ Actual: `_git_commits_from_worklog` regex matches the 8-digit date `20260527` as
 
 ## Work Log
 - 2026-06-08 [claude]: Fixed history hang: _git_commits_from_worklog now batch-validates candidate SHAs via one `git cat-file --batch-check` (d
+- 2026-06-08 [claude]: committed 6d52ad39: src/core/board_os/mcp_tools.py, src/core/web/routes/board.py, src/core/web/ui/src/lib/api-client.ts
