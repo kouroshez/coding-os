@@ -1855,6 +1855,26 @@ def _migrate_v38_backfill_rework_outcome(conn: sqlite3.Connection) -> None:
     logger.info("Migration v38 applied: backfilled %d task(s) to rework", cur.rowcount)
 
 
+def _migrate_v39_observations_task_id(conn: sqlite3.Connection) -> None:
+    """Migration v39 — add observations.task_id so an observation can be linked
+    to the task active when it was written. Until now observations carried only
+    session_id, and a session spans many tasks, so NO per-task rework signal
+    (file churn, in-task errors) could be derived — the root reason the learning
+    loop is blind to mid-task rework (audit 2026-06-08). Forward-only: historical
+    rows stay NULL (the linkage was never captured and cannot be recovered);
+    capture.py stamps it going forward. Idempotent — skips if the column exists."""
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v39 skipped: observations not present yet")
+        return
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(observations)").fetchall()}
+    if "task_id" in cols:
+        logger.info("Migration v39 skipped: observations.task_id already present")
+        return
+    conn.execute("ALTER TABLE observations ADD COLUMN task_id TEXT")
+    conn.commit()
+    logger.info("Migration v39 applied: observations.task_id added")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2166,6 +2186,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         38,
         "Backfill honest rework outcomes from task_status_history reopen signal (unstarves learn_extract)",
         _migrate_v38_backfill_rework_outcome,
+    ),
+    (
+        39,
+        "Add observations.task_id — per-task linkage so mid-task rework signals become derivable",
+        _migrate_v39_observations_task_id,
     ),
 ]
 

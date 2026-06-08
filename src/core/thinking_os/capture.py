@@ -198,6 +198,36 @@ def _read_session_id() -> str:
     return f"ses-anonymous-{suffix}"
 
 
+def _read_current_task() -> str | None:
+    """The TASK-NNN active when this edit happened, from the per-panel
+    `.task-current` marker (`<session-or-ppid-prefix> TASK-NNN`). Stamped onto
+    the observation so mid-task rework signals (file churn, in-task errors)
+    become derivable per task — the link that a session-only key cannot give
+    (a session spans many tasks). Returns None when no task is active."""
+    import re
+
+    for d in (os.environ.get("COS_PANEL_DIR"), os.environ.get("COS_AGENT_DIR")):
+        if not d:
+            continue
+        try:
+            marker = Path(d) / ".task-current"
+            if marker.exists():
+                match = re.search(r"\bTASK-\d+\b", marker.read_text())
+                if match:
+                    return match.group(0)
+        except OSError:
+            continue
+    return None
+
+
+def _observations_has_task_id(conn) -> bool:
+    try:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(observations)").fetchall()}
+        return "task_id" in cols
+    except Exception:
+        return False
+
+
 def _compute_content_hash(tool_name: str, file_path: str) -> str:
     """SHA256 hash of tool_name + file_path for dedup (TASK-153)."""
     content = f"{tool_name}:{file_path}"
@@ -350,24 +380,23 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         title = title_sr.cleaned
         narrative = narr_sr.cleaned
 
+        cols = [
+            "session_id", "tool_name", "observation_type", "memory_type", "impact_score",
+            "title", "narrative", "files_modified", "cost_tokens", "content_hash", "concepts",
+        ]
+        vals = [
+            session_id, tool_name, tool_name.lower(), memory_type, impact_score,
+            title, narrative, stored_path, cost_tokens, content_hash, concepts,
+        ]
+        # Stamp the active task (post-v39) so per-task rework signals are derivable.
+        # Conditional so a not-yet-migrated DB still captures (column-absent window).
+        if _observations_has_task_id(conn):
+            cols.append("task_id")
+            vals.append(_read_current_task())
+        placeholders = ", ".join("?" * len(vals))
         cursor = conn.execute(
-            "INSERT INTO observations "
-            "(session_id, tool_name, observation_type, memory_type, impact_score, "
-            "title, narrative, files_modified, cost_tokens, content_hash, concepts) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                session_id,
-                tool_name,
-                tool_name.lower(),
-                memory_type,
-                impact_score,
-                title,
-                narrative,
-                stored_path,
-                cost_tokens,
-                content_hash,
-                concepts,
-            ),
+            f"INSERT INTO observations ({', '.join(cols)}) VALUES ({placeholders})",
+            vals,
         )
         conn.commit()
 

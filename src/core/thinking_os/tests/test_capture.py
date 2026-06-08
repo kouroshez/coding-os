@@ -380,3 +380,45 @@ class TestScrubUsername:
         fm = conn.execute("SELECT files_modified FROM observations LIMIT 1").fetchone()[0]
         conn.close()
         assert fm == "src/z.py"  # not the absolute usernamed path
+
+
+class TestTaskIdStamp:
+    """capture stamps the active TASK-NNN onto the observation (post-v39) so
+    per-task rework signals become derivable — the link a session-only key cannot
+    give (a session spans many tasks)."""
+
+    def test_read_current_task_parses_marker(self, tmp_path: Path, monkeypatch) -> None:
+        from capture import _read_current_task
+
+        panel = tmp_path / "panel"
+        panel.mkdir()
+        (panel / ".task-current").write_text("ses-abc-123 TASK-99")
+        monkeypatch.setenv("COS_PANEL_DIR", str(panel))
+        monkeypatch.delenv("COS_AGENT_DIR", raising=False)
+        assert _read_current_task() == "TASK-99"
+
+    def test_read_current_task_none_when_absent(self, tmp_path: Path, monkeypatch) -> None:
+        from capture import _read_current_task
+
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        monkeypatch.setenv("COS_PANEL_DIR", str(empty))
+        monkeypatch.delenv("COS_AGENT_DIR", raising=False)
+        assert _read_current_task() is None
+
+    def test_capture_stamps_active_task(self, tmp_path: Path, monkeypatch) -> None:
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        init_db(db)
+        panel = tmp_path / "panel"
+        panel.mkdir()
+        (panel / ".task-current").write_text("ses-abc TASK-77")
+        monkeypatch.setenv("COS_PANEL_DIR", str(panel))
+        capture_observation(
+            {"tool_name": "Edit", "tool_input": {"file_path": str(tmp_path / "src" / "z.py")}},
+            db_path=db,
+        )
+        conn = sqlite3.connect(str(db))
+        tid = conn.execute("SELECT task_id FROM observations LIMIT 1").fetchone()[0]
+        conn.close()
+        assert tid == "TASK-77"

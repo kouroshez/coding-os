@@ -1243,3 +1243,21 @@ class TestV38BackfillRework:
         second = conn.execute("SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'").fetchone()[0]
         conn.close()
         assert first == second == "rework"
+
+
+class TestV39ObservationsTaskId:
+    """v39 adds observations.task_id — the write-time link that makes per-task
+    rework signals (file churn, in-task errors) derivable. Idempotent."""
+
+    def test_column_added_and_idempotent(self, tmp_path: Path) -> None:
+        from database import _migrate_v39_observations_task_id
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)  # runs all migrations incl. v39
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(observations)")]
+        assert cols.count("task_id") == 1  # present exactly once
+        _migrate_v39_observations_task_id(conn)  # re-run = no-op, no duplicate column
+        cols2 = [r[1] for r in conn.execute("PRAGMA table_info(observations)")]
+        conn.close()
+        assert cols2.count("task_id") == 1
