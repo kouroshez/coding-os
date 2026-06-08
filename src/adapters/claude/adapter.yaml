@@ -18,6 +18,27 @@ models:
 efforts: [low, medium, high, xhigh, max]
 default_effort: high
 
+# Hub chat live-status vocabulary. tool_labels turns a runtime tool name into a
+# friendly present-participle (real status: Read -> "Reading"); idle_phrases are
+# playful words rotated while the agent works without a concrete tool (our side).
+# Data-driven so a new adapter (Codex) ships its own with zero frontend change.
+chat_status:
+  tool_labels:
+    Read: Reading
+    Grep: Searching
+    Glob: Searching
+    Bash: Running
+    Edit: Editing
+    Write: Writing
+    MultiEdit: Editing
+    NotebookEdit: Editing
+    Task: Delegating
+    Agent: Delegating
+    WebFetch: Fetching
+    WebSearch: Searching the web
+    TodoWrite: Planning
+  idle_phrases: [working, thinking, cooking, crunching, noodling, percolating, pondering, churning]
+
 # Hub board pills + presence contract (see docs/engineering/adapter-parity.md).
 presence:
   signal: hook_timestamps

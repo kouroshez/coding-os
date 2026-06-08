@@ -24,6 +24,7 @@ export interface Adapter {
   color?: string | null;
   efforts?: string[];
   default_effort?: string;
+  chat_status?: { tool_labels?: Record<string, string>; idle_phrases?: string[] };
   models: AdapterModel[];
 }
 interface AdaptersPayload {

@@ -5,6 +5,7 @@ import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
 import EffortPicker from './EffortPicker';
+import { useChatStatusLabel } from './chat-status';
 
 interface Block {
   type?: string;
@@ -53,6 +54,9 @@ export default function NewChatForm({
   // instead of leaving the user staring at a "thinking…" box in the composer.
   const [sent, setSent] = useState<string | null>(null);
   const roles = useRoles();
+  // Data-driven live label (adapter.yaml::chat_status) — tool verb when a tool
+  // is active, else a rotating playful phrase.
+  const status = useChatStatusLabel(model, activity, streaming);
 
   // Seed the composer when a suggestion / "New chat" changes the incoming
   // prompt — WITHOUT remounting (the parent no longer keys on the seed), so the
@@ -88,7 +92,12 @@ export default function NewChatForm({
             .filter((b) => b?.type === 'text' && b.text)
             .map((b) => b.text)
             .join('');
-          if (t) setText((cur) => cur + t);
+          // Text delta → the agent is writing prose: drop the tool label so the
+          // status falls back to a playful idle phrase; a fresh tool re-sets it.
+          if (t) {
+            setText((cur) => cur + t);
+            setActivity('');
+          }
           const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
           if (tool?.name) setActivity(tool.name);
           // Model + usage live (matches the persisted assistant header). Assistant
@@ -161,13 +170,13 @@ export default function NewChatForm({
             ) : (
               <span className="inline-flex items-center gap-1.5 text-[var(--cos-faint)]">
                 <Loader2 size={13} className="animate-spin" />
-                {activity ? `working · ${activity}…` : 'working…'}
+                {status}…
               </span>
             )}
             {streaming && text && (
               <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-[var(--cos-faint)]">
                 <Loader2 size={11} className="animate-spin" />
-                {activity ? `working · ${activity}…` : 'working…'}
+                {status}…
               </span>
             )}
             {err && <p className="mt-2 text-[12px] text-[#f85149]">{err}</p>}

@@ -150,6 +150,12 @@ def config_adapters() -> dict:
                 if is_default and not default_model:
                     default_model = str(m["id"])
             presence = data.get("presence") if isinstance(data.get("presence"), dict) else {}
+            cs = data.get("chat_status") if isinstance(data.get("chat_status"), dict) else {}
+            tool_labels = cs.get("tool_labels") if isinstance(cs.get("tool_labels"), dict) else {}
+            chat_status = {
+                "tool_labels": {str(k): str(v) for k, v in tool_labels.items()},
+                "idle_phrases": [str(x) for x in (cs.get("idle_phrases") or [])],
+            }
             adapters.append(
                 {
                     "id": str(data.get("id") or manifest.parent.name),
@@ -160,6 +166,7 @@ def config_adapters() -> dict:
                     "color": presence.get("hub_color"),
                     "efforts": [str(e) for e in (data.get("efforts") or [])],
                     "default_effort": str(data.get("default_effort") or ""),
+                    "chat_status": chat_status,
                     "models": models,
                 }
             )

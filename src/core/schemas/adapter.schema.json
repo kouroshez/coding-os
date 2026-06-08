@@ -234,6 +234,23 @@
       "type": "string",
       "enum": ["low", "medium", "high", "xhigh", "max"],
       "description": "Pre-selected effort level in the Hub chat composer (must be one of `efforts`)."
+    },
+    "chat_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Hub chat live-status vocabulary, read per adapter by the composer (no frontend hardcoding — Codex declares its own). Surfaces a friendly 'working…' label while a turn streams.",
+      "properties": {
+        "tool_labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "description": "Runtime tool name -> friendly present-participle status verb (e.g. Read -> Reading)."
+        },
+        "idle_phrases": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Playful phrases rotated while the agent works without a concrete tool active."
+        }
+      }
     }
   }
 }
