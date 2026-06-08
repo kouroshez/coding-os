@@ -146,7 +146,7 @@ export default function ChatLanding() {
               )}
 
               <NewChatForm
-                key={`${onboardMode ? 'onboard' : 'chat'}:${seed}`}
+                key={onboardMode ? 'onboard' : 'chat'}
                 onComplete={openSession}
                 onActive={setTurnActive}
                 initialRole={onboardMode ? 'onboarder' : ''}

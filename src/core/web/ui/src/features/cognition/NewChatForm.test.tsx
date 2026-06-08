@@ -47,4 +47,16 @@ describe('NewChatForm in-place handoff', () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith('real-id-123'));
   });
+
+  it('seeds the composer from a changed initialPrompt without remounting', () => {
+    // The parent keys the form ONLY on chat/onboard mode (not the seed), so a
+    // suggestion click changes initialPrompt in place — the textarea updates
+    // while the picked model/effort/role state survives (no remount). Guards
+    // the "clicking a preset resets my model" regression.
+    const { rerender } = render(<NewChatForm initialPrompt="first seed" />);
+    const ta = () => screen.getByPlaceholderText(/describe a task/i) as HTMLTextAreaElement;
+    expect(ta().value).toBe('first seed');
+    rerender(<NewChatForm initialPrompt="second seed" />);
+    expect(ta().value).toBe('second seed');
+  });
 });

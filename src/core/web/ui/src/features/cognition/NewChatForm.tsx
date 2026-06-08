@@ -1,4 +1,4 @@
-import { FormEvent, KeyboardEvent, useState } from 'react';
+import { FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
@@ -47,6 +47,13 @@ export default function NewChatForm({
   // instead of leaving the user staring at a "thinking…" box in the composer.
   const [sent, setSent] = useState<string | null>(null);
   const roles = useRoles();
+
+  // Seed the composer when a suggestion / "New chat" changes the incoming
+  // prompt — WITHOUT remounting (the parent no longer keys on the seed), so the
+  // model / effort / role the user already picked survive a suggestion click.
+  useEffect(() => {
+    setPrompt(initialPrompt);
+  }, [initialPrompt]);
 
   const start = async (e?: FormEvent) => {
     e?.preventDefault();
