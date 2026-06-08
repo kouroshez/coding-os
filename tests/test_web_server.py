@@ -189,6 +189,42 @@ class TestBoardRoutes:
         resp = client.get("/api/board/wip")
         assert resp.status_code in (200, 503)
 
+    def test_board_list_include_archive_paginates_through_real_route(
+        self, client, tmp_path, monkeypatch
+    ):
+        """Regression: the board tab requests /api/board/list?include_archive=true,
+        which paginates the complete column through the REAL _db_conn() — a bare
+        sqlite3 connection with no row_factory, so rows are tuples. The keyset
+        cursor once read last["completed_at"] (string key) and 400'd the whole tab
+        whenever a column had more than one page. The other board tests all use a
+        row_factory=Row connection and never sent include_archive with paged data,
+        so none exercised this path end-to-end.
+        """
+        from thinking_os.database import init_db
+
+        db_path = tmp_path / ".coding-os" / "coding-os.db"
+        db_path.parent.mkdir(parents=True)
+        seed = init_db(db_path)
+        try:
+            for i in range(7):  # > page_size → has_more → the cursor line runs
+                seed.execute(
+                    "INSERT INTO tasks (task_id, title, status, file_path, "
+                    "content_hash, mtime, swimlane, priority, completed_at) "
+                    "VALUES (?, ?, 'complete', ?, 'h', 0, 'core', 'P2', ?)",
+                    (f"TASK-5{i:02d}", f"t{i}", f"docs/tasks/TASK-5{i:02d}.md", 1000 + i),
+                )
+            seed.commit()
+        finally:
+            seed.close()
+        monkeypatch.setenv("COS_DB_PATH", str(db_path))
+        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+
+        resp = client.get("/api/board/list?include_archive=true&page_size=3")
+        assert resp.status_code == 200  # pre-fix: 400 (safe_tool wrapped the TypeError)
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["data"]["columns"]["complete"]["next_cursor"]  # paged cleanly
+
 
 # ---------------------------------------------------------------------------
 # /api/cognition — trace routes
