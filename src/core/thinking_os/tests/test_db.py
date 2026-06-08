@@ -1190,3 +1190,56 @@ class TestV37ScrubNarrativeAndDash:
         second = conn.execute("SELECT files_modified FROM observations").fetchone()[0]
         conn.close()
         assert first == second
+
+
+class TestV38BackfillRework:
+    """v38 un-starves learn_extract: a task with a backward move in
+    task_status_history (reopened after testing/complete) is flipped from the
+    hardcoded 'success' to the honest 'rework'. Clean tasks stay 'success'."""
+
+    def _seed(self, conn, tid, outcome, reopened, old="testing"):
+        conn.execute(
+            "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome) "
+            "VALUES (?, 'fix', 'INFRA', 'CLEAR', ?)",
+            (tid, outcome),
+        )
+        if reopened:
+            conn.execute(
+                "INSERT INTO task_status_history (task_id, old_status, new_status, transitioned_at) "
+                "VALUES (?, ?, 'in_progress', 0)",
+                (tid, old),
+            )
+
+    def test_reopened_flipped_clean_unchanged(self, tmp_path: Path) -> None:
+        from database import _migrate_v38_backfill_rework_outcome
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)
+        self._seed(conn, "TASK-RW", "success", reopened=True, old="testing")
+        self._seed(conn, "TASK-CP", "success", reopened=True, old="complete")
+        self._seed(conn, "TASK-OK", "success", reopened=False)
+        conn.commit()
+
+        _migrate_v38_backfill_rework_outcome(conn)
+
+        rows = {r[0]: r[1] for r in conn.execute("SELECT task_id, outcome FROM task_outcomes")}
+        conn.close()
+        assert rows["TASK-RW"] == "rework"  # reopened from testing
+        assert rows["TASK-CP"] == "rework"  # reopened from complete
+        assert rows["TASK-OK"] == "success"  # never reopened — untouched
+
+    def test_idempotent(self, tmp_path: Path) -> None:
+        from database import _migrate_v38_backfill_rework_outcome
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)
+        self._seed(conn, "TASK-RW", "success", reopened=True)
+        conn.commit()
+        _migrate_v38_backfill_rework_outcome(conn)
+        first = conn.execute("SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'").fetchone()[0]
+        _migrate_v38_backfill_rework_outcome(conn)  # second run = no-op
+        second = conn.execute("SELECT outcome FROM task_outcomes WHERE task_id='TASK-RW'").fetchone()[0]
+        conn.close()
+        assert first == second == "rework"

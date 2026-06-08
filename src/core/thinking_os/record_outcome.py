@@ -128,6 +128,32 @@ def _resolve_model() -> str | None:
     return None
 
 
+def _derive_rework(conn: sqlite3.Connection, task_id: str, session_id: str | None = None) -> bool:
+    """True when the task's OWN history shows rework — used to refine an
+    optimistic 'success' into the honest 'rework' the learning loop needs.
+    Signals (both task-scoped + precise, so a first-try success is never
+    mislabeled): (1) a backward status move — reopened after testing/complete/
+    review; (2) a backtrack_event in the session that closed it. Without this
+    every outcome is 'success', the variance gate suppresses all stat/rework
+    extractors, and learn_extract is starved. See learning-extraction.md."""
+    try:
+        if conn.execute(
+            "SELECT 1 FROM task_status_history "
+            "WHERE task_id = ? AND old_status IN ('testing','complete','done','review') "
+            "  AND new_status IN ('in_progress','open','ready','icebox') LIMIT 1",
+            (task_id,),
+        ).fetchone():
+            return True
+        if session_id and conn.execute(
+            "SELECT 1 FROM backtrack_events WHERE session_id = ? LIMIT 1",
+            (session_id,),
+        ).fetchone():
+            return True
+    except sqlite3.Error as exc:
+        logger.debug("rework derivation skipped for %s: %s", task_id, exc)
+    return False
+
+
 def record_outcome(
     *,
     task_id: str,
@@ -137,6 +163,7 @@ def record_outcome(
     skills_used: str | None = None,
     model: str | None = None,
     duration_min: int | None = None,
+    refine_from_history: bool = True,
     db_path: str | Path | None = None,
 ) -> dict:
     """Write a task outcome to the task_outcomes table.
@@ -185,6 +212,14 @@ def record_outcome(
                     duration_min = int(drow[0])
             except sqlite3.Error as exc:
                 logger.debug("duration compute skipped for %s: %s", task_id, exc)
+
+        # Refine an optimistic 'success' into the honest 'rework' when the
+        # task's own history shows it — the only thing that gives the variance
+        # gate + rework extractors a non-monotone signal to learn from.
+        if refine_from_history and outcome == "success" and _derive_rework(
+            conn, task_id, _current_session() or None
+        ):
+            outcome = "rework"
 
         # Read current outcome BEFORE update (for breakthrough detection)
         previous_outcome = None

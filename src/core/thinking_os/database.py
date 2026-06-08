@@ -1834,6 +1834,27 @@ def _migrate_v37_scrub_narrative_and_dash(conn: sqlite3.Connection) -> None:
     logger.info("Migration v37 applied: scrubbed narrative/dash-username from %d row(s)", scrubbed)
 
 
+def _migrate_v38_backfill_rework_outcome(conn: sqlite3.Connection) -> None:
+    """Migration v38 — backfill honest outcomes for the historical corpus.
+    Pre-fix every task_outcomes row was hardcoded 'success' (board_commands), so
+    the variance gate suppressed every rework/stat extractor and learn_extract
+    was starved (192 tasks → 4 patterns). Flip 'success' → 'rework' for any task
+    whose task_status_history shows a backward move (reopened after testing/
+    complete/review). Idempotent: only touches rows still 'success' with a reopen."""
+    if not (_table_exists(conn, "task_outcomes") and _table_exists(conn, "task_status_history")):
+        logger.info("Migration v38 skipped: outcome/history tables not present yet")
+        return
+    cur = conn.execute(
+        "UPDATE task_outcomes SET outcome = 'rework' "
+        "WHERE outcome = 'success' AND task_id IN ("
+        "  SELECT DISTINCT task_id FROM task_status_history "
+        "  WHERE old_status IN ('testing','complete','done','review') "
+        "    AND new_status IN ('in_progress','open','ready','icebox'))"
+    )
+    conn.commit()
+    logger.info("Migration v38 applied: backfilled %d task(s) to rework", cur.rowcount)
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2140,6 +2161,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         37,
         "PII backfill v37: scrub observations.narrative + dash-encoded username in project slugs",
         _migrate_v37_scrub_narrative_and_dash,
+    ),
+    (
+        38,
+        "Backfill honest rework outcomes from task_status_history reopen signal (unstarves learn_extract)",
+        _migrate_v38_backfill_rework_outcome,
     ),
 ]
 
