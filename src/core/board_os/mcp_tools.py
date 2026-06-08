@@ -2228,8 +2228,12 @@ def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
 def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
     """Commits referenced by 7-40 hex SHA in a task's Work Log — surfaces the code
     commits that did the work but never touched the md file, so the History links
-    them WITHOUT needing the task id in the commit message. Validates each SHA via
-    `git show`; non-commit hex is skipped. Fail-open."""
+    them WITHOUT needing the task id in the commit message. Candidates are validated
+    in ONE `git cat-file` batch: a non-object token (a session-id date like
+    `20260527`, a random hex string) is reported `missing` from an indexed oid
+    lookup, instead of a per-token `git show` that rev-parses, can stall the event
+    loop, and could surface a WRONG commit on a date↔short-sha collision. Only
+    objects of type `commit` survive. Fail-open."""
     import re as _re
     import subprocess
 
@@ -2238,24 +2242,59 @@ def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 
         text = (Path(root) / rel_path).read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return []
-    out: list[dict] = []
+
+    cands: list[str] = []
     seen: set[str] = set()
     for cand in _re.findall(r"\b[0-9a-f]{7,40}\b", text):
-        if cand in seen or len(out) >= limit:
+        if cand in seen:
             continue
         seen.add(cand)
-        try:
-            res = subprocess.run(
-                ["git", "-C", str(root), "show", "-s", "--format=%H%x1f%ct%x1f%s", cand],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if res.returncode != 0 or not res.stdout.strip():
-            continue
-        parts = res.stdout.splitlines()[0].split("\x1f")
+        cands.append(cand)
+        if len(cands) >= limit:
+            break
+    if not cands:
+        return []
+
+    try:
+        batch = subprocess.run(
+            ["git", "-C", str(root), "cat-file", "--batch-check"],
+            input="\n".join(cands),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("git cat-file failed for %s: %s", rel_path, exc)
+        return []
+    if batch.returncode != 0:
+        return []
+
+    # Hit line: "<full-objectname> <type> <size>". Miss/ambiguous line:
+    # "<input> missing" / "<input> ambiguous" — type slot is not "commit".
+    commit_shas = [
+        parts[0]
+        for parts in (line.split() for line in batch.stdout.splitlines())
+        if len(parts) >= 2 and parts[1] == "commit"
+    ]
+    if not commit_shas:
+        return []
+
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(root), "log", "--no-walk", "--format=%H%x1f%ct%x1f%s", *commit_shas],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("git log --no-walk failed for %s: %s", rel_path, exc)
+        return []
+    if res.returncode != 0:
+        return []
+
+    out: list[dict] = []
+    for raw in res.stdout.splitlines():
+        parts = raw.split("\x1f")
         if len(parts) != 3:
             continue
         full, ct, subject = parts

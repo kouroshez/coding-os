@@ -166,7 +166,7 @@ def _agent_state(conn: sqlite3.Connection, agent: str) -> str:
 
 
 @router.get("/task/{task_id}")
-async def board_task_detail(
+def board_task_detail(
     task_id: str,
     _rl=Depends(make_rate_limit_dep("board.task.detail")),
     _m=Depends(make_metrics_dep("board.task.detail")),
@@ -273,7 +273,7 @@ async def board_task_detail(
 
 
 @router.get("/list")
-async def board_list(
+def board_list(
     swimlane: str | None = Query(None),
     kind: str | None = Query(None),
     epic: str | None = Query(None),
@@ -539,7 +539,7 @@ async def board_task_ready(
 
 
 @router.get("/task/{task_id}/history")
-async def board_task_history(
+def board_task_history(
     task_id: str,
     include_commits: bool = Query(True),
     _rl=Depends(make_rate_limit_dep("board.task.history")),

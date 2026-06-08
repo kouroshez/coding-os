@@ -120,17 +120,39 @@ export function resolveApiUrl(path: string, params?: Record<string, unknown>): s
   return buildUrl(path, params);
 }
 
+// Reads (board list, task detail, task history) hit endpoints that do git +
+// sqlite work; a slow or wedged server must surface an error state, never an
+// infinite spinner. Apply a default abort timeout when the caller didn't pass
+// its own signal, and translate abort/network failures into an ApiError the
+// UI already knows how to render.
+const DEFAULT_GET_TIMEOUT_MS = 20_000;
+
 export async function apiGet<T>(
   path: string,
   params?: Record<string, unknown>,
   init?: RequestInit,
 ): Promise<[T, ApiMeta | null]> {
-  const res = await fetch(buildUrl(path, params), {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    ...init,
-  });
-  return handle<T>(res);
+  const signal = init?.signal ?? AbortSignal.timeout(DEFAULT_GET_TIMEOUT_MS);
+  try {
+    const res = await fetch(buildUrl(path, params), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      ...init,
+      signal,
+    });
+    return handle<T>(res);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new ApiError(
+        504,
+        'unavailable',
+        `request timed out after ${DEFAULT_GET_TIMEOUT_MS / 1000}s`,
+        true,
+      );
+    }
+    throw new ApiError(0, 'unavailable', err instanceof Error ? err.message : 'network error', true);
+  }
 }
 
 export async function apiPost<T>(
