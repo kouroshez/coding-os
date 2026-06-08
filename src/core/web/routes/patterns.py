@@ -12,7 +12,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 
 from .._deps import make_metrics_dep, make_rate_limit_dep
 from .._envelope import ENVELOPE_ERROR_RESPONSES, unwrap
@@ -62,7 +62,13 @@ async def list_patterns(
     finally:
         conn.close()
 
+    # Producer owns the tier field (API-contract-discipline): the UI renders the
+    # tier label, never re-derives it from a raw % (which is meaningless to users).
+    from thinking_os.tools.learning import pattern_tier
+
     patterns = [dict(r) for r in rows]
+    for p in patterns:
+        p["tier"] = pattern_tier(p.get("confidence"), p.get("times_validated"))
     return unwrap(
         json.dumps(
             {
@@ -145,3 +151,27 @@ async def learning_roi(
             }
         )
     )
+
+
+@router.post("/{pattern_id}/validate")
+async def validate_pattern(
+    pattern_id: int,
+    was_helpful: bool = Body(..., embed=True),
+    _rl=Depends(make_rate_limit_dep("patterns.validate")),
+    _m=Depends(make_metrics_dep("patterns.validate")),
+):
+    """Record a user's 👍/👎 on a learned pattern — closes the validation loop (cos_learn_validate)."""
+    from thinking_os.tools.learning import learn_validate
+
+    conn = _db_conn()
+    try:
+        result = learn_validate(conn, pattern_id=pattern_id, was_helpful=was_helpful)
+    finally:
+        conn.close()
+    if "error" in result:
+        return unwrap(
+            json.dumps(
+                {"ok": False, "error": {"category": "not_found", "message": result["error"], "retryable": False}}
+            )
+        )
+    return unwrap(json.dumps({"ok": True, "data": {**result, "meta": {"layer": "learning"}}}))
