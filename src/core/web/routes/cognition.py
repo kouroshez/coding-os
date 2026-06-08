@@ -850,7 +850,9 @@ async def chat_new(
         model=model,
         permission_mode="dontAsk",
         setting_sources=["project"],
-        session_id=new_session_id,
+        # No session_id: the claude CLI rejects non-UUID ids ("Invalid session
+        # ID. Must be a valid UUID"). The SDK mints its own UUID, surfaced below
+        # from the stream and emitted as the `session` event.
     )
     if system_prompt is not None:
         opts_kwargs["system_prompt"] = system_prompt
@@ -948,7 +950,7 @@ async def author_task(
         model=model,
         permission_mode="dontAsk",
         setting_sources=["project"],
-        session_id=sid,
+        # No session_id — claude CLI requires a UUID; SDK mints its own (emitted below).
         # cos_* only — no Write/Edit/Bash, so it can research + author but never touch code.
         allowed_tools=["mcp__coding-os__*"],
         disallowed_tools=["Write", "Edit", "MultiEdit", "Bash"],
@@ -958,9 +960,16 @@ async def author_task(
 
     async def event_gen():
         yield _sse_chunk("started", {"session_id": sid, "prompt": prompt[:200], "model": model})
-        yield _sse_chunk("session", {"session_id": sid})
+        resolved_id = sid
+        emitted_session = False
         try:
             async for event in sdk.query(prompt=prompt, options=options):
+                if not emitted_session:
+                    real_id = getattr(event, "session_id", None)
+                    if real_id:
+                        resolved_id = str(real_id)
+                        yield _sse_chunk("session", {"session_id": resolved_id})
+                        emitted_session = True
                 kind = type(event).__name__.lower().replace("message", "") or "event"
                 yield _sse_chunk(kind, _safe_serialize(event))
         except asyncio.CancelledError:
@@ -968,7 +977,9 @@ async def author_task(
         except Exception as exc:
             logger.exception("author_task stream failed")
             yield _sse_chunk("error", {"message": str(exc)})
-        yield _sse_chunk("done", {"session_id": sid})
+        if not emitted_session:
+            yield _sse_chunk("session", {"session_id": resolved_id})
+        yield _sse_chunk("done", {"session_id": resolved_id})
 
     return StreamingResponse(
         event_gen(),
@@ -1147,7 +1158,7 @@ async def onboard(
         model=model,
         permission_mode="dontAsk",
         setting_sources=["project"],
-        session_id=sid,
+        # No session_id — claude CLI requires a UUID; SDK mints its own (emitted below).
         allowed_tools=list(_ONBOARD_ALLOWED_TOOLS),
         disallowed_tools=["Bash"],  # deny wins even over the allow-list
         system_prompt=system_prompt,
