@@ -116,6 +116,14 @@ but written as `memory_type='stat'`. They are **excluded from beliefs**: the
 digest and `cos_learn_suggest` filter them out; the Hub shows them in a
 separate, clearly-labelled "Project Stats" section, never as "Lessons".
 
+**Variance gate (mandatory).** A success-rate stat only *informs* when the
+corpus has variance to explain. On a monotone-success corpus (e.g. 192/192
+success) every "X succeeds at 100%" is a tautology that carries zero signal —
+so the success-baseline and skill-correlation branches are skipped entirely
+unless `task_outcomes` contains at least one non-`success` outcome. A real
+project with reworks/failures still gets meaningful, differentiating stats;
+a flawless corpus gets none (correct — nothing to explain).
+
 ### 5. Lessons from fix / revert commits (the real engineering signal)
 Friction observations capture the agent tripping over *tooling*; the lessons a
 human calls valuable ("FTS5 external-content corrupts — use own-content",

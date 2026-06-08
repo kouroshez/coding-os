@@ -351,6 +351,36 @@ class TestCommitLessons:
         assert _mine_commit_lessons(conn, min_occurrences=3) == []
 
 
+class TestStatVarianceGate:
+    """Success-rate stats are tautologies on a monotone-success corpus; they are
+    minted only when task_outcomes has a non-success outcome to contrast against."""
+
+    @staticmethod
+    def _seed(conn, outcomes):
+        for i, (dom, outcome) in enumerate(outcomes):
+            conn.execute(
+                "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, skills_used) "
+                "VALUES (?, 'feat', ?, 'CLEAR', ?, 'clean-code')",
+                (f"TASK-9{i:02d}", dom, outcome),
+            )
+        conn.commit()
+
+    def _stat_count(self, conn) -> int:
+        return conn.execute(
+            "SELECT COUNT(*) FROM learned_patterns WHERE memory_type='stat'"
+        ).fetchone()[0]
+
+    def test_monotone_success_mints_no_stats(self, conn: sqlite3.Connection) -> None:
+        self._seed(conn, [("INFRA", "success")] * 5)
+        learn_extract(conn, min_occurrences=3)
+        assert self._stat_count(conn) == 0  # every "100%" stat is a tautology → skipped
+
+    def test_variance_mints_stats(self, conn: sqlite3.Connection) -> None:
+        self._seed(conn, [("INFRA", "success")] * 5 + [("INFRA", "rework")] * 2)
+        learn_extract(conn, min_occurrences=3)
+        assert self._stat_count(conn) >= 1  # a non-success outcome makes the rate informative
+
+
 class TestHookBlockLessons:
     """Hook BLOCKs never reach the observations table on Claude, but they ARE
     in the activity log. _mine_hook_block_lessons clusters recurring blocks
@@ -416,6 +446,12 @@ class TestStatClassification:
                 "VALUES (?, 'feat', 'INFRA', 'CLEAR', 'success', 'graph-explorer')",
                 (f"TASK-S{i}",),
             )
+        # one non-success outcome → corpus has variance, so the success-baseline
+        # stat is informative and gets minted (variance gate).
+        conn.execute(
+            "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome, skills_used) "
+            "VALUES ('TASK-RW', 'fix', 'OTHER', 'CLEAR', 'rework', 'clean-code')"
+        )
         conn.commit()
         learn_extract(conn, min_occurrences=3)
         rows = conn.execute(

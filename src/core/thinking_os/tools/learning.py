@@ -262,13 +262,22 @@ def learn_extract(
     # without this the loop can ONLY learn from failure, so a project that
     # rarely reworks produces zero patterns forever. Mine per-domain and
     # per-skill success so cos_learn_suggest has positive anchors to rank.
+    # Variance gate: a success-rate stat only informs when the corpus has a
+    # non-success outcome to contrast against. On a monotone-success corpus
+    # every "X succeeds 100%" is a tautology — skip both stat branches.
+    # See docs/engineering/learning-extraction.md § Variance gate.
+    _has_variance = (
+        conn.execute("SELECT COUNT(*) FROM task_outcomes WHERE outcome != 'success'").fetchone()[0]
+        > 0
+    )
+
     success_domain_rows = conn.execute(
         "SELECT domain, COUNT(*) AS total, "
         "SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS success_count "
         "FROM task_outcomes WHERE domain IS NOT NULL AND domain != '' "
         "GROUP BY domain HAVING success_count >= ?",
         (min_occurrences,),
-    ).fetchall()
+    ).fetchall() if _has_variance else []
     for row in success_domain_rows:
         d = dict(row)
         rate = d["success_count"] / d["total"] if d["total"] else 0
@@ -298,7 +307,7 @@ def learn_extract(
         "WHERE outcome = 'success' AND skills_used IS NOT NULL AND skills_used != '' "
         "GROUP BY skills_used HAVING count >= ?",
         (min_occurrences,),
-    ).fetchall()
+    ).fetchall() if _has_variance else []
     for row in skill_success_rows:
         d = dict(row)
         confidence = min(0.8, 0.4 + d["count"] / 20.0)
