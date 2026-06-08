@@ -26,9 +26,11 @@
         "quality",
         "layer",
         "cross-cutting",
-        "stack"
+        "stack",
+        "infra",
+        "architecture"
       ],
-      "description": "Abstraction level. methodology=cognitive patterns; workflow=task/repo lifecycle; exploration=read-only investigation; quality=generic code quality; layer=per-architectural-layer patterns; cross-cutting=concerns spanning layers; stack=framework-specific."
+      "description": "Abstraction level. methodology=cognitive patterns; workflow=task/repo lifecycle; exploration=read-only investigation; quality=generic code quality; layer=per-architectural-layer patterns; cross-cutting=concerns spanning layers; stack=framework-specific; infra=host/ops/container tooling; architecture=data-store/query design."
     },
     "domain": {
       "type": "array",

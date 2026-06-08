@@ -1,7 +1,7 @@
 ---
 name: sql-authoring
 tier: architecture
-domain: [backend, db]
+domain: [backend, data]
 description: Write correct, fast, injection-proof SQL queries — SELECT/INSERT/UPDATE/DELETE, joins, CTEs, window functions, pagination, upserts. Use when writing or reviewing any query, reading an EXPLAIN plan, fixing an N+1, choosing keyset vs offset pagination, or porting SQL between PostgreSQL and MySQL. Covers parameterization (never string-build SQL), set-based thinking, index-aware querying, and plan reading. Triggers — "write a query", "this query is slow", "EXPLAIN", "N+1", "SQL", "optimize the query", "join", "pagination". Pairs with db-design (schema + index DESIGN — this skill is query CRAFT), security-web (injection), backend-fundamentals (data access layer).
 globs: ""
 paths: []

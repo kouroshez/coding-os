@@ -63,6 +63,8 @@ TIER_ENUM = frozenset(
         "layer",
         "cross-cutting",
         "stack",
+        "infra",
+        "architecture",
     }
 )
 DOMAIN_ENUM = frozenset(
