@@ -9,26 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Route this 2nd memory writer through the same SSOT the capture hook uses, so a
-# tool-failure narrative never persists the OS username (PII) or a secret.
-# Best-effort import; the fallback still runs the critical username scrub so the
-# PII fix holds even if thinking_os is not importable (fire-and-forget hook).
+# tool-failure narrative never persists the OS username (PII) or a secret. Direct
+# import (NO silent fallback): if thinking_os is unreachable the script errors and
+# the fire-and-forget hook simply skips this capture — fail-safe. A best-effort
+# fallback here would silently disable secret redaction, the worse failure mode.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "thinking_os"))
-try:
-    from sanitizer import redact_secrets, scrub_username
-except Exception:  # pragma: no cover - resilience fallback only
-
-    def scrub_username(text: str, home: str | None = None) -> str:
-        if not text:
-            return text
-        import os as _os
-
-        h = _os.path.expanduser("~")
-        if h and h != "~":
-            text = text.replace(h + "/", "~/").replace(h.replace("/", "-"), "-~")
-        return text
-
-    def redact_secrets(text: str):
-        return text, []
+from sanitizer import redact_secrets, scrub_username  # noqa: E402
 
 
 def _clean(text: str) -> str:
