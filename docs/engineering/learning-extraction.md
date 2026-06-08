@@ -145,6 +145,32 @@ no change to the hot path or to any safety hook, and works for every adapter
 because the log is the agent-agnostic SSOT for block events. The log is
 self-rotating (`COS_HOOK_LOG_MAX_LINES`), so the read is bounded.
 
+## Active learning loop — auto-validation (closing learn→apply→confirm)
+
+A lesson is only "learned" if its confidence reflects whether it actually
+helped. Historically `pattern_validations` was empty — `cos_learn_validate`
+was only ever called if the agent volunteered it, which it never did, so
+confidence was frozen theater.
+
+The loop now closes automatically at task completion, with **no new table and
+no new hook**: the surfaced lesson ids already live in the per-panel
+`.learn-suggestions` file (written by `auto_compose.py` at recall time), and the
+existing `remind-learn-validate.sh` already fires on `cos task-done`. It now
+calls `_helpers/auto_validate_lessons.py`:
+
+1. read the surfaced `(pattern_id, text)` rows from `.learn-suggestions`;
+2. read this session's friction observations (`memory_type IN
+   ('hook_block','error')`) created at/after the recall (file mtime);
+3. clean each failure narrative with `_clean_failure_text` and check
+   containment against each surfaced lesson's text;
+4. a lesson whose failure **recurred** → `cos_learn_validate(helpful=False)`
+   (you saw the lesson and still hit it); a surfaced lesson with **no
+   recurrence** → `helpful=True`.
+
+`learn_validate`'s existing 1-hour throttle makes a manual agent validation win
+over the auto one, and the LTP/LTD formulas + decay bound any over-boost.
+Fire-and-forget: any error leaves the reminder behaviour intact.
+
 ## Anti-overengineering boundary
 No new table, scheduler, or store. `memory_type` is free-text, so the
 `lesson`/`stat` classes need no migration. The three existing triggers

@@ -57,20 +57,27 @@ fi
 PATTERN_COUNT=$(wc -l < "$SUGGESTIONS" | tr -d ' ')
 cos_log_hook remind-learn-validate reminded "suggestions=${PATTERN_COUNT}"
 
+# Close the learning loop AUTOMATICALLY (B1): validate each surfaced lesson
+# against this session's friction — recurred → not-helpful, else helpful. Reuses
+# learn_validate (LTP/LTD + 1h throttle so a manual agent call still wins).
+# Fire-and-forget — a failure here must never break task-done.
+SID="$(cos_current_session 2>/dev/null || echo "")"
+DB="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
+AV_OUT="$(python3 "$(dirname "$0")/_helpers/auto_validate_lessons.py" "$SID" "$DB" "$SUGGESTIONS" 2>/dev/null || true)"
+
 echo ""
-echo "💡 [learn] Task done — close the learning loop."
-echo "   Orient surfaced $PATTERN_COUNT learned pattern(s) this task."
-echo "   For each pattern you applied (or explicitly ignored), call:"
+echo "💡 [learn] Task done — learning loop closed."
+if [[ -n "$AV_OUT" ]]; then
+  echo "   ✓ ${AV_OUT}"
+  cos_log_hook remind-learn-validate ok "auto_validate=1"
+fi
+echo "   Orient surfaced $PATTERN_COUNT learned pattern(s) this task; confidence"
+echo "   was updated automatically. To override a specific one, call:"
 echo "       cos_learn_validate(pattern_id=<id>, was_helpful=True|False)"
-echo ""
-echo "   Patterns from this task:"
 head -n 5 "$SUGGESTIONS" | sed 's/^/     • /'
 if [[ "$PATTERN_COUNT" -gt 5 ]]; then
   echo "     ... and $((PATTERN_COUNT - 5)) more (see $SUGGESTIONS)"
 fi
-echo ""
-echo "   Skip this step and pattern confidence freezes — future tasks"
-echo "   get the same suggestions whether they were useful or not."
 
 # Clear the suggestions file — task is over, next task starts fresh.
 : > "$SUGGESTIONS"
