@@ -1,13 +1,8 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, KeyboardEvent, useState } from 'react';
+import { ArrowUp, Loader2 } from 'lucide-react';
 import { resolveApiUrl } from '@/lib/api-client';
 import { useRoles } from './roles';
-
-const MODELS = [
-  { id: '', label: 'default' },
-  { id: 'claude-opus-4-8', label: 'Opus 4.8' },
-  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6' },
-  { id: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-];
+import ModelPicker from './ModelPicker';
 
 interface Block {
   type?: string;
@@ -34,25 +29,17 @@ export default function NewChatForm({
   const [role, setRole] = useState(initialRole);
   const [model, setModel] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const roles = useRoles();
 
-  const openChat = (sid: string) => {
-    const m = window.location.pathname.match(/^\/p\/[^/]+/);
-    const prefix = m ? m[0] : '';
-    window.open(`${prefix}/cognition/${encodeURIComponent(sid)}?view=chat`, '_blank', 'noopener');
-  };
-
-  const start = async (e: FormEvent) => {
-    e.preventDefault();
+  const start = async (e?: FormEvent) => {
+    e?.preventDefault();
     const p = prompt.trim();
     if (!p || streaming) return;
     setStreaming(true);
     setErr(null);
     setText('');
-    setSessionId(null);
     let capturedId: string | null = null;
     let failed = false;
     try {
@@ -91,7 +78,6 @@ export default function NewChatForm({
           try {
             const payload = data ? JSON.parse(data) : {};
             if (ev === 'session' && payload.session_id) {
-              setSessionId(payload.session_id);
               capturedId = payload.session_id;
             }
             // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`
@@ -117,75 +103,70 @@ export default function NewChatForm({
     }
     // Hand off to the rich ChatView once the first turn finished streaming —
     // the stream is done, so unmounting cannot cancel the server-side SDK
-    // query (navigating mid-stream WOULD cancel it).
+    // query (navigating mid-stream WOULD cancel it). In-place, same tab — the
+    // session sidebar stays visible (no new-tab handoff).
     if (!failed && capturedId && onComplete) onComplete(capturedId);
   };
 
-  const sel =
-    'rounded border border-[var(--cos-border)] bg-black/20 px-2 py-1 text-[11px] text-[var(--cos-text)]';
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void start();
+    }
+  };
 
   return (
-    <div className="flex h-full w-full max-w-2xl flex-col gap-3 self-center p-6">
-      <h2 className="text-xs font-bold tracking-widest text-[var(--cos-muted)] uppercase">
-        New chat session
-      </h2>
-      <form onSubmit={start} className="flex flex-col gap-3">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Write your prompt… (Claude only)"
-          dir="auto"
-          rows={5}
-          className="w-full resize-y rounded border border-[var(--cos-border)] bg-black/20 px-3 py-2 text-[13px] text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-1.5 text-[11px] text-[var(--cos-muted)]">
-            role
-            <select value={role} onChange={(e) => setRole(e.target.value)} className={sel}>
-              <option value="">none</option>
-              {roles.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5 text-[11px] text-[var(--cos-muted)]">
-            model
-            <select value={model} onChange={(e) => setModel(e.target.value)} className={sel}>
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            disabled={streaming || !prompt.trim()}
-            className="rounded bg-[var(--cos-accent)] px-4 py-1.5 text-[11px] font-bold tracking-wide text-white uppercase disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-white/40"
-          >
-            {streaming ? 'starting…' : 'start'}
-          </button>
-          {sessionId && (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 p-6">
+      <form onSubmit={start}>
+        <div className="rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3 transition focus-within:border-[var(--cos-accent)]/60 focus-within:ring-2 focus-within:ring-[var(--cos-accent)]/30">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Describe a task, or ask anything…"
+            aria-label="Chat prompt"
+            dir="auto"
+            rows={3}
+            className="w-full resize-none bg-transparent px-1 text-[14px] leading-relaxed text-[var(--cos-text)] placeholder:text-[var(--cos-faint)] focus:outline-none"
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <ModelPicker value={model} onChange={setModel} />
+            <label className="flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] bg-black/20 px-2.5 py-1 text-[11px] text-[var(--cos-muted)]">
+              <span>role</span>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                aria-label="Agent role"
+                className="bg-transparent text-[var(--cos-text)] focus:outline-none"
+              >
+                <option value="">none</option>
+                {roles.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
-              type="button"
-              onClick={() => openChat(sessionId)}
-              className="rounded border border-[var(--cos-border)] px-3 py-1.5 text-[11px] text-[var(--cos-accent)]"
+              type="submit"
+              disabled={streaming || !prompt.trim()}
+              aria-label="Send"
+              title="Send  (Enter)"
+              className="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-[var(--cos-accent)] text-white transition disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              ↗ open chat
+              {streaming ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
             </button>
-          )}
+          </div>
         </div>
       </form>
-      {err && <p className="text-[11px] text-[#f85149]">{err}</p>}
-      {text && (
-        <pre
+      {err && <p className="px-1 text-[12px] text-[#f85149]">{err}</p>}
+      {(streaming || text) && (
+        <div
           dir="auto"
-          className="min-h-0 flex-1 overflow-auto rounded border border-[var(--cos-border)] bg-black/15 p-3 text-[12px] whitespace-pre-wrap text-[var(--cos-text)]"
+          className="rounded-xl border border-[var(--cos-border)] bg-black/15 p-4 text-[13px] leading-relaxed whitespace-pre-wrap text-[var(--cos-text)]"
         >
-          {text}
-        </pre>
+          {text || <span className="text-[var(--cos-faint)]">thinking…</span>}
+        </div>
       )}
     </div>
   );
