@@ -142,7 +142,6 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.abandoned-task-warned" \
     "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
     "${COS_PANEL_DIR}/.last-discovery-reminder" \
-    "${COS_PANEL_DIR}/.intent.json" \
     "${COS_STATE_DIR}/.capture-errors.log"; do
     if [ -e "$STATE_FILE" ]; then
       rm -f "$STATE_FILE"
