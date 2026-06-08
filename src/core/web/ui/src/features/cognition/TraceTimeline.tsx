@@ -104,6 +104,35 @@ function humanDetail(e: TraceEvent): string {
   return bits.join(' · ') || 'no further detail recorded';
 }
 
+// Map the producer's flowchart node (tracing.py FLOWCHART_NODES) to a human
+// phase so the timeline reads Setup -> Plan -> Execute -> Verify -> Close.
+const PHASE_BY_NODE: Record<string, string> = {
+  'n-sinit': 'setup',
+  'n-gate': 'setup',
+  'n-analyzer': 'plan',
+  'n-router': 'plan',
+  'n-supervisor': 'execute',
+  'n-impl': 'execute',
+  'n-ambi': 'verify',
+  'n-trace': 'verify',
+  'n-verify': 'verify',
+  'n-done': 'close',
+  'n-end': 'close',
+};
+const PHASE_ORDER = ['setup', 'plan', 'execute', 'verify', 'close', 'other'] as const;
+const PHASE_LABEL: Record<string, string> = {
+  setup: 'Setup',
+  plan: 'Plan',
+  execute: 'Execute',
+  verify: 'Verify',
+  close: 'Close',
+  other: 'Other',
+};
+
+function phaseOf(e: TraceEvent): string {
+  return PHASE_BY_NODE[e.node ?? ''] ?? 'other';
+}
+
 export default function TraceTimeline({ sessionId }: { sessionId: string }) {
   const { scopedLink } = useScopedLink();
   const { data, isLoading, error } = useApiGet<TracePayload>(
@@ -135,6 +164,17 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
     () => (kindFilter === 'all' ? events : events.filter((e) => (e.kind ?? 'event') === kindFilter)),
     [events, kindFilter],
   );
+  // Summary view groups events into the 5 cognitive phases so a human scans
+  // the story instead of a flat wall; raw view stays chronological.
+  const grouped = useMemo(() => {
+    const buckets: Record<string, { e: TraceEvent; idx: number }[]> = {};
+    filtered.forEach((e, idx) => {
+      const p = phaseOf(e);
+      (buckets[p] ??= []).push({ e, idx });
+    });
+    return PHASE_ORDER.filter((p) => buckets[p]?.length).map((p) => ({ phase: p, items: buckets[p] }));
+  }, [filtered]);
+  const toggleExpand = (key: string) => setExpanded((cur) => (cur === key ? null : key));
 
   if (isLoading) return <p className="p-4 text-sm text-[var(--cos-muted)]">loading events…</p>;
   if (error)
@@ -195,56 +235,91 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
           </div>
         )}
       </header>
-      <ol className="flex-1 overflow-auto p-3 cos-scroll">
-        {filtered.map((e, i) => {
-          const kind = e.kind ?? 'event';
-          const d: Record<string, unknown> = e.data ?? {};
-          const dot = eventColor(kind);
-          const key = eventKey(e, i);
-          const open = expanded === key;
-          return (
-            <li
-              key={key}
-              className={[
-                'mb-2 rounded border bg-[var(--cos-panel)] text-xs transition-colors',
-                open ? 'border-[var(--cos-accent)]' : 'border-[var(--cos-border)]',
-              ].join(' ')}
-            >
-              <button
-                type="button"
-                onClick={() => setExpanded(open ? null : key)}
-                className="block w-full px-2 py-1.5 text-left"
-                aria-expanded={open}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: dot }} aria-hidden />
-                  <span className="font-semibold">{mode === 'raw' ? kind : humanLabel(kind)}</span>
-                  {d.formula_id != null && (
-                    <span className="rounded bg-[var(--cos-border)]/40 px-1 text-[10px] text-[var(--cos-text)]">
-                      {String(d.formula_id)}
-                    </span>
-                  )}
-                  {e.ts != null && (
-                    <span className="ml-auto text-[10px] text-[var(--cos-muted)]">{fmtTime(e.ts)}</span>
-                  )}
-                </div>
-                {d.summary != null && <p className="mt-1 text-[var(--cos-text)]">{String(d.summary)}</p>}
-              </button>
-              {open &&
-                (mode === 'raw' ? (
-                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
-                    {JSON.stringify(e, null, 2)}
-                  </pre>
-                ) : (
-                  <p className="border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-[11px] text-[var(--cos-text)]">
-                    {humanDetail(e)}
-                  </p>
+      <div className="flex-1 overflow-auto p-3 cos-scroll">
+        {mode === 'raw' ? (
+          <ol>
+            {filtered.map((e, i) => (
+              <EventRow key={eventKey(e, i)} e={e} idx={i} mode={mode} expanded={expanded} onToggle={toggleExpand} />
+            ))}
+          </ol>
+        ) : (
+          grouped.map(({ phase, items }) => (
+            <section key={phase} className="mb-4">
+              <h3 className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold tracking-widest text-[var(--cos-muted)] uppercase">
+                {PHASE_LABEL[phase]}
+                <span className="rounded-full bg-[var(--cos-border)]/40 px-1.5 text-[9px] text-[var(--cos-text)]">
+                  {items.length}
+                </span>
+              </h3>
+              <ol className="border-l border-[var(--cos-border)] pl-3">
+                {items.map(({ e, idx }) => (
+                  <EventRow key={eventKey(e, idx)} e={e} idx={idx} mode={mode} expanded={expanded} onToggle={toggleExpand} />
                 ))}
-            </li>
-          );
-        })}
-      </ol>
+              </ol>
+            </section>
+          ))
+        )}
+      </div>
     </div>
+  );
+}
+
+function EventRow({
+  e,
+  idx,
+  mode,
+  expanded,
+  onToggle,
+}: {
+  e: TraceEvent;
+  idx: number;
+  mode: 'summary' | 'raw';
+  expanded: string | null;
+  onToggle: (key: string) => void;
+}) {
+  const kind = e.kind ?? 'event';
+  const d: Record<string, unknown> = e.data ?? {};
+  const dot = eventColor(kind);
+  const key = eventKey(e, idx);
+  const open = expanded === key;
+  return (
+    <li
+      className={[
+        'mb-2 rounded border bg-[var(--cos-panel)] text-xs transition-colors',
+        open ? 'border-[var(--cos-accent)]' : 'border-[var(--cos-border)]',
+      ].join(' ')}
+    >
+      <button
+        type="button"
+        onClick={() => onToggle(key)}
+        className="block w-full px-2 py-1.5 text-left"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: dot }} aria-hidden />
+          <span className="font-semibold">{mode === 'raw' ? kind : humanLabel(kind)}</span>
+          {d.formula_id != null && (
+            <span className="rounded bg-[var(--cos-border)]/40 px-1 text-[10px] text-[var(--cos-text)]">
+              {String(d.formula_id)}
+            </span>
+          )}
+          {e.ts != null && (
+            <span className="ml-auto text-[10px] text-[var(--cos-muted)]">{fmtTime(e.ts)}</span>
+          )}
+        </div>
+        {d.summary != null && <p className="mt-1 text-[var(--cos-text)]">{String(d.summary)}</p>}
+      </button>
+      {open &&
+        (mode === 'raw' ? (
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
+            {JSON.stringify(e, null, 2)}
+          </pre>
+        ) : (
+          <p className="border-t border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 text-[11px] text-[var(--cos-text)]">
+            {humanDetail(e)}
+          </p>
+        ))}
+    </li>
   );
 }
 

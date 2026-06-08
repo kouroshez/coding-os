@@ -68,4 +68,19 @@ describe('TraceTimeline producer contract', () => {
     });
     expect(screen.queryByRole('link', { name: /see chat/i })).toBeNull();
   });
+
+  it('groups summary events into cognitive phases via e.node', () => {
+    renderTrace({
+      session_id: 'sess-1',
+      events: [
+        { kind: 'gate_recorded', node: 'n-gate', ts: 1, data: { summary: 'Sized the task' } },
+        { kind: 'dispatch_completed', node: 'n-supervisor', ts: 2, data: { summary: 'Ran sub-agent' } },
+      ],
+      count: 2,
+    });
+    expect(screen.getByText('Setup')).toBeInTheDocument();
+    expect(screen.getByText('Execute')).toBeInTheDocument();
+    expect(screen.getByText('Sized the task')).toBeInTheDocument();
+    expect(screen.getByText('Ran sub-agent')).toBeInTheDocument();
+  });
 });
