@@ -845,11 +845,7 @@ async def chat_new(
     effort = (str(body.get("effort") or "")).strip() or None
     if effort not in (None, "low", "medium", "high", "xhigh", "max"):
         effort = None  # ignore unknown levels rather than failing the turn
-    system_prompt = _role_system_prompt(role) or {
-        "type": "preset",
-        "preset": "claude_code",
-        "append": _CHAT_SYSTEM,
-    }
+    system_prompt = _role_system_prompt(role) or _chat_system_prompt(model)
     cwd = _project_cwd()
     new_session_id = f"ses-claude-ui-{int(_time.time())}-{secrets.token_hex(3)}"
     opts_kwargs: dict = dict(
@@ -923,6 +919,17 @@ _CHAT_SYSTEM = (
     "(memory, graph, docs, board) to ground an answer when it genuinely helps, but "
     "keep replies focused and readable rather than running a full work protocol."
 )
+
+
+def _chat_system_prompt(model: str | None) -> dict:
+    """claude_code preset + the chat framing, pinning the model name when known."""
+    append = _CHAT_SYSTEM
+    if model:
+        append = (
+            f"{_CHAT_SYSTEM}\n\nYou are answering as the `{model}` model. If the user "
+            f"asks which model you are, tell them exactly `{model}`."
+        )
+    return {"type": "preset", "preset": "claude_code", "append": append}
 
 
 _TASK_AUTHOR_SYSTEM = (
@@ -1269,6 +1276,11 @@ async def chat_send(
         cwd=cwd,
         fork_session=fork,
         model=model,
+        # Follow-up turns must be as clean + fast as the first: no project hook
+        # suite / CLAUDE.md governance (that caused the banner, "No response
+        # requested", and tool-permission errors on resume).
+        setting_sources=[],
+        system_prompt=_chat_system_prompt(model),
     )
 
     async def event_gen():
