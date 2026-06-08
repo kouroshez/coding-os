@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+
+import { agentStatus, gateMeta, modelLabel } from './presence';
+
+describe('modelLabel', () => {
+  it('humanizes a claude model id with a context window', () => {
+    expect(modelLabel('claude-opus-4-8[1m]')).toBe('Opus 4.8 · 1M');
+  });
+
+  it('handles a model id without a context bracket', () => {
+    expect(modelLabel('claude-sonnet-4-6')).toBe('Sonnet 4.6');
+  });
+
+  it('falls back to the raw id for unknown shapes, and a friendly label for null', () => {
+    expect(modelLabel('gpt-5')).toBe('gpt-5');
+    expect(modelLabel(null)).toBe('Unknown runtime');
+  });
+});
+
+describe('gateMeta', () => {
+  it('parses level + dimensions', () => {
+    expect(gateMeta('COMPLEX 6')).toEqual({ level: 'Complex', dims: '6', color: '#f59e0b' });
+  });
+
+  it('handles a bare level with no dimensions', () => {
+    expect(gateMeta('CLEAR')).toEqual({ level: 'Clear', dims: null, color: '#16a34a' });
+  });
+
+  it('returns null when unset', () => {
+    expect(gateMeta(null)).toBeNull();
+    expect(gateMeta('')).toBeNull();
+  });
+});
+
+describe('agentStatus', () => {
+  it('maps known states to a label + pulse flag', () => {
+    expect(agentStatus('active')).toMatchObject({ label: 'Active', pulse: true });
+    expect(agentStatus('present')).toMatchObject({ label: 'Idle', pulse: false });
+  });
+
+  it('falls back for unknown / missing states', () => {
+    expect(agentStatus('weird').label).toBe('Weird');
+    expect(agentStatus(null).label).toBe('Offline');
+  });
+});

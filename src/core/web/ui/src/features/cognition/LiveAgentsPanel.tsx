@@ -1,85 +1,121 @@
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useApiGet } from '@/lib/hooks';
 import { useScopedLink } from '@/lib/use-scoped-link';
+import { useEventStream } from '@/lib/use-event-stream';
+import { agentStatus, gateMeta, modelLabel, type PresenceAgent, type PresenceAgentsResponse } from '@/lib/presence';
+import AgentDetailModal from './AgentDetailModal';
 
-interface UnifiedAgent {
-  agent: string;
-  session_id?: string | null;
-  sdk_uuid?: string | null;
-  model?: string | null;
-  gate?: string | null;
-  task?: string | null;
-  skill_active?: string | null;
-  role?: string | null;
-  chain?: string[];
-  state?: string | null;
-  context_pct?: number | null;
-}
+const QUERY_KEY = ['presence-agents-home'];
 
-const STATE_DOT: Record<string, string> = {
-  active: '#16a34a',
-  working: '#16a34a',
-  present: '#fbbf24',
-  idle: '#fbbf24',
-  offline: '#6b7280',
-};
-
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex justify-between gap-2">
-      <dt>{k}</dt>
-      <dd className="truncate font-mono text-[var(--cos-text)]">{v}</dd>
-    </div>
-  );
-}
-
-/** Inline live-agents section for the home page (TASK-194) — one card per
- *  live agent from the unified /api/presence/agents endpoint, click-through
- *  to its chat (when an sdk_uuid is known) or the live cognition view. */
+/** Live-agents grid for the landing — one card per non-offline agent from the
+ *  unified /api/presence/agents endpoint. Clicking a card opens a centered
+ *  detail modal (not a navigate-away); an SSE tick invalidates the query so
+ *  the grid stays live between polls (TASK-194 + Hub redesign). */
 export default function LiveAgentsPanel() {
-  const { scopedLink } = useScopedLink();
-  const { data } = useApiGet<{ agents: UnifiedAgent[] }>(
-    ['presence-agents-home'],
-    '/api/presence/agents',
-    undefined,
-    { refetchIntervalMs: 4000 },
-  );
+  const qc = useQueryClient();
+  const { data } = useApiGet<PresenceAgentsResponse>(QUERY_KEY, '/api/presence/agents', undefined, {
+    refetchIntervalMs: 4000,
+  });
+  useEventStream(['presence-updated', 'agent-activity'], () => {
+    void qc.invalidateQueries({ queryKey: QUERY_KEY });
+  });
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const agents = (data?.agents ?? []).filter((a) => a.state && a.state !== 'offline');
+  const selected = agents.find((a) => a.agent === selectedId) ?? null;
+
   if (agents.length === 0) return null;
 
   return (
     <section className="mb-8">
-      <h2 className="mb-3 text-[11px] font-bold tracking-widest text-[var(--cos-muted)] uppercase">
-        live agents
+      <h2 className="mb-3 text-[11px] font-semibold tracking-widest text-[var(--cos-muted)] uppercase">
+        Live agents
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {agents.map((a) => {
-          const dot = STATE_DOT[a.state ?? 'offline'] ?? '#6b7280';
-          const target = a.sdk_uuid
-            ? scopedLink('cognition', `${encodeURIComponent(a.sdk_uuid)}?view=chat`)
-            : scopedLink('cognition', '?view=live');
-          return (
-            <Link
-              key={a.agent}
-              to={target}
-              className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3 transition-colors hover:border-[var(--cos-accent)]"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ background: dot }} aria-hidden />
-                <span className="text-xs font-semibold text-[var(--cos-text)]">{a.agent}</span>
-                <span className="ml-auto text-[10px] text-[var(--cos-muted)]">{a.state}</span>
-              </div>
-              <dl className="space-y-0.5 text-[10px] text-[var(--cos-muted)]">
-                <Row k="model" v={a.model ?? '—'} />
-                <Row k="gate" v={a.gate ?? '—'} />
-                {a.role && <Row k="role" v={a.role} />}
-                <Row k="context" v={a.context_pct != null ? `${a.context_pct}%` : 'N/A'} />
-                {a.task && <Row k="task" v={a.task} />}
-              </dl>
-            </Link>
-          );
-        })}
+        {agents.map((a) => (
+          <AgentCard key={a.agent} agent={a} onOpen={() => setSelectedId(a.agent)} />
+        ))}
       </div>
+      <AgentDetailModal agent={selected} onClose={() => setSelectedId(null)} />
     </section>
+  );
+}
+
+function AgentCard({ agent, onOpen }: { agent: PresenceAgent; onOpen: () => void }) {
+  const { scopedLink } = useScopedLink();
+  const status = agentStatus(agent.state);
+  const gate = gateMeta(agent.gate);
+  const chatHref = agent.sdk_uuid ? scopedLink('cognition', `${encodeURIComponent(agent.sdk_uuid)}?view=chat`) : null;
+
+  return (
+    <div className="rounded-xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3.5 transition-colors hover:border-[var(--cos-accent)]">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Open details for ${agent.agent}`}
+        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${status.pulse ? 'animate-pulse' : ''}`}
+            style={{ background: status.dot }}
+            aria-hidden
+          />
+          <span className="text-sm font-semibold capitalize text-[var(--cos-text)]">{agent.agent}</span>
+          <span className="ml-auto text-[10px] font-medium text-[var(--cos-muted)]">{status.label}</span>
+        </div>
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <Chip>{modelLabel(agent.model)}</Chip>
+          {gate && (
+            <Chip color={gate.color}>
+              {gate.level}
+              {gate.dims ? ` · ${gate.dims}` : ''}
+            </Chip>
+          )}
+          {agent.role && <Chip subtle>{agent.role}</Chip>}
+        </div>
+        {agent.task && (
+          <p className="mt-2 truncate text-xs text-[var(--cos-muted)]">
+            <span className="text-[var(--cos-faint)]">Task </span>
+            {agent.task}
+          </p>
+        )}
+      </button>
+      <div className="mt-2 flex items-center gap-3 border-t border-[var(--cos-border)] pt-2 text-[11px]">
+        <button type="button" onClick={onOpen} className="text-[var(--cos-muted)] hover:text-[var(--cos-text)]">
+          Details
+        </button>
+        {chatHref && (
+          <Link to={chatHref} className="ml-auto text-[var(--cos-accent)] hover:underline">
+            Open chat →
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Chip({ children, color, subtle }: { children: ReactNode; color?: string; subtle?: boolean }) {
+  if (color) {
+    return (
+      <span
+        className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+        style={{ background: color }}
+      >
+        {children}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border border-[var(--cos-border)] px-2 py-0.5 text-[10px] font-medium ${
+        subtle ? 'text-[var(--cos-muted)]' : 'text-[var(--cos-text)]'
+      }`}
+    >
+      {children}
+    </span>
   );
 }
