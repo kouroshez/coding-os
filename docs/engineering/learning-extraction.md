@@ -93,6 +93,13 @@ minted (e.g. `predicates_unsatisfied: no EvidenceBundle for predicates
 case was handled"). The lesson leads with the **corrective action**; the raw
 signature is preserved for the UI's opt-in detail layer.
 
+> **Gotcha (one-time migration).** Humanizing at the *producer* changes the
+> minted text, which changes `_pattern_identity`. A re-mine therefore `created`
+> NEW rows beside the old jargon ones instead of updating them in place — the
+> old rows must be deleted once (they are superseded; future re-mines match the
+> humanized identity and update cleanly). This is why the relevance fix included
+> a one-shot deletion of the legacy jargon `lesson` rows on the live DB.
+
 ### 2. Anatomy from backtracks
 The v25 `backtrack_events` columns (`root_cause`, `corrective_action`) are
 mined into `anatomy` lessons that pair the cause with the remedy — not a bare
