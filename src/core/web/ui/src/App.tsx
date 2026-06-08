@@ -8,6 +8,7 @@ import CognitionPage from './pages/CognitionPage';
 import SearchPage from './pages/SearchPage';
 import HubHome from './pages/HubHome';
 import DashboardPage from './pages/DashboardPage';
+import ChatLanding from './pages/ChatLanding';
 import SettingsPage from './pages/SettingsPage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import LogsPage from './pages/LogsPage';
@@ -40,8 +41,8 @@ export default function App() {
 
           {/* Unified Workspace Hub (Global / Unscoped) */}
           <Route path="/workspace" element={<WorkspacePage />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<NeedProjectPage feature="dashboard" />} />
+            <Route index element={<Navigate to="chat" replace />} />
+            <Route path="chat" element={<NeedProjectPage feature="chat" />} />
             <Route path="board" element={<NeedProjectPage feature="board" />} />
             <Route path="search" element={<NeedProjectPage feature="search" />} />
           </Route>
@@ -75,12 +76,16 @@ export default function App() {
           <Route path="/p/:slug/cognition" element={<CognitionPage />} />
           <Route path="/p/:slug/cognition/:sessionId" element={<CognitionPage />} />
 
-          {/* Unified Workspace Hub (Project-Scoped) */}
+          {/* Unified Workspace Hub (Project-Scoped) — chat-first landing */}
           <Route path="/p/:slug/workspace" element={<WorkspacePage />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
+            <Route index element={<Navigate to="chat" replace />} />
+            <Route path="chat" element={<ChatLanding />} />
+            <Route path="chat/:sessionId" element={<ChatLanding />} />
             <Route path="board" element={<CosBoardPage />} />
             <Route path="search" element={<SearchPage />} />
+            {/* Dashboard demoted from the landing; route kept until its widgets
+                relocate to Diagnostics > Overview. */}
+            <Route path="dashboard" element={<DashboardPage />} />
           </Route>
 
           {/* Unified Diagnostics Hub (Project-Scoped) */}

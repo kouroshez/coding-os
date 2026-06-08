@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useParams } from 'react-router-dom';
-import { LayoutDashboard, KanbanSquare, Search } from 'lucide-react';
+import { MessageSquare, KanbanSquare, Search } from 'lucide-react';
 import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 
 export default function WorkspacePage() {
@@ -9,7 +9,7 @@ export default function WorkspacePage() {
     slug ? `/p/${encodeURIComponent(slug)}/workspace/${subPath}` : `/workspace/${subPath}`;
 
   const tabs = [
-    { path: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+    { path: 'chat', label: 'Chat', Icon: MessageSquare },
     { path: 'board', label: 'Board', Icon: KanbanSquare },
     { path: 'search', label: 'Search', Icon: Search },
   ];

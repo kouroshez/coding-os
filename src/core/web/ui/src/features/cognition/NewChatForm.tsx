@@ -14,7 +14,13 @@ interface Block {
   text?: string;
 }
 
-export default function NewChatForm() {
+export default function NewChatForm({
+  onComplete,
+}: {
+  /** Called with the SDK-resolved session id once the first turn finishes
+   *  streaming, so the parent can hand off to the rich ChatView in place. */
+  onComplete?: (sessionId: string) => void;
+} = {}) {
   const [prompt, setPrompt] = useState('');
   const [role, setRole] = useState('');
   const [model, setModel] = useState('');
@@ -38,6 +44,8 @@ export default function NewChatForm() {
     setErr(null);
     setText('');
     setSessionId(null);
+    let capturedId: string | null = null;
+    let failed = false;
     try {
       const res = await fetch(resolveApiUrl('/api/cognition/chat'), {
         method: 'POST',
@@ -73,7 +81,10 @@ export default function NewChatForm() {
           }
           try {
             const payload = data ? JSON.parse(data) : {};
-            if (ev === 'session' && payload.session_id) setSessionId(payload.session_id);
+            if (ev === 'session' && payload.session_id) {
+              setSessionId(payload.session_id);
+              capturedId = payload.session_id;
+            }
             // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`
             // — read content first so inline streaming text renders.
             const blocks: Block[] = payload?.content ?? payload?.blocks ?? [];
@@ -90,10 +101,15 @@ export default function NewChatForm() {
         }
       }
     } catch (e2) {
+      failed = true;
       setErr((e2 as Error).message ?? 'failed to start session');
     } finally {
       setStreaming(false);
     }
+    // Hand off to the rich ChatView once the first turn finished streaming —
+    // the stream is done, so unmounting cannot cancel the server-side SDK
+    // query (navigating mid-stream WOULD cancel it).
+    if (!failed && capturedId && onComplete) onComplete(capturedId);
   };
 
   const sel =
