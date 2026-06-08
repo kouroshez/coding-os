@@ -1451,6 +1451,23 @@ def generate_feedback_drafts(
 # ---------------------------------------------------------------------------
 
 
+_GENERIC_INSIGHT_RE = re.compile(
+    r"\b(be careful|be more careful|double[- ]check|pay attention|take care|"
+    r"more thorough|review carefully|test more|don'?t forget)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_low_quality_insight(text: str) -> bool:
+    """A reusable lesson names a specific situation + rule. Reject ultra-terse
+    or generic 'be careful' insights that carry no transferable knowledge.
+    (Specific-but-short insights like 'Money must use Decimal' pass.)"""
+    t = (text or "").strip()
+    if len(t) < 8:
+        return True
+    return bool(_GENERIC_INSIGHT_RE.search(t))
+
+
 def learn_narrative(
     conn: sqlite3.Connection,
     *,
@@ -1506,6 +1523,14 @@ def learn_narrative(
     key_insight = _sanitized["key_insight"]
     what_failed = _sanitized["what_failed"]
     what_worked = _sanitized["what_worked"]
+
+    # Quality bar: a narrative is only worth storing if the insight is specific.
+    # Blocks "be careful"-class slop the nudge could otherwise elicit.
+    if _is_low_quality_insight(key_insight):
+        return {
+            "error": "key_insight too generic — state the specific situation, why the "
+            "naive approach failed, and the rule to apply (not 'be careful')."
+        }
 
     # Find the most recent breakthrough for this task
     row = conn.execute(

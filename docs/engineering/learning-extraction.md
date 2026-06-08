@@ -280,6 +280,28 @@ suggesting one general rule. It NEVER calls an LLM and NEVER writes to
 (`cos_promote`), never auto-applied. Deduped by cluster signature; no-op without
 embeddings.
 
+## Capturing real engineering lessons (narrative nudge)
+
+Automated mining (friction signatures, commit subjects) only ever yields shallow,
+mostly-behavioural lessons — the deep "in situation X, the naive approach Y fails
+because Z, do W" knowledge lives in **reasoning**, which no auto-signal records.
+The channel for that is `cos_learn_narrative(task_id, what_failed, what_worked,
+key_insight)` → files a human-readable `docs/insights/<slug>.md` (in git,
+searchable via `cos_doc_search`) **and** mints a belief. Historically it was
+never called.
+
+`nudge-learn-narrative.sh` (Stop) closes that gap, dogfooding coding-os's own
+enforcement mechanism:
+- **Signal-gated** — fires ONLY when the session shows real learning signal
+  (a `backtrack_event` this session, or a file edited `≥3×` = rework churn).
+  A trivial session is silent — no slop on no-signal turns. Debounced once per session.
+- **Structured ask** — the four `cos_learn_narrative` fields force "situation →
+  why → rule", not a "be careful" platitude.
+- **Quality bar** — `_is_low_quality_insight` rejects a `key_insight` that is too
+  terse or a generic platitude, so the nudge can't elicit slop.
+- Fail-open, warn-only (Stop never blocks). Narratives are `provenance=agent_self`
+  at moderate confidence — never auto-promoted to high trust.
+
 ## Anti-overengineering boundary
 No new table, scheduler, or store. `memory_type` is free-text, so the
 `lesson`/`stat` classes need no migration. The three existing triggers

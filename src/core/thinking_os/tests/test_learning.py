@@ -397,6 +397,34 @@ class TestStatVarianceGate:
         assert self._stat_count(conn) >= 1  # a non-success outcome makes the rate informative
 
 
+class TestNarrativeQualityBar:
+    """A narrative is only stored if its key_insight is specific — blocks the
+    'be careful' slop the Stop nudge could otherwise elicit (the C path)."""
+
+    def test_rejects_generic_insight(self, conn: sqlite3.Connection) -> None:
+        from tools.learning import learn_narrative
+
+        r = learn_narrative(conn, task_id="TASK-1", key_insight="be careful")
+        assert "error" in r
+
+    def test_rejects_too_short_insight(self, conn: sqlite3.Connection) -> None:
+        from tools.learning import learn_narrative
+
+        r = learn_narrative(conn, task_id="TASK-1", key_insight="fix it")
+        assert "error" in r
+
+    def test_accepts_specific_insight(self, conn: sqlite3.Connection) -> None:
+        from tools.learning import learn_narrative
+
+        r = learn_narrative(
+            conn,
+            task_id="TASK-1",
+            key_insight="FTS5 external-content tables corrupt on rebuild; use own-content tables instead.",
+        )
+        assert "error" not in r
+        assert r.get("status") == "narrative_recorded"
+
+
 class TestHookBlockLessons:
     """Hook BLOCKs never reach the observations table on Claude, but they ARE
     in the activity log. _mine_hook_block_lessons clusters recurring blocks
