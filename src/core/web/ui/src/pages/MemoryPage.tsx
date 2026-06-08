@@ -89,12 +89,21 @@ function isStat(p: PatternRow): boolean {
   return p.memory_type === 'stat';
 }
 
-// Producer lesson format: "Recurring <kind> (N occurrences): <situation> → <action>".
-// L1 = situation (what went wrong), L2 = action (what to do). Fallback: whole text.
-function splitLesson(pattern: string): { situation: string; action: string | null } {
-  const m = pattern.match(/^Recurring .*?\(\d+ occurrences?\):\s*([\s\S]*?)\s*→\s*([\s\S]*)$/);
-  if (m) return { situation: m[1].trim(), action: m[2].trim() };
-  return { situation: pattern, action: null };
+// Split ANY producer lesson format on the " → " separator: left = situation
+// (what happened), right = action (what to do). Covers all 4 shapes —
+// "Recurring <kind> (N occurrences): …", "Fixed repeatedly (N occurrences): …",
+// "Reverted before: …", and arrow-less ([Breakthrough] …) → whole text, no action.
+// Exported for unit testing (the previous regex only matched "Recurring …",
+// silently dropping the action line from revert/fix lessons — audit regression).
+export function splitLesson(pattern: string): { situation: string; action: string | null } {
+  const arrow = pattern.lastIndexOf(' → ');
+  if (arrow === -1) return { situation: pattern, action: null };
+  const action = pattern.slice(arrow + 3).trim();
+  const situation = pattern
+    .slice(0, arrow)
+    .trim()
+    .replace(/^(Recurring [a-z ]+|Fixed repeatedly)\s*\(\d+ occurrences?\):\s*/i, '');
+  return { situation: situation || pattern.slice(0, arrow).trim(), action };
 }
 
 // L1+L2+L3 progressive-disclosure card with 👍/👎 feedback (closes the loop).
