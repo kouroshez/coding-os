@@ -5,6 +5,7 @@ import { useApiGet } from '@/lib/hooks';
 import { EmptyState } from '@/layout/HubPrimitives';
 import ChatList from '@/features/cognition/ChatList';
 import ChatView from '@/features/cognition/ChatView';
+import TraceTimeline from '@/features/cognition/TraceTimeline';
 import NewChatForm from '@/features/cognition/NewChatForm';
 import OnboardingCard from '@/features/cognition/OnboardingCard';
 
@@ -31,6 +32,7 @@ export default function ChatLanding() {
   const navigate = useNavigate();
   const [onboardMode, setOnboardMode] = useState(false);
   const [seed, setSeed] = useState('');
+  const [showTrace, setShowTrace] = useState(false);
   const base = slug ? `/p/${encodeURIComponent(slug)}/workspace/chat` : '/workspace/chat';
   const openSession = (sid: string) => navigate(`${base}/${encodeURIComponent(sid)}`);
   const project = slug ?? 'coding-os';
@@ -83,7 +85,34 @@ export default function ChatLanding() {
 
       <section className="min-h-0 overflow-hidden">
         {sessionId ? (
-          <ChatView sessionId={sessionId} />
+          <div
+            className="grid h-full min-h-0"
+            style={{ gridTemplateColumns: showTrace ? 'minmax(0,1fr) 360px' : '1fr' }}
+          >
+            <div className="flex min-h-0 flex-col">
+              <div className="flex shrink-0 items-center justify-end border-b border-[var(--cos-border)] px-3 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowTrace((v) => !v)}
+                  aria-pressed={showTrace}
+                  className="rounded-md border border-[var(--cos-border)] px-2 py-1 text-[11px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+                >
+                  {showTrace ? 'Hide trace' : 'Trace'}
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <ChatView sessionId={sessionId} />
+              </div>
+            </div>
+            {showTrace && (
+              <aside
+                aria-label="Session trace"
+                className="min-h-0 overflow-auto border-l border-[var(--cos-border)] bg-[var(--cos-panel)]"
+              >
+                <TraceTimeline sessionId={sessionId} />
+              </aside>
+            )}
+          </div>
         ) : (
           <div className="flex h-full min-h-0 flex-col overflow-auto">
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-6 pt-10">
