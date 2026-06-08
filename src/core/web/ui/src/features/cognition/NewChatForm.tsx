@@ -41,6 +41,12 @@ export default function NewChatForm({
   // Latest tool the agent is running — shown so a tool-heavy turn reads as
   // live progress, not a frozen "working…".
   const [activity, setActivity] = useState('');
+  // Response model + token usage, surfaced live so the first turn carries the
+  // same "assistant · model · tok" header as the persisted ChatView turn — no
+  // styling pop-in when the turn hands off.
+  const [respModel, setRespModel] = useState('');
+  const [inTokens, setInTokens] = useState(0);
+  const [outTokens, setOutTokens] = useState(0);
   const [err, setErr] = useState<string | null>(null);
   // The submitted prompt. The moment it's set the composer is REPLACED by a live
   // conversation (user bubble + streaming reply) — so the chat "opens" instantly
@@ -63,6 +69,9 @@ export default function NewChatForm({
     setErr(null);
     setText('');
     setActivity('');
+    setRespModel('');
+    setInTokens(0);
+    setOutTokens(0);
     setSent(p);
     onActive?.(true);
     let capturedId: string | null = null;
@@ -112,6 +121,12 @@ export default function NewChatForm({
             if (t) setText((cur) => cur + t);
             const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
             if (tool?.name) setActivity(tool.name);
+            // Model + usage live (matches the persisted assistant header).
+            const msg = payload?.message ?? payload;
+            if (typeof msg?.model === 'string' && msg.model) setRespModel(msg.model);
+            const usage = msg?.usage ?? payload?.usage;
+            if (usage?.input_tokens != null) setInTokens((c) => Math.max(c, usage.input_tokens));
+            if (usage?.output_tokens != null) setOutTokens((c) => Math.max(c, usage.output_tokens));
             if (ev === 'error' && payload?.message) setErr(payload.message);
           } catch {
             /* skip unparseable frame */
@@ -143,32 +158,52 @@ export default function NewChatForm({
     }
   };
 
-  // ── Live conversation (after send) ──────────────────────────────────────
+  // ── Live conversation (after send) — same bubble styling as the persisted
+  //    ChatView turn (HumanTurn / AssistantTurn), so the first answer renders
+  //    fully styled from the first token instead of "popping into style" only
+  //    after the handoff to ChatView.
   if (sent) {
     return (
-      <div className="flex w-full flex-col gap-4">
-        <div
-          dir="auto"
-          className="max-w-[85%] self-end rounded-2xl rounded-br-sm bg-[var(--cos-accent)]/15 px-4 py-2.5 text-[14px] leading-relaxed text-[var(--cos-text)]"
-        >
-          {sent}
+      <div className="flex w-full flex-col gap-5">
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="pr-1 font-mono text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+            you
+          </div>
+          <div
+            dir="auto"
+            className="max-w-[88%] rounded-2xl border border-[var(--cos-accent)] bg-[var(--cos-accent)]/12 px-4 py-3 text-sm leading-relaxed text-[var(--cos-text)] shadow-sm"
+          >
+            {sent}
+          </div>
         </div>
-        <div dir="auto" className="max-w-[92%] text-[14px] leading-relaxed text-[var(--cos-text)]">
-          {text ? (
-            <MarkdownBlock source={text} />
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-[var(--cos-faint)]">
-              <Loader2 size={13} className="animate-spin" />
-              {activity ? `working · ${activity}…` : 'working…'}
-            </span>
-          )}
-          {streaming && text && (
-            <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-[var(--cos-faint)]">
-              <Loader2 size={11} className="animate-spin" />
-              {activity ? `working · ${activity}…` : 'working…'}
-            </span>
-          )}
-          {err && <p className="mt-2 text-[12px] text-[#f85149]">{err}</p>}
+        <div className="flex flex-col items-start gap-1.5">
+          <div className="flex flex-wrap items-center gap-2 pl-1 font-mono text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">
+            <span>assistant</span>
+            {respModel && <span className="opacity-80">· {respModel}</span>}
+            {(inTokens > 0 || outTokens > 0) && (
+              <span className="opacity-80">· {inTokens}+{outTokens} tok</span>
+            )}
+          </div>
+          <div
+            dir="auto"
+            className="max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 px-4 py-3 text-sm leading-relaxed text-[var(--cos-text)] shadow-md shadow-black/10"
+          >
+            {text ? (
+              <MarkdownBlock source={text} />
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[var(--cos-faint)]">
+                <Loader2 size={13} className="animate-spin" />
+                {activity ? `working · ${activity}…` : 'working…'}
+              </span>
+            )}
+            {streaming && text && (
+              <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-[var(--cos-faint)]">
+                <Loader2 size={11} className="animate-spin" />
+                {activity ? `working · ${activity}…` : 'working…'}
+              </span>
+            )}
+            {err && <p className="mt-2 text-[12px] text-[#f85149]">{err}</p>}
+          </div>
         </div>
       </div>
     );
