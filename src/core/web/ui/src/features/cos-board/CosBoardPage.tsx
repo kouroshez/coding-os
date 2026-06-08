@@ -3360,6 +3360,9 @@ export function TaskDetailDrawer({
   if (data?.content) {
     const split = splitFrontmatter(data.content);
     body = split.body.replace(/^\s*#\s+.+\n+/, '');
+    // Work Log now lives in the unified History timeline below — strip the
+    // duplicate "## Work Log" section from the rendered spec body.
+    body = body.replace(/\n##\s+Work Log[\s\S]*?(?=\n##\s|$)/i, '\n');
   }
 
   const isReady = labels.includes('ready');
@@ -3773,7 +3776,7 @@ function Pill({
 // ---------- Task history (create + status + edits + commits) ----------
 
 interface TaskHistoryEvent {
-  type: 'created' | 'status' | 'edit' | 'commit';
+  type: 'created' | 'status' | 'edit' | 'commit' | 'worklog';
   at: number;
   actor?: { type: string; id: string; label: string };
   from?: string | null;
@@ -3783,6 +3786,7 @@ interface TaskHistoryEvent {
   field?: string;
   sha?: string;
   subject?: string;
+  text?: string;
 }
 
 interface TaskHistoryPayload {
@@ -3804,6 +3808,7 @@ const HISTORY_ICON: Record<TaskHistoryEvent['type'], string> = {
   status: '→',
   edit: '✎',
   commit: '⎇',
+  worklog: '✐',
 };
 
 interface CommitFileDTO {
@@ -4029,6 +4034,7 @@ function TaskHistoryPanel({ taskId }: { taskId: string }) {
       return `${e.from ?? ''} → ${e.to} · ${who}${reason ? ` (${reason})` : ''}`;
     }
     if (e.type === 'edit') return `edited ${e.field} · ${who}`;
+    if (e.type === 'worklog') return `${e.text ?? ''} · ${who}`;
     return `commit ${e.sha} · ${e.subject}`;
   };
 

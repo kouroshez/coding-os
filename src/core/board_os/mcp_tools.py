@@ -2310,6 +2310,49 @@ def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 
     return out
 
 
+def _worklog_events(rel_path: str) -> list[dict]:
+    """Work Log bullets parsed into timeline events so History and Work Log read as
+    one chronological story instead of two overlapping surfaces. Fail-open."""
+    import re as _re
+    from datetime import datetime, timezone
+
+    root = _project_root()
+    try:
+        text = (Path(root) / rel_path).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return []
+    parsed = parse_task(text)
+    if parsed is None:
+        return []
+    line_re = _re.compile(r"^-\s*(\d{4}-\d{2}-\d{2})\s*\[([^\]]+)\]:\s*(.*)$")
+    out: list[dict] = []
+    for i, ln in enumerate(parsed.work_log_lines):
+        m = line_re.match(ln.strip())
+        if not m:
+            continue
+        date_s, actor, note = m.group(1), m.group(2).strip(), m.group(3).strip()
+        try:
+            # +i keeps same-day bullets in file order under the chronological sort.
+            at = int(
+                datetime.strptime(date_s, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp()
+            ) + i
+        except ValueError:
+            at = 0
+        out.append(
+            {
+                "type": "worklog",
+                "at": at,
+                "actor": {
+                    "type": "human" if actor == "human" else "agent",
+                    "id": actor,
+                    "label": actor,
+                },
+                "text": note,
+            }
+        )
+    return out
+
+
 @safe_tool
 def cos_task_history(
     conn: sqlite3.Connection,
@@ -2366,6 +2409,9 @@ def cos_task_history(
                     "at": at,
                 }
             )
+
+    if row[0]:
+        events.extend(_worklog_events(row[0]))
 
     commits: list[dict] = []
     if include_commits and row[0]:
