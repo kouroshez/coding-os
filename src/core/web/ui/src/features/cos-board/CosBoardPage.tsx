@@ -13,6 +13,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiGet, apiPost, apiPatch, resolveApiUrl } from '@/lib/api-client';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 import { useBoardTheme } from './BoardThemeProvider';
 import { useBoardStream, agentForSession, type BoardEvent } from './useBoardStream';
 import { renderTaskMarkdown, splitFrontmatter } from './renderTaskMarkdown';
@@ -3232,17 +3233,12 @@ function TaskDetailDrawer({
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [form, setForm] = useState<TaskEditFormState | null>(null);
-
-  useEffect(() => {
-    if (!task) return undefined;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [task, onClose]);
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Esc-to-close + focus-trap + scroll-lock + focus-restore (a11y dialog contract).
+  useFocusTrap(cardRef, { active: !!task, onClose });
 
   if (!task) return null;
+  const titleId = `task-detail-title-${task.id}`;
 
   const meta = data?.row;
   const kindRaw = meta?.kind ?? task.kind;
@@ -3333,6 +3329,11 @@ function TaskDetailDrawer({
         }}
       />
       <div
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         style={{
           position: 'fixed',
           top: '50%',
@@ -3437,6 +3438,7 @@ function TaskDetailDrawer({
               {task.id}
             </span>
             <h1
+              id={titleId}
               style={{
                 margin: 0,
                 flex: 1,
@@ -3863,10 +3865,13 @@ function TaskChatLink({ taskId }: { taskId: string }) {
     { enabled: !!taskId },
   );
   const sdkUuid = data?.sdk_uuid ?? null;
-  const hasSnapshot = data?.has_snapshot ?? false;
-  if (!sdkUuid && !hasSnapshot) return null;
+  // Only surface the action when there is a resolvable chat target. The old
+  // "snapshot below" disabled state promised a transcript view that the API
+  // no longer serves (board.py:758) — a dead promise, so we hide it instead.
+  // The "start a new chat seeded with this task" fallback lands with the
+  // Phase-2 chat landing.
+  if (!sdkUuid) return null;
   const open = () => {
-    if (!sdkUuid) return;
     const m = window.location.pathname.match(/^\/p\/[^/]+/);
     const prefix = m ? m[0] : '';
     window.open(`${prefix}/cognition/${encodeURIComponent(sdkUuid)}?view=chat`, '_blank', 'noopener');
@@ -3875,26 +3880,27 @@ function TaskChatLink({ taskId }: { taskId: string }) {
     <button
       type="button"
       onClick={open}
-      disabled={!sdkUuid}
-      title={
-        sdkUuid
-          ? 'Open the chat session that created this task'
-          : 'Originating session ended — transcript snapshot is shown below'
-      }
+      title="Open the chat session that created this task"
       style={{
-        background: 'transparent',
-        border: '1px solid var(--col-border)',
-        color: sdkUuid ? 'var(--accent)' : 'var(--ink-faint)',
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 11,
-        padding: '3px 10px',
-        borderRadius: 3,
-        cursor: sdkUuid ? 'pointer' : 'default',
-        letterSpacing: '.02em',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'var(--accent)',
+        border: '1px solid var(--accent)',
+        color: '#fff',
+        fontFamily: "'Inter', system-ui, sans-serif",
+        fontSize: 12,
+        fontWeight: 600,
+        padding: '5px 12px',
+        borderRadius: 6,
+        cursor: 'pointer',
         whiteSpace: 'nowrap',
       }}
     >
-      ↗ {sdkUuid ? 'originating chat' : 'snapshot below'}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      Open chat session
     </button>
   );
 }

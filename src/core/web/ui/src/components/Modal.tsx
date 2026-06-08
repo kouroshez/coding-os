@@ -1,18 +1,14 @@
-import { useCallback, useEffect, useRef } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
+import { useRef } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 
 /**
  * Shared centered modal dialog — the ONE accessible overlay primitive the
- * Hub reuses (board task-detail, agent-detail, project wizard). No external
- * dep (radix is not installed). Owns: centered geometry, backdrop, focus
- * trap, Esc-to-close, scroll-lock, focus restore, and dialog a11y semantics.
- *
- * Consumers pass the body + optional title/footer; they never re-implement
- * the overlay so every modal looks and behaves identically.
+ * Hub reuses (agent-detail, project wizard, import/scan dialogs). No external
+ * dep (radix is not installed). Owns centered geometry, backdrop, and dialog
+ * a11y semantics; focus-trap / Esc / scroll-lock come from useFocusTrap so the
+ * board task-detail drawer (board-token styled) shares the same behaviour.
  */
-
-const FOCUSABLE =
-  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 const WIDTHS = { sm: '28rem', md: '40rem', lg: '56rem', xl: '72rem' } as const;
 
@@ -34,52 +30,7 @@ export function Modal({
   footer?: ReactNode;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const restoreRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    restoreRef.current = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const card = cardRef.current;
-    const first = card?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? card)?.focus();
-
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      restoreRef.current?.focus?.();
-    };
-  }, [open]);
-
-  const onKeyDown = useCallback(
-    (e: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const card = cardRef.current;
-      if (!card) return;
-      const items = Array.from(card.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (items.length === 0) {
-        e.preventDefault();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [onClose],
-  );
+  useFocusTrap(cardRef, { active: open, onClose });
 
   if (!open) return null;
 
@@ -100,7 +51,6 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        onKeyDown={onKeyDown}
         style={{ maxWidth: WIDTHS[size] }}
         className="relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-2xl focus:outline-none"
       >
