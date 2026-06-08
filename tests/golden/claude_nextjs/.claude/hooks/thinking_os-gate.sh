@@ -37,6 +37,7 @@ if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: Thinking OS Complexity Gate not valid. Reason: $STATE_REASON" >&2
   echo "Record gate: bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
   echo '  (or COMPLICATED/COMPLEX with dimension count)' >&2
+  cos_log_hook thinking_os-gate block "rule=gate-not-recorded" || true
   exit 2
 fi
 
@@ -44,6 +45,7 @@ fi
 CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
 if [[ "$CLASSIFICATION" != "CLEAR" ]] && [[ "$CLASSIFICATION" != "COMPLICATED" ]] && [[ "$CLASSIFICATION" != "COMPLEX" ]] && [[ "$CLASSIFICATION" != "CHAOTIC" ]]; then
   echo "BLOCKED: Invalid classification '$CLASSIFICATION'. Must be CLEAR, COMPLICATED, COMPLEX, or CHAOTIC." >&2
+  cos_log_hook thinking_os-gate block "rule=invalid-classification" || true
   exit 2
 fi
 

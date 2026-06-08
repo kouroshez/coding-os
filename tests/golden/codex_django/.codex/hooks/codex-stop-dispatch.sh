@@ -61,7 +61,7 @@ run_delegate() {
 # exit-0 stdout JSON ({"decision":"block"} / additionalContext) which this
 # dispatcher drops, so wiring them would be silent no-ops. Forwarding that
 # stdout is its own scoped task — until then they stay Claude-only.
-for delegate in session-end.sh warn-abandoned-task.sh check-capture-worked.sh auto-trace-rotate.sh snapshot-transcript.sh agent-presence.sh; do
+for delegate in session-end.sh warn-abandoned-task.sh nudge-learn-narrative.sh check-capture-worked.sh auto-trace-rotate.sh snapshot-transcript.sh agent-presence.sh; do
   run_delegate "$delegate"
 done
 

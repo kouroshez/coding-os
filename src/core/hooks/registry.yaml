@@ -777,6 +777,22 @@ hooks:
         matcher: Bash
         status_message: "💡 Checking if learn-validate reminder is due..."
 
+  - id: nudge-learn-narrative
+    script: nudge-learn-narrative.sh
+    description: |
+      Stop hook — when a session shows real learning signal (a file reworked
+      >=3x, or a backtrack), nudges the agent ONCE to record a structured lesson
+      via cos_learn_narrative (→ docs/insights + memory). Signal-gated (silent on
+      trivial sessions), debounced per session, warn-only, fail-open. The channel
+      for deep engineering lessons that friction/commit mining can't capture.
+    category: reminder
+    phase: "0"
+    timeout: 5
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "🧠 Checking if a lesson is worth recording..."
+
   - id: jit-recall
     script: jit-recall.sh
     description: |

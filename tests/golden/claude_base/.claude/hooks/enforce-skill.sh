@@ -69,6 +69,7 @@ if [[ "$STATE_VALID" != "true" ]]; then
   echo '  Backend .py  → Skill skill: "python-django"' >&2
   echo '  Frontend .tsx → Skill skill: "nextjs-react"' >&2
   echo '  Any code     → Skill skill: "clean-code"' >&2
+  cos_log_hook enforce-skill block "rule=no-domain-skill" || true
   exit 2
 fi
 
@@ -85,6 +86,7 @@ case "$FILE_PATH" in
       echo "BLOCKED: Editing meta-repo authoring path ($FILE_PATH) requires Skill graph-explorer." >&2
       echo "  Reason: load-bearing src/core/cli/adapter file — call cos_graph_context first." >&2
       echo "  Fix:    Skill skill: \"graph-explorer\"" >&2
+      cos_log_hook enforce-skill block "rule=graph-explorer-required" || true
       exit 2
     fi
     ;;
@@ -93,6 +95,7 @@ esac
 if [[ "$FILE_PATH" == *.py ]]; then
   if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code|graph-explorer"; then
     echo "BLOCKED: Writing .py file but no matching skill invoked. Invoke python-django, clean-code, or graph-explorer first." >&2
+    cos_log_hook enforce-skill block "rule=py-skill-required" || true
     exit 2
   fi
 fi
@@ -100,6 +103,7 @@ fi
 if [[ "$FILE_PATH" == *.ts ]] || [[ "$FILE_PATH" == *.tsx ]]; then
   if ! echo "$ALL_SKILLS" | grep -qiE "nextjs|react|clean-code|frontend|tailwind"; then
     echo "BLOCKED: Writing .ts/.tsx file but no matching skill invoked. Invoke nextjs-react or clean-code first." >&2
+    cos_log_hook enforce-skill block "rule=ts-skill-required" || true
     exit 2
   fi
 fi

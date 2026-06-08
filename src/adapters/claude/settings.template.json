@@ -717,6 +717,12 @@
             "command": "{{HOOKS_DIR}}/snapshot-transcript.sh",
             "statusMessage": "📑 Snapshotting session transcript...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/nudge-learn-narrative.sh",
+            "statusMessage": "🧠 Checking if a lesson is worth recording...",
+            "timeout": 5
           }
         ]
       }

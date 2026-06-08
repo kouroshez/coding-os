@@ -134,6 +134,7 @@ hook_dispatchers:
     delegates:
       - session-end.sh
       - warn-abandoned-task.sh
+      - nudge-learn-narrative.sh
       - check-capture-worked.sh
       - auto-trace-rotate.sh
       - snapshot-transcript.sh
