@@ -3974,7 +3974,10 @@ function TaskChatLink({ taskId }: { taskId: string }) {
   const open = () => {
     const m = window.location.pathname.match(/^\/p\/[^/]+/);
     const prefix = m ? m[0] : '';
-    window.open(`${prefix}/cognition/${encodeURIComponent(sdkUuid)}?view=chat`, '_blank', 'noopener');
+    // Land on the resumable chat workspace (ChatLanding → ChatView + follow-up
+    // composer), NOT the read-only cognition trace viewer — the point is to
+    // continue the conversation, not just read it.
+    window.open(`${prefix}/workspace/chat/${encodeURIComponent(sdkUuid)}`, '_blank', 'noopener');
   };
   return (
     <button
