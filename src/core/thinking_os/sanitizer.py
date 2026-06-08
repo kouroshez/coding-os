@@ -158,6 +158,10 @@ def scrub_username(text: str, home: str | None = None) -> str:
     h = home if home is not None else os.path.expanduser("~")
     if h and h != "~":
         text = text.replace(h + "/", "~/")
+        # Bare home with no trailing slash (path ends at $HOME, or is followed by
+        # a non-path char). The negative lookahead `(?![\w/])` avoids mangling a
+        # different user whose name extends this one (/Users/alice vs /Users/alice2).
+        text = re.sub(re.escape(h) + r"(?![\w/])", "~", text)
         dash = h.replace("/", "-")
         if dash and dash != "-":
             text = text.replace(dash, "-~")

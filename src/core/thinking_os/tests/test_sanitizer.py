@@ -412,6 +412,20 @@ class TestScrubUsername:
         assert scrub_username("/tmp/foo.py") == "/tmp/foo.py"
         assert scrub_username("") == ""
 
+    def test_bare_home_no_trailing_slash_scrubbed(self) -> None:
+        # Regression (verification audit): a path that TERMINATES at $HOME, or is
+        # followed by a non-slash char, leaked the username (only h+'/' was replaced).
+        assert scrub_username("/Users/alice", home="/Users/alice") == "~"
+        assert scrub_username("failed at /Users/alice", home="/Users/alice") == "failed at ~"
+        assert scrub_username("/Users/alice.bak", home="/Users/alice") == "~.bak"
+        assert "alice" not in scrub_username("see /Users/alice now", home="/Users/alice")
+
+    def test_does_not_mangle_extending_username(self) -> None:
+        # A DIFFERENT user whose name extends home's must be left intact.
+        assert (
+            scrub_username("/Users/alice2/x.py", home="/Users/alice") == "/Users/alice2/x.py"
+        )
+
     def test_sanitize_write_strips_username(self, tmp_db: sqlite3.Connection) -> None:
         sr = sanitize_write(
             "narrative",
