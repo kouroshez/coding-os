@@ -25,7 +25,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (29)
+### Engineering (30)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -56,5 +56,6 @@ Read next: any of the entries below.
 - [Agent Hub & Multi-Agent Orchestration](agent-hub-orchestration.md) — `ssot:true` · updated 2026-06-05
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
 - [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-06-07
+- [Concept Graph (co_edit / concept_link)](concept-graph.md) — `ssot:true` · updated 2026-06-07
 
 <!-- END auto-index -->
