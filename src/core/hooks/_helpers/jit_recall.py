@@ -2,9 +2,11 @@
 """PreToolUse just-in-time recall (B2): surface a past lesson relevant to the
 file about to be edited. Prints the lesson text to stdout (empty if none).
 
-Match = a `lesson` whose text contains the file's basename (friction lessons
-embed the cleaned failure display, which includes the basename for file-scoped
-failures). Fast + read-only; any error prints nothing.
+Match = a `lesson` whose CONCEPTS carry a `file:<basename>` token for this file.
+Friction lessons embed the source file's basename in concepts at mint time
+(learning._mine_friction_lessons); keying on that — not on basename-in-humanized
+-text, which never matched — makes JIT fire precisely for file-scoped friction.
+Fast + read-only; any error prints nothing.
 
 USAGE: python3 jit_recall.py <db_path> <file_path>
 """
@@ -27,9 +29,9 @@ def relevant_lesson(db_path: str, file_path: str) -> str:
             row = conn.execute(
                 "SELECT pattern FROM learned_patterns "
                 "WHERE memory_type = 'lesson' AND archived_at IS NULL AND promoted_to IS NULL "
-                "  AND instr(lower(pattern), lower(?)) > 0 "
+                "  AND instr(lower(concepts), lower(?)) > 0 "
                 "ORDER BY confidence DESC LIMIT 1",
-                (base,),
+                (f"file:{base}",),
             ).fetchone()
         finally:
             conn.close()

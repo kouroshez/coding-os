@@ -855,7 +855,7 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
     floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
     try:
         rows = conn.execute(
-            "SELECT title, narrative, memory_type FROM observations "
+            "SELECT title, narrative, memory_type, files_modified FROM observations "
             "WHERE memory_type IN ('hook_block', 'error') AND COALESCE(narrative, '') != '' "
             "  AND created_at >= datetime('now', '-' || ? || ' days')",
             (_LESSON_WINDOW_DAYS,),
@@ -882,9 +882,13 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
                 # store the humanized signature so the minted lesson reads plainly
                 "display": _humanize_signature(display),
                 "kind": _friction_kind(d["title"], d["narrative"], d["memory_type"]),
+                "files": set(),  # source-file basenames → concepts, for JIT recall
             },
         )
         cluster["count"] += 1
+        fm = d.get("files_modified") or ""
+        if fm:
+            cluster["files"].add(fm.rsplit("/", 1)[-1])
 
     lessons: list[dict] = []
     for cluster in clusters.values():
@@ -905,7 +909,12 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
                 domain=None,
                 source="friction",
                 confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
-                concepts=json.dumps(["lesson", cluster["kind"], "friction"]),
+                # file:<basename> tokens key JIT recall on the friction's source
+                # file (not basename-in-humanized-text, which never matched).
+                concepts=json.dumps(
+                    ["lesson", cluster["kind"], "friction"]
+                    + [f"file:{b}" for b in sorted(cluster["files"])[:5] if b]
+                ),
             )
         )
     return lessons

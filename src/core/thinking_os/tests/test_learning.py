@@ -251,6 +251,29 @@ class TestFrictionLessons:
         seeded_conn.commit()
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
+    def test_lesson_carries_file_concept(self, seeded_conn: sqlite3.Connection) -> None:
+        # friction lessons embed file:<basename> in concepts so JIT recall can
+        # key on the source file (not basename-in-text, which never matched).
+        from tools.learning import _mine_friction_lessons
+
+        for i in range(3):
+            seeded_conn.execute(
+                "INSERT INTO observations (session_id, tool_name, observation_type, memory_type, "
+                "impact_score, title, narrative, content_hash, files_modified) "
+                "VALUES ('ses-fc', 'Edit', 'tool_failure', 'error', 0.6, '[BLOCKED] Edit', "
+                "'BLOCKED: editing core module without the required skill', ?, 'src/core/widget.py')",
+                (f"hfc{i}",),
+            )
+        seeded_conn.commit()
+        _mine_friction_lessons(seeded_conn, min_occurrences=3)
+        concepts = " ".join(
+            r[0] or ""
+            for r in seeded_conn.execute(
+                "SELECT concepts FROM learned_patterns WHERE memory_type='lesson'"
+            ).fetchall()
+        )
+        assert "file:widget.py" in concepts
+
 
 class TestHumanizeAndTier:
     """Lessons must read for a novice (XAI: speak the user's language); tiers
