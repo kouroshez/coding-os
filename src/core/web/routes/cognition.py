@@ -815,7 +815,8 @@ async def chat_new(
     """Start a FRESH Claude session from a prompt (no resume); stream SSE.
 
     Body: ``{"prompt": str, "model": str|null, "role": str|null}``. Emits a
-    ``session`` event with the minted session_id so the UI can open the chat.
+    ``session`` event carrying the SDK-resolved session id so the UI can open
+    the chat under the id that get_session_info / list_sessions actually use.
     Claude-only — returns an ``unavailable`` envelope without the SDK.
     """
     prompt = str(body.get("prompt") or "").strip()
@@ -860,10 +861,21 @@ async def chat_new(
             "started",
             {"session_id": new_session_id, "prompt": prompt[:200], "model": model, "role": role},
         )
-        # Emit the minted id immediately so the UI can open the chat while it streams.
-        yield _sse_chunk("session", {"session_id": new_session_id})
+        # The Claude SDK rekeys the minted ses-claude-ui-* id to its OWN
+        # transcript uuid, so the minted id 404s on get_session_info and never
+        # appears in list_sessions. Emit the SDK-resolved id the moment the
+        # stream reveals it (SDK messages carry .session_id) so the UI opens /
+        # lists the chat under the id that actually resolves.
+        resolved_id = new_session_id
+        emitted_session = False
         try:
             async for event in sdk.query(prompt=prompt, options=options):
+                if not emitted_session:
+                    real_id = getattr(event, "session_id", None)
+                    if real_id:
+                        resolved_id = str(real_id)
+                        yield _sse_chunk("session", {"session_id": resolved_id})
+                        emitted_session = True
                 kind = type(event).__name__.lower().replace("message", "") or "event"
                 yield _sse_chunk(kind, _safe_serialize(event))
         except asyncio.CancelledError:
@@ -871,7 +883,11 @@ async def chat_new(
         except Exception as exc:
             logger.exception("chat_new stream failed")
             yield _sse_chunk("error", {"message": str(exc)})
-        yield _sse_chunk("done", {"session_id": new_session_id})
+        if not emitted_session:
+            # No event ever carried a session_id — fall back to the minted id
+            # so the UI still has a handle (best-effort).
+            yield _sse_chunk("session", {"session_id": resolved_id})
+        yield _sse_chunk("done", {"session_id": resolved_id})
 
     return StreamingResponse(
         event_gen(),

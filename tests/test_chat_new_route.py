@@ -75,3 +75,54 @@ def test_author_task_unavailable_without_sdk(client, monkeypatch):
     assert patched
     r = client.post("/api/cognition/author-task", json={"prompt": "make a task for X"})
     assert r.json()["error"]["category"] == "unavailable"
+
+
+def _session_event_ids(body: str) -> list[str]:
+    import json
+
+    ids: list[str] = []
+    for chunk in body.split("\n\n"):
+        lines = chunk.splitlines()
+        if not lines or lines[0].strip() != "event: session":
+            continue
+        for ln in lines[1:]:
+            if ln.startswith("data:"):
+                data = json.loads(ln[len("data:") :].strip())
+                if "session_id" in data:
+                    ids.append(data["session_id"])
+    return ids
+
+
+def test_chat_new_session_event_uses_sdk_resolved_id(client, monkeypatch):
+    """The `session` event must carry the SDK's real transcript id, not the
+    minted ses-claude-ui-* one — the SDK rekeys it, so the minted id would
+    404 on get_chat and never list. (Hub chat-landing keystone.)"""
+    import dataclasses
+
+    @dataclasses.dataclass
+    class FakeInit:
+        session_id: str
+        subtype: str = "init"
+
+    class FakeSDK:
+        def ClaudeAgentOptions(self, **kwargs):  # noqa: N802 — mirrors SDK name
+            return kwargs
+
+        async def query(self, prompt, options):
+            yield FakeInit("real-sdk-uuid-9999")
+
+    fake = FakeSDK()
+    patched = False
+    for modname in ("web.routes.cognition", "core.web.routes.cognition"):
+        mod = sys.modules.get(modname)
+        if mod is not None:
+            monkeypatch.setattr(mod, "_claude_sdk", lambda: fake, raising=False)
+            patched = True
+    assert patched
+
+    with client.stream("POST", "/api/cognition/chat", json={"prompt": "hi"}) as r:
+        body = "".join(r.iter_text())
+
+    session_ids = _session_event_ids(body)
+    assert session_ids == ["real-sdk-uuid-9999"], session_ids
+    assert not any(sid.startswith("ses-claude-ui-") for sid in session_ids)
