@@ -114,6 +114,11 @@ export interface BoardTweaks {
    *  main board stays focused on active work.  Flip from the header
    *  toggle to surface it. */
   showArchive: boolean;
+  /** Swimlane grid (status × swimlane) is the default. Off collapses the
+   *  swimlane dimension into flat status columns so every active task is
+   *  visible at a glance without scrolling lanes — each card keeps its
+   *  swimlane colour for grouping. */
+  showSwimlanes: boolean;
 }
 
 export const DEFAULT_TWEAKS: BoardTweaks = {
@@ -131,4 +136,5 @@ export const DEFAULT_TWEAKS: BoardTweaks = {
   aesthetic: 'whiteboard',
   quietMode: false,
   showArchive: false,
+  showSwimlanes: true,
 };

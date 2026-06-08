@@ -66,14 +66,17 @@ interface CreateTaskResponse {
 // column — it lives as an optional label on icebox tasks (see
 // READY_LABEL in core/board_os/config.py).  Archive is hidden by
 // default and opts in via BoardTweaks.showArchive.
-const COLUMN_META: Record<string, { label: string; sub: string; wip: number | null }> = {
-  icebox: { label: 'ICE BOX', sub: 'backlog · tag “ready”', wip: null },
-  emergency: { label: 'EMERGENCY', sub: 'fire — skip queue', wip: 2 },
-  in_progress: { label: 'IN PROGRESS', sub: 'active work', wip: 1 },
-  testing: { label: 'TESTING', sub: 'verifying G/W/T', wip: 3 },
-  blocked: { label: 'BLOCKED', sub: 'external dep', wip: null },
-  complete: { label: 'COMPLETE', sub: 'acceptance met', wip: null },
-  archive: { label: 'ARCHIVE', sub: 'frozen', wip: null },
+// `tint` is the column's accent colour — rendered as a top bar on the header
+// so each lane of work reads at a glance (queue grey → fire red → active amber
+// → verifying blue → done green). `sub` is the one-line "what this column is".
+const COLUMN_META: Record<string, { label: string; sub: string; wip: number | null; tint: string }> = {
+  icebox: { label: 'ICE BOX', sub: 'backlog — tag “ready” to pull', wip: null, tint: '#7c8aa5' },
+  emergency: { label: 'EMERGENCY', sub: 'incident fast-lane — skips the queue', wip: 2, tint: '#c0392b' },
+  in_progress: { label: 'IN PROGRESS', sub: 'being built right now', wip: 1, tint: '#d97c2c' },
+  testing: { label: 'TESTING', sub: 'verifying acceptance (G/W/T)', wip: 3, tint: '#2c7bd9' },
+  blocked: { label: 'BLOCKED', sub: 'waiting on an external dep', wip: null, tint: '#8e44ad' },
+  complete: { label: 'COMPLETE', sub: 'acceptance met — done', wip: null, tint: '#2e9e5b' },
+  archive: { label: 'ARCHIVE', sub: 'frozen cold store', wip: null, tint: '#9aa0a6' },
 };
 
 // Fallback when GET /api/board/list has no `agent_manifest` (older Hub).
@@ -683,7 +686,7 @@ export default function CosBoardPage() {
             />
             {columns.map((col) => {
               const count = filtered.filter((t) => t.status === col.id).length;
-              const meta = COLUMN_META[col.id] ?? { label: col.label, sub: '', wip: null };
+              const meta = COLUMN_META[col.id] ?? { label: col.label, sub: '', wip: null, tint: 'var(--ink-faint)' };
               const cap = columnWipCap(col.id, cfg?.wip_limits);
               const violated = tweaks.showWipViolation && cap != null && count > cap;
               return (
@@ -696,6 +699,7 @@ export default function CosBoardPage() {
                       position: 'sticky',
                       top: 0,
                       padding: '10px 12px 8px',
+                      borderTop: `3px solid ${meta.tint}`,
                       background: violated ? 'rgba(192,57,43,.12)' : 'transparent',
                       textAlign: 'center',
                     }}
@@ -716,18 +720,24 @@ export default function CosBoardPage() {
                       {meta.sub}
                     </div>
                     <div
+                      title={
+                        cap != null
+                          ? `WIP = work-in-progress limit: at most ${cap} task${cap !== 1 ? 's' : ''} may sit in “${meta.label}” at once`
+                          : undefined
+                      }
                       style={{
                         fontFamily: "'JetBrains Mono', monospace",
                         fontSize: 10,
                         color: violated ? 'var(--red-ink)' : 'var(--ink-faint)',
                         marginTop: 2,
                         fontWeight: violated ? 700 : 500,
+                        cursor: cap != null ? 'help' : 'default',
                       }}
                     >
                       {count}
-                      {cap != null ? ` / ${cap} wip` : ''}
+                      {cap != null ? ` / ${cap} WIP` : ' tasks'}
                       {violated && ' ⚠'}
-                      {flashWip === col.id && <span style={{ marginLeft: 6 }}>WIP</span>}
+                      {flashWip === col.id && <span style={{ marginLeft: 6 }}>WIP!</span>}
                     </div>
                     {(() => {
                       // Keyset-paged columns (complete/archive) show rendered /
@@ -774,7 +784,7 @@ export default function CosBoardPage() {
             })}
           </div>
 
-          {swimlanes.map((lane, laneIdx) => {
+          {tweaks.showSwimlanes && swimlanes.map((lane, laneIdx) => {
             const laneCount = filtered.filter((t) => t.swimlane === lane.id).length;
             const isCollapsed = collapsed.has(lane.id);
             const palette = lanePalette(lane);
@@ -900,6 +910,87 @@ export default function CosBoardPage() {
               </div>
             );
           })}
+
+          {!tweaks.showSwimlanes && (
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--col-border)', minHeight: 200 }}>
+              <div
+                style={{
+                  width: 130,
+                  minWidth: 130,
+                  flexShrink: 0,
+                  borderRight: '2px solid var(--line)',
+                  position: 'sticky',
+                  left: 0,
+                  zIndex: 1,
+                  background: 'var(--board)',
+                }}
+              />
+              {columns.map((col) => {
+                const cell = filtered.filter((t) => t.status === col.id);
+                const laneId = dragging?.swimlane ?? '__flat__';
+                const isTarget = dragTarget === `${laneId}:${col.id}`;
+                const cap = columnWipCap(col.id, cfg?.wip_limits);
+                const violated = cap != null && cell.length > cap;
+                return (
+                  <div
+                    key={col.id}
+                    onDragOver={(e) => onDragOver(e, dragging?.swimlane ?? '__flat__', col.id)}
+                    onDrop={(e) => void onDrop(e, dragging?.swimlane ?? col.id, col.id)}
+                    style={{
+                      flex: '1 1 0',
+                      minWidth: 190,
+                      padding: tweaks.density === 'cozy' ? '10px 10px 8px' : '6px 7px 5px',
+                      borderRight: '1px dashed var(--col-border)',
+                      background: isTarget
+                        ? 'rgba(217, 108, 44, .08)'
+                        : violated
+                          ? 'rgba(192,57,43,.04)'
+                          : 'transparent',
+                      minHeight: 120,
+                      transition: 'background .1s ease',
+                    }}
+                  >
+                    {cell.map((task) => {
+                      const sl = swimlanes.find((s) => s.id === task.swimlane);
+                      const lp = sl
+                        ? lanePalette(sl)
+                        : { color: 'var(--ink-soft)', accent: 'var(--ink-soft)' };
+                      return (
+                        <TaskStickyCard
+                          key={task.id}
+                          task={task}
+                          laneColor={lp.color}
+                          laneAccent={lp.accent}
+                          density={tweaks.density}
+                          quietMode={tweaks.quietMode}
+                          agentSurface={tweaks.agentSurface}
+                          highlight={highlight}
+                          draggingId={dragging?.id || ''}
+                          onDragStart={onDragStart}
+                          onDragEnd={onDragEnd}
+                          onOpen={setDetailTask}
+                        />
+                      );
+                    })}
+                    {cell.length === 0 && (
+                      <div
+                        style={{
+                          fontFamily: 'inherit',
+                          fontSize: 14,
+                          color: 'var(--ink-faint)',
+                          textAlign: 'center',
+                          padding: '20px 4px',
+                          opacity: 0.5,
+                        }}
+                      >
+                        — empty —
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div
             style={{
@@ -1825,6 +1916,7 @@ function TweaksPanel({
         <Toggle on={tweaks.quietMode} onChange={(v) => set('quietMode', v)} label="Quiet mode" sub="subdued cards + kind as corner dot" />
         <Toggle on={tweaks.agentSurface} onChange={(v) => set('agentSurface', v)} label="Agent surface" sub="pips, work log stream, hook events" />
         <Toggle on={tweaks.showWipViolation} onChange={(v) => set('showWipViolation', v)} label="WIP violation state" sub="column flashes red when over cap" />
+        <Toggle on={tweaks.showSwimlanes} onChange={(v) => set('showSwimlanes', v)} label="Swimlane grid" sub="off = flat status columns — every active task visible at a glance" />
         <Toggle on={tweaks.showArchive} onChange={(v) => set('showArchive', v)} label="Show archive column" sub="soft-terminal cold store — hidden by default" />
         <div style={{ height: 1, background: 'var(--col-border)', margin: '6px 4px' }} />
         <Seg label="Filter — kind" value={tweaks.filterKind} options={kindOptions} onChange={(v) => set('filterKind', v)} />
