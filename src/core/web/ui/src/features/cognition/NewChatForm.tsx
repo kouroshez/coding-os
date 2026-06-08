@@ -116,9 +116,9 @@ export default function NewChatForm({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 p-6">
+    <div className="flex w-full flex-col gap-3">
       <form onSubmit={start}>
-        <div className="rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3 transition focus-within:border-[var(--cos-accent)]/60 focus-within:ring-2 focus-within:ring-[var(--cos-accent)]/30">
+        <div className="rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-4 shadow-sm transition focus-within:border-[var(--cos-accent)]/60 focus-within:ring-2 focus-within:ring-[var(--cos-accent)]/30">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -126,8 +126,8 @@ export default function NewChatForm({
             placeholder="Describe a task, or ask anything…"
             aria-label="Chat prompt"
             dir="auto"
-            rows={3}
-            className="w-full resize-none bg-transparent px-1 text-[14px] leading-relaxed text-[var(--cos-text)] placeholder:text-[var(--cos-faint)] focus:outline-none"
+            rows={4}
+            className="min-h-[132px] w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed text-[var(--cos-text)] placeholder:text-[var(--cos-faint)] focus:outline-none"
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <ModelPicker value={model} onChange={setModel} />

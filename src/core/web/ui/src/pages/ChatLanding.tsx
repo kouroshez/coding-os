@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { FileText, History, ListTodo, MessageSquare, Plus, Search } from 'lucide-react';
+import {
+  Brain,
+  Eye,
+  FileText,
+  History,
+  LayoutGrid,
+  ListTodo,
+  MessageSquare,
+  Network,
+  Plus,
+  Search,
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { EmptyState } from '@/layout/HubPrimitives';
@@ -14,9 +25,29 @@ const ONBOARD_PROMPT =
 
 const SUGGESTIONS: { icon: typeof ListTodo; label: string; prompt: string; onboard?: boolean }[] = [
   { icon: ListTodo, label: 'Start a task', prompt: 'Help me start a new task: ' },
-  { icon: History, label: 'Resume where we left off', prompt: 'Summarize where we left off and propose the next step.' },
-  { icon: FileText, label: 'Onboard my product docs', prompt: ONBOARD_PROMPT, onboard: true },
   { icon: Search, label: 'Ask the codebase', prompt: 'Explain how ' },
+  {
+    icon: Eye,
+    label: 'Review my current changes',
+    prompt: 'Review my current changes for bugs and quick cleanups, and tell me what to fix.',
+  },
+  {
+    icon: History,
+    label: 'Resume where we left off',
+    prompt: 'Summarize where we left off and propose the next step.',
+  },
+  { icon: Brain, label: 'Search past sessions', prompt: 'Search our past sessions for how we handled ' },
+  {
+    icon: LayoutGrid,
+    label: "What's on the board",
+    prompt: "Show the board — what's in progress, blocked, and ready to pull next?",
+  },
+  {
+    icon: Network,
+    label: 'Map the subsystems',
+    prompt: 'Map the codebase — what are the main subsystems and how do they connect?',
+  },
+  { icon: FileText, label: 'Onboard my product docs', prompt: ONBOARD_PROMPT, onboard: true },
 ];
 
 /**
@@ -114,40 +145,42 @@ export default function ChatLanding() {
             )}
           </div>
         ) : (
-          <div className="flex h-full min-h-0 flex-col overflow-auto">
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-6 pt-10">
-              {!onboardMode && <OnboardingCard onStart={() => setOnboardMode(true)} />}
-              <h1 className="text-center text-2xl font-semibold tracking-tight text-[var(--cos-text)]">
-                What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
-              </h1>
-            </div>
+          <div className="h-full overflow-auto">
+            <div className="flex min-h-full items-center justify-center px-6 py-10">
+              <div className="flex w-full max-w-3xl flex-col gap-6">
+                {!onboardMode && <OnboardingCard onStart={() => setOnboardMode(true)} />}
+                <h1 className="text-center text-[30px] leading-tight font-semibold tracking-tight text-[var(--cos-text)]">
+                  What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
+                </h1>
 
-            <NewChatForm
-              key={`${onboardMode ? 'onboard' : 'chat'}:${seed}`}
-              onComplete={openSession}
-              initialRole={onboardMode ? 'onboarder' : ''}
-              initialPrompt={onboardMode ? ONBOARD_PROMPT : seed}
-              endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
-            />
+                <NewChatForm
+                  key={`${onboardMode ? 'onboard' : 'chat'}:${seed}`}
+                  onComplete={openSession}
+                  initialRole={onboardMode ? 'onboarder' : ''}
+                  initialPrompt={onboardMode ? ONBOARD_PROMPT : seed}
+                  endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
+                />
 
-            {!onboardMode && (
-              <div className="mx-auto -mt-1 flex w-full max-w-2xl flex-col gap-0.5 px-6 pb-10">
-                {SUGGESTIONS.map((s) => {
-                  const Icon = s.icon;
-                  return (
-                    <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => (s.onboard ? setOnboardMode(true) : setSeed(s.prompt))}
-                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--cos-muted)] hover:bg-white/[0.04] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-                    >
-                      <Icon size={15} aria-hidden className="text-[var(--cos-faint)]" />
-                      {s.label}
-                    </button>
-                  );
-                })}
+                {!onboardMode && (
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    {SUGGESTIONS.map((s) => {
+                      const Icon = s.icon;
+                      return (
+                        <button
+                          key={s.label}
+                          type="button"
+                          onClick={() => (s.onboard ? setOnboardMode(true) : setSeed(s.prompt))}
+                          className="flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-[13px] text-[var(--cos-muted)] transition hover:border-[var(--cos-border)] hover:bg-white/[0.03] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+                        >
+                          <Icon size={15} aria-hidden className="shrink-0 text-[var(--cos-faint)]" />
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </section>
