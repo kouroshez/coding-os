@@ -2,6 +2,18 @@ version: 1
 id: claude
 label: "Anthropic Claude Code"
 
+# Hub chat model picker — adapter→models SSOT (served by /api/config/adapters).
+# runtime: in_process ⇒ runnable via the Claude Agent SDK inside Hub chat.
+runtime: in_process
+models:
+  - id: claude-opus-4-8
+    label: "Opus 4.8"
+    default: true
+  - id: claude-sonnet-4-6
+    label: "Sonnet 4.6"
+  - id: claude-haiku-4-5
+    label: "Haiku 4.5"
+
 # Hub board pills + presence contract (see docs/engineering/adapter-parity.md).
 presence:
   signal: hook_timestamps

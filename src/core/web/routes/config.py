@@ -121,3 +121,49 @@ def config_mcp() -> dict:
             logger.debug("read .mcp.json failed: %s", exc)
 
     return {"servers": servers, "count": len(servers)}
+
+
+@router.get("/adapters")
+def config_adapters() -> dict:
+    """List agent adapters and the chat models each declares (adapter→models SSOT)."""
+    adapters: list[dict] = []
+    default_model = ""
+    try:
+        from cli.list_stacks import TEMPLATES_DIR
+
+        adapters_dir = TEMPLATES_DIR.parent / "adapters"
+        for manifest in sorted(adapters_dir.glob("*/adapter.yaml")):
+            try:
+                data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+            except Exception as exc:
+                logger.debug("read %s failed: %s", manifest, exc)
+                continue
+            runtime = str(data.get("runtime") or "roadmap")
+            models: list[dict] = []
+            for m in data.get("models") or []:
+                if not isinstance(m, dict) or not m.get("id"):
+                    continue
+                is_default = bool(m.get("default"))
+                models.append(
+                    {"id": str(m["id"]), "label": str(m.get("label") or m["id"]), "default": is_default}
+                )
+                if is_default and not default_model:
+                    default_model = str(m["id"])
+            presence = data.get("presence") if isinstance(data.get("presence"), dict) else {}
+            adapters.append(
+                {
+                    "id": str(data.get("id") or manifest.parent.name),
+                    "label": str(data.get("label") or manifest.parent.name),
+                    "runtime": runtime,
+                    "available": runtime == "in_process",
+                    "glyph": presence.get("hub_glyph"),
+                    "color": presence.get("hub_color"),
+                    "models": models,
+                }
+            )
+    except Exception as exc:
+        logger.debug("load adapters failed: %s", exc)
+
+    # in_process adapters first, then alpha — the runnable one leads the picker.
+    adapters.sort(key=lambda a: (a["runtime"] != "in_process", a["id"]))
+    return {"adapters": adapters, "default_model": default_model, "count": len(adapters)}

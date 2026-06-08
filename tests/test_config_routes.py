@@ -55,3 +55,25 @@ def test_mcp_reports_servers_shape(client):
     assert "servers" in body
     for s in body["servers"]:
         assert "name" in s and "command" in s and "managed" in s
+
+
+def test_adapters_groups_models_by_adapter(client):
+    r = client.get("/api/config/adapters")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["default_model"] == "claude-opus-4-8"
+    adapters = {a["id"]: a for a in body["adapters"]}
+
+    claude = adapters["claude"]
+    assert claude["runtime"] == "in_process" and claude["available"] is True
+    assert len(claude["models"]) == 3
+    assert sum(1 for m in claude["models"] if m["default"]) == 1  # exactly one default
+
+    for rid in ("codex", "cursor"):  # declared, but no fabricated model IDs (P7)
+        assert adapters[rid]["runtime"] == "roadmap"
+        assert adapters[rid]["available"] is False
+        assert adapters[rid]["models"] == []
+
+    assert body["adapters"][0]["id"] == "claude"  # the runnable adapter leads
+    for a in body["adapters"]:
+        assert {"id", "label", "runtime", "available", "models"} <= set(a)

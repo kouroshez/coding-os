@@ -205,6 +205,25 @@
           "description": "Badge accent color (hex) for Hub UI."
         }
       }
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["in_process", "roadmap"],
+      "description": "Hub chat execution capability: 'in_process' = runnable via the agent's SDK inside Hub chat (Claude today); 'roadmap' = declared but not yet runnable. Consumed by src/core/web/routes/config.py::config_adapters for the adapter-grouped model picker."
+    },
+    "models": {
+      "type": "array",
+      "description": "Chat models this adapter offers, grouped under the adapter in the Hub chat model picker. Empty for roadmap adapters (no fabricated IDs — P7).",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "description": "Model identifier passed to the agent runtime."},
+          "label": {"type": "string", "description": "Human-facing model name shown in the picker."},
+          "default": {"type": "boolean", "description": "Whether this is the adapter's default model. At most one per adapter."}
+        }
+      }
     }
   }
 }
