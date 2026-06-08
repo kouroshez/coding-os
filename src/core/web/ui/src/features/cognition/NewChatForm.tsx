@@ -1,6 +1,6 @@
 import { FormEvent, KeyboardEvent, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
-import { resolveApiUrl } from '@/lib/api-client';
+import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
 
@@ -45,7 +45,7 @@ export default function NewChatForm({
     try {
       const res = await fetch(resolveApiUrl(endpoint), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...csrfHeader() },
         body: JSON.stringify({ prompt: p, role: role || null, model: model || null }),
       });
       if (!res.ok || !res.body) {

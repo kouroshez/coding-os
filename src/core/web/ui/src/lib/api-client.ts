@@ -74,7 +74,9 @@ const readCsrfToken = (): string | null => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
-const csrfHeader = (): Record<string, string> => {
+// Exported so raw-fetch SSE callers (chat start + follow-up turns) that can't
+// use the JSON fetch wrapper still satisfy the double-submit CSRF gate.
+export const csrfHeader = (): Record<string, string> => {
   const token = readCsrfToken();
   return token ? { 'X-CSRF-Token': token } : {};
 };

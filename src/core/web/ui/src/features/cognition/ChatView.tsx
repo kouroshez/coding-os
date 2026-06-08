@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
-import { resolveApiUrl } from '@/lib/api-client';
+import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
@@ -188,7 +188,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
           resolveApiUrl(`/api/cognition/chat/${encodeURIComponent(sessionId)}/send`),
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+            headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...csrfHeader() },
             body: JSON.stringify({ prompt, fork }),
             signal: controller.signal,
           },
