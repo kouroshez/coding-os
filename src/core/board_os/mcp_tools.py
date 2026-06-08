@@ -853,7 +853,10 @@ def _keyset_column_page(
     next_cursor = None
     if has_more and rows:
         last = rows[-1]
-        next_cursor = _encode_board_cursor(last["completed_at"], last["task_id"])
+        # Positional access (completed_at=row[12], task_id=row[0]) — the web
+        # _db_conn() opens the DB without row_factory=sqlite3.Row, so rows are
+        # plain tuples here; string-key access raised TypeError. Mirrors _task_card.
+        next_cursor = _encode_board_cursor(last[12], last[0])
     return cards, next_cursor, total
 
 
