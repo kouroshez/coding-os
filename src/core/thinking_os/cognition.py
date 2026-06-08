@@ -60,6 +60,11 @@ def load_agent_registry() -> dict[str, dict[str, Any]]:
             parts = text.split("---", 2)
             if len(parts) >= 3:
                 meta = yaml.safe_load(parts[1]) or {}
+                # Chat-only roles (e.g. onboarder) live in agents/ so the chat
+                # role picker lists them, but they are NOT formula agents — keep
+                # them out of the formula registry so the 11-role contract holds.
+                if meta.get("chat_only"):
+                    continue
                 fid = meta.get("id", agent_file.stem)
                 meta["_file"] = agent_file.name
                 registry[str(fid)] = meta
