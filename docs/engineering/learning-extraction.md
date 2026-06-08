@@ -40,13 +40,14 @@ an **observability stat** — visible in the Hub, never injected as a belief.
 
 | `memory_type` | Class | Source signal | Belief? |
 |---|---|---|---|
-| `lesson` | Friction → correction | `observations` rows with `memory_type IN ('hook_block','error')` + `completion_gap` | ✅ |
+| `lesson` | Friction → correction | `observations` rows with `memory_type IN ('hook_block','error')` + `completion_gap`; **`fix:`/`revert:` commit subjects** | ✅ |
 | `anatomy` | Failure root cause + remedy | `backtrack_events` (`root_cause`, `corrective_action`) | ✅ |
 | `breakthrough` | Rework → success narrative | `outcome_history` (`is_breakthrough=1`, narrative fields) | ✅ |
 | `stat` | Success correlation / baseline | `task_outcomes` `GROUP BY domain/skill` | ❌ observability only |
 
 `source` records provenance: `friction` (mined from observations),
-`learn_extract` (mined aggregate stat), `breakthrough`/`manual`/`import`.
+`commit` (mined from `fix:`/`revert:` git history — the real engineering-lesson
+signal), `learn_extract` (mined aggregate stat), `breakthrough`/`manual`/`import`.
 The class is set at mint time and refreshed on re-mine; the success-baseline
 and skill-correlation branches MUST write `memory_type='stat'`, never `pattern`.
 
@@ -73,6 +74,25 @@ Threshold: `min_occurrences` default **2** for lessons (a friction event seen
 twice is already worth a rule), vs 3 for stats. One-offs are not minted; they
 decay out of the corpus naturally.
 
+**Noise filter (mandatory).** Not every captured `error` is a lesson. Agent
+tool-fumbles and expected refusals carry zero learning value and would drown the
+signal, so `_is_noise_failure` drops a cluster whose message matches any of:
+`EISDIR` / "illegal operation on a directory", "file does not exist" / "no such
+file or directory" (wrong-path Reads), "refusing to write through symlink"
+(expected guard), and the workflow-internal `StructuredOutput` schema mismatch.
+These are *the agent tripping over its own tooling*, never an engineering lesson.
+The filter applies to both friction miners. Genuine `completion_gap` rows are
+**kept** — forgetting to close a task IS a real behavioural lesson — but their
+text is humanized (below).
+
+**Humanized text (no model-jargon).** Per XAI guidance (Google PAIR / Microsoft
+HAX), a lesson must speak the user's language, not the model's. `_humanize_signature`
+rewrites the worst internal jargon into plain language before the lesson is
+minted (e.g. `predicates_unsatisfied: no EvidenceBundle for predicates
+['coverage_100']` → "ended a 'fix everything' task without recording proof every
+case was handled"). The lesson leads with the **corrective action**; the raw
+signature is preserved for the UI's opt-in detail layer.
+
 ### 2. Anatomy from backtracks
 The v25 `backtrack_events` columns (`root_cause`, `corrective_action`) are
 mined into `anatomy` lessons that pair the cause with the remedy — not a bare
@@ -88,6 +108,22 @@ Domain/skill success correlations are still computed (a real project signal)
 but written as `memory_type='stat'`. They are **excluded from beliefs**: the
 digest and `cos_learn_suggest` filter them out; the Hub shows them in a
 separate, clearly-labelled "Project Stats" section, never as "Lessons".
+
+### 5. Lessons from fix / revert commits (the real engineering signal)
+Friction observations capture the agent tripping over *tooling*; the lessons a
+human calls valuable ("FTS5 external-content corrupts — use own-content",
+"resolve() before relative_to on macOS") are discovered by *reasoning* and
+recorded in **git history**, not in any signal table. `_mine_commit_lessons`
+closes that gap: it reads `git log` over `_LESSON_WINDOW_DAYS`, keeps only
+`fix:` and `revert:` Conventional-Commit subjects (a commit that fixes/reverts
+IS a "something was wrong → here is the correction"), strips the type prefix and
+scope, normalises the subject to a stable cluster key (lowercase, digits→N,
+TASK-ids and hashes → placeholders), and mints one `lesson` per subject that
+recurs `≥ floor` times — or a single high-signal `revert:` immediately, since a
+revert is always a real mistake. `source='commit'`. It is read-only (`git log`
+only), bounded (window + `max_count`), and a no-op outside a git work-tree.
+This is the highest-relevance source for a healthy project, where friction is
+otherwise dominated by tooling noise.
 
 ## Confidence, decay, validation
 - Lessons start at a recurrence-derived confidence and **decay** like any
@@ -121,16 +157,40 @@ stale recall. Heavier decay-on-diff is a documented future option, not built
 by default.
 
 ## UI contract (Hub Memory page)
-- **Lessons Learned** first: plain-language cards (what failed → what to do).
-- **Project Stats** collapsed/secondary: the success correlations, honestly
-  labelled as stats, never as learnings.
-- **Learning-loop runs**: an execution log from `.coding-os/scheduled/last_run.json`
-  (when it ran, how many lessons minted) + an inline **Run learning loop now**
-  button wired to `POST /api/scheduled/run/{slug}`.
-- **Learning effectiveness**: a friction-per-session sparkline (`GET
-  /api/patterns/roi`) showing whether blocks+errors trend down across sessions —
-  the proof that recall is working (computed on-the-fly, no new table).
+
+Grounded in XAI/PAIR research (Google PAIR, Microsoft HAX, IBM Design-for-AI,
+NIST AI-RMF); the page must teach a *novice* the memory system, not dump rows. Principles:
+**speak human · 3-layer progressive disclosure · legible confidence · agency · honest empty state.**
+
+- **Three-layer cards** (progressive disclosure — never dump everything):
+  - **L1 (always visible):** the corrective action in one plain sentence — what
+    the agent now avoids. No model-jargon.
+  - **L2 (visible, secondary):** a plain meta line — `Seen N times · <tier>` where
+    tier ∈ **Forming / Trusted / Fading** (derived from confidence × times_validated),
+    NOT a bare percentage (a raw % is meaningless to users).
+  - **L3 (opt-in, expandable "Technical detail"):** the raw signature, exact
+    confidence %, provenance/source, occurrences. Power-user layer.
+- **Agency — 👍/👎 per lesson** wired to `POST /api/patterns/{id}/validate`
+  (→ `cos_learn_validate`). This both gives the user control AND closes the
+  validation loop (which is otherwise empty). "Was this lesson useful?"
+- **Lessons Learned** first; **Project Stats** clearly secondary, labelled as
+  success rates, never as learnings.
+- **Learning-loop runs**: execution log from `.coding-os/scheduled/last_run.json`
+  + inline **Run learning loop now** button (`POST /api/scheduled/run/{slug}`).
+- **Learning effectiveness**: friction-per-session sparkline (`GET
+  /api/patterns/roi`) PLUS a one-sentence human read-out ("fewer repeated
+  mistakes over the last N sessions" / "holding steady") — celebrate the win,
+  don't just draw a slope. Computed on-the-fly, no new table.
+- **Honest empty state**: when there are no real lessons yet, say so plainly
+  ("The agent hasn't hit enough repeated friction to learn a lesson yet — that's
+  healthy") instead of padding the list with stats dressed as lessons.
 - A one-paragraph beginner explainer of how the agent learns.
+
+### Confidence tier mapping (single source for digest + UI)
+`pattern_tier(confidence, times_validated)`:
+- **Trusted** — `confidence ≥ 0.7 AND times_validated ≥ 3` (confirmed repeatedly).
+- **Fading** — `0.2 ≤ confidence ≤ 0.4 AND times_validated ≥ 1` (was learned, decaying — up for re-validation).
+- **Forming** — everything else (seen, not yet confirmed).
 
 ## Hook BLOCK lessons (mined from the activity log)
 
