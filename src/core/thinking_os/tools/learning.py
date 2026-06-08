@@ -998,6 +998,11 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
 # fix:/revert: (optional scope, optional !). The subject IS a recorded lesson.
 _FIX_COMMIT_RE = re.compile(r"^(?P<type>fix|revert)(?:\([^)]*\))?!?:\s*(?P<subject>.+)$", re.IGNORECASE)
 
+# A one-off `fix:` subject is terse shorthand with no reusable rule — noise.
+# Only a fix that RECURS this many times is a systemic-gap signal. Reverts are
+# minted at any count (a revert is itself a recorded mistake). See §5 of the doc.
+_COMMIT_FIX_MIN_RECURRENCE = 3
+
 
 def _commit_subject_key(subject: str) -> str:
     """Stable cluster key for a commit subject: ids/hashes/digits normalised, first 8 tokens."""
@@ -1020,7 +1025,6 @@ def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) 
     """
     import subprocess
 
-    floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
     root = _derive_project_root(conn)
     if root is None:
         return []
@@ -1052,14 +1056,20 @@ def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) 
 
     lessons: list[dict] = []
     for cluster in clusters.values():
-        if cluster["count"] < floor and not cluster["revert"]:
-            continue
-        verb = "reverted" if cluster["revert"] else "fixed"
+        is_revert = cluster["revert"]
         subject = _clean_failure_text(cluster["subject"])
-        pattern_text = (
-            f"Recurring fix ({cluster['count']} occurrences): previously {verb} — "
-            f"{subject} → check this before shipping similar code"
-        )
+        if is_revert:
+            # A revert is a recorded "we shipped this and undid it" — real signal.
+            pattern_text = f"Reverted before: {subject} → reconsider before re-introducing this change."
+        elif cluster["count"] >= _COMMIT_FIX_MIN_RECURRENCE:
+            # The RECURRENCE is the signal (same thing keeps breaking), not the
+            # subject itself. "(N occurrences)" so _pattern_identity dedups it.
+            pattern_text = (
+                f"Fixed repeatedly ({cluster['count']} occurrences): {subject} "
+                f"→ address the root cause, not the symptom."
+            )
+        else:
+            continue  # one-off / 2x fix subject — no reusable lesson, drop it
         lessons.append(
             _upsert_pattern(
                 conn,
@@ -1068,7 +1078,7 @@ def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) 
                 domain=None,
                 source="commit",
                 confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
-                concepts=json.dumps(["lesson", "commit", "fix"]),
+                concepts=json.dumps(["lesson", "commit", "revert" if is_revert else "fix"]),
             )
         )
     return lessons

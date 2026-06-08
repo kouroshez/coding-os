@@ -313,23 +313,35 @@ class TestCommitLessons:
         b = _commit_subject_key("repoint spec link for TASK-099 anchor")
         assert a == b  # TASK ids + digits normalised → same cluster
 
-    def test_mines_recurring_fix(self, tmp_path: Path) -> None:
+    def test_recurring_fix_minted_at_threshold(self, tmp_path: Path) -> None:
         from tools.learning import _mine_commit_lessons
 
         repo = self._make_repo(tmp_path)
-        for _ in range(2):
+        for _ in range(3):  # >= _COMMIT_FIX_MIN_RECURRENCE → systemic-gap signal
             self._git(repo, "commit", "--allow-empty", "-q", "-m",
                       "fix: handle null user in session lookup")
         self._git(repo, "commit", "--allow-empty", "-q", "-m", "feat: unrelated change")
         c = init_db(repo / ".coding-os" / "coding-os.db")
         try:
-            lessons = _mine_commit_lessons(c, min_occurrences=3)
-            assert any(le["action"] in ("created", "updated") for le in lessons)
+            _mine_commit_lessons(c)
             rows = c.execute(
-                "SELECT pattern, source FROM learned_patterns WHERE source='commit'"
+                "SELECT pattern FROM learned_patterns WHERE source='commit'"
             ).fetchall()
-            assert rows and rows[0]["source"] == "commit"
-            assert "Recurring fix" in rows[0]["pattern"]
+            assert rows and "Fixed repeatedly" in rows[0]["pattern"]
+        finally:
+            c.close()
+
+    def test_one_off_fix_not_minted(self, tmp_path: Path) -> None:
+        # a fix subject below the recurrence threshold is terse noise → dropped
+        from tools.learning import _mine_commit_lessons
+
+        repo = self._make_repo(tmp_path)
+        for _ in range(2):
+            self._git(repo, "commit", "--allow-empty", "-q", "-m",
+                      "fix: a one-off thing that happened twice")
+        c = init_db(repo / ".coding-os" / "coding-os.db")
+        try:
+            assert _mine_commit_lessons(c) == []
         finally:
             c.close()
 
@@ -340,7 +352,11 @@ class TestCommitLessons:
         self._git(repo, "commit", "--allow-empty", "-q", "-m", "revert: drop the broken cache layer")
         c = init_db(repo / ".coding-os" / "coding-os.db")
         try:
-            assert len(_mine_commit_lessons(c, min_occurrences=3)) >= 1  # a revert is always real
+            _mine_commit_lessons(c)  # a revert mints at any count
+            rows = c.execute(
+                "SELECT pattern FROM learned_patterns WHERE source='commit'"
+            ).fetchall()
+            assert rows and "Reverted before" in rows[0]["pattern"]
         finally:
             c.close()
 
@@ -348,7 +364,7 @@ class TestCommitLessons:
         # conn's db is not under a .coding-os/ project root → no-op, no crash
         from tools.learning import _mine_commit_lessons
 
-        assert _mine_commit_lessons(conn, min_occurrences=3) == []
+        assert _mine_commit_lessons(conn) == []
 
 
 class TestStatVarianceGate:

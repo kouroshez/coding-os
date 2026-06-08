@@ -124,21 +124,29 @@ unless `task_outcomes` contains at least one non-`success` outcome. A real
 project with reworks/failures still gets meaningful, differentiating stats;
 a flawless corpus gets none (correct — nothing to explain).
 
-### 5. Lessons from fix / revert commits (the real engineering signal)
-Friction observations capture the agent tripping over *tooling*; the lessons a
-human calls valuable ("FTS5 external-content corrupts — use own-content",
-"resolve() before relative_to on macOS") are discovered by *reasoning* and
-recorded in **git history**, not in any signal table. `_mine_commit_lessons`
-closes that gap: it reads `git log` over `_LESSON_WINDOW_DAYS`, keeps only
-`fix:` and `revert:` Conventional-Commit subjects (a commit that fixes/reverts
-IS a "something was wrong → here is the correction"), strips the type prefix and
-scope, normalises the subject to a stable cluster key (lowercase, digits→N,
-TASK-ids and hashes → placeholders), and mints one `lesson` per subject that
-recurs `≥ floor` times — or a single high-signal `revert:` immediately, since a
-revert is always a real mistake. `source='commit'`. It is read-only (`git log`
-only), bounded (window + `max_count`), and a no-op outside a git work-tree.
-This is the highest-relevance source for a healthy project, where friction is
-otherwise dominated by tooling noise.
+### 5. Lessons from revert / recurring-fix commits
+`_mine_commit_lessons` reads `git log` over `_LESSON_WINDOW_DAYS` for `fix:` /
+`revert:` Conventional-Commit subjects, strips the type prefix + scope, and
+normalises the subject to a stable cluster key (lowercase, digits→N, TASK-ids
+and hashes → placeholders). `source='commit'`, read-only, no-op outside a git
+work-tree.
+
+**Quality gate (a commit subject is NOT automatically a lesson).** A one-off
+`fix:` subject is terse shorthand with no reusable rule in it — it is noise. So
+only two shapes are minted:
+- **`revert:` (any count)** — a revert is a *recorded* "we shipped X and undid
+  it", which IS a real signal. Text: `Reverted before: <subject> → reconsider
+  before re-introducing this change.`
+- **`fix:` that recurs `≥ _COMMIT_FIX_MIN_RECURRENCE` (3)** — the *recurrence* is
+  the signal (the same thing keeps breaking → systemic gap), not the subject
+  itself. Text: `Fixed repeatedly (N occurrences): <subject> → address the root
+  cause, not the symptom.`
+
+Everything else (one-off and 2× fixes) is dropped. This is a deliberately
+conservative source: deep engineering lessons live in *reasoning*, not in commit
+subjects, so commit-mining only harvests the two shapes that carry signal on
+their own. The narrative path (`cos_learn_narrative` → `docs/insights/`) remains
+the channel for a real "what I learned" with a why.
 
 ## Confidence, decay, validation
 - Lessons start at a recurrence-derived confidence and **decay** like any
