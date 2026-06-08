@@ -1,7 +1,7 @@
 ---
 name: supabase
 tier: stack
-domain: [backend, db]
+domain: [backend, data]
 description: Build on Supabase correctly — Row Level Security, auth, realtime, storage, edge functions, and the Postgres underneath. Use when wiring a Supabase client, writing or reviewing RLS policies, debugging "anyone can read everyone's rows", setting up auth, adding realtime subscriptions, handling file storage, or deciding what belongs in an edge function vs the database. The #1 footgun — a table with RLS disabled is fully public — gets first-class coverage. Triggers — "Supabase", "RLS", "row level security", "policy", "anon key", "realtime subscription", "edge function", "supabase auth". Pairs with sql-authoring (the queries), db-design (the schema), auth-patterns (the token model), security-web (exposure review).
 globs: ""
 paths: []

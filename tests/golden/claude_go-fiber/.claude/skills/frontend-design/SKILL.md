@@ -2,7 +2,7 @@
 name: frontend-design
 tier: quality
 domain: [frontend]
-description: Create distinctive, production-grade visual interfaces — design principles that apply to ANY frontend (React, Next.js, Vue, Svelte, plain HTML/CSS, React Native). Use when the aesthetic direction matters: building a component, page, landing site, or app where it must look intentional, not generic "AI slop". Covers visual hierarchy, spacing/rhythm, typography, color + contrast, layout, and design tokens — independent of framework. Triggers — "make this look good", "design", "UI", "landing page", "the spacing feels off", "color palette", "it looks generic/AI". Pairs with frontend-fundamentals (implementation patterns), a11y (accessibility — aesthetic without it is a lawsuit), state-management.
+description: Create distinctive, production-grade visual interfaces — design principles that apply to ANY frontend (React, Next.js, Vue, Svelte, plain HTML/CSS, React Native). Use when the aesthetic direction matters — building a component, page, landing site, or app where it must look intentional, not generic "AI slop". Covers visual hierarchy, spacing/rhythm, typography, color + contrast, layout, and design tokens — independent of framework. Triggers — "make this look good", "design", "UI", "landing page", "the spacing feels off", "color palette", "it looks generic/AI". Pairs with frontend-fundamentals (implementation patterns), a11y (accessibility — aesthetic without it is a lawsuit), state-management.
 globs: ""
 paths: []
 last_reviewed: "2026-06-04"

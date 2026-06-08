@@ -86,7 +86,9 @@ if [[ ! -s "$_TEST_CACHE" ]]; then
 fi
 FOUND=""
 for name in "${CANDIDATES[@]}"; do
-  match=$(grep -F "/$name" "$_TEST_CACHE" 2>/dev/null | head -1)
+  # grep exits 1 on no-match; without `|| true` pipefail aborts the hook before
+  # the no-companion-test branch (the common case) can suggest a path.
+  match=$(grep -F "/$name" "$_TEST_CACHE" 2>/dev/null | head -1 || true)
   if [[ -n "$match" ]]; then
     FOUND="$match"
     break

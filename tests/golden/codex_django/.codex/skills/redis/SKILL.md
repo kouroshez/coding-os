@@ -1,7 +1,7 @@
 ---
 name: redis
 tier: architecture
-domain: [backend, db, infra]
+domain: [backend, data, infra]
 description: Use Redis correctly as a cache, queue, rate limiter, and ephemeral store — pick the right data structure, caching pattern, eviction policy, and atomicity model. Use when adding caching, designing a key schema, choosing cache-aside vs write-through, setting TTLs/eviction, building a rate limiter or queue, debugging low hit-rate or evictions, or deciding Redis-vs-Postgres for a use case. Triggers — "cache", "Redis", "rate limit", "session store", "pub/sub", "cache invalidation", "TTL", "hit rate". Pairs with db-design (durable store — Redis is ephemeral), sql-authoring (the source of truth behind the cache), performance (cache as a latency lever).
 globs: ""
 paths: []
