@@ -972,12 +972,17 @@ def cos_task_show(
     include_body: bool = True,
 ) -> str:
     row = conn.execute(
-        "SELECT task_id, title, status, swimlane, kind, priority, "
-        "appetite, file_path FROM tasks WHERE task_id = ?",
+        "SELECT task_id, title, status, swimlane, kind, priority, appetite, "
+        "file_path, epic, labels_json, agent_session, started_at, completed_at "
+        "FROM tasks WHERE task_id = ?",
         (task_id,),
     ).fetchone()
     if row is None:
         return fail("not_found", f"task {task_id} not found")
+    try:
+        labels = json.loads(row[9] or "[]")
+    except (TypeError, json.JSONDecodeError):
+        labels = []
     data = {
         "id": row[0],
         "title": row[1],
@@ -987,6 +992,14 @@ def cos_task_show(
         "priority": row[5],
         "appetite": row[6],
         "file_path": row[7],
+        # Fields the DB already stores but the tool used to drop, forcing callers
+        # to re-parse the raw body. depends_on/blocked_by/references stay
+        # frontmatter-only and remain available in `body`.
+        "epic": row[8],
+        "labels": labels,
+        "agent_session": row[10],
+        "started_at": row[11],
+        "completed_at": row[12],
         "body": None,
     }
     if include_body and row[7]:
