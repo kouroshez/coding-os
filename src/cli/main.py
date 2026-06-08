@@ -37,6 +37,7 @@ from cli._init_helpers import (
 )
 from cli.adapter_registry import load_adapter_registry
 from cli.add_stack import add_stack as add_stack_cmd
+from cli.remove_stack import remove_stack as remove_stack_cmd
 from cli.config_composer import COMPOSED_FILENAMES, compose_coding_os_configs
 from cli.aggregator import aggregate, today_iso
 from cli.brain_commands import (
@@ -706,6 +707,7 @@ cli.add_command(doctor_cmd)
 cli.add_command(list_stacks_cmd)
 cli.add_command(list_adapters_cmd)
 cli.add_command(add_stack_cmd)
+cli.add_command(remove_stack_cmd)
 cli.add_command(docs_index_cmd)
 cli.add_command(task_sync_cmd)
 cli.add_command(reindex_cmd)

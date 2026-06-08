@@ -197,3 +197,42 @@ def recompose_for_added_stack(
         target.write_text(_dump(merged, fmt), encoding="utf-8")
         written.append(filename)
     return written
+
+
+def recompose_for_removed_stack(
+    project: Path,
+    state: Path,
+    remaining_templates: list[str],
+    *,
+    templates_dir: Path,
+) -> list[str]:
+    """Rebuild the composed `.coding-os/` configs from base + the REMAINING stacks.
+
+    A merged config cannot be un-merged for a single stack (union strategies are
+    lossy), so removal recomposes each file fresh from the base defaults plus
+    every still-installed stack's overlay — dropping the removed stack's
+    contribution. Used by `cos remove-stack`; the caller backs up the targets
+    first because this DISCARDS any user edits layered onto the composed files.
+    A file is rewritten only when the recompose differs from the current target,
+    so the operation is diff-minimal and idempotent. SSOT:
+    docs/engineering/config-composition.md.
+    """
+    written: list[str] = []
+    base_dir = templates_dir / "_base" / "scaffold" / ".coding-os"
+    for filename, spec, fmt in _COMPOSED:
+        target = state / filename
+        if not target.is_file():
+            continue  # nothing composed here — nothing to rebuild
+        base = _load(base_dir / filename, fmt)
+        overlays: list[dict[str, Any]] = []
+        for stack_id in remaining_templates:
+            overlay = _load(templates_dir / stack_id / "scaffold" / ".coding-os" / filename, fmt)
+            if overlay is not None:
+                overlays.append(overlay)
+        merged = compose(base or {}, overlays, spec)
+        new_text = _dump(merged, fmt)
+        if target.read_text(encoding="utf-8") == new_text:
+            continue  # recompose is a no-op for this file
+        target.write_text(new_text, encoding="utf-8")
+        written.append(filename)
+    return written

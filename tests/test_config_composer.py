@@ -15,6 +15,7 @@ from cli.config_composer import (
     compose,
     compose_coding_os_configs,
     recompose_for_added_stack,
+    recompose_for_removed_stack,
 )
 
 
@@ -153,6 +154,64 @@ def test_recompose_added_stack_preserves_prior_and_adds_new(tmp_path: Path) -> N
     merged = yaml.safe_load((state / "scrumban-config.yaml").read_text())
     ids = [s["id"] for s in merged["swimlanes"]]
     assert ids == ["docs", "frontend", "backend"]  # prior lanes kept + new stack appended
+
+
+def test_recompose_removed_stack_drops_only_that_stacks_lanes(tmp_path: Path) -> None:
+    tdir = tmp_path / "templates"
+    base = tdir / "_base" / "scaffold" / ".coding-os"
+    go = tdir / "go" / "scaffold" / ".coding-os"
+    nextjs = tdir / "nextjs" / "scaffold" / ".coding-os"
+    for d in (base, go, nextjs):
+        d.mkdir(parents=True)
+    (base / "scrumban-config.yaml").write_text(
+        yaml.safe_dump({"swimlanes": [{"id": "docs", "label": "Docs"}]}), encoding="utf-8"
+    )
+    (go / "scrumban-config.yaml").write_text(
+        yaml.safe_dump({"swimlanes": [{"id": "backend", "label": "Go"}]}), encoding="utf-8"
+    )
+    (nextjs / "scrumban-config.yaml").write_text(
+        yaml.safe_dump({"swimlanes": [{"id": "frontend", "label": "Next"}]}), encoding="utf-8"
+    )
+    state = tmp_path / "proj" / ".coding-os"
+    state.mkdir(parents=True)
+    # Composed config currently reflects both go + nextjs installed.
+    (state / "scrumban-config.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "swimlanes": [
+                    {"id": "docs", "label": "Docs"},
+                    {"id": "backend", "label": "Go"},
+                    {"id": "frontend", "label": "Next"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    # Remove go → recompose from base + remaining (nextjs).
+    written = recompose_for_removed_stack(tmp_path / "proj", state, ["nextjs"], templates_dir=tdir)
+    assert "scrumban-config.yaml" in written
+    merged = yaml.safe_load((state / "scrumban-config.yaml").read_text())
+    ids = [s["id"] for s in merged["swimlanes"]]
+    assert ids == ["docs", "frontend"]  # go's backend lane dropped; base + nextjs kept
+
+
+def test_recompose_removed_stack_is_noop_when_unchanged(tmp_path: Path) -> None:
+    tdir = tmp_path / "templates"
+    base = tdir / "_base" / "scaffold" / ".coding-os"
+    base.mkdir(parents=True)
+    (base / "rag-config.yaml").write_text(
+        yaml.safe_dump({"sources": [{"path": "docs/", "type": "prd"}]}), encoding="utf-8"
+    )
+    state = tmp_path / "proj" / ".coding-os"
+    state.mkdir(parents=True)
+    # Already equals base + no stacks → recompose produces identical content.
+    from cli.config_composer import _dump  # local: assert the no-op path
+
+    (state / "rag-config.yaml").write_text(
+        _dump({"sources": [{"path": "docs/", "type": "prd"}]}, "yaml"), encoding="utf-8"
+    )
+    written = recompose_for_removed_stack(tmp_path / "proj", state, [], templates_dir=tdir)
+    assert written == []  # no rewrite when recompose matches the current file
 
 
 def test_malformed_config_raises_clear_error(tmp_path: Path) -> None:
