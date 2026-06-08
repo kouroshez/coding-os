@@ -858,9 +858,11 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
     clusters: dict[str, dict] = {}
     for row in rows:
         d = dict(row)
-        display = _clean_failure_text(d["narrative"] or d["title"] or "")
-        if _is_noise_failure(display):
+        # Screen title AND narrative: a StructuredOutput fumble carries the marker
+        # in the title while the narrative reads like a generic schema error.
+        if _is_noise_failure(f"{d['title'] or ''} {d['narrative'] or ''}"):
             continue  # tool-fumble / expected refusal — never a lesson
+        display = _clean_failure_text(d["narrative"] or d["title"] or "")
         key = _failure_cluster_key(display)
         if not key:
             continue

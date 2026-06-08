@@ -231,6 +231,26 @@ class TestFrictionLessons:
             self._seed_failures(seeded_conn, 3, narrative, memory_type="error", session=f"ses-n{idx}")
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
+    def test_noise_in_title_filtered(self, seeded_conn: sqlite3.Connection) -> None:
+        # StructuredOutput marks the TITLE; the narrative reads like a generic
+        # schema error — must still be filtered (title is screened too).
+        from tools.learning import _mine_friction_lessons
+
+        for i in range(3):
+            seeded_conn.execute(
+                "INSERT INTO observations (session_id, tool_name, observation_type, "
+                "memory_type, impact_score, title, narrative, content_hash) "
+                "VALUES (?, 'StructuredOutput', 'tool_failure', 'error', 0.6, ?, ?, ?)",
+                (
+                    "ses-so",
+                    "Tool failure: StructuredOutput",
+                    "Output does not match required schema: must have property 'fix'",
+                    f"h-so-{i}",
+                ),
+            )
+        seeded_conn.commit()
+        assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
+
 
 class TestHumanizeAndTier:
     """Lessons must read for a novice (XAI: speak the user's language); tiers
