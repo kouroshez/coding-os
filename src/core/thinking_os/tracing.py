@@ -25,6 +25,10 @@ FLOWCHART_NODES: dict[str, str] = {
     # Entry lifecycle
     "session_init": "n-sinit",
     "gate_recorded": "n-gate",
+    # The Complexity Gate classification (cos_classify_prompt) — the single most
+    # user-meaningful trace event. Without this mapping it fell through to
+    # "unknown" and surfaced as a raw kind chip instead of phasing as Setup.
+    "classify": "n-gate",
     # Cognition layer
     "analyze_start": "n-analyzer",
     "analyze_done": "n-analyzer",

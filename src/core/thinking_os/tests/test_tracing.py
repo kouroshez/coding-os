@@ -27,3 +27,21 @@ def test_emit_prefers_cos_agent_dir(monkeypatch, tmp_path):
 
     target = agent_dir / "traces" / "ses-unit-2.jsonl"
     assert target.exists()
+
+
+def test_classify_maps_to_gate_node(monkeypatch, tmp_path):
+    # classify (the Complexity Gate) is the most user-meaningful trace event;
+    # it MUST phase as Setup (n-gate), never fall through to "unknown".
+    import json
+
+    assert tracing.FLOWCHART_NODES.get("classify") == "n-gate"
+
+    agent_dir = tmp_path / "agent-root"
+    monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
+    monkeypatch.delenv("COS_STATE_DIR", raising=False)
+    tracing.emit("ses-unit-3", "classify", {"complexity": "COMPLICATED", "dimensions": 4})
+
+    target = agent_dir / "traces" / "ses-unit-3.jsonl"
+    ev = json.loads(target.read_text(encoding="utf-8").strip().splitlines()[-1])
+    assert ev["kind"] == "classify"
+    assert ev["node"] == "n-gate"  # not "unknown"
