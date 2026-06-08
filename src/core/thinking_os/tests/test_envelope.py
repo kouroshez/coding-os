@@ -356,6 +356,79 @@ class TestTokenBudget:
 
 
 # ---------------------------------------------------------------------------
+# apply_budget opt-out (STEP 1/2) — decouple the browser wire from the 32KB
+# agent cap. A board-shaped payload ({grouped, cards}) over budget is
+# "unshrinkable" under the default cap (neither key is in the trim ladder) —
+# that is the 186KB ERROR the user reported. The web opt-out must skip the
+# trimmer entirely and return the full body untouched.
+# ---------------------------------------------------------------------------
+
+
+class TestApplyBudgetOptOut:
+    @staticmethod
+    def _oversized_board(n: int = 400) -> dict:
+        # Mirrors the cos_task_board body shape: cards duplicated into grouped.
+        # n=400 cards × ~2 copies easily exceeds TOKEN_BUDGET_CHARS (32KB).
+        cards = [
+            {
+                "id": f"TASK-{i:04d}",
+                "title": f"A reasonably descriptive task title number {i} for the board",
+                "swimlane": "core",
+                "kind": "feature",
+                "epic": "hub-redesign",
+                "labels": ["ready"],
+                "status": "icebox",
+                "priority": "P2",
+                "appetite": "1d",
+            }
+            for i in range(n)
+        ]
+        grouped = {"core": {"icebox": list(cards)}}
+        return {
+            "grouped": grouped,
+            "cards": cards,
+            "columns": {},
+            "count": n,
+            "total_count": n,
+            "truncated": False,
+            "wip": {},
+        }
+
+    def test_board_shape_is_unshrinkable_under_default_cap(self) -> None:
+        """Demonstrates the bug class: grouped+cards exceed budget and the
+        generic ladder cannot reach either key → envelope_unshrinkable. This
+        is exactly the 186KB ERROR the browser produced before the opt-out."""
+        body = self._oversized_board()
+        assert len(json.dumps(body, indent=2)) > TOKEN_BUDGET_CHARS  # genuinely oversized
+        env = json.loads(ok(body))  # default apply_budget=True
+        assert env["data"]["meta"].get("envelope_unshrinkable") is True
+
+    def test_apply_budget_false_skips_trim_entirely(self) -> None:
+        """The web opt-out returns the FULL board, no trim, no unshrinkable."""
+        body = self._oversized_board()
+        d = json.loads(ok(body, apply_budget=False))["data"]
+        assert "envelope_unshrinkable" not in d["meta"]
+        assert d["meta"]["truncated"] is False
+        assert len(d["cards"]) == 400  # nothing dropped
+        assert len(d["grouped"]["core"]["icebox"]) == 400
+
+    def test_default_still_caps_a_trimmable_agent_payload(self) -> None:
+        """The opt-out must NOT weaken the agent cap: a trimmable shape
+        (results) over budget is still trimmed under the default."""
+        body = {"results": [{"i": i, "blob": "x" * 200} for i in range(500)]}
+        env = json.loads(ok(body))  # default apply_budget=True
+        assert env["data"]["meta"]["truncated"] is True
+        assert len(json.dumps(env, indent=2)) <= TOKEN_BUDGET_CHARS
+
+    def test_apply_budget_false_skips_even_a_trimmable_shape(self) -> None:
+        """Opt-out is shape-independent — it skips trimming a `results` list too."""
+        body = {"results": [{"i": i, "blob": "x" * 200} for i in range(500)]}
+        d = json.loads(ok(body, apply_budget=False))["data"]
+        assert d["meta"]["truncated"] is False
+        assert len(d["results"]) == 500
+
+
+# ---------------------------------------------------------------------------
 # Layer contract — VALID_LAYERS
 # ---------------------------------------------------------------------------
 

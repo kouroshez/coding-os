@@ -87,7 +87,7 @@ VALID_LAYERS: frozenset[str] = frozenset(
 # ---------------------------------------------------------------------------
 
 
-def ok(data: Any, *, meta: dict | None = None) -> str:
+def ok(data: Any, *, meta: dict | None = None, apply_budget: bool = True) -> str:
     """Wrap a successful tool result in the canonical envelope."""
     if not isinstance(data, dict):
         return json.dumps({"ok": True, "data": data}, indent=2, default=str)
@@ -137,8 +137,16 @@ def ok(data: Any, *, meta: dict | None = None) -> str:
     )
     # Enforce token budget. `truncated` only flips when the body was
     # actually shrunk — a no-op (shape not matched) leaves the flag
-    # False so agents trust the signal.
-    if _is_graph_subgraph:
+    # False so agents trust the signal. Web/browser callers pass
+    # apply_budget=False: a browser is not token-limited, so the 32KB
+    # agent-context cap (and its envelope_unshrinkable fall-through when a
+    # payload's shape isn't in the trim ladder) must not apply to it — that
+    # cap is an agent-context concept, not a wire limit. Mirrors the
+    # apply_budget param cos_task_board already exposes (the board's browser
+    # path threads it straight through here).
+    if not apply_budget:
+        pass
+    elif _is_graph_subgraph:
         if len(serialized) > GRAPH_SUBGRAPH_BUDGET_CHARS:
             body, existing_meta, did_trim = _trim_coherent_subgraph(
                 body, existing_meta, budget_chars=GRAPH_SUBGRAPH_BUDGET_CHARS

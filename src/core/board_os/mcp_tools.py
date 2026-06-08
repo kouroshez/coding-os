@@ -968,6 +968,10 @@ def cos_task_board(
             "wip": wip_state,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_board"},
+        # Browser path (apply_budget=False) opts out of the 32KB agent cap in
+        # ok() too — not just _cap_board_to_budget above — so a large board never
+        # trips envelope_unshrinkable on the wire. The agent path keeps the cap.
+        apply_budget=apply_budget,
     )
 
 
@@ -1363,6 +1367,53 @@ def _patch_labels_line(file_path: Path, labels: list[str]) -> None:
     os.replace(tmp, file_path)
 
 
+def _ready_dor_check(
+    file_path: Path,
+    agent_session: str | None,
+) -> tuple[list[dict[str, str]], str | None]:
+    """DoR gaps for a task body + a block reason when strict mode refuses `ready`."""
+    from board_os.transition_gates import GatesConfigError, load_gates_config
+    from board_os.transition_gates_validator import evaluate_dor, evaluate_override
+    from board_os.workflow import _extract_kind_from_frontmatter
+
+    try:
+        body = file_path.read_text(encoding="utf-8")
+        kind = _extract_kind_from_frontmatter(body) or "feature"
+        config = load_gates_config()
+        result = evaluate_dor(kind, body, config)
+    except (GatesConfigError, OSError, ValueError) as exc:
+        return [{"code": "DOR_CHECK_SKIPPED", "severity": "warn", "message": str(exc)}], None
+
+    gaps = [
+        {"code": m.code, "severity": m.severity.value, "message": m.message}
+        for m in result.messages
+    ]
+    # Warn-default: surface gaps but still let the label land. Block only when
+    # the operator opted into COS_READY_DOR=strict AND the DoR actually fails.
+    if not result.blocked or os.environ.get("COS_READY_DOR") != "strict":
+        return gaps, None
+
+    if os.environ.get("COS_DOR_OVERRIDE") == "1":
+        override_result, _request = evaluate_override(
+            "dor",
+            reason=os.environ.get("COS_OVERRIDE_REASON"),
+            actor=os.environ.get("COS_AGENT") or agent_session,
+            config=config,
+        )
+        if not override_result.blocked:
+            return gaps, None  # override accepted — proceed, gaps stay advisory
+        rejected = "; ".join(m.message for m in override_result.messages)
+        summary = "; ".join(f"[{g['code']}] {g['message']}" for g in gaps)
+        return gaps, f"DoR not met and override rejected: {summary} | {rejected}"
+
+    summary = "; ".join(f"[{g['code']}] {g['message']}" for g in gaps)
+    return gaps, (
+        f"ready refused — Definition of Ready not met: {summary}. "
+        "Fix the task body, unset COS_READY_DOR, or set "
+        "COS_DOR_OVERRIDE=1 with a COS_OVERRIDE_REASON."
+    )
+
+
 @safe_tool
 def cos_task_ready(
     conn: sqlite3.Connection,
@@ -1392,14 +1443,24 @@ def cos_task_ready(
             meta={"layer": "tasks", "source": "board_os.cos_task_ready"},
         )
 
+    project_root = _project_root()
+    rel_path = row[1]
+    file_path = project_root / rel_path if rel_path else None
+
+    # DoR surfacing (TASK-258): reuse the icebox→in_progress validator so a
+    # task can't be silently labeled ready while incomplete. Runs BEFORE the
+    # label mutation so a strict-mode refusal leaves no half-applied change.
+    dor_gaps: list[dict[str, str]] = []
+    if ready and file_path is not None and file_path.exists():
+        dor_gaps, block_reason = _ready_dor_check(file_path, agent_session)
+        if block_reason is not None:
+            return fail("validation", block_reason)
+
     if ready:
         labels.append(READY_LABEL)
     else:
         labels = [lbl for lbl in labels if lbl != READY_LABEL]
 
-    project_root = _project_root()
-    rel_path = row[1]
-    file_path = project_root / rel_path if rel_path else None
     if file_path is not None and file_path.exists():
         try:
             _patch_labels_line(file_path, labels)
@@ -1413,15 +1474,15 @@ def cos_task_ready(
         )
         conn.commit()
 
-    return ok(
-        {
-            "task_id": task_id,
-            "ready": ready,
-            "labels": labels,
-            "status": str(row[0]),
-        },
-        meta={"layer": "tasks", "source": "board_os.cos_task_ready"},
-    )
+    data: dict[str, object] = {
+        "task_id": task_id,
+        "ready": ready,
+        "labels": labels,
+        "status": str(row[0]),
+    }
+    if dor_gaps:
+        data["dor"] = dor_gaps
+    return ok(data, meta={"layer": "tasks", "source": "board_os.cos_task_ready"})
 
 
 # ---------- cos_task_reclaim (zombie in_progress recovery) ----------

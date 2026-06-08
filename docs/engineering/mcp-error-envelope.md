@@ -59,7 +59,7 @@ patterns (zibalvpn R3), the envelope:
 | `truncated_edges_by_type` | dict | Per-bucket trim record `{kind: {from, to}}` for `edges_by_type` dict-of-lists. |
 | `truncated_string_fields` | list[str] | F#5 final safety-net — names of **large** scalar fields (≥ `_SCALAR_TRIM_FLOOR_CHARS`, 200) shortened with `…[truncated]`. Small load-bearing scalars (`scope`, `risk_level`, `status`, …) are NEVER trimmed: truncating a 4-char `"high"` cannot recover budget and only destroys signal, so the safety-net skips any string below the floor. |
 | `truncated_subgraph` | bool | Set when `_trim_coherent_subgraph` cut a `{nodes, edges}` body (graph-export shape). Pairs with `truncated_nodes_from/to` + `truncated_edges_from/to` so the agent can detect coherent (proportional) trim vs catastrophic shrink. |
-| `envelope_unshrinkable` | bool | Surfaced when every trim ladder ran and the payload still exceeded budget — caller should log + investigate. |
+| `envelope_unshrinkable` | bool | Surfaced when every trim ladder ran and the payload still exceeded budget — caller should log + investigate. Never set on the web opt-out path (`apply_budget=False`), where the trimmer is skipped by design. |
 | `resolved_from` | str | W7.2 / R4-01. For uid-accepting tools (`context`, `impact`, `references`, `rename_plan`, `trace`, `similar`). One of `"direct"` (exact uid match) / `"path_prefix"` (raw path resolved via `code:file:` / `doc:file:` / `folder:` prefix) / `"fuzzy_fts5"` (FTS5 label fallback — answer may be wrong symbol, agent should verify). For `cos_graph_path` the keys are `source_resolved_from` + `target_resolved_from`. |
 | `default_kinds_picked` | bool | W7.3 / R4-02. `cos_graph_references` only. `True` when the caller passed empty `kinds` and the tool picked the per-node-kind default (class → `constructs+has_param_type+inherits_from+…`, function → `calls+accesses_field+imports+…`, file → `imports+links_to+contains+…`, doc_file → `links_to+cites_heading+…`, dependency → `requires+imports+…`). |
 | `node_kind` | str | W7.3. `cos_graph_references` only. The `kind` of the resolved root node — lets the caller verify that the per-kind defaults are appropriate. |
@@ -77,6 +77,7 @@ The trimmer strips and re-computes `tokens_estimated`, `truncated`, and every
 |---|---|---|---|
 | Default (agent context) | `TOKEN_BUDGET_CHARS = 32_000` | `_apply_token_budget` — per-key shrink ladder (results/neighbours/references/…), then `edges_by_type` buckets, then F#5 string truncation. Each list trim re-checks the **committed** envelope (including the `truncated_<key>_from/to` marker bytes it just added) and shrinks one element further if still over — so the ladder never returns a body that is marginally over budget and falls through to maul scalars. The over-budget trigger and every probe compare a **token-normalised** size (`max(len, est_tokens×4)`, identical to raw length for ASCII) so non-Latin payloads trim at the real ~8 K-token budget, not a raw-char proxy. | Every `cos_*` tool whose response does NOT have both `nodes:list` and `edges:list` |
 | Graph subgraph (OOM safety) | `GRAPH_SUBGRAPH_BUDGET_CHARS = 5_000_000` | `_trim_coherent_subgraph` — binary-search top-K nodes by incident degree, keep only edges between kept nodes | `cos_graph_export` and any other tool emitting `{nodes, edges}` |
+| Web/browser opt-out | `ok(..., apply_budget=False)` | none — the token-budget trimmer is skipped entirely | FastAPI web routes that re-use a `cos_*` tool function but serve a **browser** (not token-limited). The board's `/api/board/list` threads `cos_task_board(apply_budget=False)` straight into `ok()`, so a large board renders without tripping the 32 KB agent cap or its `envelope_unshrinkable` fall-through. |
 
 Rationale for the second tier: `cos_graph_export` describes a whole
 subgraph (Hub UI's CONTAINS spine, 1094 nodes / 1444 edges typical for
@@ -90,6 +91,20 @@ caller receives a connected subgraph the Hub UI can render. The
 caller's `max_nodes` / `max_hops` parameters (G35 hard-caps
 `max_nodes ≤ 2000`) are the primary volume controls; the envelope
 is the safety net.
+
+**Third tier — `apply_budget=False` (web opt-out).** The 32 KB default is
+an *agent-context* budget: it stops a tool response from flooding the
+agent's window. A browser has no such limit. When a FastAPI route re-uses
+a `cos_*` tool function to serve the SPA, it passes `apply_budget=False`
+so `ok()` skips the trimmer entirely — the wire payload is bounded by the
+route's own pagination, not the agent cap. This decouples the Hub wire
+contract from the agent envelope: the two are different consumers of one
+producer and must not share a byte budget. Without it, a large board
+(≈186 KB) routed through `ok()` set `envelope_unshrinkable=True` and
+logged an ERROR even though the browser could render it fine. The opt-out
+is a **boolean**, not a custom byte cap — the only two states a caller
+needs are "agent budget" (default) and "no budget" (browser); an
+arbitrary mid-size cap has no consumer (anti-overengineering).
 
 ### Error
 
@@ -127,7 +142,7 @@ If the default is wrong for a specific call, pass `retryable=` explicitly to
 from tools._shared import ok, fail, safe_tool
 ```
 
-- `ok(data)` → success envelope (str)
+- `ok(data, *, meta=None, apply_budget=True)` → success envelope (str). `apply_budget=False` skips the token-budget trimmer for web/browser callers — see [Token budget tiers](#token-budget-tiers).
 - `fail(category, message, *, retryable=None)` → error envelope (str)
 - `@safe_tool` → decorator that catches common exception classes and converts
   them to `fail()` — use above each `cos_*` function body so unexpected errors

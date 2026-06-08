@@ -1457,3 +1457,32 @@ def test_board_small_board_is_not_truncated(project: Path, conn: sqlite3.Connect
     data = _parse(mcp_tools.cos_task_board(conn))["data"]
     assert data["truncated"] is False
     assert data["count"] == data["total_count"] == 3
+
+
+def test_board_browser_path_skips_envelope_cap(project: Path, conn: sqlite3.Connection):
+    # STEP 2 — the user's 186KB ERROR. The browser path passes apply_budget=False,
+    # which must skip BOTH the board's own pre-cap AND ok()'s 32KB agent cap, so a
+    # large board renders in full with NO envelope_unshrinkable ERROR on the wire.
+    # (The agent path on the same board still caps — test_board_caps_to_envelope_budget.)
+    from thinking_os.tools._shared import TOKEN_BUDGET_CHARS
+
+    long = "x" * 160
+    for i in range(45):
+        mcp_tools.cos_task_create(
+            conn,
+            title=f"Task {i:02d} {long}",
+            swimlane="core",
+            kind="feature",
+            labels=["alpha", "beta", "gamma"],
+            outcome="o",
+        )
+
+    env_str = mcp_tools.cos_task_board(conn, limit=200, apply_budget=False)
+    # Genuinely oversized: under the agent cap this exact board trips the trimmer.
+    assert len(env_str) > TOKEN_BUDGET_CHARS
+    data = _parse(env_str)["data"]
+    # Browser opt-out: full board, no cap, no unshrinkable ERROR fingerprint.
+    assert not data["meta"].get("envelope_unshrinkable")
+    assert data["meta"]["truncated"] is False
+    assert data["truncated"] is False
+    assert data["count"] == data["total_count"] == 45  # every card returned
