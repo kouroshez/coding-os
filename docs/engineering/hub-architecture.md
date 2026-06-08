@@ -118,6 +118,17 @@ Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## Command palette (Cmd/Ctrl+K)
+
+`CommandPalette` (mounted in `AppShell`, built on the shared `Modal`) reserves
+Cmd/Ctrl+K to open a fuzzy jump-to over **projects** (`/api/hub/projects`),
+**tasks** (`/api/board/list` cards) and **chat sessions** (`/api/cognition/chats`)
+in the current project. Sources are fetched on open; the input filters them
+(case-insensitive substring, pure `filterCommandItems`); ↑/↓ move the active row
+and Enter navigates (project → its chat landing, task → the board, chat → that
+session). The signature Linear/Vercel/Claude-desktop affordance; traces/full
+search are a fast-follow.
+
 ## Attention model (tab badge + Notification API)
 
 An autonomous agent runs long and then finishes or stalls — the human must not
