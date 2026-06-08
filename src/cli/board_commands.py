@@ -544,6 +544,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     successful outcome. Any failure is logged at DEBUG — task-done must never
     surface a brain-pipeline failure to the user.
     """
+    derived_outcome = "success"  # refined below if record_outcome derives 'rework'
     try:
         from thinking_os.record_outcome import record_outcome
 
@@ -558,13 +559,18 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
             "COS_DB_PATH",
             str(_project_root() / ".coding-os" / "coding-os.db"),
         )
-        record_outcome(
+        _oc = record_outcome(
             task_id=task_id,
             task_type=task_type,
             outcome="success",
             msg=msg,
             db_path=db_path,
         )
+        # record_outcome refines 'success' → 'rework' from task history; carry
+        # that derived value to the retrievals back-fill below so it is not a
+        # SECOND hardcoded-'success' writer (the exact bug class in this file).
+        if isinstance(_oc, dict) and _oc.get("outcome"):
+            derived_outcome = _oc["outcome"]
         # Stamp the model onto the fresh row so routing_weights has input.
         # COS_AGENT_MODEL is set by adapter startup; unknown → leave null.
         model = os.environ.get("COS_AGENT_MODEL") or os.environ.get("ANTHROPIC_MODEL")
@@ -587,7 +593,7 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         conn.execute(
             "UPDATE retrievals SET outcome = ?, outcome_at = CURRENT_TIMESTAMP "
             "WHERE outcome IS NULL AND (task_id = ? OR task_id LIKE ?)",
-            ("success", task_id, f"%{task_id}%"),
+            (derived_outcome, task_id, f"%{task_id}%"),
         )
         conn.commit()
     except Exception as exc:
