@@ -8,7 +8,6 @@ import {
   ListTodo,
   MessageSquare,
   Network,
-  Plus,
   Search,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -99,30 +98,16 @@ export default function ChatLanding() {
         aria-label="Chat sessions"
         className="flex min-h-0 flex-col border-r border-[var(--cos-border)] bg-[var(--cos-panel)]"
       >
-        <div className="flex shrink-0 items-center justify-between px-3 py-2.5">
-          <span className="text-[11px] font-bold tracking-widest text-[var(--cos-muted)] uppercase">
-            Chats
-          </span>
-          <button
-            type="button"
-            onClick={newChat}
-            className="flex items-center gap-1 rounded-md border border-[var(--cos-border)] px-2 py-1 text-[11px] font-medium text-[var(--cos-text)] hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-          >
-            <Plus size={12} aria-hidden /> New chat
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <ChatList selected={sessionId ?? null} onSelect={openSession} />
-        </div>
+        <ChatList selected={sessionId ?? null} onSelect={openSession} onNewChat={newChat} />
       </aside>
 
       <section className="min-h-0 overflow-hidden">
         {sessionId ? (
           <div
             className="grid h-full min-h-0"
-            style={{ gridTemplateColumns: showTrace ? 'minmax(0,1fr) 360px' : '1fr' }}
+            style={{ gridTemplateColumns: showTrace ? 'minmax(0,1fr) 360px' : 'minmax(0,1fr)' }}
           >
-            <div className="flex min-h-0 flex-col">
+            <div className="flex min-h-0 min-w-0 flex-col">
               <div className="flex shrink-0 items-center justify-end border-b border-[var(--cos-border)] px-3 py-1.5">
                 <button
                   type="button"
@@ -148,43 +133,45 @@ export default function ChatLanding() {
           </div>
         ) : (
           <div className="h-full overflow-auto">
-            <div className="flex min-h-full items-center justify-center px-6 py-10">
-              <div className="flex w-full max-w-3xl flex-col gap-6">
-                {!onboardMode && !turnActive && <OnboardingCard onStart={() => setOnboardMode(true)} />}
-                {!turnActive && (
-                  <h1 className="text-center text-[30px] leading-tight font-semibold tracking-tight text-[var(--cos-text)]">
-                    What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
-                  </h1>
-                )}
+            <div
+              className={`mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 ${
+                turnActive ? 'py-8' : 'min-h-full justify-center py-10'
+              }`}
+            >
+              {!onboardMode && !turnActive && <OnboardingCard onStart={() => setOnboardMode(true)} />}
+              {!turnActive && (
+                <h1 className="text-center text-[30px] leading-tight font-semibold tracking-tight text-[var(--cos-text)]">
+                  What should we build in <span className="text-[var(--cos-accent)]">{project}</span>?
+                </h1>
+              )}
 
-                <NewChatForm
-                  key={`${onboardMode ? 'onboard' : 'chat'}:${seed}`}
-                  onComplete={openSession}
-                  onActive={setTurnActive}
-                  initialRole={onboardMode ? 'onboarder' : ''}
-                  initialPrompt={onboardMode ? ONBOARD_PROMPT : seed}
-                  endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
-                />
+              <NewChatForm
+                key={`${onboardMode ? 'onboard' : 'chat'}:${seed}`}
+                onComplete={openSession}
+                onActive={setTurnActive}
+                initialRole={onboardMode ? 'onboarder' : ''}
+                initialPrompt={onboardMode ? ONBOARD_PROMPT : seed}
+                endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
+              />
 
-                {!onboardMode && !turnActive && (
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    {SUGGESTIONS.map((s) => {
-                      const Icon = s.icon;
-                      return (
-                        <button
-                          key={s.label}
-                          type="button"
-                          onClick={() => (s.onboard ? setOnboardMode(true) : setSeed(s.prompt))}
-                          className="flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-[13px] text-[var(--cos-muted)] transition hover:border-[var(--cos-border)] hover:bg-white/[0.03] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
-                        >
-                          <Icon size={15} aria-hidden className="shrink-0 text-[var(--cos-faint)]" />
-                          {s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              {!onboardMode && !turnActive && (
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {SUGGESTIONS.map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => (s.onboard ? setOnboardMode(true) : setSeed(s.prompt))}
+                        className="flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-[13px] text-[var(--cos-muted)] transition hover:border-[var(--cos-border)] hover:bg-white/[0.03] hover:text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+                      >
+                        <Icon size={15} aria-hidden className="shrink-0 text-[var(--cos-faint)]" />
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

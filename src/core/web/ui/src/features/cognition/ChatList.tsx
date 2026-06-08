@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
 
 export interface ChatSession {
@@ -39,9 +40,11 @@ function formatSize(bytes: number | null | undefined): string {
 export default function ChatList({
   selected,
   onSelect,
+  onNewChat,
 }: {
   selected: string | null;
   onSelect: (sessionId: string) => void;
+  onNewChat?: () => void;
 }) {
   const { data, isLoading, error } = useApiGet<ChatsPayload>(
     ['cognition-chats'],
@@ -86,19 +89,19 @@ export default function ChatList({
   return (
     <section aria-label="Chat sessions" className="flex h-full min-h-0 flex-col">
       <header className="border-b border-[var(--cos-border)] px-4 py-3 bg-[var(--cos-panel)]/40 backdrop-blur-md">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[10px] font-bold uppercase tracking-widest text-[var(--cos-muted)]">
-            Chats ({filtered.length} / {sessions.length})
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[var(--cos-muted)]">
+            Chats <span className="font-normal normal-case tracking-normal text-[var(--cos-faint)]">{filtered.length}/{sessions.length}</span>
           </h2>
-          <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] select-none">
-            <input
-              type="checkbox"
-              checked={showSystem}
-              onChange={(e) => setShowSystem(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-white/10 bg-black/20 text-[var(--cos-accent)] focus:ring-0 cursor-pointer"
-            />
-            <span>Show system</span>
-          </label>
+          {onNewChat && (
+            <button
+              type="button"
+              onClick={onNewChat}
+              className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--cos-border)] px-2 py-1 text-[11px] font-medium text-[var(--cos-text)] hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
+            >
+              <Plus size={12} aria-hidden /> New chat
+            </button>
+          )}
         </div>
         <input
           type="search"
@@ -108,6 +111,15 @@ export default function ChatList({
           aria-label="Filter chats"
           className="w-full rounded-md border border-[var(--cos-border)] bg-[var(--cos-bg)]/80 px-3 py-1.5 text-xs text-[var(--cos-text)] placeholder-[var(--cos-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--cos-accent)] transition-all"
         />
+        <label className="mt-2 flex w-fit items-center gap-1.5 cursor-pointer text-[10px] text-[var(--cos-muted)] hover:text-[var(--cos-text)] select-none">
+          <input
+            type="checkbox"
+            checked={showSystem}
+            onChange={(e) => setShowSystem(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-white/10 bg-black/20 text-[var(--cos-accent)] focus:ring-0 cursor-pointer"
+          />
+          <span>Show system</span>
+        </label>
       </header>
       <div className="flex-1 overflow-auto cos-scroll">
         {isLoading && <p className="p-4 text-xs text-[var(--cos-muted)]">loading chats…</p>}

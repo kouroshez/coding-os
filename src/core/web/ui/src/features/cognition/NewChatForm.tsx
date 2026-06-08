@@ -9,6 +9,7 @@ import EffortPicker from './EffortPicker';
 interface Block {
   type?: string;
   text?: string;
+  name?: string;
 }
 
 export default function NewChatForm({
@@ -37,6 +38,9 @@ export default function NewChatForm({
   const [effort, setEffort] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [text, setText] = useState('');
+  // Latest tool the agent is running — shown so a tool-heavy turn reads as
+  // live progress, not a frozen "working…".
+  const [activity, setActivity] = useState('');
   const [err, setErr] = useState<string | null>(null);
   // The submitted prompt. The moment it's set the composer is REPLACED by a live
   // conversation (user bubble + streaming reply) — so the chat "opens" instantly
@@ -51,6 +55,7 @@ export default function NewChatForm({
     setStreaming(true);
     setErr(null);
     setText('');
+    setActivity('');
     setSent(p);
     onActive?.(true);
     let capturedId: string | null = null;
@@ -98,6 +103,8 @@ export default function NewChatForm({
               .map((b) => b.text)
               .join('');
             if (t) setText((cur) => cur + t);
+            const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
+            if (tool?.name) setActivity(tool.name);
             if (ev === 'error' && payload?.message) setErr(payload.message);
           } catch {
             /* skip unparseable frame */
@@ -144,7 +151,14 @@ export default function NewChatForm({
             <MarkdownBlock source={text} />
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[var(--cos-faint)]">
-              <Loader2 size={13} className="animate-spin" /> thinking…
+              <Loader2 size={13} className="animate-spin" />
+              {activity ? `working · ${activity}…` : 'working…'}
+            </span>
+          )}
+          {streaming && text && (
+            <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-[var(--cos-faint)]">
+              <Loader2 size={11} className="animate-spin" />
+              {activity ? `working · ${activity}…` : 'working…'}
             </span>
           )}
           {err && <p className="mt-2 text-[12px] text-[#f85149]">{err}</p>}
