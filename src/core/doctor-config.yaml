@@ -21,7 +21,7 @@ placeholder_scan:
   - docs/governance/_templates
   - docs/_meta
 schema:
-  expected_version: 30
+  expected_version: 39
   expected_tables:
   - agent_metrics
   - ambiguity_violations
@@ -47,6 +47,8 @@ schema:
   - graph_nodes_fts_docsize
   - graph_nodes_fts_idx
   - learned_patterns
+  - log_events
+  - log_fingerprints
   - memory_audit
   - observations
   - outcome_history
@@ -59,6 +61,14 @@ schema:
   - routing_weights
   - schema_version
   - session_summaries
+  - task_dependencies
+  - task_edit_history
   - task_outcomes
   - task_status_history
   - tasks
+  - tasks_fts
+  - tasks_fts_config
+  - tasks_fts_content
+  - tasks_fts_data
+  - tasks_fts_docsize
+  - tasks_fts_idx
