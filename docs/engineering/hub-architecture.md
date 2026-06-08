@@ -47,6 +47,21 @@ Successful board list payloads include:
 
 The dashboard counts `active`/`present` rows **plus** any `is_current` row whose pid is alive. Without the `is_current` clause a read-only session (verify/git/pytest, no `Write`/`Edit`) aged past the 300s TTL would classify `idle` and be silently dropped — the agent shows as working while the HUD reads "no agent running". `agent-presence.sh` also fires on `PostToolUse Bash` so such sessions refresh `last_tool_at` and mostly never reach `idle` in the first place; `is_current` is the defense-in-depth backstop.
 
+### Live-agent context window (`context_pct`)
+
+`/api/presence/agents` reports each Claude agent's context-window fill as
+`context_pct`. The token counts come from the Stop path: `agent-presence.sh`
+passes the runtime's `transcript_path` to `_helpers/presence_write.py`, which on
+the `stop` event tails the **live** transcript for the last assistant `usage`
+block, sums `input_tokens + cache_read_input_tokens + cache_creation_input_tokens`,
+and stamps `used_tokens` (+ `context_updated_at`) into `sessions/<sid>.json`.
+`presence.py` divides `used_tokens` by the model's window (1M for a `[1m]` model
+id, else 200K) to derive the percent. This is privacy-safe — only the aggregate
+token count is stored, never transcript content — so it works without the opt-in
+`COS_SNAPSHOT_TRANSCRIPT` snapshot. The snapshot tail remains a fallback, and the
+value is **honest-null** (not fabricated) when no usage signal exists, e.g. for
+non-Claude adapters.
+
 ## Per-project backend keying (graph + DB)
 
 One uvicorn process serves every registered project. To prevent the first project's SQLite handle from leaking into another project's response, every layer that opens a database now keys its singleton by the **resolved DB path**, not by a process-global slot.

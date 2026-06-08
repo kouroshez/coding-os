@@ -251,6 +251,25 @@ async def presence_now(
     )
 
 
+def _context_window(model: str | None) -> int:
+    """Context-window size for a model id: 1M for a `[1m]` id, else 200K."""
+    return 1_000_000 if (model and "[1m]" in model) else 200_000
+
+
+def _context_pct_from_used_tokens(used_tokens: Any, model: str | None) -> float | None:
+    """Pure: context percent from a pre-summed token count + model.
+
+    Reads the `used_tokens` value the Stop hook stamps into sessions/<sid>.json
+    (TASK-255). Honest-null when there is no usable count (TASK-192)."""
+    try:
+        used = int(used_tokens)
+    except (TypeError, ValueError):
+        return None
+    if used <= 0:
+        return None
+    return round(min(100.0, used / _context_window(model) * 100.0), 1)
+
+
 def _context_pct_from_usage(usage: dict, model: str | None) -> float | None:
     """Pure: context-window percent from a transcript usage block + model.
 
@@ -264,8 +283,7 @@ def _context_pct_from_usage(usage: dict, model: str | None) -> float | None:
     )
     if used <= 0:
         return None
-    window = 1_000_000 if (model and "[1m]" in model) else 200_000
-    return round(min(100.0, used / window * 100.0), 1)
+    return round(min(100.0, used / _context_window(model) * 100.0), 1)
 
 
 def _latest_transcript_usage(transcript_path: Path) -> dict | None:
@@ -343,11 +361,17 @@ async def presence_agents(
                     logger.debug("resolve_chain failed for %s: %s", agent_id, exc)
             sess = snap.get("session")
             sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
-            # Context-window % — Claude-only (only Claude writes transcript
-            # snapshots); honest null for adapters with no usage signal.
+            # Context-window % — Claude-only; honest null for adapters with no
+            # usage signal. Primary source: used_tokens stamped on the Stop
+            # path (TASK-255, no opt-in needed). Fallback: the opt-in snapshot
+            # transcript tail (COS_SNAPSHOT_TRANSCRIPT=1).
             context_pct: float | None = None
             sid = snap.get("session_id")
-            if sid:
+            if isinstance(sess, dict) and sess.get("used_tokens") is not None:
+                context_pct = _context_pct_from_used_tokens(
+                    sess.get("used_tokens"), snap.get("model")
+                )
+            if context_pct is None and sid:
                 tpath = state / agent_id / "sessions" / "transcripts" / f"{sid}.jsonl"
                 if tpath.exists():
                     usage = _latest_transcript_usage(tpath)
@@ -366,6 +390,8 @@ async def presence_agents(
                     "chain": chain,
                     "state": states.get(agent_id, "offline"),
                     "context_pct": context_pct,
+                    "used_tokens": (sess.get("used_tokens") if isinstance(sess, dict) else None),
+                    "context_window": _context_window(snap.get("model")),
                 }
             )
 
