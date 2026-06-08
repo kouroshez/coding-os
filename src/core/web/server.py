@@ -138,6 +138,15 @@ def create_app() -> FastAPI:
 
     app.add_middleware(ProjectScopeMiddleware)
 
+    # Localhost security gate — Origin/Host allowlist + CSRF double-submit on
+    # mutation routes. Added last so it is the OUTERMOST middleware and
+    # rejects a hostile cross-origin/rebinding request before any work runs.
+    # Browser-evidence-gated: non-browser clients pass through. See
+    # docs/engineering/hub-architecture.md#localhost-security-gate-originhost-allowlist--csrf
+    from web.security import SecurityGateMiddleware
+
+    app.add_middleware(SecurityGateMiddleware)
+
     # ------------------------------------------------------------------
     # Route registration
     # ------------------------------------------------------------------

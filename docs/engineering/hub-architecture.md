@@ -97,6 +97,38 @@ Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## Localhost security gate (Origin/Host allowlist + CSRF)
+
+The hub binds `127.0.0.1` but is **unauthenticated** — any page the user's
+browser visits can issue requests at `127.0.0.1:9188`. Once mutation routes
+exist (registry add/scan/gc, and the filesystem-scaffolding `init` route),
+two browser-mediated threats apply: **DNS rebinding** (a page on `evil.com`
+rebinds its hostname to 127.0.0.1) and **CSRF** (a drive-by page POSTs using
+the user's browser). `SecurityGateMiddleware` ([src/core/web/security.py](../../src/core/web/security.py)) closes both.
+
+**Engagement rule — browser-evidence-gated.** The gate only engages for
+requests that carry browser-origin evidence (an `Origin` or `Referer`
+header). Non-browser clients (curl, server-to-server, MCP, the test client)
+never present those headers and are *not* the CSRF/rebinding vector, so they
+pass through untouched. This is why adding the gate breaks no existing
+server-side test.
+
+| Check | Applies to | Rule |
+|---|---|---|
+| **Origin allowlist** | state-changing methods (POST/PUT/PATCH/DELETE) on `/api/*` | if `Origin` is present, its hostname must be in the localhost allowlist (`localhost` / `127.0.0.1` / `::1` + `COS_WEB_ALLOWED_HOSTS`) → else `403` |
+| **Referer fallback** | same | if `Origin` is absent but `Referer` present, the `Referer` hostname must be allowlisted → else `403` |
+| **Host allowlist** | any request carrying Origin/Referer | the `Host` header hostname must be allowlisted (DNS-rebinding defense — a rebound page sends `Host: evil.com`) → else `403` |
+| **CSRF double-submit** | state-changing methods | the gate issues a readable `cos_csrf` cookie (SameSite=Lax) on responses; when that cookie is present on a request, the `X-CSRF-Token` header must echo it → else `403`. The SPA's `api-client.ts` reads the cookie and sends the header automatically. |
+
+The Origin allowlist is the cross-origin *guarantee*; the CSRF token is
+same-origin defense-in-depth (it engages once the cookie exists, i.e. in the
+same-origin production build — in cross-origin dev `:5173→:9188` the cookie
+is not sent, and the Origin allowlist already vouches for `:5173`).
+
+Escape hatch: `COS_WEB_CORS_ALLOW_ALL=1` (the existing wide-open opt-in) also
+disables the security gate, for the rare non-localhost deploy where the
+operator has accepted the risk.
+
 ## Propagation matrix — edit X, how does it reach consumer projects?
 
 | Change | Propagates to the meta repo itself | Propagates to consumer projects |

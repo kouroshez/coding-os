@@ -63,6 +63,22 @@ const buildUrl = (path: string, params?: Record<string, unknown>): string => {
   return url.pathname + url.search;
 };
 
+// CSRF double-submit: the hub's SecurityGateMiddleware issues a readable
+// `cos_csrf` cookie; mutation requests must echo it in the X-CSRF-Token
+// header. Same-origin only — in cross-origin dev the cookie isn't sent and
+// the server's Origin allowlist vouches for the dev origin instead. See
+// docs/engineering/hub-architecture.md#localhost-security-gate-originhost-allowlist--csrf
+const readCsrfToken = (): string | null => {
+  if (typeof document === 'undefined') return null;
+  const match = /(?:^|;\s*)cos_csrf=([^;]+)/.exec(document.cookie);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const csrfHeader = (): Record<string, string> => {
+  const token = readCsrfToken();
+  return token ? { 'X-CSRF-Token': token } : {};
+};
+
 const handle = async <T>(res: Response): Promise<[T, ApiMeta | null]> => {
   const text = await res.text();
   let body: unknown = null;
@@ -125,6 +141,7 @@ export async function apiPost<T>(
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      ...csrfHeader(),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     ...init,
@@ -142,6 +159,7 @@ export async function apiPatch<T>(
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      ...csrfHeader(),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     ...init,
@@ -155,7 +173,7 @@ export async function apiDelete<T>(
 ): Promise<[T, ApiMeta | null]> {
   const res = await fetch(buildUrl(path), {
     method: 'DELETE',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', ...csrfHeader() },
     ...init,
   });
   return handle<T>(res);
