@@ -525,6 +525,33 @@ def test_board_include_archive_returns_active_and_paged(project: Path, conn: sql
     assert env["data"]["columns"]["complete"]["total_count"] == 1
 
 
+def test_board_include_archive_on_plain_tuple_connection(
+    project: Path, conn: sqlite3.Connection, tmp_path: Path
+):
+    """Regression: the web _db_conn() opens SQLite WITHOUT row_factory=sqlite3.Row,
+    so paged rows are plain tuples. _keyset_column_page must build next_cursor via
+    positional access — last["completed_at"] raised "tuple indices must be integers"
+    and broke the board tab's include_archive request. init_db's Row factory hid the
+    bug from every other keyset test, so this one uses a bare connection on purpose.
+    """
+    for i in range(7):  # > page_size → has_more=True → the next_cursor line runs
+        _insert_complete(conn, f"TASK-6{i:02d}", completed_at=2000 + i)
+
+    # A bare connection, NO row_factory — exactly like web/routes/board.py::_db_conn().
+    plain = sqlite3.connect(str(tmp_path / "coding-os.db"))
+    try:
+        env = _parse(
+            mcp_tools.cos_task_board(
+                plain, include_archive=True, page_size=3, apply_budget=False
+            )
+        )
+    finally:
+        plain.close()
+
+    assert env["ok"] is True  # pre-fix: @safe_tool caught the TypeError → ok=False
+    assert env["data"]["columns"]["complete"]["next_cursor"]  # positional cursor built
+
+
 def test_commits_referencing_batch_attributes_per_task(tmp_path: Path):
     import subprocess
 
