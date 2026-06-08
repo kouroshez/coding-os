@@ -929,12 +929,24 @@ _BLOCK_RULE_RE = re.compile(r"\brule=(\S+)")
 _LESSON_WINDOW_DAYS = 90
 
 
-def _hook_log_path(conn: sqlite3.Connection) -> Path | None:
-    env = os.environ.get("COS_HOOK_LOG")
-    if env:
-        return Path(env)
-    root = _derive_project_root(conn)
-    return (root / ".coding-os" / ".hooks.log") if root else None
+def _hook_log_paths(conn: sqlite3.Connection) -> list[Path]:
+    """Block-mining log candidates, most-durable first: the block-only log
+    (retains blocks past the main log's cap) then the main hook log (recent,
+    un-rotated blocks). Both are read + line-deduped so a mirrored block counts
+    once. Env overrides win; otherwise derive from the project root."""
+    paths: list[Path] = []
+    blk = os.environ.get("COS_HOOK_BLOCK_LOG")
+    main = os.environ.get("COS_HOOK_LOG")
+    if blk:
+        paths.append(Path(blk))
+    if main:
+        paths.append(Path(main))
+    if not paths:
+        root = _derive_project_root(conn)
+        if root:
+            paths.append(root / ".coding-os" / ".hook-blocks.log")
+            paths.append(root / ".coding-os" / ".hooks.log")
+    return paths
 
 
 def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
@@ -947,13 +959,24 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
     Fire-and-forget: a missing/garbled log never breaks extraction.
     """
     floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
-    log_path = _hook_log_path(conn)
-    if not log_path or not log_path.exists():
+    # Single source, not a merge: every block is mirrored to both logs, so the
+    # block-only log is a strict superset of the main log's surviving blocks.
+    # Read the first existing, non-empty candidate (block log preferred) — this
+    # avoids double-counting a mirrored block while preserving genuine repeats.
+    log_path = None
+    for lp in _hook_log_paths(conn):
+        try:
+            if lp.exists() and lp.stat().st_size > 0:
+                log_path = lp
+                break
+        except OSError:
+            continue
+    if log_path is None:
         return []
     try:
         lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as exc:
-        logger.debug("hook-block mining skipped (read): %s", exc)
+        logger.debug("hook-block mining skipped (read %s): %s", log_path, exc)
         return []
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=_LESSON_WINDOW_DAYS)

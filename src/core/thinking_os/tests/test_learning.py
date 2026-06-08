@@ -498,7 +498,38 @@ class TestHookBlockLessons:
         from tools.learning import _mine_hook_block_lessons
 
         monkeypatch.setenv("COS_HOOK_LOG", str(tmp_path / "does-not-exist.log"))
+        monkeypatch.delenv("COS_HOOK_BLOCK_LOG", raising=False)
         assert _mine_hook_block_lessons(conn, min_occurrences=3) == []
+
+    def test_mines_from_block_only_log_when_main_flooded(self, conn, tmp_path, monkeypatch):
+        # The fix: the main log is flooded with non-block lines (blocks evicted),
+        # but the block-only durable log retains them → still mined.
+        from tools.learning import _mine_hook_block_lessons
+
+        main = tmp_path / ".hooks.log"
+        self._write_log(main, ["[2026-06-08T10:00:00Z] [some-hook] [fire] agent=claude session=s task=t"] * 50)
+        blk = tmp_path / ".hook-blocks.log"
+        self._write_log(blk, [self._block_line("enforce-skill", "graph-explorer") for _ in range(3)])
+        monkeypatch.setenv("COS_HOOK_LOG", str(main))
+        monkeypatch.setenv("COS_HOOK_BLOCK_LOG", str(blk))
+        lessons = _mine_hook_block_lessons(conn, min_occurrences=3)
+        assert lessons and "enforce-skill" in lessons[0]["pattern"]
+
+    def test_mirrored_block_not_double_counted(self, conn, tmp_path, monkeypatch):
+        # Every block is mirrored to BOTH logs. The miner reads ONE source (block
+        # log preferred), so 3 real blocks count as 3 — never 6 from summing both.
+        from tools.learning import _mine_hook_block_lessons
+
+        mirrored = [self._block_line("thinking_os-gate", "gate-not-recorded", days_ago=d) for d in (0, 1, 2)]
+        main = tmp_path / ".hooks.log"
+        blk = tmp_path / ".hook-blocks.log"
+        self._write_log(main, mirrored)  # same 3 lines in both logs
+        self._write_log(blk, mirrored)
+        monkeypatch.setenv("COS_HOOK_LOG", str(main))
+        monkeypatch.setenv("COS_HOOK_BLOCK_LOG", str(blk))
+        lessons = _mine_hook_block_lessons(conn, min_occurrences=3)
+        assert lessons
+        assert "3 occurrences" in lessons[0]["pattern"]  # 3, not 6 — single source
 
 
 class TestStatClassification:
