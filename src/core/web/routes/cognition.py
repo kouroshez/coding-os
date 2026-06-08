@@ -842,20 +842,27 @@ async def chat_new(
 
     model = body.get("model") or None
     role = (str(body.get("role") or "")).strip() or None
-    system_prompt = _role_system_prompt(role)
+    system_prompt = _role_system_prompt(role) or {
+        "type": "preset",
+        "preset": "claude_code",
+        "append": _CHAT_SYSTEM,
+    }
     cwd = _project_cwd()
     new_session_id = f"ses-claude-ui-{int(_time.time())}-{secrets.token_hex(3)}"
     opts_kwargs: dict = dict(
         cwd=cwd,
         model=model,
         permission_mode="dontAsk",
-        setting_sources=["project"],
+        setting_sources=[],
+        # Hub chat is a fast conversational surface — skip the project hook suite
+        # (dozens of SessionStart hooks add ~40s of latency before the first
+        # reply) and the auto-loaded CLAUDE.md governance/banner. The agent keeps
+        # Read/Grep/Bash (incl. the `cos` CLI) to ground answers.
         # No session_id: the claude CLI rejects non-UUID ids ("Invalid session
         # ID. Must be a valid UUID"). The SDK mints its own UUID, surfaced below
         # from the stream and emitted as the `session` event.
     )
-    if system_prompt is not None:
-        opts_kwargs["system_prompt"] = system_prompt
+    opts_kwargs["system_prompt"] = system_prompt
     options = sdk.ClaudeAgentOptions(**opts_kwargs)
 
     async def event_gen():
@@ -900,6 +907,17 @@ async def chat_new(
             "Connection": "keep-alive",
         },
     )
+
+
+_CHAT_SYSTEM = (
+    "You are the coding-os Hub chat assistant — a direct, helpful conversational "
+    "agent for this project. Answer the user's message conversationally in Markdown. "
+    "Do NOT prepend the transparency banner (the line starting with the bell emoji) "
+    "and skip any cognitive-state / gate / work-log ceremony — that protocol is for "
+    "terminal sessions, not Hub chat; just answer. You MAY use the cos_* tools "
+    "(memory, graph, docs, board) to ground an answer when it genuinely helps, but "
+    "keep replies focused and readable rather than running a full work protocol."
+)
 
 
 _TASK_AUTHOR_SYSTEM = (

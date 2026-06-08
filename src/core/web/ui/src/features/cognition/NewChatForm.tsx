@@ -42,6 +42,7 @@ export default function NewChatForm({
     setText('');
     let capturedId: string | null = null;
     let failed = false;
+    let handedOff = false;
     try {
       const res = await fetch(resolveApiUrl(endpoint), {
         method: 'POST',
@@ -79,6 +80,15 @@ export default function NewChatForm({
             const payload = data ? JSON.parse(data) : {};
             if (ev === 'session' && payload.session_id) {
               capturedId = payload.session_id;
+              // Hand off to the rich ChatView the INSTANT the session id is
+              // known — the user sees their message + the reply build in a real
+              // conversation instead of waiting in the composer. The fetch loop
+              // keeps running after this component unmounts (no AbortController),
+              // so the turn completes server-side and ChatView tails the jsonl.
+              if (!handedOff && capturedId && onComplete) {
+                handedOff = true;
+                onComplete(capturedId);
+              }
             }
             // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`
             // — read content first so inline streaming text renders.
@@ -101,11 +111,10 @@ export default function NewChatForm({
     } finally {
       setStreaming(false);
     }
-    // Hand off to the rich ChatView once the first turn finished streaming —
-    // the stream is done, so unmounting cannot cancel the server-side SDK
-    // query (navigating mid-stream WOULD cancel it). In-place, same tab — the
-    // session sidebar stays visible (no new-tab handoff).
-    if (!failed && capturedId && onComplete) onComplete(capturedId);
+    // Fallback: hand off at end-of-stream only if the `session` event never
+    // fired (early handoff above is the normal path). Errors BEFORE a session
+    // id stay in the composer so the user sees them instead of an empty view.
+    if (!handedOff && !failed && capturedId && onComplete) onComplete(capturedId);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
