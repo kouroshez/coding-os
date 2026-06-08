@@ -124,6 +124,18 @@ unless `task_outcomes` contains at least one non-`success` outcome. A real
 project with reworks/failures still gets meaningful, differentiating stats;
 a flawless corpus gets none (correct — nothing to explain).
 
+**Outcome is derived, not asserted (the variance feeder).** Until 2026-06 `cos
+task-done` hardcoded `outcome='success'`, so the gate above suppressed every
+stat/rework branch forever (192 tasks → 4 patterns; "INFRA succeeds 100%" was a
+tautology, not a learning). `record_outcome` now refines an optimistic
+`'success'` into the honest `'rework'` from the task's OWN history — a backward
+status move (reopened after testing/complete/review in `task_status_history`) or
+a `backtrack_event` in the closing session (`record_outcome._derive_rework`,
+`refine_from_history=True`). An explicitly-asserted non-`success` is never
+overridden. Migration v38 backfilled the historical corpus from the same reopen
+signal. The gate is unchanged — it is finally fed honest input, so the baselines
+read `99%` (with real contrast) instead of a hollow `100%`.
+
 ### 5. Lessons from revert / recurring-fix commits
 `_mine_commit_lessons` reads `git log` over `_LESSON_WINDOW_DAYS` for `fix:` /
 `revert:` Conventional-Commit subjects, strips the type prefix + scope, and
@@ -224,17 +236,24 @@ Claude regardless (it renders into settings but `.hooks.log` shows zero
 `capture-tool-failure` runs). A `PostToolUseFailure` hook also could not see a
 *block* anyway — the tool never ran.
 
-But every block IS recorded in the append-only activity log as
+But every block IS recorded in the activity log as
 `[<ts>] [<hook>] [block] … rule=<rule>` (via `cos_log_hook <id> block`).
-`_mine_hook_block_lessons` reads that log (`$COS_HOOK_LOG`, else
-`<root>/.coding-os/.hooks.log`), clusters blocks from the last
-`_LESSON_WINDOW_DAYS` (90) by `<hook>:<rule>`, and mints one `lesson` per
-cluster that recurs ≥2×. Both friction miners share that recency window, so a
-resolved or renamed-rule failure ages out (stops being re-confirmed) and
-decays instead of lingering forever. This needs
-no change to the hot path or to any safety hook, and works for every adapter
-because the log is the agent-agnostic SSOT for block events. The log is
-self-rotating (`COS_HOOK_LOG_MAX_LINES`), so the read is bounded.
+
+**Durable block-only log (the retention fix).** The main log
+(`$COS_HOOK_LOG`) self-rotates at `COS_HOOK_LOG_MAX_LINES` (500) and is flooded
+by high-volume `fire`/`enter` lines — so rare `block` events were **evicted by
+volume within hours**, long before nightly/every-10 extraction ran (a 799-line
+live log held zero surviving blocks). `cos_log_hook` therefore **mirrors every
+`block` line** into a block-only durable log (`$COS_HOOK_BLOCK_LOG`, default
+`<root>/.coding-os/.hook-blocks.log`); being block-only it retains them across
+the 90-day window. `_mine_hook_block_lessons` reads a **single source** —
+`_hook_log_paths` returns the block-only log first, the main log as fallback —
+so a mirrored block is never double-counted, while genuine repeats still count.
+It clusters blocks from the last `_LESSON_WINDOW_DAYS` (90) by `<hook>:<rule>`
+and mints one `lesson` per cluster recurring ≥2×. Both friction miners share
+that recency window, so a resolved/renamed-rule failure ages out and decays.
+No change to the hot path or any safety hook; works for every adapter because
+the log is the agent-agnostic SSOT for block events.
 
 ## Active learning loop — auto-validation (closing learn→apply→confirm)
 
