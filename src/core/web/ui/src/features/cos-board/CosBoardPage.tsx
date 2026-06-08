@@ -622,9 +622,11 @@ export default function CosBoardPage() {
         legendOpen={legendOpen}
         streamOpen={streamOpen}
         showArchive={tweaks.showArchive}
+        showSwimlanes={tweaks.showSwimlanes}
         onToggleLegend={() => setLegendOpen((v) => !v)}
         onToggleStream={() => setStreamOpen((v) => !v)}
         onToggleArchive={() => setTweaks((t) => ({ ...t, showArchive: !t.showArchive }))}
+        onToggleSwimlanes={() => setTweaks((t) => ({ ...t, showSwimlanes: !t.showSwimlanes }))}
         onToggleTweaks={() => setTweaksOpen((v) => !v)}
         onCreate={() => setCreateOpen(true)}
       />
@@ -1143,9 +1145,11 @@ function TopBar({
   legendOpen,
   streamOpen,
   showArchive,
+  showSwimlanes,
   onToggleLegend,
   onToggleStream,
   onToggleArchive,
+  onToggleSwimlanes,
   onToggleTweaks,
   onCreate,
 }: {
@@ -1157,9 +1161,11 @@ function TopBar({
   legendOpen: boolean;
   streamOpen: boolean;
   showArchive: boolean;
+  showSwimlanes: boolean;
   onToggleLegend: () => void;
   onToggleStream: () => void;
   onToggleArchive: () => void;
+  onToggleSwimlanes: () => void;
   onToggleTweaks: () => void;
   onCreate: () => void;
 }) {
@@ -1249,6 +1255,9 @@ function TopBar({
 
         <TopBtn onClick={onToggleLegend} active={legendOpen}>⁂ legend</TopBtn>
         <TopBtn onClick={onToggleStream} active={streamOpen}>⎌ stream</TopBtn>
+        <TopBtn onClick={onToggleSwimlanes} active={showSwimlanes}>
+          {showSwimlanes ? '☰ swimlanes' : '▦ flat'}
+        </TopBtn>
         <TopBtn onClick={onToggleArchive} active={showArchive}>
           {showArchive ? '▣ archive on' : '▢ archive'}
         </TopBtn>
