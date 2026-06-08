@@ -29,13 +29,20 @@ def record_co_edit(
     *,
     session_id: str,
     file_path: str,
+    max_links: int = 8,
 ) -> list[dict]:
-    """Create co_edit edges between this file and other files in the same session.
+    """Create co_edit edges between this file and recent other files in the session.
+
+    Bounded fan-out (contract: docs/engineering/concept-graph.md): links only to
+    the `max_links` MOST-RECENTLY-edited other files, so a long multi-file session
+    can't create the O(N^2) edge explosion that bloated the graph to 260 MB.
+    Recency is also better signal than session-wide pairing.
 
     Args:
         conn: SQLite connection.
         session_id: Current session identifier.
         file_path: The file just modified.
+        max_links: Cap on edges created per call (most-recent other files).
 
     Returns:
         List of created/updated edges.
@@ -43,11 +50,12 @@ def record_co_edit(
     if not session_id or not file_path:
         return []
 
-    # Find other files modified in this session
+    # The most-recently-edited OTHER files in this session (bounded fan-out).
     rows = conn.execute(
-        "SELECT DISTINCT files_modified FROM observations "
-        "WHERE session_id = ? AND files_modified != ? AND files_modified IS NOT NULL",
-        (session_id, file_path),
+        "SELECT files_modified, MAX(created_at) AS last_at FROM observations "
+        "WHERE session_id = ? AND files_modified != ? AND files_modified IS NOT NULL "
+        "GROUP BY files_modified ORDER BY last_at DESC LIMIT ?",
+        (session_id, file_path, max(1, max_links)),
     ).fetchall()
 
     edges = []

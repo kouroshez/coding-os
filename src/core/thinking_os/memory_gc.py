@@ -52,6 +52,7 @@ def gc_memory(
         "orphan_embeddings_observations": 0,
         "orphan_embeddings_document_chunks": 0,
         "orphan_concept_graph_edges": 0,
+        "stale_co_edit_edges": 0,
         "trash_observations": 0,
         "status": "ok",
         "dry_run": dry_run,
@@ -101,6 +102,23 @@ def gc_memory(
                     f"DELETE FROM concept_graph WHERE {where}",
                     params,
                 )
+
+        # ---- 2b. Stale, unreinforced co_edit edges (density backstop) ----
+        # A co_edit edge seen once (weight <= 1.0) and untouched for 30 days is
+        # noise; without this prune the graph trends back toward a useless
+        # complete graph (the 260 MB incident). Reinforced (weight > 1.0) or
+        # recent edges survive. Contract: docs/engineering/concept-graph.md.
+        if _table_exists(conn, "concept_graph"):
+            stale_where = (
+                "edge_type = 'co_edit' AND weight <= 1.0 "
+                "AND updated_at < datetime('now', '-30 days')"
+            )
+            n = conn.execute(
+                f"SELECT COUNT(*) FROM concept_graph WHERE {stale_where}"
+            ).fetchone()[0]
+            stats["stale_co_edit_edges"] = int(n)
+            if n and not dry_run:
+                conn.execute(f"DELETE FROM concept_graph WHERE {stale_where}")
 
         # ---- 3. Trash observations (captured during local experiments) ----
         if _table_exists(conn, "observations"):
