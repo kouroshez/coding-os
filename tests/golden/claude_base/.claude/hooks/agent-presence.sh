@@ -137,14 +137,18 @@ HOOK_MODEL=""
 # The host runtime's own session id (the SDK transcript uuid) — the bridge from
 # our coding-os SESSION_ID to the chat transcript.
 HOOK_SDK_UUID=""
+# Live transcript path (Claude Stop payload) — presence_write tails it on the
+# stop event to stamp aggregate context-window tokens (TASK-255).
+HOOK_TRANSCRIPT=""
 if [[ -n "$INPUT" ]]; then
   HOOK_MODEL=$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)
   HOOK_SDK_UUID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+  HOOK_TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)
 fi
 if [[ -f "$PRESENCE_HELPER" ]]; then
   python3 "$PRESENCE_HELPER" \
     "$PRESENCE_FILE" "$COS_AGENT" "$SESSION_ID" "$AGENT_PID" "$EVENT" "$NOW" \
-    "$HOOK_MODEL" "$HOOK_SDK_UUID" \
+    "$HOOK_MODEL" "$HOOK_SDK_UUID" "$HOOK_TRANSCRIPT" \
     2>/dev/null || true
 fi
 

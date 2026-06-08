@@ -45,6 +45,32 @@ esac
 # call after the upgrade — no shell-side migration needed.
 COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
 COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
+# Block-only durable log. The main log above is flooded by high-volume 'fire'
+# lines and capped, so rare 'block' events are evicted within hours — long
+# before learn_extract mines them (the hook-block lesson signal was being lost).
+# This log only ever receives 'block' lines, so it retains them across the
+# extraction window. Mined by learning._mine_hook_block_lessons.
+COS_HOOK_BLOCK_LOG="${COS_HOOK_BLOCK_LOG:-${COS_STATE_DIR}/.hook-blocks.log}"
+
+# ---------------------------------------------------------------------------
+# Per-project hook override (TASK-256) — a disabled NON-safety hook self-skips
+# for THIS project. `$COS_STATE_DIR/disabled-hook-scripts` (one script basename
+# per line) is the derived allowlist written by cli.project_overrides, which
+# NEVER lists a safety-category hook — so a safety hook can never be disabled.
+# Guarded + fail-open: when the file is absent (the common case) this costs a
+# single stat; any error continues normally. Skip == `exit 0` (this file is
+# SOURCED, so the exit ends the calling hook before its body runs). Set
+# COS_SKIP_OVERRIDE_CHECK=1 to bypass (used by non-hook sourcers / tests).
+# ---------------------------------------------------------------------------
+if [[ -z "${COS_SKIP_OVERRIDE_CHECK:-}" && -f "${COS_STATE_DIR}/disabled-hook-scripts" ]]; then
+  _cos_self="$(basename "${BASH_SOURCE[1]:-${0:-}}" 2>/dev/null || echo "")"
+  if [[ -n "$_cos_self" ]] \
+       && grep -qxF -- "$_cos_self" "${COS_STATE_DIR}/disabled-hook-scripts" 2>/dev/null; then
+    unset _cos_self
+    exit 0
+  fi
+  unset _cos_self
+fi
 
 # Cap the log at 500 lines so `cos hooks-log` stays snappy and the file
 # never blooms into a multi-MB artifact that would be tempting to open.
@@ -220,7 +246,7 @@ COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 # do integer-µs math in cos_log_hook so there is no float/locale dependency.
 COS_HOOK_T0="${COS_HOOK_T0:-${EPOCHREALTIME:-}}"
 
-export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES COS_HOOK_T0
+export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_BLOCK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES COS_HOOK_T0
 
 # Activity heartbeat — written on every hook invocation so GC can measure
 # inactivity rather than session age. Per-panel so orphan GC can target
@@ -396,10 +422,24 @@ cos_log_hook() {
   # Fail-open: never let a logging error abort the hook.
   {
     mkdir -p "$(dirname "$COS_HOOK_LOG")" 2>/dev/null
+    local log_line
     if [[ -n "$detail" ]]; then
-      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit} ${detail}" >> "$COS_HOOK_LOG"
+      log_line="[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit} ${detail}"
     else
-      echo "[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit}" >> "$COS_HOOK_LOG"
+      log_line="[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit}"
+    fi
+    echo "$log_line" >> "$COS_HOOK_LOG"
+
+    # Mirror 'block' lines into the block-only durable log so the high-volume
+    # main log's cap can't evict them before learn_extract mines them.
+    if [[ "$action" == "block" && -n "${COS_HOOK_BLOCK_LOG:-}" ]]; then
+      echo "$log_line" >> "$COS_HOOK_BLOCK_LOG"
+      local blk_lines
+      blk_lines=$(wc -l < "$COS_HOOK_BLOCK_LOG" 2>/dev/null || echo 0)
+      if [[ "$blk_lines" -gt $((COS_HOOK_LOG_MAX_LINES * 2)) ]]; then
+        tail -n "$COS_HOOK_LOG_MAX_LINES" "$COS_HOOK_BLOCK_LOG" > "${COS_HOOK_BLOCK_LOG}.tmp" \
+          && mv "${COS_HOOK_BLOCK_LOG}.tmp" "$COS_HOOK_BLOCK_LOG"
+      fi
     fi
 
     # Opportunistic truncation — keep only last N lines when file grows past 2x cap.
