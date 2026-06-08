@@ -1,26 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Activity, Brain, Layers, MessageSquare } from 'lucide-react';
+import { Activity, Brain, Layers } from 'lucide-react';
 import TraceList from '@/features/cognition/TraceList';
 import TraceTimeline from '@/features/cognition/TraceTimeline';
 import CostPanel from '@/features/cognition/CostPanel';
 import ChainPanel from '@/features/cognition/ChainPanel';
-import ChatList from '@/features/cognition/ChatList';
-import ChatView from '@/features/cognition/ChatView';
-import NewChatForm from '@/features/cognition/NewChatForm';
 import HookStream from '@/features/observability/HookStream';
 import RolesPage from '@/pages/RolesPage';
 import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 
-type ViewMode = 'live' | 'chat' | 'trace' | 'roles';
+type ViewMode = 'live' | 'trace' | 'roles';
 
 const VIEW_LABELS: Record<ViewMode, { Icon: typeof Activity; label: string; hint: string }> = {
   live: { Icon: Activity, label: 'Live', hint: 'real-time hook stream (SSE tail of .hooks.log)' },
-  chat: { Icon: MessageSquare, label: 'Chats', hint: 'Claude SDK transcripts · resume · fork' },
   trace: { Icon: Brain, label: 'Traces', hint: 'cognition events (.coding-os/<agent>/traces)' },
   roles: { Icon: Layers, label: 'Roles', hint: 'formula registry · composed chain · evidence' },
 };
-const VIEW_ORDER: ViewMode[] = ['live', 'chat', 'trace', 'roles'];
+const VIEW_ORDER: ViewMode[] = ['live', 'trace', 'roles'];
 
 export default function CognitionPage() {
   const { sessionId, slug } = useParams<{ sessionId?: string; slug?: string }>();
@@ -29,8 +25,15 @@ export default function CognitionPage() {
   const [agent, setAgent] = useState<string>('claude');
 
   const rawView = search.get('view');
-  const view: ViewMode =
-    rawView === 'chat' || rawView === 'live' || rawView === 'roles' ? rawView : 'trace';
+  // Chat moved to the Workspace landing — redirect any legacy ?view=chat
+  // deep-link (live-agents cards, task chat-ref, old bookmarks) there.
+  useEffect(() => {
+    if (rawView !== 'chat') return;
+    const wsBase = slug ? `/p/${encodeURIComponent(slug)}/workspace/chat` : '/workspace/chat';
+    navigate(sessionId ? `${wsBase}/${encodeURIComponent(sessionId)}` : wsBase, { replace: true });
+  }, [rawView, sessionId, slug, navigate]);
+
+  const view: ViewMode = rawView === 'live' || rawView === 'roles' ? rawView : 'trace';
   const setView = (next: ViewMode) => {
     const sp = new URLSearchParams(search);
     if (next === 'trace') sp.delete('view');
@@ -46,45 +49,30 @@ export default function CognitionPage() {
     navigate(`${sessionBase}/${encodeURIComponent(sid)}?${sp.toString()}`);
   };
 
-  // Trace mode = 3 panes (list · timeline · chain+cost). Chat = 2 panes.
-  // Live + Roles render their own internal layout — no aside.
-  const layout = useMemo(() => {
-    if (view === 'trace') return { gridTemplateColumns: '300px 1fr 360px' } as const;
-    if (view === 'chat') return { gridTemplateColumns: '300px 1fr' } as const;
-    return null;
-  }, [view]);
+  // Trace mode = 3 panes (list · timeline · chain+cost). Live + Roles render
+  // their own internal layout — no aside.
+  const layout = useMemo(
+    () => (view === 'trace' ? ({ gridTemplateColumns: '300px 1fr 360px' } as const) : null),
+    [view],
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <ViewToggle view={view} onChange={setView} />
-      {view === 'trace' || view === 'chat' ? (
+      {view === 'trace' ? (
         <div className="grid min-h-0 flex-1" style={layout!}>
           <aside className="min-h-0 overflow-hidden border-r border-[var(--cos-border)] bg-[var(--cos-panel)]">
-            {view === 'trace' ? (
-              <TraceList selected={sessionId ?? null} onSelect={setSession} />
-            ) : (
-              <ChatList selected={sessionId ?? null} onSelect={(sid) => setSession(sid)} />
-            )}
+            <TraceList selected={sessionId ?? null} onSelect={setSession} />
           </aside>
           <section className="min-h-0 overflow-hidden">
-            {sessionId ? (
-              view === 'trace' ? (
-                <TraceTimeline sessionId={sessionId} />
-              ) : (
-                <ChatView sessionId={sessionId} />
-              )
-            ) : (
-              <EmptyState view={view} />
-            )}
+            {sessionId ? <TraceTimeline sessionId={sessionId} /> : <EmptyState view={view} />}
           </section>
-          {view === 'trace' && (
-            <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[var(--cos-border)] bg-[var(--cos-panel)]">
-              <ChainPanel agent={agent} />
-              <div className="flex-1 overflow-hidden">
-                <CostPanel onPick={(sid) => setSession(sid)} />
-              </div>
-            </aside>
-          )}
+          <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[var(--cos-border)] bg-[var(--cos-panel)]">
+            <ChainPanel agent={agent} />
+            <div className="flex-1 overflow-hidden">
+              <CostPanel onPick={(sid) => setSession(sid)} />
+            </div>
+          </aside>
         </div>
       ) : view === 'live' ? (
         <div className="min-h-0 flex-1 overflow-hidden">
@@ -138,8 +126,6 @@ function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode
 }
 
 function EmptyState({ view }: { view: ViewMode }) {
-  // Chat view with no session selected = start a fresh one.
-  if (view === 'chat') return <NewChatForm />;
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-[var(--cos-muted)]">
       <p>pick a session to view its timeline</p>
