@@ -64,6 +64,50 @@ export function PageHeader({
 }
 
 // --------------------------------------------------------------------------
+// SubNav — centered sub-navigation bar shared by Workspace / Diagnostics /
+// Cognition. The 3-column grid (1fr · auto · 1fr) keeps the pill optically
+// centered regardless of the left/right slot widths, and uses logical
+// `justify-self` so it mirrors correctly under RTL. SubNav owns ONLY the
+// layout + pill container; consumers pass already-styled tabs + slot content.
+// --------------------------------------------------------------------------
+
+export function subNavTabClass(active: boolean): string {
+  return [
+    'flex items-center gap-2 rounded-full px-5 py-1.5 text-[13px] font-medium tracking-tight transition-colors duration-200',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+    active
+      ? 'border border-white/10 bg-[var(--cos-accent)] text-white shadow-sm'
+      : 'border border-transparent text-[var(--cos-muted)] hover:bg-white/5 hover:text-[var(--cos-text)]',
+  ].join(' ');
+}
+
+export function SubNav({
+  left, right, children, tablist = false, ariaLabel,
+}: {
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+  tablist?: boolean;
+  ariaLabel?: string;
+}) {
+  return (
+    <div className="shrink-0 border-b border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-6 py-2.5 backdrop-blur-md">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div className="min-w-0 justify-self-start">{left}</div>
+        <div
+          role={tablist ? 'tablist' : undefined}
+          aria-label={ariaLabel}
+          className="flex items-center gap-1.5 justify-self-center rounded-full border border-white/5 bg-black/15 p-1"
+        >
+          {children}
+        </div>
+        <div className="min-w-0 justify-self-end">{right}</div>
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------
 // StatusPill — small "live · port 9188" badge with optional dot.
 // --------------------------------------------------------------------------
 

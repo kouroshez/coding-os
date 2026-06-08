@@ -10,6 +10,7 @@ import ChatView from '@/features/cognition/ChatView';
 import NewChatForm from '@/features/cognition/NewChatForm';
 import HookStream from '@/features/observability/HookStream';
 import RolesPage from '@/pages/RolesPage';
+import { SubNav, subNavTabClass } from '@/layout/HubPrimitives';
 
 type ViewMode = 'live' | 'chat' | 'trace' | 'roles';
 
@@ -100,38 +101,39 @@ export default function CognitionPage() {
 
 function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-[var(--cos-border)] bg-[var(--cos-panel)]/40 px-6 py-2.5 backdrop-blur-md">
-      <div className="flex items-center gap-6">
-        <span className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest text-[var(--cos-muted)] uppercase">
+    <SubNav
+      tablist
+      ariaLabel="Cognition views"
+      left={
+        <span className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-widest text-[var(--cos-muted)] uppercase">
           <span className="h-2 w-2 rounded-full bg-[var(--cos-brand-tint)] shadow-[0_0_8px_rgba(217,70,239,0.7)] animate-pulse" />
           cognition hub
         </span>
-        <div className="flex items-center gap-1 rounded-full border border-white/5 bg-black/15 p-1">
-          {VIEW_ORDER.map((v) => {
-            const { Icon, label } = VIEW_LABELS[v];
-            const active = view === v;
-            return (
-              <button
-                key={v}
-                type="button"
-                onClick={() => onChange(v)}
-                aria-pressed={active}
-                className={[
-                  'inline-flex items-center gap-1.5 rounded-full px-4 py-1.25 text-[11px] font-bold tracking-wide uppercase transition-all duration-300 cursor-pointer',
-                  active
-                    ? 'bg-[var(--cos-accent)] text-white shadow-lg  border border-white/10'
-                    : 'text-[var(--cos-muted)] hover:text-[var(--cos-text)] hover:bg-white/5 border border-transparent',
-                ].join(' ')}
-              >
-                <Icon size={12} aria-hidden />
-                <span>{label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <span className="text-[10px] font-medium tracking-wide text-[var(--cos-faint)] italic max-w-sm text-right leading-relaxed truncate">{VIEW_LABELS[view].hint}</span>
-    </div>
+      }
+      right={
+        <span className="block max-w-sm truncate text-[10px] font-medium leading-relaxed tracking-tight text-[var(--cos-faint)] italic">
+          {VIEW_LABELS[view].hint}
+        </span>
+      }
+    >
+      {VIEW_ORDER.map((v) => {
+        const { Icon, label } = VIEW_LABELS[v];
+        const active = view === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(v)}
+            className={`${subNavTabClass(active)} cursor-pointer`}
+          >
+            <Icon size={14} aria-hidden />
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </SubNav>
   );
 }
 
