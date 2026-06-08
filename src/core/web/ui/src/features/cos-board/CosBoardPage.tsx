@@ -3324,7 +3324,7 @@ function TaskDetailDrawer({
           background: 'rgba(10,12,16,.55)',
           backdropFilter: 'blur(3px)',
           WebkitBackdropFilter: 'blur(3px)',
-          zIndex: 80,
+          zIndex: 200,
           animation: 'td-fade-in 180ms ease',
         }}
       />
@@ -3347,7 +3347,7 @@ function TaskDetailDrawer({
           border: '1px solid var(--col-border)',
           borderRadius: 14,
           boxShadow: '0 30px 80px rgba(0,0,0,.45)',
-          zIndex: 81,
+          zIndex: 201,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -3405,6 +3405,7 @@ function TaskDetailDrawer({
               type="button"
               onClick={onClose}
               title="Close (esc)"
+              aria-label="Close"
               style={{
                 background: 'transparent',
                 border: '1px solid var(--col-border)',
