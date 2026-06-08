@@ -3,7 +3,11 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import { applyHubDirection } from './lib/direction';
 import './index.css';
+
+// App-level dir seam (TASK-251) — LTR default, RTL via VITE_HUB_DIR=rtl.
+applyHubDirection();
 
 // SPA entry point.
 // - BrowserRouter for client-side routing.

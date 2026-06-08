@@ -134,6 +134,7 @@ export default function NewChatForm({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Write your prompt… (Claude only)"
+          dir="auto"
           rows={5}
           className="w-full resize-y rounded border border-[var(--cos-border)] bg-black/20 px-3 py-2 text-[13px] text-[var(--cos-text)] focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]"
         />
@@ -179,7 +180,10 @@ export default function NewChatForm({
       </form>
       {err && <p className="text-[11px] text-[#f85149]">{err}</p>}
       {text && (
-        <pre className="min-h-0 flex-1 overflow-auto rounded border border-[var(--cos-border)] bg-black/15 p-3 text-[12px] whitespace-pre-wrap text-[var(--cos-text)]">
+        <pre
+          dir="auto"
+          className="min-h-0 flex-1 overflow-auto rounded border border-[var(--cos-border)] bg-black/15 p-3 text-[12px] whitespace-pre-wrap text-[var(--cos-text)]"
+        >
           {text}
         </pre>
       )}

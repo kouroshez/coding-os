@@ -112,6 +112,20 @@ Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## RTL readiness (app-level dir seam)
+
+The Hub is LTR by default but RTL-ready (the owner authors Persian). A single
+app-level seam — `applyHubDirection()` in
+[src/core/web/ui/src/lib/direction.ts](../../src/core/web/ui/src/lib/direction.ts),
+called once from `main.tsx` — sets `<html dir>` from `VITE_HUB_DIR` (default
+`ltr`). Flipping the whole UI to RTL is therefore **config, not a rewrite**:
+set `VITE_HUB_DIR=rtl` and rebuild. The visual layer is already direction-safe —
+`index.css` ships `[dir="rtl"]` + the Vazirmatn font, and the primitives
+(`Modal`, `SubNav`) use logical Tailwind utilities (`inset-*`, `justify-*`,
+`*-inline-*`) that mirror automatically. User/agent-authored prose containers
+use `dir="auto"` so a Persian message renders RTL even while the chrome stays
+LTR.
+
 ## Onboarding readiness (chat-landing hero)
 
 `GET /api/cognition/onboarding-status` tells the chat landing whether the
