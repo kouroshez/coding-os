@@ -224,6 +224,16 @@
           "default": {"type": "boolean", "description": "Whether this is the adapter's default model. At most one per adapter."}
         }
       }
+    },
+    "efforts": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["low", "medium", "high", "xhigh", "max"]},
+      "description": "Reasoning-effort levels this adapter's SDK accepts (Claude EffortLevel = low|medium|high|xhigh|max), surfaced in the Hub chat composer. Empty/absent = no effort control for this adapter."
+    },
+    "default_effort": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "xhigh", "max"],
+      "description": "Pre-selected effort level in the Hub chat composer (must be one of `efforts`)."
     }
   }
 }

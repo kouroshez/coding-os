@@ -842,6 +842,9 @@ async def chat_new(
 
     model = body.get("model") or None
     role = (str(body.get("role") or "")).strip() or None
+    effort = (str(body.get("effort") or "")).strip() or None
+    if effort not in (None, "low", "medium", "high", "xhigh", "max"):
+        effort = None  # ignore unknown levels rather than failing the turn
     system_prompt = _role_system_prompt(role) or {
         "type": "preset",
         "preset": "claude_code",
@@ -863,6 +866,8 @@ async def chat_new(
         # from the stream and emitted as the `session` event.
     )
     opts_kwargs["system_prompt"] = system_prompt
+    if effort:
+        opts_kwargs["effort"] = effort
     options = sdk.ClaudeAgentOptions(**opts_kwargs)
 
     async def event_gen():

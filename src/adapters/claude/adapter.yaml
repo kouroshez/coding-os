@@ -13,6 +13,10 @@ models:
     label: "Sonnet 4.6"
   - id: claude-haiku-4-5
     label: "Haiku 4.5"
+# Reasoning-effort levels the Claude Agent SDK accepts (EffortLevel) — shown in
+# the Hub chat composer so a turn can be weighted per adapter.
+efforts: [low, medium, high, xhigh, max]
+default_effort: high
 
 # Hub board pills + presence contract (see docs/engineering/adapter-parity.md).
 presence:

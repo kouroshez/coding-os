@@ -158,6 +158,8 @@ def config_adapters() -> dict:
                     "available": runtime == "in_process",
                     "glyph": presence.get("hub_glyph"),
                     "color": presence.get("hub_color"),
+                    "efforts": [str(e) for e in (data.get("efforts") or [])],
+                    "default_effort": str(data.get("default_effort") or ""),
                     "models": models,
                 }
             )

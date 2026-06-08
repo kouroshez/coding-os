@@ -4,6 +4,7 @@ import { csrfHeader, resolveApiUrl } from '@/lib/api-client';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
+import EffortPicker from './EffortPicker';
 
 interface Block {
   type?: string;
@@ -33,6 +34,7 @@ export default function NewChatForm({
   const [prompt, setPrompt] = useState(initialPrompt);
   const [role, setRole] = useState(initialRole);
   const [model, setModel] = useState('');
+  const [effort, setEffort] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [text, setText] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export default function NewChatForm({
       const res = await fetch(resolveApiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...csrfHeader() },
-        body: JSON.stringify({ prompt: p, role: role || null, model: model || null }),
+        body: JSON.stringify({ prompt: p, role: role || null, model: model || null, effort: effort || null }),
       });
       if (!res.ok || !res.body) {
         const t = await res.text().catch(() => '');
@@ -168,6 +170,7 @@ export default function NewChatForm({
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <ModelPicker value={model} onChange={setModel} />
+            <EffortPicker model={model} value={effort} onChange={setEffort} />
             <label className="flex items-center gap-1.5 rounded-md border border-[var(--cos-border)] bg-black/20 px-2.5 py-1 text-[11px] text-[var(--cos-muted)]">
               <span>role</span>
               <select

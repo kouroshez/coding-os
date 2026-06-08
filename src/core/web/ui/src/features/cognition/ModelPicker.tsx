@@ -22,6 +22,8 @@ export interface Adapter {
   available: boolean;
   glyph?: string | null;
   color?: string | null;
+  efforts?: string[];
+  default_effort?: string;
   models: AdapterModel[];
 }
 interface AdaptersPayload {
