@@ -203,10 +203,11 @@ class TestEnforceTemplate:
 
 
 class TestEnforceDocSync:
-    def test_cli_py_prints_readme_and_features(self, tmp_path: Path) -> None:
+    def test_cli_py_prints_cli_companion_doc(self, tmp_path: Path) -> None:
         # enforce-doc-sync.sh absorbed companion-doc hints from doc-sync-reminder.sh.
         # Output goes to stderr; file must exist for the hook to proceed past the
-        # `[[ ! -f FILE_PATH ]]` early-exit guard.
+        # `[[ ! -f FILE_PATH ]]` early-exit guard. The cli/ map now points at the
+        # meta-project CLI section (the old README/features pair was refined out).
         target = tmp_path / "src" / "cli" / "main.py"
         target.parent.mkdir(parents=True)
         target.write_text("# test\n")
@@ -218,8 +219,7 @@ class TestEnforceDocSync:
             },
         )
         assert result.returncode == 0
-        assert "README.md" in result.stderr
-        assert "features.md" in result.stderr
+        assert "meta-project.md" in result.stderr
 
     def test_server_py_prints_mcp_docs(self, tmp_path: Path) -> None:
         target = tmp_path / "src" / "core" / "thinking_os" / "server.py"
@@ -233,7 +233,8 @@ class TestEnforceDocSync:
             },
         )
         assert result.returncode == 0
-        assert "MCP" in result.stderr or "architecture.md" in result.stderr
+        # server.py maps to the MCP docs (mcp-tool-inventory / mcp-error-envelope).
+        assert "mcp" in result.stderr.lower()
 
     def test_hook_script_prints_hook_docs(self, tmp_path: Path) -> None:
         target = tmp_path / "src" / "core" / "hooks" / "new-hook.sh"

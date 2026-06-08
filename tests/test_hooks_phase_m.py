@@ -75,17 +75,40 @@ class TestEnforceAntiAmbiguity:
         )
         assert result.returncode == 0
 
-    def test_code_file_with_fail_cache_blocks(self, tmp_path):
+    def test_recent_db_violation_blocks(self, tmp_path):
+        # The hook reads unresolved violations from the ambiguity_violations DB
+        # table (the old .ambiguity-cache file mechanism is gone) — a recent row
+        # for the current session blocks with exit 2.
+        import sqlite3
+
+        db = tmp_path / "coding-os.db"
+        conn = sqlite3.connect(str(db))
+        conn.execute(
+            "CREATE TABLE ambiguity_violations (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "session_id TEXT NOT NULL, formula_id TEXT NOT NULL, step_id TEXT, "
+            "criterion TEXT NOT NULL, detail TEXT, "
+            "ts TEXT NOT NULL DEFAULT (datetime('now')))"
+        )
+        conn.execute(
+            "INSERT INTO ambiguity_violations (session_id, formula_id, criterion, ts) "
+            "VALUES ('aa-sid', 'f1', 'scoped', datetime('now'))"
+        )
+        conn.commit()
+        conn.close()
         panel = tmp_path / "panels" / "aa-panel"
         panel.mkdir(parents=True)
-        (panel / ".ambiguity-cache").write_text("FAIL:scoped,owned")
+        (panel / "session-id").write_text("aa-sid\n")
         result = _run_hook(
             "enforce-anti-ambiguity.sh",
             {"tool_name": "Write", "file_path": str(tmp_path / "src.py")},
             tmp_path,
-            env={"COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "aa-panel"},
+            env={
+                "COS_AGENT_DIR": str(tmp_path),
+                "COS_PANEL_ID": "aa-panel",
+                "COS_DB_PATH": str(db),
+            },
         )
-        assert result.returncode == 1
+        assert result.returncode == 2
         assert "BLOCKED" in result.stderr
 
     def test_clear_gate_bypasses_fail_cache(self, tmp_path):

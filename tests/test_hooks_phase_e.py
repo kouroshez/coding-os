@@ -357,7 +357,11 @@ class TestEnforceDocAnchor:
         panel_dir = agent_dir / "panels" / "da-panel"
         panel_dir.mkdir(parents=True)
         (panel_dir / "session-id").write_text("ses-claude-1\n")
-        (panel_dir / ".doc-anchor").write_text("ses-claude-1 task:X\ndocs/prd/01-vision.md § 3\n")
+        # Anchor a real on-disk doc — enforce-doc-anchor now BLOCKs anchors whose
+        # docs/ path doesn't resolve (hallucination guard), so the path must exist.
+        (panel_dir / ".doc-anchor").write_text(
+            "ses-claude-1 task:X\ndocs/engineering/hooks-reference.md § 3\n"
+        )
         r = _invoke(
             ENFORCE_DOC_ANCHOR,
             {
@@ -408,7 +412,9 @@ class TestEnforceDocAnchor:
         panel_dir = agent_dir / "panels" / "da-panel"
         panel_dir.mkdir(parents=True)
         anchor = panel_dir / ".doc-anchor"
-        anchor.write_text("docs/prd/01-vision.md § 3\n")
+        # Real on-disk doc so the path-resolve guard passes and the stale-legacy
+        # branch (no session header + old mtime) is the one that fires.
+        anchor.write_text("docs/engineering/hooks-reference.md § 3\n")
         old = 946684800  # 2000-01-01T00:00:00Z
         os.utime(anchor, (old, old))
         r = _invoke(
@@ -599,6 +605,15 @@ class TestTestFirstReminder:
         (tmp_path / "tests").mkdir()
         (tmp_path / "tests" / "test_bar.py").write_text("")
         return tmp_path
+
+    @pytest.fixture(autouse=True)
+    def _isolate_panel(self, project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        # test-first-reminder's debounce marker + test-locations cache live under
+        # COS_PANEL_DIR. Its marker key is the file path truncated to 80 chars —
+        # under pytest's tmp the first 80 chars are an identical prefix, so without
+        # a per-test panel dir the first test consumes the shared marker and the
+        # rest exit early (empty stdout). Isolate per-test → order-independent.
+        monkeypatch.setenv("COS_PANEL_DIR", str(project))
 
     def test_existing_test_file_listed(self, project: Path) -> None:
         r = _invoke(
