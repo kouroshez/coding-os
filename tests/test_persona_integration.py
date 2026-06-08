@@ -143,7 +143,7 @@ class TestPersonaFullStack:
             "enforce-template.sh",
             "regen-reminder.sh",
             "test-first-reminder.sh",
-            "doc-sync-reminder.sh",
+            "enforce-doc-sync.sh",
             "remind-learn-validate.sh",
         }
         actual_hooks = {p.name for p in hooks_dir.iterdir()}

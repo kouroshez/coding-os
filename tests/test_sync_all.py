@@ -74,7 +74,9 @@ def test_dangling_detects_broken_target(registry_env):
 
 def test_sync_all_reports_every_project(registry_env):
     result = CliRunner().invoke(sync_all_cmd, ["--dry-run"])
-    assert result.exit_code == 0, result.output
+    # The fixture seeds a project with a dangling link, so sync-all fail-closes
+    # (exit 1) by design so CI can gate; sync-doctor is the repair path.
+    assert result.exit_code == 1, result.output
     assert "alive" in result.output
     assert "with-broken" in result.output
     assert "2 project(s) processed" in result.output

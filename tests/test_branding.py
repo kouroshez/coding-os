@@ -25,6 +25,10 @@ ALLOWED_PATHS: set[str] = {
     # case ("long-dead Claude Code process").
     "src/core/web/ui/src/features/cognition/ChatView.tsx",
     "src/core/web/ui/src/pages/DashboardPage.tsx",
+    # ChatLanding's empty-state tells the user the chat feature needs Anthropic's
+    # Claude Code / Claude Agent SDK installed — descriptive install guidance for
+    # a genuinely Claude-SDK-gated feature, not coding-os self-branding.
+    "src/core/web/ui/src/pages/ChatLanding.tsx",
 }
 
 FORBIDDEN_TOKENS: tuple[str, ...] = (
@@ -37,7 +41,15 @@ def _iter_guarded_files() -> list[Path]:
     files: list[Path] = []
     for pattern in GUARDED_GLOBS:
         files.extend(REPO_ROOT.glob(pattern))
-    return [f for f in files if f.relative_to(REPO_ROOT).as_posix() not in ALLOWED_PATHS]
+    return [
+        f
+        for f in files
+        if f.relative_to(REPO_ROOT).as_posix() not in ALLOWED_PATHS
+        # Test/spec files assert against real product labels (e.g. a model-picker
+        # option "Anthropic Claude Code") — they are test code, not user-visible
+        # UI, which is what this branding gate guards.
+        and not f.name.endswith((".test.tsx", ".test.ts", ".spec.tsx", ".spec.ts"))
+    ]
 
 
 def test_branding_globs_match_files() -> None:
