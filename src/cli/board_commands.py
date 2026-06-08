@@ -596,18 +596,31 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     try:
         count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
         if count > 0 and count % 10 == 0:
+            from scheduled._activity import outcomes_since_marker
+            from scheduled._state import state_dir, touch_marker
+            from thinking_os.database import resolve_db_path
             from thinking_os.tools.learning import learn_extract
 
-            result = learn_extract(conn)
-            extracted = result.get("extracted", [])
-            if extracted:
-                click.echo(
-                    f"\n🧠 Learning: {len(extracted)} new pattern(s) from {count} outcomes:",
-                )
-                for p in extracted:
+            # Respect the shared .last-extract marker so this every-10 path does
+            # not double-extract with nightly / responsive (audit: it bypassed
+            # the marker, breaking the shared idempotency contract).
+            root = _project_root()
+            marker = state_dir(root) / ".last-extract"
+            # Only extract when there ARE outcomes since the last extract by ANY
+            # path; skip silently otherwise (don't return — routing/doc rebuild
+            # below must still run).
+            if outcomes_since_marker(resolve_db_path(root), marker) > 0:
+                result = learn_extract(conn)
+                touch_marker(marker)
+                extracted = result.get("extracted", [])
+                if extracted:
                     click.echo(
-                        f"   • {p.get('pattern')} (confidence: {p.get('confidence', 0):.2f})",
+                        f"\n🧠 Learning: {len(extracted)} new pattern(s) from {count} outcomes:",
                     )
+                    for p in extracted:
+                        click.echo(
+                            f"   • {p.get('pattern')} (confidence: {p.get('confidence', 0):.2f})",
+                        )
     except Exception as exc:
         _brain_logger.debug("learn_extract trigger failed: %s", exc)
 
