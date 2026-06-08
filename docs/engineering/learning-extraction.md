@@ -127,14 +127,30 @@ a flawless corpus gets none (correct — nothing to explain).
 **Outcome is derived, not asserted (the variance feeder).** Until 2026-06 `cos
 task-done` hardcoded `outcome='success'`, so the gate above suppressed every
 stat/rework branch forever (192 tasks → 4 patterns; "INFRA succeeds 100%" was a
-tautology, not a learning). `record_outcome` now refines an optimistic
-`'success'` into the honest `'rework'` from the task's OWN history — a backward
-status move (reopened after testing/complete/review in `task_status_history`) or
-a `backtrack_event` in the closing session (`record_outcome._derive_rework`,
-`refine_from_history=True`). An explicitly-asserted non-`success` is never
-overridden. Migration v38 backfilled the historical corpus from the same reopen
-signal. The gate is unchanged — it is finally fed honest input, so the baselines
-read `99%` (with real contrast) instead of a hollow `100%`.
+tautology, not a learning). `record_outcome._derive_rework` now refines an
+optimistic `'success'` into the honest `'rework'` from the **only task-scoped
+signal that exists**: a backward status move (reopened after
+testing/complete/review in `task_status_history`). An explicitly-asserted
+non-`success` is never overridden; the same derived value is threaded into the
+`retrievals.outcome` back-fill (no second hardcoded-`success` writer). Migration
+v38 backfilled history from the same reopen signal.
+
+> **Honest scope (audit 2026-06-08).** A `backtrack_event` was *removed* as a
+> signal: it is session-scoped with no `task_id`, and one session closes many
+> tasks (161 in the live corpus), so attributing a session's backtrack to its
+> closing task would SMEAR every task in that session to rework. Reopen is thin
+> (it fires only when a task is moved *backward*, which is rare) — so this fix is
+> a **correctness/honesty** fix (it removes the false `100%`, feeds the variance
+> gate), **not** a belief-count multiplier: `outcome='rework'` feeds only the
+> stat branch, which is observability, banned from beliefs. The real rework — the
+> agent's mid-task re-edits and the user's in-chat corrections — happens *inside*
+> a single `in_progress` span and leaves no status row, so no completion-time
+> heuristic can see it. Capturing it requires **write-time** linkage:
+> `observations.task_id` (migration v39) now stamps the active task onto every
+> observation, so per-task file-churn / in-task-error miners become possible. That
+> linkage is forward-only (historical observations carried only `session_id`, and
+> a session spans many tasks — the join is unrecoverable). The churn miner itself
+> is deferred until the corpus has multiple sessions (rule-of-three).
 
 ### 5. Lessons from revert / recurring-fix commits
 `_mine_commit_lessons` reads `git log` over `_LESSON_WINDOW_DAYS` for `fix:` /
