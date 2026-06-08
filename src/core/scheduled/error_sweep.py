@@ -56,12 +56,20 @@ def rollup_fingerprints(conn: sqlite3.Connection) -> int:
 def select_for_filing(
     conn: sqlite3.Connection, *, occ_threshold: int, session_threshold: int
 ) -> list[tuple[sqlite3.Row, str]]:
-    """Open fingerprints worth a task: FATAL always, ERROR past occurrence/session threshold."""
+    """Open fingerprints worth a task: FATAL always, ERROR past occurrence/session threshold.
+
+    A non-FATAL fingerprint seen in zero distinct sessions is never filed: an
+    agent-visible recurring error always carries a session_id, so a session-less
+    cluster is machine/test noise (e.g. the deliberate error-path test fixtures
+    that pollute the durable store) — not a bug the agent can pull and fix.
+    """
     conn.row_factory = sqlite3.Row
     out: list[tuple[sqlite3.Row, str]] = []
     for r in conn.execute("SELECT * FROM log_fingerprints WHERE status = 'open'").fetchall():
         if r["max_lvl"] == "FATAL":
             out.append((r, "fatal"))
+        elif r["distinct_sessions"] < 1:
+            continue  # no real session → not an agent-visible error
         elif r["count"] >= occ_threshold or r["distinct_sessions"] >= session_threshold:
             out.append((r, "error"))
     return out

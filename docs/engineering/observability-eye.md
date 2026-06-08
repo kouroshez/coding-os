@@ -118,6 +118,8 @@ Hosted as a 5th gated task in `scheduled/nightly.py::run_project` (already runs 
 1. Upsert log_fingerprints from new log_events (count, last_seen, distinct_sessions, max_lvl).
 2. For each fingerprint where status == 'open':
      if max_lvl == FATAL:                        → create EMERGENCY bug task
+     elif distinct_sessions < 1:                 → skip (session-less = machine/test
+                                                    noise, never an agent-visible bug)
      elif count >= THRESHOLD_OCC
           or distinct_sessions >= THRESHOLD_SESS: → create ICEBOX bug task
      else: leave 'open' (not yet worth a card)
@@ -129,7 +131,7 @@ Hosted as a 5th gated task in `scheduled/nightly.py::run_project` (already runs 
 4. Retention prune (after rollup): delete aged log_events rows per level.
 ```
 
-**Anti-recursion:** the sweep logs under reserved scope `ops.error_sweep`, which is **excluded** from fingerprint input. If the sweep itself errors, that error is captured by the eye but never files a task about itself. **Anti-spam:** one fingerprint = one task forever (idempotent); `--dry-run` prints planned creates without writing.
+**Anti-recursion:** the sweep logs under reserved scope `ops.error_sweep`, which is **excluded** from fingerprint input. If the sweep itself errors, that error is captured by the eye but never files a task about itself. **Anti-spam:** one fingerprint = one task forever (idempotent); `--dry-run` prints planned creates without writing. **Anti-noise:** a non-FATAL fingerprint with `distinct_sessions == 0` is never filed — an agent-visible error always carries a session_id, so a session-less cluster is machine/test noise. Source guard: the test suites isolate `COS_DB_PATH`/`COS_STATE_DIR` to a temp dir so deliberate error-path fixtures (e.g. `cos_fake_unshrinkable`, `embed_text(model="not-a-real-model")`) never persist to the real durable store in the first place.
 
 ## 5. Failure modes & invariants
 
