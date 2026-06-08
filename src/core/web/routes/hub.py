@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -260,6 +264,127 @@ def hub_registry_add(
             "created_at": entry.created_at,
         },
         "meta": {"layer": "hub", "source": "hub.registry_add"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/hub/stacks  +  POST /api/hub/registry/init (create-from-UI, TASK-249)
+# ---------------------------------------------------------------------------
+
+_PROJECT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+
+
+@router.get("/stacks")
+def hub_stacks() -> dict:
+    """List installable stack templates (data-driven from src/templates/*/stack.yaml)."""
+    try:
+        from cli.list_stacks import TEMPLATES_DIR  # type: ignore
+        from cli.stack_registry import load_stack_registry  # type: ignore
+
+        reg = load_stack_registry(TEMPLATES_DIR)
+    except Exception as exc:
+        return _err("unavailable", f"stack registry unavailable: {exc}", status=503)
+    stacks = [
+        {"id": s.id, "label": s.label, "category": s.category}
+        for s in sorted(reg.values(), key=lambda p: p.id)
+        if s.id != "_base"
+    ]
+    return {
+        "data": {"stacks": stacks, "count": len(stacks)},
+        "meta": {"layer": "hub", "source": "hub.stacks"},
+    }
+
+
+def _cos_init_command() -> list[str]:
+    """Resolve how to invoke `cos` — the installed bin, else `python -m cli.main`."""
+    found = shutil.which("cos")
+    return [found] if found else [sys.executable, "-m", "cli.main"]
+
+
+def _run_cos_init(name: str, parent_dir: str, stack: str, agent: str, timeout: int = 180):
+    """Run `cos init` in a subprocess → (ok, payload, error).
+
+    Module-level so a test can monkeypatch it without a real scaffold."""
+    cmd = _cos_init_command() + [
+        "init",
+        "--name",
+        name,
+        "--project-dir",
+        parent_dir,
+        "--agent",
+        agent,
+        "--yes",
+        "--no-index",
+        "--format",
+        "json",
+    ]
+    if stack:
+        cmd += ["--template", stack]
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv list, never shell=True
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=parent_dir
+        )
+    except subprocess.TimeoutExpired:
+        return False, None, f"init timed out after {timeout}s"
+    except OSError as exc:
+        return False, None, f"could not launch cos init: {exc}"
+    if proc.returncode != 0:
+        return False, None, (proc.stderr or proc.stdout or "init failed").strip()[-400:]
+    payload: dict = {}
+    for line in reversed((proc.stdout or "").strip().splitlines()):
+        candidate = line.strip()
+        if candidate.startswith("{"):
+            try:
+                payload = json.loads(candidate)
+                break
+            except json.JSONDecodeError:
+                continue
+    return True, payload, ""
+
+
+@router.post("/registry/init")
+def hub_registry_init(
+    name: str = Body(..., embed=True),
+    parent_dir: str = Body(..., embed=True),
+    stack: str = Body("", embed=True),
+    agent: str = Body("claude", embed=True),
+):
+    """Scaffold a NEW project via `cos init` and register it (security-gated, TASK-249)."""
+    if not isinstance(name, str) or not _PROJECT_NAME_RE.match(name.strip()):
+        return _err(
+            "validation",
+            "name must match ^[a-z0-9][a-z0-9._-]{0,63}$ (lowercase, no spaces)",
+        )
+    name = name.strip()
+    if not isinstance(parent_dir, str) or not parent_dir.strip():
+        return _err("validation", "parent_dir is required")
+    try:
+        parent = Path(parent_dir).expanduser().resolve()
+    except (OSError, RuntimeError) as exc:
+        return _err("validation", f"invalid parent_dir: {exc}")
+    if not parent.is_dir():
+        return _err("not_found", f"parent_dir is not a directory: {parent}", status=404)
+    if _is_meta_repo(parent):
+        return _err("validation", "cannot scaffold inside the coding-os meta-repo checkout")
+    target = parent / name
+    if target.exists():
+        return _err("conflict", f"{target} already exists", status=409)
+    nested = _ancestor_with_coding_os(parent)
+    if nested is not None:
+        return _err(
+            "validation",
+            f"{parent} is inside the registered project {nested} — pick a parent outside it",
+        )
+    ok, payload, err = _run_cos_init(name, str(parent), (stack or "").strip(), agent or "claude")
+    if not ok:
+        # A failed init must leave nothing — remove the partial scaffold.
+        if target.exists():
+            shutil.rmtree(target, ignore_errors=True)
+        return _err("internal", f"init failed: {err}", status=500)
+    slug = (payload or {}).get("slug") or _resolve_slug_from_registry(target)
+    return {
+        "data": {"slug": slug, "path": str(target), "stack": (stack or None)},
+        "meta": {"layer": "hub", "source": "hub.registry_init"},
     }
 
 

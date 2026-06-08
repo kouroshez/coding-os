@@ -169,6 +169,26 @@ is treated as complete (nothing to onboard). `ChatLanding` renders a dismissible
 onboarder session (`/api/cognition/onboard`, TASK-246) so authoring is confined
 to `docs/`.
 
+## Create a project from the UI (init route + wizard)
+
+A user can scaffold a brand-new project from the Hub without the CLI. Two
+hub-global endpoints back the **New Project** wizard on `HubHome`:
+
+- `GET /api/hub/stacks` — the installable stack grid, data-driven from
+  `src/templates/*/stack.yaml` via `load_stack_registry` (Rule 11 — no
+  hardcoded stack list). Returns `{id, label, category}` per stack.
+- `POST /api/hub/registry/init` — runs `cos init --name … --project-dir …
+  --template … --agent claude --yes --no-index --format json` in a
+  subprocess with a timeout. It is the **highest-severity new surface**
+  (writes the filesystem), so it sits behind the localhost security gate
+  below, and validates before spawning: the name against
+  `^[a-z0-9][a-z0-9._-]{0,63}$`, the parent dir exists, the target does not
+  already exist, and the target is neither the meta-repo nor nested inside a
+  registered project. `cos init` registers the project itself on a clean exit;
+  a failed init leaves nothing (the partial target dir is removed). The
+  wizard (location chips + name→slug preview + stack grid) lives in `HubHome`
+  on the shared `Modal`.
+
 ## Localhost security gate (Origin/Host allowlist + CSRF)
 
 The hub binds `127.0.0.1` but is **unauthenticated** — any page the user's
