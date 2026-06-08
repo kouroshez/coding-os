@@ -112,7 +112,9 @@ async def learning_roi(
             "SUM(CASE WHEN memory_type IN ('hook_block', 'error') THEN 1 ELSE 0 END) AS friction, "
             "COUNT(*) AS total, MIN(created_at) AS started "
             "FROM observations WHERE session_id IS NOT NULL "
-            "GROUP BY session_id HAVING total >= 1 "
+            # >= 5 observations = a real work session; drops tiny error-only
+            # subagent/tool sessions that would skew the rate to 1.0.
+            "GROUP BY session_id HAVING total >= 5 "
             "ORDER BY started DESC LIMIT ?",
             (limit,),
         ).fetchall()
