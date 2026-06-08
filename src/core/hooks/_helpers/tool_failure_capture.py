@@ -8,6 +8,34 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Route this 2nd memory writer through the same SSOT the capture hook uses, so a
+# tool-failure narrative never persists the OS username (PII) or a secret.
+# Best-effort import; the fallback still runs the critical username scrub so the
+# PII fix holds even if thinking_os is not importable (fire-and-forget hook).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "thinking_os"))
+try:
+    from sanitizer import redact_secrets, scrub_username
+except Exception:  # pragma: no cover - resilience fallback only
+
+    def scrub_username(text: str, home: str | None = None) -> str:
+        if not text:
+            return text
+        import os as _os
+
+        h = _os.path.expanduser("~")
+        if h and h != "~":
+            text = text.replace(h + "/", "~/").replace(h.replace("/", "-"), "-~")
+        return text
+
+    def redact_secrets(text: str):
+        return text, []
+
+
+def _clean(text: str) -> str:
+    cleaned, _ = redact_secrets(text or "")
+    return scrub_username(cleaned)
+
+
 _BLOCKED_MARKER = "BLOCKED"  # cos hook block messages start with this
 _SKIP_TOOLS = frozenset({"Bash"})  # Bash failures are too noisy — skip by default
 
@@ -70,7 +98,7 @@ def capture(conn: sqlite3.Connection, session_id: str, payload: dict) -> str:
     title = f"{'[BLOCKED] ' if blocked else ''}Tool failure: {tool_name}"
     if file_path:
         title += f" on {Path(file_path).name}"
-    narrative = error[:500]
+    narrative = _clean(error[:2000])[:500]
 
     import hashlib
 
@@ -94,9 +122,9 @@ def capture(conn: sqlite3.Connection, session_id: str, payload: dict) -> str:
             0.6 if blocked else 0.3,
             title,
             narrative,
-            json.dumps({"blocked": blocked, "error_snippet": error[:100]}),
+            json.dumps({"blocked": blocked, "error_snippet": _clean(error[:100])}),
             json.dumps(["tool_failure", tool_name, "hook_block" if blocked else "error"]),
-            file_path or None,
+            _clean(file_path) or None,
             content_hash,
             _now_iso(),
         ),
