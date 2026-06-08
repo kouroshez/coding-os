@@ -32,9 +32,15 @@ const LEVEL_COLORS: Record<string, string> = {
 
 const TAIL_CAP = 500;
 
-function shortTime(iso: string): string {
-  if (!iso || iso.length < 19) return iso;
-  return iso.slice(11, 19);
+// Backend stamps log timestamps in UTC (…Z, datetime.now(timezone.utc)). Render
+// in the VIEWER's local timezone via new Date()+toLocaleTimeString — string-slicing
+// the ISO showed the raw UTC time-of-day, so an EDT viewer saw 16:54:16 for a
+// 12:54:16 event (TASK-262). Falls back to the raw slice for malformed input.
+export function shortTime(iso: string): string {
+  if (!iso) return iso;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.length >= 19 ? iso.slice(11, 19) : iso;
+  return d.toLocaleTimeString(undefined, { hour12: false });
 }
 
 function reservedKeys(): Set<string> {
