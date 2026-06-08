@@ -16,13 +16,22 @@ interface Block {
 
 export default function NewChatForm({
   onComplete,
+  initialRole = '',
+  initialPrompt = '',
+  endpoint = '/api/cognition/chat',
 }: {
   /** Called with the SDK-resolved session id once the first turn finishes
    *  streaming, so the parent can hand off to the rich ChatView in place. */
   onComplete?: (sessionId: string) => void;
+  /** Preselect a role (e.g. 'onboarder' for the docs-scoped setup flow). */
+  initialRole?: string;
+  /** Prefill the composer (e.g. the onboarding kickoff prompt). */
+  initialPrompt?: string;
+  /** Streaming endpoint — '/api/cognition/onboard' confines writes to docs/. */
+  endpoint?: string;
 } = {}) {
-  const [prompt, setPrompt] = useState('');
-  const [role, setRole] = useState('');
+  const [prompt, setPrompt] = useState(initialPrompt);
+  const [role, setRole] = useState(initialRole);
   const [model, setModel] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -47,7 +56,7 @@ export default function NewChatForm({
     let capturedId: string | null = null;
     let failed = false;
     try {
-      const res = await fetch(resolveApiUrl('/api/cognition/chat'), {
+      const res = await fetch(resolveApiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({ prompt: p, role: role || null, model: model || null }),

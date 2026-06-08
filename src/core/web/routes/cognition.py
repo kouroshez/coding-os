@@ -1024,6 +1024,69 @@ def _onboard_write_allowed(tool_input: dict, project_root: Path) -> bool:
     return _is_path_under_docs(str(path or ""), project_root)
 
 
+def _count_placeholder_todos(project_root: Path) -> tuple[int, bool]:
+    """Scan docs/prd/*.md for scaffold `_TODO:` markers.
+
+    Returns (todo_count, prd_exists). prd_exists=False means there is no PRD
+    scaffold at all → nothing to onboard."""
+    prd_dir = project_root / "docs" / "prd"
+    if not prd_dir.is_dir():
+        return 0, False
+    total = 0
+    found_any = False
+    for md in prd_dir.glob("*.md"):
+        found_any = True
+        try:
+            total += md.read_text(encoding="utf-8").count("_TODO:")
+        except OSError as exc:
+            logger.debug("onboarding scan skipped %s: %s", md, exc)
+            continue
+    return total, found_any
+
+
+def _onboarding_state(project_root: Path, state_dir: Path) -> dict:
+    """Resolve onboarding completeness: onboarding.json override, else _TODO scan."""
+    marker = state_dir / "onboarding.json"
+    if marker.exists():
+        try:
+            data = json.loads(marker.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and data.get("completed") is True:
+                return {"complete": True, "source": "onboarding_json", "placeholders_remaining": 0}
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.debug("onboarding.json unreadable: %s", exc)
+    todos, prd_exists = _count_placeholder_todos(project_root)
+    if not prd_exists:
+        return {
+            "complete": True,
+            "source": "no_prd",
+            "placeholders_remaining": 0,
+            "reason": "no PRD scaffold to onboard",
+        }
+    return {
+        "complete": todos == 0,
+        "source": "placeholder_scan",
+        "placeholders_remaining": todos,
+        "reason": (
+            "PRD still has scaffold _TODO markers" if todos else "PRD placeholders authored"
+        ),
+    }
+
+
+@router.get("/onboarding-status")
+async def onboarding_status(
+    _rl=Depends(make_rate_limit_dep("cognition.onboarding_status")),
+    _m=Depends(make_metrics_dep("cognition.onboarding_status")),
+):
+    """Whether the project still needs onboarding (placeholder-scan first, onboarding.json override)."""
+    from web._project_context import current_project_root  # type: ignore
+
+    project = current_project_root()
+    state = _state_dir()
+    payload = _onboarding_state(project, state)
+    payload["meta"] = {"layer": "cognition"}
+    return unwrap(json.dumps({"ok": True, "data": payload}))
+
+
 @router.post("/onboard")
 async def onboard(
     body: dict = Body(...),

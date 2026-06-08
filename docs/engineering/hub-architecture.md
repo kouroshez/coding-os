@@ -112,6 +112,19 @@ Chart primitives (`Sparkline`, `BarList`, `Gauge`, `StatTile`) live in [src/core
 single-homed. No conflict between the two — they serve different
 purposes and you rarely run both at once.
 
+## Onboarding readiness (chat-landing hero)
+
+`GET /api/cognition/onboarding-status` tells the chat landing whether the
+project still needs onboarding. It is **placeholder-scan first**: the scaffold
+PRD (`docs/prd/01-snapshot-vision.md`) ships with `_TODO:` markers, so any
+remaining `_TODO:` in `docs/prd/**` means onboarding is incomplete. An explicit
+`.coding-os/onboarding.json` with `{"completed": true}` is an optional override
+that short-circuits the scan. When `docs/prd/` has no scaffold at all the project
+is treated as complete (nothing to onboard). `ChatLanding` renders a dismissible
+`OnboardingCard` hero when `complete === false`; its CTA starts the docs-scoped
+onboarder session (`/api/cognition/onboard`, TASK-246) so authoring is confined
+to `docs/`.
+
 ## Localhost security gate (Origin/Host allowlist + CSRF)
 
 The hub binds `127.0.0.1` but is **unauthenticated** — any page the user's

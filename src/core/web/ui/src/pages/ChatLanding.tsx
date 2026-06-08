@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
@@ -5,6 +6,10 @@ import { EmptyState } from '@/layout/HubPrimitives';
 import ChatList from '@/features/cognition/ChatList';
 import ChatView from '@/features/cognition/ChatView';
 import NewChatForm from '@/features/cognition/NewChatForm';
+import OnboardingCard from '@/features/cognition/OnboardingCard';
+
+const ONBOARD_PROMPT =
+  'Help me set up my product docs — interview me briefly, then draft the minimum docs under docs/.';
 
 /**
  * Chat-first project landing (replaces the Mission-Control dashboard).
@@ -19,6 +24,7 @@ import NewChatForm from '@/features/cognition/NewChatForm';
 export default function ChatLanding() {
   const { slug, sessionId } = useParams<{ slug?: string; sessionId?: string }>();
   const navigate = useNavigate();
+  const [onboardMode, setOnboardMode] = useState(false);
   const base = slug ? `/p/${encodeURIComponent(slug)}/workspace/chat` : '/workspace/chat';
   const openSession = (sid: string) => navigate(`${base}/${encodeURIComponent(sid)}`);
 
@@ -45,7 +51,20 @@ export default function ChatLanding() {
         <ChatList selected={sessionId ?? null} onSelect={openSession} />
       </aside>
       <section className="min-h-0 overflow-hidden">
-        {sessionId ? <ChatView sessionId={sessionId} /> : <NewChatForm onComplete={openSession} />}
+        {sessionId ? (
+          <ChatView sessionId={sessionId} />
+        ) : (
+          <div className="flex h-full min-h-0 flex-col overflow-auto">
+            {!onboardMode && <OnboardingCard onStart={() => setOnboardMode(true)} />}
+            <NewChatForm
+              key={onboardMode ? 'onboard' : 'chat'}
+              onComplete={openSession}
+              initialRole={onboardMode ? 'onboarder' : ''}
+              initialPrompt={onboardMode ? ONBOARD_PROMPT : ''}
+              endpoint={onboardMode ? '/api/cognition/onboard' : '/api/cognition/chat'}
+            />
+          </div>
+        )}
       </section>
     </div>
   );
