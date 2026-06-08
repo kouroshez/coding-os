@@ -2225,6 +2225,52 @@ def _git_commits_for_path(rel_path: str, *, limit: int = 50) -> list[dict]:
     return commits
 
 
+def _git_commits_from_worklog(rel_path: str, *, exclude: set[str], limit: int = 50) -> list[dict]:
+    """Commits referenced by 7-40 hex SHA in a task's Work Log — surfaces the code
+    commits that did the work but never touched the md file, so the History links
+    them WITHOUT needing the task id in the commit message. Validates each SHA via
+    `git show`; non-commit hex is skipped. Fail-open."""
+    import re as _re
+    import subprocess
+
+    root = _project_root()
+    try:
+        text = (Path(root) / rel_path).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return []
+    out: list[dict] = []
+    seen: set[str] = set()
+    for cand in _re.findall(r"\b[0-9a-f]{7,40}\b", text):
+        if cand in seen or len(out) >= limit:
+            continue
+        seen.add(cand)
+        try:
+            res = subprocess.run(
+                ["git", "-C", str(root), "show", "-s", "--format=%H%x1f%ct%x1f%s", cand],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if res.returncode != 0 or not res.stdout.strip():
+            continue
+        parts = res.stdout.splitlines()[0].split("\x1f")
+        if len(parts) != 3:
+            continue
+        full, ct, subject = parts
+        short = full[:10]
+        if short in exclude:
+            continue
+        try:
+            at = int(ct)
+        except ValueError:
+            at = 0
+        out.append({"sha": short, "subject": subject, "at": at})
+        exclude.add(short)
+    return out
+
+
 @safe_tool
 def cos_task_history(
     conn: sqlite3.Connection,
@@ -2285,7 +2331,15 @@ def cos_task_history(
     commits: list[dict] = []
     if include_commits and row[0]:
         commits = _git_commits_for_path(row[0], limit=limit)
+        seen_shas = {c["sha"] for c in commits}
         for c in commits:
+            events.append(
+                {"type": "commit", "sha": c["sha"], "subject": c["subject"], "at": c["at"]}
+            )
+        # Also surface commits referenced in the Work Log (the code commits that
+        # did the work but never touched the md file) so they link WITHOUT a task
+        # id in the commit message — the file-path link only catches md touches.
+        for c in _git_commits_from_worklog(row[0], exclude=seen_shas, limit=limit):
             events.append(
                 {"type": "commit", "sha": c["sha"], "subject": c["subject"], "at": c["at"]}
             )

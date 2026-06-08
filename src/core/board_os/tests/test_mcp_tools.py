@@ -988,6 +988,46 @@ def test_task_history_not_found(project: Path, conn: sqlite3.Connection):
     assert env["error"]["category"] == "not_found"
 
 
+def test_task_history_links_worklog_commits_without_id_in_message(
+    project: Path, conn: sqlite3.Connection
+):
+    """History links a code commit referenced in the Work Log even though its
+    message has NO task id and it never touched the task md file (TASK-264) —
+    so commits and tasks link without a task-number-in-commit convention."""
+    import subprocess
+
+    def _git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(project), *args], capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    _git("init", "-q")
+    _git("config", "user.email", "t@example.com")
+    _git("config", "user.name", "tester")
+    (project / "code.txt").write_text("x", encoding="utf-8")
+    _git("add", "code.txt")
+    _git("commit", "-q", "-m", "fix something unrelated to any task number")
+    full_sha = _git("rev-parse", "HEAD")
+
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Linked",
+            swimlane="core",
+            kind="bug",
+            outcome="A long enough outcome to satisfy the bug DoR gate for this linkage test.",
+        )
+    )
+    tid = created["data"]["task_id"]
+    mcp_tools.cos_work_log_append(conn, task_id=tid, summary=f"fixed in commit {full_sha[:10]}")
+
+    hist = _parse(mcp_tools.cos_task_history(conn, task_id=tid, include_commits=True))
+    commit_shas = [e["sha"] for e in hist["data"]["events"] if e.get("type") == "commit"]
+    assert any(full_sha.startswith(s) for s in commit_shas), (
+        "a work-log SHA must link the commit in History without a task id in its message"
+    )
+
+
 def test_task_edit_updates_field_and_records_history(project: Path, conn: sqlite3.Connection):
     """A field edit rewrites the file and lands an actor-attributed edit-history row."""
     created = _parse(
