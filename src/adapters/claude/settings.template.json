@@ -167,24 +167,6 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/enforce-audit-artifact.sh",
-            "statusMessage": "🗒️  Checking audit artifact present (exhaustive intent)...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/enforce-count-grounding.sh",
-            "statusMessage": "🔢 Checking grep-count grounding (exhaustive intent)...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/enforce-subagent-delegation.sh",
-            "statusMessage": "🧑‍🤝‍🧑 Checking subagent delegation for large audit...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/enforce-anti-ambiguity.sh",
             "statusMessage": "🔍 Anti-Ambiguity gate check...",
             "timeout": 5
@@ -467,12 +449,6 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/intent-primer.sh",
-            "statusMessage": "🎯 Priming intent-interpretation vocabulary...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/session-skill-primer.sh",
             "statusMessage": "🧠 Priming required-skill card...",
             "timeout": 10
@@ -481,12 +457,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/rules-primer.sh",
             "statusMessage": "📋 Priming workflow-integrity rules card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/inject-resume-prompt.sh",
-            "statusMessage": "📋 Scanning for active audits to resume...",
             "timeout": 10
           },
           {
@@ -554,12 +524,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/intent-primer.sh",
-            "statusMessage": "🎯 Re-priming intent-interpretation vocabulary...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/session-skill-primer.sh",
             "statusMessage": "🧠 Re-priming required-skill card...",
             "timeout": 10
@@ -568,12 +532,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/rules-primer.sh",
             "statusMessage": "📋 Re-priming workflow-integrity rules card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/inject-resume-prompt.sh",
-            "statusMessage": "📋 Re-surfacing active audits after compaction...",
             "timeout": 10
           },
           {
@@ -650,11 +608,6 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/detect-exhaustive-intent.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
             "statusMessage": "🔄 Checking workflow state...",
             "timeout": 30
@@ -671,18 +624,6 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/verify-completion-claim.sh",
-            "statusMessage": "🔒 Verifying completion evidence (exhaustive intent)...",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/prevent-premature-done.sh",
-            "statusMessage": "🧐 Checking for silent category exclusions...",
-            "timeout": 10
-          },
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-end.sh",

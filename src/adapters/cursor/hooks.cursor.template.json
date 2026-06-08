@@ -178,11 +178,6 @@
           },
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/detect-exhaustive-intent.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "{{HOOKS_DIR}}/session-context.sh",
             "statusMessage": "🔄 Checking workflow state...",
             "timeout": 30
