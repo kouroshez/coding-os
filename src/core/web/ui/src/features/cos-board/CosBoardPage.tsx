@@ -3209,7 +3209,9 @@ interface TaskEditFormState {
   body: string;
 }
 
-function TaskDetailDrawer({
+// Exported for the modal-hardening a11y/z-index regression test
+// (TaskDetailModal.test.tsx, TASK-260). Internal render site is unchanged.
+export function TaskDetailDrawer({
   task,
   swimlanes,
   onClose,
