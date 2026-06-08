@@ -128,30 +128,29 @@ def _resolve_model() -> str | None:
     return None
 
 
-def _derive_rework(conn: sqlite3.Connection, task_id: str, session_id: str | None = None) -> bool:
-    """True when the task's OWN history shows rework — used to refine an
-    optimistic 'success' into the honest 'rework' the learning loop needs.
-    Signals (both task-scoped + precise, so a first-try success is never
-    mislabeled): (1) a backward status move — reopened after testing/complete/
-    review; (2) a backtrack_event in the session that closed it. Without this
-    every outcome is 'success', the variance gate suppresses all stat/rework
-    extractors, and learn_extract is starved. See learning-extraction.md."""
+def _derive_rework(conn: sqlite3.Connection, task_id: str) -> bool:
+    """True when the task's OWN status history shows rework — a backward move
+    (reopened after testing/complete/review). This is the only TASK-SCOPED
+    rework signal that exists: `backtrack_events` carry no task_id and a single
+    session closes many tasks (one session in the live corpus closed 161), so
+    attributing a session's backtrack to the closing task would SMEAR every task
+    in that session to 'rework'. Richer rework — in-task re-edits, chat
+    corrections — needs write-time task→observation linkage (observations.task_id,
+    added separately); no completion-time heuristic can recover it. Used only to
+    refine an optimistic 'success'; an explicitly-asserted non-success is never
+    touched. See docs/engineering/learning-extraction.md."""
     try:
-        if conn.execute(
-            "SELECT 1 FROM task_status_history "
-            "WHERE task_id = ? AND old_status IN ('testing','complete','done','review') "
-            "  AND new_status IN ('in_progress','open','ready','icebox') LIMIT 1",
-            (task_id,),
-        ).fetchone():
-            return True
-        if session_id and conn.execute(
-            "SELECT 1 FROM backtrack_events WHERE session_id = ? LIMIT 1",
-            (session_id,),
-        ).fetchone():
-            return True
+        return bool(
+            conn.execute(
+                "SELECT 1 FROM task_status_history "
+                "WHERE task_id = ? AND old_status IN ('testing','complete','done','review') "
+                "  AND new_status IN ('in_progress','open','ready','icebox') LIMIT 1",
+                (task_id,),
+            ).fetchone()
+        )
     except sqlite3.Error as exc:
         logger.debug("rework derivation skipped for %s: %s", task_id, exc)
-    return False
+        return False
 
 
 def record_outcome(
@@ -216,9 +215,7 @@ def record_outcome(
         # Refine an optimistic 'success' into the honest 'rework' when the
         # task's own history shows it — the only thing that gives the variance
         # gate + rework extractors a non-monotone signal to learn from.
-        if refine_from_history and outcome == "success" and _derive_rework(
-            conn, task_id, _current_session() or None
-        ):
+        if refine_from_history and outcome == "success" and _derive_rework(conn, task_id):
             outcome = "rework"
 
         # Read current outcome BEFORE update (for breakthrough detection)
