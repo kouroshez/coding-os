@@ -363,6 +363,9 @@ def learn_extract(
     # Hook BLOCKs live in the activity log (not observations) on Claude — mine
     # them too so the richest friction signal becomes a lesson.
     extracted.extend(_mine_hook_block_lessons(conn, min_occurrences=min_occurrences))
+    # fix:/revert: commit subjects — the real engineering-lesson signal that
+    # reasoning records in git history, not in any friction table (§5).
+    extracted.extend(_mine_commit_lessons(conn, min_occurrences=min_occurrences))
 
     # Generalize related lessons into human-review drafts (B3). Fire-and-forget;
     # writes only when a NEW cluster forms (deduped). Never blocks extraction.
@@ -382,6 +385,7 @@ def learn_extract(
 _SOURCE_TO_PROVENANCE: dict[str, str] = {
     "learn_extract": "extracted_from_outcome",
     "friction": "extracted_from_observation",
+    "commit": "extracted_from_commit",
     "breakthrough": "agent_self",
     "manual": "user_directive",
     "import": "imported",
@@ -768,6 +772,68 @@ def _failure_cluster_key(display: str) -> str:
     return " ".join(words[:8])
 
 
+# Substrings that mark an `error` observation as a tool-fumble or expected
+# refusal — the agent tripping over its own tooling, never an engineering lesson.
+# See learning-extraction.md § Noise filter.
+_NOISE_FAILURE_MARKERS: tuple[str, ...] = (
+    "eisdir",
+    "illegal operation on a directory",
+    "file does not exist",
+    "no such file or directory",
+    "refusing to write through symlink",
+    "structuredoutput",  # workflow-internal schema fumble, not a code lesson
+)
+
+
+def _is_noise_failure(display: str) -> bool:
+    """True when a failure message is tool-fumble noise, not a learnable lesson."""
+    low = display.lower()
+    return any(marker in low for marker in _NOISE_FAILURE_MARKERS)
+
+
+# Known internal/model jargon → plain language, so a lesson reads for a novice
+# (XAI/PAIR: speak the user's language, not the model's). Applied longest-first.
+_JARGON_TRANSLATIONS: tuple[tuple[str, str], ...] = (
+    (
+        "predicates_unsatisfied: no evidencebundle for predicates ['coverage_100']",
+        "ended a 'fix everything' task without recording proof every case was handled",
+    ),
+    ("predicates_unsatisfied", "ended the task without the required proof-of-completion"),
+    ("no evidencebundle", "no proof-of-completion was recorded"),
+    ("task_not_closed", "left a task open"),
+    ("does not match required schema", "the output's shape did not match what was required"),
+    ("completion_gap", "a loose end at session end"),
+)
+
+
+def _humanize_signature(display: str) -> str:
+    """Rewrite known internal jargon in a failure/lesson signature to plain text."""
+    out = display
+    low = out.lower()
+    for jargon, plain in _JARGON_TRANSLATIONS:
+        idx = low.find(jargon)
+        if idx != -1:
+            out = out[:idx] + plain + out[idx + len(jargon):]
+            low = out.lower()
+    return out
+
+
+def pattern_tier(confidence: float, times_validated: int) -> str:
+    """Confidence tier for a learned pattern — the single mapping used by the UI
+    and digest. SSOT: learning-extraction.md § Confidence tier mapping.
+
+    Trusted = confirmed repeatedly · Fading = decaying, up for re-validation ·
+    Forming = seen, not yet confirmed.
+    """
+    conf = confidence or 0.0
+    tv = times_validated or 0
+    if conf >= 0.7 and tv >= 3:
+        return "Trusted"
+    if 0.2 <= conf <= 0.4 and tv >= 1:
+        return "Fading"
+    return "Forming"
+
+
 def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
     """Mine actionable `lesson` patterns from recurring failure observations.
 
@@ -793,12 +859,19 @@ def _mine_friction_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3
     for row in rows:
         d = dict(row)
         display = _clean_failure_text(d["narrative"] or d["title"] or "")
+        if _is_noise_failure(display):
+            continue  # tool-fumble / expected refusal — never a lesson
         key = _failure_cluster_key(display)
         if not key:
             continue
         cluster = clusters.setdefault(
             key,
-            {"count": 0, "display": display, "kind": _friction_kind(d["title"], d["narrative"], d["memory_type"])},
+            {
+                "count": 0,
+                # store the humanized signature so the minted lesson reads plainly
+                "display": _humanize_signature(display),
+                "kind": _friction_kind(d["title"], d["narrative"], d["memory_type"]),
+            },
         )
         cluster["count"] += 1
 
@@ -901,6 +974,90 @@ def _mine_hook_block_lessons(conn: sqlite3.Connection, *, min_occurrences: int =
                 source="friction",
                 confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
                 concepts=json.dumps(["lesson", "hook_block", cluster["hook"]]),
+            )
+        )
+    return lessons
+
+
+# ---------------------------------------------------------------------------
+# Commit-history lesson mining (the real engineering-lesson signal)
+# ---------------------------------------------------------------------------
+
+# A Conventional-Commit subject whose type means "something was wrong → fixed":
+# fix:/revert: (optional scope, optional !). The subject IS a recorded lesson.
+_FIX_COMMIT_RE = re.compile(r"^(?P<type>fix|revert)(?:\([^)]*\))?!?:\s*(?P<subject>.+)$", re.IGNORECASE)
+
+
+def _commit_subject_key(subject: str) -> str:
+    """Stable cluster key for a commit subject: ids/hashes/digits normalised, first 8 tokens."""
+    s = _TASKID_RE.sub("TASK-N", subject)
+    s = _LONGHEX_RE.sub("<hash>", s)
+    s = re.sub(r"\d+", "N", s.lower())
+    words = [w for w in _NONWORD_RE.split(s) if w]
+    return " ".join(words[:8])
+
+
+def _mine_commit_lessons(conn: sqlite3.Connection, *, min_occurrences: int = 3) -> list[dict]:
+    """Mine `fix:`/`revert:` commit subjects into `lesson` patterns.
+
+    The lessons a human values are discovered by reasoning and recorded in git
+    history, not in any signal table. A `fix:`/`revert:` commit IS a
+    "something was wrong → here is the correction". Cluster recurring subjects;
+    mint one lesson per subject seen >= floor times, or any single `revert:`
+    (a revert is always a real mistake). Read-only `git log`, bounded, no-op
+    outside a work-tree. Contract: docs/engineering/learning-extraction.md §5.
+    """
+    import subprocess
+
+    floor = max(1, min(min_occurrences, _FRICTION_MIN_OCCURRENCES))
+    root = _derive_project_root(conn)
+    if root is None:
+        return []
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "log", f"--since={_LESSON_WINDOW_DAYS} days ago",
+             "--max-count=2000", "--no-merges", "--pretty=format:%s"],
+            capture_output=True, text=True, timeout=10, check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("commit mining skipped: %s", exc)
+        return []
+    if proc.returncode != 0:
+        return []
+
+    clusters: dict[str, dict] = {}
+    for line in proc.stdout.splitlines():
+        match = _FIX_COMMIT_RE.match(line.strip())
+        if not match:
+            continue
+        subject = match.group("subject").strip()
+        key = _commit_subject_key(subject)
+        if not key:
+            continue
+        cluster = clusters.setdefault(key, {"count": 0, "subject": subject, "revert": False})
+        cluster["count"] += 1
+        if match.group("type").lower() == "revert":
+            cluster["revert"] = True
+
+    lessons: list[dict] = []
+    for cluster in clusters.values():
+        if cluster["count"] < floor and not cluster["revert"]:
+            continue
+        verb = "reverted" if cluster["revert"] else "fixed"
+        subject = _clean_failure_text(cluster["subject"])
+        pattern_text = (
+            f"Recurring fix ({cluster['count']} occurrences): previously {verb} — "
+            f"{subject} → check this before shipping similar code"
+        )
+        lessons.append(
+            _upsert_pattern(
+                conn,
+                pattern=pattern_text,
+                memory_type="lesson",
+                domain=None,
+                source="commit",
+                confidence=min(0.85, 0.4 + cluster["count"] / 10.0),
+                concepts=json.dumps(["lesson", "commit", "fix"]),
             )
         )
     return lessons

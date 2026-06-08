@@ -217,6 +217,119 @@ class TestFrictionLessons:
         )
         assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
 
+    def test_noise_failures_not_minted(self, seeded_conn: sqlite3.Connection) -> None:
+        # tool-fumbles + expected refusals are never lessons, even when recurring
+        from tools.learning import _mine_friction_lessons
+
+        noise = (
+            "EISDIR: illegal operation on a directory, read '/x/y/learning.py'",
+            "File does not exist. Note: your current working directory is /x",
+            "Refusing to write through symlink: /x/CLAUDE.md",
+            "Output does not match required schema: StructuredOutput root must have 'area'",
+        )
+        for idx, narrative in enumerate(noise):
+            self._seed_failures(seeded_conn, 3, narrative, memory_type="error", session=f"ses-n{idx}")
+        assert _mine_friction_lessons(seeded_conn, min_occurrences=3) == []
+
+
+class TestHumanizeAndTier:
+    """Lessons must read for a novice (XAI: speak the user's language); tiers
+    replace bare percentages. Contract: learning-extraction.md."""
+
+    def test_humanize_translates_jargon(self) -> None:
+        from tools.learning import _humanize_signature
+
+        out = _humanize_signature(
+            "predicates_unsatisfied: no EvidenceBundle for predicates ['coverage_100']"
+        )
+        assert "predicates_unsatisfied" not in out
+        assert "proof" in out.lower()
+
+    def test_humanize_passthrough_plain_text(self) -> None:
+        from tools.learning import _humanize_signature
+
+        assert _humanize_signature("plain readable message") == "plain readable message"
+
+    def test_pattern_tier_thresholds(self) -> None:
+        from tools.learning import pattern_tier
+
+        assert pattern_tier(0.8, 5) == "Trusted"
+        assert pattern_tier(0.3, 2) == "Fading"
+        assert pattern_tier(0.6, 1) == "Forming"
+        assert pattern_tier(0.9, 1) == "Forming"  # high conf, not yet confirmed → not Trusted
+
+
+class TestCommitLessons:
+    """The real engineering-lesson signal: fix:/revert: commit subjects mined
+    from git history. Contract: learning-extraction.md §5."""
+
+    @staticmethod
+    def _git(repo: Path, *args: str) -> None:
+        import subprocess
+
+        subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
+
+    def _make_repo(self, tmp_path: Path) -> Path:
+        repo = tmp_path / "proj"
+        (repo / ".coding-os").mkdir(parents=True)
+        self._git(repo, "init", "-q")
+        self._git(repo, "config", "user.email", "t@t.t")
+        self._git(repo, "config", "user.name", "t")
+        return repo
+
+    def test_fix_commit_regex(self) -> None:
+        from tools.learning import _FIX_COMMIT_RE
+
+        assert _FIX_COMMIT_RE.match("fix(cli): something")
+        assert _FIX_COMMIT_RE.match("revert: bad change")
+        assert _FIX_COMMIT_RE.match("fix!: breaking")
+        assert not _FIX_COMMIT_RE.match("feat: a feature")
+        assert not _FIX_COMMIT_RE.match("docs: update")
+
+    def test_subject_key_normalises_ids(self) -> None:
+        from tools.learning import _commit_subject_key
+
+        a = _commit_subject_key("repoint spec link for TASK-077 anchor")
+        b = _commit_subject_key("repoint spec link for TASK-099 anchor")
+        assert a == b  # TASK ids + digits normalised → same cluster
+
+    def test_mines_recurring_fix(self, tmp_path: Path) -> None:
+        from tools.learning import _mine_commit_lessons
+
+        repo = self._make_repo(tmp_path)
+        for _ in range(2):
+            self._git(repo, "commit", "--allow-empty", "-q", "-m",
+                      "fix: handle null user in session lookup")
+        self._git(repo, "commit", "--allow-empty", "-q", "-m", "feat: unrelated change")
+        c = init_db(repo / ".coding-os" / "coding-os.db")
+        try:
+            lessons = _mine_commit_lessons(c, min_occurrences=3)
+            assert any(le["action"] in ("created", "updated") for le in lessons)
+            rows = c.execute(
+                "SELECT pattern, source FROM learned_patterns WHERE source='commit'"
+            ).fetchall()
+            assert rows and rows[0]["source"] == "commit"
+            assert "Recurring fix" in rows[0]["pattern"]
+        finally:
+            c.close()
+
+    def test_single_revert_minted(self, tmp_path: Path) -> None:
+        from tools.learning import _mine_commit_lessons
+
+        repo = self._make_repo(tmp_path)
+        self._git(repo, "commit", "--allow-empty", "-q", "-m", "revert: drop the broken cache layer")
+        c = init_db(repo / ".coding-os" / "coding-os.db")
+        try:
+            assert len(_mine_commit_lessons(c, min_occurrences=3)) >= 1  # a revert is always real
+        finally:
+            c.close()
+
+    def test_no_git_repo_noop(self, conn: sqlite3.Connection) -> None:
+        # conn's db is not under a .coding-os/ project root → no-op, no crash
+        from tools.learning import _mine_commit_lessons
+
+        assert _mine_commit_lessons(conn, min_occurrences=3) == []
+
 
 class TestHookBlockLessons:
     """Hook BLOCKs never reach the observations table on Claude, but they ARE
