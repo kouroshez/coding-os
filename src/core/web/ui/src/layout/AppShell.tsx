@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Brain, HeartPulse, LayoutDashboard, Network } from 'lucide-react';
+import { Brain, HeartPulse, LayoutDashboard, Network, SlidersHorizontal } from 'lucide-react';
 import HealthAlarmBar from '@/layout/HealthAlarmBar';
 import Inspector from '@/layout/Inspector';
 import LiveStatus from '@/layout/LiveStatus';
@@ -29,6 +29,7 @@ const NAV = [
   { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false },
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'cognition', label: 'Cognition', Icon: Brain, end: false },
+  { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
   { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
 ] as const;
 

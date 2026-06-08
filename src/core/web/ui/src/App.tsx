@@ -9,6 +9,7 @@ import SearchPage from './pages/SearchPage';
 import HubHome from './pages/HubHome';
 import DashboardPage from './pages/DashboardPage';
 import ChatLanding from './pages/ChatLanding';
+import ConfigPage from './pages/ConfigPage';
 import SettingsPage from './pages/SettingsPage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import LogsPage from './pages/LogsPage';
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/p/:slug/graph/:rootUid" element={<GraphPage />} />
           <Route path="/p/:slug/cognition" element={<CognitionPage />} />
           <Route path="/p/:slug/cognition/:sessionId" element={<CognitionPage />} />
+          <Route path="/p/:slug/config" element={<ConfigPage />} />
 
           {/* Unified Workspace Hub (Project-Scoped) — chat-first landing */}
           <Route path="/p/:slug/workspace" element={<WorkspacePage />}>
@@ -116,6 +118,7 @@ export default function App() {
           <Route path="/graph/:rootUid" element={<NeedProjectPage feature="graph" />} />
           <Route path="/cognition" element={<NeedProjectPage feature="cognition" />} />
           <Route path="/cognition/:sessionId" element={<NeedProjectPage feature="cognition" />} />
+          <Route path="/config" element={<NeedProjectPage feature="config" />} />
           <Route path="/roles" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
