@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from tools._shared import (
     TOKEN_BUDGET_CHARS,
     VALID_LAYERS,
+    _TRIMMABLE_LIST_KEYS,
     _estimate_tokens,
     fail,
     ok,
@@ -426,6 +427,45 @@ class TestApplyBudgetOptOut:
         d = json.loads(ok(body, apply_budget=False))["data"]
         assert d["meta"]["truncated"] is False
         assert len(d["results"]) == 500
+
+
+# ---------------------------------------------------------------------------
+# Trim-ladder coverage (STEP 11/13) — anti-recurrence guard. Every list key a
+# cos_* tool can emit as a large payload MUST be reachable by the trim ladder,
+# else an oversized AGENT response logs envelope_unshrinkable — the bug class
+# behind the board 186KB ERROR, generalized to every wide-payload tool.
+# ---------------------------------------------------------------------------
+
+
+class TestTrimLadderCoverage:
+    @pytest.mark.parametrize("key", _TRIMMABLE_LIST_KEYS)
+    def test_every_registered_list_key_is_trimmable(self, key: str) -> None:
+        """Each registered key, given an oversized single-key body, must TRIM
+        (truncated=True) rather than fall through to envelope_unshrinkable."""
+        body = {key: [{"id": i, "blob": "y" * 120} for i in range(600)]}
+        assert len(json.dumps(body, indent=2)) > TOKEN_BUDGET_CHARS  # genuinely oversized
+        d = json.loads(ok(body))["data"]
+        assert "envelope_unshrinkable" not in d["meta"], f"{key!r} not reachable by the trim ladder"
+        assert d["meta"]["truncated"] is True
+        assert len(json.dumps({"ok": True, "data": d}, indent=2)) <= TOKEN_BUDGET_CHARS
+
+    def test_known_wide_payload_tool_keys_are_registered(self) -> None:
+        """The list key each real wide-payload tool emits must be in the ladder.
+        A new wide tool whose key is unregistered will silently produce
+        envelope_unshrinkable — register it here AND in _TRIMMABLE_LIST_KEYS.
+        (board cards/grouped are intentionally absent: the board pre-caps on the
+        agent path and the browser opts out via apply_budget=False.)"""
+        wide_tool_keys = {
+            "rows",  # cos_log_query, cos_metric_query, cos_audit_log_query
+            "entries",  # cos_timeline
+            "cycles",  # cos_graph_cycles
+            "untested",  # cos_graph_test_gap
+            "dead",  # cos_graph_dead_code
+            "results",  # cos_search, cos_doc_search
+            "samples",  # metrics samples
+        }
+        missing = wide_tool_keys - set(_TRIMMABLE_LIST_KEYS)
+        assert not missing, f"wide-payload tool keys missing from the trim ladder: {missing}"
 
 
 # ---------------------------------------------------------------------------

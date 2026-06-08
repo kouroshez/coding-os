@@ -215,6 +215,15 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "symbols",
     "downstream_consumers",
     "downstream_tasks",
+    # S11 (TASK-259): wide-payload tool list keys that were OUTSIDE the ladder,
+    # so an oversized agent call produced envelope_unshrinkable — the same bug
+    # class as the board 186KB ERROR, generalized. Adding a new wide tool? Add
+    # its list key here (and to test_envelope.py::TestTrimLadderCoverage).
+    "rows",  # cos_log_query, cos_metric_query, cos_audit_log_query
+    "entries",  # cos_timeline
+    "cycles",  # cos_graph_cycles
+    "untested",  # cos_graph_test_gap
+    "dead",  # cos_graph_dead_code
 )
 
 # W6.2: dict-of-lists buckets (parent_key → {sub_key: [items]}). Trimmer
