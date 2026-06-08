@@ -1,6 +1,6 @@
 import { FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
-import { consumeSse } from '@/lib/chat-stream';
+import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useRoles } from './roles';
 import ModelPicker from './ModelPicker';
@@ -80,26 +80,44 @@ export default function NewChatForm({
     onActive?.(true);
     let capturedId: string | null = null;
     let failed = false;
+    // True once a StreamEvent delta has painted text — tells us to IGNORE the
+    // trailing complete AssistantMessage's text (it would duplicate the reply).
+    let gotDelta = false;
     try {
       await consumeSse(
         endpoint,
         { prompt: p, role: role || null, model: model || null, effort: effort || null },
         (ev, payload) => {
           if (ev === 'session' && typeof payload.session_id === 'string') capturedId = payload.session_id;
-          // Streamed frames carry `content[]`, GET transcripts carry `blocks[]`.
-          const blocks: Block[] = payload.content ?? payload.blocks ?? [];
-          const t = blocks
-            .filter((b) => b?.type === 'text' && b.text)
-            .map((b) => b.text)
-            .join('');
-          // Text delta → the agent is writing prose: drop the tool label so the
-          // status falls back to a playful idle phrase; a fresh tool re-sets it.
-          if (t) {
-            setText((cur) => cur + t);
-            setActivity('');
+          // Partial streaming (include_partial_messages): paint the answer
+          // token-by-token from StreamEvent deltas.
+          if (ev === 'streamevent') {
+            const dt = streamDeltaText(payload);
+            if (dt) {
+              gotDelta = true;
+              setText((cur) => cur + dt);
+              setActivity('');
+            }
+            const tn = streamToolName(payload);
+            if (tn) setActivity(tn);
+            return;
           }
-          const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
-          if (tool?.name) setActivity(tool.name);
+          // Complete frames carry `content[]` (stream) / `blocks[]` (GET). Their
+          // text is a FALLBACK only — once deltas streamed it, re-adding here
+          // would double the reply.
+          const blocks: Block[] = payload.content ?? payload.blocks ?? [];
+          if (!gotDelta) {
+            const t = blocks
+              .filter((b) => b?.type === 'text' && b.text)
+              .map((b) => b.text)
+              .join('');
+            if (t) {
+              setText((cur) => cur + t);
+              setActivity('');
+            }
+            const tool = blocks.find((b) => b?.type === 'tool_use' && b.name);
+            if (tool?.name) setActivity(tool.name);
+          }
           // Model + usage live (matches the persisted assistant header). Assistant
           // frames carry message as an object; error frames carry it as a string.
           const msgObj = payload.message && typeof payload.message === 'object' ? payload.message : undefined;

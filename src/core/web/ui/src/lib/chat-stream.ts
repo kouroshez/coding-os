@@ -34,9 +34,36 @@ export interface SseFramePayload {
   message?: string | { model?: string; usage?: SseUsage };
   usage?: SseUsage;
   message_text?: string;
+  // StreamEvent frames (include_partial_messages) carry the raw Anthropic
+  // streaming event — content_block_delta (text/thinking), content_block_start
+  // (tool_use), message_start/stop, etc.
+  event?: {
+    type?: string;
+    delta?: { type?: string; text?: string; thinking?: string };
+    content_block?: { type?: string; name?: string };
+  };
   raw?: string;
   parse_error?: string;
   [key: string]: unknown;
+}
+
+/** The assistant answer TEXT delta from a `streamevent` frame, or '' (thinking
+ *  and tool-input deltas are not user-visible answer text). */
+export function streamDeltaText(payload: SseFramePayload): string {
+  const e = payload.event;
+  if (e?.type === 'content_block_delta' && e.delta?.type === 'text_delta') {
+    return e.delta.text ?? '';
+  }
+  return '';
+}
+
+/** The tool name when a `streamevent` opens a tool_use block, or ''. */
+export function streamToolName(payload: SseFramePayload): string {
+  const e = payload.event;
+  if (e?.type === 'content_block_start' && e.content_block?.type === 'tool_use') {
+    return e.content_block.name ?? '';
+  }
+  return '';
 }
 
 export type SseFrameHandler = (event: string, payload: SseFramePayload) => void;

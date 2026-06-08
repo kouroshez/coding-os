@@ -853,6 +853,11 @@ async def chat_new(
         model=model,
         permission_mode="dontAsk",
         setting_sources=[],
+        # Stream partial deltas so the UI paints the answer token-by-token (the
+        # SDK otherwise yields one complete AssistantMessage at the end → the
+        # whole reply appears at once). Emits StreamEvent frames carrying raw
+        # Anthropic content_block_delta events.
+        include_partial_messages=True,
         # Hub chat is a fast conversational surface — skip the project hook suite
         # (dozens of SessionStart hooks add ~40s of latency before the first
         # reply) and the auto-loaded CLAUDE.md governance/banner. The agent keeps
@@ -1189,6 +1194,7 @@ async def onboard(
         permission_mode="dontAsk",
         setting_sources=["project"],
         # No session_id — claude CLI requires a UUID; SDK mints its own (emitted below).
+        include_partial_messages=True,  # token-by-token streaming for the live UI
         allowed_tools=list(_ONBOARD_ALLOWED_TOOLS),
         disallowed_tools=["Bash"],  # deny wins even over the allow-list
         system_prompt=system_prompt,
@@ -1280,6 +1286,8 @@ async def chat_send(
         # suite / CLAUDE.md governance (that caused the banner, "No response
         # requested", and tool-permission errors on resume).
         setting_sources=[],
+        # Stream partial deltas so follow-up replies paint token-by-token too.
+        include_partial_messages=True,
         system_prompt=_chat_system_prompt(model),
     )
 

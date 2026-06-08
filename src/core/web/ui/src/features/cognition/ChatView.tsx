@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
-import { consumeSse } from '@/lib/chat-stream';
+import { consumeSse, streamDeltaText, streamToolName } from '@/lib/chat-stream';
 import { MarkdownBlock } from '@/components/MarkdownBlock';
 import { useScopedLink } from '@/lib/use-scoped-link';
 
@@ -144,6 +144,10 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
   const [fork, setFork] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  // Assistant reply painted token-by-token from StreamEvent deltas (the trailing
+  // complete AssistantMessage is then skipped to avoid a double render).
+  const [liveText, setLiveText] = useState('');
+  const [liveActivity, setLiveActivity] = useState('');
   const [streamErr, setStreamErr] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -152,6 +156,8 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     abortRef.current?.abort();
     abortRef.current = null;
     setLiveEvents([]);
+    setLiveText('');
+    setLiveActivity('');
     setStreaming(false);
     setStreamErr(null);
     setDraft('');
@@ -161,7 +167,7 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [data?.count, liveEvents.length]);
+  }, [data?.count, liveEvents.length, liveText]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -178,6 +184,8 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
       setStreaming(true);
       setStreamErr(null);
       setLiveEvents([{ id: `local-${Date.now()}`, kind: 'pending-user', payload: { text: prompt }, ts: Date.now() }]);
+      setLiveText('');
+      setLiveActivity('');
       setDraft('');
 
       const controller = new AbortController();
@@ -185,13 +193,29 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
 
       try {
         let counter = 0;
+        let accum = '';
+        let sawDelta = false;
         await consumeSse(
           `/api/cognition/chat/${encodeURIComponent(sessionId)}/send`,
           { prompt, fork },
           (eventName, payload) => {
-            // consumeSse already JSON-parses each frame (and hands back
-            // {raw, parse_error} for unparseable ones), so the viewer just
-            // accumulates the raw {kind, payload} events it renders.
+            // Partial streaming: paint the reply token-by-token from StreamEvent
+            // deltas instead of dumping hundreds of raw frames into liveEvents.
+            if (eventName === 'streamevent') {
+              const dt = streamDeltaText(payload);
+              if (dt) {
+                sawDelta = true;
+                accum += dt;
+                setLiveText(accum);
+                setLiveActivity('');
+              }
+              const tn = streamToolName(payload);
+              if (tn) setLiveActivity(tn);
+              return;
+            }
+            // The trailing complete AssistantMessage duplicates the streamed text
+            // — drop it once deltas have arrived (tool-only turns keep it).
+            if (eventName === 'assistant' && sawDelta) return;
             counter += 1;
             setLiveEvents((cur) => [
               ...cur,
@@ -214,6 +238,8 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
         // and the reply printed twice (TASK 2026-05-20 UI audit).
         await refetch();
         setLiveEvents([]);
+        setLiveText('');
+        setLiveActivity('');
         setStreamErr(null);
       }
     },
@@ -264,12 +290,20 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
           ),
         )}
 
-        {liveEvents.length > 0 && (
+        {(liveEvents.length > 0 || liveText || streaming) && (
           <div className="my-4 border-t border-dashed border-[var(--cos-accent)] pt-3">
             <div className="mb-2 text-[10px] uppercase tracking-wider text-[var(--cos-accent)]">
               live · {streaming ? 'streaming…' : 'completed'}
             </div>
-            <LiveEventList events={liveEvents} />
+            {liveEvents
+              .filter((e) => e.kind === 'pending-user')
+              .map((e) => (
+                <LiveEventRow key={e.id} event={e} />
+              ))}
+            {(liveText || streaming) && (
+              <LiveAssistant text={liveText} activity={liveActivity} streaming={streaming} />
+            )}
+            <LiveEventList events={liveEvents.filter((e) => e.kind !== 'pending-user')} />
           </div>
         )}
 
@@ -553,6 +587,37 @@ const SIGNAL_KINDS = new Set([
   'started',
   'done',
 ]);
+
+// The streaming assistant reply, painted from StreamEvent text deltas. Matches
+// AssistantTurn's bubble so it doesn't restyle when the persisted turn replaces
+// it on refetch. Tool calls aren't rendered here (only a "running …" hint) — the
+// refetched turn shows them in full.
+function LiveAssistant({
+  text,
+  activity,
+  streaming,
+}: {
+  text: string;
+  activity: string;
+  streaming: boolean;
+}) {
+  return (
+    <div className="mb-5 flex flex-col items-start gap-1.5">
+      <div className="pl-1 font-mono text-[10px] uppercase tracking-wider text-[var(--cos-accent)]">
+        assistant · live
+      </div>
+      <div className="max-w-[88%] space-y-1.5 rounded-2xl border border-[var(--cos-border)]/40 bg-[var(--cos-panel)]/80 px-4 py-3 text-sm text-[var(--cos-text)] shadow-md shadow-black/10">
+        {text && <MarkdownBlock source={text} />}
+        {streaming && (
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--cos-faint)]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--cos-accent)]" aria-hidden />
+            {activity || 'working'}…
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function LiveEventList({ events }: { events: LiveEvent[] }) {
   const { signal, noise } = useMemo(() => {
