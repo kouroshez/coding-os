@@ -53,11 +53,22 @@ function roiColor(trend: string): string {
   if (trend === 'worsening') return 'var(--cos-err)';
   return 'var(--cos-muted)';
 }
-// Plain-language read-out — celebrate the win, don't just draw a slope (XAI).
-function roiSentence(trend: string): string {
-  if (trend === 'improving') return 'The agent is hitting fewer repeat mistakes lately — learning is paying off.';
-  if (trend === 'worsening') return 'Friction ticked up recently — worth a look at what changed.';
-  return 'Friction is holding steady across recent sessions.';
+// Plain-language read-out — the section must answer "is it working?" in words a
+// novice gets, and stay honest when there isn't enough history to judge a trend.
+function roiHeadline(trend: string, enough: boolean): string {
+  if (!enough) return 'Too early to tell';
+  if (trend === 'improving') return 'Yes — fewer stumbles lately';
+  if (trend === 'worsening') return 'Stumbles ticked up recently';
+  return 'Steady — stumbles aren’t rising';
+}
+function roiSentence(trend: string, enough: boolean): string {
+  if (!enough)
+    return 'coding-os needs a few more work sessions before it can tell whether the agent’s stumbles (blocked actions + errors) are trending down.';
+  if (trend === 'improving')
+    return 'The agent is hitting fewer blocked actions and errors than before — the lessons are paying off.';
+  if (trend === 'worsening')
+    return 'The agent hit more blocked actions and errors recently — worth a look at what changed.';
+  return 'The agent’s blocked actions and errors are holding steady across recent sessions.';
 }
 
 function api(slug: string | undefined, path: string): string {
@@ -349,6 +360,8 @@ export default function MemoryPage() {
   const stats = patterns.filter(isStat);
   const showLessons = view !== 'stats';
   const showStats = view !== 'lessons';
+  // A 2-3 session trend is noise; only judge "is it working?" with enough history.
+  const enoughRoi = !!roi && roi.sessions.length >= 4;
 
   const views: { id: View; label: string }[] = [
     { id: 'all', label: 'All' },
@@ -428,33 +441,51 @@ export default function MemoryPage() {
           </div>
         )}
 
-        {roi && roi.sessions.length >= 2 && (
+        {roi && (
           <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-[var(--cos-text)]">Is it working?</h2>
-              <span className="text-xs font-medium" style={{ color: roiColor(roi.trend) }}>
-                {roi.trend === 'improving' ? '↓' : roi.trend === 'worsening' ? '↑' : '→'}{' '}
-                {roi.trend}
+              <span
+                className="text-xs font-medium"
+                style={{ color: enoughRoi ? roiColor(roi.trend) : 'var(--cos-muted)' }}
+              >
+                {enoughRoi
+                  ? `${roi.trend === 'improving' ? '↓' : roi.trend === 'worsening' ? '↑' : '→'} ${roi.trend}`
+                  : 'gathering data'}
               </span>
             </div>
-            <p className="mt-1 text-xs text-[var(--cos-muted)]">{roiSentence(roi.trend)}</p>
-            <div className="mt-2 flex h-10 items-end gap-0.5" aria-hidden="true">
-              {roi.sessions.map((s, i) => {
-                const max = Math.max(...roi.sessions.map((x) => x.rate), 0.01);
-                const h = Math.max(6, Math.round((s.rate / max) * 100));
-                return (
-                  <span
-                    key={`${s.session_id}-${i}`}
-                    title={`${(s.rate * 100).toFixed(0)}% friction (${s.friction}/${s.total})`}
-                    className="flex-1 rounded-sm"
-                    style={{ height: `${h}%`, backgroundColor: roiColor(roi.trend) }}
-                  />
-                );
-              })}
-            </div>
-            <p className="mt-1 text-[11px] text-[var(--cos-muted)]">
-              Each bar = one recent session’s friction rate (blocks + errors). Lower is better.
+            <p className="mt-1 text-sm font-medium text-[var(--cos-text)]">
+              {roiHeadline(roi.trend, enoughRoi)}
             </p>
+            <p className="mt-0.5 text-xs text-[var(--cos-muted)]">
+              {roiSentence(roi.trend, enoughRoi)}
+            </p>
+            <p className="mt-1.5 text-xs text-[var(--cos-muted)]">
+              So far the agent has learned{' '}
+              <span className="font-semibold text-[var(--cos-text)]">{lessons.length}</span> lesson
+              {lessons.length === 1 ? '' : 's'} from past work.
+            </p>
+            {enoughRoi && (
+              <>
+                <div className="mt-2.5 flex h-10 items-end gap-0.5" aria-hidden="true">
+                  {roi.sessions.map((s, i) => {
+                    const max = Math.max(...roi.sessions.map((x) => x.rate), 0.01);
+                    const h = Math.max(6, Math.round((s.rate / max) * 100));
+                    return (
+                      <span
+                        key={`${s.session_id}-${i}`}
+                        title={`${(s.rate * 100).toFixed(0)}% stumbles (${s.friction}/${s.total})`}
+                        className="flex-1 rounded-sm"
+                        style={{ height: `${h}%`, backgroundColor: roiColor(roi.trend) }}
+                      />
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--cos-muted)]">
+                  Each bar = one recent session’s stumbles (blocked actions + errors). Lower is better.
+                </p>
+              </>
+            )}
           </section>
         )}
 
