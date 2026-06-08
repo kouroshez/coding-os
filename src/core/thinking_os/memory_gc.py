@@ -51,6 +51,9 @@ def gc_memory(
     stats: dict[str, Any] = {
         "orphan_embeddings_observations": 0,
         "orphan_embeddings_document_chunks": 0,
+        "orphan_embeddings_learned_patterns": 0,
+        "orphan_pattern_validations": 0,
+        "orphan_graph_evidence": 0,
         "orphan_concept_graph_edges": 0,
         "stale_co_edit_edges": 0,
         "trash_observations": 0,
@@ -65,7 +68,7 @@ def gc_memory(
     try:
         # ---- 1. Orphan embeddings that reference deleted rows ----
         if _table_exists(conn, "embeddings"):
-            for source in ("observations", "document_chunks"):
+            for source in ("observations", "document_chunks", "learned_patterns"):
                 if not _table_exists(conn, source):
                     continue
                 cur = conn.execute(
@@ -83,6 +86,32 @@ def gc_memory(
                         f"  AND NOT EXISTS (SELECT 1 FROM {source} t WHERE t.id = source_id)",
                         (source,),
                     )
+
+        # ---- 1b. Orphan pattern_validations (pattern_id deleted) ----
+        if _table_exists(conn, "pattern_validations") and _table_exists(conn, "learned_patterns"):
+            n = conn.execute(
+                "SELECT COUNT(*) FROM pattern_validations v "
+                "WHERE NOT EXISTS (SELECT 1 FROM learned_patterns p WHERE p.id = v.pattern_id)"
+            ).fetchone()[0]
+            stats["orphan_pattern_validations"] = int(n)
+            if n and not dry_run:
+                conn.execute(
+                    "DELETE FROM pattern_validations WHERE NOT EXISTS "
+                    "(SELECT 1 FROM learned_patterns p WHERE p.id = pattern_validations.pattern_id)"
+                )
+
+        # ---- 1c. Orphan graph_evidence_v12 (the ON DELETE CASCADE that didn't fire) ----
+        if _table_exists(conn, "graph_evidence_v12") and _table_exists(conn, "graph_edges_v12"):
+            n = conn.execute(
+                "SELECT COUNT(*) FROM graph_evidence_v12 e "
+                "WHERE NOT EXISTS (SELECT 1 FROM graph_edges_v12 g WHERE g.id = e.edge_id)"
+            ).fetchone()[0]
+            stats["orphan_graph_evidence"] = int(n)
+            if n and not dry_run:
+                conn.execute(
+                    "DELETE FROM graph_evidence_v12 WHERE NOT EXISTS "
+                    "(SELECT 1 FROM graph_edges_v12 g WHERE g.id = graph_evidence_v12.edge_id)"
+                )
 
         # ---- 2. Concept graph edges whose endpoints are trash paths ----
         if _table_exists(conn, "concept_graph"):

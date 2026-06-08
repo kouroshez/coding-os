@@ -49,6 +49,18 @@ PRAGMA wal_checkpoint(TRUNCATE);
 ```
 The bounded producer + GC prune then keep it small as it rebuilds.
 
+## Referential-integrity reconcile (GC)
+
+`foreign_keys=ON` only enforces CASCADE for deletes that go through a connection
+with it set — bulk/backend deletes (e.g. graph re-index dropping edges) can leave
+durable orphans that `PRAGMA quick_check` never flags. `gc_memory` therefore
+reconciles them defensively each run, deleting rows whose parent is gone:
+- **embeddings** orphaned vs `observations` / `document_chunks` / `learned_patterns`,
+- **pattern_validations** whose `pattern_id` no longer exists,
+- **graph_evidence_v12** whose `edge_id` no longer exists (the CASCADE that didn't fire).
+
+Counts are reported in the GC stats so a growing orphan count is visible.
+
 ## See also
 - [learning-extraction.md](learning-extraction.md) — the learning loop (separate concern).
 - [graph_os-queries.md](graph_os-queries.md) — the structural code graph (use it for real impact/rename).
