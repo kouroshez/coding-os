@@ -1582,3 +1582,36 @@ def test_task_show_not_found_returns_fail_envelope(project: Path, conn: sqlite3.
     env = _parse(mcp_tools.cos_task_show(conn, task_id="TASK-999"))
     assert env["ok"] is False
     assert env["error"]["category"] == "not_found"
+
+
+# ---------- worklog → timeline events (C3a / TASK-267) ----------
+
+
+def test_worklog_events_parses_bullets_in_file_order(project: Path, conn: sqlite3.Connection):
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn, title="WL probe", swimlane="core", kind="feature", outcome="parse work log."
+        )
+    )
+    tid = created["data"]["task_id"]
+    rel = created["data"]["file_path"]
+    mcp_tools.cos_work_log_append(conn, task_id=tid, summary="first note")
+    mcp_tools.cos_work_log_append(conn, task_id=tid, summary="second note abc1234")
+
+    events = mcp_tools._worklog_events(rel)
+
+    assert len(events) == 2
+    assert all(e["type"] == "worklog" for e in events)
+    assert events[0]["text"].startswith("first note")
+    assert events[1]["text"].startswith("second note")
+    assert events[0]["at"] <= events[1]["at"]  # +i keeps file order under the sort
+    assert events[0]["actor"]["label"]  # actor-attributed, not blank
+
+
+def test_worklog_events_empty_when_no_work_log(project: Path, conn: sqlite3.Connection):
+    created = _parse(
+        mcp_tools.cos_task_create(
+            conn, title="No log", swimlane="core", kind="feature", outcome="no work log yet."
+        )
+    )
+    assert mcp_tools._worklog_events(created["data"]["file_path"]) == []

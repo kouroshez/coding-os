@@ -421,3 +421,41 @@ def test_error_codes_use_stable_prefix() -> None:
     result = evaluate_dor("feature", _placeholder_body(), config)
     for m in result.messages:
         assert m.code.startswith("DOR_"), f"code {m.code!r} missing DOR_ prefix"
+
+
+def test_read_first_missing_paths_flags_only_dead_repo_paths(tmp_path) -> None:
+    # Regression guard for the Read First dead-link check (C5a): only repo paths
+    # that don't resolve are flagged; URLs, globs, prose and real files are not.
+    from core.board_os.transition_gates_validator import _read_first_missing_paths
+
+    (tmp_path / "src" / "core").mkdir(parents=True)
+    (tmp_path / "src" / "core" / "real.py").write_text("x", encoding="utf-8")
+
+    text = (
+        "- src/core/real.py — exists\n"
+        "- src/core/missing.py — gone\n"
+        "- [doc](docs/none.md) — dead link\n"
+        "- https://example.com — external, ignored\n"
+        "- src/core/*.py — glob, ignored\n"
+        "- just prose, no path\n"
+    )
+    missing = _read_first_missing_paths(text, str(tmp_path))
+
+    assert "src/core/missing.py" in missing
+    assert "docs/none.md" in missing
+    assert "src/core/real.py" not in missing
+    assert not any("example.com" in m for m in missing)
+    assert not any("*" in m for m in missing)
+
+
+def test_dead_link_check_is_skipped_without_project_root() -> None:
+    # Pure-validator path: no project_root means no filesystem touch, so a body
+    # with dead Read First links still evaluates without a dead-link warning.
+    config = load_gates_config()
+    body = (
+        "**Outcome (one sentence):** A real outcome sentence that is long enough.\n"
+        "## Read First\n- src/core/totally/made/up.py — nope\n"
+        "## Acceptance (G/W/T)\n- **Given** a, **When** b, **Then** c\n"
+    )
+    result = evaluate_dor("feature", body, config)  # no project_root
+    assert not any(m.code == "DOR_READ_FIRST_DEAD_LINK" for m in result.messages)
