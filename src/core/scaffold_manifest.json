@@ -21,6 +21,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -82,9 +83,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -216,7 +219,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 209
+      "count": 212
     },
     "claude_django": {
       "agent": "claude",
@@ -239,6 +242,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -300,9 +304,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -450,7 +456,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 228
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -473,6 +479,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -534,9 +541,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -677,7 +686,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 218
+      "count": 221
     },
     "claude_go": {
       "agent": "claude",
@@ -700,6 +709,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -761,9 +771,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -907,7 +919,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 224
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -930,6 +942,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -991,9 +1004,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -1137,7 +1152,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 221
+      "count": 224
     },
     "claude_meta": {
       "agent": "claude",
@@ -1160,6 +1175,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -1221,9 +1237,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -1398,7 +1416,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 252
+      "count": 255
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -1421,6 +1439,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -1482,9 +1501,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -1638,7 +1659,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "claude_python": {
       "agent": "claude",
@@ -1661,6 +1682,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -1722,9 +1744,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -1856,7 +1880,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 209
+      "count": 212
     },
     "claude_react-native": {
       "agent": "claude",
@@ -1879,6 +1903,7 @@
         ".claude/commands/role-documenter.md",
         ".claude/commands/role-implementer.md",
         ".claude/commands/role-observer.md",
+        ".claude/commands/role-onboarder.md",
         ".claude/commands/role-refactorer.md",
         ".claude/commands/role-researcher.md",
         ".claude/commands/role-reviewer.md",
@@ -1940,9 +1965,11 @@
         ".claude/hooks/inject-mcp-caller-session.sh",
         ".claude/hooks/inject-resume-prompt.sh",
         ".claude/hooks/intent-primer.sh",
+        ".claude/hooks/jit-recall.sh",
         ".claude/hooks/lint-task.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-graph-os.sh",
+        ".claude/hooks/nudge-learn-narrative.sh",
         ".claude/hooks/nudge-task-discovery.sh",
         ".claude/hooks/nudge-thinking-os.sh",
         ".claude/hooks/prevent-premature-done.sh",
@@ -2096,7 +2123,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 231
+      "count": 234
     },
     "codex_base": {
       "agent": "codex",
@@ -2117,6 +2144,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -2185,9 +2213,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -2316,7 +2346,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 213
+      "count": 216
     },
     "codex_django": {
       "agent": "codex",
@@ -2339,6 +2369,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -2407,9 +2438,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -2554,7 +2587,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 229
+      "count": 232
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -2577,6 +2610,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -2645,9 +2679,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -2785,7 +2821,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 222
+      "count": 225
     },
     "codex_go": {
       "agent": "codex",
@@ -2808,6 +2844,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -2876,9 +2913,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -3019,7 +3058,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 228
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -3042,6 +3081,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -3110,9 +3150,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -3253,7 +3295,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 225
+      "count": 228
     },
     "codex_meta": {
       "agent": "codex",
@@ -3276,6 +3318,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -3344,9 +3387,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -3518,7 +3563,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 256
+      "count": 259
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -3541,6 +3586,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -3609,9 +3655,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -3762,7 +3810,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "codex_python": {
       "agent": "codex",
@@ -3785,6 +3833,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -3853,9 +3902,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -3984,7 +4035,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 213
+      "count": 216
     },
     "codex_react-native": {
       "agent": "codex",
@@ -4007,6 +4058,7 @@
         ".codex/commands/role-documenter.md",
         ".codex/commands/role-implementer.md",
         ".codex/commands/role-observer.md",
+        ".codex/commands/role-onboarder.md",
         ".codex/commands/role-refactorer.md",
         ".codex/commands/role-researcher.md",
         ".codex/commands/role-reviewer.md",
@@ -4075,9 +4127,11 @@
         ".codex/hooks/inject-mcp-caller-session.sh",
         ".codex/hooks/inject-resume-prompt.sh",
         ".codex/hooks/intent-primer.sh",
+        ".codex/hooks/jit-recall.sh",
         ".codex/hooks/lint-task.sh",
         ".codex/hooks/nudge-docs-first.sh",
         ".codex/hooks/nudge-graph-os.sh",
+        ".codex/hooks/nudge-learn-narrative.sh",
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/prevent-premature-done.sh",
@@ -4228,7 +4282,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 235
+      "count": 238
     },
     "cursor_base": {
       "agent": "cursor",
@@ -4256,6 +4310,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -4324,9 +4379,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -4449,7 +4506,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 214
+      "count": 217
     },
     "cursor_django": {
       "agent": "cursor",
@@ -4484,6 +4541,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -4552,9 +4610,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -4688,7 +4748,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 230
+      "count": 233
     },
     "cursor_fastapi": {
       "agent": "cursor",
@@ -4723,6 +4783,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -4791,9 +4852,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -4920,7 +4983,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 223
+      "count": 226
     },
     "cursor_go": {
       "agent": "cursor",
@@ -4958,6 +5021,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -5026,9 +5090,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -5155,7 +5221,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 229
     },
     "cursor_go-fiber": {
       "agent": "cursor",
@@ -5193,6 +5259,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -5261,9 +5328,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -5390,7 +5459,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 226
+      "count": 229
     },
     "cursor_meta": {
       "agent": "cursor",
@@ -5452,6 +5521,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -5520,9 +5590,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -5656,7 +5728,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 257
+      "count": 260
     },
     "cursor_nextjs": {
       "agent": "cursor",
@@ -5691,6 +5763,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -5759,9 +5832,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -5901,7 +5976,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     },
     "cursor_python": {
       "agent": "cursor",
@@ -5931,6 +6006,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -5999,9 +6075,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -6124,7 +6202,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 214
+      "count": 217
     },
     "cursor_react-native": {
       "agent": "cursor",
@@ -6167,6 +6245,7 @@
         ".cursor/commands/role-documenter.md",
         ".cursor/commands/role-implementer.md",
         ".cursor/commands/role-observer.md",
+        ".cursor/commands/role-onboarder.md",
         ".cursor/commands/role-refactorer.md",
         ".cursor/commands/role-researcher.md",
         ".cursor/commands/role-reviewer.md",
@@ -6235,9 +6314,11 @@
         ".cursor/hooks/inject-mcp-caller-session.sh",
         ".cursor/hooks/inject-resume-prompt.sh",
         ".cursor/hooks/intent-primer.sh",
+        ".cursor/hooks/jit-recall.sh",
         ".cursor/hooks/lint-task.sh",
         ".cursor/hooks/nudge-docs-first.sh",
         ".cursor/hooks/nudge-graph-os.sh",
+        ".cursor/hooks/nudge-learn-narrative.sh",
         ".cursor/hooks/nudge-task-discovery.sh",
         ".cursor/hooks/nudge-thinking-os.sh",
         ".cursor/hooks/prevent-premature-done.sh",
@@ -6369,7 +6450,7 @@
         "src/mobile/tsconfig.json",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 239
     }
   }
 }

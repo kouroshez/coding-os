@@ -77,6 +77,10 @@ def _scaffold(agent: str, templates: list[str], target: Path) -> None:
         "--no-git",
         "--force",
         "--no-register",
+        # Manifest captures scaffolded file paths only; the RAG index lives in the
+        # gitignored runtime DB (excluded by _collect_paths). Skipping it turns a
+        # ~5-min 27-section run (embedding-model load per section) into ~1 min.
+        "--no-index",
     ]
     for t in templates:
         cmd.extend(["--template", t])
