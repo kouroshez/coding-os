@@ -1069,3 +1069,63 @@ class TestMigrationV35ScaleFoundation:
             "WHERE task_id IN ('TASK-904', 'TASK-905', 'TASK-906')"
         ).fetchone()[0]
         assert count == 0
+
+
+class TestV36ScrubUsername:
+    """v36 backfill strips the local username from historical observations
+    (files_modified + title) — the PII the on-disk corpus leaked pre-fix."""
+
+    def test_backfill_scrubs_root_and_home(self, tmp_path: Path) -> None:
+        import os
+
+        from database import _migrate_v36_scrub_username_from_observations
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)
+        root, home = str(tmp_path), os.path.expanduser("~")
+        conn.execute(
+            "INSERT INTO observations (session_id,tool_name,observation_type,memory_type,"
+            "impact_score,title,narrative,files_modified,content_hash) "
+            "VALUES ('s','Edit','edit','discovery',0.5,?,?,?, 'h1')",
+            (f"Modified {root}/src/a.py", "n", f"{root}/src/a.py"),
+        )
+        conn.execute(
+            "INSERT INTO observations (session_id,tool_name,observation_type,memory_type,"
+            "impact_score,title,narrative,files_modified,content_hash) "
+            "VALUES ('s','Edit','edit','discovery',0.5,?,?,?, 'h2')",
+            (f"Modified {home}/x/b.py", "n", f"{home}/x/b.py"),
+        )
+        conn.commit()
+
+        _migrate_v36_scrub_username_from_observations(conn)
+
+        rows = conn.execute(
+            "SELECT title, files_modified FROM observations ORDER BY content_hash"
+        ).fetchall()
+        conn.close()
+        assert rows[0][1] == "src/a.py" and rows[0][0] == "Modified src/a.py"
+        assert rows[1][1] == "~/x/b.py"
+        for title, fm in rows:  # no row leaks the absolute root or home prefix
+            assert root + "/" not in (title or "") and root + "/" not in (fm or "")
+            assert home + "/" not in (fm or "")
+
+    def test_backfill_idempotent(self, tmp_path: Path) -> None:
+        from database import _migrate_v36_scrub_username_from_observations
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)
+        conn.execute(
+            "INSERT INTO observations (session_id,tool_name,observation_type,memory_type,"
+            "impact_score,title,narrative,files_modified,content_hash) "
+            "VALUES ('s','Edit','edit','discovery',0.5,?,?,?, 'h1')",
+            (f"Modified {tmp_path}/src/a.py", "n", f"{tmp_path}/src/a.py"),
+        )
+        conn.commit()
+        _migrate_v36_scrub_username_from_observations(conn)
+        first = conn.execute("SELECT files_modified FROM observations").fetchone()[0]
+        _migrate_v36_scrub_username_from_observations(conn)  # second run = no-op
+        second = conn.execute("SELECT files_modified FROM observations").fetchone()[0]
+        conn.close()
+        assert first == second == "src/a.py"

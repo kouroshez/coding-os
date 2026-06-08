@@ -1745,6 +1745,51 @@ END;
     )
 
 
+def _migrate_v36_scrub_username_from_observations(conn: sqlite3.Connection) -> None:
+    """Migration v36 — backfill: strip the local OS username from existing
+    observations.files_modified + title (pre-fix rows leaked /Users/<name>/…,
+    a PII exposure per memory.md § Privacy). Idempotent: re-running finds no
+    home/root prefix to replace. The capture-time fix (_scrub_username) keeps
+    new rows clean; this scrubs the historical corpus with no backfill before it."""
+    import os
+
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v36 skipped: observations not present yet")
+        return
+
+    root = None
+    for row in conn.execute("PRAGMA database_list").fetchall():
+        db_str = row[2] if len(row) > 2 else None
+        if db_str and db_str not in ("", ":memory:"):
+            dbp = Path(db_str).resolve()
+            if dbp.parent.name == ".coding-os":
+                root = str(dbp.parent.parent)
+                break
+    home = os.path.expanduser("~")
+
+    def _scrub(text: str) -> str:
+        out = text or ""
+        if root:
+            out = out.replace(root + "/", "")
+        if home and home != "~":
+            out = out.replace(home + "/", "~/")
+        return out
+
+    scrubbed = 0
+    for rid, title, fm in conn.execute(
+        "SELECT id, title, files_modified FROM observations"
+    ).fetchall():
+        new_title, new_fm = _scrub(title or ""), _scrub(fm or "")
+        if new_title != (title or "") or new_fm != (fm or ""):
+            conn.execute(
+                "UPDATE observations SET title = ?, files_modified = ? WHERE id = ?",
+                (new_title, new_fm, rid),
+            )
+            scrubbed += 1
+    conn.commit()
+    logger.info("Migration v36 applied: scrubbed username from %d observation row(s)", scrubbed)
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2041,6 +2086,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         35,
         "Scale foundation: keyset indexes + tasks_fts + task_dependencies junction",
         _migrate_v35_scale_foundation,
+    ),
+    (
+        36,
+        "PII backfill v36: scrub local username from observations.files_modified + title",
+        _migrate_v36_scrub_username_from_observations,
     ),
 ]
 

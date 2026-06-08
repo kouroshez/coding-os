@@ -330,3 +330,42 @@ class TestCaptureEmbeddingIntegration:
             db_path=db_path,
         )
         assert result["status"] == "captured"
+
+
+class TestScrubUsername:
+    """files_modified must not leak the local OS username (memory.md § Privacy):
+    in-repo → relative, $HOME → ~/, /tmp kept (no username, GC needs the prefix)."""
+
+    def _db(self, tmp_path: Path) -> Path:
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        return db
+
+    def test_in_repo_becomes_relative(self, tmp_path: Path) -> None:
+        from capture import _scrub_username
+
+        assert _scrub_username(str(tmp_path / "src" / "x.py"), self._db(tmp_path)) == "src/x.py"
+
+    def test_home_outside_repo_becomes_tilde(self, tmp_path: Path) -> None:
+        from capture import _scrub_username
+
+        out = _scrub_username(str(Path.home() / "elsewhere" / "y.py"), self._db(tmp_path))
+        assert out == "~/elsewhere/y.py"
+        assert Path.home().name not in out  # username segment never leaks
+
+    def test_tmp_path_kept_absolute(self, tmp_path: Path) -> None:
+        from capture import _scrub_username
+
+        assert _scrub_username("/tmp/foo.py", self._db(tmp_path)) == "/tmp/foo.py"
+
+    def test_capture_stores_scrubbed_files_modified(self, tmp_path: Path) -> None:
+        db = self._db(tmp_path)
+        init_db(db)
+        capture_observation(
+            {"tool_name": "Edit", "tool_input": {"file_path": str(tmp_path / "src" / "z.py")}},
+            db_path=db,
+        )
+        conn = sqlite3.connect(str(db))
+        fm = conn.execute("SELECT files_modified FROM observations LIMIT 1").fetchone()[0]
+        conn.close()
+        assert fm == "src/z.py"  # not the absolute usernamed path

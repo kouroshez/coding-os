@@ -236,6 +236,29 @@ def _display_path(file_path: str, db_path: str | Path) -> str:
     return file_path
 
 
+def _scrub_username(file_path: str, db_path: str | Path) -> str:
+    """files_modified WITHOUT the local username — in-repo abs → repo-relative,
+    abs under $HOME → `~/…`. Unlike _display_path it does NOT basename other
+    absolutes (/tmp, /var/folders carry no username and memory GC needs the
+    prefix). The PII fix for the column most likely to be exported (memory.md
+    § Privacy: never record customer-identifying strings — the OS username is one)."""
+    try:
+        p = Path(file_path)
+        dbp = Path(db_path).resolve()
+        if dbp.parent.name == ".coding-os":
+            root = dbp.parent.parent
+            rp = p.resolve()
+            if rp == root or root in rp.parents:
+                return str(rp.relative_to(root))
+        if p.is_absolute():
+            home = Path.home()
+            if home in p.parents:
+                return "~/" + str(p.relative_to(home))
+    except (ValueError, OSError, RuntimeError):
+        return file_path
+    return file_path
+
+
 def capture_observation(input_data: dict, db_path: str | Path | None = None) -> dict:
     """Process a tool call and write an observation to the DB.
 
@@ -265,6 +288,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
     # file (single file_path with multiple hunks) so we treat it as an
     # Edit for narrative purposes — the hunk count lives in edits[].
     display_path = _display_path(file_path, path)
+    stored_path = _scrub_username(file_path, path)  # files_modified: no username, GC-prefix kept
     title = (
         f"Modified {display_path}"
         if tool_name in ("Edit", "MultiEdit")
@@ -332,7 +356,7 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
                 impact_score,
                 title,
                 narrative,
-                file_path,
+                stored_path,
                 cost_tokens,
                 content_hash,
                 concepts,
@@ -340,11 +364,13 @@ def capture_observation(input_data: dict, db_path: str | Path | None = None) -> 
         )
         conn.commit()
 
-        # Record co-edit edges in concept graph (fire-and-forget)
+        # Record co-edit edges in concept graph (fire-and-forget). Use the same
+        # scrubbed path so the graph keys stay username-free AND match the stored
+        # files_modified (else the != self-exclusion breaks).
         try:
             from graph import record_co_edit
 
-            record_co_edit(conn, session_id=session_id, file_path=file_path)
+            record_co_edit(conn, session_id=session_id, file_path=stored_path)
         except Exception:
             pass  # graph table may not exist (pre-v4 DB)
 
