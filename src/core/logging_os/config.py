@@ -36,8 +36,31 @@ STATE_DIR_NAME = ".coding-os"
 LOG_BASENAME = ".cos.log"
 
 
+def _discover_project_root() -> Path | None:
+    # Walk up from the process CWD for a repo/project marker so the .coding-os
+    # state dir anchors to the PROJECT ROOT, not wherever the process happened to
+    # start. Returns None when no marker is found (caller keeps the CWD fallback).
+    try:
+        here = Path.cwd().resolve()
+    except OSError:
+        return None
+    for parent in (here, *here.parents):
+        if (parent / ".git").exists() or (parent / "pyproject.toml").is_file():
+            return parent
+    return None
+
+
 def state_dir() -> Path:
-    return Path(os.environ.get("COS_STATE_DIR", STATE_DIR_NAME))
+    explicit = os.environ.get("COS_STATE_DIR")
+    if explicit:
+        return Path(explicit)
+    # Anchor .coding-os to the project root, not the process CWD. Without this a
+    # process started from a subdir (e.g. the MCP server under src/core/thinking_os)
+    # wrote its logs/DB to a sibling .coding-os/ the Hub (rooted at the repo) never
+    # reads, fragmenting the log feed across CWDs (TASK-263). COS_STATE_DIR still
+    # wins; no project marker falls back to the legacy CWD-relative path.
+    root = _discover_project_root()
+    return (root / STATE_DIR_NAME) if root else Path(STATE_DIR_NAME)
 
 
 def text_log_path() -> Path:
