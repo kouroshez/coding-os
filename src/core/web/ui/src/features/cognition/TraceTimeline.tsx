@@ -5,10 +5,13 @@ import { useScopedLink } from '@/lib/use-scoped-link';
 
 interface TraceEvent {
   kind?: string;
-  timestamp?: string;
   ts?: number;
-  formula_id?: string;
-  summary?: string;
+  node?: string;
+  role?: string | null;
+  phase?: string | null;
+  // The producer (thinking_os/tracing.py:112) nests summary/formula_id/
+  // status/latency under `data`; only kind/ts/node/role/phase are top-level.
+  data?: Record<string, unknown> | null;
   raw?: string;
   [key: string]: unknown;
 }
@@ -16,6 +19,7 @@ interface TraceEvent {
 interface SessionMeta {
   agent?: string;
   session_id?: string;
+  sdk_uuid?: string | null;
   pid?: number;
   started_at?: number;
   last_prompt_at?: number;
@@ -34,17 +38,22 @@ interface TracePayload {
   source?: 'trace+session' | 'trace-only' | 'session-only';
 }
 
+// Keys MUST match the kinds thinking_os/tracing.py actually emits.
 const EVENT_COLORS: Record<string, string> = {
-  dispatch: '#3fb950',
+  classify: '#e0a227',
+  analyze_start: '#e0a227',
+  analyze_done: '#e0a227',
+  compose_done: '#7c82f2',
   dispatch_started: '#3fb950',
   dispatch_completed: '#2e9e6e',
-  supervise: '#4c8dff',
-  supervise_record: '#4c8dff',
-  supervise_record_output: '#4c8dff',
+  parallel_dispatch: '#3fb950',
+  role_dispatch: '#4c8dff',
+  role_output_recorded: '#4c8dff',
+  supervise_action: '#4c8dff',
   backtrack: '#f2576b',
-  backtrack_log: '#f2576b',
-  compose_chain: '#7c82f2',
-  analyze_task: '#e0a227',
+  anti_paralysis_warn: '#f0a850',
+  task_done: '#2e9e6e',
+  error: '#f2576b',
 };
 
 function eventColor(kind: string | undefined): string {
@@ -53,7 +62,7 @@ function eventColor(kind: string | undefined): string {
 }
 
 function eventKey(e: TraceEvent, i: number): string {
-  return `${i}-${e.kind ?? 'event'}-${e.timestamp ?? e.ts ?? ''}`;
+  return `${i}-${e.kind ?? 'event'}-${e.ts ?? ''}`;
 }
 
 // Plain-language labels for cognition event kinds so a non-developer reads
@@ -78,12 +87,20 @@ function humanLabel(kind: string): string {
   return KIND_LABEL[kind] ?? kind.replace(/_/g, ' ');
 }
 
+function fmtTime(ts?: number): string {
+  if (!ts) return '';
+  return new Date(ts * 1000).toLocaleTimeString();
+}
+
 function humanDetail(e: TraceEvent): string {
-  if (e.summary) return String(e.summary);
+  const d: Record<string, unknown> = e.data ?? {};
+  if (d.summary) return String(d.summary);
   const bits: string[] = [];
   if (e.role) bits.push(`role: ${String(e.role)}`);
   if (e.phase) bits.push(`phase: ${String(e.phase)}`);
-  if (e.formula_id != null) bits.push(`formula: ${String(e.formula_id)}`);
+  if (d.formula_id != null) bits.push(`formula: ${String(d.formula_id)}`);
+  if (d.status != null) bits.push(`status: ${String(d.status)}`);
+  if (d.latency_ms != null) bits.push(`${String(d.latency_ms)}ms`);
   return bits.join(' · ') || 'no further detail recorded';
 }
 
@@ -136,13 +153,15 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
       <header className="border-b border-[var(--cos-border)] px-4 py-2">
         <div className="flex items-center gap-2">
           <h2 className="font-mono text-xs font-semibold text-[var(--cos-text)]">{data.session_id}</h2>
-          <Link
-            to={scopedLink('cognition', `${encodeURIComponent(data.session_id)}?view=chat`)}
-            className="ml-auto text-[10px] text-[var(--cos-accent)] hover:underline"
-            title="see SDK chat transcript for the session that produced these events"
-          >
-            see chat →
-          </Link>
+          {data.session?.sdk_uuid && (
+            <Link
+              to={scopedLink('cognition', `${encodeURIComponent(data.session.sdk_uuid)}?view=chat`)}
+              className="ml-auto text-[10px] text-[var(--cos-accent)] hover:underline"
+              title="see SDK chat transcript for the session that produced these events"
+            >
+              see chat →
+            </Link>
+          )}
         </div>
         <p className="mt-0.5 text-[10px] text-[var(--cos-muted)]">
           {events.length} event{events.length === 1 ? '' : 's'}
@@ -179,6 +198,7 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
       <ol className="flex-1 overflow-auto p-3 cos-scroll">
         {filtered.map((e, i) => {
           const kind = e.kind ?? 'event';
+          const d: Record<string, unknown> = e.data ?? {};
           const dot = eventColor(kind);
           const key = eventKey(e, i);
           const open = expanded === key;
@@ -199,16 +219,16 @@ export default function TraceTimeline({ sessionId }: { sessionId: string }) {
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-2 w-2 rounded-full" style={{ background: dot }} aria-hidden />
                   <span className="font-semibold">{mode === 'raw' ? kind : humanLabel(kind)}</span>
-                  {e.formula_id != null && (
+                  {d.formula_id != null && (
                     <span className="rounded bg-[var(--cos-border)]/40 px-1 text-[10px] text-[var(--cos-text)]">
-                      {String(e.formula_id)}
+                      {String(d.formula_id)}
                     </span>
                   )}
-                  {e.timestamp && (
-                    <span className="ml-auto text-[10px] text-[var(--cos-muted)]">{String(e.timestamp)}</span>
+                  {e.ts != null && (
+                    <span className="ml-auto text-[10px] text-[var(--cos-muted)]">{fmtTime(e.ts)}</span>
                   )}
                 </div>
-                {e.summary && <p className="mt-1 text-[var(--cos-text)]">{String(e.summary)}</p>}
+                {d.summary != null && <p className="mt-1 text-[var(--cos-text)]">{String(d.summary)}</p>}
               </button>
               {open &&
                 (mode === 'raw' ? (
