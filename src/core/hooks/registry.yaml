@@ -777,6 +777,20 @@ hooks:
         matcher: Bash
         status_message: "💡 Checking if learn-validate reminder is due..."
 
+  - id: jit-recall
+    script: jit-recall.sh
+    description: |
+      PreToolUse Write|Edit just-in-time recall (B2) — surfaces a past friction
+      lesson about the file being edited (lesson text contains its basename) at
+      the moment it matters. Warn-only, debounced once per (file, session).
+    category: reminder
+    phase: O
+    timeout: 5
+    events:
+      - event: PreToolUse
+        matcher: "Write|Edit"
+        status_message: "🧠 Checking for a past lesson on this file..."
+
   # ── meta (coding-os meta-project specific) ────────────────
   - id: check-agents-md-size
     script: check-agents-md-size.sh

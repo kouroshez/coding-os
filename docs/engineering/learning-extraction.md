@@ -179,6 +179,14 @@ calls `_helpers/auto_validate_lessons.py`:
 over the auto one, and the LTP/LTD formulas + decay bound any over-boost.
 Fire-and-forget: any error leaves the reminder behaviour intact.
 
+## Just-in-time recall (at the moment of risk)
+
+Recall isn't only at session start. `jit-recall.sh` (PreToolUse Write|Edit)
+runs `_helpers/jit_recall.py` right before an edit and, if a `lesson` text names
+the file's basename, warns with it (`🧠 [recall] …`) — the same warn surfacing
+`enforce-graph-context` uses. Debounced once per (file, session), warn-only,
+fail-open. Codex skips it (no Write|Edit PreToolUse matcher) — correct, not a gap.
+
 ## Generalization — episodic → semantic (human-gated)
 
 When several lessons recur on a shared theme, `generalize_lessons` (called at the
