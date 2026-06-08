@@ -144,6 +144,7 @@ def create_app() -> FastAPI:
     from web.routes.audits import router as audits_router
     from web.routes.board import router as board_router
     from web.routes.cognition import router as cognition_router
+    from web.routes.config import router as config_router
     from web.routes.graph import router as graph_router
     from web.routes.health import router as health_router
     from web.routes.hooks import router as hooks_router
@@ -165,6 +166,7 @@ def create_app() -> FastAPI:
     app.include_router(graph_router)
     app.include_router(board_router)
     app.include_router(cognition_router)
+    app.include_router(config_router)
     app.include_router(hooks_router)
     app.include_router(logs_router)
     app.include_router(observability_router)
