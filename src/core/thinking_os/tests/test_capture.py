@@ -358,6 +358,17 @@ class TestScrubUsername:
 
         assert _scrub_username("/tmp/foo.py", self._db(tmp_path)) == "/tmp/foo.py"
 
+    def test_dash_encoded_username_scrubbed(self, tmp_path: Path) -> None:
+        # ~/.claude/projects/-Users-<user>-… slug survives the ~/ rewrite — the
+        # dash-encoded username must still be stripped (re-audit gap).
+        from capture import _scrub_username
+
+        dash = str(Path.home()).replace("/", "-")  # /Users/<u> -> -Users-<u>
+        raw = f"{Path.home()}/.claude/projects/{dash}-Files-x/memory/MEMORY.md"
+        out = _scrub_username(raw, self._db(tmp_path))
+        assert Path.home().name not in out  # neither ~/ prefix nor dash slug leaks it
+        assert out.startswith("~/.claude/projects/")
+
     def test_capture_stores_scrubbed_files_modified(self, tmp_path: Path) -> None:
         db = self._db(tmp_path)
         init_db(db)

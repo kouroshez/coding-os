@@ -23,6 +23,7 @@ from sanitizer import (
     SanitizeResult,
     detect_injection,
     sanitize_write,
+    scrub_username,
 )
 
 # ---------------------------------------------------------------------------
@@ -390,6 +391,37 @@ class TestAuditResilience:
         for compiled, label in INJECTION_PATTERNS:
             assert compiled.pattern  # non-empty
             assert label  # non-empty
+
+
+class TestScrubUsername:
+    """The OS username is PII (memory.md § Privacy). scrub_username is the SSOT,
+    folded into sanitize_write so every memory write is username-safe."""
+
+    def test_home_prefix_becomes_tilde(self) -> None:
+        out = scrub_username(f"{Path.home()}/secret/file.py")
+        assert out == "~/secret/file.py"
+        assert Path.home().name not in out
+
+    def test_dash_encoded_home_scrubbed(self) -> None:
+        dash = str(Path.home()).replace("/", "-")  # /Users/<u> -> -Users-<u>
+        out = scrub_username(f"~/.claude/projects/{dash}-Files-x/m.md")
+        assert Path.home().name not in out
+        assert dash not in out
+
+    def test_no_home_no_change(self) -> None:
+        assert scrub_username("/tmp/foo.py") == "/tmp/foo.py"
+        assert scrub_username("") == ""
+
+    def test_sanitize_write_strips_username(self, tmp_db: sqlite3.Connection) -> None:
+        sr = sanitize_write(
+            "narrative",
+            f"edit failed at {Path.home()}/proj/a.py",
+            actor="t",
+            source_table="observations",
+            conn=tmp_db,
+        )
+        assert sr.ok
+        assert Path.home().name not in sr.cleaned
 
     def test_sanitize_result_is_frozen(self) -> None:
         """SanitizeResult is frozen — callers cannot mutate audit output."""

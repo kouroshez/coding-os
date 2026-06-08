@@ -1790,6 +1790,50 @@ def _migrate_v36_scrub_username_from_observations(conn: sqlite3.Connection) -> N
     logger.info("Migration v36 applied: scrubbed username from %d observation row(s)", scrubbed)
 
 
+def _migrate_v37_scrub_narrative_and_dash(conn: sqlite3.Connection) -> None:
+    """Migration v37 — completes the v36 PII backfill: (1) scrub observations.narrative
+    (v36 only touched title+files_modified), and (2) strip the dash-encoded username
+    that survives inside agent project-dir slugs (~/.claude/projects/-Users-<name>-…)
+    across title+narrative+files_modified. Idempotent. SSOT scrub: sanitizer.scrub_username."""
+    import os
+
+    if not _table_exists(conn, "observations"):
+        logger.info("Migration v37 skipped: observations not present yet")
+        return
+
+    from sanitizer import scrub_username
+
+    root = None
+    for row in conn.execute("PRAGMA database_list").fetchall():
+        db_str = row[2] if len(row) > 2 else None
+        if db_str and db_str not in ("", ":memory:"):
+            dbp = Path(db_str).resolve()
+            if dbp.parent.name == ".coding-os":
+                root = str(dbp.parent.parent)
+                break
+    home = os.path.expanduser("~")
+
+    def _scrub(text: str) -> str:
+        out = text or ""
+        if root:
+            out = out.replace(root + "/", "")
+        return scrub_username(out, home=home)
+
+    scrubbed = 0
+    for rid, title, narrative, fm in conn.execute(
+        "SELECT id, title, narrative, files_modified FROM observations"
+    ).fetchall():
+        nt, nn, nf = _scrub(title or ""), _scrub(narrative or ""), _scrub(fm or "")
+        if nt != (title or "") or nn != (narrative or "") or nf != (fm or ""):
+            conn.execute(
+                "UPDATE observations SET title = ?, narrative = ?, files_modified = ? WHERE id = ?",
+                (nt, nn, nf, rid),
+            )
+            scrubbed += 1
+    conn.commit()
+    logger.info("Migration v37 applied: scrubbed narrative/dash-username from %d row(s)", scrubbed)
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2091,6 +2135,11 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         36,
         "PII backfill v36: scrub local username from observations.files_modified + title",
         _migrate_v36_scrub_username_from_observations,
+    ),
+    (
+        37,
+        "PII backfill v37: scrub observations.narrative + dash-encoded username in project slugs",
+        _migrate_v37_scrub_narrative_and_dash,
     ),
 ]
 

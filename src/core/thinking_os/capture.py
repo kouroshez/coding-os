@@ -242,21 +242,28 @@ def _scrub_username(file_path: str, db_path: str | Path) -> str:
     absolutes (/tmp, /var/folders carry no username and memory GC needs the
     prefix). The PII fix for the column most likely to be exported (memory.md
     § Privacy: never record customer-identifying strings — the OS username is one)."""
+    from sanitizer import scrub_username
+
+    result = file_path
     try:
         p = Path(file_path)
         dbp = Path(db_path).resolve()
+        matched = False
         if dbp.parent.name == ".coding-os":
             root = dbp.parent.parent
             rp = p.resolve()
             if rp == root or root in rp.parents:
-                return str(rp.relative_to(root))
-        if p.is_absolute():
+                result = str(rp.relative_to(root))
+                matched = True
+        if not matched and p.is_absolute():
             home = Path.home()
             if home in p.parents:
-                return "~/" + str(p.relative_to(home))
+                result = "~/" + str(p.relative_to(home))
     except (ValueError, OSError, RuntimeError):
-        return file_path
-    return file_path
+        result = file_path
+    # Dash-encoded username inside agent project-dir slugs survives the
+    # relative_to/~ rewrites above (e.g. ~/.claude/projects/-Users-<name>-…).
+    return scrub_username(result)
 
 
 def capture_observation(input_data: dict, db_path: str | Path | None = None) -> dict:

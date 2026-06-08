@@ -29,6 +29,7 @@ Public API:
 
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 from dataclasses import dataclass
@@ -145,6 +146,24 @@ def redact_secrets(text: str) -> tuple[str, list[str]]:
     return text, labels
 
 
+def scrub_username(text: str, home: str | None = None) -> str:
+    """Strip the local OS username from `text` — the $HOME prefix (→ `~/`) and
+    the dash-encoded $HOME used in agent project-dir slugs
+    (`~/.claude/projects/-Users-<name>-…` → `~/.claude/projects/-~-…`). The OS
+    username is a customer-identifying string (memory.md § Privacy); this is the
+    SSOT scrub folded into sanitize_write so every memory write is username-safe.
+    Repo-root relativization stays in capture._scrub_username (needs the db path)."""
+    if not text:
+        return text
+    h = home if home is not None else os.path.expanduser("~")
+    if h and h != "~":
+        text = text.replace(h + "/", "~/")
+        dash = h.replace("/", "-")
+        if dash and dash != "-":
+            text = text.replace(dash, "-~")
+    return text
+
+
 # ---------------------------------------------------------------------------
 # Result shape
 # ---------------------------------------------------------------------------
@@ -239,6 +258,7 @@ def sanitize_write(
     # a write is preserved without ever persisting the secret.
     redacted, redaction_labels = redact_secrets(original)
     was_redacted = bool(redaction_labels)
+    redacted = scrub_username(redacted)  # SSOT: never persist the OS username (PII)
 
     cap = FIELD_CAPS.get(field)
     cleaned = redacted if cap is None else _truncate(redacted, cap)

@@ -1129,3 +1129,64 @@ class TestV36ScrubUsername:
         second = conn.execute("SELECT files_modified FROM observations").fetchone()[0]
         conn.close()
         assert first == second == "src/a.py"
+
+
+class TestV37ScrubNarrativeAndDash:
+    """v37 completes v36: scrubs observations.narrative (v36 missed it) and the
+    dash-encoded username inside agent project-dir slugs (-Users-<name>-…)."""
+
+    def _slug(self, home: str) -> str:
+        dash = home.replace("/", "-")  # /Users/<u> -> -Users-<u>
+        return f"~/.claude/projects/{dash}-Files-x/memory/M.md"
+
+    def test_backfill_scrubs_narrative_and_dash(self, tmp_path: Path) -> None:
+        import os
+
+        from database import _migrate_v37_scrub_narrative_and_dash
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)
+        home = os.path.expanduser("~")
+        user, dash, slug = Path(home).name, home.replace("/", "-"), self._slug(home)
+        conn.execute(
+            "INSERT INTO observations (session_id,tool_name,observation_type,memory_type,"
+            "impact_score,title,narrative,files_modified,content_hash) "
+            "VALUES ('s','Edit','edit','discovery',0.5,?,?,?, 'h1')",
+            (f"Modified {slug}", f"failed on {home}/x/secret.py", slug),
+        )
+        conn.commit()
+
+        _migrate_v37_scrub_narrative_and_dash(conn)
+
+        title, narrative, fm = conn.execute(
+            "SELECT title, narrative, files_modified FROM observations"
+        ).fetchone()
+        conn.close()
+        assert home + "/" not in narrative  # narrative scrubbed (the v36 gap)
+        assert "~/" in narrative
+        assert dash not in fm and dash not in title  # dash slug scrubbed
+        assert user not in title and user not in narrative and user not in fm
+
+    def test_backfill_idempotent(self, tmp_path: Path) -> None:
+        import os
+
+        from database import _migrate_v37_scrub_narrative_and_dash
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)
+        slug = self._slug(os.path.expanduser("~"))
+        conn.execute(
+            "INSERT INTO observations (session_id,tool_name,observation_type,memory_type,"
+            "impact_score,title,narrative,files_modified,content_hash) "
+            "VALUES ('s','Edit','edit','discovery',0.5,?,?,?, 'h1')",
+            ("t", "n", slug),
+        )
+        conn.commit()
+        _migrate_v37_scrub_narrative_and_dash(conn)
+        first = conn.execute("SELECT files_modified FROM observations").fetchone()[0]
+        _migrate_v37_scrub_narrative_and_dash(conn)  # second run = no-op
+        second = conn.execute("SELECT files_modified FROM observations").fetchone()[0]
+        conn.close()
+        assert first == second
